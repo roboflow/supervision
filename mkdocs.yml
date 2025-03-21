@@ -151,7 +151,9 @@ plugins:
             show_symbol_type_heading: true
             show_symbol_type_toc: true
             show_category_heading: true
-          domains: [std, py]
+          inventories:
+          - url: https://docs.python-requests.org/en/master/objects.inv
+            domains: [std, py]
   - git-committers:
       repository: roboflow/supervision
       branch: develop
