@@ -3307,6 +3307,7 @@ is either a NumPy array or a list of corresponding data of length <code>n</code>
 
 
 
+
               <details class="quote">
                 <summary>Source code in <code>supervision/keypoint/core.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-15"> 15</a></span>
@@ -4938,6 +4939,7 @@ data.</p>
 <a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="n">key_points</span><span class="p">[</span><span class="n">key_points</span><span class="o">.</span><span class="n">confidence</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">]</span>
 </code></pre></div>
 
+
             <details class="quote">
               <summary>Source code in <code>supervision/keypoint/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-600">600</a></span>
@@ -5061,6 +5063,7 @@ data.</p>
         <p>Iterates over the Keypoint object and yield a tuple of
 <code>(xy, confidence, class_id, data)</code> for each object detection.</p>
 
+
             <details class="quote">
               <summary>Source code in <code>supervision/keypoint/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-124">124</a></span>
@@ -5126,6 +5129,7 @@ data.</p>
     <div class="doc doc-contents ">
 
         <p>Returns the number of keypoints in the <code>sv.KeyPoints</code> object.</p>
+
 
             <details class="quote">
               <summary>Source code in <code>supervision/keypoint/core.py</code></summary>
@@ -5222,6 +5226,7 @@ data.</p>
 <a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>     <span class="ow">in</span> <span class="n">keypoints</span><span class="o">.</span><span class="n">class_id</span>
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a> <span class="p">]</span>
 </code></pre></div>
+
 
             <details class="quote">
               <summary>Source code in <code>supervision/keypoint/core.py</code></summary>
@@ -5375,6 +5380,7 @@ e.g. when some are occluded. Captures all keypoints by default.</p>
     <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">keypoints</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">KeyPoints</span><span class="o">.</span><span class="n">from_inference</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">keypoints</span><span class="o">.</span><span class="n">as_detections</span><span class="p">()</span>
 </code></pre></div>
+
 
             <details class="quote">
               <summary>Source code in <code>supervision/keypoint/core.py</code></summary>
@@ -5556,6 +5562,7 @@ e.g. when some are occluded. Captures all keypoints by default.</p>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">key_points</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">KeyPoints</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
 </code></pre></div>
 
+
             <details class="quote">
               <summary>Source code in <code>supervision/keypoint/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-687">687</a></span>
@@ -5686,6 +5693,7 @@ and class names, and confidences of each keypoint.</p>
 <a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">result</span> <span class="o">=</span> <span class="n">predictor</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
 <a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="n">keypoints</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">KeyPoints</span><span class="o">.</span><span class="n">from_detectron2</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </code></pre></div>
+
 
             <details class="quote">
               <summary>Source code in <code>supervision/keypoint/core.py</code></summary>
@@ -5894,6 +5902,7 @@ and class names, and confidences of each keypoint.</p>
 <a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">result</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">infer</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">model_id</span><span class="o">=&lt;</span><span class="n">POSE_MODEL_ID</span><span class="o">&gt;</span><span class="p">)</span>
 <a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="n">key_points</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">KeyPoints</span><span class="o">.</span><span class="n">from_inference</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </code></pre></div>
+
 
             <details class="quote">
               <summary>Source code in <code>supervision/keypoint/core.py</code></summary>
@@ -6213,6 +6222,7 @@ confidences of each keypoint.</p>
 <a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="n">key_points</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">KeyPoints</span><span class="o">.</span><span class="n">from_mediapipe</span><span class="p">(</span>
 <a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>    <span class="n">face_landmarker_result</span><span class="p">,</span> <span class="p">(</span><span class="n">image_width</span><span class="p">,</span> <span class="n">image_height</span><span class="p">))</span>
 </code></pre></div>
+
 
             <details class="quote">
               <summary>Source code in <code>supervision/keypoint/core.py</code></summary>
@@ -6594,6 +6604,7 @@ and class names, and confidences of each keypoint.</p>
 <a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a><span class="n">key_point</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">KeyPoints</span><span class="o">.</span><span class="n">from_transformers</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 </code></pre></div>
 
+
             <details class="quote">
               <summary>Source code in <code>supervision/keypoint/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-515">515</a></span>
@@ -6855,6 +6866,7 @@ and class names, and confidences of each keypoint.</p>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">key_points</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">KeyPoints</span><span class="o">.</span><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </code></pre></div>
 
+
             <details class="quote">
               <summary>Source code in <code>supervision/keypoint/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-367">367</a></span>
@@ -7027,6 +7039,7 @@ and class names, and confidences of each keypoint.</p>
 <a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">key_points</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">KeyPoints</span><span class="o">.</span><span class="n">from_yolo_nas</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 </code></pre></div>
 
+
             <details class="quote">
               <summary>Source code in <code>supervision/keypoint/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-405">405</a></span>
@@ -7162,6 +7175,7 @@ and class names, and confidences of each keypoint.</p>
     <div class="doc doc-contents ">
 
         <p>Returns <code>True</code> if the <code>KeyPoints</code> object is considered empty.</p>
+
 
             <details class="quote">
               <summary>Source code in <code>supervision/keypoint/core.py</code></summary>

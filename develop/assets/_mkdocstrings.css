@@ -42,6 +42,28 @@
   font-weight: bold;
 }
 
+/* Backlinks crumb separator. */
+.doc-backlink-crumb {
+  display: inline-flex;
+  gap: .2rem;
+  white-space: nowrap;
+  align-items: center;
+  vertical-align: middle;
+}
+.doc-backlink-crumb:not(:first-child)::before {
+  background-color: var(--md-default-fg-color--lighter);
+  content: "";
+  display: inline;
+  height: 1rem;
+  --md-path-icon: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58 13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>');
+  -webkit-mask-image: var(--md-path-icon);
+  mask-image: var(--md-path-icon);
+  width: 1rem;
+}
+.doc-backlink-crumb.last {
+  font-weight: bold;
+}
+
 /* Symbols in Navigation and ToC. */
 :root, :host,
 [data-md-color-scheme="default"] {
@@ -83,7 +105,8 @@ code.doc-symbol {
   font-weight: bold;
 }
 
-code.doc-symbol-parameter {
+code.doc-symbol-parameter,
+a code.doc-symbol-parameter {
   color: var(--doc-symbol-parameter-fg-color);
   background-color: var(--doc-symbol-parameter-bg-color);
 }
@@ -92,7 +115,8 @@ code.doc-symbol-parameter::after {
   content: "param";
 }
 
-code.doc-symbol-attribute {
+code.doc-symbol-attribute,
+a code.doc-symbol-attribute {
   color: var(--doc-symbol-attribute-fg-color);
   background-color: var(--doc-symbol-attribute-bg-color);
 }
@@ -101,7 +125,8 @@ code.doc-symbol-attribute::after {
   content: "attr";
 }
 
-code.doc-symbol-function {
+code.doc-symbol-function,
+a code.doc-symbol-function {
   color: var(--doc-symbol-function-fg-color);
   background-color: var(--doc-symbol-function-bg-color);
 }
@@ -110,7 +135,8 @@ code.doc-symbol-function::after {
   content: "func";
 }
 
-code.doc-symbol-method {
+code.doc-symbol-method,
+a code.doc-symbol-method {
   color: var(--doc-symbol-method-fg-color);
   background-color: var(--doc-symbol-method-bg-color);
 }
@@ -119,7 +145,8 @@ code.doc-symbol-method::after {
   content: "meth";
 }
 
-code.doc-symbol-class {
+code.doc-symbol-class,
+a code.doc-symbol-class {
   color: var(--doc-symbol-class-fg-color);
   background-color: var(--doc-symbol-class-bg-color);
 }
@@ -128,7 +155,8 @@ code.doc-symbol-class::after {
   content: "class";
 }
 
-code.doc-symbol-module {
+code.doc-symbol-module,
+a code.doc-symbol-module {
   color: var(--doc-symbol-module-fg-color);
   background-color: var(--doc-symbol-module-bg-color);
 }

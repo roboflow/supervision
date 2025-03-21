@@ -4196,6 +4196,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 
 
 
+
               <details class="quote">
                 <summary>Source code in <code>supervision/detection/core.py</code></summary>
                 <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-49">  49</a></span>
@@ -7030,6 +7031,7 @@ where n is the number of detections.</p>
           </tr>
       </tbody>
     </table>
+
     </div>
 
 </div>
@@ -7076,6 +7078,7 @@ where n is the number of detections.</p>
           </tr>
       </tbody>
     </table>
+
     </div>
 
 </div>
@@ -7171,6 +7174,7 @@ the data field.</p>
 <a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">feature_vector</span> <span class="o">=</span> <span class="n">detections</span><span class="p">[</span><span class="s1">&#39;feature_vector&#39;</span><span class="p">]</span>
 </code></pre></div>
 </details>
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1209">1209</a></span>
@@ -7290,6 +7294,7 @@ the data field.</p>
         <p>Iterates over the Detections object and yield a tuple of
 <code>(xyxy, mask, confidence, class_id, tracker_id, data)</code> for each detection.</p>
 
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-161">161</a></span>
@@ -7359,6 +7364,7 @@ the data field.</p>
     <div class="doc doc-contents ">
 
         <p>Returns the number of detections in the Detections object.</p>
+
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
@@ -7457,6 +7463,7 @@ the data field.</p>
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a> <span class="p">]</span>
 </code></pre></div>
 </details>
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1259">1259</a></span>
@@ -7581,6 +7588,7 @@ the data field.</p>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">empty_detections</span> <span class="o">=</span> <span class="n">Detections</span><span class="o">.</span><span class="n">empty</span><span class="p">()</span>
 </code></pre></div>
 </details>
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1008">1008</a></span>
@@ -7744,6 +7752,7 @@ names (str). If None, a new mapping is created dynamically.</p>
 <a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_azure_analyze_image</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
 </code></pre></div>
 </details>
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-675">675</a></span>
@@ -8010,6 +8019,7 @@ inference result.</p>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_deepsparse</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </code></pre></div>
 </details>
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-383">383</a></span>
@@ -8182,6 +8192,7 @@ class IDs, and confidences of the predictions.</p>
 <a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_detectron2</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </code></pre></div>
 </details>
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-536">536</a></span>
@@ -8362,6 +8373,7 @@ class IDs, and confidences of the predictions.</p>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">detected_text</span> <span class="o">=</span> <span class="n">detections</span><span class="p">[</span><span class="s2">&quot;class_name&quot;</span><span class="p">]</span>
 </code></pre></div>
 </details>
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-904">904</a></span>
@@ -8550,6 +8562,7 @@ and confidences of the predictions.</p>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_inference</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </code></pre></div>
 </details>
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-581">581</a></span>
@@ -8815,6 +8828,7 @@ disallowed arguments are provided.</p>
 <a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="c1"># array([0])</span>
 </code></pre></div>
 
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-804">804</a></span>
@@ -9049,6 +9063,7 @@ disallowed arguments are provided.</p>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_mmdetection</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </code></pre></div>
 </details>
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-420">420</a></span>
@@ -9221,6 +9236,7 @@ Supports object detection models.</p>
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_ncnn</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </code></pre></div>
 </details>
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-950"> 950</a></span>
@@ -9435,6 +9451,7 @@ Supports object detection models.</p>
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_paddledet</span><span class="p">(</span><span class="n">paddledet_result</span><span class="p">)</span>
 </code></pre></div>
 </details>
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-762">762</a></span>
@@ -9613,6 +9630,7 @@ inference result.</p>
 <a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_sam</span><span class="p">(</span><span class="n">sam_result</span><span class="o">=</span><span class="n">sam_result</span><span class="p">)</span>
 </code></pre></div>
 </details>
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-633">633</a></span>
@@ -9790,6 +9808,7 @@ inference result.</p>
 <a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_tensorflow</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </code></pre></div>
 </details>
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-342">342</a></span>
@@ -10000,6 +10019,7 @@ provided, the resulting dictionary will include class names.</p>
 <a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="p">)</span>
 </code></pre></div>
 </details>
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-457">457</a></span>
@@ -10255,6 +10275,7 @@ provided, the resulting dictionary will include class names.</p>
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 </code></pre></div>
 </details>
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-233">233</a></span>
@@ -10491,6 +10512,7 @@ ImageDetectionPrediction is coming from
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_yolo_nas</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </code></pre></div>
 </details>
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-304">304</a></span>
@@ -10657,6 +10679,7 @@ ImageDetectionPrediction is coming from
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_yolov5</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </code></pre></div>
 </details>
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-200">200</a></span>
@@ -10825,6 +10848,7 @@ anchor point for the corresponding bounding box.</p>
       </tbody>
     </table>
 
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1143">1143</a></span>
@@ -10975,6 +10999,7 @@ anchor point for the corresponding bounding box.</p>
 
         <p>Returns <code>True</code> if the <code>Detections</code> object is considered empty.</p>
 
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1030">1030</a></span>
@@ -11111,6 +11136,7 @@ the merged data from the input list.</p>
 <a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="n">array</span><span class="p">([</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">])</span>
 </code></pre></div>
 </details>
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1039">1039</a></span>
@@ -11436,6 +11462,7 @@ class_agnostic is False.</p>
     </table>
         <p><img align="center" alt="non-max-merging" src="https://media.roboflow.com/supervision-docs/non-max-merging.png" width="800" /></p>
 
+
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1379">1379</a></span>
@@ -11671,6 +11698,7 @@ If <code>class_id</code> is None and class_agnostic is False.</p>
           </tr>
       </tbody>
     </table>
+
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/core.py</code></summary>
