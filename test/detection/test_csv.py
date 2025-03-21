@@ -408,8 +408,8 @@ def assert_csv_equal(file_name, expected_rows):
     with open(file_name, mode="r", newline="") as file:
         reader = csv.reader(file)
         for i, row in enumerate(reader):
-            assert (
-                [str(item) for item in expected_rows[i]] == row
-            ), f"Row in CSV didn't match expected output: {row} != {expected_rows[i]}"
+            assert [str(item) for item in expected_rows[i]] == row, (
+                f"Row in CSV didn't match expected output: {row} != {expected_rows[i]}"
+            )
 
     os.remove(file_name)

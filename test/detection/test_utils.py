@@ -389,13 +389,13 @@ def test_process_roboflow_result(
         )
         for key in result[5]:
             if isinstance(result[5][key], np.ndarray):
-                assert np.array_equal(
-                    result[5][key], expected_result[5][key]
-                ), f"Mismatch in arrays for key {key}"
+                assert np.array_equal(result[5][key], expected_result[5][key]), (
+                    f"Mismatch in arrays for key {key}"
+                )
             else:
-                assert (
-                    result[5][key] == expected_result[5][key]
-                ), f"Mismatch in non-array data for key {key}"
+                assert result[5][key] == expected_result[5][key], (
+                    f"Mismatch in non-array data for key {key}"
+                )
 
 
 @pytest.mark.parametrize(
@@ -1042,13 +1042,13 @@ def test_merge_data(
 
         for key in result:
             if isinstance(result[key], np.ndarray):
-                assert np.array_equal(
-                    result[key], expected_result[key]
-                ), f"Mismatch in arrays for key {key}"
+                assert np.array_equal(result[key], expected_result[key]), (
+                    f"Mismatch in arrays for key {key}"
+                )
             else:
-                assert (
-                    result[key] == expected_result[key]
-                ), f"Mismatch in non-array data for key {key}"
+                assert result[key] == expected_result[key], (
+                    f"Mismatch in non-array data for key {key}"
+                )
 
 
 @pytest.mark.parametrize(
@@ -1215,13 +1215,13 @@ def test_get_data_item(
         result = get_data_item(data=data, index=index)
         for key in result:
             if isinstance(result[key], np.ndarray):
-                assert np.array_equal(
-                    result[key], expected_result[key]
-                ), f"Mismatch in arrays for key {key}"
+                assert np.array_equal(result[key], expected_result[key]), (
+                    f"Mismatch in arrays for key {key}"
+                )
             else:
-                assert (
-                    result[key] == expected_result[key]
-                ), f"Mismatch in non-array data for key {key}"
+                assert result[key] == expected_result[key], (
+                    f"Mismatch in non-array data for key {key}"
+                )
 
 
 @pytest.mark.parametrize(

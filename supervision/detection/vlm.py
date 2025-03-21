@@ -294,18 +294,18 @@ def from_florence_2(
         return xyxy, labels, None, None
 
     if task in ["<REGION_TO_CATEGORY>", "<REGION_TO_DESCRIPTION>"]:
-        assert isinstance(
-            result, str
-        ), f"Expected string as <REGION_TO_CATEGORY> result, got {type(result)}"
+        assert isinstance(result, str), (
+            f"Expected string as <REGION_TO_CATEGORY> result, got {type(result)}"
+        )
 
         if result == "No object detected.":
             return np.empty((0, 4), dtype=np.float32), np.array([]), None, None
 
         pattern = re.compile(r"<loc_(\d+)><loc_(\d+)><loc_(\d+)><loc_(\d+)>")
         match = pattern.search(result)
-        assert (
-            match is not None
-        ), f"Expected string to end in location tags, but got {result}"
+        assert match is not None, (
+            f"Expected string to end in location tags, but got {result}"
+        )
 
         w, h = resolution_wh
         xyxy = np.array([match.groups()], dtype=np.float32)

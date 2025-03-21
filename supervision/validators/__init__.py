@@ -54,7 +54,7 @@ def validate_confidence(confidence: Any, n: int) -> None:
 
 
 def validate_keypoint_confidence(confidence: Any, n: int, m: int) -> None:
-    expected_shape = f"({n,m})"
+    expected_shape = f"({n, m})"
     actual_shape = str(getattr(confidence, "shape", None))
 
     if confidence is not None:
