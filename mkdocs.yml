@@ -151,7 +151,9 @@ plugins:
             show_symbol_type_heading: true
             show_symbol_type_toc: true
             show_category_heading: true
-          domains: [std, py]
+          inventories:
+          - url: https://docs.python-requests.org/en/master/objects.inv
+            domains: [std, py]
   - git-committers:
       repository: roboflow/supervision
       branch: develop
@@ -180,6 +182,7 @@ markdown_extensions:
 extra_javascript:
   - "javascripts/init_kapa_widget.js"
   - "javascripts/cookbooks-card.js"
+  - "javascripts/segment.js"
   - "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"
 
 # Messages shown during document build

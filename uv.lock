@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = ">=3.8"
 resolution-markers = [
     "python_full_version >= '3.12' and sys_platform == 'darwin'",
@@ -4828,7 +4829,7 @@ wheels = [
 
 [[package]]
 name = "supervision"
-version = "0.26.0rc3"
+version = "0.26.0rc4"
 source = { editable = "." }
 dependencies = [
     { name = "defusedxml" },
@@ -4894,7 +4895,7 @@ requires-dist = [
     { name = "mkdocs-git-revision-date-localized-plugin", marker = "extra == 'docs'", specifier = ">=1.2.4" },
     { name = "mkdocs-jupyter", marker = "extra == 'docs'", specifier = ">=0.24.3" },
     { name = "mkdocs-material", extras = ["imaging"], marker = "extra == 'docs'", specifier = ">=9.5.5" },
-    { name = "mkdocstrings", marker = "extra == 'docs'", specifier = ">=0.25.2,<0.27.0" },
+    { name = "mkdocstrings", marker = "extra == 'docs'", specifier = ">=0.25.2,<0.29.0" },
     { name = "mkdocstrings-python", marker = "extra == 'docs'", specifier = ">=1.10.9" },
     { name = "nbconvert", marker = "extra == 'dev'", specifier = ">=7.14.2" },
     { name = "notebook", marker = "extra == 'dev'", specifier = ">=6.5.3,<8.0.0" },
@@ -4911,6 +4912,7 @@ requires-dist = [
     { name = "twine", marker = "extra == 'build'", specifier = ">=5.1.1,<7.0.0" },
     { name = "wheel", marker = "extra == 'build'", specifier = ">=0.40,<0.46" },
 ]
+provides-extras = ["metrics", "dev", "docs", "build"]
 
 [[package]]
 name = "terminado"
