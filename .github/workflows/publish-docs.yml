@@ -34,7 +34,7 @@ jobs:
           fetch-depth: 0
 
       - name: 🐍 Install uv and set Python ${{ matrix.python-version }}
-        uses: astral-sh/setup-uv@f94ec6bedd8674c4426838e6b50417d36b6ab231 # v5.3.1
+        uses: astral-sh/setup-uv@22695119d769bdb6f7032ad67b9bca0ef8c4a174 # v5.4.0
         with:
           python-version: ${{ matrix.python-version }}
 
