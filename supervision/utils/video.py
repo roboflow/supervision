@@ -242,15 +242,15 @@ def process_video(
                 else source_video_info.total_frames
             )
         for index, frame in enumerate(
-                tqdm(
-                    video_frames_generator,
-                    total=total_frames,
-                    disable=not show_progress,
-                    desc=progress_message,
-                )
-            ):
-                result_frame = callback(frame, index)
-                sink.write_frame(frame=result_frame)
+            tqdm(
+                video_frames_generator,
+                total=total_frames,
+                disable=not show_progress,
+                desc=progress_message,
+            )
+        ):
+            result_frame = callback(frame, index)
+            sink.write_frame(frame=result_frame)
         else:
             for index, frame in enumerate(video_frames_generator):
                 result_frame = callback(frame, index)
