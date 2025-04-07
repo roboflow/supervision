@@ -40,6 +40,7 @@ from supervision.detection.vlm import (
     from_paligemma,
     from_qwen_2_5_vl,
     validate_vlm_parameters,
+    from_deepseek_vl_2,
 )
 from supervision.geometry.core import Position
 from supervision.utils.internal import deprecated, get_instance_variables
@@ -849,6 +850,7 @@ class Detections:
             LMM.PALIGEMMA: VLM.PALIGEMMA,
             LMM.FLORENCE_2: VLM.FLORENCE_2,
             LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL,
+            LMM.DEEPSEEK_VL_2: VLM.DEEPSEEK_VL_2
         }
 
         # (this works even if the LMM enum is wrapped by @deprecated)
@@ -876,6 +878,41 @@ class Detections:
     def from_vlm(
         cls, vlm: Union[VLM, str], result: Union[str, dict], **kwargs: Any
     ) -> Detections:
+        """
+        Creates a Detections object from the given result string based on the specified
+        Vision-Language Model (LMM).
+
+        Args:
+            vlm (Union[VLM, str]): The type of VLM (Vision-Language Model) to use.
+            result (str): The result string containing the detection data.
+            **kwargs (Any): Additional keyword arguments required by the specified VLM.
+
+        Returns:
+            Detections: A new Detections object.
+
+        Raises:
+            ValueError: If the LMM is invalid, required arguments are missing, or
+                disallowed arguments are provided.
+            ValueError: If the specified LMM is not supported.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            paligemma_result = "<loc0256><loc0256><loc0768><loc0768> cat"
+            detections = sv.Detections.from_vlm(
+                sv.VLM.PALIGEMMA,
+                paligemma_result,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog']
+            )
+            detections.xyxy
+            # array([[250., 250., 750., 750.]])
+
+            detections.class_id
+            # array([0])
+            ```
+        """
         vlm = validate_vlm_parameters(vlm, result, kwargs)
 
         if vlm == VLM.PALIGEMMA:
@@ -885,6 +922,11 @@ class Detections:
 
         if vlm == VLM.QWEN_2_5_VL:
             xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            return cls(xyxy=xyxy, class_id=class_id, data=data)
+
+        if vlm == VLM.DEEPSEEK_VL_2:
+            xyxy, class_id, class_name = from_deepseek_vl_2(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 

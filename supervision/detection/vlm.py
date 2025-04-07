@@ -1,5 +1,6 @@
 import json
 import re
+import ast
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -17,30 +18,35 @@ class LMM(Enum):
     PALIGEMMA = "paligemma"
     FLORENCE_2 = "florence_2"
     QWEN_2_5_VL = "qwen_2_5_vl"
+    DEEPSEEK_VL_2 = "deepseek_vl_2"
 
 
 class VLM(Enum):
     PALIGEMMA = "paligemma"
     FLORENCE_2 = "florence_2"
     QWEN_2_5_VL = "qwen_2_5_vl"
+    DEEPSEEK_VL_2 = "deepseek_vl_2"
 
 
 RESULT_TYPES: Dict[VLM, type] = {
     VLM.PALIGEMMA: str,
     VLM.FLORENCE_2: dict,
     VLM.QWEN_2_5_VL: str,
+    VLM.DEEPSEEK_VL_2: str,
 }
 
 REQUIRED_ARGUMENTS: Dict[VLM, List[str]] = {
     VLM.PALIGEMMA: ["resolution_wh"],
     VLM.FLORENCE_2: ["resolution_wh"],
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh"],
+    VLM.DEEPSEEK_VL_2: ["resolution_wh"],
 }
 
 ALLOWED_ARGUMENTS: Dict[VLM, List[str]] = {
     VLM.PALIGEMMA: ["resolution_wh", "classes"],
     VLM.FLORENCE_2: ["resolution_wh"],
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh", "classes"],
+    VLM.DEEPSEEK_VL_2: ["resolution_wh", "classes"],
 }
 
 SUPPORTED_TASKS_FLORENCE_2 = [
@@ -219,6 +225,92 @@ def from_qwen_2_5_vl(
         xyxy = xyxy[mask]
         class_name = class_name[mask]
         class_id = np.array([classes.index(label) for label in class_name], dtype=int)
+
+    return xyxy, class_id, class_name
+
+
+def from_deepseek_vl_2(
+    result: str,
+    resolution_wh: Tuple[int, int],
+    classes: Optional[List[str]] = None
+) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
+    """
+    Parse bounding boxes from deepseek-vl2-formatted text, scale them to the specified
+    resolution, and optionally filter by classes.
+
+    The DeepSeek-VL2 output typically contains pairs of <|ref|> ... <|/ref|> labels
+    and <|det|> ... <|/det|> bounding box definitions. Each <|det|> section may
+    contain one or more bounding boxes in the form [[x1, y1, x2, y2], [x1, y1, x2, y2], ...]
+    (scaled to 0..999). However, other text (e.g. <｜end▁of▁sentence｜>) may appear
+    after the bracket, so we strip that out here.
+
+    Args:
+        result: String containing deepseek-vl2-formatted locations and labels.
+        resolution_wh: Tuple (width, height) to which we scale the box coordinates.
+        classes: Optional list of valid class names. If provided, boxes and labels not
+            in this list are filtered out.
+
+    Returns:
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing
+            the bounding boxes coordinates in format `[x1, y1, x2, y2]`.
+        class_id (Optional[np.ndarray]): An array of shape `(n,)` containing
+            the class indices for each bounding box (or `None` if classes is not
+            provided).
+        class_name (np.ndarray): An array of shape `(n,)` containing
+            the class labels for each bounding box.
+    """
+
+    w, h = resolution_wh
+    if w <= 0 or h <= 0:
+        raise ValueError(
+            f"Both dimensions in resolution_wh must be positive. Got ({w}, {h})."
+        )
+
+    label_segments = re.findall(r'<\|ref\|>(.*?)<\|/ref\|>', result, flags=re.DOTALL)
+    bbox_segments = re.findall(r'<\|det\|>(.*?)<\|/det\|>', result, flags=re.DOTALL)
+
+    if len(label_segments) != len(bbox_segments):
+        return np.empty((0, 4)), None, np.empty((0,), dtype=str)
+
+    boxes, labels = [], []
+
+    for label_str, bbox_str in zip(label_segments, bbox_segments):
+        label_str = label_str.strip()
+        raw_box_groups = re.findall(r'\[\[.*?\]\]', bbox_str, flags=re.DOTALL)
+
+        if not raw_box_groups:
+            continue
+
+        for group_str in raw_box_groups:
+            try:
+                list_of_boxes = ast.literal_eval(group_str)
+                for box in list_of_boxes:
+                    if len(box) != 4:
+                        continue
+
+                    x1 = box[0] / 999.0 * w
+                    y1 = box[1] / 999.0 * h
+                    x2 = box[2] / 999.0 * w
+                    y2 = box[3] / 999.0 * h
+
+                    boxes.append([x1, y1, x2, y2])
+                    labels.append(label_str)
+
+            except (SyntaxError, ValueError):
+                continue
+
+    if len(boxes) == 0:
+        return np.empty((0, 4)), None, np.empty((0,), dtype=str)
+
+    xyxy = np.array(boxes, dtype=np.float32)
+    class_name = np.array(labels, dtype=str)
+    class_id = None
+
+    if classes is not None:
+        mask = np.array([name in classes for name in class_name], dtype=bool)
+        xyxy = xyxy[mask]
+        class_name = class_name[mask]
+        class_id = np.array([classes.index(name) for name in class_name])
 
     return xyxy, class_id, class_name
 
