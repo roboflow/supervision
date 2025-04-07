@@ -230,7 +230,7 @@ def process_video(
         ```
     """
     source_video_info = VideoInfo.from_video_path(video_path=source_path)
-    frame_generator = get_video_frames_generator(
+    video_frames_generator = get_video_frames_generator(
         source_path=source_path, end=max_frames
     )
     with VideoSink(target_path=target_path, video_info=source_video_info) as sink:
