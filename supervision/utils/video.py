@@ -197,7 +197,7 @@ def process_video(
     target_path: str,
     callback: Callable[[np.ndarray, int], np.ndarray],
     max_frames: Optional[int] = None,
-    show_progress: bool = True,
+    show_progress: bool = False,
     progress_message: str = "Processing video",
 ) -> None:
     """
