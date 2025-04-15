@@ -7,6 +7,7 @@ from typing import Callable, Generator, Optional, Tuple
 
 import cv2
 import numpy as np
+from tqdm.auto import tqdm
 
 
 @dataclass
@@ -195,6 +196,9 @@ def process_video(
     source_path: str,
     target_path: str,
     callback: Callable[[np.ndarray, int], np.ndarray],
+    max_frames: Optional[int] = None,
+    show_progress: bool = False,
+    progress_message: str = "Processing video",
 ) -> None:
     """
     Process a video file by applying a callback function on each frame
@@ -207,6 +211,9 @@ def process_video(
             a numpy ndarray representation of a video frame and an
             int index of the frame and returns a processed numpy ndarray
             representation of the frame.
+        max_frames (Optional[int]): The maximum number of frames to process.
+        show_progress (bool): Whether to show a progress bar.
+        progress_message (str): The message to display in the progress bar.
 
     Examples:
         ```python
@@ -223,12 +230,31 @@ def process_video(
         ```
     """
     source_video_info = VideoInfo.from_video_path(video_path=source_path)
+    video_frames_generator = get_video_frames_generator(
+        source_path=source_path, end=max_frames
+    )
     with VideoSink(target_path=target_path, video_info=source_video_info) as sink:
+        if show_progress:
+            # Calculate total_frames only when needed for tqdm
+            total_frames = (
+                min(source_video_info.total_frames, max_frames)
+                if max_frames is not None
+                else source_video_info.total_frames
+            )
         for index, frame in enumerate(
-            get_video_frames_generator(source_path=source_path)
+            tqdm(
+                video_frames_generator,
+                total=total_frames,
+                disable=not show_progress,
+                desc=progress_message,
+            )
         ):
             result_frame = callback(frame, index)
             sink.write_frame(frame=result_frame)
+        else:
+            for index, frame in enumerate(video_frames_generator):
+                result_frame = callback(frame, index)
+                sink.write_frame(frame=result_frame)
 
 
 class FPSMonitor:
