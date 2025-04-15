@@ -1254,10 +1254,12 @@ class LabelAnnotator(_BaseLabelAnnotator):
                 position=self.text_anchor,
             )
 
-            label_properties.append([
-                *text_background_xyxy,
-                text_h,
-            ])
+            label_properties.append(
+                [
+                    *text_background_xyxy,
+                    text_h,
+                ]
+            )
         return np.array(label_properties).reshape(-1, 5)
 
     def _draw_labels(
