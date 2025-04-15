@@ -1,6 +1,6 @@
 from functools import lru_cache
 from math import sqrt
-from typing import List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -38,6 +38,199 @@ from supervision.utils.image import (
 )
 
 CV2_FONT = cv2.FONT_HERSHEY_SIMPLEX
+
+
+class _BaseLabelAnnotator(BaseAnnotator):
+    """
+    Base class for annotators that add labels to detections.
+
+    Attributes:
+        color (Union[Color, ColorPalette]): The color to use for the label background.
+        text_color (Union[Color, ColorPalette]): The color to use for the label text.
+        text_padding (int): The padding around the label text, in pixels.
+        text_anchor (Position): The position of the text relative to the detection
+                                bounding box.
+        color_lookup (ColorLookup): The method used to determine the color of the label.
+        border_radius (int): The radius of the label background corners, in pixels.
+        smart_position (bool): Whether to intelligently adjust the label position to
+                                avoid overlapping with other elements.
+        ensure_in_frame (bool): Whether to ensure the label stays within the frame
+                                boundaries.
+    """
+
+    def __init__(
+        self,
+        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        text_color: Union[Color, ColorPalette] = Color.WHITE,
+        text_padding: int = 10,
+        text_position: Position = Position.TOP_LEFT,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
+        border_radius: int = 0,
+        smart_position: bool = False,
+        ensure_in_frame: bool = True,  # New parameter
+    ):
+        """
+        Initializes the _BaseLabelAnnotator.
+
+        Args:
+            color (Union[Color, ColorPalette], optional): The color to use for the label
+                                background. Defaults to ColorPalette.DEFAULT.
+            text_color (Union[Color, ColorPalette], optional): The color to use for the
+                                label text. Defaults to Color.WHITE.
+            text_padding (int, optional): The padding around the label text, in pixels.
+                                Defaults to 10.
+            text_position (Position, optional): The position of the text relative to the
+                                detection bounding box. Defaults to Position.TOP_LEFT.
+            color_lookup (ColorLookup, optional): The method used to determine the color
+                                of the label. Defaults to ColorLookup.CLASS.
+            border_radius (int, optional): The radius of the label background corners,
+                                in pixels. Defaults to 0.
+            smart_position (bool, optional): Whether to intelligently adjust the label
+                                position to avoid overlapping with other elements.
+                                Defaults to False.
+            ensure_in_frame (bool, optional): Whether to ensure the label stays within
+                                the frame boundaries. Defaults to True.
+        """
+        self.color: Union[Color, ColorPalette] = color
+        self.text_color: Union[Color, ColorPalette] = text_color
+        self.text_padding: int = text_padding
+        self.text_anchor: Position = text_position
+        self.color_lookup: ColorLookup = color_lookup
+        self.border_radius: int = border_radius
+        self.smart_position = smart_position
+        self.ensure_in_frame = ensure_in_frame  # Store the new parameter
+
+    def _validate_labels(self, labels: Optional[List[str]], detections: Detections):
+        """
+        Validates that the number of provided labels matches the number of detections.
+
+        Args:
+            labels (Optional[List[str]]): A list of labels, one for each detection. Can
+                                          be None.
+            detections (Detections): The detections to be labeled.
+
+        Raises:
+            ValueError: If `labels` is not None and its length does not match the number
+            of detections.
+        """
+        if labels is not None and len(labels) != len(detections):
+            raise ValueError(
+                f"The number of labels ({len(labels)}) does not match the "
+                f"number of detections ({len(detections)}). Each detection "
+                f"should have exactly 1 label."
+            )
+
+    @staticmethod
+    def _get_labels_text(
+        detections: Detections, custom_labels: Optional[List[str]]
+    ) -> List[str]:
+        """
+        Retrieves the text labels for the detections.
+
+        If `custom_labels` are provided, they are used. Otherwise, the labels are
+        extracted from the `detections` object, prioritizing the 'class_name' field,
+        then the `class_id`, and finally using the detection index as a string.
+
+        Args:
+            detections (Detections): The detections to get labels for.
+            custom_labels (Optional[List[str]]): An optional list of custom labels.
+
+        Returns:
+            List[str]: A list of text labels for each detection.
+        """
+        if custom_labels is not None:
+            return custom_labels
+
+        labels = []
+        for idx in range(len(detections)):
+            if CLASS_NAME_DATA_FIELD in detections.data:
+                labels.append(detections.data[CLASS_NAME_DATA_FIELD][idx])
+            elif detections.class_id is not None:
+                labels.append(str(detections.class_id[idx]))
+            else:
+                labels.append(str(idx))
+        return labels
+
+    def _adjust_labels_in_frame(
+        self,
+        frame_width: int,
+        frame_height: int,
+        labels: List[str],
+        label_properties: np.ndarray,
+        get_text_width_fn: Callable[[str], int],
+    ) -> np.ndarray:
+        """
+        Adjusts the position of labels to ensure they stay within the frame boundaries.
+
+        Args:
+            frame_width (int): The width of the frame.
+            frame_height (int): The height of the frame.
+            labels (List[str]): The list of text labels.
+            label_properties (np.ndarray): An array of label properties, where each row
+                            contains [x1, y1, x2, y2, text_height, ...].
+            get_text_width_fn (Callable[[str], int]): A function that takes a label
+                            string and returns its width in pixels.
+
+        Returns:
+            np.ndarray: The adjusted label properties.
+        """
+        adjusted_properties = label_properties.copy()
+        for i in range(len(labels)):
+            x1, y1, x2, y2, text_height = adjusted_properties[i][
+                :5
+            ]  # Handle different property lengths
+            label_h = text_height + 2 * self.text_padding
+
+            # Adjust x-coordinate
+            if x1 < 0:
+                adjusted_properties[i, 0] -= x1
+                adjusted_properties[i, 2] -= x1
+            elif x2 > frame_width:
+                adjusted_properties[i, 0] -= x2 - frame_width
+                adjusted_properties[i, 2] -= x2 - frame_width
+
+            # Adjust y-coordinate
+            if y1 < 0:
+                adjusted_properties[i, 1] -= y1
+                adjusted_properties[i, 3] -= y1
+            elif y2 > frame_height:
+                adjusted_properties[i, 1] -= y2 - frame_height
+                adjusted_properties[i, 3] -= y2 - frame_height
+                # Optionally, if the label is below the box, try to move it above
+                anchor_y = self._get_anchor_y_for_adjustment(
+                    adjusted_properties[i, 1:3], self.text_anchor
+                )
+                if anchor_y - label_h >= 0:
+                    adjusted_properties[i, 1] -= label_h
+                    adjusted_properties[i, 3] -= label_h
+
+        return adjusted_properties
+
+    @staticmethod
+    def _get_anchor_y_for_adjustment(bbox_y: np.ndarray, anchor: Position) -> float:
+        """
+        Calculates the anchor y-coordinate for label adjustment based on the text anchor
+        position.
+
+        Args:
+            bbox_y (np.ndarray): An array containing the y1 and y2 coordinates of the
+                                bounding box.
+            anchor (Position): The desired text anchor position.
+
+        Returns:
+            float: The anchor y-coordinate.
+        """
+        y1, y2 = bbox_y
+        if anchor in [Position.TOP_LEFT, Position.TOP_CENTER, Position.TOP_RIGHT]:
+            return y1
+        elif anchor in [
+            Position.BOTTOM_LEFT,
+            Position.BOTTOM_CENTER,
+            Position.BOTTOM_RIGHT,
+        ]:
+            return y2
+        else:  # CENTER, CENTER_LEFT, CENTER_RIGHT
+            return (y1 + y2) / 2
 
 
 class BoxAnnotator(BaseAnnotator):
@@ -960,7 +1153,7 @@ class DotAnnotator(BaseAnnotator):
         return scene
 
 
-class LabelAnnotator(BaseAnnotator):
+class LabelAnnotator(_BaseLabelAnnotator):
     """
     A class for annotating labels on an image using provided detections.
     """
@@ -976,93 +1169,52 @@ class LabelAnnotator(BaseAnnotator):
         color_lookup: ColorLookup = ColorLookup.CLASS,
         border_radius: int = 0,
         smart_position: bool = False,
+        ensure_in_frame: bool = False,  # Inherited
     ):
-        """
-        Args:
-            color (Union[Color, ColorPalette]): The color or color palette to use for
-                annotating the text background.
-            text_color (Union[Color, ColorPalette]): The color or color palette to use
-                for the text.
-            text_scale (float): Font scale for the text.
-            text_thickness (int): Thickness of the text characters.
-            text_padding (int): Padding around the text within its background box.
-            text_position (Position): Position of the text relative to the detection.
-                Possible values are defined in the `Position` enum.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACK`.
-            border_radius (int): The radius to apply round edges. If the selected
-                value is higher than the lower dimension, width or height, is clipped.
-            smart_position (bool): Spread out the labels to avoid overlapping.
-        """
-        self.border_radius: int = border_radius
-        self.color: Union[Color, ColorPalette] = color
-        self.text_color: Union[Color, ColorPalette] = text_color
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
-        self.text_padding: int = text_padding
-        self.text_anchor: Position = text_position
-        self.color_lookup: ColorLookup = color_lookup
-        self.smart_position = smart_position
+        super().__init__(
+            color=color,
+            text_color=text_color,
+            text_padding=text_padding,
+            text_position=text_position,
+            color_lookup=color_lookup,
+            border_radius=border_radius,
+            smart_position=smart_position,
+            ensure_in_frame=ensure_in_frame,
+        )
 
     @ensure_cv2_image_for_annotation
     def annotate(
         self,
-        scene: ImageType,
+        scene: np.ndarray,  # Ensure scene is initially a NumPy array here
         detections: Detections,
         labels: Optional[List[str]] = None,
         custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> ImageType:
-        """
-        Annotates the given scene with labels based on the provided detections.
-
-        Args:
-            scene (ImageType): The image where labels will be drawn.
-                `ImageType` is a flexible type, accepting either `numpy.ndarray`
-                or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
-            labels (Optional[List[str]]): Custom labels for each detection.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
-                Allows to override the default color mapping strategy.
-
-        Returns:
-            The annotated image, matching the type of `scene` (`numpy.ndarray`
-                or `PIL.Image.Image`)
-
-        Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            detections = sv.Detections(...)
-
-            labels = [
-                f"{class_name} {confidence:.2f}"
-                for class_name, confidence
-                in zip(detections['class_name'], detections.confidence)
-            ]
-
-            label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
-            annotated_frame = label_annotator.annotate(
-                scene=image.copy(),
-                detections=detections,
-                labels=labels
-            )
-            ```
-
-        ![label-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/label-annotator-example-purple.png)
-        """
-
+    ) -> np.ndarray:
         assert isinstance(scene, np.ndarray)
         self._validate_labels(labels, detections)
 
         labels = self._get_labels_text(detections, labels)
-        label_properties = self._get_label_properties(detections, labels)
+        label_properties = self._get_label_properties(
+            scene, detections, labels
+        )  # Pass scene
 
         if self.smart_position:
             xyxy = label_properties[:, :4]
             xyxy = spread_out_boxes(xyxy)
             label_properties[:, :4] = xyxy
+
+        if self.ensure_in_frame:
+            label_properties = self._adjust_labels_in_frame(
+                scene.shape[1],
+                scene.shape[0],
+                labels,
+                label_properties,
+                lambda text: cv2.getTextSize(
+                    text, CV2_FONT, self.text_scale, self.text_thickness
+                )[0][0],
+            )
 
         self._draw_labels(
             scene=scene,
@@ -1074,26 +1226,12 @@ class LabelAnnotator(BaseAnnotator):
 
         return scene
 
-    def _validate_labels(self, labels: Optional[List[str]], detections: Detections):
-        if labels is not None and len(labels) != len(detections):
-            raise ValueError(
-                f"The number of labels ({len(labels)}) does not match the "
-                f"number of detections ({len(detections)}). Each detection "
-                f"should have exactly 1 label."
-            )
-
     def _get_label_properties(
         self,
+        scene: np.ndarray,  # Receive scene
         detections: Detections,
         labels: List[str],
     ) -> np.ndarray:
-        """
-        Calculate the numerical properties required to draw the labels on the image.
-
-        Returns:
-            (np.ndarray): An array of label properties, containing columns:
-                `min_x`, `min_y`, `max_x`, `max_y`, `padded_text_height`.
-        """
         label_properties = []
         anchors_coordinates = detections.get_anchors_coordinates(
             anchor=self.text_anchor
@@ -1116,31 +1254,11 @@ class LabelAnnotator(BaseAnnotator):
                 position=self.text_anchor,
             )
 
-            label_properties.append(
-                [
-                    *text_background_xyxy,
-                    text_h,
-                ]
-            )
-
+            label_properties.append([
+                *text_background_xyxy,
+                text_h,
+            ])
         return np.array(label_properties).reshape(-1, 5)
-
-    @staticmethod
-    def _get_labels_text(
-        detections: Detections, custom_labels: Optional[List[str]]
-    ) -> List[str]:
-        if custom_labels is not None:
-            return custom_labels
-
-        labels = []
-        for idx in range(len(detections)):
-            if CLASS_NAME_DATA_FIELD in detections.data:
-                labels.append(detections.data[CLASS_NAME_DATA_FIELD][idx])
-            elif detections.class_id is not None:
-                labels.append(str(detections.class_id[idx]))
-            else:
-                labels.append(str(idx))
-        return labels
 
     def _draw_labels(
         self,
@@ -1176,7 +1294,7 @@ class LabelAnnotator(BaseAnnotator):
                 color_lookup=color_lookup,
             )
 
-            box_xyxy = label_property[:4]
+            box_xyxy = label_property[:4].astype(int)
             text_height_padded = label_property[4]
             self.draw_rounded_rectangle(
                 scene=scene,
@@ -1186,7 +1304,7 @@ class LabelAnnotator(BaseAnnotator):
             )
 
             text_x = box_xyxy[0] + self.text_padding
-            text_y = box_xyxy[1] + self.text_padding + text_height_padded
+            text_y = box_xyxy[1] + self.text_padding + int(text_height_padded)
             cv2.putText(
                 img=scene,
                 text=labels[idx],
@@ -1241,7 +1359,7 @@ class LabelAnnotator(BaseAnnotator):
         return scene
 
 
-class RichLabelAnnotator(BaseAnnotator):
+class RichLabelAnnotator(_BaseLabelAnnotator):
     """
     A class for annotating labels on an image using provided detections,
     with support for Unicode characters by using a custom font.
@@ -1258,80 +1376,30 @@ class RichLabelAnnotator(BaseAnnotator):
         color_lookup: ColorLookup = ColorLookup.CLASS,
         border_radius: int = 0,
         smart_position: bool = False,
+        ensure_in_frame: bool = False,  # Inherited
     ):
-        """
-        Args:
-            color (Union[Color, ColorPalette]): The color or color palette to use for
-                annotating the text background.
-            text_color (Union[Color, ColorPalette]): The color to use for the text.
-            font_path (Optional[str]): Path to the font file (e.g., ".ttf" or ".otf")
-                to use for rendering text. If `None`, the default PIL font will be used.
-            font_size (int): Font size for the text.
-            text_padding (int): Padding around the text within its background box.
-            text_position (Position): Position of the text relative to the detection.
-                Possible values are defined in the `Position` enum.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACK`.
-            border_radius (int): The radius to apply round edges. If the selected
-                value is higher than the lower dimension, width or height, is clipped.
-            smart_position (bool): Spread out the labels to avoid overlapping.
-        """
-        self.color = color
-        self.text_color = text_color
-        self.text_padding = text_padding
-        self.text_anchor = text_position
-        self.color_lookup = color_lookup
-        self.border_radius = border_radius
-        self.smart_position = smart_position
+        self.font_path = font_path
+        self.font_size = font_size
         self.font = self._load_font(font_size, font_path)
+        super().__init__(
+            color=color,
+            text_color=text_color,
+            text_padding=text_padding,
+            text_position=text_position,
+            color_lookup=color_lookup,
+            border_radius=border_radius,
+            smart_position=smart_position,
+            ensure_in_frame=ensure_in_frame,
+        )
 
     @ensure_pil_image_for_annotation
     def annotate(
         self,
-        scene: ImageType,
+        scene: Image.Image,
         detections: Detections,
         labels: Optional[List[str]] = None,
         custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> ImageType:
-        """
-        Annotates the given scene with labels based on the provided
-        detections, with support for Unicode characters.
-
-        Args:
-            scene (ImageType): The image where labels will be drawn.
-                `ImageType` is a flexible type, accepting either `numpy.ndarray`
-                or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
-            labels (Optional[List[str]]): Custom labels for each detection.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
-                Allows to override the default color mapping strategy.
-
-        Returns:
-            The annotated image, matching the type of `scene` (`numpy.ndarray`
-                or `PIL.Image.Image`)
-
-        Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            detections = sv.Detections(...)
-
-            labels = [
-                f"{class_name} {confidence:.2f}"
-                for class_name, confidence
-                in zip(detections['class_name'], detections.confidence)
-            ]
-
-            rich_label_annotator = sv.RichLabelAnnotator(font_path="path/to/font.ttf")
-            annotated_frame = label_annotator.annotate(
-                scene=image.copy(),
-                detections=detections,
-                labels=labels
-            )
-            ```
-
-        """
+    ) -> Image.Image:
         assert isinstance(scene, Image.Image)
         self._validate_labels(labels, detections)
 
@@ -1344,6 +1412,18 @@ class RichLabelAnnotator(BaseAnnotator):
             xyxy = spread_out_boxes(xyxy)
             label_properties[:, :4] = xyxy
 
+        if self.ensure_in_frame:
+            label_properties = self._adjust_labels_in_frame(
+                scene.width,
+                scene.height,
+                labels,
+                label_properties,
+                lambda text: int(
+                    draw.textbbox((0, 0), text, font=self.font)[2]
+                    - draw.textbbox((0, 0), text, font=self.font)[0]
+                ),
+            )
+
         self._draw_labels(
             draw=draw,
             labels=labels,
@@ -1354,26 +1434,9 @@ class RichLabelAnnotator(BaseAnnotator):
 
         return scene
 
-    def _validate_labels(self, labels: Optional[List[str]], detections: Detections):
-        if labels is not None and len(labels) != len(detections):
-            raise ValueError(
-                f"The number of labels ({len(labels)}) does not match the "
-                f"number of detections ({len(detections)}). Each detection "
-                f"should have exactly 1 label."
-            )
-
     def _get_label_properties(
-        self, draw, detections: Detections, labels: List[str]
+        self, draw: ImageDraw.ImageDraw, detections: Detections, labels: List[str]
     ) -> np.ndarray:
-        """
-        Calculate the numerical properties required to draw the labels on the image.
-
-        Returns:
-            (np.ndarray): An array of label properties, containing columns:
-                `min_x`, `min_y`, `max_x`, `max_y`, `text_left_coordinate`,
-                `text_top_coordinate`. The first 4 values are already padded
-                with `text_padding`.
-        """
         label_properties = []
 
         anchor_coordinates = detections.get_anchors_coordinates(
@@ -1386,8 +1449,8 @@ class RichLabelAnnotator(BaseAnnotator):
             )
             text_width = text_right - text_left
             text_height = text_bottom - text_top
-            width_padded = text_width + 2 * self.text_padding
-            height_padded = text_height + 2 * self.text_padding
+            width_padded = int(text_width + 2 * self.text_padding)
+            height_padded = int(text_height + 2 * self.text_padding)
 
             text_background_xyxy = resolve_text_background_xyxy(
                 center_coordinates=tuple(center_coords),
@@ -1399,26 +1462,9 @@ class RichLabelAnnotator(BaseAnnotator):
 
         return np.array(label_properties).reshape(-1, 6)
 
-    @staticmethod
-    def _get_labels_text(
-        detections: Detections, custom_labels: Optional[List[str]]
-    ) -> List[str]:
-        if custom_labels is not None:
-            return custom_labels
-
-        labels = []
-        for idx in range(len(detections)):
-            if CLASS_NAME_DATA_FIELD in detections.data:
-                labels.append(detections.data[CLASS_NAME_DATA_FIELD][idx])
-            elif detections.class_id is not None:
-                labels.append(str(detections.class_id[idx]))
-            else:
-                labels.append(str(idx))
-        return labels
-
     def _draw_labels(
         self,
-        draw,
+        draw: ImageDraw.ImageDraw,
         labels: List[str],
         label_properties: np.ndarray,
         detections: Detections,
@@ -1449,7 +1495,7 @@ class RichLabelAnnotator(BaseAnnotator):
                 color_lookup=color_lookup,
             )
 
-            box_xyxy = label_property[:4]
+            box_xyxy = label_property[:4].astype(int)
             text_left = label_property[4]
             text_top = label_property[5]
             label_x_position = box_xyxy[0] + self.text_padding - text_left
