@@ -1397,7 +1397,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
     @ensure_pil_image_for_annotation
     def annotate(
         self,
-        scene: Image.Image,
+        scene: ImageType
         detections: Detections,
         labels: Optional[List[str]] = None,
         custom_color_lookup: Optional[np.ndarray] = None,
