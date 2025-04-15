@@ -1187,7 +1187,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
     @ensure_cv2_image_for_annotation
     def annotate(
         self,
-        scene: np.ndarray,  # Ensure scene is initially a NumPy array here
+        scene: ImageType,  # Ensure scene is initially a NumPy array here
         detections: Detections,
         labels: Optional[List[str]] = None,
         custom_color_lookup: Optional[np.ndarray] = None,
