@@ -1401,7 +1401,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         detections: Detections,
         labels: Optional[List[str]] = None,
         custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> Image.Image:
+    ) -> ImageType:
         assert isinstance(scene, Image.Image)
         self._validate_labels(labels, detections)
 
