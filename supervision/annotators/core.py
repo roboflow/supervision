@@ -54,8 +54,8 @@ class _BaseLabelAnnotator(BaseAnnotator):
         border_radius (int): The radius of the label background corners, in pixels.
         smart_position (bool): Whether to intelligently adjust the label position to
                                 avoid overlapping with other elements.
-        ensure_in_frame (bool): Whether to ensure the label stays within the frame
-                                boundaries.
+        max_line_length (Optional[int]): Maximum number of characters per line before
+                                wrapping the text. None means no wrapping.
     """
 
     def __init__(
@@ -67,7 +67,7 @@ class _BaseLabelAnnotator(BaseAnnotator):
         color_lookup: ColorLookup = ColorLookup.CLASS,
         border_radius: int = 0,
         smart_position: bool = False,
-        ensure_in_frame: bool = True,  # New parameter
+        max_line_length: Optional[int] = None,
     ):
         """
         Initializes the _BaseLabelAnnotator.
@@ -88,8 +88,9 @@ class _BaseLabelAnnotator(BaseAnnotator):
             smart_position (bool, optional): Whether to intelligently adjust the label
                                 position to avoid overlapping with other elements.
                                 Defaults to False.
-            ensure_in_frame (bool, optional): Whether to ensure the label stays within
-                                the frame boundaries. Defaults to True.
+            max_line_length (Optional[int], optional): Maximum number of characters per
+                                line before wrapping the text. None means no wrapping.
+                                Defaults to None.
         """
         self.color: Union[Color, ColorPalette] = color
         self.text_color: Union[Color, ColorPalette] = text_color
@@ -98,7 +99,7 @@ class _BaseLabelAnnotator(BaseAnnotator):
         self.color_lookup: ColorLookup = color_lookup
         self.border_radius: int = border_radius
         self.smart_position = smart_position
-        self.ensure_in_frame = ensure_in_frame  # Store the new parameter
+        self.max_line_length: Optional[int] = max_line_length
 
     def _validate_labels(self, labels: Optional[List[str]], detections: Detections):
         """
@@ -151,6 +152,67 @@ class _BaseLabelAnnotator(BaseAnnotator):
                 labels.append(str(idx))
         return labels
 
+    def _ensure_box_in_frame(
+        self,
+        box: np.ndarray,
+        frame_width: int,
+        frame_height: int,
+        check_flip_label: bool = False,
+        text_anchor: Optional[Position] = None,
+    ) -> np.ndarray:
+        """
+        Adjusts a box to ensure it stays within frame boundaries.
+
+        Args:
+            box: Box coordinates [x1, y1, x2, y2]
+            frame_width: Width of the frame
+            frame_height: Height of the frame
+            check_flip_label: Whether to check if label should be flipped
+            text_anchor: Text anchor position for flip check
+
+        Returns:
+            Adjusted box coordinates
+        """
+        x1, y1, x2, y2 = box
+
+        # Adjust x-coordinate to stay within frame
+        if x1 < 0:
+            shift = -x1
+            x1 += shift
+            x2 += shift
+        elif x2 > frame_width:
+            shift = frame_width - x2
+            x1 += shift
+            x2 += shift
+
+        # Adjust y-coordinate to stay within frame
+        if y1 < 0:
+            shift = -y1
+            y1 += shift
+            y2 += shift
+        elif y2 > frame_height:
+            shift = frame_height - y2
+            y1 += shift
+            y2 += shift
+
+            # Check if label should be flipped to above the box
+            if check_flip_label and text_anchor is not None:
+                box_height = y2 - y1
+
+                # Check anchor position to see if we can flip it
+                anchor_y = self._get_anchor_y_for_adjustment(
+                    np.array([y1, y2]), text_anchor
+                )
+
+                # If we're at the bottom, try moving to the top
+                if anchor_y >= y2 - 5:  # Near bottom edge
+                    # Check if there's room at the top
+                    if y1 - box_height >= 0:
+                        y2 = y1
+                        y1 = y2 - box_height
+
+        return np.array([x1, y1, x2, y2])
+
     def _adjust_labels_in_frame(
         self,
         frame_width: int,
@@ -175,34 +237,33 @@ class _BaseLabelAnnotator(BaseAnnotator):
             np.ndarray: The adjusted label properties.
         """
         adjusted_properties = label_properties.copy()
+
+        # First, make sure the boxes don't go outside the frame
         for i in range(len(labels)):
-            x1, y1, x2, y2, text_height = adjusted_properties[i][
-                :5
-            ]  # Handle different property lengths
-            label_h = text_height + 2 * self.text_padding
+            # Adjust box to stay within frame
+            adjusted_properties[i, :4] = self._ensure_box_in_frame(
+                adjusted_properties[i, :4],
+                frame_width,
+                frame_height,
+                check_flip_label=True,
+                text_anchor=self.text_anchor,
+            )
 
-            # Adjust x-coordinate
-            if x1 < 0:
-                adjusted_properties[i, 0] -= x1
-                adjusted_properties[i, 2] -= x1
-            elif x2 > frame_width:
-                adjusted_properties[i, 0] -= x2 - frame_width
-                adjusted_properties[i, 2] -= x2 - frame_width
+        # Apply the spread out algorithm to avoid box overlaps
+        if len(labels) > 1:
+            # Extract the box coordinates
+            boxes = adjusted_properties[:, :4]
+            # Use the spread_out_boxes function to adjust overlapping boxes
+            spread_boxes = spread_out_boxes(boxes)
+            # Update the properties with the spread out boxes
+            adjusted_properties[:, :4] = spread_boxes
 
-            # Adjust y-coordinate
-            if y1 < 0:
-                adjusted_properties[i, 1] -= y1
-                adjusted_properties[i, 3] -= y1
-            elif y2 > frame_height:
-                adjusted_properties[i, 1] -= y2 - frame_height
-                adjusted_properties[i, 3] -= y2 - frame_height
-                # Optionally, if the label is below the box, try to move it above
-                anchor_y = self._get_anchor_y_for_adjustment(
-                    adjusted_properties[i, 1:3], self.text_anchor
+            # Additional check to ensure boxes are still within frame after spreading
+            for i in range(len(labels)):
+                # Adjust box to stay within frame (without flipping)
+                adjusted_properties[i, :4] = self._ensure_box_in_frame(
+                    adjusted_properties[i, :4], frame_width, frame_height
                 )
-                if anchor_y - label_h >= 0:
-                    adjusted_properties[i, 1] -= label_h
-                    adjusted_properties[i, 3] -= label_h
 
         return adjusted_properties
 
@@ -231,6 +292,53 @@ class _BaseLabelAnnotator(BaseAnnotator):
             return y2
         else:  # CENTER, CENTER_LEFT, CENTER_RIGHT
             return (y1 + y2) / 2
+
+    def _wrap_text(self, text: str) -> List[str]:
+        """
+        Wraps text to the specified maximum line length, respecting existing newlines.
+        Uses the textwrap library for robust text wrapping.
+
+        Args:
+            text (str): The text to wrap.
+
+        Returns:
+            List[str]: A list of text lines after wrapping.
+        """
+        import textwrap
+
+        if not text:
+            return [""]
+
+        if self.max_line_length is None:
+            return text.splitlines() or [""]
+
+        # Split the text by existing newlines first
+        paragraphs = text.split("\n")
+        all_lines = []
+
+        for paragraph in paragraphs:
+            if not paragraph:
+                # Keep empty lines
+                all_lines.append("")
+                continue
+
+            # Wrap each paragraph separately
+            wrapped = textwrap.wrap(
+                paragraph,
+                width=self.max_line_length,
+                break_long_words=True,  # Break words longer than max_line_length
+                replace_whitespace=False,  # Preserve existing spaces
+                drop_whitespace=True,  # Drop leading/trailing whitespace on wrapped lines
+            )
+
+            # Add the wrapped lines for this paragraph
+            if wrapped:
+                all_lines.extend(wrapped)
+            else:
+                # If wrap returns an empty list (e.g., for whitespace-only input)
+                all_lines.append("")
+
+        return all_lines if all_lines else [""]
 
 
 class BoxAnnotator(BaseAnnotator):
@@ -1169,7 +1277,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
         color_lookup: ColorLookup = ColorLookup.CLASS,
         border_radius: int = 0,
         smart_position: bool = False,
-        ensure_in_frame: bool = False,  # Inherited
+        max_line_length: Optional[int] = None,
     ):
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
@@ -1181,7 +1289,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
             color_lookup=color_lookup,
             border_radius=border_radius,
             smart_position=smart_position,
-            ensure_in_frame=ensure_in_frame,
+            max_line_length=max_line_length,
         )
 
     @ensure_cv2_image_for_annotation
@@ -1205,7 +1313,6 @@ class LabelAnnotator(_BaseLabelAnnotator):
             xyxy = spread_out_boxes(xyxy)
             label_properties[:, :4] = xyxy
 
-        if self.ensure_in_frame:
             label_properties = self._adjust_labels_in_frame(
                 scene.shape[1],
                 scene.shape[0],
@@ -1238,15 +1345,29 @@ class LabelAnnotator(_BaseLabelAnnotator):
         ).astype(int)
 
         for label, center_coords in zip(labels, anchors_coordinates):
-            (text_w, text_h) = cv2.getTextSize(
-                text=label,
-                fontFace=CV2_FONT,
-                fontScale=self.text_scale,
-                thickness=self.text_thickness,
-            )[0]
+            wrapped_lines = self._wrap_text(label)
+            line_heights = []
+            line_widths = []
 
-            width_padded = text_w + 2 * self.text_padding
-            height_padded = text_h + 2 * self.text_padding
+            for line in wrapped_lines:
+                (text_w, text_h) = cv2.getTextSize(
+                    text=line,
+                    fontFace=CV2_FONT,
+                    fontScale=self.text_scale,
+                    thickness=self.text_thickness,
+                )[0]
+                line_heights.append(text_h)
+                line_widths.append(text_w)
+
+            # Get the maximum width and total height
+            max_width = max(line_widths) if line_widths else 0
+            total_height = (
+                sum(line_heights) + (len(line_heights) - 1) * self.text_padding
+            )
+
+            # Add padding around all sides
+            width_padded = max_width + 2 * self.text_padding
+            height_padded = total_height + 2 * self.text_padding
 
             text_background_xyxy = resolve_text_background_xyxy(
                 center_coordinates=tuple(center_coords),
@@ -1254,12 +1375,10 @@ class LabelAnnotator(_BaseLabelAnnotator):
                 position=self.text_anchor,
             )
 
-            label_properties.append(
-                [
-                    *text_background_xyxy,
-                    text_h,
-                ]
-            )
+            label_properties.append([
+                *text_background_xyxy,
+                total_height,
+            ])
         return np.array(label_properties).reshape(-1, 5)
 
     def _draw_labels(
@@ -1297,7 +1416,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
             )
 
             box_xyxy = label_property[:4].astype(int)
-            text_height_padded = label_property[4]
+
             self.draw_rounded_rectangle(
                 scene=scene,
                 xyxy=box_xyxy,
@@ -1305,18 +1424,43 @@ class LabelAnnotator(_BaseLabelAnnotator):
                 border_radius=self.border_radius,
             )
 
-            text_x = box_xyxy[0] + self.text_padding
-            text_y = box_xyxy[1] + self.text_padding + int(text_height_padded)
-            cv2.putText(
-                img=scene,
-                text=labels[idx],
-                org=(text_x, text_y),
-                fontFace=CV2_FONT,
-                fontScale=self.text_scale,
-                color=text_color.as_bgr(),
-                thickness=self.text_thickness,
-                lineType=cv2.LINE_AA,
-            )
+            # Handle multiline text
+            wrapped_lines = self._wrap_text(labels[idx])
+            current_y = box_xyxy[1] + self.text_padding  # Start y position
+
+            for line in wrapped_lines:
+                if not line:  # Skip empty lines
+                    (_, text_h) = cv2.getTextSize(
+                        text="Tg",  # Use a character with ascenders and descenders as height reference
+                        fontFace=CV2_FONT,
+                        fontScale=self.text_scale,
+                        thickness=self.text_thickness,
+                    )[0]
+                    current_y += text_h + self.text_padding
+                    continue
+
+                (_, text_h) = cv2.getTextSize(
+                    text=line,
+                    fontFace=CV2_FONT,
+                    fontScale=self.text_scale,
+                    thickness=self.text_thickness,
+                )[0]
+
+                text_x = box_xyxy[0] + self.text_padding
+                text_y = current_y + text_h  # Add height to get to text baseline
+
+                cv2.putText(
+                    img=scene,
+                    text=line,
+                    org=(text_x, text_y),
+                    fontFace=CV2_FONT,
+                    fontScale=self.text_scale,
+                    color=text_color.as_bgr(),
+                    thickness=self.text_thickness,
+                    lineType=cv2.LINE_AA,
+                )
+
+                current_y += text_h + self.text_padding  # Move to next line position
 
     @staticmethod
     def draw_rounded_rectangle(
@@ -1378,7 +1522,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         color_lookup: ColorLookup = ColorLookup.CLASS,
         border_radius: int = 0,
         smart_position: bool = False,
-        ensure_in_frame: bool = False,  # Inherited
+        max_line_length: Optional[int] = None,
     ):
         self.font_path = font_path
         self.font_size = font_size
@@ -1391,7 +1535,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             color_lookup=color_lookup,
             border_radius=border_radius,
             smart_position=smart_position,
-            ensure_in_frame=ensure_in_frame,
+            max_line_length=max_line_length,
         )
 
     @ensure_pil_image_for_annotation
@@ -1414,7 +1558,6 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             xyxy = spread_out_boxes(xyxy)
             label_properties[:, :4] = xyxy
 
-        if self.ensure_in_frame:
             label_properties = self._adjust_labels_in_frame(
                 scene.width,
                 scene.height,
@@ -1446,19 +1589,35 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         ).astype(int)
 
         for label, center_coords in zip(labels, anchor_coordinates):
-            text_left, text_top, text_right, text_bottom = draw.textbbox(
-                (0, 0), label, font=self.font
-            )
-            text_width = text_right - text_left
-            text_height = text_bottom - text_top
-            width_padded = int(text_width + 2 * self.text_padding)
-            height_padded = int(text_height + 2 * self.text_padding)
+            wrapped_lines = self._wrap_text(label)
+
+            # Calculate the total text height and maximum width
+            max_width = 0
+            total_height = 0
+
+            for line in wrapped_lines:
+                left, top, right, bottom = draw.textbbox((0, 0), line, font=self.font)
+                line_width = right - left
+                line_height = bottom - top
+
+                max_width = max(max_width, line_width)
+                total_height += line_height
+
+            # Add inter-line spacing
+            if len(wrapped_lines) > 1:
+                total_height += (len(wrapped_lines) - 1) * self.text_padding
+
+            width_padded = int(max_width + 2 * self.text_padding)
+            height_padded = int(total_height + 2 * self.text_padding)
 
             text_background_xyxy = resolve_text_background_xyxy(
                 center_coordinates=tuple(center_coords),
                 text_wh=(width_padded, height_padded),
                 position=self.text_anchor,
             )
+
+            # Get the text origin offsets
+            text_left, text_top, _, _ = draw.textbbox((0, 0), "Tg", font=self.font)
 
             label_properties.append([*text_background_xyxy, text_left, text_top])
 
@@ -1500,21 +1659,32 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             box_xyxy = label_property[:4].astype(int)
             text_left = label_property[4]
             text_top = label_property[5]
-            label_x_position = box_xyxy[0] + self.text_padding - text_left
-            label_y_position = box_xyxy[1] + self.text_padding - text_top
 
+            # Draw the rounded rectangle background
             draw.rounded_rectangle(
                 tuple(box_xyxy),
                 radius=self.border_radius,
                 fill=background_color.as_rgb(),
                 outline=None,
             )
-            draw.text(
-                xy=(label_x_position, label_y_position),
-                text=labels[idx],
-                font=self.font,
-                fill=text_color.as_rgb(),
-            )
+
+            # Draw each line of text
+            wrapped_lines = self._wrap_text(labels[idx])
+            x_position = box_xyxy[0] + self.text_padding - text_left
+            y_position = box_xyxy[1] + self.text_padding - text_top
+
+            for line in wrapped_lines:
+                draw.text(
+                    xy=(x_position, y_position),
+                    text=line,
+                    font=self.font,
+                    fill=text_color.as_rgb(),
+                )
+
+                # Move to the next line position
+                left, top, right, bottom = draw.textbbox((0, 0), line, font=self.font)
+                line_height = bottom - top
+                y_position += line_height + self.text_padding
 
     @staticmethod
     def _load_font(font_size: int, font_path: Optional[str]):
@@ -1532,6 +1702,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         except OSError:
             print(f"Font path '{font_path}' not found. Using PIL's default font.")
             return load_default_font(font_size)
+
 
 
 class IconAnnotator(BaseAnnotator):
