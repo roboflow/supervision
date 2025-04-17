@@ -326,9 +326,9 @@ class _BaseLabelAnnotator(BaseAnnotator):
             wrapped = textwrap.wrap(
                 paragraph,
                 width=self.max_line_length,
-                break_long_words=True,  # Break words longer than max_line_length
-                replace_whitespace=False,  # Preserve existing spaces
-                drop_whitespace=True,  # Drop leading/trailing whitespace on wrapped lines
+                break_long_words=True,
+                replace_whitespace=False,
+                drop_whitespace=True,
             )
 
             # Add the wrapped lines for this paragraph
@@ -1375,12 +1375,10 @@ class LabelAnnotator(_BaseLabelAnnotator):
                 position=self.text_anchor,
             )
 
-            label_properties.append(
-                [
-                    *text_background_xyxy,
-                    total_height,
-                ]
-            )
+            label_properties.append([
+                *text_background_xyxy,
+                total_height,
+            ])
         return np.array(label_properties).reshape(-1, 5)
 
     def _draw_labels(
@@ -1431,9 +1429,10 @@ class LabelAnnotator(_BaseLabelAnnotator):
             current_y = box_xyxy[1] + self.text_padding  # Start y position
 
             for line in wrapped_lines:
-                if not line:  # Skip empty lines
+                if not line:
+                    # Use a character with ascenders and descenders as height reference
                     (_, text_h) = cv2.getTextSize(
-                        text="Tg",  # Use a character with ascenders and descenders as height reference
+                        text="Tg",
                         fontFace=CV2_FONT,
                         fontScale=self.text_scale,
                         thickness=self.text_thickness,
