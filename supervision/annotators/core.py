@@ -1375,10 +1375,12 @@ class LabelAnnotator(_BaseLabelAnnotator):
                 position=self.text_anchor,
             )
 
-            label_properties.append([
-                *text_background_xyxy,
-                total_height,
-            ])
+            label_properties.append(
+                [
+                    *text_background_xyxy,
+                    total_height,
+                ]
+            )
         return np.array(label_properties).reshape(-1, 5)
 
     def _draw_labels(
@@ -1702,7 +1704,6 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         except OSError:
             print(f"Font path '{font_path}' not found. Using PIL's default font.")
             return load_default_font(font_size)
-
 
 
 class IconAnnotator(BaseAnnotator):
