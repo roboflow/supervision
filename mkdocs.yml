@@ -149,6 +149,7 @@ plugins:
             group_by_category: true
             docstring_style: google
             show_symbol_type_heading: true
+            show_root_heading: True
             show_symbol_type_toc: true
             show_category_heading: true
           inventories:
@@ -178,6 +179,8 @@ markdown_extensions:
       check_paths: true
   - pymdownx.highlight:
       anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
 
 extra_javascript:
   - "javascripts/init_kapa_widget.js"
