@@ -76,6 +76,7 @@ from supervision.detection.utils import (
     xcycwh_to_xyxy,
     xywh_to_xyxy,
     xyxy_to_polygons,
+    xyxy_to_xcycarh,
     xyxy_to_xywh,
 )
 from supervision.detection.vlm import LMM, VLM
@@ -225,5 +226,6 @@ __all__ = [
     "xcycwh_to_xyxy",
     "xywh_to_xyxy",
     "xyxy_to_polygons",
+    "xyxy_to_xyah",
     "xyxy_to_xywh",
 ]
