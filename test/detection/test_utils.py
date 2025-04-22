@@ -21,6 +21,7 @@ from supervision.detection.utils import (
     scale_boxes,
     xcycwh_to_xyxy,
     xywh_to_xyxy,
+    xyxy_to_xcycarh,
     xyxy_to_xywh,
 )
 
@@ -1403,6 +1404,36 @@ def test_xywh_to_xyxy(xywh: np.ndarray, expected_result: np.ndarray) -> None:
 def test_xyxy_to_xywh(xyxy: np.ndarray, expected_result: np.ndarray) -> None:
     result = xyxy_to_xywh(xyxy)
     np.testing.assert_array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "xyxy, expected_result",
+    [
+        (
+            np.array([[10, 20, 40, 60]]),
+            np.array([[25, 40, 0.75, 40]]),
+        ),  # standard case
+        (np.array([[0, 0, 0, 0]]), np.array([[0, 0, 0.0, 0]])),
+        # zero size bounding box
+        (
+            np.array([[50, 50, 150, 150]]),
+            np.array([[100, 100, 1.0, 100]]),
+        ),  # square bounding box
+        (
+            np.array([[-10, -20, 20, 20]]),
+            np.array([[5, 0, 0.75, 40]]),
+        ),  # negative coordinates
+        (
+            np.array([[50, 50, 50, 80]]),
+            np.array([[50, 65, 0.0, 30]]),
+        ),  # zero width
+        (np.array([[50, 50, 70, 50]]), np.array([[60, 50, 0.0, 0]])),  # zero height
+        (np.array([]).reshape(0, 4), np.array([]).reshape(0, 4)),  # empty array
+    ],
+)
+def test_xyxy_to_xcycarh(xyxy: np.ndarray, expected_result: np.ndarray) -> None:
+    result = xyxy_to_xcycarh(xyxy)
+    np.testing.assert_allclose(result, expected_result)
 
 
 @pytest.mark.parametrize(
