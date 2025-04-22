@@ -1463,6 +1463,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#supervision.detection.utils.xyxy_to_xcycarh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;xyxy_to_xcycarh
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supervision.detection.utils.xyxy_to_xcycarh(xyxy)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;xyxy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#supervision.detection.utils.xcycwh_to_xyxy" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3486,6 +3508,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#supervision.detection.utils.xyxy_to_xcycarh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;xyxy_to_xcycarh
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supervision.detection.utils.xyxy_to_xcycarh(xyxy)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;xyxy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#supervision.detection.utils.xcycwh_to_xyxy" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4315,53 +4359,53 @@ containing 2D bool masks</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-400">400</a></span>
-<span class="normal"><a href="#__codelineno-0-401">401</a></span>
-<span class="normal"><a href="#__codelineno-0-402">402</a></span>
-<span class="normal"><a href="#__codelineno-0-403">403</a></span>
-<span class="normal"><a href="#__codelineno-0-404">404</a></span>
-<span class="normal"><a href="#__codelineno-0-405">405</a></span>
-<span class="normal"><a href="#__codelineno-0-406">406</a></span>
-<span class="normal"><a href="#__codelineno-0-407">407</a></span>
-<span class="normal"><a href="#__codelineno-0-408">408</a></span>
-<span class="normal"><a href="#__codelineno-0-409">409</a></span>
-<span class="normal"><a href="#__codelineno-0-410">410</a></span>
-<span class="normal"><a href="#__codelineno-0-411">411</a></span>
-<span class="normal"><a href="#__codelineno-0-412">412</a></span>
-<span class="normal"><a href="#__codelineno-0-413">413</a></span>
-<span class="normal"><a href="#__codelineno-0-414">414</a></span>
-<span class="normal"><a href="#__codelineno-0-415">415</a></span>
-<span class="normal"><a href="#__codelineno-0-416">416</a></span>
-<span class="normal"><a href="#__codelineno-0-417">417</a></span>
-<span class="normal"><a href="#__codelineno-0-418">418</a></span>
-<span class="normal"><a href="#__codelineno-0-419">419</a></span>
-<span class="normal"><a href="#__codelineno-0-420">420</a></span>
-<span class="normal"><a href="#__codelineno-0-421">421</a></span>
-<span class="normal"><a href="#__codelineno-0-422">422</a></span>
-<span class="normal"><a href="#__codelineno-0-423">423</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-400" name="__codelineno-0-400"></a><span class="k">def</span><span class="w"> </span><span class="nf">mask_to_xyxy</span><span class="p">(</span><span class="n">masks</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-401" name="__codelineno-0-401"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-402" name="__codelineno-0-402"></a><span class="sd">    Converts a 3D `np.array` of 2D bool masks into a 2D `np.array` of bounding boxes.</span>
-<a id="__codelineno-0-403" name="__codelineno-0-403"></a>
-<a id="__codelineno-0-404" name="__codelineno-0-404"></a><span class="sd">    Parameters:</span>
-<a id="__codelineno-0-405" name="__codelineno-0-405"></a><span class="sd">        masks (np.ndarray): A 3D `np.array` of shape `(N, W, H)`</span>
-<a id="__codelineno-0-406" name="__codelineno-0-406"></a><span class="sd">            containing 2D bool masks</span>
-<a id="__codelineno-0-407" name="__codelineno-0-407"></a>
-<a id="__codelineno-0-408" name="__codelineno-0-408"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-409" name="__codelineno-0-409"></a><span class="sd">        np.ndarray: A 2D `np.array` of shape `(N, 4)` containing the bounding boxes</span>
-<a id="__codelineno-0-410" name="__codelineno-0-410"></a><span class="sd">            `(x_min, y_min, x_max, y_max)` for each mask</span>
-<a id="__codelineno-0-411" name="__codelineno-0-411"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-412" name="__codelineno-0-412"></a>    <span class="n">n</span> <span class="o">=</span> <span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<a id="__codelineno-0-413" name="__codelineno-0-413"></a>    <span class="n">xyxy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
-<a id="__codelineno-0-414" name="__codelineno-0-414"></a>
-<a id="__codelineno-0-415" name="__codelineno-0-415"></a>    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">mask</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">masks</span><span class="p">):</span>
-<a id="__codelineno-0-416" name="__codelineno-0-416"></a>        <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
-<a id="__codelineno-0-417" name="__codelineno-0-417"></a>
-<a id="__codelineno-0-418" name="__codelineno-0-418"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-419" name="__codelineno-0-419"></a>            <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">cols</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span>
-<a id="__codelineno-0-420" name="__codelineno-0-420"></a>            <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">rows</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
-<a id="__codelineno-0-421" name="__codelineno-0-421"></a>            <span class="n">xyxy</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">x_min</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_max</span><span class="p">]</span>
-<a id="__codelineno-0-422" name="__codelineno-0-422"></a>
-<a id="__codelineno-0-423" name="__codelineno-0-423"></a>    <span class="k">return</span> <span class="n">xyxy</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-450">450</a></span>
+<span class="normal"><a href="#__codelineno-0-451">451</a></span>
+<span class="normal"><a href="#__codelineno-0-452">452</a></span>
+<span class="normal"><a href="#__codelineno-0-453">453</a></span>
+<span class="normal"><a href="#__codelineno-0-454">454</a></span>
+<span class="normal"><a href="#__codelineno-0-455">455</a></span>
+<span class="normal"><a href="#__codelineno-0-456">456</a></span>
+<span class="normal"><a href="#__codelineno-0-457">457</a></span>
+<span class="normal"><a href="#__codelineno-0-458">458</a></span>
+<span class="normal"><a href="#__codelineno-0-459">459</a></span>
+<span class="normal"><a href="#__codelineno-0-460">460</a></span>
+<span class="normal"><a href="#__codelineno-0-461">461</a></span>
+<span class="normal"><a href="#__codelineno-0-462">462</a></span>
+<span class="normal"><a href="#__codelineno-0-463">463</a></span>
+<span class="normal"><a href="#__codelineno-0-464">464</a></span>
+<span class="normal"><a href="#__codelineno-0-465">465</a></span>
+<span class="normal"><a href="#__codelineno-0-466">466</a></span>
+<span class="normal"><a href="#__codelineno-0-467">467</a></span>
+<span class="normal"><a href="#__codelineno-0-468">468</a></span>
+<span class="normal"><a href="#__codelineno-0-469">469</a></span>
+<span class="normal"><a href="#__codelineno-0-470">470</a></span>
+<span class="normal"><a href="#__codelineno-0-471">471</a></span>
+<span class="normal"><a href="#__codelineno-0-472">472</a></span>
+<span class="normal"><a href="#__codelineno-0-473">473</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-450" name="__codelineno-0-450"></a><span class="k">def</span><span class="w"> </span><span class="nf">mask_to_xyxy</span><span class="p">(</span><span class="n">masks</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-451" name="__codelineno-0-451"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-452" name="__codelineno-0-452"></a><span class="sd">    Converts a 3D `np.array` of 2D bool masks into a 2D `np.array` of bounding boxes.</span>
+<a id="__codelineno-0-453" name="__codelineno-0-453"></a>
+<a id="__codelineno-0-454" name="__codelineno-0-454"></a><span class="sd">    Parameters:</span>
+<a id="__codelineno-0-455" name="__codelineno-0-455"></a><span class="sd">        masks (np.ndarray): A 3D `np.array` of shape `(N, W, H)`</span>
+<a id="__codelineno-0-456" name="__codelineno-0-456"></a><span class="sd">            containing 2D bool masks</span>
+<a id="__codelineno-0-457" name="__codelineno-0-457"></a>
+<a id="__codelineno-0-458" name="__codelineno-0-458"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-459" name="__codelineno-0-459"></a><span class="sd">        np.ndarray: A 2D `np.array` of shape `(N, 4)` containing the bounding boxes</span>
+<a id="__codelineno-0-460" name="__codelineno-0-460"></a><span class="sd">            `(x_min, y_min, x_max, y_max)` for each mask</span>
+<a id="__codelineno-0-461" name="__codelineno-0-461"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-462" name="__codelineno-0-462"></a>    <span class="n">n</span> <span class="o">=</span> <span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-463" name="__codelineno-0-463"></a>    <span class="n">xyxy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+<a id="__codelineno-0-464" name="__codelineno-0-464"></a>
+<a id="__codelineno-0-465" name="__codelineno-0-465"></a>    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">mask</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">masks</span><span class="p">):</span>
+<a id="__codelineno-0-466" name="__codelineno-0-466"></a>        <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+<a id="__codelineno-0-467" name="__codelineno-0-467"></a>
+<a id="__codelineno-0-468" name="__codelineno-0-468"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-469" name="__codelineno-0-469"></a>            <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">cols</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span>
+<a id="__codelineno-0-470" name="__codelineno-0-470"></a>            <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">rows</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+<a id="__codelineno-0-471" name="__codelineno-0-471"></a>            <span class="n">xyxy</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">x_min</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_max</span><span class="p">]</span>
+<a id="__codelineno-0-472" name="__codelineno-0-472"></a>
+<a id="__codelineno-0-473" name="__codelineno-0-473"></a>    <span class="k">return</span> <span class="n">xyxy</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4443,53 +4487,53 @@ are excluded from the output.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-426">426</a></span>
-<span class="normal"><a href="#__codelineno-0-427">427</a></span>
-<span class="normal"><a href="#__codelineno-0-428">428</a></span>
-<span class="normal"><a href="#__codelineno-0-429">429</a></span>
-<span class="normal"><a href="#__codelineno-0-430">430</a></span>
-<span class="normal"><a href="#__codelineno-0-431">431</a></span>
-<span class="normal"><a href="#__codelineno-0-432">432</a></span>
-<span class="normal"><a href="#__codelineno-0-433">433</a></span>
-<span class="normal"><a href="#__codelineno-0-434">434</a></span>
-<span class="normal"><a href="#__codelineno-0-435">435</a></span>
-<span class="normal"><a href="#__codelineno-0-436">436</a></span>
-<span class="normal"><a href="#__codelineno-0-437">437</a></span>
-<span class="normal"><a href="#__codelineno-0-438">438</a></span>
-<span class="normal"><a href="#__codelineno-0-439">439</a></span>
-<span class="normal"><a href="#__codelineno-0-440">440</a></span>
-<span class="normal"><a href="#__codelineno-0-441">441</a></span>
-<span class="normal"><a href="#__codelineno-0-442">442</a></span>
-<span class="normal"><a href="#__codelineno-0-443">443</a></span>
-<span class="normal"><a href="#__codelineno-0-444">444</a></span>
-<span class="normal"><a href="#__codelineno-0-445">445</a></span>
-<span class="normal"><a href="#__codelineno-0-446">446</a></span>
-<span class="normal"><a href="#__codelineno-0-447">447</a></span>
-<span class="normal"><a href="#__codelineno-0-448">448</a></span>
-<span class="normal"><a href="#__codelineno-0-449">449</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-426" name="__codelineno-0-426"></a><span class="k">def</span><span class="w"> </span><span class="nf">mask_to_polygons</span><span class="p">(</span><span class="n">mask</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-<a id="__codelineno-0-427" name="__codelineno-0-427"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-428" name="__codelineno-0-428"></a><span class="sd">    Converts a binary mask to a list of polygons.</span>
-<a id="__codelineno-0-429" name="__codelineno-0-429"></a>
-<a id="__codelineno-0-430" name="__codelineno-0-430"></a><span class="sd">    Parameters:</span>
-<a id="__codelineno-0-431" name="__codelineno-0-431"></a><span class="sd">        mask (np.ndarray): A binary mask represented as a 2D NumPy array of</span>
-<a id="__codelineno-0-432" name="__codelineno-0-432"></a><span class="sd">            shape `(H, W)`, where H and W are the height and width of</span>
-<a id="__codelineno-0-433" name="__codelineno-0-433"></a><span class="sd">            the mask, respectively.</span>
-<a id="__codelineno-0-434" name="__codelineno-0-434"></a>
-<a id="__codelineno-0-435" name="__codelineno-0-435"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-436" name="__codelineno-0-436"></a><span class="sd">        List[np.ndarray]: A list of polygons, where each polygon is represented by a</span>
-<a id="__codelineno-0-437" name="__codelineno-0-437"></a><span class="sd">            NumPy array of shape `(N, 2)`, containing the `x`, `y` coordinates</span>
-<a id="__codelineno-0-438" name="__codelineno-0-438"></a><span class="sd">            of the points. Polygons with fewer points than `MIN_POLYGON_POINT_COUNT = 3`</span>
-<a id="__codelineno-0-439" name="__codelineno-0-439"></a><span class="sd">            are excluded from the output.</span>
-<a id="__codelineno-0-440" name="__codelineno-0-440"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-441" name="__codelineno-0-441"></a>
-<a id="__codelineno-0-442" name="__codelineno-0-442"></a>    <span class="n">contours</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">findContours</span><span class="p">(</span>
-<a id="__codelineno-0-443" name="__codelineno-0-443"></a>        <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">),</span> <span class="n">cv2</span><span class="o">.</span><span class="n">RETR_TREE</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CHAIN_APPROX_SIMPLE</span>
-<a id="__codelineno-0-444" name="__codelineno-0-444"></a>    <span class="p">)</span>
-<a id="__codelineno-0-445" name="__codelineno-0-445"></a>    <span class="k">return</span> <span class="p">[</span>
-<a id="__codelineno-0-446" name="__codelineno-0-446"></a>        <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">contour</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-<a id="__codelineno-0-447" name="__codelineno-0-447"></a>        <span class="k">for</span> <span class="n">contour</span> <span class="ow">in</span> <span class="n">contours</span>
-<a id="__codelineno-0-448" name="__codelineno-0-448"></a>        <span class="k">if</span> <span class="n">contour</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">MIN_POLYGON_POINT_COUNT</span>
-<a id="__codelineno-0-449" name="__codelineno-0-449"></a>    <span class="p">]</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-476">476</a></span>
+<span class="normal"><a href="#__codelineno-0-477">477</a></span>
+<span class="normal"><a href="#__codelineno-0-478">478</a></span>
+<span class="normal"><a href="#__codelineno-0-479">479</a></span>
+<span class="normal"><a href="#__codelineno-0-480">480</a></span>
+<span class="normal"><a href="#__codelineno-0-481">481</a></span>
+<span class="normal"><a href="#__codelineno-0-482">482</a></span>
+<span class="normal"><a href="#__codelineno-0-483">483</a></span>
+<span class="normal"><a href="#__codelineno-0-484">484</a></span>
+<span class="normal"><a href="#__codelineno-0-485">485</a></span>
+<span class="normal"><a href="#__codelineno-0-486">486</a></span>
+<span class="normal"><a href="#__codelineno-0-487">487</a></span>
+<span class="normal"><a href="#__codelineno-0-488">488</a></span>
+<span class="normal"><a href="#__codelineno-0-489">489</a></span>
+<span class="normal"><a href="#__codelineno-0-490">490</a></span>
+<span class="normal"><a href="#__codelineno-0-491">491</a></span>
+<span class="normal"><a href="#__codelineno-0-492">492</a></span>
+<span class="normal"><a href="#__codelineno-0-493">493</a></span>
+<span class="normal"><a href="#__codelineno-0-494">494</a></span>
+<span class="normal"><a href="#__codelineno-0-495">495</a></span>
+<span class="normal"><a href="#__codelineno-0-496">496</a></span>
+<span class="normal"><a href="#__codelineno-0-497">497</a></span>
+<span class="normal"><a href="#__codelineno-0-498">498</a></span>
+<span class="normal"><a href="#__codelineno-0-499">499</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-476" name="__codelineno-0-476"></a><span class="k">def</span><span class="w"> </span><span class="nf">mask_to_polygons</span><span class="p">(</span><span class="n">mask</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<a id="__codelineno-0-477" name="__codelineno-0-477"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-478" name="__codelineno-0-478"></a><span class="sd">    Converts a binary mask to a list of polygons.</span>
+<a id="__codelineno-0-479" name="__codelineno-0-479"></a>
+<a id="__codelineno-0-480" name="__codelineno-0-480"></a><span class="sd">    Parameters:</span>
+<a id="__codelineno-0-481" name="__codelineno-0-481"></a><span class="sd">        mask (np.ndarray): A binary mask represented as a 2D NumPy array of</span>
+<a id="__codelineno-0-482" name="__codelineno-0-482"></a><span class="sd">            shape `(H, W)`, where H and W are the height and width of</span>
+<a id="__codelineno-0-483" name="__codelineno-0-483"></a><span class="sd">            the mask, respectively.</span>
+<a id="__codelineno-0-484" name="__codelineno-0-484"></a>
+<a id="__codelineno-0-485" name="__codelineno-0-485"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-486" name="__codelineno-0-486"></a><span class="sd">        List[np.ndarray]: A list of polygons, where each polygon is represented by a</span>
+<a id="__codelineno-0-487" name="__codelineno-0-487"></a><span class="sd">            NumPy array of shape `(N, 2)`, containing the `x`, `y` coordinates</span>
+<a id="__codelineno-0-488" name="__codelineno-0-488"></a><span class="sd">            of the points. Polygons with fewer points than `MIN_POLYGON_POINT_COUNT = 3`</span>
+<a id="__codelineno-0-489" name="__codelineno-0-489"></a><span class="sd">            are excluded from the output.</span>
+<a id="__codelineno-0-490" name="__codelineno-0-490"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-491" name="__codelineno-0-491"></a>
+<a id="__codelineno-0-492" name="__codelineno-0-492"></a>    <span class="n">contours</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">findContours</span><span class="p">(</span>
+<a id="__codelineno-0-493" name="__codelineno-0-493"></a>        <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">),</span> <span class="n">cv2</span><span class="o">.</span><span class="n">RETR_TREE</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CHAIN_APPROX_SIMPLE</span>
+<a id="__codelineno-0-494" name="__codelineno-0-494"></a>    <span class="p">)</span>
+<a id="__codelineno-0-495" name="__codelineno-0-495"></a>    <span class="k">return</span> <span class="p">[</span>
+<a id="__codelineno-0-496" name="__codelineno-0-496"></a>        <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">contour</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<a id="__codelineno-0-497" name="__codelineno-0-497"></a>        <span class="k">for</span> <span class="n">contour</span> <span class="ow">in</span> <span class="n">contours</span>
+<a id="__codelineno-0-498" name="__codelineno-0-498"></a>        <span class="k">if</span> <span class="n">contour</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">MIN_POLYGON_POINT_COUNT</span>
+<a id="__codelineno-0-499" name="__codelineno-0-499"></a>    <span class="p">]</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4568,35 +4612,35 @@ containing the <code>x</code>, <code>y</code> coordinates of the points.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-488">488</a></span>
-<span class="normal"><a href="#__codelineno-0-489">489</a></span>
-<span class="normal"><a href="#__codelineno-0-490">490</a></span>
-<span class="normal"><a href="#__codelineno-0-491">491</a></span>
-<span class="normal"><a href="#__codelineno-0-492">492</a></span>
-<span class="normal"><a href="#__codelineno-0-493">493</a></span>
-<span class="normal"><a href="#__codelineno-0-494">494</a></span>
-<span class="normal"><a href="#__codelineno-0-495">495</a></span>
-<span class="normal"><a href="#__codelineno-0-496">496</a></span>
-<span class="normal"><a href="#__codelineno-0-497">497</a></span>
-<span class="normal"><a href="#__codelineno-0-498">498</a></span>
-<span class="normal"><a href="#__codelineno-0-499">499</a></span>
-<span class="normal"><a href="#__codelineno-0-500">500</a></span>
-<span class="normal"><a href="#__codelineno-0-501">501</a></span>
-<span class="normal"><a href="#__codelineno-0-502">502</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-488" name="__codelineno-0-488"></a><span class="k">def</span><span class="w"> </span><span class="nf">polygon_to_xyxy</span><span class="p">(</span><span class="n">polygon</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-489" name="__codelineno-0-489"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-490" name="__codelineno-0-490"></a><span class="sd">    Converts a polygon represented by a NumPy array into a bounding box.</span>
-<a id="__codelineno-0-491" name="__codelineno-0-491"></a>
-<a id="__codelineno-0-492" name="__codelineno-0-492"></a><span class="sd">    Parameters:</span>
-<a id="__codelineno-0-493" name="__codelineno-0-493"></a><span class="sd">        polygon (np.ndarray): A polygon represented by a NumPy array of shape `(N, 2)`,</span>
-<a id="__codelineno-0-494" name="__codelineno-0-494"></a><span class="sd">            containing the `x`, `y` coordinates of the points.</span>
-<a id="__codelineno-0-495" name="__codelineno-0-495"></a>
-<a id="__codelineno-0-496" name="__codelineno-0-496"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-497" name="__codelineno-0-497"></a><span class="sd">        np.ndarray: A 1D NumPy array containing the bounding box</span>
-<a id="__codelineno-0-498" name="__codelineno-0-498"></a><span class="sd">            `(x_min, y_min, x_max, y_max)` of the input polygon.</span>
-<a id="__codelineno-0-499" name="__codelineno-0-499"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-500" name="__codelineno-0-500"></a>    <span class="n">x_min</span><span class="p">,</span> <span class="n">y_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">polygon</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-<a id="__codelineno-0-501" name="__codelineno-0-501"></a>    <span class="n">x_max</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">polygon</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-<a id="__codelineno-0-502" name="__codelineno-0-502"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x_min</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_max</span><span class="p">])</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-538">538</a></span>
+<span class="normal"><a href="#__codelineno-0-539">539</a></span>
+<span class="normal"><a href="#__codelineno-0-540">540</a></span>
+<span class="normal"><a href="#__codelineno-0-541">541</a></span>
+<span class="normal"><a href="#__codelineno-0-542">542</a></span>
+<span class="normal"><a href="#__codelineno-0-543">543</a></span>
+<span class="normal"><a href="#__codelineno-0-544">544</a></span>
+<span class="normal"><a href="#__codelineno-0-545">545</a></span>
+<span class="normal"><a href="#__codelineno-0-546">546</a></span>
+<span class="normal"><a href="#__codelineno-0-547">547</a></span>
+<span class="normal"><a href="#__codelineno-0-548">548</a></span>
+<span class="normal"><a href="#__codelineno-0-549">549</a></span>
+<span class="normal"><a href="#__codelineno-0-550">550</a></span>
+<span class="normal"><a href="#__codelineno-0-551">551</a></span>
+<span class="normal"><a href="#__codelineno-0-552">552</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-538" name="__codelineno-0-538"></a><span class="k">def</span><span class="w"> </span><span class="nf">polygon_to_xyxy</span><span class="p">(</span><span class="n">polygon</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-539" name="__codelineno-0-539"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-540" name="__codelineno-0-540"></a><span class="sd">    Converts a polygon represented by a NumPy array into a bounding box.</span>
+<a id="__codelineno-0-541" name="__codelineno-0-541"></a>
+<a id="__codelineno-0-542" name="__codelineno-0-542"></a><span class="sd">    Parameters:</span>
+<a id="__codelineno-0-543" name="__codelineno-0-543"></a><span class="sd">        polygon (np.ndarray): A polygon represented by a NumPy array of shape `(N, 2)`,</span>
+<a id="__codelineno-0-544" name="__codelineno-0-544"></a><span class="sd">            containing the `x`, `y` coordinates of the points.</span>
+<a id="__codelineno-0-545" name="__codelineno-0-545"></a>
+<a id="__codelineno-0-546" name="__codelineno-0-546"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-547" name="__codelineno-0-547"></a><span class="sd">        np.ndarray: A 1D NumPy array containing the bounding box</span>
+<a id="__codelineno-0-548" name="__codelineno-0-548"></a><span class="sd">            `(x_min, y_min, x_max, y_max)` of the input polygon.</span>
+<a id="__codelineno-0-549" name="__codelineno-0-549"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-550" name="__codelineno-0-550"></a>    <span class="n">x_min</span><span class="p">,</span> <span class="n">y_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">polygon</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-0-551" name="__codelineno-0-551"></a>    <span class="n">x_max</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">polygon</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-0-552" name="__codelineno-0-552"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x_min</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_max</span><span class="p">])</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4714,73 +4758,73 @@ areas within the specified thresholds.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-452">452</a></span>
-<span class="normal"><a href="#__codelineno-0-453">453</a></span>
-<span class="normal"><a href="#__codelineno-0-454">454</a></span>
-<span class="normal"><a href="#__codelineno-0-455">455</a></span>
-<span class="normal"><a href="#__codelineno-0-456">456</a></span>
-<span class="normal"><a href="#__codelineno-0-457">457</a></span>
-<span class="normal"><a href="#__codelineno-0-458">458</a></span>
-<span class="normal"><a href="#__codelineno-0-459">459</a></span>
-<span class="normal"><a href="#__codelineno-0-460">460</a></span>
-<span class="normal"><a href="#__codelineno-0-461">461</a></span>
-<span class="normal"><a href="#__codelineno-0-462">462</a></span>
-<span class="normal"><a href="#__codelineno-0-463">463</a></span>
-<span class="normal"><a href="#__codelineno-0-464">464</a></span>
-<span class="normal"><a href="#__codelineno-0-465">465</a></span>
-<span class="normal"><a href="#__codelineno-0-466">466</a></span>
-<span class="normal"><a href="#__codelineno-0-467">467</a></span>
-<span class="normal"><a href="#__codelineno-0-468">468</a></span>
-<span class="normal"><a href="#__codelineno-0-469">469</a></span>
-<span class="normal"><a href="#__codelineno-0-470">470</a></span>
-<span class="normal"><a href="#__codelineno-0-471">471</a></span>
-<span class="normal"><a href="#__codelineno-0-472">472</a></span>
-<span class="normal"><a href="#__codelineno-0-473">473</a></span>
-<span class="normal"><a href="#__codelineno-0-474">474</a></span>
-<span class="normal"><a href="#__codelineno-0-475">475</a></span>
-<span class="normal"><a href="#__codelineno-0-476">476</a></span>
-<span class="normal"><a href="#__codelineno-0-477">477</a></span>
-<span class="normal"><a href="#__codelineno-0-478">478</a></span>
-<span class="normal"><a href="#__codelineno-0-479">479</a></span>
-<span class="normal"><a href="#__codelineno-0-480">480</a></span>
-<span class="normal"><a href="#__codelineno-0-481">481</a></span>
-<span class="normal"><a href="#__codelineno-0-482">482</a></span>
-<span class="normal"><a href="#__codelineno-0-483">483</a></span>
-<span class="normal"><a href="#__codelineno-0-484">484</a></span>
-<span class="normal"><a href="#__codelineno-0-485">485</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-452" name="__codelineno-0-452"></a><span class="k">def</span><span class="w"> </span><span class="nf">filter_polygons_by_area</span><span class="p">(</span>
-<a id="__codelineno-0-453" name="__codelineno-0-453"></a>    <span class="n">polygons</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
-<a id="__codelineno-0-454" name="__codelineno-0-454"></a>    <span class="n">min_area</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-455" name="__codelineno-0-455"></a>    <span class="n">max_area</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-456" name="__codelineno-0-456"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-<a id="__codelineno-0-457" name="__codelineno-0-457"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-458" name="__codelineno-0-458"></a><span class="sd">    Filters a list of polygons based on their area.</span>
-<a id="__codelineno-0-459" name="__codelineno-0-459"></a>
-<a id="__codelineno-0-460" name="__codelineno-0-460"></a><span class="sd">    Parameters:</span>
-<a id="__codelineno-0-461" name="__codelineno-0-461"></a><span class="sd">        polygons (List[np.ndarray]): A list of polygons, where each polygon is</span>
-<a id="__codelineno-0-462" name="__codelineno-0-462"></a><span class="sd">            represented by a NumPy array of shape `(N, 2)`,</span>
-<a id="__codelineno-0-463" name="__codelineno-0-463"></a><span class="sd">            containing the `x`, `y` coordinates of the points.</span>
-<a id="__codelineno-0-464" name="__codelineno-0-464"></a><span class="sd">        min_area (Optional[float]): The minimum area threshold.</span>
-<a id="__codelineno-0-465" name="__codelineno-0-465"></a><span class="sd">            Only polygons with an area greater than or equal to this value</span>
-<a id="__codelineno-0-466" name="__codelineno-0-466"></a><span class="sd">            will be included in the output. If set to None,</span>
-<a id="__codelineno-0-467" name="__codelineno-0-467"></a><span class="sd">            no minimum area constraint will be applied.</span>
-<a id="__codelineno-0-468" name="__codelineno-0-468"></a><span class="sd">        max_area (Optional[float]): The maximum area threshold.</span>
-<a id="__codelineno-0-469" name="__codelineno-0-469"></a><span class="sd">            Only polygons with an area less than or equal to this value</span>
-<a id="__codelineno-0-470" name="__codelineno-0-470"></a><span class="sd">            will be included in the output. If set to None,</span>
-<a id="__codelineno-0-471" name="__codelineno-0-471"></a><span class="sd">            no maximum area constraint will be applied.</span>
-<a id="__codelineno-0-472" name="__codelineno-0-472"></a>
-<a id="__codelineno-0-473" name="__codelineno-0-473"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-474" name="__codelineno-0-474"></a><span class="sd">        List[np.ndarray]: A new list of polygons containing only those with</span>
-<a id="__codelineno-0-475" name="__codelineno-0-475"></a><span class="sd">            areas within the specified thresholds.</span>
-<a id="__codelineno-0-476" name="__codelineno-0-476"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-477" name="__codelineno-0-477"></a>    <span class="k">if</span> <span class="n">min_area</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">max_area</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-478" name="__codelineno-0-478"></a>        <span class="k">return</span> <span class="n">polygons</span>
-<a id="__codelineno-0-479" name="__codelineno-0-479"></a>    <span class="n">ares</span> <span class="o">=</span> <span class="p">[</span><span class="n">cv2</span><span class="o">.</span><span class="n">contourArea</span><span class="p">(</span><span class="n">polygon</span><span class="p">)</span> <span class="k">for</span> <span class="n">polygon</span> <span class="ow">in</span> <span class="n">polygons</span><span class="p">]</span>
-<a id="__codelineno-0-480" name="__codelineno-0-480"></a>    <span class="k">return</span> <span class="p">[</span>
-<a id="__codelineno-0-481" name="__codelineno-0-481"></a>        <span class="n">polygon</span>
-<a id="__codelineno-0-482" name="__codelineno-0-482"></a>        <span class="k">for</span> <span class="n">polygon</span><span class="p">,</span> <span class="n">area</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">polygons</span><span class="p">,</span> <span class="n">ares</span><span class="p">)</span>
-<a id="__codelineno-0-483" name="__codelineno-0-483"></a>        <span class="k">if</span> <span class="p">(</span><span class="n">min_area</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">area</span> <span class="o">&gt;=</span> <span class="n">min_area</span><span class="p">)</span>
-<a id="__codelineno-0-484" name="__codelineno-0-484"></a>        <span class="ow">and</span> <span class="p">(</span><span class="n">max_area</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">area</span> <span class="o">&lt;=</span> <span class="n">max_area</span><span class="p">)</span>
-<a id="__codelineno-0-485" name="__codelineno-0-485"></a>    <span class="p">]</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-502">502</a></span>
+<span class="normal"><a href="#__codelineno-0-503">503</a></span>
+<span class="normal"><a href="#__codelineno-0-504">504</a></span>
+<span class="normal"><a href="#__codelineno-0-505">505</a></span>
+<span class="normal"><a href="#__codelineno-0-506">506</a></span>
+<span class="normal"><a href="#__codelineno-0-507">507</a></span>
+<span class="normal"><a href="#__codelineno-0-508">508</a></span>
+<span class="normal"><a href="#__codelineno-0-509">509</a></span>
+<span class="normal"><a href="#__codelineno-0-510">510</a></span>
+<span class="normal"><a href="#__codelineno-0-511">511</a></span>
+<span class="normal"><a href="#__codelineno-0-512">512</a></span>
+<span class="normal"><a href="#__codelineno-0-513">513</a></span>
+<span class="normal"><a href="#__codelineno-0-514">514</a></span>
+<span class="normal"><a href="#__codelineno-0-515">515</a></span>
+<span class="normal"><a href="#__codelineno-0-516">516</a></span>
+<span class="normal"><a href="#__codelineno-0-517">517</a></span>
+<span class="normal"><a href="#__codelineno-0-518">518</a></span>
+<span class="normal"><a href="#__codelineno-0-519">519</a></span>
+<span class="normal"><a href="#__codelineno-0-520">520</a></span>
+<span class="normal"><a href="#__codelineno-0-521">521</a></span>
+<span class="normal"><a href="#__codelineno-0-522">522</a></span>
+<span class="normal"><a href="#__codelineno-0-523">523</a></span>
+<span class="normal"><a href="#__codelineno-0-524">524</a></span>
+<span class="normal"><a href="#__codelineno-0-525">525</a></span>
+<span class="normal"><a href="#__codelineno-0-526">526</a></span>
+<span class="normal"><a href="#__codelineno-0-527">527</a></span>
+<span class="normal"><a href="#__codelineno-0-528">528</a></span>
+<span class="normal"><a href="#__codelineno-0-529">529</a></span>
+<span class="normal"><a href="#__codelineno-0-530">530</a></span>
+<span class="normal"><a href="#__codelineno-0-531">531</a></span>
+<span class="normal"><a href="#__codelineno-0-532">532</a></span>
+<span class="normal"><a href="#__codelineno-0-533">533</a></span>
+<span class="normal"><a href="#__codelineno-0-534">534</a></span>
+<span class="normal"><a href="#__codelineno-0-535">535</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-502" name="__codelineno-0-502"></a><span class="k">def</span><span class="w"> </span><span class="nf">filter_polygons_by_area</span><span class="p">(</span>
+<a id="__codelineno-0-503" name="__codelineno-0-503"></a>    <span class="n">polygons</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+<a id="__codelineno-0-504" name="__codelineno-0-504"></a>    <span class="n">min_area</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-505" name="__codelineno-0-505"></a>    <span class="n">max_area</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="__codelineno-0-506" name="__codelineno-0-506"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<a id="__codelineno-0-507" name="__codelineno-0-507"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-508" name="__codelineno-0-508"></a><span class="sd">    Filters a list of polygons based on their area.</span>
+<a id="__codelineno-0-509" name="__codelineno-0-509"></a>
+<a id="__codelineno-0-510" name="__codelineno-0-510"></a><span class="sd">    Parameters:</span>
+<a id="__codelineno-0-511" name="__codelineno-0-511"></a><span class="sd">        polygons (List[np.ndarray]): A list of polygons, where each polygon is</span>
+<a id="__codelineno-0-512" name="__codelineno-0-512"></a><span class="sd">            represented by a NumPy array of shape `(N, 2)`,</span>
+<a id="__codelineno-0-513" name="__codelineno-0-513"></a><span class="sd">            containing the `x`, `y` coordinates of the points.</span>
+<a id="__codelineno-0-514" name="__codelineno-0-514"></a><span class="sd">        min_area (Optional[float]): The minimum area threshold.</span>
+<a id="__codelineno-0-515" name="__codelineno-0-515"></a><span class="sd">            Only polygons with an area greater than or equal to this value</span>
+<a id="__codelineno-0-516" name="__codelineno-0-516"></a><span class="sd">            will be included in the output. If set to None,</span>
+<a id="__codelineno-0-517" name="__codelineno-0-517"></a><span class="sd">            no minimum area constraint will be applied.</span>
+<a id="__codelineno-0-518" name="__codelineno-0-518"></a><span class="sd">        max_area (Optional[float]): The maximum area threshold.</span>
+<a id="__codelineno-0-519" name="__codelineno-0-519"></a><span class="sd">            Only polygons with an area less than or equal to this value</span>
+<a id="__codelineno-0-520" name="__codelineno-0-520"></a><span class="sd">            will be included in the output. If set to None,</span>
+<a id="__codelineno-0-521" name="__codelineno-0-521"></a><span class="sd">            no maximum area constraint will be applied.</span>
+<a id="__codelineno-0-522" name="__codelineno-0-522"></a>
+<a id="__codelineno-0-523" name="__codelineno-0-523"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-524" name="__codelineno-0-524"></a><span class="sd">        List[np.ndarray]: A new list of polygons containing only those with</span>
+<a id="__codelineno-0-525" name="__codelineno-0-525"></a><span class="sd">            areas within the specified thresholds.</span>
+<a id="__codelineno-0-526" name="__codelineno-0-526"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-527" name="__codelineno-0-527"></a>    <span class="k">if</span> <span class="n">min_area</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">max_area</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-528" name="__codelineno-0-528"></a>        <span class="k">return</span> <span class="n">polygons</span>
+<a id="__codelineno-0-529" name="__codelineno-0-529"></a>    <span class="n">ares</span> <span class="o">=</span> <span class="p">[</span><span class="n">cv2</span><span class="o">.</span><span class="n">contourArea</span><span class="p">(</span><span class="n">polygon</span><span class="p">)</span> <span class="k">for</span> <span class="n">polygon</span> <span class="ow">in</span> <span class="n">polygons</span><span class="p">]</span>
+<a id="__codelineno-0-530" name="__codelineno-0-530"></a>    <span class="k">return</span> <span class="p">[</span>
+<a id="__codelineno-0-531" name="__codelineno-0-531"></a>        <span class="n">polygon</span>
+<a id="__codelineno-0-532" name="__codelineno-0-532"></a>        <span class="k">for</span> <span class="n">polygon</span><span class="p">,</span> <span class="n">area</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">polygons</span><span class="p">,</span> <span class="n">ares</span><span class="p">)</span>
+<a id="__codelineno-0-533" name="__codelineno-0-533"></a>        <span class="k">if</span> <span class="p">(</span><span class="n">min_area</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">area</span> <span class="o">&gt;=</span> <span class="n">min_area</span><span class="p">)</span>
+<a id="__codelineno-0-534" name="__codelineno-0-534"></a>        <span class="ow">and</span> <span class="p">(</span><span class="n">max_area</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">area</span> <span class="o">&lt;=</span> <span class="n">max_area</span><span class="p">)</span>
+<a id="__codelineno-0-535" name="__codelineno-0-535"></a>    <span class="p">]</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4892,69 +4936,69 @@ is <code>[dx, dy]</code>.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-659">659</a></span>
-<span class="normal"><a href="#__codelineno-0-660">660</a></span>
-<span class="normal"><a href="#__codelineno-0-661">661</a></span>
-<span class="normal"><a href="#__codelineno-0-662">662</a></span>
-<span class="normal"><a href="#__codelineno-0-663">663</a></span>
-<span class="normal"><a href="#__codelineno-0-664">664</a></span>
-<span class="normal"><a href="#__codelineno-0-665">665</a></span>
-<span class="normal"><a href="#__codelineno-0-666">666</a></span>
-<span class="normal"><a href="#__codelineno-0-667">667</a></span>
-<span class="normal"><a href="#__codelineno-0-668">668</a></span>
-<span class="normal"><a href="#__codelineno-0-669">669</a></span>
-<span class="normal"><a href="#__codelineno-0-670">670</a></span>
-<span class="normal"><a href="#__codelineno-0-671">671</a></span>
-<span class="normal"><a href="#__codelineno-0-672">672</a></span>
-<span class="normal"><a href="#__codelineno-0-673">673</a></span>
-<span class="normal"><a href="#__codelineno-0-674">674</a></span>
-<span class="normal"><a href="#__codelineno-0-675">675</a></span>
-<span class="normal"><a href="#__codelineno-0-676">676</a></span>
-<span class="normal"><a href="#__codelineno-0-677">677</a></span>
-<span class="normal"><a href="#__codelineno-0-678">678</a></span>
-<span class="normal"><a href="#__codelineno-0-679">679</a></span>
-<span class="normal"><a href="#__codelineno-0-680">680</a></span>
-<span class="normal"><a href="#__codelineno-0-681">681</a></span>
-<span class="normal"><a href="#__codelineno-0-682">682</a></span>
-<span class="normal"><a href="#__codelineno-0-683">683</a></span>
-<span class="normal"><a href="#__codelineno-0-684">684</a></span>
-<span class="normal"><a href="#__codelineno-0-685">685</a></span>
-<span class="normal"><a href="#__codelineno-0-686">686</a></span>
-<span class="normal"><a href="#__codelineno-0-687">687</a></span>
-<span class="normal"><a href="#__codelineno-0-688">688</a></span>
-<span class="normal"><a href="#__codelineno-0-689">689</a></span>
-<span class="normal"><a href="#__codelineno-0-690">690</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-659" name="__codelineno-0-659"></a><span class="k">def</span><span class="w"> </span><span class="nf">move_boxes</span><span class="p">(</span>
-<a id="__codelineno-0-660" name="__codelineno-0-660"></a>    <span class="n">xyxy</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">offset</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">]</span>
-<a id="__codelineno-0-661" name="__codelineno-0-661"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<a id="__codelineno-0-662" name="__codelineno-0-662"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-663" name="__codelineno-0-663"></a><span class="sd">    Parameters:</span>
-<a id="__codelineno-0-664" name="__codelineno-0-664"></a><span class="sd">        xyxy (npt.NDArray[np.float64]): An array of shape `(n, 4)` containing the</span>
-<a id="__codelineno-0-665" name="__codelineno-0-665"></a><span class="sd">            bounding boxes coordinates in format `[x1, y1, x2, y2]`</span>
-<a id="__codelineno-0-666" name="__codelineno-0-666"></a><span class="sd">        offset (np.array): An array of shape `(2,)` containing offset values in format</span>
-<a id="__codelineno-0-667" name="__codelineno-0-667"></a><span class="sd">            is `[dx, dy]`.</span>
-<a id="__codelineno-0-668" name="__codelineno-0-668"></a>
-<a id="__codelineno-0-669" name="__codelineno-0-669"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-670" name="__codelineno-0-670"></a><span class="sd">        npt.NDArray[np.float64]: Repositioned bounding boxes.</span>
-<a id="__codelineno-0-671" name="__codelineno-0-671"></a>
-<a id="__codelineno-0-672" name="__codelineno-0-672"></a><span class="sd">    Examples:</span>
-<a id="__codelineno-0-673" name="__codelineno-0-673"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-674" name="__codelineno-0-674"></a><span class="sd">        import numpy as np</span>
-<a id="__codelineno-0-675" name="__codelineno-0-675"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-676" name="__codelineno-0-676"></a>
-<a id="__codelineno-0-677" name="__codelineno-0-677"></a><span class="sd">        xyxy = np.array([</span>
-<a id="__codelineno-0-678" name="__codelineno-0-678"></a><span class="sd">            [10, 10, 20, 20],</span>
-<a id="__codelineno-0-679" name="__codelineno-0-679"></a><span class="sd">            [30, 30, 40, 40]</span>
-<a id="__codelineno-0-680" name="__codelineno-0-680"></a><span class="sd">        ])</span>
-<a id="__codelineno-0-681" name="__codelineno-0-681"></a><span class="sd">        offset = np.array([5, 5])</span>
-<a id="__codelineno-0-682" name="__codelineno-0-682"></a>
-<a id="__codelineno-0-683" name="__codelineno-0-683"></a><span class="sd">        sv.move_boxes(xyxy=xyxy, offset=offset)</span>
-<a id="__codelineno-0-684" name="__codelineno-0-684"></a><span class="sd">        # array([</span>
-<a id="__codelineno-0-685" name="__codelineno-0-685"></a><span class="sd">        #    [15, 15, 25, 25],</span>
-<a id="__codelineno-0-686" name="__codelineno-0-686"></a><span class="sd">        #    [35, 35, 45, 45]</span>
-<a id="__codelineno-0-687" name="__codelineno-0-687"></a><span class="sd">        # ])</span>
-<a id="__codelineno-0-688" name="__codelineno-0-688"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-689" name="__codelineno-0-689"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-690" name="__codelineno-0-690"></a>    <span class="k">return</span> <span class="n">xyxy</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">offset</span><span class="p">,</span> <span class="n">offset</span><span class="p">])</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-709">709</a></span>
+<span class="normal"><a href="#__codelineno-0-710">710</a></span>
+<span class="normal"><a href="#__codelineno-0-711">711</a></span>
+<span class="normal"><a href="#__codelineno-0-712">712</a></span>
+<span class="normal"><a href="#__codelineno-0-713">713</a></span>
+<span class="normal"><a href="#__codelineno-0-714">714</a></span>
+<span class="normal"><a href="#__codelineno-0-715">715</a></span>
+<span class="normal"><a href="#__codelineno-0-716">716</a></span>
+<span class="normal"><a href="#__codelineno-0-717">717</a></span>
+<span class="normal"><a href="#__codelineno-0-718">718</a></span>
+<span class="normal"><a href="#__codelineno-0-719">719</a></span>
+<span class="normal"><a href="#__codelineno-0-720">720</a></span>
+<span class="normal"><a href="#__codelineno-0-721">721</a></span>
+<span class="normal"><a href="#__codelineno-0-722">722</a></span>
+<span class="normal"><a href="#__codelineno-0-723">723</a></span>
+<span class="normal"><a href="#__codelineno-0-724">724</a></span>
+<span class="normal"><a href="#__codelineno-0-725">725</a></span>
+<span class="normal"><a href="#__codelineno-0-726">726</a></span>
+<span class="normal"><a href="#__codelineno-0-727">727</a></span>
+<span class="normal"><a href="#__codelineno-0-728">728</a></span>
+<span class="normal"><a href="#__codelineno-0-729">729</a></span>
+<span class="normal"><a href="#__codelineno-0-730">730</a></span>
+<span class="normal"><a href="#__codelineno-0-731">731</a></span>
+<span class="normal"><a href="#__codelineno-0-732">732</a></span>
+<span class="normal"><a href="#__codelineno-0-733">733</a></span>
+<span class="normal"><a href="#__codelineno-0-734">734</a></span>
+<span class="normal"><a href="#__codelineno-0-735">735</a></span>
+<span class="normal"><a href="#__codelineno-0-736">736</a></span>
+<span class="normal"><a href="#__codelineno-0-737">737</a></span>
+<span class="normal"><a href="#__codelineno-0-738">738</a></span>
+<span class="normal"><a href="#__codelineno-0-739">739</a></span>
+<span class="normal"><a href="#__codelineno-0-740">740</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-709" name="__codelineno-0-709"></a><span class="k">def</span><span class="w"> </span><span class="nf">move_boxes</span><span class="p">(</span>
+<a id="__codelineno-0-710" name="__codelineno-0-710"></a>    <span class="n">xyxy</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">offset</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">]</span>
+<a id="__codelineno-0-711" name="__codelineno-0-711"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
+<a id="__codelineno-0-712" name="__codelineno-0-712"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-713" name="__codelineno-0-713"></a><span class="sd">    Parameters:</span>
+<a id="__codelineno-0-714" name="__codelineno-0-714"></a><span class="sd">        xyxy (npt.NDArray[np.float64]): An array of shape `(n, 4)` containing the</span>
+<a id="__codelineno-0-715" name="__codelineno-0-715"></a><span class="sd">            bounding boxes coordinates in format `[x1, y1, x2, y2]`</span>
+<a id="__codelineno-0-716" name="__codelineno-0-716"></a><span class="sd">        offset (np.array): An array of shape `(2,)` containing offset values in format</span>
+<a id="__codelineno-0-717" name="__codelineno-0-717"></a><span class="sd">            is `[dx, dy]`.</span>
+<a id="__codelineno-0-718" name="__codelineno-0-718"></a>
+<a id="__codelineno-0-719" name="__codelineno-0-719"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-720" name="__codelineno-0-720"></a><span class="sd">        npt.NDArray[np.float64]: Repositioned bounding boxes.</span>
+<a id="__codelineno-0-721" name="__codelineno-0-721"></a>
+<a id="__codelineno-0-722" name="__codelineno-0-722"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-723" name="__codelineno-0-723"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-724" name="__codelineno-0-724"></a><span class="sd">        import numpy as np</span>
+<a id="__codelineno-0-725" name="__codelineno-0-725"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-726" name="__codelineno-0-726"></a>
+<a id="__codelineno-0-727" name="__codelineno-0-727"></a><span class="sd">        xyxy = np.array([</span>
+<a id="__codelineno-0-728" name="__codelineno-0-728"></a><span class="sd">            [10, 10, 20, 20],</span>
+<a id="__codelineno-0-729" name="__codelineno-0-729"></a><span class="sd">            [30, 30, 40, 40]</span>
+<a id="__codelineno-0-730" name="__codelineno-0-730"></a><span class="sd">        ])</span>
+<a id="__codelineno-0-731" name="__codelineno-0-731"></a><span class="sd">        offset = np.array([5, 5])</span>
+<a id="__codelineno-0-732" name="__codelineno-0-732"></a>
+<a id="__codelineno-0-733" name="__codelineno-0-733"></a><span class="sd">        sv.move_boxes(xyxy=xyxy, offset=offset)</span>
+<a id="__codelineno-0-734" name="__codelineno-0-734"></a><span class="sd">        # array([</span>
+<a id="__codelineno-0-735" name="__codelineno-0-735"></a><span class="sd">        #    [15, 15, 25, 25],</span>
+<a id="__codelineno-0-736" name="__codelineno-0-736"></a><span class="sd">        #    [35, 35, 45, 45]</span>
+<a id="__codelineno-0-737" name="__codelineno-0-737"></a><span class="sd">        # ])</span>
+<a id="__codelineno-0-738" name="__codelineno-0-738"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-739" name="__codelineno-0-739"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-740" name="__codelineno-0-740"></a>    <span class="k">return</span> <span class="n">xyxy</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">([</span><span class="n">offset</span><span class="p">,</span> <span class="n">offset</span><span class="p">])</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -5094,57 +5138,7 @@ shape.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-748">748</a></span>
-<span class="normal"><a href="#__codelineno-0-749">749</a></span>
-<span class="normal"><a href="#__codelineno-0-750">750</a></span>
-<span class="normal"><a href="#__codelineno-0-751">751</a></span>
-<span class="normal"><a href="#__codelineno-0-752">752</a></span>
-<span class="normal"><a href="#__codelineno-0-753">753</a></span>
-<span class="normal"><a href="#__codelineno-0-754">754</a></span>
-<span class="normal"><a href="#__codelineno-0-755">755</a></span>
-<span class="normal"><a href="#__codelineno-0-756">756</a></span>
-<span class="normal"><a href="#__codelineno-0-757">757</a></span>
-<span class="normal"><a href="#__codelineno-0-758">758</a></span>
-<span class="normal"><a href="#__codelineno-0-759">759</a></span>
-<span class="normal"><a href="#__codelineno-0-760">760</a></span>
-<span class="normal"><a href="#__codelineno-0-761">761</a></span>
-<span class="normal"><a href="#__codelineno-0-762">762</a></span>
-<span class="normal"><a href="#__codelineno-0-763">763</a></span>
-<span class="normal"><a href="#__codelineno-0-764">764</a></span>
-<span class="normal"><a href="#__codelineno-0-765">765</a></span>
-<span class="normal"><a href="#__codelineno-0-766">766</a></span>
-<span class="normal"><a href="#__codelineno-0-767">767</a></span>
-<span class="normal"><a href="#__codelineno-0-768">768</a></span>
-<span class="normal"><a href="#__codelineno-0-769">769</a></span>
-<span class="normal"><a href="#__codelineno-0-770">770</a></span>
-<span class="normal"><a href="#__codelineno-0-771">771</a></span>
-<span class="normal"><a href="#__codelineno-0-772">772</a></span>
-<span class="normal"><a href="#__codelineno-0-773">773</a></span>
-<span class="normal"><a href="#__codelineno-0-774">774</a></span>
-<span class="normal"><a href="#__codelineno-0-775">775</a></span>
-<span class="normal"><a href="#__codelineno-0-776">776</a></span>
-<span class="normal"><a href="#__codelineno-0-777">777</a></span>
-<span class="normal"><a href="#__codelineno-0-778">778</a></span>
-<span class="normal"><a href="#__codelineno-0-779">779</a></span>
-<span class="normal"><a href="#__codelineno-0-780">780</a></span>
-<span class="normal"><a href="#__codelineno-0-781">781</a></span>
-<span class="normal"><a href="#__codelineno-0-782">782</a></span>
-<span class="normal"><a href="#__codelineno-0-783">783</a></span>
-<span class="normal"><a href="#__codelineno-0-784">784</a></span>
-<span class="normal"><a href="#__codelineno-0-785">785</a></span>
-<span class="normal"><a href="#__codelineno-0-786">786</a></span>
-<span class="normal"><a href="#__codelineno-0-787">787</a></span>
-<span class="normal"><a href="#__codelineno-0-788">788</a></span>
-<span class="normal"><a href="#__codelineno-0-789">789</a></span>
-<span class="normal"><a href="#__codelineno-0-790">790</a></span>
-<span class="normal"><a href="#__codelineno-0-791">791</a></span>
-<span class="normal"><a href="#__codelineno-0-792">792</a></span>
-<span class="normal"><a href="#__codelineno-0-793">793</a></span>
-<span class="normal"><a href="#__codelineno-0-794">794</a></span>
-<span class="normal"><a href="#__codelineno-0-795">795</a></span>
-<span class="normal"><a href="#__codelineno-0-796">796</a></span>
-<span class="normal"><a href="#__codelineno-0-797">797</a></span>
-<span class="normal"><a href="#__codelineno-0-798">798</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-798">798</a></span>
 <span class="normal"><a href="#__codelineno-0-799">799</a></span>
 <span class="normal"><a href="#__codelineno-0-800">800</a></span>
 <span class="normal"><a href="#__codelineno-0-801">801</a></span>
@@ -5172,85 +5166,135 @@ shape.</p>
 <span class="normal"><a href="#__codelineno-0-823">823</a></span>
 <span class="normal"><a href="#__codelineno-0-824">824</a></span>
 <span class="normal"><a href="#__codelineno-0-825">825</a></span>
-<span class="normal"><a href="#__codelineno-0-826">826</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-748" name="__codelineno-0-748"></a><span class="k">def</span><span class="w"> </span><span class="nf">move_masks</span><span class="p">(</span>
-<a id="__codelineno-0-749" name="__codelineno-0-749"></a>    <span class="n">masks</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">],</span>
-<a id="__codelineno-0-750" name="__codelineno-0-750"></a>    <span class="n">offset</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">],</span>
-<a id="__codelineno-0-751" name="__codelineno-0-751"></a>    <span class="n">resolution_wh</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
-<a id="__codelineno-0-752" name="__codelineno-0-752"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">]:</span>
-<a id="__codelineno-0-753" name="__codelineno-0-753"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-754" name="__codelineno-0-754"></a><span class="sd">    Offset the masks in an array by the specified (x, y) amount.</span>
-<a id="__codelineno-0-755" name="__codelineno-0-755"></a>
-<a id="__codelineno-0-756" name="__codelineno-0-756"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-757" name="__codelineno-0-757"></a><span class="sd">        masks (npt.NDArray[np.bool_]): A 3D array of binary masks corresponding to the</span>
-<a id="__codelineno-0-758" name="__codelineno-0-758"></a><span class="sd">            predictions. Shape: `(N, H, W)`, where N is the number of predictions, and</span>
-<a id="__codelineno-0-759" name="__codelineno-0-759"></a><span class="sd">            H, W are the dimensions of each mask.</span>
-<a id="__codelineno-0-760" name="__codelineno-0-760"></a><span class="sd">        offset (npt.NDArray[np.int32]): An array of shape `(2,)` containing int values</span>
-<a id="__codelineno-0-761" name="__codelineno-0-761"></a><span class="sd">            `[dx, dy]`. Supports both positive and negative values for bidirectional</span>
-<a id="__codelineno-0-762" name="__codelineno-0-762"></a><span class="sd">            movement.</span>
-<a id="__codelineno-0-763" name="__codelineno-0-763"></a><span class="sd">        resolution_wh (Tuple[int, int]): The width and height of the desired mask</span>
-<a id="__codelineno-0-764" name="__codelineno-0-764"></a><span class="sd">            resolution.</span>
-<a id="__codelineno-0-765" name="__codelineno-0-765"></a>
-<a id="__codelineno-0-766" name="__codelineno-0-766"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-767" name="__codelineno-0-767"></a><span class="sd">        (npt.NDArray[np.bool_]) repositioned masks, optionally padded to the specified</span>
-<a id="__codelineno-0-768" name="__codelineno-0-768"></a><span class="sd">            shape.</span>
-<a id="__codelineno-0-769" name="__codelineno-0-769"></a>
-<a id="__codelineno-0-770" name="__codelineno-0-770"></a><span class="sd">    Examples:</span>
-<a id="__codelineno-0-771" name="__codelineno-0-771"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-772" name="__codelineno-0-772"></a><span class="sd">        import numpy as np</span>
-<a id="__codelineno-0-773" name="__codelineno-0-773"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-774" name="__codelineno-0-774"></a>
-<a id="__codelineno-0-775" name="__codelineno-0-775"></a><span class="sd">        mask = np.array([[[False, False, False, False],</span>
-<a id="__codelineno-0-776" name="__codelineno-0-776"></a><span class="sd">                         [False, True,  True,  False],</span>
-<a id="__codelineno-0-777" name="__codelineno-0-777"></a><span class="sd">                         [False, True,  True,  False],</span>
-<a id="__codelineno-0-778" name="__codelineno-0-778"></a><span class="sd">                         [False, False, False, False]]], dtype=bool)</span>
-<a id="__codelineno-0-779" name="__codelineno-0-779"></a>
-<a id="__codelineno-0-780" name="__codelineno-0-780"></a><span class="sd">        offset = np.array([1, 1])</span>
-<a id="__codelineno-0-781" name="__codelineno-0-781"></a><span class="sd">        sv.move_masks(mask, offset, resolution_wh=(4, 4))</span>
-<a id="__codelineno-0-782" name="__codelineno-0-782"></a><span class="sd">        # array([[[False, False, False, False],</span>
-<a id="__codelineno-0-783" name="__codelineno-0-783"></a><span class="sd">        #         [False, False, False, False],</span>
-<a id="__codelineno-0-784" name="__codelineno-0-784"></a><span class="sd">        #         [False, False,  True,  True],</span>
-<a id="__codelineno-0-785" name="__codelineno-0-785"></a><span class="sd">        #         [False, False,  True,  True]]], dtype=bool)</span>
-<a id="__codelineno-0-786" name="__codelineno-0-786"></a>
-<a id="__codelineno-0-787" name="__codelineno-0-787"></a><span class="sd">        offset = np.array([-2, 2])</span>
-<a id="__codelineno-0-788" name="__codelineno-0-788"></a><span class="sd">        sv.move_masks(mask, offset, resolution_wh=(4, 4))</span>
-<a id="__codelineno-0-789" name="__codelineno-0-789"></a><span class="sd">        # array([[[False, False, False, False],</span>
-<a id="__codelineno-0-790" name="__codelineno-0-790"></a><span class="sd">        #         [False, False, False, False],</span>
-<a id="__codelineno-0-791" name="__codelineno-0-791"></a><span class="sd">        #         [False, False, False, False],</span>
-<a id="__codelineno-0-792" name="__codelineno-0-792"></a><span class="sd">        #         [True,  False, False, False]]], dtype=bool)</span>
-<a id="__codelineno-0-793" name="__codelineno-0-793"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-794" name="__codelineno-0-794"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-795" name="__codelineno-0-795"></a>    <span class="n">mask_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="kc">False</span><span class="p">)</span>
-<a id="__codelineno-0-796" name="__codelineno-0-796"></a>
-<a id="__codelineno-0-797" name="__codelineno-0-797"></a>    <span class="k">if</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-798" name="__codelineno-0-798"></a>        <span class="n">source_x_start</span> <span class="o">=</span> <span class="o">-</span><span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<a id="__codelineno-0-799" name="__codelineno-0-799"></a>        <span class="n">source_x_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<a id="__codelineno-0-800" name="__codelineno-0-800"></a>        <span class="n">destination_x_start</span> <span class="o">=</span> <span class="mi">0</span>
-<a id="__codelineno-0-801" name="__codelineno-0-801"></a>        <span class="n">destination_x_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">resolution_wh</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<a id="__codelineno-0-802" name="__codelineno-0-802"></a>    <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-803" name="__codelineno-0-803"></a>        <span class="n">source_x_start</span> <span class="o">=</span> <span class="mi">0</span>
-<a id="__codelineno-0-804" name="__codelineno-0-804"></a>        <span class="n">source_x_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<a id="__codelineno-0-805" name="__codelineno-0-805"></a>        <span class="n">destination_x_start</span> <span class="o">=</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<a id="__codelineno-0-806" name="__codelineno-0-806"></a>        <span class="n">destination_x_end</span> <span class="o">=</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">source_x_end</span> <span class="o">-</span> <span class="n">source_x_start</span>
-<a id="__codelineno-0-807" name="__codelineno-0-807"></a>
-<a id="__codelineno-0-808" name="__codelineno-0-808"></a>    <span class="k">if</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-809" name="__codelineno-0-809"></a>        <span class="n">source_y_start</span> <span class="o">=</span> <span class="o">-</span><span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-<a id="__codelineno-0-810" name="__codelineno-0-810"></a>        <span class="n">source_y_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-<a id="__codelineno-0-811" name="__codelineno-0-811"></a>        <span class="n">destination_y_start</span> <span class="o">=</span> <span class="mi">0</span>
-<a id="__codelineno-0-812" name="__codelineno-0-812"></a>        <span class="n">destination_y_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">resolution_wh</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-<a id="__codelineno-0-813" name="__codelineno-0-813"></a>    <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-814" name="__codelineno-0-814"></a>        <span class="n">source_y_start</span> <span class="o">=</span> <span class="mi">0</span>
-<a id="__codelineno-0-815" name="__codelineno-0-815"></a>        <span class="n">source_y_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-<a id="__codelineno-0-816" name="__codelineno-0-816"></a>        <span class="n">destination_y_start</span> <span class="o">=</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-<a id="__codelineno-0-817" name="__codelineno-0-817"></a>        <span class="n">destination_y_end</span> <span class="o">=</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">source_y_end</span> <span class="o">-</span> <span class="n">source_y_start</span>
-<a id="__codelineno-0-818" name="__codelineno-0-818"></a>
-<a id="__codelineno-0-819" name="__codelineno-0-819"></a>    <span class="k">if</span> <span class="n">source_x_end</span> <span class="o">&gt;</span> <span class="n">source_x_start</span> <span class="ow">and</span> <span class="n">source_y_end</span> <span class="o">&gt;</span> <span class="n">source_y_start</span><span class="p">:</span>
-<a id="__codelineno-0-820" name="__codelineno-0-820"></a>        <span class="n">mask_array</span><span class="p">[</span>
-<a id="__codelineno-0-821" name="__codelineno-0-821"></a>            <span class="p">:,</span>
-<a id="__codelineno-0-822" name="__codelineno-0-822"></a>            <span class="n">destination_y_start</span><span class="p">:</span><span class="n">destination_y_end</span><span class="p">,</span>
-<a id="__codelineno-0-823" name="__codelineno-0-823"></a>            <span class="n">destination_x_start</span><span class="p">:</span><span class="n">destination_x_end</span><span class="p">,</span>
-<a id="__codelineno-0-824" name="__codelineno-0-824"></a>        <span class="p">]</span> <span class="o">=</span> <span class="n">masks</span><span class="p">[:,</span> <span class="n">source_y_start</span><span class="p">:</span><span class="n">source_y_end</span><span class="p">,</span> <span class="n">source_x_start</span><span class="p">:</span><span class="n">source_x_end</span><span class="p">]</span>
-<a id="__codelineno-0-825" name="__codelineno-0-825"></a>
-<a id="__codelineno-0-826" name="__codelineno-0-826"></a>    <span class="k">return</span> <span class="n">mask_array</span>
+<span class="normal"><a href="#__codelineno-0-826">826</a></span>
+<span class="normal"><a href="#__codelineno-0-827">827</a></span>
+<span class="normal"><a href="#__codelineno-0-828">828</a></span>
+<span class="normal"><a href="#__codelineno-0-829">829</a></span>
+<span class="normal"><a href="#__codelineno-0-830">830</a></span>
+<span class="normal"><a href="#__codelineno-0-831">831</a></span>
+<span class="normal"><a href="#__codelineno-0-832">832</a></span>
+<span class="normal"><a href="#__codelineno-0-833">833</a></span>
+<span class="normal"><a href="#__codelineno-0-834">834</a></span>
+<span class="normal"><a href="#__codelineno-0-835">835</a></span>
+<span class="normal"><a href="#__codelineno-0-836">836</a></span>
+<span class="normal"><a href="#__codelineno-0-837">837</a></span>
+<span class="normal"><a href="#__codelineno-0-838">838</a></span>
+<span class="normal"><a href="#__codelineno-0-839">839</a></span>
+<span class="normal"><a href="#__codelineno-0-840">840</a></span>
+<span class="normal"><a href="#__codelineno-0-841">841</a></span>
+<span class="normal"><a href="#__codelineno-0-842">842</a></span>
+<span class="normal"><a href="#__codelineno-0-843">843</a></span>
+<span class="normal"><a href="#__codelineno-0-844">844</a></span>
+<span class="normal"><a href="#__codelineno-0-845">845</a></span>
+<span class="normal"><a href="#__codelineno-0-846">846</a></span>
+<span class="normal"><a href="#__codelineno-0-847">847</a></span>
+<span class="normal"><a href="#__codelineno-0-848">848</a></span>
+<span class="normal"><a href="#__codelineno-0-849">849</a></span>
+<span class="normal"><a href="#__codelineno-0-850">850</a></span>
+<span class="normal"><a href="#__codelineno-0-851">851</a></span>
+<span class="normal"><a href="#__codelineno-0-852">852</a></span>
+<span class="normal"><a href="#__codelineno-0-853">853</a></span>
+<span class="normal"><a href="#__codelineno-0-854">854</a></span>
+<span class="normal"><a href="#__codelineno-0-855">855</a></span>
+<span class="normal"><a href="#__codelineno-0-856">856</a></span>
+<span class="normal"><a href="#__codelineno-0-857">857</a></span>
+<span class="normal"><a href="#__codelineno-0-858">858</a></span>
+<span class="normal"><a href="#__codelineno-0-859">859</a></span>
+<span class="normal"><a href="#__codelineno-0-860">860</a></span>
+<span class="normal"><a href="#__codelineno-0-861">861</a></span>
+<span class="normal"><a href="#__codelineno-0-862">862</a></span>
+<span class="normal"><a href="#__codelineno-0-863">863</a></span>
+<span class="normal"><a href="#__codelineno-0-864">864</a></span>
+<span class="normal"><a href="#__codelineno-0-865">865</a></span>
+<span class="normal"><a href="#__codelineno-0-866">866</a></span>
+<span class="normal"><a href="#__codelineno-0-867">867</a></span>
+<span class="normal"><a href="#__codelineno-0-868">868</a></span>
+<span class="normal"><a href="#__codelineno-0-869">869</a></span>
+<span class="normal"><a href="#__codelineno-0-870">870</a></span>
+<span class="normal"><a href="#__codelineno-0-871">871</a></span>
+<span class="normal"><a href="#__codelineno-0-872">872</a></span>
+<span class="normal"><a href="#__codelineno-0-873">873</a></span>
+<span class="normal"><a href="#__codelineno-0-874">874</a></span>
+<span class="normal"><a href="#__codelineno-0-875">875</a></span>
+<span class="normal"><a href="#__codelineno-0-876">876</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-798" name="__codelineno-0-798"></a><span class="k">def</span><span class="w"> </span><span class="nf">move_masks</span><span class="p">(</span>
+<a id="__codelineno-0-799" name="__codelineno-0-799"></a>    <span class="n">masks</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">],</span>
+<a id="__codelineno-0-800" name="__codelineno-0-800"></a>    <span class="n">offset</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">],</span>
+<a id="__codelineno-0-801" name="__codelineno-0-801"></a>    <span class="n">resolution_wh</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+<a id="__codelineno-0-802" name="__codelineno-0-802"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">]:</span>
+<a id="__codelineno-0-803" name="__codelineno-0-803"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-804" name="__codelineno-0-804"></a><span class="sd">    Offset the masks in an array by the specified (x, y) amount.</span>
+<a id="__codelineno-0-805" name="__codelineno-0-805"></a>
+<a id="__codelineno-0-806" name="__codelineno-0-806"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-807" name="__codelineno-0-807"></a><span class="sd">        masks (npt.NDArray[np.bool_]): A 3D array of binary masks corresponding to the</span>
+<a id="__codelineno-0-808" name="__codelineno-0-808"></a><span class="sd">            predictions. Shape: `(N, H, W)`, where N is the number of predictions, and</span>
+<a id="__codelineno-0-809" name="__codelineno-0-809"></a><span class="sd">            H, W are the dimensions of each mask.</span>
+<a id="__codelineno-0-810" name="__codelineno-0-810"></a><span class="sd">        offset (npt.NDArray[np.int32]): An array of shape `(2,)` containing int values</span>
+<a id="__codelineno-0-811" name="__codelineno-0-811"></a><span class="sd">            `[dx, dy]`. Supports both positive and negative values for bidirectional</span>
+<a id="__codelineno-0-812" name="__codelineno-0-812"></a><span class="sd">            movement.</span>
+<a id="__codelineno-0-813" name="__codelineno-0-813"></a><span class="sd">        resolution_wh (Tuple[int, int]): The width and height of the desired mask</span>
+<a id="__codelineno-0-814" name="__codelineno-0-814"></a><span class="sd">            resolution.</span>
+<a id="__codelineno-0-815" name="__codelineno-0-815"></a>
+<a id="__codelineno-0-816" name="__codelineno-0-816"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-817" name="__codelineno-0-817"></a><span class="sd">        (npt.NDArray[np.bool_]) repositioned masks, optionally padded to the specified</span>
+<a id="__codelineno-0-818" name="__codelineno-0-818"></a><span class="sd">            shape.</span>
+<a id="__codelineno-0-819" name="__codelineno-0-819"></a>
+<a id="__codelineno-0-820" name="__codelineno-0-820"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-821" name="__codelineno-0-821"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-822" name="__codelineno-0-822"></a><span class="sd">        import numpy as np</span>
+<a id="__codelineno-0-823" name="__codelineno-0-823"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-824" name="__codelineno-0-824"></a>
+<a id="__codelineno-0-825" name="__codelineno-0-825"></a><span class="sd">        mask = np.array([[[False, False, False, False],</span>
+<a id="__codelineno-0-826" name="__codelineno-0-826"></a><span class="sd">                         [False, True,  True,  False],</span>
+<a id="__codelineno-0-827" name="__codelineno-0-827"></a><span class="sd">                         [False, True,  True,  False],</span>
+<a id="__codelineno-0-828" name="__codelineno-0-828"></a><span class="sd">                         [False, False, False, False]]], dtype=bool)</span>
+<a id="__codelineno-0-829" name="__codelineno-0-829"></a>
+<a id="__codelineno-0-830" name="__codelineno-0-830"></a><span class="sd">        offset = np.array([1, 1])</span>
+<a id="__codelineno-0-831" name="__codelineno-0-831"></a><span class="sd">        sv.move_masks(mask, offset, resolution_wh=(4, 4))</span>
+<a id="__codelineno-0-832" name="__codelineno-0-832"></a><span class="sd">        # array([[[False, False, False, False],</span>
+<a id="__codelineno-0-833" name="__codelineno-0-833"></a><span class="sd">        #         [False, False, False, False],</span>
+<a id="__codelineno-0-834" name="__codelineno-0-834"></a><span class="sd">        #         [False, False,  True,  True],</span>
+<a id="__codelineno-0-835" name="__codelineno-0-835"></a><span class="sd">        #         [False, False,  True,  True]]], dtype=bool)</span>
+<a id="__codelineno-0-836" name="__codelineno-0-836"></a>
+<a id="__codelineno-0-837" name="__codelineno-0-837"></a><span class="sd">        offset = np.array([-2, 2])</span>
+<a id="__codelineno-0-838" name="__codelineno-0-838"></a><span class="sd">        sv.move_masks(mask, offset, resolution_wh=(4, 4))</span>
+<a id="__codelineno-0-839" name="__codelineno-0-839"></a><span class="sd">        # array([[[False, False, False, False],</span>
+<a id="__codelineno-0-840" name="__codelineno-0-840"></a><span class="sd">        #         [False, False, False, False],</span>
+<a id="__codelineno-0-841" name="__codelineno-0-841"></a><span class="sd">        #         [False, False, False, False],</span>
+<a id="__codelineno-0-842" name="__codelineno-0-842"></a><span class="sd">        #         [True,  False, False, False]]], dtype=bool)</span>
+<a id="__codelineno-0-843" name="__codelineno-0-843"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-844" name="__codelineno-0-844"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-845" name="__codelineno-0-845"></a>    <span class="n">mask_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="kc">False</span><span class="p">)</span>
+<a id="__codelineno-0-846" name="__codelineno-0-846"></a>
+<a id="__codelineno-0-847" name="__codelineno-0-847"></a>    <span class="k">if</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-848" name="__codelineno-0-848"></a>        <span class="n">source_x_start</span> <span class="o">=</span> <span class="o">-</span><span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-849" name="__codelineno-0-849"></a>        <span class="n">source_x_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<a id="__codelineno-0-850" name="__codelineno-0-850"></a>        <span class="n">destination_x_start</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="__codelineno-0-851" name="__codelineno-0-851"></a>        <span class="n">destination_x_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">resolution_wh</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<a id="__codelineno-0-852" name="__codelineno-0-852"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-853" name="__codelineno-0-853"></a>        <span class="n">source_x_start</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="__codelineno-0-854" name="__codelineno-0-854"></a>        <span class="n">source_x_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<a id="__codelineno-0-855" name="__codelineno-0-855"></a>        <span class="n">destination_x_start</span> <span class="o">=</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="__codelineno-0-856" name="__codelineno-0-856"></a>        <span class="n">destination_x_end</span> <span class="o">=</span> <span class="n">offset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">source_x_end</span> <span class="o">-</span> <span class="n">source_x_start</span>
+<a id="__codelineno-0-857" name="__codelineno-0-857"></a>
+<a id="__codelineno-0-858" name="__codelineno-0-858"></a>    <span class="k">if</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-859" name="__codelineno-0-859"></a>        <span class="n">source_y_start</span> <span class="o">=</span> <span class="o">-</span><span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<a id="__codelineno-0-860" name="__codelineno-0-860"></a>        <span class="n">source_y_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<a id="__codelineno-0-861" name="__codelineno-0-861"></a>        <span class="n">destination_y_start</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="__codelineno-0-862" name="__codelineno-0-862"></a>        <span class="n">destination_y_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">resolution_wh</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<a id="__codelineno-0-863" name="__codelineno-0-863"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-864" name="__codelineno-0-864"></a>        <span class="n">source_y_start</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="__codelineno-0-865" name="__codelineno-0-865"></a>        <span class="n">source_y_end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">resolution_wh</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<a id="__codelineno-0-866" name="__codelineno-0-866"></a>        <span class="n">destination_y_start</span> <span class="o">=</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<a id="__codelineno-0-867" name="__codelineno-0-867"></a>        <span class="n">destination_y_end</span> <span class="o">=</span> <span class="n">offset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">source_y_end</span> <span class="o">-</span> <span class="n">source_y_start</span>
+<a id="__codelineno-0-868" name="__codelineno-0-868"></a>
+<a id="__codelineno-0-869" name="__codelineno-0-869"></a>    <span class="k">if</span> <span class="n">source_x_end</span> <span class="o">&gt;</span> <span class="n">source_x_start</span> <span class="ow">and</span> <span class="n">source_y_end</span> <span class="o">&gt;</span> <span class="n">source_y_start</span><span class="p">:</span>
+<a id="__codelineno-0-870" name="__codelineno-0-870"></a>        <span class="n">mask_array</span><span class="p">[</span>
+<a id="__codelineno-0-871" name="__codelineno-0-871"></a>            <span class="p">:,</span>
+<a id="__codelineno-0-872" name="__codelineno-0-872"></a>            <span class="n">destination_y_start</span><span class="p">:</span><span class="n">destination_y_end</span><span class="p">,</span>
+<a id="__codelineno-0-873" name="__codelineno-0-873"></a>            <span class="n">destination_x_start</span><span class="p">:</span><span class="n">destination_x_end</span><span class="p">,</span>
+<a id="__codelineno-0-874" name="__codelineno-0-874"></a>        <span class="p">]</span> <span class="o">=</span> <span class="n">masks</span><span class="p">[:,</span> <span class="n">source_y_start</span><span class="p">:</span><span class="n">source_y_end</span><span class="p">,</span> <span class="n">source_x_start</span><span class="p">:</span><span class="n">source_x_end</span><span class="p">]</span>
+<a id="__codelineno-0-875" name="__codelineno-0-875"></a>
+<a id="__codelineno-0-876" name="__codelineno-0-876"></a>    <span class="k">return</span> <span class="n">mask_array</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -5363,77 +5407,77 @@ factor less than 1 shrinks them.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-829">829</a></span>
-<span class="normal"><a href="#__codelineno-0-830">830</a></span>
-<span class="normal"><a href="#__codelineno-0-831">831</a></span>
-<span class="normal"><a href="#__codelineno-0-832">832</a></span>
-<span class="normal"><a href="#__codelineno-0-833">833</a></span>
-<span class="normal"><a href="#__codelineno-0-834">834</a></span>
-<span class="normal"><a href="#__codelineno-0-835">835</a></span>
-<span class="normal"><a href="#__codelineno-0-836">836</a></span>
-<span class="normal"><a href="#__codelineno-0-837">837</a></span>
-<span class="normal"><a href="#__codelineno-0-838">838</a></span>
-<span class="normal"><a href="#__codelineno-0-839">839</a></span>
-<span class="normal"><a href="#__codelineno-0-840">840</a></span>
-<span class="normal"><a href="#__codelineno-0-841">841</a></span>
-<span class="normal"><a href="#__codelineno-0-842">842</a></span>
-<span class="normal"><a href="#__codelineno-0-843">843</a></span>
-<span class="normal"><a href="#__codelineno-0-844">844</a></span>
-<span class="normal"><a href="#__codelineno-0-845">845</a></span>
-<span class="normal"><a href="#__codelineno-0-846">846</a></span>
-<span class="normal"><a href="#__codelineno-0-847">847</a></span>
-<span class="normal"><a href="#__codelineno-0-848">848</a></span>
-<span class="normal"><a href="#__codelineno-0-849">849</a></span>
-<span class="normal"><a href="#__codelineno-0-850">850</a></span>
-<span class="normal"><a href="#__codelineno-0-851">851</a></span>
-<span class="normal"><a href="#__codelineno-0-852">852</a></span>
-<span class="normal"><a href="#__codelineno-0-853">853</a></span>
-<span class="normal"><a href="#__codelineno-0-854">854</a></span>
-<span class="normal"><a href="#__codelineno-0-855">855</a></span>
-<span class="normal"><a href="#__codelineno-0-856">856</a></span>
-<span class="normal"><a href="#__codelineno-0-857">857</a></span>
-<span class="normal"><a href="#__codelineno-0-858">858</a></span>
-<span class="normal"><a href="#__codelineno-0-859">859</a></span>
-<span class="normal"><a href="#__codelineno-0-860">860</a></span>
-<span class="normal"><a href="#__codelineno-0-861">861</a></span>
-<span class="normal"><a href="#__codelineno-0-862">862</a></span>
-<span class="normal"><a href="#__codelineno-0-863">863</a></span>
-<span class="normal"><a href="#__codelineno-0-864">864</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-829" name="__codelineno-0-829"></a><span class="k">def</span><span class="w"> </span><span class="nf">scale_boxes</span><span class="p">(</span>
-<a id="__codelineno-0-830" name="__codelineno-0-830"></a>    <span class="n">xyxy</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span>
-<a id="__codelineno-0-831" name="__codelineno-0-831"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-<a id="__codelineno-0-832" name="__codelineno-0-832"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-833" name="__codelineno-0-833"></a><span class="sd">    Scale the dimensions of bounding boxes.</span>
-<a id="__codelineno-0-834" name="__codelineno-0-834"></a>
-<a id="__codelineno-0-835" name="__codelineno-0-835"></a><span class="sd">    Parameters:</span>
-<a id="__codelineno-0-836" name="__codelineno-0-836"></a><span class="sd">        xyxy (npt.NDArray[np.float64]): An array of shape `(n, 4)` containing the</span>
-<a id="__codelineno-0-837" name="__codelineno-0-837"></a><span class="sd">            bounding boxes coordinates in format `[x1, y1, x2, y2]`</span>
-<a id="__codelineno-0-838" name="__codelineno-0-838"></a><span class="sd">        factor (float): A float value representing the factor by which the box</span>
-<a id="__codelineno-0-839" name="__codelineno-0-839"></a><span class="sd">            dimensions are scaled. A factor greater than 1 enlarges the boxes, while a</span>
-<a id="__codelineno-0-840" name="__codelineno-0-840"></a><span class="sd">            factor less than 1 shrinks them.</span>
-<a id="__codelineno-0-841" name="__codelineno-0-841"></a>
-<a id="__codelineno-0-842" name="__codelineno-0-842"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-843" name="__codelineno-0-843"></a><span class="sd">        npt.NDArray[np.float64]: Scaled bounding boxes.</span>
-<a id="__codelineno-0-844" name="__codelineno-0-844"></a>
-<a id="__codelineno-0-845" name="__codelineno-0-845"></a><span class="sd">    Examples:</span>
-<a id="__codelineno-0-846" name="__codelineno-0-846"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-847" name="__codelineno-0-847"></a><span class="sd">        import numpy as np</span>
-<a id="__codelineno-0-848" name="__codelineno-0-848"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-849" name="__codelineno-0-849"></a>
-<a id="__codelineno-0-850" name="__codelineno-0-850"></a><span class="sd">        xyxy = np.array([</span>
-<a id="__codelineno-0-851" name="__codelineno-0-851"></a><span class="sd">            [10, 10, 20, 20],</span>
-<a id="__codelineno-0-852" name="__codelineno-0-852"></a><span class="sd">            [30, 30, 40, 40]</span>
-<a id="__codelineno-0-853" name="__codelineno-0-853"></a><span class="sd">        ])</span>
-<a id="__codelineno-0-854" name="__codelineno-0-854"></a>
-<a id="__codelineno-0-855" name="__codelineno-0-855"></a><span class="sd">        sv.scale_boxes(xyxy=xyxy, factor=1.5)</span>
-<a id="__codelineno-0-856" name="__codelineno-0-856"></a><span class="sd">        # array([</span>
-<a id="__codelineno-0-857" name="__codelineno-0-857"></a><span class="sd">        #    [ 7.5,  7.5, 22.5, 22.5],</span>
-<a id="__codelineno-0-858" name="__codelineno-0-858"></a><span class="sd">        #    [27.5, 27.5, 42.5, 42.5]</span>
-<a id="__codelineno-0-859" name="__codelineno-0-859"></a><span class="sd">        # ])</span>
-<a id="__codelineno-0-860" name="__codelineno-0-860"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-861" name="__codelineno-0-861"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-862" name="__codelineno-0-862"></a>    <span class="n">centers</span> <span class="o">=</span> <span class="p">(</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:])</span> <span class="o">/</span> <span class="mi">2</span>
-<a id="__codelineno-0-863" name="__codelineno-0-863"></a>    <span class="n">new_sizes</span> <span class="o">=</span> <span class="p">(</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:]</span> <span class="o">-</span> <span class="n">xyxy</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">])</span> <span class="o">*</span> <span class="n">factor</span>
-<a id="__codelineno-0-864" name="__codelineno-0-864"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">centers</span> <span class="o">-</span> <span class="n">new_sizes</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">centers</span> <span class="o">+</span> <span class="n">new_sizes</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-879">879</a></span>
+<span class="normal"><a href="#__codelineno-0-880">880</a></span>
+<span class="normal"><a href="#__codelineno-0-881">881</a></span>
+<span class="normal"><a href="#__codelineno-0-882">882</a></span>
+<span class="normal"><a href="#__codelineno-0-883">883</a></span>
+<span class="normal"><a href="#__codelineno-0-884">884</a></span>
+<span class="normal"><a href="#__codelineno-0-885">885</a></span>
+<span class="normal"><a href="#__codelineno-0-886">886</a></span>
+<span class="normal"><a href="#__codelineno-0-887">887</a></span>
+<span class="normal"><a href="#__codelineno-0-888">888</a></span>
+<span class="normal"><a href="#__codelineno-0-889">889</a></span>
+<span class="normal"><a href="#__codelineno-0-890">890</a></span>
+<span class="normal"><a href="#__codelineno-0-891">891</a></span>
+<span class="normal"><a href="#__codelineno-0-892">892</a></span>
+<span class="normal"><a href="#__codelineno-0-893">893</a></span>
+<span class="normal"><a href="#__codelineno-0-894">894</a></span>
+<span class="normal"><a href="#__codelineno-0-895">895</a></span>
+<span class="normal"><a href="#__codelineno-0-896">896</a></span>
+<span class="normal"><a href="#__codelineno-0-897">897</a></span>
+<span class="normal"><a href="#__codelineno-0-898">898</a></span>
+<span class="normal"><a href="#__codelineno-0-899">899</a></span>
+<span class="normal"><a href="#__codelineno-0-900">900</a></span>
+<span class="normal"><a href="#__codelineno-0-901">901</a></span>
+<span class="normal"><a href="#__codelineno-0-902">902</a></span>
+<span class="normal"><a href="#__codelineno-0-903">903</a></span>
+<span class="normal"><a href="#__codelineno-0-904">904</a></span>
+<span class="normal"><a href="#__codelineno-0-905">905</a></span>
+<span class="normal"><a href="#__codelineno-0-906">906</a></span>
+<span class="normal"><a href="#__codelineno-0-907">907</a></span>
+<span class="normal"><a href="#__codelineno-0-908">908</a></span>
+<span class="normal"><a href="#__codelineno-0-909">909</a></span>
+<span class="normal"><a href="#__codelineno-0-910">910</a></span>
+<span class="normal"><a href="#__codelineno-0-911">911</a></span>
+<span class="normal"><a href="#__codelineno-0-912">912</a></span>
+<span class="normal"><a href="#__codelineno-0-913">913</a></span>
+<span class="normal"><a href="#__codelineno-0-914">914</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-879" name="__codelineno-0-879"></a><span class="k">def</span><span class="w"> </span><span class="nf">scale_boxes</span><span class="p">(</span>
+<a id="__codelineno-0-880" name="__codelineno-0-880"></a>    <span class="n">xyxy</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span>
+<a id="__codelineno-0-881" name="__codelineno-0-881"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
+<a id="__codelineno-0-882" name="__codelineno-0-882"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-883" name="__codelineno-0-883"></a><span class="sd">    Scale the dimensions of bounding boxes.</span>
+<a id="__codelineno-0-884" name="__codelineno-0-884"></a>
+<a id="__codelineno-0-885" name="__codelineno-0-885"></a><span class="sd">    Parameters:</span>
+<a id="__codelineno-0-886" name="__codelineno-0-886"></a><span class="sd">        xyxy (npt.NDArray[np.float64]): An array of shape `(n, 4)` containing the</span>
+<a id="__codelineno-0-887" name="__codelineno-0-887"></a><span class="sd">            bounding boxes coordinates in format `[x1, y1, x2, y2]`</span>
+<a id="__codelineno-0-888" name="__codelineno-0-888"></a><span class="sd">        factor (float): A float value representing the factor by which the box</span>
+<a id="__codelineno-0-889" name="__codelineno-0-889"></a><span class="sd">            dimensions are scaled. A factor greater than 1 enlarges the boxes, while a</span>
+<a id="__codelineno-0-890" name="__codelineno-0-890"></a><span class="sd">            factor less than 1 shrinks them.</span>
+<a id="__codelineno-0-891" name="__codelineno-0-891"></a>
+<a id="__codelineno-0-892" name="__codelineno-0-892"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-893" name="__codelineno-0-893"></a><span class="sd">        npt.NDArray[np.float64]: Scaled bounding boxes.</span>
+<a id="__codelineno-0-894" name="__codelineno-0-894"></a>
+<a id="__codelineno-0-895" name="__codelineno-0-895"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-896" name="__codelineno-0-896"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-897" name="__codelineno-0-897"></a><span class="sd">        import numpy as np</span>
+<a id="__codelineno-0-898" name="__codelineno-0-898"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-899" name="__codelineno-0-899"></a>
+<a id="__codelineno-0-900" name="__codelineno-0-900"></a><span class="sd">        xyxy = np.array([</span>
+<a id="__codelineno-0-901" name="__codelineno-0-901"></a><span class="sd">            [10, 10, 20, 20],</span>
+<a id="__codelineno-0-902" name="__codelineno-0-902"></a><span class="sd">            [30, 30, 40, 40]</span>
+<a id="__codelineno-0-903" name="__codelineno-0-903"></a><span class="sd">        ])</span>
+<a id="__codelineno-0-904" name="__codelineno-0-904"></a>
+<a id="__codelineno-0-905" name="__codelineno-0-905"></a><span class="sd">        sv.scale_boxes(xyxy=xyxy, factor=1.5)</span>
+<a id="__codelineno-0-906" name="__codelineno-0-906"></a><span class="sd">        # array([</span>
+<a id="__codelineno-0-907" name="__codelineno-0-907"></a><span class="sd">        #    [ 7.5,  7.5, 22.5, 22.5],</span>
+<a id="__codelineno-0-908" name="__codelineno-0-908"></a><span class="sd">        #    [27.5, 27.5, 42.5, 42.5]</span>
+<a id="__codelineno-0-909" name="__codelineno-0-909"></a><span class="sd">        # ])</span>
+<a id="__codelineno-0-910" name="__codelineno-0-910"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-911" name="__codelineno-0-911"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-912" name="__codelineno-0-912"></a>    <span class="n">centers</span> <span class="o">=</span> <span class="p">(</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:])</span> <span class="o">/</span> <span class="mi">2</span>
+<a id="__codelineno-0-913" name="__codelineno-0-913"></a>    <span class="n">new_sizes</span> <span class="o">=</span> <span class="p">(</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:]</span> <span class="o">-</span> <span class="n">xyxy</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">])</span> <span class="o">*</span> <span class="n">factor</span>
+<a id="__codelineno-0-914" name="__codelineno-0-914"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">centers</span> <span class="o">-</span> <span class="n">new_sizes</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">centers</span> <span class="o">+</span> <span class="n">new_sizes</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -6182,6 +6226,177 @@ to a bounding box in the format <code>(x, y, width, height)</code>.</p>
     </div>
 
 </div><div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.xyxy_to_xcycarh">xyxy_to_xcycarh</a></h2>
+</div>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="supervision.detection.utils.xyxy_to_xcycarh"></a>
+    <div class="doc doc-contents first">
+
+        <p>Converts bounding box coordinates from <code>(x_min, y_min, x_max, y_max)</code>
+into measurement space to format <code>(center x, center y, aspect ratio, height)</code>,
+where the aspect ratio is <code>width / height</code>.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+<h2 id="supervision.detection.utils.xyxy_to_xcycarh(xyxy)" class="doc doc-heading doc-heading-parameter">                  <code>xyxy</code>
+<a href="#supervision.detection.utils.xyxy_to_xcycarh(xyxy)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Bounding box in format <code>(x1, y1, x2, y2)</code>.
+Expected shape is <code>(N, 4)</code>.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+        <p>Returns:
+    np.ndarray: Bounding box in format
+        <code>(center x, center y, aspect ratio, height)</code>. Shape <code>(N, 4)</code>.</p>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">xyxy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">60</span><span class="p">],</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="p">[</span><span class="mi">15</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">70</span><span class="p">]</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">])</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">sv</span><span class="o">.</span><span class="n">xyxy_to_xcycarh</span><span class="p">(</span><span class="n">xyxy</span><span class="o">=</span><span class="n">xyxy</span><span class="p">)</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># array([</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="c1">#     [25.  , 40.  ,  0.75, 40.  ],</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="c1">#     [32.5 , 47.5 ,  0.77777778, 45.  ]</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="c1"># ])</span>
+</code></pre></div>
+
+
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/utils.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-400">400</a></span>
+<span class="normal"><a href="#__codelineno-0-401">401</a></span>
+<span class="normal"><a href="#__codelineno-0-402">402</a></span>
+<span class="normal"><a href="#__codelineno-0-403">403</a></span>
+<span class="normal"><a href="#__codelineno-0-404">404</a></span>
+<span class="normal"><a href="#__codelineno-0-405">405</a></span>
+<span class="normal"><a href="#__codelineno-0-406">406</a></span>
+<span class="normal"><a href="#__codelineno-0-407">407</a></span>
+<span class="normal"><a href="#__codelineno-0-408">408</a></span>
+<span class="normal"><a href="#__codelineno-0-409">409</a></span>
+<span class="normal"><a href="#__codelineno-0-410">410</a></span>
+<span class="normal"><a href="#__codelineno-0-411">411</a></span>
+<span class="normal"><a href="#__codelineno-0-412">412</a></span>
+<span class="normal"><a href="#__codelineno-0-413">413</a></span>
+<span class="normal"><a href="#__codelineno-0-414">414</a></span>
+<span class="normal"><a href="#__codelineno-0-415">415</a></span>
+<span class="normal"><a href="#__codelineno-0-416">416</a></span>
+<span class="normal"><a href="#__codelineno-0-417">417</a></span>
+<span class="normal"><a href="#__codelineno-0-418">418</a></span>
+<span class="normal"><a href="#__codelineno-0-419">419</a></span>
+<span class="normal"><a href="#__codelineno-0-420">420</a></span>
+<span class="normal"><a href="#__codelineno-0-421">421</a></span>
+<span class="normal"><a href="#__codelineno-0-422">422</a></span>
+<span class="normal"><a href="#__codelineno-0-423">423</a></span>
+<span class="normal"><a href="#__codelineno-0-424">424</a></span>
+<span class="normal"><a href="#__codelineno-0-425">425</a></span>
+<span class="normal"><a href="#__codelineno-0-426">426</a></span>
+<span class="normal"><a href="#__codelineno-0-427">427</a></span>
+<span class="normal"><a href="#__codelineno-0-428">428</a></span>
+<span class="normal"><a href="#__codelineno-0-429">429</a></span>
+<span class="normal"><a href="#__codelineno-0-430">430</a></span>
+<span class="normal"><a href="#__codelineno-0-431">431</a></span>
+<span class="normal"><a href="#__codelineno-0-432">432</a></span>
+<span class="normal"><a href="#__codelineno-0-433">433</a></span>
+<span class="normal"><a href="#__codelineno-0-434">434</a></span>
+<span class="normal"><a href="#__codelineno-0-435">435</a></span>
+<span class="normal"><a href="#__codelineno-0-436">436</a></span>
+<span class="normal"><a href="#__codelineno-0-437">437</a></span>
+<span class="normal"><a href="#__codelineno-0-438">438</a></span>
+<span class="normal"><a href="#__codelineno-0-439">439</a></span>
+<span class="normal"><a href="#__codelineno-0-440">440</a></span>
+<span class="normal"><a href="#__codelineno-0-441">441</a></span>
+<span class="normal"><a href="#__codelineno-0-442">442</a></span>
+<span class="normal"><a href="#__codelineno-0-443">443</a></span>
+<span class="normal"><a href="#__codelineno-0-444">444</a></span>
+<span class="normal"><a href="#__codelineno-0-445">445</a></span>
+<span class="normal"><a href="#__codelineno-0-446">446</a></span>
+<span class="normal"><a href="#__codelineno-0-447">447</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-400" name="__codelineno-0-400"></a><span class="k">def</span><span class="w"> </span><span class="nf">xyxy_to_xcycarh</span><span class="p">(</span><span class="n">xyxy</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<a id="__codelineno-0-401" name="__codelineno-0-401"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-402" name="__codelineno-0-402"></a><span class="sd">    Converts bounding box coordinates from `(x_min, y_min, x_max, y_max)`</span>
+<a id="__codelineno-0-403" name="__codelineno-0-403"></a><span class="sd">    into measurement space to format `(center x, center y, aspect ratio, height)`,</span>
+<a id="__codelineno-0-404" name="__codelineno-0-404"></a><span class="sd">    where the aspect ratio is `width / height`.</span>
+<a id="__codelineno-0-405" name="__codelineno-0-405"></a>
+<a id="__codelineno-0-406" name="__codelineno-0-406"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-407" name="__codelineno-0-407"></a><span class="sd">        xyxy (np.ndarray): Bounding box in format `(x1, y1, x2, y2)`.</span>
+<a id="__codelineno-0-408" name="__codelineno-0-408"></a><span class="sd">            Expected shape is `(N, 4)`.</span>
+<a id="__codelineno-0-409" name="__codelineno-0-409"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-410" name="__codelineno-0-410"></a><span class="sd">        np.ndarray: Bounding box in format</span>
+<a id="__codelineno-0-411" name="__codelineno-0-411"></a><span class="sd">            `(center x, center y, aspect ratio, height)`. Shape `(N, 4)`.</span>
+<a id="__codelineno-0-412" name="__codelineno-0-412"></a>
+<a id="__codelineno-0-413" name="__codelineno-0-413"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-414" name="__codelineno-0-414"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-415" name="__codelineno-0-415"></a><span class="sd">        import numpy as np</span>
+<a id="__codelineno-0-416" name="__codelineno-0-416"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-417" name="__codelineno-0-417"></a>
+<a id="__codelineno-0-418" name="__codelineno-0-418"></a><span class="sd">        xyxy = np.array([</span>
+<a id="__codelineno-0-419" name="__codelineno-0-419"></a><span class="sd">            [10, 20, 40, 60],</span>
+<a id="__codelineno-0-420" name="__codelineno-0-420"></a><span class="sd">            [15, 25, 50, 70]</span>
+<a id="__codelineno-0-421" name="__codelineno-0-421"></a><span class="sd">        ])</span>
+<a id="__codelineno-0-422" name="__codelineno-0-422"></a>
+<a id="__codelineno-0-423" name="__codelineno-0-423"></a><span class="sd">        sv.xyxy_to_xcycarh(xyxy=xyxy)</span>
+<a id="__codelineno-0-424" name="__codelineno-0-424"></a><span class="sd">        # array([</span>
+<a id="__codelineno-0-425" name="__codelineno-0-425"></a><span class="sd">        #     [25.  , 40.  ,  0.75, 40.  ],</span>
+<a id="__codelineno-0-426" name="__codelineno-0-426"></a><span class="sd">        #     [32.5 , 47.5 ,  0.77777778, 45.  ]</span>
+<a id="__codelineno-0-427" name="__codelineno-0-427"></a><span class="sd">        # ])</span>
+<a id="__codelineno-0-428" name="__codelineno-0-428"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-429" name="__codelineno-0-429"></a>
+<a id="__codelineno-0-430" name="__codelineno-0-430"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-431" name="__codelineno-0-431"></a>    <span class="k">if</span> <span class="n">xyxy</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-432" name="__codelineno-0-432"></a>        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+<a id="__codelineno-0-433" name="__codelineno-0-433"></a>
+<a id="__codelineno-0-434" name="__codelineno-0-434"></a>    <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span> <span class="o">=</span> <span class="n">xyxy</span><span class="o">.</span><span class="n">T</span>
+<a id="__codelineno-0-435" name="__codelineno-0-435"></a>    <span class="n">width</span> <span class="o">=</span> <span class="n">x2</span> <span class="o">-</span> <span class="n">x1</span>
+<a id="__codelineno-0-436" name="__codelineno-0-436"></a>    <span class="n">height</span> <span class="o">=</span> <span class="n">y2</span> <span class="o">-</span> <span class="n">y1</span>
+<a id="__codelineno-0-437" name="__codelineno-0-437"></a>    <span class="n">center_x</span> <span class="o">=</span> <span class="n">x1</span> <span class="o">+</span> <span class="n">width</span> <span class="o">/</span> <span class="mi">2</span>
+<a id="__codelineno-0-438" name="__codelineno-0-438"></a>    <span class="n">center_y</span> <span class="o">=</span> <span class="n">y1</span> <span class="o">+</span> <span class="n">height</span> <span class="o">/</span> <span class="mi">2</span>
+<a id="__codelineno-0-439" name="__codelineno-0-439"></a>
+<a id="__codelineno-0-440" name="__codelineno-0-440"></a>    <span class="n">aspect_ratio</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">divide</span><span class="p">(</span>
+<a id="__codelineno-0-441" name="__codelineno-0-441"></a>        <span class="n">width</span><span class="p">,</span>
+<a id="__codelineno-0-442" name="__codelineno-0-442"></a>        <span class="n">height</span><span class="p">,</span>
+<a id="__codelineno-0-443" name="__codelineno-0-443"></a>        <span class="n">out</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">width</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">),</span>
+<a id="__codelineno-0-444" name="__codelineno-0-444"></a>        <span class="n">where</span><span class="o">=</span><span class="n">height</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span>
+<a id="__codelineno-0-445" name="__codelineno-0-445"></a>    <span class="p">)</span>
+<a id="__codelineno-0-446" name="__codelineno-0-446"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">center_x</span><span class="p">,</span> <span class="n">center_y</span><span class="p">,</span> <span class="n">aspect_ratio</span><span class="p">,</span> <span class="n">height</span><span class="p">))</span>
+<a id="__codelineno-0-447" name="__codelineno-0-447"></a>    <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div><div class="md-typeset">
   <h2><a href="#supervision.detection.utils.xcycwh_to_xyxy">xcycwh_to_xyxy</a></h2>
 </div>
 
@@ -6454,107 +6669,107 @@ object and <code>False</code> indicates background.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1089">1089</a></span>
-<span class="normal"><a href="#__codelineno-0-1090">1090</a></span>
-<span class="normal"><a href="#__codelineno-0-1091">1091</a></span>
-<span class="normal"><a href="#__codelineno-0-1092">1092</a></span>
-<span class="normal"><a href="#__codelineno-0-1093">1093</a></span>
-<span class="normal"><a href="#__codelineno-0-1094">1094</a></span>
-<span class="normal"><a href="#__codelineno-0-1095">1095</a></span>
-<span class="normal"><a href="#__codelineno-0-1096">1096</a></span>
-<span class="normal"><a href="#__codelineno-0-1097">1097</a></span>
-<span class="normal"><a href="#__codelineno-0-1098">1098</a></span>
-<span class="normal"><a href="#__codelineno-0-1099">1099</a></span>
-<span class="normal"><a href="#__codelineno-0-1100">1100</a></span>
-<span class="normal"><a href="#__codelineno-0-1101">1101</a></span>
-<span class="normal"><a href="#__codelineno-0-1102">1102</a></span>
-<span class="normal"><a href="#__codelineno-0-1103">1103</a></span>
-<span class="normal"><a href="#__codelineno-0-1104">1104</a></span>
-<span class="normal"><a href="#__codelineno-0-1105">1105</a></span>
-<span class="normal"><a href="#__codelineno-0-1106">1106</a></span>
-<span class="normal"><a href="#__codelineno-0-1107">1107</a></span>
-<span class="normal"><a href="#__codelineno-0-1108">1108</a></span>
-<span class="normal"><a href="#__codelineno-0-1109">1109</a></span>
-<span class="normal"><a href="#__codelineno-0-1110">1110</a></span>
-<span class="normal"><a href="#__codelineno-0-1111">1111</a></span>
-<span class="normal"><a href="#__codelineno-0-1112">1112</a></span>
-<span class="normal"><a href="#__codelineno-0-1113">1113</a></span>
-<span class="normal"><a href="#__codelineno-0-1114">1114</a></span>
-<span class="normal"><a href="#__codelineno-0-1115">1115</a></span>
-<span class="normal"><a href="#__codelineno-0-1116">1116</a></span>
-<span class="normal"><a href="#__codelineno-0-1117">1117</a></span>
-<span class="normal"><a href="#__codelineno-0-1118">1118</a></span>
-<span class="normal"><a href="#__codelineno-0-1119">1119</a></span>
-<span class="normal"><a href="#__codelineno-0-1120">1120</a></span>
-<span class="normal"><a href="#__codelineno-0-1121">1121</a></span>
-<span class="normal"><a href="#__codelineno-0-1122">1122</a></span>
-<span class="normal"><a href="#__codelineno-0-1123">1123</a></span>
-<span class="normal"><a href="#__codelineno-0-1124">1124</a></span>
-<span class="normal"><a href="#__codelineno-0-1125">1125</a></span>
-<span class="normal"><a href="#__codelineno-0-1126">1126</a></span>
-<span class="normal"><a href="#__codelineno-0-1127">1127</a></span>
-<span class="normal"><a href="#__codelineno-0-1128">1128</a></span>
-<span class="normal"><a href="#__codelineno-0-1129">1129</a></span>
-<span class="normal"><a href="#__codelineno-0-1130">1130</a></span>
-<span class="normal"><a href="#__codelineno-0-1131">1131</a></span>
-<span class="normal"><a href="#__codelineno-0-1132">1132</a></span>
-<span class="normal"><a href="#__codelineno-0-1133">1133</a></span>
-<span class="normal"><a href="#__codelineno-0-1134">1134</a></span>
-<span class="normal"><a href="#__codelineno-0-1135">1135</a></span>
-<span class="normal"><a href="#__codelineno-0-1136">1136</a></span>
-<span class="normal"><a href="#__codelineno-0-1137">1137</a></span>
-<span class="normal"><a href="#__codelineno-0-1138">1138</a></span>
-<span class="normal"><a href="#__codelineno-0-1139">1139</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1089" name="__codelineno-0-1089"></a><span class="k">def</span><span class="w"> </span><span class="nf">contains_holes</span><span class="p">(</span><span class="n">mask</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<a id="__codelineno-0-1090" name="__codelineno-0-1090"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-1091" name="__codelineno-0-1091"></a><span class="sd">    Checks if the binary mask contains holes (background pixels fully enclosed by</span>
-<a id="__codelineno-0-1092" name="__codelineno-0-1092"></a><span class="sd">    foreground pixels).</span>
-<a id="__codelineno-0-1093" name="__codelineno-0-1093"></a>
-<a id="__codelineno-0-1094" name="__codelineno-0-1094"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-1095" name="__codelineno-0-1095"></a><span class="sd">        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground</span>
-<a id="__codelineno-0-1096" name="__codelineno-0-1096"></a><span class="sd">            object and `False` indicates background.</span>
-<a id="__codelineno-0-1097" name="__codelineno-0-1097"></a>
-<a id="__codelineno-0-1098" name="__codelineno-0-1098"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-1099" name="__codelineno-0-1099"></a><span class="sd">        True if holes are detected, False otherwise.</span>
-<a id="__codelineno-0-1100" name="__codelineno-0-1100"></a>
-<a id="__codelineno-0-1101" name="__codelineno-0-1101"></a><span class="sd">    Examples:</span>
-<a id="__codelineno-0-1102" name="__codelineno-0-1102"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-1103" name="__codelineno-0-1103"></a><span class="sd">        import numpy as np</span>
-<a id="__codelineno-0-1104" name="__codelineno-0-1104"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-1105" name="__codelineno-0-1105"></a>
-<a id="__codelineno-0-1106" name="__codelineno-0-1106"></a><span class="sd">        mask = np.array([</span>
-<a id="__codelineno-0-1107" name="__codelineno-0-1107"></a><span class="sd">            [0, 0, 0, 0, 0],</span>
-<a id="__codelineno-0-1108" name="__codelineno-0-1108"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
-<a id="__codelineno-0-1109" name="__codelineno-0-1109"></a><span class="sd">            [0, 1, 0, 1, 0],</span>
-<a id="__codelineno-0-1110" name="__codelineno-0-1110"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
-<a id="__codelineno-0-1111" name="__codelineno-0-1111"></a><span class="sd">            [0, 0, 0, 0, 0]</span>
-<a id="__codelineno-0-1112" name="__codelineno-0-1112"></a><span class="sd">        ]).astype(bool)</span>
-<a id="__codelineno-0-1113" name="__codelineno-0-1113"></a>
-<a id="__codelineno-0-1114" name="__codelineno-0-1114"></a><span class="sd">        sv.contains_holes(mask=mask)</span>
-<a id="__codelineno-0-1115" name="__codelineno-0-1115"></a><span class="sd">        # True</span>
-<a id="__codelineno-0-1116" name="__codelineno-0-1116"></a>
-<a id="__codelineno-0-1117" name="__codelineno-0-1117"></a><span class="sd">        mask = np.array([</span>
-<a id="__codelineno-0-1118" name="__codelineno-0-1118"></a><span class="sd">            [0, 0, 0, 0, 0],</span>
-<a id="__codelineno-0-1119" name="__codelineno-0-1119"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
-<a id="__codelineno-0-1120" name="__codelineno-0-1120"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
-<a id="__codelineno-0-1121" name="__codelineno-0-1121"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
-<a id="__codelineno-0-1122" name="__codelineno-0-1122"></a><span class="sd">            [0, 0, 0, 0, 0]</span>
-<a id="__codelineno-0-1123" name="__codelineno-0-1123"></a><span class="sd">        ]).astype(bool)</span>
-<a id="__codelineno-0-1124" name="__codelineno-0-1124"></a>
-<a id="__codelineno-0-1125" name="__codelineno-0-1125"></a><span class="sd">        sv.contains_holes(mask=mask)</span>
-<a id="__codelineno-0-1126" name="__codelineno-0-1126"></a><span class="sd">        # False</span>
-<a id="__codelineno-0-1127" name="__codelineno-0-1127"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-1128" name="__codelineno-0-1128"></a>
-<a id="__codelineno-0-1129" name="__codelineno-0-1129"></a><span class="sd">    ![contains_holes](https://media.roboflow.com/supervision-docs/contains-holes.png){ align=center width=&quot;800&quot; }</span>
-<a id="__codelineno-0-1130" name="__codelineno-0-1130"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa E501 // docs</span>
-<a id="__codelineno-0-1131" name="__codelineno-0-1131"></a>    <span class="n">mask_uint8</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
-<a id="__codelineno-0-1132" name="__codelineno-0-1132"></a>    <span class="n">_</span><span class="p">,</span> <span class="n">hierarchy</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">findContours</span><span class="p">(</span><span class="n">mask_uint8</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">RETR_CCOMP</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CHAIN_APPROX_SIMPLE</span><span class="p">)</span>
-<a id="__codelineno-0-1133" name="__codelineno-0-1133"></a>
-<a id="__codelineno-0-1134" name="__codelineno-0-1134"></a>    <span class="k">if</span> <span class="n">hierarchy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-1135" name="__codelineno-0-1135"></a>        <span class="n">parent_contour_index</span> <span class="o">=</span> <span class="mi">3</span>
-<a id="__codelineno-0-1136" name="__codelineno-0-1136"></a>        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hierarchy</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
-<a id="__codelineno-0-1137" name="__codelineno-0-1137"></a>            <span class="k">if</span> <span class="n">h</span><span class="p">[</span><span class="n">parent_contour_index</span><span class="p">]</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
-<a id="__codelineno-0-1138" name="__codelineno-0-1138"></a>                <span class="k">return</span> <span class="kc">True</span>
-<a id="__codelineno-0-1139" name="__codelineno-0-1139"></a>    <span class="k">return</span> <span class="kc">False</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1139">1139</a></span>
+<span class="normal"><a href="#__codelineno-0-1140">1140</a></span>
+<span class="normal"><a href="#__codelineno-0-1141">1141</a></span>
+<span class="normal"><a href="#__codelineno-0-1142">1142</a></span>
+<span class="normal"><a href="#__codelineno-0-1143">1143</a></span>
+<span class="normal"><a href="#__codelineno-0-1144">1144</a></span>
+<span class="normal"><a href="#__codelineno-0-1145">1145</a></span>
+<span class="normal"><a href="#__codelineno-0-1146">1146</a></span>
+<span class="normal"><a href="#__codelineno-0-1147">1147</a></span>
+<span class="normal"><a href="#__codelineno-0-1148">1148</a></span>
+<span class="normal"><a href="#__codelineno-0-1149">1149</a></span>
+<span class="normal"><a href="#__codelineno-0-1150">1150</a></span>
+<span class="normal"><a href="#__codelineno-0-1151">1151</a></span>
+<span class="normal"><a href="#__codelineno-0-1152">1152</a></span>
+<span class="normal"><a href="#__codelineno-0-1153">1153</a></span>
+<span class="normal"><a href="#__codelineno-0-1154">1154</a></span>
+<span class="normal"><a href="#__codelineno-0-1155">1155</a></span>
+<span class="normal"><a href="#__codelineno-0-1156">1156</a></span>
+<span class="normal"><a href="#__codelineno-0-1157">1157</a></span>
+<span class="normal"><a href="#__codelineno-0-1158">1158</a></span>
+<span class="normal"><a href="#__codelineno-0-1159">1159</a></span>
+<span class="normal"><a href="#__codelineno-0-1160">1160</a></span>
+<span class="normal"><a href="#__codelineno-0-1161">1161</a></span>
+<span class="normal"><a href="#__codelineno-0-1162">1162</a></span>
+<span class="normal"><a href="#__codelineno-0-1163">1163</a></span>
+<span class="normal"><a href="#__codelineno-0-1164">1164</a></span>
+<span class="normal"><a href="#__codelineno-0-1165">1165</a></span>
+<span class="normal"><a href="#__codelineno-0-1166">1166</a></span>
+<span class="normal"><a href="#__codelineno-0-1167">1167</a></span>
+<span class="normal"><a href="#__codelineno-0-1168">1168</a></span>
+<span class="normal"><a href="#__codelineno-0-1169">1169</a></span>
+<span class="normal"><a href="#__codelineno-0-1170">1170</a></span>
+<span class="normal"><a href="#__codelineno-0-1171">1171</a></span>
+<span class="normal"><a href="#__codelineno-0-1172">1172</a></span>
+<span class="normal"><a href="#__codelineno-0-1173">1173</a></span>
+<span class="normal"><a href="#__codelineno-0-1174">1174</a></span>
+<span class="normal"><a href="#__codelineno-0-1175">1175</a></span>
+<span class="normal"><a href="#__codelineno-0-1176">1176</a></span>
+<span class="normal"><a href="#__codelineno-0-1177">1177</a></span>
+<span class="normal"><a href="#__codelineno-0-1178">1178</a></span>
+<span class="normal"><a href="#__codelineno-0-1179">1179</a></span>
+<span class="normal"><a href="#__codelineno-0-1180">1180</a></span>
+<span class="normal"><a href="#__codelineno-0-1181">1181</a></span>
+<span class="normal"><a href="#__codelineno-0-1182">1182</a></span>
+<span class="normal"><a href="#__codelineno-0-1183">1183</a></span>
+<span class="normal"><a href="#__codelineno-0-1184">1184</a></span>
+<span class="normal"><a href="#__codelineno-0-1185">1185</a></span>
+<span class="normal"><a href="#__codelineno-0-1186">1186</a></span>
+<span class="normal"><a href="#__codelineno-0-1187">1187</a></span>
+<span class="normal"><a href="#__codelineno-0-1188">1188</a></span>
+<span class="normal"><a href="#__codelineno-0-1189">1189</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1139" name="__codelineno-0-1139"></a><span class="k">def</span><span class="w"> </span><span class="nf">contains_holes</span><span class="p">(</span><span class="n">mask</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<a id="__codelineno-0-1140" name="__codelineno-0-1140"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-1141" name="__codelineno-0-1141"></a><span class="sd">    Checks if the binary mask contains holes (background pixels fully enclosed by</span>
+<a id="__codelineno-0-1142" name="__codelineno-0-1142"></a><span class="sd">    foreground pixels).</span>
+<a id="__codelineno-0-1143" name="__codelineno-0-1143"></a>
+<a id="__codelineno-0-1144" name="__codelineno-0-1144"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-1145" name="__codelineno-0-1145"></a><span class="sd">        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground</span>
+<a id="__codelineno-0-1146" name="__codelineno-0-1146"></a><span class="sd">            object and `False` indicates background.</span>
+<a id="__codelineno-0-1147" name="__codelineno-0-1147"></a>
+<a id="__codelineno-0-1148" name="__codelineno-0-1148"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-1149" name="__codelineno-0-1149"></a><span class="sd">        True if holes are detected, False otherwise.</span>
+<a id="__codelineno-0-1150" name="__codelineno-0-1150"></a>
+<a id="__codelineno-0-1151" name="__codelineno-0-1151"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-1152" name="__codelineno-0-1152"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-1153" name="__codelineno-0-1153"></a><span class="sd">        import numpy as np</span>
+<a id="__codelineno-0-1154" name="__codelineno-0-1154"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-1155" name="__codelineno-0-1155"></a>
+<a id="__codelineno-0-1156" name="__codelineno-0-1156"></a><span class="sd">        mask = np.array([</span>
+<a id="__codelineno-0-1157" name="__codelineno-0-1157"></a><span class="sd">            [0, 0, 0, 0, 0],</span>
+<a id="__codelineno-0-1158" name="__codelineno-0-1158"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
+<a id="__codelineno-0-1159" name="__codelineno-0-1159"></a><span class="sd">            [0, 1, 0, 1, 0],</span>
+<a id="__codelineno-0-1160" name="__codelineno-0-1160"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
+<a id="__codelineno-0-1161" name="__codelineno-0-1161"></a><span class="sd">            [0, 0, 0, 0, 0]</span>
+<a id="__codelineno-0-1162" name="__codelineno-0-1162"></a><span class="sd">        ]).astype(bool)</span>
+<a id="__codelineno-0-1163" name="__codelineno-0-1163"></a>
+<a id="__codelineno-0-1164" name="__codelineno-0-1164"></a><span class="sd">        sv.contains_holes(mask=mask)</span>
+<a id="__codelineno-0-1165" name="__codelineno-0-1165"></a><span class="sd">        # True</span>
+<a id="__codelineno-0-1166" name="__codelineno-0-1166"></a>
+<a id="__codelineno-0-1167" name="__codelineno-0-1167"></a><span class="sd">        mask = np.array([</span>
+<a id="__codelineno-0-1168" name="__codelineno-0-1168"></a><span class="sd">            [0, 0, 0, 0, 0],</span>
+<a id="__codelineno-0-1169" name="__codelineno-0-1169"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
+<a id="__codelineno-0-1170" name="__codelineno-0-1170"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
+<a id="__codelineno-0-1171" name="__codelineno-0-1171"></a><span class="sd">            [0, 1, 1, 1, 0],</span>
+<a id="__codelineno-0-1172" name="__codelineno-0-1172"></a><span class="sd">            [0, 0, 0, 0, 0]</span>
+<a id="__codelineno-0-1173" name="__codelineno-0-1173"></a><span class="sd">        ]).astype(bool)</span>
+<a id="__codelineno-0-1174" name="__codelineno-0-1174"></a>
+<a id="__codelineno-0-1175" name="__codelineno-0-1175"></a><span class="sd">        sv.contains_holes(mask=mask)</span>
+<a id="__codelineno-0-1176" name="__codelineno-0-1176"></a><span class="sd">        # False</span>
+<a id="__codelineno-0-1177" name="__codelineno-0-1177"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-1178" name="__codelineno-0-1178"></a>
+<a id="__codelineno-0-1179" name="__codelineno-0-1179"></a><span class="sd">    ![contains_holes](https://media.roboflow.com/supervision-docs/contains-holes.png){ align=center width=&quot;800&quot; }</span>
+<a id="__codelineno-0-1180" name="__codelineno-0-1180"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa E501 // docs</span>
+<a id="__codelineno-0-1181" name="__codelineno-0-1181"></a>    <span class="n">mask_uint8</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+<a id="__codelineno-0-1182" name="__codelineno-0-1182"></a>    <span class="n">_</span><span class="p">,</span> <span class="n">hierarchy</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">findContours</span><span class="p">(</span><span class="n">mask_uint8</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">RETR_CCOMP</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CHAIN_APPROX_SIMPLE</span><span class="p">)</span>
+<a id="__codelineno-0-1183" name="__codelineno-0-1183"></a>
+<a id="__codelineno-0-1184" name="__codelineno-0-1184"></a>    <span class="k">if</span> <span class="n">hierarchy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-1185" name="__codelineno-0-1185"></a>        <span class="n">parent_contour_index</span> <span class="o">=</span> <span class="mi">3</span>
+<a id="__codelineno-0-1186" name="__codelineno-0-1186"></a>        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hierarchy</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+<a id="__codelineno-0-1187" name="__codelineno-0-1187"></a>            <span class="k">if</span> <span class="n">h</span><span class="p">[</span><span class="n">parent_contour_index</span><span class="p">]</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+<a id="__codelineno-0-1188" name="__codelineno-0-1188"></a>                <span class="k">return</span> <span class="kc">True</span>
+<a id="__codelineno-0-1189" name="__codelineno-0-1189"></a>    <span class="k">return</span> <span class="kc">False</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -6706,57 +6921,7 @@ connected by their edges or corners touch.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1142">1142</a></span>
-<span class="normal"><a href="#__codelineno-0-1143">1143</a></span>
-<span class="normal"><a href="#__codelineno-0-1144">1144</a></span>
-<span class="normal"><a href="#__codelineno-0-1145">1145</a></span>
-<span class="normal"><a href="#__codelineno-0-1146">1146</a></span>
-<span class="normal"><a href="#__codelineno-0-1147">1147</a></span>
-<span class="normal"><a href="#__codelineno-0-1148">1148</a></span>
-<span class="normal"><a href="#__codelineno-0-1149">1149</a></span>
-<span class="normal"><a href="#__codelineno-0-1150">1150</a></span>
-<span class="normal"><a href="#__codelineno-0-1151">1151</a></span>
-<span class="normal"><a href="#__codelineno-0-1152">1152</a></span>
-<span class="normal"><a href="#__codelineno-0-1153">1153</a></span>
-<span class="normal"><a href="#__codelineno-0-1154">1154</a></span>
-<span class="normal"><a href="#__codelineno-0-1155">1155</a></span>
-<span class="normal"><a href="#__codelineno-0-1156">1156</a></span>
-<span class="normal"><a href="#__codelineno-0-1157">1157</a></span>
-<span class="normal"><a href="#__codelineno-0-1158">1158</a></span>
-<span class="normal"><a href="#__codelineno-0-1159">1159</a></span>
-<span class="normal"><a href="#__codelineno-0-1160">1160</a></span>
-<span class="normal"><a href="#__codelineno-0-1161">1161</a></span>
-<span class="normal"><a href="#__codelineno-0-1162">1162</a></span>
-<span class="normal"><a href="#__codelineno-0-1163">1163</a></span>
-<span class="normal"><a href="#__codelineno-0-1164">1164</a></span>
-<span class="normal"><a href="#__codelineno-0-1165">1165</a></span>
-<span class="normal"><a href="#__codelineno-0-1166">1166</a></span>
-<span class="normal"><a href="#__codelineno-0-1167">1167</a></span>
-<span class="normal"><a href="#__codelineno-0-1168">1168</a></span>
-<span class="normal"><a href="#__codelineno-0-1169">1169</a></span>
-<span class="normal"><a href="#__codelineno-0-1170">1170</a></span>
-<span class="normal"><a href="#__codelineno-0-1171">1171</a></span>
-<span class="normal"><a href="#__codelineno-0-1172">1172</a></span>
-<span class="normal"><a href="#__codelineno-0-1173">1173</a></span>
-<span class="normal"><a href="#__codelineno-0-1174">1174</a></span>
-<span class="normal"><a href="#__codelineno-0-1175">1175</a></span>
-<span class="normal"><a href="#__codelineno-0-1176">1176</a></span>
-<span class="normal"><a href="#__codelineno-0-1177">1177</a></span>
-<span class="normal"><a href="#__codelineno-0-1178">1178</a></span>
-<span class="normal"><a href="#__codelineno-0-1179">1179</a></span>
-<span class="normal"><a href="#__codelineno-0-1180">1180</a></span>
-<span class="normal"><a href="#__codelineno-0-1181">1181</a></span>
-<span class="normal"><a href="#__codelineno-0-1182">1182</a></span>
-<span class="normal"><a href="#__codelineno-0-1183">1183</a></span>
-<span class="normal"><a href="#__codelineno-0-1184">1184</a></span>
-<span class="normal"><a href="#__codelineno-0-1185">1185</a></span>
-<span class="normal"><a href="#__codelineno-0-1186">1186</a></span>
-<span class="normal"><a href="#__codelineno-0-1187">1187</a></span>
-<span class="normal"><a href="#__codelineno-0-1188">1188</a></span>
-<span class="normal"><a href="#__codelineno-0-1189">1189</a></span>
-<span class="normal"><a href="#__codelineno-0-1190">1190</a></span>
-<span class="normal"><a href="#__codelineno-0-1191">1191</a></span>
-<span class="normal"><a href="#__codelineno-0-1192">1192</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1192">1192</a></span>
 <span class="normal"><a href="#__codelineno-0-1193">1193</a></span>
 <span class="normal"><a href="#__codelineno-0-1194">1194</a></span>
 <span class="normal"><a href="#__codelineno-0-1195">1195</a></span>
@@ -6768,69 +6933,119 @@ connected by their edges or corners touch.</p>
 <span class="normal"><a href="#__codelineno-0-1201">1201</a></span>
 <span class="normal"><a href="#__codelineno-0-1202">1202</a></span>
 <span class="normal"><a href="#__codelineno-0-1203">1203</a></span>
-<span class="normal"><a href="#__codelineno-0-1204">1204</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1142" name="__codelineno-0-1142"></a><span class="k">def</span><span class="w"> </span><span class="nf">contains_multiple_segments</span><span class="p">(</span>
-<a id="__codelineno-0-1143" name="__codelineno-0-1143"></a>    <span class="n">mask</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">],</span> <span class="n">connectivity</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span>
-<a id="__codelineno-0-1144" name="__codelineno-0-1144"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<a id="__codelineno-0-1145" name="__codelineno-0-1145"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-1146" name="__codelineno-0-1146"></a><span class="sd">    Checks if the binary mask contains multiple unconnected foreground segments.</span>
-<a id="__codelineno-0-1147" name="__codelineno-0-1147"></a>
-<a id="__codelineno-0-1148" name="__codelineno-0-1148"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-1149" name="__codelineno-0-1149"></a><span class="sd">        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground</span>
-<a id="__codelineno-0-1150" name="__codelineno-0-1150"></a><span class="sd">            object and `False` indicates background.</span>
-<a id="__codelineno-0-1151" name="__codelineno-0-1151"></a><span class="sd">        connectivity (int) : Default: 4 is 4-way connectivity, which means that</span>
-<a id="__codelineno-0-1152" name="__codelineno-0-1152"></a><span class="sd">            foreground pixels are the part of the same segment/component</span>
-<a id="__codelineno-0-1153" name="__codelineno-0-1153"></a><span class="sd">            if their edges touch.</span>
-<a id="__codelineno-0-1154" name="__codelineno-0-1154"></a><span class="sd">            Alternatively: 8 for 8-way connectivity, when foreground pixels are</span>
-<a id="__codelineno-0-1155" name="__codelineno-0-1155"></a><span class="sd">            connected by their edges or corners touch.</span>
-<a id="__codelineno-0-1156" name="__codelineno-0-1156"></a>
-<a id="__codelineno-0-1157" name="__codelineno-0-1157"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-1158" name="__codelineno-0-1158"></a><span class="sd">        True when the mask contains multiple not connected components, False otherwise.</span>
-<a id="__codelineno-0-1159" name="__codelineno-0-1159"></a>
-<a id="__codelineno-0-1160" name="__codelineno-0-1160"></a><span class="sd">    Raises:</span>
-<a id="__codelineno-0-1161" name="__codelineno-0-1161"></a><span class="sd">        ValueError: If connectivity(int) parameter value is not 4 or 8.</span>
-<a id="__codelineno-0-1162" name="__codelineno-0-1162"></a>
-<a id="__codelineno-0-1163" name="__codelineno-0-1163"></a><span class="sd">    Examples:</span>
-<a id="__codelineno-0-1164" name="__codelineno-0-1164"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-1165" name="__codelineno-0-1165"></a><span class="sd">        import numpy as np</span>
-<a id="__codelineno-0-1166" name="__codelineno-0-1166"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-1167" name="__codelineno-0-1167"></a>
-<a id="__codelineno-0-1168" name="__codelineno-0-1168"></a><span class="sd">        mask = np.array([</span>
-<a id="__codelineno-0-1169" name="__codelineno-0-1169"></a><span class="sd">            [0, 0, 0, 0, 0, 0],</span>
-<a id="__codelineno-0-1170" name="__codelineno-0-1170"></a><span class="sd">            [0, 1, 1, 0, 1, 1],</span>
-<a id="__codelineno-0-1171" name="__codelineno-0-1171"></a><span class="sd">            [0, 1, 1, 0, 1, 1],</span>
-<a id="__codelineno-0-1172" name="__codelineno-0-1172"></a><span class="sd">            [0, 0, 0, 0, 0, 0],</span>
-<a id="__codelineno-0-1173" name="__codelineno-0-1173"></a><span class="sd">            [0, 1, 1, 1, 0, 0],</span>
-<a id="__codelineno-0-1174" name="__codelineno-0-1174"></a><span class="sd">            [0, 1, 1, 1, 0, 0]</span>
-<a id="__codelineno-0-1175" name="__codelineno-0-1175"></a><span class="sd">        ]).astype(bool)</span>
-<a id="__codelineno-0-1176" name="__codelineno-0-1176"></a>
-<a id="__codelineno-0-1177" name="__codelineno-0-1177"></a><span class="sd">        sv.contains_multiple_segments(mask=mask, connectivity=4)</span>
-<a id="__codelineno-0-1178" name="__codelineno-0-1178"></a><span class="sd">        # True</span>
-<a id="__codelineno-0-1179" name="__codelineno-0-1179"></a>
-<a id="__codelineno-0-1180" name="__codelineno-0-1180"></a><span class="sd">        mask = np.array([</span>
-<a id="__codelineno-0-1181" name="__codelineno-0-1181"></a><span class="sd">            [0, 0, 0, 0, 0, 0],</span>
-<a id="__codelineno-0-1182" name="__codelineno-0-1182"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
-<a id="__codelineno-0-1183" name="__codelineno-0-1183"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
-<a id="__codelineno-0-1184" name="__codelineno-0-1184"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
-<a id="__codelineno-0-1185" name="__codelineno-0-1185"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
-<a id="__codelineno-0-1186" name="__codelineno-0-1186"></a><span class="sd">            [0, 0, 0, 0, 0, 0]</span>
-<a id="__codelineno-0-1187" name="__codelineno-0-1187"></a><span class="sd">        ]).astype(bool)</span>
-<a id="__codelineno-0-1188" name="__codelineno-0-1188"></a>
-<a id="__codelineno-0-1189" name="__codelineno-0-1189"></a><span class="sd">        sv.contains_multiple_segments(mask=mask, connectivity=4)</span>
-<a id="__codelineno-0-1190" name="__codelineno-0-1190"></a><span class="sd">        # False</span>
-<a id="__codelineno-0-1191" name="__codelineno-0-1191"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-1192" name="__codelineno-0-1192"></a>
-<a id="__codelineno-0-1193" name="__codelineno-0-1193"></a><span class="sd">    ![contains_multiple_segments](https://media.roboflow.com/supervision-docs/contains-multiple-segments.png){ align=center width=&quot;800&quot; }</span>
-<a id="__codelineno-0-1194" name="__codelineno-0-1194"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa E501 // docs</span>
-<a id="__codelineno-0-1195" name="__codelineno-0-1195"></a>    <span class="k">if</span> <span class="n">connectivity</span> <span class="o">!=</span> <span class="mi">4</span> <span class="ow">and</span> <span class="n">connectivity</span> <span class="o">!=</span> <span class="mi">8</span><span class="p">:</span>
-<a id="__codelineno-0-1196" name="__codelineno-0-1196"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-1197" name="__codelineno-0-1197"></a>            <span class="s2">&quot;Incorrect connectivity value. Possible connectivity values: 4 or 8.&quot;</span>
-<a id="__codelineno-0-1198" name="__codelineno-0-1198"></a>        <span class="p">)</span>
-<a id="__codelineno-0-1199" name="__codelineno-0-1199"></a>    <span class="n">mask_uint8</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
-<a id="__codelineno-0-1200" name="__codelineno-0-1200"></a>    <span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">mask_uint8</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-<a id="__codelineno-0-1201" name="__codelineno-0-1201"></a>    <span class="n">number_of_labels</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">connectedComponents</span><span class="p">(</span>
-<a id="__codelineno-0-1202" name="__codelineno-0-1202"></a>        <span class="n">mask_uint8</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span>
-<a id="__codelineno-0-1203" name="__codelineno-0-1203"></a>    <span class="p">)</span>
-<a id="__codelineno-0-1204" name="__codelineno-0-1204"></a>    <span class="k">return</span> <span class="n">number_of_labels</span> <span class="o">&gt;</span> <span class="mi">2</span>
+<span class="normal"><a href="#__codelineno-0-1204">1204</a></span>
+<span class="normal"><a href="#__codelineno-0-1205">1205</a></span>
+<span class="normal"><a href="#__codelineno-0-1206">1206</a></span>
+<span class="normal"><a href="#__codelineno-0-1207">1207</a></span>
+<span class="normal"><a href="#__codelineno-0-1208">1208</a></span>
+<span class="normal"><a href="#__codelineno-0-1209">1209</a></span>
+<span class="normal"><a href="#__codelineno-0-1210">1210</a></span>
+<span class="normal"><a href="#__codelineno-0-1211">1211</a></span>
+<span class="normal"><a href="#__codelineno-0-1212">1212</a></span>
+<span class="normal"><a href="#__codelineno-0-1213">1213</a></span>
+<span class="normal"><a href="#__codelineno-0-1214">1214</a></span>
+<span class="normal"><a href="#__codelineno-0-1215">1215</a></span>
+<span class="normal"><a href="#__codelineno-0-1216">1216</a></span>
+<span class="normal"><a href="#__codelineno-0-1217">1217</a></span>
+<span class="normal"><a href="#__codelineno-0-1218">1218</a></span>
+<span class="normal"><a href="#__codelineno-0-1219">1219</a></span>
+<span class="normal"><a href="#__codelineno-0-1220">1220</a></span>
+<span class="normal"><a href="#__codelineno-0-1221">1221</a></span>
+<span class="normal"><a href="#__codelineno-0-1222">1222</a></span>
+<span class="normal"><a href="#__codelineno-0-1223">1223</a></span>
+<span class="normal"><a href="#__codelineno-0-1224">1224</a></span>
+<span class="normal"><a href="#__codelineno-0-1225">1225</a></span>
+<span class="normal"><a href="#__codelineno-0-1226">1226</a></span>
+<span class="normal"><a href="#__codelineno-0-1227">1227</a></span>
+<span class="normal"><a href="#__codelineno-0-1228">1228</a></span>
+<span class="normal"><a href="#__codelineno-0-1229">1229</a></span>
+<span class="normal"><a href="#__codelineno-0-1230">1230</a></span>
+<span class="normal"><a href="#__codelineno-0-1231">1231</a></span>
+<span class="normal"><a href="#__codelineno-0-1232">1232</a></span>
+<span class="normal"><a href="#__codelineno-0-1233">1233</a></span>
+<span class="normal"><a href="#__codelineno-0-1234">1234</a></span>
+<span class="normal"><a href="#__codelineno-0-1235">1235</a></span>
+<span class="normal"><a href="#__codelineno-0-1236">1236</a></span>
+<span class="normal"><a href="#__codelineno-0-1237">1237</a></span>
+<span class="normal"><a href="#__codelineno-0-1238">1238</a></span>
+<span class="normal"><a href="#__codelineno-0-1239">1239</a></span>
+<span class="normal"><a href="#__codelineno-0-1240">1240</a></span>
+<span class="normal"><a href="#__codelineno-0-1241">1241</a></span>
+<span class="normal"><a href="#__codelineno-0-1242">1242</a></span>
+<span class="normal"><a href="#__codelineno-0-1243">1243</a></span>
+<span class="normal"><a href="#__codelineno-0-1244">1244</a></span>
+<span class="normal"><a href="#__codelineno-0-1245">1245</a></span>
+<span class="normal"><a href="#__codelineno-0-1246">1246</a></span>
+<span class="normal"><a href="#__codelineno-0-1247">1247</a></span>
+<span class="normal"><a href="#__codelineno-0-1248">1248</a></span>
+<span class="normal"><a href="#__codelineno-0-1249">1249</a></span>
+<span class="normal"><a href="#__codelineno-0-1250">1250</a></span>
+<span class="normal"><a href="#__codelineno-0-1251">1251</a></span>
+<span class="normal"><a href="#__codelineno-0-1252">1252</a></span>
+<span class="normal"><a href="#__codelineno-0-1253">1253</a></span>
+<span class="normal"><a href="#__codelineno-0-1254">1254</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-1192" name="__codelineno-0-1192"></a><span class="k">def</span><span class="w"> </span><span class="nf">contains_multiple_segments</span><span class="p">(</span>
+<a id="__codelineno-0-1193" name="__codelineno-0-1193"></a>    <span class="n">mask</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">],</span> <span class="n">connectivity</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span>
+<a id="__codelineno-0-1194" name="__codelineno-0-1194"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<a id="__codelineno-0-1195" name="__codelineno-0-1195"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<a id="__codelineno-0-1196" name="__codelineno-0-1196"></a><span class="sd">    Checks if the binary mask contains multiple unconnected foreground segments.</span>
+<a id="__codelineno-0-1197" name="__codelineno-0-1197"></a>
+<a id="__codelineno-0-1198" name="__codelineno-0-1198"></a><span class="sd">    Args:</span>
+<a id="__codelineno-0-1199" name="__codelineno-0-1199"></a><span class="sd">        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground</span>
+<a id="__codelineno-0-1200" name="__codelineno-0-1200"></a><span class="sd">            object and `False` indicates background.</span>
+<a id="__codelineno-0-1201" name="__codelineno-0-1201"></a><span class="sd">        connectivity (int) : Default: 4 is 4-way connectivity, which means that</span>
+<a id="__codelineno-0-1202" name="__codelineno-0-1202"></a><span class="sd">            foreground pixels are the part of the same segment/component</span>
+<a id="__codelineno-0-1203" name="__codelineno-0-1203"></a><span class="sd">            if their edges touch.</span>
+<a id="__codelineno-0-1204" name="__codelineno-0-1204"></a><span class="sd">            Alternatively: 8 for 8-way connectivity, when foreground pixels are</span>
+<a id="__codelineno-0-1205" name="__codelineno-0-1205"></a><span class="sd">            connected by their edges or corners touch.</span>
+<a id="__codelineno-0-1206" name="__codelineno-0-1206"></a>
+<a id="__codelineno-0-1207" name="__codelineno-0-1207"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-1208" name="__codelineno-0-1208"></a><span class="sd">        True when the mask contains multiple not connected components, False otherwise.</span>
+<a id="__codelineno-0-1209" name="__codelineno-0-1209"></a>
+<a id="__codelineno-0-1210" name="__codelineno-0-1210"></a><span class="sd">    Raises:</span>
+<a id="__codelineno-0-1211" name="__codelineno-0-1211"></a><span class="sd">        ValueError: If connectivity(int) parameter value is not 4 or 8.</span>
+<a id="__codelineno-0-1212" name="__codelineno-0-1212"></a>
+<a id="__codelineno-0-1213" name="__codelineno-0-1213"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-1214" name="__codelineno-0-1214"></a><span class="sd">        ```python</span>
+<a id="__codelineno-0-1215" name="__codelineno-0-1215"></a><span class="sd">        import numpy as np</span>
+<a id="__codelineno-0-1216" name="__codelineno-0-1216"></a><span class="sd">        import supervision as sv</span>
+<a id="__codelineno-0-1217" name="__codelineno-0-1217"></a>
+<a id="__codelineno-0-1218" name="__codelineno-0-1218"></a><span class="sd">        mask = np.array([</span>
+<a id="__codelineno-0-1219" name="__codelineno-0-1219"></a><span class="sd">            [0, 0, 0, 0, 0, 0],</span>
+<a id="__codelineno-0-1220" name="__codelineno-0-1220"></a><span class="sd">            [0, 1, 1, 0, 1, 1],</span>
+<a id="__codelineno-0-1221" name="__codelineno-0-1221"></a><span class="sd">            [0, 1, 1, 0, 1, 1],</span>
+<a id="__codelineno-0-1222" name="__codelineno-0-1222"></a><span class="sd">            [0, 0, 0, 0, 0, 0],</span>
+<a id="__codelineno-0-1223" name="__codelineno-0-1223"></a><span class="sd">            [0, 1, 1, 1, 0, 0],</span>
+<a id="__codelineno-0-1224" name="__codelineno-0-1224"></a><span class="sd">            [0, 1, 1, 1, 0, 0]</span>
+<a id="__codelineno-0-1225" name="__codelineno-0-1225"></a><span class="sd">        ]).astype(bool)</span>
+<a id="__codelineno-0-1226" name="__codelineno-0-1226"></a>
+<a id="__codelineno-0-1227" name="__codelineno-0-1227"></a><span class="sd">        sv.contains_multiple_segments(mask=mask, connectivity=4)</span>
+<a id="__codelineno-0-1228" name="__codelineno-0-1228"></a><span class="sd">        # True</span>
+<a id="__codelineno-0-1229" name="__codelineno-0-1229"></a>
+<a id="__codelineno-0-1230" name="__codelineno-0-1230"></a><span class="sd">        mask = np.array([</span>
+<a id="__codelineno-0-1231" name="__codelineno-0-1231"></a><span class="sd">            [0, 0, 0, 0, 0, 0],</span>
+<a id="__codelineno-0-1232" name="__codelineno-0-1232"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
+<a id="__codelineno-0-1233" name="__codelineno-0-1233"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
+<a id="__codelineno-0-1234" name="__codelineno-0-1234"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
+<a id="__codelineno-0-1235" name="__codelineno-0-1235"></a><span class="sd">            [0, 1, 1, 1, 1, 1],</span>
+<a id="__codelineno-0-1236" name="__codelineno-0-1236"></a><span class="sd">            [0, 0, 0, 0, 0, 0]</span>
+<a id="__codelineno-0-1237" name="__codelineno-0-1237"></a><span class="sd">        ]).astype(bool)</span>
+<a id="__codelineno-0-1238" name="__codelineno-0-1238"></a>
+<a id="__codelineno-0-1239" name="__codelineno-0-1239"></a><span class="sd">        sv.contains_multiple_segments(mask=mask, connectivity=4)</span>
+<a id="__codelineno-0-1240" name="__codelineno-0-1240"></a><span class="sd">        # False</span>
+<a id="__codelineno-0-1241" name="__codelineno-0-1241"></a><span class="sd">        ```</span>
+<a id="__codelineno-0-1242" name="__codelineno-0-1242"></a>
+<a id="__codelineno-0-1243" name="__codelineno-0-1243"></a><span class="sd">    ![contains_multiple_segments](https://media.roboflow.com/supervision-docs/contains-multiple-segments.png){ align=center width=&quot;800&quot; }</span>
+<a id="__codelineno-0-1244" name="__codelineno-0-1244"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa E501 // docs</span>
+<a id="__codelineno-0-1245" name="__codelineno-0-1245"></a>    <span class="k">if</span> <span class="n">connectivity</span> <span class="o">!=</span> <span class="mi">4</span> <span class="ow">and</span> <span class="n">connectivity</span> <span class="o">!=</span> <span class="mi">8</span><span class="p">:</span>
+<a id="__codelineno-0-1246" name="__codelineno-0-1246"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="__codelineno-0-1247" name="__codelineno-0-1247"></a>            <span class="s2">&quot;Incorrect connectivity value. Possible connectivity values: 4 or 8.&quot;</span>
+<a id="__codelineno-0-1248" name="__codelineno-0-1248"></a>        <span class="p">)</span>
+<a id="__codelineno-0-1249" name="__codelineno-0-1249"></a>    <span class="n">mask_uint8</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+<a id="__codelineno-0-1250" name="__codelineno-0-1250"></a>    <span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">mask_uint8</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+<a id="__codelineno-0-1251" name="__codelineno-0-1251"></a>    <span class="n">number_of_labels</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">connectedComponents</span><span class="p">(</span>
+<a id="__codelineno-0-1252" name="__codelineno-0-1252"></a>        <span class="n">mask_uint8</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">connectivity</span><span class="o">=</span><span class="n">connectivity</span>
+<a id="__codelineno-0-1253" name="__codelineno-0-1253"></a>    <span class="p">)</span>
+<a id="__codelineno-0-1254" name="__codelineno-0-1254"></a>    <span class="k">return</span> <span class="n">number_of_labels</span> <span class="o">&gt;</span> <span class="mi">2</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -6858,7 +7073,7 @@ connected by their edges or corners touch.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 17, 2025 22:05:56">February 17, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 22, 2025 13:30:42">April 22, 2025</span>
   </span>
 
     
