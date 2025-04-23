@@ -140,7 +140,7 @@ class _BaseLabelAnnotator(BaseAnnotator):
             List[str]: A list of text labels for each detection.
         """
         if custom_labels is not None:
-            return custom_labels
+            return [str(label) for label in custom_labels]
 
         labels = []
         for idx in range(len(detections)):
