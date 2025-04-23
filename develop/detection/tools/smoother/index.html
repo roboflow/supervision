@@ -1358,9 +1358,10 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
+    <nav class="md-nav" aria-label=" DetectionsSmoother">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#supervision.detection.tools.smoother.DetectionsSmoother-functions" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1420,6 +1421,11 @@
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -2526,9 +2532,10 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
+    <nav class="md-nav" aria-label=" DetectionsSmoother">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#supervision.detection.tools.smoother.DetectionsSmoother-functions" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2600,6 +2607,11 @@
     </nav>
   
 </li>
+        
+      </ul>
+    </nav>
+  
+</li>
       
     </ul>
   
@@ -2635,7 +2647,13 @@
 
 
 
-<a id="supervision.detection.tools.smoother.DetectionsSmoother"></a>
+<h2 id="supervision.detection.tools.smoother.DetectionsSmoother" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <code>supervision.detection.tools.smoother.DetectionsSmoother</code>
+
+
+<a href="#supervision.detection.tools.smoother.DetectionsSmoother" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
     <div class="doc doc-contents first">
 
 
@@ -2661,29 +2679,29 @@ predictions based on these histories.</p>
 
 <details class="example" open>
   <summary>Example</summary>
-  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">video_info</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">VideoInfo</span><span class="o">.</span><span class="n">from_video_path</span><span class="p">(</span><span class="n">video_path</span><span class="o">=&lt;</span><span class="n">SOURCE_FILE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">frame_generator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">get_video_frames_generator</span><span class="p">(</span><span class="n">source_path</span><span class="o">=&lt;</span><span class="n">SOURCE_FILE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="o">&lt;</span><span class="n">MODEL_PATH</span><span class="o">&gt;</span><span class="p">)</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">tracker</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">ByteTrack</span><span class="p">(</span><span class="n">frame_rate</span><span class="o">=</span><span class="n">video_info</span><span class="o">.</span><span class="n">fps</span><span class="p">)</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">smoother</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionsSmoother</span><span class="p">()</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">box_annotator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">BoxAnnotator</span><span class="p">()</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="k">with</span> <span class="n">sv</span><span class="o">.</span><span class="n">VideoSink</span><span class="p">(</span><span class="o">&lt;</span><span class="n">TARGET_FILE_PATH</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">video_info</span><span class="o">=</span><span class="n">video_info</span><span class="p">)</span> <span class="k">as</span> <span class="n">sink</span><span class="p">:</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">frame_generator</span><span class="p">:</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>        <span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">frame</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>        <span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>        <span class="n">detections</span> <span class="o">=</span> <span class="n">tracker</span><span class="o">.</span><span class="n">update_with_detections</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>        <span class="n">detections</span> <span class="o">=</span> <span class="n">smoother</span><span class="o">.</span><span class="n">update_with_detections</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>        <span class="n">annotated_frame</span> <span class="o">=</span> <span class="n">box_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">frame</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">detections</span><span class="p">)</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>        <span class="n">sink</span><span class="o">.</span><span class="n">write_frame</span><span class="p">(</span><span class="n">annotated_frame</span><span class="p">)</span>
-</code></pre></div>
+  <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">video_info</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">VideoInfo</span><span class="o">.</span><span class="n">from_video_path</span><span class="p">(</span><span class="n">video_path</span><span class="o">=&lt;</span><span class="n">SOURCE_FILE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">frame_generator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">get_video_frames_generator</span><span class="p">(</span><span class="n">source_path</span><span class="o">=&lt;</span><span class="n">SOURCE_FILE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="o">&lt;</span><span class="n">MODEL_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">tracker</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">ByteTrack</span><span class="p">(</span><span class="n">frame_rate</span><span class="o">=</span><span class="n">video_info</span><span class="o">.</span><span class="n">fps</span><span class="p">)</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">smoother</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionsSmoother</span><span class="p">()</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">box_annotator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">BoxAnnotator</span><span class="p">()</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="k">with</span> <span class="n">sv</span><span class="o">.</span><span class="n">VideoSink</span><span class="p">(</span><span class="o">&lt;</span><span class="n">TARGET_FILE_PATH</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">video_info</span><span class="o">=</span><span class="n">video_info</span><span class="p">)</span> <span class="k">as</span> <span class="n">sink</span><span class="p">:</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">frame_generator</span><span class="p">:</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>        <span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">frame</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>        <span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>        <span class="n">detections</span> <span class="o">=</span> <span class="n">tracker</span><span class="o">.</span><span class="n">update_with_detections</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>        <span class="n">detections</span> <span class="o">=</span> <span class="n">smoother</span><span class="o">.</span><span class="n">update_with_detections</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>        <span class="n">annotated_frame</span> <span class="o">=</span> <span class="n">box_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">frame</span><span class="o">.</span><span class="n">copy</span><span class="p">(),</span> <span class="n">detections</span><span class="p">)</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>        <span class="n">sink</span><span class="o">.</span><span class="n">write_frame</span><span class="p">(</span><span class="n">annotated_frame</span><span class="p">)</span>
+</span></code></pre></div>
 </details>
 
 
@@ -2693,7 +2711,7 @@ predictions based on these histories.</p>
 
               <details class="quote">
                 <summary>Source code in <code>supervision/detection/tools/smoother.py</code></summary>
-                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-12"> 12</a></span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-12"> 12</a></span>
 <span class="normal"><a href="#__codelineno-0-13"> 13</a></span>
 <span class="normal"><a href="#__codelineno-0-14"> 14</a></span>
 <span class="normal"><a href="#__codelineno-0-15"> 15</a></span>
@@ -2805,120 +2823,120 @@ predictions based on these histories.</p>
 <span class="normal"><a href="#__codelineno-0-121">121</a></span>
 <span class="normal"><a href="#__codelineno-0-122">122</a></span>
 <span class="normal"><a href="#__codelineno-0-123">123</a></span>
-<span class="normal"><a href="#__codelineno-0-124">124</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="k">class</span><span class="w"> </span><span class="nc">DetectionsSmoother</span><span class="p">:</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="sd">    A utility class for smoothing detections over multiple frames in video tracking.</span>
-<a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="sd">    It maintains a history of detections for each track and provides smoothed</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="sd">    predictions based on these histories.</span>
-<a id="__codelineno-0-17" name="__codelineno-0-17"></a>
-<a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">    &lt;video controls&gt;</span>
-<a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="sd">        &lt;source</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="sd">            src=&quot;https://media.roboflow.com/supervision-detection-smoothing.mp4&quot;</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="sd">            type=&quot;video/mp4&quot;&gt;</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="sd">    &lt;/video&gt;</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23"></a>
-<a id="__codelineno-0-24" name="__codelineno-0-24"></a><span class="sd">    !!! warning</span>
-<a id="__codelineno-0-25" name="__codelineno-0-25"></a>
-<a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="sd">        - `DetectionsSmoother` requires the `tracker_id` for each detection. Refer to</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="sd">          [Roboflow Trackers](/latest/trackers/) for</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="sd">          information on integrating tracking into your inference pipeline.</span>
-<a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="sd">        - This class is not compatible with segmentation models.</span>
-<a id="__codelineno-0-30" name="__codelineno-0-30"></a>
-<a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="sd">    Example:</span>
-<a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-34" name="__codelineno-0-34"></a>
-<a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="sd">        from ultralytics import YOLO</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36"></a>
-<a id="__codelineno-0-37" name="__codelineno-0-37"></a><span class="sd">        video_info = sv.VideoInfo.from_video_path(video_path=&lt;SOURCE_FILE_PATH&gt;)</span>
-<a id="__codelineno-0-38" name="__codelineno-0-38"></a><span class="sd">        frame_generator = sv.get_video_frames_generator(source_path=&lt;SOURCE_FILE_PATH&gt;)</span>
-<a id="__codelineno-0-39" name="__codelineno-0-39"></a>
-<a id="__codelineno-0-40" name="__codelineno-0-40"></a><span class="sd">        model = YOLO(&lt;MODEL_PATH&gt;)</span>
-<a id="__codelineno-0-41" name="__codelineno-0-41"></a><span class="sd">        tracker = sv.ByteTrack(frame_rate=video_info.fps)</span>
-<a id="__codelineno-0-42" name="__codelineno-0-42"></a><span class="sd">        smoother = sv.DetectionsSmoother()</span>
-<a id="__codelineno-0-43" name="__codelineno-0-43"></a>
-<a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="sd">        box_annotator = sv.BoxAnnotator()</span>
-<a id="__codelineno-0-45" name="__codelineno-0-45"></a>
-<a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="sd">        with sv.VideoSink(&lt;TARGET_FILE_PATH&gt;, video_info=video_info) as sink:</span>
-<a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="sd">            for frame in frame_generator:</span>
-<a id="__codelineno-0-48" name="__codelineno-0-48"></a><span class="sd">                result = model(frame)[0]</span>
-<a id="__codelineno-0-49" name="__codelineno-0-49"></a><span class="sd">                detections = sv.Detections.from_ultralytics(result)</span>
-<a id="__codelineno-0-50" name="__codelineno-0-50"></a><span class="sd">                detections = tracker.update_with_detections(detections)</span>
-<a id="__codelineno-0-51" name="__codelineno-0-51"></a><span class="sd">                detections = smoother.update_with_detections(detections)</span>
-<a id="__codelineno-0-52" name="__codelineno-0-52"></a>
-<a id="__codelineno-0-53" name="__codelineno-0-53"></a><span class="sd">                annotated_frame = box_annotator.annotate(frame.copy(), detections)</span>
-<a id="__codelineno-0-54" name="__codelineno-0-54"></a><span class="sd">                sink.write_frame(annotated_frame)</span>
-<a id="__codelineno-0-55" name="__codelineno-0-55"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-56" name="__codelineno-0-56"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-57" name="__codelineno-0-57"></a>
-<a id="__codelineno-0-58" name="__codelineno-0-58"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-60" name="__codelineno-0-60"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-61" name="__codelineno-0-61"></a><span class="sd">            length (int): The maximum number of frames to consider for smoothing</span>
-<a id="__codelineno-0-62" name="__codelineno-0-62"></a><span class="sd">                detections. Defaults to 5.</span>
-<a id="__codelineno-0-63" name="__codelineno-0-63"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-64" name="__codelineno-0-64"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="n">length</span><span class="p">))</span>
-<a id="__codelineno-0-65" name="__codelineno-0-65"></a>
-<a id="__codelineno-0-66" name="__codelineno-0-66"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">update_with_detections</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
-<a id="__codelineno-0-67" name="__codelineno-0-67"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-68" name="__codelineno-0-68"></a><span class="sd">        Updates the smoother with a new set of detections from a frame.</span>
-<a id="__codelineno-0-69" name="__codelineno-0-69"></a>
-<a id="__codelineno-0-70" name="__codelineno-0-70"></a><span class="sd">        Args:</span>
-<a id="__codelineno-0-71" name="__codelineno-0-71"></a><span class="sd">            detections (Detections): The detections to add to the smoother.</span>
-<a id="__codelineno-0-72" name="__codelineno-0-72"></a><span class="sd">        &quot;&quot;&quot;</span>
-<a id="__codelineno-0-73" name="__codelineno-0-73"></a>
-<a id="__codelineno-0-74" name="__codelineno-0-74"></a>        <span class="k">if</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-75" name="__codelineno-0-75"></a>            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-<a id="__codelineno-0-76" name="__codelineno-0-76"></a>                <span class="s2">&quot;Smoothing skipped. DetectionsSmoother requires tracker_id. Refer to &quot;</span>
-<a id="__codelineno-0-77" name="__codelineno-0-77"></a>                <span class="s2">&quot;https://supervision.roboflow.com/latest/trackers for more &quot;</span>
-<a id="__codelineno-0-78" name="__codelineno-0-78"></a>                <span class="s2">&quot;information.&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-79" name="__codelineno-0-79"></a>                <span class="n">category</span><span class="o">=</span><span class="n">SupervisionWarnings</span><span class="p">,</span>
-<a id="__codelineno-0-80" name="__codelineno-0-80"></a>            <span class="p">)</span>
-<a id="__codelineno-0-81" name="__codelineno-0-81"></a>            <span class="k">return</span> <span class="n">detections</span>
-<a id="__codelineno-0-82" name="__codelineno-0-82"></a>
-<a id="__codelineno-0-83" name="__codelineno-0-83"></a>        <span class="k">for</span> <span class="n">detection_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">detections</span><span class="p">)):</span>
-<a id="__codelineno-0-84" name="__codelineno-0-84"></a>            <span class="n">tracker_id</span> <span class="o">=</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">[</span><span class="n">detection_idx</span><span class="p">]</span>
-<a id="__codelineno-0-85" name="__codelineno-0-85"></a>
-<a id="__codelineno-0-86" name="__codelineno-0-86"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">[</span><span class="n">tracker_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">detections</span><span class="p">[</span><span class="n">detection_idx</span><span class="p">])</span>
-<a id="__codelineno-0-87" name="__codelineno-0-87"></a>
-<a id="__codelineno-0-88" name="__codelineno-0-88"></a>        <span class="k">for</span> <span class="n">track_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-<a id="__codelineno-0-89" name="__codelineno-0-89"></a>            <span class="k">if</span> <span class="n">track_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">:</span>
-<a id="__codelineno-0-90" name="__codelineno-0-90"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">[</span><span class="n">track_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
-<a id="__codelineno-0-91" name="__codelineno-0-91"></a>
-<a id="__codelineno-0-92" name="__codelineno-0-92"></a>        <span class="k">for</span> <span class="n">track_id</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
-<a id="__codelineno-0-93" name="__codelineno-0-93"></a>            <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">d</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">[</span><span class="n">track_id</span><span class="p">]]):</span>
-<a id="__codelineno-0-94" name="__codelineno-0-94"></a>                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">[</span><span class="n">track_id</span><span class="p">]</span>
-<a id="__codelineno-0-95" name="__codelineno-0-95"></a>
-<a id="__codelineno-0-96" name="__codelineno-0-96"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_smoothed_detections</span><span class="p">()</span>
-<a id="__codelineno-0-97" name="__codelineno-0-97"></a>
-<a id="__codelineno-0-98" name="__codelineno-0-98"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_track</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">track_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Detections</span><span class="p">]:</span>
-<a id="__codelineno-0-99" name="__codelineno-0-99"></a>        <span class="n">track</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">track_id</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-<a id="__codelineno-0-100" name="__codelineno-0-100"></a>        <span class="k">if</span> <span class="n">track</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-101" name="__codelineno-0-101"></a>            <span class="k">return</span> <span class="kc">None</span>
-<a id="__codelineno-0-102" name="__codelineno-0-102"></a>
-<a id="__codelineno-0-103" name="__codelineno-0-103"></a>        <span class="n">track</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">track</span> <span class="k">if</span> <span class="n">d</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
-<a id="__codelineno-0-104" name="__codelineno-0-104"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">track</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-105" name="__codelineno-0-105"></a>            <span class="k">return</span> <span class="kc">None</span>
-<a id="__codelineno-0-106" name="__codelineno-0-106"></a>
-<a id="__codelineno-0-107" name="__codelineno-0-107"></a>        <span class="n">ret</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">track</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<a id="__codelineno-0-108" name="__codelineno-0-108"></a>        <span class="n">ret</span><span class="o">.</span><span class="n">xyxy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">d</span><span class="o">.</span><span class="n">xyxy</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">track</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-<a id="__codelineno-0-109" name="__codelineno-0-109"></a>        <span class="n">ret</span><span class="o">.</span><span class="n">confidence</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">d</span><span class="o">.</span><span class="n">confidence</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">track</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-<a id="__codelineno-0-110" name="__codelineno-0-110"></a>
-<a id="__codelineno-0-111" name="__codelineno-0-111"></a>        <span class="k">return</span> <span class="n">ret</span>
-<a id="__codelineno-0-112" name="__codelineno-0-112"></a>
-<a id="__codelineno-0-113" name="__codelineno-0-113"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_smoothed_detections</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
-<a id="__codelineno-0-114" name="__codelineno-0-114"></a>        <span class="n">tracked_detections</span> <span class="o">=</span> <span class="p">[]</span>
-<a id="__codelineno-0-115" name="__codelineno-0-115"></a>        <span class="k">for</span> <span class="n">track_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">:</span>
-<a id="__codelineno-0-116" name="__codelineno-0-116"></a>            <span class="n">track</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_track</span><span class="p">(</span><span class="n">track_id</span><span class="p">)</span>
-<a id="__codelineno-0-117" name="__codelineno-0-117"></a>            <span class="k">if</span> <span class="n">track</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-118" name="__codelineno-0-118"></a>                <span class="n">tracked_detections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">track</span><span class="p">)</span>
-<a id="__codelineno-0-119" name="__codelineno-0-119"></a>
-<a id="__codelineno-0-120" name="__codelineno-0-120"></a>        <span class="n">detections</span> <span class="o">=</span> <span class="n">Detections</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">tracked_detections</span><span class="p">)</span>
-<a id="__codelineno-0-121" name="__codelineno-0-121"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-122" name="__codelineno-0-122"></a>            <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
-<a id="__codelineno-0-123" name="__codelineno-0-123"></a>
-<a id="__codelineno-0-124" name="__codelineno-0-124"></a>        <span class="k">return</span> <span class="n">detections</span>
-</code></pre></div></td></tr></table></div>
+<span class="normal"><a href="#__codelineno-0-124">124</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="k">class</span><span class="w"> </span><span class="nc">DetectionsSmoother</span><span class="p">:</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="sd">    A utility class for smoothing detections over multiple frames in video tracking.</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="sd">    It maintains a history of detections for each track and provides smoothed</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="sd">    predictions based on these histories.</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">    &lt;video controls&gt;</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="sd">        &lt;source</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="sd">            src=&quot;https://media.roboflow.com/supervision-detection-smoothing.mp4&quot;</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="sd">            type=&quot;video/mp4&quot;&gt;</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="sd">    &lt;/video&gt;</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a><span class="sd">    !!! warning</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="sd">        - `DetectionsSmoother` requires the `tracker_id` for each detection. Refer to</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="sd">          [Roboflow Trackers](/latest/trackers/) for</span>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="sd">          information on integrating tracking into your inference pipeline.</span>
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="sd">        - This class is not compatible with segmentation models.</span>
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a>
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="sd">    Example:</span>
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="sd">        ```python</span>
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="sd">        import supervision as sv</span>
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a>
+</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="sd">        from ultralytics import YOLO</span>
+</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a>
+</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a><span class="sd">        video_info = sv.VideoInfo.from_video_path(video_path=&lt;SOURCE_FILE_PATH&gt;)</span>
+</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a><span class="sd">        frame_generator = sv.get_video_frames_generator(source_path=&lt;SOURCE_FILE_PATH&gt;)</span>
+</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a>
+</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a><span class="sd">        model = YOLO(&lt;MODEL_PATH&gt;)</span>
+</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41"></a><span class="sd">        tracker = sv.ByteTrack(frame_rate=video_info.fps)</span>
+</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42"></a><span class="sd">        smoother = sv.DetectionsSmoother()</span>
+</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43"></a>
+</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="sd">        box_annotator = sv.BoxAnnotator()</span>
+</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45"></a>
+</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="sd">        with sv.VideoSink(&lt;TARGET_FILE_PATH&gt;, video_info=video_info) as sink:</span>
+</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="sd">            for frame in frame_generator:</span>
+</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48"></a><span class="sd">                result = model(frame)[0]</span>
+</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49"></a><span class="sd">                detections = sv.Detections.from_ultralytics(result)</span>
+</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50"></a><span class="sd">                detections = tracker.update_with_detections(detections)</span>
+</span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51"></a><span class="sd">                detections = smoother.update_with_detections(detections)</span>
+</span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52"></a>
+</span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53"></a><span class="sd">                annotated_frame = box_annotator.annotate(frame.copy(), detections)</span>
+</span><span id="__span-0-54"><a id="__codelineno-0-54" name="__codelineno-0-54"></a><span class="sd">                sink.write_frame(annotated_frame)</span>
+</span><span id="__span-0-55"><a id="__codelineno-0-55" name="__codelineno-0-55"></a><span class="sd">        ```</span>
+</span><span id="__span-0-56"><a id="__codelineno-0-56" name="__codelineno-0-56"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-57"><a id="__codelineno-0-57" name="__codelineno-0-57"></a>
+</span><span id="__span-0-58"><a id="__codelineno-0-58" name="__codelineno-0-58"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60"></a><span class="sd">        Args:</span>
+</span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a><span class="sd">            length (int): The maximum number of frames to consider for smoothing</span>
+</span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62"></a><span class="sd">                detections. Defaults to 5.</span>
+</span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-0-64"><a id="__codelineno-0-64" name="__codelineno-0-64"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="n">length</span><span class="p">))</span>
+</span><span id="__span-0-65"><a id="__codelineno-0-65" name="__codelineno-0-65"></a>
+</span><span id="__span-0-66"><a id="__codelineno-0-66" name="__codelineno-0-66"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">update_with_detections</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+</span><span id="__span-0-67"><a id="__codelineno-0-67" name="__codelineno-0-67"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-68"><a id="__codelineno-0-68" name="__codelineno-0-68"></a><span class="sd">        Updates the smoother with a new set of detections from a frame.</span>
+</span><span id="__span-0-69"><a id="__codelineno-0-69" name="__codelineno-0-69"></a>
+</span><span id="__span-0-70"><a id="__codelineno-0-70" name="__codelineno-0-70"></a><span class="sd">        Args:</span>
+</span><span id="__span-0-71"><a id="__codelineno-0-71" name="__codelineno-0-71"></a><span class="sd">            detections (Detections): The detections to add to the smoother.</span>
+</span><span id="__span-0-72"><a id="__codelineno-0-72" name="__codelineno-0-72"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-0-73"><a id="__codelineno-0-73" name="__codelineno-0-73"></a>
+</span><span id="__span-0-74"><a id="__codelineno-0-74" name="__codelineno-0-74"></a>        <span class="k">if</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-75"><a id="__codelineno-0-75" name="__codelineno-0-75"></a>            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+</span><span id="__span-0-76"><a id="__codelineno-0-76" name="__codelineno-0-76"></a>                <span class="s2">&quot;Smoothing skipped. DetectionsSmoother requires tracker_id. Refer to &quot;</span>
+</span><span id="__span-0-77"><a id="__codelineno-0-77" name="__codelineno-0-77"></a>                <span class="s2">&quot;https://supervision.roboflow.com/latest/trackers for more &quot;</span>
+</span><span id="__span-0-78"><a id="__codelineno-0-78" name="__codelineno-0-78"></a>                <span class="s2">&quot;information.&quot;</span><span class="p">,</span>
+</span><span id="__span-0-79"><a id="__codelineno-0-79" name="__codelineno-0-79"></a>                <span class="n">category</span><span class="o">=</span><span class="n">SupervisionWarnings</span><span class="p">,</span>
+</span><span id="__span-0-80"><a id="__codelineno-0-80" name="__codelineno-0-80"></a>            <span class="p">)</span>
+</span><span id="__span-0-81"><a id="__codelineno-0-81" name="__codelineno-0-81"></a>            <span class="k">return</span> <span class="n">detections</span>
+</span><span id="__span-0-82"><a id="__codelineno-0-82" name="__codelineno-0-82"></a>
+</span><span id="__span-0-83"><a id="__codelineno-0-83" name="__codelineno-0-83"></a>        <span class="k">for</span> <span class="n">detection_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">detections</span><span class="p">)):</span>
+</span><span id="__span-0-84"><a id="__codelineno-0-84" name="__codelineno-0-84"></a>            <span class="n">tracker_id</span> <span class="o">=</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">[</span><span class="n">detection_idx</span><span class="p">]</span>
+</span><span id="__span-0-85"><a id="__codelineno-0-85" name="__codelineno-0-85"></a>
+</span><span id="__span-0-86"><a id="__codelineno-0-86" name="__codelineno-0-86"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">[</span><span class="n">tracker_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">detections</span><span class="p">[</span><span class="n">detection_idx</span><span class="p">])</span>
+</span><span id="__span-0-87"><a id="__codelineno-0-87" name="__codelineno-0-87"></a>
+</span><span id="__span-0-88"><a id="__codelineno-0-88" name="__codelineno-0-88"></a>        <span class="k">for</span> <span class="n">track_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+</span><span id="__span-0-89"><a id="__codelineno-0-89" name="__codelineno-0-89"></a>            <span class="k">if</span> <span class="n">track_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">:</span>
+</span><span id="__span-0-90"><a id="__codelineno-0-90" name="__codelineno-0-90"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">[</span><span class="n">track_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+</span><span id="__span-0-91"><a id="__codelineno-0-91" name="__codelineno-0-91"></a>
+</span><span id="__span-0-92"><a id="__codelineno-0-92" name="__codelineno-0-92"></a>        <span class="k">for</span> <span class="n">track_id</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+</span><span id="__span-0-93"><a id="__codelineno-0-93" name="__codelineno-0-93"></a>            <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">d</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">[</span><span class="n">track_id</span><span class="p">]]):</span>
+</span><span id="__span-0-94"><a id="__codelineno-0-94" name="__codelineno-0-94"></a>                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">[</span><span class="n">track_id</span><span class="p">]</span>
+</span><span id="__span-0-95"><a id="__codelineno-0-95" name="__codelineno-0-95"></a>
+</span><span id="__span-0-96"><a id="__codelineno-0-96" name="__codelineno-0-96"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_smoothed_detections</span><span class="p">()</span>
+</span><span id="__span-0-97"><a id="__codelineno-0-97" name="__codelineno-0-97"></a>
+</span><span id="__span-0-98"><a id="__codelineno-0-98" name="__codelineno-0-98"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_track</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">track_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Detections</span><span class="p">]:</span>
+</span><span id="__span-0-99"><a id="__codelineno-0-99" name="__codelineno-0-99"></a>        <span class="n">track</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">track_id</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+</span><span id="__span-0-100"><a id="__codelineno-0-100" name="__codelineno-0-100"></a>        <span class="k">if</span> <span class="n">track</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-101"><a id="__codelineno-0-101" name="__codelineno-0-101"></a>            <span class="k">return</span> <span class="kc">None</span>
+</span><span id="__span-0-102"><a id="__codelineno-0-102" name="__codelineno-0-102"></a>
+</span><span id="__span-0-103"><a id="__codelineno-0-103" name="__codelineno-0-103"></a>        <span class="n">track</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">track</span> <span class="k">if</span> <span class="n">d</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
+</span><span id="__span-0-104"><a id="__codelineno-0-104" name="__codelineno-0-104"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">track</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-0-105"><a id="__codelineno-0-105" name="__codelineno-0-105"></a>            <span class="k">return</span> <span class="kc">None</span>
+</span><span id="__span-0-106"><a id="__codelineno-0-106" name="__codelineno-0-106"></a>
+</span><span id="__span-0-107"><a id="__codelineno-0-107" name="__codelineno-0-107"></a>        <span class="n">ret</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">track</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</span><span id="__span-0-108"><a id="__codelineno-0-108" name="__codelineno-0-108"></a>        <span class="n">ret</span><span class="o">.</span><span class="n">xyxy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">d</span><span class="o">.</span><span class="n">xyxy</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">track</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-0-109"><a id="__codelineno-0-109" name="__codelineno-0-109"></a>        <span class="n">ret</span><span class="o">.</span><span class="n">confidence</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">d</span><span class="o">.</span><span class="n">confidence</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">track</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-0-110"><a id="__codelineno-0-110" name="__codelineno-0-110"></a>
+</span><span id="__span-0-111"><a id="__codelineno-0-111" name="__codelineno-0-111"></a>        <span class="k">return</span> <span class="n">ret</span>
+</span><span id="__span-0-112"><a id="__codelineno-0-112" name="__codelineno-0-112"></a>
+</span><span id="__span-0-113"><a id="__codelineno-0-113" name="__codelineno-0-113"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_smoothed_detections</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+</span><span id="__span-0-114"><a id="__codelineno-0-114" name="__codelineno-0-114"></a>        <span class="n">tracked_detections</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-0-115"><a id="__codelineno-0-115" name="__codelineno-0-115"></a>        <span class="k">for</span> <span class="n">track_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">:</span>
+</span><span id="__span-0-116"><a id="__codelineno-0-116" name="__codelineno-0-116"></a>            <span class="n">track</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_track</span><span class="p">(</span><span class="n">track_id</span><span class="p">)</span>
+</span><span id="__span-0-117"><a id="__codelineno-0-117" name="__codelineno-0-117"></a>            <span class="k">if</span> <span class="n">track</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-118"><a id="__codelineno-0-118" name="__codelineno-0-118"></a>                <span class="n">tracked_detections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">track</span><span class="p">)</span>
+</span><span id="__span-0-119"><a id="__codelineno-0-119" name="__codelineno-0-119"></a>
+</span><span id="__span-0-120"><a id="__codelineno-0-120" name="__codelineno-0-120"></a>        <span class="n">detections</span> <span class="o">=</span> <span class="n">Detections</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">tracked_detections</span><span class="p">)</span>
+</span><span id="__span-0-121"><a id="__codelineno-0-121" name="__codelineno-0-121"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-0-122"><a id="__codelineno-0-122" name="__codelineno-0-122"></a>            <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+</span><span id="__span-0-123"><a id="__codelineno-0-123" name="__codelineno-0-123"></a>
+</span><span id="__span-0-124"><a id="__codelineno-0-124" name="__codelineno-0-124"></a>        <span class="k">return</span> <span class="n">detections</span>
+</span></code></pre></div></td></tr></table></div>
               </details>
 
 
@@ -2931,15 +2949,15 @@ predictions based on these histories.</p>
 
 
 
-<h2 id="supervision.detection.tools.smoother.DetectionsSmoother-functions">Functions<a href="#supervision.detection.tools.smoother.DetectionsSmoother-functions" class="headerlink" title="Permanent link">&para;</a></h2>
+<h3 id="supervision.detection.tools.smoother.DetectionsSmoother-functions">Functions<a href="#supervision.detection.tools.smoother.DetectionsSmoother-functions" class="headerlink" title="Permanent link">&para;</a></h3>
 
 <div class="doc doc-object doc-function">
 
 
-<h3 id="supervision.detection.tools.smoother.DetectionsSmoother.__init__" class="doc doc-heading">
+<h4 id="supervision.detection.tools.smoother.DetectionsSmoother.__init__" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">length</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span></code>
 
-<a href="#supervision.detection.tools.smoother.DetectionsSmoother.__init__" class="headerlink" title="Permanent link">&para;</a></h3>
+<a href="#supervision.detection.tools.smoother.DetectionsSmoother.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
 
     <div class="doc doc-contents ">
@@ -2959,8 +2977,8 @@ predictions based on these histories.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-<h4 id="supervision.detection.tools.smoother.DetectionsSmoother.__init__(length)" class="doc doc-heading doc-heading-parameter">                  <code>length</code>
-<a href="#supervision.detection.tools.smoother.DetectionsSmoother.__init__(length)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
+<h5 id="supervision.detection.tools.smoother.DetectionsSmoother.__init__(length)" class="doc doc-heading doc-heading-parameter">                  <code>length</code>
+<a href="#supervision.detection.tools.smoother.DetectionsSmoother.__init__(length)" class="headerlink" title="Permanent link">&para;</a></h5>            </td>
             <td>
                   <code><span title="int">int</span></code>
             </td>
@@ -2980,20 +2998,20 @@ detections. Defaults to 5.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/tools/smoother.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-58">58</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-58">58</a></span>
 <span class="normal"><a href="#__codelineno-0-59">59</a></span>
 <span class="normal"><a href="#__codelineno-0-60">60</a></span>
 <span class="normal"><a href="#__codelineno-0-61">61</a></span>
 <span class="normal"><a href="#__codelineno-0-62">62</a></span>
 <span class="normal"><a href="#__codelineno-0-63">63</a></span>
-<span class="normal"><a href="#__codelineno-0-64">64</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-58" name="__codelineno-0-58"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-60" name="__codelineno-0-60"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-61" name="__codelineno-0-61"></a><span class="sd">        length (int): The maximum number of frames to consider for smoothing</span>
-<a id="__codelineno-0-62" name="__codelineno-0-62"></a><span class="sd">            detections. Defaults to 5.</span>
-<a id="__codelineno-0-63" name="__codelineno-0-63"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-64" name="__codelineno-0-64"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="n">length</span><span class="p">))</span>
-</code></pre></div></td></tr></table></div>
+<span class="normal"><a href="#__codelineno-0-64">64</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-58"><a id="__codelineno-0-58" name="__codelineno-0-58"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a><span class="sd">        length (int): The maximum number of frames to consider for smoothing</span>
+</span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62"></a><span class="sd">            detections. Defaults to 5.</span>
+</span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-64"><a id="__codelineno-0-64" name="__codelineno-0-64"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="n">length</span><span class="p">))</span>
+</span></code></pre></div></td></tr></table></div>
             </details>
     </div>
 
@@ -3002,10 +3020,10 @@ detections. Defaults to 5.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="supervision.detection.tools.smoother.DetectionsSmoother.update_with_detections" class="doc doc-heading">
+<h4 id="supervision.detection.tools.smoother.DetectionsSmoother.update_with_detections" class="doc doc-heading">
 <code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">update_with_detections</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span></code>
 
-<a href="#supervision.detection.tools.smoother.DetectionsSmoother.update_with_detections" class="headerlink" title="Permanent link">&para;</a></h3>
+<a href="#supervision.detection.tools.smoother.DetectionsSmoother.update_with_detections" class="headerlink" title="Permanent link">&para;</a></h4>
 
 
     <div class="doc doc-contents ">
@@ -3026,10 +3044,15 @@ detections. Defaults to 5.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-<h4 id="supervision.detection.tools.smoother.DetectionsSmoother.update_with_detections(detections)" class="doc doc-heading doc-heading-parameter">                  <code>detections</code>
-<a href="#supervision.detection.tools.smoother.DetectionsSmoother.update_with_detections(detections)" class="headerlink" title="Permanent link">&para;</a></h4>            </td>
+<h5 id="supervision.detection.tools.smoother.DetectionsSmoother.update_with_detections(detections)" class="doc doc-heading doc-heading-parameter">                  <code>detections</code>
+<a href="#supervision.detection.tools.smoother.DetectionsSmoother.update_with_detections(detections)" class="headerlink" title="Permanent link">&para;</a></h5>            </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;" href="../../core/#supervision.detection.core.Detections">Detections</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;
+
+
+  &lt;span class=&quot;doc doc-labels&quot;&gt;
+      &lt;small class=&quot;doc doc-label doc-label-dataclass&quot;&gt;&lt;code&gt;dataclass&lt;/code&gt;&lt;/small&gt;
+  &lt;/span&gt;" href="../../core/#supervision.detection.core.Detections">Detections</a></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3046,7 +3069,7 @@ detections. Defaults to 5.</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/tools/smoother.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-66">66</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-66">66</a></span>
 <span class="normal"><a href="#__codelineno-0-67">67</a></span>
 <span class="normal"><a href="#__codelineno-0-68">68</a></span>
 <span class="normal"><a href="#__codelineno-0-69">69</a></span>
@@ -3076,38 +3099,38 @@ detections. Defaults to 5.</p>
 <span class="normal"><a href="#__codelineno-0-93">93</a></span>
 <span class="normal"><a href="#__codelineno-0-94">94</a></span>
 <span class="normal"><a href="#__codelineno-0-95">95</a></span>
-<span class="normal"><a href="#__codelineno-0-96">96</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-66" name="__codelineno-0-66"></a><span class="k">def</span><span class="w"> </span><span class="nf">update_with_detections</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
-<a id="__codelineno-0-67" name="__codelineno-0-67"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-68" name="__codelineno-0-68"></a><span class="sd">    Updates the smoother with a new set of detections from a frame.</span>
-<a id="__codelineno-0-69" name="__codelineno-0-69"></a>
-<a id="__codelineno-0-70" name="__codelineno-0-70"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-71" name="__codelineno-0-71"></a><span class="sd">        detections (Detections): The detections to add to the smoother.</span>
-<a id="__codelineno-0-72" name="__codelineno-0-72"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-73" name="__codelineno-0-73"></a>
-<a id="__codelineno-0-74" name="__codelineno-0-74"></a>    <span class="k">if</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-75" name="__codelineno-0-75"></a>        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-<a id="__codelineno-0-76" name="__codelineno-0-76"></a>            <span class="s2">&quot;Smoothing skipped. DetectionsSmoother requires tracker_id. Refer to &quot;</span>
-<a id="__codelineno-0-77" name="__codelineno-0-77"></a>            <span class="s2">&quot;https://supervision.roboflow.com/latest/trackers for more &quot;</span>
-<a id="__codelineno-0-78" name="__codelineno-0-78"></a>            <span class="s2">&quot;information.&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-79" name="__codelineno-0-79"></a>            <span class="n">category</span><span class="o">=</span><span class="n">SupervisionWarnings</span><span class="p">,</span>
-<a id="__codelineno-0-80" name="__codelineno-0-80"></a>        <span class="p">)</span>
-<a id="__codelineno-0-81" name="__codelineno-0-81"></a>        <span class="k">return</span> <span class="n">detections</span>
-<a id="__codelineno-0-82" name="__codelineno-0-82"></a>
-<a id="__codelineno-0-83" name="__codelineno-0-83"></a>    <span class="k">for</span> <span class="n">detection_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">detections</span><span class="p">)):</span>
-<a id="__codelineno-0-84" name="__codelineno-0-84"></a>        <span class="n">tracker_id</span> <span class="o">=</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">[</span><span class="n">detection_idx</span><span class="p">]</span>
-<a id="__codelineno-0-85" name="__codelineno-0-85"></a>
-<a id="__codelineno-0-86" name="__codelineno-0-86"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">[</span><span class="n">tracker_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">detections</span><span class="p">[</span><span class="n">detection_idx</span><span class="p">])</span>
-<a id="__codelineno-0-87" name="__codelineno-0-87"></a>
-<a id="__codelineno-0-88" name="__codelineno-0-88"></a>    <span class="k">for</span> <span class="n">track_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-<a id="__codelineno-0-89" name="__codelineno-0-89"></a>        <span class="k">if</span> <span class="n">track_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">:</span>
-<a id="__codelineno-0-90" name="__codelineno-0-90"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">[</span><span class="n">track_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
-<a id="__codelineno-0-91" name="__codelineno-0-91"></a>
-<a id="__codelineno-0-92" name="__codelineno-0-92"></a>    <span class="k">for</span> <span class="n">track_id</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
-<a id="__codelineno-0-93" name="__codelineno-0-93"></a>        <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">d</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">[</span><span class="n">track_id</span><span class="p">]]):</span>
-<a id="__codelineno-0-94" name="__codelineno-0-94"></a>            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">[</span><span class="n">track_id</span><span class="p">]</span>
-<a id="__codelineno-0-95" name="__codelineno-0-95"></a>
-<a id="__codelineno-0-96" name="__codelineno-0-96"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_smoothed_detections</span><span class="p">()</span>
-</code></pre></div></td></tr></table></div>
+<span class="normal"><a href="#__codelineno-0-96">96</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-66"><a id="__codelineno-0-66" name="__codelineno-0-66"></a><span class="k">def</span><span class="w"> </span><span class="nf">update_with_detections</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span><span class="p">:</span>
+</span><span id="__span-0-67"><a id="__codelineno-0-67" name="__codelineno-0-67"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-68"><a id="__codelineno-0-68" name="__codelineno-0-68"></a><span class="sd">    Updates the smoother with a new set of detections from a frame.</span>
+</span><span id="__span-0-69"><a id="__codelineno-0-69" name="__codelineno-0-69"></a>
+</span><span id="__span-0-70"><a id="__codelineno-0-70" name="__codelineno-0-70"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-71"><a id="__codelineno-0-71" name="__codelineno-0-71"></a><span class="sd">        detections (Detections): The detections to add to the smoother.</span>
+</span><span id="__span-0-72"><a id="__codelineno-0-72" name="__codelineno-0-72"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-73"><a id="__codelineno-0-73" name="__codelineno-0-73"></a>
+</span><span id="__span-0-74"><a id="__codelineno-0-74" name="__codelineno-0-74"></a>    <span class="k">if</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-75"><a id="__codelineno-0-75" name="__codelineno-0-75"></a>        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+</span><span id="__span-0-76"><a id="__codelineno-0-76" name="__codelineno-0-76"></a>            <span class="s2">&quot;Smoothing skipped. DetectionsSmoother requires tracker_id. Refer to &quot;</span>
+</span><span id="__span-0-77"><a id="__codelineno-0-77" name="__codelineno-0-77"></a>            <span class="s2">&quot;https://supervision.roboflow.com/latest/trackers for more &quot;</span>
+</span><span id="__span-0-78"><a id="__codelineno-0-78" name="__codelineno-0-78"></a>            <span class="s2">&quot;information.&quot;</span><span class="p">,</span>
+</span><span id="__span-0-79"><a id="__codelineno-0-79" name="__codelineno-0-79"></a>            <span class="n">category</span><span class="o">=</span><span class="n">SupervisionWarnings</span><span class="p">,</span>
+</span><span id="__span-0-80"><a id="__codelineno-0-80" name="__codelineno-0-80"></a>        <span class="p">)</span>
+</span><span id="__span-0-81"><a id="__codelineno-0-81" name="__codelineno-0-81"></a>        <span class="k">return</span> <span class="n">detections</span>
+</span><span id="__span-0-82"><a id="__codelineno-0-82" name="__codelineno-0-82"></a>
+</span><span id="__span-0-83"><a id="__codelineno-0-83" name="__codelineno-0-83"></a>    <span class="k">for</span> <span class="n">detection_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">detections</span><span class="p">)):</span>
+</span><span id="__span-0-84"><a id="__codelineno-0-84" name="__codelineno-0-84"></a>        <span class="n">tracker_id</span> <span class="o">=</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">[</span><span class="n">detection_idx</span><span class="p">]</span>
+</span><span id="__span-0-85"><a id="__codelineno-0-85" name="__codelineno-0-85"></a>
+</span><span id="__span-0-86"><a id="__codelineno-0-86" name="__codelineno-0-86"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">[</span><span class="n">tracker_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">detections</span><span class="p">[</span><span class="n">detection_idx</span><span class="p">])</span>
+</span><span id="__span-0-87"><a id="__codelineno-0-87" name="__codelineno-0-87"></a>
+</span><span id="__span-0-88"><a id="__codelineno-0-88" name="__codelineno-0-88"></a>    <span class="k">for</span> <span class="n">track_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+</span><span id="__span-0-89"><a id="__codelineno-0-89" name="__codelineno-0-89"></a>        <span class="k">if</span> <span class="n">track_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">:</span>
+</span><span id="__span-0-90"><a id="__codelineno-0-90" name="__codelineno-0-90"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">[</span><span class="n">track_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+</span><span id="__span-0-91"><a id="__codelineno-0-91" name="__codelineno-0-91"></a>
+</span><span id="__span-0-92"><a id="__codelineno-0-92" name="__codelineno-0-92"></a>    <span class="k">for</span> <span class="n">track_id</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+</span><span id="__span-0-93"><a id="__codelineno-0-93" name="__codelineno-0-93"></a>        <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">d</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">[</span><span class="n">track_id</span><span class="p">]]):</span>
+</span><span id="__span-0-94"><a id="__codelineno-0-94" name="__codelineno-0-94"></a>            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">tracks</span><span class="p">[</span><span class="n">track_id</span><span class="p">]</span>
+</span><span id="__span-0-95"><a id="__codelineno-0-95" name="__codelineno-0-95"></a>
+</span><span id="__span-0-96"><a id="__codelineno-0-96" name="__codelineno-0-96"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_smoothed_detections</span><span class="p">()</span>
+</span></code></pre></div></td></tr></table></div>
             </details>
     </div>
 

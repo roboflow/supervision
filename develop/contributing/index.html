@@ -2831,12 +2831,12 @@
 <p><img alt="Creating a repository fork" src="https://media.roboflow.com/create_fork.png" /></p>
 <p>Then, run <code>git clone</code> to download the project code to your computer.</p>
 <p>You should also set up <code>roboflow/supervision</code> as an "upstream" remote (that is, tell git that the reference Supervision repository was the source of your fork of it):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>remote<span class="w"> </span>add<span class="w"> </span>upstream<span class="w"> </span>https://github.com/roboflow/supervision.git
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>git<span class="w"> </span>fetch<span class="w"> </span>upstream
-</code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>remote<span class="w"> </span>add<span class="w"> </span>upstream<span class="w"> </span>https://github.com/roboflow/supervision.git
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>git<span class="w"> </span>fetch<span class="w"> </span>upstream
+</span></code></pre></div>
 <p>Move to a new branch using the <code>git checkout</code> command:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>&lt;scope&gt;/&lt;your_branch_name&gt;<span class="w"> </span>upstream/develop
-</code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </span>&lt;scope&gt;/&lt;your_branch_name&gt;<span class="w"> </span>upstream/develop
+</span></code></pre></div>
 <p>The name you choose for your branch should describe the change you want to make and start with an appropriate prefix:</p>
 <ul>
 <li><code>feat/</code>: for new features (e.g., <code>feat/line-counter</code>)</li>
@@ -2847,10 +2847,10 @@
 <li><code>refactor/</code>: for code refactoring (e.g., <code>refactor/simplify-algorithm</code>)</li>
 </ul>
 <p>Make any changes you want to the project code, then run the following commands to commit your changes:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>git<span class="w"> </span>add<span class="w"> </span>-A
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;feat: add line counter functionality&quot;</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>git<span class="w"> </span>push<span class="w"> </span>-u<span class="w"> </span>origin<span class="w"> </span>&lt;your_branch_name&gt;
-</code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>git<span class="w"> </span>add<span class="w"> </span>-A
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;feat: add line counter functionality&quot;</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>git<span class="w"> </span>push<span class="w"> </span>-u<span class="w"> </span>origin<span class="w"> </span>&lt;your_branch_name&gt;
+</span></code></pre></div>
 <p>Use conventional commit messages to clearly describe your changes. The format is:</p>
 <p><type>[optional scope]: <description></p>
 <p>Common types include:</p>
@@ -2888,23 +2888,23 @@
 <li>
 <p>Clone your fork of the project (recommended to use shallow clone of develop branch):</p>
 <p><strong>Option A: Recommended for most contributors (shallow clone of develop branch):</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>git<span class="w"> </span>clone<span class="w"> </span>--depth<span class="w"> </span><span class="m">1</span><span class="w"> </span>-b<span class="w"> </span>develop<span class="w"> </span>https://github.com/YOUR_USERNAME/supervision.git
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nb">cd</span><span class="w"> </span>supervision
-</code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>git<span class="w"> </span>clone<span class="w"> </span>--depth<span class="w"> </span><span class="m">1</span><span class="w"> </span>-b<span class="w"> </span>develop<span class="w"> </span>https://github.com/YOUR_USERNAME/supervision.git
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nb">cd</span><span class="w"> </span>supervision
+</span></code></pre></div>
 <p>Replace <code>YOUR_USERNAME</code> with your GitHub username.</p>
 <blockquote>
 <p>Note: Using <code>--depth 1</code> creates a shallow clone with minimal history and <code>-b develop</code> ensures you start with the development branch. This significantly reduces download size while providing everything needed to contribute.</p>
 </blockquote>
 <p><strong>Option B: Full repository clone (if you need complete history):</strong></p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/YOUR_USERNAME/supervision.git
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nb">cd</span><span class="w"> </span>supervision
-</code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/YOUR_USERNAME/supervision.git
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nb">cd</span><span class="w"> </span>supervision
+</span></code></pre></div>
 </li>
 <li>
 <p>Create and activate a virtual environment:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
-</code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+</span></code></pre></div>
 </li>
 <li>
 <p>Install <code>uv</code>:</p>
@@ -2912,13 +2912,13 @@
 </li>
 <li>
 <p>Install project dependencies:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>pyproject.toml<span class="w"> </span>--extra<span class="w"> </span>dev<span class="w"> </span>--extra<span class="w"> </span>docs<span class="w"> </span>--extra<span class="w"> </span>metrics
-</code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>pyproject.toml<span class="w"> </span>--extra<span class="w"> </span>dev<span class="w"> </span>--extra<span class="w"> </span>docs<span class="w"> </span>--extra<span class="w"> </span>metrics
+</span></code></pre></div>
 </li>
 <li>
 <p>Run pytest to verify the setup:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest
-</code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest
+</span></code></pre></div>
 </li>
 </ol>
 <h2 id="code-style-and-quality">🎨 Code Style and Quality<a class="headerlink" href="#code-style-and-quality" title="Permanent link">&para;</a></h2>

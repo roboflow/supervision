@@ -2007,9 +2007,10 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
+    <nav class="md-nav" aria-label=" list_files_with_extensions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#supervision.utils.file.list_files_with_extensions(directory)" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2019,8 +2020,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#supervision.utils.file.list_files_with_extensions(extensions)" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2028,6 +2029,11 @@
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2475,9 +2481,10 @@
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
+    <nav class="md-nav" aria-label=" list_files_with_extensions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#supervision.utils.file.list_files_with_extensions(directory)" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2487,8 +2494,8 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
+        
+          <li class="md-nav__item">
   <a href="#supervision.utils.file.list_files_with_extensions(extensions)" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2496,6 +2503,11 @@
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2536,8 +2548,12 @@
 <div class="doc doc-object doc-function">
 
 
+<h2 id="supervision.utils.file.list_files_with_extensions" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">list_files_with_extensions</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">extensions</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
 
-<a id="supervision.utils.file.list_files_with_extensions"></a>
+<a href="#supervision.utils.file.list_files_with_extensions" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
     <div class="doc doc-contents first">
 
         <p>List files in a directory with specified extensions or
@@ -2557,8 +2573,8 @@
       <tbody>
           <tr class="doc-section-item">
             <td>
-<h2 id="supervision.utils.file.list_files_with_extensions(directory)" class="doc doc-heading doc-heading-parameter">                  <code>directory</code>
-<a href="#supervision.utils.file.list_files_with_extensions(directory)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
+<h3 id="supervision.utils.file.list_files_with_extensions(directory)" class="doc doc-heading doc-heading-parameter">                  <code>directory</code>
+<a href="#supervision.utils.file.list_files_with_extensions(directory)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
                   <code><span title="typing.Union">Union</span>[<span title="str">str</span>, <span title="pathlib.Path">Path</span>]</code>
             </td>
@@ -2573,8 +2589,8 @@
           </tr>
           <tr class="doc-section-item">
             <td>
-<h2 id="supervision.utils.file.list_files_with_extensions(extensions)" class="doc doc-heading doc-heading-parameter">                  <code>extensions</code>
-<a href="#supervision.utils.file.list_files_with_extensions(extensions)" class="headerlink" title="Permanent link">&para;</a></h2>            </td>
+<h3 id="supervision.utils.file.list_files_with_extensions(extensions)" class="doc doc-heading doc-heading-parameter">                  <code>extensions</code>
+<a href="#supervision.utils.file.list_files_with_extensions(extensions)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
                   <code><span title="typing.Optional">Optional</span>[<span title="typing.List">List</span>[<span title="str">str</span>]]</code>
             </td>
@@ -2616,20 +2632,20 @@ Default is None, which lists all files.</p>
 
 
 <p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># List all files in the directory</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">files</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">list_files_with_extensions</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;my_directory&#39;</span><span class="p">)</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># List only files with &#39;.txt&#39; and &#39;.md&#39; extensions</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">files</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">list_files_with_extensions</span><span class="p">(</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">directory</span><span class="o">=</span><span class="s1">&#39;my_directory&#39;</span><span class="p">,</span> <span class="n">extensions</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;txt&#39;</span><span class="p">,</span> <span class="s1">&#39;md&#39;</span><span class="p">])</span>
-</code></pre></div>
+    <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="c1"># List all files in the directory</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">files</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">list_files_with_extensions</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="s1">&#39;my_directory&#39;</span><span class="p">)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="c1"># List only files with &#39;.txt&#39; and &#39;.md&#39; extensions</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">files</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">list_files_with_extensions</span><span class="p">(</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">directory</span><span class="o">=</span><span class="s1">&#39;my_directory&#39;</span><span class="p">,</span> <span class="n">extensions</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;txt&#39;</span><span class="p">,</span> <span class="s1">&#39;md&#39;</span><span class="p">])</span>
+</span></code></pre></div>
 
 
             <details class="quote">
               <summary>Source code in <code>supervision/utils/file.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-20">20</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-20">20</a></span>
 <span class="normal"><a href="#__codelineno-0-21">21</a></span>
 <span class="normal"><a href="#__codelineno-0-22">22</a></span>
 <span class="normal"><a href="#__codelineno-0-23">23</a></span>
@@ -2666,45 +2682,45 @@ Default is None, which lists all files.</p>
 <span class="normal"><a href="#__codelineno-0-54">54</a></span>
 <span class="normal"><a href="#__codelineno-0-55">55</a></span>
 <span class="normal"><a href="#__codelineno-0-56">56</a></span>
-<span class="normal"><a href="#__codelineno-0-57">57</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="k">def</span><span class="w"> </span><span class="nf">list_files_with_extensions</span><span class="p">(</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21"></a>    <span class="n">directory</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="n">extensions</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
-<a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<a id="__codelineno-0-24" name="__codelineno-0-24"></a><span class="sd">    List files in a directory with specified extensions or</span>
-<a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="sd">        all files if no extensions are provided.</span>
-<a id="__codelineno-0-26" name="__codelineno-0-26"></a>
-<a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="sd">    Args:</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="sd">        directory (Union[str, Path]): The directory path as a string or Path object.</span>
-<a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="sd">        extensions (Optional[List[str]]): A list of file extensions to filter.</span>
-<a id="__codelineno-0-30" name="__codelineno-0-30"></a><span class="sd">            Default is None, which lists all files.</span>
-<a id="__codelineno-0-31" name="__codelineno-0-31"></a>
-<a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="sd">        (List[Path]): A list of Path objects for the matching files.</span>
-<a id="__codelineno-0-34" name="__codelineno-0-34"></a>
-<a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="sd">    Examples:</span>
-<a id="__codelineno-0-36" name="__codelineno-0-36"></a><span class="sd">        ```python</span>
-<a id="__codelineno-0-37" name="__codelineno-0-37"></a><span class="sd">        import supervision as sv</span>
-<a id="__codelineno-0-38" name="__codelineno-0-38"></a>
-<a id="__codelineno-0-39" name="__codelineno-0-39"></a><span class="sd">        # List all files in the directory</span>
-<a id="__codelineno-0-40" name="__codelineno-0-40"></a><span class="sd">        files = sv.list_files_with_extensions(directory=&#39;my_directory&#39;)</span>
-<a id="__codelineno-0-41" name="__codelineno-0-41"></a>
-<a id="__codelineno-0-42" name="__codelineno-0-42"></a><span class="sd">        # List only files with &#39;.txt&#39; and &#39;.md&#39; extensions</span>
-<a id="__codelineno-0-43" name="__codelineno-0-43"></a><span class="sd">        files = sv.list_files_with_extensions(</span>
-<a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="sd">            directory=&#39;my_directory&#39;, extensions=[&#39;txt&#39;, &#39;md&#39;])</span>
-<a id="__codelineno-0-45" name="__codelineno-0-45"></a><span class="sd">        ```</span>
-<a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-47" name="__codelineno-0-47"></a>
-<a id="__codelineno-0-48" name="__codelineno-0-48"></a>    <span class="n">directory</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
-<a id="__codelineno-0-49" name="__codelineno-0-49"></a>    <span class="n">files_with_extensions</span> <span class="o">=</span> <span class="p">[]</span>
-<a id="__codelineno-0-50" name="__codelineno-0-50"></a>
-<a id="__codelineno-0-51" name="__codelineno-0-51"></a>    <span class="k">if</span> <span class="n">extensions</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-52" name="__codelineno-0-52"></a>        <span class="k">for</span> <span class="n">ext</span> <span class="ow">in</span> <span class="n">extensions</span><span class="p">:</span>
-<a id="__codelineno-0-53" name="__codelineno-0-53"></a>            <span class="n">files_with_extensions</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">directory</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;*.</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
-<a id="__codelineno-0-54" name="__codelineno-0-54"></a>    <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-55" name="__codelineno-0-55"></a>        <span class="n">files_with_extensions</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">directory</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">))</span>
-<a id="__codelineno-0-56" name="__codelineno-0-56"></a>
-<a id="__codelineno-0-57" name="__codelineno-0-57"></a>    <span class="k">return</span> <span class="n">files_with_extensions</span>
-</code></pre></div></td></tr></table></div>
+<span class="normal"><a href="#__codelineno-0-57">57</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="k">def</span><span class="w"> </span><span class="nf">list_files_with_extensions</span><span class="p">(</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a>    <span class="n">directory</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="n">extensions</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a><span class="sd">    List files in a directory with specified extensions or</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="sd">        all files if no extensions are provided.</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="sd">        directory (Union[str, Path]): The directory path as a string or Path object.</span>
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="sd">        extensions (Optional[List[str]]): A list of file extensions to filter.</span>
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a><span class="sd">            Default is None, which lists all files.</span>
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a>
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="sd">        (List[Path]): A list of Path objects for the matching files.</span>
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a>
+</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="sd">    Examples:</span>
+</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a><span class="sd">        ```python</span>
+</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a><span class="sd">        import supervision as sv</span>
+</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a>
+</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a><span class="sd">        # List all files in the directory</span>
+</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a><span class="sd">        files = sv.list_files_with_extensions(directory=&#39;my_directory&#39;)</span>
+</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41"></a>
+</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42"></a><span class="sd">        # List only files with &#39;.txt&#39; and &#39;.md&#39; extensions</span>
+</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43"></a><span class="sd">        files = sv.list_files_with_extensions(</span>
+</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44"></a><span class="sd">            directory=&#39;my_directory&#39;, extensions=[&#39;txt&#39;, &#39;md&#39;])</span>
+</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45"></a><span class="sd">        ```</span>
+</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47"></a>
+</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48"></a>    <span class="n">directory</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
+</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49"></a>    <span class="n">files_with_extensions</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50"></a>
+</span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51"></a>    <span class="k">if</span> <span class="n">extensions</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52"></a>        <span class="k">for</span> <span class="n">ext</span> <span class="ow">in</span> <span class="n">extensions</span><span class="p">:</span>
+</span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53"></a>            <span class="n">files_with_extensions</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">directory</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;*.</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
+</span><span id="__span-0-54"><a id="__codelineno-0-54" name="__codelineno-0-54"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-0-55"><a id="__codelineno-0-55" name="__codelineno-0-55"></a>        <span class="n">files_with_extensions</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">directory</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">))</span>
+</span><span id="__span-0-56"><a id="__codelineno-0-56" name="__codelineno-0-56"></a>
+</span><span id="__span-0-57"><a id="__codelineno-0-57" name="__codelineno-0-57"></a>    <span class="k">return</span> <span class="n">files_with_extensions</span>
+</span></code></pre></div></td></tr></table></div>
             </details>
     </div>
 
