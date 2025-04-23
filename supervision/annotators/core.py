@@ -12,10 +12,9 @@ from supervision.annotators.utils import (
     ColorLookup,
     Trace,
     resolve_color,
-    resolve_text_background_xyxy,
+    resolve_text_background_xyxy, PENDING_TRACK_ID,
 )
-from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES, \
-    PENDING_TRACK_ID
+from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.utils import (
     clip_boxes,

@@ -3,11 +3,12 @@ from typing import Optional, Tuple, Union
 
 import numpy as np
 
-from supervision.config import PENDING_TRACK_COLOR, PENDING_TRACK_ID
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
 
+PENDING_TRACK_COLOR = Color.GREY
+PENDING_TRACK_ID = -1
 
 class ColorLookup(Enum):
     """
