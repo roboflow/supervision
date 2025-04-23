@@ -1130,7 +1130,7 @@ class LabelAnnotator(BaseAnnotator):
         detections: Detections, custom_labels: Optional[List[str]]
     ) -> List[str]:
         if custom_labels is not None:
-            return custom_labels
+            return [str(label) for label in custom_labels]
 
         labels = []
         for idx in range(len(detections)):
