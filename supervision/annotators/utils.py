@@ -7,7 +7,6 @@ from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
 
-
 PENDING_TRACK_COLOR = Color.GREY
 PENDING_TRACK_ID = -1
 
