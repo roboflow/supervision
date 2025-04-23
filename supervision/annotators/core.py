@@ -14,7 +14,8 @@ from supervision.annotators.utils import (
     resolve_color,
     resolve_text_background_xyxy,
 )
-from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
+from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES, \
+    PENDING_TRACK_ID
 from supervision.detection.core import Detections
 from supervision.detection.utils import (
     clip_boxes,
@@ -1743,6 +1744,9 @@ class TraceAnnotator(BaseAnnotator):
         self.trace.put(detections)
         for detection_idx in range(len(detections)):
             tracker_id = int(detections.tracker_id[detection_idx])
+            if tracker_id == PENDING_TRACK_ID:
+                continue
+
             color = resolve_color(
                 color=self.color,
                 detections=detections,
