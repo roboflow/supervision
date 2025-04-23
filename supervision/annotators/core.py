@@ -9,6 +9,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from supervision.annotators.base import BaseAnnotator, ImageType
 from supervision.annotators.utils import (
+    PENDING_TRACK_ID,
     ColorLookup,
     Trace,
     resolve_color,
@@ -1739,6 +1740,7 @@ class TraceAnnotator(BaseAnnotator):
                 "The `tracker_id` field is missing in the provided detections."
                 " See more: https://supervision.roboflow.com/latest/how_to/track_objects"
             )
+        detections = detections[detections.tracker_id != PENDING_TRACK_ID]
 
         self.trace.put(detections)
         for detection_idx in range(len(detections)):
