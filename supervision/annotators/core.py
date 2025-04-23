@@ -1740,13 +1740,11 @@ class TraceAnnotator(BaseAnnotator):
                 "The `tracker_id` field is missing in the provided detections."
                 " See more: https://supervision.roboflow.com/latest/how_to/track_objects"
             )
+        detections = detections[detections.tracker_id != PENDING_TRACK_ID]
 
         self.trace.put(detections)
         for detection_idx in range(len(detections)):
             tracker_id = int(detections.tracker_id[detection_idx])
-            if tracker_id == PENDING_TRACK_ID:
-                continue
-
             color = resolve_color(
                 color=self.color,
                 detections=detections,
