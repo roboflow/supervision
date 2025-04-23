@@ -9,10 +9,11 @@ from PIL import Image, ImageDraw, ImageFont
 
 from supervision.annotators.base import BaseAnnotator, ImageType
 from supervision.annotators.utils import (
+    PENDING_TRACK_ID,
     ColorLookup,
     Trace,
     resolve_color,
-    resolve_text_background_xyxy, PENDING_TRACK_ID,
+    resolve_text_background_xyxy,
 )
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections

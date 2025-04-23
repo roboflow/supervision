@@ -10,6 +10,7 @@ from supervision.geometry.core import Position
 PENDING_TRACK_COLOR = Color.GREY
 PENDING_TRACK_ID = -1
 
+
 class ColorLookup(Enum):
     """
     Enumeration class to define strategies for mapping colors to annotations.
