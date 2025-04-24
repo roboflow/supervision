@@ -1110,9 +1110,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
         validate_labels(labels, detections)
 
         labels = get_labels_text(detections, labels)
-        label_properties = self._get_label_properties(
-            detections, labels
-        )
+        label_properties = self._get_label_properties(detections, labels)
 
         if self.smart_position:
             xyxy = label_properties[:, :4]
@@ -1176,10 +1174,12 @@ class LabelAnnotator(_BaseLabelAnnotator):
                 position=self.text_anchor,
             )
 
-            label_properties.append([
-                *text_background_xyxy,
-                total_height,
-            ])
+            label_properties.append(
+                [
+                    *text_background_xyxy,
+                    total_height,
+                ]
+            )
         return np.array(label_properties).reshape(-1, 5)
 
     def _draw_labels(

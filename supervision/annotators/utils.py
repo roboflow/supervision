@@ -293,19 +293,23 @@ def snap_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     shift_if_left_out = -result[:, 0]
     shift_if_right_out = width - result[:, 2]
 
-    shift_x = np.where(result[:, 0] < 0, shift_if_left_out,
-                       np.where(result[:, 2] > width, shift_if_right_out, 0))
+    shift_x = np.where(
+        result[:, 0] < 0,
+        shift_if_left_out,
+        np.where(result[:, 2] > width, shift_if_right_out, 0),
+    )
 
     result[:, 0] += shift_x
     result[:, 2] += shift_x
 
-
     shift_if_top_out = -result[:, 1]
     shift_if_bottom_out = height - result[:, 3]
 
-    shift_y = np.where(result[:, 1] < 0, shift_if_top_out,
-                       np.where(result[:, 3] > height, shift_if_bottom_out, 0))
-
+    shift_y = np.where(
+        result[:, 1] < 0,
+        shift_if_top_out,
+        np.where(result[:, 3] > height, shift_if_bottom_out, 0),
+    )
 
     result[:, 1] += shift_y
     result[:, 3] += shift_y
@@ -331,10 +335,12 @@ class Trace:
     def put(self, detections: Detections) -> None:
         frame_id = np.full(len(detections), self.current_frame_id, dtype=int)
         self.frame_id = np.concatenate([self.frame_id, frame_id])
-        self.xy = np.concatenate([
-            self.xy,
-            detections.get_anchors_coordinates(self.anchor),
-        ])
+        self.xy = np.concatenate(
+            [
+                self.xy,
+                detections.get_anchors_coordinates(self.anchor),
+            ]
+        )
         self.tracker_id = np.concatenate([self.tracker_id, detections.tracker_id])
 
         unique_frame_id = np.unique(self.frame_id)
