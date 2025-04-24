@@ -234,13 +234,11 @@ def process_video(
         source_path=source_path, end=max_frames
     )
     with VideoSink(target_path=target_path, video_info=source_video_info) as sink:
-        if show_progress:
-            # Calculate total_frames only when needed for tqdm
-            total_frames = (
-                min(source_video_info.total_frames, max_frames)
-                if max_frames is not None
-                else source_video_info.total_frames
-            )
+        total_frames = (
+            min(source_video_info.total_frames, max_frames)
+            if max_frames is not None
+            else source_video_info.total_frames
+        )
         for index, frame in enumerate(
             tqdm(
                 video_frames_generator,
