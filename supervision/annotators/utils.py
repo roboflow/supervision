@@ -238,7 +238,7 @@ def get_labels_text(
 
 def snap_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     """
-    Shifts bounding boxes into the frame so that they are fully contained
+    Shifts `label` bounding boxes into the frame so that they are fully contained
     within the given resolution, prioritizing the top/left edge.
     Unlike `clip_boxes`, this function does not crop boxes.
     It moves them entirely if they exceed the frame boundaries.
@@ -254,65 +254,49 @@ def snap_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
         np.ndarray: A numpy array of shape `(N, 4)` with boxes shifted into frame.
 
     Examples:
-        ```python
-        import numpy as np
-        # Assuming this function is part of a library like supervision (sv)
-        # import supervision as sv # or just use the function directly
+    ```python
+    import numpy as np
 
-        xyxy = np.array([
-            [-10, 10, 30, 50], # Off left
-            [310, 200, 350, 250], # Off right
-            [100, -20, 150, 30], # Off top
-            [200, 220, 250, 270], # Off bottom
-            [-20, 10, 350, 50], # Wider than frame, (width = 370 vs 320)
-            [10, -20, 30, 260]  # Taller than frame, (height = 280 vs 240)
-        ])
+    # Example boxes:
+    xyxy = np.array([
+        [-10, 10, 30, 50],     # Off left edge
+        [310, 200, 350, 250],  # Off right edge
+        [100, -20, 150, 30],   # Off top edge
+        [200, 220, 250, 270],  # Off bottom edge
+        [-20, 10, 350, 50],    # Wider than frame (370 vs 320)
+        [10, -20, 30, 260]     # Taller than frame (280 vs 240)
+    ])
 
-        resolution_wh = (320, 240)
+    resolution_wh = (320, 240)
+    snapped_boxes = snap_boxes(xyxy=xyxy, resolution_wh=resolution_wh)
 
-        # Expected output for the new cases:
-        # [-20, 10, 350, 50] (wider) -> shifted right by -(-20) = 20 -> [0, 10, 370, 50]
-        # [10, -20, 30, 260] (taller) -> shifted down by -(-20) = 20 -> [10, 0, 30, 280]
-        # Note: Oversized boxes still won't be fully contained without cropping
-        # but this logic ensures the primary (top/left) boundary is corrected.
-
-        snapped_boxes = snap_boxes(xyxy=xyxy, resolution_wh=resolution_wh)
-        print(snapped_boxes)
-        # Expected output (including original examples and new ones):
-        # [[  0  10  40  50] # Original example 1 snapped
-        #  [280 200 320 250] # Original example 2 snapped
-        #  [100   0 150  50] # Original example 3 snapped
-        #  [200 190 250 240] # Original example 4 snapped
-        #  [  0  10 370  50] # New example (wider) snapped by left edge priority
-        #  [ 10   0  30 280]] # New example (taller) snapped by top edge priority
-        ```
+    # Results:
+    # [[  0  10  40  50]  # Left edge shifted right
+    #  [280 200 320 250]  # Right edge shifted left
+    #  [100   0 150  50]  # Top edge shifted down
+    #  [200 190 250 240]  # Bottom edge shifted up
+    #  [  0  10 370  50]  # Wide box aligned to left edge
+    #  [ 10   0  30 280]] # Tall box aligned to top edge
+    ```
     """
     result = np.copy(xyxy)
     width, height = resolution_wh
 
-    shift_if_left_out = -result[:, 0]
-    shift_if_right_out = width - result[:, 2]
+    # X-axis (prioritize left edge)
+    left_overflow = result[:, 0] < 0
+    result[left_overflow, 0:3:2] -= result[left_overflow, 0:1]
 
-    shift_x = np.where(
-        result[:, 0] < 0,
-        shift_if_left_out,
-        np.where(result[:, 2] > width, shift_if_right_out, 0),
-    )
+    right_overflow = (~left_overflow) & (result[:, 2] > width)
+    right_shift = width - result[right_overflow, 2]
+    result[right_overflow, 0:3:2] += right_shift[:, np.newaxis]
 
-    result[:, 0] += shift_x
-    result[:, 2] += shift_x
+    # Y-axis (prioritize top edge)
+    top_overflow = result[:, 1] < 0
+    result[top_overflow, 1:4:2] -= result[top_overflow, 1:2]
 
-    shift_if_top_out = -result[:, 1]
-    shift_if_bottom_out = height - result[:, 3]
-
-    shift_y = np.where(
-        result[:, 1] < 0,
-        shift_if_top_out,
-        np.where(result[:, 3] > height, shift_if_bottom_out, 0),
-    )
-
-    result[:, 1] += shift_y
-    result[:, 3] += shift_y
+    bottom_overflow = (~top_overflow) & (result[:, 3] > height)
+    bottom_shift = height - result[bottom_overflow, 3]
+    result[bottom_overflow, 1:4:2] += bottom_shift[:, np.newaxis]
 
     return result
 
