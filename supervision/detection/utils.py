@@ -1264,12 +1264,10 @@ def cross_product(anchors: np.ndarray, vector: Vector) -> np.ndarray:
     Returns:
         Array of cross products of shape (number of anchors, detections)
     """
-    vector_at_zero = np.array(
-        [
-            vector.end.x - vector.start.x,
-            vector.end.y - vector.start.y,
-        ]
-    )
+    vector_at_zero = np.array([
+        vector.end.x - vector.start.x,
+        vector.end.y - vector.start.y,
+    ])
     vector_start = np.array([vector.start.x, vector.start.y])
     return np.cross(vector_at_zero, anchors - vector_start)
 
@@ -1277,8 +1275,6 @@ def cross_product(anchors: np.ndarray, vector: Vector) -> np.ndarray:
 def spread_out_boxes(
     xyxy: np.ndarray,
     max_iterations: int = 100,
-    force_scale: float = 10.0,
-    consider_size: bool = True,
 ) -> np.ndarray:
     """
     Spread out boxes that overlap with each other.
@@ -1286,50 +1282,29 @@ def spread_out_boxes(
     Args:
         xyxy: Numpy array of shape (N, 4) where N is the number of boxes.
         max_iterations: Maximum number of iterations to run the algorithm for.
-        force_scale: Scale factor for the repulsion forces.
-        consider_size: Whether to consider box size when calculating forces.
     """
     if len(xyxy) == 0:
         return xyxy
 
     xyxy_padded = pad_boxes(xyxy, px=1)
-
-    # Calculate box areas if we're considering size
-    if consider_size:
-        box_areas = (xyxy_padded[:, 2] - xyxy_padded[:, 0]) * (
-            xyxy_padded[:, 3] - xyxy_padded[:, 1]
-        )
-        # Calculate the size factors (normalize by mean size)
-        size_factors = (
-            np.sqrt(box_areas) / np.mean(np.sqrt(box_areas))
-            if len(box_areas) > 0
-            else np.ones(len(xyxy_padded))
-        )
-        size_factors = np.clip(size_factors, 0.5, 2.0)  # Clip to avoid extreme values
-    else:
-        size_factors = np.ones(len(xyxy_padded))
-
     for _ in range(max_iterations):
-        # NxN matrix of IoU values
+        # NxN
         iou = box_iou_batch(xyxy_padded, xyxy_padded)
-        np.fill_diagonal(iou, 0)  # Eliminate self-interactions
-
+        np.fill_diagonal(iou, 0)
         if np.all(iou == 0):
-            break  # No more overlaps
+            break
 
         overlap_mask = iou > 0
 
-        # Nx2 array of box centers
+        # Nx2
         centers = (xyxy_padded[:, :2] + xyxy_padded[:, 2:]) / 2
 
-        # NxNx2 array of differences between centers
+        # NxNx2
         delta_centers = centers[:, np.newaxis, :] - centers[np.newaxis, :, :]
         delta_centers *= overlap_mask[:, :, np.newaxis]
 
-        # Nx2 array of total delta vectors
+        # Nx2
         delta_sum = np.sum(delta_centers, axis=1)
-
-        # Normalize to unit vectors
         delta_magnitude = np.linalg.norm(delta_sum, axis=1, keepdims=True)
         direction_vectors = np.divide(
             delta_sum,
@@ -1338,32 +1313,15 @@ def spread_out_boxes(
             where=delta_magnitude != 0,
         )
 
-        # Calculate force based on IoU values
         force_vectors = np.sum(iou, axis=1)
         force_vectors = force_vectors[:, np.newaxis] * direction_vectors
 
-        # Apply size-based scaling if enabled
-        if consider_size:
-            force_vectors *= size_factors[:, np.newaxis]
+        force_vectors *= 10
+        force_vectors[(force_vectors > 0) & (force_vectors < 2)] = 2
+        force_vectors[(force_vectors < 0) & (force_vectors > -2)] = -2
 
-        # Scale forces
-        force_vectors *= force_scale
-
-        # Ensure minimum force for small overlaps
-        force_magnitudes = np.linalg.norm(force_vectors, axis=1, keepdims=True)
-        small_force_mask = (force_magnitudes > 0) & (force_magnitudes < 2)
-        if np.any(small_force_mask):
-            force_directions = force_vectors / np.where(
-                force_magnitudes > 0, force_magnitudes, 1
-            )
-            force_vectors = np.where(
-                small_force_mask, force_directions * 2, force_vectors
-            )
-
-        # Convert to integer displacements
         force_vectors = force_vectors.astype(int)
 
-        # Apply forces to update box positions
         xyxy_padded[:, [0, 1]] += force_vectors
         xyxy_padded[:, [2, 3]] += force_vectors
 

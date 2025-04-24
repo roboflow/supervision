@@ -1,6 +1,6 @@
 from functools import lru_cache
 from math import sqrt
-from typing import Callable, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -11,10 +11,14 @@ from supervision.annotators.base import BaseAnnotator, ImageType
 from supervision.annotators.utils import (
     ColorLookup,
     Trace,
+    get_labels_text,
     resolve_color,
     resolve_text_background_xyxy,
+    snap_boxes,
+    validate_labels,
+    wrap_text,
 )
-from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
+from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.utils import (
     clip_boxes,
@@ -74,23 +78,21 @@ class _BaseLabelAnnotator(BaseAnnotator):
 
         Args:
             color (Union[Color, ColorPalette], optional): The color to use for the label
-                                background. Defaults to ColorPalette.DEFAULT.
+                                background.
             text_color (Union[Color, ColorPalette], optional): The color to use for the
-                                label text. Defaults to Color.WHITE.
+                                label text.
             text_padding (int, optional): The padding around the label text, in pixels.
-                                Defaults to 10.
             text_position (Position, optional): The position of the text relative to the
-                                detection bounding box. Defaults to Position.TOP_LEFT.
+                                detection bounding box.
             color_lookup (ColorLookup, optional): The method used to determine the color
-                                of the label. Defaults to ColorLookup.CLASS.
+                                of the label
             border_radius (int, optional): The radius of the label background corners,
-                                in pixels. Defaults to 0.
+                                in pixels.
             smart_position (bool, optional): Whether to intelligently adjust the label
                                 position to avoid overlapping with other elements.
-                                Defaults to False.
             max_line_length (Optional[int], optional): Maximum number of characters per
                                 line before wrapping the text. None means no wrapping.
-                                Defaults to None.
+
         """
         self.color: Union[Color, ColorPalette] = color
         self.text_color: Union[Color, ColorPalette] = text_color
@@ -101,137 +103,21 @@ class _BaseLabelAnnotator(BaseAnnotator):
         self.smart_position = smart_position
         self.max_line_length: Optional[int] = max_line_length
 
-    def _validate_labels(self, labels: Optional[List[str]], detections: Detections):
-        """
-        Validates that the number of provided labels matches the number of detections.
-
-        Args:
-            labels (Optional[List[str]]): A list of labels, one for each detection. Can
-                                          be None.
-            detections (Detections): The detections to be labeled.
-
-        Raises:
-            ValueError: If `labels` is not None and its length does not match the number
-            of detections.
-        """
-        if labels is not None and len(labels) != len(detections):
-            raise ValueError(
-                f"The number of labels ({len(labels)}) does not match the "
-                f"number of detections ({len(detections)}). Each detection "
-                f"should have exactly 1 label."
-            )
-
-    @staticmethod
-    def _get_labels_text(
-        detections: Detections, custom_labels: Optional[List[str]]
-    ) -> List[str]:
-        """
-        Retrieves the text labels for the detections.
-
-        If `custom_labels` are provided, they are used. Otherwise, the labels are
-        extracted from the `detections` object, prioritizing the 'class_name' field,
-        then the `class_id`, and finally using the detection index as a string.
-
-        Args:
-            detections (Detections): The detections to get labels for.
-            custom_labels (Optional[List[str]]): An optional list of custom labels.
-
-        Returns:
-            List[str]: A list of text labels for each detection.
-        """
-        if custom_labels is not None:
-            return [str(label) for label in custom_labels]
-
-        labels = []
-        for idx in range(len(detections)):
-            if CLASS_NAME_DATA_FIELD in detections.data:
-                labels.append(detections.data[CLASS_NAME_DATA_FIELD][idx])
-            elif detections.class_id is not None:
-                labels.append(str(detections.class_id[idx]))
-            else:
-                labels.append(str(idx))
-        return labels
-
-    def _ensure_box_in_frame(
-        self,
-        box: np.ndarray,
-        frame_width: int,
-        frame_height: int,
-        check_flip_label: bool = False,
-        text_anchor: Optional[Position] = None,
-    ) -> np.ndarray:
-        """
-        Adjusts a box to ensure it stays within frame boundaries.
-
-        Args:
-            box: Box coordinates [x1, y1, x2, y2]
-            frame_width: Width of the frame
-            frame_height: Height of the frame
-            check_flip_label: Whether to check if label should be flipped
-            text_anchor: Text anchor position for flip check
-
-        Returns:
-            Adjusted box coordinates
-        """
-        x1, y1, x2, y2 = box
-
-        # Adjust x-coordinate to stay within frame
-        if x1 < 0:
-            shift = -x1
-            x1 += shift
-            x2 += shift
-        elif x2 > frame_width:
-            shift = frame_width - x2
-            x1 += shift
-            x2 += shift
-
-        # Adjust y-coordinate to stay within frame
-        if y1 < 0:
-            shift = -y1
-            y1 += shift
-            y2 += shift
-        elif y2 > frame_height:
-            shift = frame_height - y2
-            y1 += shift
-            y2 += shift
-
-            # Check if label should be flipped to above the box
-            if check_flip_label and text_anchor is not None:
-                box_height = y2 - y1
-
-                # Check anchor position to see if we can flip it
-                anchor_y = self._get_anchor_y_for_adjustment(
-                    np.array([y1, y2]), text_anchor
-                )
-
-                # If we're at the bottom, try moving to the top
-                if anchor_y >= y2 - 5:  # Near bottom edge
-                    # Check if there's room at the top
-                    if y1 - box_height >= 0:
-                        y2 = y1
-                        y1 = y2 - box_height
-
-        return np.array([x1, y1, x2, y2])
-
     def _adjust_labels_in_frame(
         self,
-        frame_width: int,
-        frame_height: int,
+        resolution_wh: Tuple[int, int],
         labels: List[str],
         label_properties: np.ndarray,
-        get_text_width_fn: Callable[[str], int],
     ) -> np.ndarray:
         """
         Adjusts the position of labels to ensure they stay within the frame boundaries.
 
         Args:
             frame_width (int): The width of the frame.
-            frame_height (int): The height of the frame.
+            resolution_wh (int, int): The width and height of the frame.
             labels (List[str]): The list of text labels.
             label_properties (np.ndarray): An array of label properties, where each row
                             contains [x1, y1, x2, y2, text_height, ...].
-            get_text_width_fn (Callable[[str], int]): A function that takes a label
-                            string and returns its width in pixels.
 
         Returns:
             np.ndarray: The adjusted label properties.
@@ -239,15 +125,10 @@ class _BaseLabelAnnotator(BaseAnnotator):
         adjusted_properties = label_properties.copy()
 
         # First, make sure the boxes don't go outside the frame
-        for i in range(len(labels)):
-            # Adjust box to stay within frame
-            adjusted_properties[i, :4] = self._ensure_box_in_frame(
-                adjusted_properties[i, :4],
-                frame_width,
-                frame_height,
-                check_flip_label=True,
-                text_anchor=self.text_anchor,
-            )
+        adjusted_properties[:, :4] = snap_boxes(
+            adjusted_properties[:, :4],
+            resolution_wh,
+        )
 
         # Apply the spread out algorithm to avoid box overlaps
         if len(labels) > 1:
@@ -259,86 +140,11 @@ class _BaseLabelAnnotator(BaseAnnotator):
             adjusted_properties[:, :4] = spread_boxes
 
             # Additional check to ensure boxes are still within frame after spreading
-            for i in range(len(labels)):
-                # Adjust box to stay within frame (without flipping)
-                adjusted_properties[i, :4] = self._ensure_box_in_frame(
-                    adjusted_properties[i, :4], frame_width, frame_height
-                )
-
-        return adjusted_properties
-
-    @staticmethod
-    def _get_anchor_y_for_adjustment(bbox_y: np.ndarray, anchor: Position) -> float:
-        """
-        Calculates the anchor y-coordinate for label adjustment based on the text anchor
-        position.
-
-        Args:
-            bbox_y (np.ndarray): An array containing the y1 and y2 coordinates of the
-                                bounding box.
-            anchor (Position): The desired text anchor position.
-
-        Returns:
-            float: The anchor y-coordinate.
-        """
-        y1, y2 = bbox_y
-        if anchor in [Position.TOP_LEFT, Position.TOP_CENTER, Position.TOP_RIGHT]:
-            return y1
-        elif anchor in [
-            Position.BOTTOM_LEFT,
-            Position.BOTTOM_CENTER,
-            Position.BOTTOM_RIGHT,
-        ]:
-            return y2
-        else:  # CENTER, CENTER_LEFT, CENTER_RIGHT
-            return (y1 + y2) / 2
-
-    def _wrap_text(self, text: str) -> List[str]:
-        """
-        Wraps text to the specified maximum line length, respecting existing newlines.
-        Uses the textwrap library for robust text wrapping.
-
-        Args:
-            text (str): The text to wrap.
-
-        Returns:
-            List[str]: A list of text lines after wrapping.
-        """
-        import textwrap
-
-        if not text:
-            return [""]
-
-        if self.max_line_length is None:
-            return text.splitlines() or [""]
-
-        # Split the text by existing newlines first
-        paragraphs = text.split("\n")
-        all_lines = []
-
-        for paragraph in paragraphs:
-            if not paragraph:
-                # Keep empty lines
-                all_lines.append("")
-                continue
-
-            # Wrap each paragraph separately
-            wrapped = textwrap.wrap(
-                paragraph,
-                width=self.max_line_length,
-                break_long_words=True,
-                replace_whitespace=False,
-                drop_whitespace=True,
+            adjusted_properties[:, :4] = snap_boxes(
+                adjusted_properties[:, :4], resolution_wh
             )
 
-            # Add the wrapped lines for this paragraph
-            if wrapped:
-                all_lines.extend(wrapped)
-            else:
-                # If wrap returns an empty list (e.g., for whitespace-only input)
-                all_lines.append("")
-
-        return all_lines if all_lines else [""]
+        return adjusted_properties
 
 
 class BoxAnnotator(BaseAnnotator):
@@ -1301,12 +1107,12 @@ class LabelAnnotator(_BaseLabelAnnotator):
         custom_color_lookup: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         assert isinstance(scene, np.ndarray)
-        self._validate_labels(labels, detections)
+        validate_labels(labels, detections)
 
-        labels = self._get_labels_text(detections, labels)
+        labels = get_labels_text(detections, labels)
         label_properties = self._get_label_properties(
-            scene, detections, labels
-        )  # Pass scene
+            detections, labels
+        )
 
         if self.smart_position:
             xyxy = label_properties[:, :4]
@@ -1314,13 +1120,9 @@ class LabelAnnotator(_BaseLabelAnnotator):
             label_properties[:, :4] = xyxy
 
             label_properties = self._adjust_labels_in_frame(
-                scene.shape[1],
-                scene.shape[0],
+                (scene.shape[1], scene.shape[0]),
                 labels,
                 label_properties,
-                lambda text: cv2.getTextSize(
-                    text, CV2_FONT, self.text_scale, self.text_thickness
-                )[0][0],
             )
 
         self._draw_labels(
@@ -1335,7 +1137,6 @@ class LabelAnnotator(_BaseLabelAnnotator):
 
     def _get_label_properties(
         self,
-        scene: np.ndarray,  # Receive scene
         detections: Detections,
         labels: List[str],
     ) -> np.ndarray:
@@ -1345,7 +1146,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
         ).astype(int)
 
         for label, center_coords in zip(labels, anchors_coordinates):
-            wrapped_lines = self._wrap_text(label)
+            wrapped_lines = wrap_text(label, self.max_line_length)
             line_heights = []
             line_widths = []
 
@@ -1375,12 +1176,10 @@ class LabelAnnotator(_BaseLabelAnnotator):
                 position=self.text_anchor,
             )
 
-            label_properties.append(
-                [
-                    *text_background_xyxy,
-                    total_height,
-                ]
-            )
+            label_properties.append([
+                *text_background_xyxy,
+                total_height,
+            ])
         return np.array(label_properties).reshape(-1, 5)
 
     def _draw_labels(
@@ -1427,7 +1226,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
             )
 
             # Handle multiline text
-            wrapped_lines = self._wrap_text(labels[idx])
+            wrapped_lines = wrap_text(labels[idx], self.max_line_length)
             current_y = box_xyxy[1] + self.text_padding  # Start y position
 
             for line in wrapped_lines:
@@ -1550,10 +1349,10 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         custom_color_lookup: Optional[np.ndarray] = None,
     ) -> ImageType:
         assert isinstance(scene, Image.Image)
-        self._validate_labels(labels, detections)
+        validate_labels(labels, detections)
 
         draw = ImageDraw.Draw(scene)
-        labels = self._get_labels_text(detections, labels)
+        labels = get_labels_text(detections, labels)
         label_properties = self._get_label_properties(draw, detections, labels)
 
         if self.smart_position:
@@ -1562,14 +1361,9 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             label_properties[:, :4] = xyxy
 
             label_properties = self._adjust_labels_in_frame(
-                scene.width,
-                scene.height,
+                (scene.width, scene.height),
                 labels,
                 label_properties,
-                lambda text: int(
-                    draw.textbbox((0, 0), text, font=self.font)[2]
-                    - draw.textbbox((0, 0), text, font=self.font)[0]
-                ),
             )
 
         self._draw_labels(
@@ -1592,7 +1386,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         ).astype(int)
 
         for label, center_coords in zip(labels, anchor_coordinates):
-            wrapped_lines = self._wrap_text(label)
+            wrapped_lines = wrap_text(label, self.max_line_length)
 
             # Calculate the total text height and maximum width
             max_width = 0
@@ -1672,7 +1466,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             )
 
             # Draw each line of text
-            wrapped_lines = self._wrap_text(labels[idx])
+            wrapped_lines = wrap_text(labels[idx], self.max_line_length)
             x_position = box_xyxy[0] + self.text_padding - text_left
             y_position = box_xyxy[1] + self.text_padding - text_top
 
