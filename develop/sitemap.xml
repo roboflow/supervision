@@ -2,222 +2,222 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://supervision.roboflow.com/develop/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/assets/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/changelog/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/code_of_conduct/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/contributing/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/cookbooks/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/deprecated/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/license/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/trackers/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/classification/core/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/datasets/core/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/datasets/utils/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/detection/annotators/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/detection/core/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/detection/double_detection_filter/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/detection/metrics/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/detection/utils/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/detection/tools/inference_slicer/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/detection/tools/line_zone/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/detection/tools/polygon_zone/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/detection/tools/save_detections/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/detection/tools/smoother/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/how_to/benchmark_a_model/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/how_to/detect_and_annotate/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/how_to/detect_small_objects/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/how_to/filter_detections/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/how_to/process_datasets/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/how_to/save_detections/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/how_to/track_objects/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/keypoint/annotators/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/keypoint/core/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/metrics/common_values/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/metrics/f1_score/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/metrics/mean_average_precision/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/metrics/mean_average_recall/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/metrics/precision/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/metrics/recall/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/notebooks/annotate-video-with-detections/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/notebooks/count-objects-crossing-the-line/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/notebooks/download-supervision-assets/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/notebooks/evaluating-alignment-of-text-to-image-diffusion-models/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/notebooks/object-tracking/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/notebooks/occupancy_analytics/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/notebooks/quickstart/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/notebooks/serialise-detections-to-csv/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/notebooks/serialise-detections-to-json/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/notebooks/small-object-detection-with-sahi/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/notebooks/zero-shot-object-detection-with-yolo-world/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/utils/draw/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/utils/file/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/utils/geometry/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/utils/image/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/utils/iterables/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/utils/notebook/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/utils/video/</loc>
-         <lastmod>2025-04-23</lastmod>
+         <lastmod>2025-04-25</lastmod>
     </url>
 </urlset>
