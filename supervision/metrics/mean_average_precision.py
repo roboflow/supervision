@@ -252,7 +252,10 @@ class MeanAveragePrecisionResult:
 
 class EvaluationDataset:
     """
-    Class used to evaluate models with Mean Average Precision.
+    Class used representing a dataset in the right format needed by the
+    `COCOEvaluator` class.
+
+    Reference: https://github.com/rafaelpadilla/review_object_detection_metrics
     """
 
     def __init__(self, targets: Optional[Dict[str, Any]] = None):
@@ -619,11 +622,16 @@ class COCOEvaluatorParameters:
 
 
 class COCOEvaluator:
+    """
+    Evaluator class to compute COCO metrics.
+    """
+
     def __init__(
         self, coco_targets: EvaluationDataset, coco_predictions: EvaluationDataset
     ):
         """
         Constructor of COCOEvaluator object.
+
         Args:
             coco_targets (EvaluationDataset): The dataset with the ground truths.
             coco_predictions (EvaluationDataset): The dataset with the predictions.
@@ -1104,7 +1112,8 @@ class COCOEvaluator:
                     s = s[t]
                 s = s[:, :, :, area_range_idx, max_detections_idx]
             else:
-                # Dimension of recall: [TxKxAxM]
+                # Dimension of recall:
+                # threshold x classes x areas x max detections
                 s = self.results["recall"]
                 if iou_thr is not None:
                     t = np.where(iou_thr == self.params.iou_thrs)[0]
@@ -1183,7 +1192,7 @@ class COCOEvaluator:
             for cat_id in self.params.cat_ids
         }
 
-        # Select the largest max area (the last one: 100)
+        # Select the largest max area (the last element containing 100 dets
         max_det = self.params.max_dets[-1]
 
         # Evaluate each image with all categories, area range and max detections
@@ -1196,9 +1205,6 @@ class COCOEvaluator:
 
         # Accumulate results
         self._accumulate()
-
-        # Uncomment to see results in pycocotools presentation format:
-        # self._pycocotools_summarize()
 
 
 class MeanAveragePrecision(Metric):
