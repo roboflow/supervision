@@ -90,7 +90,11 @@ def coco_annotations_to_masks(
 
 
 def coco_annotations_to_detections(
-    image_annotations: List[dict], resolution_wh: Tuple[int, int], with_masks: bool
+    image_annotations: List[dict],
+    resolution_wh: Tuple[int, int],
+    with_masks: bool,
+    use_iscrowd: bool = False,
+    use_precomputed_area: bool = False,
 ) -> Detections:
     if not image_annotations:
         return Detections.empty()
@@ -102,15 +106,32 @@ def coco_annotations_to_detections(
     xyxy = np.asarray(xyxy)
     xyxy[:, 2:4] += xyxy[:, 0:2]
 
+    if use_iscrowd:
+        iscrowd = [
+            image_annotation["iscrowd"] for image_annotation in image_annotations
+        ]
+    else:
+        iscrowd = [0] * len(image_annotations)
+
+    if use_precomputed_area:
+        area = [image_annotation["area"] for image_annotation in image_annotations]
+    else:
+        area = None
+
+    data = dict(
+        iscrowd=np.asarray(iscrowd, dtype=int), area=np.asarray(area, dtype=float)
+    )
+
     if with_masks:
         mask = coco_annotations_to_masks(
             image_annotations=image_annotations, resolution_wh=resolution_wh
         )
-        return Detections(
-            class_id=np.asarray(class_ids, dtype=int), xyxy=xyxy, mask=mask
-        )
+    else:
+        mask = None
 
-    return Detections(xyxy=xyxy, class_id=np.asarray(class_ids, dtype=int))
+    return Detections(
+        class_id=np.asarray(class_ids, dtype=int), xyxy=xyxy, mask=mask, data=data
+    )
 
 
 def detections_to_coco_annotations(
@@ -159,16 +180,29 @@ def detections_to_coco_annotations(
     return coco_annotations, annotation_id
 
 
+def get_coco_class_index_mapping(annotations_path: str) -> Dict[int, int]:
+    coco_data = read_json_file(annotations_path)
+    classes = coco_categories_to_classes(coco_categories=coco_data["categories"])
+    class_mapping = build_coco_class_index_mapping(
+        coco_categories=coco_data["categories"], target_classes=classes
+    )
+    return class_mapping
+
+
 def load_coco_annotations(
     images_directory_path: str,
     annotations_path: str,
     force_masks: bool = False,
+    use_iscrowd: bool = False,
+    use_precomputed_area: bool = False,
 ) -> Tuple[List[str], List[str], Dict[str, Detections]]:
     coco_data = read_json_file(file_path=annotations_path)
     classes = coco_categories_to_classes(coco_categories=coco_data["categories"])
+
     class_index_mapping = build_coco_class_index_mapping(
         coco_categories=coco_data["categories"], target_classes=classes
     )
+
     coco_images = coco_data["images"]
     coco_annotations_groups = group_coco_annotations_by_image_id(
         coco_annotations=coco_data["annotations"]
@@ -190,7 +224,10 @@ def load_coco_annotations(
             image_annotations=image_annotations,
             resolution_wh=(image_width, image_height),
             with_masks=force_masks,
+            use_iscrowd=use_iscrowd,
+            use_precomputed_area=use_precomputed_area,
         )
+
         annotation = map_detections_class_id(
             source_to_target_mapping=class_index_mapping,
             detections=annotation,
