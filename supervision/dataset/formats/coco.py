@@ -118,9 +118,12 @@ def coco_annotations_to_detections(
     else:
         area = None
 
-    data = dict(
-        iscrowd=np.asarray(iscrowd, dtype=int), area=np.asarray(area, dtype=float)
-    )
+    if use_iscrowd or use_precomputed_area:
+        data = dict(
+            iscrowd=np.asarray(iscrowd, dtype=int), area=np.asarray(area, dtype=float)
+        )
+    else:
+        data = dict()
 
     if with_masks:
         mask = coco_annotations_to_masks(
