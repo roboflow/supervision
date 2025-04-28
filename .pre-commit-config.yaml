@@ -32,7 +32,7 @@ repos:
           additional_dependencies: ["bandit[toml]"]
 
   -   repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.11.6
+      rev: v0.11.7
       hooks:
       -   id: ruff
           args: [--fix, --exit-non-zero-on-fix]
