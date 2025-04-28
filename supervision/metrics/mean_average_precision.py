@@ -241,9 +241,12 @@ class MeanAveragePrecisionResult:
             f"maxDets=100 ] = {self.map50:.3f}\n"
             f" Average Precision  (AP) @[ IoU=0.75      | area=   all | "
             f"maxDets=100 ] = {self.map75:.3f}\n"
-            f" Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = {self.small_objects.map50_95:.3f}\n"
-            f" Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = {self.medium_objects.map50_95:.3f}\n"
-            f" Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = {self.large_objects.map50_95:.3f}"
+            f" Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] \
+                = {self.small_objects.map50_95:.3f}\n"
+            f" Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] \
+                = {self.medium_objects.map50_95:.3f}\n"
+            f" Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] \
+                = {self.large_objects.map50_95:.3f}"
         )
 
 
@@ -317,8 +320,8 @@ class EvaluationDataset:
         Args:
             img_ids (list): ids of the images that we want to retrieve.
             cat_ids (list): ids of the categories that we want to retrieve.
-            area_range (tuple): area range of the annotations that we want to retrieve in
-            the format [min_area, max_area].
+            area_range (tuple): area range of the annotations that we want to retrieve
+            in the format [min_area, max_area].
             iscrowd (bool): if annotations to retrieve are `iscrowded=1`.
         """
         # If there are no filters, we use all annotations
@@ -910,7 +913,7 @@ class COCOEvaluator:
             n for n, i in enumerate(self.params.img_ids) if i in set_image_ids
         ]
 
-        # Evaluting at all categories, area ranges, max number of detections, and
+        # Evaluating at all categories, area ranges, max number of detections, and
         # IoU thresholds
 
         # Loop through categories
@@ -993,7 +996,7 @@ class COCOEvaluator:
 
                         inds = np.searchsorted(rc, self.params.rec_thrs, side="left")
                         for ri, pos_idx in enumerate(inds):
-                            # Ensure pi is within the range of both arrays before using it
+                            # Ensure pi is within the range of both arrays
                             if 0 <= pos_idx < len(pr) and 0 <= pos_idx < len(
                                 dt_scores_sorted
                             ):
@@ -1315,7 +1318,8 @@ class MeanAveragePrecision(Metric):
         Computes the area of a polygon using the Shoelace formula.
 
         Args:
-            coords (list of float): Flat list of x, y coordinates, e.g., [x1, y1, x2, y2, ..., xn, yn]
+            coords (list of float): Flat list of x, y coordinates, e.g., [x1, y1, x2,
+            y2, ..., xn, yn]
 
         Returns:
             float: Area of the polygon.
@@ -1336,7 +1340,7 @@ class MeanAveragePrecision(Metric):
         return abs(area) / 2.0
 
     def _prepare_targets(self, targets):
-        """Transform targets into a dictionary that can be used by the COCO evaluator."""
+        """Transform targets into a dictionary that can be used by the COCO evaluator"""
         images = [{"id": img_id} for img_id in range(len(targets))]
         if self._image_indices is not None:
             images = [
@@ -1376,7 +1380,8 @@ class MeanAveragePrecision(Metric):
         }
 
     def _prepare_predictions(self, predictions):
-        """Transform predictions into a list of predictions that can be used by the COCO evaluator."""
+        """Transform predictions into a list of predictions that can be used by the COCO
+        evaluator."""
         coco_predictions = []
         for image_id, image_predictions in enumerate(predictions):
             if self._image_indices is not None:
