@@ -76,56 +76,34 @@ class MeanAveragePrecisionResult:
 
     def __str__(self) -> str:
         """
-        Format as a pretty string.
+        Formats the evaluation output metrics to match the structure used by pycocotools
 
         Example:
-            ```python
-            print(map_result)
-            # MeanAveragePrecisionResult:
-            # Metric target: MetricTarget.BOXES
-            # Class agnostic: False
-            # mAP @ 50:95: 0.4674
-            # mAP @ 50:    0.5048
-            # mAP @ 75:    0.4796
-            # mAP scores: [0.50485  0.50377  0.50377  ...]
-            # IoU thresh: [0.5  0.55  0.6  ...]
-            # AP per class:
-            # 0: [0.67699  0.67699  0.67699  ...]
-            # ...
-            # Small objects: ...
-            # Medium objects: ...
-            # Large objects: ...
+           ```python
+           print(map_result)
+           # MeanAveragePrecisionResult:
+           Average Precision (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.464
+           Average Precision (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.637
+           Average Precision (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.203
+           Average Precision (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.284
+           Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.497
+           Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.629
             ```
         """
-
-        out_str = (
-            f"{self.__class__.__name__}:\n"
-            f"Metric target: {self.metric_target}\n"
-            f"Class agnostic: {self.is_class_agnostic}\n"
-            f"mAP @ 50:95: {self.map50_95:.4f}\n"
-            f"mAP @ 50:    {self.map50:.4f}\n"
-            f"mAP @ 75:    {self.map75:.4f}\n"
-            f"mAP scores: {self.mAP_scores}\n"
-            f"IoU thresh: {self.iou_thresholds}\n"
-            f"AP per class:\n"
+        return (
+            f" Average Precision (AP) @[ IoU=0.50:0.95 | area=   all | "
+            f"maxDets=100 ] = {self.map50_95:.3f}\n"
+            f" Average Precision (AP) @[ IoU=0.50      | area=   all | "
+            f"maxDets=100 ] = {self.map50:.3f}\n"
+            f" Average Precision (AP) @[ IoU=0.75      | area=   all | "
+            f"maxDets=100 ] = {self.map75:.3f}\n"
+            f" Average Precision (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] \
+                = {self.small_objects.map50_95:.3f}\n"
+            f" Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] \
+                = {self.medium_objects.map50_95:.3f}\n"
+            f" Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] \
+                = {self.large_objects.map50_95:.3f}"
         )
-        if self.ap_per_class.size == 0:
-            out_str += "  No results\n"
-        for class_id, ap_of_class in zip(self.matched_classes, self.ap_per_class):
-            out_str += f"  {class_id}: {ap_of_class}\n"
-
-        indent = "  "
-        if self.small_objects is not None:
-            indented = indent + str(self.small_objects).replace("\n", f"\n{indent}")
-            out_str += f"\nSmall objects:\n{indented}"
-        if self.medium_objects is not None:
-            indented = indent + str(self.medium_objects).replace("\n", f"\n{indent}")
-            out_str += f"\nMedium objects:\n{indented}"
-        if self.large_objects is not None:
-            indented = indent + str(self.large_objects).replace("\n", f"\n{indent}")
-            out_str += f"\nLarge objects:\n{indented}"
-
-        return out_str
 
     def to_pandas(self) -> "pd.DataFrame":
         """
@@ -229,25 +207,6 @@ class MeanAveragePrecisionResult:
 
         plt.tight_layout()
         plt.show()
-
-    def to_pycocotools_output(self) -> str:
-        """
-        Convert the result to the same output format as pycocotools.
-        """
-        return (
-            f" Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | "
-            f"maxDets=100 ] = {self.map50_95:.3f}\n"
-            f" Average Precision  (AP) @[ IoU=0.50      | area=   all | "
-            f"maxDets=100 ] = {self.map50:.3f}\n"
-            f" Average Precision  (AP) @[ IoU=0.75      | area=   all | "
-            f"maxDets=100 ] = {self.map75:.3f}\n"
-            f" Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] \
-                = {self.small_objects.map50_95:.3f}\n"
-            f" Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] \
-                = {self.medium_objects.map50_95:.3f}\n"
-            f" Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] \
-                = {self.large_objects.map50_95:.3f}"
-        )
 
 
 class EvaluationDataset:
