@@ -91,18 +91,18 @@ class MeanAveragePrecisionResult:
             ```
         """
         return (
-            f" Average Precision (AP) @[ IoU=0.50:0.95 | area=   all | "
+            f"Average Precision (AP) @[ IoU=0.50:0.95 | area=   all | "
             f"maxDets=100 ] = {self.map50_95:.3f}\n"
-            f" Average Precision (AP) @[ IoU=0.50      | area=   all | "
+            f"Average Precision (AP) @[ IoU=0.50      | area=   all | "
             f"maxDets=100 ] = {self.map50:.3f}\n"
-            f" Average Precision (AP) @[ IoU=0.75      | area=   all | "
+            f"Average Precision (AP) @[ IoU=0.75      | area=   all | "
             f"maxDets=100 ] = {self.map75:.3f}\n"
-            f" Average Precision (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] \
-                = {self.small_objects.map50_95:.3f}\n"
-            f" Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] \
-                = {self.medium_objects.map50_95:.3f}\n"
-            f" Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] \
-                = {self.large_objects.map50_95:.3f}"
+            f"Average Precision (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] "
+            f"= {self.small_objects.map50_95:.3f}\n"
+            f"Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] "
+            f"= {self.medium_objects.map50_95:.3f}\n"
+            f"Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] "
+            f"= {self.large_objects.map50_95:.3f}"
         )
 
     def to_pandas(self) -> "pd.DataFrame":
@@ -1280,32 +1280,6 @@ class MeanAveragePrecision(Metric):
         self._targets_list.extend(targets)
 
         return self
-
-    def _compute_polygon_area(self, coords: List[float]) -> float:
-        """
-        Computes the area of a polygon using the Shoelace formula.
-
-        Args:
-            coords (list of float): Flat list of x, y coordinates, e.g., [x1, y1, x2,
-            y2, ..., xn, yn]
-
-        Returns:
-            float: Area of the polygon.
-        """
-        if len(coords) < 6:
-            raise ValueError("Polygon must have at least 3 points (6 coordinates)")
-
-        x = coords[0::2]
-        y = coords[1::2]
-
-        n = len(x)
-        area = 0.0
-        for i in range(n):
-            j = (i + 1) % n
-            area += x[i] * y[j]
-            area -= y[i] * x[j]
-
-        return abs(area) / 2.0
 
     def _prepare_targets(self, targets):
         """Transform targets into a dictionary that can be used by the COCO evaluator"""
