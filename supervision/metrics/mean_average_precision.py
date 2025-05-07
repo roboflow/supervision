@@ -1222,6 +1222,9 @@ class MeanAveragePrecision(Metric):
         Args:
             metric_target (MetricTarget): The type of detection data to use.
             class_agnostic (bool): Whether to treat all data as a single class.
+            class_mapping (Optional[Dict[int, int]]): A dictionary to map class IDs to
+            new IDs.
+            image_indices (Optional[List[int]]): The indices of the images to use.
         """
         self._metric_target = metric_target
         self._class_agnostic = class_agnostic
