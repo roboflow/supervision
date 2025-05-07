@@ -94,7 +94,6 @@ def coco_annotations_to_detections(
     resolution_wh: Tuple[int, int],
     with_masks: bool,
     use_iscrowd: bool = False,
-    use_precomputed_area: bool = False,
 ) -> Detections:
     if not image_annotations:
         return Detections.empty()
@@ -110,19 +109,13 @@ def coco_annotations_to_detections(
         iscrowd = [
             image_annotation["iscrowd"] for image_annotation in image_annotations
         ]
-    else:
-        iscrowd = [0] * len(image_annotations)
-
-    if use_precomputed_area:
         area = [image_annotation["area"] for image_annotation in image_annotations]
-    else:
-        area = None
-
-    if use_iscrowd or use_precomputed_area:
         data = dict(
             iscrowd=np.asarray(iscrowd, dtype=int), area=np.asarray(area, dtype=float)
         )
     else:
+        iscrowd = [0] * len(image_annotations)
+        area = None
         data = dict()
 
     if with_masks:
@@ -197,7 +190,6 @@ def load_coco_annotations(
     annotations_path: str,
     force_masks: bool = False,
     use_iscrowd: bool = False,
-    use_precomputed_area: bool = False,
 ) -> Tuple[List[str], List[str], Dict[str, Detections]]:
     coco_data = read_json_file(file_path=annotations_path)
     classes = coco_categories_to_classes(coco_categories=coco_data["categories"])
@@ -228,7 +220,6 @@ def load_coco_annotations(
             resolution_wh=(image_width, image_height),
             with_masks=force_masks,
             use_iscrowd=use_iscrowd,
-            use_precomputed_area=use_precomputed_area,
         )
 
         annotation = map_detections_class_id(
