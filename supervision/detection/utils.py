@@ -1325,3 +1325,73 @@ def spread_out_boxes(
         xyxy_padded[:, [2, 3]] += force_vectors
 
     return pad_boxes(xyxy_padded, px=-1)
+
+
+def _jaccard(box_a: List[float], box_b: List[float], is_crowd: bool) -> float:
+    """
+    Calculate the Jaccard index (intersection over union) between two bounding boxes.
+    If a gt object is marked as "iscrowd", a dt is allowed to match any subregion
+    of the gt. Choosing gt' in the crowd gt that best matches the dt can be done using
+    gt'=intersect(dt,gt). Since by definition union(gt',dt)=dt, computing
+    iou(gt,dt,iscrowd) = iou(gt',dt) = area(intersect(gt,dt)) / area(dt)
+
+    Args:
+        box_a (List[float]): Box coordinates in the format [x, y, width, height].
+        box_b (List[float]): Box coordinates in the format [x, y, width, height].
+        iscrowd (bool): Flag indicating if the second box is a crowd region or not.
+
+    Returns:
+        float: Jaccard index between the two bounding boxes.
+    """
+    # Smallest number to avoid division by zero
+    EPS = np.spacing(1)
+
+    xa, ya, x2a, y2a = box_a[0], box_a[1], box_a[0] + box_a[2], box_a[1] + box_a[3]
+    xb, yb, x2b, y2b = box_b[0], box_b[1], box_b[0] + box_b[2], box_b[1] + box_b[3]
+
+    # Innermost left x
+    xi = max(xa, xb)
+    # Innermost right x
+    x2i = min(x2a, x2b)
+    # Same for y
+    yi = max(ya, yb)
+    y2i = min(y2a, y2b)
+
+    # Calculate areas
+    Aa = max(x2a - xa, 0.0) * max(y2a - ya, 0.0)
+    Ab = max(x2b - xb, 0.0) * max(y2b - yb, 0.0)
+    Ai = max(x2i - xi, 0.0) * max(y2i - yi, 0.0)
+
+    if is_crowd:
+        return Ai / (Aa + EPS)
+
+    return Ai / (Aa + Ab - Ai + EPS)
+
+
+def iou_with_jaccard(
+    dt: List[List[float]], gt: List[List[float]], is_crowd: List[bool]
+) -> np.ndarray:
+    """
+    Calculate the intersection over union (IoU) between detection bounding boxes (dt)
+    and ground-truth bounding boxes (gt).
+    Reference: https://github.com/rafaelpadilla/review_object_detection_metrics
+
+    Args:
+        dt (List[List[float]]): List of detection bounding boxes in the \
+            format [x, y, width, height].
+        gt (List[List[float]]): List of ground-truth bounding boxes in the \
+            format [x, y, width, height].
+        is_crowd (List[bool]): List indicating if each ground-truth bounding box \
+            is a crowd region or not.
+
+    Returns:
+        np.ndarray: Array of IoU values of shape (len(dt), len(gt)).
+    """
+    assert len(is_crowd) == len(gt), "iou(iscrowd=) must have the same length as gt"
+    if len(dt) == 0 or len(gt) == 0:
+        return np.array([])
+    ious = np.zeros((len(dt), len(gt)), dtype=np.float64)
+    for g_idx, g in enumerate(gt):
+        for d_idx, d in enumerate(dt):
+            ious[d_idx, g_idx] = _jaccard(d, g, is_crowd[g_idx])
+    return ious
