@@ -13,10 +13,10 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from supervision.detection.core import Detections
+from supervision.detection.utils import iou_with_jaccard
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import Metric, MetricTarget
 from supervision.metrics.utils.utils import ensure_pandas_installed
-from supervision.detection.utils import iou_with_jaccard
 
 if TYPE_CHECKING:
     import pandas as pd
