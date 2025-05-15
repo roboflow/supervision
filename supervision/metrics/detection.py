@@ -9,7 +9,7 @@ import numpy as np
 
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
-from supervision.detection.utils import box_iou_batch
+from supervision.detection.utils import box_iou_batch, oriented_box_iou_batch
 
 
 def detections_to_tensor(
@@ -98,6 +98,7 @@ class ConfusionMatrix:
         classes: List[str],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
+        use_oriented_boxes: bool = False,
     ) -> ConfusionMatrix:
         """
         Calculate confusion matrix based on predicted and ground-truth detections.
@@ -110,6 +111,7 @@ class ConfusionMatrix:
                 Detections with lower confidence will be excluded.
             iou_threshold (float): Detection IoU threshold between `0` and `1`.
                 Detections with lower IoU will be classified as `FP`.
+            use_oriented_boxes (bool): If True, use oriented boxes for IoU calculation.
 
         Returns:
             ConfusionMatrix: New instance of ConfusionMatrix.
@@ -117,30 +119,40 @@ class ConfusionMatrix:
         Example:
             ```python
             import supervision as sv
+            import numpy as np
 
+            # Axis-aligned bounding boxes
             targets = [
-                sv.Detections(...),
-                sv.Detections(...)
+                sv.Detections(xyxy=np.array([[0, 0, 2, 2]], dtype=np.float32), class_id=[0]),
             ]
-
             predictions = [
-                sv.Detections(...),
-                sv.Detections(...)
+                sv.Detections(xyxy=np.array([[0, 0, 2, 2]], dtype=np.float32), class_id=[0], confidence=[0.9]),
             ]
-
-            confusion_matrix = sv.ConfusionMatrix.from_detections(
+            cm = sv.ConfusionMatrix.from_detections(
                 predictions=predictions,
-                targets=target,
-                classes=['person', ...]
+                targets=targets,
+                classes=["A"],
+                use_oriented_boxes=False,
             )
+            print(cm.matrix)
 
-            print(confusion_matrix.matrix)
-            # np.array([
-            #    [0., 0., 0., 0.],
-            #    [0., 1., 0., 1.],
-            #    [0., 1., 1., 0.],
-            #    [1., 1., 0., 0.]
-            # ])
+            # Oriented bounding boxes (OBB)
+            # If your Detections use OBBs, set use_oriented_boxes=True
+            # and ensure your xyxy field contains OBB coordinates as required by your pipeline.
+            # Example assumes you have adapted Detections to handle OBBs.
+            obb_targets = [
+                sv.Detections(xyxy=np.array([[0, 0, 2, 2]], dtype=np.float32), class_id=[0]),
+            ]
+            obb_predictions = [
+                sv.Detections(xyxy=np.array([[0, 0, 2, 2]], dtype=np.float32), class_id=[0], confidence=[0.9]),
+            ]
+            cm_obb = sv.ConfusionMatrix.from_detections(
+                predictions=obb_predictions,
+                targets=obb_targets,
+                classes=["A"],
+                use_oriented_boxes=True,
+            )
+            print(cm_obb.matrix)
             ```
         """
 
@@ -157,6 +169,7 @@ class ConfusionMatrix:
             classes=classes,
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
+            use_oriented_boxes=use_oriented_boxes,
         )
 
     @classmethod
@@ -167,6 +180,7 @@ class ConfusionMatrix:
         classes: List[str],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
+        use_oriented_boxes: bool = False,
     ) -> ConfusionMatrix:
         """
         Calculate confusion matrix based on predicted and ground-truth detections.
@@ -203,7 +217,7 @@ class ConfusionMatrix:
                             [6.0, 1.0, 8.0, 3.0, 2],
                         ]
                     ),
-                    np.array([1.0, 1.0, 2.0, 2.0, 2]),
+                    np.array([[1.0, 1.0, 2.0, 2.0, 2]]),
                 ]
             )
 
@@ -245,6 +259,7 @@ class ConfusionMatrix:
                 num_classes=num_classes,
                 conf_threshold=conf_threshold,
                 iou_threshold=iou_threshold,
+                use_oriented_boxes=use_oriented_boxes,
             )
         return cls(
             matrix=matrix,
@@ -260,6 +275,7 @@ class ConfusionMatrix:
         num_classes: int,
         conf_threshold: float,
         iou_threshold: float,
+        use_oriented_boxes: bool = False,
     ) -> np.ndarray:
         """
         Calculate confusion matrix for a batch of detections for a single image.
@@ -296,9 +312,14 @@ class ConfusionMatrix:
         true_boxes = targets[:, :class_id_idx]
         detection_boxes = detection_batch_filtered[:, :class_id_idx]
 
-        iou_batch = box_iou_batch(
-            boxes_true=true_boxes, boxes_detection=detection_boxes
-        )
+        if use_oriented_boxes:
+            iou_batch = oriented_box_iou_batch(
+                boxes_true=true_boxes, boxes_detection=detection_boxes
+            )
+        else:
+            iou_batch = box_iou_batch(
+                boxes_true=true_boxes, boxes_detection=detection_boxes
+            )
         matched_idx = np.asarray(iou_batch > iou_threshold).nonzero()
 
         if matched_idx[0].shape[0]:
