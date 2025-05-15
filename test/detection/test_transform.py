@@ -18,8 +18,9 @@ def test_transform_remap_and_filter():
     dataset = SimpleNamespace(classes=["animal", "bird", "car"])
     class_mapping = {"dog": "animal", "cat": "animal", "eagle": "bird"}
     det2 = det.transform(dataset, class_mapping=class_mapping)
-    # Only 'dog', 'cat', 'eagle', 'car' should remain, but 'dog' and 'cat' become 'animal', 'eagle' becomes 'bird'
-    assert set(det2.data["class_name"]) <= set(dataset.classes + ["car"])
+    # Only 'dog', 'cat', 'eagle', 'car' should remain, but 'dog' and 'cat' become 'animal',
+    # 'eagle' becomes 'bird'
+    assert set(det2.data["class_name"]) <= set([*dataset.classes, "car"])
     assert all([name in dataset.classes for name in det2.data["class_name"]])
     # class_id should be remapped to dataset.classes indices
     for name, cid in zip(det2.data["class_name"], det2.class_id):

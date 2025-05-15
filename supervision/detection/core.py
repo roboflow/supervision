@@ -1441,10 +1441,12 @@ class Detections:
 
         Args:
             dataset: An object with a .classes attribute (list of class names).
-            class_mapping (dict, optional): Mapping from model class names to dataset class names.
+            class_mapping (dict, optional): Mapping from model class names to
+                dataset class names.
 
         Returns:
-            Detections: A new Detections object with class names and IDs remapped and filtered.
+            Detections: A new Detections object with class names and IDs
+                remapped and filtered.
         """
         # Get class names for each detection
         class_names = self.data.get("class_name")
