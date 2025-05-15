@@ -1,20 +1,26 @@
 import numpy as np
-import pytest
+
 from supervision.detection.core import Detections
 from supervision.metrics.detection import ConfusionMatrix
-from supervision.detection.utils import xyxy_to_polygons
+
 
 def test_confusion_matrix_with_obb():
     # Create two oriented bounding boxes (OBBs) as polygons
     # Format: (x, y) for each corner, shape (N, 4, 2)
-    gt_polygons = np.array([
-        [[0, 0], [2, 0], [2, 2], [0, 2]],
-        [[3, 3], [5, 3], [5, 5], [3, 5]],
-    ], dtype=np.float32)
-    pred_polygons = np.array([
-        [[0, 0], [2, 0], [2, 2], [0, 2]],  # perfect match
-        [[3.1, 3.1], [5.1, 3.1], [5.1, 5.1], [3.1, 5.1]],  # slight offset
-    ], dtype=np.float32)
+    gt_polygons = np.array(
+        [
+            [[0, 0], [2, 0], [2, 2], [0, 2]],
+            [[3, 3], [5, 3], [5, 5], [3, 5]],
+        ],
+        dtype=np.float32,
+    )
+    pred_polygons = np.array(
+        [
+            [[0, 0], [2, 0], [2, 2], [0, 2]],  # perfect match
+            [[3.1, 3.1], [5.1, 3.1], [5.1, 5.1], [3.1, 5.1]],  # slight offset
+        ],
+        dtype=np.float32,
+    )
 
     # For OBB, we use polygons as xyxy for Detections, but in practice, you may have a conversion
     # Here, we just flatten the polygons to fit the Detections API for the test
@@ -41,7 +47,9 @@ def test_confusion_matrix_with_obb():
 
 def test_confusion_matrix_without_obb():
     gt = Detections(xyxy=np.array([[0, 0, 2, 2]], dtype=np.float32), class_id=[0])
-    pred = Detections(xyxy=np.array([[0, 0, 2, 2]], dtype=np.float32), class_id=[0], confidence=[0.9])
+    pred = Detections(
+        xyxy=np.array([[0, 0, 2, 2]], dtype=np.float32), class_id=[0], confidence=[0.9]
+    )
     cm = ConfusionMatrix.from_detections(
         predictions=[pred],
         targets=[gt],
