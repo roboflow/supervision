@@ -299,15 +299,35 @@ class ConfusionMatrix:
         iou_batch = box_iou_batch(
             boxes_true=true_boxes, boxes_detection=detection_boxes
         )
+        # matched_idx = np.asarray(iou_batch > iou_threshold).nonzero()
+
+        # if matched_idx[0].shape[0]:
+        #     matches = np.stack(
+        #         (matched_idx[0], matched_idx[1], iou_batch[matched_idx]), axis=1
+        #     )
+        #     matches = ConfusionMatrix._drop_extra_matches(matches=matches)
+        # else:
+        #     matches = np.zeros((0, 3))
+
         matched_idx = np.asarray(iou_batch > iou_threshold).nonzero()
 
         if matched_idx[0].shape[0]:
-            matches = np.stack(
-                (matched_idx[0], matched_idx[1], iou_batch[matched_idx]), axis=1
-            )
-            matches = ConfusionMatrix._drop_extra_matches(matches=matches)
+            # Filter matches by class equality
+            valid_matches_mask = detection_classes[matched_idx[1]] == true_classes[matched_idx[0]]
+            if np.any(valid_matches_mask):
+                valid_true_idx = matched_idx[0][valid_matches_mask]
+                valid_pred_idx = matched_idx[1][valid_matches_mask]
+
+                ious = iou_batch[valid_true_idx, valid_pred_idx]
+                matches = np.stack((valid_true_idx, valid_pred_idx, ious), axis=1)
+
+                # Now drop extra matches with highest IoU per GT/pred
+                matches = ConfusionMatrix._drop_extra_matches(matches=matches)
+            else:
+                matches = np.zeros((0, 3))
         else:
             matches = np.zeros((0, 3))
+
 
         matched_true_idx, matched_detection_idx, _ = matches.transpose().astype(
             np.int16
