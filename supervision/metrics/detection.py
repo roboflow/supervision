@@ -313,7 +313,9 @@ class ConfusionMatrix:
 
         if matched_idx[0].shape[0]:
             # Filter matches by class equality
-            valid_matches_mask = detection_classes[matched_idx[1]] == true_classes[matched_idx[0]]
+            valid_matches_mask = (
+                detection_classes[matched_idx[1]] == true_classes[matched_idx[0]]
+            )
             if np.any(valid_matches_mask):
                 valid_true_idx = matched_idx[0][valid_matches_mask]
                 valid_pred_idx = matched_idx[1][valid_matches_mask]
@@ -327,7 +329,6 @@ class ConfusionMatrix:
                 matches = np.zeros((0, 3))
         else:
             matches = np.zeros((0, 3))
-
 
         matched_true_idx, matched_detection_idx, _ = matches.transpose().astype(
             np.int16
