@@ -10,6 +10,11 @@
   display: inline;
 }
 
+/* No text transformation from Material for MkDocs for H5 headings. */
+.md-typeset h5 .doc-object-name {
+  text-transform: none;
+}
+
 /* Max width for docstring sections tables. */
 .doc .md-typeset__table,
 .doc .md-typeset__table table {
@@ -29,6 +34,11 @@
 /* Parameter headings must be inline, not blocks. */
 .doc-heading-parameter {
   display: inline;
+}
+
+/* Default font size for parameter headings. */
+.md-typeset .doc-heading-parameter {
+  font-size: inherit;
 }
 
 /* Prefer space on the right, not the left of parameter permalinks. */
