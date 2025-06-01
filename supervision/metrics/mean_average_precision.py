@@ -623,7 +623,7 @@ class COCOEvaluator:
         # Get the iscrowd flag for each gt
         is_crowd = [int(o["iscrowd"]) for o in gt]
         # Compute iou between each prediction a and gt region
-        iou = iou_with_jaccard(dt_boxes, gt_boxes, is_crowd)
+        iou = iou_with_jaccard(gt_boxes, dt_boxes, is_crowd)
         return iou
 
     def _evaluate_image(

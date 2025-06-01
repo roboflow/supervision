@@ -1369,7 +1369,9 @@ def _jaccard(box_a: List[float], box_b: List[float], is_crowd: bool) -> float:
 
 
 def iou_with_jaccard(
-    dt: List[List[float]], gt: List[List[float]], is_crowd: List[bool]
+    boxes_true: List[List[float]],
+    boxes_detection: List[List[float]],
+    is_crowd: List[bool],
 ) -> np.ndarray:
     """
     Calculate the intersection over union (IoU) between detection bounding boxes (dt)
@@ -1377,9 +1379,9 @@ def iou_with_jaccard(
     Reference: https://github.com/rafaelpadilla/review_object_detection_metrics
 
     Args:
-        dt (List[List[float]]): List of detection bounding boxes in the \
+        boxes_true (List[List[float]]): List of ground-truth bounding boxes in the \
             format [x, y, width, height].
-        gt (List[List[float]]): List of ground-truth bounding boxes in the \
+        boxes_detection (List[List[float]]): List of detection bounding boxes in the \
             format [x, y, width, height].
         is_crowd (List[bool]): List indicating if each ground-truth bounding box \
             is a crowd region or not.
@@ -1387,11 +1389,13 @@ def iou_with_jaccard(
     Returns:
         np.ndarray: Array of IoU values of shape (len(dt), len(gt)).
     """
-    assert len(is_crowd) == len(gt), "iou(iscrowd=) must have the same length as gt"
-    if len(dt) == 0 or len(gt) == 0:
+    assert len(is_crowd) == len(boxes_true), (
+        "iou(iscrowd=) must have the same length as boxes_true"
+    )
+    if len(boxes_detection) == 0 or len(boxes_true) == 0:
         return np.array([])
-    ious = np.zeros((len(dt), len(gt)), dtype=np.float64)
-    for g_idx, g in enumerate(gt):
-        for d_idx, d in enumerate(dt):
+    ious = np.zeros((len(boxes_detection), len(boxes_true)), dtype=np.float64)
+    for g_idx, g in enumerate(boxes_true):
+        for d_idx, d in enumerate(boxes_detection):
             ious[d_idx, g_idx] = _jaccard(d, g, is_crowd[g_idx])
     return ious
