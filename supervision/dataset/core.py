@@ -563,7 +563,6 @@ class DetectionDataset(BaseDataset):
         images_directory_path: str,
         annotations_path: str,
         force_masks: bool = False,
-        use_iscrowd: bool = False,
     ) -> DetectionDataset:
         """
         Creates a Dataset instance from COCO formatted data.
@@ -575,10 +574,6 @@ class DetectionDataset(BaseDataset):
             force_masks (bool): If True,
                 forces masks to be loaded for all annotations,
                 regardless of whether they are present.
-            use_iscrowd (bool): If True,
-                uses COCO's property `iscrowd` in all annotations,
-                regardless of whether they are present. If not presented, `iscrowd=0`
-                will be used.
         Returns:
             DetectionDataset: A DetectionDataset instance containing
                 the loaded images and annotations.
@@ -608,7 +603,6 @@ class DetectionDataset(BaseDataset):
             images_directory_path=images_directory_path,
             annotations_path=annotations_path,
             force_masks=force_masks,
-            use_iscrowd=use_iscrowd,
         )
         return DetectionDataset(classes=classes, images=images, annotations=annotations)
 

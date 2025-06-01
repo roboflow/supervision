@@ -105,6 +105,7 @@ def coco_annotations_to_detections(
     xyxy = np.asarray(xyxy)
     xyxy[:, 2:4] += xyxy[:, 0:2]
 
+    data = dict()
     if use_iscrowd:
         iscrowd = [
             image_annotation["iscrowd"] for image_annotation in image_annotations
@@ -113,10 +114,6 @@ def coco_annotations_to_detections(
         data = dict(
             iscrowd=np.asarray(iscrowd, dtype=int), area=np.asarray(area, dtype=float)
         )
-    else:
-        iscrowd = [0] * len(image_annotations)
-        area = None
-        data = dict()
 
     if with_masks:
         mask = coco_annotations_to_masks(
@@ -182,14 +179,15 @@ def get_coco_class_index_mapping(annotations_path: str) -> Dict[int, int]:
     class_mapping = build_coco_class_index_mapping(
         coco_categories=coco_data["categories"], target_classes=classes
     )
-    return class_mapping
+    inv_class_mapping = {v: k for k, v in class_mapping.items()}
+    return inv_class_mapping
 
 
 def load_coco_annotations(
     images_directory_path: str,
     annotations_path: str,
     force_masks: bool = False,
-    use_iscrowd: bool = False,
+    # use_iscrowd: bool = True,
 ) -> Tuple[List[str], List[str], Dict[str, Detections]]:
     coco_data = read_json_file(file_path=annotations_path)
     classes = coco_categories_to_classes(coco_categories=coco_data["categories"])
@@ -219,7 +217,7 @@ def load_coco_annotations(
             image_annotations=image_annotations,
             resolution_wh=(image_width, image_height),
             with_masks=force_masks,
-            use_iscrowd=use_iscrowd,
+            use_iscrowd=True,
         )
 
         annotation = map_detections_class_id(

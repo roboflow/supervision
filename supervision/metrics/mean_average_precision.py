@@ -666,9 +666,6 @@ class COCOEvaluator:
         dt_sorted = np.argsort([-d["score"] for d in dt], kind="stable")
         dt = [dt[i] for i in dt_sorted[0:max_det]]
 
-        # Get the iscrowd flag for each gt
-        # iscrowd = [int(o["iscrowd"]) for o in gt]
-
         # Load computed ious for the given image and category
         ious = (
             self.ious[img_id, cat_id][:, gt_sorted]
@@ -1230,15 +1227,16 @@ class MeanAveragePrecision(Metric):
             for target in image_targets:
                 xyxy = target[0]  # or xyxy = prediction[0]; xyxy[2:4] -= xyxy[0:2]
                 xywh = [xyxy[0], xyxy[1], xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]]
-                # Get "area" and "iscrowd" from data
+                # Get "area" and "iscrowd" (default 0) from data
                 data = target[5]
+
                 if self._class_mapping is not None:
                     category_id = self._class_mapping[target[3].item()]
                 else:
                     category_id = target[3].item()
                 dict_annotation = {
-                    "area": data.get("area"),
-                    "iscrowd": data.get("iscrowd"),
+                    "area": data.get("area", 0),
+                    "iscrowd": data.get("iscrowd", 0),
                     "image_id": image_id,
                     "bbox": xywh,
                     "category_id": category_id,
