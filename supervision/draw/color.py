@@ -68,7 +68,7 @@ class Color:
     Represents a color in RGBA format.
 
     This class provides methods to work with colors, including creating colors from hex
-    codes, converting colors to hex strings, RGB tuples, and BGR tuples, and RGBA tuples.
+    codes, converting colors to hex strings, RGB tuples, BGR tuples, and RGBA tuples.
 
     Attributes:
         r (int): Red channel value (0-255).
@@ -110,9 +110,9 @@ class Color:
             color_hex (str): The hex string representing the color. This string can
                 start with '#' followed by either 3 or 6 hexadecimal characters. In
                 case of 3 characters, each character is repeated to form the full
-                6-character hex code. If the string has 6 characters, it is assumed to be in
-                the format '#RRGGBB' or '#RRGGBBAA'. If the string has 8 characters, the last two
-                characters are treated as the alpha channel.
+                6-character hex code. If the string has 6 characters, it is assumed
+                to be in the format '#RRGGBB' or '#RRGGBBAA'. If the string has
+                8 characters, the last two characters are treated as the alpha channel.
 
         Returns:
             Color: An instance representing the color.
