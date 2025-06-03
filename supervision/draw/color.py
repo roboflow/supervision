@@ -131,7 +131,9 @@ class Color:
         _validate_color_hex(color_hex)
         color_hex = color_hex.lstrip("#")
         if len(color_hex) == 3:
-            color_hex = "".join(c * 2 for c in color_hex) + "ff"  # Default alpha value of 255
+            color_hex = (
+                "".join(c * 2 for c in color_hex) + "ff"
+            )  # Default alpha value of 255
         elif len(color_hex) == 6:
             color_hex += "ff "  # Default alpha value of 255 if not provided
         r, g, b, a = (int(color_hex[i : i + 2], 16) for i in range(0, 8, 2))
@@ -219,7 +221,7 @@ class Color:
             ```
         """
         return self.r, self.g, self.b
-    
+
     def as_rgba(self) -> Tuple[int, int, int, float]:
         """
         Returns the color as an RGBA tuple.

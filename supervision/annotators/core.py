@@ -220,7 +220,6 @@ class OrientedBoxAnnotator(BaseAnnotator):
 
             cv2.drawContours(scene, [obb], 0, color.as_bgra(), self.thickness)
 
-        
         # Blend the overlay with the original scene using opacity
         cv2.addWeighted(overlay, self.opacity, scene, 1 - self.opacity, 0, dst=scene)
         return scene
@@ -1120,7 +1119,7 @@ class LabelAnnotator(BaseAnnotator):
             detections=detections,
             custom_color_lookup=custom_color_lookup,
         )
-        
+
         cv2.addWeighted(scene, self.opacity, scene, 1 - self.opacity, 0, dst=scene)
 
         return scene
