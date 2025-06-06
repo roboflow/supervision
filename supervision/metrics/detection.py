@@ -290,26 +290,18 @@ class ConfusionMatrix:
 
         class_id_idx = 4
         true_classes = np.array(targets[:, class_id_idx], dtype=np.int16)
-        detection_classes = np.array(
-            detection_batch_filtered[:, class_id_idx], dtype=np.int16
-        )
+        detection_classes = np.array(detection_batch_filtered[:, class_id_idx], dtype=np.int16)
         true_boxes = targets[:, :class_id_idx]
         detection_boxes = detection_batch_filtered[:, :class_id_idx]
 
-        iou_batch = box_iou_batch(
-            boxes_true=true_boxes, boxes_detection=detection_boxes
-        )
-        # matched_idx = np.asarray(iou_batch > iou_threshold).nonzero()
+        iou_batch = box_iou_batch(boxes_true=true_boxes, boxes_detection=detection_boxes)
 
-        # if matched_idx[0].shape[0]:
-        #     matches = np.stack(
-        #         (matched_idx[0], matched_idx[1], iou_batch[matched_idx]), axis=1
-        #     )
-        #     matches = ConfusionMatrix._drop_extra_matches(matches=matches)
-        # else:
-        #     matches = np.zeros((0, 3))
+        matched_gt_idx = set()
+        matched_det_idx = set()
 
-        matched_idx = np.asarray(iou_batch > iou_threshold).nonzero()
+        # For each GT, find best matching detection (highest IoU > threshold)
+        for gt_idx, gt_class in enumerate(true_classes):
+            candidate_det_idxs = np.where(iou_batch[gt_idx] > iou_threshold)[0]
 
         if matched_idx[0].shape[0]:
             # Filter matches by class equality
@@ -320,15 +312,18 @@ class ConfusionMatrix:
                 valid_true_idx = matched_idx[0][valid_matches_mask]
                 valid_pred_idx = matched_idx[1][valid_matches_mask]
 
-                ious = iou_batch[valid_true_idx, valid_pred_idx]
-                matches = np.stack((valid_true_idx, valid_pred_idx, ious), axis=1)
+            best_det_idx = candidate_det_idxs[np.argmax(iou_batch[gt_idx, candidate_det_idxs])]
+            det_class = detection_classes[best_det_idx]
 
-                # Now drop extra matches with highest IoU per GT/pred
-                matches = ConfusionMatrix._drop_extra_matches(matches=matches)
+            if best_det_idx not in matched_det_idx:
+                # Count as matched regardless of class:
+                # same class → TP, different class → misclassification
+                result_matrix[gt_class, det_class] += 1
+                matched_gt_idx.add(gt_idx)
+                matched_det_idx.add(best_det_idx)
             else:
-                matches = np.zeros((0, 3))
-        else:
-            matches = np.zeros((0, 3))
+                # Detection already matched, GT is FN
+                result_matrix[gt_class, num_classes] += 1
 
         matched_true_idx, matched_detection_idx, _ = matches.transpose().astype(
             np.int16
@@ -348,6 +343,7 @@ class ConfusionMatrix:
                 result_matrix[num_classes, detection_class_value] += 1  # FP
 
         return result_matrix
+
 
     @staticmethod
     def _drop_extra_matches(matches: np.ndarray) -> np.ndarray:
