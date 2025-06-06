@@ -290,11 +290,15 @@ class ConfusionMatrix:
 
         class_id_idx = 4
         true_classes = np.array(targets[:, class_id_idx], dtype=np.int16)
-        detection_classes = np.array(detection_batch_filtered[:, class_id_idx], dtype=np.int16)
+        detection_classes = np.array(
+            detection_batch_filtered[:, class_id_idx], dtype=np.int16
+        )
         true_boxes = targets[:, :class_id_idx]
         detection_boxes = detection_batch_filtered[:, :class_id_idx]
 
-        iou_batch = box_iou_batch(boxes_true=true_boxes, boxes_detection=detection_boxes)
+        iou_batch = box_iou_batch(
+            boxes_true=true_boxes, boxes_detection=detection_boxes
+        )
 
         matched_gt_idx = set()
         matched_det_idx = set()
@@ -308,7 +312,9 @@ class ConfusionMatrix:
                 result_matrix[gt_class, num_classes] += 1
                 continue
 
-            best_det_idx = candidate_det_idxs[np.argmax(iou_batch[gt_idx, candidate_det_idxs])]
+            best_det_idx = candidate_det_idxs[
+                np.argmax(iou_batch[gt_idx, candidate_det_idxs])
+            ]
             det_class = detection_classes[best_det_idx]
 
             if best_det_idx not in matched_det_idx:
@@ -327,7 +333,6 @@ class ConfusionMatrix:
                 result_matrix[num_classes, det_class] += 1
 
         return result_matrix
-
 
     @staticmethod
     def _drop_extra_matches(matches: np.ndarray) -> np.ndarray:
