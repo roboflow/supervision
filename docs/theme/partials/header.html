@@ -38,7 +38,17 @@
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
-          <span class="md-ellipsis">
+          <span class="md-ellipsis" style="display: flex; align-items: center; gap: 0.5rem;">
+            <a
+            href="{{ config.extra.homepage | d(nav.homepage.url, true) | url }}"
+            title="{{ config.site_name | e }}"
+            class="md-header__button md-logo"
+            aria-label="{{ config.site_name }}"
+            data-md-component="logo"
+            id="item-logo"
+            >
+            {% include "partials/logo.html" %}
+            </a>
             {% if page.meta and page.meta.title %}
               {{ page.meta.title }}
             {% else %}
@@ -48,13 +58,72 @@
         </div>
       </div>
     </div>
+    <!-- Button to open search modal -->
+    {% if "material/search" in config.plugins %}
+      {% set search = config.plugins["material/search"] | attr("config") %}
+
+      <!-- Check if search is actually enabled - see https://t.ly/DT_0V -->
+      {% if search.enabled %}
+        <label class="md-header__button md-icon" for="__search">
+          {% set icon = config.theme.icon.search or "material/magnify" %}
+          {% include ".icons/" ~ icon ~ ".svg" %}
+        </label>
+
+        <!-- Search interface -->
+        {% include "partials/search.html" %}
+      {% endif %}
+    {% endif %}
+
 
     <ul class="header-list">
-        <li style="align-items: center;">Resources <img src="https://ka-p.fontawesome.com/releases/v6.6.0/svgs/regular/chevron-down.svg?v=2&token=a463935e93" style="height: 0.5rem;" /></li>
-        <li>Products</li>
-        <li>Sign In</li>
-        <a href="https://roboflow.com/sales"><li class="header-btn" style="border-radius: 5px; background: white; padding-top: 0.25rem; padding-left: 0.5rem; padding-bottom: 0.25rem; padding-right: 0.5rem; border: 1px solid lightgrey;">Book a Demo</li></a>
-        <a href="https://app.roboflow.com"><li class="header-btn" style="border-radius: 5px; color: white; background: var(--md-typeset-a-color); padding-top: 0.25rem; padding-left: 0.5rem; padding-bottom: 0.25rem; padding-right: 0.5rem; border: 1px solid #8315F9;">Get Started</li></a>
+        <li style="align-items: center;" id="resources-list">
+            <label for="dropdown-resources"><span>Resources <img src="https://ka-p.fontawesome.com/releases/v6.6.0/svgs/regular/chevron-down.svg?v=2&token=a463935e93" style="height: 0.5rem;" /></span></label>
+            <input type="radio" name="dropdown" id="dropdown-resources" style="display: none;" />
+            <ul class="resources-sublist sublist">
+                <li><a href="https://blog.roboflow.com">Blog</a></li>
+                <li><a href="https://discuss.roboflow.com">Community Forum</a></li>
+                <li><a href="https://roboflow.com/sales">Contact Sales</a></li>
+            </ul>
+        </li>
+        <li style="align-items: center;" id="products-list">
+            <label for="dropdown-products"><span>Products <img src="https://ka-p.fontawesome.com/releases/v6.6.0/svgs/regular/chevron-down.svg?v=2&token=a463935e93" style="height: 0.5rem;" /></span></label>
+            <input type="radio" name="dropdown" id="dropdown-products" style="display: none;" />
+            <ul class="products-sublist sublist">
+                <li><a href="https://inference.roboflow.com">Inference</a></li>
+                <li><a href="https://supervision.roboflow.com">Supervision</a></li>
+                <li><a href="https://trackers.roboflow.com">Trackers</a></li>
+                <li><a href="https://universe.roboflow.com">Universe</a></li>
+            </ul>
+        </li>
+        <script>
+          document.addEventListener('click', function(event) {
+            const resourcesList = document.getElementById('resources-list');
+            const productsList = document.getElementById('products-list');
+            const dropdownResources = document.getElementById('dropdown-resources');
+            const dropdownProducts = document.getElementById('dropdown-products');
+
+            if (!resourcesList.contains(event.target)) {
+              dropdownResources.checked = false;
+            }
+            if (!productsList.contains(event.target)) {
+              dropdownProducts.checked = false;
+            }
+          });
+        </script>
+        <style>
+          #dropdown-resources:checked ~ .resources-sublist {
+            display: block;
+          }
+          #dropdown-products:checked ~ .products-sublist {
+            display: block;
+          }
+          /* Hide dropdown if clicking outside */
+          body:not(:has(#dropdown-resources:checked)) .resources-sublist,
+          body:not(:has(#dropdown-products:checked)) .products-sublist {
+            display: none;
+          }
+        </style>
+        <a href="https://app.roboflow.com"><li class="header-btn" style="border-radius: 5px; color: white; background: var(--md-typeset-a-color); padding-top: 0.25rem; padding-left: 0.5rem; padding-bottom: 0.25rem; padding-right: 0.5rem; border: 1px solid #8315F9;">Go to Roboflow</li></a>
     </ul>
   </nav>
 
