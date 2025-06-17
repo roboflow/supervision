@@ -119,11 +119,11 @@ theme:
 
 plugins:
   - search
-  # - mkdocs-jupyter:
-  #     kernel_name: python3
-  #     execute: false
-  #     include_source: True
-  #     include_requirejs: true
+  - mkdocs-jupyter:
+      kernel_name: python3
+      execute: false
+      include_source: True
+      include_requirejs: true
   - mkdocstrings:
       default_handler: python
       handlers:
@@ -166,7 +166,6 @@ markdown_extensions:
       anchor_linenums: true
 
 extra_javascript:
-  - "https://widget.kapa.ai/kapa-widget.bundle.js"
   - "javascripts/init_kapa_widget.js"
   - "javascripts/cookbooks-card.js"
   - "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"
