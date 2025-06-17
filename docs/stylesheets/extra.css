@@ -174,7 +174,7 @@ body {
 .md-main__inner, .md-header__inner, .md-grid {
   max-width: 100%;
 }
-@media (max-width: 768px) {
+@media (max-width: 1000px) {
   .md-header__inner {
     display: flex;
   }
