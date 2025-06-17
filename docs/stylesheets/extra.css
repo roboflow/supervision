@@ -1,13 +1,124 @@
 :root {
   /* Default to light theme */
   --md-primary-fg-color:        #8315F9;
-  --md-accent-fg-color:         #00FFCE;
+  --md-accent-fg-color:        #8315F9 !important;
+  --md-footer-fg-color--light: rgb(111, 108, 121) !important;
 }
 
 body.light {
   /* Light theme */
   --md-text-color:              #000000;
   --md-h2-color:                #000000;
+}
+.md-grid {
+  max-width: 85%;
+  margin: auto;
+}
+.portfolio-section .md-grid {
+  max-width: 100%;
+}
+.md-footer, .md-footer-meta {
+  background-color: transparent;
+  color: rgb(111, 108, 121);
+}
+.md-nav__link:hover {
+  background: rgb(243, 238, 255);
+  border-radius: 6px;
+  color: #8315F9 !important;
+}
+.md-footer *, html .md-footer-meta.md-typeset a {
+  color: rgb(111, 108, 121);
+}
+.repo-card {
+  height: 100%;
+}
+.header-btn {
+  box-shadow: rgb(255, 255, 255) 0px 0px 0px 0px, rgb(217, 215, 226) 0px 0px 0px 1px, rgb(217, 215, 226) 0px 1px 2px 0px;
+}
+.header-btn:hover {
+  box-shadow: rgb(255, 255, 255) 0px 0px 0px 0px, rgb(217, 215, 226) 0px 0px 0px 1px, rgb(217, 215, 226) 0px 1.0001px 2.00013px -0.0000327245px, rgba(0, 0, 0, 0) 0px 0.000065449px 0.000130898px -0.000065449px;
+}
+.md-typeset .headerlink:hover, .md-typeset .headerlink:target {
+  color: #8315F9;
+}
+.md-typeset h1, .md-header__title {
+  color: black;
+  font-weight: 800;
+}
+.md-typeset h1 {
+  font-weight: normal;
+  margin-bottom: 1rem;
+}
+body {
+  background: linear-gradient(to left bottom, rgb(243, 238, 255), rgb(255, 255, 255) 60%) no-repeat;
+}
+
+/* .md-nav__link:has([tabindex=""]) {
+  text-transform: uppercase; 
+} */
+
+.header-list {
+  display: grid;
+  align-items: center;
+  grid-template-columns: repeat(5, auto);
+  gap: 1rem;
+  list-style: none;
+  margin-right: 1rem;
+  font-size: 0.75rem;
+}
+.md-nav__list label, .md-nav--secondary label {
+  /* text-transform: uppercase; */
+  color: rgb(29, 29, 31) !important;
+  font-size: 0.7rem;
+  margin-bottom: 0;
+}
+.md-nav--secondary label {
+  margin-left: 0.5rem;
+}
+
+.md-nav__link {
+  padding: 0.25rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.md-nav__link--active {
+  background: rgb(243, 238, 255);
+  border-radius: 6px;
+  padding-top: 0.25rem;
+}
+
+.md-tabs__item--active {
+  color: var(--md-primary-fg-color);
+  border-bottom: 2px solid var(--md-primary-fg-color);
+}
+
+.md-nav--secondary .md-nav__title {
+  background: transparent;
+  box-shadow: none;
+}
+
+.md-header, .md-tabs {
+  color: rgb(111, 108, 121);
+  background-color: transparent;
+}
+.md-header--shadow {
+  background: white;
+}
+@media (max-width: 768px) {
+  .md-header{
+    background: white;
+  }
+  .header-list {
+    display: none;
+  }
+}
+.md-tabs {
+  border-bottom: 1px solid rgb(229, 231, 235);
+}
+.md-main__inner {
+  padding-top: 1rem;
+  margin-top: 0;
 }
 
 body.dark {
