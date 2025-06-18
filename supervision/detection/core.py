@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from contextlib import suppress
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
@@ -9,12 +9,6 @@ import numpy as np
 from supervision.config import (
     CLASS_NAME_DATA_FIELD,
     ORIENTED_BOX_COORDINATES,
-)
-from supervision.detection.lmm import (
-    LMM,
-    from_florence_2,
-    from_paligemma,
-    validate_lmm_parameters,
 )
 from supervision.detection.overlap_filter import (
     box_non_max_merge,
@@ -39,8 +33,16 @@ from supervision.detection.utils import (
     process_roboflow_result,
     xywh_to_xyxy,
 )
+from supervision.detection.vlm import (
+    LMM,
+    VLM,
+    from_florence_2,
+    from_paligemma,
+    from_qwen_2_5_vl,
+    validate_vlm_parameters,
+)
 from supervision.geometry.core import Position
-from supervision.utils.internal import get_instance_variables
+from supervision.utils.internal import deprecated, get_instance_variables
 from supervision.validators import validate_detections_fields
 
 
@@ -117,7 +119,7 @@ class Detections:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`
         mask: (Optional[np.ndarray]): An array of shape
-            `(n, H, W)` containing the segmentation masks.
+            `(n, H, W)` containing the segmentation masks (`bool` data type).
         confidence (Optional[np.ndarray]): An array of shape
             `(n,)` containing the confidence scores of the detections.
         class_id (Optional[np.ndarray]): An array of shape
@@ -606,8 +608,10 @@ class Detections:
             detections = sv.Detections.from_inference(result)
             ```
         """
-        with suppress(AttributeError):
+        if hasattr(roboflow_result, "dict"):
             roboflow_result = roboflow_result.dict(exclude_none=True, by_alias=True)
+        elif hasattr(roboflow_result, "json"):
+            roboflow_result = roboflow_result.json()
         xyxy, confidence, class_id, masks, trackers, data = process_roboflow_result(
             roboflow_result=roboflow_result
         )
@@ -711,7 +715,7 @@ class Detections:
         """
         if "error" in azure_result:
             raise ValueError(
-                f'Azure API returned an error {azure_result["error"]["message"]}'
+                f"Azure API returned an error {azure_result['error']['message']}"
             )
 
         xyxy, confidences, class_ids = [], [], []
@@ -798,6 +802,10 @@ class Detections:
         )
 
     @classmethod
+    @deprecated(
+        "`Detections.from_lmm` property is deprecated and will be removed in "
+        "`supervision-0.31.0`. Use Detections.from_vlm instead."
+    )
     def from_lmm(
         cls, lmm: Union[LMM, str], result: Union[str, dict], **kwargs: Any
     ) -> Detections:
@@ -836,16 +844,51 @@ class Detections:
             # array([0])
             ```
         """
-        lmm = validate_lmm_parameters(lmm, result, kwargs)
+        # filler logic mapping old from_lmm to new from_vlm
+        lmm_to_vlm = {
+            LMM.PALIGEMMA: VLM.PALIGEMMA,
+            LMM.FLORENCE_2: VLM.FLORENCE_2,
+            LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL,
+        }
 
-        if lmm == LMM.PALIGEMMA:
-            assert isinstance(result, str)
+        # (this works even if the LMM enum is wrapped by @deprecated)
+        if isinstance(lmm, Enum) and lmm.__class__.__name__ == "LMM":
+            vlm = lmm_to_vlm[lmm]
+
+        elif isinstance(lmm, str):
+            try:
+                lmm_enum = LMM(lmm.lower())
+            except ValueError:
+                raise ValueError(
+                    f"Invalid LMM string '{lmm}'. Must be one of "
+                    f"{[m.value for m in LMM]}"
+                )
+            vlm = lmm_to_vlm[lmm_enum]
+
+        else:
+            raise ValueError(
+                f"Invalid type for 'lmm': {type(lmm)}. Must be LMM or str."
+            )
+
+        return cls.from_vlm(vlm=vlm, result=result, **kwargs)
+
+    @classmethod
+    def from_vlm(
+        cls, vlm: Union[VLM, str], result: Union[str, dict], **kwargs: Any
+    ) -> Detections:
+        vlm = validate_vlm_parameters(vlm, result, kwargs)
+
+        if vlm == VLM.PALIGEMMA:
             xyxy, class_id, class_name = from_paligemma(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
-        if lmm == LMM.FLORENCE_2:
-            assert isinstance(result, dict)
+        if vlm == VLM.QWEN_2_5_VL:
+            xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            return cls(xyxy=xyxy, class_id=class_id, data=data)
+
+        if vlm == VLM.FLORENCE_2:
             xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
             if len(xyxy) == 0:
                 return cls.empty()
@@ -857,8 +900,6 @@ class Detections:
                 data[ORIENTED_BOX_COORDINATES] = xyxyxyxy
 
             return cls(xyxy=xyxy, mask=mask, data=data)
-
-        raise ValueError(f"Unsupported LMM: {lmm}")
 
     @classmethod
     def from_easyocr(cls, easyocr_results: list) -> Detections:
@@ -1026,16 +1067,16 @@ class Detections:
             detections_1 = sv.Detections(
                 xyxy=np.array([[15, 15, 100, 100], [200, 200, 300, 300]]),
                 class_id=np.array([1, 2]),
-                data={'feature_vector': np.array([0.1, 0.2)])}
-             )
+                data={'feature_vector': np.array([0.1, 0.2])}
+            )
 
             detections_2 = sv.Detections(
                 xyxy=np.array([[30, 30, 120, 120]]),
                 class_id=np.array([1]),
-                data={'feature_vector': [np.array([0.3])]}
-             )
+                data={'feature_vector': np.array([0.3])}
+            )
 
-            merged_detections = Detections.merge([detections_1, detections_2])
+            merged_detections = sv.Detections.merge([detections_1, detections_2])
 
             merged_detections.xyxy
             array([[ 15,  15, 100, 100],
@@ -1201,6 +1242,8 @@ class Detections:
         """
         if isinstance(index, str):
             return self.data.get(index)
+        if self.is_empty():
+            return self
         if isinstance(index, int):
             index = [index]
         return Detections(
@@ -1303,9 +1346,9 @@ class Detections:
         if len(self) == 0:
             return self
 
-        assert (
-            self.confidence is not None
-        ), "Detections confidence must be given for NMS to be executed."
+        assert self.confidence is not None, (
+            "Detections confidence must be given for NMS to be executed."
+        )
 
         if class_agnostic:
             predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
@@ -1359,9 +1402,9 @@ class Detections:
         if len(self) == 0:
             return self
 
-        assert (
-            self.confidence is not None
-        ), "Detections confidence must be given for NMM to be executed."
+        assert self.confidence is not None, (
+            "Detections confidence must be given for NMM to be executed."
+        )
 
         if class_agnostic:
             predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))

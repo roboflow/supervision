@@ -242,8 +242,8 @@ def test_json_sink(
 def assert_json_equal(file_name, expected_rows):
     with open(file_name, "r") as file:
         data = json.load(file)
-        assert (
-            data == expected_rows
-        ), f"Data in JSON file didn't match expected output: {data} != {expected_rows}"
+        assert data == expected_rows, (
+            f"Data in JSON file didn't match expected output: {data} != {expected_rows}"
+        )
 
     os.remove(file_name)

@@ -223,6 +223,12 @@ TEST_DET_DIFFERENT_METADATA = Detections(
             None,
             pytest.raises(IndexError),
         ),
+        (
+            Detections.empty(),
+            np.isin(Detections.empty()["class_name"], ["cat", "dog"]),
+            Detections.empty(),
+            DoesNotRaise(),
+        ),  # Filter an empty detections by specific class names
     ],
 )
 def test_getitem(

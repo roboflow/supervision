@@ -9,6 +9,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from supervision.annotators.base import BaseAnnotator, ImageType
 from supervision.annotators.utils import (
+    PENDING_TRACK_ID,
     ColorLookup,
     Trace,
     resolve_color,
@@ -16,10 +17,16 @@ from supervision.annotators.utils import (
 )
 from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
-from supervision.detection.utils import clip_boxes, mask_to_polygons, spread_out_boxes
+from supervision.detection.utils import (
+    clip_boxes,
+    mask_to_polygons,
+    polygon_to_mask,
+    spread_out_boxes,
+    xyxy_to_polygons,
+)
 from supervision.draw.color import Color, ColorPalette
-from supervision.draw.utils import draw_polygon
-from supervision.geometry.core import Position
+from supervision.draw.utils import draw_polygon, draw_rounded_rectangle, draw_text
+from supervision.geometry.core import Point, Position, Rect
 from supervision.utils.conversion import (
     ensure_cv2_image_for_annotation,
     ensure_pil_image_for_annotation,
@@ -30,7 +37,6 @@ from supervision.utils.image import (
     overlay_image,
     scale_image,
 )
-from supervision.utils.internal import deprecated
 
 CV2_FONT = cv2.FONT_HERSHEY_SIMPLEX
 
@@ -89,92 +95,6 @@ class BoxAnnotator(BaseAnnotator):
 
             box_annotator = sv.BoxAnnotator()
             annotated_frame = box_annotator.annotate(
-                scene=image.copy(),
-                detections=detections
-            )
-            ```
-
-        ![bounding-box-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/bounding-box-annotator-example-purple.png)
-        """
-        assert isinstance(scene, np.ndarray)
-        for detection_idx in range(len(detections)):
-            x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            color = resolve_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
-            cv2.rectangle(
-                img=scene,
-                pt1=(x1, y1),
-                pt2=(x2, y2),
-                color=color.as_bgr(),
-                thickness=self.thickness,
-            )
-        return scene
-
-
-@deprecated(
-    "`BoundingBoxAnnotator` is deprecated and has been renamed to `BoxAnnotator`."
-    " `BoundingBoxAnnotator` will be removed in supervision-0.26.0."
-)
-class BoundingBoxAnnotator(BaseAnnotator):
-    """
-    A class for drawing bounding boxes on an image using provided detections.
-    """
-
-    def __init__(
-        self,
-        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
-        thickness: int = 2,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
-    ):
-        """
-        Args:
-            color (Union[Color, ColorPalette]): The color or color palette to use for
-                annotating detections.
-            thickness (int): Thickness of the bounding box lines.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACK`.
-        """
-        self.color: Union[Color, ColorPalette] = color
-        self.thickness: int = thickness
-        self.color_lookup: ColorLookup = color_lookup
-
-    @ensure_cv2_image_for_annotation
-    def annotate(
-        self,
-        scene: ImageType,
-        detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> ImageType:
-        """
-        Annotates the given scene with bounding boxes based on the provided detections.
-
-        Args:
-            scene (ImageType): The image where bounding boxes will be drawn. `ImageType`
-            is a flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
-                Allows to override the default color mapping strategy.
-
-        Returns:
-            The annotated image, matching the type of `scene` (`numpy.ndarray`
-                or `PIL.Image.Image`)
-
-        Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            detections = sv.Detections(...)
-
-            bounding_box_annotator = sv.BoundingBoxAnnotator()
-            annotated_frame = bounding_box_annotator.annotate(
                 scene=image.copy(),
                 detections=detections
             )
@@ -1211,7 +1131,7 @@ class LabelAnnotator(BaseAnnotator):
         detections: Detections, custom_labels: Optional[List[str]]
     ) -> List[str]:
         if custom_labels is not None:
-            return custom_labels
+            return [str(label) for label in custom_labels]
 
         labels = []
         for idx in range(len(detections)):
@@ -1820,6 +1740,7 @@ class TraceAnnotator(BaseAnnotator):
                 "The `tracker_id` field is missing in the provided detections."
                 " See more: https://supervision.roboflow.com/latest/how_to/track_objects"
             )
+        detections = detections[detections.tracker_id != PENDING_TRACK_ID]
 
         self.trace.put(detections)
         for detection_idx in range(len(detections)):
@@ -1938,11 +1859,9 @@ class HeatMapAnnotator(BaseAnnotator):
         temp = temp.astype(np.uint8)
         if self.kernel_size is not None:
             temp = cv2.blur(temp, (self.kernel_size, self.kernel_size))
-        hsv = np.zeros(scene.shape)
+        hsv = np.full(scene.shape, 255, dtype=np.uint8)
         hsv[..., 0] = temp
-        hsv[..., 1] = 255
-        hsv[..., 2] = 255
-        temp = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+        temp = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
         mask = cv2.cvtColor(self.heat_mask.astype(np.uint8), cv2.COLOR_GRAY2BGR) > 0
         scene[mask] = cv2.addWeighted(temp, self.opacity, scene, 1 - self.opacity, 0)[
             mask
@@ -2527,6 +2446,9 @@ class CropAnnotator(BaseAnnotator):
                 detections=detections
             )
             ```
+
+        ![crop-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/crop-annotator-example.png)
         """
         assert isinstance(scene, np.ndarray)
         crops = [
@@ -2683,3 +2605,261 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
 
         np.copyto(scene, colored_mask)
         return scene
+
+
+class ComparisonAnnotator:
+    """
+    Highlights the differences between two sets of detections.
+    Useful for comparing results from two different models, or the difference
+    between a ground truth and a prediction.
+
+    If present, uses the oriented bounding box data.
+    Otherwise, if present, uses a mask.
+    Otherwise, uses the bounding box data.
+    """
+
+    def __init__(
+        self,
+        color_1: Color = Color.RED,
+        color_2: Color = Color.GREEN,
+        color_overlap: Color = Color.BLUE,
+        *,
+        opacity: float = 0.75,
+        label_1: str = "",
+        label_2: str = "",
+        label_overlap: str = "",
+        label_scale: float = 1.0,
+    ):
+        """
+        Args:
+            color_1 (Color): Color of areas only present in the first set of
+                detections.
+            color_2 (Color): Color of areas only present in the second set of
+                detections.
+            color_overlap (Color): Color of areas present in both sets of detections.
+            opacity (float): Annotator opacity, from `0` to `1`.
+            label_1 (str): Label for the first set of detections.
+            label_2 (str): Label for the second set of detections.
+            label_overlap (str): Label for areas present in both sets of detections.
+            label_scale (float): Controls how large the labels are.
+        """
+
+        self.color_1 = color_1
+        self.color_2 = color_2
+        self.color_overlap = color_overlap
+
+        self.opacity = opacity
+        self.label_1 = label_1
+        self.label_2 = label_2
+        self.label_overlap = label_overlap
+        self.label_scale = label_scale
+        self.text_thickness = int(self.label_scale + 1.2)
+
+    @ensure_cv2_image_for_annotation
+    def annotate(
+        self, scene: ImageType, detections_1: Detections, detections_2: Detections
+    ) -> ImageType:
+        """
+        Highlights the differences between two sets of detections.
+
+        Args:
+            scene (ImageType): The image where detections will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
+            detections_1 (Detections): The first set of detections or predictions.
+            detections_2 (Detections): The second set of detections to compare or
+                ground truth.
+
+        Returns:
+            The annotated image.
+
+        Example:
+            ```python
+            import supervision as sv
+
+            image = ...
+            detections_1 = sv.Detections(...)
+            detections_2 = sv.Detections(...)
+
+            comparison_annotator = sv.ComparisonAnnotator()
+            annotated_frame = comparison_annotator.annotate(
+                scene=image.copy(),
+                detections_1=detections_1,
+                detections_2=detections_2
+            )
+            ```
+
+        ![comparison-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/comparison-annotator-example.png)
+        """
+        assert isinstance(scene, np.ndarray)
+        if detections_1.is_empty() and detections_2.is_empty():
+            return scene
+
+        use_obb = self._use_obb(detections_1, detections_2)
+        use_mask = self._use_mask(detections_1, detections_2)
+
+        if use_obb:
+            mask_1 = self._mask_from_obb(scene, detections_1)
+            mask_2 = self._mask_from_obb(scene, detections_2)
+
+        elif use_mask:
+            mask_1 = self._mask_from_mask(scene, detections_1)
+            mask_2 = self._mask_from_mask(scene, detections_2)
+
+        else:
+            mask_1 = self._mask_from_xyxy(scene, detections_1)
+            mask_2 = self._mask_from_xyxy(scene, detections_2)
+
+        mask_overlap = mask_1 & mask_2
+        mask_1 = mask_1 & ~mask_overlap
+        mask_2 = mask_2 & ~mask_overlap
+
+        color_layer = np.zeros_like(scene, dtype=np.uint8)
+        color_layer[mask_overlap] = self.color_overlap.as_bgr()
+        color_layer[mask_1] = self.color_1.as_bgr()
+        color_layer[mask_2] = self.color_2.as_bgr()
+
+        scene[mask_overlap] = (1 - self.opacity) * scene[
+            mask_overlap
+        ] + self.opacity * color_layer[mask_overlap]
+        scene[mask_1] = (1 - self.opacity) * scene[mask_1] + self.opacity * color_layer[
+            mask_1
+        ]
+        scene[mask_2] = (1 - self.opacity) * scene[mask_2] + self.opacity * color_layer[
+            mask_2
+        ]
+
+        self._draw_labels(scene)
+
+        return scene
+
+    @staticmethod
+    def _use_obb(detections_1: Detections, detections_2: Detections) -> bool:
+        assert not detections_1.is_empty() or not detections_2.is_empty()
+        is_obb_1 = ORIENTED_BOX_COORDINATES in detections_1.data
+        is_obb_2 = ORIENTED_BOX_COORDINATES in detections_2.data
+        return (
+            (is_obb_1 and is_obb_2)
+            or (is_obb_1 and detections_2.is_empty())
+            or (detections_1.is_empty() and is_obb_2)
+        )
+
+    @staticmethod
+    def _use_mask(detections_1: Detections, detections_2: Detections) -> bool:
+        assert not detections_1.is_empty() or not detections_2.is_empty()
+        is_mask_1 = detections_1.mask is not None
+        is_mask_2 = detections_2.mask is not None
+        return (
+            (is_mask_1 and is_mask_2)
+            or (is_mask_1 and detections_2.is_empty())
+            or (detections_1.is_empty() and is_mask_2)
+        )
+
+    @staticmethod
+    def _mask_from_xyxy(scene: np.ndarray, detections: Detections) -> np.ndarray:
+        mask = np.zeros(scene.shape[:2], dtype=np.bool_)
+        if detections.is_empty():
+            return mask
+
+        resolution_wh = scene.shape[1], scene.shape[0]
+        polygons = xyxy_to_polygons(detections.xyxy)
+
+        for polygon in polygons:
+            polygon_mask = polygon_to_mask(polygon, resolution_wh=resolution_wh)
+            mask |= polygon_mask.astype(np.bool_)
+        return mask
+
+    @staticmethod
+    def _mask_from_obb(scene: np.ndarray, detections: Detections) -> np.ndarray:
+        mask = np.zeros(scene.shape[:2], dtype=np.bool_)
+        if detections.is_empty():
+            return mask
+
+        resolution_wh = scene.shape[1], scene.shape[0]
+
+        for polygon in detections.data[ORIENTED_BOX_COORDINATES]:
+            polygon_mask = polygon_to_mask(polygon, resolution_wh=resolution_wh)
+            mask |= polygon_mask.astype(np.bool_)
+        return mask
+
+    @staticmethod
+    def _mask_from_mask(scene: np.ndarray, detections: Detections) -> np.ndarray:
+        mask = np.zeros(scene.shape[:2], dtype=np.bool_)
+        if detections.is_empty():
+            return mask
+        assert detections.mask is not None
+
+        for detections_mask in detections.mask:
+            mask |= detections_mask.astype(np.bool_)
+        return mask
+
+    def _draw_labels(self, scene: np.ndarray) -> None:
+        """
+        Draw the labels, explaining what each color represents, with automatically
+        computed positions.
+
+        Args:
+            scene (np.ndarray): The image where the labels will be drawn.
+        """
+        margin = int(50 * self.label_scale)
+        gap = int(40 * self.label_scale)
+        y0 = int(50 * self.label_scale)
+        height = int(50 * self.label_scale)
+
+        marker_size = int(20 * self.label_scale)
+        padding = int(10 * self.label_scale)
+        text_box_corner_radius = int(10 * self.label_scale)
+        marker_corner_radius = int(4 * self.label_scale)
+        text_scale = self.label_scale
+
+        label_color_pairs = [
+            (self.label_1, self.color_1),
+            (self.label_2, self.color_2),
+            (self.label_overlap, self.color_overlap),
+        ]
+
+        x0 = margin
+        for text, color in label_color_pairs:
+            if not text:
+                continue
+
+            (text_w, _) = cv2.getTextSize(
+                text=text,
+                fontFace=CV2_FONT,
+                fontScale=self.label_scale,
+                thickness=self.text_thickness,
+            )[0]
+
+            width = text_w + marker_size + padding * 4
+            center_x = x0 + width // 2
+            center_y = y0 + height // 2
+
+            draw_rounded_rectangle(
+                scene=scene,
+                rect=Rect(x=x0, y=y0, width=width, height=height),
+                color=Color.WHITE,
+                border_radius=text_box_corner_radius,
+            )
+
+            draw_rounded_rectangle(
+                scene=scene,
+                rect=Rect(
+                    x=x0 + padding,
+                    y=center_y - marker_size / 2,
+                    width=marker_size,
+                    height=marker_size,
+                ),
+                color=color,
+                border_radius=marker_corner_radius,
+            )
+
+            draw_text(
+                scene,
+                text,
+                text_anchor=Point(x=center_x + marker_size, y=center_y),
+                text_scale=text_scale,
+                text_thickness=self.text_thickness,
+            )
+
+            x0 += width + gap

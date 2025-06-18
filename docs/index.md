@@ -39,8 +39,9 @@ We write your reusable computer vision tools. Whether you need to load your data
 You can install `supervision` in a
 [**Python>=3.8**](https://www.python.org/) environment.
 
-!!! example "pip install (recommended)"
-    === "pip"
+!!! example "Installation"
+
+    === "pip (recommended)"
         [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
         [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
         [![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
@@ -49,6 +50,43 @@ You can install `supervision` in a
         ```bash
         pip install supervision
         ```
+
+    === "poetry"
+        [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
+        [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
+        [![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
+        [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
+
+        ```bash
+        poetry add supervision
+        ```
+
+    === "uv"
+        [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
+        [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
+        [![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
+        [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
+
+        ```bash
+        uv pip install supervision
+        ```
+
+        For uv projects:
+
+        ```bash
+        uv add supervision
+        ```
+
+    === "rye"
+        [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
+        [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
+        [![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
+        [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
+
+        ```bash
+        rye add supervision
+        ```
+
 
 !!! example "conda/mamba install"
     === "conda"
@@ -69,7 +107,7 @@ You can install `supervision` in a
     === "virtualenv"
         ```bash
         # clone repository and navigate to root directory
-        git clone https://github.com/roboflow/supervision.git
+        git clone --depth 1 -b develop https://github.com/roboflow/supervision.git
         cd supervision
 
         # setup python environment and activate it
@@ -81,18 +119,19 @@ You can install `supervision` in a
         pip install -e "."
         ```
 
-    === "poetry"
+    === "uv"
         ```bash
         # clone repository and navigate to root directory
-        git clone https://github.com/roboflow/supervision.git
+        git clone --depth 1 -b develop https://github.com/roboflow/supervision.git
         cd supervision
 
         # setup python environment and activate it
-        poetry env use python3.10
-        poetry shell
+        uv venv
+        source .venv/bin/activate
 
         # installation
-        poetry install
+        uv pip install -r pyproject.toml -e . --all-extras
+
         ```
 
 ## 🚀 Quickstart
