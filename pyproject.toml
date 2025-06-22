@@ -65,7 +65,8 @@ dev = [
     "ipywidgets>=8.1.1",
     "jupytext>=1.16.1",
     "nbconvert>=7.14.2",
-    "docutils!=0.21"
+    "docutils!=0.21",
+    "scipy-stubs>=1.14.1.6",
 ]
 docs = [
     "mkdocs-material[imaging]>=9.5.5",
