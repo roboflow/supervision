@@ -2,7 +2,7 @@ import functools
 import inspect
 import os
 import warnings
-from typing import Any, Callable, Set
+from typing import Any, Callable, Generic, Optional, Set, TypeVar
 
 
 class SupervisionWarnings(Warning):
@@ -56,9 +56,9 @@ def deprecated_parameter(
     Parameters:
         old_parameter (str): The name of the deprecated parameter.
         new_parameter (str): The name of the parameter that should be used instead.
-        map_function (Callable, optional): A function used to map the value of the old
+        map_function (Callable): A function used to map the value of the old
             parameter to the new parameter. Defaults to the identity function.
-        warning_message (str, optional): The warning message to be displayed when the
+        warning_message (str): The warning message to be displayed when the
             deprecated parameter is used. Defaults to a generic warning message with
             placeholders for the old parameter, new parameter, and function name.
         **message_kwargs: Additional keyword arguments that can be used to customize
@@ -122,7 +122,10 @@ def deprecated(reason: str):
     return decorator
 
 
-class classproperty(property):
+T = TypeVar("T")
+
+
+class classproperty(Generic[T]):
     """
     A decorator that combines @classmethod and @property.
     It allows a method to be accessed as a property of the class,
@@ -134,17 +137,27 @@ class classproperty(property):
             ...
     """
 
-    def __get__(self, owner_self: object, owner_cls: type) -> object:
+    def __init__(self, fget: Callable[..., T]):
+        """
+        Args:
+            The function that is called when the property is accessed.
+        """
+        self.fget = fget
+
+    def __get__(self, owner_self: Any, owner_cls: Optional[type] = None) -> T:
         """
         Override the __get__ method to return the result of the function call.
 
         Args:
-        owner_self: The instance through which the attribute was accessed, or None.
-        owner_cls: The class through which the attribute was accessed.
+            owner_self: The instance through which the attribute was accessed, or None.
+                Irrelevant for class properties.
+            owner_cls: The class through which the attribute was accessed.
 
         Returns:
-        The result of calling the function stored in 'fget' with 'owner_cls'.
+            The result of calling the function stored in 'fget' with 'owner_cls'.
         """
+        if self.fget is None:
+            raise AttributeError("unreadable attribute")
         return self.fget(owner_cls)
 
 

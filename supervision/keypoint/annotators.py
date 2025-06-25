@@ -5,10 +5,11 @@ from typing import List, Optional, Tuple, Union
 import cv2
 import numpy as np
 
-from supervision import Rect, pad_boxes
 from supervision.annotators.base import ImageType
+from supervision.detection.utils import pad_boxes, spread_out_boxes
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_rounded_rectangle
+from supervision.geometry.core import Rect
 from supervision.keypoint.core import KeyPoints
 from supervision.keypoint.skeletons import SKELETONS_BY_VERTEX_COUNT
 from supervision.utils.conversion import ensure_cv2_image_for_annotation
@@ -34,8 +35,8 @@ class VertexAnnotator(BaseKeyPointAnnotator):
     ) -> None:
         """
         Args:
-            color (Color, optional): The color to use for annotating key points.
-            radius (int, optional): The radius of the circles used to represent the key
+            color (Color): The color to use for annotating key points.
+            radius (int): The radius of the circles used to represent the key
                 points.
         """
         self.color = color
@@ -78,6 +79,7 @@ class VertexAnnotator(BaseKeyPointAnnotator):
         ![vertex-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/vertex-annotator-example.png)
         """
+        assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
             return scene
 
@@ -108,8 +110,8 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
     ) -> None:
         """
         Args:
-            color (Color, optional): The color to use for the edges.
-            thickness (int, optional): The thickness of the edges.
+            color (Color): The color to use for the edges.
+            thickness (int): The thickness of the edges.
             edges (Optional[List[Tuple[int, int]]]): The edges to draw.
                 If set to `None`, will attempt to select automatically.
         """
@@ -155,6 +157,7 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         ![edge-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/edge-annotator-example.png)
         """
+        assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
             return scene
 
@@ -194,33 +197,41 @@ class VertexLabelAnnotator:
     def __init__(
         self,
         color: Union[Color, List[Color]] = Color.ROBOFLOW,
-        text_color: Color = Color.WHITE,
+        text_color: Union[Color, List[Color]] = Color.WHITE,
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
         border_radius: int = 0,
+        smart_position: bool = False,
     ):
         """
         Args:
-            color (Union[Color, List[Color]], optional): The color to use for each
+            color (Union[Color, List[Color]]): The color to use for each
                 keypoint label. If a list is provided, the colors will be used in order
                 for each keypoint.
-            text_color (Color, optional): The color to use for the labels.
-            text_scale (float, optional): The scale of the text.
-            text_thickness (int, optional): The thickness of the text.
-            text_padding (int, optional): The padding around the text.
-            border_radius (int, optional): The radius of the rounded corners of the
+            text_color (Union[Color, List[Color]]): The color to use
+                for the labels. If a list is provided, the colors will be used in order
+                for each keypoint.
+            text_scale (float): The scale of the text.
+            text_thickness (int): The thickness of the text.
+            text_padding (int): The padding around the text.
+            border_radius (int): The radius of the rounded corners of the
                 boxes. Set to a high value to produce circles.
+            smart_position (bool): Spread out the labels to avoid overlap.
         """
         self.border_radius: int = border_radius
         self.color: Union[Color, List[Color]] = color
-        self.text_color: Color = text_color
+        self.text_color: Union[Color, List[Color]] = text_color
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
+        self.smart_position = smart_position
 
     def annotate(
-        self, scene: ImageType, key_points: KeyPoints, labels: List[str] = None
+        self,
+        scene: ImageType,
+        key_points: KeyPoints,
+        labels: Optional[List[str]] = None,
     ) -> ImageType:
         """
         A class that draws labels of skeleton vertices on images. It uses specified key
@@ -232,7 +243,7 @@ class VertexLabelAnnotator:
                 `PIL.Image.Image`.
             key_points (KeyPoints): A collection of key points where each key point
                 consists of x and y coordinates.
-            labels (List[str], optional): A list of labels to be displayed on the
+            labels (Optional[List[str]]): A list of labels to be displayed on the
                 annotated image. If not provided, keypoint indices will be used.
 
         Returns:
@@ -303,6 +314,7 @@ class VertexLabelAnnotator:
         ![vertex-label-annotator-custom-example](https://media.roboflow.com/
         supervision-annotator-examples/vertex-label-annotator-custom-example.png)
         """
+        assert isinstance(scene, np.ndarray)
         font = cv2.FONT_HERSHEY_SIMPLEX
 
         skeletons_count, points_count, _ = key_points.xy.shape
@@ -321,12 +333,19 @@ class VertexLabelAnnotator:
             skeletons_count=skeletons_count,
         )
 
+        text_colors = self.preprocess_and_validate_colors(
+            colors=self.text_color,
+            points_count=points_count,
+            skeletons_count=skeletons_count,
+        )
+
         labels = self.preprocess_and_validate_labels(
             labels=labels, points_count=points_count, skeletons_count=skeletons_count
         )
 
         anchors = anchors[mask]
         colors = colors[mask]
+        text_colors = text_colors[mask]
         labels = labels[mask]
 
         xyxy = np.array(
@@ -341,10 +360,15 @@ class VertexLabelAnnotator:
                 for anchor, label in zip(anchors, labels)
             ]
         )
-
         xyxy_padded = pad_boxes(xyxy=xyxy, px=self.text_padding)
 
-        for text, color, box, box_padded in zip(labels, colors, xyxy, xyxy_padded):
+        if self.smart_position:
+            xyxy_padded = spread_out_boxes(xyxy_padded)
+            xyxy = pad_boxes(xyxy=xyxy_padded, px=-self.text_padding)
+
+        for text, color, text_color, box, box_padded in zip(
+            labels, colors, text_colors, xyxy, xyxy_padded
+        ):
             draw_rounded_rectangle(
                 scene=scene,
                 rect=Rect.from_xyxy(box_padded),
@@ -357,7 +381,7 @@ class VertexLabelAnnotator:
                 org=(box[0], box[3]),
                 fontFace=font,
                 fontScale=self.text_scale,
-                color=self.text_color.as_rgb(),
+                color=text_color.as_bgr(),
                 thickness=self.text_thickness,
                 lineType=cv2.LINE_AA,
             )
@@ -389,7 +413,7 @@ class VertexLabelAnnotator:
     @staticmethod
     def preprocess_and_validate_labels(
         labels: Optional[List[str]], points_count: int, skeletons_count: int
-    ) -> np.array:
+    ) -> np.ndarray:
         if labels and len(labels) != points_count:
             raise ValueError(
                 f"Number of labels ({len(labels)}) must match number of key points "
@@ -405,7 +429,7 @@ class VertexLabelAnnotator:
         colors: Optional[Union[Color, List[Color]]],
         points_count: int,
         skeletons_count: int,
-    ) -> np.array:
+    ) -> np.ndarray:
         if isinstance(colors, list) and len(colors) != points_count:
             raise ValueError(
                 f"Number of colors ({len(colors)}) must match number of key points "

@@ -19,6 +19,16 @@
     }
 }
 
+.custom-grid a {
+    color: inherit;
+    text-decoration: none;
+    display: block;
+}
+
+.custom-grid a:hover {
+    color: inherit; /* Ensure color does not change on hover */
+}
+
 .repo-card {
     background: radial-gradient(at right top, #A351FB25, #A5F9EA25);
     border-radius: 0.5rem;

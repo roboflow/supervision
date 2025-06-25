@@ -43,7 +43,10 @@ class BaseDataset(ABC):
 
     @abstractmethod
     def split(
-        self, split_ratio=0.8, random_state=None, shuffle: bool = True
+        self,
+        split_ratio: float = 0.8,
+        random_state: Optional[int] = None,
+        shuffle: bool = True,
     ) -> Tuple[BaseDataset, BaseDataset]:
         pass
 
@@ -174,18 +177,21 @@ class DetectionDataset(BaseDataset):
         return True
 
     def split(
-        self, split_ratio=0.8, random_state=None, shuffle: bool = True
+        self,
+        split_ratio: float = 0.8,
+        random_state: Optional[int] = None,
+        shuffle: bool = True,
     ) -> Tuple[DetectionDataset, DetectionDataset]:
         """
         Splits the dataset into two parts (training and testing)
             using the provided split_ratio.
 
         Args:
-            split_ratio (float, optional): The ratio of the training
+            split_ratio (float): The ratio of the training
                 set to the entire dataset.
-            random_state (int, optional): The seed for the random number generator.
+            random_state (Optional[int]): The seed for the random number generator.
                 This is used for reproducibility.
-            shuffle (bool, optional): Whether to shuffle the data before splitting.
+            shuffle (bool): Whether to shuffle the data before splitting.
 
         Returns:
             Tuple[DetectionDataset, DetectionDataset]: A tuple containing
@@ -396,7 +402,7 @@ class DetectionDataset(BaseDataset):
             images_directory_path (str): Path to the directory containing the images.
             annotations_directory_path (str): Path to the directory
                 containing the PASCAL VOC XML annotations.
-            force_masks (bool, optional): If True, forces masks to
+            force_masks (bool): If True, forces masks to
                 be loaded for all annotations, regardless of whether they are present.
 
         Returns:
@@ -455,10 +461,10 @@ class DetectionDataset(BaseDataset):
                 containing the YOLO annotation files.
             data_yaml_path (str): The path to the data
                 YAML file containing class information.
-            force_masks (bool, optional): If True, forces
+            force_masks (bool): If True, forces
                 masks to be loaded for all annotations,
                 regardless of whether they are present.
-            is_obb (bool, optional): If True, loads the annotations in OBB format.
+            is_obb (bool): If True, loads the annotations in OBB format.
                 OBB annotations are defined as `[class_id, x, y, x, y, x, y, x, y]`,
                 where pairs of [x, y] are box corners.
 
@@ -575,7 +581,7 @@ class DetectionDataset(BaseDataset):
             images_directory_path (str): The path to the
                 directory containing the images.
             annotations_path (str): The path to the json annotation files.
-            force_masks (bool, optional): If True,
+            force_masks (bool): If True,
                 forces masks to be loaded for all annotations,
                 regardless of whether they are present.
 
@@ -709,28 +715,6 @@ class ClassificationDataset(BaseDataset):
                 "a list of paths `List[str]` instead."
             )
 
-    @property
-    @deprecated(
-        "`DetectionDataset.images` property is deprecated and will be removed in "
-        "`supervision-0.26.0`. Iterate with `for path, image, annotation in dataset:` "
-        "instead."
-    )
-    def images(self) -> Dict[str, np.ndarray]:
-        """
-        Load all images to memory and return them as a dictionary.
-
-        !!! warning
-
-            Only use this when you need all images at once.
-            It is much more memory-efficient to initialize dataset with
-            image paths and use `for path, image, annotation in dataset:`.
-        """
-        if self._images_in_memory:
-            return self._images_in_memory
-
-        images = {image_path: cv2.imread(image_path) for image_path in self.image_paths}
-        return images
-
     def _get_image(self, image_path: str) -> np.ndarray:
         """Assumes that image is in dataset"""
         if self._images_in_memory:
@@ -787,18 +771,21 @@ class ClassificationDataset(BaseDataset):
         return True
 
     def split(
-        self, split_ratio=0.8, random_state=None, shuffle: bool = True
+        self,
+        split_ratio: float = 0.8,
+        random_state: Optional[int] = None,
+        shuffle: bool = True,
     ) -> Tuple[ClassificationDataset, ClassificationDataset]:
         """
         Splits the dataset into two parts (training and testing)
             using the provided split_ratio.
 
         Args:
-            split_ratio (float, optional): The ratio of the training
+            split_ratio (float): The ratio of the training
                 set to the entire dataset.
-            random_state (int, optional): The seed for the
+            random_state (Optional[int]): The seed for the
                 random number generator. This is used for reproducibility.
-            shuffle (bool, optional): Whether to shuffle the data before splitting.
+            shuffle (bool): Whether to shuffle the data before splitting.
 
         Returns:
             Tuple[ClassificationDataset, ClassificationDataset]: A tuple containing

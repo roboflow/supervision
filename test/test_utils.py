@@ -1,13 +1,14 @@
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+import numpy.typing as npt
 
 from supervision.detection.core import Detections
 from supervision.keypoint.core import KeyPoints
 
 
 def mock_detections(
-    xyxy: List[List[float]],
+    xyxy: npt.NDArray[np.float32],
     mask: Optional[List[np.ndarray]] = None,
     confidence: Optional[List[float]] = None,
     class_id: Optional[List[int]] = None,
@@ -32,7 +33,7 @@ def mock_detections(
 
 
 def mock_keypoints(
-    xy: List[List[float]],
+    xy: npt.NDArray[np.float32],
     confidence: Optional[List[float]] = None,
     class_id: Optional[List[int]] = None,
     data: Optional[Dict[str, List[Any]]] = None,

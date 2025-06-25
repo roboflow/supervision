@@ -1,5 +1,4 @@
 from contextlib import ExitStack as DoesNotRaise
-from test.test_utils import mock_detections
 from typing import List, Optional, Union
 
 import numpy as np
@@ -7,6 +6,7 @@ import pytest
 
 from supervision.detection.core import Detections, merge_inner_detection_object_pair
 from supervision.geometry.core import Position
+from test.test_utils import mock_detections
 
 PREDICTIONS = np.array(
     [
@@ -106,6 +106,26 @@ TEST_DET_DIFFERENT_DATA = Detections(
         "never_seen_key": [9],
     },
 )
+TEST_DET_WITH_METADATA = Detections(
+    xyxy=np.array([[10, 10, 20, 20]]),
+    class_id=np.array([1]),
+    metadata={"source": "camera1"},
+)
+
+TEST_DET_WITH_METADATA_2 = Detections(
+    xyxy=np.array([[30, 30, 40, 40]]),
+    class_id=np.array([2]),
+    metadata={"source": "camera1"},
+)
+TEST_DET_NO_METADATA = Detections(
+    xyxy=np.array([[10, 10, 20, 20]]),
+    class_id=np.array([1]),
+)
+TEST_DET_DIFFERENT_METADATA = Detections(
+    xyxy=np.array([[50, 50, 60, 60]]),
+    class_id=np.array([3]),
+    metadata={"source": "camera2"},
+)
 
 
 @pytest.mark.parametrize(
@@ -203,6 +223,12 @@ TEST_DET_DIFFERENT_DATA = Detections(
             None,
             pytest.raises(IndexError),
         ),
+        (
+            Detections.empty(),
+            np.isin(Detections.empty()["class_name"], ["cat", "dog"]),
+            Detections.empty(),
+            DoesNotRaise(),
+        ),  # Filter an empty detections by specific class names
     ],
 )
 def test_getitem(
@@ -259,6 +285,11 @@ def test_getitem(
             DoesNotRaise(),
         ),  # Single detection and empty-array fields
         (
+            [TEST_DET_ZERO_LENGTH, TEST_DET_ZERO_LENGTH],
+            TEST_DET_ZERO_LENGTH,
+            DoesNotRaise(),
+        ),  # Zero-length fields across all Detections
+        (
             [
                 TEST_DET_1,
                 TEST_DET_NONE,
@@ -287,12 +318,190 @@ def test_getitem(
                 Detections.empty(),
             ],
             mock_detections(
-                xyxy=[[10, 10, 20, 20]],
+                xyxy=np.array([[10, 10, 20, 20]]),
                 class_id=[1],
                 mask=[np.zeros((4, 4), dtype=bool)],
             ),
             DoesNotRaise(),
         ),  # Segmentation + Empty
+        # Metadata
+        (
+            [
+                Detections(
+                    xyxy=np.array([[10, 10, 20, 20]]),
+                    class_id=np.array([1]),
+                    metadata={"source": "camera1"},
+                ),
+                Detections.empty(),
+            ],
+            Detections(
+                xyxy=np.array([[10, 10, 20, 20]]),
+                class_id=np.array([1]),
+                metadata={"source": "camera1"},
+            ),
+            DoesNotRaise(),
+        ),  # Metadata merge with empty detections
+        (
+            [
+                Detections(
+                    xyxy=np.array([[10, 10, 20, 20]]),
+                    class_id=np.array([1]),
+                    metadata={"source": "camera1"},
+                ),
+                Detections(xyxy=np.array([[30, 30, 40, 40]]), class_id=np.array([2])),
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # Empty and non-empty metadata
+        (
+            [
+                Detections(
+                    xyxy=np.array([[10, 10, 20, 20]]),
+                    class_id=np.array([1]),
+                    metadata={"source": "camera1"},
+                )
+            ],
+            Detections(
+                xyxy=np.array([[10, 10, 20, 20]]),
+                class_id=np.array([1]),
+                metadata={"source": "camera1"},
+            ),
+            DoesNotRaise(),
+        ),  # Single detection with metadata
+        (
+            [
+                Detections(
+                    xyxy=np.array([[10, 10, 20, 20]]),
+                    class_id=np.array([1]),
+                    metadata={"source": "camera1"},
+                ),
+                Detections(
+                    xyxy=np.array([[30, 30, 40, 40]]),
+                    class_id=np.array([2]),
+                    metadata={"source": "camera1"},
+                ),
+            ],
+            Detections(
+                xyxy=np.array([[10, 10, 20, 20], [30, 30, 40, 40]]),
+                class_id=np.array([1, 2]),
+                metadata={"source": "camera1"},
+            ),
+            DoesNotRaise(),
+        ),  # Multiple metadata entries with identical values
+        (
+            [
+                Detections(
+                    xyxy=np.array([[10, 10, 20, 20]]),
+                    class_id=np.array([1]),
+                    metadata={"source": "camera1"},
+                ),
+                Detections(
+                    xyxy=np.array([[50, 50, 60, 60]]),
+                    class_id=np.array([3]),
+                    metadata={"source": "camera2"},
+                ),
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # Different metadata values
+        (
+            [
+                Detections(
+                    xyxy=np.array([[10, 10, 20, 20]]),
+                    metadata={"source": "camera1", "resolution": "1080p"},
+                ),
+                Detections(
+                    xyxy=np.array([[30, 30, 40, 40]]),
+                    metadata={"source": "camera1", "resolution": "1080p"},
+                ),
+            ],
+            Detections(
+                xyxy=np.array([[10, 10, 20, 20], [30, 30, 40, 40]]),
+                metadata={"source": "camera1", "resolution": "1080p"},
+            ),
+            DoesNotRaise(),
+        ),  # Large metadata with multiple identical entries
+        (
+            [
+                Detections(
+                    xyxy=np.array([[10, 10, 20, 20]]), metadata={"source": "camera1"}
+                ),
+                Detections(
+                    xyxy=np.array([[30, 30, 40, 40]]), metadata={"source": ["camera1"]}
+                ),
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # Inconsistent types in metadata values
+        (
+            [
+                Detections(
+                    xyxy=np.array([[10, 10, 20, 20]]), metadata={"source": "camera1"}
+                ),
+                Detections(
+                    xyxy=np.array([[30, 30, 40, 40]]), metadata={"location": "indoor"}
+                ),
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # Metadata key mismatch
+        (
+            [
+                Detections(
+                    xyxy=np.array([[10, 10, 20, 20]]),
+                    metadata={
+                        "source": "camera1",
+                        "settings": {"resolution": "1080p", "fps": 30},
+                    },
+                ),
+                Detections(
+                    xyxy=np.array([[30, 30, 40, 40]]),
+                    metadata={
+                        "source": "camera1",
+                        "settings": {"resolution": "1080p", "fps": 30},
+                    },
+                ),
+            ],
+            Detections(
+                xyxy=np.array([[10, 10, 20, 20], [30, 30, 40, 40]]),
+                metadata={
+                    "source": "camera1",
+                    "settings": {"resolution": "1080p", "fps": 30},
+                },
+            ),
+            DoesNotRaise(),
+        ),  # multi-field metadata
+        (
+            [
+                Detections(
+                    xyxy=np.array([[10, 10, 20, 20]]),
+                    metadata={"calibration_matrix": np.array([[1, 0], [0, 1]])},
+                ),
+                Detections(
+                    xyxy=np.array([[30, 30, 40, 40]]),
+                    metadata={"calibration_matrix": np.array([[1, 0], [0, 1]])},
+                ),
+            ],
+            Detections(
+                xyxy=np.array([[10, 10, 20, 20], [30, 30, 40, 40]]),
+                metadata={"calibration_matrix": np.array([[1, 0], [0, 1]])},
+            ),
+            DoesNotRaise(),
+        ),  # Identical 2D numpy arrays in metadata
+        (
+            [
+                Detections(
+                    xyxy=np.array([[10, 10, 20, 20]]),
+                    metadata={"calibration_matrix": np.array([[1, 0], [0, 1]])},
+                ),
+                Detections(
+                    xyxy=np.array([[30, 30, 40, 40]]),
+                    metadata={"calibration_matrix": np.array([[2, 0], [0, 2]])},
+                ),
+            ],
+            None,
+            pytest.raises(ValueError),
+        ),  # Mismatching 2D numpy arrays in metadata
     ],
 )
 def test_merge(
@@ -302,7 +511,7 @@ def test_merge(
 ) -> None:
     with exception:
         result = Detections.merge(detections_list=detections_list)
-        assert result == expected_result
+        assert result == expected_result, f"Expected: {expected_result}, Got: {result}"
 
 
 @pytest.mark.parametrize(

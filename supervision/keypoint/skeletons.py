@@ -1,11 +1,11 @@
 from enum import Enum
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
-Edges = List[Tuple[int, int]]
+Edges = Tuple[Tuple[int, int], ...]
 
 
 class Skeleton(Enum):
-    COCO = [
+    COCO: Edges = (
         (1, 2),
         (1, 3),
         (2, 3),
@@ -23,9 +23,9 @@ class Skeleton(Enum):
         (15, 13),
         (16, 14),
         (17, 15),
-    ]
+    )
 
-    GHUM = [
+    GHUM: Edges = (
         (1, 2),
         (1, 5),
         (2, 3),
@@ -61,9 +61,9 @@ class Skeleton(Enum):
         (29, 33),
         (30, 32),
         (31, 33),
-    ]
+    )
 
-    FACEMESH_TESSELATION_NO_IRIS = [
+    FACEMESH_TESSELATION_NO_IRIS: Edges = (
         (128, 35),
         (35, 140),
         (140, 128),
@@ -2620,9 +2620,9 @@ class Skeleton(Enum):
         (340, 449),
         (449, 256),
         (256, 340),
-    ]
+    )
 
-    FACEMESH_TESSELATION = [
+    FACEMESH_TESSELATION: Edges = (
         (474, 474),
         (475, 476),
         (476, 477),
@@ -2633,7 +2633,8 @@ class Skeleton(Enum):
         (471, 472),
         (472, 473),
         (473, 470),
-    ] + FACEMESH_TESSELATION_NO_IRIS
+        *FACEMESH_TESSELATION_NO_IRIS,
+    )
 
 
 SKELETONS_BY_EDGE_COUNT: Dict[int, Edges] = {}

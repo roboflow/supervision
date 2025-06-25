@@ -33,7 +33,6 @@ extra_css:
   - stylesheets/extra.css
   - stylesheets/cookbooks-card.css
 
-
 nav:
   - Supervision: index.md
   - Learn:
@@ -43,52 +42,58 @@ nav:
       - Detect Small Objects: how_to/detect_small_objects.md
       - Track Objects on Video: how_to/track_objects.md
       - Process Datasets: how_to/process_datasets.md
+      - Benchmark a Model: how_to/benchmark_a_model.md
 
   - Reference - Code API:
-    - Detection and Segmentation:
-        - Core: detection/core.md
-        - Annotators: detection/annotators.md
-        - Metrics: detection/metrics.md
-        - Double Detection Filter: detection/double_detection_filter.md
-        - Utils: detection/utils.md
-    - Keypoint Detection:
-        - Core: keypoint/core.md
-        - Annotators: keypoint/annotators.md
-    - Classification:
-        - Core: classification/core.md
-    - Tools:
-        - Line Zone: detection/tools/line_zone.md
-        - Polygon Zone: detection/tools/polygon_zone.md
-        - Inference Slicer: detection/tools/inference_slicer.md
-        - Detection Smoother: detection/tools/smoother.md
-        - Save Detections: detection/tools/save_detections.md
-    - Trackers: trackers.md
-    - Datasets:
-        - Core: datasets/core.md
-        - Utils: datasets/utils.md
-    - Utils:
-        - Video: utils/video.md
-        - Image: utils/image.md
-        - Iterables: utils/iterables.md
-        - Notebook: utils/notebook.md
-        - File: utils/file.md
-        - Draw: utils/draw.md
-        - Geometry: utils/geometry.md
-    - Assets: assets.md
+      - Detection and Segmentation:
+          - Core: detection/core.md
+          - Annotators: detection/annotators.md
+          - Double Detection Filter: detection/double_detection_filter.md
+          - Utils: detection/utils.md
+      - Keypoint Detection:
+          - Core: keypoint/core.md
+          - Annotators: keypoint/annotators.md
+      - Classification:
+          - Core: classification/core.md
+      - Tools:
+          - Line Zone: detection/tools/line_zone.md
+          - Polygon Zone: detection/tools/polygon_zone.md
+          - Inference Slicer: detection/tools/inference_slicer.md
+          - Detection Smoother: detection/tools/smoother.md
+          - Save Detections: detection/tools/save_detections.md
+      - Trackers: trackers.md
+      - Datasets:
+          - Core: datasets/core.md
+          - Utils: datasets/utils.md
+      - Metrics:
+          - mAP: metrics/mean_average_precision.md
+          - mAR: metrics/mean_average_recall.md
+          - Precision: metrics/precision.md
+          - Recall: metrics/recall.md
+          - F1 Score: metrics/f1_score.md
+          - Common Values: metrics/common_values.md
+          - Legacy Metrics: detection/metrics.md
+      - Utils:
+          - Video: utils/video.md
+          - Image: utils/image.md
+          - Iterables: utils/iterables.md
+          - Notebook: utils/notebook.md
+          - File: utils/file.md
+          - Draw: utils/draw.md
+          - Geometry: utils/geometry.md
+      - Assets: assets.md
   - Cookbooks: cookbooks.md
   - Cheatsheet: https://roboflow.github.io/cheatsheet-supervision/
   - Contribute:
-    - Contributing: contributing.md
-    - Code of Conduct: code_of_conduct.md
-    - License: license.md
+      - Contributing: contributing.md
+      - Code of Conduct: code_of_conduct.md
+      - License: license.md
   - Release Notes:
-        - Changelog: changelog.md
-        - Deprecated: deprecated.md
-
-
+      - Changelog: changelog.md
+      - Deprecated: deprecated.md
 
 theme:
-  name: 'material'
+  name: "material"
   icon:
     edit: material/pencil
   logo: assets/supervision-lenny.png
@@ -105,18 +110,17 @@ theme:
   palette:
     # Palette for light mode
     - scheme: default
-      primary: 'custom'
+      primary: "custom"
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
 
     # Palette toggle for dark mode
     - scheme: slate
-      primary: 'custom'
+      primary: "custom"
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
-
 
   font:
     text: Roboto
@@ -128,10 +132,10 @@ theme:
 plugins:
   - search
   - mkdocs-jupyter:
-        kernel_name: python3
-        execute: false
-        include_source: True
-        include_requirejs: true
+      kernel_name: python3
+      execute: false
+      include_source: True
+      include_requirejs: true
   - mkdocstrings:
       default_handler: python
       handlers:
@@ -145,17 +149,18 @@ plugins:
             group_by_category: true
             docstring_style: google
             show_symbol_type_heading: true
+            show_root_heading: True
             show_symbol_type_toc: true
             show_category_heading: true
-          domains: [std, py]
+          inventories:
+          - url: https://docs.python-requests.org/en/master/objects.inv
+            domains: [std, py]
   - git-committers:
       repository: roboflow/supervision
       branch: develop
       token: !ENV ["GITHUB_TOKEN"]
   - git-revision-date-localized:
       enable_creation_date: true
-
-
 
 markdown_extensions:
   - admonition
@@ -174,11 +179,13 @@ markdown_extensions:
       check_paths: true
   - pymdownx.highlight:
       anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
 
 extra_javascript:
-  - "https://widget.kapa.ai/kapa-widget.bundle.js"
   - "javascripts/init_kapa_widget.js"
   - "javascripts/cookbooks-card.js"
+  - "javascripts/segment.js"
   - "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"
 
 # Messages shown during document build

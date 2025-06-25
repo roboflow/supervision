@@ -74,7 +74,7 @@ if __name__ == "__main__":
     model = models.get(Models.YOLO_NAS_L, pretrained_weights="coco")
 
     byte_track = sv.ByteTrack(
-        frame_rate=video_info.fps, track_thresh=args.confidence_threshold
+        frame_rate=video_info.fps, track_activation_threshold=args.confidence_threshold
     )
 
     thickness = sv.calculate_optimal_line_thickness(

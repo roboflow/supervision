@@ -1,5 +1,4 @@
 from contextlib import ExitStack as DoesNotRaise
-from test.test_utils import mock_detections
 from typing import Dict, List, Optional, Tuple, TypeVar
 
 import numpy as np
@@ -15,6 +14,7 @@ from supervision.dataset.utils import (
     rle_to_mask,
     train_test_split,
 )
+from test.test_utils import mock_detections
 
 T = TypeVar("T")
 
@@ -278,7 +278,7 @@ def test_map_detections_class_id(
             np.array([[[]]]).astype(bool),
             None,
             pytest.raises(AssertionError),
-        ),  # raises AssertionError because mask dimentionality is not 2D
+        ),  # raises AssertionError because mask dimensionality is not 2D
         (
             np.array([[]]).astype(bool),
             None,

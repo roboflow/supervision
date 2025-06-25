@@ -38,7 +38,7 @@ class JSONSink:
                 detections = sv.Detections.from_ultralytics(result)
                 sink.append(detections, custom_data={'<CUSTOM_LABEL>':'<CUSTOM_DATA>'})
         ```
-    """  # noqa: E501 // docs
+    """
 
     def __init__(self, file_name: str = "output.json") -> None:
         """
@@ -92,7 +92,7 @@ class JSONSink:
 
     @staticmethod
     def parse_detection_data(
-        detections: Detections, custom_data: Dict[str, Any] = None
+        detections: Detections, custom_data: Optional[Dict[str, Any]] = None
     ) -> List[Dict[str, Any]]:
         parsed_rows = []
         for i in range(len(detections.xyxy)):
@@ -126,7 +126,7 @@ class JSONSink:
         return parsed_rows
 
     def append(
-        self, detections: Detections, custom_data: Dict[str, Any] = None
+        self, detections: Detections, custom_data: Optional[Dict[str, Any]] = None
     ) -> None:
         """
         Append detection data to the JSON file.

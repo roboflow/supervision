@@ -9,7 +9,11 @@ from supervision.geometry.core import Point, Rect
 
 
 def draw_line(
-    scene: np.ndarray, start: Point, end: Point, color: Color, thickness: int = 2
+    scene: np.ndarray,
+    start: Point,
+    end: Point,
+    color: Color = Color.ROBOFLOW,
+    thickness: int = 2,
 ) -> np.ndarray:
     """
     Draws a line on a given scene.
@@ -18,7 +22,7 @@ def draw_line(
         scene (np.ndarray): The scene on which the line will be drawn
         start (Point): The starting point of the line
         end (Point): The end point of the line
-        color (Color): The color of the line
+        color (Color): The color of the line, defaults to Color.ROBOFLOW
         thickness (int): The thickness of the line
 
     Returns:
@@ -35,7 +39,7 @@ def draw_line(
 
 
 def draw_rectangle(
-    scene: np.ndarray, rect: Rect, color: Color, thickness: int = 2
+    scene: np.ndarray, rect: Rect, color: Color = Color.ROBOFLOW, thickness: int = 2
 ) -> np.ndarray:
     """
     Draws a rectangle on an image.
@@ -59,7 +63,9 @@ def draw_rectangle(
     return scene
 
 
-def draw_filled_rectangle(scene: np.ndarray, rect: Rect, color: Color) -> np.ndarray:
+def draw_filled_rectangle(
+    scene: np.ndarray, rect: Rect, color: Color = Color.ROBOFLOW, opacity: float = 1
+) -> np.ndarray:
     """
     Draws a filled rectangle on an image.
 
@@ -67,17 +73,32 @@ def draw_filled_rectangle(scene: np.ndarray, rect: Rect, color: Color) -> np.nda
         scene (np.ndarray): The scene on which the rectangle will be drawn
         rect (Rect): The rectangle to be drawn
         color (Color): The color of the rectangle
+        opacity (float): The opacity of rectangle when drawn on the scene.
 
     Returns:
         np.ndarray: The scene with the rectangle drawn on it
     """
-    cv2.rectangle(
-        scene,
-        rect.top_left.as_xy_int_tuple(),
-        rect.bottom_right.as_xy_int_tuple(),
-        color.as_bgr(),
-        -1,
-    )
+    if opacity == 1:
+        cv2.rectangle(
+            scene,
+            rect.top_left.as_xy_int_tuple(),
+            rect.bottom_right.as_xy_int_tuple(),
+            color.as_bgr(),
+            -1,
+        )
+    else:
+        scene_with_annotations = scene.copy()
+        cv2.rectangle(
+            scene_with_annotations,
+            rect.top_left.as_xy_int_tuple(),
+            rect.bottom_right.as_xy_int_tuple(),
+            color.as_bgr(),
+            -1,
+        )
+        cv2.addWeighted(
+            scene_with_annotations, opacity, scene, 1 - opacity, gamma=0, dst=scene
+        )
+
     return scene
 
 
@@ -134,15 +155,18 @@ def draw_rounded_rectangle(
 
 
 def draw_polygon(
-    scene: np.ndarray, polygon: np.ndarray, color: Color, thickness: int = 2
+    scene: np.ndarray,
+    polygon: np.ndarray,
+    color: Color = Color.ROBOFLOW,
+    thickness: int = 2,
 ) -> np.ndarray:
     """Draw a polygon on a scene.
 
     Parameters:
         scene (np.ndarray): The scene to draw the polygon on.
         polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.
-        color (Color): The color of the polygon.
-        thickness (int, optional): The thickness of the polygon lines, by default 2.
+        color (Color): The color of the polygon. Defaults to Color.ROBOFLOW.
+        thickness (int): The thickness of the polygon lines, by default 2.
 
     Returns:
         np.ndarray: The scene with the polygon drawn on it.
@@ -150,6 +174,35 @@ def draw_polygon(
     cv2.polylines(
         scene, [polygon], isClosed=True, color=color.as_bgr(), thickness=thickness
     )
+    return scene
+
+
+def draw_filled_polygon(
+    scene: np.ndarray,
+    polygon: np.ndarray,
+    color: Color = Color.ROBOFLOW,
+    opacity: float = 1,
+) -> np.ndarray:
+    """Draw a filled polygon on a scene.
+
+    Parameters:
+        scene (np.ndarray): The scene to draw the polygon on.
+        polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.
+        color (Color): The color of the polygon. Defaults to Color.ROBOFLOW.
+        opacity (float): The opacity of polygon when drawn on the scene.
+
+    Returns:
+        np.ndarray: The scene with the polygon drawn on it.
+    """
+    if opacity == 1:
+        cv2.fillPoly(scene, [polygon], color=color.as_bgr())
+    else:
+        scene_with_annotations = scene.copy()
+        cv2.fillPoly(scene_with_annotations, [polygon], color=color.as_bgr())
+        cv2.addWeighted(
+            scene_with_annotations, opacity, scene, 1 - opacity, gamma=0, dst=scene
+        )
+
     return scene
 
 
@@ -172,14 +225,14 @@ def draw_text(
         text (str): The text to be drawn.
         text_anchor (Point): The anchor point for the text, represented as a
             Point object with x and y attributes.
-        text_color (Color, optional): The color of the text. Defaults to black.
-        text_scale (float, optional): The scale of the text. Defaults to 0.5.
-        text_thickness (int, optional): The thickness of the text. Defaults to 1.
-        text_padding (int, optional): The amount of padding to add around the text
+        text_color (Color): The color of the text. Defaults to black.
+        text_scale (float): The scale of the text. Defaults to 0.5.
+        text_thickness (int): The thickness of the text. Defaults to 1.
+        text_padding (int): The amount of padding to add around the text
             when drawing a rectangle in the background. Defaults to 10.
-        text_font (int, optional): The font to use for the text.
+        text_font (int): The font to use for the text.
             Defaults to cv2.FONT_HERSHEY_SIMPLEX.
-        background_color (Color, optional): The color of the background rectangle,
+        background_color (Optional[Color]): The color of the background rectangle,
             if one is to be drawn. Defaults to None.
 
     Returns:

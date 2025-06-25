@@ -83,15 +83,16 @@ class Color:
         # Color(r=255, g=255, b=255)
         ```
 
-    | Constant   | Hex Code   | RGB              |
-    |------------|------------|------------------|
-    | `WHITE`    | `#FFFFFF`  | `(255, 255, 255)`|
-    | `BLACK`    | `#000000`  | `(0, 0, 0)`      |
-    | `RED`      | `#FF0000`  | `(255, 0, 0)`    |
-    | `GREEN`    | `#00FF00`  | `(0, 255, 0)`    |
-    | `BLUE`     | `#0000FF`  | `(0, 0, 255)`    |
-    | `YELLOW`   | `#FFFF00`  | `(255, 255, 0)`  |
-    | `ROBOFLOW` | `#A351FB`  | `(163, 81, 251)` |
+    | Constant   | Hex Code   | RGB               |
+    |------------|------------|-------------------|
+    | `WHITE`    | `#FFFFFF`  | `(255, 255, 255)` |
+    | `BLACK`    | `#000000`  | `(0, 0, 0)`       |
+    | `GREY`     | `#808080`  | `(128, 128, 128)` |
+    | `RED`      | `#FF0000`  | `(255, 0, 0)`     |
+    | `GREEN`    | `#00FF00`  | `(0, 255, 0)`     |
+    | `BLUE`     | `#0000FF`  | `(0, 0, 255)`     |
+    | `YELLOW`   | `#FFFF00`  | `(255, 255, 0)`   |
+    | `ROBOFLOW` | `#A351FB`  | `(163, 81, 251)`  |
     """
 
     r: int
@@ -236,6 +237,10 @@ class Color:
         return Color.from_hex("#000000")
 
     @classproperty
+    def GREY(cls) -> Color:
+        return Color.from_hex("#808080")
+
+    @classproperty
     def RED(cls) -> Color:
         return Color.from_hex("#FF0000")
 
@@ -254,6 +259,17 @@ class Color:
     @classproperty
     def ROBOFLOW(cls) -> Color:
         return Color.from_hex("#A351FB")
+
+    def __hash__(self):
+        return hash((self.r, self.g, self.b))
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, Color)
+            and self.r == other.r
+            and self.g == other.g
+            and self.b == other.b
+        )
 
 
 @dataclass
@@ -385,6 +401,15 @@ class ColorPalette:
             raise ValueError("idx argument should not be negative")
         idx = idx % len(self.colors)
         return self.colors[idx]
+
+    def __len__(self) -> int:
+        """
+        Returns the number of colors in the palette.
+
+        Returns:
+            int: The number of colors.
+        """
+        return len(self.colors)
 
 
 def unify_to_bgr(color: Union[Tuple[int, int, int], Color]) -> Tuple[int, int, int]:

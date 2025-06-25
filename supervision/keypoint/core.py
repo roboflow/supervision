@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from contextlib import suppress
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.detection.core import Detections
 from supervision.detection.utils import get_data_item, is_data_equal
 from supervision.validators import validate_keypoints_fields
 
@@ -18,13 +18,13 @@ class KeyPoints:
     The `sv.KeyPoints` class in the Supervision library standardizes results from
     various keypoint detection and pose estimation models into a consistent format. This
     class simplifies data manipulation and filtering, providing a uniform API for
-    integration with Supervision [keypoints annotators](/keypoint/annotators).
+    integration with Supervision [keypoints annotators](/latest/keypoint/annotators).
 
     === "Ultralytics"
 
-        Use [`sv.KeyPoints.from_ultralytics`](/keypoint/core/#supervision.keypoint.core.KeyPoints.from_ultralytics)
-        method, which accepts [YOLOv8](https://github.com/ultralytics/ultralytics)
-        pose result.
+        Use [`sv.KeyPoints.from_ultralytics`](/latest/keypoint/core/#supervision.keypoint.core.KeyPoints.from_ultralytics)
+        method, which accepts [YOLOv8-pose](https://docs.ultralytics.com/models/yolov8/), [YOLO11-pose](https://docs.ultralytics.com/models/yolo11/)
+        [pose](https://docs.ultralytics.com/tasks/pose/) result.
 
         ```python
         import cv2
@@ -32,7 +32,7 @@ class KeyPoints:
         from ultralytics import YOLO
 
         image = cv2.imread(<SOURCE_IMAGE_PATH>)
-        model = YOLO('yolov8s-pose.pt')
+        model = YOLO('yolo11s-pose.pt')
 
         result = model(image)[0]
         key_points = sv.KeyPoints.from_ultralytics(result)
@@ -40,7 +40,7 @@ class KeyPoints:
 
     === "Inference"
 
-        Use [`sv.KeyPoints.from_inference`](/keypoint/core/#supervision.keypoint.core.KeyPoints.from_inference)
+        Use [`sv.KeyPoints.from_inference`](/latest/keypoint/core/#supervision.keypoint.core.KeyPoints.from_inference)
         method, which accepts [Inference](https://inference.roboflow.com/) pose result.
 
         ```python
@@ -57,9 +57,10 @@ class KeyPoints:
 
     === "MediaPipe"
 
-        Use [`sv.KeyPoints.from_mediapipe`](/keypoint/core/#supervision.keypoint.core.KeyPoints.from_mediapipe)
+        Use [`sv.KeyPoints.from_mediapipe`](/latest/keypoint/core/#supervision.keypoint.core.KeyPoints.from_mediapipe)
         method, which accepts [MediaPipe](https://github.com/google-ai-edge/mediapipe)
         pose result.
+
 
         ```python
         import cv2
@@ -88,15 +89,17 @@ class KeyPoints:
         ```
 
     Attributes:
-        xy (np.ndarray): An array of shape `(n, 2)` containing
-            the bounding boxes coordinates in format `[x1, y1]`
-        confidence (Optional[np.ndarray]): An array of shape
-            `(n,)` containing the confidence scores of the keypoint keypoints.
+        xy (np.ndarray): An array of shape `(n, m, 2)` containing
+            `n` detected objects, each composed of `m` equally-sized
+            sets of keypoints, where each point is `[x, y]`.
         class_id (Optional[np.ndarray]): An array of shape
-            `(n,)` containing the class ids of the keypoint keypoints.
+            `(n,)` containing the class ids of the detected objects.
+        confidence (Optional[np.ndarray]): An array of shape
+            `(n, m)` containing the confidence scores of each keypoint.
         data (Dict[str, Union[np.ndarray, List]]): A dictionary containing additional
             data where each key is a string representing the data type, and the value
-            is either a NumPy array or a list of corresponding data.
+            is either a NumPy array or a list of corresponding data of length `n`
+            (one entry per detected object).
     """  # noqa: E501 // docs
 
     xy: npt.NDArray[np.float32]
@@ -132,7 +135,7 @@ class KeyPoints:
     ]:
         """
         Iterates over the Keypoint object and yield a tuple of
-        `(xy, confidence, class_id, data)` for each keypoint detection.
+        `(xy, confidence, class_id, data)` for each object detection.
         """
         for i in range(len(self.xy)):
             yield (
@@ -201,9 +204,10 @@ class KeyPoints:
                 "You can retrieve it like so:  inference_result = model.infer(image)[0]"
             )
 
-        with suppress(AttributeError):
+        if hasattr(inference_result, "dict"):
             inference_result = inference_result.dict(exclude_none=True, by_alias=True)
-
+        elif hasattr(inference_result, "json"):
+            inference_result = inference_result.json()
         if not inference_result.get("predictions"):
             return cls.empty()
 
@@ -311,6 +315,7 @@ class KeyPoints:
             key_points = sv.KeyPoints.from_mediapipe(
                 face_landmarker_result, (image_width, image_height))
             ```
+
         """  # noqa: E501 // docs
         if hasattr(mediapipe_results, "pose_landmarks"):
             results = mediapipe_results.pose_landmarks
@@ -427,7 +432,7 @@ class KeyPoints:
             results = model.predict(image, conf=0.1)
             key_points = sv.KeyPoints.from_yolo_nas(results)
             ```
-        """  # noqa: E501 // docs
+        """
         if len(yolo_nas_results.prediction.poses) == 0:
             return cls.empty()
 
@@ -457,20 +462,20 @@ class KeyPoints:
         )
 
     @classmethod
-    def from_detectron2(cls, detectron2_results) -> KeyPoints:
+    def from_detectron2(cls, detectron2_results: Any) -> KeyPoints:
         """
         Create a `sv.KeyPoints` object from the
         [Detectron2](https://github.com/facebookresearch/detectron2) inference result.
 
         Args:
-            detectron2_results: The output of a
+            detectron2_results (Any): The output of a
                 Detectron2 model containing instances with prediction data.
 
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
                 and class names, and confidences of each keypoint.
 
-        Example:
+        Examples:
             ```python
             import cv2
             import supervision as sv
@@ -503,6 +508,91 @@ class KeyPoints:
                 .pred_classes.cpu()
                 .numpy()
                 .astype(int),
+            )
+        else:
+            return cls.empty()
+
+    @classmethod
+    def from_transformers(cls, transfomers_results: Any) -> KeyPoints:
+        """
+        Create a `sv.KeyPoints` object from the
+        [Transformers](https://github.com/huggingface/transformers) inference result.
+
+        Args:
+            transfomers_results (Any): The output of a
+                Transformers model containing instances with prediction data.
+
+        Returns:
+            A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
+                and class names, and confidences of each keypoint.
+
+        Examples:
+            ```python
+            from PIL import Image
+            import requests
+            import supervision as sv
+            import torch
+            from transformers import (
+                AutoProcessor,
+                RTDetrForObjectDetection,
+                VitPoseForPoseEstimation,
+            )
+
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            image = Image.open(<SOURCE_IMAGE_PATH>)
+
+            DETECTION_MODEL_ID = "PekingU/rtdetr_r50vd_coco_o365"
+
+            detection_processor = AutoProcessor.from_pretrained(DETECTION_MODEL_ID, use_fast=True)
+            detection_model = RTDetrForObjectDetection.from_pretrained(DETECTION_MODEL_ID, device_map=DEVICE)
+
+            inputs = detection_processor(images=frame, return_tensors="pt").to(DEVICE)
+
+            with torch.no_grad():
+                outputs = detection_model(**inputs)
+
+            target_size = torch.tensor([(frame.height, frame.width)])
+            results = detection_processor.post_process_object_detection(
+                outputs, target_sizes=target_size, threshold=0.3)
+
+            detections = sv.Detections.from_transformers(results[0])
+            boxes = sv.xyxy_to_xywh(detections[detections.class_id == 0].xyxy)
+
+            POSE_ESTIMATION_MODEL_ID = "usyd-community/vitpose-base-simple"
+
+            pose_estimation_processor = AutoProcessor.from_pretrained(POSE_ESTIMATION_MODEL_ID)
+            pose_estimation_model = VitPoseForPoseEstimation.from_pretrained(
+                POSE_ESTIMATION_MODEL_ID, device_map=DEVICE)
+
+            inputs = pose_estimation_processor(frame, boxes=[boxes], return_tensors="pt").to(DEVICE)
+
+            with torch.no_grad():
+                outputs = pose_estimation_model(**inputs)
+
+            results = pose_estimation_processor.post_process_pose_estimation(outputs, boxes=[boxes])
+            key_point = sv.KeyPoints.from_transformers(results[0])
+            ```
+
+        """  # noqa: E501 // docs
+
+        if "keypoints" in transfomers_results[0]:
+            if transfomers_results[0]["keypoints"].cpu().numpy().size == 0:
+                return cls.empty()
+
+            result_data = [
+                (
+                    result["keypoints"].cpu().numpy(),
+                    result["scores"].cpu().numpy(),
+                )
+                for result in transfomers_results
+            ]
+
+            xy, scores = zip(*result_data)
+
+            return cls(
+                xy=np.stack(xy).astype(np.float32),
+                confidence=np.stack(scores).astype(np.float32),
+                class_id=np.arange(len(xy)).astype(int),
             )
         else:
             return cls.empty()
@@ -610,3 +700,75 @@ class KeyPoints:
             ```
         """
         return cls(xy=np.empty((0, 0, 2), dtype=np.float32))
+
+    def is_empty(self) -> bool:
+        """
+        Returns `True` if the `KeyPoints` object is considered empty.
+        """
+        empty_keypoints = KeyPoints.empty()
+        empty_keypoints.data = self.data
+        return self == empty_keypoints
+
+    def as_detections(
+        self, selected_keypoint_indices: Optional[Iterable[int]] = None
+    ) -> Detections:
+        """
+        Convert a KeyPoints object to a Detections object. This
+        approximates the bounding box of the detected object by
+        taking the bounding box that fits all keypoints.
+
+        Arguments:
+            selected_keypoint_indices (Optional[Iterable[int]]): The
+                indices of the keypoints to include in the bounding box
+                calculation. This helps focus on a subset of keypoints,
+                e.g. when some are occluded. Captures all keypoints by default.
+
+        Returns:
+            detections (Detections): The converted detections object.
+
+        Examples:
+            ```python
+            keypoints = sv.KeyPoints.from_inference(...)
+            detections = keypoints.as_detections()
+            ```
+        """
+        if self.is_empty():
+            return Detections.empty()
+
+        detections_list = []
+        for i, xy in enumerate(self.xy):
+            if selected_keypoint_indices:
+                xy = xy[selected_keypoint_indices]
+
+            # [0, 0] used by some frameworks to indicate missing keypoints
+            xy = xy[~np.all(xy == 0, axis=1)]
+            if len(xy) == 0:
+                xyxy = np.array([[0, 0, 0, 0]], dtype=np.float32)
+            else:
+                x_min = xy[:, 0].min()
+                x_max = xy[:, 0].max()
+                y_min = xy[:, 1].min()
+                y_max = xy[:, 1].max()
+                xyxy = np.array([[x_min, y_min, x_max, y_max]], dtype=np.float32)
+
+            if self.confidence is None:
+                confidence = None
+            else:
+                confidence = self.confidence[i]
+                if selected_keypoint_indices:
+                    confidence = confidence[selected_keypoint_indices]
+                confidence = np.array([confidence.mean()], dtype=np.float32)
+
+            detections_list.append(
+                Detections(
+                    xyxy=xyxy,
+                    confidence=confidence,
+                )
+            )
+
+        detections = Detections.merge(detections_list)
+        detections.class_id = self.class_id
+        detections.data = self.data
+        detections = detections[detections.area > 0]
+
+        return detections

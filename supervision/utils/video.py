@@ -7,6 +7,7 @@ from typing import Callable, Generator, Optional, Tuple
 
 import cv2
 import numpy as np
+from tqdm.auto import tqdm
 
 
 @dataclass
@@ -19,7 +20,7 @@ class VideoInfo:
         width (int): width of the video in pixels
         height (int): height of the video in pixels
         fps (int): frames per second of the video
-        total_frames (int, optional): total number of frames in the video,
+        total_frames (Optional[int]): total number of frames in the video,
             default is None
 
     Examples:
@@ -116,7 +117,9 @@ class VideoSink:
         self.__writer.release()
 
 
-def _validate_and_setup_video(source_path: str, start: int, end: Optional[int]):
+def _validate_and_setup_video(
+    source_path: str, start: int, end: Optional[int], iterative_seek: bool = False
+):
     video = cv2.VideoCapture(source_path)
     if not video.isOpened():
         raise Exception(f"Could not open video at {source_path}")
@@ -125,12 +128,25 @@ def _validate_and_setup_video(source_path: str, start: int, end: Optional[int]):
         raise Exception("Requested frames are outbound")
     start = max(start, 0)
     end = min(end, total_frames) if end is not None else total_frames
-    video.set(cv2.CAP_PROP_POS_FRAMES, start)
+
+    if iterative_seek:
+        while start > 0:
+            success = video.grab()
+            if not success:
+                break
+            start -= 1
+    elif start > 0:
+        video.set(cv2.CAP_PROP_POS_FRAMES, start)
+
     return video, start, end
 
 
 def get_video_frames_generator(
-    source_path: str, stride: int = 1, start: int = 0, end: Optional[int] = None
+    source_path: str,
+    stride: int = 1,
+    start: int = 0,
+    end: Optional[int] = None,
+    iterative_seek: bool = False,
 ) -> Generator[np.ndarray, None, None]:
     """
     Get a generator that yields the frames of the video.
@@ -143,6 +159,9 @@ def get_video_frames_generator(
             video should generate frames
         end (Optional[int]): Indicates the ending position at which video
             should stop generating frames. If None, video will be read to the end.
+        iterative_seek (bool): If True, the generator will seek to the
+            `start` frame by grabbing each frame, which is much slower. This is a
+            workaround for videos that don't open at all when you set the `start` value.
 
     Returns:
         (Generator[np.ndarray, None, None]): A generator that yields the
@@ -156,7 +175,9 @@ def get_video_frames_generator(
             ...
         ```
     """
-    video, start, end = _validate_and_setup_video(source_path, start, end)
+    video, start, end = _validate_and_setup_video(
+        source_path, start, end, iterative_seek
+    )
     frame_position = start
     while True:
         success, frame = video.read()
@@ -175,6 +196,9 @@ def process_video(
     source_path: str,
     target_path: str,
     callback: Callable[[np.ndarray, int], np.ndarray],
+    max_frames: Optional[int] = None,
+    show_progress: bool = False,
+    progress_message: str = "Processing video",
 ) -> None:
     """
     Process a video file by applying a callback function on each frame
@@ -187,6 +211,9 @@ def process_video(
             a numpy ndarray representation of a video frame and an
             int index of the frame and returns a processed numpy ndarray
             representation of the frame.
+        max_frames (Optional[int]): The maximum number of frames to process.
+        show_progress (bool): Whether to show a progress bar.
+        progress_message (str): The message to display in the progress bar.
 
     Examples:
         ```python
@@ -203,12 +230,29 @@ def process_video(
         ```
     """
     source_video_info = VideoInfo.from_video_path(video_path=source_path)
+    video_frames_generator = get_video_frames_generator(
+        source_path=source_path, end=max_frames
+    )
     with VideoSink(target_path=target_path, video_info=source_video_info) as sink:
+        total_frames = (
+            min(source_video_info.total_frames, max_frames)
+            if max_frames is not None
+            else source_video_info.total_frames
+        )
         for index, frame in enumerate(
-            get_video_frames_generator(source_path=source_path)
+            tqdm(
+                video_frames_generator,
+                total=total_frames,
+                disable=not show_progress,
+                desc=progress_message,
+            )
         ):
             result_frame = callback(frame, index)
             sink.write_frame(frame=result_frame)
+        else:
+            for index, frame in enumerate(video_frames_generator):
+                result_frame = callback(frame, index)
+                sink.write_frame(frame=result_frame)
 
 
 class FPSMonitor:

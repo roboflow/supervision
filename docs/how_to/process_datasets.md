@@ -1,6 +1,5 @@
 ---
 comments: true
-status: new
 ---
 
 With Supervision, you can load and manipulate classification, object detection, and

@@ -1,15 +1,16 @@
-[tool.poetry]
+[project]
 name = "supervision"
-version = "0.22.0"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
-authors = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
-maintainers = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
+license = { text = "MIT" }
+version = "0.26.0rc7"
 readme = "README.md"
-license = "MIT"
-packages = [{ include = "supervision" }]
-homepage = "https://github.com/roboflow/supervision"
-repository = "https://github.com/roboflow/supervision"
-documentation = "https://github.com/roboflow/supervision/blob/main/README.md"
+requires-python = ">=3.8"
+authors = [
+    { name = "Piotr Skalski", email = "piotr.skalski92@gmail.com" }
+]
+maintainers = [
+    { name = "Piotr Skalski", email = "piotr.skalski92@gmail.com" },
+]
 keywords = [
     "machine-learning",
     "deep-learning",
@@ -19,7 +20,6 @@ keywords = [
     "AI",
     "Roboflow",
 ]
-
 classifiers = [
     'Development Status :: 4 - Beta',
     'Intended Audience :: Developers',
@@ -37,89 +37,58 @@ classifiers = [
     'Operating System :: POSIX :: Linux',
     'Operating System :: MacOS',
 ]
-
-[tool.poetry.dependencies]
-python = "^3.8"
-numpy = [
-    { version = ">=1.21.2,<1.23.3", python = "<=3.10" },
-    { version = ">=1.23.3", python = ">3.10" },
-]
-scipy = [
-    { version = "1.10.0", python = "<3.9" },
-    { version = "^1.10.0", python = ">=3.9" },
-]
-matplotlib = ">=3.6.0"
-pyyaml = ">=5.3"
-defusedxml = "^0.7.1"
-opencv-python = { version = ">=4.5.5.64", optional = true }
-opencv-python-headless = ">=4.5.5.64"
-requests = { version = ">=2.26.0,<=2.32.3", optional = true }
-tqdm = { version = ">=4.62.3,<=4.66.4", optional = true }
-pillow = ">=9.4"
-
-[tool.poetry.extras]
-desktop = ["opencv-python"]
-assets = ["requests", "tqdm"]
-
-[tool.poetry.group.dev.dependencies]
-twine = "^5.1.1"
-pytest = ">=7.2.2,<9.0.0"
-wheel = ">=0.40,<0.44"
-build = ">=0.10,<1.3"
-ruff = ">=0.1.0"
-mypy = "^1.4.1"
-pre-commit = "^3.3.3"
-tox = "^4.11.4"
-notebook = ">=6.5.3,<8.0.0"
-ipywidgets = "^8.1.1"
-jupytext = "^1.16.1"
-nbconvert = "^7.14.2"
-docutils = [
-    { version = "^0.20.1", python = "<3.9" },
-    { version = "^0.21.1", python = ">=3.9" },
+dependencies = [
+    "numpy>=1.21.2",
+    "scipy>=1.10.0",
+    "matplotlib>=3.6.0",
+    "pyyaml>=5.3",
+    "defusedxml>=0.7.1",
+    "pillow>=9.4",
+    "requests>=2.26.0",
+    "tqdm>=4.62.3",
+    "opencv-python>=4.5.5.64"
 ]
 
+[project.urls]
+Homepage = "https://github.com/roboflow/supervision"
+Repository = "https://github.com/roboflow/supervision"
+Documentation = "https://supervision.roboflow.com/latest/"
 
-[tool.poetry.group.docs.dependencies]
-mkdocs-material = { extras = ["imaging"], version = "^9.5.5" }
-mkdocstrings = { extras = ["python"], version = ">=0.20,<0.26" }
-mike = "^2.0.0"
-# For Documentation Development use Python 3.10 or above
-# Use Latest mkdocs-jupyter min 0.24.6 for Jupyter Notebook Theme support
-mkdocs-jupyter = "^0.24.3"
-mkdocs-git-committers-plugin-2 = "^2.2.3"
-mkdocs-git-revision-date-localized-plugin = "^1.2.4"
-
-[tool.isort]
-line_length = 88
-profile = "black"
+[project.optional-dependencies]
+metrics = [
+    "pandas>=2.0.0",
+]
+dev = [
+    "pytest>=7.2.2,<9.0.0",
+    "tox>=4.11.4",
+    "notebook>=6.5.3,<8.0.0",
+    "ipywidgets>=8.1.1",
+    "jupytext>=1.16.1",
+    "nbconvert>=7.14.2",
+    "docutils!=0.21"
+]
+docs = [
+    "mkdocs-material[imaging]>=9.5.5",
+    "mkdocstrings>=0.25.2,<0.30.0",
+    "mkdocstrings-python>=1.10.9",
+    "mike>=2.0.0",
+    "mkdocs-jupyter>=0.24.3",
+    "mkdocs-git-committers-plugin-2>=2.4.1; python_version >= '3.8' and python_version < '4'",
+    "mkdocs-git-revision-date-localized-plugin>=1.2.4"
+]
+build = [
+    "twine>=5.1.1,<7.0.0",
+    "wheel>=0.40,<0.46",
+    "build>=0.10,<1.3"
+]
 
 [tool.bandit]
 target = ["test", "supervision"]
-tests = ["B201", "B301", "B318", "B314", "B303", "B413", "B412", "B410"]
+tests = ["B201", "B301", "B318", "B314", "B303", "B413", "B412"]
 
 [tool.autoflake]
 check = true
 imports = ["cv2", "supervision"]
-
-[tool.black]
-target-version = ["py38"]
-line-length = 88
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-  | docs
-)/
-'''
 
 [tool.ruff]
 target-version = "py38"
@@ -157,7 +126,7 @@ indent-width = 4
 
 [tool.ruff.lint]
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-select = ["E", "F"]
+select = ["E", "F", "I", "A", "Q", "W", "RUF"]
 ignore = []
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = [
@@ -226,6 +195,10 @@ convention = "google"
 # Flag errors (`C901`) whenever the complexity level exceeds 5.
 max-complexity = 20
 
+[tool.ruff.lint.isort]
+order-by-type = true
+no-sections = false
+
 [tool.ruff.format]
 # Like Black, use double quotes for strings.
 quote-style = "double"
@@ -239,12 +212,22 @@ skip-magic-trailing-comma = false
 # Like Black, automatically detect the appropriate line ending.
 line-ending = "auto"
 
+[tool.codespell]
+skip = "*.ipynb"
+count = true
+quiet-level = 3
+ignore-words-list = "STrack,sTrack,strack"
+
 [tool.setuptools]
 include-package-data = false
 
 [tool.setuptools.packages.find]
+include = ["supervision*"]
 exclude = ["docs*", "test*", "examples*"]
 
+[tool.setuptools.package-data]
+supervision = ["py.typed"]
+
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"

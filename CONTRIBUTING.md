@@ -6,22 +6,22 @@ We are actively improving this library to reduce the amount of work you need to 
 
 ## Code of Conduct
 
-Please read and adhere to our [Code of Conduct](CODE_OF_CONDUCT.md). This document outlines the expected behavior for all participants in our project.
+Please read and adhere to our [Code of Conduct](https://supervision.roboflow.com/latest/code_of_conduct/). This document outlines the expected behavior for all participants in our project.
 
 ## Table of Contents
 
 - [Contribution Guidelines](#contribution-guidelines)
-  - [Contributing Features](#contributing-features-)
+    - [Contributing Features](#contributing-features)
 - [How to Contribute Changes](#how-to-contribute-changes)
 - [Installation for Contributors](#installation-for-contributors)
-- [Code Style and Quality](#-code-style-and-quality)
-  - [Pre-commit tool](#pre-commit-tool)
-  - [Docstrings](#docstrings)
-  - [Type checking](#type-checking)
-- [Documentation](#-documentation)
-- [Cookbooks](#-cookbooks)
-- [Tests](#-tests)
-- [License](#-license)
+- [Code Style and Quality](#code-style-and-quality)
+    - [Pre-commit tool](#pre-commit-tool)
+    - [Docstrings](#docstrings)
+    - [Type checking](#type-checking)
+- [Documentation](#documentation)
+- [Cookbooks](#cookbooks)
+- [Tests](#tests)
+- [License](#license)
 
 ## Contribution Guidelines
 
@@ -83,9 +83,10 @@ git push -u origin <your_branch_name>
 
 Use conventional commit messages to clearly describe your changes. The format is:
 
-<type>[optional scope]: <description>
+<type>\[optional scope\]: <description>
 
 Common types include:
+
 - feat: A new feature
 - fix: A bug fix
 - docs: Documentation only changes
@@ -127,41 +128,48 @@ PRs must pass all tests and linting requirements before they can be merged.
 
 Before starting your work on the project, set up your development environment:
 
-1. Clone your fork of the project:
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/supervision.git
-   cd supervision
-   ```
-   Replace `YOUR_USERNAME` with your GitHub username.
+1. Clone your fork of the project (recommended to use shallow clone of develop branch):
+
+    **Option A: Recommended for most contributors (shallow clone of develop branch):**
+
+    ```bash
+    git clone --depth 1 -b develop https://github.com/YOUR_USERNAME/supervision.git
+    cd supervision
+    ```
+
+    Replace `YOUR_USERNAME` with your GitHub username.
+
+    > Note: Using `--depth 1` creates a shallow clone with minimal history and `-b develop` ensures you start with the development branch. This significantly reduces download size while providing everything needed to contribute.
+
+    **Option B: Full repository clone (if you need complete history):**
+
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/supervision.git
+    cd supervision
+    ```
 
 2. Create and activate a virtual environment:
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   ```
 
-3. Install Poetry:
+    ```bash
+    python3 -m venv .venv
+    source .venv/bin/activate
+    ```
 
-   Using pip:
-   ```bash
-   pip install -U pip setuptools
-   pip install poetry
-   ```
+3. Install `uv`:
 
-   Or using pipx (recommended for global installation):
-   ```bash
-   pipx install poetry
-   ```
+    Follow the instructions on the [uv installation page](https://docs.astral.sh/uv/getting-started/installation/).
 
 4. Install project dependencies:
-   ```bash
-   poetry install
-   ```
+
+    ```bash
+    uv pip install -r pyproject.toml --extra dev --extra docs --extra metrics
+    ```
 
 5. Run pytest to verify the setup:
-   ```bash
-   poetry run pytest
-   ```
+
+    ```bash
+    uv run pytest
+    ```
 
 ## 🎨 Code Style and Quality
 
@@ -173,7 +181,7 @@ Furthermore, we have integrated a pre-commit GitHub Action into our workflow. Th
 
 To run the pre-commit tool, follow these steps:
 
-1. Install pre-commit by running the following command: `poetry install`. It will not only install pre-commit but also install all the deps and dev-deps of project
+1. Install pre-commit by running the following command: `uv pip install -r pyproject.toml --extra dev`. It will not only install pre-commit but also install all the deps and dev-deps of project
 
 2. Once pre-commit is installed, navigate to the project's root directory.
 
@@ -195,7 +203,7 @@ So far, **there is no type checking with mypy**. See [issue](https://github.com/
 
 The `supervision` documentation is stored in a folder called `docs`. The project documentation is built using `mkdocs`.
 
-To run the documentation, install the project requirements with `poetry install --with dev`. Then, run `mkdocs serve` to start the documentation server.
+To run the documentation, install the project requirements with `uv pip install -r pyproject.toml --extra dev --extra docs`. Then, run `mkdocs serve` to start the documentation server.
 
 You can learn more about mkdocs on the [mkdocs website](https://www.mkdocs.org/).
 

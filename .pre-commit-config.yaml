@@ -7,9 +7,8 @@ ci:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
-      - id: end-of-file-fixer
       - id: trailing-whitespace
         exclude: test/.*\.py
       - id: check-yaml
@@ -19,35 +18,38 @@ repos:
       - id: check-case-conflict
       - id: check-added-large-files
       - id: detect-private-key
-      - id: forbid-new-submodules
       - id: pretty-format-json
         exclude: demo.ipynb
         args: ['--autofix', '--no-sort-keys', '--indent=4']
       - id: end-of-file-fixer
       - id: mixed-line-ending
 
-
   -   repo: https://github.com/PyCQA/bandit
-      rev: '1.7.9'
+      rev: '1.8.4'
       hooks:
       -   id: bandit
           args: ["-c", "pyproject.toml"]
           additional_dependencies: ["bandit[toml]"]
 
-  -   repo: https://github.com/pycqa/isort
-      rev: 5.13.2
-      hooks:
-      -   id: isort
-          name: isort (python)
-      -   id: isort
-          name: isort (pyi)
-          types: [pyi]
-
-
   -   repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.5.4
+      rev: v0.11.13
       hooks:
       -   id: ruff
           args: [--fix, --exit-non-zero-on-fix]
       -   id: ruff-format
           types_or: [ python, pyi, jupyter ]
+
+  # - repo: https://github.com/executablebooks/mdformat
+  #   rev: 0.7.17
+  #   hooks:
+  #     - id: mdformat
+  #       additional_dependencies:
+  #         - "mdformat-mkdocs[recommended]>=2.1.0"
+  #       args: ["--number"]
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.1
+    hooks:
+      - id: codespell
+        additional_dependencies:
+          - tomli

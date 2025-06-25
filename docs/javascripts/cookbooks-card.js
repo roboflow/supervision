@@ -28,16 +28,15 @@ document.addEventListener("DOMContentLoaded", function () {
     }, {});
 
 
-  async function renderCard(element, elementIndex) {
-    const url = element.getAttribute('data-url');
-    const name = element.getAttribute('data-name');
-    const labels = element.getAttribute('data-labels');
-    const version = element.getAttribute('data-version');
-    const authors = element.getAttribute('data-author');
+    async function renderCard(element, elementIndex) {
+        const name = element.getAttribute('data-name');
+        const labels = element.getAttribute('data-labels');
+        const version = element.getAttribute('data-version');
+        const authors = element.getAttribute('data-author');
 
-    const labelHTML = labels ? labels.split(',').filter(label => label !== '').map((label, index) => {
-        const color = labelToColor[label.trim()];
-        return `
+        const labelHTML = labels ? labels.split(',').filter(label => label !== '').map((label, index) => {
+            const color = labelToColor[label.trim()];
+            return `
             <span
                 class="label non-selectable-text"
                 style="background-color: ${color}"
@@ -45,18 +44,18 @@ document.addEventListener("DOMContentLoaded", function () {
                 ${label.trim()}
             </span>
         `;
-    }).join(' ') : '';
+        }).join(' ') : '';
 
-    const authorArray = authors.split(',');
-    const authorDataArray = await Promise.all(authorArray.map(async (author) => {
-      const response = await fetch(`https://api.github.com/users/${author.trim()}`);
-      return await response.json();
-    }));
+        const authorArray = authors.split(',');
+        const authorDataArray = await Promise.all(authorArray.map(async (author) => {
+            const response = await fetch(`https://api.github.com/users/${author.trim()}`);
+            return await response.json();
+        }));
 
-    let authorAvatarsHTML = authorDataArray.map((authorData, index) => {
-        const marginLeft = index === 0 ? '0' : '-10px';
-        const zIndex = 4 - index;
-        return `
+        let authorAvatarsHTML = authorDataArray.map((authorData, index) => {
+            const marginLeft = index === 0 ? '0' : '-10px';
+            const zIndex = 4 - index;
+            return `
             <div
                 class="author-container"
                 data-login="${authorData.login}-${elementIndex}"
@@ -75,10 +74,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 </a>
             </div>
         `;
-    }).join('');
+        }).join('');
 
-    let authorNamesHTML = authorDataArray.map(
-        authorData => `
+        let authorNamesHTML = authorDataArray.map(
+            authorData => `
             <span
                 class="author-name"
                 data-login="${authorData.login}-${elementIndex}"
@@ -88,54 +87,52 @@ document.addEventListener("DOMContentLoaded", function () {
                 ${authorData.login}
             </a>
         </span>`
-    ).join(',&nbsp;');
+        ).join(',&nbsp;');
 
-    let authorsHTML = `
+        let authorsHTML = `
         <div class="authors">
             ${authorAvatarsHTML}
             <div class="author-names">${authorNamesHTML}</div>
         </div>
-    `;
+        `;
 
-    element.innerText = `
-      <a style="text-decoration: none; color: inherit;" href="${url}">
-        <div style="flex-direction: column; height: 100%; display: flex;
-        font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji; background: ${theme.background}; font-size: 14px; line-height: 1.5; color: ${theme.color}">
-          <div style="display: flex; align-items: center;">
-            <span style="font-weight: 700; font-size: 1rem; color: ${theme.linkColor};">
-              ${name}
-            </span>
-          </div>
-          ${authorsHTML}
-          <div style="font-size: 12px; color: ${theme.color}; display: flex; flex: 0; justify-content: space-between">
+        element.innerText = `
+            <div style="flex-direction: column; height: 100%; display: flex;
+            font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji; background: ${theme.background}; font-size: 14px; line-height: 1.5; color: ${theme.color}">
             <div style="display: flex; align-items: center;">
-              <img src="/assets/supervision-lenny.png" aria-label="stars" width="20" height="20" role="img" />
-              &nbsp;
-              <span style="margin-left: 4px">${version}</span>
+                <span style="font-weight: 700; font-size: 1rem; color: ${theme.linkColor};">
+                ${name}
+                </span>
             </div>
-            <div style="display: flex; align-items: center; flex-wrap: wrap">
-              ${labelHTML}
+            ${authorsHTML}
+            <div style="font-size: 12px; color: ${theme.color}; display: flex; flex: 0; justify-content: space-between">
+                <div style="display: flex; align-items: center;">
+                <img src="/assets/supervision-lenny.png" aria-label="stars" width="20" height="20" role="img" />
+                &nbsp;
+                <span style="margin-left: 4px">${version}</span>
+                </div>
+                <div style="display: flex; align-items: center; flex-wrap: wrap">
+                ${labelHTML}
+                </div>
             </div>
-          </div>
         </div>
-      </a>
-        `
+        `;
 
-    let sanitizedHTML = DOMPurify.sanitize(element.innerText);
-    element.innerHTML = sanitizedHTML;
+        let sanitizedHTML = DOMPurify.sanitize(element.innerText);
+        element.innerHTML = sanitizedHTML;
 
-    document.querySelectorAll('.author-name').forEach(element => {
-        element.addEventListener('mouseenter', function() {
-            const login = this.getAttribute('data-login');
-            document.querySelector(`.author-container[data-login="${login}"]`).classList.add('hover');
+        document.querySelectorAll('.author-name').forEach(element => {
+            element.addEventListener('mouseenter', function () {
+                const login = this.getAttribute('data-login');
+                document.querySelector(`.author-container[data-login="${login}"]`).classList.add('hover');
+            });
+
+            element.addEventListener('mouseleave', function () {
+                const login = this.getAttribute('data-login');
+                document.querySelector(`.author-container[data-login="${login}"]`).classList.remove('hover');
+            });
         });
-
-        element.addEventListener('mouseleave', function() {
-            const login = this.getAttribute('data-login');
-            document.querySelector(`.author-container[data-login="${login}"]`).classList.remove('hover');
-        });
-    });
-  }
+    }
     repoCards.forEach((element, index) => {
         renderCard(element, index);
     });
