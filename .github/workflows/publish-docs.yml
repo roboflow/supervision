@@ -38,14 +38,14 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-#      - name: 🔑 Create GitHub App token (mkdocs)
-#        id: mkdocs_token
-#        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2.0.6
-#        with:
-#          app-id: ${{ secrets.MKDOCS_APP_ID }}
-#          private-key: ${{ secrets.MKDOCS_PEM }}
-#          owner: roboflow
-#          repositories: mkdocs-material-insiders
+      - name: 🔑 Create GitHub App token (mkdocs)
+        id: mkdocs_token
+        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2.0.6
+        with:
+          app-id: ${{ secrets.MKDOCS_APP_ID }}
+          private-key: ${{ secrets.MKDOCS_PEM }}
+          owner: roboflow
+          repositories: mkdocs-material-insiders
 
       - name: 🏗️ Install dependencies
         run: |
