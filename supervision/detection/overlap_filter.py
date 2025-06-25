@@ -256,8 +256,7 @@ def mask_non_max_merge(
     for merge_group in merge_groups:
         if len(merge_group) == 0:
             raise ValueError(
-                f"Empty group detected when non-max-merging "
-                f"detections: {merge_groups}"
+                f"Empty group detected when non-max-merging detections: {merge_groups}"
             )
     return merge_groups
 
