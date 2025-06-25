@@ -670,8 +670,7 @@ class MeanAverageRecallResult:
         ax.set_ylim(0, 1)
         ax.set_ylabel("Value", fontweight="bold")
         title = (
-            f"Mean Average Recall, by Object Size"
-            f"\n(target: {self.metric_target.value})"
+            f"Mean Average Recall, by Object Size\n(target: {self.metric_target.value})"
         )
         ax.set_title(title, fontweight="bold")
 

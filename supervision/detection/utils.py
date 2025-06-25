@@ -371,6 +371,43 @@ def xywh_to_xyxy(xywh: np.ndarray) -> np.ndarray:
     return xyxy
 
 
+def xyxy_to_xywh(xyxy: np.ndarray) -> np.ndarray:
+    """
+    Converts bounding box coordinates from `(x_min, y_min, x_max, y_max)`
+    format to `(x, y, width, height)` format.
+
+    Args:
+        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each row
+            corresponds to a bounding box in the format `(x_min, y_min, x_max,
+            y_max)`.
+
+    Returns:
+        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds
+            to a bounding box in the format `(x, y, width, height)`.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        xyxy = np.array([
+            [10, 20, 40, 60],
+            [15, 25, 50, 70]
+        ])
+
+        sv.xyxy_to_xywh(xyxy=xyxy)
+        # array([
+        #     [10, 20, 30, 40],
+        #     [15, 25, 35, 45]
+        # ])
+        ```
+    """
+    xywh = xyxy.copy()
+    xywh[:, 2] = xyxy[:, 2] - xyxy[:, 0]
+    xywh[:, 3] = xyxy[:, 3] - xyxy[:, 1]
+    return xywh
+
+
 def xcycwh_to_xyxy(xcycwh: np.ndarray) -> np.ndarray:
     """
     Converts bounding box coordinates from `(center_x, center_y, width, height)`
@@ -408,6 +445,56 @@ def xcycwh_to_xyxy(xcycwh: np.ndarray) -> np.ndarray:
     xyxy[:, 2] = xcycwh[:, 0] + xcycwh[:, 2] / 2
     xyxy[:, 3] = xcycwh[:, 1] + xcycwh[:, 3] / 2
     return xyxy
+
+
+def xyxy_to_xcycarh(xyxy: np.ndarray) -> np.ndarray:
+    """
+    Converts bounding box coordinates from `(x_min, y_min, x_max, y_max)`
+    into measurement space to format `(center x, center y, aspect ratio, height)`,
+    where the aspect ratio is `width / height`.
+
+    Args:
+        xyxy (np.ndarray): Bounding box in format `(x1, y1, x2, y2)`.
+            Expected shape is `(N, 4)`.
+    Returns:
+        np.ndarray: Bounding box in format
+            `(center x, center y, aspect ratio, height)`. Shape `(N, 4)`.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        xyxy = np.array([
+            [10, 20, 40, 60],
+            [15, 25, 50, 70]
+        ])
+
+        sv.xyxy_to_xcycarh(xyxy=xyxy)
+        # array([
+        #     [25.  , 40.  ,  0.75, 40.  ],
+        #     [32.5 , 47.5 ,  0.77777778, 45.  ]
+        # ])
+        ```
+
+    """
+    if xyxy.size == 0:
+        return np.empty((0, 4), dtype=float)
+
+    x1, y1, x2, y2 = xyxy.T
+    width = x2 - x1
+    height = y2 - y1
+    center_x = x1 + width / 2
+    center_y = y1 + height / 2
+
+    aspect_ratio = np.divide(
+        width,
+        height,
+        out=np.zeros_like(width, dtype=float),
+        where=height != 0,
+    )
+    result = np.column_stack((center_x, center_y, aspect_ratio, height))
+    return result.astype(float)
 
 
 def mask_to_xyxy(masks: np.ndarray) -> np.ndarray:
