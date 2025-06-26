@@ -614,7 +614,8 @@ class DetectionDataset(BaseDataset):
         min_image_area_percentage: float = 0.0,
         max_image_area_percentage: float = 1.0,
         approximation_percentage: float = 0.0,
-    ) -> None:
+        annotation_id_offset: int = 0,
+    ) -> int:
         """
         Exports the dataset to COCO format. This method saves the
         images and their corresponding annotations in COCO format.
@@ -650,20 +651,27 @@ class DetectionDataset(BaseDataset):
                 to be removed from the input polygon,
                 in the range [0, 1). This is useful for simplifying the annotations.
                 Argument is used only for segmentation datasets.
+            annotation_id_offset (int): The starting ID for annotations to ensure
+                unique IDs across multiple splits. Defaults to 0.
+
+        Returns:
+            int: The last used annotation ID, which can be used as an offset for
+                subsequent splits to maintain unique IDs.
         """
         if images_directory_path is not None:
             save_dataset_images(
                 dataset=self, images_directory_path=images_directory_path
             )
         if annotations_path is not None:
-            save_coco_annotations(
+            return save_coco_annotations(
                 dataset=self,
                 annotation_path=annotations_path,
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
+                annotation_id_offset=annotation_id_offset,
             )
-
+        return annotation_id_offset
 
 @dataclass
 class ClassificationDataset(BaseDataset):
