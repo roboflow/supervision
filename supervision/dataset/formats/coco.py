@@ -208,7 +208,8 @@ def save_coco_annotations(
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
-) -> None:
+    annotation_id_offset: int = 0,
+) -> int:
     Path(annotation_path).parent.mkdir(parents=True, exist_ok=True)
     licenses = [
         {
@@ -222,7 +223,7 @@ def save_coco_annotations(
     coco_images = []
     coco_categories = classes_to_coco_categories(classes=dataset.classes)
 
-    image_id, annotation_id = 1, 1
+    image_id, annotation_id = 1, 1 + annotation_id_offset
     for image_path, image, annotation in dataset:
         image_height, image_width, _ = image.shape
         image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"
@@ -256,3 +257,4 @@ def save_coco_annotations(
         "annotations": coco_annotations,
     }
     save_json_file(annotation_dict, file_path=annotation_path)
+    return annotation_id - 1  # Return the last used annotation ID
