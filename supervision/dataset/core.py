@@ -673,6 +673,7 @@ class DetectionDataset(BaseDataset):
             )
         return annotation_id_offset
 
+
 @dataclass
 class ClassificationDataset(BaseDataset):
     """
