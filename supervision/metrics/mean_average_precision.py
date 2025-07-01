@@ -13,7 +13,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from supervision.detection.core import Detections
-from supervision.detection.utils import iou_with_jaccard
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import Metric, MetricTarget
 from supervision.metrics.utils.utils import ensure_pandas_installed
@@ -601,6 +600,8 @@ class COCOEvaluator:
         Returns:
             np.ndarray: The IoU between the targets and predictions.
         """
+        from supervision import box_iou_batch_with_jaccard
+
         gt = self._targets[img_id, cat_id]
         dt = self._predictions[img_id, cat_id]
 
@@ -623,7 +624,7 @@ class COCOEvaluator:
         # Get the iscrowd flag for each gt
         is_crowd = [int(o["iscrowd"]) for o in gt]
         # Compute iou between each prediction a and gt region
-        iou = iou_with_jaccard(gt_boxes, dt_boxes, is_crowd)
+        iou = box_iou_batch_with_jaccard(gt_boxes, dt_boxes, is_crowd)
         return iou
 
     def _evaluate_image(
