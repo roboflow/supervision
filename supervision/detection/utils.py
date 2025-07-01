@@ -1325,4 +1325,3 @@ def spread_out_boxes(
         xyxy_padded[:, [2, 3]] += force_vectors
 
     return pad_boxes(xyxy_padded, px=-1)
-
