@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 from matplotlib import pyplot as plt
 
+from supervision import box_iou_batch_with_jaccard
 from supervision.detection.core import Detections
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import Metric, MetricTarget
@@ -600,7 +601,6 @@ class COCOEvaluator:
         Returns:
             np.ndarray: The IoU between the targets and predictions.
         """
-        from supervision import box_iou_batch_with_jaccard
 
         gt = self._targets[img_id, cat_id]
         dt = self._predictions[img_id, cat_id]
