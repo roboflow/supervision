@@ -1,8 +1,8 @@
 # supervision/metrics/benchmark.py
 
-from typing import List, Dict, Optional
+from typing import Dict, Optional
+
 from supervision.detection.core import Detections
-import numpy as np
 
 
 class BenchmarkEvaluator:
@@ -11,7 +11,7 @@ class BenchmarkEvaluator:
         ground_truth: Detections,
         predictions: Detections,
         class_map: Optional[Dict[str, str]] = None,
-        iou_threshold: float = 0.5
+        iou_threshold: float = 0.5,
     ):
         self.ground_truth = ground_truth
         self.predictions = predictions
@@ -31,14 +31,10 @@ class BenchmarkEvaluator:
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0
 
-        return {
-            "precision": precision,
-            "recall": recall
-        }
+        return {"precision": precision, "recall": recall}
 
     def summary(self) -> None:
         metrics = self.compute_precision_recall()
         print("Benchmark Summary:")
         for k, v in metrics.items():
             print(f"{k}: {v:.4f}")
-
