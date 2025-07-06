@@ -41,6 +41,7 @@ from supervision.dataset.core import (
     ClassificationDataset,
     DetectionDataset,
 )
+from supervision.dataset.formats.coco import get_coco_class_index_mapping
 from supervision.dataset.utils import mask_to_rle, rle_to_mask
 from supervision.detection.core import Detections
 from supervision.detection.line_zone import (
@@ -204,6 +205,7 @@ __all__ = [
     "draw_rectangle",
     "draw_text",
     "filter_polygons_by_area",
+    "get_coco_class_index_mapping",
     "get_polygon_center",
     "get_video_frames_generator",
     "letterbox_image",

@@ -93,7 +93,7 @@ def coco_annotations_to_detections(
     image_annotations: List[dict],
     resolution_wh: Tuple[int, int],
     with_masks: bool,
-    use_iscrowd: bool = False,
+    use_iscrowd: bool = True,
 ) -> Detections:
     if not image_annotations:
         return Detections.empty()
@@ -174,6 +174,36 @@ def detections_to_coco_annotations(
 
 
 def get_coco_class_index_mapping(annotations_path: str) -> Dict[int, int]:
+    """
+    Generates a mapping from sequential class indices to original COCO class ids.
+
+    This function is essential when working with models that expect class ids to be
+    zero-indexed and sequential (0 to 79), as opposed to the original COCO
+    dataset where category ids are non-contiguous ranging from 1 to 90 but skipping some
+    ids.
+
+    Use Cases:
+        - Evaluating models trained with COCO-style annotations where class ids
+          are sequential ranging from 0 to 79.
+        - Ensuring consistent class indexing across training, inference and evaluation,
+          when using different tools or datasets with COCO format.
+        - Reproducing results from models that assume sequential class ids (0 to 79).
+
+    How it Works:
+        - Reads the COCO annotation file in its original format (`annotations_path`).
+        - Extracts and sorts all class names by their original COCO id (1 to 90).
+        - Builds a mapping from COCO class ids (not sequential with skipped ids) to
+          new class ids (sequential ranging from 0 to 79).
+        - Returns a dictionary mapping: `{new_class_id: original_COCO_class_id}`.
+
+    Args:
+        annotations_path (str): Path to COCO JSON annotations file
+        (e.g., `instances_val2017.json`).
+
+    Returns:
+        Dict[int, int]: A mapping from new class id (sequential ranging from 0 to 79)
+        to original COCO class id (1 to 90 with skipped ids).
+    """
     coco_data = read_json_file(annotations_path)
     classes = coco_categories_to_classes(coco_categories=coco_data["categories"])
     class_mapping = build_coco_class_index_mapping(
