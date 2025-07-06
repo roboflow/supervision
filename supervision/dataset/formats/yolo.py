@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from PIL import Image
@@ -9,6 +9,7 @@ from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
 from supervision.detection.utils import polygon_to_mask, polygon_to_xyxy
+from supervision.keypoint.core import KeyPoints
 from supervision.utils.file import (
     list_files_with_extensions,
     read_txt_file,
@@ -18,7 +19,7 @@ from supervision.utils.file import (
 )
 
 if TYPE_CHECKING:
-    from supervision.dataset.core import DetectionDataset
+    from supervision.dataset.core import DetectionDataset, KeyPointDataset
 
 
 def _parse_box(values: List[str]) -> np.ndarray:
@@ -260,7 +261,7 @@ def detections_to_yolo_annotations(
 
 
 def save_yolo_annotations(
-    dataset: "DetectionDataset",
+    dataset: Union["DetectionDataset", "KeyPointDataset"],
     annotations_directory_path: str,
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
@@ -273,13 +274,19 @@ def save_yolo_annotations(
         yolo_annotations_path = os.path.join(
             annotations_directory_path, yolo_annotations_name
         )
-        lines = detections_to_yolo_annotations(
-            detections=annotation,
-            image_shape=image.shape,  # type: ignore
-            min_image_area_percentage=min_image_area_percentage,
-            max_image_area_percentage=max_image_area_percentage,
-            approximation_percentage=approximation_percentage,
-        )
+
+        if isinstance(dataset, DetectionDataset):
+            lines = detections_to_yolo_annotations(
+                detections=annotation,
+                image_shape=image.shape,  # type: ignore
+                min_image_area_percentage=min_image_area_percentage,
+                max_image_area_percentage=max_image_area_percentage,
+                approximation_percentage=approximation_percentage,
+            )
+        else:
+            lines = keypoints_to_yolo_annotations(
+                keypoints=annotation, image_shape=image.shape
+            )
         save_text_file(lines=lines, file_path=yolo_annotations_path)
 
 
@@ -287,3 +294,110 @@ def save_data_yaml(data_yaml_path: str, classes: List[str]) -> None:
     data = {"nc": len(classes), "names": classes}
     Path(data_yaml_path).parent.mkdir(parents=True, exist_ok=True)
     save_yaml_file(data=data, file_path=data_yaml_path)
+
+
+def load_yolo_keypoint_annotations(
+    images_directory_path: str,
+    annotations_directory_path: str,
+    data_yaml_path: str,
+) -> Tuple[List[str], List[str], Dict[str, KeyPoints]]:
+    """
+    Loads YOLO annotations and returns class names, images,
+        and their corresponding KeyPoints annotations.
+
+    Args:
+        images_directory_path (str): The path to the directory containing the images.
+        annotations_directory_path (str): The path to the directory
+            containing the YOLO annotation files.
+        data_yaml_path (str): The path to the data
+            YAML file containing class information.
+
+    Returns:
+        Tuple[List[str], List[str], Dict[str, KeyPoints]]: A tuple containing a list
+            of class names, a list of image paths, and a dictionary with image names
+            as keys and corresponding KeyPoints annotations as values.
+    """
+    image_paths = [
+        str(path)
+        for path in list_files_with_extensions(
+            directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
+        )
+    ]
+
+    classes = _extract_class_names(file_path=data_yaml_path)
+    annotations = {}
+
+    for image_path in image_paths:
+        image_stem = Path(image_path).stem
+        annotation_path = os.path.join(annotations_directory_path, f"{image_stem}.txt")
+        if not os.path.exists(annotation_path):
+            annotations[image_path] = KeyPoints.empty()
+            continue
+
+        image = cv2.imread(image_path)
+        lines = read_txt_file(file_path=annotation_path, skip_empty=True)
+        h, w, _ = image.shape
+        resolution_wh = (w, h)
+
+        annotation = yolo_annotations_to_keypoints(
+            lines=lines, resolution_wh=resolution_wh
+        )
+        annotations[image_path] = annotation
+    return classes, image_paths, annotations
+
+
+def yolo_annotations_to_keypoints(
+    lines: List[str],
+    resolution_wh: Tuple[int, int],
+) -> KeyPoints:
+    if len(lines) == 0:
+        return KeyPoints.empty()
+
+    class_ids, keypoints_list = [], []
+    w, h = resolution_wh
+    for line in lines:
+        values = line.split()
+        class_ids.append(int(values[0]))
+        if len(values) > 5:
+            keypoints = np.array([float(value) for value in values[5:]]).reshape(-1, 2)
+            keypoints *= np.array([w, h], dtype=np.float32)
+            keypoints_list.append(keypoints)
+
+    class_ids = np.array(class_ids, dtype=np.int_)
+    keypoints = np.array(keypoints_list, dtype=np.float32)
+    data = {}
+
+    return KeyPoints(xy=keypoints, class_id=class_ids, data=data)
+
+
+def keypoints_to_yolo_annotations(
+    keypoints: KeyPoints, image_shape: Tuple[int, int, int]
+) -> List[str]:
+    """
+    Converts keypoints data into YOLO format annotations.
+
+    Args:
+        keypoints (KeyPoints): The keypoints object containing class IDs
+            and keypoints coordinates.
+        image_shape (Tuple[int, int, int]): The shape of the image
+            as (height, width, channels), used to normalize the coordinates.
+
+    Returns:
+        List[str]:
+            A list of YOLO-formatted annotations where each line corresponds
+            to an object with its class ID and keypoints coordinates.
+    """
+    h, w, _ = image_shape
+    annotations = []
+
+    for i, (cls_id, points) in enumerate(zip(keypoints.class_id, keypoints.xy)):
+        normalized_points = points / np.array([w, h])
+        annotation = [str(cls_id)]
+        annotation.extend(map(str, normalized_points.flatten()))
+
+        if keypoints.confidence is not None:
+            annotation.append(str(keypoints.confidence[i]))
+
+        annotations.append(" ".join(annotation))
+
+    return annotations
