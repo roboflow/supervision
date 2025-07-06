@@ -162,7 +162,8 @@ def test_group_coco_annotations_by_image_id(
 
 
 @pytest.mark.parametrize(
-    "image_annotations, resolution_wh, with_masks, use_iscrowd, expected_result, exception",
+    "image_annotations, resolution_wh, with_masks, use_iscrowd, "
+    "expected_result, exception",
     [
         (
             [],
@@ -479,7 +480,8 @@ def test_group_coco_annotations_by_image_id(
                 },
             ),
             DoesNotRaise(),
-        ),  # two image annotations with mask, one mask as polygon with iscrowd, and second as RLE without iscrowd
+        ),  # two image annotations with mask, one mask as polygon with iscrowd,
+        # and second as RLE without iscrowd
         (
             [
                 mock_coco_annotation(
@@ -575,7 +577,8 @@ def test_group_coco_annotations_by_image_id(
                 },
             ),
             DoesNotRaise(),
-        ),  # two image annotations with mask, first mask as RLE with is crowd, and second as polygon without iscrowd
+        ),  # two image annotations with mask, first mask as RLE with is crowd,
+        # and second as polygon without iscrowd
     ],
 )
 def test_coco_annotations_to_detections(
