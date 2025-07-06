@@ -13,7 +13,9 @@ from supervision.config import (
 from supervision.detection.overlap_filter import (
     box_non_max_merge,
     box_non_max_suppression,
+    box_soft_non_max_suppression,
     mask_non_max_suppression,
+    mask_soft_non_max_suppression,
 )
 from supervision.detection.tools.transformers import (
     process_transformers_detection_result,
@@ -1375,6 +1377,63 @@ class Detections:
             )
 
         return self[indices]
+
+    def with_soft_nms(
+        self, sigma: float = 0.5, class_agnostic: bool = False
+    ) -> Detections:
+        """
+        Perform soft non-maximum suppression on the current set of object detections.
+
+        Args:
+            sigma (float): The sigma value to use for the soft non-maximum suppression
+                algorithm. Defaults to 0.5.
+            class_agnostic (bool): Whether to perform class-agnostic
+                non-maximum suppression. If True, the class_id of each detection
+                will be ignored. Defaults to False.
+
+        Returns:
+            Detections: A new Detections object containing the subset of detections
+                after non-maximum suppression.
+
+        Raises:
+            AssertionError: If `confidence` is None and class_agnostic is False.
+        """
+        if len(self) == 0:
+            return self
+
+        assert (
+            self.confidence is not None
+        ), "Detections confidence must be given for NMS to be executed."
+
+        if class_agnostic:
+            predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
+        else:
+            assert self.class_id is not None, (
+                "Detections class_id must be given for NMS to be executed. If you"
+                " intended to perform class agnostic NMS set class_agnostic=True."
+            )
+            predictions = np.hstack(
+                (
+                    self.xyxy,
+                    self.confidence.reshape(-1, 1),
+                    self.class_id.reshape(-1, 1),
+                )
+            )
+
+        if self.mask is not None:
+            soft_confidences = mask_soft_non_max_suppression(
+                predictions=predictions,
+                masks=self.mask,
+                sigma=sigma,
+            )
+            self.confidence = soft_confidences
+        else:
+            soft_confidences = box_soft_non_max_suppression(
+                predictions=predictions, sigma=sigma
+            )
+            self.confidence = soft_confidences
+
+        return self
 
     def with_nmm(
         self, threshold: float = 0.5, class_agnostic: bool = False
