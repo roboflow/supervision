@@ -179,8 +179,7 @@ def get_coco_class_index_mapping(annotations_path: str) -> Dict[int, int]:
     class_mapping = build_coco_class_index_mapping(
         coco_categories=coco_data["categories"], target_classes=classes
     )
-    inv_class_mapping = {v: k for k, v in class_mapping.items()}
-    return inv_class_mapping
+    return {v: k for k, v in class_mapping.items()}
 
 
 def load_coco_annotations(
