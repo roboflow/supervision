@@ -91,7 +91,7 @@ def mask_non_max_suppression(
     for i in range(rows):
         if keep[i]:
             condition = (ious[i] > iou_threshold) & (categories[i] == categories)
-            keep[i + 1:] = np.where(condition[i + 1:], False, keep[i + 1:])
+            keep[i + 1 :] = np.where(condition[i + 1 :], False, keep[i + 1 :])
 
     return keep[sort_index.argsort()]
 
@@ -355,7 +355,11 @@ def group_overlapping_masks(
             # get indexes that meet the threshold
             above_idx = order[above_threshold]
             # update merge_candidate
-            merge_candidate = np.logical_or.reduce(np.concatenate([masks[above_idx], merge_candidate]), axis=0, keepdims=True)
+            merge_candidate = np.logical_or.reduce(
+                np.concatenate([masks[above_idx], merge_candidate]),
+                axis=0,
+                keepdims=True,
+            )
             # add indexes that meet the criteria to the candidate_groups
             candidate_groups.extend(np.flip(above_idx).tolist())
             # update order, masks

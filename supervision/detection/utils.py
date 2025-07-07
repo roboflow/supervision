@@ -127,7 +127,9 @@ def _mask_iou_batch_split(
     Returns:
         np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.
     """
-    intersection_area = np.logical_and(masks_true[:, None], masks_detection).sum(axis=(2, 3))
+    intersection_area = np.logical_and(masks_true[:, None], masks_detection).sum(
+        axis=(2, 3)
+    )
 
     masks_true_area = masks_true.sum(axis=(1, 2))  # (area1, area2, ...)
     masks_detection_area = masks_detection.sum(axis=(1, 2))  # (area1)
@@ -179,12 +181,12 @@ def mask_iou_batch(
         np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.
     """
     memory = (
-            masks_true.shape[0]
-            * masks_true.shape[1]
-            * masks_true.shape[2]
-            * masks_detection.shape[0]
-            / 1024
-            / 1024
+        masks_true.shape[0]
+        * masks_true.shape[1]
+        * masks_true.shape[2]
+        * masks_detection.shape[0]
+        / 1024
+        / 1024
     )
     if memory <= memory_limit:
         return _mask_iou_batch_split(masks_true, masks_detection, match_metric)
@@ -195,16 +197,16 @@ def mask_iou_batch(
         * 1024
         * 1024
         // (
-                masks_detection.shape[0]
-                * masks_detection.shape[1]
-                * masks_detection.shape[2]
+            masks_detection.shape[0]
+            * masks_detection.shape[1]
+            * masks_detection.shape[2]
         ),
         1,
     )
     for i in range(0, masks_true.shape[0], step):
         ious.append(
             _mask_iou_batch_split(
-                masks_true[i: i + step], masks_detection, match_metric
+                masks_true[i : i + step], masks_detection, match_metric
             )
         )
 
@@ -584,7 +586,7 @@ def filter_polygons_by_area(
         polygon
         for polygon, area in zip(polygons, ares)
         if (min_area is None or area >= min_area)
-           and (max_area is None or area <= max_area)
+        and (max_area is None or area <= max_area)
     ]
 
 
@@ -921,9 +923,9 @@ def move_masks(
 
     if source_x_end > source_x_start and source_y_end > source_y_start:
         mask_array[
-        :,
-        destination_y_start:destination_y_end,
-        destination_x_start:destination_x_end,
+            :,
+            destination_y_start:destination_y_end,
+            destination_x_start:destination_x_end,
         ] = masks[:, source_y_start:source_y_end, source_x_start:source_x_end]
 
     return mask_array
@@ -1025,11 +1027,11 @@ def is_metadata_equal(metadata_a: Dict[str, Any], metadata_b: Dict[str, Any]) ->
     return set(metadata_a.keys()) == set(metadata_b.keys()) and all(
         np.array_equal(metadata_a[key], metadata_b[key])
         if (
-                isinstance(metadata_a[key], np.ndarray)
-                and isinstance(metadata_b[key], np.ndarray)
+            isinstance(metadata_a[key], np.ndarray)
+            and isinstance(metadata_b[key], np.ndarray)
         )
         else metadata_a[key] == metadata_b[key]
-            for key in metadata_a
+        for key in metadata_a
     )
 
 

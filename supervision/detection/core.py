@@ -1456,7 +1456,9 @@ class Detections:
         result = []
         for merge_group in merge_groups:
             unmerged_detections = [self[i] for i in merge_group]
-            merged_detections = merge_inner_detections_objects_without_iou(unmerged_detections)
+            merged_detections = merge_inner_detections_objects_without_iou(
+                unmerged_detections
+            )
             result.append(merged_detections)
 
         return Detections.merge(result)
@@ -1576,8 +1578,9 @@ def merge_inner_detections_objects(
         detections_1 = merge_inner_detection_object_pair(detections_1, detections_2)
     return detections_1
 
+
 def merge_inner_detections_objects_without_iou(
-    detections: List[Detections]
+    detections: List[Detections],
 ) -> Detections:
     """
     Given N detections each of length 1 (exactly one object inside), combine them into a
@@ -1588,6 +1591,7 @@ def merge_inner_detections_objects_without_iou(
     etc.
     """
     return reduce(merge_inner_detection_object_pair, detections)
+
 
 def validate_fields_both_defined_or_none(
     detections_1: Detections, detections_2: Detections
