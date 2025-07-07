@@ -1018,6 +1018,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#supervision.detection.utils.box_iou_batch_with_jaccard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;box_iou_batch_with_jaccard
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" box_iou_batch_with_jaccard">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.utils.box_iou_batch_with_jaccard(boxes_true)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;boxes_true
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.utils.box_iou_batch_with_jaccard(boxes_detection)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;boxes_detection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.utils.box_iou_batch_with_jaccard(is_crowd)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;is_crowd
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#supervision.detection.utils.mask_iou_batch" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3177,6 +3227,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#supervision.detection.utils.box_iou_batch_with_jaccard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;box_iou_batch_with_jaccard
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=" box_iou_batch_with_jaccard">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.utils.box_iou_batch_with_jaccard(boxes_true)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;boxes_true
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.utils.box_iou_batch_with_jaccard(boxes_detection)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;boxes_detection
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.utils.box_iou_batch_with_jaccard(is_crowd)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;is_crowd
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#supervision.detection.utils.mask_iou_batch" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4021,6 +4121,259 @@
 </span><span id="__span-0-79"><a id="__codelineno-0-79" name="__codelineno-0-79"></a>    <span class="n">ious</span> <span class="o">=</span> <span class="n">area_inter</span> <span class="o">/</span> <span class="p">(</span><span class="n">area_true</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">+</span> <span class="n">area_detection</span> <span class="o">-</span> <span class="n">area_inter</span><span class="p">)</span>
 </span><span id="__span-0-80"><a id="__codelineno-0-80" name="__codelineno-0-80"></a>    <span class="n">ious</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">ious</span><span class="p">)</span>
 </span><span id="__span-0-81"><a id="__codelineno-0-81" name="__codelineno-0-81"></a>    <span class="k">return</span> <span class="n">ious</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div><div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.box_iou_batch_with_jaccard">box_iou_batch_with_jaccard</a></h2>
+</div>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="supervision.detection.utils.box_iou_batch_with_jaccard" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">detection</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">box_iou_batch_with_jaccard</span><span class="p">(</span><span class="n">boxes_true</span><span class="p">,</span> <span class="n">boxes_detection</span><span class="p">,</span> <span class="n">is_crowd</span><span class="p">)</span></code>
+
+<a href="#supervision.detection.utils.box_iou_batch_with_jaccard" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Calculate the intersection over union (IoU) between detection bounding boxes (dt)
+and ground-truth bounding boxes (gt).
+Reference: https://github.com/rafaelpadilla/review_object_detection_metrics</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+<h3 id="supervision.detection.utils.box_iou_batch_with_jaccard(boxes_true)" class="doc doc-heading doc-heading-parameter">                  <code>boxes_true</code>
+<a href="#supervision.detection.utils.box_iou_batch_with_jaccard(boxes_true)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
+            <td>
+                  <code><span title="typing.List">List</span>[<span title="typing.List">List</span>[<span title="float">float</span>]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List of ground-truth bounding boxes in the             format [x, y, width, height].</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+<h3 id="supervision.detection.utils.box_iou_batch_with_jaccard(boxes_detection)" class="doc doc-heading doc-heading-parameter">                  <code>boxes_detection</code>
+<a href="#supervision.detection.utils.box_iou_batch_with_jaccard(boxes_detection)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
+            <td>
+                  <code><span title="typing.List">List</span>[<span title="typing.List">List</span>[<span title="float">float</span>]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List of detection bounding boxes in the             format [x, y, width, height].</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+<h3 id="supervision.detection.utils.box_iou_batch_with_jaccard(is_crowd)" class="doc doc-heading doc-heading-parameter">                  <code>is_crowd</code>
+<a href="#supervision.detection.utils.box_iou_batch_with_jaccard(is_crowd)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
+            <td>
+                  <code><span title="typing.List">List</span>[<span title="bool">bool</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List indicating if each ground-truth bounding box             is a crowd region or not.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>np.ndarray: Array of IoU values of shape (len(dt), len(gt)).</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">boxes_true</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">40</span><span class="p">],</span>  <span class="c1"># x, y, w, h</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="p">[</span><span class="mi">15</span><span class="p">,</span> <span class="mi">25</span><span class="p">,</span> <span class="mi">35</span><span class="p">,</span> <span class="mi">45</span><span class="p">]</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">]</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">boxes_detection</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="p">[</span><span class="mi">12</span><span class="p">,</span> <span class="mi">22</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">38</span><span class="p">],</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">26</span><span class="p">,</span> <span class="mi">36</span><span class="p">,</span> <span class="mi">46</span><span class="p">]</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">]</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">is_crowd</span> <span class="o">=</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">]</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="n">ious</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">box_iou_batch_with_jaccard</span><span class="p">(</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="n">boxes_true</span><span class="o">=</span><span class="n">boxes_true</span><span class="p">,</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="n">boxes_detection</span><span class="o">=</span><span class="n">boxes_detection</span><span class="p">,</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>    <span class="n">is_crowd</span><span class="o">=</span><span class="n">is_crowd</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="p">)</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="c1"># array([</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="c1">#     [0.8866..., 0.4960...],</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="c1">#     [0.4000..., 0.8622...]</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="c1"># ])</span>
+</span></code></pre></div>
+
+
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/utils.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1371">1371</a></span>
+<span class="normal"><a href="#__codelineno-0-1372">1372</a></span>
+<span class="normal"><a href="#__codelineno-0-1373">1373</a></span>
+<span class="normal"><a href="#__codelineno-0-1374">1374</a></span>
+<span class="normal"><a href="#__codelineno-0-1375">1375</a></span>
+<span class="normal"><a href="#__codelineno-0-1376">1376</a></span>
+<span class="normal"><a href="#__codelineno-0-1377">1377</a></span>
+<span class="normal"><a href="#__codelineno-0-1378">1378</a></span>
+<span class="normal"><a href="#__codelineno-0-1379">1379</a></span>
+<span class="normal"><a href="#__codelineno-0-1380">1380</a></span>
+<span class="normal"><a href="#__codelineno-0-1381">1381</a></span>
+<span class="normal"><a href="#__codelineno-0-1382">1382</a></span>
+<span class="normal"><a href="#__codelineno-0-1383">1383</a></span>
+<span class="normal"><a href="#__codelineno-0-1384">1384</a></span>
+<span class="normal"><a href="#__codelineno-0-1385">1385</a></span>
+<span class="normal"><a href="#__codelineno-0-1386">1386</a></span>
+<span class="normal"><a href="#__codelineno-0-1387">1387</a></span>
+<span class="normal"><a href="#__codelineno-0-1388">1388</a></span>
+<span class="normal"><a href="#__codelineno-0-1389">1389</a></span>
+<span class="normal"><a href="#__codelineno-0-1390">1390</a></span>
+<span class="normal"><a href="#__codelineno-0-1391">1391</a></span>
+<span class="normal"><a href="#__codelineno-0-1392">1392</a></span>
+<span class="normal"><a href="#__codelineno-0-1393">1393</a></span>
+<span class="normal"><a href="#__codelineno-0-1394">1394</a></span>
+<span class="normal"><a href="#__codelineno-0-1395">1395</a></span>
+<span class="normal"><a href="#__codelineno-0-1396">1396</a></span>
+<span class="normal"><a href="#__codelineno-0-1397">1397</a></span>
+<span class="normal"><a href="#__codelineno-0-1398">1398</a></span>
+<span class="normal"><a href="#__codelineno-0-1399">1399</a></span>
+<span class="normal"><a href="#__codelineno-0-1400">1400</a></span>
+<span class="normal"><a href="#__codelineno-0-1401">1401</a></span>
+<span class="normal"><a href="#__codelineno-0-1402">1402</a></span>
+<span class="normal"><a href="#__codelineno-0-1403">1403</a></span>
+<span class="normal"><a href="#__codelineno-0-1404">1404</a></span>
+<span class="normal"><a href="#__codelineno-0-1405">1405</a></span>
+<span class="normal"><a href="#__codelineno-0-1406">1406</a></span>
+<span class="normal"><a href="#__codelineno-0-1407">1407</a></span>
+<span class="normal"><a href="#__codelineno-0-1408">1408</a></span>
+<span class="normal"><a href="#__codelineno-0-1409">1409</a></span>
+<span class="normal"><a href="#__codelineno-0-1410">1410</a></span>
+<span class="normal"><a href="#__codelineno-0-1411">1411</a></span>
+<span class="normal"><a href="#__codelineno-0-1412">1412</a></span>
+<span class="normal"><a href="#__codelineno-0-1413">1413</a></span>
+<span class="normal"><a href="#__codelineno-0-1414">1414</a></span>
+<span class="normal"><a href="#__codelineno-0-1415">1415</a></span>
+<span class="normal"><a href="#__codelineno-0-1416">1416</a></span>
+<span class="normal"><a href="#__codelineno-0-1417">1417</a></span>
+<span class="normal"><a href="#__codelineno-0-1418">1418</a></span>
+<span class="normal"><a href="#__codelineno-0-1419">1419</a></span>
+<span class="normal"><a href="#__codelineno-0-1420">1420</a></span>
+<span class="normal"><a href="#__codelineno-0-1421">1421</a></span>
+<span class="normal"><a href="#__codelineno-0-1422">1422</a></span>
+<span class="normal"><a href="#__codelineno-0-1423">1423</a></span>
+<span class="normal"><a href="#__codelineno-0-1424">1424</a></span>
+<span class="normal"><a href="#__codelineno-0-1425">1425</a></span>
+<span class="normal"><a href="#__codelineno-0-1426">1426</a></span>
+<span class="normal"><a href="#__codelineno-0-1427">1427</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-1371"><a id="__codelineno-0-1371" name="__codelineno-0-1371"></a><span class="k">def</span><span class="w"> </span><span class="nf">box_iou_batch_with_jaccard</span><span class="p">(</span>
+</span><span id="__span-0-1372"><a id="__codelineno-0-1372" name="__codelineno-0-1372"></a>    <span class="n">boxes_true</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span>
+</span><span id="__span-0-1373"><a id="__codelineno-0-1373" name="__codelineno-0-1373"></a>    <span class="n">boxes_detection</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span>
+</span><span id="__span-0-1374"><a id="__codelineno-0-1374" name="__codelineno-0-1374"></a>    <span class="n">is_crowd</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">],</span>
+</span><span id="__span-0-1375"><a id="__codelineno-0-1375" name="__codelineno-0-1375"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+</span><span id="__span-0-1376"><a id="__codelineno-0-1376" name="__codelineno-0-1376"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-1377"><a id="__codelineno-0-1377" name="__codelineno-0-1377"></a><span class="sd">    Calculate the intersection over union (IoU) between detection bounding boxes (dt)</span>
+</span><span id="__span-0-1378"><a id="__codelineno-0-1378" name="__codelineno-0-1378"></a><span class="sd">    and ground-truth bounding boxes (gt).</span>
+</span><span id="__span-0-1379"><a id="__codelineno-0-1379" name="__codelineno-0-1379"></a><span class="sd">    Reference: https://github.com/rafaelpadilla/review_object_detection_metrics</span>
+</span><span id="__span-0-1380"><a id="__codelineno-0-1380" name="__codelineno-0-1380"></a>
+</span><span id="__span-0-1381"><a id="__codelineno-0-1381" name="__codelineno-0-1381"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-1382"><a id="__codelineno-0-1382" name="__codelineno-0-1382"></a><span class="sd">        boxes_true (List[List[float]]): List of ground-truth bounding boxes in the \</span>
+</span><span id="__span-0-1383"><a id="__codelineno-0-1383" name="__codelineno-0-1383"></a><span class="sd">            format [x, y, width, height].</span>
+</span><span id="__span-0-1384"><a id="__codelineno-0-1384" name="__codelineno-0-1384"></a><span class="sd">        boxes_detection (List[List[float]]): List of detection bounding boxes in the \</span>
+</span><span id="__span-0-1385"><a id="__codelineno-0-1385" name="__codelineno-0-1385"></a><span class="sd">            format [x, y, width, height].</span>
+</span><span id="__span-0-1386"><a id="__codelineno-0-1386" name="__codelineno-0-1386"></a><span class="sd">        is_crowd (List[bool]): List indicating if each ground-truth bounding box \</span>
+</span><span id="__span-0-1387"><a id="__codelineno-0-1387" name="__codelineno-0-1387"></a><span class="sd">            is a crowd region or not.</span>
+</span><span id="__span-0-1388"><a id="__codelineno-0-1388" name="__codelineno-0-1388"></a>
+</span><span id="__span-0-1389"><a id="__codelineno-0-1389" name="__codelineno-0-1389"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-1390"><a id="__codelineno-0-1390" name="__codelineno-0-1390"></a><span class="sd">        np.ndarray: Array of IoU values of shape (len(dt), len(gt)).</span>
+</span><span id="__span-0-1391"><a id="__codelineno-0-1391" name="__codelineno-0-1391"></a>
+</span><span id="__span-0-1392"><a id="__codelineno-0-1392" name="__codelineno-0-1392"></a><span class="sd">    Examples:</span>
+</span><span id="__span-0-1393"><a id="__codelineno-0-1393" name="__codelineno-0-1393"></a><span class="sd">        ```python</span>
+</span><span id="__span-0-1394"><a id="__codelineno-0-1394" name="__codelineno-0-1394"></a><span class="sd">        import numpy as np</span>
+</span><span id="__span-0-1395"><a id="__codelineno-0-1395" name="__codelineno-0-1395"></a><span class="sd">        import supervision as sv</span>
+</span><span id="__span-0-1396"><a id="__codelineno-0-1396" name="__codelineno-0-1396"></a>
+</span><span id="__span-0-1397"><a id="__codelineno-0-1397" name="__codelineno-0-1397"></a><span class="sd">        boxes_true = [</span>
+</span><span id="__span-0-1398"><a id="__codelineno-0-1398" name="__codelineno-0-1398"></a><span class="sd">            [10, 20, 30, 40],  # x, y, w, h</span>
+</span><span id="__span-0-1399"><a id="__codelineno-0-1399" name="__codelineno-0-1399"></a><span class="sd">            [15, 25, 35, 45]</span>
+</span><span id="__span-0-1400"><a id="__codelineno-0-1400" name="__codelineno-0-1400"></a><span class="sd">        ]</span>
+</span><span id="__span-0-1401"><a id="__codelineno-0-1401" name="__codelineno-0-1401"></a><span class="sd">        boxes_detection = [</span>
+</span><span id="__span-0-1402"><a id="__codelineno-0-1402" name="__codelineno-0-1402"></a><span class="sd">            [12, 22, 28, 38],</span>
+</span><span id="__span-0-1403"><a id="__codelineno-0-1403" name="__codelineno-0-1403"></a><span class="sd">            [16, 26, 36, 46]</span>
+</span><span id="__span-0-1404"><a id="__codelineno-0-1404" name="__codelineno-0-1404"></a><span class="sd">        ]</span>
+</span><span id="__span-0-1405"><a id="__codelineno-0-1405" name="__codelineno-0-1405"></a><span class="sd">        is_crowd = [False, False]</span>
+</span><span id="__span-0-1406"><a id="__codelineno-0-1406" name="__codelineno-0-1406"></a>
+</span><span id="__span-0-1407"><a id="__codelineno-0-1407" name="__codelineno-0-1407"></a><span class="sd">        ious = sv.box_iou_batch_with_jaccard(</span>
+</span><span id="__span-0-1408"><a id="__codelineno-0-1408" name="__codelineno-0-1408"></a><span class="sd">            boxes_true=boxes_true,</span>
+</span><span id="__span-0-1409"><a id="__codelineno-0-1409" name="__codelineno-0-1409"></a><span class="sd">            boxes_detection=boxes_detection,</span>
+</span><span id="__span-0-1410"><a id="__codelineno-0-1410" name="__codelineno-0-1410"></a><span class="sd">            is_crowd=is_crowd</span>
+</span><span id="__span-0-1411"><a id="__codelineno-0-1411" name="__codelineno-0-1411"></a><span class="sd">        )</span>
+</span><span id="__span-0-1412"><a id="__codelineno-0-1412" name="__codelineno-0-1412"></a><span class="sd">        # array([</span>
+</span><span id="__span-0-1413"><a id="__codelineno-0-1413" name="__codelineno-0-1413"></a><span class="sd">        #     [0.8866..., 0.4960...],</span>
+</span><span id="__span-0-1414"><a id="__codelineno-0-1414" name="__codelineno-0-1414"></a><span class="sd">        #     [0.4000..., 0.8622...]</span>
+</span><span id="__span-0-1415"><a id="__codelineno-0-1415" name="__codelineno-0-1415"></a><span class="sd">        # ])</span>
+</span><span id="__span-0-1416"><a id="__codelineno-0-1416" name="__codelineno-0-1416"></a><span class="sd">        ```</span>
+</span><span id="__span-0-1417"><a id="__codelineno-0-1417" name="__codelineno-0-1417"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-1418"><a id="__codelineno-0-1418" name="__codelineno-0-1418"></a>    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">is_crowd</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">boxes_true</span><span class="p">),</span> <span class="p">(</span>
+</span><span id="__span-0-1419"><a id="__codelineno-0-1419" name="__codelineno-0-1419"></a>        <span class="s2">&quot;`is_crowd` must have the same length as `boxes_true`&quot;</span>
+</span><span id="__span-0-1420"><a id="__codelineno-0-1420" name="__codelineno-0-1420"></a>    <span class="p">)</span>
+</span><span id="__span-0-1421"><a id="__codelineno-0-1421" name="__codelineno-0-1421"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">boxes_detection</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">boxes_true</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-0-1422"><a id="__codelineno-0-1422" name="__codelineno-0-1422"></a>        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+</span><span id="__span-0-1423"><a id="__codelineno-0-1423" name="__codelineno-0-1423"></a>    <span class="n">ious</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">boxes_detection</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">boxes_true</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+</span><span id="__span-0-1424"><a id="__codelineno-0-1424" name="__codelineno-0-1424"></a>    <span class="k">for</span> <span class="n">g_idx</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">boxes_true</span><span class="p">):</span>
+</span><span id="__span-0-1425"><a id="__codelineno-0-1425" name="__codelineno-0-1425"></a>        <span class="k">for</span> <span class="n">d_idx</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">boxes_detection</span><span class="p">):</span>
+</span><span id="__span-0-1426"><a id="__codelineno-0-1426" name="__codelineno-0-1426"></a>            <span class="n">ious</span><span class="p">[</span><span class="n">d_idx</span><span class="p">,</span> <span class="n">g_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">_jaccard</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">is_crowd</span><span class="p">[</span><span class="n">g_idx</span><span class="p">])</span>
+</span><span id="__span-0-1427"><a id="__codelineno-0-1427" name="__codelineno-0-1427"></a>    <span class="k">return</span> <span class="n">ious</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -7377,7 +7730,7 @@ connected by their edges or corners touch.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 22, 2025 13:30:42 UTC">April 22, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 7, 2025 13:30:05 UTC">July 7, 2025</span>
   </span>
 
     
@@ -7405,6 +7758,11 @@ connected by their edges or corners touch.</p>
     
     <nav>
       
+        <a href="https://github.com/SkalskiP" class="md-author" title="@SkalskiP">
+          
+          <img src="https://avatars.githubusercontent.com/u/26109316?v=4&size=72" alt="SkalskiP">
+        </a>
+      
         <a href="https://github.com/onuralpszr" class="md-author" title="@onuralpszr">
           
           <img src="https://avatars.githubusercontent.com/u/1688848?v=4&size=72" alt="onuralpszr">
@@ -7418,11 +7776,6 @@ connected by their edges or corners touch.</p>
         <a href="https://github.com/J4BEZ" class="md-author" title="@J4BEZ">
           
           <img src="https://avatars.githubusercontent.com/u/43560917?v=4&size=72" alt="J4BEZ">
-        </a>
-      
-        <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
-          
-          <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
       
