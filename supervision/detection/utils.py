@@ -49,7 +49,9 @@ def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.n
 
 
 def box_iou_batch(
-    boxes_true: np.ndarray, boxes_detection: np.ndarray, match_metric: str = "IOU"
+    boxes_true: np.ndarray,
+    boxes_detection: np.ndarray,
+    match_metric: str = "IOU",
 ) -> np.ndarray:
     """
     Compute Intersection over Union (IoU) of two sets of bounding boxes -
@@ -107,7 +109,9 @@ def box_iou_batch(
 
 
 def _mask_iou_batch_split(
-    masks_true: np.ndarray, masks_detection: np.ndarray, match_metric: str = "IOU"
+    masks_true: np.ndarray,
+    masks_detection: np.ndarray,
+    match_metric: str = "IOU",
 ) -> np.ndarray:
     """
     Internal function.
@@ -123,12 +127,10 @@ def _mask_iou_batch_split(
     Returns:
         np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.
     """
-    intersection_area = np.logical_and(masks_true[:, None], masks_detection).sum(
-        axis=(2, 3)
-    )
+    intersection_area = np.logical_and(masks_true[:, None], masks_detection).sum(axis=(2, 3))
 
-    masks_true_area = masks_true.sum(axis=(1, 2))
-    masks_detection_area = masks_detection.sum(axis=(1, 2))
+    masks_true_area = masks_true.sum(axis=(1, 2))  # (area1, area2, ...)
+    masks_detection_area = masks_detection.sum(axis=(1, 2))  # (area1)
 
     if match_metric.upper() == "IOU":
         union_area = masks_true_area[:, None] + masks_detection_area - intersection_area
@@ -139,7 +141,8 @@ def _mask_iou_batch_split(
             where=union_area != 0,
         )
     elif match_metric.upper() == "IOS":
-        small_area = np.minimum(intersection_area, masks_detection_area)
+        # ios = intersection_area / min(area1, area2)
+        small_area = np.minimum(masks_true_area[:, None], masks_detection_area)
         ious = np.divide(
             intersection_area,
             small_area,
@@ -176,12 +179,12 @@ def mask_iou_batch(
         np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.
     """
     memory = (
-        masks_true.shape[0]
-        * masks_true.shape[1]
-        * masks_true.shape[2]
-        * masks_detection.shape[0]
-        / 1024
-        / 1024
+            masks_true.shape[0]
+            * masks_true.shape[1]
+            * masks_true.shape[2]
+            * masks_detection.shape[0]
+            / 1024
+            / 1024
     )
     if memory <= memory_limit:
         return _mask_iou_batch_split(masks_true, masks_detection, match_metric)
@@ -192,16 +195,16 @@ def mask_iou_batch(
         * 1024
         * 1024
         // (
-            masks_detection.shape[0]
-            * masks_detection.shape[1]
-            * masks_detection.shape[2]
+                masks_detection.shape[0]
+                * masks_detection.shape[1]
+                * masks_detection.shape[2]
         ),
         1,
     )
     for i in range(0, masks_true.shape[0], step):
         ious.append(
             _mask_iou_batch_split(
-                masks_true[i : i + step], masks_detection, match_metric
+                masks_true[i: i + step], masks_detection, match_metric
             )
         )
 
@@ -581,7 +584,7 @@ def filter_polygons_by_area(
         polygon
         for polygon, area in zip(polygons, ares)
         if (min_area is None or area >= min_area)
-        and (max_area is None or area <= max_area)
+           and (max_area is None or area <= max_area)
     ]
 
 
@@ -918,9 +921,9 @@ def move_masks(
 
     if source_x_end > source_x_start and source_y_end > source_y_start:
         mask_array[
-            :,
-            destination_y_start:destination_y_end,
-            destination_x_start:destination_x_end,
+        :,
+        destination_y_start:destination_y_end,
+        destination_x_start:destination_x_end,
         ] = masks[:, source_y_start:source_y_end, source_x_start:source_x_end]
 
     return mask_array
@@ -1022,11 +1025,11 @@ def is_metadata_equal(metadata_a: Dict[str, Any], metadata_b: Dict[str, Any]) ->
     return set(metadata_a.keys()) == set(metadata_b.keys()) and all(
         np.array_equal(metadata_a[key], metadata_b[key])
         if (
-            isinstance(metadata_a[key], np.ndarray)
-            and isinstance(metadata_b[key], np.ndarray)
+                isinstance(metadata_a[key], np.ndarray)
+                and isinstance(metadata_b[key], np.ndarray)
         )
         else metadata_a[key] == metadata_b[key]
-        for key in metadata_a
+            for key in metadata_a
     )
 
 

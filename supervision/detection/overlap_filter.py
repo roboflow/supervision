@@ -91,7 +91,7 @@ def mask_non_max_suppression(
     for i in range(rows):
         if keep[i]:
             condition = (ious[i] > iou_threshold) & (categories[i] == categories)
-            keep[i + 1 :] = np.where(condition[i + 1 :], False, keep[i + 1 :])
+            keep[i + 1:] = np.where(condition[i + 1:], False, keep[i + 1:])
 
     return keep[sort_index.argsort()]
 
@@ -206,7 +206,7 @@ def mask_non_max_merge(
     iou_threshold: float = 0.5,
     mask_dimension: int = 640,
     match_metric: str = "IOU",
-) -> np.ndarray:
+) -> List[List[int]]:
     """
     Perform Non-Maximum Merging (NMM) on segmentation predictions.
 
@@ -342,14 +342,26 @@ def group_overlapping_masks(
             merge_groups.append([idx])
             break
 
-        merge_candidate = np.expand_dims(masks[idx], axis=0)
-        ious = mask_iou_batch(masks[order], merge_candidate, match_metric)
-        ious = ious.flatten()
+        # calculate mask
+        merge_candidate = masks[idx][None, ...]
+        candidate_groups = [idx]
+        while len(order) > 0:
+            # 'IOU or IOS' of the calculate mask and the remaining mask
+            ious = mask_iou_batch(masks[order], merge_candidate, match_metric)
+            above_threshold: np.ndarray = ious.flatten() >= iou_threshold
+            # if no mask is above threshold, break
+            if not above_threshold.any():
+                break
+            # get indexes that meet the threshold
+            above_idx = order[above_threshold]
+            # update merge_candidate
+            merge_candidate = np.logical_or.reduce(np.concatenate([masks[above_idx], merge_candidate]), axis=0, keepdims=True)
+            # add indexes that meet the criteria to the candidate_groups
+            candidate_groups.extend(np.flip(above_idx).tolist())
+            # update order, masks
+            order = order[~above_threshold]
 
-        above_threshold = ious >= iou_threshold
-        merge_group = [idx, *np.flip(order[above_threshold]).tolist()]
-        merge_groups.append(merge_group)
-        order = order[~above_threshold]
+        merge_groups.append(candidate_groups)
     return merge_groups
 
 
