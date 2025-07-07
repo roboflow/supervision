@@ -1,7 +1,4 @@
 import importlib.metadata as importlib_metadata
-from typing import List
-
-import numpy as np
 
 try:
     # This will read version from pyproject.toml
