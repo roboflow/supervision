@@ -2868,9 +2868,9 @@ offering a clear visual representation of each object's class and unique identif
 </span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>    <span class="n">detections</span> <span class="o">=</span> <span class="n">tracker</span><span class="o">.</span><span class="n">update_with_detections</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span>
 </span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>
 </span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="hll">    <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span>
-</span></span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="hll">        <span class="sa">f</span><span class="s2">&quot;#</span><span class="si">{</span><span class="n">tracker_id</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">results</span><span class="o">.</span><span class="n">names</span><span class="p">[</span><span class="n">class_id</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
-</span></span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="hll">        <span class="k">for</span> <span class="n">class_id</span><span class="p">,</span> <span class="n">tracker_id</span>
-</span></span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="hll">        <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">class_id</span><span class="p">,</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">)</span>
+</span></span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="hll">        <span class="sa">f</span><span class="s2">&quot;#</span><span class="si">{</span><span class="n">tracker_id</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">class_name</span><span class="si">}</span><span class="s2">&quot;</span>
+</span></span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="hll">        <span class="k">for</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">tracker_id</span>
+</span></span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="hll">        <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;class_name&quot;</span><span class="p">],</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">)</span>
 </span></span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="hll">    <span class="p">]</span>
 </span></span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>
 </span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>    <span class="n">annotated_frame</span> <span class="o">=</span> <span class="n">box_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
@@ -2901,9 +2901,9 @@ offering a clear visual representation of each object's class and unique identif
 </span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>    <span class="n">detections</span> <span class="o">=</span> <span class="n">tracker</span><span class="o">.</span><span class="n">update_with_detections</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span>
 </span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>
 </span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="hll">    <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span>
-</span></span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="hll">        <span class="sa">f</span><span class="s2">&quot;#</span><span class="si">{</span><span class="n">tracker_id</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">results</span><span class="o">.</span><span class="n">names</span><span class="p">[</span><span class="n">class_id</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
-</span></span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="hll">        <span class="k">for</span> <span class="n">class_id</span><span class="p">,</span> <span class="n">tracker_id</span>
-</span></span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="hll">        <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">class_id</span><span class="p">,</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">)</span>
+</span></span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="hll">        <span class="sa">f</span><span class="s2">&quot;#</span><span class="si">{</span><span class="n">tracker_id</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">class_name</span><span class="si">}</span><span class="s2">&quot;</span>
+</span></span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="hll">        <span class="k">for</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">tracker_id</span>
+</span></span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="hll">        <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;class_name&quot;</span><span class="p">],</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">)</span>
 </span></span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="hll">    <span class="p">]</span>
 </span></span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>
 </span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>    <span class="n">annotated_frame</span> <span class="o">=</span> <span class="n">box_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
@@ -2949,9 +2949,9 @@ movement patterns and interactions between objects in the video.</p>
 </span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>    <span class="n">detections</span> <span class="o">=</span> <span class="n">tracker</span><span class="o">.</span><span class="n">update_with_detections</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span>
 </span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>
 </span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>    <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>        <span class="sa">f</span><span class="s2">&quot;#</span><span class="si">{</span><span class="n">tracker_id</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">results</span><span class="o">.</span><span class="n">names</span><span class="p">[</span><span class="n">class_id</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
-</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>        <span class="k">for</span> <span class="n">class_id</span><span class="p">,</span> <span class="n">tracker_id</span>
-</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>        <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">class_id</span><span class="p">,</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">)</span>
+</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>        <span class="sa">f</span><span class="s2">&quot;#</span><span class="si">{</span><span class="n">tracker_id</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">class_name</span><span class="si">}</span><span class="s2">&quot;</span>
+</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>        <span class="k">for</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">tracker_id</span>
+</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>        <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;class_name&quot;</span><span class="p">],</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">)</span>
 </span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>    <span class="p">]</span>
 </span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>
 </span><span id="__span-7-22"><a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>    <span class="n">annotated_frame</span> <span class="o">=</span> <span class="n">box_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
@@ -2985,9 +2985,9 @@ movement patterns and interactions between objects in the video.</p>
 </span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>    <span class="n">detections</span> <span class="o">=</span> <span class="n">tracker</span><span class="o">.</span><span class="n">update_with_detections</span><span class="p">(</span><span class="n">detections</span><span class="p">)</span>
 </span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>
 </span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a>    <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>        <span class="sa">f</span><span class="s2">&quot;#</span><span class="si">{</span><span class="n">tracker_id</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">results</span><span class="o">.</span><span class="n">names</span><span class="p">[</span><span class="n">class_id</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
-</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>        <span class="k">for</span> <span class="n">class_id</span><span class="p">,</span> <span class="n">tracker_id</span>
-</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>        <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">class_id</span><span class="p">,</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">)</span>
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>        <span class="sa">f</span><span class="s2">&quot;#</span><span class="si">{</span><span class="n">tracker_id</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">class_name</span><span class="si">}</span><span class="s2">&quot;</span>
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>        <span class="k">for</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">tracker_id</span>
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>        <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">detections</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;class_name&quot;</span><span class="p">],</span> <span class="n">detections</span><span class="o">.</span><span class="n">tracker_id</span><span class="p">)</span>
 </span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a>    <span class="p">]</span>
 </span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a>
 </span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a>    <span class="n">annotated_frame</span> <span class="o">=</span> <span class="n">box_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span>
@@ -3349,7 +3349,7 @@ Supervision is versatile and compatible with various models. Check this <a href=
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 18, 2025 09:04:38 UTC">February 18, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 4, 2025 11:31:05 UTC">July 4, 2025</span>
   </span>
 
     
@@ -3377,6 +3377,11 @@ Supervision is versatile and compatible with various models. Check this <a href=
     
     <nav>
       
+        <a href="https://github.com/soumik12345" class="md-author" title="@soumik12345">
+          
+          <img src="https://avatars.githubusercontent.com/u/19887676?v=4&size=72" alt="soumik12345">
+        </a>
+      
         <a href="https://github.com/SkalskiP" class="md-author" title="@SkalskiP">
           
           <img src="https://avatars.githubusercontent.com/u/26109316?v=4&size=72" alt="SkalskiP">
@@ -3392,16 +3397,11 @@ Supervision is versatile and compatible with various models. Check this <a href=
           <img src="https://avatars.githubusercontent.com/u/1688848?v=4&size=72" alt="onuralpszr">
         </a>
       
-        <a href="https://github.com/J4BEZ" class="md-author" title="@J4BEZ">
-          
-          <img src="https://avatars.githubusercontent.com/u/43560917?v=4&size=72" alt="J4BEZ">
-        </a>
-      
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/how_to/track_objects.md" class="md-author md-author--more">
-            +4
+            +5
           </a>
         
       
