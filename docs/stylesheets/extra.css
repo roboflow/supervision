@@ -1,7 +1,9 @@
-:root {
+:root, body {
   /* Default to light theme */
   --md-primary-fg-color:        #8315F9;
+  --md-code-hl-color:          #8315F9 !important;
   --md-accent-fg-color:        #8315F9 !important;
+  --md-code-hl-color--light: #e8d2ff89 !important;
   --md-footer-fg-color--light: rgb(111, 108, 121) !important;
 }
 
@@ -36,8 +38,16 @@ body.light {
 #products-list *:hover .products-sublist {
   display: block;
 }
-#resources-list * {
+#resources-list *, #products-list * {
   cursor: pointer;
+}
+.products-sublist, .resources-sublist {
+  padding: 0.25rem;
+}
+.products-sublist li:hover, .resources-sublist li:hover, .md-nav__link[href]:hover {
+  background: rgb(242, 241, 247) !important;
+  border-radius: 6px;
+  color: initial !important;
 }
 .md-search {
   flex-grow: 2;
@@ -74,11 +84,6 @@ body.light {
 .md-footer, .md-footer-meta {
   background-color: transparent;
   color: rgb(111, 108, 121);
-}
-.md-nav__link:hover {
-  background: rgb(243, 238, 255);
-  border-radius: 6px;
-  color: #8315F9 !important;
 }
 .md-typeset .tabbed-set > input:first-child:checked ~ .tabbed-labels > :first-child, .md-typeset .tabbed-set > input:nth-child(10):checked ~ .tabbed-labels > :nth-child(10), .md-typeset .tabbed-set > input:nth-child(11):checked ~ .tabbed-labels > :nth-child(11), .md-typeset .tabbed-set > input:nth-child(12):checked ~ .tabbed-labels > :nth-child(12), .md-typeset .tabbed-set > input:nth-child(13):checked ~ .tabbed-labels > :nth-child(13), .md-typeset .tabbed-set > input:nth-child(14):checked ~ .tabbed-labels > :nth-child(14), .md-typeset .tabbed-set > input:nth-child(15):checked ~ .tabbed-labels > :nth-child(15), .md-typeset .tabbed-set > input:nth-child(16):checked ~ .tabbed-labels > :nth-child(16), .md-typeset .tabbed-set > input:nth-child(17):checked ~ .tabbed-labels > :nth-child(17), .md-typeset .tabbed-set > input:nth-child(18):checked ~ .tabbed-labels > :nth-child(18), .md-typeset .tabbed-set > input:nth-child(19):checked ~ .tabbed-labels > :nth-child(19), .md-typeset .tabbed-set > input:nth-child(2):checked ~ .tabbed-labels > :nth-child(2), .md-typeset .tabbed-set > input:nth-child(20):checked ~ .tabbed-labels > :nth-child(20), .md-typeset .tabbed-set > input:nth-child(3):checked ~ .tabbed-labels > :nth-child(3), .md-typeset .tabbed-set > input:nth-child(4):checked ~ .tabbed-labels > :nth-child(4), .md-typeset .tabbed-set > input:nth-child(5):checked ~ .tabbed-labels > :nth-child(5), .md-typeset .tabbed-set > input:nth-child(6):checked ~ .tabbed-labels > :nth-child(6), .md-typeset .tabbed-set > input:nth-child(7):checked ~ .tabbed-labels > :nth-child(7), .md-typeset .tabbed-set > input:nth-child(8):checked ~ .tabbed-labels > :nth-child(8), .md-typeset .tabbed-set > input:nth-child(9):checked ~ .tabbed-labels > :nth-child(9) {
   color: #8315F9;
@@ -186,8 +191,12 @@ body {
   }
 }
 .md-content {
-  max-width: 800px;
+  max-width: 40rem;
   margin: auto;
+}
+/* // if no md-sidebar--primary, make .md-content full width */
+.md-main__inner:has(.md-sidebar--primary[hidden]) .md-content {
+  max-width: 100%;
 }
 .md-sidebar--primary {
   flex: 0 20%;
@@ -218,4 +227,10 @@ body[data-md-url$="/cookbooks/"] .md-sidebar--secondary {
 body[data-md-url$="/cookbooks/"] .md-content {
     margin-left: 0;
     width: 100%;
+}
+
+.md-main, nav .md-grid, .md-header__inner {
+  max-width: 1600px;
+  width: 100%;
+  margin: auto;
 }
