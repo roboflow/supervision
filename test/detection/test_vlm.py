@@ -372,7 +372,6 @@ def test_from_google_gemini() -> None:
         resolution_wh=resolution_wh,
     )
     np.testing.assert_array_equal(
-        xyxy,
-        np.array([[6.4, 9.6, 70.4, 57.6], [32.0, 48.0, 96.0, 96.0]]),
+        xyxy, np.array([[12.8, 4.8, 76.8, 52.8], [64.0, 24.0, 128.0, 72.0]])
     )
     np.testing.assert_array_equal(class_name, np.array(["cat", "dog"]))

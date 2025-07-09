@@ -20,7 +20,7 @@ from supervision.utils.internal import deprecated
 class LMM(Enum):
     PALIGEMMA = "paligemma"
     FLORENCE_2 = "florence_2"
-    QWEN_2_5_VL = "qwen_2_5_vl"    
+    QWEN_2_5_VL = "qwen_2_5_vl"
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_0_FLASH_LITE = "gemini_2_0_flash_lite"
     GOOGLE_GEMINI_2_0_FLASH = "gemini_2_0_flash"
@@ -39,7 +39,6 @@ class VLM(Enum):
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
     GOOGLE_GEMINI_2_5_FLASH_PREVIEW = "gemini_2_5_flash_preview"
     GOOGLE_GEMINI_2_5_PRO_PREVIEW = "gemini_2_5_pro_preview"
-    
 
 
 RESULT_TYPES: Dict[VLM, type] = {
@@ -399,7 +398,7 @@ def from_google_gemini(
             continue
         labels.append(item["label"])
         box = item["box_2d"]
-        # Gemini bbox order is [y_min, x_min, y_max, x_max]        
+        # Gemini bbox order is [y_min, x_min, y_max, x_max]
         xyxy.append(
             normalized_xyxy_to_absolute_xyxy(
                 np.array([box[1], box[0], box[3], box[2]]).astype(np.float64),
