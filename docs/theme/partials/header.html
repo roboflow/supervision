@@ -119,30 +119,38 @@
           });
           // on mouse out
           document.getElementById('resources-list').addEventListener('mouseout', function() {
-            // if not hovering over the sublist, uncheck the dropdown
+            // if not hovering over the sublist or the label, uncheck the dropdown
             // wait 1 sec
             setTimeout(function() {
-              if (!document.querySelector('.resources-sublist:hover')) {
+              if (!document.querySelector('.resources-sublist:hover') && !document.querySelector('#resources-list:hover')) {
                 document.getElementById('dropdown-resources').checked = false;
               }
-            }, 500);
+            }, 350);
           });
           // if mouseout of sublist, uncheck immediately
           document.querySelector('.resources-sublist').addEventListener('mouseout', function() {
-            document.getElementById('dropdown-resources').checked = false;
+            setTimeout(function() {
+              if (!document.querySelector('.resources-sublist:hover') && !document.querySelector('#resources-list:hover')) {
+                document.getElementById('dropdown-resources').checked = false;
+              }
+            }, 450);
           });
           document.getElementById('products-list').addEventListener('mouseout', function() {
             // if not hovering over the sublist, uncheck the dropdown
             // wait 1 sec
             setTimeout(function() {
-              if (!document.querySelector('.products-sublist:hover')) {
+              if (!document.querySelector('.products-sublist:hover') && !document.querySelector('#products-list:hover')) {
                 document.getElementById('dropdown-products').checked = false;
               }
             }, 500);
           });
           // if mouseout of sublist, uncheck immediately
           document.querySelector('.products-sublist').addEventListener('mouseout', function() {
-            document.getElementById('dropdown-products').checked = false;
+            setTimeout(function() {
+              if (!document.querySelector('.products-sublist:hover') && !document.querySelector('#products-list:hover')) {
+                document.getElementById('dropdown-products').checked = false;
+              }
+            }, 500);
           });
 
         </script>

@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", function () {
             <div
                 class="author-container"
                 data-login="${authorData.login}-${elementIndex}"
-                style="margin-left: ${marginLeft}; z-index: ${zIndex};"
+                style="margin-left: ${marginLeft};"
             >
                 <a
                     href="https://github.com/${authorData.login}"
@@ -90,14 +90,17 @@ document.addEventListener("DOMContentLoaded", function () {
         ).join(',&nbsp;');
 
         let authorsHTML = `
-        <div class="authors">
+        <div class="authors" style="margin: 0;">
             ${authorAvatarsHTML}
             <div class="author-names">${authorNamesHTML}</div>
         </div>
         `;
 
         element.innerText = `
-            <div style="flex-direction: column; height: 100%; display: flex;
+            <div style="
+                display: grid !important;
+                grid-template-rows: auto;
+                height: 100%;
             font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif,Apple Color Emoji,Segoe UI Emoji; background: ${theme.background}; font-size: 14px; line-height: 1.5; color: ${theme.color}">
             <div style="display: flex; align-items: center;">
                 <span style="font-weight: 700; font-size: 1rem; color: ${theme.linkColor};">
@@ -105,13 +108,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 </span>
             </div>
             ${authorsHTML}
-            <div style="font-size: 12px; color: ${theme.color}; display: flex; flex: 0; justify-content: space-between">
+            <div style="font-size: 12px; color: ${theme.color}; display: grid; grid-template-columns: 1fr 3fr; justify-content: space-between; gap: 1rem;">
                 <div style="display: flex; align-items: center;">
                 <img src="/assets/supervision-lenny.png" aria-label="stars" width="20" height="20" role="img" />
                 &nbsp;
                 <span style="margin-left: 4px">${version}</span>
                 </div>
-                <div style="display: flex; align-items: center; flex-wrap: wrap">
+                <div style="display: flex; align-items: center; flex-wrap: wrap; align-content: right;
+  gap: 0.1rem;">
                 ${labelHTML}
                 </div>
             </div>

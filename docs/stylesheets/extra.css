@@ -234,3 +234,9 @@ body[data-md-url$="/cookbooks/"] .md-content {
   width: 100%;
   margin: auto;
 }
+.md-search__scrollwrap {
+  width: 100% !important;
+}
+.md-nav--secondary .md-nav__title {
+  position: initial !important;
+}
