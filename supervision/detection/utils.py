@@ -446,6 +446,7 @@ def xyxy_to_xcycarh(xyxy: np.ndarray) -> np.ndarray:
     result = np.column_stack((center_x, center_y, aspect_ratio, height))
     return result.astype(float)
 
+
 def normalized_xyxy_to_absolute_xyxy(
     normalized_xyxy: np.ndarray,
     resolution_wh: Tuple[int, int],
@@ -500,6 +501,7 @@ def normalized_xyxy_to_absolute_xyxy(
     result[[1, 3]] = (result[[1, 3]] * height) / normalization_factor
 
     return result
+
 
 def mask_to_xyxy(masks: np.ndarray) -> np.ndarray:
     """
