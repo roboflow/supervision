@@ -87,39 +87,6 @@ class DetectionDataset(BaseDataset):
         self.image_paths = list(dict.fromkeys(images))
 
         self._images_in_memory: Dict[str, np.ndarray] = {}
-        if isinstance(images, dict):
-            self._images_in_memory = images
-            warn_deprecated(
-                "Passing a `Dict[str, np.ndarray]` into `DetectionDataset` is "
-                "deprecated and will be removed in `supervision-0.26.0`. Use "
-                "a list of paths `List[str]` instead."
-            )
-            # TODO: when supervision-0.26.0 is released, and Dict[str, np.ndarray]
-            #       for images is no longer supported, also simplify the rest of
-            #       the code. E.g. list(images) is no longer needed, and merge can
-            #       be simplified.
-
-    @property
-    @deprecated(
-        "`DetectionDataset.images` property is deprecated and will be removed in "
-        "`supervision-0.26.0`. Iterate with `for path, image, annotation in dataset:` "
-        "instead."
-    )
-    def images(self) -> Dict[str, np.ndarray]:
-        """
-        Load all images to memory and return them as a dictionary.
-
-        !!! warning
-
-            Only use this when you need all images at once.
-            It is much more memory-efficient to initialize dataset with
-            image paths and use `for path, image, annotation in dataset:`.
-        """
-        if self._images_in_memory:
-            return self._images_in_memory
-
-        images = {image_path: cv2.imread(image_path) for image_path in self.image_paths}
-        return images
 
     def _get_image(self, image_path: str) -> np.ndarray:
         """Assumes that image is in dataset"""
