@@ -108,7 +108,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 </span>
             </div>
             ${authorsHTML}
-            <div style="font-size: 12px; color: ${theme.color}; display: grid; grid-template-columns: 1fr 3fr; justify-content: space-between; gap: 1rem;">
+            <div style="font-size: 12px; color: ${theme.color}; display: grid; grid-template-columns: auto 3fr; justify-content: space-between; gap: 1rem;">
                 <div style="display: flex; align-items: center;">
                 <img src="/assets/supervision-lenny.png" aria-label="stars" width="20" height="20" role="img" />
                 &nbsp;
