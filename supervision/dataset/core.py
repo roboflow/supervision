@@ -574,7 +574,6 @@ class DetectionDataset(BaseDataset):
             force_masks (bool): If True,
                 forces masks to be loaded for all annotations,
                 regardless of whether they are present.
-
         Returns:
             DetectionDataset: A DetectionDataset instance containing
                 the loaded images and annotations.

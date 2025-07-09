@@ -162,12 +162,22 @@ def test_group_coco_annotations_by_image_id(
 
 
 @pytest.mark.parametrize(
-    "image_annotations, resolution_wh, with_masks, expected_result, exception",
+    "image_annotations, resolution_wh, with_masks, use_iscrowd, "
+    "expected_result, exception",
     [
         (
             [],
             (1000, 1000),
             False,
+            False,
+            Detections.empty(),
+            DoesNotRaise(),
+        ),  # empty image annotations
+        (
+            [],
+            (1000, 1000),
+            False,
+            True,
             Detections.empty(),
             DoesNotRaise(),
         ),  # empty image annotations
@@ -179,6 +189,7 @@ def test_group_coco_annotations_by_image_id(
             ],
             (1000, 1000),
             False,
+            False,
             Detections(
                 xyxy=np.array([[0, 0, 100, 100]], dtype=np.float32),
                 class_id=np.array([0], dtype=int),
@@ -189,12 +200,32 @@ def test_group_coco_annotations_by_image_id(
             [
                 mock_coco_annotation(
                     category_id=0, bbox=(0, 0, 100, 100), area=100 * 100
+                )
+            ],
+            (1000, 1000),
+            False,
+            True,
+            Detections(
+                xyxy=np.array([[0, 0, 100, 100]], dtype=np.float32),
+                class_id=np.array([0], dtype=int),
+                data={
+                    "iscrowd": np.array([0], dtype=int),
+                    "area": np.array([100 * 100]),
+                },
+            ),
+            DoesNotRaise(),
+        ),
+        (
+            [
+                mock_coco_annotation(
+                    category_id=0, bbox=(0, 0, 100, 100), area=100 * 100
                 ),
                 mock_coco_annotation(
                     category_id=0, bbox=(100, 100, 100, 100), area=100 * 100
                 ),
             ],
             (1000, 1000),
+            False,
             False,
             Detections(
                 xyxy=np.array(
@@ -207,6 +238,30 @@ def test_group_coco_annotations_by_image_id(
         (
             [
                 mock_coco_annotation(
+                    category_id=0, bbox=(0, 0, 100, 100), area=100 * 100
+                ),
+                mock_coco_annotation(
+                    category_id=0, bbox=(100, 100, 100, 100), area=100 * 100
+                ),
+            ],
+            (1000, 1000),
+            False,
+            True,
+            Detections(
+                xyxy=np.array(
+                    [[0, 0, 100, 100], [100, 100, 200, 200]], dtype=np.float32
+                ),
+                class_id=np.array([0, 0], dtype=int),
+                data={
+                    "iscrowd": np.array([0, 0], dtype=int),
+                    "area": np.array([100 * 100, 100 * 100]),
+                },
+            ),
+            DoesNotRaise(),
+        ),
+        (
+            [
+                mock_coco_annotation(
                     category_id=0,
                     bbox=(0, 0, 5, 5),
                     area=5 * 5,
@@ -215,6 +270,7 @@ def test_group_coco_annotations_by_image_id(
             ],
             (5, 5),
             True,
+            False,
             Detections(
                 xyxy=np.array([[0, 0, 5, 5]], dtype=np.float32),
                 class_id=np.array([0], dtype=int),
@@ -238,6 +294,36 @@ def test_group_coco_annotations_by_image_id(
                     category_id=0,
                     bbox=(0, 0, 5, 5),
                     area=5 * 5,
+                    segmentation=[[0, 0, 2, 0, 2, 2, 4, 2, 4, 4, 0, 4]],
+                )
+            ],
+            (5, 5),
+            True,
+            True,
+            Detections(
+                xyxy=np.array([[0, 0, 5, 5]], dtype=np.float32),
+                class_id=np.array([0], dtype=int),
+                mask=np.array(
+                    [
+                        [
+                            [1, 1, 1, 0, 0],
+                            [1, 1, 1, 0, 0],
+                            [1, 1, 1, 1, 1],
+                            [1, 1, 1, 1, 1],
+                            [1, 1, 1, 1, 1],
+                        ]
+                    ]
+                ),
+                data={"iscrowd": np.array([0], dtype=int), "area": np.array([25])},
+            ),
+            DoesNotRaise(),
+        ),
+        (
+            [
+                mock_coco_annotation(
+                    category_id=0,
+                    bbox=(0, 0, 5, 5),
+                    area=5 * 5,
                     segmentation={
                         "size": [5, 5],
                         "counts": [0, 15, 2, 3, 2, 3],
@@ -247,6 +333,7 @@ def test_group_coco_annotations_by_image_id(
             ],
             (5, 5),
             True,
+            False,
             Detections(
                 xyxy=np.array([[0, 0, 5, 5]], dtype=np.float32),
                 class_id=np.array([0], dtype=int),
@@ -270,6 +357,40 @@ def test_group_coco_annotations_by_image_id(
                     category_id=0,
                     bbox=(0, 0, 5, 5),
                     area=5 * 5,
+                    segmentation={
+                        "size": [5, 5],
+                        "counts": [0, 15, 2, 3, 2, 3],
+                    },
+                    iscrowd=True,
+                )
+            ],
+            (5, 5),
+            True,
+            True,
+            Detections(
+                xyxy=np.array([[0, 0, 5, 5]], dtype=np.float32),
+                class_id=np.array([0], dtype=int),
+                mask=np.array(
+                    [
+                        [
+                            [1, 1, 1, 0, 0],
+                            [1, 1, 1, 0, 0],
+                            [1, 1, 1, 1, 1],
+                            [1, 1, 1, 1, 1],
+                            [1, 1, 1, 1, 1],
+                        ]
+                    ]
+                ),
+                data={"iscrowd": np.array([1], dtype=int), "area": np.array([25])},
+            ),
+            DoesNotRaise(),
+        ),
+        (
+            [
+                mock_coco_annotation(
+                    category_id=0,
+                    bbox=(0, 0, 5, 5),
+                    area=5 * 5,
                     segmentation=[[0, 0, 2, 0, 2, 2, 4, 2, 4, 4, 0, 4]],
                 ),
                 mock_coco_annotation(
@@ -285,6 +406,7 @@ def test_group_coco_annotations_by_image_id(
             ],
             (5, 5),
             True,
+            False,
             Detections(
                 xyxy=np.array([[0, 0, 5, 5], [3, 0, 5, 2]], dtype=np.float32),
                 class_id=np.array([0, 0], dtype=int),
@@ -313,6 +435,57 @@ def test_group_coco_annotations_by_image_id(
             [
                 mock_coco_annotation(
                     category_id=0,
+                    bbox=(0, 0, 5, 5),
+                    area=5 * 5,
+                    segmentation=[[0, 0, 2, 0, 2, 2, 4, 2, 4, 4, 0, 4]],
+                ),
+                mock_coco_annotation(
+                    category_id=0,
+                    bbox=(3, 0, 2, 2),
+                    area=2 * 2,
+                    segmentation={
+                        "size": [5, 5],
+                        "counts": [15, 2, 3, 2, 3],
+                    },
+                    iscrowd=True,
+                ),
+            ],
+            (5, 5),
+            True,
+            True,
+            Detections(
+                xyxy=np.array([[0, 0, 5, 5], [3, 0, 5, 2]], dtype=np.float32),
+                class_id=np.array([0, 0], dtype=int),
+                mask=np.array(
+                    [
+                        [
+                            [1, 1, 1, 0, 0],
+                            [1, 1, 1, 0, 0],
+                            [1, 1, 1, 1, 1],
+                            [1, 1, 1, 1, 1],
+                            [1, 1, 1, 1, 1],
+                        ],
+                        [
+                            [0, 0, 0, 1, 1],
+                            [0, 0, 0, 1, 1],
+                            [0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0],
+                        ],
+                    ]
+                ),
+                data={
+                    "iscrowd": np.array([0, 1], dtype=int),
+                    "area": np.array([25, 4]),
+                },
+            ),
+            DoesNotRaise(),
+        ),  # two image annotations with mask, one mask as polygon with iscrowd,
+        # and second as RLE without iscrowd
+        (
+            [
+                mock_coco_annotation(
+                    category_id=0,
                     bbox=(3, 0, 2, 2),
                     area=2 * 2,
                     segmentation={
@@ -330,6 +503,7 @@ def test_group_coco_annotations_by_image_id(
             ],
             (5, 5),
             True,
+            False,
             Detections(
                 xyxy=np.array([[3, 0, 5, 2], [0, 0, 5, 5]], dtype=np.float32),
                 class_id=np.array([0, 1], dtype=int),
@@ -354,12 +528,64 @@ def test_group_coco_annotations_by_image_id(
             ),
             DoesNotRaise(),
         ),  # two image annotations with mask, first mask as RLE and second as polygon
+        (
+            [
+                mock_coco_annotation(
+                    category_id=0,
+                    bbox=(3, 0, 2, 2),
+                    area=2 * 2,
+                    segmentation={
+                        "size": [5, 5],
+                        "counts": [15, 2, 3, 2, 3],
+                    },
+                    iscrowd=True,
+                ),
+                mock_coco_annotation(
+                    category_id=1,
+                    bbox=(0, 0, 5, 5),
+                    area=5 * 5,
+                    segmentation=[[0, 0, 2, 0, 2, 2, 4, 2, 4, 4, 0, 4]],
+                ),
+            ],
+            (5, 5),
+            True,
+            True,
+            Detections(
+                xyxy=np.array([[3, 0, 5, 2], [0, 0, 5, 5]], dtype=np.float32),
+                class_id=np.array([0, 1], dtype=int),
+                mask=np.array(
+                    [
+                        [
+                            [0, 0, 0, 1, 1],
+                            [0, 0, 0, 1, 1],
+                            [0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0],
+                        ],
+                        [
+                            [1, 1, 1, 0, 0],
+                            [1, 1, 1, 0, 0],
+                            [1, 1, 1, 1, 1],
+                            [1, 1, 1, 1, 1],
+                            [1, 1, 1, 1, 1],
+                        ],
+                    ]
+                ),
+                data={
+                    "iscrowd": np.array([1, 0], dtype=int),
+                    "area": np.array([4, 25]),
+                },
+            ),
+            DoesNotRaise(),
+        ),  # two image annotations with mask, first mask as RLE with is crowd,
+        # and second as polygon without iscrowd
     ],
 )
 def test_coco_annotations_to_detections(
     image_annotations: List[dict],
     resolution_wh: Tuple[int, int],
     with_masks: bool,
+    use_iscrowd: bool,
     expected_result: Detections,
     exception: Exception,
 ) -> None:
@@ -368,6 +594,7 @@ def test_coco_annotations_to_detections(
             image_annotations=image_annotations,
             resolution_wh=resolution_wh,
             with_masks=with_masks,
+            use_iscrowd=use_iscrowd,
         )
         assert result == expected_result
 

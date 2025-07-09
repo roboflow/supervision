@@ -34,13 +34,13 @@ jobs:
           fetch-depth: 0
 
       - name: 🐍 Install uv and set Python ${{ matrix.python-version }}
-        uses: astral-sh/setup-uv@f94ec6bedd8674c4426838e6b50417d36b6ab231 # v5.3.1
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: 🔑 Create GitHub App token (mkdocs)
         id: mkdocs_token
-        uses: actions/create-github-app-token@21cfef2b496dd8ef5b904c159339626a10ad380e # v1.11.6
+        uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2.0.6
         with:
           app-id: ${{ secrets.MKDOCS_APP_ID }}
           private-key: ${{ secrets.MKDOCS_PEM }}

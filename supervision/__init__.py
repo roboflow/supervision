@@ -38,6 +38,7 @@ from supervision.dataset.core import (
     ClassificationDataset,
     DetectionDataset,
 )
+from supervision.dataset.formats.coco import get_coco_class_index_mapping
 from supervision.dataset.utils import mask_to_rle, rle_to_mask
 from supervision.detection.core import Detections
 from supervision.detection.line_zone import (
@@ -58,6 +59,7 @@ from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnn
 from supervision.detection.tools.smoother import DetectionsSmoother
 from supervision.detection.utils import (
     box_iou_batch,
+    box_iou_batch_with_jaccard,
     calculate_masks_centroids,
     clip_boxes,
     contains_holes,
@@ -77,6 +79,7 @@ from supervision.detection.utils import (
     xcycwh_to_xyxy,
     xywh_to_xyxy,
     xyxy_to_polygons,
+    xyxy_to_xcycarh,
     xyxy_to_xywh,
 )
 from supervision.detection.vlm import LMM, VLM
@@ -180,6 +183,7 @@ __all__ = [
     "VideoInfo",
     "VideoSink",
     "box_iou_batch",
+    "box_iou_batch_with_jaccard",
     "box_non_max_merge",
     "box_non_max_suppression",
     "calculate_masks_centroids",
@@ -199,6 +203,7 @@ __all__ = [
     "draw_rectangle",
     "draw_text",
     "filter_polygons_by_area",
+    "get_coco_class_index_mapping",
     "get_polygon_center",
     "get_video_frames_generator",
     "letterbox_image",
@@ -226,5 +231,6 @@ __all__ = [
     "xcycwh_to_xyxy",
     "xywh_to_xyxy",
     "xyxy_to_polygons",
+    "xyxy_to_xcycarh",
     "xyxy_to_xywh",
 ]
