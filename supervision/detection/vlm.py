@@ -20,8 +20,13 @@ from supervision.utils.internal import deprecated
 class LMM(Enum):
     PALIGEMMA = "paligemma"
     FLORENCE_2 = "florence_2"
-    QWEN_2_5_VL = "qwen_2_5_vl"
+    QWEN_2_5_VL = "qwen_2_5_vl"    
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
+    GOOGLE_GEMINI_2_0_FLASH_LITE = "gemini_2_0_flash_lite"
+    GOOGLE_GEMINI_2_0_FLASH = "gemini_2_0_flash"
+    GOOGLE_GEMINI_2_5 = "gemini_2_5"
+    GOOGLE_GEMINI_2_5_FLASH_PREVIEW = "gemini_2_5_flash_preview"
+    GOOGLE_GEMINI_2_5_PRO_PREVIEW = "gemini_2_5_pro_preview"
 
 
 class VLM(Enum):
@@ -29,6 +34,12 @@ class VLM(Enum):
     FLORENCE_2 = "florence_2"
     QWEN_2_5_VL = "qwen_2_5_vl"
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
+    GOOGLE_GEMINI_2_0_FLASH_LITE = "gemini_2_0_flash_lite"
+    GOOGLE_GEMINI_2_0_FLASH = "gemini_2_0_flash"
+    GOOGLE_GEMINI_2_5 = "gemini_2_5"
+    GOOGLE_GEMINI_2_5_FLASH_PREVIEW = "gemini_2_5_flash_preview"
+    GOOGLE_GEMINI_2_5_PRO_PREVIEW = "gemini_2_5_pro_preview"
+    
 
 
 RESULT_TYPES: Dict[VLM, type] = {
@@ -36,6 +47,11 @@ RESULT_TYPES: Dict[VLM, type] = {
     VLM.FLORENCE_2: dict,
     VLM.QWEN_2_5_VL: str,
     VLM.GOOGLE_GEMINI_2_0: str,
+    VLM.GOOGLE_GEMINI_2_5: str,
+    VLM.GOOGLE_GEMINI_2_0_FLASH_LITE: str,
+    VLM.GOOGLE_GEMINI_2_0_FLASH: str,
+    VLM.GOOGLE_GEMINI_2_5_FLASH_PREVIEW: str,
+    VLM.GOOGLE_GEMINI_2_5_PRO_PREVIEW: str,
 }
 
 REQUIRED_ARGUMENTS: Dict[VLM, List[str]] = {
@@ -43,6 +59,11 @@ REQUIRED_ARGUMENTS: Dict[VLM, List[str]] = {
     VLM.FLORENCE_2: ["resolution_wh"],
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh"],
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_5: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_0_FLASH_LITE: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_0_FLASH: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_5_FLASH_PREVIEW: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_5_PRO_PREVIEW: ["resolution_wh"],
 }
 
 ALLOWED_ARGUMENTS: Dict[VLM, List[str]] = {
@@ -50,6 +71,11 @@ ALLOWED_ARGUMENTS: Dict[VLM, List[str]] = {
     VLM.FLORENCE_2: ["resolution_wh"],
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_5: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_0_FLASH_LITE: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_0_FLASH: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_5_FLASH_PREVIEW: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_5_PRO_PREVIEW: ["resolution_wh"],
 }
 
 SUPPORTED_TASKS_FLORENCE_2 = [
@@ -372,9 +398,11 @@ def from_google_gemini(
         if "box_2d" not in item or "label" not in item:
             continue
         labels.append(item["label"])
+        box = item["box_2d"]
+        # Gemini bbox order is [y_min, x_min, y_max, x_max]        
         xyxy.append(
             normalized_xyxy_to_absolute_xyxy(
-                np.array(item["box_2d"]).astype(np.float64),
+                np.array([box[1], box[0], box[3], box[2]]).astype(np.float64),
                 resolution_wh=(w, h),
                 normalization_factor=1000,
             )
