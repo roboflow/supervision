@@ -32,7 +32,7 @@ from supervision.dataset.utils import (
     train_test_split,
 )
 from supervision.detection.core import Detections
-from supervision.utils.internal import deprecated, warn_deprecated
+from supervision.utils.internal import warn_deprecated
 from supervision.utils.iterables import find_duplicates
 
 
