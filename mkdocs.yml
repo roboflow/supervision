@@ -114,9 +114,6 @@ theme:
   font:
     text: Inter
     code: IBM Plex Mono
-    features:
-      - content.code.copy
-      - content.code.annotate
 
 plugins:
   - search
