@@ -38,6 +38,7 @@ from supervision.detection.vlm import (
     VLM,
     from_florence_2,
     from_google_gemini,
+    from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
     validate_vlm_parameters,
@@ -1046,6 +1047,11 @@ class Detections:
             xyxy, class_name = from_google_gemini(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, data=data)
+
+        if vlm == VLM.MOONDREAM:
+            xyxy, class_id, class_name = from_moondream(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            return cls(xyxy=xyxy, class_id=class_id, data=data)
 
         return cls.empty()
 
