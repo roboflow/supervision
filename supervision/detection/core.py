@@ -890,6 +890,7 @@ class Detections:
 
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+            ```
         """
 
         # filler logic mapping old from_lmm to new from_vlm
