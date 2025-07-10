@@ -1,12 +1,12 @@
+import base64
+import io
 import json
 import re
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Union
-import base64
-import io
-from PIL import Image
-from typing import Union, Optional, Tuple
+
 import numpy as np
+from PIL import Image
 
 from supervision.detection.utils import (
     denormalize_boxes,
@@ -410,6 +410,7 @@ def from_google_gemini(
 
     return np.array(xyxy), np.array(labels)
 
+
 def from_google_gemini_2_5(
     result: str,
     resolution_wh: Tuple[int, int],
@@ -449,7 +450,12 @@ def from_google_gemini_2_5(
     try:
         data = json.loads(result)
     except json.JSONDecodeError:
-        return np.empty((0, 4)), np.empty((0,), dtype=str), np.empty((0,), dtype=int), None
+        return (
+            np.empty((0, 4)),
+            np.empty((0,), dtype=str),
+            np.empty((0,), dtype=int),
+            None,
+        )
 
     class_name: list = []
     class_id: list = []
@@ -463,10 +469,10 @@ def from_google_gemini_2_5(
         box = item["box_2d"]
         # Gemini bbox order is [y_min, x_min, y_max, x_max]
         absolute_bbox = denormalize_boxes(
-                np.array([box[1], box[0], box[3], box[2]]).astype(np.float64),
-                resolution_wh=(w, h),
-                normalization_factor=1000,
-            )
+            np.array([box[1], box[0], box[3], box[2]]).astype(np.float64),
+            resolution_wh=(w, h),
+            normalization_factor=1000,
+        )
         xyxy.append(absolute_bbox)
 
         if "mask" in item:
@@ -498,7 +504,12 @@ def from_google_gemini_2_5(
             masks.append(np.zeros((h, w), dtype=bool))
 
     if not xyxy:
-        return np.empty((0, 4)), np.empty((0,), dtype=str), np.empty((0,), dtype=int), None
+        return (
+            np.empty((0, 4)),
+            np.empty((0,), dtype=str),
+            np.empty((0,), dtype=int),
+            None,
+        )
 
     mask = np.array(masks) if masks is not None else None
 
@@ -507,4 +518,3 @@ def from_google_gemini_2_5(
         class_id.append(unique_labels.index(label))
 
     return np.array(xyxy), np.array(class_id), np.array(class_name), mask
-
