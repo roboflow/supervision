@@ -447,7 +447,7 @@ def xyxy_to_xcycarh(xyxy: np.ndarray) -> np.ndarray:
     return result.astype(float)
 
 
-def normalized_xyxy_to_absolute_xyxy(
+def denormalize_boxes(
     normalized_xyxy: np.ndarray,
     resolution_wh: Tuple[int, int],
     normalization_factor: float = 1.0,
@@ -477,7 +477,7 @@ def normalized_xyxy_to_absolute_xyxy(
             [0.3, 0.4, 0.7, 0.8]
         ])
         resolution_wh = (100, 200)
-        sv.normalized_xyxy_to_absolute_xyxy(normalized_xyxy, resolution_wh)
+        sv.denormalize_boxes(normalized_xyxy, resolution_wh)
         # array([
         #     [ 10.,  40.,  50., 120.],
         #     [ 30.,  80.,  70., 160.]
@@ -487,7 +487,7 @@ def normalized_xyxy_to_absolute_xyxy(
             [10., 20., 50., 60.],
             [30., 40., 70., 80.]
         ])
-        sv.normalized_xyxy_to_absolute_xyxy(normalized_xyxy, resolution_wh, max_value=100.0)
+        sv.denormalize_boxes(normalized_xyxy, resolution_wh, max_value=100.0)
         # array([
         #     [ 10.,  40.,  50., 120.],
         #     [ 30.,  80.,  70., 160.]
