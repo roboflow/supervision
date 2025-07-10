@@ -430,8 +430,8 @@ def from_moondream(
       For Example:
       {
           "objects": [
-              {"x_min": 0.1, "y_min": 0.2, "x_max": 0.3, "y_max": 0.4, "label": "cat"},
-              {"x_min": 0.5, "y_min": 0.6, "x_max": 0.7, "y_max": 0.8, "label": "dog"}
+              {"x_min": 0.1, "y_min": 0.2, "x_max": 0.3, "y_max": 0.4},
+              {"x_min": 0.5, "y_min": 0.6, "x_max": 0.7, "y_max": 0.8}
           ]
       }
 

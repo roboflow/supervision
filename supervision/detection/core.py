@@ -1015,14 +1015,16 @@ class Detections:
             import supervision as sv
 
             moondream_result = \"\"\"
-            {'objects': [{'x_min': 0.5704046934843063,
+            {
+                'objects': [{'x_min': 0.5704046934843063,
                     'y_min': 0.20069346576929092,
                     'x_max': 0.7049859315156937,
                     'y_max': 0.3012596592307091},
                     {'x_min': 0.6210969910025597,
                     'y_min': 0.3300672620534897,
                     'x_max': 0.8417936339974403,
-                    'y_max': 0.4961046129465103}]}}]
+                    'y_max': 0.4961046129465103}]
+            }
             \"\"\"
 
             detections = sv.Detections.from_vlm(
