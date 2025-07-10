@@ -442,7 +442,7 @@ def from_moondream(
             provided)
         class_name (np.ndarray): An array of shape `(n,)` containing
             the class labels for each bounding box
-    """
+    """  # noqa: E501 #docs
     w, h = resolution_wh
     if w <= 0 or h <= 0:
         raise ValueError(
