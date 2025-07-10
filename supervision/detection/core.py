@@ -963,7 +963,7 @@ class Detections:
             detections.class_id
             # array([0])
             ```
-        
+
         Examples:
             ```python
             import supervision as sv
