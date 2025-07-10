@@ -851,24 +851,23 @@ class Detections:
 
             gemini_response_text = \"\"\"```json
                 [
-                    {"box_2d": [543, 40, 728, 200], "label": "Cat", "id": 1},
-                    {"box_2d": [653, 352, 820, 522], "label": "Dog", "id": 2}
+                    {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
+                    {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
                 ]
             ```\"\"\"
 
-            detections = sv.Detections.from_vlm(
-                sv.VLM.GOOGLE_GEMINI_2_0,
+            detections = sv.Detections.from_lmm(
+                sv.LMM.GOOGLE_GEMINI_2_0,
                 gemini_response_text,
                 resolution_wh=(IMAGE.size[0], IMAGE.size[1]),
             )
 
             detections.xyxy
-            # array([[250., 250., 750., 750.]])
+            # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
             detections.class_id
-            # array([0])
+            # array([1, 2])
             detections.data
-            # {'class_name': ['cat', 'dog']}
-            ```
+            # {'class_name': array(['cat', 'dog'], dtype='<U26')}
         """  # noqa: E501 // docs
 
         # filler logic mapping old from_lmm to new from_vlm
@@ -949,8 +948,8 @@ class Detections:
 
             gemini_response_text = \"\"\"```json
                 [
-                    {"box_2d": [543, 40, 728, 200], "label": "Cat", "id": 1},
-                    {"box_2d": [653, 352, 820, 522], "label": "Dog", "id": 2}
+                    {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
+                    {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
                 ]
             ```\"\"\"
 
@@ -961,11 +960,11 @@ class Detections:
             )
 
             detections.xyxy
-            # array([[250., 250., 750., 750.]])
+            # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
             detections.class_id
-            # array([0])
+            # array([1, 2])
             detections.data
-            # {'class_name': ['cat', 'dog']}
+            # {'class_name': array(['cat', 'dog'], dtype='<U26')}
             ```
         """
         vlm = validate_vlm_parameters(vlm, result, kwargs)
