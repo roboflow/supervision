@@ -240,3 +240,8 @@ body[data-md-url$="/cookbooks/"] .md-content {
 .md-nav--secondary .md-nav__title {
   position: initial !important;
 }
+
+.md-header__title .md-ellipsis {
+  overflow: initial !important;
+  text-overflow: initial !important;
+}
