@@ -139,10 +139,10 @@ class _BaseLabelAnnotator(BaseAnnotator):
             # Update the properties with the spread out boxes
             adjusted_properties[:, :4] = spread_boxes
 
-            # Additional check to ensure boxes are still within frame after spreading
-            adjusted_properties[:, :4] = snap_boxes(
-                adjusted_properties[:, :4], resolution_wh
-            )
+        # Additional check to ensure boxes are still within frame after spreading
+        adjusted_properties[:, :4] = snap_boxes(
+            adjusted_properties[:, :4], resolution_wh
+        )
 
         return adjusted_properties
 
