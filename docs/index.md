@@ -10,12 +10,18 @@ hide:
   <h1></h1>
 </div>
 
-<div align="center" id="logo">
+<div align="center" id="logo" style="padding-top: 1rem;">
   <a align="center" href="" target="_blank">
       <img width="850"
           src="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png?updatedAt=1678995927529">
   </a>
 </div>
+
+<style>
+    #hello {
+        margin: 0;
+    }
+</style>
 
 ## 👋 Hello
 
