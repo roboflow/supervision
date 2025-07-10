@@ -38,6 +38,7 @@ from supervision.detection.vlm import (
     VLM,
     from_florence_2,
     from_google_gemini,
+    from_google_gemini_2_5,
     from_paligemma,
     from_qwen_2_5_vl,
     validate_vlm_parameters,
@@ -1034,15 +1035,15 @@ class Detections:
 
             return cls(xyxy=xyxy, mask=mask, data=data)
 
-        if (
-            vlm == VLM.GOOGLE_GEMINI_2_0
-            or vlm == VLM.GOOGLE_GEMINI_2_5
-            or vlm == VLM.GOOGLE_GEMINI_2_5_FLASH_PREVIEW
-            or vlm == VLM.GOOGLE_GEMINI_2_5_PRO_PREVIEW
-        ):
+        if vlm == VLM.GOOGLE_GEMINI_2_0:
             xyxy, class_name = from_google_gemini(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, data=data)
+
+        if vlm == VLM.GOOGLE_GEMINI_2_5:
+            xyxy, class_id, class_name, mask = from_google_gemini_2_5(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            return cls(xyxy=xyxy, class_id=class_id, mask=mask, data=data)
 
         return cls.empty()
 
