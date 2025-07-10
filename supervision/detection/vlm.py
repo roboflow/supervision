@@ -31,6 +31,7 @@ class VLM(Enum):
     QWEN_2_5_VL = "qwen_2_5_vl"
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
+    MOONDREAM = "moondream"
 
 
 RESULT_TYPES: Dict[VLM, type] = {
@@ -39,6 +40,7 @@ RESULT_TYPES: Dict[VLM, type] = {
     VLM.QWEN_2_5_VL: str,
     VLM.GOOGLE_GEMINI_2_0: str,
     VLM.GOOGLE_GEMINI_2_5: str,
+    VLM.MOONDREAM: dict,
 }
 
 REQUIRED_ARGUMENTS: Dict[VLM, List[str]] = {
@@ -47,6 +49,7 @@ REQUIRED_ARGUMENTS: Dict[VLM, List[str]] = {
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh"],
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh"],
+    VLM.MOONDREAM: ["resolution_wh"],
 }
 
 ALLOWED_ARGUMENTS: Dict[VLM, List[str]] = {
@@ -55,6 +58,7 @@ ALLOWED_ARGUMENTS: Dict[VLM, List[str]] = {
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh"],
+    VLM.MOONDREAM: ["resolution_wh", "classes"],
 }
 
 SUPPORTED_TASKS_FLORENCE_2 = [
@@ -406,3 +410,78 @@ def from_google_gemini(
         return np.empty((0, 4)), np.empty((0,), dtype=str)
 
     return np.array(xyxy), np.array(labels)
+
+
+def from_moondream(
+    result: dict,
+    resolution_wh: Tuple[int, int],
+    classes: Optional[List[str]] = None,
+) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
+    """
+    Parse and scale bounding boxes from moondream JSON output.
+
+    The JSON is expected to have a key "objects" with a list of dictionaries:
+      {
+          "objects": [
+              {"x_min": 0.1, "y_min": 0.2, "x_max": 0.3, "y_max": 0.4, "label": "some class name"},
+              ...
+          ]
+      }
+
+    Args:
+        result: Dictionary containing the JSON output from the model.
+        resolution_wh: (output_width, output_height) to which we rescale the boxes.
+        classes: Optional list of valid class names. If provided, returned boxes/labels
+            are filtered to only those classes found here.
+
+    Returns:
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing
+            the bounding boxes coordinates in format `[x1, y1, x2, y2]`
+        class_id (Optional[np.ndarray]): An array of shape `(n,)` containing
+            the class indices for each bounding box (or None if `classes` is not
+            provided)
+        class_name (np.ndarray): An array of shape `(n,)` containing
+            the class labels for each bounding box
+    """
+    w, h = resolution_wh
+    if w <= 0 or h <= 0:
+        raise ValueError(
+            f"Both dimensions in resolution_wh must be positive. Got ({w}, {h})."
+        )
+
+    if "objects" not in result or not isinstance(result["objects"], list):
+        return np.empty((0, 4)), None, np.empty((0,), dtype=str)
+
+    boxes_list = []
+    labels_list = []
+
+    for item in result["objects"]:
+        if not all(k in item for k in ["x_min", "y_min", "x_max", "y_max", "label"]):
+            continue
+
+        x_min = item["x_min"]
+        y_min = item["y_min"]
+        x_max = item["x_max"]
+        y_max = item["y_max"]
+
+        boxes_list.append([x_min, y_min, x_max, y_max])
+        labels_list.append(item["label"])
+
+    if not boxes_list:
+        return np.empty((0, 4)), None, np.empty((0,), dtype=str)
+
+    xyxy = np.array(boxes_list, dtype=float)
+    class_name = np.array(labels_list, dtype=str)
+
+    # Moondream boxes are normalized, so we scale them
+    xyxy = xyxy * np.array([w, h, w, h])
+
+    class_id = None
+
+    if classes is not None:
+        mask = np.array([label in classes for label in class_name], dtype=bool)
+        xyxy = xyxy[mask]
+        class_name = class_name[mask]
+        class_id = np.array([classes.index(label) for label in class_name], dtype=int)
+
+    return xyxy, class_id, class_name
