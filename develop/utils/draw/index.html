@@ -50,8 +50,8 @@
         
         
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
-        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CIBM+Plex+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"IBM Plex Mono"}</style>
       
     
     
@@ -115,26 +115,55 @@
     
       
 
+
+<!-- Header -->
 <header class="md-header" data-md-component="header">
-  <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="Supervision" class="md-header__button md-logo" aria-label="Supervision" data-md-component="logo">
+  <nav
+    class="md-header__inner md-grid"
+    aria-label="Header"
+  >
+
+    <!-- Link to home -->
+    <a
+      href="../.."
+      title="Supervision"
+      class="md-header__button md-logo"
+      aria-label="Supervision"
+      data-md-component="logo"
+    >
       
   <img src="../../assets/supervision-lenny.png" alt="logo">
 
     </a>
+
+    <!-- Button to open drawer -->
     <label class="md-header__button md-icon" for="__drawer">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
     </label>
+
+    <!-- Header title -->
     <div class="md-header__title" data-md-component="header-title">
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            Supervision
+            Supervision Docs
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
-          <span class="md-ellipsis">
+          <span class="md-ellipsis" style="display: flex; align-items: center; gap: 0.5rem;">
+            <a
+            href="../.."
+            title="Supervision"
+            class="md-header__button md-logo"
+            aria-label="Supervision"
+            data-md-component="logo"
+            id="item-logo"
+            >
+            
+  <img src="../../assets/supervision-lenny.png" alt="logo">
+
+            </a>
             
               Draw
             
@@ -142,43 +171,19 @@
         </div>
       </div>
     </div>
+    <!-- Button to open search modal -->
     
       
-        <form class="md-header__option" data-md-component="palette">
-  
-    
-    
-    
-    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
-    
-      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
-      </label>
-    
-  
-    
-    
-    
-    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
-    
-      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
-      </label>
-    
-  
-</form>
+
+      <!-- Check if search is actually enabled - see https://t.ly/DT_0V -->
       
-    
-    
-      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
-    
-    
-    
-      <label class="md-header__button md-icon" for="__search">
-        
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
-      </label>
-      <div class="md-search" data-md-component="search" role="dialog">
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+
+        <!-- Search interface -->
+        <div class="md-search" data-md-component="search" role="dialog">
   <label class="md-search__overlay" for="__search"></label>
   <div class="md-search__inner" role="search">
     <form class="md-search__form" name="search">
@@ -210,21 +215,108 @@
     </div>
   </div>
 </div>
+      
     
-    
-      <div class="md-header__source">
-        <a href="https://github.com/roboflow/supervision" title="Go to repository" class="md-source" data-md-component="source">
-  <div class="md-source__icon md-icon">
-    
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
-  </div>
-  <div class="md-source__repository">
-    roboflow/supervision
-  </div>
-</a>
-      </div>
-    
+
+
+    <ul class="header-list">
+        <li style="align-items: center;" id="resources-list">
+            <label for="dropdown-resources"><span>Resources <img src="https://ka-p.fontawesome.com/releases/v6.6.0/svgs/regular/chevron-down.svg?v=2&token=a463935e93" style="height: 0.5rem;" /></span></label>
+            <input type="radio" name="dropdown" id="dropdown-resources" style="display: none;" />
+            <ul class="resources-sublist sublist">
+                <li><a href="https://blog.roboflow.com">Blog</a></li>
+                <li><a href="https://discuss.roboflow.com">Community Forum</a></li>
+                <li><a href="https://roboflow.com/sales">Contact Sales</a></li>
+                <li><a href="https://universe.roboflow.com">Universe</a></li>
+            </ul>
+        </li>
+        <li style="align-items: center;" id="products-list">
+            <label for="dropdown-products"><span>Docs <img src="https://ka-p.fontawesome.com/releases/v6.6.0/svgs/regular/chevron-down.svg?v=2&token=a463935e93" style="height: 0.5rem;" /></span></label>
+            <input type="radio" name="dropdown" id="dropdown-products" style="display: none;" />
+            <ul class="products-sublist sublist">
+                <li><a href="https://inference.roboflow.com">Inference</a></li>
+                <li><a href="https://supervision.roboflow.com">Supervision</a></li>
+                <li><a href="https://trackers.roboflow.com">Trackers</a></li>
+                <li><a href="https://maestro.roboflow.com">Maestro</a></li>
+                <li><a href="https://docs.roboflow.com">Roboflow</a></li>
+            </ul>
+        </li>
+        <script>
+          document.addEventListener('click', function(event) {
+            const resourcesList = document.getElementById('resources-list');
+            const productsList = document.getElementById('products-list');
+            const dropdownResources = document.getElementById('dropdown-resources');
+            const dropdownProducts = document.getElementById('dropdown-products');
+
+            if (!resourcesList.contains(event.target)) {
+              dropdownResources.checked = false;
+            }
+            if (!productsList.contains(event.target)) {
+              dropdownProducts.checked = false;
+            }
+          });
+          // on mouse over
+          document.getElementById('resources-list').addEventListener('mouseover', function() {
+            document.getElementById('dropdown-resources').checked = true;
+          });
+          document.getElementById('products-list').addEventListener('mouseover', function() {
+            document.getElementById('dropdown-products').checked = true;
+          });
+          // on mouse out
+          document.getElementById('resources-list').addEventListener('mouseout', function() {
+            // if not hovering over the sublist or the label, uncheck the dropdown
+            // wait 1 sec
+            setTimeout(function() {
+              if (!document.querySelector('.resources-sublist:hover') && !document.querySelector('#resources-list:hover')) {
+                document.getElementById('dropdown-resources').checked = false;
+              }
+            }, 350);
+          });
+          // if mouseout of sublist, uncheck immediately
+          document.querySelector('.resources-sublist').addEventListener('mouseout', function() {
+            setTimeout(function() {
+              if (!document.querySelector('.resources-sublist:hover') && !document.querySelector('#resources-list:hover')) {
+                document.getElementById('dropdown-resources').checked = false;
+              }
+            }, 450);
+          });
+          document.getElementById('products-list').addEventListener('mouseout', function() {
+            // if not hovering over the sublist, uncheck the dropdown
+            // wait 1 sec
+            setTimeout(function() {
+              if (!document.querySelector('.products-sublist:hover') && !document.querySelector('#products-list:hover')) {
+                document.getElementById('dropdown-products').checked = false;
+              }
+            }, 500);
+          });
+          // if mouseout of sublist, uncheck immediately
+          document.querySelector('.products-sublist').addEventListener('mouseout', function() {
+            setTimeout(function() {
+              if (!document.querySelector('.products-sublist:hover') && !document.querySelector('#products-list:hover')) {
+                document.getElementById('dropdown-products').checked = false;
+              }
+            }, 500);
+          });
+
+        </script>
+        <style>
+          #dropdown-resources:checked ~ .resources-sublist {
+            display: block;
+          }
+          #dropdown-products:checked ~ .products-sublist {
+            display: block;
+          }
+          /* Hide dropdown if clicking outside */
+          body:not(:has(#dropdown-resources:checked)) .resources-sublist,
+          body:not(:has(#dropdown-products:checked)) .products-sublist {
+            display: none;
+          }
+        </style>
+        <a href="https://github.com/roboflow/supervision"><li class="header-btn" style="border-radius: 5px; color: white; background: var(--md-typeset-a-color); padding-top: 0.25rem; padding-left: 0.5rem; padding-bottom: 0.25rem; padding-right: 0.5rem; border: 1px solid #8315F9;">Go to GitHub</li></a>
+    </ul>
   </nav>
+
+  <!-- Navigation tabs (sticky) -->
   
 </header>
     
@@ -248,7 +340,7 @@
   
     
   
-  Supervision
+  Home
 
       </a>
     </li>
@@ -293,7 +385,7 @@
         <a href="../../detection/core/" class="md-tabs__link">
           
   
-  Reference - Code API
+  Reference
 
         </a>
       </li>
@@ -325,48 +417,13 @@
   
   
   
-    <li class="md-tabs__item">
-      <a href="https://roboflow.github.io/cheatsheet-supervision/" class="md-tabs__link">
-        
-  
-    
-  
-  Cheatsheet
-
-      </a>
-    </li>
-  
-
-      
-        
-  
-  
-  
-    
-    
-      <li class="md-tabs__item">
-        <a href="../../contributing/" class="md-tabs__link">
-          
-  
-  Contribute
-
-        </a>
-      </li>
-    
-  
-
-      
-        
-  
-  
-  
     
     
       <li class="md-tabs__item">
         <a href="../../changelog/" class="md-tabs__link">
           
   
-  Release Notes
+  Changelog
 
         </a>
       </li>
@@ -404,18 +461,6 @@
     Supervision
   </label>
   
-    <div class="md-nav__source">
-      <a href="https://github.com/roboflow/supervision" title="Go to repository" class="md-source" data-md-component="source">
-  <div class="md-source__icon md-icon">
-    
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81"/></svg>
-  </div>
-  <div class="md-source__repository">
-    roboflow/supervision
-  </div>
-</a>
-    </div>
-  
   <ul class="md-nav__list" data-md-scrollfix>
     
       
@@ -431,7 +476,7 @@
   <span class="md-ellipsis">
     
   
-    Supervision
+    Home
   
 
     
@@ -733,7 +778,7 @@
   <span class="md-ellipsis">
     
   
-    Reference - Code API
+    Reference
   
 
     
@@ -749,7 +794,7 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    Reference - Code API
+    Reference
   
 
           </label>
@@ -2997,32 +3042,6 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="https://roboflow.github.io/cheatsheet-supervision/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    
-  
-    Cheatsheet
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
     
     
     
@@ -3034,16 +3053,16 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
             
   
   <span class="md-ellipsis">
     
   
-    Contribute
+    Changelog
   
 
     
@@ -3054,148 +3073,12 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Contribute
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../contributing/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    
-  
-    Contributing
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../code_of_conduct/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    
-  
-    Code of Conduct
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../license/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    
-  
-    License
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-    
-      
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
-        
-          
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
-            
-  
-  <span class="md-ellipsis">
-    
-  
-    Release Notes
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Release Notes
+    Changelog
   
 
           </label>
@@ -8451,7 +8334,7 @@ supervision-annotator-examples/visualized_color_palette.png" /></p>
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      Roboflow 2024. All rights reserved.
+      Roboflow 2025. All rights reserved.
     </div>
   
   
@@ -8493,30 +8376,8 @@ supervision-annotator-examples/visualized_color_palette.png" /></p>
       
       
     
-    <a href="https://hub.docker.com/u/roboflow" target="_blank" rel="noopener" title="hub.docker.com" class="md-social__link">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M349.9 236.3h-66.1v-59.4h66.1zm0-204.3h-66.1v60.7h66.1zm78.2 144.8H362v59.4h66.1zm-156.3-72.1h-66.1v60.1h66.1zm78.1 0h-66.1v60.1h66.1zm276.8 100c-14.4-9.7-47.6-13.2-73.1-8.4-3.3-24-16.7-44.9-41.1-63.7l-14-9.3-9.3 14c-18.4 27.8-23.4 73.6-3.7 103.8-8.7 4.7-25.8 11.1-48.4 10.7H2.4c-8.7 50.8 5.8 116.8 44 162.1 37.1 43.9 92.7 66.2 165.4 66.2 157.4 0 273.9-72.5 328.4-204.2 21.4.4 67.6.1 91.3-45.2 1.5-2.5 6.6-13.2 8.5-17.1zm-511.1-27.9h-66v59.4h66.1v-59.4zm78.1 0h-66.1v59.4h66.1zm78.1 0h-66.1v59.4h66.1zm-78.1-72.1h-66.1v60.1h66.1z"/></svg>
-    </a>
-  
-    
-    
-    
-    
-      
-      
-    
     <a href="https://www.youtube.com/roboflow" target="_blank" rel="noopener" title="www.youtube.com" class="md-social__link">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M549.655 124.083c-6.281-23.65-24.787-42.276-48.284-48.597C458.781 64 288 64 288 64S117.22 64 74.629 75.486c-23.497 6.322-42.003 24.947-48.284 48.597-11.412 42.867-11.412 132.305-11.412 132.305s0 89.438 11.412 132.305c6.281 23.65 24.787 41.5 48.284 47.821C117.22 448 288 448 288 448s170.78 0 213.371-11.486c23.497-6.321 42.003-24.171 48.284-47.821 11.412-42.867 11.412-132.305 11.412-132.305s0-89.438-11.412-132.305m-317.51 213.508V175.185l142.739 81.205z"/></svg>
-    </a>
-  
-    
-    
-    
-    
-      
-      
-    
-    <a href="https://www.linkedin.com/company/roboflow-ai/" target="_blank" rel="noopener" title="www.linkedin.com" class="md-social__link">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.7.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M416 32H31.9C14.3 32 0 46.5 0 64.3v383.4C0 465.5 14.3 480 31.9 480H416c17.6 0 32-14.5 32-32.3V64.3c0-17.8-14.4-32.3-32-32.3M135.4 416H69V202.2h66.5V416zm-33.2-243c-21.3 0-38.5-17.3-38.5-38.5S80.9 96 102.2 96c21.2 0 38.5 17.3 38.5 38.5 0 21.3-17.2 38.5-38.5 38.5m282.1 243h-66.4V312c0-24.8-.5-56.7-34.5-56.7-34.6 0-39.9 27-39.9 54.9V416h-66.4V202.2h63.7v29.2h.9c8.9-16.8 30.6-34.5 62.9-34.5 67.2 0 79.7 44.3 79.7 101.9z"/></svg>
     </a>
   
     
