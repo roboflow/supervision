@@ -900,10 +900,7 @@ class Detections:
             LMM.FLORENCE_2: VLM.FLORENCE_2,
             LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL,
             LMM.GOOGLE_GEMINI_2_0: VLM.GOOGLE_GEMINI_2_0,
-            LMM.GOOGLE_GEMINI_2_0_FLASH: VLM.GOOGLE_GEMINI_2_0_FLASH,
             LMM.GOOGLE_GEMINI_2_5: VLM.GOOGLE_GEMINI_2_5,
-            LMM.GOOGLE_GEMINI_2_5_FLASH_PREVIEW: VLM.GOOGLE_GEMINI_2_5_FLASH_PREVIEW,
-            LMM.GOOGLE_GEMINI_2_5_PRO_PREVIEW: VLM.GOOGLE_GEMINI_2_5_PRO_PREVIEW,
         }
 
         # (this works even if the LMM enum is wrapped by @deprecated)
@@ -1041,8 +1038,6 @@ class Detections:
         if (
             vlm == VLM.GOOGLE_GEMINI_2_0
             or vlm == VLM.GOOGLE_GEMINI_2_5
-            or vlm == VLM.GOOGLE_GEMINI_2_5_FLASH_PREVIEW
-            or vlm == VLM.GOOGLE_GEMINI_2_5_PRO_PREVIEW
         ):
             xyxy, class_name = from_google_gemini(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
