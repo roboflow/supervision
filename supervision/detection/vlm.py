@@ -2,7 +2,10 @@ import json
 import re
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Union
-
+import base64
+import io
+from PIL import Image
+from typing import Union, Optional, Tuple
 import numpy as np
 
 from supervision.detection.utils import (
@@ -406,3 +409,102 @@ def from_google_gemini(
         return np.empty((0, 4)), np.empty((0,), dtype=str)
 
     return np.array(xyxy), np.array(labels)
+
+def from_google_gemini_2_5(
+    result: str,
+    resolution_wh: Tuple[int, int],
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray]]:
+    """
+    Parse and scale bounding boxes and masks from Google Gemini 2.5 style JSON output.
+    https://aistudio.google.com/
+    https://ai.google.dev/gemini-api/docs/vision?lang=python
+
+    Args:
+        result: String containing the JSON snippet enclosed by triple backticks.
+        resolution_wh: (output_width, output_height) to which we rescale the boxes.
+
+    Returns:
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing
+            the bounding boxes coordinates in format `[x1, y1, x2, y2]`
+        class_name: (np.ndarray): An array of shape `(n,)` containing
+            the class labels for each bounding box
+        class_id [np.ndarray]: An array of shape `(n,)` containing
+            the class indices for each bounding box
+        masks: Optional[np.ndarray]: An array of shape `(n, h, w)` containing
+            the segmentation masks for each bounding box
+    """
+    w, h = resolution_wh
+    if w <= 0 or h <= 0:
+        raise ValueError(
+            f"Both dimensions in resolution_wh must be positive. Got ({w}, {h})."
+        )
+
+    lines = result.splitlines()
+    for i, line in enumerate(lines):
+        if line == "```json":
+            result = "\n".join(lines[i + 1 :])
+            result = result.split("```")[0]
+            break
+
+    try:
+        data = json.loads(result)
+    except json.JSONDecodeError:
+        return np.empty((0, 4)), np.empty((0,), dtype=str), np.empty((0,), dtype=int), None
+
+    class_name: list = []
+    class_id: list = []
+    xyxy: list = []
+    masks: Optional[list] = []
+
+    for item in data:
+        if "box_2d" not in item or "label" not in item:
+            continue
+        class_name.append(item["label"])
+        box = item["box_2d"]
+        # Gemini bbox order is [y_min, x_min, y_max, x_max]
+        absolute_bbox = denormalize_boxes(
+                np.array([box[1], box[0], box[3], box[2]]).astype(np.float64),
+                resolution_wh=(w, h),
+                normalization_factor=1000,
+            )
+        xyxy.append(absolute_bbox)
+
+        if "mask" in item:
+            png_str = item["mask"]
+            if not png_str.startswith("data:image/png;base64,"):
+                masks.append(np.zeros((h, w), dtype=bool))
+                continue
+
+            png_str = png_str.removeprefix("data:image/png;base64,")
+            png_str = base64.b64decode(png_str)
+            mask_img = Image.open(io.BytesIO(png_str))
+
+            y_min, y_max = int(absolute_bbox[1]), int(absolute_bbox[3])
+            x_min, x_max = int(absolute_bbox[0]), int(absolute_bbox[2])
+
+            bbox_height = y_max - y_min
+            bbox_width = x_max - x_min
+
+            if bbox_height > 0 and bbox_width > 0:
+                mask_img = mask_img.resize(
+                    (bbox_width, bbox_height), resample=Image.Resampling.BILINEAR
+                )
+                np_mask = np.zeros((h, w), dtype=bool)
+                np_mask[y_min:y_max, x_min:x_max] = np.array(mask_img) > 0
+                masks.append(np_mask)
+            else:
+                masks.append(np.zeros((h, w), dtype=bool))
+        else:
+            masks.append(np.zeros((h, w), dtype=bool))
+
+    if not xyxy:
+        return np.empty((0, 4)), np.empty((0,), dtype=str), np.empty((0,), dtype=int), None
+
+    mask = np.array(masks) if masks is not None else None
+
+    unique_labels = list(set(class_name))
+    for label in class_name:
+        class_id.append(unique_labels.index(label))
+
+    return np.array(xyxy), np.array(class_id), np.array(class_name), mask
+
