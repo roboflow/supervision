@@ -95,6 +95,7 @@ theme:
     - content.tooltips
     - content.code.annotate
     - navigation.tabs
+    - navigation.tabs.sticky
 
   palette:
     # Palette for light mode

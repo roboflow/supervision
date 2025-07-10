@@ -58,7 +58,7 @@ body.light {
 .md-header__inner {
   align-items: center;
   display: grid;
-  grid-template-columns: 0.1fr 1fr 2fr 2fr;
+  grid-template-columns: 0.1fr 1.4fr 2fr 2fr;
   padding-right: 1rem;
 }
 .md-search__inner {
@@ -179,7 +179,7 @@ body {
 .md-main__inner, .md-header__inner, .md-grid {
   max-width: 100%;
 }
-@media (max-width: 1000px) {
+@media (max-width: 1200px) {
   .md-header__inner {
     display: flex;
   }
@@ -244,4 +244,7 @@ body[data-md-url$="/cookbooks/"] .md-content {
 .md-header__title .md-ellipsis {
   overflow: initial !important;
   text-overflow: initial !important;
+}
+.md-search {
+  flex-grow: 0;
 }
