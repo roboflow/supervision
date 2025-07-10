@@ -864,8 +864,7 @@ class Detections:
 
             detections.xyxy
             # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
-            detections.class_id
-            # array([1, 2])
+            
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U26')}
         """  # noqa: E501 // docs
@@ -961,8 +960,7 @@ class Detections:
 
             detections.xyxy
             # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
-            detections.class_id
-            # array([1, 2])
+            
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U26')}
             ```
