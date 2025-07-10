@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 
 from supervision.detection.utils import (
-    normalized_xyxy_to_absolute_xyxy,
+    denormalize_boxes,
     polygon_to_mask,
     polygon_to_xyxy,
 )
@@ -22,11 +22,7 @@ class LMM(Enum):
     FLORENCE_2 = "florence_2"
     QWEN_2_5_VL = "qwen_2_5_vl"
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
-    GOOGLE_GEMINI_2_0_FLASH_LITE = "gemini_2_0_flash_lite"
-    GOOGLE_GEMINI_2_0_FLASH = "gemini_2_0_flash"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
-    GOOGLE_GEMINI_2_5_FLASH_PREVIEW = "gemini_2_5_flash_preview"
-    GOOGLE_GEMINI_2_5_PRO_PREVIEW = "gemini_2_5_pro_preview"
 
 
 class VLM(Enum):
@@ -34,11 +30,7 @@ class VLM(Enum):
     FLORENCE_2 = "florence_2"
     QWEN_2_5_VL = "qwen_2_5_vl"
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
-    GOOGLE_GEMINI_2_0_FLASH_LITE = "gemini_2_0_flash_lite"
-    GOOGLE_GEMINI_2_0_FLASH = "gemini_2_0_flash"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
-    GOOGLE_GEMINI_2_5_FLASH_PREVIEW = "gemini_2_5_flash_preview"
-    GOOGLE_GEMINI_2_5_PRO_PREVIEW = "gemini_2_5_pro_preview"
 
 
 RESULT_TYPES: Dict[VLM, type] = {
@@ -47,10 +39,6 @@ RESULT_TYPES: Dict[VLM, type] = {
     VLM.QWEN_2_5_VL: str,
     VLM.GOOGLE_GEMINI_2_0: str,
     VLM.GOOGLE_GEMINI_2_5: str,
-    VLM.GOOGLE_GEMINI_2_0_FLASH_LITE: str,
-    VLM.GOOGLE_GEMINI_2_0_FLASH: str,
-    VLM.GOOGLE_GEMINI_2_5_FLASH_PREVIEW: str,
-    VLM.GOOGLE_GEMINI_2_5_PRO_PREVIEW: str,
 }
 
 REQUIRED_ARGUMENTS: Dict[VLM, List[str]] = {
@@ -59,10 +47,6 @@ REQUIRED_ARGUMENTS: Dict[VLM, List[str]] = {
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh"],
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh"],
-    VLM.GOOGLE_GEMINI_2_0_FLASH_LITE: ["resolution_wh"],
-    VLM.GOOGLE_GEMINI_2_0_FLASH: ["resolution_wh"],
-    VLM.GOOGLE_GEMINI_2_5_FLASH_PREVIEW: ["resolution_wh"],
-    VLM.GOOGLE_GEMINI_2_5_PRO_PREVIEW: ["resolution_wh"],
 }
 
 ALLOWED_ARGUMENTS: Dict[VLM, List[str]] = {
@@ -71,10 +55,6 @@ ALLOWED_ARGUMENTS: Dict[VLM, List[str]] = {
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh"],
-    VLM.GOOGLE_GEMINI_2_0_FLASH_LITE: ["resolution_wh"],
-    VLM.GOOGLE_GEMINI_2_0_FLASH: ["resolution_wh"],
-    VLM.GOOGLE_GEMINI_2_5_FLASH_PREVIEW: ["resolution_wh"],
-    VLM.GOOGLE_GEMINI_2_5_PRO_PREVIEW: ["resolution_wh"],
 }
 
 SUPPORTED_TASKS_FLORENCE_2 = [
@@ -357,9 +337,24 @@ def from_google_gemini(
     resolution_wh: Tuple[int, int],
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Parse and scale bounding boxes from Google Gemini style JSON output.
-    https://aistudio.google.com/
-    https://ai.google.dev/gemini-api/docs/vision?lang=python
+    Parse and scale bounding boxes from Google Gemini style
+    [JSON output](https://ai.google.dev/gemini-api/docs/vision?lang=python).
+
+    The JSON is expected to be enclosed in triple backticks with the format:
+        ```json
+        [
+            {"box_2d": [x1, y1, x2, y2], "label": "some class name"},
+            ...
+        ]
+        ```
+    
+    For example:
+        ```json
+        [
+            {"box_2d": [10, 20, 110, 120], "label": "cat"},
+            {"box_2d": [50, 100, 150, 200], "label": "dog"}
+        ]
+        ```
 
     Args:
         result: String containing the JSON snippet enclosed by triple backticks.
@@ -400,7 +395,7 @@ def from_google_gemini(
         box = item["box_2d"]
         # Gemini bbox order is [y_min, x_min, y_max, x_max]
         xyxy.append(
-            normalized_xyxy_to_absolute_xyxy(
+            denormalize_boxes(
                 np.array([box[1], box[0], box[3], box[2]]).astype(np.float64),
                 resolution_wh=(w, h),
                 normalization_factor=1000,

@@ -847,39 +847,18 @@ class Detections:
 
         Examples:
             ```python
-            from google import genai
-            from google.genai import types
             import supervision as sv
-            from PIL import Image
 
-            IMAGE = Image.open(<SOURCE_IMAGE_PATH>)
-            GENAI_CLIENT = genai.Client(api_key=<API_KEY>)
+            gemini_response_text = \"\"\"```json
+                [
+                    {"box_2d": [543, 40, 728, 200], "label": "Cat", "id": 1},
+                    {"box_2d": [653, 352, 820, 522], "label": "Dog", "id": 2}
+                ]
+            ```\"\"\"
 
-            system_instructions = '''
-                Return bounding boxes as a JSON array with labels and ids. Never return masks or code fencing. Limit to 25 objects.
-                If an object is present multiple times, name them according to their unique characteristic (colors, size, position, unique characteristics, etc..).
-                '''
-
-            safety_settings = [
-                types.SafetySetting(
-                    category="HARM_CATEGORY_DANGEROUS_CONTENT",
-                    threshold="BLOCK_ONLY_HIGH",
-                ),
-            ]
-
-            response = GENAI_CLIENT.models.generate_content(
-                model="gemini-2.0-flash-exp",
-                contents=[prompt, IMAGE],
-                config = types.GenerateContentConfig(
-                    system_instruction=system_instructions,
-                    temperature=0.5,
-                    safety_settings=safety_settings,
-                )
-            )
-
-            detections = sv.Detections.from_lmm(
-                sv.LMM.GOOGLE_GEMINI_2_0,
-                response.text,
+            detections = sv.Detections.from_vlm(
+                sv.VLM.GOOGLE_GEMINI_2_0,
+                gemini_response_text,
                 resolution_wh=(IMAGE.size[0], IMAGE.size[1]),
             )
 
@@ -890,7 +869,6 @@ class Detections:
             detections.data
             # {'class_name': ['cat', 'dog']}
             ```
-
         """  # noqa: E501 // docs
 
         # filler logic mapping old from_lmm to new from_vlm
@@ -930,6 +908,66 @@ class Detections:
     def from_vlm(
         cls, vlm: Union[VLM, str], result: Union[str, dict], **kwargs: Any
     ) -> Detections:
+        """
+        Creates a Detections object from the given result string based on the specified
+        Vision Language Model (VLM).
+
+        Args:
+            vlm (Union[VLM, str]): The type of VLM (Large Multimodal Model) to use.
+            result (str): The result string containing the detection data.
+            **kwargs (Any): Additional keyword arguments required by the specified VLM.
+
+        Returns:
+            Detections: A new Detections object.
+
+        Raises:
+            ValueError: If the VLM is invalid, required arguments are missing, or
+                disallowed arguments are provided.
+            ValueError: If the specified VLM is not supported.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            paligemma_result = "<loc0256><loc0256><loc0768><loc0768> cat"
+            detections = sv.Detections.from_vlm(
+                sv.VLM.PALIGEMMA,
+                paligemma_result,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog']
+            )
+            detections.xyxy
+            # array([[250., 250., 750., 750.]])
+
+            detections.class_id
+            # array([0])
+            ```
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            gemini_response_text = \"\"\"```json
+                [
+                    {"box_2d": [543, 40, 728, 200], "label": "Cat", "id": 1},
+                    {"box_2d": [653, 352, 820, 522], "label": "Dog", "id": 2}
+                ]
+            ```\"\"\"
+
+            detections = sv.Detections.from_vlm(
+                sv.VLM.GOOGLE_GEMINI_2_0,
+                gemini_response_text,
+                resolution_wh=(IMAGE.size[0], IMAGE.size[1]),
+            )
+
+            detections.xyxy
+            # array([[250., 250., 750., 750.]])
+            detections.class_id
+            # array([0])
+            detections.data
+            # {'class_name': ['cat', 'dog']}
+            ```
+        """
         vlm = validate_vlm_parameters(vlm, result, kwargs)
 
         if vlm == VLM.PALIGEMMA:
