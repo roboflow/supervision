@@ -347,7 +347,7 @@ def from_google_gemini(
             ...
         ]
         ```
-    
+
     For example:
         ```json
         [

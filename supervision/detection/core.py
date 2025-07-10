@@ -864,10 +864,10 @@ class Detections:
 
             detections.xyxy
             # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
-            
+
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U26')}
-        """  # noqa: E501 // docs
+        """
 
         # filler logic mapping old from_lmm to new from_vlm
         lmm_to_vlm = {
@@ -960,7 +960,7 @@ class Detections:
 
             detections.xyxy
             # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
-            
+
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U26')}
             ```
