@@ -47,6 +47,34 @@ def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.n
     cv2.fillPoly(mask, [polygon.astype(np.int32)], color=1)
     return mask
 
+def box_iou(box1: np.ndarray, box2: np.ndarray) -> float:
+    """
+    Compute the Intersection over Union (IoU) between two bounding boxes.
+
+    Args:
+        box1 (np.ndarray): A bounding box represented as [x1, y1, x2, y2].
+        box2 (np.ndarray): A bounding box represented as [x1, y1, x2, y2].
+
+    Returns:
+        float: The IoU value between box1 and box2.
+               Ranges from 0.0 (no overlap) to 1.0 (perfect overlap).
+    """
+    inter_x1 = max(box1[0], box2[0])
+    inter_y1 = max(box1[1], box2[1])
+    inter_x2 = min(box1[2], box2[2])
+    inter_y2 = min(box1[3], box2[3])
+
+    inter_w = max(0, inter_x2 - inter_x1)
+    inter_h = max(0, inter_y2 - inter_y1)
+
+    inter_area = inter_w * inter_h
+
+    area1 = (box1[2] - box1[0]) * (box1[3] - box1[1])
+    area2 = (box2[2] - box2[0]) * (box2[3] - box2[1])
+
+    union_area = area1 + area2 - inter_area
+
+    return inter_area / union_area + 1e-6
 
 def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.ndarray:
     """
