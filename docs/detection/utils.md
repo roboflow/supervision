@@ -102,6 +102,11 @@ status: new
 :::supervision.detection.utils.xyxy_to_xywh
 
 <div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.normalized_xyxy_to_absolute_xyxy">normalized_xyxy_to_absolute_xyxy</a></h2>
+</div>
+
+:::supervision.detection.utils.normalized_xyxy_to_absolute_xyxy
+
   <h2><a href="#supervision.detection.utils.xyxy_to_xcycarh">xyxy_to_xcycarh</a></h2>
 </div>
 

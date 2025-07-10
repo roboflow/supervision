@@ -37,6 +37,7 @@ from supervision.detection.vlm import (
     LMM,
     VLM,
     from_florence_2,
+    from_google_gemini,
     from_paligemma,
     from_qwen_2_5_vl,
     validate_vlm_parameters,
@@ -843,12 +844,65 @@ class Detections:
             detections.class_id
             # array([0])
             ```
-        """
+
+        Examples:
+            ```python
+            from google import genai
+            from google.genai import types
+            import supervision as sv
+            from PIL import Image
+
+            IMAGE = Image.open(<SOURCE_IMAGE_PATH>)
+            GENAI_CLIENT = genai.Client(api_key=<API_KEY>)
+
+            system_instructions = '''
+                Return bounding boxes as a JSON array with labels and ids. Never return masks or code fencing. Limit to 25 objects.
+                If an object is present multiple times, name them according to their unique characteristic (colors, size, position, unique characteristics, etc..).
+                '''
+
+            safety_settings = [
+                types.SafetySetting(
+                    category="HARM_CATEGORY_DANGEROUS_CONTENT",
+                    threshold="BLOCK_ONLY_HIGH",
+                ),
+            ]
+
+            response = GENAI_CLIENT.models.generate_content(
+                model="gemini-2.0-flash-exp",
+                contents=[prompt, IMAGE],
+                config = types.GenerateContentConfig(
+                    system_instruction=system_instructions,
+                    temperature=0.5,
+                    safety_settings=safety_settings,
+                )
+            )
+
+            detections = sv.Detections.from_lmm(
+                sv.LMM.GOOGLE_GEMINI_2_0,
+                response.text,
+                resolution_wh=(IMAGE.size[0], IMAGE.size[1]),
+            )
+
+            detections.xyxy
+            # array([[250., 250., 750., 750.]])
+            detections.class_id
+            # array([0])
+            detections.data
+            # {'class_name': ['cat', 'dog']}
+            ```
+
+        """  # noqa: E501 // docs
+
         # filler logic mapping old from_lmm to new from_vlm
         lmm_to_vlm = {
             LMM.PALIGEMMA: VLM.PALIGEMMA,
             LMM.FLORENCE_2: VLM.FLORENCE_2,
             LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL,
+            LMM.GOOGLE_GEMINI_2_0: VLM.GOOGLE_GEMINI_2_0,
+            LMM.GOOGLE_GEMINI_2_0_FLASH: VLM.GOOGLE_GEMINI_2_0_FLASH,
+            LMM.GOOGLE_GEMINI_2_5: VLM.GOOGLE_GEMINI_2_5,
+            LMM.GOOGLE_GEMINI_2_5_FLASH_PREVIEW: VLM.GOOGLE_GEMINI_2_5_FLASH_PREVIEW,
+            LMM.GOOGLE_GEMINI_2_5_PRO_PREVIEW: VLM.GOOGLE_GEMINI_2_5_PRO_PREVIEW,
         }
 
         # (this works even if the LMM enum is wrapped by @deprecated)
@@ -900,6 +954,18 @@ class Detections:
                 data[ORIENTED_BOX_COORDINATES] = xyxyxyxy
 
             return cls(xyxy=xyxy, mask=mask, data=data)
+
+        if (
+            vlm == VLM.GOOGLE_GEMINI_2_0
+            or vlm == VLM.GOOGLE_GEMINI_2_5
+            or vlm == VLM.GOOGLE_GEMINI_2_5_FLASH_PREVIEW
+            or vlm == VLM.GOOGLE_GEMINI_2_5_PRO_PREVIEW
+        ):
+            xyxy, class_name = from_google_gemini(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            return cls(xyxy=xyxy, data=data)
+
+        return cls.empty()
 
     @classmethod
     def from_easyocr(cls, easyocr_results: list) -> Detections:

@@ -5,7 +5,11 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
-from supervision.detection.utils import polygon_to_mask, polygon_to_xyxy
+from supervision.detection.utils import (
+    normalized_xyxy_to_absolute_xyxy,
+    polygon_to_mask,
+    polygon_to_xyxy,
+)
 from supervision.utils.internal import deprecated
 
 
@@ -17,30 +21,60 @@ class LMM(Enum):
     PALIGEMMA = "paligemma"
     FLORENCE_2 = "florence_2"
     QWEN_2_5_VL = "qwen_2_5_vl"
+    GOOGLE_GEMINI_2_0 = "gemini_2_0"
+    GOOGLE_GEMINI_2_0_FLASH_LITE = "gemini_2_0_flash_lite"
+    GOOGLE_GEMINI_2_0_FLASH = "gemini_2_0_flash"
+    GOOGLE_GEMINI_2_5 = "gemini_2_5"
+    GOOGLE_GEMINI_2_5_FLASH_PREVIEW = "gemini_2_5_flash_preview"
+    GOOGLE_GEMINI_2_5_PRO_PREVIEW = "gemini_2_5_pro_preview"
 
 
 class VLM(Enum):
     PALIGEMMA = "paligemma"
     FLORENCE_2 = "florence_2"
     QWEN_2_5_VL = "qwen_2_5_vl"
+    GOOGLE_GEMINI_2_0 = "gemini_2_0"
+    GOOGLE_GEMINI_2_0_FLASH_LITE = "gemini_2_0_flash_lite"
+    GOOGLE_GEMINI_2_0_FLASH = "gemini_2_0_flash"
+    GOOGLE_GEMINI_2_5 = "gemini_2_5"
+    GOOGLE_GEMINI_2_5_FLASH_PREVIEW = "gemini_2_5_flash_preview"
+    GOOGLE_GEMINI_2_5_PRO_PREVIEW = "gemini_2_5_pro_preview"
 
 
 RESULT_TYPES: Dict[VLM, type] = {
     VLM.PALIGEMMA: str,
     VLM.FLORENCE_2: dict,
     VLM.QWEN_2_5_VL: str,
+    VLM.GOOGLE_GEMINI_2_0: str,
+    VLM.GOOGLE_GEMINI_2_5: str,
+    VLM.GOOGLE_GEMINI_2_0_FLASH_LITE: str,
+    VLM.GOOGLE_GEMINI_2_0_FLASH: str,
+    VLM.GOOGLE_GEMINI_2_5_FLASH_PREVIEW: str,
+    VLM.GOOGLE_GEMINI_2_5_PRO_PREVIEW: str,
 }
 
 REQUIRED_ARGUMENTS: Dict[VLM, List[str]] = {
     VLM.PALIGEMMA: ["resolution_wh"],
     VLM.FLORENCE_2: ["resolution_wh"],
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_0: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_5: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_0_FLASH_LITE: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_0_FLASH: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_5_FLASH_PREVIEW: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_5_PRO_PREVIEW: ["resolution_wh"],
 }
 
 ALLOWED_ARGUMENTS: Dict[VLM, List[str]] = {
     VLM.PALIGEMMA: ["resolution_wh", "classes"],
     VLM.FLORENCE_2: ["resolution_wh"],
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh", "classes"],
+    VLM.GOOGLE_GEMINI_2_0: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_5: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_0_FLASH_LITE: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_0_FLASH: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_5_FLASH_PREVIEW: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_5_PRO_PREVIEW: ["resolution_wh"],
 }
 
 SUPPORTED_TASKS_FLORENCE_2 = [
@@ -232,8 +266,9 @@ def from_florence_2(
     Parse results from the Florence 2 multi-model model.
     https://huggingface.co/microsoft/Florence-2-large
 
-    Parameters:
+    Args:
         result: dict containing the model output
+        resolution_wh: (output_width, output_height) to which we rescale the boxes.
 
     Returns:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing
@@ -315,3 +350,64 @@ def from_florence_2(
         return xyxy, labels, None, None
 
     assert False, f"Unimplemented task: {task}"
+
+
+def from_google_gemini(
+    result: str,
+    resolution_wh: Tuple[int, int],
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Parse and scale bounding boxes from Google Gemini style JSON output.
+    https://aistudio.google.com/
+    https://ai.google.dev/gemini-api/docs/vision?lang=python
+
+    Args:
+        result: String containing the JSON snippet enclosed by triple backticks.
+        resolution_wh: (output_width, output_height) to which we rescale the boxes.
+
+    Returns:
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing
+            the bounding boxes coordinates in format `[x1, y1, x2, y2]`
+        labels: (np.ndarray): An array of shape `(n,)` containing
+            the class labels for each bounding box
+
+    """
+
+    w, h = resolution_wh
+    if w <= 0 or h <= 0:
+        raise ValueError(
+            f"Both dimensions in resolution_wh must be positive. Got ({w}, {h})."
+        )
+
+    lines = result.splitlines()
+    for i, line in enumerate(lines):
+        if line == "```json":
+            result = "\n".join(lines[i + 1 :])
+            result = result.split("```")[0]
+            break
+
+    try:
+        data = json.loads(result)
+    except json.JSONDecodeError:
+        return np.empty((0, 4)), np.empty((0,), dtype=str)
+
+    labels = []
+    xyxy = []
+    for item in data:
+        if "box_2d" not in item or "label" not in item:
+            continue
+        labels.append(item["label"])
+        box = item["box_2d"]
+        # Gemini bbox order is [y_min, x_min, y_max, x_max]
+        xyxy.append(
+            normalized_xyxy_to_absolute_xyxy(
+                np.array([box[1], box[0], box[3], box[2]]).astype(np.float64),
+                resolution_wh=(w, h),
+                normalization_factor=1000,
+            )
+        )
+
+    if not xyxy:
+        return np.empty((0, 4)), np.empty((0,), dtype=str)
+
+    return np.array(xyxy), np.array(labels)
