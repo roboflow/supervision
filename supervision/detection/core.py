@@ -858,8 +858,8 @@ class Detections:
             detections = sv.Detections.from_lmm(
                 sv.LMM.QWEN_2_5_VL,
                 qwen_2_5_vl_result,
+                input_wh=(1000, 1000),
                 resolution_wh=(1000, 1000),
-                classes=['cat', 'dog']
             )
             detections.xyxy
             # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
@@ -977,8 +977,8 @@ class Detections:
             detections = sv.Detections.from_vlm(
                 sv.VLM.QWEN_2_5_VL,
                 qwen_2_5_vl_result,
+                input_wh=(1000, 1000),
                 resolution_wh=(1000, 1000),
-                classes=['cat', 'dog']
             )
             detections.xyxy
             # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
