@@ -36,6 +36,7 @@ from supervision.detection.utils import (
 from supervision.detection.vlm import (
     LMM,
     VLM,
+    from_deepseek_vl_2,
     from_florence_2,
     from_google_gemini,
     from_paligemma,
@@ -898,11 +899,9 @@ class Detections:
             LMM.PALIGEMMA: VLM.PALIGEMMA,
             LMM.FLORENCE_2: VLM.FLORENCE_2,
             LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL,
+            LMM.DEEPSEEK_VL_2: VLM.DEEPSEEK_VL_2,
             LMM.GOOGLE_GEMINI_2_0: VLM.GOOGLE_GEMINI_2_0,
-            LMM.GOOGLE_GEMINI_2_0_FLASH: VLM.GOOGLE_GEMINI_2_0_FLASH,
             LMM.GOOGLE_GEMINI_2_5: VLM.GOOGLE_GEMINI_2_5,
-            LMM.GOOGLE_GEMINI_2_5_FLASH_PREVIEW: VLM.GOOGLE_GEMINI_2_5_FLASH_PREVIEW,
-            LMM.GOOGLE_GEMINI_2_5_PRO_PREVIEW: VLM.GOOGLE_GEMINI_2_5_PRO_PREVIEW,
         }
 
         # (this works even if the LMM enum is wrapped by @deprecated)
@@ -1021,6 +1020,11 @@ class Detections:
 
         if vlm == VLM.QWEN_2_5_VL:
             xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            return cls(xyxy=xyxy, class_id=class_id, data=data)
+
+        if vlm == VLM.DEEPSEEK_VL_2:
+            xyxy, class_id, class_name = from_deepseek_vl_2(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
