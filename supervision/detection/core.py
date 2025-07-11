@@ -889,7 +889,7 @@ class Detections:
             detections = sv.Detections.from_lmm(
                 sv.LMM.GOOGLE_GEMINI_2_0,
                 gemini_response_text,
-                resolution_wh=(IMAGE.size[0], IMAGE.size[1]),
+                resolution_wh=(1000, 1000),
             )
 
             detections.xyxy
@@ -926,7 +926,7 @@ class Detections:
             detections = sv.Detections.from_vmm(
                 sv.LMM.MOONDREAM,
                 moondream_result,
-                resolution_wh=(IMAGE.size[0], IMAGE.size[1]),
+                resolution_wh=(1000, 1000),
             )
 
             detections.xyxy
@@ -1047,7 +1047,7 @@ class Detections:
             detections = sv.Detections.from_vlm(
                 sv.VLM.GOOGLE_GEMINI_2_0,
                 gemini_response_text,
-                resolution_wh=(IMAGE.size[0], IMAGE.size[1]),
+                resolution_wh=(1000, 1000),
             )
 
             detections.xyxy
@@ -1084,7 +1084,7 @@ class Detections:
             detections = sv.Detections.from_vlm(
                 sv.VLM.MOONDREAM,
                 moondream_result,
-                resolution_wh=(IMAGE.size[0], IMAGE.size[1]),
+                resolution_wh=(1000, 1000),
             )
 
             detections.xyxy
