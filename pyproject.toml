@@ -2,7 +2,7 @@
 name = "supervision"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 license = { text = "MIT" }
-version = "0.26.0rc4"
+version = "0.26.0rc7"
 readme = "README.md"
 requires-python = ">=3.8"
 authors = [
@@ -69,7 +69,7 @@ dev = [
 ]
 docs = [
     "mkdocs-material[imaging]>=9.5.5",
-    "mkdocstrings>=0.25.2,<0.27.0",
+    "mkdocstrings>=0.25.2,<0.30.0",
     "mkdocstrings-python>=1.10.9",
     "mike>=2.0.0",
     "mkdocs-jupyter>=0.24.3",

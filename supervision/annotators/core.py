@@ -9,6 +9,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from supervision.annotators.base import BaseAnnotator, ImageType
 from supervision.annotators.utils import (
+    PENDING_TRACK_ID,
     ColorLookup,
     Trace,
     resolve_color,
@@ -1130,7 +1131,7 @@ class LabelAnnotator(BaseAnnotator):
         detections: Detections, custom_labels: Optional[List[str]]
     ) -> List[str]:
         if custom_labels is not None:
-            return custom_labels
+            return [str(label) for label in custom_labels]
 
         labels = []
         for idx in range(len(detections)):
@@ -1739,6 +1740,7 @@ class TraceAnnotator(BaseAnnotator):
                 "The `tracker_id` field is missing in the provided detections."
                 " See more: https://supervision.roboflow.com/latest/how_to/track_objects"
             )
+        detections = detections[detections.tracker_id != PENDING_TRACK_ID]
 
         self.trace.put(detections)
         for detection_idx in range(len(detections)):
@@ -1857,11 +1859,9 @@ class HeatMapAnnotator(BaseAnnotator):
         temp = temp.astype(np.uint8)
         if self.kernel_size is not None:
             temp = cv2.blur(temp, (self.kernel_size, self.kernel_size))
-        hsv = np.zeros(scene.shape)
+        hsv = np.full(scene.shape, 255, dtype=np.uint8)
         hsv[..., 0] = temp
-        hsv[..., 1] = 255
-        hsv[..., 2] = 255
-        temp = cv2.cvtColor(hsv.astype(np.uint8), cv2.COLOR_HSV2BGR)
+        temp = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
         mask = cv2.cvtColor(self.heat_mask.astype(np.uint8), cv2.COLOR_GRAY2BGR) > 0
         scene[mask] = cv2.addWeighted(temp, self.opacity, scene, 1 - self.opacity, 0)[
             mask

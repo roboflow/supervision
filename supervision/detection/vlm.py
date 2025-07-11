@@ -6,7 +6,11 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
-from supervision.detection.utils import polygon_to_mask, polygon_to_xyxy
+from supervision.detection.utils import (
+    denormalize_boxes,
+    polygon_to_mask,
+    polygon_to_xyxy,
+)
 from supervision.utils.internal import deprecated
 
 
@@ -19,6 +23,8 @@ class LMM(Enum):
     FLORENCE_2 = "florence_2"
     QWEN_2_5_VL = "qwen_2_5_vl"
     DEEPSEEK_VL_2 = "deepseek_vl_2"
+    GOOGLE_GEMINI_2_0 = "gemini_2_0"
+    GOOGLE_GEMINI_2_5 = "gemini_2_5"
 
 
 class VLM(Enum):
@@ -26,6 +32,8 @@ class VLM(Enum):
     FLORENCE_2 = "florence_2"
     QWEN_2_5_VL = "qwen_2_5_vl"
     DEEPSEEK_VL_2 = "deepseek_vl_2"
+    GOOGLE_GEMINI_2_0 = "gemini_2_0"
+    GOOGLE_GEMINI_2_5 = "gemini_2_5"
 
 
 RESULT_TYPES: Dict[VLM, type] = {
@@ -33,6 +41,8 @@ RESULT_TYPES: Dict[VLM, type] = {
     VLM.FLORENCE_2: dict,
     VLM.QWEN_2_5_VL: str,
     VLM.DEEPSEEK_VL_2: str,
+    VLM.GOOGLE_GEMINI_2_0: str,
+    VLM.GOOGLE_GEMINI_2_5: str,
 }
 
 REQUIRED_ARGUMENTS: Dict[VLM, List[str]] = {
@@ -40,6 +50,8 @@ REQUIRED_ARGUMENTS: Dict[VLM, List[str]] = {
     VLM.FLORENCE_2: ["resolution_wh"],
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh"],
     VLM.DEEPSEEK_VL_2: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_0: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_5: ["resolution_wh"],
 }
 
 ALLOWED_ARGUMENTS: Dict[VLM, List[str]] = {
@@ -47,6 +59,8 @@ ALLOWED_ARGUMENTS: Dict[VLM, List[str]] = {
     VLM.FLORENCE_2: ["resolution_wh"],
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh", "classes"],
     VLM.DEEPSEEK_VL_2: ["resolution_wh", "classes"],
+    VLM.GOOGLE_GEMINI_2_0: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_5: ["resolution_wh"],
 }
 
 SUPPORTED_TASKS_FLORENCE_2 = [
@@ -324,8 +338,9 @@ def from_florence_2(
     Parse results from the Florence 2 multi-model model.
     https://huggingface.co/microsoft/Florence-2-large
 
-    Parameters:
+    Args:
         result: dict containing the model output
+        resolution_wh: (output_width, output_height) to which we rescale the boxes.
 
     Returns:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing
@@ -386,18 +401,18 @@ def from_florence_2(
         return xyxy, labels, None, None
 
     if task in ["<REGION_TO_CATEGORY>", "<REGION_TO_DESCRIPTION>"]:
-        assert isinstance(
-            result, str
-        ), f"Expected string as <REGION_TO_CATEGORY> result, got {type(result)}"
+        assert isinstance(result, str), (
+            f"Expected string as <REGION_TO_CATEGORY> result, got {type(result)}"
+        )
 
         if result == "No object detected.":
             return np.empty((0, 4), dtype=np.float32), np.array([]), None, None
 
         pattern = re.compile(r"<loc_(\d+)><loc_(\d+)><loc_(\d+)><loc_(\d+)>")
         match = pattern.search(result)
-        assert (
-            match is not None
-        ), f"Expected string to end in location tags, but got {result}"
+        assert match is not None, (
+            f"Expected string to end in location tags, but got {result}"
+        )
 
         w, h = resolution_wh
         xyxy = np.array([match.groups()], dtype=np.float32)
@@ -407,3 +422,79 @@ def from_florence_2(
         return xyxy, labels, None, None
 
     assert False, f"Unimplemented task: {task}"
+
+
+def from_google_gemini(
+    result: str,
+    resolution_wh: Tuple[int, int],
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Parse and scale bounding boxes from Google Gemini style
+    [JSON output](https://ai.google.dev/gemini-api/docs/vision?lang=python).
+
+    The JSON is expected to be enclosed in triple backticks with the format:
+        ```json
+        [
+            {"box_2d": [x1, y1, x2, y2], "label": "some class name"},
+            ...
+        ]
+        ```
+
+    For example:
+        ```json
+        [
+            {"box_2d": [10, 20, 110, 120], "label": "cat"},
+            {"box_2d": [50, 100, 150, 200], "label": "dog"}
+        ]
+        ```
+
+    Args:
+        result: String containing the JSON snippet enclosed by triple backticks.
+        resolution_wh: (output_width, output_height) to which we rescale the boxes.
+
+    Returns:
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing
+            the bounding boxes coordinates in format `[x1, y1, x2, y2]`
+        labels: (np.ndarray): An array of shape `(n,)` containing
+            the class labels for each bounding box
+
+    """
+
+    w, h = resolution_wh
+    if w <= 0 or h <= 0:
+        raise ValueError(
+            f"Both dimensions in resolution_wh must be positive. Got ({w}, {h})."
+        )
+
+    lines = result.splitlines()
+    for i, line in enumerate(lines):
+        if line == "```json":
+            result = "\n".join(lines[i + 1 :])
+            result = result.split("```")[0]
+            break
+
+    try:
+        data = json.loads(result)
+    except json.JSONDecodeError:
+        return np.empty((0, 4)), np.empty((0,), dtype=str)
+
+    labels = []
+    xyxy = []
+    for item in data:
+        if "box_2d" not in item or "label" not in item:
+            continue
+        labels.append(item["label"])
+        box = item["box_2d"]
+        # Gemini bbox order is [y_min, x_min, y_max, x_max]
+        xyxy.append(
+            denormalize_boxes(
+                np.array([box[1], box[0], box[3], box[2]]).astype(np.float64),
+                resolution_wh=(w, h),
+                normalization_factor=1000,
+            )
+        )
+
+    if not xyxy:
+        return np.empty((0, 4)), np.empty((0,), dtype=str)
+
+    return np.array(xyxy), np.array(labels)

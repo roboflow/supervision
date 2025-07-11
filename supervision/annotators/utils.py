@@ -7,6 +7,9 @@ from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
 
+PENDING_TRACK_COLOR = Color.GREY
+PENDING_TRACK_ID = -1
+
 
 class ColorLookup(Enum):
     """
@@ -136,6 +139,8 @@ def resolve_color(
         detection_idx=detection_idx,
         color_lookup=color_lookup,
     )
+    if color_lookup == ColorLookup.TRACK and idx == PENDING_TRACK_ID:
+        return PENDING_TRACK_COLOR
     return get_color_by_index(color=color, idx=idx)
 
 

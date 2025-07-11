@@ -3,9 +3,8 @@ site_url: https://supervision.roboflow.com/
 site_author: Roboflow
 site_description: A set of easy-to-use utilities that will come in handy in any computer vision project.
 repo_name: roboflow/supervision
-repo_url: https://github.com/roboflow/supervision
 edit_uri: https://github.com/roboflow/supervision/tree/main/docs
-copyright: Roboflow 2024. All rights reserved.
+copyright: Roboflow 2025. All rights reserved.
 
 extra:
   social:
@@ -13,12 +12,8 @@ extra:
       link: https://github.com/roboflow
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/supervision
-    - icon: fontawesome/brands/docker
-      link: https://hub.docker.com/u/roboflow
     - icon: fontawesome/brands/youtube
       link: https://www.youtube.com/roboflow
-    - icon: fontawesome/brands/linkedin
-      link: https://www.linkedin.com/company/roboflow-ai/
     - icon: fontawesome/brands/x-twitter
       link: https://twitter.com/roboflow
     - icon: fontawesome/brands/discord
@@ -34,7 +29,7 @@ extra_css:
   - stylesheets/cookbooks-card.css
 
 nav:
-  - Supervision: index.md
+  - Home: index.md
   - Learn:
       - Detect and Annotate: how_to/detect_and_annotate.md
       - Save Detections: how_to/save_detections.md
@@ -43,8 +38,7 @@ nav:
       - Track Objects on Video: how_to/track_objects.md
       - Process Datasets: how_to/process_datasets.md
       - Benchmark a Model: how_to/benchmark_a_model.md
-
-  - Reference - Code API:
+  - Reference:
       - Detection and Segmentation:
           - Core: detection/core.md
           - Annotators: detection/annotators.md
@@ -83,12 +77,7 @@ nav:
           - Geometry: utils/geometry.md
       - Assets: assets.md
   - Cookbooks: cookbooks.md
-  - Cheatsheet: https://roboflow.github.io/cheatsheet-supervision/
-  - Contribute:
-      - Contributing: contributing.md
-      - Code of Conduct: code_of_conduct.md
-      - License: license.md
-  - Release Notes:
+  - Changelog:
       - Changelog: changelog.md
       - Deprecated: deprecated.md
 
@@ -106,6 +95,7 @@ theme:
     - content.tooltips
     - content.code.annotate
     - navigation.tabs
+    - navigation.tabs.sticky
 
   palette:
     # Palette for light mode
@@ -123,11 +113,8 @@ theme:
         name: Switch to light mode
 
   font:
-    text: Roboto
-    code: Roboto Mono
-    features:
-      - content.code.copy
-      - content.code.annotate
+    text: Inter
+    code: IBM Plex Mono
 
 plugins:
   - search
@@ -149,9 +136,12 @@ plugins:
             group_by_category: true
             docstring_style: google
             show_symbol_type_heading: true
+            show_root_heading: True
             show_symbol_type_toc: true
             show_category_heading: true
-          domains: [std, py]
+          inventories:
+          - url: https://docs.python-requests.org/en/master/objects.inv
+            domains: [std, py]
   - git-committers:
       repository: roboflow/supervision
       branch: develop
@@ -176,10 +166,13 @@ markdown_extensions:
       check_paths: true
   - pymdownx.highlight:
       anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
 
 extra_javascript:
   - "javascripts/init_kapa_widget.js"
   - "javascripts/cookbooks-card.js"
+  - "javascripts/segment.js"
   - "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"
 
 # Messages shown during document build

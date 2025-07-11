@@ -1,4 +1,4 @@
-# CHANGELOG
+# Changelog
 
 ### 0.25.0 <small>Nov 12, 2024</small>
 

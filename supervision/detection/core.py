@@ -37,6 +37,7 @@ from supervision.detection.vlm import (
     LMM,
     VLM,
     from_florence_2,
+    from_google_gemini,
     from_paligemma,
     from_qwen_2_5_vl,
     validate_vlm_parameters,
@@ -716,7 +717,7 @@ class Detections:
         """
         if "error" in azure_result:
             raise ValueError(
-                f'Azure API returned an error {azure_result["error"]["message"]}'
+                f"Azure API returned an error {azure_result['error']['message']}"
             )
 
         xyxy, confidences, class_ids = [], [], []
@@ -844,13 +845,64 @@ class Detections:
             detections.class_id
             # array([0])
             ```
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            qwen_2_5_vl_result = \"\"\"```json
+            [
+                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+            ]
+            ```\"\"\"
+            detections = sv.Detections.from_lmm(
+                sv.LMM.QWEN_2_5_VL,
+                qwen_2_5_vl_result,
+                input_wh=(1000, 1000),
+                resolution_wh=(1000, 1000),
+            )
+            detections.xyxy
+            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+            ```
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            gemini_response_text = \"\"\"```json
+                [
+                    {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
+                    {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
+                ]
+            ```\"\"\"
+
+            detections = sv.Detections.from_lmm(
+                sv.LMM.GOOGLE_GEMINI_2_0,
+                gemini_response_text,
+                resolution_wh=(IMAGE.size[0], IMAGE.size[1]),
+            )
+
+            detections.xyxy
+            # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+            ```
         """
+
         # filler logic mapping old from_lmm to new from_vlm
         lmm_to_vlm = {
             LMM.PALIGEMMA: VLM.PALIGEMMA,
             LMM.FLORENCE_2: VLM.FLORENCE_2,
             LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL,
-            LMM.DEEPSEEK_VL_2: VLM.DEEPSEEK_VL_2
+            LMM.DEEPSEEK_VL_2: VLM.DEEPSEEK_VL_2,
+            LMM.GOOGLE_GEMINI_2_0: VLM.GOOGLE_GEMINI_2_0,
+            LMM.GOOGLE_GEMINI_2_5: VLM.GOOGLE_GEMINI_2_5,
+
         }
 
         # (this works even if the LMM enum is wrapped by @deprecated)
@@ -880,10 +932,10 @@ class Detections:
     ) -> Detections:
         """
         Creates a Detections object from the given result string based on the specified
-        Vision-Language Model (LMM).
+        Vision Language Model (VLM).
 
         Args:
-            vlm (Union[VLM, str]): The type of VLM (Vision-Language Model) to use.
+            vlm (Union[VLM, str]): The type of VLM (Large Multimodal Model) to use.
             result (str): The result string containing the detection data.
             **kwargs (Any): Additional keyword arguments required by the specified VLM.
 
@@ -891,9 +943,9 @@ class Detections:
             Detections: A new Detections object.
 
         Raises:
-            ValueError: If the LMM is invalid, required arguments are missing, or
+            ValueError: If the VLM is invalid, required arguments are missing, or
                 disallowed arguments are provided.
-            ValueError: If the specified LMM is not supported.
+            ValueError: If the specified VLM is not supported.
 
         Examples:
             ```python
@@ -911,6 +963,53 @@ class Detections:
 
             detections.class_id
             # array([0])
+            ```
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            qwen_2_5_vl_result = \"\"\"```json
+            [
+                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+            ]
+            ```\"\"\"
+            detections = sv.Detections.from_vlm(
+                sv.VLM.QWEN_2_5_VL,
+                qwen_2_5_vl_result,
+                input_wh=(1000, 1000),
+                resolution_wh=(1000, 1000),
+            )
+            detections.xyxy
+            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+            ```
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            gemini_response_text = \"\"\"```json
+                [
+                    {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
+                    {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
+                ]
+            ```\"\"\"
+
+            detections = sv.Detections.from_vlm(
+                sv.VLM.GOOGLE_GEMINI_2_0,
+                gemini_response_text,
+                resolution_wh=(IMAGE.size[0], IMAGE.size[1]),
+            )
+
+            detections.xyxy
+            # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U26')}
             ```
         """
         vlm = validate_vlm_parameters(vlm, result, kwargs)
@@ -942,6 +1041,18 @@ class Detections:
                 data[ORIENTED_BOX_COORDINATES] = xyxyxyxy
 
             return cls(xyxy=xyxy, mask=mask, data=data)
+
+        if (
+            vlm == VLM.GOOGLE_GEMINI_2_0
+            or vlm == VLM.GOOGLE_GEMINI_2_5
+            or vlm == VLM.GOOGLE_GEMINI_2_5_FLASH_PREVIEW
+            or vlm == VLM.GOOGLE_GEMINI_2_5_PRO_PREVIEW
+        ):
+            xyxy, class_name = from_google_gemini(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            return cls(xyxy=xyxy, data=data)
+
+        return cls.empty()
 
     @classmethod
     def from_easyocr(cls, easyocr_results: list) -> Detections:
@@ -1388,9 +1499,9 @@ class Detections:
         if len(self) == 0:
             return self
 
-        assert (
-            self.confidence is not None
-        ), "Detections confidence must be given for NMS to be executed."
+        assert self.confidence is not None, (
+            "Detections confidence must be given for NMS to be executed."
+        )
 
         if class_agnostic:
             predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
@@ -1444,9 +1555,9 @@ class Detections:
         if len(self) == 0:
             return self
 
-        assert (
-            self.confidence is not None
-        ), "Detections confidence must be given for NMM to be executed."
+        assert self.confidence is not None, (
+            "Detections confidence must be given for NMM to be executed."
+        )
 
         if class_agnostic:
             predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))

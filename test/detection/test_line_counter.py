@@ -250,12 +250,12 @@ def test_line_zone_one_detection_default_anchors(
         crossed_in_list.append(crossed_in[0])
         crossed_out_list.append(crossed_out[0])
 
-    assert (
-        crossed_in_list == expected_crossed_in
-    ), f"expected {expected_crossed_in}, got {crossed_in_list}"
-    assert (
-        crossed_out_list == expected_crossed_out
-    ), f"expected {expected_crossed_out}, got {crossed_out_list}"
+    assert crossed_in_list == expected_crossed_in, (
+        f"expected {expected_crossed_in}, got {crossed_in_list}"
+    )
+    assert crossed_out_list == expected_crossed_out, (
+        f"expected {expected_crossed_out}, got {crossed_out_list}"
+    )
 
 
 @pytest.mark.parametrize(
@@ -415,12 +415,12 @@ def test_line_zone_one_detection(
         crossed_in_list.append(crossed_in[0])
         crossed_out_list.append(crossed_out[0])
 
-    assert (
-        crossed_in_list == expected_crossed_in
-    ), f"expected {expected_crossed_in}, got {crossed_in_list}"
-    assert (
-        crossed_out_list == expected_crossed_out
-    ), f"expected {expected_crossed_out}, got {crossed_out_list}"
+    assert crossed_in_list == expected_crossed_in, (
+        f"expected {expected_crossed_in}, got {crossed_in_list}"
+    )
+    assert crossed_out_list == expected_crossed_out, (
+        f"expected {expected_crossed_out}, got {crossed_out_list}"
+    )
 
 
 @pytest.mark.parametrize(
@@ -600,12 +600,12 @@ def test_line_zone_one_detection_long_horizon(
         crossed_in_list.append(crossed_in[0])
         crossed_out_list.append(crossed_out[0])
 
-    assert (
-        crossed_in_list == expected_crossed_in
-    ), f"expected {expected_crossed_in}, got {crossed_in_list}"
-    assert (
-        crossed_out_list == expected_crossed_out
-    ), f"expected {expected_crossed_out}, got {crossed_out_list}"
+    assert crossed_in_list == expected_crossed_in, (
+        f"expected {expected_crossed_in}, got {crossed_in_list}"
+    )
+    assert crossed_out_list == expected_crossed_out, (
+        f"expected {expected_crossed_out}, got {crossed_out_list}"
+    )
 
 
 @pytest.mark.parametrize(
