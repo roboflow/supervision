@@ -90,7 +90,10 @@ def coco_annotations_to_masks(
 
 
 def coco_annotations_to_detections(
-    image_annotations: List[dict], resolution_wh: Tuple[int, int], with_masks: bool
+    image_annotations: List[dict],
+    resolution_wh: Tuple[int, int],
+    with_masks: bool,
+    use_iscrowd: bool = True,
 ) -> Detections:
     if not image_annotations:
         return Detections.empty()
@@ -102,15 +105,26 @@ def coco_annotations_to_detections(
     xyxy = np.asarray(xyxy)
     xyxy[:, 2:4] += xyxy[:, 0:2]
 
+    data = dict()
+    if use_iscrowd:
+        iscrowd = [
+            image_annotation["iscrowd"] for image_annotation in image_annotations
+        ]
+        area = [image_annotation["area"] for image_annotation in image_annotations]
+        data = dict(
+            iscrowd=np.asarray(iscrowd, dtype=int), area=np.asarray(area, dtype=float)
+        )
+
     if with_masks:
         mask = coco_annotations_to_masks(
             image_annotations=image_annotations, resolution_wh=resolution_wh
         )
-        return Detections(
-            class_id=np.asarray(class_ids, dtype=int), xyxy=xyxy, mask=mask
-        )
+    else:
+        mask = None
 
-    return Detections(xyxy=xyxy, class_id=np.asarray(class_ids, dtype=int))
+    return Detections(
+        class_id=np.asarray(class_ids, dtype=int), xyxy=xyxy, mask=mask, data=data
+    )
 
 
 def detections_to_coco_annotations(
@@ -159,16 +173,58 @@ def detections_to_coco_annotations(
     return coco_annotations, annotation_id
 
 
+def get_coco_class_index_mapping(annotations_path: str) -> Dict[int, int]:
+    """
+    Generates a mapping from sequential class indices to original COCO class ids.
+
+    This function is essential when working with models that expect class ids to be
+    zero-indexed and sequential (0 to 79), as opposed to the original COCO
+    dataset where category ids are non-contiguous ranging from 1 to 90 but skipping some
+    ids.
+
+    Use Cases:
+        - Evaluating models trained with COCO-style annotations where class ids
+          are sequential ranging from 0 to 79.
+        - Ensuring consistent class indexing across training, inference and evaluation,
+          when using different tools or datasets with COCO format.
+        - Reproducing results from models that assume sequential class ids (0 to 79).
+
+    How it Works:
+        - Reads the COCO annotation file in its original format (`annotations_path`).
+        - Extracts and sorts all class names by their original COCO id (1 to 90).
+        - Builds a mapping from COCO class ids (not sequential with skipped ids) to
+          new class ids (sequential ranging from 0 to 79).
+        - Returns a dictionary mapping: `{new_class_id: original_COCO_class_id}`.
+
+    Args:
+        annotations_path (str): Path to COCO JSON annotations file
+        (e.g., `instances_val2017.json`).
+
+    Returns:
+        Dict[int, int]: A mapping from new class id (sequential ranging from 0 to 79)
+        to original COCO class id (1 to 90 with skipped ids).
+    """
+    coco_data = read_json_file(annotations_path)
+    classes = coco_categories_to_classes(coco_categories=coco_data["categories"])
+    class_mapping = build_coco_class_index_mapping(
+        coco_categories=coco_data["categories"], target_classes=classes
+    )
+    return {v: k for k, v in class_mapping.items()}
+
+
 def load_coco_annotations(
     images_directory_path: str,
     annotations_path: str,
     force_masks: bool = False,
+    use_iscrowd: bool = True,
 ) -> Tuple[List[str], List[str], Dict[str, Detections]]:
     coco_data = read_json_file(file_path=annotations_path)
     classes = coco_categories_to_classes(coco_categories=coco_data["categories"])
+
     class_index_mapping = build_coco_class_index_mapping(
         coco_categories=coco_data["categories"], target_classes=classes
     )
+
     coco_images = coco_data["images"]
     coco_annotations_groups = group_coco_annotations_by_image_id(
         coco_annotations=coco_data["annotations"]
@@ -190,7 +246,9 @@ def load_coco_annotations(
             image_annotations=image_annotations,
             resolution_wh=(image_width, image_height),
             with_masks=force_masks,
+            use_iscrowd=use_iscrowd,
         )
+
         annotation = map_detections_class_id(
             source_to_target_mapping=class_index_mapping,
             detections=annotation,

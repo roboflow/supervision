@@ -447,6 +447,62 @@ def xyxy_to_xcycarh(xyxy: np.ndarray) -> np.ndarray:
     return result.astype(float)
 
 
+def denormalize_boxes(
+    normalized_xyxy: np.ndarray,
+    resolution_wh: Tuple[int, int],
+    normalization_factor: float = 1.0,
+) -> np.ndarray:
+    """
+    Convert normalized xyxy coordinates to absolute XYXY coordinates. By default, assumes
+    normalized values are between 0 and 1, but supports custom ranges via normalization_factor parameter.
+    Args:
+        normalized_xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each row contains
+            normalized coordinates in format `(x1, y1, x2, y2)` with values between 0 and normalization_factor.
+        resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)` representing
+            the target resolution.
+        normalization_factor (float): The maximum value of the normalization range. For example:
+            - normalization_factor=1.0 means input coordinates are normalized between 0 and 1
+            - normalization_factor=100.0 means input coordinates are normalized between 0 and 100
+            - normalization_factor=1000.0 means input coordinates are normalized between 0 and 1000
+    Returns:
+        np.ndarray: A numpy array of shape `(N, 4)` containing the absolute coordinates
+            in format `(x1, y1, x2, y2)`.
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+        # Example with default normalization (0-1)
+        normalized_xyxy = np.array([
+            [0.1, 0.2, 0.5, 0.6],
+            [0.3, 0.4, 0.7, 0.8]
+        ])
+        resolution_wh = (100, 200)
+        sv.denormalize_boxes(normalized_xyxy, resolution_wh)
+        # array([
+        #     [ 10.,  40.,  50., 120.],
+        #     [ 30.,  80.,  70., 160.]
+        # ])
+        # Example with custom normalization (0-100)
+        normalized_xyxy = np.array([
+            [10., 20., 50., 60.],
+            [30., 40., 70., 80.]
+        ])
+        sv.denormalize_boxes(normalized_xyxy, resolution_wh, max_value=100.0)
+        # array([
+        #     [ 10.,  40.,  50., 120.],
+        #     [ 30.,  80.,  70., 160.]
+        # ])
+        ```
+    """  # noqa E501 // docs
+    width, height = resolution_wh
+    result = normalized_xyxy.copy()
+
+    result[[0, 2]] = (result[[0, 2]] * width) / normalization_factor
+    result[[1, 3]] = (result[[1, 3]] * height) / normalization_factor
+
+    return result
+
+
 def mask_to_xyxy(masks: np.ndarray) -> np.ndarray:
     """
     Converts a 3D `np.array` of 2D bool masks into a 2D `np.array` of bounding boxes.
@@ -1328,3 +1384,103 @@ def spread_out_boxes(
         xyxy_padded[:, [2, 3]] += force_vectors
 
     return pad_boxes(xyxy_padded, px=-1)
+
+
+def _jaccard(box_a: List[float], box_b: List[float], is_crowd: bool) -> float:
+    """
+    Calculate the Jaccard index (intersection over union) between two bounding boxes.
+    If a gt object is marked as "iscrowd", a dt is allowed to match any subregion
+    of the gt. Choosing gt' in the crowd gt that best matches the dt can be done using
+    gt'=intersect(dt,gt). Since by definition union(gt',dt)=dt, computing
+    iou(gt,dt,iscrowd) = iou(gt',dt) = area(intersect(gt,dt)) / area(dt)
+
+    Args:
+        box_a (List[float]): Box coordinates in the format [x, y, width, height].
+        box_b (List[float]): Box coordinates in the format [x, y, width, height].
+        iscrowd (bool): Flag indicating if the second box is a crowd region or not.
+
+    Returns:
+        float: Jaccard index between the two bounding boxes.
+    """
+    # Smallest number to avoid division by zero
+    EPS = np.spacing(1)
+
+    xa, ya, x2a, y2a = box_a[0], box_a[1], box_a[0] + box_a[2], box_a[1] + box_a[3]
+    xb, yb, x2b, y2b = box_b[0], box_b[1], box_b[0] + box_b[2], box_b[1] + box_b[3]
+
+    # Innermost left x
+    xi = max(xa, xb)
+    # Innermost right x
+    x2i = min(x2a, x2b)
+    # Same for y
+    yi = max(ya, yb)
+    y2i = min(y2a, y2b)
+
+    # Calculate areas
+    Aa = max(x2a - xa, 0.0) * max(y2a - ya, 0.0)
+    Ab = max(x2b - xb, 0.0) * max(y2b - yb, 0.0)
+    Ai = max(x2i - xi, 0.0) * max(y2i - yi, 0.0)
+
+    if is_crowd:
+        return Ai / (Aa + EPS)
+
+    return Ai / (Aa + Ab - Ai + EPS)
+
+
+def box_iou_batch_with_jaccard(
+    boxes_true: List[List[float]],
+    boxes_detection: List[List[float]],
+    is_crowd: List[bool],
+) -> np.ndarray:
+    """
+    Calculate the intersection over union (IoU) between detection bounding boxes (dt)
+    and ground-truth bounding boxes (gt).
+    Reference: https://github.com/rafaelpadilla/review_object_detection_metrics
+
+    Args:
+        boxes_true (List[List[float]]): List of ground-truth bounding boxes in the \
+            format [x, y, width, height].
+        boxes_detection (List[List[float]]): List of detection bounding boxes in the \
+            format [x, y, width, height].
+        is_crowd (List[bool]): List indicating if each ground-truth bounding box \
+            is a crowd region or not.
+
+    Returns:
+        np.ndarray: Array of IoU values of shape (len(dt), len(gt)).
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        boxes_true = [
+            [10, 20, 30, 40],  # x, y, w, h
+            [15, 25, 35, 45]
+        ]
+        boxes_detection = [
+            [12, 22, 28, 38],
+            [16, 26, 36, 46]
+        ]
+        is_crowd = [False, False]
+
+        ious = sv.box_iou_batch_with_jaccard(
+            boxes_true=boxes_true,
+            boxes_detection=boxes_detection,
+            is_crowd=is_crowd
+        )
+        # array([
+        #     [0.8866..., 0.4960...],
+        #     [0.4000..., 0.8622...]
+        # ])
+        ```
+    """
+    assert len(is_crowd) == len(boxes_true), (
+        "`is_crowd` must have the same length as `boxes_true`"
+    )
+    if len(boxes_detection) == 0 or len(boxes_true) == 0:
+        return np.array([])
+    ious = np.zeros((len(boxes_detection), len(boxes_true)), dtype=np.float64)
+    for g_idx, g in enumerate(boxes_true):
+        for d_idx, d in enumerate(boxes_detection):
+            ious[d_idx, g_idx] = _jaccard(d, g, is_crowd[g_idx])
+    return ious

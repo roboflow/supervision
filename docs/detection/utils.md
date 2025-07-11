@@ -12,6 +12,12 @@ status: new
 :::supervision.detection.utils.box_iou_batch
 
 <div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.box_iou_batch_with_jaccard">box_iou_batch_with_jaccard</a></h2>
+</div>
+
+:::supervision.detection.utils.box_iou_batch_with_jaccard
+
+<div class="md-typeset">
   <h2><a href="#supervision.detection.utils.mask_iou_batch">mask_iou_batch</a></h2>
 </div>
 
@@ -94,6 +100,12 @@ status: new
 </div>
 
 :::supervision.detection.utils.xyxy_to_xywh
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.denormalize_boxes">denormalize_boxes</a></h2>
+</div>
+
+:::supervision.detection.utils.denormalize_boxes
 
 <div class="md-typeset">
   <h2><a href="#supervision.detection.utils.xyxy_to_xcycarh">xyxy_to_xcycarh</a></h2>
