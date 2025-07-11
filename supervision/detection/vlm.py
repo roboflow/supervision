@@ -415,7 +415,7 @@ def from_google_gemini(
 def from_moondream(
     result: dict,
     resolution_wh: Tuple[int, int],
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray]:
     """
     Parse and scale bounding boxes from moondream JSON output.
 
@@ -443,11 +443,6 @@ def from_moondream(
     Returns:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`
-        class_id (Optional[np.ndarray]): An array of shape `(n,)` containing
-            the class indices for each bounding box (or None if `classes` is not
-            provided)
-        class_name (np.ndarray): An array of shape `(n,)` containing
-            the class labels for each bounding box
     """  # docs
 
     w, h = resolution_wh
@@ -457,7 +452,7 @@ def from_moondream(
         )
 
     if "objects" not in result or not isinstance(result["objects"], list):
-        return np.empty((0, 4)), np.empty((0,), dtype=int)
+        return np.empty((0, 4))
 
     denormalize_xyxy = []
 
@@ -478,10 +473,8 @@ def from_moondream(
         )
 
     if not denormalize_xyxy:
-        return np.empty((0, 4)), np.empty((0,), dtype=int)
+        return np.empty((0, 4))
 
     xyxy = np.array(denormalize_xyxy, dtype=float)
-    num_detections = len(xyxy)
-    class_id = np.arange(num_detections)
 
-    return xyxy, class_id
+    return xyxy
