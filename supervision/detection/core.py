@@ -1043,9 +1043,9 @@ class Detections:
             or vlm == VLM.GOOGLE_GEMINI_2_5_FLASH_PREVIEW
             or vlm == VLM.GOOGLE_GEMINI_2_5_PRO_PREVIEW
         ):
-            xyxy, class_name = from_google_gemini(result, **kwargs)
+            xyxy, class_id, class_name = from_google_gemini(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
-            return cls(xyxy=xyxy, data=data)
+            return cls(xyxy=xyxy, class_id=class_id, data=data)
 
         return cls.empty()
 
