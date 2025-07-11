@@ -860,6 +860,7 @@ class Detections:
                 qwen_2_5_vl_result,
                 input_wh=(1000, 1000),
                 resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
             )
             detections.xyxy
             # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
@@ -886,6 +887,7 @@ class Detections:
                 sv.LMM.GOOGLE_GEMINI_2_0,
                 gemini_response_text,
                 resolution_wh=(IMAGE.size[0], IMAGE.size[1]),
+                classes=['cat', 'dog'],
             )
 
             detections.xyxy
@@ -986,6 +988,7 @@ class Detections:
                 qwen_2_5_vl_result,
                 input_wh=(1000, 1000),
                 resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
             )
             detections.xyxy
             # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
@@ -1012,6 +1015,7 @@ class Detections:
                 sv.VLM.GOOGLE_GEMINI_2_0,
                 gemini_response_text,
                 resolution_wh=(IMAGE.size[0], IMAGE.size[1]),
+                classes=['cat', 'dog'],
             )
 
             detections.xyxy
