@@ -1135,10 +1135,7 @@ class Detections:
 
             return cls(xyxy=xyxy, mask=mask, data=data)
 
-        if (
-            vlm == VLM.GOOGLE_GEMINI_2_0
-            or vlm == VLM.GOOGLE_GEMINI_2_5
-        ):
+        if vlm == VLM.GOOGLE_GEMINI_2_0 or vlm == VLM.GOOGLE_GEMINI_2_5:
             xyxy, class_id, class_name = from_google_gemini(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)

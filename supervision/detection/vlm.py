@@ -427,7 +427,6 @@ def from_google_gemini(
     return xyxy, class_id, class_name
 
 
-
 def from_moondream(
     result: dict,
     resolution_wh: Tuple[int, int],
