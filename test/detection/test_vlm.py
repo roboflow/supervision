@@ -6,6 +6,7 @@ import pytest
 
 from supervision.detection.vlm import (
     from_google_gemini,
+    from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
 )
@@ -375,3 +376,103 @@ def test_from_google_gemini() -> None:
         xyxy, np.array([[12.8, 4.8, 76.8, 52.8], [64.0, 24.0, 128.0, 72.0]])
     )
     np.testing.assert_array_equal(class_name, np.array(["cat", "dog"]))
+
+
+@pytest.mark.parametrize(
+    "exception, result, resolution_wh, expected_results",
+    [
+        (
+            does_not_raise(),
+            {},
+            (640, 480),
+            np.empty((0, 4)),
+        ),  # empty dict
+        (
+            does_not_raise(),
+            {"objects": []},
+            (640, 480),
+            np.empty((0, 4)),
+        ),  # empty objects list
+        (
+            does_not_raise(),
+            {"objects": "not a list"},
+            (640, 480),
+            np.empty((0, 4)),
+        ),  # objects is not a list
+        (
+            does_not_raise(),
+            {
+                "objects": [
+                    {"x_min": 0.1, "y_min": 0.2, "x_max": 0.3, "y_max": 0.4},
+                ]
+            },
+            (640, 480),
+            np.array([[64.0, 96.0, 192.0, 192.0]]),
+        ),  # single box
+        (
+            does_not_raise(),
+            {
+                "objects": [
+                    {"x_min": 0.1, "y_min": 0.2, "x_max": 0.3, "y_max": 0.4},
+                    {"x_min": 0.5, "y_min": 0.6, "x_max": 0.7, "y_max": 0.8},
+                ]
+            },
+            (640, 480),
+            np.array([[64.0, 96.0, 192.0, 192.0], [320.0, 288.0, 448.0, 384.0]]),
+        ),  # multiple boxes
+        (
+            does_not_raise(),
+            {
+                "objects": [
+                    {"x_min": 0.1, "y_min": 0.2},  # missing x_max, y_max
+                    {"x_min": 0.5, "y_min": 0.6, "x_max": 0.7, "y_max": 0.8},
+                ]
+            },
+            (640, 480),
+            np.array([[320.0, 288.0, 448.0, 384.0]]),
+        ),  # partial valid boxes
+        (
+            does_not_raise(),
+            {
+                "objects": [
+                    {"x_min": 0.0, "y_min": 0.0, "x_max": 1.0, "y_max": 1.0},
+                ]
+            },
+            (1000, 800),
+            np.array([[0.0, 0.0, 1000.0, 800.0]]),
+        ),  # full image box
+        (
+            pytest.raises(ValueError),
+            {
+                "objects": [
+                    {"x_min": 0.1, "y_min": 0.2, "x_max": 0.3, "y_max": 0.4},
+                ]
+            },
+            (0, 480),
+            None,
+        ),  # zero width -> ValueError
+        (
+            pytest.raises(ValueError),
+            {
+                "objects": [
+                    {"x_min": 0.1, "y_min": 0.2, "x_max": 0.3, "y_max": 0.4},
+                ]
+            },
+            (640, -100),
+            None,
+        ),  # negative height -> ValueError
+    ],
+)
+def test_from_moondream(
+    exception,
+    result: dict,
+    resolution_wh: Tuple[int, int],
+    expected_results,
+) -> None:
+    with exception:
+        xyxy = from_moondream(
+            result=result,
+            resolution_wh=resolution_wh,
+        )
+        if expected_results is not None:
+            np.testing.assert_array_equal(xyxy, expected_results)
