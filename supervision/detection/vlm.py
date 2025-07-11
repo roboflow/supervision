@@ -475,6 +475,4 @@ def from_moondream(
     if not denormalize_xyxy:
         return np.empty((0, 4))
 
-    xyxy = np.array(denormalize_xyxy, dtype=float)
-
-    return xyxy
+    return np.array(denormalize_xyxy, dtype=float)
