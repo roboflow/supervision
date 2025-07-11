@@ -860,12 +860,16 @@ class Detections:
                 qwen_2_5_vl_result,
                 input_wh=(1000, 1000),
                 resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
             )
             detections.xyxy
             # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
 
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
             ```
 
         Examples:
@@ -883,6 +887,7 @@ class Detections:
                 sv.LMM.GOOGLE_GEMINI_2_0,
                 gemini_response_text,
                 resolution_wh=(IMAGE.size[0], IMAGE.size[1]),
+                classes=['cat', 'dog'],
             )
 
             detections.xyxy
@@ -890,6 +895,9 @@ class Detections:
 
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+
+            detections.class_id
+            # array([0, 1])
             ```
         """
 
@@ -980,12 +988,16 @@ class Detections:
                 qwen_2_5_vl_result,
                 input_wh=(1000, 1000),
                 resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
             )
             detections.xyxy
             # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
 
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
             ```
 
         Examples:
@@ -1003,6 +1015,7 @@ class Detections:
                 sv.VLM.GOOGLE_GEMINI_2_0,
                 gemini_response_text,
                 resolution_wh=(IMAGE.size[0], IMAGE.size[1]),
+                classes=['cat', 'dog'],
             )
 
             detections.xyxy
@@ -1010,6 +1023,9 @@ class Detections:
 
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+
+            detections.class_id
+            # array([0, 1])
             ```
         """
         vlm = validate_vlm_parameters(vlm, result, kwargs)
@@ -1043,9 +1059,9 @@ class Detections:
             or vlm == VLM.GOOGLE_GEMINI_2_5_FLASH_PREVIEW
             or vlm == VLM.GOOGLE_GEMINI_2_5_PRO_PREVIEW
         ):
-            xyxy, class_name = from_google_gemini(result, **kwargs)
+            xyxy, class_id, class_name = from_google_gemini(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
-            return cls(xyxy=xyxy, data=data)
+            return cls(xyxy=xyxy, class_id=class_id, data=data)
 
         return cls.empty()
 

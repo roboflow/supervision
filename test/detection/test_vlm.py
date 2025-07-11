@@ -359,19 +359,140 @@ def test_from_qwen_2_5_vl(
             np.testing.assert_array_equal(class_name, expected_results[2])
 
 
-def test_from_google_gemini() -> None:
-    result = """```json
+@pytest.mark.parametrize(
+    "exception, result, resolution_wh, classes, expected_results",
     [
-        {"box_2d": [10, 20, 110, 120], "label": "cat"},
-        {"box_2d": [50, 100, 150, 200], "label": "dog"}
-    ]
-    ```"""
-    resolution_wh = (640, 480)
-    xyxy, class_name = from_google_gemini(
-        result=result,
-        resolution_wh=resolution_wh,
-    )
-    np.testing.assert_array_equal(
-        xyxy, np.array([[12.8, 4.8, 76.8, 52.8], [64.0, 24.0, 128.0, 72.0]])
-    )
-    np.testing.assert_array_equal(class_name, np.array(["cat", "dog"]))
+        (
+            does_not_raise(),
+            "random text",
+            (1000, 1000),
+            None,
+            (np.empty((0, 4)), None, np.empty(0, dtype=str)),
+        ),  # random text without JSON format
+        (
+            does_not_raise(),
+            "```json\ninvalid json\n```",
+            (1000, 1000),
+            None,
+            (np.empty((0, 4)), None, np.empty(0, dtype=str)),
+        ),  # invalid JSON within code blocks
+        (
+            does_not_raise(),
+            "```json\n[]\n```",
+            (1000, 1000),
+            None,
+            (np.empty((0, 4)), None, np.empty(0, dtype=str)),
+        ),  # empty JSON array
+        (
+            does_not_raise(),
+            """```json
+            [
+                {"box_2d": [100, 200, 300, 400], "label": "cat"}
+            ]
+            ```""",
+            (1000, 500),
+            None,
+            (
+                np.array([[200.0, 50.0, 400.0, 150.0]]),
+                None,
+                np.array(["cat"], dtype=str),
+            ),
+        ),  # single valid box with coordinate scaling
+        (
+            does_not_raise(),
+            """```json
+            [
+                {"box_2d": [10, 20, 110, 120], "label": "cat"},
+                {"box_2d": [50, 100, 150, 200], "label": "dog"}
+            ]
+            ```""",
+            (640, 480),
+            None,
+            (
+                np.array([[12.8, 4.8, 76.8, 52.8], [64.0, 24.0, 128.0, 72.0]]),
+                None,
+                np.array(["cat", "dog"], dtype=str),
+            ),
+        ),  # multiple valid boxes without class filtering
+        (
+            does_not_raise(),
+            """```json
+            [
+                {"box_2d": [10, 20, 110, 120], "label": "cat"}
+            ]
+            ```""",
+            (640, 480),
+            ["dog", "person"],
+            (np.empty((0, 4)), np.empty(0, dtype=int), np.empty(0, dtype=str)),
+        ),  # class mismatch with filter
+        (
+            does_not_raise(),
+            """```json
+            [
+                {"box_2d": [10, 20, 110, 120], "label": "cat"},
+                {"box_2d": [50, 100, 150, 200], "label": "dog"}
+            ]
+            ```""",
+            (640, 480),
+            ["person", "dog"],
+            (
+                np.array([[64.0, 24.0, 128.0, 72.0]]),
+                np.array([1]),
+                np.array(["dog"], dtype=str),
+            ),
+        ),  # partial class filtering
+        (
+            does_not_raise(),
+            """```json
+            [
+                {"box_2d": [10, 20, 110, 120], "label": "cat"},
+                {"box_2d": [50, 100, 150, 200], "label": "dog"}
+            ]
+            ```""",
+            (640, 480),
+            ["cat", "dog"],
+            (
+                np.array([[12.8, 4.8, 76.8, 52.8], [64.0, 24.0, 128.0, 72.0]]),
+                np.array([0, 1]),
+                np.array(["cat", "dog"]),
+            ),
+        ),  # complete class filtering with multiple boxes
+        (
+            pytest.raises(ValueError),
+            """```json
+            [
+                {"box_2d": [10, 20, 110, 120], "label": "cat"}
+            ]
+            ```""",
+            (0, 480),
+            None,
+            None,
+        ),  # zero resolution width -> ValueError
+        (
+            pytest.raises(ValueError),
+            """```json
+            [
+                {"box_2d": [10, 20, 110, 120], "label": "cat"}
+            ]
+            ```""",
+            (640, -100),
+            None,
+            None,
+        ),  # negative resolution height -> ValueError
+    ],
+)
+def test_from_google_gemini(
+    exception,
+    result: str,
+    resolution_wh: Tuple[int, int],
+    classes: Optional[List[str]],
+    expected_results: Tuple[np.ndarray, Optional[np.ndarray], np.ndarray],
+) -> None:
+    with exception:
+        xyxy, class_id, class_name = from_google_gemini(
+            result=result, resolution_wh=resolution_wh, classes=classes
+        )
+        if expected_results is not None:
+            np.testing.assert_array_equal(xyxy, expected_results[0])
+            np.testing.assert_array_equal(class_id, expected_results[1])
+            np.testing.assert_array_equal(class_name, expected_results[2])

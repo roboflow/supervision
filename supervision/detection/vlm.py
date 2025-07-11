@@ -53,8 +53,8 @@ ALLOWED_ARGUMENTS: Dict[VLM, List[str]] = {
     VLM.PALIGEMMA: ["resolution_wh", "classes"],
     VLM.FLORENCE_2: ["resolution_wh"],
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh", "classes"],
-    VLM.GOOGLE_GEMINI_2_0: ["resolution_wh"],
-    VLM.GOOGLE_GEMINI_2_5: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_0: ["resolution_wh", "classes"],
+    VLM.GOOGLE_GEMINI_2_5: ["resolution_wh", "classes"],
 }
 
 SUPPORTED_TASKS_FLORENCE_2 = [
@@ -335,7 +335,8 @@ def from_florence_2(
 def from_google_gemini(
     result: str,
     resolution_wh: Tuple[int, int],
-) -> Tuple[np.ndarray, np.ndarray]:
+    classes: Optional[List[str]] = None,
+) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
     """
     Parse and scale bounding boxes from Google Gemini style
     [JSON output](https://ai.google.dev/gemini-api/docs/vision?lang=python).
@@ -359,11 +360,16 @@ def from_google_gemini(
     Args:
         result: String containing the JSON snippet enclosed by triple backticks.
         resolution_wh: (output_width, output_height) to which we rescale the boxes.
+        classes: Optional list of valid class names. If provided, returned boxes/labels
+            are filtered to only those classes found here.
 
     Returns:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`
-        labels: (np.ndarray): An array of shape `(n,)` containing
+        class_id (Optional[np.ndarray]): An array of shape `(n,)` containing
+            the class indices for each bounding box (or None if `classes` is not
+            provided)
+        class_name (np.ndarray): An array of shape `(n,)` containing
             the class labels for each bounding box
 
     """
@@ -384,7 +390,7 @@ def from_google_gemini(
     try:
         data = json.loads(result)
     except json.JSONDecodeError:
-        return np.empty((0, 4)), np.empty((0,), dtype=str)
+        return np.empty((0, 4)), None, np.empty((0,), dtype=str)
 
     labels = []
     xyxy = []
@@ -403,6 +409,16 @@ def from_google_gemini(
         )
 
     if not xyxy:
-        return np.empty((0, 4)), np.empty((0,), dtype=str)
+        return np.empty((0, 4)), None, np.empty((0,), dtype=str)
 
-    return np.array(xyxy), np.array(labels)
+    xyxy = np.array(xyxy)
+    class_name = np.array(labels)
+    class_id = None
+
+    if classes is not None:
+        mask = np.array([name in classes for name in class_name], dtype=bool)
+        xyxy = xyxy[mask]
+        class_name = class_name[mask]
+        class_id = np.array([classes.index(name) for name in class_name])
+
+    return xyxy, class_id, class_name
