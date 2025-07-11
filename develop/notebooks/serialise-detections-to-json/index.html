@@ -2896,9 +2896,9 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="n">inference</span> <span class="n">requests</span> <span class="n">tqdm</span> <span class="n">supervision</span><span class="o">==</span><span class="mf">0.21.0</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="err">!</span><span class="n">pip</span> <span class="n">install</span> <span class="o">-</span><span class="n">q</span> <span class="n">inference</span> <span class="n">requests</span> <span class="n">tqdm</span> <span class="n">supervision</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-1">!pip install -q inference requests tqdm supervision==0.21.0</div>
+<div class="clipboard-copy-txt" id="cell-1">!pip install -q inference requests tqdm supervision</div>
 </div>
 </div>
 </div>
@@ -3848,7 +3848,7 @@ frame = next(generator)</div>
 </div>
 <div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
 </div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput" data-mime-type="text/markdown">
-<h3 id="annotate-image-with-detections">Annotate Image with Detections<a class="anchor-link" href="#annotate-image-with-detections">¶</a></h3><p>Finally, we can annotate the image with the predictions. Since we are working with an object detection model, we will use the <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoundingBoxAnnotator"><code>sv.BoundingBoxAnnotator</code></a> and <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator"><code>sv.LabelAnnotator</code></a> classes.</p>
+<h3 id="annotate-image-with-detections">Annotate Image with Detections<a class="anchor-link" href="#annotate-image-with-detections">¶</a></h3><p>Finally, we can annotate the image with the predictions. Since we are working with an object detection model, we will use the <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator"><code>sv.BoxAnnotator</code></a> and <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator"><code>sv.LabelAnnotator</code></a> classes.</p>
 </div>
 </div>
 </div>
@@ -3858,7 +3858,7 @@ frame = next(generator)</div>
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
 </div>
 <div class="jp-InputArea jp-Cell-inputArea">
-<div class="jp-InputPrompt jp-InputArea-prompt">In [49]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
+<div class="jp-InputPrompt jp-InputArea-prompt">In [ ]:</div><div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
 <div class="CodeMirror cm-s-jupyter">
 <div class="zeroclipboard-container">
 <clipboard-copy ,="" aria-label="Copy to Clipboard" for="cell-16">
@@ -3871,7 +3871,7 @@ frame = next(generator)</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">bounding_box_annotator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">BoundingBoxAnnotator</span><span class="p">()</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="n">bounding_box_annotator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">BoxAnnotator</span><span class="p">()</span>
 <span class="n">label_annotator</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">LabelAnnotator</span><span class="p">()</span>
 
 <span class="n">annotated_frame</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -3879,7 +3879,7 @@ frame = next(generator)</div>
 <span class="n">annotated_frame</span> <span class="o">=</span> <span class="n">label_annotator</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="o">=</span><span class="n">annotated_frame</span><span class="p">,</span> <span class="n">detections</span><span class="o">=</span><span class="n">detections</span><span class="p">)</span>
 <span class="n">sv</span><span class="o">.</span><span class="n">plot_image</span><span class="p">(</span><span class="n">annotated_frame</span><span class="p">,</span> <span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">12</span><span class="p">))</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-16">bounding_box_annotator = sv.BoundingBoxAnnotator()
+<div class="clipboard-copy-txt" id="cell-16">bounding_box_annotator = sv.BoxAnnotator()
 label_annotator = sv.LabelAnnotator()
 
 annotated_frame = frame.copy()
@@ -3953,7 +3953,7 @@ sv.plot_image(annotated_frame, (12, 12))</div>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 20, 2024 02:21:48 UTC">August 20, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 11, 2025 00:07:31 UTC">July 11, 2025</span>
   </span>
 
     
@@ -3981,6 +3981,11 @@ sv.plot_image(annotated_frame, (12, 12))</div>
     
     <nav>
       
+        <a href="https://github.com/onuralpszr" class="md-author" title="@onuralpszr">
+          
+          <img src="https://avatars.githubusercontent.com/u/1688848?v=4&size=72" alt="onuralpszr">
+        </a>
+      
         <a href="https://github.com/apps/pre-commit-ci" class="md-author" title="@pre-commit-ci[bot]">
           
           <img src="https://avatars.githubusercontent.com/in/68672?v=4&size=72" alt="pre-commit-ci[bot]">
@@ -3994,11 +3999,6 @@ sv.plot_image(annotated_frame, (12, 12))</div>
         <a href="https://github.com/LinasKo" class="md-author" title="@LinasKo">
           
           <img src="https://avatars.githubusercontent.com/u/6500785?v=4&size=72" alt="LinasKo">
-        </a>
-      
-        <a href="https://github.com/onuralpszr" class="md-author" title="@onuralpszr">
-          
-          <img src="https://avatars.githubusercontent.com/u/1688848?v=4&size=72" alt="onuralpszr">
         </a>
       
       
