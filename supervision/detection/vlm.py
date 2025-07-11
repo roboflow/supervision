@@ -1,6 +1,6 @@
+import ast
 import json
 import re
-import ast
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -244,9 +244,7 @@ def from_qwen_2_5_vl(
 
 
 def from_deepseek_vl_2(
-    result: str,
-    resolution_wh: Tuple[int, int],
-    classes: Optional[List[str]] = None
+    result: str, resolution_wh: Tuple[int, int], classes: Optional[List[str]] = None
 ) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
     """
     Parse bounding boxes from deepseek-vl2-formatted text, scale them to the specified
@@ -280,8 +278,8 @@ def from_deepseek_vl_2(
             f"Both dimensions in resolution_wh must be positive. Got ({w}, {h})."
         )
 
-    label_segments = re.findall(r'<\|ref\|>(.*?)<\|/ref\|>', result, flags=re.DOTALL)
-    bbox_segments = re.findall(r'<\|det\|>(.*?)<\|/det\|>', result, flags=re.DOTALL)
+    label_segments = re.findall(r"<\|ref\|>(.*?)<\|/ref\|>", result, flags=re.DOTALL)
+    bbox_segments = re.findall(r"<\|det\|>(.*?)<\|/det\|>", result, flags=re.DOTALL)
 
     if len(label_segments) != len(bbox_segments):
         return np.empty((0, 4)), None, np.empty((0,), dtype=str)
@@ -290,7 +288,7 @@ def from_deepseek_vl_2(
 
     for label_str, bbox_str in zip(label_segments, bbox_segments):
         label_str = label_str.strip()
-        raw_box_groups = re.findall(r'\[\[.*?\]\]', bbox_str, flags=re.DOTALL)
+        raw_box_groups = re.findall(r"\[\[.*?\]\]", bbox_str, flags=re.DOTALL)
 
         if not raw_box_groups:
             continue

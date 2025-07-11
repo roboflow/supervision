@@ -36,12 +36,12 @@ from supervision.detection.utils import (
 from supervision.detection.vlm import (
     LMM,
     VLM,
+    from_deepseek_vl_2,
     from_florence_2,
     from_google_gemini,
     from_paligemma,
     from_qwen_2_5_vl,
     validate_vlm_parameters,
-    from_deepseek_vl_2,
 )
 from supervision.geometry.core import Position
 from supervision.utils.internal import deprecated, get_instance_variables
@@ -902,7 +902,6 @@ class Detections:
             LMM.DEEPSEEK_VL_2: VLM.DEEPSEEK_VL_2,
             LMM.GOOGLE_GEMINI_2_0: VLM.GOOGLE_GEMINI_2_0,
             LMM.GOOGLE_GEMINI_2_5: VLM.GOOGLE_GEMINI_2_5,
-
         }
 
         # (this works even if the LMM enum is wrapped by @deprecated)
