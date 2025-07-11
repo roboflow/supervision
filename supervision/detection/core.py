@@ -864,6 +864,7 @@ class Detections:
                 qwen_2_5_vl_result,
                 input_wh=(1000, 1000),
                 resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
             )
             detections.xyxy
             # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
@@ -873,6 +874,9 @@ class Detections:
 
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
             ```
 
         Examples:
@@ -890,6 +894,7 @@ class Detections:
                 sv.LMM.GOOGLE_GEMINI_2_0,
                 gemini_response_text,
                 resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
             )
 
             detections.xyxy
@@ -900,6 +905,9 @@ class Detections:
 
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+
+            detections.class_id
+            # array([0, 1])
             ```
 
         Examples:
@@ -1022,6 +1030,7 @@ class Detections:
                 qwen_2_5_vl_result,
                 input_wh=(1000, 1000),
                 resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
             )
             detections.xyxy
             # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
@@ -1031,6 +1040,9 @@ class Detections:
 
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
             ```
 
         Examples:
@@ -1048,6 +1060,7 @@ class Detections:
                 sv.VLM.GOOGLE_GEMINI_2_0,
                 gemini_response_text,
                 resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
             )
 
             detections.xyxy
@@ -1058,6 +1071,9 @@ class Detections:
 
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+
+            detections.class_id
+            # array([0, 1])
             ```
 
         Examples:
@@ -1119,10 +1135,13 @@ class Detections:
 
             return cls(xyxy=xyxy, mask=mask, data=data)
 
-        if vlm == VLM.GOOGLE_GEMINI_2_0 or vlm == VLM.GOOGLE_GEMINI_2_5:
-            xyxy, class_name = from_google_gemini(result, **kwargs)
+        if (
+            vlm == VLM.GOOGLE_GEMINI_2_0
+            or vlm == VLM.GOOGLE_GEMINI_2_5
+        ):
+            xyxy, class_id, class_name = from_google_gemini(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
-            return cls(xyxy=xyxy, data=data)
+            return cls(xyxy=xyxy, class_id=class_id, data=data)
 
         if vlm == VLM.MOONDREAM:
             xyxy = from_moondream(result, **kwargs)
