@@ -418,7 +418,7 @@ def from_google_gemini_2_5(
     """
     Parse and scale bounding boxes and masks from Google Gemini 2.5 style
     [JSON output](https://ai.google.dev/gemini-api/docs/vision?lang=python).
-    
+
     The JSON is expected to be enclosed in triple backticks with the format:
         ```json
         [
