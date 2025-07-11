@@ -416,9 +416,19 @@ def from_google_gemini_2_5(
     resolution_wh: Tuple[int, int],
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray]]:
     """
-    Parse and scale bounding boxes and masks from Google Gemini 2.5 style JSON output.
-    https://aistudio.google.com/
-    https://ai.google.dev/gemini-api/docs/vision?lang=python
+    Parse and scale bounding boxes and masks from Google Gemini 2.5 style
+    [JSON output](https://ai.google.dev/gemini-api/docs/vision?lang=python).
+    
+    The JSON is expected to be enclosed in triple backticks with the format:
+        ```json
+        [
+            {
+                "box_2d": [x1, y1, x2, y2],
+                "mask": "data:image/png;base64,...",
+                "label": "some class name"},
+            ...
+        ]
+        ```
 
     Args:
         result: String containing the JSON snippet enclosed by triple backticks.
