@@ -29,11 +29,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
           activate-environment: true
 
-
       - name: 🏗️ Install dependencies
         run: |
-          uv pip install -r pyproject.toml --extra docs
-
+          uv pip install -r pyproject.toml --group docs
 
       - name: 🧪 Test Docs Build
         run: uv run mkdocs build --verbose
