@@ -866,6 +866,9 @@ class Detections:
 
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
             ```
 
         Examples:
@@ -890,6 +893,9 @@ class Detections:
 
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+
+            detections.class_id
+            # array([0, 1])
             ```
         """
 
@@ -986,6 +992,9 @@ class Detections:
 
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
             ```
 
         Examples:
@@ -1010,6 +1019,9 @@ class Detections:
 
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+
+            detections.class_id
+            # array([0, 1])
             ```
         """
         vlm = validate_vlm_parameters(vlm, result, kwargs)
