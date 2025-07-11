@@ -253,7 +253,7 @@ def from_deepseek_vl_2(
     The DeepSeek-VL2 output typically contains pairs of <|ref|> ... <|/ref|> labels
     and <|det|> ... <|/det|> bounding box definitions. Each <|det|> section may
     contain one or more bounding boxes in the form [[x1, y1, x2, y2], [x1, y1, x2, y2], ...]
-    (scaled to 0..999). However, other text (e.g. <｜end▁of▁sentence｜>) may appear
+    (scaled to 0..999). However, other text (e.g. < | end▁of▁sentence | >) may appear
     after the bracket, so we strip that out here.
 
     Args:
@@ -270,7 +270,7 @@ def from_deepseek_vl_2(
             provided).
         class_name (np.ndarray): An array of shape `(n,)` containing
             the class labels for each bounding box.
-    """
+    """  # noqa: E501
 
     w, h = resolution_wh
     if w <= 0 or h <= 0:
