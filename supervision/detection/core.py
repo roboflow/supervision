@@ -1101,8 +1101,8 @@ class Detections:
             return cls(xyxy=xyxy, data=data)
 
         if vlm == VLM.MOONDREAM:
-            xyxy, class_id = from_moondream(result, **kwargs)
-            return cls(xyxy=xyxy, class_id=class_id)
+            xyxy = from_moondream(result, **kwargs)
+            return cls(xyxy=xyxy)
 
         return cls.empty()
 
