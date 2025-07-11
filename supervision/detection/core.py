@@ -892,6 +892,35 @@ class Detections:
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U26')}
             ```
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            moondream_result = {
+                'objects': [{'x_min': 0.5704046934843063,
+                    'y_min': 0.20069346576929092,
+                    'x_max': 0.7049859315156937,
+                    'y_max': 0.3012596592307091},
+                    {'x_min': 0.6210969910025597,
+                    'y_min': 0.3300672620534897,
+                    'x_max': 0.8417936339974403,
+                    'y_max': 0.4961046129465103}]
+            }
+
+
+            detections = sv.Detections.from_vlm(
+                sv.VLM.MOONDREAM,
+                moondream_result,
+                resolution_wh=(IMAGE.size[0], IMAGE.size[1]),
+            )
+
+            detections.xyxy
+            # array([[1752.28,  818.82, 2165.72, 1229.14],
+            #        [1908.01, 1346.67, 2585.99, 2024.11]])
+
+            detections.class_id
+            # array([0, 1])
         """
 
         # filler logic mapping old from_lmm to new from_vlm
