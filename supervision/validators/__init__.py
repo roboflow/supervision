@@ -138,3 +138,13 @@ def validate_keypoints_fields(
     validate_class_id(class_id, n)
     validate_keypoint_confidence(confidence, n, m)
     validate_data(data, n)
+
+
+def validate_resolution(resolution):
+    w, h = resolution
+    if w <= 0 or h <= 0:
+        raise ValueError(
+            f"Both dimensions in resolution must be positive. Got ({w}, {h})."
+        )
+
+    return w, h

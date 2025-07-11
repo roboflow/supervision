@@ -14,6 +14,7 @@ from supervision.detection.utils import (
     polygon_to_xyxy,
 )
 from supervision.utils.internal import deprecated
+from supervision.validators import validate_resolution
 
 
 @deprecated(
@@ -126,11 +127,7 @@ def from_paligemma(
             the class labels for each bounding box.
     """
 
-    w, h = resolution_wh
-    if w <= 0 or h <= 0:
-        raise ValueError(
-            f"Both dimensions in resolution_wh must be positive. Got ({w}, {h})."
-        )
+    w, h = validate_resolution(resolution_wh)
 
     pattern = re.compile(
         r"(?<!<loc\d{4}>)<loc(\d{4})><loc(\d{4})><loc(\d{4})><loc(\d{4})> ([\w\s\-]+)"
@@ -189,14 +186,9 @@ def from_qwen_2_5_vl(
         class_name (np.ndarray): An array of shape `(n,)` containing
             the class labels for each bounding box
     """
-    in_w, in_h = input_wh
-    out_w, out_h = resolution_wh
 
-    if in_w <= 0 or in_h <= 0 or out_w <= 0 or out_h <= 0:
-        raise ValueError(
-            f"Both input and resolution dimensions must be positive. "
-            f"Got input_wh=({in_w}, {in_h}), resolution_wh=({out_w}, {out_h})."
-        )
+    in_w, in_h = validate_resolution(input_wh)
+    out_w, out_h = validate_resolution(resolution_wh)
 
     pattern = re.compile(r"```json\s*(.*?)\s*```", re.DOTALL)
 
@@ -325,7 +317,7 @@ def from_florence_2(
             f"Expected string to end in location tags, but got {result}"
         )
 
-        w, h = resolution_wh
+        w, h = validate_resolution(resolution_wh)
         xyxy = np.array([match.groups()], dtype=np.float32)
         xyxy *= np.array([w, h, w, h]) / 1000
         result_string = result[: match.start()]
@@ -371,11 +363,7 @@ def from_google_gemini(
 
     """
 
-    w, h = resolution_wh
-    if w <= 0 or h <= 0:
-        raise ValueError(
-            f"Both dimensions in resolution_wh must be positive. Got ({w}, {h})."
-        )
+    w, h = validate_resolution(resolution_wh)
 
     lines = result.splitlines()
     for i, line in enumerate(lines):
@@ -444,11 +432,7 @@ def from_google_gemini_2_5(
         masks: Optional[np.ndarray]: An array of shape `(n, h, w)` containing
             the segmentation masks for each bounding box
     """
-    w, h = resolution_wh
-    if w <= 0 or h <= 0:
-        raise ValueError(
-            f"Both dimensions in resolution_wh must be positive. Got ({w}, {h})."
-        )
+    w, h = validate_resolution(resolution_wh)
 
     lines = result.splitlines()
     for i, line in enumerate(lines):
