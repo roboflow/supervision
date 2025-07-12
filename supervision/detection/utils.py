@@ -70,7 +70,9 @@ def box_iou(
             A single bounding box represented as [x_min, y_min, x_max, y_max].
 
     Returns:
-        float: IoU score between the two boxes.
+        IoU (float): IoU score between the two boxes. Ranges from 0.0 (no overlap)
+            to 1.0 (perfect overlap).
+
     """
     box_true = np.array(box_true)
     box_detection = np.array(box_detection)
@@ -100,6 +102,11 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
     Compute Intersection over Union (IoU) of two sets of bounding boxes -
         `boxes_true` and `boxes_detection`. Both sets
         of boxes are expected to be in `(x_min, y_min, x_max, y_max)` format.
+
+    Note:
+        Use `box_iou` when computing IoU between two individual boxes.
+        For comparing multiple boxes (arrays of boxes), use `box_iou_batch` for better
+        performance.
 
     Args:
         boxes_true (np.ndarray): 2D `np.ndarray` representing ground-truth boxes.
