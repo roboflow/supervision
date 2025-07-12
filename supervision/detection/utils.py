@@ -86,7 +86,9 @@ def box_iou(
     inter_area = inter_w * inter_h
 
     area_true = (box_true[2] - box_true[0]) * (box_true[3] - box_true[1])
-    area_detection = (box_detection[2] - box_detection[0]) * (box_detection[3] - box_detection[1])
+    area_detection = (box_detection[2] - box_detection[0]) * (
+        box_detection[3] - box_detection[1]
+    )
 
     union_area = area_true + area_detection - inter_area
 
