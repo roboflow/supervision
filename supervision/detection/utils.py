@@ -66,8 +66,8 @@ def box_iou(
     Args:
         box_true (Union[List[float], np.ndarray]): A single bounding box represented as
             [x_min, y_min, x_max, y_max].
-        box_detection (Union[List[float], np.ndarray]): A single bounding box represented as
-            [x_min, y_min, x_max, y_max].
+        box_detection (Union[List[float], np.ndarray]):
+            A single bounding box represented as [x_min, y_min, x_max, y_max].
 
     Returns:
         float: IoU score between the two boxes.
