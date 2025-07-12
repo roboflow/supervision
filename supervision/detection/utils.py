@@ -50,7 +50,7 @@ def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.n
 
 def box_iou(
     box_true: Union[List[float], np.ndarray],
-    box_detection: Union[List[float], np.ndarray]
+    box_detection: Union[List[float], np.ndarray],
 ) -> float:
     """
     Compute the Intersection over Union (IoU) between two bounding boxes.
