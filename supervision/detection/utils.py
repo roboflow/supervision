@@ -829,7 +829,7 @@ def move_oriented_boxes(
     ])
     offset = np.array([5, 5])
 
-    sv.move_oriented_boxes(xyxy=xyxyxyxy, offset=offset)
+    sv.move_oriented_boxes(xyxy=xyxy, offset=offset)
     # array([
     #     [
     #         [25, 15],
