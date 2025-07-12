@@ -48,23 +48,29 @@ def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.n
     return mask
 
 
-def box_iou(box_true: Union[List[float], np.ndarray], box_detection: Union[List[float], np.ndarray]) -> float:
+def box_iou(
+    box_true: Union[List[float], np.ndarray],
+    box_detection: Union[List[float], np.ndarray]
+) -> float:
     """
     Compute the Intersection over Union (IoU) between two bounding boxes.
 
-    Both `box_true` and `box_detection` should be in (x_min, y_min, x_max, y_max) format.
-    
+    Both `box_true` and `box_detection` should be in (x_min, y_min, x_max, y_max)
+    format.
+
     Note:
         Use `box_iou` when computing IoU between two individual boxes.
-        For comparing multiple boxes (arrays of boxes), use `box_iou_batch` for better performance.
-    
+        For comparing multiple boxes (arrays of boxes), use `box_iou_batch` for better
+        performance.
+
     Args:
-        box_true (Union[List[float], np.ndarray]): A single bounding box represented as [x_min, y_min, x_max, y_max].
-        box_detection (Union[List[float], np.ndarray]): A single bounding box represented as [x_min, y_min, x_max, y_max].
+        box_true (Union[List[float], np.ndarray]): A single bounding box represented as
+            [x_min, y_min, x_max, y_max].
+        box_detection (Union[List[float], np.ndarray]): A single bounding box represented as
+            [x_min, y_min, x_max, y_max].
 
     Returns:
-        float: The IoU value between the two boxes.
-               Ranges from 0.0 (no overlap) to 1.0 (perfect overlap).
+        float: IoU score between the two boxes.
     """
     box_true = np.array(box_true)
     box_detection = np.array(box_detection)
@@ -814,7 +820,7 @@ def move_oriented_boxes(
     ])
     offset = np.array([5, 5])
 
-    sv.move_oriented_boxes(xyxy=xyxy, offset=offset)
+    sv.move_oriented_boxes(xyxy=xyxyxyxy, offset=offset)
     # array([
     #     [
     #         [25, 15],
