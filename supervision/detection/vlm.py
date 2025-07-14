@@ -402,7 +402,7 @@ def from_google_gemini(
 def from_google_gemini_2_5(
     result: str,
     resolution_wh: Tuple[int, int],
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray]]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]:
     """
     Parse and scale bounding boxes and masks from Google Gemini 2.5 style
     [JSON output](https://ai.google.dev/gemini-api/docs/vision?lang=python).
@@ -454,7 +454,8 @@ def from_google_gemini_2_5(
     class_name: list = []
     class_id: list = []
     xyxy: list = []
-    masks: Optional[list] = []
+    masks: list = []
+    confidence: list = []
 
     for item in data:
         if "box_2d" not in item or "label" not in item:
@@ -497,6 +498,14 @@ def from_google_gemini_2_5(
         else:
             masks.append(np.zeros((h, w), dtype=bool))
 
+
+        if "confidence" in item:
+            # if confidence is provided
+            confidence.append(item["confidence"])
+        else:
+            # if confidence is not provided, we assume 0
+            confidence.append(0.0)
+
     if not xyxy:
         return (
             np.empty((0, 4)),
@@ -511,4 +520,4 @@ def from_google_gemini_2_5(
     for label in class_name:
         class_id.append(unique_labels.index(label))
 
-    return np.array(xyxy), np.array(class_id), np.array(class_name), mask
+    return np.array(xyxy), np.array(class_id), np.array(class_name), mask, np.array(confidence)
