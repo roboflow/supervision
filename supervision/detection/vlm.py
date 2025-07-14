@@ -118,7 +118,7 @@ def from_paligemma(
 
     Args:
         result: String containing paligemma-formatted locations and labels.
-        resolution_wh: Tuple (width, height) to which we scale the box coordinates.
+        resolution_wh: tuple (width, height) to which we scale the box coordinates.
         classes: Optional list of valid class names. If provided, boxes and labels not
             in this list are filtered out.
 
@@ -423,9 +423,9 @@ def from_google_gemini_2_0(
 
 def from_google_gemini_2_5(
     result: str,
-    resolution_wh: Tuple[int, int],
-    classes: Optional[List[str]] = None,
-) -> Tuple[
+    resolution_wh: tuple[int, int],
+    classes: Optional[list[str]] = None,
+) -> tuple[
     np.ndarray,
     Optional[np.ndarray],
     np.ndarray,

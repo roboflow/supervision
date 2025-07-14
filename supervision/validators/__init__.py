@@ -1,4 +1,5 @@
 from typing import Any
+
 import numpy as np
 
 
@@ -139,7 +140,7 @@ def validate_keypoints_fields(
     validate_data(data, n)
 
 
-def validate_resolution(resolution: Any) -> Tuple[int, int]:
+def validate_resolution(resolution: Any) -> tuple[int, int]:
     if not (isinstance(resolution, tuple) and len(resolution) == 2):
         raise ValueError(
             f"""

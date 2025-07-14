@@ -53,3 +53,11 @@ repos:
       - id: codespell
         additional_dependencies:
           - tomli
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.20.0
+    hooks:
+    -   id: pyupgrade
+        args: ["--py39-plus"]
+        additional_dependencies:
+          - tomli

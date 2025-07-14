@@ -1080,10 +1080,10 @@ def test_florence_2(
 def test_from_google_gemini_2_5(
     exception,
     result: str,
-    resolution_wh: Tuple[int, int],
-    classes: Optional[List[str]],
+    resolution_wh: tuple[int, int],
+    classes: Optional[list[str]],
     expected_results: Optional[
-        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+        tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
     ],
 ):
     with exception:
