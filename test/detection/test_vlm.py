@@ -8,6 +8,7 @@ import pytest
 from supervision.detection.vlm import (
     from_florence_2,
     from_google_gemini_2_0,
+    from_google_gemini_2_5,
     from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
@@ -883,3 +884,204 @@ def test_florence_2(
             assert result[3] is None
         else:
             np.testing.assert_array_equal(result[3], expected_results[3])
+
+
+@pytest.mark.parametrize(
+    "exception, result, resolution_wh, classes, expected_results",
+    [
+        (
+            does_not_raise(),
+            "random text",
+            (1000, 1000),
+            None,
+            (
+                np.empty((0, 4)),
+                np.empty(0, dtype=int),
+                np.empty(0, dtype=str),
+                np.empty(0, dtype=float),
+                None,
+            ),
+        ),
+        (
+            does_not_raise(),
+            "```json\ninvalid json\n```",
+            (1000, 1000),
+            None,
+            (
+                np.empty((0, 4)),
+                np.empty(0, dtype=int),
+                np.empty(0, dtype=str),
+                np.empty(0, dtype=float),
+                None,
+            ),
+        ),
+        (
+            does_not_raise(),
+            "```json\n[]\n```",
+            (1000, 1000),
+            None,
+            (
+                np.empty((0, 4)),
+                np.empty(0, dtype=int),
+                np.empty(0, dtype=str),
+                np.empty(0, dtype=float),
+                None,
+            ),
+        ),
+        (
+            does_not_raise(),
+            """```json
+            [
+                {"box_2d": [100, 200, 300, 400], "label": "cat", "confidence": 0.8}
+            ]
+            ```""",
+            (1000, 500),
+            None,
+            (
+                np.array([[200.0, 50.0, 400.0, 150.0]]),
+                np.array([0]),
+                np.array(["cat"], dtype=str),
+                np.array([0.8]),
+                None,
+            ),
+        ),
+        (
+            does_not_raise(),
+            """```json
+            [
+                {"box_2d": [10, 20, 110, 120], "label": "cat", "confidence": 0.8},
+                {"box_2d": [50, 100, 150, 200], "label": "dog", "confidence": 0.9}
+            ]
+            ```""",
+            (640, 480),
+            None,
+            (
+                np.array([[12.8, 4.8, 76.8, 52.8], [64.0, 24.0, 128.0, 72.0]]),
+                np.array([0, 1]),
+                np.array(["cat", "dog"], dtype=str),
+                np.array([0.8, 0.9]),
+                None,
+            ),
+        ),
+        (
+            does_not_raise(),
+            """```json
+            [
+                {"box_2d": [10, 20, 110, 120], "label": "cat", "confidence": 0.8}
+            ]
+            ```""",
+            (640, 480),
+            ["dog", "person"],
+            (
+                np.empty((0, 4)),
+                np.empty(0, dtype=int),
+                np.empty(0, dtype=str),
+                np.empty(0, dtype=float),
+                None,
+            ),
+        ),
+        (
+            does_not_raise(),
+            """```json
+            [
+                {"box_2d": [10, 20, 110, 120], "label": "cat", "confidence": 0.8},
+                {"box_2d": [50, 100, 150, 200], "label": "dog", "confidence": 0.9}
+            ]
+            ```""",
+            (640, 480),
+            ["person", "dog"],
+            (
+                np.array([[64.0, 24.0, 128.0, 72.0]]),
+                np.array([1]),
+                np.array(["dog"], dtype=str),
+                np.array([0.9]),
+                None,
+            ),
+        ),
+        (
+            does_not_raise(),
+            """```json
+            [
+                {"box_2d": [10, 20, 110, 120], "label": "cat", "confidence": 0.8},
+                {"box_2d": [50, 100, 150, 200], "label": "dog", "confidence": 0.9}
+            ]
+            ```""",
+            (640, 480),
+            ["cat", "dog"],
+            (
+                np.array([[12.8, 4.8, 76.8, 52.8], [64.0, 24.0, 128.0, 72.0]]),
+                np.array([0, 1]),
+                np.array(["cat", "dog"]),
+                np.array([0.8, 0.9]),
+                None,
+            ),
+        ),
+        (
+            pytest.raises(ValueError),
+            """```json
+            [
+                {"box_2d": [10, 20, 110, 120], "label": "cat"}
+            ]
+            ```""",
+            (0, 480),
+            None,
+            None,
+        ),
+        (
+            pytest.raises(ValueError),
+            """```json
+            [
+                {"box_2d": [10, 20, 110, 120], "label": "cat"}
+            ]
+            ```""",
+            (640, -100),
+            None,
+            None,
+        ),
+    ],
+)
+def test_from_google_gemini_2_5(
+    exception,
+    result: str,
+    resolution_wh: Tuple[int, int],
+    classes: Optional[List[str]],
+    expected_results: Optional[
+        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+    ],
+):
+    with exception:
+        (
+            xyxy,
+            class_id,
+            class_name,
+            confidence,
+            masks,
+        ) = from_google_gemini_2_5(
+            result=result, resolution_wh=resolution_wh, classes=classes
+        )
+
+        if expected_results is None:
+            return
+
+        assert xyxy.shape == expected_results[0].shape
+        assert np.allclose(xyxy, expected_results[0])
+
+        assert class_id.shape == expected_results[1].shape
+        assert np.array_equal(class_id, expected_results[1])
+
+        assert class_name.shape == expected_results[2].shape
+        assert np.array_equal(class_name, expected_results[2])
+
+        if confidence is None:
+            assert expected_results[3] is None
+        else:
+            assert expected_results[3] is not None
+            assert confidence.shape == expected_results[3].shape
+            assert np.allclose(confidence, expected_results[3])
+
+        if masks is None:
+            assert expected_results[4] is None
+        else:
+            assert masks is not None
+            assert masks.shape == expected_results[4].shape
+            assert np.array_equal(masks, expected_results[4])
