@@ -815,6 +815,15 @@ class Detections:
         """
         Creates a Detections object from the given result string based on the specified
         Large Multimodal Model (LMM).
+        
+        | Name                | Enum (sv.LMM)        | Tasks                   | Required parameters         | Optional parameters |
+        |---------------------|----------------------|-------------------------|-----------------------------|---------------------|
+        | PaliGemma           | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
+        | PaliGemma 2         | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
+        | Qwen2.5-VL          | `QWEN_2_5_VL`        | detection               | `resolution_wh`, `input_wh` | `classes`           |
+        | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
+        | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
+        | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
 
         Args:
             lmm (Union[LMM, str]): The type of LMM (Large Multimodal Model) to use.
@@ -828,9 +837,10 @@ class Detections:
             ValueError: If the LMM is invalid, required arguments are missing, or
                 disallowed arguments are provided.
             ValueError: If the specified LMM is not supported.
-
-        Examples:
+            
+        !!! example "PaliGemma"
             ```python
+            
             import supervision as sv
 
             paligemma_result = "<loc0256><loc0256><loc0768><loc0768> cat"
@@ -850,7 +860,7 @@ class Detections:
             # {'class_name': array(['cat'], dtype='<U10')}
             ```
 
-        Examples:
+        !!! example "Qwen2.5-VL"
             ```python
             import supervision as sv
 
@@ -880,7 +890,7 @@ class Detections:
             # array([0, 1])
             ```
 
-        Examples:
+        !!! example "Gemini 2.0"
             ```python
             import supervision as sv
 
@@ -908,68 +918,77 @@ class Detections:
             # array([0, 1])
             ```
 
+        !!! example "Gemini 2.5"
+        
+            ??? tip "Prompt engineering"
+            
+                To get the best results from Google Gemini 2.5, use the following prompt.
+                
+                This prompt is designed to detect all visible objects in the image, 
+                including small, distant, or partially visible ones, and to return 
+                tight bounding boxes.
+                
+                ```
+                Carefully examine this image and detect ALL visible objects, including 
+                small, distant, or partially visible ones.
+                
+                IMPORTANT: Focus on finding as many objects as possible, even if you are 
+                only moderately confident.
+                
+                Make sure each bounding box is as tight as possible.
+                
+                Valid object classes: {class_list}
+                
+                For each detected object, provide:
+                - "label": the exact class name from the list above
+                - "confidence": your certainty (between 0.0 and 1.0)
+                - "box_2d": the bounding box [ymin, xmin, ymax, xmax] normalized to 0–1000
+                - "mask": the binary mask of the object as a base64-encoded string
+                
+                Detect everything that matches the valid classes. Do not be 
+                conservative; include objects even with moderate confidence.
+                
+                Return a JSON array, for example:
+                [
+                    {
+                        "label": "person",
+                        "confidence": 0.95,
+                        "box_2d": [100, 200, 300, 400],
+                        "mask": "..."
+                    },
+                    {
+                        "label": "kite",
+                        "confidence": 0.80,
+                        "box_2d": [50, 150, 250, 350],
+                        "mask": "..."
+                    }
+                ]
+                ```
+                
+                When using the google-genai library, it is recommended to set 
+                thinking_budget=0 in thinking_config for more direct and faster responses.
+                
+                ```python
+                from google.generativeai import types
 
-        !!! tip "Google Gemini 2.5"
-
-            To get the best results from Google Gemini 2.5, you can use the following prompt.
-            This prompt is designed to detect all visible objects, including small ones, and provide tight bounding boxes.
-
-            ```
-            Look carefully at this image and detect ALL visible objects, including small ones.
-
-            IMPORTANT: Focus on finding as many objects as possible, even if they are small, distant, or partially visible.
-            Make sure that the bounding box is as tight as possible.
-            Valid object classes: {class_list}
-
-            For each detected object, provide:
-            - "label": exact class name from the list above
-            - "confidence": how certain you are (0.0 to 1.0)
-            - "box_2d": bounding box [ymin, xmin, ymax, xmax] normalized 0-1000
-            - "mask": binary mask of the object in the image, as a base64 encoded string
-
-            Detect everything you can see that matches the valid classes. Don't be conservative - include objects even if you're only moderately confident.
-
-            Return as JSON array:
-            [
-              {
-                "label": "person",
-                "confidence": 0.95,
-                "box_2d": [100, 200, 300, 400],
-                "mask": "..."
-              },
-              {
-                "label": "kite",
-                "confidence": 0.80,
-                "box_2d": [50, 150, 250, 350],
-                "mask": "..."
-              }
-            ]
-            ```
-
-            When using the `google-genai` library, it is recommended to disable chain-of-thought by setting `thinking_budget=0` in [`thinking_config`](https://googleapis.github.io/python-genai/genai.html#genai.types.GenerateContentConfig.thinking_config) for more direct and faster responses.
-
-            ```python
-            from google.generativeai import types
-
-            # ...
-            model.generate_content(
-                ...,
-                generation_config=generation_config,
-                safety_settings=safety_settings,
-                thinking_config=types.ThinkingConfig(
-                    thinking_budget=0
+                model.generate_content(
+                    ...,
+                    generation_config=generation_config,
+                    safety_settings=safety_settings,
+                    thinking_config=types.ThinkingConfig(
+                        thinking_budget=0
+                    )
                 )
-            )
-            ```
-
-            For a shorter prompt focused on segmentation masks, you can use:
-
-            ```
-            Give the segmentation masks object_name (ignore object_name). Output a JSON list of segmentation masks where each entry contains the 2D bounding box in the key "box_2d", the segmentation mask in key "mask", and the text label in the key "label". Use descriptive labels.
-            ```
-
-
-        Examples:
+                ```
+                
+                For a shorter prompt focused only on segmentation masks, you can use:
+                
+                ```
+                Return a JSON list of segmentation masks. Each entry should include the 
+                2D bounding box in the "box_2d" key, the segmentation mask in the "mask" 
+                key, and the text label in the "label" key. Use descriptive labels.
+                ```
+                
             ```python
             import supervision as sv
 
@@ -997,8 +1016,7 @@ class Detections:
             # array([0, 1])
             ```
 
-
-        Examples:
+        !!! example "Moondream"
             ```python
             import supervision as sv
 
