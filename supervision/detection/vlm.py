@@ -562,7 +562,6 @@ def from_google_gemini_2_5(
         if confidence_list is not None:
             confidence_list = [c for c, keep in zip(confidence_list, mask) if keep]
     else:
-        # When classes is None, generate class_id based on unique labels
         unique_labels = sorted(list(set(class_name)))
         label_to_id = {label: i for i, label in enumerate(unique_labels)}
         class_id = np.array([label_to_id[name] for name in class_name])

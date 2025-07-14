@@ -901,8 +901,94 @@ class Detections:
             detections.xyxy
             # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
 
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+
             detections.class_id
             # array([0, 1])
+            ```
+
+
+        !!! tip "Google Gemini 2.5"
+
+            To get the best results from Google Gemini 2.5, you can use the following prompt.
+            This prompt is designed to detect all visible objects, including small ones, and provide tight bounding boxes.
+
+            ```
+            Look carefully at this image and detect ALL visible objects, including small ones.
+
+            IMPORTANT: Focus on finding as many objects as possible, even if they are small, distant, or partially visible.
+            Make sure that the bounding box is as tight as possible.
+            Valid object classes: {class_list}
+
+            For each detected object, provide:
+            - "label": exact class name from the list above
+            - "confidence": how certain you are (0.0 to 1.0)  
+            - "box_2d": bounding box [ymin, xmin, ymax, xmax] normalized 0-1000
+            - "mask": binary mask of the object in the image, as a base64 encoded string
+
+            Detect everything you can see that matches the valid classes. Don't be conservative - include objects even if you're only moderately confident.
+
+            Return as JSON array:
+            [
+              {
+                "label": "person",
+                "confidence": 0.95,
+                "box_2d": [100, 200, 300, 400],
+                "mask": "..."
+              },
+              {
+                "label": "kite", 
+                "confidence": 0.80,
+                "box_2d": [50, 150, 250, 350],
+                "mask": "..."
+              }
+            ]
+            ```
+
+            When using the `google-genai` library, it is recommended to disable chain-of-thought by setting `thinking_budget=0` in [`thinking_config`](https://googleapis.github.io/python-genai/genai.html#genai.types.GenerateContentConfig.thinking_config) for more direct and faster responses.
+
+            ```python
+            from google.generativeai import types
+
+            # ...
+            model.generate_content(
+                ...,
+                generation_config=generation_config,
+                safety_settings=safety_settings,
+                thinking_config=types.ThinkingConfig(
+                    thinking_budget=0
+                )
+            )
+            ```
+
+            For a shorter prompt focused on segmentation masks, you can use:
+
+            ```
+            Give the segmentation masks object_name (ignore object_name). Output a JSON list of segmentation masks where each entry contains the 2D bounding box in the key "box_2d", the segmentation mask in key "mask", and the text label in the key "label". Use descriptive labels.
+            ```
+
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            gemini_response_text = \"\"\"```json
+                [
+                    {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
+                    {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
+                ]
+            ```\"\"\"
+
+            detections = sv.Detections.from_lmm(
+                sv.LMM.GOOGLE_GEMINI_2_5,
+                gemini_response_text,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+
+            detections.xyxy
+            # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
 
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U26')}
@@ -910,6 +996,7 @@ class Detections:
             detections.class_id
             # array([0, 1])
             ```
+            
 
         Examples:
             ```python
@@ -1046,6 +1133,7 @@ class Detections:
             # array([0, 1])
             ```
 
+
         Examples:
             ```python
             import supervision as sv
@@ -1069,6 +1157,94 @@ class Detections:
 
             detections.class_id
             # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
+        !!! tip "Google Gemini 2.5"
+
+            To get the best results from Google Gemini 2.5, you can use the following prompt.
+            This prompt is designed to detect all visible objects, including small ones, and provide tight bounding boxes.
+
+            ```
+            Look carefully at this image and detect ALL visible objects, including small ones.
+
+            IMPORTANT: Focus on finding as many objects as possible, even if they are small, distant, or partially visible.
+            Make sure that the bounding box is as tight as possible.
+            Valid object classes: {class_list}
+
+            For each detected object, provide:
+            - "label": exact class name from the list above
+            - "confidence": how certain you are (0.0 to 1.0)  
+            - "box_2d": bounding box [ymin, xmin, ymax, xmax] normalized 0-1000
+            - "mask": binary mask of the object in the image, as a base64 encoded string
+
+            Detect everything you can see that matches the valid classes. Don't be conservative - include objects even if you're only moderately confident.
+
+            Return as JSON array:
+            [
+              {
+                "label": "person",
+                "confidence": 0.95,
+                "box_2d": [100, 200, 300, 400],
+                "mask": "..."
+              },
+              {
+                "label": "kite", 
+                "confidence": 0.80,
+                "box_2d": [50, 150, 250, 350],
+                "mask": "..."
+              }
+            ]
+            ```
+
+            When using the `google-genai` library, it is recommended to disable chain-of-thought by setting `thinking_budget=0` in [`thinking_config`](https://googleapis.github.io/python-genai/genai.html#genai.types.GenerateContentConfig.thinking_config) for more direct and faster responses.
+
+            ```python
+            from google.generativeai import types
+
+            # ...
+            model.generate_content(
+                ...,
+                generation_config=generation_config,
+                safety_settings=safety_settings,
+                thinking_config=types.ThinkingConfig(
+                    thinking_budget=0
+                )
+            )
+            ```
+
+            For a shorter prompt focused on segmentation masks, you can use:
+
+            ```
+            Give the segmentation masks object_name (ignore object_name). Output a JSON list of segmentation masks where each entry contains the 2D bounding box in the key "box_2d", the segmentation mask in key "mask", and the text label in the key "label". Use descriptive labels.
+            ```
+
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            gemini_response_text = \"\"\"```json
+                [
+                    {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
+                    {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
+                ]
+            ```\"\"\"
+
+            detections = sv.Detections.from_lmm(
+                sv.LMM.GOOGLE_GEMINI_2_5,
+                gemini_response_text,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+
+            detections.xyxy
+            # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
 
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U26')}
