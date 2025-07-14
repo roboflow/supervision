@@ -73,6 +73,17 @@ def box_iou(
         IoU (float): IoU score between the two boxes. Ranges from 0.0 (no overlap)
             to 1.0 (perfect overlap).
 
+    Examples:
+        ```python
+        import numpy as np
+        from supervision.detection.utils import box_iou
+
+        box_true = np.array([100, 100, 200, 200])
+        box_detection = np.array([150, 150, 250, 250])
+
+        box_iou(box_true=box_true, box_detection=box_detection)
+        # 0.14285714285714285
+        ```
     """
     box_true = np.array(box_true)
     box_detection = np.array(box_detection)
@@ -118,6 +129,27 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
         np.ndarray: Pairwise IoU of boxes from `boxes_true` and `boxes_detection`.
             `shape = (N, M)` where `N` is number of true objects and
             `M` is number of detected objects.
+    
+    Examples:
+        ```python
+        import numpy as np
+        from supervision.detection.utils import box_iou_batch
+
+        boxes_true = np.array([
+            [100, 100, 200, 200],
+            [300, 300, 400, 400]
+        ])
+        boxes_detection = np.array([
+            [150, 150, 250, 250],
+            [320, 320, 420, 420]
+        ])
+
+        box_iou_batch(boxes_true=boxes_true, boxes_detection=boxes_detection)
+        # array([
+        #     [0.14285714, 0.        ],
+        #     [0.        , 0.47058824]
+        # ])
+        ```
     """
 
     def box_area(box):
