@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import numpy as np
 import numpy.typing as npt
@@ -9,13 +9,13 @@ from supervision.keypoint.core import KeyPoints
 
 def mock_detections(
     xyxy: npt.NDArray[np.float32],
-    mask: Optional[List[np.ndarray]] = None,
-    confidence: Optional[List[float]] = None,
-    class_id: Optional[List[int]] = None,
-    tracker_id: Optional[List[int]] = None,
-    data: Optional[Dict[str, List[Any]]] = None,
+    mask: Optional[list[np.ndarray]] = None,
+    confidence: Optional[list[float]] = None,
+    class_id: Optional[list[int]] = None,
+    tracker_id: Optional[list[int]] = None,
+    data: Optional[dict[str, list[Any]]] = None,
 ) -> Detections:
-    def convert_data(data: Dict[str, List[Any]]):
+    def convert_data(data: dict[str, list[Any]]):
         return {k: np.array(v) for k, v in data.items()}
 
     return Detections(
@@ -34,11 +34,11 @@ def mock_detections(
 
 def mock_keypoints(
     xy: npt.NDArray[np.float32],
-    confidence: Optional[List[float]] = None,
-    class_id: Optional[List[int]] = None,
-    data: Optional[Dict[str, List[Any]]] = None,
+    confidence: Optional[list[float]] = None,
+    class_id: Optional[list[int]] = None,
+    data: Optional[dict[str, list[Any]]] = None,
 ) -> KeyPoints:
-    def convert_data(data: Dict[str, List[Any]]):
+    def convert_data(data: dict[str, list[Any]]):
         return {k: np.array(v) for k, v in data.items()}
 
     return KeyPoints(

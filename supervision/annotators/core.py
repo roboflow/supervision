@@ -1,6 +1,6 @@
 from functools import lru_cache
 from math import sqrt
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Union
 
 import cv2
 import numpy as np
@@ -1010,7 +1010,7 @@ class LabelAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        labels: Optional[List[str]] = None,
+        labels: Optional[list[str]] = None,
         custom_color_lookup: Optional[np.ndarray] = None,
     ) -> ImageType:
         """
@@ -1075,7 +1075,7 @@ class LabelAnnotator(BaseAnnotator):
 
         return scene
 
-    def _validate_labels(self, labels: Optional[List[str]], detections: Detections):
+    def _validate_labels(self, labels: Optional[list[str]], detections: Detections):
         if labels is not None and len(labels) != len(detections):
             raise ValueError(
                 f"The number of labels ({len(labels)}) does not match the "
@@ -1086,7 +1086,7 @@ class LabelAnnotator(BaseAnnotator):
     def _get_label_properties(
         self,
         detections: Detections,
-        labels: List[str],
+        labels: list[str],
     ) -> np.ndarray:
         """
         Calculate the numerical properties required to draw the labels on the image.
@@ -1128,8 +1128,8 @@ class LabelAnnotator(BaseAnnotator):
 
     @staticmethod
     def _get_labels_text(
-        detections: Detections, custom_labels: Optional[List[str]]
-    ) -> List[str]:
+        detections: Detections, custom_labels: Optional[list[str]]
+    ) -> list[str]:
         if custom_labels is not None:
             return [str(label) for label in custom_labels]
 
@@ -1146,7 +1146,7 @@ class LabelAnnotator(BaseAnnotator):
     def _draw_labels(
         self,
         scene: np.ndarray,
-        labels: List[str],
+        labels: list[str],
         label_properties: np.ndarray,
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray],
@@ -1202,8 +1202,8 @@ class LabelAnnotator(BaseAnnotator):
     @staticmethod
     def draw_rounded_rectangle(
         scene: np.ndarray,
-        xyxy: Tuple[int, int, int, int],
-        color: Tuple[int, int, int],
+        xyxy: tuple[int, int, int, int],
+        color: tuple[int, int, int],
         border_radius: int,
     ) -> np.ndarray:
         x1, y1, x2, y2 = xyxy
@@ -1291,7 +1291,7 @@ class RichLabelAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        labels: Optional[List[str]] = None,
+        labels: Optional[list[str]] = None,
         custom_color_lookup: Optional[np.ndarray] = None,
     ) -> ImageType:
         """
@@ -1355,7 +1355,7 @@ class RichLabelAnnotator(BaseAnnotator):
 
         return scene
 
-    def _validate_labels(self, labels: Optional[List[str]], detections: Detections):
+    def _validate_labels(self, labels: Optional[list[str]], detections: Detections):
         if labels is not None and len(labels) != len(detections):
             raise ValueError(
                 f"The number of labels ({len(labels)}) does not match the "
@@ -1364,7 +1364,7 @@ class RichLabelAnnotator(BaseAnnotator):
             )
 
     def _get_label_properties(
-        self, draw, detections: Detections, labels: List[str]
+        self, draw, detections: Detections, labels: list[str]
     ) -> np.ndarray:
         """
         Calculate the numerical properties required to draw the labels on the image.
@@ -1402,8 +1402,8 @@ class RichLabelAnnotator(BaseAnnotator):
 
     @staticmethod
     def _get_labels_text(
-        detections: Detections, custom_labels: Optional[List[str]]
-    ) -> List[str]:
+        detections: Detections, custom_labels: Optional[list[str]]
+    ) -> list[str]:
         if custom_labels is not None:
             return custom_labels
 
@@ -1420,7 +1420,7 @@ class RichLabelAnnotator(BaseAnnotator):
     def _draw_labels(
         self,
         draw,
-        labels: List[str],
+        labels: list[str],
         label_properties: np.ndarray,
         detections: Detections,
         custom_color_lookup: Optional[np.ndarray],
@@ -1494,9 +1494,9 @@ class IconAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        icon_resolution_wh: Tuple[int, int] = (64, 64),
+        icon_resolution_wh: tuple[int, int] = (64, 64),
         icon_position: Position = Position.TOP_CENTER,
-        offset_xy: Tuple[int, int] = (0, 0),
+        offset_xy: tuple[int, int] = (0, 0),
     ):
         """
         Args:
@@ -1512,7 +1512,7 @@ class IconAnnotator(BaseAnnotator):
 
     @ensure_cv2_image_for_annotation
     def annotate(
-        self, scene: ImageType, detections: Detections, icon_path: Union[str, List[str]]
+        self, scene: ImageType, detections: Detections, icon_path: Union[str, list[str]]
     ) -> ImageType:
         """
         Annotates the given scene with given icons.
@@ -2322,8 +2322,8 @@ class PercentageBarAnnotator(BaseAnnotator):
 
     @staticmethod
     def calculate_border_coordinates(
-        anchor_xy: Tuple[int, int], border_wh: Tuple[int, int], position: Position
-    ) -> Tuple[Tuple[int, int], Tuple[int, int]]:
+        anchor_xy: tuple[int, int], border_wh: tuple[int, int], position: Position
+    ) -> tuple[tuple[int, int], tuple[int, int]]:
         cx, cy = anchor_xy
         width, height = border_wh
 
@@ -2351,7 +2351,7 @@ class PercentageBarAnnotator(BaseAnnotator):
 
     @staticmethod
     def validate_custom_values(
-        custom_values: Optional[Union[np.ndarray, List[float]]], detections: Detections
+        custom_values: Optional[Union[np.ndarray, list[float]]], detections: Detections
     ) -> None:
         if custom_values is None:
             if detections.confidence is None:
@@ -2485,8 +2485,8 @@ class CropAnnotator(BaseAnnotator):
 
     @staticmethod
     def calculate_crop_coordinates(
-        anchor: Tuple[int, int], crop_wh: Tuple[int, int], position: Position
-    ) -> Tuple[Tuple[int, int], Tuple[int, int]]:
+        anchor: tuple[int, int], crop_wh: tuple[int, int], position: Position
+    ) -> tuple[tuple[int, int], tuple[int, int]]:
         anchor_x, anchor_y = anchor
         width, height = crop_wh
 

@@ -1,7 +1,7 @@
 import json
 import re
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 
@@ -34,7 +34,7 @@ class VLM(Enum):
     MOONDREAM = "moondream"
 
 
-RESULT_TYPES: Dict[VLM, type] = {
+RESULT_TYPES: dict[VLM, type] = {
     VLM.PALIGEMMA: str,
     VLM.FLORENCE_2: dict,
     VLM.QWEN_2_5_VL: str,
@@ -43,7 +43,7 @@ RESULT_TYPES: Dict[VLM, type] = {
     VLM.MOONDREAM: dict,
 }
 
-REQUIRED_ARGUMENTS: Dict[VLM, List[str]] = {
+REQUIRED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.PALIGEMMA: ["resolution_wh"],
     VLM.FLORENCE_2: ["resolution_wh"],
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh"],
@@ -52,7 +52,7 @@ REQUIRED_ARGUMENTS: Dict[VLM, List[str]] = {
     VLM.MOONDREAM: ["resolution_wh"],
 }
 
-ALLOWED_ARGUMENTS: Dict[VLM, List[str]] = {
+ALLOWED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.PALIGEMMA: ["resolution_wh", "classes"],
     VLM.FLORENCE_2: ["resolution_wh"],
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh", "classes"],
@@ -75,7 +75,7 @@ SUPPORTED_TASKS_FLORENCE_2 = [
 
 
 def validate_vlm_parameters(
-    vlm: Union[VLM, str], result: Any, kwargs: Dict[str, Any]
+    vlm: Union[VLM, str], result: Any, kwargs: dict[str, Any]
 ) -> VLM:
     if isinstance(vlm, str):
         try:
@@ -104,8 +104,8 @@ def validate_vlm_parameters(
 
 
 def from_paligemma(
-    result: str, resolution_wh: Tuple[int, int], classes: Optional[List[str]] = None
-) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
+    result: str, resolution_wh: tuple[int, int], classes: Optional[list[str]] = None
+) -> tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
     """
     Parse bounding boxes from paligemma-formatted text, scale them to the specified
     resolution, and optionally filter by classes.
@@ -157,10 +157,10 @@ def from_paligemma(
 
 def from_qwen_2_5_vl(
     result: str,
-    input_wh: Tuple[int, int],
-    resolution_wh: Tuple[int, int],
-    classes: Optional[List[str]] = None,
-) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
+    input_wh: tuple[int, int],
+    resolution_wh: tuple[int, int],
+    classes: Optional[list[str]] = None,
+) -> tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
     """
     Parse and scale bounding boxes from Qwen-2.5-VL style JSON output.
 
@@ -241,8 +241,8 @@ def from_qwen_2_5_vl(
 
 
 def from_florence_2(
-    result: dict, resolution_wh: Tuple[int, int]
-) -> Tuple[
+    result: dict, resolution_wh: tuple[int, int]
+) -> tuple[
     np.ndarray, Optional[np.ndarray], Optional[np.ndarray], Optional[np.ndarray]
 ]:
     """
@@ -337,9 +337,9 @@ def from_florence_2(
 
 def from_google_gemini(
     result: str,
-    resolution_wh: Tuple[int, int],
-    classes: Optional[List[str]] = None,
-) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
+    resolution_wh: tuple[int, int],
+    classes: Optional[list[str]] = None,
+) -> tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
     """
     Parse and scale bounding boxes from Google Gemini style
     [JSON output](https://ai.google.dev/gemini-api/docs/vision?lang=python).
@@ -429,8 +429,8 @@ def from_google_gemini(
 
 def from_moondream(
     result: dict,
-    resolution_wh: Tuple[int, int],
-) -> Tuple[np.ndarray]:
+    resolution_wh: tuple[int, int],
+) -> tuple[np.ndarray]:
     """
     Parse and scale bounding boxes from moondream JSON output.
 

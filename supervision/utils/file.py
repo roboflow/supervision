@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 import numpy as np
 import yaml
@@ -14,12 +14,12 @@ class NumpyJsonEncoder(json.JSONEncoder):
             return float(obj)
         if isinstance(obj, np.ndarray):
             return obj.tolist()
-        return super(NumpyJsonEncoder, self).default(obj)
+        return super().default(obj)
 
 
 def list_files_with_extensions(
-    directory: Union[str, Path], extensions: Optional[List[str]] = None
-) -> List[Path]:
+    directory: Union[str, Path], extensions: Optional[list[str]] = None
+) -> list[Path]:
     """
     List files in a directory with specified extensions or
         all files if no extensions are provided.
@@ -57,7 +57,7 @@ def list_files_with_extensions(
     return files_with_extensions
 
 
-def read_txt_file(file_path: Union[str, Path], skip_empty: bool = False) -> List[str]:
+def read_txt_file(file_path: Union[str, Path], skip_empty: bool = False) -> list[str]:
     """
     Read a text file and return a list of strings without newline characters.
     Optionally skip empty lines.
@@ -70,7 +70,7 @@ def read_txt_file(file_path: Union[str, Path], skip_empty: bool = False) -> List
     Returns:
         List[str]: A list of strings representing the lines in the text file.
     """
-    with open(str(file_path), "r") as file:
+    with open(str(file_path)) as file:
         if skip_empty:
             lines = [line.rstrip("\n") for line in file if line.strip()]
         else:
@@ -79,7 +79,7 @@ def read_txt_file(file_path: Union[str, Path], skip_empty: bool = False) -> List
     return lines
 
 
-def save_text_file(lines: List[str], file_path: Union[str, Path]) -> None:
+def save_text_file(lines: list[str], file_path: Union[str, Path]) -> None:
     """
     Write a list of strings to a text file, each string on a new line.
 
@@ -92,7 +92,7 @@ def save_text_file(lines: List[str], file_path: Union[str, Path]) -> None:
             file.write(line + "\n")
 
 
-def read_json_file(file_path: Union[str, Path]) -> Dict:
+def read_json_file(file_path: Union[str, Path]) -> dict:
     """
     Read a json file and return a dict.
 
@@ -102,7 +102,7 @@ def read_json_file(file_path: Union[str, Path]) -> Dict:
     Returns:
         dict: A dict of annotations information
     """
-    with open(str(file_path), "r") as file:
+    with open(str(file_path)) as file:
         data = json.load(file)
     return data
 
@@ -120,7 +120,7 @@ def save_json_file(data: dict, file_path: Union[str, Path], indent: int = 3) -> 
         json.dump(data, fp, cls=NumpyJsonEncoder, indent=indent)
 
 
-def read_yaml_file(file_path: Union[str, Path]) -> Dict:
+def read_yaml_file(file_path: Union[str, Path]) -> dict:
     """
     Read a yaml file and return a dict.
 
@@ -130,7 +130,7 @@ def read_yaml_file(file_path: Union[str, Path]) -> Dict:
     Returns:
         dict: A dict of content information
     """
-    with open(str(file_path), "r") as file:
+    with open(str(file_path)) as file:
         data = yaml.safe_load(file)
     return data
 

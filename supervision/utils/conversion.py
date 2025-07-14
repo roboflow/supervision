@@ -1,5 +1,4 @@
 from functools import wraps
-from typing import List
 
 import cv2
 import numpy as np
@@ -80,7 +79,7 @@ def ensure_pil_image_for_annotation(annotate_func):
     return wrapper
 
 
-def images_to_cv2(images: List[ImageType]) -> List[np.ndarray]:
+def images_to_cv2(images: list[ImageType]) -> list[np.ndarray]:
     """
     Converts images provided either as Pillow images or OpenCV
     images into OpenCV format.

@@ -1,5 +1,5 @@
 from contextlib import ExitStack as DoesNotRaise
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 import numpy as np
 import pytest
@@ -233,7 +233,7 @@ TEST_DET_DIFFERENT_METADATA = Detections(
 )
 def test_getitem(
     detections: Detections,
-    index: Union[int, slice, List[int], np.ndarray],
+    index: Union[int, slice, list[int], np.ndarray],
     expected_result: Optional[Detections],
     exception: Exception,
 ) -> None:
@@ -505,7 +505,7 @@ def test_getitem(
     ],
 )
 def test_merge(
-    detections_list: List[Detections],
+    detections_list: list[Detections],
     expected_result: Optional[Detections],
     exception: Exception,
 ) -> None:

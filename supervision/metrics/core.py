@@ -11,7 +11,7 @@ class Metric(ABC):
     """
 
     @abstractmethod
-    def update(self, *args, **kwargs) -> "Metric":
+    def update(self, *args, **kwargs) -> Metric:
         """
         Add data to the metric, without computing the result.
         Return the metric itself to allow method chaining.

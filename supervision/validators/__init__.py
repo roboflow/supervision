@@ -79,7 +79,7 @@ def validate_tracker_id(tracker_id: Any, n: int) -> None:
         )
 
 
-def validate_data(data: Dict[str, Any], n: int) -> None:
+def validate_data(data: dict[str, Any], n: int) -> None:
     for key, value in data.items():
         if isinstance(value, list):
             if len(value) != n:
@@ -115,7 +115,7 @@ def validate_detections_fields(
     class_id: Any,
     confidence: Any,
     tracker_id: Any,
-    data: Dict[str, Any],
+    data: dict[str, Any],
 ) -> None:
     validate_xyxy(xyxy)
     n = len(xyxy)
@@ -130,7 +130,7 @@ def validate_keypoints_fields(
     xy: Any,
     class_id: Any,
     confidence: Any,
-    data: Dict[str, Any],
+    data: dict[str, Any],
 ) -> None:
     n = len(xy)
     m = len(xy[0]) if len(xy) > 0 else 0

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -149,7 +148,7 @@ def box_non_max_suppression(
 
 def group_overlapping_boxes(
     predictions: npt.NDArray[np.float64], iou_threshold: float = 0.5
-) -> List[List[int]]:
+) -> list[list[int]]:
     """
     Apply greedy version of non-maximum merging to avoid detecting too many
     overlapping bounding boxes for a given object.
@@ -165,7 +164,7 @@ def group_overlapping_boxes(
         List[List[int]]: Groups of prediction indices be merged.
             Each group may have 1 or more elements.
     """
-    merge_groups: List[List[int]] = []
+    merge_groups: list[list[int]] = []
 
     scores = predictions[:, 4]
     order = scores.argsort()
@@ -192,7 +191,7 @@ def group_overlapping_boxes(
 def box_non_max_merge(
     predictions: npt.NDArray[np.float64],
     iou_threshold: float = 0.5,
-) -> List[List[int]]:
+) -> list[list[int]]:
     """
     Apply greedy version of non-maximum merging per category to avoid detecting
     too many overlapping bounding boxes for a given object.
@@ -254,7 +253,7 @@ class OverlapFilter(Enum):
         return list(map(lambda c: c.value, cls))
 
     @classmethod
-    def from_value(cls, value: Union[OverlapFilter, str]) -> OverlapFilter:
+    def from_value(cls, value: OverlapFilter | str) -> OverlapFilter:
         if isinstance(value, cls):
             return value
         if isinstance(value, str):

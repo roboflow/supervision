@@ -1,5 +1,5 @@
 from contextlib import ExitStack as DoesNotRaise
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 import pytest
@@ -51,7 +51,7 @@ def test_top_k(
     class_id: np.ndarray,
     confidence: Optional[np.ndarray],
     k: int,
-    expected_result: Optional[Tuple[np.ndarray, np.ndarray]],
+    expected_result: Optional[tuple[np.ndarray, np.ndarray]],
     exception: Exception,
 ) -> None:
     with exception:

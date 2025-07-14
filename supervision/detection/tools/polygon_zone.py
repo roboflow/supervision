@@ -1,5 +1,6 @@
+from collections.abc import Iterable
 from dataclasses import replace
-from typing import Iterable, Optional
+from typing import Optional
 
 import cv2
 import numpy as np

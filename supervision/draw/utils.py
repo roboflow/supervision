@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 
 import cv2
 import numpy as np
@@ -343,7 +343,7 @@ def draw_image(
     return scene
 
 
-def calculate_optimal_text_scale(resolution_wh: Tuple[int, int]) -> float:
+def calculate_optimal_text_scale(resolution_wh: tuple[int, int]) -> float:
     """
     Calculate font scale based on the resolution of an image.
 
@@ -357,7 +357,7 @@ def calculate_optimal_text_scale(resolution_wh: Tuple[int, int]) -> float:
     return min(resolution_wh) * 1e-3
 
 
-def calculate_optimal_line_thickness(resolution_wh: Tuple[int, int]) -> int:
+def calculate_optimal_line_thickness(resolution_wh: tuple[int, int]) -> int:
     """
     Calculate line thickness based on the resolution of an image.
 

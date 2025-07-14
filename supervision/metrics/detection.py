@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, List, Optional, Tuple
+from typing import Callable
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -41,7 +41,7 @@ def detections_to_tensor(
     return np.concatenate(arrays_to_concat, axis=1)
 
 
-def validate_input_tensors(predictions: List[np.ndarray], targets: List[np.ndarray]):
+def validate_input_tensors(predictions: list[np.ndarray], targets: list[np.ndarray]):
     """
     Checks for shape consistency of input tensors.
     """
@@ -86,16 +86,16 @@ class ConfusionMatrix:
     """
 
     matrix: np.ndarray
-    classes: List[str]
+    classes: list[str]
     conf_threshold: float
     iou_threshold: float
 
     @classmethod
     def from_detections(
         cls,
-        predictions: List[Detections],
-        targets: List[Detections],
-        classes: List[str],
+        predictions: list[Detections],
+        targets: list[Detections],
+        classes: list[str],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
     ) -> ConfusionMatrix:
@@ -162,9 +162,9 @@ class ConfusionMatrix:
     @classmethod
     def from_tensors(
         cls,
-        predictions: List[np.ndarray],
-        targets: List[np.ndarray],
-        classes: List[str],
+        predictions: list[np.ndarray],
+        targets: list[np.ndarray],
+        classes: list[str],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
     ) -> ConfusionMatrix:
@@ -405,11 +405,11 @@ class ConfusionMatrix:
 
     def plot(
         self,
-        save_path: Optional[str] = None,
-        title: Optional[str] = None,
-        classes: Optional[List[str]] = None,
+        save_path: str | None = None,
+        title: str | None = None,
+        classes: list[str] | None = None,
         normalize: bool = False,
-        fig_size: Tuple[int, int] = (12, 10),
+        fig_size: tuple[int, int] = (12, 10),
     ) -> matplotlib.figure.Figure:
         """
         Create confusion matrix plot and save it at selected location.
@@ -518,8 +518,8 @@ class MeanAveragePrecision:
     @classmethod
     def from_detections(
         cls,
-        predictions: List[Detections],
-        targets: List[Detections],
+        predictions: list[Detections],
+        targets: list[Detections],
     ) -> MeanAveragePrecision:
         """
         Calculate mean average precision based on predicted and ground-truth detections.
@@ -615,8 +615,8 @@ class MeanAveragePrecision:
     @classmethod
     def from_tensors(
         cls,
-        predictions: List[np.ndarray],
-        targets: List[np.ndarray],
+        predictions: list[np.ndarray],
+        targets: list[np.ndarray],
     ) -> MeanAveragePrecision:
         """
         Calculate Mean Average Precision based on predicted and ground-truth

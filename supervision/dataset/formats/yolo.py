@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 from PIL import Image
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from supervision.dataset.core import DetectionDataset
 
 
-def _parse_box(values: List[str]) -> np.ndarray:
+def _parse_box(values: list[str]) -> np.ndarray:
     x_center, y_center, width, height = values
     return np.array(
         [
@@ -40,12 +40,12 @@ def _box_to_polygon(box: np.ndarray) -> np.ndarray:
     )
 
 
-def _parse_polygon(values: List[str]) -> np.ndarray:
+def _parse_polygon(values: list[str]) -> np.ndarray:
     return np.array(values, dtype=np.float32).reshape(-1, 2)
 
 
 def _polygons_to_masks(
-    polygons: List[np.ndarray], resolution_wh: Tuple[int, int]
+    polygons: list[np.ndarray], resolution_wh: tuple[int, int]
 ) -> np.ndarray:
     return np.array(
         [
@@ -56,11 +56,11 @@ def _polygons_to_masks(
     )
 
 
-def _with_mask(lines: List[str]) -> bool:
+def _with_mask(lines: list[str]) -> bool:
     return any([len(line.split()) > 5 for line in lines])
 
 
-def _extract_class_names(file_path: str) -> List[str]:
+def _extract_class_names(file_path: str) -> list[str]:
     data = read_yaml_file(file_path=file_path)
     names = data["names"]
     if isinstance(names, dict):
@@ -74,8 +74,8 @@ def _image_name_to_annotation_name(image_name: str) -> str:
 
 
 def yolo_annotations_to_detections(
-    lines: List[str],
-    resolution_wh: Tuple[int, int],
+    lines: list[str],
+    resolution_wh: tuple[int, int],
     with_masks: bool,
     is_obb: bool = False,
 ) -> Detections:
@@ -127,7 +127,7 @@ def load_yolo_annotations(
     data_yaml_path: str,
     force_masks: bool = False,
     is_obb: bool = False,
-) -> Tuple[List[str], List[str], Dict[str, Detections]]:
+) -> tuple[list[str], list[str], dict[str, Detections]]:
     """
     Loads YOLO annotations and returns class names, images,
         and their corresponding detections.
@@ -204,7 +204,7 @@ def load_yolo_annotations(
 def object_to_yolo(
     xyxy: np.ndarray,
     class_id: int,
-    image_shape: Tuple[int, int, int],
+    image_shape: tuple[int, int, int],
     polygon: Optional[np.ndarray] = None,
 ) -> str:
     h, w, _ = image_shape
@@ -225,11 +225,11 @@ def object_to_yolo(
 
 def detections_to_yolo_annotations(
     detections: Detections,
-    image_shape: Tuple[int, int, int],
+    image_shape: tuple[int, int, int],
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
-) -> List[str]:
+) -> list[str]:
     annotation = []
     for xyxy, mask, _, class_id, _, _ in detections:
         if class_id is None:
@@ -283,7 +283,7 @@ def save_yolo_annotations(
         save_text_file(lines=lines, file_path=yolo_annotations_path)
 
 
-def save_data_yaml(data_yaml_path: str, classes: List[str]) -> None:
+def save_data_yaml(data_yaml_path: str, classes: list[str]) -> None:
     data = {"nc": len(classes), "names": classes}
     Path(data_yaml_path).parent.mkdir(parents=True, exist_ok=True)
     save_yaml_file(data=data, file_path=data_yaml_path)

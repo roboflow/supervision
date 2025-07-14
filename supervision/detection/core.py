@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any
 
 import numpy as np
 
@@ -137,12 +138,12 @@ class Detections:
     """  # noqa: E501 // docs
 
     xyxy: np.ndarray
-    mask: Optional[np.ndarray] = None
-    confidence: Optional[np.ndarray] = None
-    class_id: Optional[np.ndarray] = None
-    tracker_id: Optional[np.ndarray] = None
-    data: Dict[str, Union[np.ndarray, List]] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    mask: np.ndarray | None = None
+    confidence: np.ndarray | None = None
+    class_id: np.ndarray | None = None
+    tracker_id: np.ndarray | None = None
+    data: dict[str, np.ndarray | list] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         validate_detections_fields(
@@ -163,13 +164,13 @@ class Detections:
     def __iter__(
         self,
     ) -> Iterator[
-        Tuple[
+        tuple[
             np.ndarray,
-            Optional[np.ndarray],
-            Optional[float],
-            Optional[int],
-            Optional[int],
-            Dict[str, Union[np.ndarray, List]],
+            np.ndarray | None,
+            float | None,
+            int | None,
+            int | None,
+            dict[str, np.ndarray | list],
         ]
     ]:
         """
@@ -458,7 +459,7 @@ class Detections:
 
     @classmethod
     def from_transformers(
-        cls, transformers_results: dict, id2label: Optional[Dict[int, str]] = None
+        cls, transformers_results: dict, id2label: dict[int, str] | None = None
     ) -> Detections:
         """
         Creates a Detections instance from object detection or panoptic, semantic
@@ -581,7 +582,7 @@ class Detections:
         )
 
     @classmethod
-    def from_inference(cls, roboflow_result: Union[dict, Any]) -> Detections:
+    def from_inference(cls, roboflow_result: dict | Any) -> Detections:
         """
         Create a `sv.Detections` object from the [Roboflow](https://roboflow.com/)
         API inference result or the [Inference](https://inference.roboflow.com/)
@@ -633,7 +634,7 @@ class Detections:
         )
 
     @classmethod
-    def from_sam(cls, sam_result: List[dict]) -> Detections:
+    def from_sam(cls, sam_result: list[dict]) -> Detections:
         """
         Creates a Detections instance from
         [Segment Anything Model](https://github.com/facebookresearch/segment-anything)
@@ -676,7 +677,7 @@ class Detections:
 
     @classmethod
     def from_azure_analyze_image(
-        cls, azure_result: dict, class_map: Optional[Dict[int, str]] = None
+        cls, azure_result: dict, class_map: dict[int, str] | None = None
     ) -> Detections:
         """
         Creates a Detections instance from [Azure Image Analysis 4.0](
@@ -808,9 +809,7 @@ class Detections:
         "`Detections.from_lmm` property is deprecated and will be removed in "
         "`supervision-0.31.0`. Use Detections.from_vlm instead."
     )
-    def from_lmm(
-        cls, lmm: Union[LMM, str], result: Union[str, dict], **kwargs: Any
-    ) -> Detections:
+    def from_lmm(cls, lmm: LMM | str, result: str | dict, **kwargs: Any) -> Detections:
         """
         Creates a Detections object from the given result string based on the specified
         Large Multimodal Model (LMM).
@@ -974,9 +973,7 @@ class Detections:
         return cls.from_vlm(vlm=vlm, result=result, **kwargs)
 
     @classmethod
-    def from_vlm(
-        cls, vlm: Union[VLM, str], result: Union[str, dict], **kwargs: Any
-    ) -> Detections:
+    def from_vlm(cls, vlm: VLM | str, result: str | dict, **kwargs: Any) -> Detections:
         """
         Creates a Detections object from the given result string based on the specified
         Vision Language Model (VLM).
@@ -1282,7 +1279,7 @@ class Detections:
         return self == empty_detections
 
     @classmethod
-    def merge(cls, detections_list: List[Detections]) -> Detections:
+    def merge(cls, detections_list: list[Detections]) -> Detections:
         """
         Merge a list of Detections objects into a single Detections object.
 
@@ -1452,8 +1449,8 @@ class Detections:
         raise ValueError(f"{anchor} is not supported.")
 
     def __getitem__(
-        self, index: Union[int, slice, List[int], np.ndarray, str]
-    ) -> Union[Detections, List, np.ndarray, None]:
+        self, index: int | slice | list[int] | np.ndarray | str
+    ) -> Detections | list | np.ndarray | None:
         """
         Get a subset of the Detections object or access an item from its data field.
 
@@ -1501,7 +1498,7 @@ class Detections:
             metadata=self.metadata,
         )
 
-    def __setitem__(self, key: str, value: Union[np.ndarray, List]):
+    def __setitem__(self, key: str, value: np.ndarray | list):
         """
         Set a value in the data dictionary of the Detections object.
 
@@ -1774,7 +1771,7 @@ def merge_inner_detection_object_pair(
 
 
 def merge_inner_detections_objects(
-    detections: List[Detections], threshold=0.5
+    detections: list[Detections], threshold=0.5
 ) -> Detections:
     """
     Given N detections each of length 1 (exactly one object inside), combine them into a

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 def indices_to_matches(
     cost_matrix: np.ndarray, indices: np.ndarray, thresh: float
-) -> Tuple[np.ndarray, tuple, tuple]:
+) -> tuple[np.ndarray, tuple, tuple]:
     matched_cost = cost_matrix[tuple(zip(*indices))]
     matched_mask = matched_cost <= thresh
 
@@ -25,7 +25,7 @@ def indices_to_matches(
 
 def linear_assignment(
     cost_matrix: np.ndarray, thresh: float
-) -> Tuple[np.ndarray, Tuple[int], Tuple[int, int]]:
+) -> tuple[np.ndarray, tuple[int], tuple[int, int]]:
     if cost_matrix.size == 0:
         return (
             np.empty((0, 2), dtype=int),
@@ -40,7 +40,7 @@ def linear_assignment(
     return indices_to_matches(cost_matrix, indices, thresh)
 
 
-def iou_distance(atracks: List[STrack], btracks: List[STrack]) -> np.ndarray:
+def iou_distance(atracks: list[STrack], btracks: list[STrack]) -> np.ndarray:
     if (len(atracks) > 0 and isinstance(atracks[0], np.ndarray)) or (
         len(btracks) > 0 and isinstance(btracks[0], np.ndarray)
     ):
@@ -58,7 +58,7 @@ def iou_distance(atracks: List[STrack], btracks: List[STrack]) -> np.ndarray:
     return cost_matrix
 
 
-def fuse_score(cost_matrix: np.ndarray, stracks: List[STrack]) -> np.ndarray:
+def fuse_score(cost_matrix: np.ndarray, stracks: list[STrack]) -> np.ndarray:
     if cost_matrix.size == 0:
         return cost_matrix
     iou_sim = 1 - cost_matrix

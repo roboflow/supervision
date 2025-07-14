@@ -1,5 +1,4 @@
 import argparse
-from typing import List
 
 import cv2
 import numpy as np
@@ -23,7 +22,7 @@ def main(
     device: str,
     confidence: float,
     iou: float,
-    classes: List[int],
+    classes: list[int],
 ) -> None:
     model = YOLO(weights)
     tracker = sv.ByteTrack(minimum_matching_threshold=0.5)

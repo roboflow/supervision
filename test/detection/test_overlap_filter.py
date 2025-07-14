@@ -1,5 +1,5 @@
 from contextlib import ExitStack as DoesNotRaise
-from typing import List, Optional
+from typing import Optional
 
 import numpy as np
 import pytest
@@ -127,7 +127,7 @@ from supervision.detection.overlap_filter import (
 def test_group_overlapping_boxes(
     predictions: np.ndarray,
     iou_threshold: float,
-    expected_result: List[List[int]],
+    expected_result: list[list[int]],
     exception: Exception,
 ) -> None:
     with exception:

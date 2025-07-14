@@ -1,6 +1,6 @@
 from contextlib import ExitStack as DoesNotRaise
 from dataclasses import dataclass, field
-from typing import Any, Set
+from typing import Any
 
 import numpy as np
 import pytest
@@ -202,7 +202,7 @@ class MockDataclass:
 def test_get_instance_variables(
     input_instance: Any,
     include_properties: bool,
-    expected: Set[str],
+    expected: set[str],
     exception: Exception,
 ) -> None:
     with exception:

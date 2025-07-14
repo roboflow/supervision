@@ -1,6 +1,6 @@
 import warnings
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, Optional, Union
 
 import numpy as np
 
@@ -18,7 +18,7 @@ from supervision.utils.internal import (
 def move_detections(
     detections: Detections,
     offset: np.ndarray,
-    resolution_wh: Optional[Tuple[int, int]] = None,
+    resolution_wh: Optional[tuple[int, int]] = None,
 ) -> Detections:
     """
     Args:
@@ -86,9 +86,9 @@ class InferenceSlicer:
     def __init__(
         self,
         callback: Callable[[np.ndarray], Detections],
-        slice_wh: Tuple[int, int] = (320, 320),
-        overlap_ratio_wh: Optional[Tuple[float, float]] = (0.2, 0.2),
-        overlap_wh: Optional[Tuple[int, int]] = None,
+        slice_wh: tuple[int, int] = (320, 320),
+        overlap_ratio_wh: Optional[tuple[float, float]] = (0.2, 0.2),
+        overlap_wh: Optional[tuple[int, int]] = None,
         overlap_filter: Union[OverlapFilter, str] = OverlapFilter.NON_MAX_SUPPRESSION,
         iou_threshold: float = 0.5,
         thread_workers: int = 1,
@@ -198,10 +198,10 @@ class InferenceSlicer:
 
     @staticmethod
     def _generate_offset(
-        resolution_wh: Tuple[int, int],
-        slice_wh: Tuple[int, int],
-        overlap_ratio_wh: Optional[Tuple[float, float]],
-        overlap_wh: Optional[Tuple[int, int]],
+        resolution_wh: tuple[int, int],
+        slice_wh: tuple[int, int],
+        overlap_ratio_wh: Optional[tuple[float, float]],
+        overlap_wh: Optional[tuple[int, int]],
     ) -> np.ndarray:
         """
         Generate offset coordinates for slicing an image based on the given resolution,
@@ -260,8 +260,8 @@ class InferenceSlicer:
 
     @staticmethod
     def _validate_overlap(
-        overlap_ratio_wh: Optional[Tuple[float, float]],
-        overlap_wh: Optional[Tuple[int, int]],
+        overlap_ratio_wh: Optional[tuple[float, float]],
+        overlap_wh: Optional[tuple[int, int]],
     ) -> None:
         if overlap_ratio_wh is not None and overlap_wh is not None:
             raise ValueError(

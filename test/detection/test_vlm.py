@@ -1,6 +1,6 @@
 from contextlib import ExitStack as DoesNotRaise
 from contextlib import nullcontext as does_not_raise
-from typing import List, Optional, Tuple
+from typing import Optional
 
 import numpy as np
 import pytest
@@ -183,9 +183,9 @@ from supervision.detection.vlm import (
 def test_from_paligemma(
     exception,
     result: str,
-    resolution_wh: Tuple[int, int],
-    classes: Optional[List[str]],
-    expected_results: Tuple[np.ndarray, Optional[np.ndarray], np.ndarray],
+    resolution_wh: tuple[int, int],
+    classes: Optional[list[str]],
+    expected_results: tuple[np.ndarray, Optional[np.ndarray], np.ndarray],
 ) -> None:
     with exception:
         result = from_paligemma(
@@ -344,9 +344,9 @@ def test_from_paligemma(
 def test_from_qwen_2_5_vl(
     exception,
     result: str,
-    input_wh: Tuple[int, int],
-    resolution_wh: Tuple[int, int],
-    classes: Optional[List[str]],
+    input_wh: tuple[int, int],
+    resolution_wh: tuple[int, int],
+    classes: Optional[list[str]],
     expected_results,
 ) -> None:
     with exception:
@@ -487,9 +487,9 @@ def test_from_qwen_2_5_vl(
 def test_from_google_gemini(
     exception,
     result: str,
-    resolution_wh: Tuple[int, int],
-    classes: Optional[List[str]],
-    expected_results: Tuple[np.ndarray, Optional[np.ndarray], np.ndarray],
+    resolution_wh: tuple[int, int],
+    classes: Optional[list[str]],
+    expected_results: tuple[np.ndarray, Optional[np.ndarray], np.ndarray],
 ) -> None:
     with exception:
         xyxy, class_id, class_name = from_google_gemini(
@@ -589,7 +589,7 @@ def test_from_google_gemini(
 def test_from_moondream(
     exception,
     result: dict,
-    resolution_wh: Tuple[int, int],
+    resolution_wh: tuple[int, int],
     expected_results,
 ) -> None:
     with exception:
@@ -862,8 +862,8 @@ def test_from_moondream(
 )
 def test_florence_2(
     florence_result: dict,
-    resolution_wh: Tuple[int, int],
-    expected_results: Tuple[
+    resolution_wh: tuple[int, int],
+    expected_results: tuple[
         np.ndarray, Optional[np.ndarray], Optional[np.ndarray], Optional[np.ndarray]
     ],
     exception: Exception,

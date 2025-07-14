@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 
 import numpy as np
 
@@ -70,10 +70,10 @@ def resolve_color_idx(
 
 
 def resolve_text_background_xyxy(
-    center_coordinates: Tuple[int, int],
-    text_wh: Tuple[int, int],
+    center_coordinates: tuple[int, int],
+    text_wh: tuple[int, int],
     position: Position,
-) -> Tuple[int, int, int, int]:
+) -> tuple[int, int, int, int]:
     center_x, center_y = center_coordinates
     text_w, text_h = text_wh
 

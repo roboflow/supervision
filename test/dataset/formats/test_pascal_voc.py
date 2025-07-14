@@ -1,5 +1,5 @@
 from contextlib import ExitStack as DoesNotRaise
-from typing import List, Optional
+from typing import Optional
 
 import numpy as np
 import pytest
@@ -84,7 +84,7 @@ def test_object_to_pascal_voc(
 )
 def test_parse_polygon_points(
     polygon_element,
-    expected_result: List[list],
+    expected_result: list[list],
     exception,
 ):
     with exception:
