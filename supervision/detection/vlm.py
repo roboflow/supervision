@@ -389,14 +389,15 @@ def from_google_gemini_2_0(
         return np.empty((0, 4)), None, np.empty((0,), dtype=str)
 
     labels = []
-    xyxy = []
+    boxes_list = []
+
     for item in data:
         if "box_2d" not in item or "label" not in item:
             continue
         labels.append(item["label"])
         box = item["box_2d"]
         # Gemini bbox order is [y_min, x_min, y_max, x_max]
-        xyxy.append(
+        boxes_list.append(
             denormalize_boxes(
                 np.array([box[1], box[0], box[3], box[2]]).astype(np.float64),
                 resolution_wh=(w, h),
@@ -404,10 +405,10 @@ def from_google_gemini_2_0(
             )
         )
 
-    if not xyxy:
+    if not boxes_list:
         return np.empty((0, 4)), None, np.empty((0,), dtype=str)
 
-    xyxy = np.array(xyxy)
+    xyxy = np.array(boxes_list)
     class_name = np.array(labels)
     class_id = None
 
@@ -487,7 +488,7 @@ def from_google_gemini_2_5(
             None,
         )
 
-    xyxy_list: list = []
+    boxes_list: list = []
     labels_list: list = []
     confidence_list: Optional[list] = []
     masks_list: Optional[list] = []
@@ -503,7 +504,7 @@ def from_google_gemini_2_5(
             resolution_wh=(w, h),
             normalization_factor=1000,
         )
-        xyxy_list.append(absolute_bbox)
+        boxes_list.append(absolute_bbox)
 
         if "mask" in item:
             if masks_list is not None:
@@ -540,7 +541,7 @@ def from_google_gemini_2_5(
         else:
             confidence_list = None
 
-    if not xyxy_list:
+    if not boxes_list:
         return (
             np.empty((0, 4)),
             np.array([], dtype=int),
@@ -549,7 +550,7 @@ def from_google_gemini_2_5(
             None,
         )
 
-    xyxy = np.array(xyxy_list, dtype=float)
+    xyxy = np.array(boxes_list, dtype=float)
     class_name = np.array(labels_list)
     class_id: np.ndarray
 
