@@ -4,7 +4,7 @@
 
 - Updates to `LabelAnnotator`: ([#1820](https://github.com/roboflow/supervision/pull/1820))
     - `LabelAnnotator` now has the ability to ensure labels stay within frame boundaries using the `smart_position` parameter.
-    - Labels now properly render text with newlines. New `max_line_length parameter` in `LabelAnnotator` for controling automatic text wrapping.
+    - Labels now properly render text with newlines. New `max_line_length parameter` in `LabelAnnotator` for controlling automatic text wrapping.
     - `LableAnnoatator` now automatically prevents overlapping multiline labels and  more effective label distribution with size-aware positioning.
     - `LabelAnnotator` now supports non-string labels. ([#1825](https://github.com/roboflow/supervision/pull/1825))
 
@@ -27,7 +27,7 @@
 
 - Added support for creating KeyPoints objects from [Transformers](https://huggingface.co/docs/transformers/index) inference results. ([#1788](https://github.com/roboflow/supervision/pull/1788))
 
-- Fix loosing `sv.Detections.data` when detections filtering. ([#1767](https://github.com/roboflow/supervision/pull/1767))
+- Fix losing `sv.Detections.data` when detections filtering. ([#1767](https://github.com/roboflow/supervision/pull/1767))
 
 - Make `TraceAnnotator` better handle pending tracks by centralizing the configuration of pending track identifiers and colors, and updating the annotation logic to skip pending tracks. ([#1828](https://github.com/roboflow/supervision/pull/1828))
 
