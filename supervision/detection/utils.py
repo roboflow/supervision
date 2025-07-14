@@ -48,11 +48,76 @@ def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.n
     return mask
 
 
+def box_iou(
+    box_true: Union[List[float], np.ndarray],
+    box_detection: Union[List[float], np.ndarray],
+) -> float:
+    """
+    Compute the Intersection over Union (IoU) between two bounding boxes.
+
+    Both `box_true` and `box_detection` should be in (x_min, y_min, x_max, y_max)
+    format.
+
+    Note:
+        Use `box_iou` when computing IoU between two individual boxes.
+        For comparing multiple boxes (arrays of boxes), use `box_iou_batch` for better
+        performance.
+
+    Args:
+        box_true (Union[List[float], np.ndarray]): A single bounding box represented as
+            [x_min, y_min, x_max, y_max].
+        box_detection (Union[List[float], np.ndarray]):
+            A single bounding box represented as [x_min, y_min, x_max, y_max].
+
+    Returns:
+        IoU (float): IoU score between the two boxes. Ranges from 0.0 (no overlap)
+            to 1.0 (perfect overlap).
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        box_true = np.array([100, 100, 200, 200])
+        box_detection = np.array([150, 150, 250, 250])
+
+        sv.box_iou(box_true=box_true, box_detection=box_detection)
+        # 0.14285814285714285
+        ```
+    """
+    box_true = np.array(box_true)
+    box_detection = np.array(box_detection)
+
+    inter_x1 = max(box_true[0], box_detection[0])
+    inter_y1 = max(box_true[1], box_detection[1])
+    inter_x2 = min(box_true[2], box_detection[2])
+    inter_y2 = min(box_true[3], box_detection[3])
+
+    inter_w = max(0, inter_x2 - inter_x1)
+    inter_h = max(0, inter_y2 - inter_y1)
+
+    inter_area = inter_w * inter_h
+
+    area_true = (box_true[2] - box_true[0]) * (box_true[3] - box_true[1])
+    area_detection = (box_detection[2] - box_detection[0]) * (
+        box_detection[3] - box_detection[1]
+    )
+
+    union_area = area_true + area_detection - inter_area
+
+    return inter_area / union_area + 1e-6
+
+
 def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.ndarray:
     """
     Compute Intersection over Union (IoU) of two sets of bounding boxes -
         `boxes_true` and `boxes_detection`. Both sets
         of boxes are expected to be in `(x_min, y_min, x_max, y_max)` format.
+
+    Note:
+        Use `box_iou` when computing IoU between two individual boxes.
+        For comparing multiple boxes (arrays of boxes), use `box_iou_batch` for better
+        performance.
 
     Args:
         boxes_true (np.ndarray): 2D `np.ndarray` representing ground-truth boxes.
@@ -64,6 +129,27 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
         np.ndarray: Pairwise IoU of boxes from `boxes_true` and `boxes_detection`.
             `shape = (N, M)` where `N` is number of true objects and
             `M` is number of detected objects.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        boxes_true = np.array([
+            [100, 100, 200, 200],
+            [300, 300, 400, 400]
+        ])
+        boxes_detection = np.array([
+            [150, 150, 250, 250],
+            [320, 320, 420, 420]
+        ])
+
+        sv.box_iou_batch(boxes_true=boxes_true, boxes_detection=boxes_detection)
+        # array([
+        #     [0.14285714, 0.        ],
+        #     [0.        , 0.47058824]
+        # ])
+        ```
     """
 
     def box_area(box):
