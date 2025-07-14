@@ -58,6 +58,7 @@ from supervision.detection.tools.json_sink import JSONSink
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
 from supervision.detection.tools.smoother import DetectionsSmoother
 from supervision.detection.utils import (
+    box_iou,
     box_iou_batch,
     box_iou_batch_with_jaccard,
     calculate_masks_centroids,
@@ -181,6 +182,7 @@ __all__ = [
     "VertexLabelAnnotator",
     "VideoInfo",
     "VideoSink",
+    "box_iou",
     "box_iou_batch",
     "box_iou_batch_with_jaccard",
     "box_non_max_merge",

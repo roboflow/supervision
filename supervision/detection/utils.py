@@ -76,13 +76,13 @@ def box_iou(
     Examples:
         ```python
         import numpy as np
-        from supervision.detection.utils import box_iou
+        import supervision as sv
 
         box_true = np.array([100, 100, 200, 200])
         box_detection = np.array([150, 150, 250, 250])
 
-        box_iou(box_true=box_true, box_detection=box_detection)
-        # 0.14285714285714285
+        sv.box_iou(box_true=box_true, box_detection=box_detection)
+        # 0.14285814285714285
         ```
     """
     box_true = np.array(box_true)
@@ -133,7 +133,7 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
     Examples:
         ```python
         import numpy as np
-        from supervision.detection.utils import box_iou_batch
+        import supervision as sv
 
         boxes_true = np.array([
             [100, 100, 200, 200],
@@ -144,7 +144,7 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
             [320, 320, 420, 420]
         ])
 
-        box_iou_batch(boxes_true=boxes_true, boxes_detection=boxes_detection)
+        sv.box_iou_batch(boxes_true=boxes_true, boxes_detection=boxes_detection)
         # array([
         #     [0.14285714, 0.        ],
         #     [0.        , 0.47058824]
