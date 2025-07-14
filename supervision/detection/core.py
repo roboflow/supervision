@@ -923,7 +923,7 @@ class Detections:
 
             For each detected object, provide:
             - "label": exact class name from the list above
-            - "confidence": how certain you are (0.0 to 1.0)  
+            - "confidence": how certain you are (0.0 to 1.0)
             - "box_2d": bounding box [ymin, xmin, ymax, xmax] normalized 0-1000
             - "mask": binary mask of the object in the image, as a base64 encoded string
 
@@ -938,7 +938,7 @@ class Detections:
                 "mask": "..."
               },
               {
-                "label": "kite", 
+                "label": "kite",
                 "confidence": 0.80,
                 "box_2d": [50, 150, 250, 350],
                 "mask": "..."
@@ -996,7 +996,7 @@ class Detections:
             detections.class_id
             # array([0, 1])
             ```
-            
+
 
         Examples:
             ```python
@@ -1179,7 +1179,7 @@ class Detections:
 
             For each detected object, provide:
             - "label": exact class name from the list above
-            - "confidence": how certain you are (0.0 to 1.0)  
+            - "confidence": how certain you are (0.0 to 1.0)
             - "box_2d": bounding box [ymin, xmin, ymax, xmax] normalized 0-1000
             - "mask": binary mask of the object in the image, as a base64 encoded string
 
@@ -1194,7 +1194,7 @@ class Detections:
                 "mask": "..."
               },
               {
-                "label": "kite", 
+                "label": "kite",
                 "confidence": 0.80,
                 "box_2d": [50, 150, 250, 350],
                 "mask": "..."
