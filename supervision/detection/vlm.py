@@ -1,9 +1,12 @@
+import base64
+import io
 import json
 import re
 from enum import Enum
 from typing import Any, Optional, Union
 
 import numpy as np
+from PIL import Image
 
 from supervision.detection.utils import (
     denormalize_boxes,
@@ -11,6 +14,7 @@ from supervision.detection.utils import (
     polygon_to_xyxy,
 )
 from supervision.utils.internal import deprecated
+from supervision.validators import validate_resolution
 
 
 @deprecated(
@@ -23,6 +27,7 @@ class LMM(Enum):
     QWEN_2_5_VL = "qwen_2_5_vl"
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
+    MOONDREAM = "moondream"
 
 
 class VLM(Enum):
@@ -58,6 +63,7 @@ ALLOWED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh", "classes"],
+    VLM.MOONDREAM: ["resolution_wh"],
 }
 
 SUPPORTED_TASKS_FLORENCE_2 = [
@@ -126,11 +132,7 @@ def from_paligemma(
             the class labels for each bounding box.
     """
 
-    w, h = resolution_wh
-    if w <= 0 or h <= 0:
-        raise ValueError(
-            f"Both dimensions in resolution_wh must be positive. Got ({w}, {h})."
-        )
+    w, h = validate_resolution(resolution_wh)
 
     pattern = re.compile(
         r"(?<!<loc\d{4}>)<loc(\d{4})><loc(\d{4})><loc(\d{4})><loc(\d{4})> ([\w\s\-]+)"
@@ -189,14 +191,9 @@ def from_qwen_2_5_vl(
         class_name (np.ndarray): An array of shape `(n,)` containing
             the class labels for each bounding box
     """
-    in_w, in_h = input_wh
-    out_w, out_h = resolution_wh
 
-    if in_w <= 0 or in_h <= 0 or out_w <= 0 or out_h <= 0:
-        raise ValueError(
-            f"Both input and resolution dimensions must be positive. "
-            f"Got input_wh=({in_w}, {in_h}), resolution_wh=({out_w}, {out_h})."
-        )
+    in_w, in_h = validate_resolution(input_wh)
+    out_w, out_h = validate_resolution(resolution_wh)
 
     pattern = re.compile(r"```json\s*(.*?)\s*```", re.DOTALL)
 
@@ -325,7 +322,7 @@ def from_florence_2(
             f"Expected string to end in location tags, but got {result}"
         )
 
-        w, h = resolution_wh
+        w, h = validate_resolution(resolution_wh)
         xyxy = np.array([match.groups()], dtype=np.float32)
         xyxy *= np.array([w, h, w, h]) / 1000
         result_string = result[: match.start()]
@@ -335,7 +332,7 @@ def from_florence_2(
     assert False, f"Unimplemented task: {task}"
 
 
-def from_google_gemini(
+def from_google_gemini_2_0(
     result: str,
     resolution_wh: tuple[int, int],
     classes: Optional[list[str]] = None,
@@ -377,11 +374,7 @@ def from_google_gemini(
 
     """
 
-    w, h = resolution_wh
-    if w <= 0 or h <= 0:
-        raise ValueError(
-            f"Both dimensions in resolution_wh must be positive. Got ({w}, {h})."
-        )
+    w, h = validate_resolution(resolution_wh)
 
     lines = result.splitlines()
     for i, line in enumerate(lines):
@@ -396,14 +389,15 @@ def from_google_gemini(
         return np.empty((0, 4)), None, np.empty((0,), dtype=str)
 
     labels = []
-    xyxy = []
+    boxes_list = []
+
     for item in data:
         if "box_2d" not in item or "label" not in item:
             continue
         labels.append(item["label"])
         box = item["box_2d"]
         # Gemini bbox order is [y_min, x_min, y_max, x_max]
-        xyxy.append(
+        boxes_list.append(
             denormalize_boxes(
                 np.array([box[1], box[0], box[3], box[2]]).astype(np.float64),
                 resolution_wh=(w, h),
@@ -411,10 +405,10 @@ def from_google_gemini(
             )
         )
 
-    if not xyxy:
+    if not boxes_list:
         return np.empty((0, 4)), None, np.empty((0,), dtype=str)
 
-    xyxy = np.array(xyxy)
+    xyxy = np.array(boxes_list)
     class_name = np.array(labels)
     class_id = None
 
@@ -425,6 +419,168 @@ def from_google_gemini(
         class_id = np.array([classes.index(name) for name in class_name])
 
     return xyxy, class_id, class_name
+
+
+def from_google_gemini_2_5(
+    result: str,
+    resolution_wh: Tuple[int, int],
+    classes: Optional[List[str]] = None,
+) -> Tuple[
+    np.ndarray,
+    Optional[np.ndarray],
+    np.ndarray,
+    Optional[np.ndarray],
+    Optional[np.ndarray],
+]:
+    """
+    Parse and scale bounding boxes and masks from Google Gemini 2.5 style
+    [JSON output](https://ai.google.dev/gemini-api/docs/vision?lang=python).
+
+    The JSON is expected to be enclosed in triple backticks with the format:
+        ```json
+        [
+            {
+                "box_2d": [x1, y1, x2, y2],
+                "mask": "data:image/png;base64,...",
+                "label": "some class name",
+                "confidence": 0.95,
+            },
+            ...
+        ]
+        ```
+
+    Args:
+        result: String containing the JSON snippet enclosed by triple backticks.
+        resolution_wh: (output_width, output_height) to which we rescale the boxes.
+        classes: Optional list of valid class names. If provided, returned boxes/labels
+            are filtered to only those classes found here.
+
+    Returns:
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing
+            the bounding boxes coordinates in format `[x1, y1, x2, y2]`
+        class_id (np.ndarray): An array of shape `(n,)` containing
+            the class indices for each bounding box
+        class_name (np.ndarray): An array of shape `(n,)` containing
+            the class labels for each bounding box
+        confidence: Optional[np.ndarray]: An array of shape `(n,)` containing
+            the confidence scores for each bounding box. If not provided,
+            it defaults to 0.0 for each box.
+        masks (Optional[np.ndarray]): An array of shape `(n, h, w)` containing
+            the segmentation masks for each bounding box
+    """
+    w, h = validate_resolution(resolution_wh)
+
+    lines = result.splitlines()
+    for i, line in enumerate(lines):
+        if line == "```json":
+            result = "\n".join(lines[i + 1 :])
+            result = result.split("```")[0]
+            break
+
+    try:
+        data = json.loads(result)
+    except json.JSONDecodeError:
+        return (
+            np.empty((0, 4)),
+            np.array([], dtype=int),
+            np.array([], dtype=str),
+            np.array([], dtype=float),
+            None,
+        )
+
+    boxes_list: list = []
+    labels_list: list = []
+    confidence_list: Optional[list] = []
+    masks_list: Optional[list] = []
+
+    for item in data:
+        if "box_2d" not in item or "label" not in item:
+            continue
+        labels_list.append(item["label"])
+        box = item["box_2d"]
+        # Gemini bbox order is [y_min, x_min, y_max, x_max]
+        absolute_bbox = denormalize_boxes(
+            np.array([box[1], box[0], box[3], box[2]]).astype(np.float64),
+            resolution_wh=(w, h),
+            normalization_factor=1000,
+        )
+        boxes_list.append(absolute_bbox)
+
+        if "mask" in item:
+            if masks_list is not None:
+                png_str = item["mask"]
+                if not png_str.startswith("data:image/png;base64,"):
+                    masks_list.append(np.zeros((h, w), dtype=bool))
+                    continue
+
+                png_str = png_str.removeprefix("data:image/png;base64,")
+                png_str = base64.b64decode(png_str)
+                mask_img = Image.open(io.BytesIO(png_str))
+
+                y_min, y_max = int(absolute_bbox[1]), int(absolute_bbox[3])
+                x_min, x_max = int(absolute_bbox[0]), int(absolute_bbox[2])
+
+                bbox_height = y_max - y_min
+                bbox_width = x_max - x_min
+
+                if bbox_height > 0 and bbox_width > 0:
+                    mask_img = mask_img.resize(
+                        (bbox_width, bbox_height), resample=Image.Resampling.BILINEAR
+                    )
+                    np_mask = np.zeros((h, w), dtype=bool)
+                    np_mask[y_min:y_max, x_min:x_max] = np.array(mask_img) > 0
+                    masks_list.append(np_mask)
+                else:
+                    masks_list.append(np.zeros((h, w), dtype=bool))
+        else:
+            masks_list = None
+
+        if "confidence" in item:
+            if confidence_list is not None:
+                confidence_list.append(item["confidence"])
+        else:
+            confidence_list = None
+
+    if not boxes_list:
+        return (
+            np.empty((0, 4)),
+            np.array([], dtype=int),
+            np.array([], dtype=str),
+            np.array([], dtype=float),
+            None,
+        )
+
+    xyxy = np.array(boxes_list, dtype=float)
+    class_name = np.array(labels_list)
+    class_id: np.ndarray
+
+    if classes is not None:
+        mask = np.array([name in classes for name in class_name], dtype=bool)
+        xyxy = xyxy[mask]
+        class_name = class_name[mask]
+        class_id = np.array([classes.index(name) for name in class_name])
+        if masks_list is not None:
+            masks_list = [m for m, keep in zip(masks_list, mask) if keep]
+
+        if confidence_list is not None:
+            confidence_list = [c for c, keep in zip(confidence_list, mask) if keep]
+    else:
+        unique_labels = sorted(list(set(class_name)))
+        label_to_id = {label: i for i, label in enumerate(unique_labels)}
+        class_id = np.array([label_to_id[name] for name in class_name])
+
+    confidence = (
+        np.array(confidence_list, dtype=float) if confidence_list is not None else None
+    )
+    masks = np.array(masks_list) if masks_list is not None else None
+
+    return (
+        xyxy,
+        class_id,
+        class_name,
+        confidence,
+        masks,
+    )
 
 
 def from_moondream(
@@ -450,7 +606,6 @@ def from_moondream(
           ]
       }
 
-
     Args:
         result: Dictionary containing the JSON output from the model.
         resolution_wh: (output_width, output_height) to which we rescale the boxes.
@@ -458,7 +613,7 @@ def from_moondream(
     Returns:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`
-    """  # docs
+    """
 
     w, h = resolution_wh
     if w <= 0 or h <= 0:
@@ -467,7 +622,7 @@ def from_moondream(
         )
 
     if "objects" not in result or not isinstance(result["objects"], list):
-        return np.empty((0, 4))
+        return np.empty((0, 4), dtype=float)
 
     denormalize_xyxy = []
 
