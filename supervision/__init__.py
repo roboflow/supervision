@@ -38,6 +38,7 @@ from supervision.dataset.core import (
     ClassificationDataset,
     DetectionDataset,
 )
+from supervision.dataset.formats.coco import get_coco_class_index_mapping
 from supervision.dataset.utils import mask_to_rle, rle_to_mask
 from supervision.detection.core import Detections
 from supervision.detection.line_zone import (
@@ -57,11 +58,14 @@ from supervision.detection.tools.json_sink import JSONSink
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
 from supervision.detection.tools.smoother import DetectionsSmoother
 from supervision.detection.utils import (
+    box_iou,
     box_iou_batch,
+    box_iou_batch_with_jaccard,
     calculate_masks_centroids,
     clip_boxes,
     contains_holes,
     contains_multiple_segments,
+    denormalize_boxes,
     filter_polygons_by_area,
     mask_iou_batch,
     mask_to_polygons,
@@ -179,7 +183,9 @@ __all__ = [
     "VertexLabelAnnotator",
     "VideoInfo",
     "VideoSink",
+    "box_iou",
     "box_iou_batch",
+    "box_iou_batch_with_jaccard",
     "box_non_max_merge",
     "box_non_max_suppression",
     "calculate_masks_centroids",
@@ -199,6 +205,7 @@ __all__ = [
     "draw_rectangle",
     "draw_text",
     "filter_polygons_by_area",
+    "get_coco_class_index_mapping",
     "get_polygon_center",
     "get_video_frames_generator",
     "letterbox_image",

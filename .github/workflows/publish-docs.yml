@@ -34,9 +34,11 @@ jobs:
           fetch-depth: 0
 
       - name: 🐍 Install uv and set Python ${{ matrix.python-version }}
-        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
+        uses: astral-sh/setup-uv@bd01e18f51369d5a26f1651c3cb451d3417e3bba # v6.3.1
         with:
           python-version: ${{ matrix.python-version }}
+          activate-environment: true
+
 
       - name: 🔑 Create GitHub App token (mkdocs)
         id: mkdocs_token
@@ -49,7 +51,7 @@ jobs:
 
       - name: 🏗️ Install dependencies
         run: |
-          uv pip install -r pyproject.toml --extra docs
+          uv pip install -r pyproject.toml --group docs
           # Install mkdocs-material-insiders using the GitHub App token
           uv pip install "git+https://roboflow:${{ steps.mkdocs_token.outputs.token }}@github.com/roboflow/mkdocs-material-insiders.git@9.5.49-insiders-4.53.14#egg=mkdocs-material[imaging]"
 
