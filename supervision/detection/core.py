@@ -942,7 +942,7 @@ class Detections:
                 For each detected object, provide:
                 - "label": the exact class name from the list above
                 - "confidence": your certainty (between 0.0 and 1.0)
-                - "box_2d": the bounding box [ymin, xmin, ymax, xmax] normalized to 0–1000
+                - "box_2d": the bounding box [ymin, xmin, ymax, xmax] normalized to 0-1000
                 - "mask": the binary mask of the object as a base64-encoded string
 
                 Detect everything that matches the valid classes. Do not be
@@ -1214,7 +1214,7 @@ class Detections:
                 For each detected object, provide:
                 - "label": the exact class name from the list above
                 - "confidence": your certainty (between 0.0 and 1.0)
-                - "box_2d": the bounding box [ymin, xmin, ymax, xmax] normalized to 0–1000
+                - "box_2d": the bounding box [ymin, xmin, ymax, xmax] normalized to 0-1000
                 - "mask": the binary mask of the object as a base64-encoded string
 
                 Detect everything that matches the valid classes. Do not be
