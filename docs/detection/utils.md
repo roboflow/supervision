@@ -6,6 +6,12 @@ status: new
 # Detection Utils
 
 <div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.box_iou">box_iou</a></h2>
+</div>
+
+:::supervision.detection.utils.box_iou
+
+<div class="md-typeset">
   <h2><a href="#supervision.detection.utils.box_iou_batch">box_iou_batch</a></h2>
 </div>
 
