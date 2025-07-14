@@ -220,9 +220,6 @@ count = true
 quiet-level = 3
 ignore-words-list = "STrack,sTrack,strack"
 
-[tool.pyupgrade]
-py39-plus = true
-
 [tool.setuptools]
 include-package-data = false
 
