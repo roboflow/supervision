@@ -35,6 +35,7 @@ class VLM(Enum):
     QWEN_2_5_VL = "qwen_2_5_vl"
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
+    MOONDREAM = "moondream"
 
 
 RESULT_TYPES: Dict[VLM, type] = {
@@ -43,6 +44,7 @@ RESULT_TYPES: Dict[VLM, type] = {
     VLM.QWEN_2_5_VL: str,
     VLM.GOOGLE_GEMINI_2_0: str,
     VLM.GOOGLE_GEMINI_2_5: str,
+    VLM.MOONDREAM: dict,
 }
 
 REQUIRED_ARGUMENTS: Dict[VLM, List[str]] = {
@@ -51,14 +53,15 @@ REQUIRED_ARGUMENTS: Dict[VLM, List[str]] = {
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh"],
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh"],
+    VLM.MOONDREAM: ["resolution_wh"],
 }
 
 ALLOWED_ARGUMENTS: Dict[VLM, List[str]] = {
     VLM.PALIGEMMA: ["resolution_wh", "classes"],
     VLM.FLORENCE_2: ["resolution_wh"],
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh", "classes"],
-    VLM.GOOGLE_GEMINI_2_0: ["resolution_wh"],
-    VLM.GOOGLE_GEMINI_2_5: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_2_0: ["resolution_wh", "classes"],
+    VLM.GOOGLE_GEMINI_2_5: ["resolution_wh", "classes"],
 }
 
 SUPPORTED_TASKS_FLORENCE_2 = [
@@ -330,7 +333,8 @@ def from_florence_2(
 def from_google_gemini(
     result: str,
     resolution_wh: Tuple[int, int],
-) -> Tuple[np.ndarray, np.ndarray]:
+    classes: Optional[List[str]] = None,
+) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
     """
     Parse and scale bounding boxes from Google Gemini style
     [JSON output](https://ai.google.dev/gemini-api/docs/vision?lang=python).
@@ -354,11 +358,16 @@ def from_google_gemini(
     Args:
         result: String containing the JSON snippet enclosed by triple backticks.
         resolution_wh: (output_width, output_height) to which we rescale the boxes.
+        classes: Optional list of valid class names. If provided, returned boxes/labels
+            are filtered to only those classes found here.
 
     Returns:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`
-        labels: (np.ndarray): An array of shape `(n,)` containing
+        class_id (Optional[np.ndarray]): An array of shape `(n,)` containing
+            the class indices for each bounding box (or None if `classes` is not
+            provided)
+        class_name (np.ndarray): An array of shape `(n,)` containing
             the class labels for each bounding box
 
     """
@@ -375,7 +384,7 @@ def from_google_gemini(
     try:
         data = json.loads(result)
     except json.JSONDecodeError:
-        return np.empty((0, 4)), np.empty((0,), dtype=str)
+        return np.empty((0, 4)), None, np.empty((0,), dtype=str)
 
     labels = []
     xyxy = []
@@ -394,9 +403,19 @@ def from_google_gemini(
         )
 
     if not xyxy:
-        return np.empty((0, 4)), np.empty((0,), dtype=str)
+        return np.empty((0, 4)), None, np.empty((0,), dtype=str)
 
-    return np.array(xyxy), np.array(labels)
+    xyxy = np.array(xyxy)
+    class_name = np.array(labels)
+    class_id = None
+
+    if classes is not None:
+        mask = np.array([name in classes for name in class_name], dtype=bool)
+        xyxy = xyxy[mask]
+        class_name = class_name[mask]
+        class_id = np.array([classes.index(name) for name in class_name])
+
+    return xyxy, class_id, class_name
 
 
 def from_google_gemini_2_5(
@@ -422,7 +441,6 @@ def from_google_gemini_2_5(
 
     Args:
         result: String containing the JSON snippet enclosed by triple backticks.
-        resolution_wh: (output_width, output_height) to which we rescale the boxes.
 
     Returns:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing
@@ -531,3 +549,65 @@ def from_google_gemini_2_5(
         mask,
         np.array(confidence),
     )
+
+
+def from_moondream(
+    result: dict,
+    resolution_wh: Tuple[int, int],
+) -> Tuple[np.ndarray]:
+    """
+    Parse and scale bounding boxes from moondream JSON output.
+
+    The JSON is expected to have a key "objects" with a list of dictionaries:
+      {
+          "objects": [
+              {"x_min": 0.1, "y_min": 0.2, "x_max": 0.3, "y_max": 0.4},
+              ...
+          ]
+      }
+
+      For Example:
+      {
+          "objects": [
+              {"x_min": 0.1, "y_min": 0.2, "x_max": 0.3, "y_max": 0.4},
+              {"x_min": 0.5, "y_min": 0.6, "x_max": 0.7, "y_max": 0.8}
+          ]
+      }
+
+
+    Args:
+        result: Dictionary containing the JSON output from the model.
+        resolution_wh: (output_width, output_height) to which we rescale the boxes.
+    """
+
+    w, h = resolution_wh
+    if w <= 0 or h <= 0:
+        raise ValueError(
+            f"Both dimensions in resolution_wh must be positive. Got ({w}, {h})."
+        )
+
+    if "objects" not in result or not isinstance(result["objects"], list):
+        return np.empty((0, 4))
+
+    denormalize_xyxy = []
+
+    for item in result["objects"]:
+        if not all(k in item for k in ["x_min", "y_min", "x_max", "y_max"]):
+            continue
+
+        x_min = item["x_min"]
+        y_min = item["y_min"]
+        x_max = item["x_max"]
+        y_max = item["y_max"]
+
+        denormalize_xyxy.append(
+            denormalize_boxes(
+                np.array([x_min, y_min, x_max, y_max]).astype(np.float64),
+                resolution_wh=(w, h),
+            )
+        )
+
+    if not denormalize_xyxy:
+        return np.empty((0, 4))
+
+    return np.array(denormalize_xyxy, dtype=float)

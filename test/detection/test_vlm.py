@@ -1,3 +1,4 @@
+from contextlib import ExitStack as DoesNotRaise
 from contextlib import nullcontext as does_not_raise
 from typing import List, Optional, Tuple
 
@@ -5,7 +6,9 @@ import numpy as np
 import pytest
 
 from supervision.detection.vlm import (
+    from_florence_2,
     from_google_gemini,
+    from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
 )
@@ -359,19 +362,524 @@ def test_from_qwen_2_5_vl(
             np.testing.assert_array_equal(class_name, expected_results[2])
 
 
-def test_from_google_gemini() -> None:
-    result = """```json
+@pytest.mark.parametrize(
+    "exception, result, resolution_wh, classes, expected_results",
     [
-        {"box_2d": [10, 20, 110, 120], "label": "cat"},
-        {"box_2d": [50, 100, 150, 200], "label": "dog"}
-    ]
-    ```"""
-    resolution_wh = (640, 480)
-    xyxy, class_name = from_google_gemini(
-        result=result,
-        resolution_wh=resolution_wh,
-    )
-    np.testing.assert_array_equal(
-        xyxy, np.array([[12.8, 4.8, 76.8, 52.8], [64.0, 24.0, 128.0, 72.0]])
-    )
-    np.testing.assert_array_equal(class_name, np.array(["cat", "dog"]))
+        (
+            does_not_raise(),
+            "random text",
+            (1000, 1000),
+            None,
+            (np.empty((0, 4)), None, np.empty(0, dtype=str)),
+        ),  # random text without JSON format
+        (
+            does_not_raise(),
+            "```json\ninvalid json\n```",
+            (1000, 1000),
+            None,
+            (np.empty((0, 4)), None, np.empty(0, dtype=str)),
+        ),  # invalid JSON within code blocks
+        (
+            does_not_raise(),
+            "```json\n[]\n```",
+            (1000, 1000),
+            None,
+            (np.empty((0, 4)), None, np.empty(0, dtype=str)),
+        ),  # empty JSON array
+        (
+            does_not_raise(),
+            """```json
+            [
+                {"box_2d": [100, 200, 300, 400], "label": "cat"}
+            ]
+            ```""",
+            (1000, 500),
+            None,
+            (
+                np.array([[200.0, 50.0, 400.0, 150.0]]),
+                None,
+                np.array(["cat"], dtype=str),
+            ),
+        ),  # single valid box with coordinate scaling
+        (
+            does_not_raise(),
+            """```json
+            [
+                {"box_2d": [10, 20, 110, 120], "label": "cat"},
+                {"box_2d": [50, 100, 150, 200], "label": "dog"}
+            ]
+            ```""",
+            (640, 480),
+            None,
+            (
+                np.array([[12.8, 4.8, 76.8, 52.8], [64.0, 24.0, 128.0, 72.0]]),
+                None,
+                np.array(["cat", "dog"], dtype=str),
+            ),
+        ),  # multiple valid boxes without class filtering
+        (
+            does_not_raise(),
+            """```json
+            [
+                {"box_2d": [10, 20, 110, 120], "label": "cat"}
+            ]
+            ```""",
+            (640, 480),
+            ["dog", "person"],
+            (np.empty((0, 4)), np.empty(0, dtype=int), np.empty(0, dtype=str)),
+        ),  # class mismatch with filter
+        (
+            does_not_raise(),
+            """```json
+            [
+                {"box_2d": [10, 20, 110, 120], "label": "cat"},
+                {"box_2d": [50, 100, 150, 200], "label": "dog"}
+            ]
+            ```""",
+            (640, 480),
+            ["person", "dog"],
+            (
+                np.array([[64.0, 24.0, 128.0, 72.0]]),
+                np.array([1]),
+                np.array(["dog"], dtype=str),
+            ),
+        ),  # partial class filtering
+        (
+            does_not_raise(),
+            """```json
+            [
+                {"box_2d": [10, 20, 110, 120], "label": "cat"},
+                {"box_2d": [50, 100, 150, 200], "label": "dog"}
+            ]
+            ```""",
+            (640, 480),
+            ["cat", "dog"],
+            (
+                np.array([[12.8, 4.8, 76.8, 52.8], [64.0, 24.0, 128.0, 72.0]]),
+                np.array([0, 1]),
+                np.array(["cat", "dog"]),
+            ),
+        ),  # complete class filtering with multiple boxes
+        (
+            pytest.raises(ValueError),
+            """```json
+            [
+                {"box_2d": [10, 20, 110, 120], "label": "cat"}
+            ]
+            ```""",
+            (0, 480),
+            None,
+            None,
+        ),  # zero resolution width -> ValueError
+        (
+            pytest.raises(ValueError),
+            """```json
+            [
+                {"box_2d": [10, 20, 110, 120], "label": "cat"}
+            ]
+            ```""",
+            (640, -100),
+            None,
+            None,
+        ),  # negative resolution height -> ValueError
+    ],
+)
+def test_from_google_gemini(
+    exception,
+    result: str,
+    resolution_wh: Tuple[int, int],
+    classes: Optional[List[str]],
+    expected_results: Tuple[np.ndarray, Optional[np.ndarray], np.ndarray],
+) -> None:
+    with exception:
+        xyxy, class_id, class_name = from_google_gemini(
+            result=result, resolution_wh=resolution_wh, classes=classes
+        )
+        if expected_results is not None:
+            np.testing.assert_array_equal(xyxy, expected_results[0])
+            np.testing.assert_array_equal(class_id, expected_results[1])
+            np.testing.assert_array_equal(class_name, expected_results[2])
+
+
+@pytest.mark.parametrize(
+    "exception, result, resolution_wh, expected_results",
+    [
+        (
+            does_not_raise(),
+            {},
+            (640, 480),
+            np.empty((0, 4)),
+        ),  # empty dict
+        (
+            does_not_raise(),
+            {"objects": []},
+            (640, 480),
+            np.empty((0, 4)),
+        ),  # empty objects list
+        (
+            does_not_raise(),
+            {"objects": "not a list"},
+            (640, 480),
+            np.empty((0, 4)),
+        ),  # objects is not a list
+        (
+            does_not_raise(),
+            {
+                "objects": [
+                    {"x_min": 0.1, "y_min": 0.2, "x_max": 0.3, "y_max": 0.4},
+                ]
+            },
+            (640, 480),
+            np.array([[64.0, 96.0, 192.0, 192.0]]),
+        ),  # single box
+        (
+            does_not_raise(),
+            {
+                "objects": [
+                    {"x_min": 0.1, "y_min": 0.2, "x_max": 0.3, "y_max": 0.4},
+                    {"x_min": 0.5, "y_min": 0.6, "x_max": 0.7, "y_max": 0.8},
+                ]
+            },
+            (640, 480),
+            np.array([[64.0, 96.0, 192.0, 192.0], [320.0, 288.0, 448.0, 384.0]]),
+        ),  # multiple boxes
+        (
+            does_not_raise(),
+            {
+                "objects": [
+                    {"x_min": 0.1, "y_min": 0.2},  # missing x_max, y_max
+                    {"x_min": 0.5, "y_min": 0.6, "x_max": 0.7, "y_max": 0.8},
+                ]
+            },
+            (640, 480),
+            np.array([[320.0, 288.0, 448.0, 384.0]]),
+        ),  # partial valid boxes
+        (
+            does_not_raise(),
+            {
+                "objects": [
+                    {"x_min": 0.0, "y_min": 0.0, "x_max": 1.0, "y_max": 1.0},
+                ]
+            },
+            (1000, 800),
+            np.array([[0.0, 0.0, 1000.0, 800.0]]),
+        ),  # full image box
+        (
+            pytest.raises(ValueError),
+            {
+                "objects": [
+                    {"x_min": 0.1, "y_min": 0.2, "x_max": 0.3, "y_max": 0.4},
+                ]
+            },
+            (0, 480),
+            None,
+        ),  # zero width -> ValueError
+        (
+            pytest.raises(ValueError),
+            {
+                "objects": [
+                    {"x_min": 0.1, "y_min": 0.2, "x_max": 0.3, "y_max": 0.4},
+                ]
+            },
+            (640, -100),
+            None,
+        ),  # negative height -> ValueError
+    ],
+)
+def test_from_moondream(
+    exception,
+    result: dict,
+    resolution_wh: Tuple[int, int],
+    expected_results,
+) -> None:
+    with exception:
+        xyxy = from_moondream(
+            result=result,
+            resolution_wh=resolution_wh,
+        )
+        if expected_results is not None:
+            np.testing.assert_array_equal(xyxy, expected_results)
+
+
+@pytest.mark.parametrize(
+    "florence_result, resolution_wh, expected_results, exception",
+    [
+        (  # Object detection: empty
+            {"<OD>": {"bboxes": [], "labels": []}},
+            (10, 10),
+            (np.array([], dtype=np.float32), np.array([]), None, None),
+            DoesNotRaise(),
+        ),
+        (  # Object detection: two detections
+            {
+                "<OD>": {
+                    "bboxes": [[4, 4, 6, 6], [5, 5, 7, 7]],
+                    "labels": ["car", "door"],
+                }
+            },
+            (10, 10),
+            (
+                np.array([[4, 4, 6, 6], [5, 5, 7, 7]], dtype=np.float32),
+                np.array(["car", "door"]),
+                None,
+                None,
+            ),
+            DoesNotRaise(),
+        ),
+        (  # Caption: unsupported
+            {"<CAPTION>": "A green car parked in front of a yellow building."},
+            (10, 10),
+            None,
+            pytest.raises(ValueError),
+        ),
+        (  # Detailed Caption: unsupported
+            {
+                "<DETAILED_CAPTION>": "The image shows a blue Volkswagen Beetle parked "
+                "in front of a yellow building with two brown doors, surrounded by "
+                "trees and a clear blue sky."
+            },
+            (10, 10),
+            None,
+            pytest.raises(ValueError),
+        ),
+        (  # More Detailed Caption: unsupported
+            {
+                "<MORE_DETAILED_CAPTION>": "The image shows a vintage Volkswagen "
+                "Beetle car parked on a "
+                "cobblestone street in front of a yellow building with two wooden "
+                "doors. The car is painted in a bright turquoise color and has a "
+                "white stripe running along the side. It has two doors on either side "
+                "of the car, one on top of the other, and a small window on the "
+                "front. The building appears to be old and dilapidated, with peeling "
+                "paint and crumbling walls. The sky is blue and there are trees in "
+                "the background."
+            },
+            (10, 10),
+            None,
+            pytest.raises(ValueError),
+        ),
+        (  # Caption to Phrase Grounding: empty
+            {"<CAPTION_TO_PHRASE_GROUNDING>": {"bboxes": [], "labels": []}},
+            (10, 10),
+            (np.array([], dtype=np.float32), np.array([]), None, None),
+            DoesNotRaise(),
+        ),
+        (  # Caption to Phrase Grounding: two detections
+            {
+                "<CAPTION_TO_PHRASE_GROUNDING>": {
+                    "bboxes": [[4, 4, 6, 6], [5, 5, 7, 7]],
+                    "labels": ["a green car", "a yellow building"],
+                }
+            },
+            (10, 10),
+            (
+                np.array([[4, 4, 6, 6], [5, 5, 7, 7]], dtype=np.float32),
+                np.array(["a green car", "a yellow building"]),
+                None,
+                None,
+            ),
+            DoesNotRaise(),
+        ),
+        (  # Dense Region caption: empty
+            {"<DENSE_REGION_CAPTION>": {"bboxes": [], "labels": []}},
+            (10, 10),
+            (np.array([], dtype=np.float32), np.array([]), None, None),
+            DoesNotRaise(),
+        ),
+        (  # Caption to Phrase Grounding: two detections
+            {
+                "<DENSE_REGION_CAPTION>": {
+                    "bboxes": [[4, 4, 6, 6], [5, 5, 7, 7]],
+                    "labels": ["a green car", "a yellow building"],
+                }
+            },
+            (10, 10),
+            (
+                np.array([[4, 4, 6, 6], [5, 5, 7, 7]], dtype=np.float32),
+                np.array(["a green car", "a yellow building"]),
+                None,
+                None,
+            ),
+            DoesNotRaise(),
+        ),
+        (  # Region proposal
+            {
+                "<REGION_PROPOSAL>": {
+                    "bboxes": [[4, 4, 6, 6], [5, 5, 7, 7]],
+                    "labels": ["", ""],
+                }
+            },
+            (10, 10),
+            (
+                np.array([[4, 4, 6, 6], [5, 5, 7, 7]], dtype=np.float32),
+                None,
+                None,
+                None,
+            ),
+            DoesNotRaise(),
+        ),
+        (  # Referring Expression Segmentation
+            {
+                "<REFERRING_EXPRESSION_SEGMENTATION>": {
+                    "polygons": [[[1, 1, 2, 1, 2, 2, 1, 2]]],
+                    "labels": [""],
+                }
+            },
+            (10, 10),
+            (
+                np.array([[1.0, 1.0, 2.0, 2.0]], dtype=np.float32),
+                None,
+                np.array(
+                    [
+                        [
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                        ]
+                    ],
+                    dtype=bool,
+                ),
+                None,
+            ),
+            DoesNotRaise(),
+        ),
+        (  # Referring Expression Segmentation
+            {
+                "<REFERRING_EXPRESSION_SEGMENTATION>": {
+                    "polygons": [[[1, 1, 2, 1, 2, 2, 1, 2]]],
+                    "labels": [""],
+                }
+            },
+            (10, 10),
+            (
+                np.array([[1.0, 1.0, 2.0, 2.0]], dtype=np.float32),
+                None,
+                np.array(
+                    [
+                        [
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                        ]
+                    ],
+                    dtype=bool,
+                ),
+                None,
+            ),
+            DoesNotRaise(),
+        ),
+        (  # OCR: unsupported
+            {"<OCR>": "A"},
+            (10, 10),
+            None,
+            pytest.raises(ValueError),
+        ),
+        (  # OCR with Region: obb boxes
+            {
+                "<OCR_WITH_REGION>": {
+                    "quad_boxes": [[2, 2, 6, 4, 5, 6, 1, 5], [4, 4, 5, 5, 4, 6, 3, 5]],
+                    "labels": ["some text", "other text"],
+                }
+            },
+            (10, 10),
+            (
+                np.array([[1, 2, 6, 6], [3, 4, 5, 6]], dtype=np.float32),
+                np.array(["some text", "other text"]),
+                None,
+                np.array(
+                    [[[2, 2], [6, 4], [5, 6], [1, 5]], [[4, 4], [5, 5], [4, 6], [3, 5]]]
+                ),
+            ),
+            DoesNotRaise(),
+        ),
+        (  # Open Vocabulary Detection
+            {
+                "<OPEN_VOCABULARY_DETECTION>": {
+                    "bboxes": [[4, 4, 6, 6], [5, 5, 7, 7]],
+                    "bboxes_labels": ["cat", "cat"],
+                    "polygon": [],
+                    "polygons_labels": [],
+                }
+            },
+            (10, 10),
+            (
+                np.array([[4, 4, 6, 6], [5, 5, 7, 7]], dtype=np.float32),
+                np.array(["cat", "cat"]),
+                None,
+                None,
+            ),
+            DoesNotRaise(),
+        ),
+        (  # Region to Category: empty
+            {"<REGION_TO_CATEGORY>": "No object detected."},
+            (10, 10),
+            (np.empty((0, 4), dtype=np.float32), np.array([]), None, None),
+            DoesNotRaise(),
+        ),
+        (  # Region to Category: detected
+            {"<REGION_TO_CATEGORY>": "some object<loc_300><loc_400><loc_500><loc_600>"},
+            (10, 10),
+            (
+                np.array([[3, 4, 5, 6]], dtype=np.float32),
+                np.array(["some object"]),
+                None,
+                None,
+            ),
+            DoesNotRaise(),
+        ),
+        (  # Region to Description: empty
+            {"<REGION_TO_DESCRIPTION>": "No object detected."},
+            (10, 10),
+            (np.empty((0, 4), dtype=np.float32), np.array([]), None, None),
+            DoesNotRaise(),
+        ),
+        (  # Region to Description: detected
+            {"<REGION_TO_DESCRIPTION>": "descr<loc_300><loc_400><loc_500><loc_600>"},
+            (10, 10),
+            (
+                np.array([[3, 4, 5, 6]], dtype=np.float32),
+                np.array(["descr"]),
+                None,
+                None,
+            ),
+            DoesNotRaise(),
+        ),
+    ],
+)
+def test_florence_2(
+    florence_result: dict,
+    resolution_wh: Tuple[int, int],
+    expected_results: Tuple[
+        np.ndarray, Optional[np.ndarray], Optional[np.ndarray], Optional[np.ndarray]
+    ],
+    exception: Exception,
+) -> None:
+    with exception:
+        result = from_florence_2(florence_result, resolution_wh)
+        np.testing.assert_array_equal(result[0], expected_results[0])
+        if expected_results[1] is None:
+            assert result[1] is None
+        else:
+            np.testing.assert_array_equal(result[1], expected_results[1])
+        if expected_results[2] is None:
+            assert result[2] is None
+        else:
+            np.testing.assert_array_equal(result[2], expected_results[2])
+        if expected_results[3] is None:
+            assert result[3] is None
+        else:
+            np.testing.assert_array_equal(result[3], expected_results[3])

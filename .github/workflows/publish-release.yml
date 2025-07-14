@@ -35,7 +35,7 @@ jobs:
 
       - name: 🏗️ Build source and wheel distributions
         run: |
-          uv pip install -r pyproject.toml --extra build
+          uv pip install -r pyproject.toml --group build
           uv build
           uv run twine check --strict dist/*
 

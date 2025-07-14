@@ -39,6 +39,7 @@ from supervision.detection.vlm import (
     from_florence_2,
     from_google_gemini,
     from_google_gemini_2_5,
+    from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
     validate_vlm_parameters,
@@ -844,6 +845,9 @@ class Detections:
 
             detections.class_id
             # array([0])
+
+            detections.data
+            # {'class_name': array(['cat'], dtype='<U10')}
             ```
 
         Examples:
@@ -861,12 +865,19 @@ class Detections:
                 qwen_2_5_vl_result,
                 input_wh=(1000, 1000),
                 resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
             )
             detections.xyxy
             # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
 
+            detections.class_id
+            # array([0, 1])
+
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
             ```
 
         Examples:
@@ -883,14 +894,53 @@ class Detections:
             detections = sv.Detections.from_lmm(
                 sv.LMM.GOOGLE_GEMINI_2_0,
                 gemini_response_text,
-                resolution_wh=(IMAGE.size[0], IMAGE.size[1]),
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
             )
 
             detections.xyxy
             # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
 
+            detections.class_id
+            # array([0, 1])
+
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            moondream_result = {
+                'objects': [
+                    {
+                        'x_min': 0.5704046934843063,
+                        'y_min': 0.20069346576929092,
+                        'x_max': 0.7049859315156937,
+                        'y_max': 0.3012596592307091
+                    },
+                    {
+                        'x_min': 0.6210969910025597,
+                        'y_min': 0.3300672620534897,
+                        'x_max': 0.8417936339974403,
+                        'y_max': 0.4961046129465103
+                    }
+                ]
+            }
+
+            detections = sv.Detections.from_vmm(
+                sv.LMM.MOONDREAM,
+                moondream_result,
+                resolution_wh=(1000, 1000),
+            )
+
+            detections.xyxy
+            # array([[1752.28,  818.82, 2165.72, 1229.14],
+            #        [1908.01, 1346.67, 2585.99, 2024.11]])
             ```
         """
 
@@ -961,6 +1011,9 @@ class Detections:
 
             detections.class_id
             # array([0])
+
+            detections.data
+            # {'class_name': array(['cat'], dtype='<U10')}
             ```
 
         Examples:
@@ -978,12 +1031,19 @@ class Detections:
                 qwen_2_5_vl_result,
                 input_wh=(1000, 1000),
                 resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
             )
             detections.xyxy
             # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
 
+            detections.class_id
+            # array([0, 1])
+
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
             ```
 
         Examples:
@@ -1000,15 +1060,56 @@ class Detections:
             detections = sv.Detections.from_vlm(
                 sv.VLM.GOOGLE_GEMINI_2_0,
                 gemini_response_text,
-                resolution_wh=(IMAGE.size[0], IMAGE.size[1]),
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
             )
 
             detections.xyxy
             # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
 
+            detections.class_id
+            # array([0, 1])
+
             detections.data
             # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+
+            detections.class_id
+            # array([0, 1])
             ```
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            moondream_result = {
+                'objects': [
+                    {
+                        'x_min': 0.5704046934843063,
+                        'y_min': 0.20069346576929092,
+                        'x_max': 0.7049859315156937,
+                        'y_max': 0.3012596592307091
+                    },
+                    {
+                        'x_min': 0.6210969910025597,
+                        'y_min': 0.3300672620534897,
+                        'x_max': 0.8417936339974403,
+                        'y_max': 0.4961046129465103
+                    }
+                ]
+            }
+
+            detections = sv.Detections.from_vlm(
+                sv.VLM.MOONDREAM,
+                moondream_result,
+                resolution_wh=(1000, 1000),
+            )
+
+            detections.xyxy
+            # array([[1752.28,  818.82, 2165.72, 1229.14],
+            #        [1908.01, 1346.67, 2585.99, 2024.11]])
+
+            ```
+
         """
         vlm = validate_vlm_parameters(vlm, result, kwargs)
 
@@ -1035,10 +1136,14 @@ class Detections:
 
             return cls(xyxy=xyxy, mask=mask, data=data)
 
-        if vlm == VLM.GOOGLE_GEMINI_2_0:
-            xyxy, class_name = from_google_gemini(result, **kwargs)
+        if vlm == VLM.GOOGLE_GEMINI_2_0 or vlm == VLM.GOOGLE_GEMINI_2_5:
+            xyxy, class_id, class_name = from_google_gemini(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
-            return cls(xyxy=xyxy, data=data)
+            return cls(xyxy=xyxy, class_id=class_id, data=data)
+
+        if vlm == VLM.MOONDREAM:
+            xyxy = from_moondream(result, **kwargs)
+            return cls(xyxy=xyxy)
 
         if vlm == VLM.GOOGLE_GEMINI_2_5:
             xyxy, class_id, class_name, mask, confidence = from_google_gemini_2_5(
