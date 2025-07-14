@@ -1482,12 +1482,16 @@ def box_iou_batch_with_jaccard(
             ious[d_idx, g_idx] = _jaccard(d, g, is_crowd[g_idx])
     return ious
 
-def remove_noisy_segments(mask: np.ndarray, connectivity = 8,area_thresh: int = 20, dist_thresh: float = 125.0) -> np.ndarray:
+
+def remove_noisy_segments(
+    mask: np.ndarray, connectivity=8, area_thresh: int = 810, dist_thresh: float = 70.0
+) -> np.ndarray:
     """
-    Removes small or spatially distant connected components from a binary mask.
+    Removes connected components small and spatially distant from the largest connected component
+    out of a binary mask.
 
     Args:
-        mask (np.ndarray): A 2D boolean or binary mask, where 0 indicates background 
+        mask (np.ndarray): A 2D boolean or binary mask, where 0 indicates background
             and greater than 0 indicates foreground.
         connectivity (int): Connectivity for connected components analysis. Default is 8.
         area_thresh (int): Minimum area in pixels required to keep a component.
@@ -1501,7 +1505,8 @@ def remove_noisy_segments(mask: np.ndarray, connectivity = 8,area_thresh: int = 
         import supervision as sv
 
         mask = np.array([
-            [1, 1, 1, 0, 0, 0],
+            [1, 1, 1, 1, 0, 0],
+            [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 1, 1],
             [0, 1, 1, 0, 1, 1],
             [0, 0, 0, 0, 0, 0],
@@ -1510,23 +1515,25 @@ def remove_noisy_segments(mask: np.ndarray, connectivity = 8,area_thresh: int = 
         ]).astype(bool)
 
         sv.remove_noisy_segments(mask=mask, connectivity=4, area_thresh = 4, dist_thresh = 4)
-        #
-        np.array([
-            [0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 1, 1],
-            [0, 0, 0, 0, 1, 1],
-            [0, 0, 0, 0, 0, 0],
-            [0, 1, 1, 1, 0, 0],
-            [0, 1, 1, 1, 0, 0]
-        ])
+        # np.array([
+        #     [0, 0, 0, 0, 0, 0],
+        #     [0, 0, 0, 0, 0, 0],
+        #     [0, 0, 0, 0, 1, 1],
+        #     [0, 0, 0, 0, 1, 1],
+        #     [0, 0, 0, 0, 0, 0],
+        #     [0, 1, 1, 1, 0, 0],
+        #     [0, 1, 1, 1, 0, 0]
+        # ])
 
-    """ # noqa E501 // docs
+    """  # noqa E501 // docs
     if connectivity != 4 and connectivity != 8:
         raise ValueError(
             "Incorrect connectivity value. Possible connectivity values: 4 or 8."
         )
     mask_uint8 = (mask > 0).astype(np.uint8)
-    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(mask_uint8, connectivity=connectivity)
+    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(
+        mask_uint8, connectivity=connectivity
+    )
 
     if num_labels <= 1:
         return np.zeros_like(mask, dtype=bool)
@@ -1542,11 +1549,8 @@ def remove_noisy_segments(mask: np.ndarray, connectivity = 8,area_thresh: int = 
         area = stats[i, cv2.CC_STAT_AREA]
         centroid = centroids[i]
 
-        if area < area_thresh:
-            continue
-
         dist = np.linalg.norm(centroid - main_centroid)
-        if dist > dist_thresh:
+        if dist > dist_thresh and area < area_thresh:
             continue
 
         # Keep component
