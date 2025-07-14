@@ -1055,6 +1055,26 @@ def test_florence_2(
                 np.array([np.zeros((10, 10), dtype=bool)]),
             ),
         ),
+        (
+            does_not_raise(),
+            """```json
+            [
+                {"box_2d": [100, 100, 200, 200], "mask": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACoWZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXpjAAAAAElFTkSuQmCC", "label": "cat", "confidence": 0.8},
+                {"box_2d": [300, 300, 400, 400], "mask": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACoWZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXpjAAAAAElFTkSuQmCC", "label": "dog", "confidence": 0.9}
+            ]
+            ```""",  # noqa E501 // docs
+            (10, 10),
+            ["cat", "dog"],
+            (
+                np.array([[1.0, 1.0, 2.0, 2.0], [3.0, 3.0, 4.0, 4.0]]),
+                np.array([0, 1]),
+                np.array(["cat", "dog"]),
+                np.array([0.8, 0.9]),
+                np.array(
+                    [np.zeros((10, 10), dtype=bool), np.zeros((10, 10), dtype=bool)],
+                ),
+            ),
+        ),
     ],
 )
 def test_from_google_gemini_2_5(
