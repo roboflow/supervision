@@ -11,7 +11,7 @@
 - `Detections.from_vlm` now supports:
     - bounding boxes and segmentation masks response from [Google Gemini models](https://ai.google.dev/gemini-api/docs/vision). ([#1792](https://github.com/roboflow/supervision/pull/1792))
     - bounding boxes response from [Moondream](https://github.com/vikhyat/moondream). ([#1878](https://github.com/roboflow/supervision/pull/1878))
-    - bounding noxes response from [Qwen-2.5 VL](https://github.com/QwenLM/Qwen2.5-VL). ([#1709](https://github.com/roboflow/supervision/pull/1790))
+    - bounding boxes response from [Qwen-2.5 VL](https://github.com/QwenLM/Qwen2.5-VL). ([#1709](https://github.com/roboflow/supervision/pull/1790))
 
 - Align Supervision's mAP implementation (`sv.MeanAveragePrecision`) with [pycocotools](https://github.com/ppwwyyxx/cocoapi), the official COCO evaluation tool, thus ensuring accurate, reliable, and standardized metrics. You can refer to the table [here](https://github.com/roboflow/model-leaderboard/pull/92#issue-3175929645) that documents the accuracy of Supervision’s mAP implementation with respect to pycocotools’ implementation. ([#1834](https://github.com/roboflow/supervision/pull/1834))
 
