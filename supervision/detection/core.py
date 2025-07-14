@@ -815,7 +815,7 @@ class Detections:
         """
         Creates a Detections object from the given result string based on the specified
         Large Multimodal Model (LMM).
-        
+
         | Name                | Enum (sv.LMM)        | Tasks                   | Required parameters         | Optional parameters |
         |---------------------|----------------------|-------------------------|-----------------------------|---------------------|
         | PaliGemma           | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
@@ -837,10 +837,10 @@ class Detections:
             ValueError: If the LMM is invalid, required arguments are missing, or
                 disallowed arguments are provided.
             ValueError: If the specified LMM is not supported.
-            
+
         !!! example "PaliGemma"
             ```python
-            
+
             import supervision as sv
 
             paligemma_result = "<loc0256><loc0256><loc0768><loc0768> cat"
@@ -919,35 +919,35 @@ class Detections:
             ```
 
         !!! example "Gemini 2.5"
-        
+
             ??? tip "Prompt engineering"
-            
+
                 To get the best results from Google Gemini 2.5, use the following prompt.
-                
-                This prompt is designed to detect all visible objects in the image, 
-                including small, distant, or partially visible ones, and to return 
+
+                This prompt is designed to detect all visible objects in the image,
+                including small, distant, or partially visible ones, and to return
                 tight bounding boxes.
-                
+
                 ```
-                Carefully examine this image and detect ALL visible objects, including 
+                Carefully examine this image and detect ALL visible objects, including
                 small, distant, or partially visible ones.
-                
-                IMPORTANT: Focus on finding as many objects as possible, even if you are 
+
+                IMPORTANT: Focus on finding as many objects as possible, even if you are
                 only moderately confident.
-                
+
                 Make sure each bounding box is as tight as possible.
-                
+
                 Valid object classes: {class_list}
-                
+
                 For each detected object, provide:
                 - "label": the exact class name from the list above
                 - "confidence": your certainty (between 0.0 and 1.0)
                 - "box_2d": the bounding box [ymin, xmin, ymax, xmax] normalized to 0–1000
                 - "mask": the binary mask of the object as a base64-encoded string
-                
-                Detect everything that matches the valid classes. Do not be 
+
+                Detect everything that matches the valid classes. Do not be
                 conservative; include objects even with moderate confidence.
-                
+
                 Return a JSON array, for example:
                 [
                     {
@@ -964,10 +964,10 @@ class Detections:
                     }
                 ]
                 ```
-                
-                When using the google-genai library, it is recommended to set 
+
+                When using the google-genai library, it is recommended to set
                 thinking_budget=0 in thinking_config for more direct and faster responses.
-                
+
                 ```python
                 from google.generativeai import types
 
@@ -980,15 +980,15 @@ class Detections:
                     )
                 )
                 ```
-                
+
                 For a shorter prompt focused only on segmentation masks, you can use:
-                
+
                 ```
-                Return a JSON list of segmentation masks. Each entry should include the 
-                2D bounding box in the "box_2d" key, the segmentation mask in the "mask" 
+                Return a JSON list of segmentation masks. Each entry should include the
+                2D bounding box in the "box_2d" key, the segmentation mask in the "mask"
                 key, and the text label in the "label" key. Use descriptive labels.
                 ```
-                
+
             ```python
             import supervision as sv
 
