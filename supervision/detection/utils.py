@@ -108,7 +108,9 @@ def box_iou(
     return inter_area / union_area + 1e-6
 
 
-def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray, match_metric: str = "IOU") -> np.ndarray:
+def box_iou_batch(
+    boxes_true: np.ndarray, boxes_detection: np.ndarray, match_metric: str = "IOU"
+) -> np.ndarray:
     """
     Compute Intersection over Union (IoU) of two sets of bounding boxes -
         `boxes_true` and `boxes_detection`. Both sets
