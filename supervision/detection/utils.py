@@ -185,7 +185,8 @@ def box_iou_batch(
         )
     else:
         raise ValueError(
-            f"match_metric {match_metric} is not supported, only 'IOU' and 'IOS' are supported"
+            f"match_metric {match_metric} is not supported, "
+            "only 'IOU' and 'IOS' are supported"
         )
 
     ious = np.nan_to_num(ious)
@@ -237,7 +238,8 @@ def _mask_iou_batch_split(
         )
     else:
         raise ValueError(
-            f"match_metric {match_metric} is not supported, only 'IOU' and 'IOS' are supported"
+            f"match_metric {match_metric} is not supported, "
+            "only 'IOU' and 'IOS' are supported"
         )
 
     ious = np.nan_to_num(ious)

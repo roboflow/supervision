@@ -319,7 +319,8 @@ def group_overlapping_masks(
         predictions (npt.NDArray[np.float64]): An array of shape `(n, 5)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`
             and the confidence scores.
-        masks (npt.NDArray[np.float64]): A 3D array of binary masks corresponding to the predictions.
+        masks (npt.NDArray[np.float64]): A 3D array of binary masks corresponding to
+            the predictions.
         iou_threshold (float): The intersection-over-union threshold
             to use for non-maximum suppression. Defaults to 0.5.
         match_metric (str): Metric used for matching detections in slices.
