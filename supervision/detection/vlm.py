@@ -435,7 +435,9 @@ def from_google_gemini_2_5(
             {
                 "box_2d": [x1, y1, x2, y2],
                 "mask": "data:image/png;base64,...",
-                "label": "some class name"},
+                "label": "some class name",
+                "confidence": 0.95,
+            },
             ...
         ]
         ```
