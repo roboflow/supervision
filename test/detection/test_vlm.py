@@ -1038,6 +1038,23 @@ def test_florence_2(
             None,
             None,
         ),
+        (
+            does_not_raise(),
+            """```json
+            [
+                {"box_2d": [10, 20, 110, 120], "mask": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACoWZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXpjAAAAAElFTkSuQmCC", "label": "cat"}
+            ]
+            ```""",  # noqa E501 // docs
+            (10, 10),
+            ["cat"],
+            (
+                np.array([[0.2, 0.1, 1.2, 1.1]]),
+                np.array([0]),
+                np.array(["cat"]),
+                None,
+                np.array([np.zeros((10, 10), dtype=bool)]),
+            ),
+        ),
     ],
 )
 def test_from_google_gemini_2_5(
