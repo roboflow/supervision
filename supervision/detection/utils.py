@@ -1484,15 +1484,18 @@ def box_iou_batch_with_jaccard(
 
 
 def remove_noisy_segments(
-    mask: np.ndarray, connectivity=8, area_thresh: int = 810, dist_thresh: float = 70.0
-) -> np.ndarray:
+    mask: npt.NDArray[np.bool_],
+    connectivity: int = 8,
+    area_thresh: int = 680,
+    dist_thresh: float = 70.0,
+) -> npt.NDArray[np.bool_]:
     """
     Removes connected components small and spatially distant from the largest connected component
-    out of a binary mask.
+    out of a binary mask. Component area is penalized more the farther it is from the largest component centroid.
 
     Args:
         mask (np.ndarray): A 2D boolean or binary mask, where 0 indicates background
-            and greater than 0 indicates foreground.
+            and 1 indicates foreground.
         connectivity (int): Connectivity for connected components analysis. Default is 8.
         area_thresh (int): Minimum area in pixels required to keep a component.
         dist_thresh (float): Max distance in pixels from the main component's centroid to keep a component.
@@ -1540,6 +1543,10 @@ def remove_noisy_segments(
 
     # Identify main (largest) component excluding background (label 0)
     areas = stats[1:, cv2.CC_STAT_AREA]
+
+    if not areas.size:
+        # input mask contains no foreground pixels
+        return np.zeros_like(mask, dtype=bool)
     largest_idx = 1 + np.argmax(areas)
     main_centroid = centroids[largest_idx]
 
@@ -1550,7 +1557,7 @@ def remove_noisy_segments(
         centroid = centroids[i]
 
         dist = np.linalg.norm(centroid - main_centroid)
-        if dist > dist_thresh and area < area_thresh:
+        if dist > dist_thresh and area < area_thresh * dist / dist_thresh:
             continue
 
         # Keep component
