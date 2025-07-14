@@ -1481,3 +1481,75 @@ def box_iou_batch_with_jaccard(
         for d_idx, d in enumerate(boxes_detection):
             ious[d_idx, g_idx] = _jaccard(d, g, is_crowd[g_idx])
     return ious
+
+def remove_noisy_segments(mask: np.ndarray, connectivity = 8,area_thresh: int = 20, dist_thresh: float = 125.0) -> np.ndarray:
+    """
+    Removes small or spatially distant connected components from a binary mask.
+
+    Args:
+        mask (np.ndarray): A 2D boolean or binary mask, where 0 indicates background 
+            and greater than 0 indicates foreground.
+        connectivity (int): Connectivity for connected components analysis. Default is 8.
+        area_thresh (int): Minimum area in pixels required to keep a component.
+        dist_thresh (float): Max distance in pixels from the main component's centroid to keep a component.
+
+    Returns:
+        np.ndarray: A cleaned binary mask with outlier components removed.
+
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        mask = np.array([
+            [1, 1, 1, 0, 0, 0],
+            [0, 0, 0, 0, 1, 1],
+            [0, 1, 1, 0, 1, 1],
+            [0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0, 0],
+            [0, 1, 1, 1, 0, 0]
+        ]).astype(bool)
+
+        sv.remove_noisy_segments(mask=mask, connectivity=4, area_thresh = 4, dist_thresh = 4)
+        #
+        np.array([
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 1, 1],
+            [0, 0, 0, 0, 1, 1],
+            [0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0, 0],
+            [0, 1, 1, 1, 0, 0]
+        ])
+
+    """ # noqa E501 // docs
+    if connectivity != 4 and connectivity != 8:
+        raise ValueError(
+            "Incorrect connectivity value. Possible connectivity values: 4 or 8."
+        )
+    mask_uint8 = (mask > 0).astype(np.uint8)
+    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(mask_uint8, connectivity=connectivity)
+
+    if num_labels <= 1:
+        return np.zeros_like(mask, dtype=bool)
+
+    # Identify main (largest) component excluding background (label 0)
+    areas = stats[1:, cv2.CC_STAT_AREA]
+    largest_idx = 1 + np.argmax(areas)
+    main_centroid = centroids[largest_idx]
+
+    # Start with an empty output mask
+    cleaned_mask = np.zeros_like(mask, dtype=bool)
+    for i in range(1, num_labels):  # skip background
+        area = stats[i, cv2.CC_STAT_AREA]
+        centroid = centroids[i]
+
+        if area < area_thresh:
+            continue
+
+        dist = np.linalg.norm(centroid - main_centroid)
+        if dist > dist_thresh:
+            continue
+
+        # Keep component
+        cleaned_mask[labels == i] = True
+
+    return cleaned_mask

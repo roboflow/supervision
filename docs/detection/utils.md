@@ -130,3 +130,9 @@ status: new
 </div>
 
 :::supervision.detection.utils.contains_multiple_segments
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.remove_noisy_segments">remove_noisy_segments</a></h2>
+</div>
+
+:::supervision.detection.utils.remove_noisy_segments
