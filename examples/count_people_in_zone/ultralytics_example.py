@@ -134,7 +134,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--source_weights_path",
-        default="yolov8x.pt",
+        default="yolo11x.pt",
         help="Path to the source weights file",
         type=str,
     )
