@@ -431,6 +431,9 @@ def from_google_gemini_2_5(
             the class indices for each bounding box
         masks: Optional[np.ndarray]: An array of shape `(n, h, w)` containing
             the segmentation masks for each bounding box
+        confidence: Optional[np.ndarray]: An array of shape `(n,)` containing
+            the confidence scores for each bounding box. If not provided,
+            it defaults to 0.0 for each box.
     """
     w, h = validate_resolution(resolution_wh)
 
