@@ -421,6 +421,7 @@ def from_google_gemini_2_0(
 def from_google_gemini_2_5(
     result: str,
     resolution_wh: Tuple[int, int],
+    classes: Optional[List[str]] = None
 ) -> Tuple[
     np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray], Optional[np.ndarray]
 ]:
@@ -445,15 +446,15 @@ def from_google_gemini_2_5(
     Returns:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`
-        class_name: (np.ndarray): An array of shape `(n,)` containing
-            the class labels for each bounding box
-        class_id [np.ndarray]: An array of shape `(n,)` containing
+        class_id (np.ndarray): An array of shape `(n,)` containing
             the class indices for each bounding box
-        masks: Optional[np.ndarray]: An array of shape `(n, h, w)` containing
-            the segmentation masks for each bounding box
+        class_name (np.ndarray): An array of shape `(n,)` containing
+            the class labels for each bounding box
         confidence: Optional[np.ndarray]: An array of shape `(n,)` containing
             the confidence scores for each bounding box. If not provided,
             it defaults to 0.0 for each box.
+        masks (Optional[np.ndarray]): An array of shape `(n, h, w)` containing
+            the segmentation masks for each bounding box
     """
     w, h = validate_resolution(resolution_wh)
 
@@ -472,13 +473,14 @@ def from_google_gemini_2_5(
             np.empty((0,), dtype=str),
             np.empty((0,), dtype=int),
             None,
+            
         )
 
-    class_name: list = []
-    class_id: list = []
     xyxy: list = []
-    masks: list = []
+    class_id: list = []
+    class_name: list = []
     confidence: list = []
+    masks: list = []
 
     for item in data:
         if "box_2d" not in item or "label" not in item:
@@ -522,32 +524,34 @@ def from_google_gemini_2_5(
             masks.append(np.zeros((h, w), dtype=bool))
 
         if "confidence" in item:
-            # if confidence is provided
             confidence.append(item["confidence"])
         else:
-            # if confidence is not provided, we assume 0
             confidence.append(0.0)
 
     if not xyxy:
         return (
             np.empty((0, 4)),
-            np.empty((0,), dtype=str),
-            np.empty((0,), dtype=int),
+            np.array([], dtype=int),  
+            np.array([], dtype=str),
+            np.array([], dtype=np.float32),
             None,
         )
 
-    mask = np.array(masks) if masks is not None else None
 
-    unique_labels = list(set(class_name))
-    for label in class_name:
-        class_id.append(unique_labels.index(label))
+    if classes is not None:
+        mask = np.array([name in classes for name in class_name], dtype=bool)
+        xyxy = xyxy[mask]
+        class_name = class_name[mask]
+        class_id = np.array([classes.index(name) for name in class_name], dtype=int)
+        masks = [masks[i] for i in range(len(masks)) if mask[i]]
+
 
     return (
-        np.array(xyxy),
-        np.array(class_id),
-        np.array(class_name),
-        mask,
-        np.array(confidence),
+        np.array(xyxy, dtype=float),
+        np.array(class_id, dtype=int),
+        np.array(class_name, dtype=str),
+        np.array(confidence, dtype=float),
+        np.array(masks) if masks is not None else None,
     )
 
 
@@ -574,10 +578,13 @@ def from_moondream(
           ]
       }
 
-
     Args:
         result: Dictionary containing the JSON output from the model.
         resolution_wh: (output_width, output_height) to which we rescale the boxes.
+        
+    Returns:
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing
+            the bounding boxes coordinates in format `[x1, y1, x2, y2]`
     """
 
     w, h = resolution_wh
