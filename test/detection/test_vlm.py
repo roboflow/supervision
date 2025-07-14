@@ -7,7 +7,7 @@ import pytest
 
 from supervision.detection.vlm import (
     from_florence_2,
-    from_google_gemini,
+    from_google_gemini_2_0,
     from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
@@ -492,7 +492,7 @@ def test_from_google_gemini(
     expected_results: Tuple[np.ndarray, Optional[np.ndarray], np.ndarray],
 ) -> None:
     with exception:
-        xyxy, class_id, class_name = from_google_gemini(
+        xyxy, class_id, class_name = from_google_gemini_2_0(
             result=result, resolution_wh=resolution_wh, classes=classes
         )
         if expected_results is not None:

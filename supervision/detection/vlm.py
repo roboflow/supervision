@@ -330,7 +330,7 @@ def from_florence_2(
     assert False, f"Unimplemented task: {task}"
 
 
-def from_google_gemini(
+def from_google_gemini_2_0(
     result: str,
     resolution_wh: Tuple[int, int],
     classes: Optional[List[str]] = None,
