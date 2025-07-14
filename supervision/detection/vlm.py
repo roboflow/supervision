@@ -27,6 +27,7 @@ class LMM(Enum):
     QWEN_2_5_VL = "qwen_2_5_vl"
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
+    MOONDREAM = "moondream"
 
 
 class VLM(Enum):
@@ -62,6 +63,7 @@ ALLOWED_ARGUMENTS: Dict[VLM, List[str]] = {
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh", "classes"],
+    VLM.MOONDREAM: ["resolution_wh"],
 }
 
 SUPPORTED_TASKS_FLORENCE_2 = [
