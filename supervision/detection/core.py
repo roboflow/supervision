@@ -1041,9 +1041,17 @@ class Detections:
             return cls(xyxy=xyxy, data=data)
 
         if vlm == VLM.GOOGLE_GEMINI_2_5:
-            xyxy, class_id, class_name, mask, confidence = from_google_gemini_2_5(result, **kwargs)
+            xyxy, class_id, class_name, mask, confidence = from_google_gemini_2_5(
+                result, **kwargs
+            )
             data = {CLASS_NAME_DATA_FIELD: class_name}
-            return cls(xyxy=xyxy, class_id=class_id, mask=mask, confidence=confidence, data=data)
+            return cls(
+                xyxy=xyxy,
+                class_id=class_id,
+                mask=mask,
+                confidence=confidence,
+                data=data,
+            )
 
         return cls.empty()
 
