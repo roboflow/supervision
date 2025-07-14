@@ -53,9 +53,3 @@ repos:
       - id: codespell
         additional_dependencies:
           - tomli
-
-
-  - repo: https://github.com/venomlab/pyproject-pyupgrade
-    rev: v0.1.1
-    hooks:
-      - id: ppyupgrade

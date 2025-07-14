@@ -3,7 +3,7 @@ import warnings
 from collections import Counter, defaultdict, deque
 from collections.abc import Iterable
 from functools import lru_cache
-from typing import Any, Deque, Literal, Optional
+from typing import Any, Literal, Optional
 
 import cv2
 import numpy as np
@@ -100,7 +100,7 @@ class LineZone:
         self.vector = Vector(start=start, end=end)
         self.limits = self._calculate_region_of_interest_limits(vector=self.vector)
         self.crossing_history_length = max(2, minimum_crossing_threshold + 1)
-        self.crossing_state_history: dict[int, Deque[bool]] = defaultdict(
+        self.crossing_state_history: dict[int, deque[bool]] = defaultdict(
             lambda: deque(maxlen=self.crossing_history_length)
         )
         self._in_count_per_class: Counter = Counter()

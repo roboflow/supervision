@@ -172,6 +172,4 @@ class STrack:
         return ret
 
     def __repr__(self) -> str:
-        return "OT_{}_({}-{})".format(
-            self.internal_track_id, self.start_frame, self.frame_id
-        )
+        return f"OT_{self.internal_track_id}_({self.start_frame}-{self.frame_id})"

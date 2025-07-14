@@ -984,9 +984,7 @@ class COCOEvaluator:
             titleStr = "Average Precision" if use_ap else "Average Recall"
             typeStr = "(AP)" if use_ap else "(AR)"
             iou_str = (
-                "{:0.2f}:{:0.2f}".format(
-                    self.params.iou_thrs[0], self.params.iou_thrs[-1]
-                )
+                f"{self.params.iou_thrs[0]:0.2f}:{self.params.iou_thrs[-1]:0.2f}"
                 if iou_thr is None
                 else f"{iou_thr:0.2f}"
             )
