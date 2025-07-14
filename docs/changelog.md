@@ -1,5 +1,38 @@
 # Changelog
 
+### 0.26.0 <small>Jul 16, 2025</small>
+
+- Updates to `LabelAnnotator`: ([#1820](https://github.com/roboflow/supervision/pull/1820))
+    - `LabelAnnotator` now has the ability to ensure labels stay within frame boundaries using the `smart_position` parameter.
+    - Labels now properly render text with newlines. New `max_line_length parameter` in `LabelAnnotator` for controling automatic text wrapping.
+    - `LableAnnoatator` now automatically prevents overlapping multiline labels and  more effective label distribution with size-aware positioning.
+    - `LabelAnnotator` now supports non-string labels. ([#1825](https://github.com/roboflow/supervision/pull/1825))
+
+- `Detections.from_vlm` now supports:
+    - bounding boxes and segmentation masks response from [Google Gemini models](https://ai.google.dev/gemini-api/docs/vision). ([#1792](https://github.com/roboflow/supervision/pull/1792))
+    - bounding boxes response from [Moondream](https://github.com/vikhyat/moondream). ([#1878](https://github.com/roboflow/supervision/pull/1878))
+    - bounding noxes response from [Qwen-2.5 VL](https://github.com/QwenLM/Qwen2.5-VL). ([#1709](https://github.com/roboflow/supervision/pull/1790))
+
+- Align Supervision's mAP implementation (`sv.MeanAveragePrecision`) with [pycocotools](https://github.com/ppwwyyxx/cocoapi), the official COCO evaluation tool, thus ensuring accurate, reliable, and standardized metrics. You can refer to the table [here](https://github.com/roboflow/model-leaderboard/pull/92#issue-3175929645) that documents the accuracy of Supervision’s mAP implementation with respect to pycocotools’ implementation. ([#1834](https://github.com/roboflow/supervision/pull/1834))
+
+- Added support for IOS matching metric for `Detections.with_nms` and `Detections.with_nmm` for handling non-max suppression and non-maximum merging of both bounding boxes and masks. ([#1774](https://github.com/roboflow/supervision/pull/1774))
+
+- Added new function `box_iou` that efficiently computes the Intersection over Union (IoU) between two individual bounding boxes. ([#1874](https://github.com/roboflow/supervision/pull/1874))
+
+- Added support for frame limitations and progress bar in `sv.process_video`. ([#1816](https://github.com/roboflow/supervision/pull/1816))
+
+- Supervision’s documentation theme now has a fresh look that is consistent with the documentations of all Roboflow open-source projects. ([#1858](https://github.com/roboflow/supervision/pull/1858))
+
+- Added `xyxy_to_xcycarh` conversion function. ([#1823](https://github.com/roboflow/supervision/pull/1823))
+
+- Added support for creating KeyPoints objects from [Transformers](https://huggingface.co/docs/transformers/index) inference results. ([#1788](https://github.com/roboflow/supervision/pull/1788))
+
+- Fix loosing `sv.Detections.data` when detections filtering. ([#1767](https://github.com/roboflow/supervision/pull/1767))
+
+- Make `TraceAnnotator` better handle pending tracks by centralizing the configuration of pending track identifiers and colors, and updating the annotation logic to skip pending tracks. ([#1828](https://github.com/roboflow/supervision/pull/1828))
+
+- Improve HSV color mapping in `HeatMapAnnotator` by 20x. ([#1786](https://github.com/roboflow/supervision/pull/1786))
+
 ### 0.25.0 <small>Nov 12, 2024</small>
 
 - No removals or deprecations in this release!

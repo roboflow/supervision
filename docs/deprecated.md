@@ -19,6 +19,16 @@ These features are phased out due to better alternatives or potential issues in 
 
 # Removed
 
+### 0.26.0
+
+- The `DetectionDataset.images` property has been removed in `supervision-0.26.0`. Please loop over images with `for path, image, annotation in dataset:`, as that does not require loading all images into memory.
+
+- Constructing `DetectionDataset` with parameter `images` as `Dict[str, np.ndarray]` is deprecated and has been removed in `supervision-0.26.0`. Please pass a list of paths `List[str]` instead.
+
+- The name `BoundingBoxAnnotator` is deprecated and has been removed in `supervision-0.26.0`. It has been renamed to [`BoxAnnotator`](https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.BoxAnnotator).
+
+- `supervision-0.26.0` drops `python3.8` support and upgrade all codes to `python3.9` syntax style.
+
 ### 0.25.0
 
 No removals in this version!
