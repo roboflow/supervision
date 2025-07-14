@@ -1029,7 +1029,7 @@ class Detections:
             # array([[1752.28,  818.82, 2165.72, 1229.14],
             #        [1908.01, 1346.67, 2585.99, 2024.11]])
             ```
-        """
+        """  # noqa: E501
 
         # filler logic mapping old from_lmm to new from_vlm
         lmm_to_vlm = {
@@ -1286,7 +1286,7 @@ class Detections:
 
             ```
 
-        """
+        """  # noqa: E501
         vlm = validate_vlm_parameters(vlm, result, kwargs)
 
         if vlm == VLM.PALIGEMMA:
