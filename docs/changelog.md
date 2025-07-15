@@ -13,7 +13,7 @@
     ```python
     import numpy as np
     import supervision as sv
-    
+
     boxes_true = np.array([
         [100, 100, 200, 200],
         [300, 300, 400, 400]
@@ -22,22 +22,22 @@
         [150, 150, 250, 250],
         [320, 320, 420, 420]
     ])
-  
+
     sv.box_iou_batch(
-        boxes_true=boxes_true, 
-        boxes_detection=boxes_detection, 
+        boxes_true=boxes_true,
+        boxes_detection=boxes_detection,
         overlap_metric=sv.OverlapMetric.IOU
     )
-  
+
     # array([[0.14285714, 0.        ],
     #        [0.        , 0.47058824]])
-  
+
     sv.box_iou_batch(
-        boxes_true=boxes_true, 
-        boxes_detection=boxes_detection, 
+        boxes_true=boxes_true,
+        boxes_detection=boxes_detection,
         overlap_metric=sv.OverlapMetric.IOS
     )
-  
+
     # array([[0.25, 0.  ],
     #        [0.  , 0.64]])
     ```
@@ -74,13 +74,13 @@
         resolution_wh=(1000, 1000),
         classes=['cat', 'dog'],
     )
-  
+
     detections.xyxy
     # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
-    
+
     detections.data
     # {'class_name': array(['cat', 'dog'], dtype='<U26')}
-    
+
     detections.class_id
     # array([0, 1])
     ```
@@ -112,7 +112,7 @@
         moondream_result,
         resolution_wh=(1000, 1000),
     )
-  
+
     detections.xyxy
     # array([[1752.28,  818.82, 2165.72, 1229.14],
     #        [1908.01, 1346.67, 2585.99, 2024.11]])
@@ -129,7 +129,7 @@
         {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
     ]
     ```"""
-  
+
     detections = sv.Detections.from_vlm(
         sv.VLM.QWEN_2_5_VL,
         qwen_2_5_vl_result,
@@ -137,16 +137,16 @@
         resolution_wh=(1000, 1000),
         classes=['cat', 'dog'],
     )
-  
+
     detections.xyxy
     # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
-    
+
     detections.class_id
     # array([0, 1])
-    
+
     detections.data
     # {'class_name': array(['cat', 'dog'], dtype='<U10')}
-    
+
     detections.class_id
     # array([0, 1])
     ```
@@ -164,7 +164,7 @@
 
     map_metric = MeanAveragePrecision()
     map_metric.update(predictions, targets).compute()
-  
+
     # Average Precision (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.464
     # Average Precision (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.637
     # Average Precision (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.203
