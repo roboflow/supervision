@@ -1,8 +1,10 @@
+import textwrap
 from enum import Enum
 from typing import Optional, Union
 
 import numpy as np
 
+from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.draw.color import Color, ColorPalette
 from supervision.geometry.core import Position
@@ -144,6 +146,166 @@ def resolve_color(
     return get_color_by_index(color=color, idx=idx)
 
 
+def wrap_text(text: str, max_line_length=None) -> list[str]:
+    """
+    Wraps text to the specified maximum line length, respecting existing newlines.
+    Uses the textwrap library for robust text wrapping.
+
+    Args:
+        text (str): The text to wrap.
+
+    Returns:
+        List[str]: A list of text lines after wrapping.
+    """
+
+    if not text:
+        return [""]
+
+    if max_line_length is None:
+        return text.splitlines() or [""]
+
+    paragraphs = text.split("\n")
+    all_lines = []
+
+    for paragraph in paragraphs:
+        if not paragraph:
+            # Keep empty lines
+            all_lines.append("")
+            continue
+
+        wrapped = textwrap.wrap(
+            paragraph,
+            width=max_line_length,
+            break_long_words=True,
+            replace_whitespace=False,
+            drop_whitespace=True,
+        )
+
+        if wrapped:
+            all_lines.extend(wrapped)
+        else:
+            all_lines.append("")
+
+    return all_lines if all_lines else [""]
+
+
+def validate_labels(labels: Optional[list[str]], detections: Detections):
+    """
+    Validates that the number of provided labels matches the number of detections.
+
+    Args:
+        labels (Optional[List[str]]): A list of labels, one for each detection. Can
+                                        be None.
+        detections (Detections): The detections to be labeled.
+
+    Raises:
+        ValueError: If `labels` is not None and its length does not match the number
+        of detections.
+    """
+    if labels is not None and len(labels) != len(detections):
+        raise ValueError(
+            f"The number of labels ({len(labels)}) does not match the "
+            f"number of detections ({len(detections)}). Each detection "
+            f"should have exactly 1 label."
+        )
+
+
+def get_labels_text(
+    detections: Detections, custom_labels: Optional[list[str]]
+) -> list[str]:
+    """
+    Retrieves the text labels for the detections.
+
+    If `custom_labels` are provided, they are used. Otherwise, the labels are
+    extracted from the `detections` object, prioritizing the 'class_name' field,
+    then the `class_id`, and finally using the detection index as a string.
+
+    Args:
+        detections (Detections): The detections to get labels for.
+        custom_labels (Optional[List[str]]): An optional list of custom labels.
+
+    Returns:
+        List[str]: A list of text labels for each detection.
+    """
+    if custom_labels is not None:
+        return custom_labels
+
+    labels = []
+    for idx in range(len(detections)):
+        if CLASS_NAME_DATA_FIELD in detections.data:
+            labels.append(detections.data[CLASS_NAME_DATA_FIELD][idx])
+        elif detections.class_id is not None:
+            labels.append(str(detections.class_id[idx]))
+        else:
+            labels.append(str(idx))
+    return labels
+
+
+def snap_boxes(xyxy: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
+    """
+    Shifts `label` bounding boxes into the frame so that they are fully contained
+    within the given resolution, prioritizing the top/left edge.
+    Unlike `clip_boxes`, this function does not crop boxes.
+    It moves them entirely if they exceed the frame boundaries.
+
+    Args:
+        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
+            row corresponds to a bounding box in the format
+            `(x_min, y_min, x_max, y_max)`.
+        resolution_wh (Tuple[int, int]): A tuple `(width, height)`
+            representing the resolution of the frame.
+
+    Returns:
+        np.ndarray: A numpy array of shape `(N, 4)` with boxes shifted into frame.
+
+    Examples:
+    ```python
+    import numpy as np
+
+    # Example boxes:
+    xyxy = np.array([
+        [-10, 10, 30, 50],     # Off left edge
+        [310, 200, 350, 250],  # Off right edge
+        [100, -20, 150, 30],   # Off top edge
+        [200, 220, 250, 270],  # Off bottom edge
+        [-20, 10, 350, 50],    # Wider than frame (370 vs 320)
+        [10, -20, 30, 260]     # Taller than frame (280 vs 240)
+    ])
+
+    resolution_wh = (320, 240)
+    snapped_boxes = snap_boxes(xyxy=xyxy, resolution_wh=resolution_wh)
+
+    # Results:
+    # [[  0  10  40  50]  # Left edge shifted right
+    #  [280 200 320 250]  # Right edge shifted left
+    #  [100   0 150  50]  # Top edge shifted down
+    #  [200 190 250 240]  # Bottom edge shifted up
+    #  [  0  10 370  50]  # Wide box aligned to left edge
+    #  [ 10   0  30 280]] # Tall box aligned to top edge
+    ```
+    """
+    result = np.copy(xyxy)
+    width, height = resolution_wh
+
+    # X-axis (prioritize left edge)
+    left_overflow = result[:, 0] < 0
+    result[left_overflow, 0:3:2] -= result[left_overflow, 0:1]
+
+    right_overflow = (~left_overflow) & (result[:, 2] > width)
+    right_shift = width - result[right_overflow, 2]
+    result[right_overflow, 0:3:2] += right_shift[:, np.newaxis]
+
+    # Y-axis (prioritize top edge)
+    top_overflow = result[:, 1] < 0
+    result[top_overflow, 1:4:2] -= result[top_overflow, 1:2]
+
+    bottom_overflow = (~top_overflow) & (result[:, 3] > height)
+    bottom_shift = height - result[bottom_overflow, 3]
+    result[bottom_overflow, 1:4:2] += bottom_shift[:, np.newaxis]
+
+    return result
+
+
 class Trace:
     def __init__(
         self,
@@ -163,7 +325,10 @@ class Trace:
         frame_id = np.full(len(detections), self.current_frame_id, dtype=int)
         self.frame_id = np.concatenate([self.frame_id, frame_id])
         self.xy = np.concatenate(
-            [self.xy, detections.get_anchors_coordinates(self.anchor)]
+            [
+                self.xy,
+                detections.get_anchors_coordinates(self.anchor),
+            ]
         )
         self.tracker_id = np.concatenate([self.tracker_id, detections.tracker_id])
 
