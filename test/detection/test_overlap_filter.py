@@ -7,8 +7,8 @@ import pytest
 from supervision.detection.overlap_filter import (
     box_non_max_suppression,
     group_overlapping_boxes,
-    mask_non_max_suppression,
     mask_non_max_merge,
+    mask_non_max_suppression,
 )
 
 
