@@ -8,6 +8,7 @@ from supervision.detection.overlap_filter import (
     box_non_max_suppression,
     group_overlapping_boxes,
     mask_non_max_suppression,
+    mask_non_max_merge,
 )
 
 
@@ -447,3 +448,174 @@ def test_mask_non_max_suppression(
             predictions=predictions, masks=masks, iou_threshold=iou_threshold
         )
         assert np.array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "predictions, masks, iou_threshold, expected_result, exception",
+    [
+        (
+            np.empty((0, 6)),
+            np.empty((0, 5, 5)),
+            0.5,
+            [],
+            DoesNotRaise(),
+        ),  # empty predictions and masks
+        (
+            np.array([[0, 0, 0, 0, 0.8]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ]
+                ]
+            ),
+            0.5,
+            [[0]],
+            DoesNotRaise(),
+        ),  # single mask with no category
+        (
+            np.array([[0, 0, 0, 0, 0.8, 0]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ]
+                ]
+            ),
+            0.5,
+            [[0]],
+            DoesNotRaise(),
+        ),  # single mask with category
+        (
+            np.array([[0, 0, 0, 0, 0.9], [0, 0, 0, 0, 0.8]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, False, False],
+                        [False, True, True, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, True, True],
+                        [False, False, False, True, True],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.5,
+            [[0], [1]],
+            DoesNotRaise(),
+        ),  # two masks non-overlapping with no category
+        (
+            np.array([[0, 0, 0, 0, 0.9], [0, 0, 0, 0, 0.8]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.2,
+            [[0, 1]],
+            DoesNotRaise(),
+        ),  # two masks partially overlapping with no category
+        (
+            np.array([[0, 0, 0, 0, 0.9, 0], [0, 0, 0, 0, 0.8, 1]]),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ],
+                    [
+                        [False, False, False, False, False],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.2,
+            [[0], [1]],
+            DoesNotRaise(),
+        ),  # two masks partially overlapping with different category
+        (
+            np.array(
+                [
+                    [0, 0, 0, 0, 0.9, 0],
+                    [0, 0, 0, 0, 0.8, 0],
+                    [0, 0, 0, 0, 0.85, 1],
+                ]
+            ),
+            np.array(
+                [
+                    [  # mask 0, class 0
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ],
+                    [  # mask 1, class 0
+                        [False, False, False, False, False],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, False, False, False],
+                    ],
+                    [  # mask 2, class 1
+                        [False, False, False, False, False],
+                        [False, False, False, True, True],
+                        [False, False, False, True, True],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                    ],
+                ]
+            ),
+            0.2,
+            [[0, 1], [2]],
+            DoesNotRaise(),
+        ),  # three masks, two overlapping with same class
+    ],
+)
+def test_mask_non_max_merge(
+    predictions: np.ndarray,
+    masks: np.ndarray,
+    iou_threshold: float,
+    expected_result: List[List[int]],
+    exception: Exception,
+) -> None:
+    with exception:
+        result = mask_non_max_merge(
+            predictions=predictions, masks=masks, iou_threshold=iou_threshold
+        )
+        result = sorted([sorted(group) for group in result])
+        expected_result = sorted([sorted(group) for group in expected_result])
+        assert result == expected_result
