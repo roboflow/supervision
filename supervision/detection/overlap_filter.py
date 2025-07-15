@@ -339,27 +339,20 @@ def group_overlapping_masks(
             merge_groups.append([idx])
             break
 
-        # calculate mask
         merge_candidate = masks[idx][None, ...]
         candidate_groups = [idx]
         while len(order) > 0:
-            # 'IOU or IOS' of the calculate mask and the remaining mask
             ious = mask_iou_batch(masks[order], merge_candidate, overlap_metric)
             above_threshold: np.ndarray = ious.flatten() >= iou_threshold
-            # if no mask is above threshold, break
             if not above_threshold.any():
                 break
-            # get indexes that meet the threshold
             above_idx = order[above_threshold]
-            # update merge_candidate
             merge_candidate = np.logical_or.reduce(
                 np.concatenate([masks[above_idx], merge_candidate]),
                 axis=0,
                 keepdims=True,
             )
-            # add indexes that meet the criteria to the candidate_groups
             candidate_groups.extend(np.flip(above_idx).tolist())
-            # update order, masks
             order = order[~above_threshold]
 
         merge_groups.append(candidate_groups)
