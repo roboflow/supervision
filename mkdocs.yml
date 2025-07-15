@@ -42,8 +42,11 @@ nav:
       - Detection and Segmentation:
           - Core: detection/core.md
           - Annotators: detection/annotators.md
-          - Double Detection Filter: detection/double_detection_filter.md
-          - Utils: detection/utils.md
+          - Converters: detection/utils/converters.md
+          - IoU and NMS: detection/utils/iou_and_nms.md
+          - Boxes: detection/utils/boxes.md
+          - Masks: detection/utils/masks.md
+          - Polygons: detection/utils/polygons.md
       - Keypoint Detection:
           - Core: keypoint/core.md
           - Annotators: keypoint/annotators.md

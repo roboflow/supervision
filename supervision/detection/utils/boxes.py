@@ -100,25 +100,27 @@ def denormalize_boxes(
     normalization_factor: float = 1.0,
 ) -> np.ndarray:
     """
-    Convert normalized xyxy coordinates to absolute XYXY coordinates. By default, assumes
-    normalized values are between 0 and 1, but supports custom ranges via normalization_factor parameter.
+    Converts normalized bounding box coordinates to absolute pixel values.
+
     Args:
-        normalized_xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each row contains
-            normalized coordinates in format `(x1, y1, x2, y2)` with values between 0 and normalization_factor.
-        resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)` representing
-            the target resolution.
-        normalization_factor (float): The maximum value of the normalization range. For example:
-            - normalization_factor=1.0 means input coordinates are normalized between 0 and 1
-            - normalization_factor=100.0 means input coordinates are normalized between 0 and 100
-            - normalization_factor=1000.0 means input coordinates are normalized between 0 and 1000
+        normalized_xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each row
+            contains normalized coordinates in the format `(x_min, y_min, x_max, y_max)`,
+            with values between 0 and `normalization_factor`.
+        resolution_wh (Tuple[int, int]): A tuple `(width, height)` representing the
+            target image resolution.
+        normalization_factor (float, optional): The normalization range of the input
+            coordinates. Defaults to 1.0.
+
     Returns:
-        np.ndarray: A numpy array of shape `(N, 4)` containing the absolute coordinates
-            in format `(x1, y1, x2, y2)`.
+        np.ndarray: An array of shape `(N, 4)` with absolute coordinates in
+            `(x_min, y_min, x_max, y_max)` format.
+
     Examples:
         ```python
         import numpy as np
         import supervision as sv
-        # Example with default normalization (0-1)
+
+        # Default normalization (0-1)
         normalized_xyxy = np.array([
             [0.1, 0.2, 0.5, 0.6],
             [0.3, 0.4, 0.7, 0.8]
@@ -129,12 +131,13 @@ def denormalize_boxes(
         #     [ 10.,  40.,  50., 120.],
         #     [ 30.,  80.,  70., 160.]
         # ])
-        # Example with custom normalization (0-100)
+
+        # Custom normalization (0-100)
         normalized_xyxy = np.array([
             [10., 20., 50., 60.],
             [30., 40., 70., 80.]
         ])
-        sv.denormalize_boxes(normalized_xyxy, resolution_wh, max_value=100.0)
+        sv.denormalize_boxes(normalized_xyxy, resolution_wh, normalization_factor=100.0)
         # array([
         #     [ 10.,  40.,  50., 120.],
         #     [ 30.,  80.,  70., 160.]
