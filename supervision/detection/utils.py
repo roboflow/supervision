@@ -87,7 +87,7 @@ def box_iou(
         sv.box_iou(box_true=box_true, box_detection=box_detection)
         # 0.14285814285714285
         ```
-    """
+    """  # noqa: E501
     box_true = np.array(box_true)
     box_detection = np.array(box_detection)
 
@@ -1486,7 +1486,7 @@ def _jaccard(box_a: List[float], box_b: List[float], is_crowd: bool) -> float:
 
     Returns:
         float: Jaccard index between the two bounding boxes.
-    """
+    """  # noqa: E501
     # Smallest number to avoid division by zero
     EPS = np.spacing(1)
 
