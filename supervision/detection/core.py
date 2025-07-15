@@ -37,6 +37,9 @@ from supervision.detection.vlm import (
     LMM,
     VLM,
     from_florence_2,
+    from_google_gemini_2_0,
+    from_google_gemini_2_5,
+    from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
     validate_vlm_parameters,
@@ -813,6 +816,15 @@ class Detections:
         Creates a Detections object from the given result string based on the specified
         Large Multimodal Model (LMM).
 
+        | Name                | Enum (sv.LMM)        | Tasks                   | Required parameters         | Optional parameters |
+        |---------------------|----------------------|-------------------------|-----------------------------|---------------------|
+        | PaliGemma           | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
+        | PaliGemma 2         | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
+        | Qwen2.5-VL          | `QWEN_2_5_VL`        | detection               | `resolution_wh`, `input_wh` | `classes`           |
+        | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
+        | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
+        | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
+
         Args:
             lmm (Union[LMM, str]): The type of LMM (Large Multimodal Model) to use.
             result (str): The result string containing the detection data.
@@ -826,8 +838,9 @@ class Detections:
                 disallowed arguments are provided.
             ValueError: If the specified LMM is not supported.
 
-        Examples:
+        !!! example "PaliGemma"
             ```python
+
             import supervision as sv
 
             paligemma_result = "<loc0256><loc0256><loc0768><loc0768> cat"
@@ -842,13 +855,207 @@ class Detections:
 
             detections.class_id
             # array([0])
+
+            detections.data
+            # {'class_name': array(['cat'], dtype='<U10')}
             ```
-        """
+
+        !!! example "Qwen2.5-VL"
+            ```python
+            import supervision as sv
+
+            qwen_2_5_vl_result = \"\"\"```json
+            [
+                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+            ]
+            ```\"\"\"
+            detections = sv.Detections.from_lmm(
+                sv.LMM.QWEN_2_5_VL,
+                qwen_2_5_vl_result,
+                input_wh=(1000, 1000),
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+            detections.xyxy
+            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
+
+            detections.class_id
+            # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
+        !!! example "Gemini 2.0"
+            ```python
+            import supervision as sv
+
+            gemini_response_text = \"\"\"```json
+                [
+                    {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
+                    {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
+                ]
+            ```\"\"\"
+
+            detections = sv.Detections.from_lmm(
+                sv.LMM.GOOGLE_GEMINI_2_0,
+                gemini_response_text,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+
+            detections.xyxy
+            # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
+        !!! example "Gemini 2.5"
+
+            ??? tip "Prompt engineering"
+
+                To get the best results from Google Gemini 2.5, use the following prompt.
+
+                This prompt is designed to detect all visible objects in the image,
+                including small, distant, or partially visible ones, and to return
+                tight bounding boxes.
+
+                ```
+                Carefully examine this image and detect ALL visible objects, including
+                small, distant, or partially visible ones.
+
+                IMPORTANT: Focus on finding as many objects as possible, even if you are
+                only moderately confident.
+
+                Make sure each bounding box is as tight as possible.
+
+                Valid object classes: {class_list}
+
+                For each detected object, provide:
+                - "label": the exact class name from the list above
+                - "confidence": your certainty (between 0.0 and 1.0)
+                - "box_2d": the bounding box [ymin, xmin, ymax, xmax] normalized to 0-1000
+                - "mask": the binary mask of the object as a base64-encoded string
+
+                Detect everything that matches the valid classes. Do not be
+                conservative; include objects even with moderate confidence.
+
+                Return a JSON array, for example:
+                [
+                    {
+                        "label": "person",
+                        "confidence": 0.95,
+                        "box_2d": [100, 200, 300, 400],
+                        "mask": "..."
+                    },
+                    {
+                        "label": "kite",
+                        "confidence": 0.80,
+                        "box_2d": [50, 150, 250, 350],
+                        "mask": "..."
+                    }
+                ]
+                ```
+
+                When using the google-genai library, it is recommended to set
+                thinking_budget=0 in thinking_config for more direct and faster responses.
+
+                ```python
+                from google.generativeai import types
+
+                model.generate_content(
+                    ...,
+                    generation_config=generation_config,
+                    safety_settings=safety_settings,
+                    thinking_config=types.ThinkingConfig(
+                        thinking_budget=0
+                    )
+                )
+                ```
+
+                For a shorter prompt focused only on segmentation masks, you can use:
+
+                ```
+                Return a JSON list of segmentation masks. Each entry should include the
+                2D bounding box in the "box_2d" key, the segmentation mask in the "mask"
+                key, and the text label in the "label" key. Use descriptive labels.
+                ```
+
+            ```python
+            import supervision as sv
+
+            gemini_response_text = \"\"\"```json
+                [
+                    {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
+                    {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
+                ]
+            ```\"\"\"
+
+            detections = sv.Detections.from_lmm(
+                sv.LMM.GOOGLE_GEMINI_2_5,
+                gemini_response_text,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+
+            detections.xyxy
+            # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
+        !!! example "Moondream"
+            ```python
+            import supervision as sv
+
+            moondream_result = {
+                'objects': [
+                    {
+                        'x_min': 0.5704046934843063,
+                        'y_min': 0.20069346576929092,
+                        'x_max': 0.7049859315156937,
+                        'y_max': 0.3012596592307091
+                    },
+                    {
+                        'x_min': 0.6210969910025597,
+                        'y_min': 0.3300672620534897,
+                        'x_max': 0.8417936339974403,
+                        'y_max': 0.4961046129465103
+                    }
+                ]
+            }
+
+            detections = sv.Detections.from_lmm(
+                sv.LMM.MOONDREAM,
+                moondream_result,
+                resolution_wh=(1000, 1000),
+            )
+
+            detections.xyxy
+            # array([[1752.28,  818.82, 2165.72, 1229.14],
+            #        [1908.01, 1346.67, 2585.99, 2024.11]])
+            ```
+        """  # noqa: E501
+
         # filler logic mapping old from_lmm to new from_vlm
         lmm_to_vlm = {
             LMM.PALIGEMMA: VLM.PALIGEMMA,
             LMM.FLORENCE_2: VLM.FLORENCE_2,
             LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL,
+            LMM.GOOGLE_GEMINI_2_0: VLM.GOOGLE_GEMINI_2_0,
+            LMM.GOOGLE_GEMINI_2_5: VLM.GOOGLE_GEMINI_2_5,
         }
 
         # (this works even if the LMM enum is wrapped by @deprecated)
@@ -876,6 +1083,245 @@ class Detections:
     def from_vlm(
         cls, vlm: Union[VLM, str], result: Union[str, dict], **kwargs: Any
     ) -> Detections:
+        """
+
+        Creates a Detections object from the given result string based on the specified
+        Vision Language Model (VLM).
+
+        | Name                | Enum (sv.VLM)        | Tasks                   | Required parameters         | Optional parameters |
+        |---------------------|----------------------|-------------------------|-----------------------------|---------------------|
+        | PaliGemma           | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
+        | PaliGemma 2         | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
+        | Qwen2.5-VL          | `QWEN_2_5_VL`        | detection               | `resolution_wh`, `input_wh` | `classes`           |
+        | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
+        | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
+        | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
+
+        Args:
+            vlm (Union[VLM, str]): The type of VLM (Vision Language Model) to use.
+            result (str): The result string containing the detection data.
+            **kwargs (Any): Additional keyword arguments required by the specified VLM.
+
+        Returns:
+            Detections: A new Detections object.
+
+        Raises:
+            ValueError: If the VLM is invalid, required arguments are missing, or
+                disallowed arguments are provided.
+            ValueError: If the specified VLM is not supported.
+
+        !!! example "PaliGemma"
+            ```python
+
+            import supervision as sv
+
+            paligemma_result = "<loc0256><loc0256><loc0768><loc0768> cat"
+            detections = sv.Detections.from_vlm(
+                sv.VLM.PALIGEMMA,
+                paligemma_result,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog']
+            )
+            detections.xyxy
+            # array([[250., 250., 750., 750.]])
+
+            detections.class_id
+            # array([0])
+
+            detections.data
+            # {'class_name': array(['cat'], dtype='<U10')}
+            ```
+
+        !!! example "Qwen2.5-VL"
+            ```python
+            import supervision as sv
+
+            qwen_2_5_vl_result = \"\"\"```json
+            [
+                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+            ]
+            ```\"\"\"
+            detections = sv.Detections.from_vlm(
+                sv.VLM.QWEN_2_5_VL,
+                qwen_2_5_vl_result,
+                input_wh=(1000, 1000),
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+            detections.xyxy
+            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
+
+            detections.class_id
+            # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
+        !!! example "Gemini 2.0"
+            ```python
+            import supervision as sv
+
+            gemini_response_text = \"\"\"```json
+                [
+                    {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
+                    {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
+                ]
+            ```\"\"\"
+
+            detections = sv.Detections.from_vlm(
+                sv.VLM.GOOGLE_GEMINI_2_0,
+                gemini_response_text,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+
+            detections.xyxy
+            # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
+        !!! example "Gemini 2.5"
+
+            ??? tip "Prompt engineering"
+
+                To get the best results from Google Gemini 2.5, use the following prompt.
+
+                This prompt is designed to detect all visible objects in the image,
+                including small, distant, or partially visible ones, and to return
+                tight bounding boxes.
+
+                ```
+                Carefully examine this image and detect ALL visible objects, including
+                small, distant, or partially visible ones.
+
+                IMPORTANT: Focus on finding as many objects as possible, even if you are
+                only moderately confident.
+
+                Make sure each bounding box is as tight as possible.
+
+                Valid object classes: {class_list}
+
+                For each detected object, provide:
+                - "label": the exact class name from the list above
+                - "confidence": your certainty (between 0.0 and 1.0)
+                - "box_2d": the bounding box [ymin, xmin, ymax, xmax] normalized to 0-1000
+                - "mask": the binary mask of the object as a base64-encoded string
+
+                Detect everything that matches the valid classes. Do not be
+                conservative; include objects even with moderate confidence.
+
+                Return a JSON array, for example:
+                [
+                    {
+                        "label": "person",
+                        "confidence": 0.95,
+                        "box_2d": [100, 200, 300, 400],
+                        "mask": "..."
+                    },
+                    {
+                        "label": "kite",
+                        "confidence": 0.80,
+                        "box_2d": [50, 150, 250, 350],
+                        "mask": "..."
+                    }
+                ]
+                ```
+
+                When using the google-genai library, it is recommended to set
+                thinking_budget=0 in thinking_config for more direct and faster responses.
+
+                ```python
+                from google.generativeai import types
+
+                model.generate_content(
+                    ...,
+                    generation_config=generation_config,
+                    safety_settings=safety_settings,
+                    thinking_config=types.ThinkingConfig(
+                        thinking_budget=0
+                    )
+                )
+                ```
+
+                For a shorter prompt focused only on segmentation masks, you can use:
+
+                ```
+                Return a JSON list of segmentation masks. Each entry should include the
+                2D bounding box in the "box_2d" key, the segmentation mask in the "mask"
+                key, and the text label in the "label" key. Use descriptive labels.
+                ```
+
+            ```python
+            import supervision as sv
+
+            gemini_response_text = \"\"\"```json
+                [
+                    {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
+                    {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
+                ]
+            ```\"\"\"
+
+            detections = sv.Detections.from_vlm(
+                sv.VLM.GOOGLE_GEMINI_2_5,
+                gemini_response_text,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+
+            detections.xyxy
+            # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
+        !!! example "Moondream"
+            ```python
+            import supervision as sv
+
+            moondream_result = {
+                'objects': [
+                    {
+                        'x_min': 0.5704046934843063,
+                        'y_min': 0.20069346576929092,
+                        'x_max': 0.7049859315156937,
+                        'y_max': 0.3012596592307091
+                    },
+                    {
+                        'x_min': 0.6210969910025597,
+                        'y_min': 0.3300672620534897,
+                        'x_max': 0.8417936339974403,
+                        'y_max': 0.4961046129465103
+                    }
+                ]
+            }
+
+            detections = sv.Detections.from_vlm(
+                sv.VLM.MOONDREAM,
+                moondream_result,
+                resolution_wh=(1000, 1000),
+            )
+
+            detections.xyxy
+            # array([[1752.28,  818.82, 2165.72, 1229.14],
+            #        [1908.01, 1346.67, 2585.99, 2024.11]])
+            ```
+
+        """  # noqa: E501
+
         vlm = validate_vlm_parameters(vlm, result, kwargs)
 
         if vlm == VLM.PALIGEMMA:
@@ -900,6 +1346,30 @@ class Detections:
                 data[ORIENTED_BOX_COORDINATES] = xyxyxyxy
 
             return cls(xyxy=xyxy, mask=mask, data=data)
+
+        if vlm == VLM.GOOGLE_GEMINI_2_0:
+            xyxy, class_id, class_name = from_google_gemini_2_0(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            return cls(xyxy=xyxy, class_id=class_id, data=data)
+
+        if vlm == VLM.MOONDREAM:
+            xyxy = from_moondream(result, **kwargs)
+            return cls(xyxy=xyxy)
+
+        if vlm == VLM.GOOGLE_GEMINI_2_5:
+            xyxy, class_id, class_name, confidence, mask = from_google_gemini_2_5(
+                result, **kwargs
+            )
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            return cls(
+                xyxy=xyxy,
+                class_id=class_id,
+                mask=mask,
+                confidence=confidence,
+                data=data,
+            )
+
+        return cls.empty()
 
     @classmethod
     def from_easyocr(cls, easyocr_results: list) -> Detections:

@@ -177,9 +177,9 @@ offering a clear visual representation of each object's class and unique identif
         detections = tracker.update_with_detections(detections)
 
         labels = [
-            f"#{tracker_id} {results.names[class_id]}"
-            for class_id, tracker_id
-            in zip(detections.class_id, detections.tracker_id)
+            f"#{tracker_id} {class_name}"
+            for class_name, tracker_id
+            in zip(detections.data["class_name"], detections.tracker_id)
         ]
 
         annotated_frame = box_annotator.annotate(
@@ -212,9 +212,9 @@ offering a clear visual representation of each object's class and unique identif
         detections = tracker.update_with_detections(detections)
 
         labels = [
-            f"#{tracker_id} {results.names[class_id]}"
-            for class_id, tracker_id
-            in zip(detections.class_id, detections.tracker_id)
+            f"#{tracker_id} {class_name}"
+            for class_name, tracker_id
+            in zip(detections.data["class_name"], detections.tracker_id)
         ]
 
         annotated_frame = box_annotator.annotate(
@@ -260,9 +260,9 @@ movement patterns and interactions between objects in the video.
         detections = tracker.update_with_detections(detections)
 
         labels = [
-            f"#{tracker_id} {results.names[class_id]}"
-            for class_id, tracker_id
-            in zip(detections.class_id, detections.tracker_id)
+            f"#{tracker_id} {class_name}"
+            for class_name, tracker_id
+            in zip(detections.data["class_name"], detections.tracker_id)
         ]
 
         annotated_frame = box_annotator.annotate(
@@ -298,9 +298,9 @@ movement patterns and interactions between objects in the video.
         detections = tracker.update_with_detections(detections)
 
         labels = [
-            f"#{tracker_id} {results.names[class_id]}"
-            for class_id, tracker_id
-            in zip(detections.class_id, detections.tracker_id)
+            f"#{tracker_id} {class_name}"
+            for class_name, tracker_id
+            in zip(detections.data["class_name"], detections.tracker_id)
         ]
 
         annotated_frame = box_annotator.annotate(
