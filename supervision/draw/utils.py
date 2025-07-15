@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import os
-from typing import Optional, Union
 
 import cv2
 import numpy as np
@@ -215,7 +216,7 @@ def draw_text(
     text_thickness: int = 1,
     text_padding: int = 10,
     text_font: int = cv2.FONT_HERSHEY_SIMPLEX,
-    background_color: Optional[Color] = None,
+    background_color: Color | None = None,
 ) -> np.ndarray:
     """
     Draw text with background on a scene.
@@ -282,7 +283,7 @@ def draw_text(
 
 
 def draw_image(
-    scene: np.ndarray, image: Union[str, np.ndarray], opacity: float, rect: Rect
+    scene: np.ndarray, image: str | np.ndarray, opacity: float, rect: Rect
 ) -> np.ndarray:
     """
     Draws an image onto a given scene with specified opacity and dimensions.

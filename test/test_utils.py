@@ -1,4 +1,6 @@
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -9,11 +11,11 @@ from supervision.keypoint.core import KeyPoints
 
 def mock_detections(
     xyxy: npt.NDArray[np.float32],
-    mask: Optional[list[np.ndarray]] = None,
-    confidence: Optional[list[float]] = None,
-    class_id: Optional[list[int]] = None,
-    tracker_id: Optional[list[int]] = None,
-    data: Optional[dict[str, list[Any]]] = None,
+    mask: list[np.ndarray] | None = None,
+    confidence: list[float] | None = None,
+    class_id: list[int] | None = None,
+    tracker_id: list[int] | None = None,
+    data: dict[str, list[Any]] | None = None,
 ) -> Detections:
     def convert_data(data: dict[str, list[Any]]):
         return {k: np.array(v) for k, v in data.items()}
@@ -34,9 +36,9 @@ def mock_detections(
 
 def mock_keypoints(
     xy: npt.NDArray[np.float32],
-    confidence: Optional[list[float]] = None,
-    class_id: Optional[list[int]] = None,
-    data: Optional[dict[str, list[Any]]] = None,
+    confidence: list[float] | None = None,
+    class_id: list[int] | None = None,
+    data: dict[str, list[Any]] | None = None,
 ) -> KeyPoints:
     def convert_data(data: dict[str, list[Any]]):
         return {k: np.array(v) for k, v in data.items()}

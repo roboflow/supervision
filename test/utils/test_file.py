@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import os
 from contextlib import ExitStack as DoesNotRaise
-from typing import Optional
 
 import pytest
 
@@ -56,7 +57,7 @@ def setup_and_teardown_files():
 def test_read_txt_file(
     file_name: str,
     skip_empty: bool,
-    expected_result: Optional[list[str]],
+    expected_result: list[str] | None,
     exception: Exception,
 ):
     with exception:

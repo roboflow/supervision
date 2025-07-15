@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import itertools
 import math
 import os
 import shutil
+from collections.abc import Callable
 from functools import partial
-from typing import Callable, Literal, Optional, Union
+from typing import Literal
 
 import cv2
 import numpy as np
@@ -28,7 +31,7 @@ MAX_COLUMNS_FOR_SINGLE_ROW_GRID = 3
 @ensure_cv2_image_for_processing
 def crop_image(
     image: ImageType,
-    xyxy: Union[npt.NDArray[int], list[int], tuple[int, int, int, int]],
+    xyxy: npt.NDArray[int] | list[int] | tuple[int, int, int, int],
 ) -> ImageType:
     """
     Crops the given image based on the given bounding box.
@@ -220,7 +223,7 @@ def resize_image(
 def letterbox_image(
     image: ImageType,
     resolution_wh: tuple[int, int],
-    color: Union[tuple[int, int, int], Color] = Color.BLACK,
+    color: tuple[int, int, int] | Color = Color.BLACK,
 ) -> ImageType:
     """
     Resizes and pads an image to a specified resolution with a given color, maintaining
@@ -412,7 +415,7 @@ class ImageSink:
 
         return self
 
-    def save_image(self, image: np.ndarray, image_name: Optional[str] = None):
+    def save_image(self, image: np.ndarray, image_name: str | None = None):
         """
         Save a given image in the target directory.
 
@@ -436,23 +439,21 @@ class ImageSink:
 
 def create_tiles(
     images: list[ImageType],
-    grid_size: Optional[tuple[Optional[int], Optional[int]]] = None,
-    single_tile_size: Optional[tuple[int, int]] = None,
+    grid_size: tuple[int | None, int | None] | None = None,
+    single_tile_size: tuple[int, int] | None = None,
     tile_scaling: Literal["min", "max", "avg"] = "avg",
-    tile_padding_color: Union[tuple[int, int, int], Color] = Color.from_hex("#D9D9D9"),
+    tile_padding_color: tuple[int, int, int] | Color = Color.from_hex("#D9D9D9"),
     tile_margin: int = 10,
-    tile_margin_color: Union[tuple[int, int, int], Color] = Color.from_hex("#BFBEBD"),
+    tile_margin_color: tuple[int, int, int] | Color = Color.from_hex("#BFBEBD"),
     return_type: Literal["auto", "cv2", "pillow"] = "auto",
-    titles: Optional[list[Optional[str]]] = None,
-    titles_anchors: Optional[Union[Point, list[Optional[Point]]]] = None,
-    titles_color: Union[tuple[int, int, int], Color] = Color.from_hex("#262523"),
-    titles_scale: Optional[float] = None,
+    titles: list[str | None] | None = None,
+    titles_anchors: Point | list[Point | None] | None = None,
+    titles_color: tuple[int, int, int] | Color = Color.from_hex("#262523"),
+    titles_scale: float | None = None,
     titles_thickness: int = 1,
     titles_padding: int = 10,
     titles_text_font: int = cv2.FONT_HERSHEY_SIMPLEX,
-    titles_background_color: Union[tuple[int, int, int], Color] = Color.from_hex(
-        "#D9D9D9"
-    ),
+    titles_background_color: tuple[int, int, int] | Color = Color.from_hex("#D9D9D9"),
     default_title_placement: RelativePosition = "top",
 ) -> ImageType:
     """
@@ -613,7 +614,7 @@ def _aggregate_images_shape(
 
 
 def _establish_grid_size(
-    images: list[np.ndarray], grid_size: Optional[tuple[Optional[int], Optional[int]]]
+    images: list[np.ndarray], grid_size: tuple[int | None, int | None] | None
 ) -> tuple[int, int]:
     if grid_size is None or all(e is None for e in grid_size):
         return _negotiate_grid_size(images=images)
@@ -642,10 +643,10 @@ def _generate_tiles(
     tile_padding_color: tuple[int, int, int],
     tile_margin: int,
     tile_margin_color: tuple[int, int, int],
-    titles: Optional[list[Optional[str]]],
-    titles_anchors: list[Optional[Point]],
+    titles: list[str | None] | None,
+    titles_anchors: list[Point | None],
     titles_color: tuple[int, int, int],
-    titles_scale: Optional[float],
+    titles_scale: float | None,
     titles_thickness: int,
     titles_padding: int,
     titles_text_font: int,
@@ -686,10 +687,10 @@ def _generate_tiles(
 
 def _draw_texts(
     images: list[np.ndarray],
-    titles: Optional[list[Optional[str]]],
-    titles_anchors: list[Optional[Point]],
+    titles: list[str | None] | None,
+    titles_anchors: list[Point | None],
     titles_color: tuple[int, int, int],
-    titles_scale: Optional[float],
+    titles_scale: float | None,
     titles_thickness: int,
     titles_padding: int,
     titles_text_font: int,
@@ -730,7 +731,7 @@ def _draw_texts(
 
 def _prepare_default_titles_anchors(
     images: list[np.ndarray],
-    titles_anchors: list[Optional[Point]],
+    titles_anchors: list[Point | None],
     default_title_placement: RelativePosition,
 ) -> list[Point]:
     result = []

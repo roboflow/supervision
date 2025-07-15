@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import functools
 import inspect
 import os
 import warnings
-from typing import Any, Callable, Generic, Optional, TypeVar
+from collections.abc import Callable
+from typing import Any, Generic, TypeVar
 
 
 class SupervisionWarnings(Warning):
@@ -144,7 +147,7 @@ class classproperty(Generic[T]):
         """
         self.fget = fget
 
-    def __get__(self, owner_self: Any, owner_cls: Optional[type] = None) -> T:
+    def __get__(self, owner_self: Any, owner_cls: type | None = None) -> T:
         """
         Override the __get__ method to return the result of the function call.
 

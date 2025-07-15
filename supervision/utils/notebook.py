@@ -1,4 +1,4 @@
-from typing import Optional
+from __future__ import annotations
 
 import cv2
 import matplotlib.pyplot as plt
@@ -9,7 +9,7 @@ from supervision.utils.conversion import pillow_to_cv2
 
 
 def plot_image(
-    image: ImageType, size: tuple[int, int] = (12, 12), cmap: Optional[str] = "gray"
+    image: ImageType, size: tuple[int, int] = (12, 12), cmap: str | None = "gray"
 ) -> None:
     """
     Plots image using matplotlib.
@@ -48,9 +48,9 @@ def plot_image(
 def plot_images_grid(
     images: list[ImageType],
     grid_size: tuple[int, int],
-    titles: Optional[list[str]] = None,
+    titles: list[str] | None = None,
     size: tuple[int, int] = (12, 12),
-    cmap: Optional[str] = "gray",
+    cmap: str | None = "gray",
 ) -> None:
     """
     Plots images in a grid using matplotlib.

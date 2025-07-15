@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from typing import Optional
 
 import pytest
 
@@ -65,7 +66,7 @@ from test.test_utils import mock_detections
 )
 def test_calculate_region_of_interest_limits(
     vector: Vector,
-    expected_result: Optional[tuple[Vector, Vector]],
+    expected_result: tuple[Vector, Vector] | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -741,7 +742,7 @@ def test_line_zone_one_detection_long_horizon(
 )
 def test_line_zone_long_horizon_disappearing_detections(
     vector: Vector,
-    xyxy_sequence: list[list[Optional[list[float]]]],
+    xyxy_sequence: list[list[list[float] | None]],
     anchors: list[Position],
     minimum_crossing_threshold: int,
     expected_crossed_in: list[list[bool]],

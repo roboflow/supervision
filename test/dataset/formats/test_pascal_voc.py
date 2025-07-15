@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from typing import Optional
 
 import numpy as np
 import pytest
@@ -60,7 +61,7 @@ def are_xml_elements_equal(elem1, elem2):
 def test_object_to_pascal_voc(
     xyxy: np.ndarray,
     name: str,
-    polygon: Optional[np.ndarray],
+    polygon: np.ndarray | None,
     expected_result,
     exception: Exception,
 ):

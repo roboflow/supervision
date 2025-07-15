@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import warnings
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable, Optional, Union
 
 import numpy as np
 
@@ -18,7 +20,7 @@ from supervision.utils.internal import (
 def move_detections(
     detections: Detections,
     offset: np.ndarray,
-    resolution_wh: Optional[tuple[int, int]] = None,
+    resolution_wh: tuple[int, int] | None = None,
 ) -> Detections:
     """
     Args:
@@ -89,9 +91,9 @@ class InferenceSlicer:
         self,
         callback: Callable[[np.ndarray], Detections],
         slice_wh: tuple[int, int] = (320, 320),
-        overlap_ratio_wh: Optional[tuple[float, float]] = (0.2, 0.2),
-        overlap_wh: Optional[tuple[int, int]] = None,
-        overlap_filter: Union[OverlapFilter, str] = OverlapFilter.NON_MAX_SUPPRESSION,
+        overlap_ratio_wh: tuple[float, float] | None = (0.2, 0.2),
+        overlap_wh: tuple[int, int] | None = None,
+        overlap_filter: OverlapFilter | str = OverlapFilter.NON_MAX_SUPPRESSION,
         iou_threshold: float = 0.5,
         match_metric: str = "IOU",
         thread_workers: int = 1,
@@ -208,8 +210,8 @@ class InferenceSlicer:
     def _generate_offset(
         resolution_wh: tuple[int, int],
         slice_wh: tuple[int, int],
-        overlap_ratio_wh: Optional[tuple[float, float]],
-        overlap_wh: Optional[tuple[int, int]],
+        overlap_ratio_wh: tuple[float, float] | None,
+        overlap_wh: tuple[int, int] | None,
     ) -> np.ndarray:
         """
         Generate offset coordinates for slicing an image based on the given resolution,
@@ -268,8 +270,8 @@ class InferenceSlicer:
 
     @staticmethod
     def _validate_overlap(
-        overlap_ratio_wh: Optional[tuple[float, float]],
-        overlap_wh: Optional[tuple[int, int]],
+        overlap_ratio_wh: tuple[float, float] | None,
+        overlap_wh: tuple[int, int] | None,
     ) -> None:
         if overlap_ratio_wh is not None and overlap_wh is not None:
             raise ValueError(

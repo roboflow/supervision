@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import numpy as np
 from PIL import Image
@@ -205,7 +207,7 @@ def object_to_yolo(
     xyxy: np.ndarray,
     class_id: int,
     image_shape: tuple[int, int, int],
-    polygon: Optional[np.ndarray] = None,
+    polygon: np.ndarray | None = None,
 ) -> str:
     h, w, _ = image_shape
     if polygon is None:
@@ -260,7 +262,7 @@ def detections_to_yolo_annotations(
 
 
 def save_yolo_annotations(
-    dataset: "DetectionDataset",
+    dataset: DetectionDataset,
     annotations_directory_path: str,
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,

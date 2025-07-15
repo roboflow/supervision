@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from typing import Optional
 
 import pytest
 
@@ -159,7 +160,7 @@ from test.test_utils import mock_detections
 )
 def test_dataset_merge(
     dataset_list: list[DetectionDataset],
-    expected_result: Optional[DetectionDataset],
+    expected_result: DetectionDataset | None,
     exception: Exception,
 ) -> None:
     with exception:

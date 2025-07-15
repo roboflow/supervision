@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import json
 from pathlib import Path
-from typing import Optional, Union
 
 import numpy as np
 import yaml
@@ -18,7 +19,7 @@ class NumpyJsonEncoder(json.JSONEncoder):
 
 
 def list_files_with_extensions(
-    directory: Union[str, Path], extensions: Optional[list[str]] = None
+    directory: str | Path, extensions: list[str] | None = None
 ) -> list[Path]:
     """
     List files in a directory with specified extensions or
@@ -57,7 +58,7 @@ def list_files_with_extensions(
     return files_with_extensions
 
 
-def read_txt_file(file_path: Union[str, Path], skip_empty: bool = False) -> list[str]:
+def read_txt_file(file_path: str | Path, skip_empty: bool = False) -> list[str]:
     """
     Read a text file and return a list of strings without newline characters.
     Optionally skip empty lines.
@@ -79,7 +80,7 @@ def read_txt_file(file_path: Union[str, Path], skip_empty: bool = False) -> list
     return lines
 
 
-def save_text_file(lines: list[str], file_path: Union[str, Path]) -> None:
+def save_text_file(lines: list[str], file_path: str | Path) -> None:
     """
     Write a list of strings to a text file, each string on a new line.
 
@@ -92,7 +93,7 @@ def save_text_file(lines: list[str], file_path: Union[str, Path]) -> None:
             file.write(line + "\n")
 
 
-def read_json_file(file_path: Union[str, Path]) -> dict:
+def read_json_file(file_path: str | Path) -> dict:
     """
     Read a json file and return a dict.
 
@@ -107,7 +108,7 @@ def read_json_file(file_path: Union[str, Path]) -> dict:
     return data
 
 
-def save_json_file(data: dict, file_path: Union[str, Path], indent: int = 3) -> None:
+def save_json_file(data: dict, file_path: str | Path, indent: int = 3) -> None:
     """
     Write a dict to a json file.
 
@@ -120,7 +121,7 @@ def save_json_file(data: dict, file_path: Union[str, Path], indent: int = 3) -> 
         json.dump(data, fp, cls=NumpyJsonEncoder, indent=indent)
 
 
-def read_yaml_file(file_path: Union[str, Path]) -> dict:
+def read_yaml_file(file_path: str | Path) -> dict:
     """
     Read a yaml file and return a dict.
 
@@ -135,7 +136,7 @@ def read_yaml_file(file_path: Union[str, Path]) -> dict:
     return data
 
 
-def save_yaml_file(data: dict, file_path: Union[str, Path]) -> None:
+def save_yaml_file(data: dict, file_path: str | Path) -> None:
     """
     Save a dict to a json file.
 

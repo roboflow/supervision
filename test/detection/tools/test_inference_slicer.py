@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from typing import Optional
 
 import numpy as np
 import pytest
@@ -47,9 +48,9 @@ def mock_callback():
 def test_inference_slicer_overlap(
     mock_callback,
     slice_wh: tuple[int, int],
-    overlap_ratio_wh: Optional[tuple[float, float]],
-    overlap_wh: Optional[tuple[int, int]],
-    expected_overlap: Optional[tuple[int, int]],
+    overlap_ratio_wh: tuple[float, float] | None,
+    overlap_wh: tuple[int, int] | None,
+    expected_overlap: tuple[int, int] | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -169,7 +170,7 @@ def test_inference_slicer_overlap(
 def test_generate_offset(
     resolution_wh: tuple[int, int],
     slice_wh: tuple[int, int],
-    overlap_wh: Optional[tuple[int, int]],
+    overlap_wh: tuple[int, int] | None,
     expected_offsets: np.ndarray,
 ) -> None:
     offsets = InferenceSlicer._generate_offset(

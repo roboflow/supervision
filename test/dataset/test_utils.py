@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from typing import Optional, TypeVar
+from typing import TypeVar
 
 import numpy as np
 import numpy.typing as npt
@@ -78,7 +80,7 @@ def test_train_test_split(
     train_ratio: float,
     random_state: int,
     shuffle: bool,
-    expected_result: Optional[tuple[list[T], list[T]]],
+    expected_result: tuple[list[T], list[T]] | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -165,7 +167,7 @@ def test_merge_class_maps(
 def test_build_class_index_mapping(
     source_classes: list[str],
     target_classes: list[str],
-    expected_result: Optional[dict[int, int]],
+    expected_result: dict[int, int] | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -225,7 +227,7 @@ def test_build_class_index_mapping(
 def test_map_detections_class_id(
     source_to_target_mapping: dict[int, int],
     detections: Detections,
-    expected_result: Optional[Detections],
+    expected_result: Detections | None,
     exception: Exception,
 ) -> None:
     with exception:

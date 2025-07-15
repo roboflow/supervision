@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import copy
 import os
 import random
 import shutil
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, TypeVar
 
 import cv2
 import numpy as np
@@ -98,9 +100,7 @@ def map_detections_class_id(
     return detections_copy
 
 
-def save_dataset_images(
-    dataset: "DetectionDataset", images_directory_path: str
-) -> None:
+def save_dataset_images(dataset: DetectionDataset, images_directory_path: str) -> None:
     Path(images_directory_path).mkdir(parents=True, exist_ok=True)
     for image_path in dataset.image_paths:
         final_path = os.path.join(images_directory_path, Path(image_path).name)
@@ -114,7 +114,7 @@ def save_dataset_images(
 def train_test_split(
     data: list[T],
     train_ratio: float = 0.8,
-    random_state: Optional[int] = None,
+    random_state: int | None = None,
     shuffle: bool = True,
 ) -> tuple[list[T], list[T]]:
     """
@@ -140,7 +140,7 @@ def train_test_split(
 
 
 def rle_to_mask(
-    rle: Union[npt.NDArray[np.int_], list[int]], resolution_wh: tuple[int, int]
+    rle: npt.NDArray[np.int_] | list[int], resolution_wh: tuple[int, int]
 ) -> npt.NDArray[np.bool_]:
     """
     Converts run-length encoding (RLE) to a binary mask.

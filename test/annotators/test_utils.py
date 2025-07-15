@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from typing import Optional
 
 import numpy as np
 import pytest
@@ -97,7 +98,7 @@ def test_resolve_color_idx(
     detections: Detections,
     detection_idx: int,
     color_lookup: ColorLookup,
-    expected_result: Optional[int],
+    expected_result: int | None,
     exception: Exception,
 ) -> None:
     with exception:

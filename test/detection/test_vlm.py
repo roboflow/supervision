@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
 from contextlib import nullcontext as does_not_raise
-from typing import Optional
 
 import numpy as np
 import pytest
@@ -185,8 +186,8 @@ def test_from_paligemma(
     exception,
     result: str,
     resolution_wh: tuple[int, int],
-    classes: Optional[list[str]],
-    expected_results: tuple[np.ndarray, Optional[np.ndarray], np.ndarray],
+    classes: list[str] | None,
+    expected_results: tuple[np.ndarray, np.ndarray | None, np.ndarray],
 ) -> None:
     with exception:
         result = from_paligemma(
@@ -347,7 +348,7 @@ def test_from_qwen_2_5_vl(
     result: str,
     input_wh: tuple[int, int],
     resolution_wh: tuple[int, int],
-    classes: Optional[list[str]],
+    classes: list[str] | None,
     expected_results,
 ) -> None:
     with exception:
@@ -489,8 +490,8 @@ def test_from_google_gemini(
     exception,
     result: str,
     resolution_wh: tuple[int, int],
-    classes: Optional[list[str]],
-    expected_results: tuple[np.ndarray, Optional[np.ndarray], np.ndarray],
+    classes: list[str] | None,
+    expected_results: tuple[np.ndarray, np.ndarray | None, np.ndarray],
 ) -> None:
     with exception:
         xyxy, class_id, class_name = from_google_gemini_2_0(
@@ -865,7 +866,7 @@ def test_florence_2(
     florence_result: dict,
     resolution_wh: tuple[int, int],
     expected_results: tuple[
-        np.ndarray, Optional[np.ndarray], Optional[np.ndarray], Optional[np.ndarray]
+        np.ndarray, np.ndarray | None, np.ndarray | None, np.ndarray | None
     ],
     exception: Exception,
 ) -> None:
@@ -1081,10 +1082,9 @@ def test_from_google_gemini_2_5(
     exception,
     result: str,
     resolution_wh: tuple[int, int],
-    classes: Optional[list[str]],
-    expected_results: Optional[
-        tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
-    ],
+    classes: list[str] | None,
+    expected_results: None
+    | (tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]),
 ):
     with exception:
         (

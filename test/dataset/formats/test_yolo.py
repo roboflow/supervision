@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from typing import Optional
 
 import numpy as np
 import pytest
@@ -57,7 +58,7 @@ def _arrays_almost_equal(
     ],
 )
 def test_with_mask(
-    lines: list[str], expected_result: Optional[bool], exception: Exception
+    lines: list[str], expected_result: bool | None, exception: Exception
 ) -> None:
     with exception:
         result = _with_mask(lines=lines)
@@ -174,7 +175,7 @@ def test_yolo_annotations_to_detections(
     lines: list[str],
     resolution_wh: tuple[int, int],
     with_masks: bool,
-    expected_result: Optional[Detections],
+    expected_result: Detections | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -202,7 +203,7 @@ def test_yolo_annotations_to_detections(
     ],
 )
 def test_image_name_to_annotation_name(
-    image_name: str, expected_result: Optional[str], exception: Exception
+    image_name: str, expected_result: str | None, exception: Exception
 ) -> None:
     with exception:
         result = _image_name_to_annotation_name(image_name=image_name)
@@ -268,8 +269,8 @@ def test_object_to_yolo(
     xyxy: np.ndarray,
     class_id: int,
     image_shape: tuple[int, int, int],
-    polygon: Optional[np.ndarray],
-    expected_result: Optional[str],
+    polygon: np.ndarray | None,
+    expected_result: str | None,
     exception: Exception,
 ) -> None:
     with exception:

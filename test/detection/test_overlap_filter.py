@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from typing import Optional
 
 import numpy as np
 import pytest
@@ -234,7 +235,7 @@ def test_group_overlapping_boxes(
 def test_box_non_max_suppression(
     predictions: np.ndarray,
     iou_threshold: float,
-    expected_result: Optional[np.ndarray],
+    expected_result: np.ndarray | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -440,7 +441,7 @@ def test_mask_non_max_suppression(
     predictions: np.ndarray,
     masks: np.ndarray,
     iou_threshold: float,
-    expected_result: Optional[np.ndarray],
+    expected_result: np.ndarray | None,
     exception: Exception,
 ) -> None:
     with exception:

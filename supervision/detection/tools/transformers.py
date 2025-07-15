@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import io
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 from PIL import Image
@@ -9,7 +11,7 @@ from supervision.detection.utils import mask_to_xyxy
 
 
 def process_transformers_detection_result(
-    detection_result: dict, id2label: Optional[dict[int, str]]
+    detection_result: dict, id2label: dict[int, str] | None
 ) -> dict:
     """
     Process the result of Transformers object detection functions such as
@@ -38,7 +40,7 @@ def process_transformers_detection_result(
 
 
 def process_transformers_v4_segmentation_result(
-    segmentation_result: dict, id2label: Optional[dict[int, str]]
+    segmentation_result: dict, id2label: dict[int, str] | None
 ) -> dict:
     """
     Process the result of Transformers segmentation functions such as
@@ -77,7 +79,7 @@ def process_transformers_v4_segmentation_result(
 
 
 def process_transformers_v5_segmentation_result(
-    segmentation_result: dict, id2label: Optional[dict[int, str]]
+    segmentation_result: dict, id2label: dict[int, str] | None
 ) -> dict:
     """
     Process the result of Transformers segmentation functions such as
@@ -107,7 +109,7 @@ def process_transformers_v5_segmentation_result(
 
 
 def process_transformers_v5_semantic_or_instance_segmentation_result(
-    segmentation_result: dict, id2label: Optional[dict[int, str]]
+    segmentation_result: dict, id2label: dict[int, str] | None
 ) -> dict:
     """
     Process the result of Transformers segmentation functions such as
@@ -143,7 +145,7 @@ def process_transformers_v5_semantic_or_instance_segmentation_result(
 
 
 def process_transformers_v4_panoptic_segmentation_result(
-    segmentation_result: dict, id2label: Optional[dict[int, str]]
+    segmentation_result: dict, id2label: dict[int, str] | None
 ) -> dict:
     """
     Process the result of the Transformers function `post_process_panoptic` (v4).
@@ -177,7 +179,7 @@ def process_transformers_v4_panoptic_segmentation_result(
 
 
 def process_transformers_v5_panoptic_segmentation_result(
-    segmentation_array: np.ndarray, id2label: Optional[dict[int, str]]
+    segmentation_array: np.ndarray, id2label: dict[int, str] | None
 ) -> dict:
     """
     Process the result of the Transformers function
@@ -220,8 +222,8 @@ def png_string_to_segmentation_array(png_string: bytes) -> np.ndarray:
 
 def append_class_names_to_data(
     class_ids: np.ndarray,
-    id2label: Optional[dict[int, str]],
-    data: Optional[dict[str, Any]] = None,
+    id2label: dict[int, str] | None,
+    data: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
     Helper function to create or append to a data dictionary with class names if

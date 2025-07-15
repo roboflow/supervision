@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import os
 from pathlib import Path
-from typing import Optional
 from xml.etree.ElementTree import Element, SubElement
 
 import cv2
@@ -15,7 +16,7 @@ from supervision.utils.file import list_files_with_extensions
 
 
 def object_to_pascal_voc(
-    xyxy: np.ndarray, name: str, polygon: Optional[np.ndarray] = None
+    xyxy: np.ndarray, name: str, polygon: np.ndarray | None = None
 ) -> Element:
     root = Element("object")
 

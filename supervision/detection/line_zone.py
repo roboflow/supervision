@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import math
 import warnings
 from collections import Counter, defaultdict, deque
 from collections.abc import Iterable
 from functools import lru_cache
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 import cv2
 import numpy as np
@@ -161,7 +163,7 @@ class LineZone:
             self._compute_anchor_sides(detections)
         )
 
-        class_ids: list[Optional[int]] = (
+        class_ids: list[int | None] = (
             list(detections.class_id)
             if detections.class_id is not None
             else [None] * len(detections)
@@ -325,8 +327,8 @@ class LineZoneAnnotator:
         text_scale: float = 0.5,
         text_offset: float = 1.5,
         text_padding: int = 10,
-        custom_in_text: Optional[str] = None,
-        custom_out_text: Optional[str] = None,
+        custom_in_text: str | None = None,
+        custom_out_text: str | None = None,
         display_in_count: bool = True,
         display_out_count: bool = True,
         display_text_box: bool = True,
@@ -758,7 +760,7 @@ class LineZoneAnnotatorMulticlass:
         self,
         frame: np.ndarray,
         line_zones: list[LineZone],
-        line_zone_labels: Optional[list[str]] = None,
+        line_zone_labels: list[str] | None = None,
     ) -> np.ndarray:
         """
         Draws a table with the number of objects of each class that crossed each line.
