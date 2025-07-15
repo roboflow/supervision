@@ -1503,7 +1503,10 @@ def cross_product(anchors: np.ndarray, vector: Vector) -> np.ndarray:
         Array of cross products of shape (number of anchors, detections)
     """
     vector_at_zero = np.array(
-        [vector.end.x - vector.start.x, vector.end.y - vector.start.y]
+        [
+            vector.end.x - vector.start.x,
+            vector.end.y - vector.start.y,
+        ]
     )
     vector_start = np.array([vector.start.x, vector.start.y])
     return np.cross(vector_at_zero, anchors - vector_start)
