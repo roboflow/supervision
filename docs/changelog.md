@@ -19,6 +19,8 @@
 
 - Added new function `box_iou` that efficiently computes the Intersection over Union (IoU) between two individual bounding boxes. ([#1874](https://github.com/roboflow/supervision/pull/1874))
 
+- Added the function `remove_noisy_segments` for removing the connected components from a mask that are far away from the main component and that also are smaller than a threshold. ([#1885](https://github.com/roboflow/supervision/pull/1885))
+
 - Added support for frame limitations and progress bar in `sv.process_video`. ([#1816](https://github.com/roboflow/supervision/pull/1816))
 
 - Supervision’s documentation theme now has a fresh look that is consistent with the documentations of all Roboflow open-source projects. ([#1858](https://github.com/roboflow/supervision/pull/1858))
