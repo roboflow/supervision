@@ -500,6 +500,7 @@ class ConfusionMatrix:
     "`supervision.metrics.mean_average_precision.MeanAveragePrecision` instead. The "
     "deprecated implementation provides results that are inconsistent with pycocotools."
 )
+@dataclass(frozen=True)
 class MeanAveragePrecision:
     """
     !!! deprecated "Deprecated"
@@ -525,17 +526,10 @@ class MeanAveragePrecision:
             provided for each individual class.
     """
 
-    def __init__(
-        self,
-        map50_95: float,
-        map50: float,
-        map75: float,
-        per_class_ap50_95: np.ndarray,
-    ):
-        self.map50_95 = map50_95
-        self.map50 = map50
-        self.map75 = map75
-        self.per_class_ap50_95 = per_class_ap50_95
+    map50_95: float
+    map50: float
+    map75: float
+    per_class_ap50_95: np.ndarray
 
     @classmethod
     def from_detections(
