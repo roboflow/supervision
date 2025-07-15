@@ -5,29 +5,144 @@
 !!! failure "Removed"
     `supervision-0.26.0` drops `python3.8` support and upgrade all codes to `python3.9` syntax style.
 
-- Supervision’s documentation theme now has a fresh look that is consistent with the documentations of all Roboflow open-source projects. ([#1858](https://github.com/roboflow/supervision/pull/1858))
+!!! info "Tip"
+    Supervision’s documentation theme now has a fresh look that is consistent with the documentations of all Roboflow open-source projects. ([#1858](https://github.com/roboflow/supervision/pull/1858))
 
-- `sv.LabelAnnotator` now has the ability to ensure labels stay within frame boundaries using the smart_position parameter and control automatic text wrapping for long multi-line labels using the max_line_length parameter ([#1820](https://github.com/roboflow/supervision/pull/1820)) and support non-string labels. ([#1825](https://github.com/roboflow/supervision/pull/1825)).
+- Added [#1774](https://github.com/roboflow/supervision/pull/1774): Support for IOS overlap metric (a region-overlap score between two shapes that indicates how much of the smaller object is covered by the bigger one) for `sv.Detections.with_nms` and `sv.Detections.with_nmm`, `sv.box_iou_batch`, and `sv.mask_iou_batch`.
 
-- `sv.Detections.from_vlm` now supports bounding boxes and segmentation masks response from [Google Gemini models](https://ai.google.dev/gemini-api/docs/vision). ([#1792](https://github.com/roboflow/supervision/pull/1792))
-- `sv.Detections.from_vlm` now supports bounding boxes response from [Moondream](https://github.com/vikhyat/moondream). ([#1878](https://github.com/roboflow/supervision/pull/1878))
-- `sv.Detections.from_vlm` now supports bounding boxes response from [Qwen-2.5 VL](https://github.com/QwenLM/Qwen2.5-VL). ([#1709](https://github.com/roboflow/supervision/pull/1790))
+    ```python
+    import cv2
+    import supervision as sv
+    from inference import get_model
 
-- Align Supervision's mAP implementation (`sv.MeanAveragePrecision`) with [pycocotools](https://github.com/ppwwyyxx/cocoapi), the official COCO evaluation tool, thus ensuring accurate, reliable, and standardized metrics. This enabled us to build an updated version of the [Computer Vision Model Leaderboard](https://leaderboard.roboflow.com/). ([#1834](https://github.com/roboflow/supervision/pull/1834))
+    model = get_model(model_id="yolov11m-seg-640")
+    image = cv2.imread("<IMAGE-PATH>")
+    results = model.infer(image)[0]
+    detections = sv.Detections.from_inference(results)
+    detections = detections.with_nmm(overlap_metric=sv.OverlapMetric.IOU)
+    ```
 
-- Added support for IOS overlap metric (a region-overlap score between two shapes that indicates how much of the smaller object is covered by the bigger one) for `sv.Detections.with_nms` and `sv.Detections.with_nmm`, `sv.box_iou_batch`, and `sv.mask_iou_batch`. ([#1774](https://github.com/roboflow/supervision/pull/1774))
+- Added [#1874](https://github.com/roboflow/supervision/pull/1874): `sv.box_iou` that efficiently computes the Intersection over Union (IoU) between two individual bounding boxes.
 
-- Added `sv.box_iou` that efficiently computes the Intersection over Union (IoU) between two individual bounding boxes. ([#1874](https://github.com/roboflow/supervision/pull/1874))
+- Added [#1816](https://github.com/roboflow/supervision/pull/1816): Support for frame limitations and progress bar in `sv.process_video`.
 
-- Added support for frame limitations and progress bar in `sv.process_video`. ([#1816](https://github.com/roboflow/supervision/pull/1816))
+    ```python
+    import numpy as np
+    import supervision as sv
+    from inference import get_model
 
-- Added `xyxy_to_xcycarh` conversion function. ([#1823](https://github.com/roboflow/supervision/pull/1823))
+    model = get_model("yolov11m-640")
+    box_annotator = sv.BoxAnnotator()
 
-- Added support for creating KeyPoints objects from [Transformers](https://huggingface.co/docs/transformers/index) inference results. ([#1788](https://github.com/roboflow/supervision/pull/1788))
+    def callback(frame: np.ndarray, _: int) -> np.ndarray:
+        results = model.infer(frame,verbose=False)[0]
+        detections = sv.Detections.from_inference(results)
+        return box_annotator.annotate(frame.copy(), detections=detections)
 
-- Fix losing `sv.Detections.data` when detections filtering. ([#1767](https://github.com/roboflow/supervision/pull/1767))
+    sv.process_video(
+        source_path="<SOURCE-VIDEO-PATH>",
+        target_path="<TARGET-VIDEO-PATH>",
+        callback=callback,
+        max_frames=100,
+        show_progress=True,
+    )
+    ```
 
-- Improve the speed of HSV color mapping in `sv.HeatMapAnnotator` massively; improving the performance of the operation on a 1920x1080 frame by ~28x ([#1786](https://github.com/roboflow/supervision/pull/1786))
+- Added [#1788](https://github.com/roboflow/supervision/pull/1788): Support for creating `sv.KeyPoints` objects using [ViTPose](https://huggingface.co/docs/transformers/en/model_doc/vitpose) and [ViTPose++](https://huggingface.co/docs/transformers/en/model_doc/vitpose#vitpose-models) inference results from [Transformers](https://huggingface.co/docs/transformers/index).
+
+- Added [#1823](https://github.com/roboflow/supervision/pull/1823): `sv.xyxy_to_xcycarh` function to convert bounding box coordinates from `(x_min, y_min, x_max, y_max)` into measurement space to format `(center x, center y, aspect ratio, height)`, where the aspect ratio is `width / height`.
+
+- Added [#1788](https://github.com/roboflow/supervision/pull/1788): `sv.xyxy_to_xywh` function to convert bounding box coordinates from `(x_min, y_min, x_max, y_max)` format to `(x, y, width, height)` format. 
+
+- Changed [#1820](https://github.com/roboflow/supervision/pull/1820): `sv.LabelAnnotator` now has the ability to ensure labels stay within frame boundaries using the smart_position parameter and control automatic text wrapping for long multi-line labels using the max_line_length parameter.
+
+- Changed [#1825](https://github.com/roboflow/supervision/pull/1825): `sv.LabelAnnotator` now supports non-string labels.
+
+- Changed [#1792](https://github.com/roboflow/supervision/pull/1792): `sv.Detections.from_vlm` now supports bounding boxes and segmentation masks response from [Google Gemini models](https://ai.google.dev/gemini-api/docs/vision).
+
+    ```python
+    import supervision as sv
+
+    gemini_response_text = \"\"\"```json
+        [
+            {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
+            {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
+        ]
+    ```\"\"\"
+
+    detections = sv.Detections.from_vlm(
+        sv.VLM.GOOGLE_GEMINI_2_5,
+        gemini_response_text,
+        resolution_wh=(1000, 1000),
+        classes=['cat', 'dog'],
+    )
+    ```
+
+- Changed [#1878](https://github.com/roboflow/supervision/pull/1878): `sv.Detections.from_vlm` now supports bounding boxes response from [Moondream](https://github.com/vikhyat/moondream).
+
+    ```python
+    import supervision as sv
+
+    moondream_result = {
+        'objects': [
+            {
+                'x_min': 0.5704046934843063,
+                'y_min': 0.20069346576929092,
+                'x_max': 0.7049859315156937,
+                'y_max': 0.3012596592307091
+            },
+            {
+                'x_min': 0.6210969910025597,
+                'y_min': 0.3300672620534897,
+                'x_max': 0.8417936339974403,
+                'y_max': 0.4961046129465103
+            }
+        ]
+    }
+
+    detections = sv.Detections.from_vlm(
+        sv.VLM.MOONDREAM,
+        moondream_result,
+        resolution_wh=(1000, 1000),
+    )
+    ```
+
+- Changed [#1709](https://github.com/roboflow/supervision/pull/1790): `sv.Detections.from_vlm` now supports bounding boxes response from [Qwen-2.5 VL](https://github.com/QwenLM/Qwen2.5-VL).
+
+    ```python
+    import supervision as sv
+
+    qwen_2_5_vl_result = \"\"\"```json
+    [
+        {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+        {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+    ]
+    ```\"\"\"
+    detections = sv.Detections.from_vlm(
+        sv.VLM.QWEN_2_5_VL,
+        qwen_2_5_vl_result,
+        input_wh=(1000, 1000),
+        resolution_wh=(1000, 1000),
+        classes=['cat', 'dog'],
+    )
+    ```
+
+- Changed [#1786](https://github.com/roboflow/supervision/pull/1786): Improved the speed of HSV color mapping in `sv.HeatMapAnnotator` massively, improving the performance of the operation on a 1920x1080 frame by ~28x.
+
+- Fix [#1834](https://github.com/roboflow/supervision/pull/1834): Supervision's mAP implementation (`sv.MeanAveragePrecision`) has been aligned with [pycocotools](https://github.com/ppwwyyxx/cocoapi), the official COCO evaluation tool, thus ensuring accurate, reliable, and standardized metrics. This enabled us to build an updated version of the [Computer Vision Model Leaderboard](https://leaderboard.roboflow.com/).
+
+    ```python
+    import supervision as sv
+    from supervision.metrics import MeanAveragePrecision
+
+    predictions = sv.Detections(...)
+    targets = sv.Detections(...)
+
+    map_metric = MeanAveragePrecision()
+    map_score = map_metric.update(predictions, targets).compute()
+    ```
+
+- Fix [#1767](https://github.com/roboflow/supervision/pull/1767): Fixed losing `sv.Detections.data` when detections filtering.
 
 ### 0.25.0 <small>Nov 12, 2024</small>
 
