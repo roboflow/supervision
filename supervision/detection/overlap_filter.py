@@ -406,3 +406,35 @@ class OverlapFilter(Enum):
             f"Invalid value type: {type(value)}. Must be an instance of "
             f"{cls.__name__} or str."
         )
+
+
+class OverlapMetric(Enum):
+    """
+    Enum specifying the metric for measuring overlap between detections.
+
+    Attributes:
+        IOU: Intersection over Union.
+        IOS: Intersection over Similarity.
+    """
+
+    IOU = "IOU"
+    IOS = "IOS"
+
+    @classmethod
+    def list(cls):
+        return list(map(lambda c: c.value, cls))
+
+    @classmethod
+    def from_value(cls, value: Union[OverlapFilter, str]) -> OverlapFilter:
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, str):
+            value = value.lower()
+            try:
+                return cls(value)
+            except ValueError:
+                raise ValueError(f"Invalid value: {value}. Must be one of {cls.list()}")
+        raise ValueError(
+            f"Invalid value type: {type(value)}. Must be an instance of "
+            f"{cls.__name__} or str."
+        )

@@ -16,6 +16,7 @@ from supervision.detection.overlap_filter import (
     box_non_max_suppression,
     mask_non_max_merge,
     mask_non_max_suppression,
+    OverlapMetric,
 )
 from supervision.detection.tools.transformers import (
     process_transformers_detection_result,
@@ -1572,7 +1573,7 @@ class Detections:
         self,
         threshold: float = 0.5,
         class_agnostic: bool = False,
-        match_metric: str = "IOU",
+        overlap_metric: OverlapMetric = OverlapMetric.IOU,
     ) -> Detections:
         """
         Performs non-max suppression on detection set. If the detections result
@@ -1585,7 +1586,7 @@ class Detections:
             class_agnostic (bool): Whether to perform class-agnostic
                 non-maximum suppression. If True, the class_id of each detection
                 will be ignored. Defaults to False.
-            match_metric (str): Metric used for matching detections in slices.
+            overlap_metric (OverlapMetric): Metric used for matching detections in slices.
                 "IOU" or "IOS". Defaults "IOU".
 
         Returns:
@@ -1623,13 +1624,13 @@ class Detections:
                 predictions=predictions,
                 masks=self.mask,
                 iou_threshold=threshold,
-                match_metric=match_metric,
+                match_metric=overlap_metric,
             )
         else:
             indices = box_non_max_suppression(
                 predictions=predictions,
                 iou_threshold=threshold,
-                match_metric=match_metric,
+                match_metric=overlap_metric,
             )
 
         return self[indices]
@@ -1638,7 +1639,7 @@ class Detections:
         self,
         threshold: float = 0.5,
         class_agnostic: bool = False,
-        match_metric: str = "IOU",
+        overlap_metric: OverlapMetric = OverlapMetric.IOU,
     ) -> Detections:
         """
         Perform non-maximum merging on the current set of object detections.
@@ -1649,7 +1650,7 @@ class Detections:
             class_agnostic (bool): Whether to perform class-agnostic
                 non-maximum merging. If True, the class_id of each detection
                 will be ignored. Defaults to False.
-            match_metric (str): Metric used for matching detections in slices.
+            overlap_metric (OverlapMetric): Metric used for matching detections in slices.
                 "IOU" or "IOS". Defaults "IOU".
 
         Returns:
@@ -1689,13 +1690,13 @@ class Detections:
                 predictions=predictions,
                 masks=self.mask,
                 iou_threshold=threshold,
-                match_metric=match_metric,
+                match_metric=overlap_metric,
             )
         else:
             merge_groups = box_non_max_merge(
                 predictions=predictions,
                 iou_threshold=threshold,
-                match_metric=match_metric,
+                match_metric=overlap_metric,
             )
 
         result = []
