@@ -311,15 +311,9 @@ class ConfusionMatrix:
         )
         true_boxes = targets[:, :class_id_idx]
         detection_boxes = detection_batch_filtered[:, :class_id_idx]
-
-        # # Debug: Print IoU calculations
-        # print("Debug IoU calculations:")
-        # print(f"GT boxes: {true_boxes}")
-        # print(f"Detection boxes: {detection_boxes}")
         
         # Calculate IoU matrix
         iou_batch = box_iou_batch(boxes_true=true_boxes, boxes_detection=detection_boxes)
-        # print(f"IoU matrix:\n{iou_batch}")
 
         # Find all valid matches (IoU > threshold, regardless of class)
         valid_matches = []
@@ -331,14 +325,10 @@ class ConfusionMatrix:
                     det_class = detection_classes[det_idx]
                     class_match = (gt_class == det_class)
                     valid_matches.append((gt_idx, det_idx, iou, class_match))
-                    # print(f"Valid match: GT[{gt_idx}] class={gt_class} vs 
-                    # Det[{det_idx}] class={det_class}, IoU={iou:.3f}, 
-                    # class_match={class_match}")
 
         # Sort matches by class match first (True before False), then by IoU descending
         # This prioritizes correct class predictions over higher IoU with wrong class
         valid_matches.sort(key=lambda x: (x[3], x[2]), reverse=True)
-        # print(f"Sorted matches: {valid_matches}")
 
         # Greedily assign matches, ensuring each GT 
         # and detection is matched at most once
@@ -350,8 +340,7 @@ class ConfusionMatrix:
                 # Valid spatial match - record the class prediction
                 gt_class = true_classes[gt_idx]
                 det_class = detection_classes[det_idx]
-                # print(f"Assigning match: GT[{gt_idx}] class={gt_class} -> 
-                # Det[{det_idx}] class={det_class}")
+
                 # This handles both correct classification (TP) and misclassification
                 result_matrix[gt_class, det_class] += 1
                 matched_gt_idx.add(gt_idx)
@@ -360,16 +349,13 @@ class ConfusionMatrix:
         # Count unmatched ground truth as FN
         for gt_idx, gt_class in enumerate(true_classes):
             if gt_idx not in matched_gt_idx:
-                # print(f"Unmatched GT[{gt_idx}] class={gt_class} -> FN")
                 result_matrix[gt_class, num_classes] += 1
 
         # Count unmatched detections as FP
         for det_idx, det_class in enumerate(detection_classes):
             if det_idx not in matched_det_idx:
-                # print(f"Unmatched Det[{det_idx}] class={det_class} -> FP")
                 result_matrix[num_classes, det_class] += 1
-
-        # print(f"Final matrix:\n{result_matrix}")
+                
         return result_matrix
 
     @staticmethod
