@@ -1665,3 +1665,102 @@ def box_iou_batch_with_jaccard(
         for d_idx, d in enumerate(boxes_detection):
             ious[d_idx, g_idx] = _jaccard(d, g, is_crowd[g_idx])
     return ious
+
+
+def remove_noisy_segments(
+    mask: npt.NDArray[np.bool_],
+    connectivity: int = 8,
+    area_threshold: int = 700,
+    distance_threshold: float = 70.0,
+) -> npt.NDArray[np.bool_]:
+    """
+    Removes connected components small and spatially distant from the largest connected component
+    out of a binary mask. Component area is penalized more the farther it is from the largest component centroid,
+    removing larger components that are far away from the threshold.
+
+    Args:
+        mask (npt.NDArray[np.bool_]): A 2D boolean or binary mask, where 0 indicates background
+            and 1 indicates foreground.
+        connectivity (int): Connectivity for connected components analysis. Can either be 4 or 8, default is 8.
+            When the value is 4, each pixel connects only to its horizontal and vertical neighbors: Up, Down, Left, Right.
+            When the value is 8, each pixel connects to its horizontal, vertical, and diagonal neighbors, being more
+            permisive to what is considered a connected component.
+        area_threshold (int): Minimum area in pixels required to keep a component. If the component's area is smaller
+            than this value, it will be considered an outlier and removed. When the component is farther
+            than the 'distance_threshold' parameter, the area threshold is scaled up linearly with the distance
+            from the main component's centroid, so that larger components are removed when distance grows.
+        distance_threshold (float): Maximum distance in pixels from the main component's centroid to keep a component.
+            If the distance from the main component's centroid is larger than this value, then the algorithm will check the area
+            and if it is smaller than the 'area_threshold', the component will be considered an outlier and removed.
+            The distance is calculated as the Euclidean distance between the component's centroid and the main
+            component's centroid.
+
+    Returns:
+        np.ndarray: A cleaned binary mask with outlier components removed.
+
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        mask = np.array([
+            [1, 1, 1, 1, 0, 0],
+            [0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 1, 1],
+            [0, 1, 1, 0, 1, 1],
+            [0, 0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0, 0],
+            [0, 1, 1, 1, 0, 0]
+        ]).astype(bool)
+
+        sv.remove_noisy_segments(mask=mask, connectivity=4, area_threshold = 4, distance_threshold = 4)
+        # np.array([
+        #     [0, 0, 0, 0, 0, 0],
+        #     [0, 0, 0, 0, 0, 0],
+        #     [0, 0, 0, 0, 1, 1],
+        #     [0, 0, 0, 0, 1, 1],
+        #     [0, 0, 0, 0, 0, 0],
+        #     [0, 1, 1, 1, 0, 0],
+        #     [0, 1, 1, 1, 0, 0]
+        # ])
+
+    """  # noqa E501 // docs
+    if connectivity != 4 and connectivity != 8:
+        raise ValueError(
+            "Incorrect connectivity value. Possible connectivity values: 4 or 8."
+        )
+    mask_uint8 = (mask > 0).astype(np.uint8)
+    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(
+        mask_uint8, connectivity=connectivity
+    )
+
+    if num_labels <= 1:
+        return np.zeros_like(mask, dtype=bool)
+
+    # Identify main (largest) component excluding background (label 0)
+    areas = stats[1:, cv2.CC_STAT_AREA]
+
+    if not areas.size:
+        # input mask contains no foreground pixels
+        return np.zeros_like(mask, dtype=bool)
+    largest_idx = 1 + np.argmax(areas)
+    main_centroid = centroids[largest_idx]
+
+    # Start with an empty output mask
+    cleaned_mask = np.zeros_like(mask, dtype=bool)
+    for i in range(1, num_labels):  # skip background
+        area = stats[i, cv2.CC_STAT_AREA]
+        centroid = centroids[i]
+
+        dist = np.linalg.norm(centroid - main_centroid)
+
+        # Increase area threshold proportionally with distance from main component
+        if (
+            dist > distance_threshold
+            and area < area_threshold * dist / distance_threshold
+        ):
+            continue
+
+        # Keep component
+        cleaned_mask[labels == i] = True
+
+    return cleaned_mask
