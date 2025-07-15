@@ -6,8 +6,12 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 
-from supervision.detection.utils.masks import move_masks, calculate_masks_centroids, \
-    contains_holes, contains_multiple_segments
+from supervision.detection.utils.masks import (
+    calculate_masks_centroids,
+    contains_holes,
+    contains_multiple_segments,
+    move_masks,
+)
 
 
 @pytest.mark.parametrize(

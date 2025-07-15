@@ -46,35 +46,11 @@ from supervision.detection.line_zone import (
     LineZoneAnnotator,
     LineZoneAnnotatorMulticlass,
 )
-from supervision.detection.utils.iou_and_nms import (
-    box_iou,
-    box_iou_batch,
-    box_iou_batch_with_jaccard,
-    oriented_box_iou_batch,
-    mask_iou_batch,
-    OverlapFilter,
-    OverlapMetric,
-    box_non_max_merge,
-    box_non_max_suppression,
-    mask_non_max_suppression,
-)
-from supervision.detection.utils.masks import (
-    move_masks,
-    calculate_masks_centroids,
-    contains_holes,
-    contains_multiple_segments
-)
-from supervision.detection.utils.converters import (
-    xcycwh_to_xyxy,
-    xywh_to_xyxy,
-    xyxy_to_polygons,
-    xyxy_to_xcycarh,
-    xyxy_to_xywh,
-    mask_to_polygons,
-    mask_to_xyxy,
-    polygon_to_mask,
-    polygon_to_xyxy,
-)
+from supervision.detection.tools.csv_sink import CSVSink
+from supervision.detection.tools.inference_slicer import InferenceSlicer
+from supervision.detection.tools.json_sink import JSONSink
+from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
+from supervision.detection.tools.smoother import DetectionsSmoother
 from supervision.detection.utils.boxes import (
     clip_boxes,
     denormalize_boxes,
@@ -82,15 +58,39 @@ from supervision.detection.utils.boxes import (
     pad_boxes,
     scale_boxes,
 )
-from supervision.detection.utils.polygons import (
-    filter_polygons_by_area,
-    approximate_polygon
+from supervision.detection.utils.converters import (
+    mask_to_polygons,
+    mask_to_xyxy,
+    polygon_to_mask,
+    polygon_to_xyxy,
+    xcycwh_to_xyxy,
+    xywh_to_xyxy,
+    xyxy_to_polygons,
+    xyxy_to_xcycarh,
+    xyxy_to_xywh,
 )
-from supervision.detection.tools.csv_sink import CSVSink
-from supervision.detection.tools.inference_slicer import InferenceSlicer
-from supervision.detection.tools.json_sink import JSONSink
-from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
-from supervision.detection.tools.smoother import DetectionsSmoother
+from supervision.detection.utils.iou_and_nms import (
+    OverlapFilter,
+    OverlapMetric,
+    box_iou,
+    box_iou_batch,
+    box_iou_batch_with_jaccard,
+    box_non_max_merge,
+    box_non_max_suppression,
+    mask_iou_batch,
+    mask_non_max_suppression,
+    oriented_box_iou_batch,
+)
+from supervision.detection.utils.masks import (
+    calculate_masks_centroids,
+    contains_holes,
+    contains_multiple_segments,
+    move_masks,
+)
+from supervision.detection.utils.polygons import (
+    approximate_polygon,
+    filter_polygons_by_area,
+)
 from supervision.detection.vlm import LMM, VLM
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
@@ -192,6 +192,7 @@ __all__ = [
     "VertexLabelAnnotator",
     "VideoInfo",
     "VideoSink",
+    "approximate_polygon",
     "box_iou",
     "box_iou_batch",
     "box_iou_batch_with_jaccard",
@@ -244,5 +245,4 @@ __all__ = [
     "xyxy_to_polygons",
     "xyxy_to_xcycarh",
     "xyxy_to_xywh",
-    "approximate_polygon"
 ]

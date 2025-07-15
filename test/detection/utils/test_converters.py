@@ -3,8 +3,12 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from supervision.detection.utils.converters import xywh_to_xyxy, xyxy_to_xywh, \
-    xyxy_to_xcycarh, xcycwh_to_xyxy
+from supervision.detection.utils.converters import (
+    xcycwh_to_xyxy,
+    xywh_to_xyxy,
+    xyxy_to_xcycarh,
+    xyxy_to_xywh,
+)
 
 
 @pytest.mark.parametrize(
