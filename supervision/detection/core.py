@@ -12,11 +12,11 @@ from supervision.config import (
     ORIENTED_BOX_COORDINATES,
 )
 from supervision.detection.overlap_filter import (
+    OverlapMetric,
     box_non_max_merge,
     box_non_max_suppression,
     mask_non_max_merge,
     mask_non_max_suppression,
-    OverlapMetric,
 )
 from supervision.detection.tools.transformers import (
     process_transformers_detection_result,
