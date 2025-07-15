@@ -25,8 +25,8 @@ class LMM(Enum):
     Enum specifying supported Large Multimodal Models (LMMs).
 
     Attributes:
-        PALIGEMMA: Google’s PaliGemma vision-language model.
-        FLORENCE_2: Microsoft Florence-2 vision-language model.
+        PALIGEMMA: Google's PaliGemma vision-language model.
+        FLORENCE_2: Microsoft's Florence-2 vision-language model.
         QWEN_2_5_VL: Qwen2.5-VL open vision-language model from Alibaba.
         GOOGLE_GEMINI_2_0: Google Gemini 2.0 vision-language model.
         GOOGLE_GEMINI_2_5: Google Gemini 2.5 vision-language model.
@@ -65,8 +65,8 @@ class VLM(Enum):
     Enum specifying supported Vision-Language Models (VLMs).
 
     Attributes:
-        PALIGEMMA: Google’s PaliGemma vision-language model.
-        FLORENCE_2: Microsoft Florence-2 vision-language model.
+        PALIGEMMA: Google's PaliGemma vision-language model.
+        FLORENCE_2: Microsoft's Florence-2 vision-language model.
         QWEN_2_5_VL: Qwen2.5-VL open vision-language model from Alibaba.
         GOOGLE_GEMINI_2_0: Google Gemini 2.0 vision-language model.
         GOOGLE_GEMINI_2_5: Google Gemini 2.5 vision-language model.
@@ -142,6 +142,20 @@ SUPPORTED_TASKS_FLORENCE_2 = [
 
 
 def validate_vlm_parameters(vlm: VLM | str, result: Any, kwargs: dict[str, Any]) -> VLM:
+    """
+    Validates the parameters and result type for a given Vision-Language Model (VLM).
+
+    Args:
+        vlm: The VLM enum or string specifying the model.
+        result: The result object to validate (type depends on VLM).
+        kwargs: Dictionary of arguments to validate against required/allowed lists.
+
+    Returns:
+        VLM: The validated VLM enum value.
+
+    Raises:
+        ValueError: If the VLM, result type, or arguments are invalid.
+    """
     if isinstance(vlm, str):
         try:
             vlm = VLM(vlm.lower())

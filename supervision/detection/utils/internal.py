@@ -68,12 +68,12 @@ def process_roboflow_result(
             {CLASS_NAME_DATA_FIELD: np.empty(0)},
         )
 
-    xyxy = []
-    confidence = []
-    class_id = []
-    class_name = []
-    masks = []
-    tracker_ids = []
+    xyxy: list[list[float]] = []
+    confidence: list[float] = []
+    class_id: list[int] = []
+    class_name: list[str] = []
+    masks: list[np.ndarray] = []
+    tracker_ids: list[int] = []
 
     image_width = int(roboflow_result["image"]["width"])
     image_height = int(roboflow_result["image"]["height"])
@@ -108,15 +108,22 @@ def process_roboflow_result(
             if "tracker_id" in prediction:
                 tracker_ids.append(prediction["tracker_id"])
 
-    xyxy = np.array(xyxy) if len(xyxy) > 0 else np.empty((0, 4))
-    confidence = np.array(confidence) if len(confidence) > 0 else np.empty(0)
-    class_id = np.array(class_id).astype(int) if len(class_id) > 0 else np.empty(0)
-    class_name = np.array(class_name) if len(class_name) > 0 else np.empty(0)
-    masks = np.array(masks, dtype=bool) if len(masks) > 0 else None
-    tracker_id = np.array(tracker_ids).astype(int) if len(tracker_ids) > 0 else None
-    data = {CLASS_NAME_DATA_FIELD: class_name}
+    xyxy_arr = np.array(xyxy) if len(xyxy) > 0 else np.empty((0, 4))
+    confidence_arr = np.array(confidence) if len(confidence) > 0 else np.empty(0)
+    class_id_arr = np.array(class_id).astype(int) if len(class_id) > 0 else np.empty(0)
+    class_name_arr = np.array(class_name) if len(class_name) > 0 else np.empty(0)
+    masks_arr = np.array(masks, dtype=bool) if len(masks) > 0 else None
+    tracker_id_arr = np.array(tracker_ids).astype(int) if len(tracker_ids) > 0 else None
+    data: dict[str, np.ndarray] = {CLASS_NAME_DATA_FIELD: class_name_arr}
 
-    return xyxy, confidence, class_id, masks, tracker_id, data
+    return (
+        xyxy_arr,
+        confidence_arr,
+        class_id_arr,
+        masks_arr,
+        tracker_id_arr,
+        data,
+    )
 
 
 def is_data_equal(data_a: dict[str, np.ndarray], data_b: dict[str, np.ndarray]) -> bool:
@@ -285,7 +292,7 @@ def get_data_item(
     Returns:
         A subset of the data dictionary corresponding to the specified index.
     """
-    subset_data = {}
+    subset_data: dict[str, np.ndarray | list] = {}
     for key, value in data.items():
         if isinstance(value, np.ndarray):
             subset_data[key] = value[index]
