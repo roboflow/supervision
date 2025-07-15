@@ -168,12 +168,16 @@ markdown_extensions:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
+  - pymdownx.arithmatex:
+      generic: true
 
 extra_javascript:
   - "javascripts/init_kapa_widget.js"
   - "javascripts/cookbooks-card.js"
   - "javascripts/segment.js"
+  - "javascripts/mathjax.js"
   - "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"
+  - "https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"
 
 # Messages shown during document build
 # Reference: https://www.mkdocs.org/user-guide/configuration/#validation

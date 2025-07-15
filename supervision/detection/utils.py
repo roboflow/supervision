@@ -94,8 +94,11 @@ def box_iou(
     """
     Compute the Intersection over Union (IoU) between two bounding boxes.
 
-    Both `box_true` and `box_detection` should be in (x_min, y_min, x_max, y_max)
-    format.
+    Mathematically, it is defined as:
+
+    \\[
+    \text{IoU} = \frac{|\text{box}_{\text{true}} \\cap \text{box}_{\text{detection}}|}{|\text{box}_{\text{true}} \\cup \text{box}_{\text{detection}}|}
+    \\]
 
     Note:
         Use `box_iou` when computing IoU between two individual boxes.
@@ -123,7 +126,7 @@ def box_iou(
         sv.box_iou(box_true=box_true, box_detection=box_detection)
         # 0.14285814285714285
         ```
-    """
+    """  # noqa: E501
     box_true = np.array(box_true)
     box_detection = np.array(box_detection)
 
@@ -1566,8 +1569,7 @@ def _jaccard(box_a: List[float], box_b: List[float], is_crowd: bool) -> float:
     """
     Calculate the Jaccard index (intersection over union) between two bounding boxes.
     If a gt object is marked as "iscrowd", a dt is allowed to match any subregion
-    of the gt. Choosing gt' in the crowd gt that best matches the dt can be done using
-    gt'=intersect(dt,gt). Since by definition union(gt',dt)=dt, computing
+    of the gt. Choosing gt'=intersect(dt,gt). Since by definition union(gt',dt)=dt, computing
     iou(gt,dt,iscrowd) = iou(gt',dt) = area(intersect(gt,dt)) / area(dt)
 
     Args:
@@ -1577,7 +1579,7 @@ def _jaccard(box_a: List[float], box_b: List[float], is_crowd: bool) -> float:
 
     Returns:
         float: Jaccard index between the two bounding boxes.
-    """
+    """  # noqa: E501
     # Smallest number to avoid division by zero
     EPS = np.spacing(1)
 
