@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from itertools import chain
+from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import cv2
@@ -9,6 +12,42 @@ from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.geometry.core import Vector
 
 MIN_POLYGON_POINT_COUNT = 3
+
+
+class OverlapMetric(Enum):
+    """
+    Enum specifying the metric for measuring overlap between detections.
+
+    Attributes:
+        IOU: Intersection over Union. A region-overlap metric that compares
+            two shapes (usually bounding boxes or masks) by normalising the
+            shared area with the area of their union.
+        IOS: Intersection over Smaller, a region-overlap metric that compares
+            two shapes (usually bounding boxes or masks) by normalising the
+            shared area with the smaller of the two shapes.
+    """
+
+    IOU = "IOU"
+    IOS = "IOS"
+
+    @classmethod
+    def list(cls):
+        return list(map(lambda c: c.value, cls))
+
+    @classmethod
+    def from_value(cls, value: Union[OverlapMetric, str]) -> OverlapMetric:
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, str):
+            value = value.lower()
+            try:
+                return cls(value)
+            except ValueError:
+                raise ValueError(f"Invalid value: {value}. Must be one of {cls.list()}")
+        raise ValueError(
+            f"Invalid value type: {type(value)}. Must be an instance of "
+            f"{cls.__name__} or str."
+        )
 
 
 def xyxy_to_polygons(box: np.ndarray) -> np.ndarray:
@@ -109,7 +148,7 @@ def box_iou(
 
 
 def box_iou_batch(
-    boxes_true: np.ndarray, boxes_detection: np.ndarray, match_metric: str = "IOU"
+    boxes_true: np.ndarray, boxes_detection: np.ndarray, overlap_metric: OverlapMetric = OverlapMetric.IOU
 ) -> np.ndarray:
     """
     Compute Intersection over Union (IoU) of two sets of bounding boxes -
@@ -126,8 +165,7 @@ def box_iou_batch(
             `shape = (N, 4)` where `N` is number of true objects.
         boxes_detection (np.ndarray): 2D `np.ndarray` representing detection boxes.
             `shape = (M, 4)` where `M` is number of detected objects.
-        match_metric (str): Metric used for matching detections in slices.
-            "IOU" or "IOS". Defaults "IOU".
+        overlap_metric (OverlapMetric): Metric used for matching detections in slices.
 
     Returns:
         np.ndarray: Pairwise IoU of boxes from `boxes_true` and `boxes_detection`.
@@ -167,7 +205,7 @@ def box_iou_batch(
 
     area_inter = np.prod(np.clip(bottom_right - top_left, a_min=0, a_max=None), 2)
 
-    if match_metric.upper() == "IOU":
+    if overlap_metric == OverlapMetric.IOU:
         union_area = area_true[:, None] + area_detection - area_inter
         ious = np.divide(
             area_inter,
@@ -175,7 +213,7 @@ def box_iou_batch(
             out=np.zeros_like(area_inter, dtype=float),
             where=union_area != 0,
         )
-    elif match_metric.upper() == "IOS":
+    elif overlap_metric == OverlapMetric.IOS:
         small_area = np.minimum(area_true[:, None], area_detection)
         ious = np.divide(
             area_inter,
@@ -185,7 +223,7 @@ def box_iou_batch(
         )
     else:
         raise ValueError(
-            f"match_metric {match_metric} is not supported, "
+            f"overlap_metric {overlap_metric} is not supported, "
             "only 'IOU' and 'IOS' are supported"
         )
 
@@ -196,7 +234,7 @@ def box_iou_batch(
 def _mask_iou_batch_split(
     masks_true: np.ndarray,
     masks_detection: np.ndarray,
-    match_metric: str = "IOU",
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> np.ndarray:
     """
     Internal function.
@@ -206,8 +244,7 @@ def _mask_iou_batch_split(
     Args:
         masks_true (np.ndarray): 3D `np.ndarray` representing ground-truth masks.
         masks_detection (np.ndarray): 3D `np.ndarray` representing detection masks.
-        match_metric (str): Metric used for matching detections in slices.
-            "IOU" or "IOS". Defaults "IOU".
+        overlap_metric (OverlapMetric): Metric used for matching detections in slices.
 
     Returns:
         np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.
@@ -219,7 +256,7 @@ def _mask_iou_batch_split(
     masks_true_area = masks_true.sum(axis=(1, 2))  # (area1, area2, ...)
     masks_detection_area = masks_detection.sum(axis=(1, 2))  # (area1)
 
-    if match_metric.upper() == "IOU":
+    if overlap_metric == OverlapMetric.IOU:
         union_area = masks_true_area[:, None] + masks_detection_area - intersection_area
         ious = np.divide(
             intersection_area,
@@ -227,7 +264,7 @@ def _mask_iou_batch_split(
             out=np.zeros_like(intersection_area, dtype=float),
             where=union_area != 0,
         )
-    elif match_metric.upper() == "IOS":
+    elif overlap_metric == OverlapMetric.IOS:
         # ios = intersection_area / min(area1, area2)
         small_area = np.minimum(masks_true_area[:, None], masks_detection_area)
         ious = np.divide(
@@ -238,7 +275,7 @@ def _mask_iou_batch_split(
         )
     else:
         raise ValueError(
-            f"match_metric {match_metric} is not supported, "
+            f"overlap_metric {overlap_metric} is not supported, "
             "only 'IOU' and 'IOS' are supported"
         )
 
@@ -249,7 +286,7 @@ def _mask_iou_batch_split(
 def mask_iou_batch(
     masks_true: np.ndarray,
     masks_detection: np.ndarray,
-    match_metric: str = "IOU",
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
     memory_limit: int = 1024 * 5,
 ) -> np.ndarray:
     """
@@ -259,8 +296,7 @@ def mask_iou_batch(
     Args:
         masks_true (np.ndarray): 3D `np.ndarray` representing ground-truth masks.
         masks_detection (np.ndarray): 3D `np.ndarray` representing detection masks.
-        match_metric (str): Metric used for matching detections in slices.
-            "IOU" or "IOS". Defaults "IOU".
+        overlap_metric (OverlapMetric): Metric used for matching detections in slices.
         memory_limit (int): memory limit in MB, default is 1024 * 5 MB (5GB).
 
     Returns:
@@ -275,7 +311,7 @@ def mask_iou_batch(
         / 1024
     )
     if memory <= memory_limit:
-        return _mask_iou_batch_split(masks_true, masks_detection, match_metric)
+        return _mask_iou_batch_split(masks_true, masks_detection, overlap_metric)
 
     ious = []
     step = max(
@@ -292,7 +328,7 @@ def mask_iou_batch(
     for i in range(0, masks_true.shape[0], step):
         ious.append(
             _mask_iou_batch_split(
-                masks_true[i : i + step], masks_detection, match_metric
+                masks_true[i : i + step], masks_detection, overlap_metric
             )
         )
 

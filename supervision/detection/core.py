@@ -12,7 +12,6 @@ from supervision.config import (
     ORIENTED_BOX_COORDINATES,
 )
 from supervision.detection.overlap_filter import (
-    OverlapMetric,
     box_non_max_merge,
     box_non_max_suppression,
     mask_non_max_merge,
@@ -36,6 +35,7 @@ from supervision.detection.utils import (
     merge_metadata,
     process_roboflow_result,
     xywh_to_xyxy,
+    OverlapMetric,
 )
 from supervision.detection.vlm import (
     LMM,
