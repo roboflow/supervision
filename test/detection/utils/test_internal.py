@@ -7,8 +7,12 @@ import numpy as np
 import pytest
 
 from supervision.config import CLASS_NAME_DATA_FIELD
-from supervision.detection.utils.internal import process_roboflow_result, merge_data, \
-    get_data_item, merge_metadata
+from supervision.detection.utils.internal import (
+    get_data_item,
+    merge_data,
+    merge_metadata,
+    process_roboflow_result,
+)
 
 TEST_MASK = np.zeros((1, 1000, 1000), dtype=bool)
 TEST_MASK[:, 300:351, 200:251] = True
@@ -244,6 +248,7 @@ def test_process_roboflow_result(
                 assert result[5][key] == expected_result[5][key], (
                     f"Mismatch in non-array data for key {key}"
                 )
+
 
 @pytest.mark.parametrize(
     "data_list, expected_result, exception",

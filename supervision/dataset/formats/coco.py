@@ -15,7 +15,6 @@ from supervision.dataset.utils import (
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import polygon_to_mask
 from supervision.detection.utils.masks import contains_holes, contains_multiple_segments
-
 from supervision.utils.file import read_json_file, save_json_file
 
 if TYPE_CHECKING:

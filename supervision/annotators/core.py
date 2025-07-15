@@ -22,10 +22,12 @@ from supervision.annotators.utils import (
 )
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
-from supervision.detection.utils.boxes import spread_out_boxes, clip_boxes
-from supervision.detection.utils.converters import mask_to_polygons, xyxy_to_polygons, \
-    polygon_to_mask
-
+from supervision.detection.utils.boxes import clip_boxes, spread_out_boxes
+from supervision.detection.utils.converters import (
+    mask_to_polygons,
+    polygon_to_mask,
+    xyxy_to_polygons,
+)
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_polygon, draw_rounded_rectangle, draw_text
 from supervision.geometry.core import Point, Position, Rect

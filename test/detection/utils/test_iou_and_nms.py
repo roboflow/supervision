@@ -5,8 +5,12 @@ from contextlib import ExitStack as DoesNotRaise
 import numpy as np
 import pytest
 
-from supervision.detection.utils.iou_and_nms import box_non_max_suppression, \
-    mask_non_max_suppression, mask_non_max_merge, _group_overlapping_boxes
+from supervision.detection.utils.iou_and_nms import (
+    _group_overlapping_boxes,
+    box_non_max_suppression,
+    mask_non_max_merge,
+    mask_non_max_suppression,
+)
 
 
 @pytest.mark.parametrize(
