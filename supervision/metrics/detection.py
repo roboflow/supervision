@@ -299,7 +299,9 @@ class ConfusionMatrix:
         if len(targets) == 0:
             # No ground truth - all detections are FP
             class_id_idx = 4
-            detection_classes = np.array(detection_batch_filtered[:, class_id_idx], dtype=np.int16)
+            detection_classes = np.array(
+                detection_batch_filtered[:, class_id_idx], dtype=np.int16
+            )
             for det_class in detection_classes:
                 result_matrix[num_classes, det_class] += 1
             return result_matrix
@@ -311,9 +313,11 @@ class ConfusionMatrix:
         )
         true_boxes = targets[:, :class_id_idx]
         detection_boxes = detection_batch_filtered[:, :class_id_idx]
-        
+
         # Calculate IoU matrix
-        iou_batch = box_iou_batch(boxes_true=true_boxes, boxes_detection=detection_boxes)
+        iou_batch = box_iou_batch(
+            boxes_true=true_boxes, boxes_detection=detection_boxes
+        )
 
         # Find all valid matches (IoU > threshold, regardless of class)
         valid_matches = []
@@ -323,18 +327,18 @@ class ConfusionMatrix:
                 if iou > iou_threshold:
                     gt_class = true_classes[gt_idx]
                     det_class = detection_classes[det_idx]
-                    class_match = (gt_class == det_class)
+                    class_match = gt_class == det_class
                     valid_matches.append((gt_idx, det_idx, iou, class_match))
 
         # Sort matches by class match first (True before False), then by IoU descending
         # This prioritizes correct class predictions over higher IoU with wrong class
         valid_matches.sort(key=lambda x: (x[3], x[2]), reverse=True)
 
-        # Greedily assign matches, ensuring each GT 
+        # Greedily assign matches, ensuring each GT
         # and detection is matched at most once
         matched_gt_idx = set()
         matched_det_idx = set()
-        
+
         for gt_idx, det_idx, iou, class_match in valid_matches:
             if gt_idx not in matched_gt_idx and det_idx not in matched_det_idx:
                 # Valid spatial match - record the class prediction
@@ -355,7 +359,7 @@ class ConfusionMatrix:
         for det_idx, det_class in enumerate(detection_classes):
             if det_idx not in matched_det_idx:
                 result_matrix[num_classes, det_class] += 1
-                
+
         return result_matrix
 
     @staticmethod
