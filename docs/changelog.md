@@ -52,7 +52,7 @@
 
 - Added [#1823](https://github.com/roboflow/supervision/pull/1823): `sv.xyxy_to_xcycarh` function to convert bounding box coordinates from `(x_min, y_min, x_max, y_max)` into measurement space to format `(center x, center y, aspect ratio, height)`, where the aspect ratio is `width / height`.
 
-- Added [#1788](https://github.com/roboflow/supervision/pull/1788): `sv.xyxy_to_xywh` function to convert bounding box coordinates from `(x_min, y_min, x_max, y_max)` format to `(x, y, width, height)` format. 
+- Added [#1788](https://github.com/roboflow/supervision/pull/1788): `sv.xyxy_to_xywh` function to convert bounding box coordinates from `(x_min, y_min, x_max, y_max)` format to `(x, y, width, height)` format.
 
 - Changed [#1820](https://github.com/roboflow/supervision/pull/1820): `sv.LabelAnnotator` now has the ability to ensure labels stay within frame boundaries using the smart_position parameter and control automatic text wrapping for long multi-line labels using the max_line_length parameter.
 
