@@ -142,6 +142,20 @@ SUPPORTED_TASKS_FLORENCE_2 = [
 
 
 def validate_vlm_parameters(vlm: VLM | str, result: Any, kwargs: dict[str, Any]) -> VLM:
+    """
+    Validates the parameters and result type for a given Vision-Language Model (VLM).
+
+    Args:
+        vlm: The VLM enum or string specifying the model.
+        result: The result object to validate (type depends on VLM).
+        kwargs: Dictionary of arguments to validate against required/allowed lists.
+
+    Returns:
+        VLM: The validated VLM enum value.
+
+    Raises:
+        ValueError: If the VLM, result type, or arguments are invalid.
+    """
     if isinstance(vlm, str):
         try:
             vlm = VLM(vlm.lower())
