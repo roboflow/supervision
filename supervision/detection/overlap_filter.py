@@ -413,8 +413,12 @@ class OverlapMetric(Enum):
     Enum specifying the metric for measuring overlap between detections.
 
     Attributes:
-        IOU: Intersection over Union.
-        IOS: Intersection over Similarity.
+        IOU: Intersection over Union. A region-overlap metric that compares
+            two shapes (usually bounding boxes or masks) by normalising the
+            shared area with the area of their union.
+        IOS: Intersection over Smaller, a region-overlap metric that compares
+            two shapes (usually bounding boxes or masks) by normalising the
+            shared area with the smaller of the two shapes.
     """
 
     IOU = "IOU"
