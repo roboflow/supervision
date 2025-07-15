@@ -99,7 +99,7 @@ class LineZone:
         self.vector = Vector(start=start, end=end)
         self.limits = self._calculate_region_of_interest_limits(vector=self.vector)
         self.crossing_history_length = max(2, minimum_crossing_threshold + 1)
-        self.crossing_state_history: Dict[int, Deque[bool]] = defaultdict(
+        self.crossing_state_history: Dict[Tuple[int, int], Deque[bool]] = defaultdict(
             lambda: deque(maxlen=self.crossing_history_length)
         )
         self._in_count_per_class: Counter = Counter()
@@ -176,15 +176,11 @@ class LineZone:
                 continue
 
             tracker_state: bool = has_any_left_trigger[i]
-            crossing_history = self.crossing_state_history[tracker_id]
+            crossing_history = self.crossing_state_history[(tracker_id, class_id)]
             crossing_history.append(tracker_state)
 
             if len(crossing_history) < self.crossing_history_length:
                 continue
-
-            # TODO: Account for incorrect class_id.
-            #   Most likely this would involve indexing self.crossing_state_history
-            #   with (tracker_id, class_id).
 
             oldest_state = crossing_history[0]
             if crossing_history.count(oldest_state) > 1:

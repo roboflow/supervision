@@ -776,3 +776,54 @@ def test_line_zone_long_horizon_disappearing_detections(
         assert crossed_out_list == expected_crossed_out
         assert count_in_list == expected_count_in
         assert count_out_list == expected_count_out
+
+
+def test_line_zone_tracker_id_reuse_with_different_classes() -> None:
+    line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
+
+    # First object with class 0 crosses the line
+    detections = mock_detections(
+        xyxy=[[4, 4, 6, 6]],
+        tracker_id=[0],
+        class_id=[0],
+    )
+    line_zone.trigger(detections)
+
+    detections = mock_detections(
+        xyxy=[[4, -6, 6, -4]],
+        tracker_id=[0],
+        class_id=[0],
+    )
+    line_zone.trigger(detections)
+
+    detections = mock_detections(
+        xyxy=[[4, 4, 6, 6]],
+        tracker_id=[0],
+        class_id=[0],
+    )
+    line_zone.trigger(detections)
+
+    # Second object reuses tracker id with a different class
+    detections = mock_detections(
+        xyxy=[[4, 4, 6, 6]],
+        tracker_id=[0],
+        class_id=[1],
+    )
+    line_zone.trigger(detections)
+
+    detections = mock_detections(
+        xyxy=[[4, -6, 6, -4]],
+        tracker_id=[0],
+        class_id=[1],
+    )
+    line_zone.trigger(detections)
+
+    detections = mock_detections(
+        xyxy=[[4, 4, 6, 6]],
+        tracker_id=[0],
+        class_id=[1],
+    )
+    line_zone.trigger(detections)
+
+    assert line_zone.in_count_per_class == {0: 1, 1: 1}
+    assert line_zone.out_count_per_class == {0: 1, 1: 1}
