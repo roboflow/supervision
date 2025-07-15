@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from itertools import chain
 from enum import Enum
+from itertools import chain
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import cv2
@@ -148,7 +148,9 @@ def box_iou(
 
 
 def box_iou_batch(
-    boxes_true: np.ndarray, boxes_detection: np.ndarray, overlap_metric: OverlapMetric = OverlapMetric.IOU
+    boxes_true: np.ndarray,
+    boxes_detection: np.ndarray,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> np.ndarray:
     """
     Compute Intersection over Union (IoU) of two sets of bounding boxes -

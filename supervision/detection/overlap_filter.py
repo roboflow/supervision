@@ -6,8 +6,7 @@ from typing import List, Union
 import numpy as np
 import numpy.typing as npt
 
-from supervision.detection.utils import box_iou_batch, mask_iou_batch
-from supervision.detection.utils import OverlapMetric
+from supervision.detection.utils import OverlapMetric, box_iou_batch, mask_iou_batch
 
 
 def resize_masks(masks: np.ndarray, max_dimension: int = 640) -> np.ndarray:
@@ -97,7 +96,9 @@ def mask_non_max_suppression(
 
 
 def box_non_max_suppression(
-    predictions: np.ndarray, iou_threshold: float = 0.5, overlap_metric: OverlapMetric = OverlapMetric.IOU
+    predictions: np.ndarray,
+    iou_threshold: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> np.ndarray:
     """
     Perform Non-Maximum Suppression (NMS) on object detection predictions.

@@ -23,6 +23,7 @@ from supervision.detection.tools.transformers import (
     process_transformers_v5_segmentation_result,
 )
 from supervision.detection.utils import (
+    OverlapMetric,
     box_iou_batch,
     calculate_masks_centroids,
     extract_ultralytics_masks,
@@ -35,7 +36,6 @@ from supervision.detection.utils import (
     merge_metadata,
     process_roboflow_result,
     xywh_to_xyxy,
-    OverlapMetric,
 )
 from supervision.detection.vlm import (
     LMM,
