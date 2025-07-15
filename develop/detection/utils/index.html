@@ -4862,10 +4862,7 @@ Reference: https://github.com/rafaelpadilla/review_object_detection_metrics</p>
 
             <details class="quote">
               <summary>Source code in <code>supervision/detection/utils.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1608">1608</a></span>
-<span class="normal"><a href="#__codelineno-0-1609">1609</a></span>
-<span class="normal"><a href="#__codelineno-0-1610">1610</a></span>
-<span class="normal"><a href="#__codelineno-0-1611">1611</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1611">1611</a></span>
 <span class="normal"><a href="#__codelineno-0-1612">1612</a></span>
 <span class="normal"><a href="#__codelineno-0-1613">1613</a></span>
 <span class="normal"><a href="#__codelineno-0-1614">1614</a></span>
@@ -4918,63 +4915,66 @@ Reference: https://github.com/rafaelpadilla/review_object_detection_metrics</p>
 <span class="normal"><a href="#__codelineno-0-1661">1661</a></span>
 <span class="normal"><a href="#__codelineno-0-1662">1662</a></span>
 <span class="normal"><a href="#__codelineno-0-1663">1663</a></span>
-<span class="normal"><a href="#__codelineno-0-1664">1664</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-1608"><a id="__codelineno-0-1608" name="__codelineno-0-1608"></a><span class="k">def</span><span class="w"> </span><span class="nf">box_iou_batch_with_jaccard</span><span class="p">(</span>
-</span><span id="__span-0-1609"><a id="__codelineno-0-1609" name="__codelineno-0-1609"></a>    <span class="n">boxes_true</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span>
-</span><span id="__span-0-1610"><a id="__codelineno-0-1610" name="__codelineno-0-1610"></a>    <span class="n">boxes_detection</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span>
-</span><span id="__span-0-1611"><a id="__codelineno-0-1611" name="__codelineno-0-1611"></a>    <span class="n">is_crowd</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">],</span>
-</span><span id="__span-0-1612"><a id="__codelineno-0-1612" name="__codelineno-0-1612"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-</span><span id="__span-0-1613"><a id="__codelineno-0-1613" name="__codelineno-0-1613"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-1614"><a id="__codelineno-0-1614" name="__codelineno-0-1614"></a><span class="sd">    Calculate the intersection over union (IoU) between detection bounding boxes (dt)</span>
-</span><span id="__span-0-1615"><a id="__codelineno-0-1615" name="__codelineno-0-1615"></a><span class="sd">    and ground-truth bounding boxes (gt).</span>
-</span><span id="__span-0-1616"><a id="__codelineno-0-1616" name="__codelineno-0-1616"></a><span class="sd">    Reference: https://github.com/rafaelpadilla/review_object_detection_metrics</span>
-</span><span id="__span-0-1617"><a id="__codelineno-0-1617" name="__codelineno-0-1617"></a>
-</span><span id="__span-0-1618"><a id="__codelineno-0-1618" name="__codelineno-0-1618"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-1619"><a id="__codelineno-0-1619" name="__codelineno-0-1619"></a><span class="sd">        boxes_true (List[List[float]]): List of ground-truth bounding boxes in the \</span>
-</span><span id="__span-0-1620"><a id="__codelineno-0-1620" name="__codelineno-0-1620"></a><span class="sd">            format [x, y, width, height].</span>
-</span><span id="__span-0-1621"><a id="__codelineno-0-1621" name="__codelineno-0-1621"></a><span class="sd">        boxes_detection (List[List[float]]): List of detection bounding boxes in the \</span>
-</span><span id="__span-0-1622"><a id="__codelineno-0-1622" name="__codelineno-0-1622"></a><span class="sd">            format [x, y, width, height].</span>
-</span><span id="__span-0-1623"><a id="__codelineno-0-1623" name="__codelineno-0-1623"></a><span class="sd">        is_crowd (List[bool]): List indicating if each ground-truth bounding box \</span>
-</span><span id="__span-0-1624"><a id="__codelineno-0-1624" name="__codelineno-0-1624"></a><span class="sd">            is a crowd region or not.</span>
-</span><span id="__span-0-1625"><a id="__codelineno-0-1625" name="__codelineno-0-1625"></a>
-</span><span id="__span-0-1626"><a id="__codelineno-0-1626" name="__codelineno-0-1626"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-1627"><a id="__codelineno-0-1627" name="__codelineno-0-1627"></a><span class="sd">        np.ndarray: Array of IoU values of shape (len(dt), len(gt)).</span>
+<span class="normal"><a href="#__codelineno-0-1664">1664</a></span>
+<span class="normal"><a href="#__codelineno-0-1665">1665</a></span>
+<span class="normal"><a href="#__codelineno-0-1666">1666</a></span>
+<span class="normal"><a href="#__codelineno-0-1667">1667</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-1611"><a id="__codelineno-0-1611" name="__codelineno-0-1611"></a><span class="k">def</span><span class="w"> </span><span class="nf">box_iou_batch_with_jaccard</span><span class="p">(</span>
+</span><span id="__span-0-1612"><a id="__codelineno-0-1612" name="__codelineno-0-1612"></a>    <span class="n">boxes_true</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span>
+</span><span id="__span-0-1613"><a id="__codelineno-0-1613" name="__codelineno-0-1613"></a>    <span class="n">boxes_detection</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span>
+</span><span id="__span-0-1614"><a id="__codelineno-0-1614" name="__codelineno-0-1614"></a>    <span class="n">is_crowd</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">],</span>
+</span><span id="__span-0-1615"><a id="__codelineno-0-1615" name="__codelineno-0-1615"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+</span><span id="__span-0-1616"><a id="__codelineno-0-1616" name="__codelineno-0-1616"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-1617"><a id="__codelineno-0-1617" name="__codelineno-0-1617"></a><span class="sd">    Calculate the intersection over union (IoU) between detection bounding boxes (dt)</span>
+</span><span id="__span-0-1618"><a id="__codelineno-0-1618" name="__codelineno-0-1618"></a><span class="sd">    and ground-truth bounding boxes (gt).</span>
+</span><span id="__span-0-1619"><a id="__codelineno-0-1619" name="__codelineno-0-1619"></a><span class="sd">    Reference: https://github.com/rafaelpadilla/review_object_detection_metrics</span>
+</span><span id="__span-0-1620"><a id="__codelineno-0-1620" name="__codelineno-0-1620"></a>
+</span><span id="__span-0-1621"><a id="__codelineno-0-1621" name="__codelineno-0-1621"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-1622"><a id="__codelineno-0-1622" name="__codelineno-0-1622"></a><span class="sd">        boxes_true (List[List[float]]): List of ground-truth bounding boxes in the \</span>
+</span><span id="__span-0-1623"><a id="__codelineno-0-1623" name="__codelineno-0-1623"></a><span class="sd">            format [x, y, width, height].</span>
+</span><span id="__span-0-1624"><a id="__codelineno-0-1624" name="__codelineno-0-1624"></a><span class="sd">        boxes_detection (List[List[float]]): List of detection bounding boxes in the \</span>
+</span><span id="__span-0-1625"><a id="__codelineno-0-1625" name="__codelineno-0-1625"></a><span class="sd">            format [x, y, width, height].</span>
+</span><span id="__span-0-1626"><a id="__codelineno-0-1626" name="__codelineno-0-1626"></a><span class="sd">        is_crowd (List[bool]): List indicating if each ground-truth bounding box \</span>
+</span><span id="__span-0-1627"><a id="__codelineno-0-1627" name="__codelineno-0-1627"></a><span class="sd">            is a crowd region or not.</span>
 </span><span id="__span-0-1628"><a id="__codelineno-0-1628" name="__codelineno-0-1628"></a>
-</span><span id="__span-0-1629"><a id="__codelineno-0-1629" name="__codelineno-0-1629"></a><span class="sd">    Examples:</span>
-</span><span id="__span-0-1630"><a id="__codelineno-0-1630" name="__codelineno-0-1630"></a><span class="sd">        ```python</span>
-</span><span id="__span-0-1631"><a id="__codelineno-0-1631" name="__codelineno-0-1631"></a><span class="sd">        import numpy as np</span>
-</span><span id="__span-0-1632"><a id="__codelineno-0-1632" name="__codelineno-0-1632"></a><span class="sd">        import supervision as sv</span>
-</span><span id="__span-0-1633"><a id="__codelineno-0-1633" name="__codelineno-0-1633"></a>
-</span><span id="__span-0-1634"><a id="__codelineno-0-1634" name="__codelineno-0-1634"></a><span class="sd">        boxes_true = [</span>
-</span><span id="__span-0-1635"><a id="__codelineno-0-1635" name="__codelineno-0-1635"></a><span class="sd">            [10, 20, 30, 40],  # x, y, w, h</span>
-</span><span id="__span-0-1636"><a id="__codelineno-0-1636" name="__codelineno-0-1636"></a><span class="sd">            [15, 25, 35, 45]</span>
-</span><span id="__span-0-1637"><a id="__codelineno-0-1637" name="__codelineno-0-1637"></a><span class="sd">        ]</span>
-</span><span id="__span-0-1638"><a id="__codelineno-0-1638" name="__codelineno-0-1638"></a><span class="sd">        boxes_detection = [</span>
-</span><span id="__span-0-1639"><a id="__codelineno-0-1639" name="__codelineno-0-1639"></a><span class="sd">            [12, 22, 28, 38],</span>
-</span><span id="__span-0-1640"><a id="__codelineno-0-1640" name="__codelineno-0-1640"></a><span class="sd">            [16, 26, 36, 46]</span>
-</span><span id="__span-0-1641"><a id="__codelineno-0-1641" name="__codelineno-0-1641"></a><span class="sd">        ]</span>
-</span><span id="__span-0-1642"><a id="__codelineno-0-1642" name="__codelineno-0-1642"></a><span class="sd">        is_crowd = [False, False]</span>
-</span><span id="__span-0-1643"><a id="__codelineno-0-1643" name="__codelineno-0-1643"></a>
-</span><span id="__span-0-1644"><a id="__codelineno-0-1644" name="__codelineno-0-1644"></a><span class="sd">        ious = sv.box_iou_batch_with_jaccard(</span>
-</span><span id="__span-0-1645"><a id="__codelineno-0-1645" name="__codelineno-0-1645"></a><span class="sd">            boxes_true=boxes_true,</span>
-</span><span id="__span-0-1646"><a id="__codelineno-0-1646" name="__codelineno-0-1646"></a><span class="sd">            boxes_detection=boxes_detection,</span>
-</span><span id="__span-0-1647"><a id="__codelineno-0-1647" name="__codelineno-0-1647"></a><span class="sd">            is_crowd=is_crowd</span>
-</span><span id="__span-0-1648"><a id="__codelineno-0-1648" name="__codelineno-0-1648"></a><span class="sd">        )</span>
-</span><span id="__span-0-1649"><a id="__codelineno-0-1649" name="__codelineno-0-1649"></a><span class="sd">        # array([</span>
-</span><span id="__span-0-1650"><a id="__codelineno-0-1650" name="__codelineno-0-1650"></a><span class="sd">        #     [0.8866..., 0.4960...],</span>
-</span><span id="__span-0-1651"><a id="__codelineno-0-1651" name="__codelineno-0-1651"></a><span class="sd">        #     [0.4000..., 0.8622...]</span>
-</span><span id="__span-0-1652"><a id="__codelineno-0-1652" name="__codelineno-0-1652"></a><span class="sd">        # ])</span>
-</span><span id="__span-0-1653"><a id="__codelineno-0-1653" name="__codelineno-0-1653"></a><span class="sd">        ```</span>
-</span><span id="__span-0-1654"><a id="__codelineno-0-1654" name="__codelineno-0-1654"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-1655"><a id="__codelineno-0-1655" name="__codelineno-0-1655"></a>    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">is_crowd</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">boxes_true</span><span class="p">),</span> <span class="p">(</span>
-</span><span id="__span-0-1656"><a id="__codelineno-0-1656" name="__codelineno-0-1656"></a>        <span class="s2">&quot;`is_crowd` must have the same length as `boxes_true`&quot;</span>
-</span><span id="__span-0-1657"><a id="__codelineno-0-1657" name="__codelineno-0-1657"></a>    <span class="p">)</span>
-</span><span id="__span-0-1658"><a id="__codelineno-0-1658" name="__codelineno-0-1658"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">boxes_detection</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">boxes_true</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span><span id="__span-0-1659"><a id="__codelineno-0-1659" name="__codelineno-0-1659"></a>        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
-</span><span id="__span-0-1660"><a id="__codelineno-0-1660" name="__codelineno-0-1660"></a>    <span class="n">ious</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">boxes_detection</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">boxes_true</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
-</span><span id="__span-0-1661"><a id="__codelineno-0-1661" name="__codelineno-0-1661"></a>    <span class="k">for</span> <span class="n">g_idx</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">boxes_true</span><span class="p">):</span>
-</span><span id="__span-0-1662"><a id="__codelineno-0-1662" name="__codelineno-0-1662"></a>        <span class="k">for</span> <span class="n">d_idx</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">boxes_detection</span><span class="p">):</span>
-</span><span id="__span-0-1663"><a id="__codelineno-0-1663" name="__codelineno-0-1663"></a>            <span class="n">ious</span><span class="p">[</span><span class="n">d_idx</span><span class="p">,</span> <span class="n">g_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">_jaccard</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">is_crowd</span><span class="p">[</span><span class="n">g_idx</span><span class="p">])</span>
-</span><span id="__span-0-1664"><a id="__codelineno-0-1664" name="__codelineno-0-1664"></a>    <span class="k">return</span> <span class="n">ious</span>
+</span><span id="__span-0-1629"><a id="__codelineno-0-1629" name="__codelineno-0-1629"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-1630"><a id="__codelineno-0-1630" name="__codelineno-0-1630"></a><span class="sd">        np.ndarray: Array of IoU values of shape (len(dt), len(gt)).</span>
+</span><span id="__span-0-1631"><a id="__codelineno-0-1631" name="__codelineno-0-1631"></a>
+</span><span id="__span-0-1632"><a id="__codelineno-0-1632" name="__codelineno-0-1632"></a><span class="sd">    Examples:</span>
+</span><span id="__span-0-1633"><a id="__codelineno-0-1633" name="__codelineno-0-1633"></a><span class="sd">        ```python</span>
+</span><span id="__span-0-1634"><a id="__codelineno-0-1634" name="__codelineno-0-1634"></a><span class="sd">        import numpy as np</span>
+</span><span id="__span-0-1635"><a id="__codelineno-0-1635" name="__codelineno-0-1635"></a><span class="sd">        import supervision as sv</span>
+</span><span id="__span-0-1636"><a id="__codelineno-0-1636" name="__codelineno-0-1636"></a>
+</span><span id="__span-0-1637"><a id="__codelineno-0-1637" name="__codelineno-0-1637"></a><span class="sd">        boxes_true = [</span>
+</span><span id="__span-0-1638"><a id="__codelineno-0-1638" name="__codelineno-0-1638"></a><span class="sd">            [10, 20, 30, 40],  # x, y, w, h</span>
+</span><span id="__span-0-1639"><a id="__codelineno-0-1639" name="__codelineno-0-1639"></a><span class="sd">            [15, 25, 35, 45]</span>
+</span><span id="__span-0-1640"><a id="__codelineno-0-1640" name="__codelineno-0-1640"></a><span class="sd">        ]</span>
+</span><span id="__span-0-1641"><a id="__codelineno-0-1641" name="__codelineno-0-1641"></a><span class="sd">        boxes_detection = [</span>
+</span><span id="__span-0-1642"><a id="__codelineno-0-1642" name="__codelineno-0-1642"></a><span class="sd">            [12, 22, 28, 38],</span>
+</span><span id="__span-0-1643"><a id="__codelineno-0-1643" name="__codelineno-0-1643"></a><span class="sd">            [16, 26, 36, 46]</span>
+</span><span id="__span-0-1644"><a id="__codelineno-0-1644" name="__codelineno-0-1644"></a><span class="sd">        ]</span>
+</span><span id="__span-0-1645"><a id="__codelineno-0-1645" name="__codelineno-0-1645"></a><span class="sd">        is_crowd = [False, False]</span>
+</span><span id="__span-0-1646"><a id="__codelineno-0-1646" name="__codelineno-0-1646"></a>
+</span><span id="__span-0-1647"><a id="__codelineno-0-1647" name="__codelineno-0-1647"></a><span class="sd">        ious = sv.box_iou_batch_with_jaccard(</span>
+</span><span id="__span-0-1648"><a id="__codelineno-0-1648" name="__codelineno-0-1648"></a><span class="sd">            boxes_true=boxes_true,</span>
+</span><span id="__span-0-1649"><a id="__codelineno-0-1649" name="__codelineno-0-1649"></a><span class="sd">            boxes_detection=boxes_detection,</span>
+</span><span id="__span-0-1650"><a id="__codelineno-0-1650" name="__codelineno-0-1650"></a><span class="sd">            is_crowd=is_crowd</span>
+</span><span id="__span-0-1651"><a id="__codelineno-0-1651" name="__codelineno-0-1651"></a><span class="sd">        )</span>
+</span><span id="__span-0-1652"><a id="__codelineno-0-1652" name="__codelineno-0-1652"></a><span class="sd">        # array([</span>
+</span><span id="__span-0-1653"><a id="__codelineno-0-1653" name="__codelineno-0-1653"></a><span class="sd">        #     [0.8866..., 0.4960...],</span>
+</span><span id="__span-0-1654"><a id="__codelineno-0-1654" name="__codelineno-0-1654"></a><span class="sd">        #     [0.4000..., 0.8622...]</span>
+</span><span id="__span-0-1655"><a id="__codelineno-0-1655" name="__codelineno-0-1655"></a><span class="sd">        # ])</span>
+</span><span id="__span-0-1656"><a id="__codelineno-0-1656" name="__codelineno-0-1656"></a><span class="sd">        ```</span>
+</span><span id="__span-0-1657"><a id="__codelineno-0-1657" name="__codelineno-0-1657"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-1658"><a id="__codelineno-0-1658" name="__codelineno-0-1658"></a>    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">is_crowd</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">boxes_true</span><span class="p">),</span> <span class="p">(</span>
+</span><span id="__span-0-1659"><a id="__codelineno-0-1659" name="__codelineno-0-1659"></a>        <span class="s2">&quot;`is_crowd` must have the same length as `boxes_true`&quot;</span>
+</span><span id="__span-0-1660"><a id="__codelineno-0-1660" name="__codelineno-0-1660"></a>    <span class="p">)</span>
+</span><span id="__span-0-1661"><a id="__codelineno-0-1661" name="__codelineno-0-1661"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">boxes_detection</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">boxes_true</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-0-1662"><a id="__codelineno-0-1662" name="__codelineno-0-1662"></a>        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([])</span>
+</span><span id="__span-0-1663"><a id="__codelineno-0-1663" name="__codelineno-0-1663"></a>    <span class="n">ious</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">boxes_detection</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">boxes_true</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+</span><span id="__span-0-1664"><a id="__codelineno-0-1664" name="__codelineno-0-1664"></a>    <span class="k">for</span> <span class="n">g_idx</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">boxes_true</span><span class="p">):</span>
+</span><span id="__span-0-1665"><a id="__codelineno-0-1665" name="__codelineno-0-1665"></a>        <span class="k">for</span> <span class="n">d_idx</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">boxes_detection</span><span class="p">):</span>
+</span><span id="__span-0-1666"><a id="__codelineno-0-1666" name="__codelineno-0-1666"></a>            <span class="n">ious</span><span class="p">[</span><span class="n">d_idx</span><span class="p">,</span> <span class="n">g_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">_jaccard</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">is_crowd</span><span class="p">[</span><span class="n">g_idx</span><span class="p">])</span>
+</span><span id="__span-0-1667"><a id="__codelineno-0-1667" name="__codelineno-0-1667"></a>    <span class="k">return</span> <span class="n">ious</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
