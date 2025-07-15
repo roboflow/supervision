@@ -120,7 +120,7 @@ def box_iou(
         sv.box_iou(box_true=box_true, box_detection=box_detection)
         # 0.14285814285714285
         ```
-    """  # noqa: E501
+    """
     box_true = np.array(box_true)
     box_detection = np.array(box_detection)
 
