@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image
 
 from supervision.config import CLASS_NAME_DATA_FIELD
-from supervision.detection.utils import mask_to_xyxy
+from supervision.detection.utils.converters import mask_to_xyxy
 
 
 def process_transformers_detection_result(

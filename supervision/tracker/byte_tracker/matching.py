@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
-from supervision.detection.utils import box_iou_batch
+from supervision.detection.utils.iou_and_nms import box_iou_batch
 
 if TYPE_CHECKING:
     from supervision.tracker.byte_tracker.core import STrack

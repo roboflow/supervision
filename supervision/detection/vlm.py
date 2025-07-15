@@ -10,11 +10,8 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
-from supervision.detection.utils import (
-    denormalize_boxes,
-    polygon_to_mask,
-    polygon_to_xyxy,
-)
+from supervision.detection.utils.boxes import denormalize_boxes
+from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
 from supervision.utils.internal import deprecated
 from supervision.validators import validate_resolution
 

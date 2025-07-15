@@ -12,32 +12,23 @@ from supervision.config import (
     CLASS_NAME_DATA_FIELD,
     ORIENTED_BOX_COORDINATES,
 )
-from supervision.detection.overlap_filter import (
-    box_non_max_merge,
-    box_non_max_suppression,
-    mask_non_max_merge,
-    mask_non_max_suppression,
-)
 from supervision.detection.tools.transformers import (
     process_transformers_detection_result,
     process_transformers_v4_segmentation_result,
     process_transformers_v5_segmentation_result,
 )
-from supervision.detection.utils import (
+from supervision.detection.utils.converters import mask_to_xyxy, xywh_to_xyxy
+from supervision.detection.utils.internal import get_data_item, is_data_equal, \
+    is_metadata_equal, extract_ultralytics_masks, process_roboflow_result, merge_data, \
+    merge_metadata
+from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
-    box_iou_batch,
-    calculate_masks_centroids,
-    extract_ultralytics_masks,
-    get_data_item,
-    is_data_equal,
-    is_metadata_equal,
-    mask_iou_batch,
-    mask_to_xyxy,
-    merge_data,
-    merge_metadata,
-    process_roboflow_result,
-    xywh_to_xyxy,
+    box_non_max_merge,
+    box_non_max_suppression,
+    mask_non_max_merge,
+    mask_non_max_suppression, mask_iou_batch, box_iou_batch,
 )
+from supervision.detection.utils.masks import calculate_masks_centroids
 from supervision.detection.vlm import (
     LMM,
     VLM,

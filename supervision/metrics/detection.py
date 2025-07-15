@@ -9,7 +9,7 @@ import numpy as np
 
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
-from supervision.detection.utils import box_iou_batch
+from supervision.detection.utils.iou_and_nms import box_iou_batch
 
 
 def detections_to_tensor(
