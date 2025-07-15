@@ -496,7 +496,8 @@ class ConfusionMatrix:
 @deprecated(
     "`MeanAveragePrecision` is deprecated and will be removed in "
     "`supervision-0.31.0`. Use "
-    "`supervision.metrics.mean_average_precision.MeanAveragePrecision` instead."
+    "`supervision.metrics.mean_average_precision.MeanAveragePrecision` instead. The "
+    "deprecated implementation provides results that are inconsistent with pycocotools."
 )
 @dataclass(frozen=True)
 class MeanAveragePrecision:
@@ -505,7 +506,7 @@ class MeanAveragePrecision:
         `MeanAveragePrecision` is **deprecated** and will be removed in
         `supervision-0.31.0`.
 
-        The current implementation provides results that are inconsistent with
+        The deprecated implementation provides results that are inconsistent with
         `pycocotools`. Please use
         `supervision.metrics.mean_average_precision.MeanAveragePrecision` instead,
         which matches the results of `pycocotools` and is now the recommended approach.
