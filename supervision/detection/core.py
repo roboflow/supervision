@@ -815,6 +815,10 @@ class Detections:
     )
     def from_lmm(cls, lmm: LMM | str, result: str | dict, **kwargs: Any) -> Detections:
         """
+        !!! deprecated "Deprecated"
+            `Detections.from_lmm` is **deprecated** and will be removed in `supervision-0.31.0`.
+            Please use `Detections.from_vlm` instead.
+        
         Creates a Detections object from the given result string based on the specified
         Large Multimodal Model (LMM).
 

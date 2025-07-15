@@ -21,21 +21,83 @@ from supervision.validators import validate_resolution
     "`supervision-0.31.0`. Use VLM instead."
 )
 class LMM(Enum):
+    """
+    Enum specifying supported Large Multimodal Models (LMMs).
+
+    Attributes:
+        PALIGEMMA: Google’s PaliGemma vision-language model.
+        FLORENCE_2: Microsoft Florence-2 vision-language model.
+        QWEN_2_5_VL: Qwen2.5-VL open vision-language model from Alibaba.
+        GOOGLE_GEMINI_2_0: Google Gemini 2.0 vision-language model.
+        GOOGLE_GEMINI_2_5: Google Gemini 2.5 vision-language model.
+        MOONDREAM: The Moondream vision-language model.
+    """
+
     PALIGEMMA = "paligemma"
     FLORENCE_2 = "florence_2"
     QWEN_2_5_VL = "qwen_2_5_vl"
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
     MOONDREAM = "moondream"
+
+    @classmethod
+    def list(cls):
+        return list(map(lambda c: c.value, cls))
+
+    @classmethod
+    def from_value(cls, value: LMM | str) -> LMM:
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, str):
+            value = value.lower()
+            try:
+                return cls(value)
+            except ValueError:
+                raise ValueError(f"Invalid value: {value}. Must be one of {cls.list()}")
+        raise ValueError(
+            f"Invalid value type: {type(value)}. Must be an instance of "
+            f"{cls.__name__} or str."
+        )
 
 
 class VLM(Enum):
+    """
+    Enum specifying supported Vision-Language Models (VLMs).
+
+    Attributes:
+        PALIGEMMA: Google’s PaliGemma vision-language model.
+        FLORENCE_2: Microsoft Florence-2 vision-language model.
+        QWEN_2_5_VL: Qwen2.5-VL open vision-language model from Alibaba.
+        GOOGLE_GEMINI_2_0: Google Gemini 2.0 vision-language model.
+        GOOGLE_GEMINI_2_5: Google Gemini 2.5 vision-language model.
+        MOONDREAM: The Moondream vision-language model.
+    """
+
     PALIGEMMA = "paligemma"
     FLORENCE_2 = "florence_2"
     QWEN_2_5_VL = "qwen_2_5_vl"
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
     MOONDREAM = "moondream"
+
+    @classmethod
+    def list(cls):
+        return list(map(lambda c: c.value, cls))
+
+    @classmethod
+    def from_value(cls, value: VLM | str) -> VLM:
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, str):
+            value = value.lower()
+            try:
+                return cls(value)
+            except ValueError:
+                raise ValueError(f"Invalid value: {value}. Must be one of {cls.list()}")
+        raise ValueError(
+            f"Invalid value type: {type(value)}. Must be an instance of "
+            f"{cls.__name__} or str."
+        )
 
 
 RESULT_TYPES: dict[VLM, type] = {
