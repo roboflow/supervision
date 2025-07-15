@@ -1486,19 +1486,30 @@ def box_iou_batch_with_jaccard(
 def remove_noisy_segments(
     mask: npt.NDArray[np.bool_],
     connectivity: int = 8,
-    area_thresh: int = 680,
-    dist_thresh: float = 70.0,
+    area_threshold: int = 700,
+    distance_threshold: float = 70.0,
 ) -> npt.NDArray[np.bool_]:
     """
     Removes connected components small and spatially distant from the largest connected component
-    out of a binary mask. Component area is penalized more the farther it is from the largest component centroid.
+    out of a binary mask. Component area is penalized more the farther it is from the largest component centroid,
+    removing larger components that are far away from the threshold.
 
     Args:
-        mask (np.ndarray): A 2D boolean or binary mask, where 0 indicates background
+        mask (npt.NDArray[np.bool_]): A 2D boolean or binary mask, where 0 indicates background
             and 1 indicates foreground.
-        connectivity (int): Connectivity for connected components analysis. Default is 8.
-        area_thresh (int): Minimum area in pixels required to keep a component.
-        dist_thresh (float): Max distance in pixels from the main component's centroid to keep a component.
+        connectivity (int): Connectivity for connected components analysis. Can either be 4 or 8, default is 8.
+            When the value is 4, each pixel connects only to its horizontal and vertical neighbors: Up, Down, Left, Right.
+            When the value is 8, each pixel connects to its horizontal, vertical, and diagonal neighbors, being more
+            permisive to what is considered a connected component.
+        area_threshold (int): Minimum area in pixels required to keep a component. If the component's area is smaller
+            than this value, it will be considered an outlier and removed. When the component is farther
+            than the 'distance_threshold' parameter, the area threshold is scaled up linearly with the distance
+            from the main component's centroid, so that larger components are removed when distance grows.
+        distance_threshold (float): Maximum distance in pixels from the main component's centroid to keep a component.
+            If the distance from the main component's centroid is larger than this value, then the algorithm will check the area
+            and if it is smaller than the 'area_threshold', the component will be considered an outlier and removed.
+            The distance is calculated as the Euclidean distance between the component's centroid and the main
+            component's centroid.
 
     Returns:
         np.ndarray: A cleaned binary mask with outlier components removed.
@@ -1517,7 +1528,7 @@ def remove_noisy_segments(
             [0, 1, 1, 1, 0, 0]
         ]).astype(bool)
 
-        sv.remove_noisy_segments(mask=mask, connectivity=4, area_thresh = 4, dist_thresh = 4)
+        sv.remove_noisy_segments(mask=mask, connectivity=4, area_threshold = 4, distance_threshold = 4)
         # np.array([
         #     [0, 0, 0, 0, 0, 0],
         #     [0, 0, 0, 0, 0, 0],
@@ -1557,7 +1568,12 @@ def remove_noisy_segments(
         centroid = centroids[i]
 
         dist = np.linalg.norm(centroid - main_centroid)
-        if dist > dist_thresh and area < area_thresh * dist / dist_thresh:
+
+        # Increase area threshold proportionally with distance from main component
+        if (
+            dist > distance_threshold
+            and area < area_threshold * dist / distance_threshold
+        ):
             continue
 
         # Keep component
