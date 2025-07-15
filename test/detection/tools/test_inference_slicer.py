@@ -1,12 +1,13 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from typing import Optional, Tuple
 
 import numpy as np
 import pytest
 
 from supervision.detection.core import Detections
-from supervision.detection.overlap_filter import OverlapFilter
 from supervision.detection.tools.inference_slicer import InferenceSlicer
+from supervision.detection.utils.iou_and_nms import OverlapFilter
 
 
 @pytest.fixture
@@ -46,10 +47,10 @@ def mock_callback():
 )
 def test_inference_slicer_overlap(
     mock_callback,
-    slice_wh: Tuple[int, int],
-    overlap_ratio_wh: Optional[Tuple[float, float]],
-    overlap_wh: Optional[Tuple[int, int]],
-    expected_overlap: Optional[Tuple[int, int]],
+    slice_wh: tuple[int, int],
+    overlap_ratio_wh: tuple[float, float] | None,
+    overlap_wh: tuple[int, int] | None,
+    expected_overlap: tuple[int, int] | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -167,9 +168,9 @@ def test_inference_slicer_overlap(
     ],
 )
 def test_generate_offset(
-    resolution_wh: Tuple[int, int],
-    slice_wh: Tuple[int, int],
-    overlap_wh: Optional[Tuple[int, int]],
+    resolution_wh: tuple[int, int],
+    slice_wh: tuple[int, int],
+    overlap_wh: tuple[int, int] | None,
     expected_offsets: np.ndarray,
 ) -> None:
     offsets = InferenceSlicer._generate_offset(

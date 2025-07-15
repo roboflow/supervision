@@ -1,11 +1,12 @@
+from __future__ import annotations
+
 import argparse
 import os
-from typing import Optional
 
 from pytube import YouTube
 
 
-def main(url: str, output_path: Optional[str], file_name: Optional[str]) -> None:
+def main(url: str, output_path: str | None, file_name: str | None) -> None:
     yt = YouTube(url)
     stream = yt.streams.get_highest_resolution()
 

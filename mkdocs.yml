@@ -42,8 +42,11 @@ nav:
       - Detection and Segmentation:
           - Core: detection/core.md
           - Annotators: detection/annotators.md
-          - Double Detection Filter: detection/double_detection_filter.md
-          - Utils: detection/utils.md
+          - Converters: detection/utils/converters.md
+          - IoU and NMS: detection/utils/iou_and_nms.md
+          - Boxes: detection/utils/boxes.md
+          - Masks: detection/utils/masks.md
+          - Polygons: detection/utils/polygons.md
       - Keypoint Detection:
           - Core: keypoint/core.md
           - Annotators: keypoint/annotators.md
@@ -168,12 +171,16 @@ markdown_extensions:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
+  - pymdownx.arithmatex:
+      generic: true
 
 extra_javascript:
   - "javascripts/init_kapa_widget.js"
   - "javascripts/cookbooks-card.js"
   - "javascripts/segment.js"
+  - "javascripts/mathjax.js"
   - "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"
+  - "https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"
 
 # Messages shown during document build
 # Reference: https://www.mkdocs.org/user-guide/configuration/#validation

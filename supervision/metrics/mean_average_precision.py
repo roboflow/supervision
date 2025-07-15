@@ -7,7 +7,7 @@ from collections import defaultdict
 from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -71,9 +71,9 @@ class MeanAveragePrecisionResult:
     ap_per_class: np.ndarray
     iou_thresholds: np.ndarray
     matched_classes: np.ndarray
-    small_objects: Optional[MeanAveragePrecisionResult] = None
-    medium_objects: Optional[MeanAveragePrecisionResult] = None
-    large_objects: Optional[MeanAveragePrecisionResult] = None
+    small_objects: MeanAveragePrecisionResult | None = None
+    medium_objects: MeanAveragePrecisionResult | None = None
+    large_objects: MeanAveragePrecisionResult | None = None
 
     def __str__(self) -> str:
         """
@@ -106,7 +106,7 @@ class MeanAveragePrecisionResult:
                 = {self.large_objects.map50_95:.3f}"
         )
 
-    def to_pandas(self) -> "pd.DataFrame":
+    def to_pandas(self) -> pd.DataFrame:
         """
         Convert the result to a pandas DataFrame.
 
@@ -214,11 +214,9 @@ class EvaluationDataset:
     """
     Class used representing a dataset in the right format needed by the
     `COCOEvaluator` class.
-
-    Reference: https://github.com/rafaelpadilla/review_object_detection_metrics
     """
 
-    def __init__(self, targets: Optional[Dict[str, Any]] = None):
+    def __init__(self, targets: dict[str, Any] | None = None):
         """
         Constructor of EvaluationDataset object used to evaluate models with
         Mean Average Precision.
@@ -273,9 +271,9 @@ class EvaluationDataset:
 
     def get_annotation_ids(
         self,
-        img_ids: List[int] = [],
-        cat_ids: List[int] = [],
-        area_range: Tuple[float, float] = [],
+        img_ids: list[int] = [],
+        cat_ids: list[int] = [],
+        area_range: tuple[float, float] = [],
         iscrowd: bool = False,
     ):
         """
@@ -328,10 +326,10 @@ class EvaluationDataset:
 
     def get_category_ids(
         self,
-        cat_names: List[str] = [],
-        supercategory_names: List[str] = [],
-        cat_ids: List[int] = [],
-    ) -> List[int]:
+        cat_names: list[str] = [],
+        supercategory_names: list[str] = [],
+        cat_ids: list[int] = [],
+    ) -> list[int]:
         """
         Get category ids that satisfy given filter conditions.
         Args:
@@ -374,9 +372,9 @@ class EvaluationDataset:
 
     def get_image_ids(
         self,
-        img_ids: List[int] = [],
-        cat_ids: List[int] = [],
-    ) -> List[int]:
+        img_ids: list[int] = [],
+        cat_ids: list[int] = [],
+    ) -> list[int]:
         """
         Get image ids that satisfy given filter conditions.
         Args:
@@ -398,7 +396,7 @@ class EvaluationDataset:
                 ids &= set(self.cat_to_imgs[cat_id])
         return list(ids)
 
-    def get_annotations(self, ids: List[int] = []) -> List[dict]:
+    def get_annotations(self, ids: list[int] = []) -> list[dict]:
         """
         Get annotations with the specified ids.
         Args:
@@ -408,7 +406,7 @@ class EvaluationDataset:
         """
         return [self.anns[idx] for idx in ids]
 
-    def load_predictions(self, predictions: List[Dict]) -> "EvaluationDataset":
+    def load_predictions(self, predictions: list[dict]) -> EvaluationDataset:
         """
         Load prediction result into an EvaluationDataset object.
         Args:
@@ -628,8 +626,8 @@ class COCOEvaluator:
         return iou
 
     def _evaluate_image(
-        self, img_id: int, cat_id: int, area_range: Tuple[int, int], max_det: int
-    ) -> Union[Dict[str, Any], None]:
+        self, img_id: int, cat_id: int, area_range: tuple[int, int], max_det: int
+    ) -> dict[str, Any] | None:
         """
         Perform evaluation for single category and image.
         Args:
@@ -984,11 +982,9 @@ class COCOEvaluator:
             titleStr = "Average Precision" if use_ap else "Average Recall"
             typeStr = "(AP)" if use_ap else "(AR)"
             iou_str = (
-                "{:0.2f}:{:0.2f}".format(
-                    self.params.iou_thrs[0], self.params.iou_thrs[-1]
-                )
+                f"{self.params.iou_thrs[0]:0.2f}:{self.params.iou_thrs[-1]:0.2f}"
                 if iou_thr is None
-                else "{:0.2f}".format(iou_thr)
+                else f"{iou_thr:0.2f}"
             )
             all_object_sizes = list(ObjectSize)
             area_range_idx = all_object_sizes.index(area_range)
@@ -1145,8 +1141,8 @@ class MeanAveragePrecision(Metric):
         self,
         metric_target: MetricTarget = MetricTarget.BOXES,
         class_agnostic: bool = False,
-        class_mapping: Optional[Dict[int, int]] = None,
-        image_indices: Optional[List[int]] = None,
+        class_mapping: dict[int, int] | None = None,
+        image_indices: list[int] | None = None,
     ):
         """
         Initialize the Mean Average Precision metric.
@@ -1161,8 +1157,8 @@ class MeanAveragePrecision(Metric):
         self._metric_target = metric_target
         self._class_agnostic = class_agnostic
 
-        self._predictions_list: List[Detections] = []
-        self._targets_list: List[Detections] = []
+        self._predictions_list: list[Detections] = []
+        self._targets_list: list[Detections] = []
         self._class_mapping = class_mapping
         self._image_indices = image_indices
 
@@ -1175,8 +1171,8 @@ class MeanAveragePrecision(Metric):
 
     def update(
         self,
-        predictions: Union[Detections, List[Detections]],
-        targets: Union[Detections, List[Detections]],
+        predictions: Detections | list[Detections],
+        targets: Detections | list[Detections],
     ) -> MeanAveragePrecision:
         """
         Add new predictions and targets to the metric, but do not compute the result.
@@ -1245,7 +1241,7 @@ class MeanAveragePrecision(Metric):
                 }
                 annotations.append(dict_annotation)
         # Category list
-        all_cat_ids = set([annotation.get("category_id") for annotation in annotations])
+        all_cat_ids = {annotation.get("category_id") for annotation in annotations}
         categories = [{"id": cat_id} for cat_id in all_cat_ids]
         # Create coco dictionary
         return {

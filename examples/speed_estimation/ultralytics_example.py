@@ -70,7 +70,7 @@ if __name__ == "__main__":
     args = parse_arguments()
 
     video_info = sv.VideoInfo.from_video_path(video_path=args.source_video_path)
-    model = YOLO("yolov8x.pt")
+    model = YOLO("yolo11x.pt")
 
     byte_track = sv.ByteTrack(
         frame_rate=video_info.fps, track_activation_threshold=args.confidence_threshold

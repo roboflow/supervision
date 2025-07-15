@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING
 
 import numpy as np
 from matplotlib import pyplot as plt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
-from supervision.detection.utils import (
+from supervision.detection.utils.iou_and_nms import (
     box_iou_batch,
     mask_iou_batch,
     oriented_box_iou_batch,
@@ -93,8 +93,8 @@ class Recall(Metric):
         self._metric_target = metric_target
         self.averaging_method = averaging_method
 
-        self._predictions_list: List[Detections] = []
-        self._targets_list: List[Detections] = []
+        self._predictions_list: list[Detections] = []
+        self._targets_list: list[Detections] = []
 
     def reset(self) -> None:
         """
@@ -105,8 +105,8 @@ class Recall(Metric):
 
     def update(
         self,
-        predictions: Union[Detections, List[Detections]],
-        targets: Union[Detections, List[Detections]],
+        predictions: Detections | list[Detections],
+        targets: Detections | list[Detections],
     ) -> Recall:
         """
         Add new predictions and targets to the metric, but do not compute the result.
@@ -164,7 +164,7 @@ class Recall(Metric):
         return result
 
     def _compute(
-        self, predictions_list: List[Detections], targets_list: List[Detections]
+        self, predictions_list: list[Detections], targets_list: list[Detections]
     ) -> RecallResult:
         iou_thresholds = np.linspace(0.5, 0.95, 10)
         stats = []
@@ -246,7 +246,7 @@ class Recall(Metric):
         prediction_confidence: np.ndarray,
         prediction_class_ids: np.ndarray,
         true_class_ids: np.ndarray,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         sorted_indices = np.argsort(-prediction_confidence)
         matches = matches[sorted_indices]
         prediction_class_ids = prediction_class_ids[sorted_indices]
@@ -437,10 +437,10 @@ class Recall(Metric):
 
     def _filter_predictions_and_targets_by_size(
         self,
-        predictions_list: List[Detections],
-        targets_list: List[Detections],
+        predictions_list: list[Detections],
+        targets_list: list[Detections],
         size_category: ObjectSizeCategory,
-    ) -> Tuple[List[Detections], List[Detections]]:
+    ) -> tuple[list[Detections], list[Detections]]:
         """
         Filter predictions and targets by object size category.
         """
@@ -501,9 +501,9 @@ class RecallResult:
     iou_thresholds: np.ndarray
     matched_classes: np.ndarray
 
-    small_objects: Optional[RecallResult]
-    medium_objects: Optional[RecallResult]
-    large_objects: Optional[RecallResult]
+    small_objects: RecallResult | None
+    medium_objects: RecallResult | None
+    large_objects: RecallResult | None
 
     def __str__(self) -> str:
         """
@@ -557,7 +557,7 @@ class RecallResult:
 
         return out_str
 
-    def to_pandas(self) -> "pd.DataFrame":
+    def to_pandas(self) -> pd.DataFrame:
         """
         Convert the result to a pandas DataFrame.
 

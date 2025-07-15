@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from typing import Optional, Tuple
 
 import numpy as np
 import pytest
@@ -49,9 +50,9 @@ from supervision.classification.core import Classifications
 )
 def test_top_k(
     class_id: np.ndarray,
-    confidence: Optional[np.ndarray],
+    confidence: np.ndarray | None,
     k: int,
-    expected_result: Optional[Tuple[np.ndarray, np.ndarray]],
+    expected_result: tuple[np.ndarray, np.ndarray] | None,
     exception: Exception,
 ) -> None:
     with exception:
