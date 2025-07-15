@@ -331,14 +331,17 @@ class ConfusionMatrix:
                     det_class = detection_classes[det_idx]
                     class_match = (gt_class == det_class)
                     valid_matches.append((gt_idx, det_idx, iou, class_match))
-                    # print(f"Valid match: GT[{gt_idx}] class={gt_class} vs Det[{det_idx}] class={det_class}, IoU={iou:.3f}, class_match={class_match}")
+                    # print(f"Valid match: GT[{gt_idx}] class={gt_class} vs 
+                    # Det[{det_idx}] class={det_class}, IoU={iou:.3f}, 
+                    # class_match={class_match}")
 
         # Sort matches by class match first (True before False), then by IoU descending
         # This prioritizes correct class predictions over higher IoU with wrong class
         valid_matches.sort(key=lambda x: (x[3], x[2]), reverse=True)
         # print(f"Sorted matches: {valid_matches}")
 
-        # Greedily assign matches, ensuring each GT and detection is matched at most once
+        # Greedily assign matches, ensuring each GT 
+        # and detection is matched at most once
         matched_gt_idx = set()
         matched_det_idx = set()
         
@@ -347,7 +350,8 @@ class ConfusionMatrix:
                 # Valid spatial match - record the class prediction
                 gt_class = true_classes[gt_idx]
                 det_class = detection_classes[det_idx]
-                # print(f"Assigning match: GT[{gt_idx}] class={gt_class} -> Det[{det_idx}] class={det_class}")
+                # print(f"Assigning match: GT[{gt_idx}] class={gt_class} -> 
+                # Det[{det_idx}] class={det_class}")
                 # This handles both correct classification (TP) and misclassification
                 result_matrix[gt_class, det_class] += 1
                 matched_gt_idx.add(gt_idx)
