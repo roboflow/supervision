@@ -57,15 +57,7 @@
          <lastmod>2025-07-15</lastmod>
     </url>
     <url>
-         <loc>https://supervision.roboflow.com/develop/detection/double_detection_filter/</loc>
-         <lastmod>2025-07-15</lastmod>
-    </url>
-    <url>
          <loc>https://supervision.roboflow.com/develop/detection/metrics/</loc>
-         <lastmod>2025-07-15</lastmod>
-    </url>
-    <url>
-         <loc>https://supervision.roboflow.com/develop/detection/utils/</loc>
          <lastmod>2025-07-15</lastmod>
     </url>
     <url>
@@ -86,6 +78,26 @@
     </url>
     <url>
          <loc>https://supervision.roboflow.com/develop/detection/tools/smoother/</loc>
+         <lastmod>2025-07-15</lastmod>
+    </url>
+    <url>
+         <loc>https://supervision.roboflow.com/develop/detection/utils/boxes/</loc>
+         <lastmod>2025-07-15</lastmod>
+    </url>
+    <url>
+         <loc>https://supervision.roboflow.com/develop/detection/utils/converters/</loc>
+         <lastmod>2025-07-15</lastmod>
+    </url>
+    <url>
+         <loc>https://supervision.roboflow.com/develop/detection/utils/iou_and_nms/</loc>
+         <lastmod>2025-07-15</lastmod>
+    </url>
+    <url>
+         <loc>https://supervision.roboflow.com/develop/detection/utils/masks/</loc>
+         <lastmod>2025-07-15</lastmod>
+    </url>
+    <url>
+         <loc>https://supervision.roboflow.com/develop/detection/utils/polygons/</loc>
          <lastmod>2025-07-15</lastmod>
     </url>
     <url>
