@@ -9,7 +9,7 @@ import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
-from supervision.detection.utils import get_data_item, is_data_equal
+from supervision.detection.utils.internal import get_data_item, is_data_equal
 from supervision.validators import validate_keypoints_fields
 
 

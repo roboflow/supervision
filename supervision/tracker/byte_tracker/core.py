@@ -1,7 +1,7 @@
 import numpy as np
 
 from supervision.detection.core import Detections
-from supervision.detection.utils import box_iou_batch
+from supervision.detection.utils.iou_and_nms import box_iou_batch
 from supervision.tracker.byte_tracker import matching
 from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
 from supervision.tracker.byte_tracker.single_object_track import STrack, TrackState

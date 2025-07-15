@@ -9,7 +9,8 @@ import numpy as np
 
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
-from supervision.detection.utils import box_iou_batch
+from supervision.detection.utils.iou_and_nms import box_iou_batch
+from supervision.utils.internal import deprecated
 
 
 def detections_to_tensor(
@@ -493,9 +494,24 @@ class ConfusionMatrix:
         return fig
 
 
+@deprecated(
+    "`MeanAveragePrecision` is deprecated and will be removed in "
+    "`supervision-0.31.0`. Use "
+    "`supervision.metrics.mean_average_precision.MeanAveragePrecision` instead. The "
+    "deprecated implementation provides results that are inconsistent with pycocotools."
+)
 @dataclass(frozen=True)
 class MeanAveragePrecision:
     """
+    !!! deprecated "Deprecated"
+        `MeanAveragePrecision` is **deprecated** and will be removed in
+        `supervision-0.31.0`.
+
+        The deprecated implementation provides results that are inconsistent with
+        `pycocotools`. Please use
+        `supervision.metrics.mean_average_precision.MeanAveragePrecision` instead,
+        which matches the results of `pycocotools` and is now the recommended approach.
+
     Mean Average Precision for object detection tasks.
 
     Attributes:

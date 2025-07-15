@@ -6,8 +6,8 @@ import numpy as np
 import pytest
 
 from supervision.detection.core import Detections
-from supervision.detection.overlap_filter import OverlapFilter
 from supervision.detection.tools.inference_slicer import InferenceSlicer
+from supervision.detection.utils.iou_and_nms import OverlapFilter
 
 
 @pytest.fixture

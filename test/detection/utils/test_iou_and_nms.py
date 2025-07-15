@@ -5,9 +5,9 @@ from contextlib import ExitStack as DoesNotRaise
 import numpy as np
 import pytest
 
-from supervision.detection.overlap_filter import (
+from supervision.detection.utils.iou_and_nms import (
+    _group_overlapping_boxes,
     box_non_max_suppression,
-    group_overlapping_boxes,
     mask_non_max_merge,
     mask_non_max_suppression,
 )
@@ -133,7 +133,7 @@ def test_group_overlapping_boxes(
     exception: Exception,
 ) -> None:
     with exception:
-        result = group_overlapping_boxes(
+        result = _group_overlapping_boxes(
             predictions=predictions, iou_threshold=iou_threshold
         )
 

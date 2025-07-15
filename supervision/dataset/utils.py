@@ -12,10 +12,10 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision.detection.core import Detections
-from supervision.detection.utils import (
+from supervision.detection.utils.converters import mask_to_polygons
+from supervision.detection.utils.polygons import (
     approximate_polygon,
     filter_polygons_by_area,
-    mask_to_polygons,
 )
 
 if TYPE_CHECKING:

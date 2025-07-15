@@ -10,11 +10,8 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
-from supervision.detection.utils import (
-    denormalize_boxes,
-    polygon_to_mask,
-    polygon_to_xyxy,
-)
+from supervision.detection.utils.boxes import denormalize_boxes
+from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
 from supervision.utils.internal import deprecated
 from supervision.validators import validate_resolution
 
@@ -24,21 +21,83 @@ from supervision.validators import validate_resolution
     "`supervision-0.31.0`. Use VLM instead."
 )
 class LMM(Enum):
+    """
+    Enum specifying supported Large Multimodal Models (LMMs).
+
+    Attributes:
+        PALIGEMMA: Google's PaliGemma vision-language model.
+        FLORENCE_2: Microsoft's Florence-2 vision-language model.
+        QWEN_2_5_VL: Qwen2.5-VL open vision-language model from Alibaba.
+        GOOGLE_GEMINI_2_0: Google Gemini 2.0 vision-language model.
+        GOOGLE_GEMINI_2_5: Google Gemini 2.5 vision-language model.
+        MOONDREAM: The Moondream vision-language model.
+    """
+
     PALIGEMMA = "paligemma"
     FLORENCE_2 = "florence_2"
     QWEN_2_5_VL = "qwen_2_5_vl"
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
     MOONDREAM = "moondream"
+
+    @classmethod
+    def list(cls):
+        return list(map(lambda c: c.value, cls))
+
+    @classmethod
+    def from_value(cls, value: LMM | str) -> LMM:
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, str):
+            value = value.lower()
+            try:
+                return cls(value)
+            except ValueError:
+                raise ValueError(f"Invalid value: {value}. Must be one of {cls.list()}")
+        raise ValueError(
+            f"Invalid value type: {type(value)}. Must be an instance of "
+            f"{cls.__name__} or str."
+        )
 
 
 class VLM(Enum):
+    """
+    Enum specifying supported Vision-Language Models (VLMs).
+
+    Attributes:
+        PALIGEMMA: Google's PaliGemma vision-language model.
+        FLORENCE_2: Microsoft's Florence-2 vision-language model.
+        QWEN_2_5_VL: Qwen2.5-VL open vision-language model from Alibaba.
+        GOOGLE_GEMINI_2_0: Google Gemini 2.0 vision-language model.
+        GOOGLE_GEMINI_2_5: Google Gemini 2.5 vision-language model.
+        MOONDREAM: The Moondream vision-language model.
+    """
+
     PALIGEMMA = "paligemma"
     FLORENCE_2 = "florence_2"
     QWEN_2_5_VL = "qwen_2_5_vl"
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
     MOONDREAM = "moondream"
+
+    @classmethod
+    def list(cls):
+        return list(map(lambda c: c.value, cls))
+
+    @classmethod
+    def from_value(cls, value: VLM | str) -> VLM:
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, str):
+            value = value.lower()
+            try:
+                return cls(value)
+            except ValueError:
+                raise ValueError(f"Invalid value: {value}. Must be one of {cls.list()}")
+        raise ValueError(
+            f"Invalid value type: {type(value)}. Must be an instance of "
+            f"{cls.__name__} or str."
+        )
 
 
 RESULT_TYPES: dict[VLM, type] = {
@@ -83,6 +142,20 @@ SUPPORTED_TASKS_FLORENCE_2 = [
 
 
 def validate_vlm_parameters(vlm: VLM | str, result: Any, kwargs: dict[str, Any]) -> VLM:
+    """
+    Validates the parameters and result type for a given Vision-Language Model (VLM).
+
+    Args:
+        vlm: The VLM enum or string specifying the model.
+        result: The result object to validate (type depends on VLM).
+        kwargs: Dictionary of arguments to validate against required/allowed lists.
+
+    Returns:
+        VLM: The validated VLM enum value.
+
+    Raises:
+        ValueError: If the VLM, result type, or arguments are invalid.
+    """
     if isinstance(vlm, str):
         try:
             vlm = VLM(vlm.lower())
