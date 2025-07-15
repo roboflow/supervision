@@ -33,3 +33,9 @@ comments: true
 </div>
 
 :::supervision.detection.overlap_filter.box_non_max_merge
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.overlap_filter.mask_non_max_merge">mask_non_max_merge</a></h2>
+</div>
+
+:::supervision.detection.overlap_filter.mask_non_max_merge
