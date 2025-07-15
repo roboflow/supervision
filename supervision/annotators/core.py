@@ -51,17 +51,20 @@ class BoxAnnotator(BaseAnnotator):
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
+        opacity: float = 0.5,
     ):
         """
         Args:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
             thickness (int): Thickness of the bounding box lines.
+            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
+        self.opacity: float = opacity  # Store opacity
         self.color_lookup: ColorLookup = color_lookup
 
     @ensure_cv2_image_for_annotation
@@ -103,7 +106,11 @@ class BoxAnnotator(BaseAnnotator):
         ![bounding-box-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/bounding-box-annotator-example-purple.png)
         """
+        if scene is None:
+            raise ValueError("The 'scene' parameter cannot be None.")
         assert isinstance(scene, np.ndarray)
+        overlay = scene.copy()
+
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             color = resolve_color(
@@ -115,12 +122,15 @@ class BoxAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
             cv2.rectangle(
-                img=scene,
+                img=overlay,
                 pt1=(x1, y1),
                 pt2=(x2, y2),
-                color=color.as_bgr(),
+                color=color.as_bgra(),
                 thickness=self.thickness,
             )
+
+        # Blend the overlay with the original scene using opacity
+        cv2.addWeighted(overlay, self.opacity, scene, 1 - self.opacity, 0, dst=scene)
         return scene
 
 
@@ -134,6 +144,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
+        opacity: float = 0.5,
     ):
         """
         Args:
@@ -142,9 +153,11 @@ class OrientedBoxAnnotator(BaseAnnotator):
             thickness (int): Thickness of the bounding box lines.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
+            opacity (float): Opacity of the overlay mask. Must be between 0 and 1.
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
+        self.opacity: float = opacity
         self.color_lookup: ColorLookup = color_lookup
 
     @ensure_cv2_image_for_annotation
@@ -192,6 +205,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
         if detections.data is None or ORIENTED_BOX_COORDINATES not in detections.data:
             return scene
         obb_boxes = np.array(detections.data[ORIENTED_BOX_COORDINATES]).astype(int)
+        overlay = scene.copy()
 
         for detection_idx in range(len(detections)):
             obb = obb_boxes[detection_idx]
@@ -204,8 +218,10 @@ class OrientedBoxAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
 
-            cv2.drawContours(scene, [obb], 0, color.as_bgr(), self.thickness)
+            cv2.drawContours(scene, [obb], 0, color.as_bgra(), self.thickness)
 
+        # Blend the overlay with the original scene using opacity
+        cv2.addWeighted(overlay, self.opacity, scene, 1 - self.opacity, 0, dst=scene)
         return scene
 
 
@@ -275,6 +291,8 @@ class MaskAnnotator(BaseAnnotator):
         ![mask-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/mask-annotator-example-purple.png)
         """
+        if scene is None:
+            raise ValueError("The 'scene' parameter cannot be None.")
         assert isinstance(scene, np.ndarray)
         if detections.mask is None:
             return scene
@@ -291,7 +309,7 @@ class MaskAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
             mask = detections.mask[detection_idx]
-            colored_mask[mask] = color.as_bgr()
+            colored_mask[mask] = color.as_bgra()
 
         cv2.addWeighted(
             colored_mask, self.opacity, scene, 1 - self.opacity, 0, dst=scene
@@ -313,6 +331,7 @@ class PolygonAnnotator(BaseAnnotator):
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
+        opacity: float = 0.5,
     ):
         """
         Args:
@@ -321,9 +340,11 @@ class PolygonAnnotator(BaseAnnotator):
             thickness (int): Thickness of the polygon lines.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
+            opacity (float): Opacity of the overlay mask. Must be between 0 and 1.
         """
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
+        self.opacity: float = opacity
         self.color_lookup: ColorLookup = color_lookup
 
     @ensure_cv2_image_for_annotation
@@ -365,6 +386,8 @@ class PolygonAnnotator(BaseAnnotator):
         ![polygon-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/polygon-annotator-example-purple.png)
         """
+        if scene is None:
+            raise ValueError("The 'scene' parameter cannot be None.")
         assert isinstance(scene, np.ndarray)
         if detections.mask is None:
             return scene
@@ -387,6 +410,8 @@ class PolygonAnnotator(BaseAnnotator):
                     thickness=self.thickness,
                 )
 
+        # Blend the overlay with the original scene using opacity
+        cv2.addWeighted(scene, self.opacity, scene, 1 - self.opacity, 0, dst=scene)
         return scene
 
 
@@ -452,6 +477,8 @@ class ColorAnnotator(BaseAnnotator):
         ![box-mask-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/box-mask-annotator-example-purple.png)
         """
+        if scene is None:
+            raise ValueError("The 'scene' parameter cannot be None.")
         assert isinstance(scene, np.ndarray)
         scene_with_boxes = scene.copy()
         for detection_idx in range(len(detections)):
@@ -468,7 +495,7 @@ class ColorAnnotator(BaseAnnotator):
                 img=scene_with_boxes,
                 pt1=(x1, y1),
                 pt2=(x2, y2),
-                color=color.as_bgr(),
+                color=color.as_bgra(),
                 thickness=-1,
             )
 
@@ -548,6 +575,8 @@ class HaloAnnotator(BaseAnnotator):
         ![halo-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/halo-annotator-example-purple.png)
         """
+        if scene is None:
+            raise ValueError("The 'scene' parameter cannot be None.")
         assert isinstance(scene, np.ndarray)
         if detections.mask is None:
             return scene
@@ -567,7 +596,7 @@ class HaloAnnotator(BaseAnnotator):
             )
             mask = detections.mask[detection_idx]
             fmask = np.logical_or(fmask, mask)
-            color_bgr = color.as_bgr()
+            color_bgr = color.as_bgra()
             colored_mask[mask] = color_bgr
 
         colored_mask = cv2.blur(colored_mask, (self.kernel_size, self.kernel_size))
@@ -592,6 +621,7 @@ class EllipseAnnotator(BaseAnnotator):
         start_angle: int = -45,
         end_angle: int = 235,
         color_lookup: ColorLookup = ColorLookup.CLASS,
+        opacity: float = 0.5,
     ):
         """
         Args:
@@ -608,6 +638,7 @@ class EllipseAnnotator(BaseAnnotator):
         self.start_angle: int = start_angle
         self.end_angle: int = end_angle
         self.color_lookup: ColorLookup = color_lookup
+        self.opacity = opacity
 
     @ensure_cv2_image_for_annotation
     def annotate(
@@ -648,6 +679,8 @@ class EllipseAnnotator(BaseAnnotator):
         ![ellipse-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/ellipse-annotator-example-purple.png)
         """
+        if scene is None:
+            raise ValueError("The 'scene' parameter cannot be None.")
         assert isinstance(scene, np.ndarray)
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
@@ -668,7 +701,7 @@ class EllipseAnnotator(BaseAnnotator):
                 angle=0.0,
                 startAngle=self.start_angle,
                 endAngle=self.end_angle,
-                color=color.as_bgr(),
+                color=color.as_bgra(),
                 thickness=self.thickness,
                 lineType=cv2.LINE_4,
             )
@@ -686,6 +719,7 @@ class BoxCornerAnnotator(BaseAnnotator):
         thickness: int = 4,
         corner_length: int = 15,
         color_lookup: ColorLookup = ColorLookup.CLASS,
+        opacity: float = 0.5,
     ):
         """
         Args:
@@ -700,6 +734,7 @@ class BoxCornerAnnotator(BaseAnnotator):
         self.thickness: int = thickness
         self.corner_length: int = corner_length
         self.color_lookup: ColorLookup = color_lookup
+        self.opacity = opacity
 
     @ensure_cv2_image_for_annotation
     def annotate(
@@ -740,6 +775,8 @@ class BoxCornerAnnotator(BaseAnnotator):
         ![box-corner-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/box-corner-annotator-example-purple.png)
         """
+        if scene is None:
+            raise ValueError("The 'scene' parameter cannot be None.")
         assert isinstance(scene, np.ndarray)
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
@@ -756,12 +793,12 @@ class BoxCornerAnnotator(BaseAnnotator):
             for x, y in corners:
                 x_end = x + self.corner_length if x == x1 else x - self.corner_length
                 cv2.line(
-                    scene, (x, y), (x_end, y), color.as_bgr(), thickness=self.thickness
+                    scene, (x, y), (x_end, y), color.as_bgra(), thickness=self.thickness
                 )
 
                 y_end = y + self.corner_length if y == y1 else y - self.corner_length
                 cv2.line(
-                    scene, (x, y), (x, y_end), color.as_bgr(), thickness=self.thickness
+                    scene, (x, y), (x, y_end), color.as_bgra(), thickness=self.thickness
                 )
         return scene
 
@@ -776,6 +813,7 @@ class CircleAnnotator(BaseAnnotator):
         color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
+        opacity: float = 0.5,
     ):
         """
         Args:
@@ -789,6 +827,7 @@ class CircleAnnotator(BaseAnnotator):
         self.color: Union[Color, ColorPalette] = color
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
+        self.opacity = opacity
 
     @ensure_cv2_image_for_annotation
     def annotate(
@@ -830,6 +869,8 @@ class CircleAnnotator(BaseAnnotator):
         ![circle-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/circle-annotator-example-purple.png)
         """
+        if scene is None:
+            raise ValueError("The 'scene' parameter cannot be None.")
         assert isinstance(scene, np.ndarray)
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
@@ -847,10 +888,12 @@ class CircleAnnotator(BaseAnnotator):
                 img=scene,
                 center=center,
                 radius=int(distance),
-                color=color.as_bgr(),
+                color=color.as_bgra(),
                 thickness=self.thickness,
             )
 
+        # Blend the overlay with the original scene using opacity
+        cv2.addWeighted(scene, self.opacity, scene, 1 - self.opacity, 0, dst=scene)
         return scene
 
 
@@ -868,6 +911,7 @@ class DotAnnotator(BaseAnnotator):
         color_lookup: ColorLookup = ColorLookup.CLASS,
         outline_thickness: int = 0,
         outline_color: Union[Color, ColorPalette] = Color.BLACK,
+        opacity: float = 0.5,
     ):
         """
         Args:
@@ -888,6 +932,7 @@ class DotAnnotator(BaseAnnotator):
         self.color_lookup: ColorLookup = color_lookup
         self.outline_thickness = outline_thickness
         self.outline_color: Union[Color, ColorPalette] = outline_color
+        self.opacity = opacity
 
     @ensure_cv2_image_for_annotation
     def annotate(
@@ -928,6 +973,8 @@ class DotAnnotator(BaseAnnotator):
         ![dot-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/dot-annotator-example-purple.png)
         """
+        if scene is None:
+            raise ValueError("The 'scene' parameter cannot be None.")
         assert isinstance(scene, np.ndarray)
         xy = detections.get_anchors_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
@@ -941,7 +988,7 @@ class DotAnnotator(BaseAnnotator):
             )
             center = (int(xy[detection_idx, 0]), int(xy[detection_idx, 1]))
 
-            cv2.circle(scene, center, self.radius, color.as_bgr(), -1)
+            cv2.circle(scene, center, self.radius, color.as_bgra(), -1)
             if self.outline_thickness:
                 outline_color = resolve_color(
                     color=self.outline_color,
@@ -955,7 +1002,7 @@ class DotAnnotator(BaseAnnotator):
                     scene,
                     center,
                     self.radius,
-                    outline_color.as_bgr(),
+                    outline_color.as_bgra(),
                     self.outline_thickness,
                 )
         return scene
@@ -1073,6 +1120,8 @@ class LabelAnnotator(BaseAnnotator):
             custom_color_lookup=custom_color_lookup,
         )
 
+        cv2.addWeighted(scene, self.opacity, scene, 1 - self.opacity, 0, dst=scene)
+
         return scene
 
     def _validate_labels(self, labels: Optional[List[str]], detections: Detections):
@@ -1182,7 +1231,7 @@ class LabelAnnotator(BaseAnnotator):
             self.draw_rounded_rectangle(
                 scene=scene,
                 xyxy=box_xyxy,
-                color=background_color.as_bgr(),
+                color=background_color.as_bgra(),
                 border_radius=self.border_radius,
             )
 
@@ -1194,7 +1243,7 @@ class LabelAnnotator(BaseAnnotator):
                 org=(text_x, text_y),
                 fontFace=CV2_FONT,
                 fontScale=self.text_scale,
-                color=text_color.as_bgr(),
+                color=text_color.as_bgra(),
                 thickness=self.text_thickness,
                 lineType=cv2.LINE_AA,
             )
@@ -1459,14 +1508,14 @@ class RichLabelAnnotator(BaseAnnotator):
             draw.rounded_rectangle(
                 tuple(box_xyxy),
                 radius=self.border_radius,
-                fill=background_color.as_rgb(),
+                fill=background_color.as_rgba(),
                 outline=None,
             )
             draw.text(
                 xy=(label_x_position, label_y_position),
                 text=labels[idx],
                 font=self.font,
-                fill=text_color.as_rgb(),
+                fill=text_color.as_rgba(),
             )
 
     @staticmethod
@@ -1759,7 +1808,7 @@ class TraceAnnotator(BaseAnnotator):
                     scene,
                     [xy.astype(np.int32)],
                     False,
-                    color=color.as_bgr(),
+                    color=color.as_bgra(),
                     thickness=self.thickness,
                 )
         return scene
@@ -1955,6 +2004,7 @@ class TriangleAnnotator(BaseAnnotator):
         color_lookup: ColorLookup = ColorLookup.CLASS,
         outline_thickness: int = 0,
         outline_color: Union[Color, ColorPalette] = Color.BLACK,
+        opacity: float = 0.5,
     ):
         """
         Args:
@@ -1977,6 +2027,7 @@ class TriangleAnnotator(BaseAnnotator):
         self.color_lookup: ColorLookup = color_lookup
         self.outline_thickness: int = outline_thickness
         self.outline_color: Union[Color, ColorPalette] = outline_color
+        self.opacity = opacity
 
     @ensure_cv2_image_for_annotation
     def annotate(
@@ -2017,6 +2068,8 @@ class TriangleAnnotator(BaseAnnotator):
         ![triangle-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/triangle-annotator-example.png)
         """
+        if scene is None:
+            raise ValueError("The 'scene' parameter cannot be None.")
         assert isinstance(scene, np.ndarray)
         xy = detections.get_anchors_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
@@ -2038,7 +2091,7 @@ class TriangleAnnotator(BaseAnnotator):
                 np.int32,
             )
 
-            cv2.fillPoly(scene, [vertices], color.as_bgr())
+            cv2.fillPoly(scene, [vertices], color.as_bgra())
             if self.outline_thickness:
                 outline_color = resolve_color(
                     color=self.outline_color,
@@ -2052,7 +2105,7 @@ class TriangleAnnotator(BaseAnnotator):
                     scene,
                     [vertices],
                     True,
-                    outline_color.as_bgr(),
+                    outline_color.as_bgra(),
                     thickness=self.outline_thickness,
                 )
         return scene
@@ -2070,6 +2123,7 @@ class RoundBoxAnnotator(BaseAnnotator):
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         roundness: float = 0.6,
+        opacity: float = 1.0,
     ):
         """
         Args:
@@ -2089,6 +2143,7 @@ class RoundBoxAnnotator(BaseAnnotator):
         if not 0 < roundness <= 1.0:
             raise ValueError("roundness attribute must be float between (0, 1.0]")
         self.roundness: float = roundness
+        self.opacity: float = opacity
 
     @ensure_cv2_image_for_annotation
     def annotate(
@@ -2130,6 +2185,8 @@ class RoundBoxAnnotator(BaseAnnotator):
         ![round-box-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/round-box-annotator-example-purple.png)
         """
+        if scene is None:
+            raise ValueError("The 'scene' parameter cannot be None.")
         assert isinstance(scene, np.ndarray)
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
@@ -2175,7 +2232,7 @@ class RoundBoxAnnotator(BaseAnnotator):
                     angle=0,
                     startAngle=start_angle,
                     endAngle=end_angle,
-                    color=color.as_bgr(),
+                    color=color.as_bgra(),
                     thickness=self.thickness,
                 )
 
@@ -2183,7 +2240,7 @@ class RoundBoxAnnotator(BaseAnnotator):
                     img=scene,
                     pt1=line[0],
                     pt2=line[1],
-                    color=color.as_bgr(),
+                    color=color.as_bgra(),
                     thickness=self.thickness,
                 )
 
@@ -2204,6 +2261,7 @@ class PercentageBarAnnotator(BaseAnnotator):
         position: Position = Position.TOP_CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         border_thickness: Optional[int] = None,
+        opacity: float = 1.0,
     ):
         """
         Args:
@@ -2216,6 +2274,7 @@ class PercentageBarAnnotator(BaseAnnotator):
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
             border_thickness (Optional[int]): The thickness of the border lines.
+            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
         """
         self.height: int = height
         self.width: int = width
@@ -2226,6 +2285,7 @@ class PercentageBarAnnotator(BaseAnnotator):
 
         if border_thickness is None:
             self.border_thickness = int(0.15 * self.height)
+        self.opacity = opacity
 
     @ensure_cv2_image_for_annotation
     def annotate(
@@ -2308,16 +2368,17 @@ class PercentageBarAnnotator(BaseAnnotator):
                     border_coordinates[0][0] + int(border_width * value),
                     border_coordinates[1][1],
                 ),
-                color=color.as_bgr(),
+                color=color.as_bgra(),
                 thickness=-1,
             )
             cv2.rectangle(
                 img=scene,
                 pt1=border_coordinates[0],
                 pt2=border_coordinates[1],
-                color=self.border_color.as_bgr(),
+                color=self.border_color.as_bgra(),
                 thickness=self.border_thickness,
             )
+
         return scene
 
     @staticmethod
@@ -2388,6 +2449,7 @@ class CropAnnotator(BaseAnnotator):
         border_color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
         border_thickness: int = 2,
         border_color_lookup: ColorLookup = ColorLookup.CLASS,
+        opacity: float = 1.0,
     ):
         """
         Args:
@@ -2401,12 +2463,14 @@ class CropAnnotator(BaseAnnotator):
             border_thickness (int): The thickness of the border around the cropped area.
             border_color_lookup (ColorLookup): Strategy for mapping colors to
                 annotations. Options are `INDEX`, `CLASS`, `TRACK`.
+            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
         """
         self.position: Position = position
         self.scale_factor: float = scale_factor
         self.border_color: Union[Color, ColorPalette] = border_color
         self.border_thickness: int = border_thickness
         self.border_color_lookup: ColorLookup = border_color_lookup
+        self.opacity = opacity
 
     @ensure_cv2_image_for_annotation
     def annotate(
@@ -2450,6 +2514,8 @@ class CropAnnotator(BaseAnnotator):
         ![crop-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/crop-annotator-example.png)
         """
+        if scene is None:
+            raise ValueError("The 'scene' parameter cannot be None.")
         assert isinstance(scene, np.ndarray)
         crops = [
             crop_image(image=scene, xyxy=xyxy) for xyxy in detections.xyxy.astype(int)
@@ -2477,7 +2543,7 @@ class CropAnnotator(BaseAnnotator):
                 img=scene,
                 pt1=(x1, y1),
                 pt2=(x2, y2),
-                color=color.as_bgr(),
+                color=color.as_bgra(),
                 thickness=self.border_thickness,
             )
 
@@ -2590,7 +2656,7 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
         supervision-annotator-examples/background-color-annotator-example-purple.png)
         """
         assert isinstance(scene, np.ndarray)
-        colored_mask = np.full_like(scene, self.color.as_bgr(), dtype=np.uint8)
+        colored_mask = np.full_like(scene, self.color.as_bgra(), dtype=np.uint8)
 
         cv2.addWeighted(
             scene, 1 - self.opacity, colored_mask, self.opacity, 0, dst=colored_mask
@@ -2716,9 +2782,9 @@ class ComparisonAnnotator:
         mask_2 = mask_2 & ~mask_overlap
 
         color_layer = np.zeros_like(scene, dtype=np.uint8)
-        color_layer[mask_overlap] = self.color_overlap.as_bgr()
-        color_layer[mask_1] = self.color_1.as_bgr()
-        color_layer[mask_2] = self.color_2.as_bgr()
+        color_layer[mask_overlap] = self.color_overlap.as_bgra()
+        color_layer[mask_1] = self.color_1.as_bgra()
+        color_layer[mask_2] = self.color_2.as_bgra()
 
         scene[mask_overlap] = (1 - self.opacity) * scene[
             mask_overlap
