@@ -78,8 +78,8 @@ from supervision.detection.utils.iou_and_nms import (
     box_non_max_merge,
     box_non_max_suppression,
     mask_iou_batch,
-    mask_non_max_suppression,
     mask_non_max_merge,
+    mask_non_max_suppression,
     oriented_box_iou_batch,
 )
 from supervision.detection.utils.masks import (
@@ -222,8 +222,8 @@ __all__ = [
     "letterbox_image",
     "list_files_with_extensions",
     "mask_iou_batch",
-    "mask_non_max_suppression",
     "mask_non_max_merge",
+    "mask_non_max_suppression",
     "mask_to_polygons",
     "mask_to_rle",
     "mask_to_xyxy",
