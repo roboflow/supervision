@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple, Union
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -103,9 +104,9 @@ class KeyPoints:
     """  # noqa: E501 // docs
 
     xy: npt.NDArray[np.float32]
-    class_id: Optional[npt.NDArray[np.int_]] = None
-    confidence: Optional[npt.NDArray[np.float32]] = None
-    data: Dict[str, Union[npt.NDArray[Any], List]] = field(default_factory=dict)
+    class_id: npt.NDArray[np.int_] | None = None
+    confidence: npt.NDArray[np.float32] | None = None
+    data: dict[str, npt.NDArray[Any] | list] = field(default_factory=dict)
 
     def __post_init__(self):
         validate_keypoints_fields(
@@ -124,13 +125,13 @@ class KeyPoints:
     def __iter__(
         self,
     ) -> Iterator[
-        Tuple[
+        tuple[
             np.ndarray,
-            Optional[np.ndarray],
-            Optional[float],
-            Optional[int],
-            Optional[int],
-            Dict[str, Union[np.ndarray, List]],
+            np.ndarray | None,
+            float | None,
+            int | None,
+            int | None,
+            dict[str, np.ndarray | list],
         ]
     ]:
         """
@@ -156,7 +157,7 @@ class KeyPoints:
         )
 
     @classmethod
-    def from_inference(cls, inference_result: Union[dict, Any]) -> KeyPoints:
+    def from_inference(cls, inference_result: dict | Any) -> KeyPoints:
         """
         Create a `sv.KeyPoints` object from the [Roboflow](https://roboflow.com/)
         API inference result or the [Inference](https://inference.roboflow.com/)
@@ -239,7 +240,7 @@ class KeyPoints:
 
     @classmethod
     def from_mediapipe(
-        cls, mediapipe_results, resolution_wh: Tuple[int, int]
+        cls, mediapipe_results, resolution_wh: tuple[int, int]
     ) -> KeyPoints:
         """
         Creates a `sv.KeyPoints` instance from a
@@ -598,8 +599,8 @@ class KeyPoints:
             return cls.empty()
 
     def __getitem__(
-        self, index: Union[int, slice, List[int], np.ndarray, str]
-    ) -> Union[KeyPoints, List, np.ndarray, None]:
+        self, index: int | slice | list[int] | np.ndarray | str
+    ) -> KeyPoints | list | np.ndarray | None:
         """
         Get a subset of the `sv.KeyPoints` object or access an item from its data field.
 
@@ -649,7 +650,7 @@ class KeyPoints:
             data=get_data_item(self.data, index),
         )
 
-    def __setitem__(self, key: str, value: Union[np.ndarray, List]):
+    def __setitem__(self, key: str, value: np.ndarray | list):
         """
         Set a value in the data dictionary of the `sv.KeyPoints` object.
 
@@ -710,7 +711,7 @@ class KeyPoints:
         return self == empty_keypoints
 
     def as_detections(
-        self, selected_keypoint_indices: Optional[Iterable[int]] = None
+        self, selected_keypoint_indices: Iterable[int] | None = None
     ) -> Detections:
         """
         Convert a KeyPoints object to a Detections object. This

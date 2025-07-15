@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import base64
 import io
 import json
 import re
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import numpy as np
 from PIL import Image
@@ -39,7 +41,7 @@ class VLM(Enum):
     MOONDREAM = "moondream"
 
 
-RESULT_TYPES: Dict[VLM, type] = {
+RESULT_TYPES: dict[VLM, type] = {
     VLM.PALIGEMMA: str,
     VLM.FLORENCE_2: dict,
     VLM.QWEN_2_5_VL: str,
@@ -48,7 +50,7 @@ RESULT_TYPES: Dict[VLM, type] = {
     VLM.MOONDREAM: dict,
 }
 
-REQUIRED_ARGUMENTS: Dict[VLM, List[str]] = {
+REQUIRED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.PALIGEMMA: ["resolution_wh"],
     VLM.FLORENCE_2: ["resolution_wh"],
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh"],
@@ -57,7 +59,7 @@ REQUIRED_ARGUMENTS: Dict[VLM, List[str]] = {
     VLM.MOONDREAM: ["resolution_wh"],
 }
 
-ALLOWED_ARGUMENTS: Dict[VLM, List[str]] = {
+ALLOWED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.PALIGEMMA: ["resolution_wh", "classes"],
     VLM.FLORENCE_2: ["resolution_wh"],
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh", "classes"],
@@ -80,9 +82,7 @@ SUPPORTED_TASKS_FLORENCE_2 = [
 ]
 
 
-def validate_vlm_parameters(
-    vlm: Union[VLM, str], result: Any, kwargs: Dict[str, Any]
-) -> VLM:
+def validate_vlm_parameters(vlm: VLM | str, result: Any, kwargs: dict[str, Any]) -> VLM:
     if isinstance(vlm, str):
         try:
             vlm = VLM(vlm.lower())
@@ -110,15 +110,15 @@ def validate_vlm_parameters(
 
 
 def from_paligemma(
-    result: str, resolution_wh: Tuple[int, int], classes: Optional[List[str]] = None
-) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
+    result: str, resolution_wh: tuple[int, int], classes: list[str] | None = None
+) -> tuple[np.ndarray, np.ndarray | None, np.ndarray]:
     """
     Parse bounding boxes from paligemma-formatted text, scale them to the specified
     resolution, and optionally filter by classes.
 
     Args:
         result: String containing paligemma-formatted locations and labels.
-        resolution_wh: Tuple (width, height) to which we scale the box coordinates.
+        resolution_wh: tuple (width, height) to which we scale the box coordinates.
         classes: Optional list of valid class names. If provided, boxes and labels not
             in this list are filtered out.
 
@@ -159,10 +159,10 @@ def from_paligemma(
 
 def from_qwen_2_5_vl(
     result: str,
-    input_wh: Tuple[int, int],
-    resolution_wh: Tuple[int, int],
-    classes: Optional[List[str]] = None,
-) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
+    input_wh: tuple[int, int],
+    resolution_wh: tuple[int, int],
+    classes: list[str] | None = None,
+) -> tuple[np.ndarray, np.ndarray | None, np.ndarray]:
     """
     Parse and scale bounding boxes from Qwen-2.5-VL style JSON output.
 
@@ -238,10 +238,8 @@ def from_qwen_2_5_vl(
 
 
 def from_florence_2(
-    result: dict, resolution_wh: Tuple[int, int]
-) -> Tuple[
-    np.ndarray, Optional[np.ndarray], Optional[np.ndarray], Optional[np.ndarray]
-]:
+    result: dict, resolution_wh: tuple[int, int]
+) -> tuple[np.ndarray, np.ndarray | None, np.ndarray | None, np.ndarray | None]:
     """
     Parse results from the Florence 2 multi-model model.
     https://huggingface.co/microsoft/Florence-2-large
@@ -334,9 +332,9 @@ def from_florence_2(
 
 def from_google_gemini_2_0(
     result: str,
-    resolution_wh: Tuple[int, int],
-    classes: Optional[List[str]] = None,
-) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
+    resolution_wh: tuple[int, int],
+    classes: list[str] | None = None,
+) -> tuple[np.ndarray, np.ndarray | None, np.ndarray]:
     """
     Parse and scale bounding boxes from Google Gemini style
     [JSON output](https://ai.google.dev/gemini-api/docs/vision?lang=python).
@@ -423,14 +421,14 @@ def from_google_gemini_2_0(
 
 def from_google_gemini_2_5(
     result: str,
-    resolution_wh: Tuple[int, int],
-    classes: Optional[List[str]] = None,
-) -> Tuple[
+    resolution_wh: tuple[int, int],
+    classes: list[str] | None = None,
+) -> tuple[
     np.ndarray,
-    Optional[np.ndarray],
+    np.ndarray | None,
     np.ndarray,
-    Optional[np.ndarray],
-    Optional[np.ndarray],
+    np.ndarray | None,
+    np.ndarray | None,
 ]:
     """
     Parse and scale bounding boxes and masks from Google Gemini 2.5 style
@@ -490,8 +488,8 @@ def from_google_gemini_2_5(
 
     boxes_list: list = []
     labels_list: list = []
-    confidence_list: Optional[list] = []
-    masks_list: Optional[list] = []
+    confidence_list: list | None = []
+    masks_list: list | None = []
 
     for item in data:
         if "box_2d" not in item or "label" not in item:
@@ -585,8 +583,8 @@ def from_google_gemini_2_5(
 
 def from_moondream(
     result: dict,
-    resolution_wh: Tuple[int, int],
-) -> Tuple[np.ndarray]:
+    resolution_wh: tuple[int, int],
+) -> tuple[np.ndarray]:
     """
     Parse and scale bounding boxes from moondream JSON output.
 

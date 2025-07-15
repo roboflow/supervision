@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import textwrap
 from enum import Enum
-from typing import Optional, Tuple, Union
 
 import numpy as np
 
@@ -35,7 +36,7 @@ class ColorLookup(Enum):
 def resolve_color_idx(
     detections: Detections,
     detection_idx: int,
-    color_lookup: Union[ColorLookup, np.ndarray] = ColorLookup.CLASS,
+    color_lookup: ColorLookup | np.ndarray = ColorLookup.CLASS,
 ) -> int:
     if detection_idx >= len(detections):
         raise ValueError(
@@ -72,10 +73,10 @@ def resolve_color_idx(
 
 
 def resolve_text_background_xyxy(
-    center_coordinates: Tuple[int, int],
-    text_wh: Tuple[int, int],
+    center_coordinates: tuple[int, int],
+    text_wh: tuple[int, int],
     position: Position,
-) -> Tuple[int, int, int, int]:
+) -> tuple[int, int, int, int]:
     center_x, center_y = center_coordinates
     text_w, text_h = text_wh
 
@@ -124,17 +125,17 @@ def resolve_text_background_xyxy(
         )
 
 
-def get_color_by_index(color: Union[Color, ColorPalette], idx: int) -> Color:
+def get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
     if isinstance(color, ColorPalette):
         return color.by_idx(idx)
     return color
 
 
 def resolve_color(
-    color: Union[Color, ColorPalette],
+    color: Color | ColorPalette,
     detections: Detections,
     detection_idx: int,
-    color_lookup: Union[ColorLookup, np.ndarray] = ColorLookup.CLASS,
+    color_lookup: ColorLookup | np.ndarray = ColorLookup.CLASS,
 ) -> Color:
     idx = resolve_color_idx(
         detections=detections,
@@ -189,7 +190,7 @@ def wrap_text(text: str, max_line_length=None) -> list[str]:
     return all_lines if all_lines else [""]
 
 
-def validate_labels(labels: Optional[list[str]], detections: Detections):
+def validate_labels(labels: list[str] | None, detections: Detections):
     """
     Validates that the number of provided labels matches the number of detections.
 
@@ -211,7 +212,7 @@ def validate_labels(labels: Optional[list[str]], detections: Detections):
 
 
 def get_labels_text(
-    detections: Detections, custom_labels: Optional[list[str]]
+    detections: Detections, custom_labels: list[str] | None
 ) -> list[str]:
     """
     Retrieves the text labels for the detections.
@@ -241,7 +242,7 @@ def get_labels_text(
     return labels
 
 
-def snap_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
+def snap_boxes(xyxy: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
     """
     Shifts `label` bounding boxes into the frame so that they are fully contained
     within the given resolution, prioritizing the top/left edge.
@@ -309,7 +310,7 @@ def snap_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
 class Trace:
     def __init__(
         self,
-        max_size: Optional[int] = None,
+        max_size: int | None = None,
         start_frame_id: int = 0,
         anchor: Position = Position.CENTER,
     ) -> None:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 from itertools import chain
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import cv2
 import numpy as np
@@ -35,7 +35,7 @@ class OverlapMetric(Enum):
         return list(map(lambda c: c.value, cls))
 
     @classmethod
-    def from_value(cls, value: Union[OverlapMetric, str]) -> OverlapMetric:
+    def from_value(cls, value: OverlapMetric | str) -> OverlapMetric:
         if isinstance(value, cls):
             return value
         if isinstance(value, str):
@@ -69,7 +69,7 @@ def xyxy_to_polygons(box: np.ndarray) -> np.ndarray:
     return polygon
 
 
-def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
+def polygon_to_mask(polygon: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
     """Generate a mask from a polygon.
 
     Args:
@@ -88,8 +88,8 @@ def polygon_to_mask(polygon: np.ndarray, resolution_wh: Tuple[int, int]) -> np.n
 
 
 def box_iou(
-    box_true: Union[List[float], np.ndarray],
-    box_detection: Union[List[float], np.ndarray],
+    box_true: list[float] | np.ndarray,
+    box_detection: list[float] | np.ndarray,
 ) -> float:
     """
     Compute the Intersection over Union (IoU) between two bounding boxes.
@@ -379,7 +379,7 @@ def oriented_box_iou_batch(
     return ious
 
 
-def clip_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
+def clip_boxes(xyxy: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
     """
     Clips bounding boxes coordinates to fit within the frame resolution.
 
@@ -421,7 +421,7 @@ def clip_boxes(xyxy: np.ndarray, resolution_wh: Tuple[int, int]) -> np.ndarray:
     return result
 
 
-def pad_boxes(xyxy: np.ndarray, px: int, py: Optional[int] = None) -> np.ndarray:
+def pad_boxes(xyxy: np.ndarray, px: int, py: int | None = None) -> np.ndarray:
     """
     Pads bounding boxes coordinates with a constant padding.
 
@@ -631,7 +631,7 @@ def xyxy_to_xcycarh(xyxy: np.ndarray) -> np.ndarray:
 
 def denormalize_boxes(
     normalized_xyxy: np.ndarray,
-    resolution_wh: Tuple[int, int],
+    resolution_wh: tuple[int, int],
     normalization_factor: float = 1.0,
 ) -> np.ndarray:
     """
@@ -711,7 +711,7 @@ def mask_to_xyxy(masks: np.ndarray) -> np.ndarray:
     return xyxy
 
 
-def mask_to_polygons(mask: np.ndarray) -> List[np.ndarray]:
+def mask_to_polygons(mask: np.ndarray) -> list[np.ndarray]:
     """
     Converts a binary mask to a list of polygons.
 
@@ -738,10 +738,10 @@ def mask_to_polygons(mask: np.ndarray) -> List[np.ndarray]:
 
 
 def filter_polygons_by_area(
-    polygons: List[np.ndarray],
-    min_area: Optional[float] = None,
-    max_area: Optional[float] = None,
-) -> List[np.ndarray]:
+    polygons: list[np.ndarray],
+    min_area: float | None = None,
+    max_area: float | None = None,
+) -> list[np.ndarray]:
     """
     Filters a list of polygons based on their area.
 
@@ -837,7 +837,7 @@ def approximate_polygon(
     return np.squeeze(approximated_points, axis=1)
 
 
-def extract_ultralytics_masks(yolov8_results) -> Optional[np.ndarray]:
+def extract_ultralytics_masks(yolov8_results) -> np.ndarray | None:
     if not yolov8_results.masks:
         return None
 
@@ -875,13 +875,13 @@ def extract_ultralytics_masks(yolov8_results) -> Optional[np.ndarray]:
 
 def process_roboflow_result(
     roboflow_result: dict,
-) -> Tuple[
+) -> tuple[
     np.ndarray,
     np.ndarray,
     np.ndarray,
-    Optional[np.ndarray],
-    Optional[np.ndarray],
-    Dict[str, Union[List[np.ndarray], np.ndarray]],
+    np.ndarray | None,
+    np.ndarray | None,
+    dict[str, list[np.ndarray] | np.ndarray],
 ]:
     if not roboflow_result["predictions"]:
         return (
@@ -1036,7 +1036,7 @@ def move_oriented_boxes(
 def move_masks(
     masks: npt.NDArray[np.bool_],
     offset: npt.NDArray[np.int32],
-    resolution_wh: Tuple[int, int],
+    resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.bool_]:
     """
     Offset the masks in an array by the specified (x, y) amount.
@@ -1182,7 +1182,7 @@ def calculate_masks_centroids(masks: np.ndarray) -> np.ndarray:
     return np.column_stack((centroid_x, centroid_y)).astype(int)
 
 
-def is_data_equal(data_a: Dict[str, np.ndarray], data_b: Dict[str, np.ndarray]) -> bool:
+def is_data_equal(data_a: dict[str, np.ndarray], data_b: dict[str, np.ndarray]) -> bool:
     """
     Compares the data payloads of two Detections instances.
 
@@ -1197,7 +1197,7 @@ def is_data_equal(data_a: Dict[str, np.ndarray], data_b: Dict[str, np.ndarray]) 
     )
 
 
-def is_metadata_equal(metadata_a: Dict[str, Any], metadata_b: Dict[str, Any]) -> bool:
+def is_metadata_equal(metadata_a: dict[str, Any], metadata_b: dict[str, Any]) -> bool:
     """
     Compares the metadata payloads of two Detections instances.
 
@@ -1219,8 +1219,8 @@ def is_metadata_equal(metadata_a: Dict[str, Any], metadata_b: Dict[str, Any]) ->
 
 
 def merge_data(
-    data_list: List[Dict[str, Union[npt.NDArray[np.generic], List]]],
-) -> Dict[str, Union[npt.NDArray[np.generic], List]]:
+    data_list: list[dict[str, npt.NDArray[np.generic] | list]],
+) -> dict[str, npt.NDArray[np.generic] | list]:
     """
     Merges the data payloads of a list of Detections instances.
 
@@ -1279,7 +1279,7 @@ def merge_data(
     return merged_data
 
 
-def merge_metadata(metadata_list: List[Dict[str, Any]]) -> Dict[str, Any]:
+def merge_metadata(metadata_list: list[dict[str, Any]]) -> dict[str, Any]:
     """
     Merge metadata from a list of metadata dictionaries.
 
@@ -1306,7 +1306,7 @@ def merge_metadata(metadata_list: List[Dict[str, Any]]) -> Dict[str, Any]:
     if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
         raise ValueError("All metadata dictionaries must have the same keys to merge.")
 
-    merged_metadata: Dict[str, Any] = {}
+    merged_metadata: dict[str, Any] = {}
     for metadata in metadata_list:
         for key, value in metadata.items():
             if key not in merged_metadata:
@@ -1335,9 +1335,9 @@ def merge_metadata(metadata_list: List[Dict[str, Any]]) -> Dict[str, Any]:
 
 
 def get_data_item(
-    data: Dict[str, Union[np.ndarray, List]],
-    index: Union[int, slice, List[int], np.ndarray],
-) -> Dict[str, Union[np.ndarray, List]]:
+    data: dict[str, np.ndarray | list],
+    index: int | slice | list[int] | np.ndarray,
+) -> dict[str, np.ndarray | list]:
     """
     Retrieve a subset of the data dictionary based on the given index.
 
@@ -1568,7 +1568,7 @@ def spread_out_boxes(
     return pad_boxes(xyxy_padded, px=-1)
 
 
-def _jaccard(box_a: List[float], box_b: List[float], is_crowd: bool) -> float:
+def _jaccard(box_a: list[float], box_b: list[float], is_crowd: bool) -> float:
     """
     Calculate the Jaccard index (intersection over union) between two bounding boxes.
     If a gt object is marked as "iscrowd", a dt is allowed to match any subregion
@@ -1609,9 +1609,9 @@ def _jaccard(box_a: List[float], box_b: List[float], is_crowd: bool) -> float:
 
 
 def box_iou_batch_with_jaccard(
-    boxes_true: List[List[float]],
-    boxes_detection: List[List[float]],
-    is_crowd: List[bool],
+    boxes_true: list[list[float]],
+    boxes_detection: list[list[float]],
+    is_crowd: list[bool],
 ) -> np.ndarray:
     """
     Calculate the intersection over union (IoU) between detection bounding boxes (dt)

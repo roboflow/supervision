@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -156,7 +155,7 @@ def group_overlapping_boxes(
     predictions: npt.NDArray[np.float64],
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
-) -> List[List[int]]:
+) -> list[list[int]]:
     """
     Apply greedy version of non-maximum merging to avoid detecting too many
     overlapping bounding boxes for a given object.
@@ -170,10 +169,10 @@ def group_overlapping_boxes(
         overlap_metric (OverlapMetric): Metric used for matching detections in slices.
 
     Returns:
-        List[List[int]]: Groups of prediction indices be merged.
+        list[list[int]]: Groups of prediction indices be merged.
             Each group may have 1 or more elements.
     """
-    merge_groups: List[List[int]] = []
+    merge_groups: list[list[int]] = []
 
     scores = predictions[:, 4]
     order = scores.argsort()
@@ -205,7 +204,7 @@ def mask_non_max_merge(
     iou_threshold: float = 0.5,
     mask_dimension: int = 640,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
-) -> List[List[int]]:
+) -> list[list[int]]:
     """
     Perform Non-Maximum Merging (NMM) on segmentation predictions.
 
@@ -263,7 +262,7 @@ def box_non_max_merge(
     predictions: npt.NDArray[np.float64],
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
-) -> List[List[int]]:
+) -> list[list[int]]:
     """
     Apply greedy version of non-maximum merging per category to avoid detecting
     too many overlapping bounding boxes for a given object.
@@ -278,7 +277,7 @@ def box_non_max_merge(
         overlap_metric (OverlapMetric): Metric used for matching detections in slices.
 
     Returns:
-        List[List[int]]: Groups of prediction indices be merged.
+        list[list[int]]: Groups of prediction indices be merged.
             Each group may have 1 or more elements.
     """
     if predictions.shape[1] == 5:
@@ -308,7 +307,7 @@ def group_overlapping_masks(
     masks: npt.NDArray[np.float64],
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
-) -> List[List[int]]:
+) -> list[list[int]]:
     """
     Apply greedy version of non-maximum merging to avoid detecting too many
 
@@ -323,10 +322,10 @@ def group_overlapping_masks(
         overlap_metric (OverlapMetric): Metric used for matching detections in slices.
 
     Returns:
-        List[List[int]]: Groups of prediction indices be merged.
+        list[list[int]]: Groups of prediction indices be merged.
             Each group may have 1 or more elements.
     """
-    merge_groups: List[List[int]] = []
+    merge_groups: list[list[int]] = []
 
     scores = predictions[:, 4]
     order = scores.argsort()
@@ -382,7 +381,7 @@ class OverlapFilter(Enum):
         return list(map(lambda c: c.value, cls))
 
     @classmethod
-    def from_value(cls, value: Union[OverlapFilter, str]) -> OverlapFilter:
+    def from_value(cls, value: OverlapFilter | str) -> OverlapFilter:
         if isinstance(value, cls):
             return value
         if isinstance(value, str):

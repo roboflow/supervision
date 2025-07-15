@@ -1,5 +1,3 @@
-from typing import List, Tuple
-
 import numpy as np
 
 from supervision.detection.core import Detections
@@ -55,9 +53,9 @@ class ByteTrack:
         self.kalman_filter = KalmanFilter()
         self.shared_kalman = KalmanFilter()
 
-        self.tracked_tracks: List[STrack] = []
-        self.lost_tracks: List[STrack] = []
-        self.removed_tracks: List[STrack] = []
+        self.tracked_tracks: list[STrack] = []
+        self.lost_tracks: list[STrack] = []
+        self.removed_tracks: list[STrack] = []
 
         # Warning, possible bug: If you also set internal_id to start at 1,
         # all traces will be connected across objects.
@@ -150,7 +148,7 @@ class ByteTrack:
         self.lost_tracks = []
         self.removed_tracks = []
 
-    def update_with_tensors(self, tensors: np.ndarray) -> List[STrack]:
+    def update_with_tensors(self, tensors: np.ndarray) -> list[STrack]:
         """
         Updates the tracker with the provided tensors and returns the updated tracks.
 
@@ -315,8 +313,8 @@ class ByteTrack:
 
 
 def joint_tracks(
-    track_list_a: List[STrack], track_list_b: List[STrack]
-) -> List[STrack]:
+    track_list_a: list[STrack], track_list_b: list[STrack]
+) -> list[STrack]:
     """
     Joins two lists of tracks, ensuring that the resulting list does not
     contain tracks with duplicate internal_track_id values.
@@ -340,7 +338,7 @@ def joint_tracks(
     return result
 
 
-def sub_tracks(track_list_a: List[STrack], track_list_b: List[STrack]) -> List[int]:
+def sub_tracks(track_list_a: list[STrack], track_list_b: list[STrack]) -> list[int]:
     """
     Returns a list of tracks from track_list_a after removing any tracks
     that share the same internal_track_id with tracks in track_list_b.
@@ -362,8 +360,8 @@ def sub_tracks(track_list_a: List[STrack], track_list_b: List[STrack]) -> List[i
 
 
 def remove_duplicate_tracks(
-    tracks_a: List[STrack], tracks_b: List[STrack]
-) -> Tuple[List[STrack], List[STrack]]:
+    tracks_a: list[STrack], tracks_b: list[STrack]
+) -> tuple[list[STrack], list[STrack]]:
     pairwise_distance = matching.iou_distance(tracks_a, tracks_b)
     matching_pairs = np.where(pairwise_distance < 0.15)
 

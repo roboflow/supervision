@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from logging import warn
-from typing import List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -106,7 +107,7 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         self,
         color: Color = Color.ROBOFLOW,
         thickness: int = 2,
-        edges: Optional[List[Tuple[int, int]]] = None,
+        edges: list[tuple[int, int]] | None = None,
     ) -> None:
         """
         Args:
@@ -196,8 +197,8 @@ class VertexLabelAnnotator:
 
     def __init__(
         self,
-        color: Union[Color, List[Color]] = Color.ROBOFLOW,
-        text_color: Union[Color, List[Color]] = Color.WHITE,
+        color: Color | list[Color] = Color.ROBOFLOW,
+        text_color: Color | list[Color] = Color.WHITE,
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
@@ -220,8 +221,8 @@ class VertexLabelAnnotator:
             smart_position (bool): Spread out the labels to avoid overlap.
         """
         self.border_radius: int = border_radius
-        self.color: Union[Color, List[Color]] = color
-        self.text_color: Union[Color, List[Color]] = text_color
+        self.color: Color | list[Color] = color
+        self.text_color: Color | list[Color] = text_color
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
         self.text_padding: int = text_padding
@@ -231,7 +232,7 @@ class VertexLabelAnnotator:
         self,
         scene: ImageType,
         key_points: KeyPoints,
-        labels: Optional[List[str]] = None,
+        labels: list[str] | None = None,
     ) -> ImageType:
         """
         A class that draws labels of skeleton vertices on images. It uses specified key
@@ -394,8 +395,8 @@ class VertexLabelAnnotator:
         font: int,
         text_scale: float,
         text_thickness: int,
-        center_coordinates: Tuple[int, int],
-    ) -> Tuple[int, int, int, int]:
+        center_coordinates: tuple[int, int],
+    ) -> tuple[int, int, int, int]:
         text_w, text_h = cv2.getTextSize(
             text=text,
             fontFace=font,
@@ -412,7 +413,7 @@ class VertexLabelAnnotator:
 
     @staticmethod
     def preprocess_and_validate_labels(
-        labels: Optional[List[str]], points_count: int, skeletons_count: int
+        labels: list[str] | None, points_count: int, skeletons_count: int
     ) -> np.ndarray:
         if labels and len(labels) != points_count:
             raise ValueError(
@@ -426,7 +427,7 @@ class VertexLabelAnnotator:
 
     @staticmethod
     def preprocess_and_validate_colors(
-        colors: Optional[Union[Color, List[Color]]],
+        colors: Color | list[Color] | None,
         points_count: int,
         skeletons_count: int,
     ) -> np.ndarray:

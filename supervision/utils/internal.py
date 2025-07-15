@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import functools
 import inspect
 import os
 import warnings
-from typing import Any, Callable, Generic, Optional, Set, TypeVar
+from collections.abc import Callable
+from typing import Any, Generic, TypeVar
 
 
 class SupervisionWarnings(Warning):
@@ -144,7 +147,7 @@ class classproperty(Generic[T]):
         """
         self.fget = fget
 
-    def __get__(self, owner_self: Any, owner_cls: Optional[type] = None) -> T:
+    def __get__(self, owner_self: Any, owner_cls: type | None = None) -> T:
         """
         Override the __get__ method to return the result of the function call.
 
@@ -161,7 +164,7 @@ class classproperty(Generic[T]):
         return self.fget(owner_cls)
 
 
-def get_instance_variables(instance: Any, include_properties=False) -> Set[str]:
+def get_instance_variables(instance: Any, include_properties=False) -> set[str]:
     """
     Get the public variables of a class instance.
 
@@ -179,22 +182,18 @@ def get_instance_variables(instance: Any, include_properties=False) -> Set[str]:
     if isinstance(instance, type):
         raise ValueError("Only class instances are supported, not classes.")
 
-    fields = set(
-        (
-            name
-            for name, val in inspect.getmembers(instance)
-            if not callable(val) and not name.startswith("_")
-        )
-    )
+    fields = {
+        name
+        for name, val in inspect.getmembers(instance)
+        if not callable(val) and not name.startswith("_")
+    }
 
     if not include_properties:
-        properties = set(
-            (
-                name
-                for name, val in inspect.getmembers(instance.__class__)
-                if isinstance(val, property)
-            )
-        )
+        properties = {
+            name
+            for name, val in inspect.getmembers(instance.__class__)
+            if isinstance(val, property)
+        }
         fields -= properties
 
     return fields

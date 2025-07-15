@@ -1,5 +1,7 @@
+from __future__ import annotations
+
+from collections.abc import Iterable
 from dataclasses import replace
-from typing import Iterable, Optional
 
 import cv2
 import numpy as np
@@ -153,7 +155,7 @@ class PolygonZoneAnnotator:
         self.display_in_zone_count = display_in_zone_count
         self.opacity = opacity
 
-    def annotate(self, scene: np.ndarray, label: Optional[str] = None) -> np.ndarray:
+    def annotate(self, scene: np.ndarray, label: str | None = None) -> np.ndarray:
         """
         Annotates the polygon zone within a frame with a count of detected objects.
 

@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -66,7 +68,7 @@ TEST_MASK[:, 300:351, 200:251] = True
 )
 def test_clip_boxes(
     xyxy: np.ndarray,
-    resolution_wh: Tuple[int, int],
+    resolution_wh: tuple[int, int],
     expected_result: np.ndarray,
 ) -> None:
     result = clip_boxes(xyxy=xyxy, resolution_wh=resolution_wh)
@@ -152,10 +154,10 @@ def test_clip_boxes(
     ],
 )
 def test_filter_polygons_by_area(
-    polygons: List[np.ndarray],
-    min_area: Optional[float],
-    max_area: Optional[float],
-    expected_result: List[np.ndarray],
+    polygons: list[np.ndarray],
+    min_area: float | None,
+    max_area: float | None,
+    expected_result: list[np.ndarray],
     exception: Exception,
 ) -> None:
     with exception:
@@ -372,8 +374,8 @@ def test_filter_polygons_by_area(
 )
 def test_process_roboflow_result(
     roboflow_result: dict,
-    expected_result: Tuple[
-        np.ndarray, np.ndarray, np.ndarray, Optional[np.ndarray], np.ndarray
+    expected_result: tuple[
+        np.ndarray, np.ndarray, np.ndarray, np.ndarray | None, np.ndarray
     ],
     exception: Exception,
 ) -> None:
@@ -698,7 +700,7 @@ def test_move_boxes(
 def test_move_masks(
     masks: np.ndarray,
     offset: np.ndarray,
-    resolution_wh: Tuple[int, int],
+    resolution_wh: tuple[int, int],
     expected_result: np.ndarray,
     exception: Exception,
 ) -> None:
@@ -1032,8 +1034,8 @@ def test_calculate_masks_centroids(
     ],
 )
 def test_merge_data(
-    data_list: List[Dict[str, Any]],
-    expected_result: Optional[Dict[str, Any]],
+    data_list: list[dict[str, Any]],
+    expected_result: dict[str, Any] | None,
     exception: Exception,
 ):
     with exception:
@@ -1207,9 +1209,9 @@ def test_merge_data(
     ],
 )
 def test_get_data_item(
-    data: Dict[str, Any],
+    data: dict[str, Any],
     index: Any,
-    expected_result: Optional[Dict[str, Any]],
+    expected_result: dict[str, Any] | None,
     exception: Exception,
 ):
     with exception:

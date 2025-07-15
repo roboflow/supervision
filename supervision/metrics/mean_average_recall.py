@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -87,8 +87,8 @@ class MeanAverageRecall(Metric):
         """
         self._metric_target = metric_target
 
-        self._predictions_list: List[Detections] = []
-        self._targets_list: List[Detections] = []
+        self._predictions_list: list[Detections] = []
+        self._targets_list: list[Detections] = []
 
         self.max_detections = np.array([1, 10, 100])
 
@@ -101,8 +101,8 @@ class MeanAverageRecall(Metric):
 
     def update(
         self,
-        predictions: Union[Detections, List[Detections]],
-        targets: Union[Detections, List[Detections]],
+        predictions: Detections | list[Detections],
+        targets: Detections | list[Detections],
     ) -> MeanAverageRecall:
         """
         Add new predictions and targets to the metric, but do not compute the result.
@@ -160,7 +160,7 @@ class MeanAverageRecall(Metric):
         return result
 
     def _compute(
-        self, predictions_list: List[Detections], targets_list: List[Detections]
+        self, predictions_list: list[Detections], targets_list: list[Detections]
     ) -> MeanAverageRecallResult:
         iou_thresholds = np.linspace(0.5, 0.95, 10)
         stats = []
@@ -242,7 +242,7 @@ class MeanAverageRecall(Metric):
         prediction_confidence: np.ndarray,
         prediction_class_ids: np.ndarray,
         true_class_ids: np.ndarray,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         sorted_indices = np.argsort(-prediction_confidence)
         matches = matches[sorted_indices]
         prediction_class_ids = prediction_class_ids[sorted_indices]
@@ -309,7 +309,7 @@ class MeanAverageRecall(Metric):
         sorted_prediction_class_ids: np.ndarray,
         unique_classes: np.ndarray,
         class_counts: np.ndarray,
-        max_detections: Optional[int] = None,
+        max_detections: int | None = None,
     ) -> np.ndarray:
         """
         Compute the confusion matrix for each class and IoU threshold.
@@ -443,10 +443,10 @@ class MeanAverageRecall(Metric):
 
     def _filter_predictions_and_targets_by_size(
         self,
-        predictions_list: List[Detections],
-        targets_list: List[Detections],
+        predictions_list: list[Detections],
+        targets_list: list[Detections],
         size_category: ObjectSizeCategory,
-    ) -> Tuple[List[Detections], List[Detections]]:
+    ) -> tuple[list[Detections], list[Detections]]:
         new_predictions_list = []
         new_targets_list = []
         for predictions, targets in zip(predictions_list, targets_list):
@@ -536,9 +536,9 @@ class MeanAverageRecallResult:
     iou_thresholds: np.ndarray
     matched_classes: np.ndarray
 
-    small_objects: Optional[MeanAverageRecallResult]
-    medium_objects: Optional[MeanAverageRecallResult]
-    large_objects: Optional[MeanAverageRecallResult]
+    small_objects: MeanAverageRecallResult | None
+    medium_objects: MeanAverageRecallResult | None
+    large_objects: MeanAverageRecallResult | None
 
     def __str__(self) -> str:
         """
@@ -591,7 +591,7 @@ class MeanAverageRecallResult:
 
         return out_str
 
-    def to_pandas(self) -> "pd.DataFrame":
+    def to_pandas(self) -> pd.DataFrame:
         """
         Convert the result to a pandas DataFrame.
 

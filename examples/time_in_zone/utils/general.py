@@ -1,11 +1,11 @@
 import json
-from typing import Generator, List
+from collections.abc import Generator
 
 import cv2
 import numpy as np
 
 
-def load_zones_config(file_path: str) -> List[np.ndarray]:
+def load_zones_config(file_path: str) -> list[np.ndarray]:
     """
     Load polygon zone configurations from a JSON file.
 
@@ -19,12 +19,12 @@ def load_zones_config(file_path: str) -> List[np.ndarray]:
     Returns:
         List[np.ndarray]: A list of polygons, each represented as a NumPy array.
     """
-    with open(file_path, "r") as file:
+    with open(file_path) as file:
         data = json.load(file)
         return [np.array(polygon, np.int32) for polygon in data]
 
 
-def find_in_list(array: np.ndarray, search_list: List[int]) -> np.ndarray:
+def find_in_list(array: np.ndarray, search_list: list[int]) -> np.ndarray:
     """Determines if elements of a numpy array are present in a list.
 
     Args:
