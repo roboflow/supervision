@@ -2052,7 +2052,7 @@ def merge_inner_detections_objects(
 
 
 def merge_inner_detections_objects_without_iou(
-    detections: List[Detections],
+    detections: list[Detections],
 ) -> Detections:
     """
     Given N detections each of length 1 (exactly one object inside), combine them into a

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 from itertools import chain
-from typing import Any, Optional, Union
+from typing import Any
 
 import cv2
 import numpy as np

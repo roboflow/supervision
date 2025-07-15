@@ -620,7 +620,7 @@ def test_mask_non_max_merge(
     predictions: np.ndarray,
     masks: np.ndarray,
     iou_threshold: float,
-    expected_result: List[List[int]],
+    expected_result: list[list[int]],
     exception: Exception,
 ) -> None:
     with exception:
