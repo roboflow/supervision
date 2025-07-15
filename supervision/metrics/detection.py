@@ -493,6 +493,7 @@ class ConfusionMatrix:
             )
         return fig
 
+
 @deprecated(
     "`MeanAveragePrecision` is deprecated and will be removed in "
     "`supervision-0.31.0`. Use "
