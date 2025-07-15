@@ -25,8 +25,8 @@ class LMM(Enum):
     Enum specifying supported Large Multimodal Models (LMMs).
 
     Attributes:
-        PALIGEMMA: Google’s PaliGemma vision-language model.
-        FLORENCE_2: Microsoft Florence-2 vision-language model.
+        PALIGEMMA: Google's PaliGemma vision-language model.
+        FLORENCE_2: Microsoft's Florence-2 vision-language model.
         QWEN_2_5_VL: Qwen2.5-VL open vision-language model from Alibaba.
         GOOGLE_GEMINI_2_0: Google Gemini 2.0 vision-language model.
         GOOGLE_GEMINI_2_5: Google Gemini 2.5 vision-language model.
@@ -65,8 +65,8 @@ class VLM(Enum):
     Enum specifying supported Vision-Language Models (VLMs).
 
     Attributes:
-        PALIGEMMA: Google’s PaliGemma vision-language model.
-        FLORENCE_2: Microsoft Florence-2 vision-language model.
+        PALIGEMMA: Google's PaliGemma vision-language model.
+        FLORENCE_2: Microsoft's Florence-2 vision-language model.
         QWEN_2_5_VL: Qwen2.5-VL open vision-language model from Alibaba.
         GOOGLE_GEMINI_2_0: Google Gemini 2.0 vision-language model.
         GOOGLE_GEMINI_2_5: Google Gemini 2.5 vision-language model.
