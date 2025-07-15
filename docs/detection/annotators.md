@@ -28,28 +28,26 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     </div>
 
-    <!--
-    === "RoundBox"
+=== "RoundBox"
 
-        ```python
-        import supervision as sv
+    ```python
+    import supervision as sv
 
-        image = ...
-        detections = sv.Detections(...)
+    image = ...
+    detections = sv.Detections(...)
 
-        round_box_annotator = sv.RoundBoxAnnotator()
-        annotated_frame = round_box_annotator.annotate(
-            scene=image.copy(),
-            detections=detections
-        )
-        ```
+    round_box_annotator = sv.RoundBoxAnnotator()
+    annotated_frame = round_box_annotator.annotate(
+        scene=image.copy(),
+        detections=detections
+    )
+    ```
 
-        <div class="result" markdown>
+    <div class="result" markdown>
 
-        ![round-box-annotator-example](https://media.roboflow.com/supervision-annotator-examples/round-box-annotator-example-purple.png){ align=center width="800" }
+    ![round-box-annotator-example](https://media.roboflow.com/supervision-annotator-examples/round-box-annotator-example-purple.png){ align=center width="800" }
 
-        </div>
-    -->
+    </div>
 
 === "BoxCorner"
 
