@@ -52,7 +52,7 @@ def box_iou(
     box_true: Union[List[float], np.ndarray],
     box_detection: Union[List[float], np.ndarray],
 ) -> float:
-    r"""
+    """
     Compute the Intersection over Union (IoU) between two bounding boxes.
 
     Mathematically, it is defined as:
