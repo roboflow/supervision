@@ -5,7 +5,7 @@ from enum import Enum
 import numpy as np
 import numpy.typing as npt
 
-from supervision.detection.utils import box_iou_batch, mask_iou_batch
+from supervision.detection.utils import OverlapMetric, box_iou_batch, mask_iou_batch
 
 
 def resize_masks(masks: np.ndarray, max_dimension: int = 640) -> np.ndarray:
@@ -41,6 +41,7 @@ def mask_non_max_suppression(
     predictions: np.ndarray,
     masks: np.ndarray,
     iou_threshold: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
     mask_dimension: int = 640,
 ) -> np.ndarray:
     """
@@ -56,6 +57,7 @@ def mask_non_max_suppression(
             dimensions of each mask.
         iou_threshold (float): The intersection-over-union threshold
             to use for non-maximum suppression.
+        overlap_metric (OverlapMetric): Metric used for matching detections in slices.
         mask_dimension (int): The dimension to which the masks should be
             resized before computing IOU values. Defaults to 640.
 
@@ -80,7 +82,7 @@ def mask_non_max_suppression(
     predictions = predictions[sort_index]
     masks = masks[sort_index]
     masks_resized = resize_masks(masks, mask_dimension)
-    ious = mask_iou_batch(masks_resized, masks_resized)
+    ious = mask_iou_batch(masks_resized, masks_resized, overlap_metric)
     categories = predictions[:, 5]
 
     keep = np.ones(rows, dtype=bool)
@@ -93,7 +95,9 @@ def mask_non_max_suppression(
 
 
 def box_non_max_suppression(
-    predictions: np.ndarray, iou_threshold: float = 0.5
+    predictions: np.ndarray,
+    iou_threshold: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> np.ndarray:
     """
     Perform Non-Maximum Suppression (NMS) on object detection predictions.
@@ -104,6 +108,7 @@ def box_non_max_suppression(
             or `(x_min, y_min, x_max, y_max, score, class)`.
         iou_threshold (float): The intersection-over-union threshold
             to use for non-maximum suppression.
+        overlap_metric (OverlapMetric): Metric used for matching detections in slices.
 
     Returns:
         np.ndarray: A boolean array indicating which predictions to keep after n
@@ -129,7 +134,7 @@ def box_non_max_suppression(
 
     boxes = predictions[:, :4]
     categories = predictions[:, 5]
-    ious = box_iou_batch(boxes, boxes)
+    ious = box_iou_batch(boxes, boxes, overlap_metric)
     ious = ious - np.eye(rows)
 
     keep = np.ones(rows, dtype=bool)
@@ -147,8 +152,11 @@ def box_non_max_suppression(
 
 
 def group_overlapping_boxes(
-    predictions: npt.NDArray[np.float64], iou_threshold: float = 0.5
+    predictions: npt.NDArray[np.float64],
+    iou_threshold: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
+
     """
     Apply greedy version of non-maximum merging to avoid detecting too many
     overlapping bounding boxes for a given object.
@@ -159,6 +167,7 @@ def group_overlapping_boxes(
             and the confidence scores.
         iou_threshold (float): The intersection-over-union threshold
             to use for non-maximum suppression. Defaults to 0.5.
+        overlap_metric (OverlapMetric): Metric used for matching detections in slices.
 
     Returns:
         List[List[int]]: Groups of prediction indices be merged.
@@ -178,7 +187,9 @@ def group_overlapping_boxes(
             break
 
         merge_candidate = np.expand_dims(predictions[idx], axis=0)
-        ious = box_iou_batch(predictions[order][:, :4], merge_candidate[:, :4])
+        ious = box_iou_batch(
+            predictions[order][:, :4], merge_candidate[:, :4], overlap_metric
+        )
         ious = ious.flatten()
 
         above_threshold = ious >= iou_threshold
@@ -188,9 +199,70 @@ def group_overlapping_boxes(
     return merge_groups
 
 
+def mask_non_max_merge(
+    predictions: np.ndarray,
+    masks: np.ndarray,
+    iou_threshold: float = 0.5,
+    mask_dimension: int = 640,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+) -> List[List[int]]:
+    """
+    Perform Non-Maximum Merging (NMM) on segmentation predictions.
+
+    Args:
+        predictions (np.ndarray): A 2D array of object detection predictions in
+            the format of `(x_min, y_min, x_max, y_max, score)`
+            or `(x_min, y_min, x_max, y_max, score, class)`. Shape: `(N, 5)` or
+            `(N, 6)`, where N is the number of predictions.
+        masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.
+            Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the
+            dimensions of each mask.
+        iou_threshold (float): The intersection-over-union threshold
+            to use for non-maximum suppression.
+        mask_dimension (int): The dimension to which the masks should be
+            resized before computing IOU values. Defaults to 640.
+        overlap_metric (OverlapMetric): Metric used for matching detections in slices.
+
+    Returns:
+        np.ndarray: A boolean array indicating which predictions to keep after
+            non-maximum suppression.
+
+    Raises:
+        AssertionError: If `iou_threshold` is not within the closed
+            range from `0` to `1`.
+    """
+    masks_resized = resize_masks(masks, mask_dimension)
+    if predictions.shape[1] == 5:
+        return group_overlapping_masks(
+            predictions, masks_resized, iou_threshold, overlap_metric
+        )
+
+    category_ids = predictions[:, 5]
+    merge_groups = []
+    for category_id in np.unique(category_ids):
+        curr_indices = np.where(category_ids == category_id)[0]
+        merge_class_groups = group_overlapping_masks(
+            predictions[curr_indices],
+            masks_resized[curr_indices],
+            iou_threshold,
+            overlap_metric,
+        )
+
+        for merge_class_group in merge_class_groups:
+            merge_groups.append(curr_indices[merge_class_group].tolist())
+
+    for merge_group in merge_groups:
+        if len(merge_group) == 0:
+            raise ValueError(
+                f"Empty group detected when non-max-merging detections: {merge_groups}"
+            )
+    return merge_groups
+
+
 def box_non_max_merge(
     predictions: npt.NDArray[np.float64],
     iou_threshold: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
     """
     Apply greedy version of non-maximum merging per category to avoid detecting
@@ -203,20 +275,21 @@ def box_non_max_merge(
             detections of different classes to be merged.
         iou_threshold (float): The intersection-over-union threshold
             to use for non-maximum suppression. Defaults to 0.5.
+        overlap_metric (OverlapMetric): Metric used for matching detections in slices.
 
     Returns:
         List[List[int]]: Groups of prediction indices be merged.
             Each group may have 1 or more elements.
     """
     if predictions.shape[1] == 5:
-        return group_overlapping_boxes(predictions, iou_threshold)
+        return group_overlapping_boxes(predictions, iou_threshold, overlap_metric)
 
     category_ids = predictions[:, 5]
     merge_groups = []
     for category_id in np.unique(category_ids):
         curr_indices = np.where(category_ids == category_id)[0]
         merge_class_groups = group_overlapping_boxes(
-            predictions[curr_indices], iou_threshold
+            predictions[curr_indices], iou_threshold, overlap_metric
         )
 
         for merge_class_group in merge_class_groups:
@@ -227,6 +300,62 @@ def box_non_max_merge(
             raise ValueError(
                 f"Empty group detected when non-max-merging detections: {merge_groups}"
             )
+    return merge_groups
+
+
+def group_overlapping_masks(
+    predictions: npt.NDArray[np.float64],
+    masks: npt.NDArray[np.float64],
+    iou_threshold: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+) -> List[List[int]]:
+    """
+    Apply greedy version of non-maximum merging to avoid detecting too many
+
+    Args:
+        predictions (npt.NDArray[np.float64]): An array of shape `(n, 5)` containing
+            the bounding boxes coordinates in format `[x1, y1, x2, y2]`
+            and the confidence scores.
+        masks (npt.NDArray[np.float64]): A 3D array of binary masks corresponding to
+            the predictions.
+        iou_threshold (float): The intersection-over-union threshold
+            to use for non-maximum suppression. Defaults to 0.5.
+        overlap_metric (OverlapMetric): Metric used for matching detections in slices.
+
+    Returns:
+        List[List[int]]: Groups of prediction indices be merged.
+            Each group may have 1 or more elements.
+    """
+    merge_groups: List[List[int]] = []
+
+    scores = predictions[:, 4]
+    order = scores.argsort()
+
+    while len(order) > 0:
+        idx = int(order[-1])
+
+        order = order[:-1]
+        if len(order) == 0:
+            merge_groups.append([idx])
+            break
+
+        merge_candidate = masks[idx][None, ...]
+        candidate_groups = [idx]
+        while len(order) > 0:
+            ious = mask_iou_batch(masks[order], merge_candidate, overlap_metric)
+            above_threshold: np.ndarray = ious.flatten() >= iou_threshold
+            if not above_threshold.any():
+                break
+            above_idx = order[above_threshold]
+            merge_candidate = np.logical_or.reduce(
+                np.concatenate([masks[above_idx], merge_candidate]),
+                axis=0,
+                keepdims=True,
+            )
+            candidate_groups.extend(np.flip(above_idx).tolist())
+            order = order[~above_threshold]
+
+        merge_groups.append(candidate_groups)
     return merge_groups
 
 
