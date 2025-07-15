@@ -35,7 +35,7 @@ class OverlapMetric(Enum):
         return list(map(lambda c: c.value, cls))
 
     @classmethod
-    def from_value(cls, value: Union[OverlapMetric, str]) -> OverlapMetric:
+    def from_value(cls, value: OverlapMetric | str) -> OverlapMetric:
         if isinstance(value, cls):
             return value
         if isinstance(value, str):
@@ -88,8 +88,8 @@ def polygon_to_mask(polygon: np.ndarray, resolution_wh: tuple[int, int]) -> np.n
 
 
 def box_iou(
-    box_true: Union[list[float], np.ndarray],
-    box_detection: Union[list[float], np.ndarray],
+    box_true: list[float] | np.ndarray,
+    box_detection: list[float] | np.ndarray,
 ) -> float:
     """
     Compute the Intersection over Union (IoU) between two bounding boxes.
@@ -418,7 +418,7 @@ def clip_boxes(xyxy: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
     return result
 
 
-def pad_boxes(xyxy: np.ndarray, px: int, py: Optional[int] = None) -> np.ndarray:
+def pad_boxes(xyxy: np.ndarray, px: int, py: int | None = None) -> np.ndarray:
     """
     Pads bounding boxes coordinates with a constant padding.
 
@@ -736,8 +736,8 @@ def mask_to_polygons(mask: np.ndarray) -> list[np.ndarray]:
 
 def filter_polygons_by_area(
     polygons: list[np.ndarray],
-    min_area: Optional[float] = None,
-    max_area: Optional[float] = None,
+    min_area: float | None = None,
+    max_area: float | None = None,
 ) -> list[np.ndarray]:
     """
     Filters a list of polygons based on their area.
@@ -834,7 +834,7 @@ def approximate_polygon(
     return np.squeeze(approximated_points, axis=1)
 
 
-def extract_ultralytics_masks(yolov8_results) -> Optional[np.ndarray]:
+def extract_ultralytics_masks(yolov8_results) -> np.ndarray | None:
     if not yolov8_results.masks:
         return None
 
@@ -876,9 +876,9 @@ def process_roboflow_result(
     np.ndarray,
     np.ndarray,
     np.ndarray,
-    Optional[np.ndarray],
-    Optional[np.ndarray],
-    dict[str, Union[list[np.ndarray], np.ndarray]],
+    np.ndarray | None,
+    np.ndarray | None,
+    dict[str, list[np.ndarray] | np.ndarray],
 ]:
     if not roboflow_result["predictions"]:
         return (
@@ -1216,8 +1216,8 @@ def is_metadata_equal(metadata_a: dict[str, Any], metadata_b: dict[str, Any]) ->
 
 
 def merge_data(
-    data_list: list[dict[str, Union[npt.NDArray[np.generic], list]]],
-) -> dict[str, Union[npt.NDArray[np.generic], list]]:
+    data_list: list[dict[str, npt.NDArray[np.generic] | list]],
+) -> dict[str, npt.NDArray[np.generic] | list]:
     """
     Merges the data payloads of a list of Detections instances.
 
@@ -1332,9 +1332,9 @@ def merge_metadata(metadata_list: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def get_data_item(
-    data: dict[str, Union[np.ndarray, list]],
-    index: Union[int, slice, list[int], np.ndarray],
-) -> dict[str, Union[np.ndarray, list]]:
+    data: dict[str, np.ndarray | list],
+    index: int | slice | list[int] | np.ndarray,
+) -> dict[str, np.ndarray | list]:
     """
     Retrieve a subset of the data dictionary based on the given index.
 
