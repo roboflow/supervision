@@ -92,9 +92,7 @@ def box_iou(
 
     Mathematically, it is defined as:
 
-    \\[
-    \text{IoU} = \frac{|\text{box}_{\text{true}} \\cap \text{box}_{\text{detection}}|}{|\text{box}_{\text{true}} \\cup \text{box}_{\text{detection}}|}
-    \\]
+    $$ IoU(A, B) = \\frac{|A \\cap B|}{|A \\cup B|} $$
 
     Note:
         Use `box_iou` when computing IoU between two individual boxes.
