@@ -87,14 +87,12 @@ def box_iou(
     box_true: list[float] | np.ndarray,
     box_detection: list[float] | np.ndarray,
 ) -> float:
-    """
+    r"""
     Compute the Intersection over Union (IoU) between two bounding boxes.
 
-    Mathematically, it is defined as:
-
-    \\[
-    \text{IoU} = \frac{|\text{box}_{\text{true}} \\cap \text{box}_{\text{detection}}|}{|\text{box}_{\text{true}} \\cup \text{box}_{\text{detection}}|}
-    \\]
+    \[
+    \text{IoU} = \frac{|\text{box}_{\text{true}} \cap \text{box}_{\text{detection}}|}{|\text{box}_{\text{true}} \cup \text{box}_{\text{detection}}|}
+    \]
 
     Note:
         Use `box_iou` when computing IoU between two individual boxes.

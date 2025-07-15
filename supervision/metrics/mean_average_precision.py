@@ -214,8 +214,6 @@ class EvaluationDataset:
     """
     Class used representing a dataset in the right format needed by the
     `COCOEvaluator` class.
-
-    Reference: https://github.com/rafaelpadilla/review_object_detection_metrics
     """
 
     def __init__(self, targets: dict[str, Any] | None = None):
