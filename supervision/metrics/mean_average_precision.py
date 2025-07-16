@@ -1232,10 +1232,10 @@ class MeanAveragePrecision(Metric):
                 else:
                     category_id = target[3].item()
                 
-                # Use area from data if available, otherwise use Detections.area property
+                # Use area from data if available (coco format), otherwise use Detections.area property
                 area = data.get("area") if data else None
                 if area is None:
-                    area = image_targets.area[target_idx]  # Use supervision's .area property
+                    area = image_targets.area[target_idx]
                 
                 dict_annotation = {
                     "area": area,
