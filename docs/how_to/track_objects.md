@@ -55,7 +55,7 @@ it will be modified to include tracking, labeling, and trace annotations.
     from ultralytics import YOLO
 
     model = YOLO("yolov8n.pt")
-    box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
         results = model(frame)[0]
@@ -77,7 +77,7 @@ it will be modified to include tracking, labeling, and trace annotations.
     from inference.models.utils import get_roboflow_model
 
     model = get_roboflow_model(model_id="yolov8n-640", api_key=<ROBOFLOW API KEY>)
-    box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
         results = model.infer(frame)[0]
@@ -112,7 +112,7 @@ enabling the continuous following of the object's motion path across different f
 
     model = YOLO("yolov8n.pt")
     tracker = sv.ByteTrack()
-    box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
         results = model(frame)[0]
@@ -136,7 +136,7 @@ enabling the continuous following of the object's motion path across different f
 
     model = get_roboflow_model(model_id="yolov8n-640", api_key=<ROBOFLOW API KEY>)
     tracker = sv.ByteTrack()
-    box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
         results = model.infer(frame)[0]
@@ -168,7 +168,7 @@ offering a clear visual representation of each object's class and unique identif
 
     model = YOLO("yolov8n.pt")
     tracker = sv.ByteTrack()
-    box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
@@ -177,9 +177,9 @@ offering a clear visual representation of each object's class and unique identif
         detections = tracker.update_with_detections(detections)
 
         labels = [
-            f"#{tracker_id} {results.names[class_id]}"
-            for class_id, tracker_id
-            in zip(detections.class_id, detections.tracker_id)
+            f"#{tracker_id} {class_name}"
+            for class_name, tracker_id
+            in zip(detections.data["class_name"], detections.tracker_id)
         ]
 
         annotated_frame = box_annotator.annotate(
@@ -203,7 +203,7 @@ offering a clear visual representation of each object's class and unique identif
 
     model = get_roboflow_model(model_id="yolov8n-640", api_key=<ROBOFLOW API KEY>)
     tracker = sv.ByteTrack()
-    box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
@@ -212,9 +212,9 @@ offering a clear visual representation of each object's class and unique identif
         detections = tracker.update_with_detections(detections)
 
         labels = [
-            f"#{tracker_id} {results.names[class_id]}"
-            for class_id, tracker_id
-            in zip(detections.class_id, detections.tracker_id)
+            f"#{tracker_id} {class_name}"
+            for class_name, tracker_id
+            in zip(detections.data["class_name"], detections.tracker_id)
         ]
 
         annotated_frame = box_annotator.annotate(
@@ -250,7 +250,7 @@ movement patterns and interactions between objects in the video.
 
     model = YOLO("yolov8n.pt")
     tracker = sv.ByteTrack()
-    box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
     trace_annotator = sv.TraceAnnotator()
 
@@ -260,9 +260,9 @@ movement patterns and interactions between objects in the video.
         detections = tracker.update_with_detections(detections)
 
         labels = [
-            f"#{tracker_id} {results.names[class_id]}"
-            for class_id, tracker_id
-            in zip(detections.class_id, detections.tracker_id)
+            f"#{tracker_id} {class_name}"
+            for class_name, tracker_id
+            in zip(detections.data["class_name"], detections.tracker_id)
         ]
 
         annotated_frame = box_annotator.annotate(
@@ -288,7 +288,7 @@ movement patterns and interactions between objects in the video.
 
     model = get_roboflow_model(model_id="yolov8n-640", api_key=<ROBOFLOW API KEY>)
     tracker = sv.ByteTrack()
-    box_annotator = sv.BoundingBoxAnnotator()
+    box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
     trace_annotator = sv.TraceAnnotator()
 
@@ -298,9 +298,9 @@ movement patterns and interactions between objects in the video.
         detections = tracker.update_with_detections(detections)
 
         labels = [
-            f"#{tracker_id} {results.names[class_id]}"
-            for class_id, tracker_id
-            in zip(detections.class_id, detections.tracker_id)
+            f"#{tracker_id} {class_name}"
+            for class_name, tracker_id
+            in zip(detections.data["class_name"], detections.tracker_id)
         ]
 
         annotated_frame = box_annotator.annotate(

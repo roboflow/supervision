@@ -1,5 +1,3 @@
-from typing import List
-
 import numpy as np
 import pytest
 from PIL import Image, ImageChops
@@ -21,9 +19,9 @@ def test_resize_image_for_opencv_image() -> None:
     )
 
     # then
-    assert np.allclose(
-        result, expected_result
-    ), "Expected output shape to be (w, h): (1024, 768)"
+    assert np.allclose(result, expected_result), (
+        "Expected output shape to be (w, h): (1024, 768)"
+    )
 
 
 def test_resize_image_for_pillow_image() -> None:
@@ -41,9 +39,9 @@ def test_resize_image_for_pillow_image() -> None:
     # then
     assert result.size == (1024, 768), "Expected output shape to be (w, h): (1024, 768)"
     difference = ImageChops.difference(result, expected_result)
-    assert (
-        difference.getbbox() is None
-    ), "Expected no difference in resized image content as the image is all zeros"
+    assert difference.getbbox() is None, (
+        "Expected no difference in resized image content as the image is all zeros"
+    )
 
 
 def test_letterbox_image_for_opencv_image() -> None:
@@ -95,9 +93,9 @@ def test_letterbox_image_for_pillow_image() -> None:
         1024,
     ), "Expected output shape to be (w, h): (1024, 1024)"
     difference = ImageChops.difference(result, expected_result)
-    assert (
-        difference.getbbox() is None
-    ), "Expected padding to be added top and bottom with padding added top and bottom"
+    assert difference.getbbox() is None, (
+        "Expected padding to be added top and bottom with padding added top and bottom"
+    )
 
 
 def test_create_tiles_with_one_image(
@@ -125,7 +123,7 @@ def test_create_tiles_with_one_image_and_enforced_grid(
 
 
 def test_create_tiles_with_two_images(
-    two_images: List[np.ndarray], two_images_tile: np.ndarray
+    two_images: list[np.ndarray], two_images_tile: np.ndarray
 ) -> None:
     # when
     result = create_tiles(images=two_images, single_tile_size=(240, 240))
@@ -135,7 +133,7 @@ def test_create_tiles_with_two_images(
 
 
 def test_create_tiles_with_three_images(
-    three_images: List[np.ndarray], three_images_tile: np.ndarray
+    three_images: list[np.ndarray], three_images_tile: np.ndarray
 ) -> None:
     # when
     result = create_tiles(images=three_images, single_tile_size=(240, 240))
@@ -145,7 +143,7 @@ def test_create_tiles_with_three_images(
 
 
 def test_create_tiles_with_four_images(
-    four_images: List[np.ndarray],
+    four_images: list[np.ndarray],
     four_images_tile: np.ndarray,
 ) -> None:
     # when
@@ -156,7 +154,7 @@ def test_create_tiles_with_four_images(
 
 
 def test_create_tiles_with_all_images(
-    all_images: List[np.ndarray],
+    all_images: list[np.ndarray],
     all_images_tile: np.ndarray,
 ) -> None:
     # when
@@ -167,7 +165,7 @@ def test_create_tiles_with_all_images(
 
 
 def test_create_tiles_with_all_images_and_custom_grid(
-    all_images: List[np.ndarray], all_images_tile_and_custom_grid: np.ndarray
+    all_images: list[np.ndarray], all_images_tile_and_custom_grid: np.ndarray
 ) -> None:
     # when
     result = create_tiles(
@@ -181,7 +179,7 @@ def test_create_tiles_with_all_images_and_custom_grid(
 
 
 def test_create_tiles_with_all_images_and_custom_colors(
-    all_images: List[np.ndarray], all_images_tile_and_custom_colors: np.ndarray
+    all_images: list[np.ndarray], all_images_tile_and_custom_colors: np.ndarray
 ) -> None:
     # when
     result = create_tiles(
@@ -196,7 +194,7 @@ def test_create_tiles_with_all_images_and_custom_colors(
 
 
 def test_create_tiles_with_all_images_and_titles(
-    all_images: List[np.ndarray],
+    all_images: list[np.ndarray],
     all_images_tile_and_custom_colors_and_titles: np.ndarray,
 ) -> None:
     # when
@@ -211,7 +209,7 @@ def test_create_tiles_with_all_images_and_titles(
 
 
 def test_create_tiles_with_all_images_and_titles_with_custom_configs(
-    all_images: List[np.ndarray],
+    all_images: list[np.ndarray],
     all_images_tile_and_titles_with_custom_configs: np.ndarray,
 ) -> None:
     # when
@@ -238,7 +236,7 @@ def test_create_tiles_with_all_images_and_titles_with_custom_configs(
 
 
 def test_create_tiles_with_all_images_and_custom_grid_to_small_to_fit_images(
-    all_images: List[np.ndarray],
+    all_images: list[np.ndarray],
 ) -> None:
     with pytest.raises(ValueError):
         _ = create_tiles(images=all_images, grid_size=(2, 2))

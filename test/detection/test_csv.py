@@ -1,6 +1,6 @@
 import csv
 import os
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
@@ -192,11 +192,11 @@ from test.test_utils import mock_detections
 )
 def test_csv_sink(
     detections: mock_detections,
-    custom_data: Dict[str, Any],
+    custom_data: dict[str, Any],
     second_detections: mock_detections,
-    second_custom_data: Dict[str, Any],
+    second_custom_data: dict[str, Any],
     file_name: str,
-    expected_result: List[List[Any]],
+    expected_result: list[list[Any]],
 ) -> None:
     with sv.CSVSink(file_name) as sink:
         sink.append(detections, custom_data)
@@ -389,11 +389,11 @@ def test_csv_sink(
 )
 def test_csv_sink_manual(
     detections: mock_detections,
-    custom_data: Dict[str, Any],
+    custom_data: dict[str, Any],
     second_detections: mock_detections,
-    second_custom_data: Dict[str, Any],
+    second_custom_data: dict[str, Any],
     file_name: str,
-    expected_result: List[List[Any]],
+    expected_result: list[list[Any]],
 ) -> None:
     sink = sv.CSVSink(file_name)
     sink.open()
@@ -405,11 +405,11 @@ def test_csv_sink_manual(
 
 
 def assert_csv_equal(file_name, expected_rows):
-    with open(file_name, mode="r", newline="") as file:
+    with open(file_name, newline="") as file:
         reader = csv.reader(file)
         for i, row in enumerate(reader):
-            assert (
-                [str(item) for item in expected_rows[i]] == row
-            ), f"Row in CSV didn't match expected output: {row} != {expected_rows[i]}"
+            assert [str(item) for item in expected_rows[i]] == row, (
+                f"Row in CSV didn't match expected output: {row} != {expected_rows[i]}"
+            )
 
     os.remove(file_name)

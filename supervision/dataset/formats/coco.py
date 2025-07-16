@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Tuple
+from typing import TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
@@ -13,18 +13,15 @@ from supervision.dataset.utils import (
     rle_to_mask,
 )
 from supervision.detection.core import Detections
-from supervision.detection.utils import (
-    contains_holes,
-    contains_multiple_segments,
-    polygon_to_mask,
-)
+from supervision.detection.utils.converters import polygon_to_mask
+from supervision.detection.utils.masks import contains_holes, contains_multiple_segments
 from supervision.utils.file import read_json_file, save_json_file
 
 if TYPE_CHECKING:
     from supervision.dataset.core import DetectionDataset
 
 
-def coco_categories_to_classes(coco_categories: List[dict]) -> List[str]:
+def coco_categories_to_classes(coco_categories: list[dict]) -> list[str]:
     return [
         category["name"]
         for category in sorted(coco_categories, key=lambda category: category["id"])
@@ -32,8 +29,8 @@ def coco_categories_to_classes(coco_categories: List[dict]) -> List[str]:
 
 
 def build_coco_class_index_mapping(
-    coco_categories: List[dict], target_classes: List[str]
-) -> Dict[int, int]:
+    coco_categories: list[dict], target_classes: list[str]
+) -> dict[int, int]:
     source_class_to_index = {
         category["name"]: category["id"] for category in coco_categories
     }
@@ -43,7 +40,7 @@ def build_coco_class_index_mapping(
     }
 
 
-def classes_to_coco_categories(classes: List[str]) -> List[dict]:
+def classes_to_coco_categories(classes: list[str]) -> list[dict]:
     return [
         {
             "id": class_id,
@@ -55,8 +52,8 @@ def classes_to_coco_categories(classes: List[str]) -> List[dict]:
 
 
 def group_coco_annotations_by_image_id(
-    coco_annotations: List[dict],
-) -> Dict[int, List[dict]]:
+    coco_annotations: list[dict],
+) -> dict[int, list[dict]]:
     annotations = {}
     for annotation in coco_annotations:
         image_id = annotation["image_id"]
@@ -67,7 +64,7 @@ def group_coco_annotations_by_image_id(
 
 
 def coco_annotations_to_masks(
-    image_annotations: List[dict], resolution_wh: Tuple[int, int]
+    image_annotations: list[dict], resolution_wh: tuple[int, int]
 ) -> npt.NDArray[np.bool_]:
     return np.array(
         [
@@ -90,7 +87,10 @@ def coco_annotations_to_masks(
 
 
 def coco_annotations_to_detections(
-    image_annotations: List[dict], resolution_wh: Tuple[int, int], with_masks: bool
+    image_annotations: list[dict],
+    resolution_wh: tuple[int, int],
+    with_masks: bool,
+    use_iscrowd: bool = True,
 ) -> Detections:
     if not image_annotations:
         return Detections.empty()
@@ -102,15 +102,26 @@ def coco_annotations_to_detections(
     xyxy = np.asarray(xyxy)
     xyxy[:, 2:4] += xyxy[:, 0:2]
 
+    data = dict()
+    if use_iscrowd:
+        iscrowd = [
+            image_annotation["iscrowd"] for image_annotation in image_annotations
+        ]
+        area = [image_annotation["area"] for image_annotation in image_annotations]
+        data = dict(
+            iscrowd=np.asarray(iscrowd, dtype=int), area=np.asarray(area, dtype=float)
+        )
+
     if with_masks:
         mask = coco_annotations_to_masks(
             image_annotations=image_annotations, resolution_wh=resolution_wh
         )
-        return Detections(
-            class_id=np.asarray(class_ids, dtype=int), xyxy=xyxy, mask=mask
-        )
+    else:
+        mask = None
 
-    return Detections(xyxy=xyxy, class_id=np.asarray(class_ids, dtype=int))
+    return Detections(
+        class_id=np.asarray(class_ids, dtype=int), xyxy=xyxy, mask=mask, data=data
+    )
 
 
 def detections_to_coco_annotations(
@@ -120,7 +131,7 @@ def detections_to_coco_annotations(
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
-) -> Tuple[List[Dict], int]:
+) -> tuple[list[dict], int]:
     coco_annotations = []
     for xyxy, mask, _, class_id, _, _ in detections:
         box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
@@ -159,16 +170,58 @@ def detections_to_coco_annotations(
     return coco_annotations, annotation_id
 
 
+def get_coco_class_index_mapping(annotations_path: str) -> dict[int, int]:
+    """
+    Generates a mapping from sequential class indices to original COCO class ids.
+
+    This function is essential when working with models that expect class ids to be
+    zero-indexed and sequential (0 to 79), as opposed to the original COCO
+    dataset where category ids are non-contiguous ranging from 1 to 90 but skipping some
+    ids.
+
+    Use Cases:
+        - Evaluating models trained with COCO-style annotations where class ids
+          are sequential ranging from 0 to 79.
+        - Ensuring consistent class indexing across training, inference and evaluation,
+          when using different tools or datasets with COCO format.
+        - Reproducing results from models that assume sequential class ids (0 to 79).
+
+    How it Works:
+        - Reads the COCO annotation file in its original format (`annotations_path`).
+        - Extracts and sorts all class names by their original COCO id (1 to 90).
+        - Builds a mapping from COCO class ids (not sequential with skipped ids) to
+          new class ids (sequential ranging from 0 to 79).
+        - Returns a dictionary mapping: `{new_class_id: original_COCO_class_id}`.
+
+    Args:
+        annotations_path (str): Path to COCO JSON annotations file
+        (e.g., `instances_val2017.json`).
+
+    Returns:
+        Dict[int, int]: A mapping from new class id (sequential ranging from 0 to 79)
+        to original COCO class id (1 to 90 with skipped ids).
+    """
+    coco_data = read_json_file(annotations_path)
+    classes = coco_categories_to_classes(coco_categories=coco_data["categories"])
+    class_mapping = build_coco_class_index_mapping(
+        coco_categories=coco_data["categories"], target_classes=classes
+    )
+    return {v: k for k, v in class_mapping.items()}
+
+
 def load_coco_annotations(
     images_directory_path: str,
     annotations_path: str,
     force_masks: bool = False,
-) -> Tuple[List[str], List[str], Dict[str, Detections]]:
+    use_iscrowd: bool = True,
+) -> tuple[list[str], list[str], dict[str, Detections]]:
     coco_data = read_json_file(file_path=annotations_path)
     classes = coco_categories_to_classes(coco_categories=coco_data["categories"])
+
     class_index_mapping = build_coco_class_index_mapping(
         coco_categories=coco_data["categories"], target_classes=classes
     )
+
     coco_images = coco_data["images"]
     coco_annotations_groups = group_coco_annotations_by_image_id(
         coco_annotations=coco_data["annotations"]
@@ -190,7 +243,9 @@ def load_coco_annotations(
             image_annotations=image_annotations,
             resolution_wh=(image_width, image_height),
             with_masks=force_masks,
+            use_iscrowd=use_iscrowd,
         )
+
         annotation = map_detections_class_id(
             source_to_target_mapping=class_index_mapping,
             detections=annotation,

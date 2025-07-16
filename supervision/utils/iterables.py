@@ -1,11 +1,12 @@
-from typing import Generator, Iterable, List, TypeVar
+from collections.abc import Generator, Iterable
+from typing import TypeVar
 
 V = TypeVar("V")
 
 
 def create_batches(
     sequence: Iterable[V], batch_size: int
-) -> Generator[List[V], None, None]:
+) -> Generator[list[V], None, None]:
     """
     Provides a generator that yields chunks of the input sequence
     of the size specified by the `batch_size` parameter. The last
@@ -40,7 +41,7 @@ def create_batches(
         yield current_batch
 
 
-def fill(sequence: List[V], desired_size: int, content: V) -> List[V]:
+def fill(sequence: list[V], desired_size: int, content: V) -> list[V]:
     """
     Fill the sequence with padding elements until the sequence reaches
     the desired size.
@@ -70,7 +71,7 @@ def fill(sequence: List[V], desired_size: int, content: V) -> List[V]:
     return sequence
 
 
-def find_duplicates(sequence: List) -> List:
+def find_duplicates(sequence: list) -> list:
     """
     Find all duplicate elements in the input sequence.
     """

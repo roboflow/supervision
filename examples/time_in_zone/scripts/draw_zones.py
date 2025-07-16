@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import argparse
 import json
 import os
-from typing import Any, Optional, Tuple
+from typing import Any
 
 import cv2
 import numpy as np
@@ -19,10 +21,10 @@ COLORS = sv.ColorPalette.DEFAULT
 WINDOW_NAME = "Draw Zones"
 POLYGONS = [[]]
 
-current_mouse_position: Optional[Tuple[int, int]] = None
+current_mouse_position: tuple[int, int] | None = None
 
 
-def resolve_source(source_path: str) -> Optional[np.ndarray]:
+def resolve_source(source_path: str) -> np.ndarray | None:
     if not os.path.exists(source_path):
         return None
 

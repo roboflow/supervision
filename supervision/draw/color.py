@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Tuple, Union
 
 import matplotlib.pyplot as plt
 
@@ -83,15 +82,16 @@ class Color:
         # Color(r=255, g=255, b=255)
         ```
 
-    | Constant   | Hex Code   | RGB              |
-    |------------|------------|------------------|
-    | `WHITE`    | `#FFFFFF`  | `(255, 255, 255)`|
-    | `BLACK`    | `#000000`  | `(0, 0, 0)`      |
-    | `RED`      | `#FF0000`  | `(255, 0, 0)`    |
-    | `GREEN`    | `#00FF00`  | `(0, 255, 0)`    |
-    | `BLUE`     | `#0000FF`  | `(0, 0, 255)`    |
-    | `YELLOW`   | `#FFFF00`  | `(255, 255, 0)`  |
-    | `ROBOFLOW` | `#A351FB`  | `(163, 81, 251)` |
+    | Constant   | Hex Code   | RGB               |
+    |------------|------------|-------------------|
+    | `WHITE`    | `#FFFFFF`  | `(255, 255, 255)` |
+    | `BLACK`    | `#000000`  | `(0, 0, 0)`       |
+    | `GREY`     | `#808080`  | `(128, 128, 128)` |
+    | `RED`      | `#FF0000`  | `(255, 0, 0)`     |
+    | `GREEN`    | `#00FF00`  | `(0, 255, 0)`     |
+    | `BLUE`     | `#0000FF`  | `(0, 0, 255)`     |
+    | `YELLOW`   | `#FFFF00`  | `(255, 255, 0)`   |
+    | `ROBOFLOW` | `#A351FB`  | `(163, 81, 251)`  |
     """
 
     r: int
@@ -131,7 +131,7 @@ class Color:
         return cls(r, g, b)
 
     @classmethod
-    def from_rgb_tuple(cls, color_tuple: Tuple[int, int, int]) -> Color:
+    def from_rgb_tuple(cls, color_tuple: tuple[int, int, int]) -> Color:
         """
         Create a Color instance from an RGB tuple.
 
@@ -154,7 +154,7 @@ class Color:
         return cls(r=r, g=g, b=b)
 
     @classmethod
-    def from_bgr_tuple(cls, color_tuple: Tuple[int, int, int]) -> Color:
+    def from_bgr_tuple(cls, color_tuple: tuple[int, int, int]) -> Color:
         """
         Create a Color instance from a BGR tuple.
 
@@ -193,7 +193,7 @@ class Color:
         """
         return f"#{self.r:02x}{self.g:02x}{self.b:02x}"
 
-    def as_rgb(self) -> Tuple[int, int, int]:
+    def as_rgb(self) -> tuple[int, int, int]:
         """
         Returns the color as an RGB tuple.
 
@@ -210,7 +210,7 @@ class Color:
         """
         return self.r, self.g, self.b
 
-    def as_bgr(self) -> Tuple[int, int, int]:
+    def as_bgr(self) -> tuple[int, int, int]:
         """
         Returns the color as a BGR tuple.
 
@@ -234,6 +234,10 @@ class Color:
     @classproperty
     def BLACK(cls) -> Color:
         return Color.from_hex("#000000")
+
+    @classproperty
+    def GREY(cls) -> Color:
+        return Color.from_hex("#808080")
 
     @classproperty
     def RED(cls) -> Color:
@@ -269,7 +273,7 @@ class Color:
 
 @dataclass
 class ColorPalette:
-    colors: List[Color]
+    colors: list[Color]
 
     @classproperty
     def DEFAULT(cls) -> ColorPalette:
@@ -318,7 +322,7 @@ class ColorPalette:
         return ColorPalette.from_hex(color_hex_list=LEGACY_COLOR_PALETTE)
 
     @classmethod
-    def from_hex(cls, color_hex_list: List[str]) -> ColorPalette:
+    def from_hex(cls, color_hex_list: list[str]) -> ColorPalette:
         """
         Create a ColorPalette instance from a list of hex strings.
 
@@ -407,7 +411,7 @@ class ColorPalette:
         return len(self.colors)
 
 
-def unify_to_bgr(color: Union[Tuple[int, int, int], Color]) -> Tuple[int, int, int]:
+def unify_to_bgr(color: tuple[int, int, int] | Color) -> tuple[int, int, int]:
     """
     Converts a color input in multiple formats to a standardized BGR format.
 

@@ -1,12 +1,13 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from typing import Optional, Tuple
 
 import numpy as np
 import pytest
 
 from supervision.detection.core import Detections
-from supervision.detection.overlap_filter import OverlapFilter
 from supervision.detection.tools.inference_slicer import InferenceSlicer
+from supervision.detection.utils.iou_and_nms import OverlapFilter
 
 
 @pytest.fixture
@@ -22,41 +23,34 @@ def mock_callback():
 @pytest.mark.parametrize(
     "slice_wh, overlap_ratio_wh, overlap_wh, expected_overlap, exception",
     [
-        # Valid case: overlap_ratio_wh provided, overlap calculated from the ratio
-        ((128, 128), (0.2, 0.2), None, None, DoesNotRaise()),
-        # Valid case: overlap_wh in pixels, no ratio provided
+        # Valid case: explicit overlap_wh in pixels
+        ((128, 128), None, (26, 26), (26, 26), DoesNotRaise()),
+        # Valid case: overlap_wh in pixels
         ((128, 128), None, (20, 20), (20, 20), DoesNotRaise()),
-        # Invalid case: overlap_ratio_wh greater than 1, should raise ValueError
-        ((128, 128), (1.1, 0.5), None, None, pytest.raises(ValueError)),
         # Invalid case: negative overlap_wh, should raise ValueError
         ((128, 128), None, (-10, 20), None, pytest.raises(ValueError)),
-        # Invalid case:
-        # overlap_ratio_wh and overlap_wh provided, should raise ValueError
-        ((128, 128), (0.5, 0.5), (20, 20), (20, 20), pytest.raises(ValueError)),
-        # Valid case: no overlap_ratio_wh, overlap_wh = 50 pixels
-        ((256, 256), None, (50, 50), (50, 50), DoesNotRaise()),
-        # Valid case: overlap_ratio_wh provided, overlap calculated from (0.3, 0.3)
-        ((200, 200), (0.3, 0.3), None, None, DoesNotRaise()),
-        # Valid case: small overlap_ratio_wh values
-        ((100, 100), (0.1, 0.1), None, None, DoesNotRaise()),
-        # Invalid case: negative overlap_ratio_wh value, should raise ValueError
-        ((128, 128), (-0.1, 0.2), None, None, pytest.raises(ValueError)),
-        # Invalid case: negative overlap_ratio_wh with overlap_wh provided
-        ((128, 128), (-0.1, 0.2), (30, 30), None, pytest.raises(ValueError)),
-        # Invalid case: overlap_wh greater than slice size, should raise ValueError
-        ((128, 128), None, (150, 150), (150, 150), DoesNotRaise()),
-        # Valid case: overlap_ratio_wh is 0, no overlap
-        ((128, 128), (0.0, 0.0), None, None, DoesNotRaise()),
-        # Invalid case: no overlaps defined, no overlap
+        # Invalid case: no overlaps defined
         ((128, 128), None, None, None, pytest.raises(ValueError)),
+        # Valid case: overlap_wh = 50 pixels
+        ((256, 256), None, (50, 50), (50, 50), DoesNotRaise()),
+        # Valid case: overlap_wh = 60 pixels
+        ((200, 200), None, (60, 60), (60, 60), DoesNotRaise()),
+        # Valid case: small overlap_wh values
+        ((100, 100), None, (0.1, 0.1), (0.1, 0.1), DoesNotRaise()),
+        # Invalid case: negative overlap_wh values
+        ((128, 128), None, (-10, -10), None, pytest.raises(ValueError)),
+        # Invalid case: overlap_wh greater than slice size
+        ((128, 128), None, (150, 150), (150, 150), DoesNotRaise()),
+        # Valid case: zero overlap
+        ((128, 128), None, (0, 0), (0, 0), DoesNotRaise()),
     ],
 )
 def test_inference_slicer_overlap(
     mock_callback,
-    slice_wh: Tuple[int, int],
-    overlap_ratio_wh: Optional[Tuple[float, float]],
-    overlap_wh: Optional[Tuple[int, int]],
-    expected_overlap: Optional[Tuple[int, int]],
+    slice_wh: tuple[int, int],
+    overlap_ratio_wh: tuple[float, float] | None,
+    overlap_wh: tuple[int, int] | None,
+    expected_overlap: tuple[int, int] | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -174,9 +168,9 @@ def test_inference_slicer_overlap(
     ],
 )
 def test_generate_offset(
-    resolution_wh: Tuple[int, int],
-    slice_wh: Tuple[int, int],
-    overlap_wh: Optional[Tuple[int, int]],
+    resolution_wh: tuple[int, int],
+    slice_wh: tuple[int, int],
+    overlap_wh: tuple[int, int] | None,
     expected_offsets: np.ndarray,
 ) -> None:
     offsets = InferenceSlicer._generate_offset(
@@ -187,6 +181,6 @@ def test_generate_offset(
     )
 
     # Verify that the generated offsets match the expected offsets
-    assert np.array_equal(
-        offsets, expected_offsets
-    ), f"Expected {expected_offsets}, got {offsets}"
+    assert np.array_equal(offsets, expected_offsets), (
+        f"Expected {expected_offsets}, got {offsets}"
+    )

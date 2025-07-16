@@ -128,14 +128,25 @@ PRs must pass all tests and linting requirements before they can be merged.
 
 Before starting your work on the project, set up your development environment:
 
-1. Clone your fork of the project:
+1. Clone your fork of the project (recommended to use shallow clone of develop branch):
+
+    **Option A: Recommended for most contributors (shallow clone of develop branch):**
+
+    ```bash
+    git clone --depth 1 -b develop https://github.com/YOUR_USERNAME/supervision.git
+    cd supervision
+    ```
+
+    Replace `YOUR_USERNAME` with your GitHub username.
+
+    > Note: Using `--depth 1` creates a shallow clone with minimal history and `-b develop` ensures you start with the development branch. This significantly reduces download size while providing everything needed to contribute.
+
+    **Option B: Full repository clone (if you need complete history):**
 
     ```bash
     git clone https://github.com/YOUR_USERNAME/supervision.git
     cd supervision
     ```
-
-    Replace `YOUR_USERNAME` with your GitHub username.
 
 2. Create and activate a virtual environment:
 
@@ -144,31 +155,20 @@ Before starting your work on the project, set up your development environment:
     source .venv/bin/activate
     ```
 
-3. Install Poetry:
+3. Install `uv`:
 
-    Using pip:
-
-    ```bash
-    pip install -U pip setuptools
-    pip install poetry
-    ```
-
-    Or using pipx (recommended for global installation):
-
-    ```bash
-    pipx install poetry
-    ```
+    Follow the instructions on the [uv installation page](https://docs.astral.sh/uv/getting-started/installation/).
 
 4. Install project dependencies:
 
     ```bash
-    poetry install
+    uv pip install -r pyproject.toml --extra dev --extra docs --extra metrics
     ```
 
 5. Run pytest to verify the setup:
 
     ```bash
-    poetry run pytest
+    uv run pytest
     ```
 
 ## 🎨 Code Style and Quality
@@ -181,7 +181,7 @@ Furthermore, we have integrated a pre-commit GitHub Action into our workflow. Th
 
 To run the pre-commit tool, follow these steps:
 
-1. Install pre-commit by running the following command: `poetry install --with dev`. It will not only install pre-commit but also install all the deps and dev-deps of project
+1. Install pre-commit by running the following command: `uv pip install -r pyproject.toml --extra dev`. It will not only install pre-commit but also install all the deps and dev-deps of project
 
 2. Once pre-commit is installed, navigate to the project's root directory.
 
@@ -203,7 +203,7 @@ So far, **there is no type checking with mypy**. See [issue](https://github.com/
 
 The `supervision` documentation is stored in a folder called `docs`. The project documentation is built using `mkdocs`.
 
-To run the documentation, install the project requirements with `poetry install --with dev`. Then, run `mkdocs serve` to start the documentation server.
+To run the documentation, install the project requirements with `uv pip install -r pyproject.toml --extra dev --extra docs`. Then, run `mkdocs serve` to start the documentation server.
 
 You can learn more about mkdocs on the [mkdocs website](https://www.mkdocs.org/).
 

@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from contextlib import suppress
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple, Union
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
-from supervision.detection.utils import get_data_item, is_data_equal
+from supervision.detection.utils.internal import get_data_item, is_data_equal
 from supervision.validators import validate_keypoints_fields
 
 
@@ -24,8 +24,8 @@ class KeyPoints:
     === "Ultralytics"
 
         Use [`sv.KeyPoints.from_ultralytics`](/latest/keypoint/core/#supervision.keypoint.core.KeyPoints.from_ultralytics)
-        method, which accepts [YOLOv8](https://github.com/ultralytics/ultralytics)
-        pose result.
+        method, which accepts [YOLOv8-pose](https://docs.ultralytics.com/models/yolov8/), [YOLO11-pose](https://docs.ultralytics.com/models/yolo11/)
+        [pose](https://docs.ultralytics.com/tasks/pose/) result.
 
         ```python
         import cv2
@@ -33,7 +33,7 @@ class KeyPoints:
         from ultralytics import YOLO
 
         image = cv2.imread(<SOURCE_IMAGE_PATH>)
-        model = YOLO('yolov8s-pose.pt')
+        model = YOLO('yolo11s-pose.pt')
 
         result = model(image)[0]
         key_points = sv.KeyPoints.from_ultralytics(result)
@@ -61,6 +61,7 @@ class KeyPoints:
         Use [`sv.KeyPoints.from_mediapipe`](/latest/keypoint/core/#supervision.keypoint.core.KeyPoints.from_mediapipe)
         method, which accepts [MediaPipe](https://github.com/google-ai-edge/mediapipe)
         pose result.
+
 
         ```python
         import cv2
@@ -92,10 +93,10 @@ class KeyPoints:
         xy (np.ndarray): An array of shape `(n, m, 2)` containing
             `n` detected objects, each composed of `m` equally-sized
             sets of keypoints, where each point is `[x, y]`.
-        confidence (Optional[np.ndarray]): An array of shape
-            `(n, m)` containing the confidence scores of each keypoint.
         class_id (Optional[np.ndarray]): An array of shape
             `(n,)` containing the class ids of the detected objects.
+        confidence (Optional[np.ndarray]): An array of shape
+            `(n, m)` containing the confidence scores of each keypoint.
         data (Dict[str, Union[np.ndarray, List]]): A dictionary containing additional
             data where each key is a string representing the data type, and the value
             is either a NumPy array or a list of corresponding data of length `n`
@@ -103,9 +104,9 @@ class KeyPoints:
     """  # noqa: E501 // docs
 
     xy: npt.NDArray[np.float32]
-    class_id: Optional[npt.NDArray[np.int_]] = None
-    confidence: Optional[npt.NDArray[np.float32]] = None
-    data: Dict[str, Union[npt.NDArray[Any], List]] = field(default_factory=dict)
+    class_id: npt.NDArray[np.int_] | None = None
+    confidence: npt.NDArray[np.float32] | None = None
+    data: dict[str, npt.NDArray[Any] | list] = field(default_factory=dict)
 
     def __post_init__(self):
         validate_keypoints_fields(
@@ -124,13 +125,13 @@ class KeyPoints:
     def __iter__(
         self,
     ) -> Iterator[
-        Tuple[
+        tuple[
             np.ndarray,
-            Optional[np.ndarray],
-            Optional[float],
-            Optional[int],
-            Optional[int],
-            Dict[str, Union[np.ndarray, List]],
+            np.ndarray | None,
+            float | None,
+            int | None,
+            int | None,
+            dict[str, np.ndarray | list],
         ]
     ]:
         """
@@ -156,7 +157,7 @@ class KeyPoints:
         )
 
     @classmethod
-    def from_inference(cls, inference_result: Union[dict, Any]) -> KeyPoints:
+    def from_inference(cls, inference_result: dict | Any) -> KeyPoints:
         """
         Create a `sv.KeyPoints` object from the [Roboflow](https://roboflow.com/)
         API inference result or the [Inference](https://inference.roboflow.com/)
@@ -204,9 +205,10 @@ class KeyPoints:
                 "You can retrieve it like so:  inference_result = model.infer(image)[0]"
             )
 
-        with suppress(AttributeError):
+        if hasattr(inference_result, "dict"):
             inference_result = inference_result.dict(exclude_none=True, by_alias=True)
-
+        elif hasattr(inference_result, "json"):
+            inference_result = inference_result.json()
         if not inference_result.get("predictions"):
             return cls.empty()
 
@@ -238,7 +240,7 @@ class KeyPoints:
 
     @classmethod
     def from_mediapipe(
-        cls, mediapipe_results, resolution_wh: Tuple[int, int]
+        cls, mediapipe_results, resolution_wh: tuple[int, int]
     ) -> KeyPoints:
         """
         Creates a `sv.KeyPoints` instance from a
@@ -314,6 +316,7 @@ class KeyPoints:
             key_points = sv.KeyPoints.from_mediapipe(
                 face_landmarker_result, (image_width, image_height))
             ```
+
         """  # noqa: E501 // docs
         if hasattr(mediapipe_results, "pose_landmarks"):
             results = mediapipe_results.pose_landmarks
@@ -473,7 +476,7 @@ class KeyPoints:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
                 and class names, and confidences of each keypoint.
 
-        Example:
+        Examples:
             ```python
             import cv2
             import supervision as sv
@@ -510,9 +513,94 @@ class KeyPoints:
         else:
             return cls.empty()
 
+    @classmethod
+    def from_transformers(cls, transfomers_results: Any) -> KeyPoints:
+        """
+        Create a `sv.KeyPoints` object from the
+        [Transformers](https://github.com/huggingface/transformers) inference result.
+
+        Args:
+            transfomers_results (Any): The output of a
+                Transformers model containing instances with prediction data.
+
+        Returns:
+            A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
+                and class names, and confidences of each keypoint.
+
+        Examples:
+            ```python
+            from PIL import Image
+            import requests
+            import supervision as sv
+            import torch
+            from transformers import (
+                AutoProcessor,
+                RTDetrForObjectDetection,
+                VitPoseForPoseEstimation,
+            )
+
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            image = Image.open(<SOURCE_IMAGE_PATH>)
+
+            DETECTION_MODEL_ID = "PekingU/rtdetr_r50vd_coco_o365"
+
+            detection_processor = AutoProcessor.from_pretrained(DETECTION_MODEL_ID, use_fast=True)
+            detection_model = RTDetrForObjectDetection.from_pretrained(DETECTION_MODEL_ID, device_map=DEVICE)
+
+            inputs = detection_processor(images=frame, return_tensors="pt").to(DEVICE)
+
+            with torch.no_grad():
+                outputs = detection_model(**inputs)
+
+            target_size = torch.tensor([(frame.height, frame.width)])
+            results = detection_processor.post_process_object_detection(
+                outputs, target_sizes=target_size, threshold=0.3)
+
+            detections = sv.Detections.from_transformers(results[0])
+            boxes = sv.xyxy_to_xywh(detections[detections.class_id == 0].xyxy)
+
+            POSE_ESTIMATION_MODEL_ID = "usyd-community/vitpose-base-simple"
+
+            pose_estimation_processor = AutoProcessor.from_pretrained(POSE_ESTIMATION_MODEL_ID)
+            pose_estimation_model = VitPoseForPoseEstimation.from_pretrained(
+                POSE_ESTIMATION_MODEL_ID, device_map=DEVICE)
+
+            inputs = pose_estimation_processor(frame, boxes=[boxes], return_tensors="pt").to(DEVICE)
+
+            with torch.no_grad():
+                outputs = pose_estimation_model(**inputs)
+
+            results = pose_estimation_processor.post_process_pose_estimation(outputs, boxes=[boxes])
+            key_point = sv.KeyPoints.from_transformers(results[0])
+            ```
+
+        """  # noqa: E501 // docs
+
+        if "keypoints" in transfomers_results[0]:
+            if transfomers_results[0]["keypoints"].cpu().numpy().size == 0:
+                return cls.empty()
+
+            result_data = [
+                (
+                    result["keypoints"].cpu().numpy(),
+                    result["scores"].cpu().numpy(),
+                )
+                for result in transfomers_results
+            ]
+
+            xy, scores = zip(*result_data)
+
+            return cls(
+                xy=np.stack(xy).astype(np.float32),
+                confidence=np.stack(scores).astype(np.float32),
+                class_id=np.arange(len(xy)).astype(int),
+            )
+        else:
+            return cls.empty()
+
     def __getitem__(
-        self, index: Union[int, slice, List[int], np.ndarray, str]
-    ) -> Union[KeyPoints, List, np.ndarray, None]:
+        self, index: int | slice | list[int] | np.ndarray | str
+    ) -> KeyPoints | list | np.ndarray | None:
         """
         Get a subset of the `sv.KeyPoints` object or access an item from its data field.
 
@@ -562,7 +650,7 @@ class KeyPoints:
             data=get_data_item(self.data, index),
         )
 
-    def __setitem__(self, key: str, value: Union[np.ndarray, List]):
+    def __setitem__(self, key: str, value: np.ndarray | list):
         """
         Set a value in the data dictionary of the `sv.KeyPoints` object.
 
@@ -623,7 +711,7 @@ class KeyPoints:
         return self == empty_keypoints
 
     def as_detections(
-        self, selected_keypoint_indices: Optional[Iterable[int]] = None
+        self, selected_keypoint_indices: Iterable[int] | None = None
     ) -> Detections:
         """
         Convert a KeyPoints object to a Detections object. This
@@ -639,7 +727,7 @@ class KeyPoints:
         Returns:
             detections (Detections): The converted detections object.
 
-        Example:
+        Examples:
             ```python
             keypoints = sv.KeyPoints.from_inference(...)
             detections = keypoints.as_detections()

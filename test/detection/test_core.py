@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from typing import List, Optional, Union
 
 import numpy as np
 import pytest
@@ -223,12 +224,18 @@ TEST_DET_DIFFERENT_METADATA = Detections(
             None,
             pytest.raises(IndexError),
         ),
+        (
+            Detections.empty(),
+            np.isin(Detections.empty()["class_name"], ["cat", "dog"]),
+            Detections.empty(),
+            DoesNotRaise(),
+        ),  # Filter an empty detections by specific class names
     ],
 )
 def test_getitem(
     detections: Detections,
-    index: Union[int, slice, List[int], np.ndarray],
-    expected_result: Optional[Detections],
+    index: int | slice | list[int] | np.ndarray,
+    expected_result: Detections | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -499,8 +506,8 @@ def test_getitem(
     ],
 )
 def test_merge(
-    detections_list: List[Detections],
-    expected_result: Optional[Detections],
+    detections_list: list[Detections],
+    expected_result: Detections | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -802,7 +809,7 @@ def test_equal(
 def test_merge_inner_detection_object_pair(
     detection_1: Detections,
     detection_2: Detections,
-    expected_result: Optional[Detections],
+    expected_result: Detections | None,
     exception: Exception,
 ):
     with exception:

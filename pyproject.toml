@@ -1,18 +1,16 @@
-[tool.poetry]
+[project]
 name = "supervision"
-version = "0.25.1"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
-authors = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
-maintainers = [
-    "Piotr Skalski <piotr.skalski92@gmail.com>",
-    "Linas Kondrackis <linas@roboflow.com>",
-]
+license = { text = "MIT" }
+version = "0.26.0"
 readme = "README.md"
-license = "MIT"
-packages = [{ include = "supervision" }, { include = "supervision/py.typed" }]
-homepage = "https://github.com/roboflow/supervision"
-repository = "https://github.com/roboflow/supervision"
-documentation = "https://supervision.roboflow.com/latest/"
+requires-python = ">=3.9"
+authors = [
+    { name = "Piotr Skalski", email = "piotr.skalski92@gmail.com" }
+]
+maintainers = [
+    { name = "Piotr Skalski", email = "piotr.skalski92@gmail.com" },
+]
 keywords = [
     "machine-learning",
     "deep-learning",
@@ -22,7 +20,6 @@ keywords = [
     "AI",
     "Roboflow",
 ]
-
 classifiers = [
     'Development Status :: 4 - Beta',
     'Intended Audience :: Developers',
@@ -40,118 +37,63 @@ classifiers = [
     'Operating System :: POSIX :: Linux',
     'Operating System :: MacOS',
 ]
-
-[tool.poetry.dependencies]
-python = "^3.8"
-
-# For Python versions 3.13 and above, use numpy versions 2.1.0,
-# required for poetry to not fail.
-numpy = [
-    { version = ">=1.21.2", python = "<3.13" },
-    { version = ">=2.1.0", python = ">=3.13" },
+dependencies = [
+    "numpy>=1.21.2",
+    "scipy>=1.10.0",
+    "matplotlib>=3.6.0",
+    "pyyaml>=5.3",
+    "defusedxml>=0.7.1",
+    "pillow>=9.4",
+    "requests>=2.26.0",
+    "tqdm>=4.62.3",
+    "opencv-python>=4.5.5.64"
 ]
 
-scipy = [
-    { version = "1.10.0", python = "<3.9" },
-    { version = "^1.10.0", python = ">=3.9" },
-    { version = ">=1.14.1", python = ">=3.13" },
+[project.urls]
+Homepage = "https://github.com/roboflow/supervision"
+Repository = "https://github.com/roboflow/supervision"
+Documentation = "https://supervision.roboflow.com/latest/"
 
+[project.optional-dependencies]
+metrics = [
+    "pandas>=2.0.0",
 ]
 
-# Matplotlib sub-dependency
-# The 'contourpy' package is required by Matplotlib for contour plotting.
-# We need to ensure compatibility with both Python 3.8 and Python 3.13.
-#
-# For Python 3.8 and above, we use version 1.0.7 or higher, as it is the lowest major version that supports Python 3.8.
-# For Python 3.13 and above, we use version 1.3.0 or higher, as it is the first version that explicitly supports Python 3.13.
-contourpy = [
-    { version = ">=1.0.7", python = ">=3.8,<3.13" },
-    { version = ">=1.3.0", python = ">=3.13" },
+[dependency-groups]
+dev = [
+    "pytest>=7.2.2,<9.0.0",
+    "tox>=4.11.4",
+    "notebook>=6.5.3,<8.0.0",
+    "ipywidgets>=8.1.1",
+    "jupytext>=1.16.1",
+    "nbconvert>=7.14.2",
+    "docutils!=0.21"
 ]
-
-matplotlib = [
-    { version = ">=3.6.0,<3.8.0", python = "3.8" },
-    { version = ">=3.6.0", python = ">=3.9" },
-    { version = ">=3.7.3", python = ">=3.12" },
-    { version = ">=3.9.2", python = ">=3.13" },
+docs = [
+    "mkdocs-material[imaging]>=9.5.5",
+    "mkdocstrings>=0.25.2,<0.30.0",
+    "mkdocstrings-python>=1.10.9",
+    "mike>=2.0.0",
+    "mkdocs-jupyter>=0.24.3",
+    "mkdocs-git-committers-plugin-2>=2.4.1; python_version >= '3.9' and python_version < '4'",
+    "mkdocs-git-revision-date-localized-plugin>=1.2.4"
 ]
-
-
-pyyaml = ">=5.3"
-defusedxml = "^0.7.1"
-pillow = ">=9.4"
-requests = ">=2.26.0"
-tqdm = ">=4.62.3"
-# pandas: picked lowest major version that supports Python 3.8
-# pandas 2.2.3 has been released with support for Python 3.13
-pandas = [
-    { version = ">=2.0.0", python = "<3.13", optional = true },
-    { version = ">=2.2.3", python = ">=3.13", optional = true },
+build = [
+    "twine>=5.1.1,<7.0.0",
+    "wheel>=0.40,<0.46",
+    "build>=0.10,<1.3"
 ]
-
-opencv-python = ">=4.5.5.64"
-
-[tool.poetry.extras]
-metrics = ["pandas"]
-
-[tool.poetry.group.test.dependencies]
-pytest = ">=7.2.2,<9.0.0"
-pytest-md = "^0.2.0"
-pytest-emoji = "^0.2.0"
-
-[tool.poetry.group.dev.dependencies]
-twine = ">=5.1.1,<7.0.0"
-pytest = ">=7.2.2,<9.0.0"
-wheel = ">=0.40,<0.46"
-build = ">=0.10,<1.3"
-ruff = ">=0.1.0"
-mypy = "^1.4.1"
-pre-commit = "^3.3.3"
-tox = "^4.11.4"
-notebook = ">=6.5.3,<8.0.0"
-ipywidgets = "^8.1.1"
-jupytext = "^1.16.1"
-nbconvert = "^7.14.2"
-docutils = [
-    { version = "^0.20.1", python = "<3.9" },
-    { version = "^0.21.1", python = ">=3.9" },
-]
-
-[tool.poetry.group.docs.dependencies]
-mkdocs-material = { extras = ["imaging"], version = "^9.5.5" }
-mkdocstrings = ">=0.25.2,<0.27.0"
-mkdocstrings-python = "^1.10.9"
-mike = "^2.0.0"
-# For Documentation Development use Python 3.10 or above
-# Use Latest mkdocs-jupyter min 0.24.6 for Jupyter Notebook Theme support
-mkdocs-jupyter = "^0.24.3"
-mkdocs-git-committers-plugin-2 = "^2.4.1"
-mkdocs-git-revision-date-localized-plugin = "^1.2.4"
-
-[tool.poetry.group.typecheck]
-optional = true
-
-[tool.poetry.group.typecheck.dependencies]
-types-pyyaml = "^6.0.12.20240808"
-types-cffi = "^1.16.0.20240331"
-types-requests = "^2.32.0.20240712"
-types-tqdm = "^4.66.0.20240417"
-pandas-stubs = ">=2.0.0.230412"
-
-[tool.poetry.group.build.dependencies]
-twine = ">=5.1.1,<7.0.0"
 
 [tool.bandit]
 target = ["test", "supervision"]
-tests = ["B201", "B301", "B318", "B314", "B303", "B413", "B412", "B410"]
+tests = ["B201", "B301", "B318", "B314", "B303", "B413", "B412"]
 
 [tool.autoflake]
 check = true
 imports = ["cv2", "supervision"]
 
-
 [tool.ruff]
-target-version = "py38"
+target-version = "py39"
 
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -186,7 +128,7 @@ indent-width = 4
 
 [tool.ruff.lint]
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-select = ["E", "F", "I", "A", "Q", "W", "RUF"]
+select = ["E", "F", "I", "A", "Q", "W", "RUF", "UP"]
 ignore = []
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = [
@@ -273,7 +215,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.codespell]
-skip = "*.ipynb,poetry.lock"
+skip = "*.ipynb"
 count = true
 quiet-level = 3
 ignore-words-list = "STrack,sTrack,strack"
@@ -282,8 +224,12 @@ ignore-words-list = "STrack,sTrack,strack"
 include-package-data = false
 
 [tool.setuptools.packages.find]
+include = ["supervision*"]
 exclude = ["docs*", "test*", "examples*"]
 
+[tool.setuptools.package-data]
+supervision = ["py.typed"]
+
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"

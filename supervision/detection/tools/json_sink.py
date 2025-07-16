@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from supervision.detection.core import Detections
 
@@ -51,8 +51,8 @@ class JSONSink:
             None
         """
         self.file_name = file_name
-        self.file: Optional[open] = None
-        self.data: List[Dict[str, Any]] = []
+        self.file: open | None = None
+        self.data: list[dict[str, Any]] = []
 
     def __enter__(self) -> JSONSink:
         self.open()
@@ -60,9 +60,9 @@ class JSONSink:
 
     def __exit__(
         self,
-        exc_type: Optional[type],
-        exc_val: Optional[Exception],
-        exc_tb: Optional[Any],
+        exc_type: type | None,
+        exc_val: Exception | None,
+        exc_tb: Any | None,
     ) -> None:
         self.write_and_close()
 
@@ -92,8 +92,8 @@ class JSONSink:
 
     @staticmethod
     def parse_detection_data(
-        detections: Detections, custom_data: Optional[Dict[str, Any]] = None
-    ) -> List[Dict[str, Any]]:
+        detections: Detections, custom_data: dict[str, Any] | None = None
+    ) -> list[dict[str, Any]]:
         parsed_rows = []
         for i in range(len(detections.xyxy)):
             row = {
@@ -126,7 +126,7 @@ class JSONSink:
         return parsed_rows
 
     def append(
-        self, detections: Detections, custom_data: Optional[Dict[str, Any]] = None
+        self, detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> None:
         """
         Append detection data to the JSON file.

@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 from xml.etree.ElementTree import Element, SubElement
 
 import cv2
@@ -10,12 +11,12 @@ from defusedxml.minidom import parseString
 
 from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
-from supervision.detection.utils import polygon_to_mask, polygon_to_xyxy
+from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
 from supervision.utils.file import list_files_with_extensions
 
 
 def object_to_pascal_voc(
-    xyxy: np.ndarray, name: str, polygon: Optional[np.ndarray] = None
+    xyxy: np.ndarray, name: str, polygon: np.ndarray | None = None
 ) -> Element:
     root = Element("object")
 
@@ -51,9 +52,9 @@ def object_to_pascal_voc(
 
 def detections_to_pascal_voc(
     detections: Detections,
-    classes: List[str],
+    classes: list[str],
     filename: str,
-    image_shape: Tuple[int, int, int],
+    image_shape: tuple[int, int, int],
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
@@ -138,7 +139,7 @@ def load_pascal_voc_annotations(
     images_directory_path: str,
     annotations_directory_path: str,
     force_masks: bool = False,
-) -> Tuple[List[str], List[str], Dict[str, Detections]]:
+) -> tuple[list[str], list[str], dict[str, Detections]]:
     """
     Loads PASCAL VOC XML annotations and returns the image name,
         a Detections instance, and a list of class names.
@@ -163,7 +164,7 @@ def load_pascal_voc_annotations(
         )
     ]
 
-    classes: List[str] = []
+    classes: list[str] = []
     annotations = {}
 
     for image_path in image_paths:
@@ -187,8 +188,8 @@ def load_pascal_voc_annotations(
 
 
 def detections_from_xml_obj(
-    root: Element, classes: List[str], resolution_wh, force_masks: bool = False
-) -> Tuple[Detections, List[str]]:
+    root: Element, classes: list[str], resolution_wh, force_masks: bool = False
+) -> tuple[Detections, list[str]]:
     """
     Converts an XML object in Pascal VOC format to a Detections object.
     Expected XML format:
