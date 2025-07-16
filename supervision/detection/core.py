@@ -867,6 +867,53 @@ class Detections:
             ```
 
         !!! example "Qwen2.5-VL"
+
+            ??? tip "Prompt engineering"
+
+                To get the best results from Qwen2.5-VL, use clear and descriptive prompts
+                that specify exactly what you want to detect.
+
+                **For general object detection, use this comprehensive prompt:**
+
+                ```
+                Detect all objects in the image and return their locations and labels.
+                ```
+
+                **For specific object detection with detailed descriptions:**
+
+                ```
+                Detect the red object that is leading in this image and return its location and label.
+                ```
+
+                **For simple, targeted detection:**
+
+                ```
+                leading blue truck
+                ```
+
+                **Additional effective prompts:**
+
+                ```
+                Find all people and vehicles in this scene
+                ```
+
+                ```
+                Locate all animals in the image
+                ```
+
+                ```
+                Identify traffic signs and their positions
+                ```
+
+                **Tips for better results:**
+
+                - Use descriptive language that clearly specifies what to look for
+                - Include color, size, or position descriptors when targeting specific objects
+                - Be specific about the type of objects you want to detect
+                - The model responds well to both detailed instructions and concise phrases
+                - Results are returned in JSON format with `bbox_2d` coordinates and `label` fields
+
+
             ```python
             import supervision as sv
 
@@ -1023,6 +1070,23 @@ class Detections:
             ```
 
         !!! example "Moondream"
+
+
+            ??? tip "Prompt engineering"
+
+                To get the best results from Moondream, use optimized prompts that leverage
+                its object detection capabilities effectively.
+
+                **For general object detection, use this simple prompt:**
+
+                ```
+                objects
+                ```
+
+                This single-word prompt instructs Moondream to detect all visible objects
+                and return them in the proper JSON format with normalized coordinates.
+
+
             ```python
             import supervision as sv
 
@@ -1137,6 +1201,53 @@ class Detections:
             ```
 
         !!! example "Qwen2.5-VL"
+
+            ??? tip "Prompt engineering"
+
+                To get the best results from Qwen2.5-VL, use clear and descriptive prompts
+                that specify exactly what you want to detect.
+
+                **For general object detection, use this comprehensive prompt:**
+
+                ```
+                Detect all objects in the image and return their locations and labels.
+                ```
+
+                **For specific object detection with detailed descriptions:**
+
+                ```
+                Detect the red object that is leading in this image and return its location and label.
+                ```
+
+                **For simple, targeted detection:**
+
+                ```
+                leading blue truck
+                ```
+
+                **Additional effective prompts:**
+
+                ```
+                Find all people and vehicles in this scene
+                ```
+
+                ```
+                Locate all animals in the image
+                ```
+
+                ```
+                Identify traffic signs and their positions
+                ```
+
+                **Tips for better results:**
+
+                - Use descriptive language that clearly specifies what to look for
+                - Include color, size, or position descriptors when targeting specific objects
+                - Be specific about the type of objects you want to detect
+                - The model responds well to both detailed instructions and concise phrases
+                - Results are returned in JSON format with `bbox_2d` coordinates and `label` fields
+
+
             ```python
             import supervision as sv
 
@@ -1293,6 +1404,23 @@ class Detections:
             ```
 
         !!! example "Moondream"
+
+
+            ??? tip "Prompt engineering"
+
+                To get the best results from Moondream, use optimized prompts that leverage
+                its object detection capabilities effectively.
+
+                **For general object detection, use this simple prompt:**
+
+                ```
+                objects
+                ```
+
+                This single-word prompt instructs Moondream to detect all visible objects
+                and return them in the proper JSON format with normalized coordinates.
+
+
             ```python
             import supervision as sv
 
