@@ -1237,7 +1237,7 @@ class MeanAveragePrecision(Metric):
                 area = data.get("area") if data else None
                 if area is None:
                     area = image_targets.area[target_idx]
-                
+
                 dict_annotation = {
                     "area": area,
                     "iscrowd": data.get("iscrowd", 0),
