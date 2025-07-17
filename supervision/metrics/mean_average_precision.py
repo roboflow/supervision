@@ -1237,7 +1237,7 @@ class MeanAveragePrecision(Metric):
                     "image_id": image_id,
                     "bbox": xywh,
                     "category_id": category_id,
-                    "id": len(annotations),  # incrementally increase the id
+                    "id": len(annotations) + 1,  # incrementally increase the id
                 }
                 annotations.append(dict_annotation)
         # Category list
