@@ -935,7 +935,7 @@ class COCOEvaluator:
 
         # Helper function to compute average precision while handling -1 sentinel values
         def compute_average_precision(precision_slice):
-            """Helper function to compute average precision while handling -1 sentinel values."""
+            """Compute average precision while handling -1 sentinel values."""
             masked = np.ma.masked_equal(precision_slice, -1)
             if masked.count() == 0:
                 # All values are -1 (no data)

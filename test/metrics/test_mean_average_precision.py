@@ -128,7 +128,7 @@ def test_scenario_2_missed_detection():
         data={"area": np.array([900])},
     )
 
-    # Medium object - area = 50*50 = 2500 (between 1024 and 9216) - no prediction (missed)
+    # Medium object - area = 50*50 = 2500 (between 1024 and 9216) - missed
     medium_target = Detections(
         xyxy=np.array([[10, 10, 60, 60]], dtype=np.float64),
         class_id=np.array([1]),
