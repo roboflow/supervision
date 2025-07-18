@@ -57,7 +57,11 @@ class MeanAveragePrecisionResult:
 
     @property
     def map50_95(self) -> float:
-        return self.mAP_scores.mean()
+        valid_scores = self.mAP_scores[self.mAP_scores > -1]
+        if len(valid_scores) > 0:
+            return valid_scores.mean()
+        else:
+            return -1
 
     @property
     def map50(self) -> float:
@@ -420,6 +424,11 @@ class EvaluationDataset:
 
         if not isinstance(predictions, list):
             raise ValueError("results must be a list")
+
+        # Handle empty predictions
+        if len(predictions) == 0:
+            predictions_dataset.dataset["annotations"] = []
+            return predictions_dataset
 
         ids = [pred["image_id"] for pred in predictions]
 
@@ -909,6 +918,35 @@ class COCOEvaluator:
                             np.array(score_at_recall)
                         )
 
+        self.results = {
+            "params": self.params,
+            "counts": [
+                num_iou_thresholds,
+                num_recall_thresholds,
+                num_categories,
+                num_area_ranges,
+                num_max_detections,
+            ],
+            "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "precision": precision,
+            "recall": recall,
+            "scores": scores,
+        }
+
+        # Helper function to compute average precision while handling -1 sentinel values
+        def compute_average_precision(precision_slice):
+            """Compute average precision while handling -1 sentinel values."""
+            masked = np.ma.masked_equal(precision_slice, -1)
+            if masked.count() == 0:
+                # All values are -1 (no data)
+                return np.full(num_iou_thresholds, -1), np.full(
+                    (num_categories, num_iou_thresholds), -1
+                )
+            else:
+                mAP_scores = np.ma.filled(masked.mean(axis=(1, 2)), -1)
+                ap_per_class = np.ma.filled(masked.mean(axis=1), -1).transpose(1, 0)
+                return mAP_scores, ap_per_class
+
         # Average precision over all sizes, 100 max detections
         area_range_idx = list(ObjectSize).index(ObjectSize.ALL)
         max_100_dets_idx = self.params.max_dets.index(100)
@@ -917,10 +955,9 @@ class COCOEvaluator:
             :, :, :, area_range_idx, max_100_dets_idx
         ]
         # mAP over thresholds (dimension=num_thresholds)
-        mAP_scores_all_sizes = average_precision_all_sizes.mean(axis=(1, 2))
-        # AP per class
-        ap_per_class_all_sizes = average_precision_all_sizes.mean(axis=1).transpose(
-            1, 0
+        # Use masked array to exclude -1 values when computing mean
+        mAP_scores_all_sizes, ap_per_class_all_sizes = compute_average_precision(
+            average_precision_all_sizes
         )
 
         # Average precision for SMALL objects and 100 max detections
@@ -928,24 +965,27 @@ class COCOEvaluator:
         average_precision_small = precision[
             :, :, :, small_area_range_idx, max_100_dets_idx
         ]
-        mAP_scores_small = average_precision_small.mean(axis=(1, 2))
-        ap_per_class_small = average_precision_small.mean(axis=1).transpose(1, 0)
+        mAP_scores_small, ap_per_class_small = compute_average_precision(
+            average_precision_small
+        )
 
         # Average precision for MEDIUM objects and 100 max detections
         medium_area_range_idx = list(ObjectSize).index(ObjectSize.MEDIUM)
         average_precision_medium = precision[
             :, :, :, medium_area_range_idx, max_100_dets_idx
         ]
-        mAP_scores_medium = average_precision_medium.mean(axis=(1, 2))
-        ap_per_class_medium = average_precision_medium.mean(axis=1).transpose(1, 0)
+        mAP_scores_medium, ap_per_class_medium = compute_average_precision(
+            average_precision_medium
+        )
 
         # Average precision for LARGE objects and 100 max detections
         large_area_range_idx = list(ObjectSize).index(ObjectSize.LARGE)
         average_precision_large = precision[
             :, :, :, large_area_range_idx, max_100_dets_idx
         ]
-        mAP_scores_large = average_precision_large.mean(axis=(1, 2))
-        ap_per_class_large = average_precision_large.mean(axis=1).transpose(1, 0)
+        mAP_scores_large, ap_per_class_large = compute_average_precision(
+            average_precision_large
+        )
 
         self.results = {
             "params": self.params,
