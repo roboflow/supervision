@@ -425,6 +425,11 @@ class EvaluationDataset:
         if not isinstance(predictions, list):
             raise ValueError("results must be a list")
 
+        # Handle empty predictions
+        if len(predictions) == 0:
+            predictions_dataset.dataset["annotations"] = []
+            return predictions_dataset
+
         ids = [pred["image_id"] for pred in predictions]
 
         # Make sure the image ids from predictions exist in the current dataset
@@ -923,9 +928,14 @@ class COCOEvaluator:
         # mAP over thresholds (dimension=num_thresholds)
         # Use masked array to exclude -1 values when computing mean
         masked = np.ma.masked_equal(average_precision_all_sizes, -1)
-        mAP_scores_all_sizes = np.ma.filled(masked.mean(axis=(1, 2)), -1)
-        # AP per class
-        ap_per_class_all_sizes = np.ma.filled(masked.mean(axis=1), -1).transpose(1, 0)
+        # Check if all values are masked (empty array)
+        if masked.count() == 0:
+            mAP_scores_all_sizes = np.full(num_iou_thresholds, -1)
+            ap_per_class_all_sizes = np.full((num_categories, num_iou_thresholds), -1)
+        else:
+            mAP_scores_all_sizes = np.ma.filled(masked.mean(axis=(1, 2)), -1)
+            # AP per class
+            ap_per_class_all_sizes = np.ma.filled(masked.mean(axis=1), -1).transpose(1, 0)
 
         # Average precision for SMALL objects and 100 max detections
         small_area_range_idx = list(ObjectSize).index(ObjectSize.SMALL)
@@ -933,8 +943,12 @@ class COCOEvaluator:
             :, :, :, small_area_range_idx, max_100_dets_idx
         ]
         masked_small = np.ma.masked_equal(average_precision_small, -1)
-        mAP_scores_small = np.ma.filled(masked_small.mean(axis=(1, 2)), -1)
-        ap_per_class_small = np.ma.filled(masked_small.mean(axis=1), -1).transpose(1, 0)
+        if masked_small.count() == 0:
+            mAP_scores_small = np.full(num_iou_thresholds, -1)
+            ap_per_class_small = np.full((num_categories, num_iou_thresholds), -1)
+        else:
+            mAP_scores_small = np.ma.filled(masked_small.mean(axis=(1, 2)), -1)
+            ap_per_class_small = np.ma.filled(masked_small.mean(axis=1), -1).transpose(1, 0)
 
         # Average precision for MEDIUM objects and 100 max detections
         medium_area_range_idx = list(ObjectSize).index(ObjectSize.MEDIUM)
@@ -942,8 +956,12 @@ class COCOEvaluator:
             :, :, :, medium_area_range_idx, max_100_dets_idx
         ]
         masked_medium = np.ma.masked_equal(average_precision_medium, -1)
-        mAP_scores_medium = np.ma.filled(masked_medium.mean(axis=(1, 2)), -1)
-        ap_per_class_medium = np.ma.filled(masked_medium.mean(axis=1), -1).transpose(1, 0)
+        if masked_medium.count() == 0:
+            mAP_scores_medium = np.full(num_iou_thresholds, -1)
+            ap_per_class_medium = np.full((num_categories, num_iou_thresholds), -1)
+        else:
+            mAP_scores_medium = np.ma.filled(masked_medium.mean(axis=(1, 2)), -1)
+            ap_per_class_medium = np.ma.filled(masked_medium.mean(axis=1), -1).transpose(1, 0)
 
         # Average precision for LARGE objects and 100 max detections
         large_area_range_idx = list(ObjectSize).index(ObjectSize.LARGE)
@@ -951,8 +969,12 @@ class COCOEvaluator:
             :, :, :, large_area_range_idx, max_100_dets_idx
         ]
         masked_large = np.ma.masked_equal(average_precision_large, -1)
-        mAP_scores_large = np.ma.filled(masked_large.mean(axis=(1, 2)), -1)
-        ap_per_class_large = np.ma.filled(masked_large.mean(axis=1), -1).transpose(1, 0)
+        if masked_large.count() == 0:
+            mAP_scores_large = np.full(num_iou_thresholds, -1)
+            ap_per_class_large = np.full((num_categories, num_iou_thresholds), -1)
+        else:
+            mAP_scores_large = np.ma.filled(masked_large.mean(axis=(1, 2)), -1)
+            ap_per_class_large = np.ma.filled(masked_large.mean(axis=1), -1).transpose(1, 0)
 
         self.results = {
             "params": self.params,
