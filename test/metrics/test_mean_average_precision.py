@@ -315,5 +315,12 @@ def test_empty_predictions_and_targets():
     metric.update([Detections.empty()], [Detections.empty()])
     result = metric.compute()
     
-    # Should handle empty case gracefully
-    assert result.map50_95 >= -1.0  # Can be -1 to indicate no data
+    # Should return -1 for no data (matching pycocotools behavior)
+    assert result.map50_95 == -1
+    assert result.map50 == -1
+    assert result.map75 == -1
+    
+    # All object size categories should also be -1
+    assert result.small_objects.map50_95 == -1
+    assert result.medium_objects.map50_95 == -1
+    assert result.large_objects.map50_95 == -1
