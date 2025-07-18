@@ -920,7 +920,13 @@ class COCOEvaluator:
 
         self.results = {
             "params": self.params,
-            "counts": [num_iou_thresholds, num_recall_thresholds, num_categories, num_area_ranges, num_max_detections],
+            "counts": [
+                num_iou_thresholds,
+                num_recall_thresholds,
+                num_categories,
+                num_area_ranges,
+                num_max_detections,
+            ],
             "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "precision": precision,
             "recall": recall,
@@ -933,7 +939,9 @@ class COCOEvaluator:
             masked = np.ma.masked_equal(precision_slice, -1)
             if masked.count() == 0:
                 # All values are -1 (no data)
-                return np.full(num_iou_thresholds, -1), np.full((num_categories, num_iou_thresholds), -1)
+                return np.full(num_iou_thresholds, -1), np.full(
+                    (num_categories, num_iou_thresholds), -1
+                )
             else:
                 mAP_scores = np.ma.filled(masked.mean(axis=(1, 2)), -1)
                 ap_per_class = np.ma.filled(masked.mean(axis=1), -1).transpose(1, 0)
@@ -948,28 +956,36 @@ class COCOEvaluator:
         ]
         # mAP over thresholds (dimension=num_thresholds)
         # Use masked array to exclude -1 values when computing mean
-        mAP_scores_all_sizes, ap_per_class_all_sizes = compute_average_precision(average_precision_all_sizes)
+        mAP_scores_all_sizes, ap_per_class_all_sizes = compute_average_precision(
+            average_precision_all_sizes
+        )
 
         # Average precision for SMALL objects and 100 max detections
         small_area_range_idx = list(ObjectSize).index(ObjectSize.SMALL)
         average_precision_small = precision[
             :, :, :, small_area_range_idx, max_100_dets_idx
         ]
-        mAP_scores_small, ap_per_class_small = compute_average_precision(average_precision_small)
+        mAP_scores_small, ap_per_class_small = compute_average_precision(
+            average_precision_small
+        )
 
         # Average precision for MEDIUM objects and 100 max detections
         medium_area_range_idx = list(ObjectSize).index(ObjectSize.MEDIUM)
         average_precision_medium = precision[
             :, :, :, medium_area_range_idx, max_100_dets_idx
         ]
-        mAP_scores_medium, ap_per_class_medium = compute_average_precision(average_precision_medium)
+        mAP_scores_medium, ap_per_class_medium = compute_average_precision(
+            average_precision_medium
+        )
 
         # Average precision for LARGE objects and 100 max detections
         large_area_range_idx = list(ObjectSize).index(ObjectSize.LARGE)
         average_precision_large = precision[
             :, :, :, large_area_range_idx, max_100_dets_idx
         ]
-        mAP_scores_large, ap_per_class_large = compute_average_precision(average_precision_large)
+        mAP_scores_large, ap_per_class_large = compute_average_precision(
+            average_precision_large
+        )
 
         self.results = {
             "params": self.params,
