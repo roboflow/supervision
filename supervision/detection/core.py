@@ -2003,7 +2003,7 @@ class Detections:
             class_agnostic (bool): Whether to perform class-agnostic
                 non-maximum merging. If True, the class_id of each detection
                 will be ignored. Defaults to False.
-            overlap_metric (OverlapMetric): Metric used to compute the degree of 
+            overlap_metric (OverlapMetric): Metric used to compute the degree of
                 overlap between pairs of masks or boxes (e.g., IoU, IoS).
 
         Returns:
