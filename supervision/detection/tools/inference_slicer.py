@@ -5,11 +5,11 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import numpy as np
-
+from typing import Literal
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import move_boxes, move_oriented_boxes
-from supervision.detection.utils.iou_and_nms import OverlapFilter
+from supervision.detection.utils.iou_and_nms import OverlapFilter,OverlapMetric
 from supervision.detection.utils.masks import move_masks
 from supervision.utils.image import crop_image
 from supervision.utils.internal import (
@@ -96,7 +96,7 @@ class InferenceSlicer:
         overlap_wh: tuple[int, int] | None = None,
         overlap_filter: OverlapFilter | str = OverlapFilter.NON_MAX_SUPPRESSION,
         iou_threshold: float = 0.5,
-        match_metric: str = "IOU",
+        match_metric: OverlapMetric = OverlapMetric.IOU,
         thread_workers: int = 1,
     ):
         if overlap_ratio_wh is not None:
@@ -173,11 +173,11 @@ class InferenceSlicer:
             return merged
         elif self.overlap_filter == OverlapFilter.NON_MAX_SUPPRESSION:
             return merged.with_nms(
-                threshold=self.iou_threshold, match_metric=self.match_metric
+                threshold=self.iou_threshold, overlap_metric=self.match_metric
             )
         elif self.overlap_filter == OverlapFilter.NON_MAX_MERGE:
             return merged.with_nmm(
-                threshold=self.iou_threshold, match_metric=self.match_metric
+                threshold=self.iou_threshold, overlap_metric=self.match_metric
             )
         else:
             warnings.warn(
