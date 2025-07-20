@@ -5,11 +5,11 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import numpy as np
-from typing import Literal
+
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import move_boxes, move_oriented_boxes
-from supervision.detection.utils.iou_and_nms import OverlapFilter,OverlapMetric
+from supervision.detection.utils.iou_and_nms import OverlapFilter, OverlapMetric
 from supervision.detection.utils.masks import move_masks
 from supervision.utils.image import crop_image
 from supervision.utils.internal import (
