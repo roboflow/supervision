@@ -164,7 +164,8 @@ def box_iou_batch(
             `shape = (N, 4)` where `N` is number of true objects.
         boxes_detection (np.ndarray): 2D `np.ndarray` representing detection boxes.
             `shape = (M, 4)` where `M` is number of detected objects.
-        overlap_metric (OverlapMetric): Metric used for matching detections in slices.
+        overlap_metric (OverlapMetric): Metric used to compute the degree of overlap
+            between pairs of boxes (e.g., IoU, IoS).
 
     Returns:
         np.ndarray: Pairwise IoU of boxes from `boxes_true` and `boxes_detection`.
@@ -381,7 +382,8 @@ def _mask_iou_batch_split(
     Args:
         masks_true (np.ndarray): 3D `np.ndarray` representing ground-truth masks.
         masks_detection (np.ndarray): 3D `np.ndarray` representing detection masks.
-        overlap_metric (OverlapMetric): Metric used for matching detections in slices.
+        overlap_metric (OverlapMetric): Metric used to compute the degree of overlap
+            between pairs of masks (e.g., IoU, IoS).
 
     Returns:
         np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.
@@ -433,7 +435,8 @@ def mask_iou_batch(
     Args:
         masks_true (np.ndarray): 3D `np.ndarray` representing ground-truth masks.
         masks_detection (np.ndarray): 3D `np.ndarray` representing detection masks.
-        overlap_metric (OverlapMetric): Metric used for matching detections in slices.
+        overlap_metric (OverlapMetric): Metric used to compute the degree of overlap
+            between pairs of masks (e.g., IoU, IoS).
         memory_limit (int): memory limit in MB, default is 1024 * 5 MB (5GB).
 
     Returns:
@@ -492,7 +495,8 @@ def mask_non_max_suppression(
             dimensions of each mask.
         iou_threshold (float): The intersection-over-union threshold
             to use for non-maximum suppression.
-        overlap_metric (OverlapMetric): Metric used for matching detections in slices.
+        overlap_metric (OverlapMetric): Metric used to compute the degree of overlap
+            between pairs of masks (e.g., IoU, IoS).
         mask_dimension (int): The dimension to which the masks should be
             resized before computing IOU values. Defaults to 640.
 
@@ -543,7 +547,8 @@ def box_non_max_suppression(
             or `(x_min, y_min, x_max, y_max, score, class)`.
         iou_threshold (float): The intersection-over-union threshold
             to use for non-maximum suppression.
-        overlap_metric (OverlapMetric): Metric used for matching detections in slices.
+        overlap_metric (OverlapMetric): Metric used to compute the degree of overlap
+            between pairs of boxes (e.g., IoU, IoS).
 
     Returns:
         np.ndarray: A boolean array indicating which predictions to keep after n
@@ -603,7 +608,8 @@ def _group_overlapping_masks(
             the predictions.
         iou_threshold (float): The intersection-over-union threshold
             to use for non-maximum suppression. Defaults to 0.5.
-        overlap_metric (OverlapMetric): Metric used for matching detections in slices.
+        overlap_metric (OverlapMetric): Metric used to compute the degree of overlap
+            between pairs of masks (e.g., IoU, IoS).
 
     Returns:
         list[list[int]]: Groups of prediction indices be merged.
@@ -664,7 +670,8 @@ def mask_non_max_merge(
             to use for non-maximum suppression.
         mask_dimension (int): The dimension to which the masks should be
             resized before computing IOU values. Defaults to 640.
-        overlap_metric (OverlapMetric): Metric used for matching detections in slices.
+        overlap_metric (OverlapMetric): Metric used to compute the degree of overlap
+            between pairs of masks (e.g., IoU, IoS).
 
     Returns:
         np.ndarray: A boolean array indicating which predictions to keep after
@@ -717,7 +724,8 @@ def _group_overlapping_boxes(
             and the confidence scores.
         iou_threshold (float): The intersection-over-union threshold
             to use for non-maximum suppression. Defaults to 0.5.
-        overlap_metric (OverlapMetric): Metric used for matching detections in slices.
+        overlap_metric (OverlapMetric): Metric used to compute the degree of overlap
+            between pairs of boxes (e.g., IoU, IoS).
 
     Returns:
         list[list[int]]: Groups of prediction indices be merged.
@@ -765,7 +773,8 @@ def box_non_max_merge(
             detections of different classes to be merged.
         iou_threshold (float): The intersection-over-union threshold
             to use for non-maximum suppression. Defaults to 0.5.
-        overlap_metric (OverlapMetric): Metric used for matching detections in slices.
+        overlap_metric (OverlapMetric): Metric used to compute the degree of overlap
+            between pairs of boxes (e.g., IoU, IoS).
 
     Returns:
         list[list[int]]: Groups of prediction indices be merged.
