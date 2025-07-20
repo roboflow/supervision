@@ -1532,10 +1532,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#supervision.detection.tools.inference_slicer.InferenceSlicer(match_metric)" class="md-nav__link">
+  <a href="#supervision.detection.tools.inference_slicer.InferenceSlicer(overlap_metric)" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;match_metric
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;overlap_metric
       
     </span>
   </a>
@@ -2589,10 +2589,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#supervision.detection.tools.inference_slicer.InferenceSlicer(match_metric)" class="md-nav__link">
+  <a href="#supervision.detection.tools.inference_slicer.InferenceSlicer(overlap_metric)" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;match_metric
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;overlap_metric
       
     </span>
   </a>
@@ -2825,19 +2825,19 @@ used when filtering by overlap.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-<h3 id="supervision.detection.tools.inference_slicer.InferenceSlicer(match_metric)" class="doc doc-heading doc-heading-parameter">                  <code>match_metric</code>
-<a href="#supervision.detection.tools.inference_slicer.InferenceSlicer(match_metric)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
+<h3 id="supervision.detection.tools.inference_slicer.InferenceSlicer(overlap_metric)" class="doc doc-heading doc-heading-parameter">                  <code>overlap_metric</code>
+<a href="#supervision.detection.tools.inference_slicer.InferenceSlicer(overlap_metric)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code><span title="str">str</span></code>
+                  <code><span title="Union">Union</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;supervision.detection.utils.iou_and_nms.OverlapMetric&lt;/code&gt;" href="../../utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.OverlapMetric">OverlapMetric</a>, <span title="str">str</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Metric used for matching detections in slices.
-"IOU" or "IOS". Defaults "IOU".</p>
+                <p>Metric used for matching detections
+in slices.</p>
               </div>
             </td>
             <td>
-                  <code>&#39;IOU&#39;</code>
+                  <code><span title="supervision.detection.utils.iou_and_nms.OverlapMetric.IOU">IOU</span></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -3161,8 +3161,8 @@ not a multiple of the slice's width or height minus the overlap.</p>
 </span><span id="__span-0-75"><a id="__codelineno-0-75" name="__codelineno-0-75"></a><span class="sd">            filtering or merging overlapping detections in slices.</span>
 </span><span id="__span-0-76"><a id="__codelineno-0-76" name="__codelineno-0-76"></a><span class="sd">        iou_threshold (float): Intersection over Union (IoU) threshold</span>
 </span><span id="__span-0-77"><a id="__codelineno-0-77" name="__codelineno-0-77"></a><span class="sd">            used when filtering by overlap.</span>
-</span><span id="__span-0-78"><a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="sd">        match_metric (str): Metric used for matching detections in slices.</span>
-</span><span id="__span-0-79"><a id="__codelineno-0-79" name="__codelineno-0-79"></a><span class="sd">            &quot;IOU&quot; or &quot;IOS&quot;. Defaults &quot;IOU&quot;.</span>
+</span><span id="__span-0-78"><a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="sd">        overlap_metric (Union[OverlapMetric, str]): Metric used for matching detections</span>
+</span><span id="__span-0-79"><a id="__codelineno-0-79" name="__codelineno-0-79"></a><span class="sd">            in slices.</span>
 </span><span id="__span-0-80"><a id="__codelineno-0-80" name="__codelineno-0-80"></a><span class="sd">        callback (Callable): A function that performs inference on a given image</span>
 </span><span id="__span-0-81"><a id="__codelineno-0-81" name="__codelineno-0-81"></a><span class="sd">            slice and returns detections.</span>
 </span><span id="__span-0-82"><a id="__codelineno-0-82" name="__codelineno-0-82"></a><span class="sd">        thread_workers (int): Number of threads for parallel execution.</span>
@@ -3182,7 +3182,7 @@ not a multiple of the slice's width or height minus the overlap.</p>
 </span><span id="__span-0-96"><a id="__codelineno-0-96" name="__codelineno-0-96"></a>        <span class="n">overlap_wh</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 </span><span id="__span-0-97"><a id="__codelineno-0-97" name="__codelineno-0-97"></a>        <span class="n">overlap_filter</span><span class="p">:</span> <span class="n">OverlapFilter</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">OverlapFilter</span><span class="o">.</span><span class="n">NON_MAX_SUPPRESSION</span><span class="p">,</span>
 </span><span id="__span-0-98"><a id="__codelineno-0-98" name="__codelineno-0-98"></a>        <span class="n">iou_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
-</span><span id="__span-0-99"><a id="__codelineno-0-99" name="__codelineno-0-99"></a>        <span class="n">match_metric</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;IOU&quot;</span><span class="p">,</span>
+</span><span id="__span-0-99"><a id="__codelineno-0-99" name="__codelineno-0-99"></a>        <span class="n">overlap_metric</span><span class="p">:</span> <span class="n">OverlapMetric</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">OverlapMetric</span><span class="o">.</span><span class="n">IOU</span><span class="p">,</span>
 </span><span id="__span-0-100"><a id="__codelineno-0-100" name="__codelineno-0-100"></a>        <span class="n">thread_workers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
 </span><span id="__span-0-101"><a id="__codelineno-0-101" name="__codelineno-0-101"></a>    <span class="p">):</span>
 </span><span id="__span-0-102"><a id="__codelineno-0-102" name="__codelineno-0-102"></a>        <span class="k">if</span> <span class="n">overlap_ratio_wh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -3198,7 +3198,7 @@ not a multiple of the slice's width or height minus the overlap.</p>
 </span><span id="__span-0-112"><a id="__codelineno-0-112" name="__codelineno-0-112"></a>
 </span><span id="__span-0-113"><a id="__codelineno-0-113" name="__codelineno-0-113"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">slice_wh</span> <span class="o">=</span> <span class="n">slice_wh</span>
 </span><span id="__span-0-114"><a id="__codelineno-0-114" name="__codelineno-0-114"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">iou_threshold</span> <span class="o">=</span> <span class="n">iou_threshold</span>
-</span><span id="__span-0-115"><a id="__codelineno-0-115" name="__codelineno-0-115"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">match_metric</span> <span class="o">=</span> <span class="n">match_metric</span>
+</span><span id="__span-0-115"><a id="__codelineno-0-115" name="__codelineno-0-115"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">overlap_metric</span> <span class="o">=</span> <span class="n">OverlapMetric</span><span class="o">.</span><span class="n">from_value</span><span class="p">(</span><span class="n">overlap_metric</span><span class="p">)</span>
 </span><span id="__span-0-116"><a id="__codelineno-0-116" name="__codelineno-0-116"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">overlap_filter</span> <span class="o">=</span> <span class="n">OverlapFilter</span><span class="o">.</span><span class="n">from_value</span><span class="p">(</span><span class="n">overlap_filter</span><span class="p">)</span>
 </span><span id="__span-0-117"><a id="__codelineno-0-117" name="__codelineno-0-117"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">callback</span> <span class="o">=</span> <span class="n">callback</span>
 </span><span id="__span-0-118"><a id="__codelineno-0-118" name="__codelineno-0-118"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">thread_workers</span> <span class="o">=</span> <span class="n">thread_workers</span>
@@ -3259,11 +3259,11 @@ not a multiple of the slice's width or height minus the overlap.</p>
 </span><span id="__span-0-173"><a id="__codelineno-0-173" name="__codelineno-0-173"></a>            <span class="k">return</span> <span class="n">merged</span>
 </span><span id="__span-0-174"><a id="__codelineno-0-174" name="__codelineno-0-174"></a>        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">overlap_filter</span> <span class="o">==</span> <span class="n">OverlapFilter</span><span class="o">.</span><span class="n">NON_MAX_SUPPRESSION</span><span class="p">:</span>
 </span><span id="__span-0-175"><a id="__codelineno-0-175" name="__codelineno-0-175"></a>            <span class="k">return</span> <span class="n">merged</span><span class="o">.</span><span class="n">with_nms</span><span class="p">(</span>
-</span><span id="__span-0-176"><a id="__codelineno-0-176" name="__codelineno-0-176"></a>                <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">iou_threshold</span><span class="p">,</span> <span class="n">match_metric</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">match_metric</span>
+</span><span id="__span-0-176"><a id="__codelineno-0-176" name="__codelineno-0-176"></a>                <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">iou_threshold</span><span class="p">,</span> <span class="n">overlap_metric</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">overlap_metric</span>
 </span><span id="__span-0-177"><a id="__codelineno-0-177" name="__codelineno-0-177"></a>            <span class="p">)</span>
 </span><span id="__span-0-178"><a id="__codelineno-0-178" name="__codelineno-0-178"></a>        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">overlap_filter</span> <span class="o">==</span> <span class="n">OverlapFilter</span><span class="o">.</span><span class="n">NON_MAX_MERGE</span><span class="p">:</span>
 </span><span id="__span-0-179"><a id="__codelineno-0-179" name="__codelineno-0-179"></a>            <span class="k">return</span> <span class="n">merged</span><span class="o">.</span><span class="n">with_nmm</span><span class="p">(</span>
-</span><span id="__span-0-180"><a id="__codelineno-0-180" name="__codelineno-0-180"></a>                <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">iou_threshold</span><span class="p">,</span> <span class="n">match_metric</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">match_metric</span>
+</span><span id="__span-0-180"><a id="__codelineno-0-180" name="__codelineno-0-180"></a>                <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">iou_threshold</span><span class="p">,</span> <span class="n">overlap_metric</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">overlap_metric</span>
 </span><span id="__span-0-181"><a id="__codelineno-0-181" name="__codelineno-0-181"></a>            <span class="p">)</span>
 </span><span id="__span-0-182"><a id="__codelineno-0-182" name="__codelineno-0-182"></a>        <span class="k">else</span><span class="p">:</span>
 </span><span id="__span-0-183"><a id="__codelineno-0-183" name="__codelineno-0-183"></a>            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
@@ -3622,11 +3622,11 @@ results from all slices and applying NMS.</p>
 </span><span id="__span-0-173"><a id="__codelineno-0-173" name="__codelineno-0-173"></a>        <span class="k">return</span> <span class="n">merged</span>
 </span><span id="__span-0-174"><a id="__codelineno-0-174" name="__codelineno-0-174"></a>    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">overlap_filter</span> <span class="o">==</span> <span class="n">OverlapFilter</span><span class="o">.</span><span class="n">NON_MAX_SUPPRESSION</span><span class="p">:</span>
 </span><span id="__span-0-175"><a id="__codelineno-0-175" name="__codelineno-0-175"></a>        <span class="k">return</span> <span class="n">merged</span><span class="o">.</span><span class="n">with_nms</span><span class="p">(</span>
-</span><span id="__span-0-176"><a id="__codelineno-0-176" name="__codelineno-0-176"></a>            <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">iou_threshold</span><span class="p">,</span> <span class="n">match_metric</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">match_metric</span>
+</span><span id="__span-0-176"><a id="__codelineno-0-176" name="__codelineno-0-176"></a>            <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">iou_threshold</span><span class="p">,</span> <span class="n">overlap_metric</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">overlap_metric</span>
 </span><span id="__span-0-177"><a id="__codelineno-0-177" name="__codelineno-0-177"></a>        <span class="p">)</span>
 </span><span id="__span-0-178"><a id="__codelineno-0-178" name="__codelineno-0-178"></a>    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">overlap_filter</span> <span class="o">==</span> <span class="n">OverlapFilter</span><span class="o">.</span><span class="n">NON_MAX_MERGE</span><span class="p">:</span>
 </span><span id="__span-0-179"><a id="__codelineno-0-179" name="__codelineno-0-179"></a>        <span class="k">return</span> <span class="n">merged</span><span class="o">.</span><span class="n">with_nmm</span><span class="p">(</span>
-</span><span id="__span-0-180"><a id="__codelineno-0-180" name="__codelineno-0-180"></a>            <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">iou_threshold</span><span class="p">,</span> <span class="n">match_metric</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">match_metric</span>
+</span><span id="__span-0-180"><a id="__codelineno-0-180" name="__codelineno-0-180"></a>            <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">iou_threshold</span><span class="p">,</span> <span class="n">overlap_metric</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">overlap_metric</span>
 </span><span id="__span-0-181"><a id="__codelineno-0-181" name="__codelineno-0-181"></a>        <span class="p">)</span>
 </span><span id="__span-0-182"><a id="__codelineno-0-182" name="__codelineno-0-182"></a>    <span class="k">else</span><span class="p">:</span>
 </span><span id="__span-0-183"><a id="__codelineno-0-183" name="__codelineno-0-183"></a>        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>

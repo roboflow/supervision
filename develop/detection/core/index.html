@@ -8196,8 +8196,8 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-1939"><a id="__codelineno-0-1939" name="__codelineno-0-1939"></a><span class="sd">            class_agnostic (bool): Whether to perform class-agnostic</span>
 </span><span id="__span-0-1940"><a id="__codelineno-0-1940" name="__codelineno-0-1940"></a><span class="sd">                non-maximum suppression. If True, the class_id of each detection</span>
 </span><span id="__span-0-1941"><a id="__codelineno-0-1941" name="__codelineno-0-1941"></a><span class="sd">                will be ignored. Defaults to False.</span>
-</span><span id="__span-0-1942"><a id="__codelineno-0-1942" name="__codelineno-0-1942"></a><span class="sd">            overlap_metric (OverlapMetric): Metric used for measuring overlap between</span>
-</span><span id="__span-0-1943"><a id="__codelineno-0-1943" name="__codelineno-0-1943"></a><span class="sd">                detections in slices.</span>
+</span><span id="__span-0-1942"><a id="__codelineno-0-1942" name="__codelineno-0-1942"></a><span class="sd">            overlap_metric (OverlapMetric): Metric used to compute the degree of</span>
+</span><span id="__span-0-1943"><a id="__codelineno-0-1943" name="__codelineno-0-1943"></a><span class="sd">                overlap between pairs of masks or boxes (e.g., IoU, IoS).</span>
 </span><span id="__span-0-1944"><a id="__codelineno-0-1944" name="__codelineno-0-1944"></a>
 </span><span id="__span-0-1945"><a id="__codelineno-0-1945" name="__codelineno-0-1945"></a><span class="sd">        Returns:</span>
 </span><span id="__span-0-1946"><a id="__codelineno-0-1946" name="__codelineno-0-1946"></a><span class="sd">            Detections: A new Detections object containing the subset of detections</span>
@@ -8260,8 +8260,8 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-2003"><a id="__codelineno-0-2003" name="__codelineno-0-2003"></a><span class="sd">            class_agnostic (bool): Whether to perform class-agnostic</span>
 </span><span id="__span-0-2004"><a id="__codelineno-0-2004" name="__codelineno-0-2004"></a><span class="sd">                non-maximum merging. If True, the class_id of each detection</span>
 </span><span id="__span-0-2005"><a id="__codelineno-0-2005" name="__codelineno-0-2005"></a><span class="sd">                will be ignored. Defaults to False.</span>
-</span><span id="__span-0-2006"><a id="__codelineno-0-2006" name="__codelineno-0-2006"></a><span class="sd">            overlap_metric (OverlapMetric): Metric used for measuring overlap between</span>
-</span><span id="__span-0-2007"><a id="__codelineno-0-2007" name="__codelineno-0-2007"></a><span class="sd">                detections in slices.</span>
+</span><span id="__span-0-2006"><a id="__codelineno-0-2006" name="__codelineno-0-2006"></a><span class="sd">            overlap_metric (OverlapMetric): Metric used to compute the degree of</span>
+</span><span id="__span-0-2007"><a id="__codelineno-0-2007" name="__codelineno-0-2007"></a><span class="sd">                overlap between pairs of masks or boxes (e.g., IoU, IoS).</span>
 </span><span id="__span-0-2008"><a id="__codelineno-0-2008" name="__codelineno-0-2008"></a>
 </span><span id="__span-0-2009"><a id="__codelineno-0-2009" name="__codelineno-0-2009"></a><span class="sd">        Returns:</span>
 </span><span id="__span-0-2010"><a id="__codelineno-0-2010" name="__codelineno-0-2010"></a><span class="sd">            Detections: A new Detections object containing the subset of detections</span>
@@ -14828,8 +14828,8 @@ will be ignored. Defaults to False.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Metric used for measuring overlap between
-detections in slices.</p>
+                <p>Metric used to compute the degree of
+overlap between pairs of masks or boxes (e.g., IoU, IoS).</p>
               </div>
             </td>
             <td>
@@ -14983,8 +14983,8 @@ class_agnostic is False.</p>
 </span><span id="__span-0-2003"><a id="__codelineno-0-2003" name="__codelineno-0-2003"></a><span class="sd">        class_agnostic (bool): Whether to perform class-agnostic</span>
 </span><span id="__span-0-2004"><a id="__codelineno-0-2004" name="__codelineno-0-2004"></a><span class="sd">            non-maximum merging. If True, the class_id of each detection</span>
 </span><span id="__span-0-2005"><a id="__codelineno-0-2005" name="__codelineno-0-2005"></a><span class="sd">            will be ignored. Defaults to False.</span>
-</span><span id="__span-0-2006"><a id="__codelineno-0-2006" name="__codelineno-0-2006"></a><span class="sd">        overlap_metric (OverlapMetric): Metric used for measuring overlap between</span>
-</span><span id="__span-0-2007"><a id="__codelineno-0-2007" name="__codelineno-0-2007"></a><span class="sd">            detections in slices.</span>
+</span><span id="__span-0-2006"><a id="__codelineno-0-2006" name="__codelineno-0-2006"></a><span class="sd">        overlap_metric (OverlapMetric): Metric used to compute the degree of</span>
+</span><span id="__span-0-2007"><a id="__codelineno-0-2007" name="__codelineno-0-2007"></a><span class="sd">            overlap between pairs of masks or boxes (e.g., IoU, IoS).</span>
 </span><span id="__span-0-2008"><a id="__codelineno-0-2008" name="__codelineno-0-2008"></a>
 </span><span id="__span-0-2009"><a id="__codelineno-0-2009" name="__codelineno-0-2009"></a><span class="sd">    Returns:</span>
 </span><span id="__span-0-2010"><a id="__codelineno-0-2010" name="__codelineno-0-2010"></a><span class="sd">        Detections: A new Detections object containing the subset of detections</span>
@@ -15118,8 +15118,8 @@ will be ignored. Defaults to False.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Metric used for measuring overlap between
-detections in slices.</p>
+                <p>Metric used to compute the degree of
+overlap between pairs of masks or boxes (e.g., IoU, IoS).</p>
               </div>
             </td>
             <td>
@@ -15266,8 +15266,8 @@ If <code>class_id</code> is None and class_agnostic is False.</p>
 </span><span id="__span-0-1939"><a id="__codelineno-0-1939" name="__codelineno-0-1939"></a><span class="sd">        class_agnostic (bool): Whether to perform class-agnostic</span>
 </span><span id="__span-0-1940"><a id="__codelineno-0-1940" name="__codelineno-0-1940"></a><span class="sd">            non-maximum suppression. If True, the class_id of each detection</span>
 </span><span id="__span-0-1941"><a id="__codelineno-0-1941" name="__codelineno-0-1941"></a><span class="sd">            will be ignored. Defaults to False.</span>
-</span><span id="__span-0-1942"><a id="__codelineno-0-1942" name="__codelineno-0-1942"></a><span class="sd">        overlap_metric (OverlapMetric): Metric used for measuring overlap between</span>
-</span><span id="__span-0-1943"><a id="__codelineno-0-1943" name="__codelineno-0-1943"></a><span class="sd">            detections in slices.</span>
+</span><span id="__span-0-1942"><a id="__codelineno-0-1942" name="__codelineno-0-1942"></a><span class="sd">        overlap_metric (OverlapMetric): Metric used to compute the degree of</span>
+</span><span id="__span-0-1943"><a id="__codelineno-0-1943" name="__codelineno-0-1943"></a><span class="sd">            overlap between pairs of masks or boxes (e.g., IoU, IoS).</span>
 </span><span id="__span-0-1944"><a id="__codelineno-0-1944" name="__codelineno-0-1944"></a>
 </span><span id="__span-0-1945"><a id="__codelineno-0-1945" name="__codelineno-0-1945"></a><span class="sd">    Returns:</span>
 </span><span id="__span-0-1946"><a id="__codelineno-0-1946" name="__codelineno-0-1946"></a><span class="sd">        Detections: A new Detections object containing the subset of detections</span>
