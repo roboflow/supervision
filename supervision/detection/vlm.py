@@ -5,7 +5,7 @@ import io
 import json
 import re
 from enum import Enum
-from typing import Any
+from typing import Any, get_origin
 
 import numpy as np
 from PIL import Image
@@ -39,6 +39,7 @@ class LMM(Enum):
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
     MOONDREAM = "moondream"
+    KOSMOS = "kosmos"
 
     @classmethod
     def list(cls):
@@ -79,6 +80,7 @@ class VLM(Enum):
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
     MOONDREAM = "moondream"
+    KOSMOS = "kosmos"
 
     @classmethod
     def list(cls):
@@ -107,6 +109,9 @@ RESULT_TYPES: dict[VLM, type] = {
     VLM.GOOGLE_GEMINI_2_0: str,
     VLM.GOOGLE_GEMINI_2_5: str,
     VLM.MOONDREAM: dict,
+    VLM.KOSMOS: tuple[
+        str, list[tuple[str, tuple[int, int], list[tuple[int, int, int, int]]]]
+    ],
 }
 
 REQUIRED_ARGUMENTS: dict[VLM, list[str]] = {
@@ -116,6 +121,7 @@ REQUIRED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh"],
     VLM.MOONDREAM: ["resolution_wh"],
+    VLM.KOSMOS: ["resolution_wh"],
 }
 
 ALLOWED_ARGUMENTS: dict[VLM, list[str]] = {
@@ -125,6 +131,7 @@ ALLOWED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh", "classes"],
     VLM.MOONDREAM: ["resolution_wh"],
+    VLM.KOSMOS: ["resolution_wh"],
 }
 
 SUPPORTED_TASKS_FLORENCE_2 = [
@@ -164,9 +171,11 @@ def validate_vlm_parameters(vlm: VLM | str, result: Any, kwargs: dict[str, Any])
                 f"Invalid vlm value: {vlm}. Must be one of {[e.value for e in VLM]}"
             )
 
-    if not isinstance(result, RESULT_TYPES[vlm]):
+    expected_type = RESULT_TYPES[vlm]
+    origin_type = get_origin(expected_type) or expected_type
+    if not isinstance(result, origin_type):
         raise ValueError(
-            f"Invalid VLM result type: {type(result)}. Must be {RESULT_TYPES[vlm]}"
+            f"Invalid VLM result type: {type(result)}. Must be {expected_type}"
         )
 
     required_args = REQUIRED_ARGUMENTS.get(vlm, [])
@@ -717,3 +726,20 @@ def from_moondream(
         return np.empty((0, 4))
 
     return np.array(denormalize_xyxy, dtype=float)
+
+
+def from_kosmos(
+    result: tuple[
+        str, list[tuple[str, tuple[int, int], list[tuple[int, int, int, int]]]]
+    ],
+    resolution_wh: tuple[int, int],
+) -> tuple[np.ndarray]:
+    """
+    Parse and scale bounding boxes from kosmos JSON output.
+    """
+    _, entity_locations = result
+    xyxy, class_names = [], []
+    for class_name, _, [bbox] in entity_locations:
+        xyxy.append(denormalize_boxes(np.array(bbox), resolution_wh=resolution_wh))
+        class_names.append(class_name)
+    return np.array(xyxy).reshape(-1, 4), np.array(range(len(xyxy))), class_names

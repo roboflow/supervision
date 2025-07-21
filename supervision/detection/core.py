@@ -43,6 +43,7 @@ from supervision.detection.vlm import (
     from_florence_2,
     from_google_gemini_2_0,
     from_google_gemini_2_5,
+    from_kosmos,
     from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
@@ -1452,6 +1453,36 @@ class Detections:
             #        [1908.01, 1346.67, 2585.99, 2024.11]])
             ```
 
+        !!! example "Kosmos-2"
+            ```python
+
+            import supervision as sv
+
+            kosmos_result = (
+                'An image of a small statue of a cat, with a gramophone and a man walking past in the background.',
+                [
+                    ('a small statue of a cat', (12, 35), [(0.265625, 0.015625, 0.703125, 0.984375)]),
+                    ('a gramophone', (42, 54), [(0.234375, 0.015625, 0.703125, 0.515625)]),
+                    ('a man', (59, 64), [(0.015625, 0.390625, 0.171875, 0.984375)])
+                ]
+            )
+            detections = sv.Detections.from_vlm(
+                sv.VLM.KOSMOS,
+                kosmos_result,
+                resolution_wh=image.size,
+            )
+            detections.xyxy
+            # array([[310.78125,  11.625  , 822.65625, 732.375  ],
+            # [274.21875,  11.625  , 822.65625, 383.625  ],
+            # [ 18.28125, 290.625  , 201.09375, 732.375  ]])
+
+            detections.class_id
+            # array([0, 1, 2])
+
+            detections.data
+            # {'class_name': array(['a small statue of a cat', 'a gramophone', 'a man'])}
+            ```
+
         """  # noqa: E501
 
         vlm = validate_vlm_parameters(vlm, result, kwargs)
@@ -1499,6 +1530,12 @@ class Detections:
                 mask=mask,
                 confidence=confidence,
                 data=data,
+            )
+
+        if vlm == VLM.KOSMOS:
+            xyxy, class_id, class_name = from_kosmos(result, **kwargs)
+            return cls(
+                xyxy=xyxy, class_id=class_id, data={CLASS_NAME_DATA_FIELD: class_name}
             )
 
         return cls.empty()
