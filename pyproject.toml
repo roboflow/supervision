@@ -2,7 +2,7 @@
 name = "supervision"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 license = { text = "MIT" }
-version = "0.26.1"
+version = "0.26.1rc0"
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
