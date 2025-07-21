@@ -735,8 +735,38 @@ def from_kosmos(
     resolution_wh: tuple[int, int],
 ) -> tuple[np.ndarray]:
     """
-    Parse and scale bounding boxes from kosmos JSON output.
-    """
+    Parse and scale bounding boxes from kosmos-2 result.
+
+    The result is a tuple of a string and a list of tuples.
+    The first element of the tuple is the caption.
+    The second element of the tuple is a list of tuples containing the class name,
+    the start and end index of the class name in the caption,
+    and the bounding box coordinates normalized to the range [0, 1].
+
+    The result is supposed to be in the following format:
+    ```python
+    result = (
+        'An image of a small statue of a cat, with a gramophone and a man walking past in the background.',
+        [
+            ('a small statue of a cat', (12, 35), [(0.265625, 0.015625, 0.703125, 0.984375)]),
+            ('a gramophone', (42, 54), [(0.234375, 0.015625, 0.703125, 0.515625)]),
+            ('a man', (59, 64), [(0.015625, 0.390625, 0.171875, 0.984375)])
+        ]
+    )
+    ```
+
+    Args:
+        result: The result from the kosmos-2 model.
+        resolution_wh: (output_width, output_height) to which we rescale the boxes.
+
+    Returns:
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing
+            the bounding boxes coordinates in format `[x1, y1, x2, y2]`
+        class_id (np.ndarray): An array of shape `(n,)` containing
+            the class indices for each bounding box
+        class_name (np.ndarray): An array of shape `(n,)` containing
+            the class labels for each bounding box
+    """  # noqa: E501
     _, entity_locations = result
     xyxy, class_names = [], []
     for item in entity_locations:
