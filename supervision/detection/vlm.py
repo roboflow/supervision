@@ -739,7 +739,9 @@ def from_kosmos(
     """
     _, entity_locations = result
     xyxy, class_names = [], []
-    for class_name, _, [bbox] in entity_locations:
+    for item in entity_locations:
+        class_name = item[0]
+        bbox = item[2][0]
         xyxy.append(denormalize_boxes(np.array(bbox), resolution_wh=resolution_wh))
         class_names.append(class_name)
     return np.array(xyxy).reshape(-1, 4), np.array(range(len(xyxy))), class_names
