@@ -4,7 +4,7 @@
 
 - Fix ([1894](https://github.com/roboflow/supervision/pull/1894)): Fixed error in `sv.MeanAveragePrecision` where the area used for size-specific evaluation (small / medium / large) was always zero unless explicitly provided in `sv.Detections.data`.
 
-- Fix ([1895](https://github.com/roboflow/supervision/pull/1895)): Fixed `ID=0` bug in `sv.MeanAveragePrecision` where objects were getting `0.0` mAP despite perfect IoU matches due to a bug in annotation ID assignment. 
+- Fix ([1895](https://github.com/roboflow/supervision/pull/1895)): Fixed `ID=0` bug in `sv.MeanAveragePrecision` where objects were getting `0.0` mAP despite perfect IoU matches due to a bug in annotation ID assignment.
 
 -  Fix ([1898](https://github.com/roboflow/supervision/pull/1898)): Fixed issue where `sv.MeanAveragePrecision` could return negative values when certain object size categories have no data.
 
