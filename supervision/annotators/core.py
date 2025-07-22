@@ -2239,8 +2239,11 @@ class PercentageBarAnnotator(BaseAnnotator):
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
 
-        if border_thickness is None:
-            self.border_thickness = int(0.15 * self.height)
+        self.border_thickness = (
+            border_thickness
+            if border_thickness is not None
+            else int(0.15 * self.height)
+        )
 
     @ensure_cv2_image_for_annotation
     def annotate(
