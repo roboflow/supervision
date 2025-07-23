@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import numpy as np
 import scipy.linalg
 
@@ -30,7 +28,7 @@ class KalmanFilter:
         self._std_weight_position = 1.0 / 20
         self._std_weight_velocity = 1.0 / 160
 
-    def initiate(self, measurement: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def initiate(self, measurement: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """
         Create track from an unassociated measurement.
 
@@ -62,7 +60,7 @@ class KalmanFilter:
 
     def predict(
         self, mean: np.ndarray, covariance: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Run Kalman filter prediction step.
 
@@ -101,7 +99,7 @@ class KalmanFilter:
 
     def project(
         self, mean: np.ndarray, covariance: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Project state distribution to measurement space.
 
@@ -129,7 +127,7 @@ class KalmanFilter:
 
     def multi_predict(
         self, mean: np.ndarray, covariance: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Run Kalman filter prediction step (Vectorized version).
 
@@ -171,7 +169,7 @@ class KalmanFilter:
 
     def update(
         self, mean: np.ndarray, covariance: np.ndarray, measurement: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Run Kalman filter correction step.
 

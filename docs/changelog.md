@@ -1,5 +1,192 @@
 # Changelog
 
+### 0.26.1 <small>Jul 22, 2025</small>
+
+- Fixed [1894](https://github.com/roboflow/supervision/pull/1894): Error in [`sv.MeanAveragePrecision`](https://supervision.roboflow.com/0.26.1/metrics/mean_average_precision/#supervision.metrics.mean_average_precision.MeanAveragePrecision) where the area used for size-specific evaluation (small / medium / large) was always zero unless explicitly provided in `sv.Detections.data`.
+
+- Fixed [1895](https://github.com/roboflow/supervision/pull/1895): `ID=0` bug in [`sv.MeanAveragePrecision`](https://supervision.roboflow.com/0.26.1/metrics/mean_average_precision/#supervision.metrics.mean_average_precision.MeanAveragePrecision) where objects were getting `0.0` mAP despite perfect IoU matches due to a bug in annotation ID assignment.
+
+- Fixed [1898](https://github.com/roboflow/supervision/pull/1898): Issue where [`sv.MeanAveragePrecision`](https://supervision.roboflow.com/0.26.1/metrics/mean_average_precision/#supervision.metrics.mean_average_precision.MeanAveragePrecision) could return negative values when certain object size categories have no data.
+
+- Fixed [1901](https://github.com/roboflow/supervision/pull/1901): `match_metric` support for [`sv.Detections.with_nms`](https://supervision.roboflow.com/0.26.1/metrics/mean_average_precision/#supervision.detection.core.Detections.with_nms).
+
+- Fixed [1906](https://github.com/roboflow/supervision/pull/1906): `border_thickness` parameter usage for [`sv.PercentageBarAnnotator`](https://supervision.roboflow.com/0.26.1/metrics/mean_average_precision/#supervision.annotators.core.PercentageBarAnnotator).
+
+### 0.26.0 <small>Jul 16, 2025</small>
+
+!!! failure "Removed"
+    `supervision-0.26.0` drops `python3.8` support and upgrade all codes to `python3.9` syntax style.
+
+!!! info "Tip"
+    Supervision’s documentation theme now has a fresh look that is consistent with the documentations of all Roboflow open-source projects. ([#1858](https://github.com/roboflow/supervision/pull/1858))
+
+- Added [#1774](https://github.com/roboflow/supervision/pull/1774): Support for the IOS (Intersection over Smallest) overlap metric that measures how much of the smaller object is covered by the larger one in [`sv.Detections.with_nms`](https://supervision.roboflow.com/0.26.0/detection/core/#supervision.detection.core.Detections.with_nms), [`sv.Detections.with_nmm`](https://supervision.roboflow.com/0.26.0/detection/core/#supervision.detection.core.Detections.with_nmm), [`sv.box_iou_batch`](https://supervision.roboflow.com/0.26.0/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.box_iou_batch), and [`sv.mask_iou_batch`](https://supervision.roboflow.com/0.26.0/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.mask_iou_batch).
+
+    ```python
+    import numpy as np
+    import supervision as sv
+
+    boxes_true = np.array([
+        [100, 100, 200, 200],
+        [300, 300, 400, 400]
+    ])
+    boxes_detection = np.array([
+        [150, 150, 250, 250],
+        [320, 320, 420, 420]
+    ])
+
+    sv.box_iou_batch(
+        boxes_true=boxes_true,
+        boxes_detection=boxes_detection,
+        overlap_metric=sv.OverlapMetric.IOU
+    )
+
+    # array([[0.14285714, 0.        ],
+    #        [0.        , 0.47058824]])
+
+    sv.box_iou_batch(
+        boxes_true=boxes_true,
+        boxes_detection=boxes_detection,
+        overlap_metric=sv.OverlapMetric.IOS
+    )
+
+    # array([[0.25, 0.  ],
+    #        [0.  , 0.64]])
+    ```
+
+- Added [#1874](https://github.com/roboflow/supervision/pull/1874): [`sv.box_iou`](https://supervision.roboflow.com/0.26.0/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.box_iou) that efficiently computes the Intersection over Union (IoU) between two individual bounding boxes.
+
+- Added [#1816](https://github.com/roboflow/supervision/pull/1816): Support for frame limitations and progress bar in [`sv.process_video`](https://supervision.roboflow.com/0.26.0/utils/video/#supervision.utils.video.process_video).
+
+- Added [#1788](https://github.com/roboflow/supervision/pull/1788): Support for creating [`sv.KeyPoints`](https://supervision.roboflow.com/0.26.0/keypoint/core/#supervision.keypoint.core.KeyPoints) objects from [ViTPose](https://huggingface.co/docs/transformers/en/model_doc/vitpose) and [ViTPose++](https://huggingface.co/docs/transformers/en/model_doc/vitpose#vitpose-models) inference results via [`sv.KeyPoints.from_transformers`](https://supervision.roboflow.com/0.26.0/keypoint/core/#supervision.keypoint.core.KeyPoints.from_transformers).
+
+- Added [#1823](https://github.com/roboflow/supervision/pull/1823): [`sv.xyxy_to_xcycarh`](https://supervision.roboflow.com/0.26.0/detection/utils/converters/#supervision.detection.utils.converters.xyxy_to_xcycarh) function to convert bounding box coordinates from `(x_min, y_min, x_max, y_max)` into measurement space to format `(center x, center y, aspect ratio, height)`, where the aspect ratio is `width / height`.
+
+- Added [#1788](https://github.com/roboflow/supervision/pull/1788): [`sv.xyxy_to_xywh`](https://supervision.roboflow.com/0.26.0/detection/utils/converters/#supervision.detection.utils.converters.xyxy_to_xywh) function to convert bounding box coordinates from `(x_min, y_min, x_max, y_max)` format to `(x, y, width, height)` format.
+
+- Changed [#1820](https://github.com/roboflow/supervision/pull/1820): [`sv.LabelAnnotator`](https://supervision.roboflow.com/0.26.0/detection/annotators/#supervision.annotators.core.LabelAnnotator) now supports the `smart_position` parameter to automatically keep labels within frame boundaries, and the `max_line_length` parameter to control text wrapping for long or multi-line labels.
+
+- Changed [#1825](https://github.com/roboflow/supervision/pull/1825): [`sv.LabelAnnotator`](https://supervision.roboflow.com/0.26.0/detection/annotators/#supervision.annotators.core.LabelAnnotator) now supports non-string labels.
+
+- Changed [#1792](https://github.com/roboflow/supervision/pull/1792): [`sv.Detections.from_vlm`](https://supervision.roboflow.com/0.26.0/detection/core/#supervision.detection.core.Detections.from_vlm) now supports parsing bounding boxes and segmentation masks from responses generated by [Google Gemini models](https://ai.google.dev/gemini-api/docs/vision).
+
+    ```python
+    import supervision as sv
+
+    gemini_response_text = """```json
+        [
+            {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
+            {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
+        ]
+    ```"""
+
+    detections = sv.Detections.from_vlm(
+        sv.VLM.GOOGLE_GEMINI_2_5,
+        gemini_response_text,
+        resolution_wh=(1000, 1000),
+        classes=['cat', 'dog'],
+    )
+
+    detections.xyxy
+    # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
+
+    detections.data
+    # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+
+    detections.class_id
+    # array([0, 1])
+    ```
+
+- Changed [#1878](https://github.com/roboflow/supervision/pull/1878): [`sv.Detections.from_vlm`](https://supervision.roboflow.com/0.26.0/detection/core/#supervision.detection.core.Detections.from_vlm) now supports parsing bounding boxes from responses generated by [Moondream](https://github.com/vikhyat/moondream).
+
+    ```python
+    import supervision as sv
+
+    moondream_result = {
+        'objects': [
+            {
+                'x_min': 0.5704046934843063,
+                'y_min': 0.20069346576929092,
+                'x_max': 0.7049859315156937,
+                'y_max': 0.3012596592307091
+            },
+            {
+                'x_min': 0.6210969910025597,
+                'y_min': 0.3300672620534897,
+                'x_max': 0.8417936339974403,
+                'y_max': 0.4961046129465103
+            }
+        ]
+    }
+
+    detections = sv.Detections.from_vlm(
+        sv.VLM.MOONDREAM,
+        moondream_result,
+        resolution_wh=(1000, 1000),
+    )
+
+    detections.xyxy
+    # array([[1752.28,  818.82, 2165.72, 1229.14],
+    #        [1908.01, 1346.67, 2585.99, 2024.11]])
+    ```
+
+- Changed [#1709](https://github.com/roboflow/supervision/pull/1790): [`sv.Detections.from_vlm`](https://supervision.roboflow.com/0.26.0/detection/core/#supervision.detection.core.Detections.from_vlm) now supports parsing bounding boxes from responses generated by [Qwen-2.5 VL](https://github.com/QwenLM/Qwen2.5-VL).
+
+    ```python
+    import supervision as sv
+
+    qwen_2_5_vl_result = """```json
+    [
+        {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+        {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+    ]
+    ```"""
+
+    detections = sv.Detections.from_vlm(
+        sv.VLM.QWEN_2_5_VL,
+        qwen_2_5_vl_result,
+        input_wh=(1000, 1000),
+        resolution_wh=(1000, 1000),
+        classes=['cat', 'dog'],
+    )
+
+    detections.xyxy
+    # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
+
+    detections.class_id
+    # array([0, 1])
+
+    detections.data
+    # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+    detections.class_id
+    # array([0, 1])
+    ```
+
+- Changed [#1786](https://github.com/roboflow/supervision/pull/1786): Significantly improved the speed of HSV color mapping in [`sv.HeatMapAnnotator`](https://supervision.roboflow.com/0.26.0/detection/annotators/#supervision.annotators.core.HeatMapAnnotator), achieving approximately 28x faster performance on 1920x1080 frames.
+
+- Fixed [#1834](https://github.com/roboflow/supervision/pull/1834): Supervision’s [`sv.MeanAveragePrecision`](https://supervision.roboflow.com/0.26.0/metrics/mean_average_precision/#supervision.metrics.mean_average_precision.MeanAveragePrecision) is now fully aligned with [pycocotools](https://github.com/ppwwyyxx/cocoapi), the official COCO evaluation tool, ensuring accurate and standardized metrics. This update enabled us to launch a new version of the [Computer Vision Model Leaderboard](https://leaderboard.roboflow.com/).
+
+    ```python
+    import supervision as sv
+    from supervision.metrics import MeanAveragePrecision
+
+    predictions = sv.Detections(...)
+    targets = sv.Detections(...)
+
+    map_metric = MeanAveragePrecision()
+    map_metric.update(predictions, targets).compute()
+
+    # Average Precision (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.464
+    # Average Precision (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.637
+    # Average Precision (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.203
+    # Average Precision (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.284
+    # Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.497
+    # Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.629
+    ```
+
+- Fixed [#1767](https://github.com/roboflow/supervision/pull/1767): Fixed losing `sv.Detections.data` when detections filtering.
+
 ### 0.25.0 <small>Nov 12, 2024</small>
 
 - No removals or deprecations in this release!
@@ -382,9 +569,9 @@ detections = sv.Detections.from_sam(sam_result=sam_result)
 
 - Changed [#1434](https://github.com/roboflow/supervision/pull/1434): [`InferenceSlicer`](https://supervision.roboflow.com/0.23.0/detection/tools/inference_slicer/) now features an `overlap_wh` parameter, making it easier to compute slice sizes when handling overlapping slices.
 
-- Fix [#1448](https://github.com/roboflow/supervision/pull/1448): Various annotator type issues have been resolved, supporting expanded error handling.
+- Fixed [#1448](https://github.com/roboflow/supervision/pull/1448): Various annotator type issues have been resolved, supporting expanded error handling.
 
-- Fix [#1348](https://github.com/roboflow/supervision/pull/1348): Introduced a new method for [seeking to a specific video frame](https://supervision.roboflow.com/0.23.0/utils/video/#supervision.utils.video.get_video_frames_generator), addressing cases where traditional seek methods were failing. It can be enabled with `iterative_seek=True`.
+- Fixed [#1348](https://github.com/roboflow/supervision/pull/1348): Introduced a new method for [seeking to a specific video frame](https://supervision.roboflow.com/0.23.0/utils/video/#supervision.utils.video.get_video_frames_generator), addressing cases where traditional seek methods were failing. It can be enabled with `iterative_seek=True`.
 
 ```python
 import supervision as sv
@@ -397,7 +584,7 @@ for frame in sv.get_video_frames_generator(
     ...
 ```
 
-- Fix [#1424](https://github.com/roboflow/supervision/pull/1424): `plot_image` function now clearly indicates that the size is in inches.
+- Fixed [#1424](https://github.com/roboflow/supervision/pull/1424): `plot_image` function now clearly indicates that the size is in inches.
 
 !!! failure "Removed"
 
@@ -1110,7 +1297,7 @@ array([
 
 ### 0.11.1 <small>June 29, 2023</small>
 
-- Fix [#165](https://github.com/roboflow/supervision/pull/165): [`as_folder_structure`](/0.11.1/dataset/core/#supervision.dataset.core.ClassificationDataset.as_folder_structure) fails to save [`sv.ClassificationDataset`](/0.11.1/dataset/core/#classificationdataset) when it is result of inference.
+- Fixed [#165](https://github.com/roboflow/supervision/pull/165): [`as_folder_structure`](/0.11.1/dataset/core/#supervision.dataset.core.ClassificationDataset.as_folder_structure) fails to save [`sv.ClassificationDataset`](/0.11.1/dataset/core/#classificationdataset) when it is result of inference.
 
 ### 0.11.0 <small>June 28, 2023</small>
 
@@ -1156,7 +1343,7 @@ array([
 
 - Added [#162](https://github.com/roboflow/supervision/pull/162): additional `start` and `end` arguments to [`sv.get_video_frames_generator`](/0.11.0/utils/video/#get_video_frames_generator) allowing to generate frames only for a selected part of the video.
 
-- Fix [#157](https://github.com/roboflow/supervision/pull/157): incorrect loading of YOLO dataset class names from `data.yaml`.
+- Fixed [#157](https://github.com/roboflow/supervision/pull/157): incorrect loading of YOLO dataset class names from `data.yaml`.
 
 ### 0.10.0 <small>June 14, 2023</small>
 

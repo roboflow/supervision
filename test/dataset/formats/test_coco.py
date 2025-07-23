@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pytest
@@ -19,9 +20,9 @@ def mock_coco_annotation(
     annotation_id: int = 0,
     image_id: int = 0,
     category_id: int = 0,
-    bbox: Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0),
+    bbox: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0),
     area: float = 0.0,
-    segmentation: Optional[Union[List[list], Dict]] = None,
+    segmentation: list[list] | dict | None = None,
     iscrowd: bool = False,
 ) -> dict:
     if not segmentation:
@@ -78,7 +79,7 @@ def mock_coco_annotation(
     ],
 )
 def test_coco_categories_to_classes(
-    coco_categories: List[dict], expected_result: List[str], exception: Exception
+    coco_categories: list[dict], expected_result: list[str], exception: Exception
 ) -> None:
     with exception:
         result = coco_categories_to_classes(coco_categories=coco_categories)
@@ -94,7 +95,7 @@ def test_coco_categories_to_classes(
     ],
 )
 def test_classes_to_coco_categories_and_back_to_classes(
-    classes: List[str], exception: Exception
+    classes: list[str], exception: Exception
 ) -> None:
     with exception:
         coco_categories = classes_to_coco_categories(classes=classes)
@@ -154,7 +155,7 @@ def test_classes_to_coco_categories_and_back_to_classes(
     ],
 )
 def test_group_coco_annotations_by_image_id(
-    coco_annotations: List[dict], expected_result: dict, exception: Exception
+    coco_annotations: list[dict], expected_result: dict, exception: Exception
 ) -> None:
     with exception:
         result = group_coco_annotations_by_image_id(coco_annotations=coco_annotations)
@@ -582,8 +583,8 @@ def test_group_coco_annotations_by_image_id(
     ],
 )
 def test_coco_annotations_to_detections(
-    image_annotations: List[dict],
-    resolution_wh: Tuple[int, int],
+    image_annotations: list[dict],
+    resolution_wh: tuple[int, int],
     with_masks: bool,
     use_iscrowd: bool,
     expected_result: Detections,
@@ -646,9 +647,9 @@ def test_coco_annotations_to_detections(
     ],
 )
 def test_build_coco_class_index_mapping(
-    coco_categories: List[dict],
-    target_classes: List[str],
-    expected_result: Dict[int, int],
+    coco_categories: list[dict],
+    target_classes: list[str],
+    expected_result: dict[int, int],
     exception: Exception,
 ) -> None:
     with exception:
@@ -774,7 +775,7 @@ def test_detections_to_coco_annotations(
     detections: Detections,
     image_id: int,
     annotation_id: int,
-    expected_result: List[Dict],
+    expected_result: list[dict],
     exception: Exception,
 ) -> None:
     with exception:

@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import math
 import warnings
 from collections import Counter, defaultdict, deque
+from collections.abc import Iterable
 from functools import lru_cache
-from typing import Any, Deque, Dict, Iterable, List, Literal, Optional, Tuple
+from typing import Any, Literal
 
 import cv2
 import numpy as np
@@ -10,7 +13,7 @@ import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
-from supervision.detection.utils import cross_product
+from supervision.detection.utils.internal import cross_product
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_rectangle, draw_text
 from supervision.geometry.core import Point, Position, Rect, Vector
@@ -99,7 +102,7 @@ class LineZone:
         self.vector = Vector(start=start, end=end)
         self.limits = self._calculate_region_of_interest_limits(vector=self.vector)
         self.crossing_history_length = max(2, minimum_crossing_threshold + 1)
-        self.crossing_state_history: Dict[int, Deque[bool]] = defaultdict(
+        self.crossing_state_history: dict[int, deque[bool]] = defaultdict(
             lambda: deque(maxlen=self.crossing_history_length)
         )
         self._in_count_per_class: Counter = Counter()
@@ -107,7 +110,7 @@ class LineZone:
         self.triggering_anchors = triggering_anchors
         if not list(self.triggering_anchors):
             raise ValueError("Triggering anchors cannot be empty.")
-        self.class_id_to_name: Dict[int, str] = {}
+        self.class_id_to_name: dict[int, str] = {}
 
     @property
     def in_count(self) -> int:
@@ -118,14 +121,14 @@ class LineZone:
         return sum(self._out_count_per_class.values())
 
     @property
-    def in_count_per_class(self) -> Dict[int, int]:
+    def in_count_per_class(self) -> dict[int, int]:
         return dict(self._in_count_per_class)
 
     @property
-    def out_count_per_class(self) -> Dict[int, int]:
+    def out_count_per_class(self) -> dict[int, int]:
         return dict(self._out_count_per_class)
 
-    def trigger(self, detections: Detections) -> Tuple[np.ndarray, np.ndarray]:
+    def trigger(self, detections: Detections) -> tuple[np.ndarray, np.ndarray]:
         """
         Update the `in_count` and `out_count` based on the objects that cross the line.
 
@@ -160,7 +163,7 @@ class LineZone:
             self._compute_anchor_sides(detections)
         )
 
-        class_ids: List[Optional[int]] = (
+        class_ids: list[int | None] = (
             list(detections.class_id)
             if detections.class_id is not None
             else [None] * len(detections)
@@ -200,7 +203,7 @@ class LineZone:
         return crossed_in, crossed_out
 
     @staticmethod
-    def _calculate_region_of_interest_limits(vector: Vector) -> Tuple[Vector, Vector]:
+    def _calculate_region_of_interest_limits(vector: Vector) -> tuple[Vector, Vector]:
         magnitude = vector.magnitude
 
         if magnitude == 0:
@@ -233,7 +236,7 @@ class LineZone:
 
     def _compute_anchor_sides(
         self, detections: Detections
-    ) -> Tuple[npt.NDArray[np.bool_], npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
+    ) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
         """
         Find if detections' anchors are within the limit of the line
         zone and which anchors are on its left and right side.
@@ -324,8 +327,8 @@ class LineZoneAnnotator:
         text_scale: float = 0.5,
         text_offset: float = 1.5,
         text_padding: int = 10,
-        custom_in_text: Optional[str] = None,
-        custom_out_text: Optional[str] = None,
+        custom_in_text: str | None = None,
+        custom_out_text: str | None = None,
         display_in_count: bool = True,
         display_out_count: bool = True,
         display_text_box: bool = True,
@@ -471,7 +474,7 @@ class LineZoneAnnotator:
         text_height: int,
         is_in_count: bool,
         label_dimension: int,
-    ) -> Tuple[int, int]:
+    ) -> tuple[int, int]:
         """
         Calculate insertion anchor in frame to position the center of the count image.
 
@@ -663,7 +666,7 @@ class LineZoneAnnotator:
         annotation = np.zeros((*annotation_shape, 3), dtype=np.uint8)
         annotation_alpha = np.zeros((*annotation_shape, 1), dtype=np.uint8)
 
-        text_args: Dict[str, Any] = dict(
+        text_args: dict[str, Any] = dict(
             text=text,
             text_anchor=annotation_center,
             text_scale=text_scale,
@@ -756,8 +759,8 @@ class LineZoneAnnotatorMulticlass:
     def annotate(
         self,
         frame: np.ndarray,
-        line_zones: List[LineZone],
-        line_zone_labels: Optional[List[str]] = None,
+        line_zones: list[LineZone],
+        line_zone_labels: list[str] | None = None,
     ) -> np.ndarray:
         """
         Draws a table with the number of objects of each class that crossed each line.

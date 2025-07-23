@@ -1,5 +1,4 @@
-opencv-python
-supervision>=0.20.0
-ultralytics<=8.3.40
-inference==0.9.17
+supervision
+ultralytics
+inference
 pytube

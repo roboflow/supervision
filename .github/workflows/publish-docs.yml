@@ -51,7 +51,7 @@ jobs:
 
       - name: 🏗️ Install dependencies
         run: |
-          uv pip install -r pyproject.toml --extra docs
+          uv pip install -r pyproject.toml --group docs
           # Install mkdocs-material-insiders using the GitHub App token
           uv pip install "git+https://roboflow:${{ steps.mkdocs_token.outputs.token }}@github.com/roboflow/mkdocs-material-insiders.git@9.5.49-insiders-4.53.14#egg=mkdocs-material[imaging]"
 

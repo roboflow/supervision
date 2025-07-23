@@ -2,9 +2,9 @@
 name = "supervision"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 license = { text = "MIT" }
-version = "0.26.0rc7"
+version = "0.26.1"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 authors = [
     { name = "Piotr Skalski", email = "piotr.skalski92@gmail.com" }
 ]
@@ -58,6 +58,8 @@ Documentation = "https://supervision.roboflow.com/latest/"
 metrics = [
     "pandas>=2.0.0",
 ]
+
+[dependency-groups]
 dev = [
     "pytest>=7.2.2,<9.0.0",
     "tox>=4.11.4",
@@ -73,7 +75,7 @@ docs = [
     "mkdocstrings-python>=1.10.9",
     "mike>=2.0.0",
     "mkdocs-jupyter>=0.24.3",
-    "mkdocs-git-committers-plugin-2>=2.4.1; python_version >= '3.8' and python_version < '4'",
+    "mkdocs-git-committers-plugin-2>=2.4.1; python_version >= '3.9' and python_version < '4'",
     "mkdocs-git-revision-date-localized-plugin>=1.2.4"
 ]
 build = [
@@ -91,7 +93,7 @@ check = true
 imports = ["cv2", "supervision"]
 
 [tool.ruff]
-target-version = "py38"
+target-version = "py39"
 
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -126,7 +128,7 @@ indent-width = 4
 
 [tool.ruff.lint]
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-select = ["E", "F", "I", "A", "Q", "W", "RUF"]
+select = ["E", "F", "I", "A", "Q", "W", "RUF", "UP"]
 ignore = []
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = [

@@ -1,5 +1,4 @@
 import argparse
-from typing import List
 
 import cv2
 import numpy as np
@@ -18,7 +17,7 @@ LABEL_ANNOTATOR = sv.LabelAnnotator(
 
 
 class CustomSink:
-    def __init__(self, zone_configuration_path: str, classes: List[int]):
+    def __init__(self, zone_configuration_path: str, classes: list[int]):
         self.classes = classes
         self.tracker = sv.ByteTrack(minimum_matching_threshold=0.5)
         self.fps_monitor = sv.FPSMonitor()
@@ -83,7 +82,7 @@ def main(
     model_id: str,
     confidence: float,
     iou: float,
-    classes: List[int],
+    classes: list[int],
 ) -> None:
     sink = CustomSink(zone_configuration_path=zone_configuration_path, classes=classes)
 
