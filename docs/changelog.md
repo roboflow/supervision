@@ -1,5 +1,17 @@
 # Changelog
 
+### 0.26.1 <small>Jul 22, 2025</small>
+
+- Fixed [1894](https://github.com/roboflow/supervision/pull/1894): Error in [`sv.MeanAveragePrecision`](https://supervision.roboflow.com/0.26.1/metrics/mean_average_precision/#supervision.metrics.mean_average_precision.MeanAveragePrecision) where the area used for size-specific evaluation (small / medium / large) was always zero unless explicitly provided in `sv.Detections.data`.
+
+- Fixed [1895](https://github.com/roboflow/supervision/pull/1895): `ID=0` bug in [`sv.MeanAveragePrecision`](https://supervision.roboflow.com/0.26.1/metrics/mean_average_precision/#supervision.metrics.mean_average_precision.MeanAveragePrecision) where objects were getting `0.0` mAP despite perfect IoU matches due to a bug in annotation ID assignment.
+
+- Fixed [1898](https://github.com/roboflow/supervision/pull/1898): Issue where [`sv.MeanAveragePrecision`](https://supervision.roboflow.com/0.26.1/metrics/mean_average_precision/#supervision.metrics.mean_average_precision.MeanAveragePrecision) could return negative values when certain object size categories have no data.
+
+- Fixed [1901](https://github.com/roboflow/supervision/pull/1901): `match_metric` support for [`sv.Detections.with_nms`](https://supervision.roboflow.com/0.26.1/metrics/mean_average_precision/#supervision.detection.core.Detections.with_nms).
+
+- Fixed [1906](https://github.com/roboflow/supervision/pull/1906): `border_thickness` parameter usage for [`sv.PercentageBarAnnotator`](https://supervision.roboflow.com/0.26.1/metrics/mean_average_precision/#supervision.annotators.core.PercentageBarAnnotator).
+
 ### 0.26.0 <small>Jul 16, 2025</small>
 
 !!! failure "Removed"
@@ -153,7 +165,7 @@
 
 - Changed [#1786](https://github.com/roboflow/supervision/pull/1786): Significantly improved the speed of HSV color mapping in [`sv.HeatMapAnnotator`](https://supervision.roboflow.com/0.26.0/detection/annotators/#supervision.annotators.core.HeatMapAnnotator), achieving approximately 28x faster performance on 1920x1080 frames.
 
-- Fix [#1834](https://github.com/roboflow/supervision/pull/1834): Supervision’s [`sv.MeanAveragePrecision`](https://supervision.roboflow.com/0.26.0/metrics/mean_average_precision/#supervision.metrics.mean_average_precision.MeanAveragePrecision) is now fully aligned with [pycocotools](https://github.com/ppwwyyxx/cocoapi), the official COCO evaluation tool, ensuring accurate and standardized metrics. This update enabled us to launch a new version of the [Computer Vision Model Leaderboard](https://leaderboard.roboflow.com/).
+- Fixed [#1834](https://github.com/roboflow/supervision/pull/1834): Supervision’s [`sv.MeanAveragePrecision`](https://supervision.roboflow.com/0.26.0/metrics/mean_average_precision/#supervision.metrics.mean_average_precision.MeanAveragePrecision) is now fully aligned with [pycocotools](https://github.com/ppwwyyxx/cocoapi), the official COCO evaluation tool, ensuring accurate and standardized metrics. This update enabled us to launch a new version of the [Computer Vision Model Leaderboard](https://leaderboard.roboflow.com/).
 
     ```python
     import supervision as sv
@@ -173,7 +185,7 @@
     # Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.629
     ```
 
-- Fix [#1767](https://github.com/roboflow/supervision/pull/1767): Fixed losing `sv.Detections.data` when detections filtering.
+- Fixed [#1767](https://github.com/roboflow/supervision/pull/1767): Fixed losing `sv.Detections.data` when detections filtering.
 
 ### 0.25.0 <small>Nov 12, 2024</small>
 
@@ -557,9 +569,9 @@ detections = sv.Detections.from_sam(sam_result=sam_result)
 
 - Changed [#1434](https://github.com/roboflow/supervision/pull/1434): [`InferenceSlicer`](https://supervision.roboflow.com/0.23.0/detection/tools/inference_slicer/) now features an `overlap_wh` parameter, making it easier to compute slice sizes when handling overlapping slices.
 
-- Fix [#1448](https://github.com/roboflow/supervision/pull/1448): Various annotator type issues have been resolved, supporting expanded error handling.
+- Fixed [#1448](https://github.com/roboflow/supervision/pull/1448): Various annotator type issues have been resolved, supporting expanded error handling.
 
-- Fix [#1348](https://github.com/roboflow/supervision/pull/1348): Introduced a new method for [seeking to a specific video frame](https://supervision.roboflow.com/0.23.0/utils/video/#supervision.utils.video.get_video_frames_generator), addressing cases where traditional seek methods were failing. It can be enabled with `iterative_seek=True`.
+- Fixed [#1348](https://github.com/roboflow/supervision/pull/1348): Introduced a new method for [seeking to a specific video frame](https://supervision.roboflow.com/0.23.0/utils/video/#supervision.utils.video.get_video_frames_generator), addressing cases where traditional seek methods were failing. It can be enabled with `iterative_seek=True`.
 
 ```python
 import supervision as sv
@@ -572,7 +584,7 @@ for frame in sv.get_video_frames_generator(
     ...
 ```
 
-- Fix [#1424](https://github.com/roboflow/supervision/pull/1424): `plot_image` function now clearly indicates that the size is in inches.
+- Fixed [#1424](https://github.com/roboflow/supervision/pull/1424): `plot_image` function now clearly indicates that the size is in inches.
 
 !!! failure "Removed"
 
@@ -1285,7 +1297,7 @@ array([
 
 ### 0.11.1 <small>June 29, 2023</small>
 
-- Fix [#165](https://github.com/roboflow/supervision/pull/165): [`as_folder_structure`](/0.11.1/dataset/core/#supervision.dataset.core.ClassificationDataset.as_folder_structure) fails to save [`sv.ClassificationDataset`](/0.11.1/dataset/core/#classificationdataset) when it is result of inference.
+- Fixed [#165](https://github.com/roboflow/supervision/pull/165): [`as_folder_structure`](/0.11.1/dataset/core/#supervision.dataset.core.ClassificationDataset.as_folder_structure) fails to save [`sv.ClassificationDataset`](/0.11.1/dataset/core/#classificationdataset) when it is result of inference.
 
 ### 0.11.0 <small>June 28, 2023</small>
 
@@ -1331,7 +1343,7 @@ array([
 
 - Added [#162](https://github.com/roboflow/supervision/pull/162): additional `start` and `end` arguments to [`sv.get_video_frames_generator`](/0.11.0/utils/video/#get_video_frames_generator) allowing to generate frames only for a selected part of the video.
 
-- Fix [#157](https://github.com/roboflow/supervision/pull/157): incorrect loading of YOLO dataset class names from `data.yaml`.
+- Fixed [#157](https://github.com/roboflow/supervision/pull/157): incorrect loading of YOLO dataset class names from `data.yaml`.
 
 ### 0.10.0 <small>June 14, 2023</small>
 
