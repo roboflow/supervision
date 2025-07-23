@@ -317,8 +317,8 @@ def from_qwen_2_5_vl(
 
 
 def from_deepseek_vl_2(
-    result: str, resolution_wh: Tuple[int, int], classes: Optional[List[str]] = None
-) -> Tuple[np.ndarray, Optional[np.ndarray], np.ndarray]:
+    result: str, resolution_wh: tuple[int, int], classes: list[str] | None = None
+) -> tuple[np.ndarray, np.ndarray | None, np.ndarray]:
     """
     Parse bounding boxes from deepseek-vl2-formatted text, scale them to the specified
     resolution, and optionally filter by classes.
