@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import ast
 import base64
 import io
 import json
@@ -326,8 +325,11 @@ def from_deepseek_vl_2(
     The DeepSeek-VL2 output typically contains pairs of <|ref|> ... <|/ref|> labels
     and <|det|> ... <|/det|> bounding box definitions. Each <|det|> section may
     contain one or more bounding boxes in the form [[x1, y1, x2, y2], [x1, y1, x2, y2], ...]
-    (scaled to 0..999). However, other text (e.g. < | end▁of▁sentence | >) may appear
-    after the bracket, so we strip that out here.
+    (scaled to 0..999). For example:
+
+    ```
+    <|ref|>The giraffe at the back<|/ref|><|det|>[[580, 270, 999, 904]]<|/det|><|ref|>The giraffe at the front<|/ref|><|det|>[[26, 31, 632, 998]]<|/det|><|end▁of▁sentence|>
+    ```
 
     Args:
         result: String containing deepseek-vl2-formatted locations and labels.
@@ -345,59 +347,43 @@ def from_deepseek_vl_2(
             the class labels for each bounding box.
     """  # noqa: E501
 
-    w, h = resolution_wh
-    if w <= 0 or h <= 0:
+    width, height = resolution_wh
+    label_segments = re.findall(r"<\|ref\|>(.*?)<\|/ref\|>", result, flags=re.S)
+    detection_segments = re.findall(r"<\|det\|>(.*?)<\|/det\|>", result, flags=re.S)
+
+    if len(label_segments) != len(detection_segments):
         raise ValueError(
-            f"Both dimensions in resolution_wh must be positive. Got ({w}, {h})."
+            f"Number of ref tags ({len(label_segments)}) "
+            f"and det tags ({len(detection_segments)}) in the result must be equal."
         )
 
-    label_segments = re.findall(r"<\|ref\|>(.*?)<\|/ref\|>", result, flags=re.DOTALL)
-    bbox_segments = re.findall(r"<\|det\|>(.*?)<\|/det\|>", result, flags=re.DOTALL)
+    xyxy, class_names = [], []
+    for label, detection_blob in zip(label_segments, detection_segments):
+        class_name = label.strip()
+        for box in re.findall(r"\[(.*?)\]", detection_blob):
+            x1, y1, x2, y2 = map(float, box.strip("[]").split(","))
+            xyxy.append(
+                [
+                    int(x1 / 999 * width),
+                    int(y1 / 999 * height),
+                    int(x2 / 999 * width),
+                    int(y2 / 999 * height),
+                ]
+            )
+            class_names.append(class_name)
 
-    if len(label_segments) != len(bbox_segments):
-        return np.empty((0, 4)), None, np.empty((0,), dtype=str)
-
-    boxes, labels = [], []
-
-    for label_str, bbox_str in zip(label_segments, bbox_segments):
-        label_str = label_str.strip()
-        raw_box_groups = re.findall(r"\[\[.*?\]\]", bbox_str, flags=re.DOTALL)
-
-        if not raw_box_groups:
-            continue
-
-        for group_str in raw_box_groups:
-            try:
-                list_of_boxes = ast.literal_eval(group_str)
-                for box in list_of_boxes:
-                    if len(box) != 4:
-                        continue
-
-                    x1 = box[0] / 999.0 * w
-                    y1 = box[1] / 999.0 * h
-                    x2 = box[2] / 999.0 * w
-                    y2 = box[3] / 999.0 * h
-
-                    boxes.append([x1, y1, x2, y2])
-                    labels.append(label_str)
-
-            except (SyntaxError, ValueError):
-                continue
-
-    if len(boxes) == 0:
-        return np.empty((0, 4)), None, np.empty((0,), dtype=str)
-
-    xyxy = np.array(boxes, dtype=np.float32)
-    class_name = np.array(labels, dtype=str)
-    class_id = None
+    xyxy = np.array(xyxy)
+    class_names = np.array(class_names)
 
     if classes is not None:
-        mask = np.array([name in classes for name in class_name], dtype=bool)
+        mask = np.array([name in classes for name in class_names], dtype=bool)
         xyxy = xyxy[mask]
-        class_name = class_name[mask]
-        class_id = np.array([classes.index(name) for name in class_name])
+        class_names = class_names[mask]
+        class_id = np.array([classes.index(name) for name in class_names])
+    else:
+        class_id = np.array(list(range(len(class_names))))
 
-    return xyxy, class_id, class_name
+    return xyxy, class_id, class_names
 
 
 def from_florence_2(
