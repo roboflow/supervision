@@ -51,6 +51,7 @@ from supervision.detection.tools.inference_slicer import InferenceSlicer
 from supervision.detection.tools.json_sink import JSONSink
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
 from supervision.detection.tools.smoother import DetectionsSmoother
+from supervision.detection.utils.vlms import edit_distance, fuzzy_match_index
 from supervision.detection.utils.boxes import (
     clip_boxes,
     denormalize_boxes,
@@ -215,7 +216,9 @@ __all__ = [
     "draw_polygon",
     "draw_rectangle",
     "draw_text",
+    "edit_distance",
     "filter_polygons_by_area",
+    "fuzzy_match_index",
     "get_coco_class_index_mapping",
     "get_polygon_center",
     "get_video_frames_generator",
