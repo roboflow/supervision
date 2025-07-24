@@ -831,6 +831,7 @@ class Detections:
         | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
+        | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
 
         Args:
             lmm (Union[LMM, str]): The type of LMM (Large Multimodal Model) to use.
@@ -1456,6 +1457,24 @@ class Detections:
             ```
 
         !!! example "DeepSeek-VL2"
+
+
+            ??? tip "Prompt engineering"
+
+                To get the best results from DeepSeek-VL2, use optimized prompts that leverage
+                its object detection and visual grounding capabilities effectively.
+
+                **For general object detection, use the following user prompt:**
+
+                ```
+                <image>\\n<|ref|>The giraffe at the front<|/ref|>
+                ```
+
+                **For visual grounding, use the following user prompt:**
+
+                ```
+                <image>\\n<|grounding|>Detect the giraffes
+                ```
 
             ```python
             from PIL import Image
