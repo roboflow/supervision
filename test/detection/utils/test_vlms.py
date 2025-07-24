@@ -2,77 +2,69 @@ import pytest
 
 from supervision.detection.utils.vlms import edit_distance, fuzzy_match_index
 
+
 @pytest.mark.parametrize(
     "string_1, string_2, case_sensitive, expected_result",
     [
         # identical strings, various cases
         ("hello", "hello", True, 0),
         ("hello", "hello", False, 0),
-
         # case sensitive vs insensitive
         ("Test", "test", True, 1),
         ("Test", "test", False, 0),
         ("CASE", "case", True, 4),
         ("CASE", "case", False, 0),
-
         # completely different
         ("abc", "xyz", True, 3),
         ("abc", "xyz", False, 3),
-
         # one string empty
         ("hello", "", True, 5),
         ("", "world", True, 5),
-
         # single character cases
         ("a", "b", True, 1),
         ("A", "a", True, 1),
         ("A", "a", False, 0),
-
         # whitespaces
         ("hello world", "helloworld", True, 1),
         ("test", " test", True, 1),
-
         # unicode and emoji
         ("😊", "😊", True, 0),
         ("😊", "😢", True, 1),
-
         # long string vs empty
         ("a" * 100, "", True, 100),
         ("", "b" * 100, True, 100),
-
         # prefix/suffix
         ("prefix", "prefixes", True, 2),
         ("suffix", "asuffix", True, 1),
-
         # leading/trailing whitespace
         (" hello", "hello", True, 1),
         ("hello", "hello ", True, 1),
-
         # long almost-equal string
         (
             "The quick brown fox jumps over the lazy dog",
             "The quick brown fox jumps over the lazy cog",
             True,
-            1
+            1,
         ),
         (
             "The quick brown fox jumps over the lazy dog",
             "The quick brown fox jumps over the lazy cog",
             False,
-            1
+            1,
         ),
-
         # both empty
         ("", "", True, 0),
         ("", "", False, 0),
-
         # mixed case with symbols
         ("123ABC!", "123abc!", True, 3),
         ("123ABC!", "123abc!", False, 0),
     ],
 )
 def test_edit_distance(string_1, string_2, case_sensitive, expected_result):
-    assert edit_distance(string_1, string_2, case_sensitive=case_sensitive) == expected_result
+    assert (
+        edit_distance(string_1, string_2, case_sensitive=case_sensitive)
+        == expected_result
+    )
 
 
 @pytest.mark.parametrize(
@@ -109,12 +101,17 @@ def test_edit_distance(string_1, string_2, case_sensitive, expected_result):
         (["short", "words", "only"], "longerword", 2, True, None),
         # repeated candidates
         (["a", "a", "a"], "b", 1, True, 0),
-    ]
+    ],
 )
-def test_fuzzy_match_index(candidates, query, threshold, case_sensitive, expected_result):
-    assert fuzzy_match_index(
-        candidates=candidates,
-        query=query,
-        threshold=threshold,
-        case_sensitive=case_sensitive
-    ) == expected_result
+def test_fuzzy_match_index(
+    candidates, query, threshold, case_sensitive, expected_result
+):
+    assert (
+        fuzzy_match_index(
+            candidates=candidates,
+            query=query,
+            threshold=threshold,
+            case_sensitive=case_sensitive,
+        )
+        == expected_result
+    )

@@ -62,7 +62,7 @@ def edit_distance(string_1: str, string_2: str, case_sensitive: bool = True) -> 
             distance_matrix[i][j] = min(
                 distance_matrix[i - 1][j] + 1,
                 distance_matrix[i][j - 1] + 1,
-                distance_matrix[i - 1][j - 1] + substitution_cost
+                distance_matrix[i - 1][j - 1] + substitution_cost,
             )
 
     return distance_matrix[length_1][length_2]

@@ -51,7 +51,6 @@ from supervision.detection.tools.inference_slicer import InferenceSlicer
 from supervision.detection.tools.json_sink import JSONSink
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
 from supervision.detection.tools.smoother import DetectionsSmoother
-from supervision.detection.utils.vlms import edit_distance, fuzzy_match_index
 from supervision.detection.utils.boxes import (
     clip_boxes,
     denormalize_boxes,
@@ -93,6 +92,7 @@ from supervision.detection.utils.polygons import (
     approximate_polygon,
     filter_polygons_by_area,
 )
+from supervision.detection.utils.vlms import edit_distance, fuzzy_match_index
 from supervision.detection.vlm import LMM, VLM
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
