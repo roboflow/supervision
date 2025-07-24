@@ -73,7 +73,7 @@ def test_edit_distance(string_1, string_2, case_sensitive, expected_result):
         # exact match at index 0
         (["cat", "dog", "rat"], "cat", 0, True, 0),
         # match at index 2 within threshold
-        (["cat", "dog", "rat"], "dat", 1, True, 2),
+        (["cat", "dog", "rat"], "dat", 1, True, 0),
         # no match due to high threshold
         (["cat", "dog", "rat"], "bat", 0, True, None),
         # multiple possible matches, returns first
@@ -87,7 +87,7 @@ def test_edit_distance(string_1, string_2, case_sensitive, expected_result):
         # no match (all distances too high)
         (["one", "two", "three"], "ten", 1, True, None),
         # unicode/emoji match
-        (["😊", "😢", "😁"], "😄", 1, True, None),
+        (["😊", "😢", "😁"], "😄", 1, True, 0),
         (["😊", "😢", "😁"], "😊", 0, True, 0),
         # empty candidates
         ([], "any", 2, True, None),
