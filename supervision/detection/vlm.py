@@ -357,33 +357,35 @@ def from_deepseek_vl_2(
             f"and det tags ({len(detection_segments)}) in the result must be equal."
         )
 
-    xyxy, class_names = [], []
+    xyxy, class_name_list = [], []
     for label, detection_blob in zip(label_segments, detection_segments):
-        class_name = label.strip()
+        current_class_name = label.strip()
         for box in re.findall(r"\[(.*?)\]", detection_blob):
             x1, y1, x2, y2 = map(float, box.strip("[]").split(","))
             xyxy.append(
                 [
-                    int(x1 / 999 * width),
-                    int(y1 / 999 * height),
-                    int(x2 / 999 * width),
-                    int(y2 / 999 * height),
+                    (x1 / 999 * width),
+                    (y1 / 999 * height),
+                    (x2 / 999 * width),
+                    (y2 / 999 * height),
                 ]
             )
-            class_names.append(class_name)
+            class_name_list.append(current_class_name)
 
-    xyxy = np.array(xyxy)
-    class_names = np.array(class_names)
+    xyxy = np.array(xyxy, dtype=np.float32)
+    class_name = np.array(class_name_list)
 
     if classes is not None:
-        mask = np.array([name in classes for name in class_names], dtype=bool)
+        mask = np.array([name in classes for name in class_name], dtype=bool)
         xyxy = xyxy[mask]
-        class_names = class_names[mask]
-        class_id = np.array([classes.index(name) for name in class_names])
+        class_name = class_name[mask]
+        class_id = np.array([classes.index(name) for name in class_name])
     else:
-        class_id = np.array(list(range(len(class_names))))
+        unique_classes = sorted(list(set(class_name)))
+        class_to_id = {name: i for i, name in enumerate(unique_classes)}
+        class_id = np.array([class_to_id[name] for name in class_name])
 
-    return xyxy, class_id, class_names
+    return xyxy, class_id, class_name
 
 
 def from_florence_2(
