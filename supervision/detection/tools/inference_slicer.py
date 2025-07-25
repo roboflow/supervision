@@ -9,7 +9,7 @@ import numpy as np
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import move_boxes, move_oriented_boxes
-from supervision.detection.utils.iou_and_nms import OverlapFilter
+from supervision.detection.utils.iou_and_nms import OverlapFilter, OverlapMetric
 from supervision.detection.utils.masks import move_masks
 from supervision.utils.image import crop_image
 from supervision.utils.internal import (
@@ -75,8 +75,8 @@ class InferenceSlicer:
             filtering or merging overlapping detections in slices.
         iou_threshold (float): Intersection over Union (IoU) threshold
             used when filtering by overlap.
-        match_metric (str): Metric used for matching detections in slices.
-            "IOU" or "IOS". Defaults "IOU".
+        overlap_metric (Union[OverlapMetric, str]): Metric used for matching detections
+            in slices.
         callback (Callable): A function that performs inference on a given image
             slice and returns detections.
         thread_workers (int): Number of threads for parallel execution.
@@ -96,7 +96,7 @@ class InferenceSlicer:
         overlap_wh: tuple[int, int] | None = None,
         overlap_filter: OverlapFilter | str = OverlapFilter.NON_MAX_SUPPRESSION,
         iou_threshold: float = 0.5,
-        match_metric: str = "IOU",
+        overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
         thread_workers: int = 1,
     ):
         if overlap_ratio_wh is not None:
@@ -112,7 +112,7 @@ class InferenceSlicer:
 
         self.slice_wh = slice_wh
         self.iou_threshold = iou_threshold
-        self.match_metric = match_metric
+        self.overlap_metric = OverlapMetric.from_value(overlap_metric)
         self.overlap_filter = OverlapFilter.from_value(overlap_filter)
         self.callback = callback
         self.thread_workers = thread_workers
@@ -173,11 +173,11 @@ class InferenceSlicer:
             return merged
         elif self.overlap_filter == OverlapFilter.NON_MAX_SUPPRESSION:
             return merged.with_nms(
-                threshold=self.iou_threshold, match_metric=self.match_metric
+                threshold=self.iou_threshold, overlap_metric=self.overlap_metric
             )
         elif self.overlap_filter == OverlapFilter.NON_MAX_MERGE:
             return merged.with_nmm(
-                threshold=self.iou_threshold, match_metric=self.match_metric
+                threshold=self.iou_threshold, overlap_metric=self.overlap_metric
             )
         else:
             warnings.warn(

@@ -102,12 +102,12 @@ class MeanAveragePrecisionResult:
             f"maxDets=100 ] = {self.map50:.3f}\n"
             f"Average Precision (AP) @[ IoU=0.75      | area=   all | "
             f"maxDets=100 ] = {self.map75:.3f}\n"
-            f"Average Precision (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] "
-            f"= {self.small_objects.map50_95:.3f}\n"
-            f"Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] \
-                = {self.medium_objects.map50_95:.3f}\n"
-            f"Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] \
-                = {self.large_objects.map50_95:.3f}"
+            f"Average Precision (AP) @[ IoU=0.50:0.95 | area= small | "
+            f"maxDets=100 ] = {self.small_objects.map50_95:.3f}\n"
+            f"Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | "
+            f"maxDets=100 ] = {self.medium_objects.map50_95:.3f}\n"
+            f"Average Precision (AP) @[ IoU=0.50:0.95 | area= large | "
+            f"maxDets=100 ] = {self.large_objects.map50_95:.3f}"
         )
 
     def to_pandas(self) -> pd.DataFrame:
@@ -1261,7 +1261,7 @@ class MeanAveragePrecision(Metric):
         for image_id, image_targets in enumerate(targets):
             if self._image_indices is not None:
                 image_id = self._image_indices[image_id]
-            for target in image_targets:
+            for target_idx, target in enumerate(image_targets):
                 xyxy = target[0]  # or xyxy = prediction[0]; xyxy[2:4] -= xyxy[0:2]
                 xywh = [xyxy[0], xyxy[1], xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]]
                 # Get "area" and "iscrowd" (default 0) from data
@@ -1271,8 +1271,15 @@ class MeanAveragePrecision(Metric):
                     category_id = self._class_mapping[target[3].item()]
                 else:
                     category_id = target[3].item()
+
+                # Use area from data if available (e.g., COCO datasets)
+                # Otherwise use Detections.area property
+                area = data.get("area") if data else None
+                if area is None:
+                    area = image_targets.area[target_idx]
+
                 dict_annotation = {
-                    "area": data.get("area", 0),
+                    "area": area,
                     "iscrowd": data.get("iscrowd", 0),
                     "image_id": image_id,
                     "bbox": xywh,

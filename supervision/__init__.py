@@ -92,6 +92,7 @@ from supervision.detection.utils.polygons import (
     approximate_polygon,
     filter_polygons_by_area,
 )
+from supervision.detection.utils.vlms import edit_distance, fuzzy_match_index
 from supervision.detection.vlm import LMM, VLM
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
@@ -215,7 +216,9 @@ __all__ = [
     "draw_polygon",
     "draw_rectangle",
     "draw_text",
+    "edit_distance",
     "filter_polygons_by_area",
+    "fuzzy_match_index",
     "get_coco_class_index_mapping",
     "get_polygon_center",
     "get_video_frames_generator",
