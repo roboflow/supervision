@@ -833,6 +833,7 @@ class Detections:
         | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
         | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
+        | Kosmos 2            | `KOSMOS_2`           | detection               | `resolution_wh`             |                     |
 
         Args:
             lmm (Union[LMM, str]): The type of LMM (Large Multimodal Model) to use.
@@ -1161,6 +1162,35 @@ class Detections:
             detections.data
             # {'class_name': array(['The giraffe at the back', 'The giraffe at the front'], dtype='<U24')}
             ```
+        !!! example "Kosmos-2"
+            ```python
+
+            import supervision as sv
+
+            kosmos_result = (
+                'An image of a small statue of a cat, with a gramophone and a man walking past in the background.',
+                [
+                    ('a small statue of a cat', (12, 35), [(0.265625, 0.015625, 0.703125, 0.984375)]),
+                    ('a gramophone', (42, 54), [(0.234375, 0.015625, 0.703125, 0.515625)]),
+                    ('a man', (59, 64), [(0.015625, 0.390625, 0.171875, 0.984375)])
+                ]
+            )
+            detections = sv.Detections.from_vlm(
+                sv.VLM.KOSMOS_2,
+                kosmos_result,
+                resolution_wh=image.size,
+            )
+            detections.xyxy
+            # array([[310.78125,  11.625  , 822.65625, 732.375  ],
+            # [274.21875,  11.625  , 822.65625, 383.625  ],
+            # [ 18.28125, 290.625  , 201.09375, 732.375  ]])
+
+            detections.class_id
+            # array([0, 1, 2])
+
+            detections.data
+            # {'class_name': array(['a small statue of a cat', 'a gramophone', 'a man'])}
+            ```
         """  # noqa: E501
 
         # filler logic mapping old from_lmm to new from_vlm
@@ -1210,6 +1240,7 @@ class Detections:
         | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
         | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
+        | Kosmos 2            | `KOSMOS_2`           | detection               | `resolution_wh`             |                     |
 
         Args:
             vlm (Union[VLM, str]): The type of VLM (Vision Language Model) to use.
@@ -1553,7 +1584,7 @@ class Detections:
                 ]
             )
             detections = sv.Detections.from_vlm(
-                sv.VLM.KOSMOS,
+                sv.VLM.KOSMOS_2,
                 kosmos_result,
                 resolution_wh=image.size,
             )
@@ -1567,7 +1598,7 @@ class Detections:
 
             detections.data
             # {'class_name': array(['a small statue of a cat', 'a gramophone', 'a man'])}
-
+            ```
         """  # noqa: E501
 
         vlm = validate_vlm_parameters(vlm, result, kwargs)
