@@ -1164,8 +1164,24 @@ class Detections:
             ```
 
         !!! example "Kosmos-2"
-            ```python
 
+            ??? tip "Prompt engineering"
+                To get the best results from Kosmos-2, use optimized prompts that leverage
+                its object detection and visual grounding capabilities effectively.
+
+                **For general object detection, use the following user prompt:**
+
+                ```
+                <grounding>Detect the cats
+                ```
+
+                **For object detection, use the following user prompt:**
+
+                ```
+                <grounding>Describe this image in detail
+                ```
+
+            ```python
             import supervision as sv
 
             kosmos_result = (
@@ -1572,6 +1588,23 @@ class Detections:
             ```
 
         !!! example "Kosmos-2"
+
+            ??? tip "Prompt engineering"
+                To get the best results from Kosmos-2, use optimized prompts that leverage
+                its object detection and visual grounding capabilities effectively.
+
+                **For general object detection, use the following user prompt:**
+
+                ```
+                <grounding>Detect the cats
+                ```
+
+                **For object detection, use the following user prompt:**
+
+                ```
+                <grounding>Describe this image in detail
+                ```
+
             ```python
 
             import supervision as sv
