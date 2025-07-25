@@ -1162,6 +1162,7 @@ class Detections:
             detections.data
             # {'class_name': array(['The giraffe at the back', 'The giraffe at the front'], dtype='<U24')}
             ```
+
         !!! example "Kosmos-2"
             ```python
 
@@ -1181,9 +1182,9 @@ class Detections:
                 resolution_wh=image.size,
             )
             detections.xyxy
-            # array([[310.78125,  11.625  , 822.65625, 732.375  ],
-            # [274.21875,  11.625  , 822.65625, 383.625  ],
-            # [ 18.28125, 290.625  , 201.09375, 732.375  ]])
+            # array([[310.78125,  11.625  , 822.65625, 732.375],
+            #        [274.21875,  11.625  , 822.65625, 383.625],
+            #        [ 18.28125, 290.625  , 201.09375, 732.375]])
 
             detections.class_id
             # array([0, 1, 2])
@@ -1589,9 +1590,9 @@ class Detections:
                 resolution_wh=image.size,
             )
             detections.xyxy
-            # array([[310.78125,  11.625  , 822.65625, 732.375  ],
-            # [274.21875,  11.625  , 822.65625, 383.625  ],
-            # [ 18.28125, 290.625  , 201.09375, 732.375  ]])
+            # array([[310.78125,  11.625  , 822.65625, 732.375],
+            #        [274.21875,  11.625  , 822.65625, 383.625],
+            #        [ 18.28125, 290.625  , 201.09375, 732.375]])
 
             detections.class_id
             # array([0, 1, 2])
