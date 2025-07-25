@@ -1538,7 +1538,7 @@ class Detections:
             detections.data
             # {'class_name': array(['The giraffe at the back', 'The giraffe at the front'], dtype='<U24')}
             ```
-        
+
         !!! example "Kosmos-2"
             ```python
 
