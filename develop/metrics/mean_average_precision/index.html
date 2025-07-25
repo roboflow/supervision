@@ -1088,6 +1088,40 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../detection/utils/vlms/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    
+  
+    VLMs
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -4580,12 +4614,12 @@ for large objects (area ≥ 96²).</p>
 </span><span id="__span-0-102"><a id="__codelineno-0-102" name="__codelineno-0-102"></a>            <span class="sa">f</span><span class="s2">&quot;maxDets=100 ] = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">map50</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
 </span><span id="__span-0-103"><a id="__codelineno-0-103" name="__codelineno-0-103"></a>            <span class="sa">f</span><span class="s2">&quot;Average Precision (AP) @[ IoU=0.75      | area=   all | &quot;</span>
 </span><span id="__span-0-104"><a id="__codelineno-0-104" name="__codelineno-0-104"></a>            <span class="sa">f</span><span class="s2">&quot;maxDets=100 ] = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">map75</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-</span><span id="__span-0-105"><a id="__codelineno-0-105" name="__codelineno-0-105"></a>            <span class="sa">f</span><span class="s2">&quot;Average Precision (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] &quot;</span>
-</span><span id="__span-0-106"><a id="__codelineno-0-106" name="__codelineno-0-106"></a>            <span class="sa">f</span><span class="s2">&quot;= </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">small_objects</span><span class="o">.</span><span class="n">map50_95</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-</span><span id="__span-0-107"><a id="__codelineno-0-107" name="__codelineno-0-107"></a>            <span class="sa">f</span><span class="s2">&quot;Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] </span><span class="se">\</span>
-</span><span id="__span-0-108"><a id="__codelineno-0-108" name="__codelineno-0-108"></a><span class="s2">                = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">medium_objects</span><span class="o">.</span><span class="n">map50_95</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-</span><span id="__span-0-109"><a id="__codelineno-0-109" name="__codelineno-0-109"></a>            <span class="sa">f</span><span class="s2">&quot;Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] </span><span class="se">\</span>
-</span><span id="__span-0-110"><a id="__codelineno-0-110" name="__codelineno-0-110"></a><span class="s2">                = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">large_objects</span><span class="o">.</span><span class="n">map50_95</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span>
+</span><span id="__span-0-105"><a id="__codelineno-0-105" name="__codelineno-0-105"></a>            <span class="sa">f</span><span class="s2">&quot;Average Precision (AP) @[ IoU=0.50:0.95 | area= small | &quot;</span>
+</span><span id="__span-0-106"><a id="__codelineno-0-106" name="__codelineno-0-106"></a>            <span class="sa">f</span><span class="s2">&quot;maxDets=100 ] = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">small_objects</span><span class="o">.</span><span class="n">map50_95</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+</span><span id="__span-0-107"><a id="__codelineno-0-107" name="__codelineno-0-107"></a>            <span class="sa">f</span><span class="s2">&quot;Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | &quot;</span>
+</span><span id="__span-0-108"><a id="__codelineno-0-108" name="__codelineno-0-108"></a>            <span class="sa">f</span><span class="s2">&quot;maxDets=100 ] = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">medium_objects</span><span class="o">.</span><span class="n">map50_95</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+</span><span id="__span-0-109"><a id="__codelineno-0-109" name="__codelineno-0-109"></a>            <span class="sa">f</span><span class="s2">&quot;Average Precision (AP) @[ IoU=0.50:0.95 | area= large | &quot;</span>
+</span><span id="__span-0-110"><a id="__codelineno-0-110" name="__codelineno-0-110"></a>            <span class="sa">f</span><span class="s2">&quot;maxDets=100 ] = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">large_objects</span><span class="o">.</span><span class="n">map50_95</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span>
 </span><span id="__span-0-111"><a id="__codelineno-0-111" name="__codelineno-0-111"></a>        <span class="p">)</span>
 </span><span id="__span-0-112"><a id="__codelineno-0-112" name="__codelineno-0-112"></a>
 </span><span id="__span-0-113"><a id="__codelineno-0-113" name="__codelineno-0-113"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">to_pandas</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
@@ -4787,12 +4821,12 @@ Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.629
 </span><span id="__span-0-102"><a id="__codelineno-0-102" name="__codelineno-0-102"></a>        <span class="sa">f</span><span class="s2">&quot;maxDets=100 ] = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">map50</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
 </span><span id="__span-0-103"><a id="__codelineno-0-103" name="__codelineno-0-103"></a>        <span class="sa">f</span><span class="s2">&quot;Average Precision (AP) @[ IoU=0.75      | area=   all | &quot;</span>
 </span><span id="__span-0-104"><a id="__codelineno-0-104" name="__codelineno-0-104"></a>        <span class="sa">f</span><span class="s2">&quot;maxDets=100 ] = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">map75</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-</span><span id="__span-0-105"><a id="__codelineno-0-105" name="__codelineno-0-105"></a>        <span class="sa">f</span><span class="s2">&quot;Average Precision (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] &quot;</span>
-</span><span id="__span-0-106"><a id="__codelineno-0-106" name="__codelineno-0-106"></a>        <span class="sa">f</span><span class="s2">&quot;= </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">small_objects</span><span class="o">.</span><span class="n">map50_95</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-</span><span id="__span-0-107"><a id="__codelineno-0-107" name="__codelineno-0-107"></a>        <span class="sa">f</span><span class="s2">&quot;Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] </span><span class="se">\</span>
-</span><span id="__span-0-108"><a id="__codelineno-0-108" name="__codelineno-0-108"></a><span class="s2">            = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">medium_objects</span><span class="o">.</span><span class="n">map50_95</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-</span><span id="__span-0-109"><a id="__codelineno-0-109" name="__codelineno-0-109"></a>        <span class="sa">f</span><span class="s2">&quot;Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] </span><span class="se">\</span>
-</span><span id="__span-0-110"><a id="__codelineno-0-110" name="__codelineno-0-110"></a><span class="s2">            = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">large_objects</span><span class="o">.</span><span class="n">map50_95</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span>
+</span><span id="__span-0-105"><a id="__codelineno-0-105" name="__codelineno-0-105"></a>        <span class="sa">f</span><span class="s2">&quot;Average Precision (AP) @[ IoU=0.50:0.95 | area= small | &quot;</span>
+</span><span id="__span-0-106"><a id="__codelineno-0-106" name="__codelineno-0-106"></a>        <span class="sa">f</span><span class="s2">&quot;maxDets=100 ] = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">small_objects</span><span class="o">.</span><span class="n">map50_95</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+</span><span id="__span-0-107"><a id="__codelineno-0-107" name="__codelineno-0-107"></a>        <span class="sa">f</span><span class="s2">&quot;Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | &quot;</span>
+</span><span id="__span-0-108"><a id="__codelineno-0-108" name="__codelineno-0-108"></a>        <span class="sa">f</span><span class="s2">&quot;maxDets=100 ] = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">medium_objects</span><span class="o">.</span><span class="n">map50_95</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+</span><span id="__span-0-109"><a id="__codelineno-0-109" name="__codelineno-0-109"></a>        <span class="sa">f</span><span class="s2">&quot;Average Precision (AP) @[ IoU=0.50:0.95 | area= large | &quot;</span>
+</span><span id="__span-0-110"><a id="__codelineno-0-110" name="__codelineno-0-110"></a>        <span class="sa">f</span><span class="s2">&quot;maxDets=100 ] = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">large_objects</span><span class="o">.</span><span class="n">map50_95</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span>
 </span><span id="__span-0-111"><a id="__codelineno-0-111" name="__codelineno-0-111"></a>    <span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>

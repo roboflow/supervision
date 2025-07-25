@@ -12,13 +12,13 @@
         <meta name="author" content="Roboflow">
       
       
-        <link rel="canonical" href="https://supervision.roboflow.com/develop/detection/utils/polygons/">
+        <link rel="canonical" href="https://supervision.roboflow.com/develop/detection/utils/vlms/">
       
       
-        <link rel="prev" href="../masks/">
+        <link rel="prev" href="../polygons/">
       
       
-        <link rel="next" href="../vlms/">
+        <link rel="next" href="../../../keypoint/core/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>Polygons - Supervision</title>
+        <title>VLMs - Supervision</title>
       
     
     
@@ -99,7 +99,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#polygons-utils" class="md-skip">
+        <a href="#vlms-utils" class="md-skip">
           Skip to content
         </a>
       
@@ -167,7 +167,7 @@
 
             </a>
             
-              Polygons
+              VLMs
             
           </span>
         </div>
@@ -1060,6 +1060,40 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../polygons/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    
+  
+    Polygons
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--new"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -1078,7 +1112,7 @@
   <span class="md-ellipsis">
     
   
-    Polygons
+    VLMs
   
 
     
@@ -1102,7 +1136,7 @@
   <span class="md-ellipsis">
     
   
-    Polygons
+    VLMs
   
 
     
@@ -1135,22 +1169,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#supervision.detection.utils.polygons.filter_polygons_by_area" class="md-nav__link">
+  <a href="#supervision.detection.utils.vlms.edit_distance" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;filter_polygons_by_area
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;edit_distance
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label=" filter_polygons_by_area">
+    <nav class="md-nav" aria-label=" edit_distance">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#supervision.detection.utils.polygons.filter_polygons_by_area(polygons)" class="md-nav__link">
+  <a href="#supervision.detection.utils.vlms.edit_distance(string_1)" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;polygons
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;string_1
       
     </span>
   </a>
@@ -1158,10 +1192,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#supervision.detection.utils.polygons.filter_polygons_by_area(min_area)" class="md-nav__link">
+  <a href="#supervision.detection.utils.vlms.edit_distance(string_2)" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;min_area
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;string_2
       
     </span>
   </a>
@@ -1169,10 +1203,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#supervision.detection.utils.polygons.filter_polygons_by_area(max_area)" class="md-nav__link">
+  <a href="#supervision.detection.utils.vlms.edit_distance(case_sensitive)" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;max_area
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;case_sensitive
       
     </span>
   </a>
@@ -1185,22 +1219,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#supervision.detection.utils.polygons.approximate_polygon" class="md-nav__link">
+  <a href="#supervision.detection.utils.vlms.fuzzy_match_index" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;approximate_polygon
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;fuzzy_match_index
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label=" approximate_polygon">
+    <nav class="md-nav" aria-label=" fuzzy_match_index">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#supervision.detection.utils.polygons.approximate_polygon(polygon)" class="md-nav__link">
+  <a href="#supervision.detection.utils.vlms.fuzzy_match_index(candidates)" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;polygon
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;candidates
       
     </span>
   </a>
@@ -1208,10 +1242,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#supervision.detection.utils.polygons.approximate_polygon(percentage)" class="md-nav__link">
+  <a href="#supervision.detection.utils.vlms.fuzzy_match_index(query)" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;percentage
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;query
       
     </span>
   </a>
@@ -1219,10 +1253,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#supervision.detection.utils.polygons.approximate_polygon(epsilon_step)" class="md-nav__link">
+  <a href="#supervision.detection.utils.vlms.fuzzy_match_index(threshold)" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;epsilon_step
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;threshold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.utils.vlms.fuzzy_match_index(case_sensitive)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;case_sensitive
       
     </span>
   </a>
@@ -1238,40 +1283,6 @@
   
 </nav>
       
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../vlms/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    
-  
-    VLMs
-  
-
-    
-  </span>
-  
-  
-    
-  
-  
-    <span class="md-status md-status--new"></span>
-  
-
-  
-
-      </a>
     </li>
   
 
@@ -2513,22 +2524,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#supervision.detection.utils.polygons.filter_polygons_by_area" class="md-nav__link">
+  <a href="#supervision.detection.utils.vlms.edit_distance" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;filter_polygons_by_area
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;edit_distance
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label=" filter_polygons_by_area">
+    <nav class="md-nav" aria-label=" edit_distance">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#supervision.detection.utils.polygons.filter_polygons_by_area(polygons)" class="md-nav__link">
+  <a href="#supervision.detection.utils.vlms.edit_distance(string_1)" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;polygons
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;string_1
       
     </span>
   </a>
@@ -2536,10 +2547,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#supervision.detection.utils.polygons.filter_polygons_by_area(min_area)" class="md-nav__link">
+  <a href="#supervision.detection.utils.vlms.edit_distance(string_2)" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;min_area
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;string_2
       
     </span>
   </a>
@@ -2547,10 +2558,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#supervision.detection.utils.polygons.filter_polygons_by_area(max_area)" class="md-nav__link">
+  <a href="#supervision.detection.utils.vlms.edit_distance(case_sensitive)" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;max_area
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;case_sensitive
       
     </span>
   </a>
@@ -2563,22 +2574,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#supervision.detection.utils.polygons.approximate_polygon" class="md-nav__link">
+  <a href="#supervision.detection.utils.vlms.fuzzy_match_index" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;approximate_polygon
+        <code class="doc-symbol doc-symbol-toc doc-symbol-function"></code>&nbsp;fuzzy_match_index
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label=" approximate_polygon">
+    <nav class="md-nav" aria-label=" fuzzy_match_index">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#supervision.detection.utils.polygons.approximate_polygon(polygon)" class="md-nav__link">
+  <a href="#supervision.detection.utils.vlms.fuzzy_match_index(candidates)" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;polygon
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;candidates
       
     </span>
   </a>
@@ -2586,10 +2597,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#supervision.detection.utils.polygons.approximate_polygon(percentage)" class="md-nav__link">
+  <a href="#supervision.detection.utils.vlms.fuzzy_match_index(query)" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;percentage
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;query
       
     </span>
   </a>
@@ -2597,10 +2608,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#supervision.detection.utils.polygons.approximate_polygon(epsilon_step)" class="md-nav__link">
+  <a href="#supervision.detection.utils.vlms.fuzzy_match_index(threshold)" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;epsilon_step
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;threshold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#supervision.detection.utils.vlms.fuzzy_match_index(case_sensitive)" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-parameter"></code>&nbsp;case_sensitive
       
     </span>
   </a>
@@ -2631,7 +2653,7 @@
 
 
   
-    <a href="https://github.com/roboflow/supervision/tree/main/docs/detection/utils/polygons.md" title="Edit this page" class="md-content__button md-icon">
+    <a href="https://github.com/roboflow/supervision/tree/main/docs/detection/utils/vlms.md" title="Edit this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
     </a>
@@ -2639,9 +2661,9 @@
   
 
 
-<h1 id="polygons-utils">Polygons Utils<a class="headerlink" href="#polygons-utils" title="Permanent link">&para;</a></h1>
+<h1 id="vlms-utils">VLMs Utils<a class="headerlink" href="#vlms-utils" title="Permanent link">&para;</a></h1>
 <div class="md-typeset">
-  <h2><a href="#supervision.detection.utils.polygons.filter_polygons_by_area">filter_polygons_by_area</a></h2>
+  <h2><a href="#supervision.detection.utils.vlms.edit_distance">edit_distance</a></h2>
 </div>
 
 
@@ -2649,15 +2671,17 @@
 <div class="doc doc-object doc-function">
 
 
-<h2 id="supervision.detection.utils.polygons.filter_polygons_by_area" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">detection</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">polygons</span><span class="o">.</span><span class="n">filter_polygons_by_area</span><span class="p">(</span><span class="n">polygons</span><span class="p">,</span> <span class="n">min_area</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_area</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<h2 id="supervision.detection.utils.vlms.edit_distance" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">detection</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">vlms</span><span class="o">.</span><span class="n">edit_distance</span><span class="p">(</span><span class="n">string_1</span><span class="p">,</span> <span class="n">string_2</span><span class="p">,</span> <span class="n">case_sensitive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
 
-<a href="#supervision.detection.utils.polygons.filter_polygons_by_area" class="headerlink" title="Permanent link">&para;</a></h2>
+<a href="#supervision.detection.utils.vlms.edit_distance" class="headerlink" title="Permanent link">&para;</a></h2>
 
 
     <div class="doc doc-contents first">
 
-        <p>Filters a list of polygons based on their area.</p>
+        <p>Calculates the minimum number of single-character edits required
+to transform one string into another. Allowed operations are insertion,
+deletion, and substitution.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2673,16 +2697,14 @@
       <tbody>
           <tr class="doc-section-item">
             <td>
-<h3 id="supervision.detection.utils.polygons.filter_polygons_by_area(polygons)" class="doc doc-heading doc-heading-parameter">                  <code>polygons</code>
-<a href="#supervision.detection.utils.polygons.filter_polygons_by_area(polygons)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
+<h3 id="supervision.detection.utils.vlms.edit_distance(string_1)" class="doc doc-heading doc-heading-parameter">                  <code>string_1</code>
+<a href="#supervision.detection.utils.vlms.edit_distance(string_1)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code><span title="List">List</span>[<span title="numpy.ndarray">ndarray</span>]</code>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>A list of polygons, where each polygon is
-represented by a NumPy array of shape <code>(N, 2)</code>,
-containing the <code>x</code>, <code>y</code> coordinates of the points.</p>
+                <p>The source string to be transformed.</p>
               </div>
             </td>
             <td>
@@ -2691,40 +2713,35 @@ containing the <code>x</code>, <code>y</code> coordinates of the points.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
-<h3 id="supervision.detection.utils.polygons.filter_polygons_by_area(min_area)" class="doc doc-heading doc-heading-parameter">                  <code>min_area</code>
-<a href="#supervision.detection.utils.polygons.filter_polygons_by_area(min_area)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
+<h3 id="supervision.detection.utils.vlms.edit_distance(string_2)" class="doc doc-heading doc-heading-parameter">                  <code>string_2</code>
+<a href="#supervision.detection.utils.vlms.edit_distance(string_2)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code><span title="Optional">Optional</span>[<span title="float">float</span>]</code>
+                  <code><span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The minimum area threshold.
-Only polygons with an area greater than or equal to this value
-will be included in the output. If set to None,
-no minimum area constraint will be applied.</p>
+                <p>The target string to transform into.</p>
               </div>
             </td>
             <td>
-                  <code>None</code>
+                <em>required</em>
             </td>
           </tr>
           <tr class="doc-section-item">
             <td>
-<h3 id="supervision.detection.utils.polygons.filter_polygons_by_area(max_area)" class="doc doc-heading doc-heading-parameter">                  <code>max_area</code>
-<a href="#supervision.detection.utils.polygons.filter_polygons_by_area(max_area)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
+<h3 id="supervision.detection.utils.vlms.edit_distance(case_sensitive)" class="doc doc-heading doc-heading-parameter">                  <code>case_sensitive</code>
+<a href="#supervision.detection.utils.vlms.edit_distance(case_sensitive)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code><span title="Optional">Optional</span>[<span title="float">float</span>]</code>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The maximum area threshold.
-Only polygons with an area less than or equal to this value
-will be included in the output. If set to None,
-no maximum area constraint will be applied.</p>
+                <p>Whether comparison should be case-sensitive.
+Defaults to True.</p>
               </div>
             </td>
             <td>
-                  <code>None</code>
+                  <code>True</code>
             </td>
           </tr>
       </tbody>
@@ -2735,19 +2752,28 @@ no maximum area constraint will be applied.</p>
     <table>
       <thead>
         <tr>
-          <th>Type</th>
+<th>Name</th>          <th>Type</th>
           <th>Description</th>
         </tr>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td>
-                  <code><span title="list">list</span>[<span title="numpy.ndarray">ndarray</span>]</code>
+<td><code>int</code></td>            <td>
+                  <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>List[np.ndarray]: A new list of polygons containing only those with
-areas within the specified thresholds.</p>
+                <p>The minimum number of edits required to convert <code>string_1</code></p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+<td></td>            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>into <code>string_2</code>.</p>
               </div>
             </td>
           </tr>
@@ -2755,9 +2781,35 @@ areas within the specified thresholds.</p>
     </table>
 
 
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">sv</span><span class="o">.</span><span class="n">edit_distance</span><span class="p">(</span><span class="s2">&quot;hello&quot;</span><span class="p">,</span> <span class="s2">&quot;hello&quot;</span><span class="p">)</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># 0</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">sv</span><span class="o">.</span><span class="n">edit_distance</span><span class="p">(</span><span class="s2">&quot;Test&quot;</span><span class="p">,</span> <span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="n">case_sensitive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># 1</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">sv</span><span class="o">.</span><span class="n">edit_distance</span><span class="p">(</span><span class="s2">&quot;abc&quot;</span><span class="p">,</span> <span class="s2">&quot;xyz&quot;</span><span class="p">)</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># 3</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">sv</span><span class="o">.</span><span class="n">edit_distance</span><span class="p">(</span><span class="s2">&quot;hello&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="c1"># 5</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="n">sv</span><span class="o">.</span><span class="n">edit_distance</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="c1"># 0</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="n">sv</span><span class="o">.</span><span class="n">edit_distance</span><span class="p">(</span><span class="s2">&quot;hello world&quot;</span><span class="p">,</span> <span class="s2">&quot;helloworld&quot;</span><span class="p">)</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="c1"># 1</span>
+</span></code></pre></div>
+
+
             <details class="quote">
-              <summary>Source code in <code>supervision/detection/utils/polygons.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-7"> 7</a></span>
+              <summary>Source code in <code>supervision/detection/utils/vlms.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-4"> 4</a></span>
+<span class="normal"><a href="#__codelineno-0-5"> 5</a></span>
+<span class="normal"><a href="#__codelineno-0-6"> 6</a></span>
+<span class="normal"><a href="#__codelineno-0-7"> 7</a></span>
 <span class="normal"><a href="#__codelineno-0-8"> 8</a></span>
 <span class="normal"><a href="#__codelineno-0-9"> 9</a></span>
 <span class="normal"><a href="#__codelineno-0-10">10</a></span>
@@ -2790,163 +2842,10 @@ areas within the specified thresholds.</p>
 <span class="normal"><a href="#__codelineno-0-37">37</a></span>
 <span class="normal"><a href="#__codelineno-0-38">38</a></span>
 <span class="normal"><a href="#__codelineno-0-39">39</a></span>
-<span class="normal"><a href="#__codelineno-0-40">40</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7"></a><span class="k">def</span><span class="w"> </span><span class="nf">filter_polygons_by_area</span><span class="p">(</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8"></a>    <span class="n">polygons</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9"></a>    <span class="n">min_area</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10"></a>    <span class="n">max_area</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13"></a><span class="sd">    Filters a list of polygons based on their area.</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14"></a>
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="sd">    Parameters:</span>
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="sd">        polygons (List[np.ndarray]): A list of polygons, where each polygon is</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="sd">            represented by a NumPy array of shape `(N, 2)`,</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">            containing the `x`, `y` coordinates of the points.</span>
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="sd">        min_area (Optional[float]): The minimum area threshold.</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="sd">            Only polygons with an area greater than or equal to this value</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="sd">            will be included in the output. If set to None,</span>
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="sd">            no minimum area constraint will be applied.</span>
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="sd">        max_area (Optional[float]): The maximum area threshold.</span>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a><span class="sd">            Only polygons with an area less than or equal to this value</span>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="sd">            will be included in the output. If set to None,</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="sd">            no maximum area constraint will be applied.</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="sd">        List[np.ndarray]: A new list of polygons containing only those with</span>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a><span class="sd">            areas within the specified thresholds.</span>
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a>    <span class="k">if</span> <span class="n">min_area</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">max_area</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a>        <span class="k">return</span> <span class="n">polygons</span>
-</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a>    <span class="n">ares</span> <span class="o">=</span> <span class="p">[</span><span class="n">cv2</span><span class="o">.</span><span class="n">contourArea</span><span class="p">(</span><span class="n">polygon</span><span class="p">)</span> <span class="k">for</span> <span class="n">polygon</span> <span class="ow">in</span> <span class="n">polygons</span><span class="p">]</span>
-</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a>    <span class="k">return</span> <span class="p">[</span>
-</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a>        <span class="n">polygon</span>
-</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a>        <span class="k">for</span> <span class="n">polygon</span><span class="p">,</span> <span class="n">area</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">polygons</span><span class="p">,</span> <span class="n">ares</span><span class="p">)</span>
-</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a>        <span class="k">if</span> <span class="p">(</span><span class="n">min_area</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">area</span> <span class="o">&gt;=</span> <span class="n">min_area</span><span class="p">)</span>
-</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a>        <span class="ow">and</span> <span class="p">(</span><span class="n">max_area</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">area</span> <span class="o">&lt;=</span> <span class="n">max_area</span><span class="p">)</span>
-</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a>    <span class="p">]</span>
-</span></code></pre></div></td></tr></table></div>
-            </details>
-    </div>
-
-</div><div class="md-typeset">
-  <h2><a href="#supervision.detection.utils.polygons.approximate_polygon">approximate_polygon</a></h2>
-</div>
-
-
-
-<div class="doc doc-object doc-function">
-
-
-<h2 id="supervision.detection.utils.polygons.approximate_polygon" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">detection</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">polygons</span><span class="o">.</span><span class="n">approximate_polygon</span><span class="p">(</span><span class="n">polygon</span><span class="p">,</span> <span class="n">percentage</span><span class="p">,</span> <span class="n">epsilon_step</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span></code>
-
-<a href="#supervision.detection.utils.polygons.approximate_polygon" class="headerlink" title="Permanent link">&para;</a></h2>
-
-
-    <div class="doc doc-contents first">
-
-        <p>Approximates a given polygon by reducing a certain percentage of points.</p>
-<p>This function uses the Ramer-Douglas-Peucker algorithm to simplify the input
-    polygon by reducing the number of points
-    while preserving the general shape.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-<h3 id="supervision.detection.utils.polygons.approximate_polygon(polygon)" class="doc doc-heading doc-heading-parameter">                  <code>polygon</code>
-<a href="#supervision.detection.utils.polygons.approximate_polygon(polygon)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
-            <td>
-                  <code><span title="numpy.ndarray">ndarray</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>A 2D NumPy array of shape <code>(N, 2)</code> containing
-the <code>x</code>, <code>y</code> coordinates of the input polygon's points.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-<h3 id="supervision.detection.utils.polygons.approximate_polygon(percentage)" class="doc doc-heading doc-heading-parameter">                  <code>percentage</code>
-<a href="#supervision.detection.utils.polygons.approximate_polygon(percentage)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
-            <td>
-                  <code><span title="float">float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>The percentage of points to be removed from the
-input polygon, in the range <code>[0, 1)</code>.</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-<h3 id="supervision.detection.utils.polygons.approximate_polygon(epsilon_step)" class="doc doc-heading doc-heading-parameter">                  <code>epsilon_step</code>
-<a href="#supervision.detection.utils.polygons.approximate_polygon(epsilon_step)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
-            <td>
-                  <code><span title="float">float</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Approximation accuracy step.
-Epsilon is the maximum distance between the original curve
-and its approximation.</p>
-              </div>
-            </td>
-            <td>
-                  <code>0.05</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><span title="numpy.ndarray">ndarray</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>np.ndarray: A new 2D NumPy array of shape <code>(M, 2)</code>,
-where <code>M &lt;= N * (1 - percentage)</code>, containing
-the <code>x</code>, <code>y</code> coordinates of the
-approximated polygon's points.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-            <details class="quote">
-              <summary>Source code in <code>supervision/detection/utils/polygons.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-43">43</a></span>
+<span class="normal"><a href="#__codelineno-0-40">40</a></span>
+<span class="normal"><a href="#__codelineno-0-41">41</a></span>
+<span class="normal"><a href="#__codelineno-0-42">42</a></span>
+<span class="normal"><a href="#__codelineno-0-43">43</a></span>
 <span class="normal"><a href="#__codelineno-0-44">44</a></span>
 <span class="normal"><a href="#__codelineno-0-45">45</a></span>
 <span class="normal"><a href="#__codelineno-0-46">46</a></span>
@@ -2970,71 +2869,283 @@ approximated polygon's points.</p>
 <span class="normal"><a href="#__codelineno-0-64">64</a></span>
 <span class="normal"><a href="#__codelineno-0-65">65</a></span>
 <span class="normal"><a href="#__codelineno-0-66">66</a></span>
-<span class="normal"><a href="#__codelineno-0-67">67</a></span>
-<span class="normal"><a href="#__codelineno-0-68">68</a></span>
-<span class="normal"><a href="#__codelineno-0-69">69</a></span>
-<span class="normal"><a href="#__codelineno-0-70">70</a></span>
-<span class="normal"><a href="#__codelineno-0-71">71</a></span>
-<span class="normal"><a href="#__codelineno-0-72">72</a></span>
-<span class="normal"><a href="#__codelineno-0-73">73</a></span>
-<span class="normal"><a href="#__codelineno-0-74">74</a></span>
-<span class="normal"><a href="#__codelineno-0-75">75</a></span>
-<span class="normal"><a href="#__codelineno-0-76">76</a></span>
-<span class="normal"><a href="#__codelineno-0-77">77</a></span>
-<span class="normal"><a href="#__codelineno-0-78">78</a></span>
-<span class="normal"><a href="#__codelineno-0-79">79</a></span>
-<span class="normal"><a href="#__codelineno-0-80">80</a></span>
-<span class="normal"><a href="#__codelineno-0-81">81</a></span>
-<span class="normal"><a href="#__codelineno-0-82">82</a></span>
-<span class="normal"><a href="#__codelineno-0-83">83</a></span>
-<span class="normal"><a href="#__codelineno-0-84">84</a></span>
-<span class="normal"><a href="#__codelineno-0-85">85</a></span>
-<span class="normal"><a href="#__codelineno-0-86">86</a></span>
-<span class="normal"><a href="#__codelineno-0-87">87</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43"></a><span class="k">def</span><span class="w"> </span><span class="nf">approximate_polygon</span><span class="p">(</span>
-</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44"></a>    <span class="n">polygon</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">percentage</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">epsilon_step</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span>
-</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="sd">    Approximates a given polygon by reducing a certain percentage of points.</span>
-</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48"></a>
-</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49"></a><span class="sd">    This function uses the Ramer-Douglas-Peucker algorithm to simplify the input</span>
-</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50"></a><span class="sd">        polygon by reducing the number of points</span>
-</span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51"></a><span class="sd">        while preserving the general shape.</span>
+<span class="normal"><a href="#__codelineno-0-67">67</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4"></a><span class="k">def</span><span class="w"> </span><span class="nf">edit_distance</span><span class="p">(</span><span class="n">string_1</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">string_2</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">case_sensitive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6"></a><span class="sd">    Calculates the minimum number of single-character edits required</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7"></a><span class="sd">    to transform one string into another. Allowed operations are insertion,</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8"></a><span class="sd">    deletion, and substitution.</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9"></a>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11"></a><span class="sd">        string_1 (str): The source string to be transformed.</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="sd">        string_2 (str): The target string to transform into.</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13"></a><span class="sd">        case_sensitive (bool, optional): Whether comparison should be case-sensitive.</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="sd">            Defaults to True.</span>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="sd">        int: The minimum number of edits required to convert `string_1`</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">        into `string_2`.</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="sd">    Examples:</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="sd">        ```python</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="sd">        import supervision as sv</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a><span class="sd">        sv.edit_distance(&quot;hello&quot;, &quot;hello&quot;)</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="sd">        # 0</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="sd">        sv.edit_distance(&quot;Test&quot;, &quot;test&quot;, case_sensitive=True)</span>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="sd">        # 1</span>
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a>
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a><span class="sd">        sv.edit_distance(&quot;abc&quot;, &quot;xyz&quot;)</span>
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="sd">        # 3</span>
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a>
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="sd">        sv.edit_distance(&quot;hello&quot;, &quot;&quot;)</span>
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="sd">        # 5</span>
+</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a>
+</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a><span class="sd">        sv.edit_distance(&quot;&quot;, &quot;&quot;)</span>
+</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a><span class="sd">        # 0</span>
+</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a>
+</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a><span class="sd">        sv.edit_distance(&quot;hello world&quot;, &quot;helloworld&quot;)</span>
+</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a><span class="sd">        # 1</span>
+</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41"></a><span class="sd">        ```</span>
+</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">case_sensitive</span><span class="p">:</span>
+</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44"></a>        <span class="n">string_1</span> <span class="o">=</span> <span class="n">string_1</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45"></a>        <span class="n">string_2</span> <span class="o">=</span> <span class="n">string_2</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46"></a>
+</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">string_1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">string_2</span><span class="p">):</span>
+</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48"></a>        <span class="n">string_1</span><span class="p">,</span> <span class="n">string_2</span> <span class="o">=</span> <span class="n">string_2</span><span class="p">,</span> <span class="n">string_1</span>
+</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49"></a>
+</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50"></a>    <span class="n">prev_row</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">string_2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+</span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51"></a>    <span class="n">curr_row</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">string_2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
 </span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52"></a>
-</span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53"></a><span class="sd">    Parameters:</span>
-</span><span id="__span-0-54"><a id="__codelineno-0-54" name="__codelineno-0-54"></a><span class="sd">        polygon (np.ndarray): A 2D NumPy array of shape `(N, 2)` containing</span>
-</span><span id="__span-0-55"><a id="__codelineno-0-55" name="__codelineno-0-55"></a><span class="sd">            the `x`, `y` coordinates of the input polygon&#39;s points.</span>
-</span><span id="__span-0-56"><a id="__codelineno-0-56" name="__codelineno-0-56"></a><span class="sd">        percentage (float): The percentage of points to be removed from the</span>
-</span><span id="__span-0-57"><a id="__codelineno-0-57" name="__codelineno-0-57"></a><span class="sd">            input polygon, in the range `[0, 1)`.</span>
-</span><span id="__span-0-58"><a id="__codelineno-0-58" name="__codelineno-0-58"></a><span class="sd">        epsilon_step (float): Approximation accuracy step.</span>
-</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="sd">            Epsilon is the maximum distance between the original curve</span>
-</span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60"></a><span class="sd">            and its approximation.</span>
-</span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a>
-</span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63"></a><span class="sd">        np.ndarray: A new 2D NumPy array of shape `(M, 2)`,</span>
-</span><span id="__span-0-64"><a id="__codelineno-0-64" name="__codelineno-0-64"></a><span class="sd">            where `M &lt;= N * (1 - percentage)`, containing</span>
-</span><span id="__span-0-65"><a id="__codelineno-0-65" name="__codelineno-0-65"></a><span class="sd">            the `x`, `y` coordinates of the</span>
-</span><span id="__span-0-66"><a id="__codelineno-0-66" name="__codelineno-0-66"></a><span class="sd">            approximated polygon&#39;s points.</span>
-</span><span id="__span-0-67"><a id="__codelineno-0-67" name="__codelineno-0-67"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-68"><a id="__codelineno-0-68" name="__codelineno-0-68"></a>
-</span><span id="__span-0-69"><a id="__codelineno-0-69" name="__codelineno-0-69"></a>    <span class="k">if</span> <span class="n">percentage</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">percentage</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
-</span><span id="__span-0-70"><a id="__codelineno-0-70" name="__codelineno-0-70"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Percentage must be in the range [0, 1).&quot;</span><span class="p">)</span>
-</span><span id="__span-0-71"><a id="__codelineno-0-71" name="__codelineno-0-71"></a>
-</span><span id="__span-0-72"><a id="__codelineno-0-72" name="__codelineno-0-72"></a>    <span class="n">target_points</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">polygon</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">percentage</span><span class="p">)),</span> <span class="mi">3</span><span class="p">)</span>
-</span><span id="__span-0-73"><a id="__codelineno-0-73" name="__codelineno-0-73"></a>
-</span><span id="__span-0-74"><a id="__codelineno-0-74" name="__codelineno-0-74"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">polygon</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">target_points</span><span class="p">:</span>
-</span><span id="__span-0-75"><a id="__codelineno-0-75" name="__codelineno-0-75"></a>        <span class="k">return</span> <span class="n">polygon</span>
-</span><span id="__span-0-76"><a id="__codelineno-0-76" name="__codelineno-0-76"></a>
-</span><span id="__span-0-77"><a id="__codelineno-0-77" name="__codelineno-0-77"></a>    <span class="n">epsilon</span> <span class="o">=</span> <span class="mi">0</span>
-</span><span id="__span-0-78"><a id="__codelineno-0-78" name="__codelineno-0-78"></a>    <span class="n">approximated_points</span> <span class="o">=</span> <span class="n">polygon</span>
-</span><span id="__span-0-79"><a id="__codelineno-0-79" name="__codelineno-0-79"></a>    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-</span><span id="__span-0-80"><a id="__codelineno-0-80" name="__codelineno-0-80"></a>        <span class="n">epsilon</span> <span class="o">+=</span> <span class="n">epsilon_step</span>
-</span><span id="__span-0-81"><a id="__codelineno-0-81" name="__codelineno-0-81"></a>        <span class="n">new_approximated_points</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">approxPolyDP</span><span class="p">(</span><span class="n">polygon</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-0-82"><a id="__codelineno-0-82" name="__codelineno-0-82"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_approximated_points</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">target_points</span><span class="p">:</span>
-</span><span id="__span-0-83"><a id="__codelineno-0-83" name="__codelineno-0-83"></a>            <span class="n">approximated_points</span> <span class="o">=</span> <span class="n">new_approximated_points</span>
-</span><span id="__span-0-84"><a id="__codelineno-0-84" name="__codelineno-0-84"></a>        <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-0-85"><a id="__codelineno-0-85" name="__codelineno-0-85"></a>            <span class="k">break</span>
-</span><span id="__span-0-86"><a id="__codelineno-0-86" name="__codelineno-0-86"></a>
-</span><span id="__span-0-87"><a id="__codelineno-0-87" name="__codelineno-0-87"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">approximated_points</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53"></a>    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">string_1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+</span><span id="__span-0-54"><a id="__codelineno-0-54" name="__codelineno-0-54"></a>        <span class="n">curr_row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+</span><span id="__span-0-55"><a id="__codelineno-0-55" name="__codelineno-0-55"></a>        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">string_2</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+</span><span id="__span-0-56"><a id="__codelineno-0-56" name="__codelineno-0-56"></a>            <span class="k">if</span> <span class="n">string_1</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">string_2</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]:</span>
+</span><span id="__span-0-57"><a id="__codelineno-0-57" name="__codelineno-0-57"></a>                <span class="n">substitution_cost</span> <span class="o">=</span> <span class="mi">0</span>
+</span><span id="__span-0-58"><a id="__codelineno-0-58" name="__codelineno-0-58"></a>            <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59"></a>                <span class="n">substitution_cost</span> <span class="o">=</span> <span class="mi">1</span>
+</span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60"></a>            <span class="n">curr_row</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+</span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a>                <span class="n">prev_row</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62"></a>                <span class="n">curr_row</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63"></a>                <span class="n">prev_row</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">substitution_cost</span><span class="p">,</span>
+</span><span id="__span-0-64"><a id="__codelineno-0-64" name="__codelineno-0-64"></a>            <span class="p">)</span>
+</span><span id="__span-0-65"><a id="__codelineno-0-65" name="__codelineno-0-65"></a>        <span class="n">prev_row</span><span class="p">,</span> <span class="n">curr_row</span> <span class="o">=</span> <span class="n">curr_row</span><span class="p">,</span> <span class="n">prev_row</span>
+</span><span id="__span-0-66"><a id="__codelineno-0-66" name="__codelineno-0-66"></a>
+</span><span id="__span-0-67"><a id="__codelineno-0-67" name="__codelineno-0-67"></a>    <span class="k">return</span> <span class="n">prev_row</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">string_2</span><span class="p">)]</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div><div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.vlms.fuzzy_match_index">fuzzy_match_index</a></h2>
+</div>
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="supervision.detection.utils.vlms.fuzzy_match_index" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">detection</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">vlms</span><span class="o">.</span><span class="n">fuzzy_match_index</span><span class="p">(</span><span class="n">candidates</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">threshold</span><span class="p">,</span> <span class="n">case_sensitive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+
+<a href="#supervision.detection.utils.vlms.fuzzy_match_index" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents first">
+
+        <p>Searches for the first string in <code>candidates</code> whose edit distance
+to <code>query</code> is less than or equal to <code>threshold</code>.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+<h3 id="supervision.detection.utils.vlms.fuzzy_match_index(candidates)" class="doc doc-heading doc-heading-parameter">                  <code>candidates</code>
+<a href="#supervision.detection.utils.vlms.fuzzy_match_index(candidates)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
+            <td>
+                  <code><span title="list">list</span>[<span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List of strings to search.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+<h3 id="supervision.detection.utils.vlms.fuzzy_match_index(query)" class="doc doc-heading doc-heading-parameter">                  <code>query</code>
+<a href="#supervision.detection.utils.vlms.fuzzy_match_index(query)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>String to compare against the candidates.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+<h3 id="supervision.detection.utils.vlms.fuzzy_match_index(threshold)" class="doc doc-heading doc-heading-parameter">                  <code>threshold</code>
+<a href="#supervision.detection.utils.vlms.fuzzy_match_index(threshold)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Maximum allowed edit distance for a match.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+<h3 id="supervision.detection.utils.vlms.fuzzy_match_index(case_sensitive)" class="doc doc-heading doc-heading-parameter">                  <code>case_sensitive</code>
+<a href="#supervision.detection.utils.vlms.fuzzy_match_index(case_sensitive)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether matching should be case-sensitive.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="int">int</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Optional[int]: Index of the first matching string in candidates,
+or None if no match is found.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">fuzzy_match_index</span><span class="p">([</span><span class="s2">&quot;cat&quot;</span><span class="p">,</span> <span class="s2">&quot;dog&quot;</span><span class="p">,</span> <span class="s2">&quot;rat&quot;</span><span class="p">],</span> <span class="s2">&quot;dat&quot;</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="c1"># 0</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">fuzzy_match_index</span><span class="p">([</span><span class="s2">&quot;alpha&quot;</span><span class="p">,</span> <span class="s2">&quot;beta&quot;</span><span class="p">,</span> <span class="s2">&quot;gamma&quot;</span><span class="p">],</span> <span class="s2">&quot;bata&quot;</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1"># 1</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">fuzzy_match_index</span><span class="p">([</span><span class="s2">&quot;one&quot;</span><span class="p">,</span> <span class="s2">&quot;two&quot;</span><span class="p">,</span> <span class="s2">&quot;three&quot;</span><span class="p">],</span> <span class="s2">&quot;ten&quot;</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1"># None</span>
+</span></code></pre></div>
+
+
+            <details class="quote">
+              <summary>Source code in <code>supervision/detection/utils/vlms.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-70"> 70</a></span>
+<span class="normal"><a href="#__codelineno-0-71"> 71</a></span>
+<span class="normal"><a href="#__codelineno-0-72"> 72</a></span>
+<span class="normal"><a href="#__codelineno-0-73"> 73</a></span>
+<span class="normal"><a href="#__codelineno-0-74"> 74</a></span>
+<span class="normal"><a href="#__codelineno-0-75"> 75</a></span>
+<span class="normal"><a href="#__codelineno-0-76"> 76</a></span>
+<span class="normal"><a href="#__codelineno-0-77"> 77</a></span>
+<span class="normal"><a href="#__codelineno-0-78"> 78</a></span>
+<span class="normal"><a href="#__codelineno-0-79"> 79</a></span>
+<span class="normal"><a href="#__codelineno-0-80"> 80</a></span>
+<span class="normal"><a href="#__codelineno-0-81"> 81</a></span>
+<span class="normal"><a href="#__codelineno-0-82"> 82</a></span>
+<span class="normal"><a href="#__codelineno-0-83"> 83</a></span>
+<span class="normal"><a href="#__codelineno-0-84"> 84</a></span>
+<span class="normal"><a href="#__codelineno-0-85"> 85</a></span>
+<span class="normal"><a href="#__codelineno-0-86"> 86</a></span>
+<span class="normal"><a href="#__codelineno-0-87"> 87</a></span>
+<span class="normal"><a href="#__codelineno-0-88"> 88</a></span>
+<span class="normal"><a href="#__codelineno-0-89"> 89</a></span>
+<span class="normal"><a href="#__codelineno-0-90"> 90</a></span>
+<span class="normal"><a href="#__codelineno-0-91"> 91</a></span>
+<span class="normal"><a href="#__codelineno-0-92"> 92</a></span>
+<span class="normal"><a href="#__codelineno-0-93"> 93</a></span>
+<span class="normal"><a href="#__codelineno-0-94"> 94</a></span>
+<span class="normal"><a href="#__codelineno-0-95"> 95</a></span>
+<span class="normal"><a href="#__codelineno-0-96"> 96</a></span>
+<span class="normal"><a href="#__codelineno-0-97"> 97</a></span>
+<span class="normal"><a href="#__codelineno-0-98"> 98</a></span>
+<span class="normal"><a href="#__codelineno-0-99"> 99</a></span>
+<span class="normal"><a href="#__codelineno-0-100">100</a></span>
+<span class="normal"><a href="#__codelineno-0-101">101</a></span>
+<span class="normal"><a href="#__codelineno-0-102">102</a></span>
+<span class="normal"><a href="#__codelineno-0-103">103</a></span>
+<span class="normal"><a href="#__codelineno-0-104">104</a></span>
+<span class="normal"><a href="#__codelineno-0-105">105</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-70"><a id="__codelineno-0-70" name="__codelineno-0-70"></a><span class="k">def</span><span class="w"> </span><span class="nf">fuzzy_match_index</span><span class="p">(</span>
+</span><span id="__span-0-71"><a id="__codelineno-0-71" name="__codelineno-0-71"></a>    <span class="n">candidates</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+</span><span id="__span-0-72"><a id="__codelineno-0-72" name="__codelineno-0-72"></a>    <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+</span><span id="__span-0-73"><a id="__codelineno-0-73" name="__codelineno-0-73"></a>    <span class="n">threshold</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+</span><span id="__span-0-74"><a id="__codelineno-0-74" name="__codelineno-0-74"></a>    <span class="n">case_sensitive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-0-75"><a id="__codelineno-0-75" name="__codelineno-0-75"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-76"><a id="__codelineno-0-76" name="__codelineno-0-76"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-77"><a id="__codelineno-0-77" name="__codelineno-0-77"></a><span class="sd">    Searches for the first string in `candidates` whose edit distance</span>
+</span><span id="__span-0-78"><a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="sd">    to `query` is less than or equal to `threshold`.</span>
+</span><span id="__span-0-79"><a id="__codelineno-0-79" name="__codelineno-0-79"></a>
+</span><span id="__span-0-80"><a id="__codelineno-0-80" name="__codelineno-0-80"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-81"><a id="__codelineno-0-81" name="__codelineno-0-81"></a><span class="sd">        candidates (list[str]): List of strings to search.</span>
+</span><span id="__span-0-82"><a id="__codelineno-0-82" name="__codelineno-0-82"></a><span class="sd">        query (str): String to compare against the candidates.</span>
+</span><span id="__span-0-83"><a id="__codelineno-0-83" name="__codelineno-0-83"></a><span class="sd">        threshold (int): Maximum allowed edit distance for a match.</span>
+</span><span id="__span-0-84"><a id="__codelineno-0-84" name="__codelineno-0-84"></a><span class="sd">        case_sensitive (bool, optional): Whether matching should be case-sensitive.</span>
+</span><span id="__span-0-85"><a id="__codelineno-0-85" name="__codelineno-0-85"></a>
+</span><span id="__span-0-86"><a id="__codelineno-0-86" name="__codelineno-0-86"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-87"><a id="__codelineno-0-87" name="__codelineno-0-87"></a><span class="sd">        Optional[int]: Index of the first matching string in candidates,</span>
+</span><span id="__span-0-88"><a id="__codelineno-0-88" name="__codelineno-0-88"></a><span class="sd">            or None if no match is found.</span>
+</span><span id="__span-0-89"><a id="__codelineno-0-89" name="__codelineno-0-89"></a>
+</span><span id="__span-0-90"><a id="__codelineno-0-90" name="__codelineno-0-90"></a><span class="sd">    Examples:</span>
+</span><span id="__span-0-91"><a id="__codelineno-0-91" name="__codelineno-0-91"></a><span class="sd">        ```python</span>
+</span><span id="__span-0-92"><a id="__codelineno-0-92" name="__codelineno-0-92"></a><span class="sd">        fuzzy_match_index([&quot;cat&quot;, &quot;dog&quot;, &quot;rat&quot;], &quot;dat&quot;, threshold=1)</span>
+</span><span id="__span-0-93"><a id="__codelineno-0-93" name="__codelineno-0-93"></a><span class="sd">        # 0</span>
+</span><span id="__span-0-94"><a id="__codelineno-0-94" name="__codelineno-0-94"></a>
+</span><span id="__span-0-95"><a id="__codelineno-0-95" name="__codelineno-0-95"></a><span class="sd">        fuzzy_match_index([&quot;alpha&quot;, &quot;beta&quot;, &quot;gamma&quot;], &quot;bata&quot;, threshold=1)</span>
+</span><span id="__span-0-96"><a id="__codelineno-0-96" name="__codelineno-0-96"></a><span class="sd">        # 1</span>
+</span><span id="__span-0-97"><a id="__codelineno-0-97" name="__codelineno-0-97"></a>
+</span><span id="__span-0-98"><a id="__codelineno-0-98" name="__codelineno-0-98"></a><span class="sd">        fuzzy_match_index([&quot;one&quot;, &quot;two&quot;, &quot;three&quot;], &quot;ten&quot;, threshold=2)</span>
+</span><span id="__span-0-99"><a id="__codelineno-0-99" name="__codelineno-0-99"></a><span class="sd">        # None</span>
+</span><span id="__span-0-100"><a id="__codelineno-0-100" name="__codelineno-0-100"></a><span class="sd">        ```</span>
+</span><span id="__span-0-101"><a id="__codelineno-0-101" name="__codelineno-0-101"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-102"><a id="__codelineno-0-102" name="__codelineno-0-102"></a>    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">candidates</span><span class="p">):</span>
+</span><span id="__span-0-103"><a id="__codelineno-0-103" name="__codelineno-0-103"></a>        <span class="k">if</span> <span class="n">edit_distance</span><span class="p">(</span><span class="n">candidate</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">case_sensitive</span><span class="o">=</span><span class="n">case_sensitive</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">threshold</span><span class="p">:</span>
+</span><span id="__span-0-104"><a id="__codelineno-0-104" name="__codelineno-0-104"></a>            <span class="k">return</span> <span class="n">idx</span>
+</span><span id="__span-0-105"><a id="__codelineno-0-105" name="__codelineno-0-105"></a>    <span class="k">return</span> <span class="kc">None</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -3062,7 +3173,7 @@ approximated polygon's points.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2025 17:56:04 UTC">July 15, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 24, 2025 13:05:19 UTC">July 24, 2025</span>
   </span>
 
     
@@ -3072,7 +3183,7 @@ approximated polygon's points.</p>
     <span class="md-icon" title="Created">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.47 15.08 11 13V7h1.5v5.25l3.08 1.83c-.41.28-.79.62-1.11 1m-1.39 4.84c-.36.05-.71.08-1.08.08-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8c0 .37-.03.72-.08 1.08.69.1 1.33.32 1.92.64.1-.56.16-1.13.16-1.72 0-5.5-4.5-10-10-10S2 6.5 2 12s4.47 10 10 10c.59 0 1.16-.06 1.72-.16-.32-.59-.54-1.23-.64-1.92M18 15v3h-3v2h3v3h2v-3h3v-2h-3v-3z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 15, 2025 17:56:04 UTC">July 15, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 24, 2025 13:05:19 UTC">July 24, 2025</span>
   </span>
 
     
