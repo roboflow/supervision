@@ -1119,6 +1119,47 @@ class Detections:
             # array([[1752.28,  818.82, 2165.72, 1229.14],
             #        [1908.01, 1346.67, 2585.99, 2024.11]])
             ```
+        
+        !!! example "DeepSeek-VL2"
+
+
+            ??? tip "Prompt engineering"
+
+                To get the best results from DeepSeek-VL2, use optimized prompts that leverage
+                its object detection and visual grounding capabilities effectively.
+
+                **For general object detection, use the following user prompt:**
+
+                ```
+                <image>\\n<|ref|>The giraffe at the front<|/ref|>
+                ```
+
+                **For visual grounding, use the following user prompt:**
+
+                ```
+                <image>\\n<|grounding|>Detect the giraffes
+                ```
+
+            ```python
+            from PIL import Image
+            import supervision as sv
+
+            deepseek_vl2_result = "<|ref|>The giraffe at the back<|/ref|><|det|>[[580, 270, 999, 904]]<|/det|><|ref|>The giraffe at the front<|/ref|><|det|>[[26, 31, 632, 998]]<|/det|><|end▁of▁sentence|>"
+
+            detections = sv.Detections.from_vlm(
+                vlm=sv.VLM.DEEPSEEK_VL_2, result=deepseek_vl2_result, resolution_wh=image.size
+            )
+
+            detections.xyxy
+            # array([[ 420,  293,  724,  982],
+            #        [  18,   33,  458, 1084]])
+
+            detections.class_id
+            # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['The giraffe at the back', 'The giraffe at the front'], dtype='<U24')}
+            ```
         """  # noqa: E501
 
         # filler logic mapping old from_lmm to new from_vlm
