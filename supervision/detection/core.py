@@ -833,7 +833,7 @@ class Detections:
         | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
         | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
-        | Kosmos 2            | `KOSMOS_2`           | detection               | `resolution_wh`             |                     |
+        | Kosmos 2            | `KOSMOS_2`           | detection               | `resolution_wh`             | `classes`           |
 
         Args:
             lmm (Union[LMM, str]): The type of LMM (Large Multimodal Model) to use.
@@ -1241,7 +1241,7 @@ class Detections:
         | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
         | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
-        | Kosmos 2            | `KOSMOS_2`           | detection               | `resolution_wh`             |                     |
+        | Kosmos 2            | `KOSMOS_2`           | detection               | `resolution_wh`             | `classes`           |
 
         Args:
             vlm (Union[VLM, str]): The type of VLM (Vision Language Model) to use.

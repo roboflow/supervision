@@ -136,7 +136,7 @@ ALLOWED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh", "classes"],
     VLM.MOONDREAM: ["resolution_wh"],
-    VLM.KOSMOS_2: ["resolution_wh"],
+    VLM.KOSMOS_2: ["resolution_wh", "classes"],
 }
 
 SUPPORTED_TASKS_FLORENCE_2 = [
@@ -811,6 +811,7 @@ def from_kosmos(
         str, list[tuple[str, tuple[int, int], list[tuple[int, int, int, int]]]]
     ],
     resolution_wh: tuple[int, int],
+    classes: list[str] | None = None,
 ) -> tuple[np.ndarray]:
     """
     Parse and scale bounding boxes from kosmos-2 result.
@@ -836,6 +837,8 @@ def from_kosmos(
     Args:
         result: The result from the kosmos-2 model.
         resolution_wh: (output_width, output_height) to which we rescale the boxes.
+        classes: Optional list of valid class names. If provided, returned boxes/labels
+            are filtered to only those classes found here.
 
     Returns:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing
@@ -849,6 +852,10 @@ def from_kosmos(
     xyxy, class_names = [], []
     for item in entity_locations:
         class_name = item[0]
+
+        if classes is not None and class_name not in classes:
+            continue
+
         bbox = item[2][0]
         xyxy.append(denormalize_boxes(np.array(bbox), resolution_wh=resolution_wh))
         class_names.append(class_name)
