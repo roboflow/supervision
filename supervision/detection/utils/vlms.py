@@ -60,7 +60,7 @@ def edit_distance(string_1: str, string_2: str, case_sensitive: bool = True) -> 
             curr_row[j] = min(
                 prev_row[j] + 1,
                 curr_row[j - 1] + 1,
-                prev_row[j - 1] + substitution_cost
+                prev_row[j - 1] + substitution_cost,
             )
         prev_row, curr_row = curr_row, prev_row
 
