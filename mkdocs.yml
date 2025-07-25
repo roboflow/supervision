@@ -47,6 +47,7 @@ nav:
           - Boxes: detection/utils/boxes.md
           - Masks: detection/utils/masks.md
           - Polygons: detection/utils/polygons.md
+          - VLMs: detection/utils/vlms.md
       - Keypoint Detection:
           - Core: keypoint/core.md
           - Annotators: keypoint/annotators.md

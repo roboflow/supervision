@@ -102,12 +102,12 @@ class MeanAveragePrecisionResult:
             f"maxDets=100 ] = {self.map50:.3f}\n"
             f"Average Precision (AP) @[ IoU=0.75      | area=   all | "
             f"maxDets=100 ] = {self.map75:.3f}\n"
-            f"Average Precision (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] "
-            f"= {self.small_objects.map50_95:.3f}\n"
-            f"Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] \
-                = {self.medium_objects.map50_95:.3f}\n"
-            f"Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] \
-                = {self.large_objects.map50_95:.3f}"
+            f"Average Precision (AP) @[ IoU=0.50:0.95 | area= small | "
+            f"maxDets=100 ] = {self.small_objects.map50_95:.3f}\n"
+            f"Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | "
+            f"maxDets=100 ] = {self.medium_objects.map50_95:.3f}\n"
+            f"Average Precision (AP) @[ IoU=0.50:0.95 | area= large | "
+            f"maxDets=100 ] = {self.large_objects.map50_95:.3f}"
         )
 
     def to_pandas(self) -> pd.DataFrame:
