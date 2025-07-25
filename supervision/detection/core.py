@@ -40,6 +40,7 @@ from supervision.detection.utils.masks import calculate_masks_centroids
 from supervision.detection.vlm import (
     LMM,
     VLM,
+    from_deepseek_vl_2,
     from_florence_2,
     from_google_gemini_2_0,
     from_google_gemini_2_5,
@@ -830,6 +831,7 @@ class Detections:
         | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
+        | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
 
         Args:
             lmm (Union[LMM, str]): The type of LMM (Large Multimodal Model) to use.
@@ -1117,6 +1119,47 @@ class Detections:
             # array([[1752.28,  818.82, 2165.72, 1229.14],
             #        [1908.01, 1346.67, 2585.99, 2024.11]])
             ```
+
+        !!! example "DeepSeek-VL2"
+
+
+            ??? tip "Prompt engineering"
+
+                To get the best results from DeepSeek-VL2, use optimized prompts that leverage
+                its object detection and visual grounding capabilities effectively.
+
+                **For general object detection, use the following user prompt:**
+
+                ```
+                <image>\\n<|ref|>The giraffe at the front<|/ref|>
+                ```
+
+                **For visual grounding, use the following user prompt:**
+
+                ```
+                <image>\\n<|grounding|>Detect the giraffes
+                ```
+
+            ```python
+            from PIL import Image
+            import supervision as sv
+
+            deepseek_vl2_result = "<|ref|>The giraffe at the back<|/ref|><|det|>[[580, 270, 999, 904]]<|/det|><|ref|>The giraffe at the front<|/ref|><|det|>[[26, 31, 632, 998]]<|/det|><|end▁of▁sentence|>"
+
+            detections = sv.Detections.from_vlm(
+                vlm=sv.VLM.DEEPSEEK_VL_2, result=deepseek_vl2_result, resolution_wh=image.size
+            )
+
+            detections.xyxy
+            # array([[ 420,  293,  724,  982],
+            #        [  18,   33,  458, 1084]])
+
+            detections.class_id
+            # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['The giraffe at the back', 'The giraffe at the front'], dtype='<U24')}
+            ```
         """  # noqa: E501
 
         # filler logic mapping old from_lmm to new from_vlm
@@ -1124,6 +1167,7 @@ class Detections:
             LMM.PALIGEMMA: VLM.PALIGEMMA,
             LMM.FLORENCE_2: VLM.FLORENCE_2,
             LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL,
+            LMM.DEEPSEEK_VL_2: VLM.DEEPSEEK_VL_2,
             LMM.GOOGLE_GEMINI_2_0: VLM.GOOGLE_GEMINI_2_0,
             LMM.GOOGLE_GEMINI_2_5: VLM.GOOGLE_GEMINI_2_5,
         }
@@ -1164,6 +1208,7 @@ class Detections:
         | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
+        | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
 
         Args:
             vlm (Union[VLM, str]): The type of VLM (Vision Language Model) to use.
@@ -1452,6 +1497,47 @@ class Detections:
             #        [1908.01, 1346.67, 2585.99, 2024.11]])
             ```
 
+        !!! example "DeepSeek-VL2"
+
+
+            ??? tip "Prompt engineering"
+
+                To get the best results from DeepSeek-VL2, use optimized prompts that leverage
+                its object detection and visual grounding capabilities effectively.
+
+                **For general object detection, use the following user prompt:**
+
+                ```
+                <image>\\n<|ref|>The giraffe at the front<|/ref|>
+                ```
+
+                **For visual grounding, use the following user prompt:**
+
+                ```
+                <image>\\n<|grounding|>Detect the giraffes
+                ```
+
+            ```python
+            from PIL import Image
+            import supervision as sv
+
+            deepseek_vl2_result = "<|ref|>The giraffe at the back<|/ref|><|det|>[[580, 270, 999, 904]]<|/det|><|ref|>The giraffe at the front<|/ref|><|det|>[[26, 31, 632, 998]]<|/det|><|end▁of▁sentence|>"
+
+            detections = sv.Detections.from_vlm(
+                vlm=sv.VLM.DEEPSEEK_VL_2, result=deepseek_vl2_result, resolution_wh=image.size
+            )
+
+            detections.xyxy
+            # array([[ 420,  293,  724,  982],
+            #        [  18,   33,  458, 1084]])
+
+            detections.class_id
+            # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['The giraffe at the back', 'The giraffe at the front'], dtype='<U24')}
+            ```
+
         """  # noqa: E501
 
         vlm = validate_vlm_parameters(vlm, result, kwargs)
@@ -1463,6 +1549,11 @@ class Detections:
 
         if vlm == VLM.QWEN_2_5_VL:
             xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            return cls(xyxy=xyxy, class_id=class_id, data=data)
+
+        if vlm == VLM.DEEPSEEK_VL_2:
+            xyxy, class_id, class_name = from_deepseek_vl_2(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 

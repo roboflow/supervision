@@ -36,6 +36,7 @@ class LMM(Enum):
     PALIGEMMA = "paligemma"
     FLORENCE_2 = "florence_2"
     QWEN_2_5_VL = "qwen_2_5_vl"
+    DEEPSEEK_VL_2 = "deepseek_vl_2"
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
     MOONDREAM = "moondream"
@@ -76,6 +77,7 @@ class VLM(Enum):
     PALIGEMMA = "paligemma"
     FLORENCE_2 = "florence_2"
     QWEN_2_5_VL = "qwen_2_5_vl"
+    DEEPSEEK_VL_2 = "deepseek_vl_2"
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
     MOONDREAM = "moondream"
@@ -104,6 +106,7 @@ RESULT_TYPES: dict[VLM, type] = {
     VLM.PALIGEMMA: str,
     VLM.FLORENCE_2: dict,
     VLM.QWEN_2_5_VL: str,
+    VLM.DEEPSEEK_VL_2: str,
     VLM.GOOGLE_GEMINI_2_0: str,
     VLM.GOOGLE_GEMINI_2_5: str,
     VLM.MOONDREAM: dict,
@@ -113,6 +116,7 @@ REQUIRED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.PALIGEMMA: ["resolution_wh"],
     VLM.FLORENCE_2: ["resolution_wh"],
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh"],
+    VLM.DEEPSEEK_VL_2: ["resolution_wh"],
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh"],
     VLM.MOONDREAM: ["resolution_wh"],
@@ -122,6 +126,7 @@ ALLOWED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.PALIGEMMA: ["resolution_wh", "classes"],
     VLM.FLORENCE_2: ["resolution_wh"],
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh", "classes"],
+    VLM.DEEPSEEK_VL_2: ["resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh", "classes"],
     VLM.MOONDREAM: ["resolution_wh"],
@@ -306,6 +311,79 @@ def from_qwen_2_5_vl(
         xyxy = xyxy[mask]
         class_name = class_name[mask]
         class_id = np.array([classes.index(label) for label in class_name], dtype=int)
+
+    return xyxy, class_id, class_name
+
+
+def from_deepseek_vl_2(
+    result: str, resolution_wh: tuple[int, int], classes: list[str] | None = None
+) -> tuple[np.ndarray, np.ndarray | None, np.ndarray]:
+    """
+    Parse bounding boxes from deepseek-vl2-formatted text, scale them to the specified
+    resolution, and optionally filter by classes.
+
+    The DeepSeek-VL2 output typically contains pairs of <|ref|> ... <|/ref|> labels
+    and <|det|> ... <|/det|> bounding box definitions. Each <|det|> section may
+    contain one or more bounding boxes in the form [[x1, y1, x2, y2], [x1, y1, x2, y2], ...]
+    (scaled to 0..999). For example:
+
+    ```
+    <|ref|>The giraffe at the back<|/ref|><|det|>[[580, 270, 999, 904]]<|/det|><|ref|>The giraffe at the front<|/ref|><|det|>[[26, 31, 632, 998]]<|/det|><|end▁of▁sentence|>
+    ```
+
+    Args:
+        result: String containing deepseek-vl2-formatted locations and labels.
+        resolution_wh: Tuple (width, height) to which we scale the box coordinates.
+        classes: Optional list of valid class names. If provided, boxes and labels not
+            in this list are filtered out.
+
+    Returns:
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing
+            the bounding boxes coordinates in format `[x1, y1, x2, y2]`.
+        class_id (Optional[np.ndarray]): An array of shape `(n,)` containing
+            the class indices for each bounding box (or `None` if classes is not
+            provided).
+        class_name (np.ndarray): An array of shape `(n,)` containing
+            the class labels for each bounding box.
+    """  # noqa: E501
+
+    width, height = resolution_wh
+    label_segments = re.findall(r"<\|ref\|>(.*?)<\|/ref\|>", result, flags=re.S)
+    detection_segments = re.findall(r"<\|det\|>(.*?)<\|/det\|>", result, flags=re.S)
+
+    if len(label_segments) != len(detection_segments):
+        raise ValueError(
+            f"Number of ref tags ({len(label_segments)}) "
+            f"and det tags ({len(detection_segments)}) in the result must be equal."
+        )
+
+    xyxy, class_name_list = [], []
+    for label, detection_blob in zip(label_segments, detection_segments):
+        current_class_name = label.strip()
+        for box in re.findall(r"\[(.*?)\]", detection_blob):
+            x1, y1, x2, y2 = map(float, box.strip("[]").split(","))
+            xyxy.append(
+                [
+                    (x1 / 999 * width),
+                    (y1 / 999 * height),
+                    (x2 / 999 * width),
+                    (y2 / 999 * height),
+                ]
+            )
+            class_name_list.append(current_class_name)
+
+    xyxy = np.array(xyxy, dtype=np.float32)
+    class_name = np.array(class_name_list)
+
+    if classes is not None:
+        mask = np.array([name in classes for name in class_name], dtype=bool)
+        xyxy = xyxy[mask]
+        class_name = class_name[mask]
+        class_id = np.array([classes.index(name) for name in class_name])
+    else:
+        unique_classes = sorted(list(set(class_name)))
+        class_to_id = {name: i for i, name in enumerate(unique_classes)}
+        class_id = np.array([class_to_id[name] for name in class_name])
 
     return xyxy, class_id, class_name
 
