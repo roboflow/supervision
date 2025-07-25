@@ -39,7 +39,7 @@ class LMM(Enum):
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
     MOONDREAM = "moondream"
-    KOSMOS = "kosmos"
+    KOSMOS_2 = "kosmos_2"
 
     @classmethod
     def list(cls):
@@ -80,7 +80,7 @@ class VLM(Enum):
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
     MOONDREAM = "moondream"
-    KOSMOS = "kosmos"
+    KOSMOS_2 = "kosmos_2"
 
     @classmethod
     def list(cls):
@@ -109,7 +109,7 @@ RESULT_TYPES: dict[VLM, type] = {
     VLM.GOOGLE_GEMINI_2_0: str,
     VLM.GOOGLE_GEMINI_2_5: str,
     VLM.MOONDREAM: dict,
-    VLM.KOSMOS: tuple[
+    VLM.KOSMOS_2: tuple[
         str, list[tuple[str, tuple[int, int], list[tuple[int, int, int, int]]]]
     ],
 }
@@ -121,7 +121,7 @@ REQUIRED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh"],
     VLM.MOONDREAM: ["resolution_wh"],
-    VLM.KOSMOS: ["resolution_wh"],
+    VLM.KOSMOS_2: ["resolution_wh"],
 }
 
 ALLOWED_ARGUMENTS: dict[VLM, list[str]] = {
@@ -131,7 +131,7 @@ ALLOWED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh", "classes"],
     VLM.MOONDREAM: ["resolution_wh"],
-    VLM.KOSMOS: ["resolution_wh"],
+    VLM.KOSMOS_2: ["resolution_wh"],
 }
 
 SUPPORTED_TASKS_FLORENCE_2 = [

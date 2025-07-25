@@ -1532,7 +1532,7 @@ class Detections:
                 data=data,
             )
 
-        if vlm == VLM.KOSMOS:
+        if vlm == VLM.KOSMOS_2:
             xyxy, class_id, class_name = from_kosmos(result, **kwargs)
             return cls(
                 xyxy=xyxy, class_id=class_id, data={CLASS_NAME_DATA_FIELD: class_name}
