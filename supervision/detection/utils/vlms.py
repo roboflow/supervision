@@ -44,28 +44,27 @@ def edit_distance(string_1: str, string_2: str, case_sensitive: bool = True) -> 
         string_1 = string_1.lower()
         string_2 = string_2.lower()
 
-    length_1 = len(string_1)
-    length_2 = len(string_2)
-    distance_matrix = [[0] * (length_2 + 1) for _ in range(length_1 + 1)]
+    if len(string_1) < len(string_2):
+        string_1, string_2 = string_2, string_1
 
-    for i in range(length_1 + 1):
-        distance_matrix[i][0] = i
-    for j in range(length_2 + 1):
-        distance_matrix[0][j] = j
+    prev_row = list(range(len(string_2) + 1))
+    curr_row = [0] * (len(string_2) + 1)
 
-    for i in range(1, length_1 + 1):
-        for j in range(1, length_2 + 1):
+    for i in range(1, len(string_1) + 1):
+        curr_row[0] = i
+        for j in range(1, len(string_2) + 1):
             if string_1[i - 1] == string_2[j - 1]:
                 substitution_cost = 0
             else:
                 substitution_cost = 1
-            distance_matrix[i][j] = min(
-                distance_matrix[i - 1][j] + 1,
-                distance_matrix[i][j - 1] + 1,
-                distance_matrix[i - 1][j - 1] + substitution_cost,
+            curr_row[j] = min(
+                prev_row[j] + 1,
+                curr_row[j - 1] + 1,
+                prev_row[j - 1] + substitution_cost
             )
+        prev_row, curr_row = curr_row, prev_row
 
-    return distance_matrix[length_1][length_2]
+    return prev_row[len(string_2)]
 
 
 def fuzzy_match_index(
