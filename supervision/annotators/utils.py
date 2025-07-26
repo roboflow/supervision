@@ -142,7 +142,11 @@ def resolve_color(
         detection_idx=detection_idx,
         color_lookup=color_lookup,
     )
-    if color_lookup == ColorLookup.TRACK and idx == PENDING_TRACK_ID:
+    if (
+        isinstance(color_lookup, ColorLookup)
+        and color_lookup == ColorLookup.TRACK
+        and idx == PENDING_TRACK_ID
+    ):
         return PENDING_TRACK_COLOR
     return get_color_by_index(color=color, idx=idx)
 

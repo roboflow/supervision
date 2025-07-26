@@ -1,4 +1,6 @@
 supervision
 ultralytics
 inference
-pytube
+# https://github.com/pytube/pytube/issues/2044
+# pytube
+pytubefix
