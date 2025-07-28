@@ -88,12 +88,12 @@ class KeyPoints:
         key_points = sv.KeyPoints.from_mediapipe(
             pose_landmarker_result, (image_width, image_height))
         ```
-        
+
     === "Transformers"
-    
+
         Use [`sv.KeyPoints.from_transformers`](/latest/keypoint/core/#supervision.key_points.core.KeyPoints.from_transformers)
         method, which accepts [ViTPose](https://huggingface.co/docs/transformers/en/model_doc/vitpose) result.
-    
+
         ```python
         from PIL import Image
         import requests
@@ -650,7 +650,7 @@ class KeyPoints:
             return cls.empty()
 
     def __getitem__(
-            self, index: int | slice | list[int] | np.ndarray | tuple | str
+        self, index: int | slice | list[int] | np.ndarray | tuple | str
     ) -> KeyPoints | np.ndarray | list | None:
         if isinstance(index, str):
             return self.data.get(index)
@@ -674,22 +674,18 @@ class KeyPoints:
             j = np.flatnonzero(j)
 
         if (
-                isinstance(i, (list, np.ndarray))
-                and isinstance(j, (list, np.ndarray))
-                and not np.isscalar(i)
-                and not np.isscalar(j)
+            isinstance(i, (list, np.ndarray))
+            and isinstance(j, (list, np.ndarray))
+            and not np.isscalar(i)
+            and not np.isscalar(j)
         ):
             i, j = np.ix_(i, j)
 
         xy_selected = self.xy[i, j]
 
-        conf_selected = (
-            self.confidence[i, j] if self.confidence is not None else None
-        )
+        conf_selected = self.confidence[i, j] if self.confidence is not None else None
 
-        class_id_selected = (
-            self.class_id[i] if self.class_id is not None else None
-        )
+        class_id_selected = self.class_id[i] if self.class_id is not None else None
 
         data_selected = get_data_item(self.data, i)
 
@@ -699,13 +695,13 @@ class KeyPoints:
                 conf_selected = conf_selected.reshape(1, 1)
         elif xy_selected.ndim == 2:
             if np.isscalar(index[0]) or (
-                    isinstance(index[0], np.ndarray) and index[0].ndim == 0
+                isinstance(index[0], np.ndarray) and index[0].ndim == 0
             ):
                 xy_selected = xy_selected[np.newaxis, ...]
                 if conf_selected is not None:
                     conf_selected = conf_selected[np.newaxis, ...]
             elif np.isscalar(index[1]) or (
-                    isinstance(index[1], np.ndarray) and index[1].ndim == 0
+                isinstance(index[1], np.ndarray) and index[1].ndim == 0
             ):
                 xy_selected = xy_selected[:, np.newaxis, :]
                 if conf_selected is not None:
