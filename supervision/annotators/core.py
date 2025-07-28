@@ -61,7 +61,9 @@ class _BaseLabelAnnotator(BaseAnnotator):
                                 avoid overlapping with other elements.
         max_line_length (Optional[int]): Maximum number of characters per line before
                                 wrapping the text. None means no wrapping.
-    """
+        text_anchor_offset (Tuple[int, int]): A tuple of 2D coordinates (x, y) to
+                                offset the text position from the anchor point, in pixels.
+    """  # noqa: E501
 
     def __init__(
         self,
@@ -73,6 +75,7 @@ class _BaseLabelAnnotator(BaseAnnotator):
         border_radius: int = 0,
         smart_position: bool = False,
         max_line_length: int | None = None,
+        text_anchor_offset: tuple[int, int] = (0, 0),
     ):
         """
         Initializes the _BaseLabelAnnotator.
@@ -93,8 +96,9 @@ class _BaseLabelAnnotator(BaseAnnotator):
                                 position to avoid overlapping with other elements.
             max_line_length (Optional[int], optional): Maximum number of characters per
                                 line before wrapping the text. None means no wrapping.
-
-        """
+            text_anchor_offset (Tuple[int, int], optional): A tuple of 2D coordinates
+                                (x, y) to offset the text position from the anchor point, in pixels.
+        """  # noqa: E501
         self.color: Color | ColorPalette = color
         self.text_color: Color | ColorPalette = text_color
         self.text_padding: int = text_padding
@@ -103,6 +107,7 @@ class _BaseLabelAnnotator(BaseAnnotator):
         self.border_radius: int = border_radius
         self.smart_position = smart_position
         self.max_line_length: int | None = max_line_length
+        self.text_anchor_offset: tuple[int, int] = text_anchor_offset
 
     def _adjust_labels_in_frame(
         self,
@@ -1085,6 +1090,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
         border_radius: int = 0,
         smart_position: bool = False,
         max_line_length: int | None = None,
+        text_anchor_offset: tuple[int, int] = (0, 0),
     ):
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
@@ -1097,6 +1103,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
             border_radius=border_radius,
             smart_position=smart_position,
             max_line_length=max_line_length,
+            text_anchor_offset=text_anchor_offset,
         )
 
     @ensure_cv2_image_for_annotation
@@ -1145,6 +1152,12 @@ class LabelAnnotator(_BaseLabelAnnotator):
         ).astype(int)
 
         for label, center_coords in zip(labels, anchors_coordinates):
+            # Apply the text anchor offset
+            offset_coords = (
+                center_coords[0] + self.text_anchor_offset[0],
+                center_coords[1] + self.text_anchor_offset[1],
+            )
+
             wrapped_lines = wrap_text(label, self.max_line_length)
             line_heights = []
             line_widths = []
@@ -1170,7 +1183,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
             height_padded = total_height + 2 * self.text_padding
 
             text_background_xyxy = resolve_text_background_xyxy(
-                center_coordinates=tuple(center_coords),
+                center_coordinates=tuple(offset_coords),
                 text_wh=(width_padded, height_padded),
                 position=self.text_anchor,
             )
@@ -1326,6 +1339,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         border_radius: int = 0,
         smart_position: bool = False,
         max_line_length: int | None = None,
+        text_anchor_offset: tuple[int, int] = (0, 0),
     ):
         self.font_path = font_path
         self.font_size = font_size
@@ -1339,6 +1353,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             border_radius=border_radius,
             smart_position=smart_position,
             max_line_length=max_line_length,
+            text_anchor_offset=text_anchor_offset,
         )
 
     @ensure_pil_image_for_annotation
@@ -1387,6 +1402,12 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         ).astype(int)
 
         for label, center_coords in zip(labels, anchor_coordinates):
+            # Apply the text anchor offset
+            offset_coords = (
+                center_coords[0] + self.text_anchor_offset[0],
+                center_coords[1] + self.text_anchor_offset[1],
+            )
+
             wrapped_lines = wrap_text(label, self.max_line_length)
 
             # Calculate the total text height and maximum width
@@ -1409,7 +1430,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             height_padded = int(total_height + 2 * self.text_padding)
 
             text_background_xyxy = resolve_text_background_xyxy(
-                center_coordinates=tuple(center_coords),
+                center_coordinates=tuple(offset_coords),
                 text_wh=(width_padded, height_padded),
                 position=self.text_anchor,
             )
