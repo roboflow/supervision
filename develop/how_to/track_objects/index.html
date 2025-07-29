@@ -2998,7 +2998,7 @@ example. You can do this using <a href="/latest/assets/"><code>supervision[asset
 <p>First, you'll need to obtain predictions from your keypoint detection model. In this tutorial, we are using the YOLOv8 model as an example. However,
 Supervision is versatile and compatible with various models. Check this <a href="/latest/keypoint/core/">link</a> for guidance on how to plug in other models.</p>
 <p>We will define a <code>callback</code> function, which will process each frame of the video by obtaining model predictions and then annotating the frame based on these predictions.</p>
-<p>Let's immediately visualize the results with our <a href="/latest/keypoint/annotators/#supervision.keypoint.annotators.EdgeAnnotator"><code>EdgeAnnotator</code></a> and <a href="https://supervision.roboflow.com/latest/keypoint/annotators/#supervision.keypoint.annotators.VertexAnnotator"><code>VertexAnnotator</code></a>.</p>
+<p>Let's immediately visualize the results with our <a href="/latest/keypoint/annotators/#supervision.key_points.annotators.EdgeAnnotator"><code>EdgeAnnotator</code></a> and <a href="https://supervision.roboflow.com/latest/keypoint/annotators/#supervision.key_points.annotators.VertexAnnotator"><code>VertexAnnotator</code></a>.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="5:2"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><input id="__tabbed_5_2" name="__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="__tabbed_5_1">Ultralytics</label><label for="__tabbed_5_2">Inference</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -3059,7 +3059,7 @@ Supervision is versatile and compatible with various models. Check this <a href=
 </video>
 
 <h3 id="convert-to-detections">Convert to Detections<a class="headerlink" href="#convert-to-detections" title="Permanent link">&para;</a></h3>
-<p>Keypoint tracking is currently supported via the conversion of <code>KeyPoints</code> to <code>Detections</code>. This is achieved with the <a href="/latest/keypoint/core/#supervision.keypoint.core.KeyPoints.as_detections"><code>KeyPoints.as_detections()</code></a> function.</p>
+<p>Keypoint tracking is currently supported via the conversion of <code>KeyPoints</code> to <code>Detections</code>. This is achieved with the <a href="/latest/keypoint/core/#supervision.key_points.core.KeyPoints.as_detections"><code>KeyPoints.as_detections()</code></a> function.</p>
 <p>Let's convert to detections and visualize the results with our <a href="/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator"><code>BoxAnnotator</code></a>.</p>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
@@ -3321,7 +3321,7 @@ Supervision is versatile and compatible with various models. Check this <a href=
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 4, 2025 11:31:05 UTC">July 4, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 28, 2025 06:24:43 UTC">July 28, 2025</span>
   </span>
 
     
@@ -3349,14 +3349,14 @@ Supervision is versatile and compatible with various models. Check this <a href=
     
     <nav>
       
-        <a href="https://github.com/soumik12345" class="md-author" title="@soumik12345">
-          
-          <img src="https://avatars.githubusercontent.com/u/19887676?v=4&size=72" alt="soumik12345">
-        </a>
-      
         <a href="https://github.com/SkalskiP" class="md-author" title="@SkalskiP">
           
           <img src="https://avatars.githubusercontent.com/u/26109316?v=4&size=72" alt="SkalskiP">
+        </a>
+      
+        <a href="https://github.com/soumik12345" class="md-author" title="@soumik12345">
+          
+          <img src="https://avatars.githubusercontent.com/u/19887676?v=4&size=72" alt="soumik12345">
         </a>
       
         <a href="https://github.com/LinasKo" class="md-author" title="@LinasKo">
