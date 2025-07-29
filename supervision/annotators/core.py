@@ -1110,8 +1110,8 @@ class LabelAnnotator(_BaseLabelAnnotator):
             border_radius (int): The radius to apply round edges. If the selected
                 value is higher than the lower dimension, width or height, is clipped.
             smart_position (bool): Spread out the labels to avoid overlapping.
-            max_line_length (Optional[int]): Maximum number of characters per line before
-                wrapping the text. None means no wrapping.
+            max_line_length (Optional[int]): Maximum number of characters per line
+                before wrapping the text. None means no wrapping.
         """
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
@@ -1419,8 +1419,8 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             border_radius (int): The radius to apply round edges. If the selected
                 value is higher than the lower dimension, width or height, is clipped.
             smart_position (bool): Spread out the labels to avoid overlapping.
-            max_line_length (Optional[int]): Maximum number of characters per line before
-                wrapping the text. None means no wrapping.
+            max_line_length (Optional[int]): Maximum number of characters per line
+                before wrapping the text. None means no wrapping.
         """
         self.font_path = font_path
         self.font_size = font_size
