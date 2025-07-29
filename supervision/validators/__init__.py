@@ -53,7 +53,7 @@ def validate_confidence(confidence: Any, n: int) -> None:
         )
 
 
-def validate_keypoint_confidence(confidence: Any, n: int, m: int) -> None:
+def validate_key_point_confidence(confidence: Any, n: int, m: int) -> None:
     expected_shape = f"({n, m})"
     actual_shape = str(getattr(confidence, "shape", None))
 
@@ -126,7 +126,7 @@ def validate_detections_fields(
     validate_data(data, n)
 
 
-def validate_keypoints_fields(
+def validate_key_points_fields(
     xy: Any,
     class_id: Any,
     confidence: Any,
@@ -136,7 +136,7 @@ def validate_keypoints_fields(
     m = len(xy[0]) if len(xy) > 0 else 0
     validate_xy(xy, n, m)
     validate_class_id(class_id, n)
-    validate_keypoint_confidence(confidence, n, m)
+    validate_key_point_confidence(confidence, n, m)
     validate_data(data, n)
 
 
