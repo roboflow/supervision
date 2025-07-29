@@ -51,63 +51,63 @@ class _BaseLabelAnnotator(BaseAnnotator):
 
     Attributes:
         color (Union[Color, ColorPalette]): The color to use for the label background.
+        color_lookup (ColorLookup): The method used to determine the color of the label.
         text_color (Union[Color, ColorPalette]): The color to use for the label text.
         text_padding (int): The padding around the label text, in pixels.
         text_anchor (Position): The position of the text relative to the detection
-                                bounding box.
-        color_lookup (ColorLookup): The method used to determine the color of the label.
+            bounding box.
+        text_offset (Tuple[int, int]): A tuple of 2D coordinates `(x, y)` to
+            offset the text position from the anchor point, in pixels.
         border_radius (int): The radius of the label background corners, in pixels.
         smart_position (bool): Whether to intelligently adjust the label position to
-                                avoid overlapping with other elements.
+            avoid overlapping with other elements.
         max_line_length (Optional[int]): Maximum number of characters per line before
-                                wrapping the text. None means no wrapping.
-        text_anchor_offset (Tuple[int, int]): A tuple of 2D coordinates (x, y) to
-                                offset the text position from the anchor point, in pixels.
+            wrapping the text. None means no wrapping.
     """  # noqa: E501
 
     def __init__(
         self,
         color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
         text_color: Color | ColorPalette = Color.WHITE,
         text_padding: int = 10,
         text_position: Position = Position.TOP_LEFT,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+        text_offset: tuple[int, int] = (0, 0),
         border_radius: int = 0,
         smart_position: bool = False,
         max_line_length: int | None = None,
-        text_anchor_offset: tuple[int, int] = (0, 0),
     ):
         """
         Initializes the _BaseLabelAnnotator.
 
         Args:
             color (Union[Color, ColorPalette], optional): The color to use for the label
-                                background.
+                background.
+            color_lookup (ColorLookup, optional): The method used to determine the color
+                of the label
             text_color (Union[Color, ColorPalette], optional): The color to use for the
-                                label text.
+                label text.
             text_padding (int, optional): The padding around the label text, in pixels.
             text_position (Position, optional): The position of the text relative to the
-                                detection bounding box.
-            color_lookup (ColorLookup, optional): The method used to determine the color
-                                of the label
+                detection bounding box.
+            text_offset (Tuple[int, int], optional): A tuple of 2D coordinates
+                `(x, y)` to offset the text position from the anchor point, in pixels.
             border_radius (int, optional): The radius of the label background corners,
-                                in pixels.
+                in pixels.
             smart_position (bool, optional): Whether to intelligently adjust the label
-                                position to avoid overlapping with other elements.
+                position to avoid overlapping with other elements.
             max_line_length (Optional[int], optional): Maximum number of characters per
-                                line before wrapping the text. None means no wrapping.
-            text_anchor_offset (Tuple[int, int], optional): A tuple of 2D coordinates
-                                (x, y) to offset the text position from the anchor point, in pixels.
+                line before wrapping the text. None means no wrapping.
         """  # noqa: E501
         self.color: Color | ColorPalette = color
+        self.color_lookup: ColorLookup = color_lookup
         self.text_color: Color | ColorPalette = text_color
         self.text_padding: int = text_padding
         self.text_anchor: Position = text_position
-        self.color_lookup: ColorLookup = color_lookup
+        self.text_offset: tuple[int, int] = text_offset
         self.border_radius: int = border_radius
         self.smart_position = smart_position
         self.max_line_length: int | None = max_line_length
-        self.text_anchor_offset: tuple[int, int] = text_anchor_offset
 
     def _adjust_labels_in_frame(
         self,
@@ -1081,39 +1081,100 @@ class LabelAnnotator(_BaseLabelAnnotator):
     def __init__(
         self,
         color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
         text_color: Color | ColorPalette = Color.WHITE,
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
         text_position: Position = Position.TOP_LEFT,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+        text_offset: tuple[int, int] = (0, 0),
         border_radius: int = 0,
         smart_position: bool = False,
         max_line_length: int | None = None,
-        text_anchor_offset: tuple[int, int] = (0, 0),
     ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating the text background.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+                Options are `INDEX`, `CLASS`, `TRACK`.
+            text_color (Union[Color, ColorPalette]): The color or color palette to use
+                for the text.
+            text_scale (float): Font scale for the text.
+            text_thickness (int): Thickness of the text characters.
+            text_padding (int): Padding around the text within its background box.
+            text_position (Position): Position of the text relative to the detection.
+                Possible values are defined in the `Position` enum.
+            text_offset (Tuple[int, int]): A tuple of 2D coordinates `(x, y)` to
+                offset the text position from the anchor point, in pixels.
+            border_radius (int): The radius to apply round edges. If the selected
+                value is higher than the lower dimension, width or height, is clipped.
+            smart_position (bool): Spread out the labels to avoid overlapping.
+            max_line_length (Optional[int]): Maximum number of characters per line before
+                wrapping the text. None means no wrapping.
+        """
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
         super().__init__(
             color=color,
+            color_lookup=color_lookup,
             text_color=text_color,
             text_padding=text_padding,
             text_position=text_position,
-            color_lookup=color_lookup,
+            text_offset=text_offset,
             border_radius=border_radius,
             smart_position=smart_position,
             max_line_length=max_line_length,
-            text_anchor_offset=text_anchor_offset,
         )
 
     @ensure_cv2_image_for_annotation
     def annotate(
         self,
-        scene: ImageType,  # Ensure scene is initially a NumPy array here
+        scene: ImageType,
         detections: Detections,
         labels: list[str] | None = None,
         custom_color_lookup: np.ndarray | None = None,
     ) -> np.ndarray:
+        """
+        Annotates the given scene with labels based on the provided detections.
+
+        Args:
+            scene (ImageType): The image where labels will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
+            detections (Detections): Object detections to annotate.
+            labels (Optional[List[str]]): Custom labels for each detection.
+            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+                Allows to override the default color mapping strategy.
+
+        Returns:
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
+
+        Example:
+            ```python
+            import supervision as sv
+
+            image = ...
+            detections = sv.Detections(...)
+
+            labels = [
+                f"{class_name} {confidence:.2f}"
+                for class_name, confidence
+                in zip(detections['class_name'], detections.confidence)
+            ]
+
+            label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
+            annotated_frame = label_annotator.annotate(
+                scene=image.copy(),
+                detections=detections,
+                labels=labels
+            )
+            ```
+
+        ![label-annotator-example](https://media.roboflow.com/
+        supervision-annotator-examples/label-annotator-example-purple.png)
+        """
         assert isinstance(scene, np.ndarray)
         validate_labels(labels, detections)
 
@@ -1151,11 +1212,10 @@ class LabelAnnotator(_BaseLabelAnnotator):
             anchor=self.text_anchor
         ).astype(int)
 
-        for label, center_coords in zip(labels, anchors_coordinates):
-            # Apply the text anchor offset
-            offset_coords = (
-                center_coords[0] + self.text_anchor_offset[0],
-                center_coords[1] + self.text_anchor_offset[1],
+        for label, center_coordinates in zip(labels, anchors_coordinates):
+            center_coordinates = (
+                center_coordinates[0] + self.text_offset[0],
+                center_coordinates[1] + self.text_offset[1],
             )
 
             wrapped_lines = wrap_text(label, self.max_line_length)
@@ -1183,7 +1243,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
             height_padded = total_height + 2 * self.text_padding
 
             text_background_xyxy = resolve_text_background_xyxy(
-                center_coordinates=tuple(offset_coords),
+                center_coordinates=center_coordinates,
                 text_wh=(width_padded, height_padded),
                 position=self.text_anchor,
             )
@@ -1330,30 +1390,51 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
     def __init__(
         self,
         color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
         text_color: Color | ColorPalette = Color.WHITE,
         font_path: str | None = None,
         font_size: int = 10,
         text_padding: int = 10,
         text_position: Position = Position.TOP_LEFT,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+        text_offset: tuple[int, int] = (0, 0),
         border_radius: int = 0,
         smart_position: bool = False,
         max_line_length: int | None = None,
-        text_anchor_offset: tuple[int, int] = (0, 0),
     ):
+        """
+        Args:
+            color (Union[Color, ColorPalette]): The color or color palette to use for
+                annotating the text background.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+                Options are `INDEX`, `CLASS`, `TRACK`.
+            text_color (Union[Color, ColorPalette]): The color to use for the text.
+            font_path (Optional[str]): Path to the font file (e.g., ".ttf" or ".otf")
+                to use for rendering text. If `None`, the default PIL font will be used.
+            font_size (int): Font size for the text.
+            text_padding (int): Padding around the text within its background box.
+            text_position (Position): Position of the text relative to the detection.
+                Possible values are defined in the `Position` enum.
+            text_offset (Tuple[int, int]): A tuple of 2D coordinates `(x, y)` to
+                offset the text position from the anchor point, in pixels.
+            border_radius (int): The radius to apply round edges. If the selected
+                value is higher than the lower dimension, width or height, is clipped.
+            smart_position (bool): Spread out the labels to avoid overlapping.
+            max_line_length (Optional[int]): Maximum number of characters per line before
+                wrapping the text. None means no wrapping.
+        """
         self.font_path = font_path
         self.font_size = font_size
         self.font = self._load_font(font_size, font_path)
         super().__init__(
             color=color,
+            color_lookup=color_lookup,
             text_color=text_color,
             text_padding=text_padding,
             text_position=text_position,
-            color_lookup=color_lookup,
+            text_offset=text_offset,
             border_radius=border_radius,
             smart_position=smart_position,
             max_line_length=max_line_length,
-            text_anchor_offset=text_anchor_offset,
         )
 
     @ensure_pil_image_for_annotation
@@ -1364,6 +1445,44 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         labels: list[str] | None = None,
         custom_color_lookup: np.ndarray | None = None,
     ) -> ImageType:
+        """
+        Annotates the given scene with labels based on the provided
+        detections, with support for Unicode characters.
+
+        Args:
+            scene (ImageType): The image where labels will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray`
+                or `PIL.Image.Image`.
+            detections (Detections): Object detections to annotate.
+            labels (Optional[List[str]]): Custom labels for each detection.
+            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+                Allows to override the default color mapping strategy.
+
+        Returns:
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
+
+        Example:
+            ```python
+            import supervision as sv
+
+            image = ...
+            detections = sv.Detections(...)
+
+            labels = [
+                f"{class_name} {confidence:.2f}"
+                for class_name, confidence
+                in zip(detections['class_name'], detections.confidence)
+            ]
+
+            rich_label_annotator = sv.RichLabelAnnotator(font_path="path/to/font.ttf")
+            annotated_frame = label_annotator.annotate(
+                scene=image.copy(),
+                detections=detections,
+                labels=labels
+            )
+            ```
+        """
         assert isinstance(scene, Image.Image)
         validate_labels(labels, detections)
 
@@ -1401,11 +1520,10 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             anchor=self.text_anchor
         ).astype(int)
 
-        for label, center_coords in zip(labels, anchor_coordinates):
-            # Apply the text anchor offset
-            offset_coords = (
-                center_coords[0] + self.text_anchor_offset[0],
-                center_coords[1] + self.text_anchor_offset[1],
+        for label, center_coordinates in zip(labels, anchor_coordinates):
+            center_coordinates = (
+                center_coordinates[0] + self.text_offset[0],
+                center_coordinates[1] + self.text_offset[1],
             )
 
             wrapped_lines = wrap_text(label, self.max_line_length)
@@ -1430,7 +1548,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             height_padded = int(total_height + 2 * self.text_padding)
 
             text_background_xyxy = resolve_text_background_xyxy(
-                center_coordinates=tuple(offset_coords),
+                center_coordinates=center_coordinates,
                 text_wh=(width_padded, height_padded),
                 position=self.text_anchor,
             )
