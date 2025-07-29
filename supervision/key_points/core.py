@@ -596,9 +596,9 @@ class KeyPoints:
             DETECTION_MODEL_ID = "PekingU/rtdetr_r50vd_coco_o365"
 
             detection_processor = AutoProcessor.from_pretrained(DETECTION_MODEL_ID, use_fast=True)
-            detection_model = RTDetrForObjectDetection.from_pretrained(DETECTION_MODEL_ID, device_map=DEVICE)
+            detection_model = RTDetrForObjectDetection.from_pretrained(DETECTION_MODEL_ID, device_map=device)
 
-            inputs = detection_processor(images=frame, return_tensors="pt").to(DEVICE)
+            inputs = detection_processor(images=frame, return_tensors="pt").to(device)
 
             with torch.no_grad():
                 outputs = detection_model(**inputs)
@@ -614,9 +614,9 @@ class KeyPoints:
 
             pose_estimation_processor = AutoProcessor.from_pretrained(POSE_ESTIMATION_MODEL_ID)
             pose_estimation_model = VitPoseForPoseEstimation.from_pretrained(
-                POSE_ESTIMATION_MODEL_ID, device_map=DEVICE)
+                POSE_ESTIMATION_MODEL_ID, device_map=device)
 
-            inputs = pose_estimation_processor(frame, boxes=[boxes], return_tensors="pt").to(DEVICE)
+            inputs = pose_estimation_processor(frame, boxes=[boxes], return_tensors="pt").to(device)
 
             with torch.no_grad():
                 outputs = pose_estimation_model(**inputs)
