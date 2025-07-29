@@ -345,7 +345,7 @@ Supervision is versatile and compatible with various models. Check this [link](/
 
 We will define a `callback` function, which will process each frame of the video by obtaining model predictions and then annotating the frame based on these predictions.
 
-Let's immediately visualize the results with our [`EdgeAnnotator`](/latest/keypoint/annotators/#supervision.keypoint.annotators.EdgeAnnotator) and [`VertexAnnotator`](https://supervision.roboflow.com/latest/keypoint/annotators/#supervision.keypoint.annotators.VertexAnnotator).
+Let's immediately visualize the results with our [`EdgeAnnotator`](/latest/keypoint/annotators/#supervision.key_points.annotators.EdgeAnnotator) and [`VertexAnnotator`](https://supervision.roboflow.com/latest/keypoint/annotators/#supervision.key_points.annotators.VertexAnnotator).
 
 === "Ultralytics"
 
@@ -408,7 +408,7 @@ Let's immediately visualize the results with our [`EdgeAnnotator`](/latest/keypo
 
 ### Convert to Detections
 
-Keypoint tracking is currently supported via the conversion of `KeyPoints` to `Detections`. This is achieved with the [`KeyPoints.as_detections()`](/latest/keypoint/core/#supervision.keypoint.core.KeyPoints.as_detections) function.
+Keypoint tracking is currently supported via the conversion of `KeyPoints` to `Detections`. This is achieved with the [`KeyPoints.as_detections()`](/latest/keypoint/core/#supervision.key_points.core.KeyPoints.as_detections) function.
 
 Let's convert to detections and visualize the results with our [`BoxAnnotator`](/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator).
 
