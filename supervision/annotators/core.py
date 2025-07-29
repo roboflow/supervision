@@ -63,7 +63,7 @@ class _BaseLabelAnnotator(BaseAnnotator):
             avoid overlapping with other elements.
         max_line_length (Optional[int]): Maximum number of characters per line before
             wrapping the text. None means no wrapping.
-    """  # noqa: E501
+    """
 
     def __init__(
         self,
@@ -98,7 +98,7 @@ class _BaseLabelAnnotator(BaseAnnotator):
                 position to avoid overlapping with other elements.
             max_line_length (Optional[int], optional): Maximum number of characters per
                 line before wrapping the text. None means no wrapping.
-        """  # noqa: E501
+        """
         self.color: Color | ColorPalette = color
         self.color_lookup: ColorLookup = color_lookup
         self.text_color: Color | ColorPalette = text_color
