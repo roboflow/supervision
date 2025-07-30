@@ -94,7 +94,7 @@ if __name__ == "__main__":
         help="Path to the source video file.",
     )
     parser.add_argument(
-        "--model_id", type=str, default="yolov8s-640", help="Roboflow model ID."
+        "--model_id", type=str, default="rfdetr-medium", help="Roboflow model ID."
     )
     parser.add_argument(
         "--confidence_threshold",
