@@ -28,7 +28,6 @@ from supervision.annotators.core import (
     PolygonAnnotator,
     RichLabelAnnotator,
     RoundBoxAnnotator,
-    SplineAnnotator,
     TraceAnnotator,
     TriangleAnnotator,
 )
