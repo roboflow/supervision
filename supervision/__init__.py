@@ -28,8 +28,8 @@ from supervision.annotators.core import (
     PolygonAnnotator,
     RichLabelAnnotator,
     RoundBoxAnnotator,
-    TraceAnnotator,
     SplineAnnotator,
+    TraceAnnotator,
     TriangleAnnotator,
 )
 from supervision.annotators.utils import ColorLookup

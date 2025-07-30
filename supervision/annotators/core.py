@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 from PIL import Image, ImageDraw, ImageFont
-from scipy.interpolate import splprep, splev
+from scipy.interpolate import splev, splprep
 
 from supervision.annotators.base import BaseAnnotator, ImageType
 from supervision.annotators.utils import (
@@ -1920,6 +1920,7 @@ class TraceAnnotator(BaseAnnotator):
                 )
         return scene
 
+
 class SplineAnnotator(BaseAnnotator):
     """
     A class for drawing trace paths on an image based on detection coordinates.
@@ -1966,7 +1967,12 @@ class SplineAnnotator(BaseAnnotator):
         self.spline_order = spline_order
 
     @ensure_cv2_image_for_annotation
-    def annotate(self, scene: ImageType, detections: Detections, custom_color_lookup: np.ndarray | None = None) -> ImageType:
+    def annotate(
+        self,
+        scene: ImageType,
+        detections: Detections,
+        custom_color_lookup: np.ndarray | None = None,
+    ) -> ImageType:
         assert isinstance(scene, np.ndarray)
 
         if detections.tracker_id is None:
@@ -1974,11 +1980,11 @@ class SplineAnnotator(BaseAnnotator):
                 "The `tracker_id` field is missing in the provided detections."
                 " See more: https://supervision.roboflow.com/latest/how_to/track_objects"
             )
-        
+
         detections = detections[detections.tracker_id != PENDING_TRACK_ID]
 
         self.trace.put(detections)
-        
+
         for detection_idx in range(len(detections)):
             tracker_id = int(detections.tracker_id[detection_idx])
             color = resolve_color(
@@ -1990,7 +1996,7 @@ class SplineAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
             xy = self.trace.get(tracker_id=tracker_id)
-            spline_points = None;
+            spline_points = None
 
             if len(xy) > 3:
                 x, y = xy[:, 0], xy[:, 1]
@@ -2009,6 +2015,7 @@ class SplineAnnotator(BaseAnnotator):
                     thickness=self.thickness,
                 )
         return scene
+
 
 class HeatMapAnnotator(BaseAnnotator):
     """
