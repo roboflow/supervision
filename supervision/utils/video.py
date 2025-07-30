@@ -9,6 +9,12 @@ import cv2
 import numpy as np
 from tqdm.auto import tqdm
 
+import subprocess
+import imageio_ffmpeg
+import os
+
+ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+ffprobe_path = ffmpeg_path.replace("ffmpeg", "ffprobe")
 
 @dataclass
 class VideoInfo:
@@ -254,6 +260,34 @@ def process_video(
                 result_frame = callback(frame, index)
                 sink.write_frame(frame=result_frame)
 
+    
+    def has_audio_stream(video_path):
+        result = subprocess.run(
+            [ffmpeg_path, "-i", video_path],
+            stderr=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            text=True
+        )
+
+        return "Audio:" in result.stderr
+    
+    if has_audio_stream(source_path):
+        video_input = target_path
+        audio_source = source_path
+        temp_output = "temp_output.mp4"
+        subprocess.run([
+            ffmpeg_path,
+            "-i", video_input,
+            "-i", audio_source,
+            "-map", "0:v",
+            "-map", "1:a",
+            "-c:v", "copy",
+            "-c:a", "aac",
+            "-shortest",
+            temp_output
+        ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+        os.replace(temp_output, video_input)
 
 class FPSMonitor:
     """

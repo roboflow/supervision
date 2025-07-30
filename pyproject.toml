@@ -46,7 +46,8 @@ dependencies = [
     "pillow>=9.4",
     "requests>=2.26.0",
     "tqdm>=4.62.3",
-    "opencv-python>=4.5.5.64"
+    "opencv-python>=4.5.5.64",
+    "imageio-ffmpeg (>=0.6.0,<0.7.0)"
 ]
 
 [project.urls]
