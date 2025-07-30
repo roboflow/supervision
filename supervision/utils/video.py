@@ -14,7 +14,6 @@ import imageio_ffmpeg
 import os
 
 ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
-ffprobe_path = ffmpeg_path.replace("ffmpeg", "ffprobe")
 
 @dataclass
 class VideoInfo:
