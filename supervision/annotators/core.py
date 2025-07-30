@@ -1952,7 +1952,7 @@ class SplineAnnotator(BaseAnnotator):
                 points. Defaults to `30`.
             thickness (int): The thickness of the spline lines. Defaults to `2`.
             smoothing_factor (int): The smoothing factor of the spline.
-            spline_order (int): The order of the spline. Use odd numbers that are 
+            spline_order (int): The order of the spline. Use odd numbers that are
                 between 1 <= x <= 5.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
