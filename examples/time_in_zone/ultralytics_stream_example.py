@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 
 import cv2
@@ -87,9 +89,9 @@ def main(
 ) -> None:
     model = YOLO(weights)
 
-    def inference_callback(frame: VideoFrame) -> sv.Detections:
-        results = model(frame.image, verbose=False, conf=confidence, device=device)[0]
-        return sv.Detections.from_ultralytics(results).with_nms(threshold=iou)
+    def inference_callback(frames: list[VideoFrame]) -> list[sv.Detections]:
+        results = model(frames[0].image, verbose=False, conf=confidence, device=device)[0]
+        return [sv.Detections.from_ultralytics(results).with_nms(threshold=iou)]
 
     sink = CustomSink(zone_configuration_path=zone_configuration_path, classes=classes)
 
@@ -126,8 +128,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--weights",
         type=str,
-        default="yolov8s.pt",
-        help="Path to the model weights file. Default is 'yolov8s.pt'.",
+        default="yolov8x.pt",
+        help="Path to the model weights file. Default is 'yolov8x.pt'.",
     )
     parser.add_argument(
         "--device",
