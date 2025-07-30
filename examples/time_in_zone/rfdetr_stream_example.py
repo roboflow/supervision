@@ -7,11 +7,11 @@ import cv2
 import numpy as np
 from inference import InferencePipeline
 from inference.core.interfaces.camera.entities import VideoFrame
-from rfdetr import RFDETRNano, RFDETRSmall, RFDETRMedium, RFDETRBase, RFDETRLarge
-import supervision as sv
-
+from rfdetr import RFDETRBase, RFDETRLarge, RFDETRMedium, RFDETRNano, RFDETRSmall
 from utils.general import find_in_list, load_zones_config
 from utils.timers import ClockBasedTimer
+
+import supervision as sv
 
 
 class ModelSize(Enum):
@@ -26,7 +26,7 @@ class ModelSize(Enum):
         return [c.value for c in cls]
 
     @classmethod
-    def from_value(cls, value: "ModelSize" | str) -> "ModelSize":
+    def from_value(cls, value: ModelSize | str) -> ModelSize:
         if isinstance(value, cls):
             return value
         if isinstance(value, str):
@@ -59,7 +59,9 @@ def load_model(checkpoint: ModelSize | str, device: str, resolution: int):
 
 def adjust_resolution(checkpoint: ModelSize | str, resolution: int) -> int:
     checkpoint = ModelSize.from_value(checkpoint)
-    divisor = 32 if checkpoint in {ModelSize.NANO, ModelSize.SMALL, ModelSize.MEDIUM} else 56
+    divisor = (
+        32 if checkpoint in {ModelSize.NANO, ModelSize.SMALL, ModelSize.MEDIUM} else 56
+    )
     remainder = resolution % divisor
     if remainder == 0:
         return resolution
@@ -70,7 +72,9 @@ def adjust_resolution(checkpoint: ModelSize | str, resolution: int) -> int:
 
 COLORS = sv.ColorPalette.from_hex(["#E6194B", "#3CB44B", "#FFE119", "#3C76D1"])
 COLOR_ANNOTATOR = sv.ColorAnnotator(color=COLORS)
-LABEL_ANNOTATOR = sv.LabelAnnotator(color=COLORS, text_color=sv.Color.from_hex("#000000"))
+LABEL_ANNOTATOR = sv.LabelAnnotator(
+    color=COLORS, text_color=sv.Color.from_hex("#000000")
+)
 
 
 class CustomSink:

@@ -5,19 +5,20 @@ from enum import Enum
 
 import cv2
 import numpy as np
-from rfdetr import RFDETRNano, RFDETRSmall, RFDETRMedium, RFDETRBase, RFDETRLarge
-
-import supervision as sv
+from rfdetr import RFDETRBase, RFDETRLarge, RFDETRMedium, RFDETRNano, RFDETRSmall
 from utils.general import find_in_list, get_stream_frames_generator, load_zones_config
 from utils.timers import ClockBasedTimer
 
+import supervision as sv
+
 COLORS = sv.ColorPalette.from_hex(["#E6194B", "#3CB44B", "#FFE119", "#3C76D1"])
 COLOR_ANNOTATOR = sv.ColorAnnotator(color=COLORS)
-LABEL_ANNOTATOR = sv.LabelAnnotator(color=COLORS, text_color=sv.Color.from_hex("#000000"))
+LABEL_ANNOTATOR = sv.LabelAnnotator(
+    color=COLORS, text_color=sv.Color.from_hex("#000000")
+)
 
 
 class ModelSize(Enum):
-
     NANO = "nano"
     SMALL = "small"
     MEDIUM = "medium"
@@ -29,7 +30,7 @@ class ModelSize(Enum):
         return list(map(lambda c: c.value, cls))
 
     @classmethod
-    def from_value(cls, value: "ModelSize" | str) -> "ModelSize":
+    def from_value(cls, value: ModelSize | str) -> ModelSize:
         if isinstance(value, cls):
             return value
         if isinstance(value, str):
@@ -59,8 +60,7 @@ def load_model(checkpoint: ModelSize | str, device: str, resolution: int):
         return RFDETRLarge(device=device, resolution=resolution)
 
     raise ValueError(
-        f"Invalid checkpoint: {checkpoint}. "
-        f"Must be one of: {ModelSize.list()}."
+        f"Invalid checkpoint: {checkpoint}. Must be one of: {ModelSize.list()}."
     )
 
 
@@ -73,8 +73,7 @@ def adjust_resolution(checkpoint: ModelSize | str, resolution: int) -> int:
         divisor = 56
     else:
         raise ValueError(
-            f"Unknown checkpoint: {checkpoint}. "
-            f"Must be one of: {ModelSize.list()}."
+            f"Unknown checkpoint: {checkpoint}. Must be one of: {ModelSize.list()}."
         )
 
     remainder = resolution % divisor
@@ -185,7 +184,7 @@ if __name__ == "__main__":
         "--model_size",
         type=str,
         default="small",
-        help="Size of RF-DETR model ('nano', 'small', 'medium', 'base', 'large')."
+        help="Size of RF-DETR model ('nano', 'small', 'medium', 'base', 'large').",
     )
     parser.add_argument(
         "--device",

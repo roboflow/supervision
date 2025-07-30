@@ -3,13 +3,13 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from typing import Dict, Any
+from typing import Any, Dict
 
 import yt_dlp
 from yt_dlp.utils import DownloadError
 
 
-def _build_ydl_opts(output_path: str | None, file_name: str | None) -> Dict[str, Any]:
+def _build_ydl_opts(output_path: str | None, file_name: str | None) -> dict[str, Any]:
     out_dir = output_path or "."
 
     if not os.path.exists(out_dir):
