@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from typing import Any, Dict
+from typing import Any
 
 import yt_dlp
 from yt_dlp.utils import DownloadError
