@@ -1937,24 +1937,33 @@ class SplineAnnotator(BaseAnnotator):
         position: Position = Position.CENTER,
         trace_length: int = 30,
         thickness: int = 2,
+        smoothing_factor: int = 20,
+        spline_order: int = 3,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
         Args:
-            color (Union[Color, ColorPalette]): The color to draw the trace, can be
+            color (Union[Color, ColorPalette]): The color to draw the spline, can be
                 a single color or a color palette.
-            position (Position): The position of the trace.
+            position (Position): The position of the spline.
                 Defaults to `CENTER`.
-            trace_length (int): The maximum length of the trace in terms of historical
+            trace_length (int): The maximum length of the spline in terms of historical
                 points. Defaults to `30`.
-            thickness (int): The thickness of the trace lines. Defaults to `2`.
+            thickness (int): The thickness of the spline lines. Defaults to `2`.
+            smoothing_factor (int): The smoothing factor of the spline.
+            spline_order (int): The order of the spline. Use odd numbers that are 1 <= x <= 5.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Color | ColorPalette = color
         self.trace = Trace(max_size=trace_length, anchor=position)
         self.thickness = thickness
+        self.smoothing_factor = smoothing_factor
         self.color_lookup: ColorLookup = color_lookup
+
+        if spline_order % 2 == 0 or spline_order < 1 or spline_order > 5:
+            raise ValueError("Spline order must be an odd number between 1 and 5.")
+        self.spline_order = spline_order
 
     @ensure_cv2_image_for_annotation
     def annotate(self, scene: ImageType, detections: Detections, custom_color_lookup: np.ndarray | None = None) -> ImageType:
@@ -1985,7 +1994,7 @@ class SplineAnnotator(BaseAnnotator):
 
             if len(xy) > 3:
                 x, y = xy[:, 0], xy[:, 1]
-                tck, u = splprep([x, y], s=100)
+                tck, u = splprep([x, y], s=self.smoothing_factor, k=self.spline_order)
                 x_new, y_new = splev(np.linspace(0, 1, 100), tck)
                 spline_points = np.stack([x_new, y_new], axis=1).astype(np.int32)
             else:
