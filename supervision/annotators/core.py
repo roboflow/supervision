@@ -1821,7 +1821,7 @@ class TraceAnnotator(BaseAnnotator):
         position: Position = Position.CENTER,
         trace_length: int = 30,
         thickness: int = 2,
-        smooth: int = 0,
+        smooth: bool = False,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
@@ -1833,7 +1833,7 @@ class TraceAnnotator(BaseAnnotator):
             trace_length (int): The maximum length of the trace in terms of historical
                 points. Defaults to `30`.
             thickness (int): The thickness of the trace lines. Defaults to `2`.
-            smooth (int): The smoothing factor of the trace lines. Defaults to `0`
+            smooth (bool): Smooth the trace lines.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
@@ -1914,9 +1914,9 @@ class TraceAnnotator(BaseAnnotator):
             xy = self.trace.get(tracker_id=tracker_id)
             spline_points = xy.astype(np.int32)
 
-            if len(xy) > 3:
+            if len(xy) > 3 and self.smooth:
                 x, y = xy[:, 0], xy[:, 1]
-                tck, u = splprep([x, y], s=self.smooth)
+                tck, u = splprep([x, y], s=20)
                 x_new, y_new = splev(np.linspace(0, 1, 100), tck)
                 spline_points = np.stack([x_new, y_new], axis=1).astype(np.int32)
 
