@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 from PIL import Image, ImageDraw, ImageFont
+from scipy.interpolate import splev, splprep
 
 from supervision.annotators.base import BaseAnnotator, ImageType
 from supervision.annotators.utils import (
@@ -1820,6 +1821,7 @@ class TraceAnnotator(BaseAnnotator):
         position: Position = Position.CENTER,
         trace_length: int = 30,
         thickness: int = 2,
+        smooth: bool = False,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
@@ -1831,12 +1833,14 @@ class TraceAnnotator(BaseAnnotator):
             trace_length (int): The maximum length of the trace in terms of historical
                 points. Defaults to `30`.
             thickness (int): The thickness of the trace lines. Defaults to `2`.
+            smooth (bool): Smooth the trace lines.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Color | ColorPalette = color
         self.trace = Trace(max_size=trace_length, anchor=position)
         self.thickness = thickness
+        self.smooth = smooth
         self.color_lookup: ColorLookup = color_lookup
 
     @ensure_cv2_image_for_annotation
@@ -1908,10 +1912,18 @@ class TraceAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
             xy = self.trace.get(tracker_id=tracker_id)
+            spline_points = xy.astype(np.int32)
+
+            if len(xy) > 3 and self.smooth:
+                x, y = xy[:, 0], xy[:, 1]
+                tck, u = splprep([x, y], s=20)
+                x_new, y_new = splev(np.linspace(0, 1, 100), tck)
+                spline_points = np.stack([x_new, y_new], axis=1).astype(np.int32)
+
             if len(xy) > 1:
                 scene = cv2.polylines(
                     scene,
-                    [xy.astype(np.int32)],
+                    [spline_points],
                     False,
                     color=color.as_bgr(),
                     thickness=self.thickness,
