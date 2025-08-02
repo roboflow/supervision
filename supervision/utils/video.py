@@ -287,14 +287,12 @@ class OpenCVBackend(Backend):
         Args:
             start (int, optional): Starting frame index. Defaults to 0.
             end (int | None, optional): Ending frame index. Defaults to None.
-            stride (int, optional): Number of frames to skip. Defaults to 1.
-            resolution_wh (tuple[int, int] | None, optional): Target resolution (width, height).
-                If provided, frames will be resized. Defaults to None.
+        stride (int, optional): Number of frames to skip. Defaults to 1.
+            resolution_wh (tuple[int, int] | None, optional): Target resolution
+                (width, height). If provided, frames will be resized. Defaults to None.
 
-        Yields:
-            np.ndarray: Video frames in BGR format.
-
-        Raises:
+            Yields:
+                np.ndarray: Video frames in BGR format.        Raises:
             RuntimeError: If the video source is not opened yet.
         """
         if self.cap is None:
@@ -497,8 +495,8 @@ class Video:
             stride (int, optional): Number of frames to skip. Defaults to 1.
             start (int, optional): Starting frame index. Defaults to 0.
             end (int | None, optional): Ending frame index. Defaults to None.
-            resolution_wh (tuple[int, int] | None, optional): Target resolution (width, height).
-                If provided, frames will be resized. Defaults to None.
+            resolution_wh (tuple[int, int] | None, optional): Target resolution
+                (width, height). If provided, frames will be resized. Defaults to None.
 
         Returns:
             Generator: A generator yielding video frames.
@@ -520,8 +518,8 @@ class Video:
         Args:
             target_path (str): Path where the processed video will be saved.
             callback (Callable[[np.ndarray, int], np.ndarray]): Function that processes
-                each frame. Takes frame and frame index as input, returns processed frame.
-            fps (int | None, optional): Output video FPS. If None, uses source video FPS.
+                each frame. Takes frame and index as input, returns processed frame.
+            fps (int | None, optional): Output video FPS. If None, uses source video FPS. 
                 Defaults to None.
             progress_message (str, optional): Message to show in progress bar.
                 Defaults to "Processing video".
