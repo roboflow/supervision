@@ -301,7 +301,6 @@ class OpenCVBackend(Protocol):
         def has_audio_stream(video_path):
             result = subprocess.run(
                 [ffmpeg_path, "-i", video_path],
-                stderr=subprocess.PIPE,
                 stdout=subprocess.DEVNULL,
                 text=True,
             )
@@ -332,7 +331,6 @@ class OpenCVBackend(Protocol):
                 ],
                 check=True,
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
             )
 
             os.replace(temp_output, video_input)
