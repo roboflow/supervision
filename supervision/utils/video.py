@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from typing import Protocol, Any, Tuple
 import os
 import subprocess
 import time
 from collections import deque
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
+from enum import Enum, auto
 
 import cv2
 import imageio_ffmpeg
@@ -13,6 +15,11 @@ import numpy as np
 from tqdm.auto import tqdm
 
 ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+
+class SOURCE_TYPE(Enum):
+    VIDEO_FILE = "VIDEO_FILE"
+    WEBCAM = "WEBCAM"
+    RTSP = "RTSP"
 
 
 @dataclass
@@ -46,6 +53,7 @@ class VideoInfo:
     height: int
     fps: int
     total_frames: int | None = None
+    source_type: SOURCE_TYPE | None = None
 
     @classmethod
     def from_video_path(cls, video_path: str) -> VideoInfo:
@@ -64,6 +72,209 @@ class VideoInfo:
     def resolution_wh(self) -> tuple[int, int]:
         return self.width, self.height
 
+
+class OpenCVBackend(Protocol):
+    def __init__(self):
+        self.cap = None
+        self.video_info = None
+        self.writer = None
+        self.path = None
+
+    def open(self, path: str) -> None:
+        self.cap = cv2.VideoCapture(path)
+        self.path = path
+
+        if not self.cap.isOpened():
+            raise RuntimeError(f"Cannot open video source: {path}")
+        self.video_info = self._set_video_info()
+        
+        if isinstance(path, int):
+            self.video_info.source_type = SOURCE_TYPE.WEBCAM
+        elif isinstance(path, str):
+            self.video_info.source_type = SOURCE_TYPE.RTSP if path.lower().startswith("rtsp://") else SOURCE_TYPE.VIDEO_FILE
+        else:
+            raise ValueError("Unsupported source type")
+
+    def isOpened(self):
+        return self.cap.isOpened()
+
+    def _set_video_info(self) -> VideoInfo:
+        if not self.isOpened():
+            raise RuntimeError("Video not opened yet.")
+        width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fps = self.cap.get(cv2.CAP_PROP_FPS)
+        total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        return VideoInfo(width, height, int(fps), total_frames)
+
+    def info(self) -> VideoInfo:
+        if not self.isOpened():
+            raise RuntimeError("Video not opened yet.")
+        return self.video_info
+
+    def read(self) -> Tuple[bool, np.ndarray]:
+        if self.cap is None:
+            raise RuntimeError("Video not opened yet.")
+        ret, frame = self.cap.read()
+        return ret, frame
+
+    def grab(self) -> bool:
+        if self.cap is None:
+            raise RuntimeError("Video not opened yet.")
+        return self.cap.grab()
+
+    def seek(self, frame_idx: int) -> None:
+        if self.cap is None:
+            raise RuntimeError("Video not opened yet.")
+        self.cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+
+    def release(self) -> None:
+        if self.cap is not None and self.cap.isOpened():
+            self.cap.release()
+            self.cap = None
+    
+    def frames(self, *, start=0, end=None, stride=1, resolution_wh=None):
+        if self.cap is None:
+            raise RuntimeError("Video not opened yet.")
+
+        total_frames = self.video_info.total_frames if self.video_info else 0
+        is_live_stream = (total_frames <= 0)
+
+        if is_live_stream:
+            while True:
+                for _ in range(stride - 1):
+                    if not self.grab():
+                        return
+                ret, frame = self.read()
+                if not ret:
+                    return
+                if resolution_wh is not None:
+                    frame = cv2.resize(frame, resolution_wh)
+                yield frame
+        else:
+            if end is None or end > total_frames:
+                end = total_frames
+
+            frame_idx = start
+            while frame_idx < end:
+                self.seek(frame_idx)
+                ret, frame = self.read()
+                if not ret:
+                    break
+                if resolution_wh is not None:
+                    frame = cv2.resize(frame, resolution_wh)
+                yield frame
+                frame_idx += stride
+
+    def save(self, target_path: str, callback: Callable[[np.ndarray, int], np.ndarray], fps: int = None, progress_message: str = "Processing video", show_progress: bool = False):
+        if self.cap is None:
+            raise RuntimeError("Video not opened yet.")
+
+        if self.video_info.source_type != SOURCE_TYPE.VIDEO_FILE:
+            raise ValueError("Only video files can be saved.")  
+        
+        if self.writer is not None:
+            self.writer.close()
+            self.writer = None
+
+        source_codec = self.cap.get(cv2.CAP_PROP_FOURCC)
+
+        if fps is None:
+            fps = self.video_info.fps
+
+        self.writer = OpenCVWriter(target_path, fps, self.video_info.resolution_wh, source_codec)
+        total_frames = min(self.video_info.total_frames, fps)
+        frames_generator = self.frames()
+        for index, frame in enumerate(
+            tqdm(
+                frames_generator,
+                total=total_frames,
+                disable=not show_progress,
+                desc=progress_message,
+            )
+        ):
+            result_frame = callback(frame, index)
+            self.writer.write(frame=result_frame)
+
+        def has_audio_stream(video_path):
+            result = subprocess.run(
+                [ffmpeg_path, "-i", video_path],
+                stderr=subprocess.PIPE,
+                stdout=subprocess.DEVNULL,
+                text=True,
+            )
+
+            return "Audio:" in result.stderr
+
+        if has_audio_stream(self.path):
+            video_input = target_path
+            audio_source = self.path
+            temp_output = "temp_output.mp4"
+            subprocess.run(
+                [
+                    ffmpeg_path,
+                    "-i",
+                    video_input,
+                    "-i",
+                    audio_source,
+                    "-map",
+                    "0:v",
+                    "-map",
+                    "1:a",
+                    "-c:v",
+                    "copy",
+                    "-c:a",
+                    "aac",
+                    "-shortest",
+                    temp_output,
+                ],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+
+            os.replace(temp_output, video_input)
+
+
+class OpenCVWriter:
+    def __init__(self, filename: str, fps: float, frame_size: tuple[int, int], codec: str = "mp4v"):
+        try:
+            fourcc_int = cv2.VideoWriter_fourcc(*codec)
+            self.writer = cv2.VideoWriter(filename, fourcc_int, fps, frame_size)
+        except:
+            fourcc_int = cv2.VideoWriter_fourcc(*"mp4v")
+            self.writer = cv2.VideoWriter(filename, fourcc_int, fps, frame_size)
+        if not self.writer.isOpened():
+            raise RuntimeError(f"Cannot open video writer for file: {filename}")
+
+    def write(self, frame: np.ndarray) -> None:
+        self.writer.write(frame)
+
+    def close(self) -> None:
+        self.writer.release()
+
+class Video:
+    info: VideoInfo
+    source: str | int
+    backend: OpenCVBackend
+
+    def __init__(self, source: str | int, info: VideoInfo | None = None, backend: str = "opencv"):
+        if backend == "opencv":
+            self.backend = OpenCVBackend()
+        
+        self.backend.open(source)
+        self.info = self.backend.video_info
+        self.source = source
+
+    def __iter__(self):
+        return self.backend.frames()
+    
+    def frames(self, stride=1, start=0, end=None, resolution_wh=None):
+        return self.backend.frames(stride=stride, start=start, end=end, resolution_wh=resolution_wh)
+
+    def save(self, target_path: str, callback: Callable[[np.ndarray, int], np.ndarray], fps: int = None, progress_message: str = "Processing video", show_progress: bool = False):
+        self.backend.save(target_path=target_path, callback=callback, fps=fps, progress_message=progress_message, show_progress=show_progress)
+        
 
 class VideoSink:
     """

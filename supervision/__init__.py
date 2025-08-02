@@ -134,6 +134,7 @@ from supervision.utils.video import (
     VideoSink,
     get_video_frames_generator,
     process_video,
+    Video
 )
 
 __all__ = [
@@ -194,6 +195,7 @@ __all__ = [
     "VertexLabelAnnotator",
     "VideoInfo",
     "VideoSink",
+    "Video",
     "approximate_polygon",
     "box_iou",
     "box_iou_batch",
