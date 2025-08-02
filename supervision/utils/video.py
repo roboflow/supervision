@@ -521,8 +521,7 @@ class Video:
             target_path (str): Path where the processed video will be saved.
             callback (Callable[[np.ndarray, int], np.ndarray]): Function that processes
                 each frame. Takes frame and index as input, returns processed frame.
-            fps (int | None, optional): Output video FPS. If None, uses source video FPS.
-                Defaults to None.
+            fps (int | None, optional): Output video FPS.
             progress_message (str, optional): Message to show in progress bar.
                 Defaults to "Processing video".
             show_progress (bool, optional): Whether to show progress bar.
