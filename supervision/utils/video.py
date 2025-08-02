@@ -7,6 +7,7 @@ from collections import deque
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from enum import Enum
+from abc import ABC, abstractmethod
 from typing import Protocol
 
 import cv2
@@ -74,14 +75,85 @@ class VideoInfo:
         return self.width, self.height
 
 
-class OpenCVBackend(Protocol):
+class Backend(ABC):
+    def __init__(self):
+        self.cap = None
+        self.video_info = None
+        self.writer = None
+        self.path = None
+
+    @abstractmethod
+    def open(self, path: str) -> None:
+        pass
+
+    @abstractmethod
+    def isOpened(self) -> bool:
+        pass
+
+    @abstractmethod
+    def _set_video_info(self) -> VideoInfo:
+        pass
+
+    @abstractmethod
+    def info(self) -> VideoInfo:
+        pass
+
+    @abstractmethod
+    def read(self) -> tuple[bool, np.ndarray]:
+        pass
+
+    @abstractmethod
+    def grab(self) -> bool:
+        pass
+
+    @abstractmethod
+    def seek(self, frame_idx: int) -> None:
+        pass
+
+    @abstractmethod
+    def release(self) -> None:
+        pass
+
+    @abstractmethod
+    def frames(
+        self,
+        *,
+        start: int = 0,
+        end: int | None = None,
+        stride: int = 1,
+        resolution_wh: tuple[int, int] | None = None,
+    ):
+        pass
+
+    @abstractmethod
+    def save(
+        self,
+        target_path: str,
+        callback: Callable[[np.ndarray, int], np.ndarray],
+        fps: int | None = None,
+        progress_message: str = "Processing video",
+        show_progress: bool = False,
+    ):
+        pass
+
+class Writer(ABC):
+    @abstractmethod
+    def write(self, frame: np.ndarray) -> None:
+        pass
+
+    @abstractmethod
+    def close(self) -> None:
+        pass
+
+class OpenCVBackend(Backend):
     """
-    Protocol class defining the interface for video backend implementations using OpenCV.
-    Handles video capture, frame reading, seeking, and writing operations.
+    OpenCV implementation of the Backend interface.
+    Handles video capture, frame reading, seeking, and writing operations using OpenCV.
     """
 
     def __init__(self):
         """Initialize the OpenCV backend with empty video capture and writer objects."""
+        super().__init__()
         self.cap = None
         self.video_info = None
         self.writer = None
@@ -335,8 +407,7 @@ class OpenCVBackend(Protocol):
 
             os.replace(temp_output, video_input)
 
-
-class OpenCVWriter:
+class OpenCVWriter(Writer):
     """A class to handle video writing operations using OpenCV's VideoWriter.
 
     This class provides an interface to write frames to a video file using OpenCV,
@@ -389,12 +460,11 @@ class Video:
 
     This class provides a convenient interface for video operations including
     reading frames, saving processed videos, and video information access.
-    It uses OpenCVBackend as the default backend for video operations.
     """
 
     info: VideoInfo
     source: str | int
-    backend: OpenCVBackend
+    backend: Backend
 
     def __init__(
         self, source: str | int, info: VideoInfo | None = None, backend: str = "opencv"
