@@ -949,9 +949,9 @@ class Detections:
 
             ??? tip "Prompt engineering"
 
-                From Gemini 2.0 onwards, models are further trained to detect objects in 
-                an image and get their bounding box coordinates. The coordinates, 
-                relative to image dimensions, scale to [0, 1000]. You need to descale 
+                From Gemini 2.0 onwards, models are further trained to detect objects in
+                an image and get their bounding box coordinates. The coordinates,
+                relative to image dimensions, scale to [0, 1000]. You need to descale
                 these coordinates based on your original image size.
 
                 According to the Gemini API documentation on image prompts, when using
@@ -962,7 +962,7 @@ class Detections:
                 To get the best results from Google Gemini 2.0, use the following prompt.
 
                 ```
-                Detect all the cats and dogs in the image. The box_2d should be 
+                Detect all the cats and dogs in the image. The box_2d should be
                 [ymin, xmin, ymax, xmax] normalized to 0-1000.
                 ```
 
@@ -1348,12 +1348,12 @@ class Detections:
             ```
 
         !!! example "Gemini 2.0"
-        
+
             ??? tip "Prompt engineering"
 
-                From Gemini 2.0 onwards, models are further trained to detect objects in 
-                an image and get their bounding box coordinates. The coordinates, 
-                relative to image dimensions, scale to [0, 1000]. You need to descale 
+                From Gemini 2.0 onwards, models are further trained to detect objects in
+                an image and get their bounding box coordinates. The coordinates,
+                relative to image dimensions, scale to [0, 1000]. You need to descale
                 these coordinates based on your original image size.
 
                 According to the Gemini API documentation on image prompts, when using
@@ -1364,7 +1364,7 @@ class Detections:
                 To get the best results from Google Gemini 2.0, use the following prompt.
 
                 ```
-                Detect all the cats and dogs in the image. The box_2d should be 
+                Detect all the cats and dogs in the image. The box_2d should be
                 [ymin, xmin, ymax, xmax] normalized to 0-1000.
                 ```
 
