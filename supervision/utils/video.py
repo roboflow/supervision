@@ -7,7 +7,7 @@ from collections import deque
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Protocol, Tuple
+from typing import Protocol, Tuple
 
 import cv2
 import imageio_ffmpeg
@@ -175,7 +175,7 @@ class OpenCVBackend(Protocol):
         self,
         target_path: str,
         callback: Callable[[np.ndarray, int], np.ndarray],
-        fps: Optional[int] = None,
+        fps: int | None = None,
         progress_message: str = "Processing video",
         show_progress: bool = False,
     ):
@@ -301,7 +301,7 @@ class Video:
         self,
         target_path: str,
         callback: Callable[[np.ndarray, int], np.ndarray],
-        fps: Optional[int] = None,
+        fps: int | None = None,
         progress_message: str = "Processing video",
         show_progress: bool = False,
     ):
