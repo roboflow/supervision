@@ -7,7 +7,7 @@ from collections import deque
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from enum import Enum
-from typing import Protocol, Tuple
+from typing import Optional, Protocol, Tuple
 
 import cv2
 import imageio_ffmpeg
@@ -175,7 +175,7 @@ class OpenCVBackend(Protocol):
         self,
         target_path: str,
         callback: Callable[[np.ndarray, int], np.ndarray],
-        fps: int = None,
+        fps: Optional[int] = None,
         progress_message: str = "Processing video",
         show_progress: bool = False,
     ):
@@ -261,7 +261,7 @@ class OpenCVWriter:
         try:
             fourcc_int = cv2.VideoWriter_fourcc(*codec)
             self.writer = cv2.VideoWriter(filename, fourcc_int, fps, frame_size)
-        except:
+        except Exception:
             fourcc_int = cv2.VideoWriter_fourcc(*"mp4v")
             self.writer = cv2.VideoWriter(filename, fourcc_int, fps, frame_size)
         if not self.writer.isOpened():
@@ -301,7 +301,7 @@ class Video:
         self,
         target_path: str,
         callback: Callable[[np.ndarray, int], np.ndarray],
-        fps: int = None,
+        fps: Optional[int] = None,
         progress_message: str = "Processing video",
         show_progress: bool = False,
     ):
