@@ -93,7 +93,7 @@ class OpenCVBackend(Protocol):
 
         Args:
             path (str): Path to the video file, RTSP URL, or camera index.
-        
+
         Raises:
             RuntimeError: If unable to open the video source.
             ValueError: If the source type is not supported.
@@ -202,7 +202,14 @@ class OpenCVBackend(Protocol):
             self.cap.release()
             self.cap = None
 
-    def frames(self, *, start: int = 0, end: int | None = None, stride: int = 1, resolution_wh: tuple[int, int] | None = None):
+    def frames(
+        self,
+        *,
+        start: int = 0,
+        end: int | None = None,
+        stride: int = 1,
+        resolution_wh: tuple[int, int] | None = None,
+    ):
         """Generate frames from the video source.
 
         Args:
@@ -386,6 +393,7 @@ class Video:
     reading frames, saving processed videos, and video information access.
     It uses OpenCVBackend as the default backend for video operations.
     """
+
     info: VideoInfo
     source: str | int
     backend: OpenCVBackend
@@ -408,7 +416,13 @@ class Video:
         """
         return self.backend.frames()
 
-    def frames(self, stride: int = 1, start: int = 0, end: int | None = None, resolution_wh: tuple[int, int] | None = None):
+    def frames(
+        self,
+        stride: int = 1,
+        start: int = 0,
+        end: int | None = None,
+        resolution_wh: tuple[int, int] | None = None,
+    ):
         """Generate frames from the video.
 
         Args:
