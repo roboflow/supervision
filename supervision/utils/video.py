@@ -197,7 +197,7 @@ class OpenCVBackend(Protocol):
         self.writer = OpenCVWriter(
             target_path, fps, self.video_info.resolution_wh, source_codec
         )
-        total_frames = min(self.video_info.total_frames, fps)
+        total_frames = self.video_info.total_frames
         frames_generator = self.frames()
         for index, frame in enumerate(
             tqdm(
@@ -209,6 +209,8 @@ class OpenCVBackend(Protocol):
         ):
             result_frame = callback(frame, index)
             self.writer.write(frame=result_frame)
+
+        self.writer.close()
 
         def has_audio_stream(video_path):
             result = subprocess.run(
