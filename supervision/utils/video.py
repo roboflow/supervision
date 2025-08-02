@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import Protocol, Any, Tuple
 import os
 import subprocess
 import time
 from collections import deque
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
-from enum import Enum, auto
+from enum import Enum
+from typing import Protocol, Tuple
 
 import cv2
 import imageio_ffmpeg
@@ -15,6 +15,7 @@ import numpy as np
 from tqdm.auto import tqdm
 
 ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+
 
 class SOURCE_TYPE(Enum):
     VIDEO_FILE = "VIDEO_FILE"
@@ -87,11 +88,15 @@ class OpenCVBackend(Protocol):
         if not self.cap.isOpened():
             raise RuntimeError(f"Cannot open video source: {path}")
         self.video_info = self._set_video_info()
-        
+
         if isinstance(path, int):
             self.video_info.source_type = SOURCE_TYPE.WEBCAM
         elif isinstance(path, str):
-            self.video_info.source_type = SOURCE_TYPE.RTSP if path.lower().startswith("rtsp://") else SOURCE_TYPE.VIDEO_FILE
+            self.video_info.source_type = (
+                SOURCE_TYPE.RTSP
+                if path.lower().startswith("rtsp://")
+                else SOURCE_TYPE.VIDEO_FILE
+            )
         else:
             raise ValueError("Unsupported source type")
 
@@ -112,7 +117,7 @@ class OpenCVBackend(Protocol):
             raise RuntimeError("Video not opened yet.")
         return self.video_info
 
-    def read(self) -> Tuple[bool, np.ndarray]:
+    def read(self) -> tuple[bool, np.ndarray]:
         if self.cap is None:
             raise RuntimeError("Video not opened yet.")
         ret, frame = self.cap.read()
@@ -132,13 +137,13 @@ class OpenCVBackend(Protocol):
         if self.cap is not None and self.cap.isOpened():
             self.cap.release()
             self.cap = None
-    
+
     def frames(self, *, start=0, end=None, stride=1, resolution_wh=None):
         if self.cap is None:
             raise RuntimeError("Video not opened yet.")
 
         total_frames = self.video_info.total_frames if self.video_info else 0
-        is_live_stream = (total_frames <= 0)
+        is_live_stream = total_frames <= 0
 
         if is_live_stream:
             while True:
@@ -166,13 +171,20 @@ class OpenCVBackend(Protocol):
                 yield frame
                 frame_idx += stride
 
-    def save(self, target_path: str, callback: Callable[[np.ndarray, int], np.ndarray], fps: int = None, progress_message: str = "Processing video", show_progress: bool = False):
+    def save(
+        self,
+        target_path: str,
+        callback: Callable[[np.ndarray, int], np.ndarray],
+        fps: int = None,
+        progress_message: str = "Processing video",
+        show_progress: bool = False,
+    ):
         if self.cap is None:
             raise RuntimeError("Video not opened yet.")
 
         if self.video_info.source_type != SOURCE_TYPE.VIDEO_FILE:
-            raise ValueError("Only video files can be saved.")  
-        
+            raise ValueError("Only video files can be saved.")
+
         if self.writer is not None:
             self.writer.close()
             self.writer = None
@@ -182,7 +194,9 @@ class OpenCVBackend(Protocol):
         if fps is None:
             fps = self.video_info.fps
 
-        self.writer = OpenCVWriter(target_path, fps, self.video_info.resolution_wh, source_codec)
+        self.writer = OpenCVWriter(
+            target_path, fps, self.video_info.resolution_wh, source_codec
+        )
         total_frames = min(self.video_info.total_frames, fps)
         frames_generator = self.frames()
         for index, frame in enumerate(
@@ -237,7 +251,13 @@ class OpenCVBackend(Protocol):
 
 
 class OpenCVWriter:
-    def __init__(self, filename: str, fps: float, frame_size: tuple[int, int], codec: str = "mp4v"):
+    def __init__(
+        self,
+        filename: str,
+        fps: float,
+        frame_size: tuple[int, int],
+        codec: str = "mp4v",
+    ):
         try:
             fourcc_int = cv2.VideoWriter_fourcc(*codec)
             self.writer = cv2.VideoWriter(filename, fourcc_int, fps, frame_size)
@@ -253,28 +273,46 @@ class OpenCVWriter:
     def close(self) -> None:
         self.writer.release()
 
+
 class Video:
     info: VideoInfo
     source: str | int
     backend: OpenCVBackend
 
-    def __init__(self, source: str | int, info: VideoInfo | None = None, backend: str = "opencv"):
+    def __init__(
+        self, source: str | int, info: VideoInfo | None = None, backend: str = "opencv"
+    ):
         if backend == "opencv":
             self.backend = OpenCVBackend()
-        
+
         self.backend.open(source)
         self.info = self.backend.video_info
         self.source = source
 
     def __iter__(self):
         return self.backend.frames()
-    
-    def frames(self, stride=1, start=0, end=None, resolution_wh=None):
-        return self.backend.frames(stride=stride, start=start, end=end, resolution_wh=resolution_wh)
 
-    def save(self, target_path: str, callback: Callable[[np.ndarray, int], np.ndarray], fps: int = None, progress_message: str = "Processing video", show_progress: bool = False):
-        self.backend.save(target_path=target_path, callback=callback, fps=fps, progress_message=progress_message, show_progress=show_progress)
-        
+    def frames(self, stride=1, start=0, end=None, resolution_wh=None):
+        return self.backend.frames(
+            stride=stride, start=start, end=end, resolution_wh=resolution_wh
+        )
+
+    def save(
+        self,
+        target_path: str,
+        callback: Callable[[np.ndarray, int], np.ndarray],
+        fps: int = None,
+        progress_message: str = "Processing video",
+        show_progress: bool = False,
+    ):
+        self.backend.save(
+            target_path=target_path,
+            callback=callback,
+            fps=fps,
+            progress_message=progress_message,
+            show_progress=show_progress,
+        )
+
 
 class VideoSink:
     """

@@ -130,11 +130,11 @@ from supervision.utils.image import (
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (
     FPSMonitor,
+    Video,
     VideoInfo,
     VideoSink,
     get_video_frames_generator,
     process_video,
-    Video
 )
 
 __all__ = [
@@ -193,9 +193,9 @@ __all__ = [
     "TriangleAnnotator",
     "VertexAnnotator",
     "VertexLabelAnnotator",
+    "Video",
     "VideoInfo",
     "VideoSink",
-    "Video",
     "approximate_polygon",
     "box_iou",
     "box_iou_batch",
