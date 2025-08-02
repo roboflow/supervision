@@ -7,7 +7,7 @@ from collections import deque
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Protocol, Tuple
+from typing import Protocol
 
 import cv2
 import imageio_ffmpeg
