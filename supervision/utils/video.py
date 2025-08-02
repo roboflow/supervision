@@ -3,12 +3,11 @@ from __future__ import annotations
 import os
 import subprocess
 import time
+from abc import ABC, abstractmethod
 from collections import deque
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from enum import Enum
-from abc import ABC, abstractmethod
-from typing import Protocol
 
 import cv2
 import imageio_ffmpeg
@@ -136,6 +135,7 @@ class Backend(ABC):
     ):
         pass
 
+
 class Writer(ABC):
     @abstractmethod
     def write(self, frame: np.ndarray) -> None:
@@ -144,6 +144,7 @@ class Writer(ABC):
     @abstractmethod
     def close(self) -> None:
         pass
+
 
 class OpenCVBackend(Backend):
     """
@@ -405,6 +406,7 @@ class OpenCVBackend(Backend):
 
             os.replace(temp_output, video_input)
 
+
 class OpenCVWriter(Writer):
     """A class to handle video writing operations using OpenCV's VideoWriter.
 
@@ -519,7 +521,7 @@ class Video:
             target_path (str): Path where the processed video will be saved.
             callback (Callable[[np.ndarray, int], np.ndarray]): Function that processes
                 each frame. Takes frame and index as input, returns processed frame.
-            fps (int | None, optional): Output video FPS. If None, uses source video FPS. 
+            fps (int | None, optional): Output video FPS. If None, uses source video FPS.
                 Defaults to None.
             progress_message (str, optional): Message to show in progress bar.
                 Defaults to "Processing video".
