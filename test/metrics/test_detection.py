@@ -445,6 +445,10 @@ def test_drop_extra_matches(
         ),
     ],
 )
+def test_from_yolo_empty():
+    empty_tensor = np.empty((0, 6))
+    detections = Detections.from_yolo(empty_tensor)
+    assert len(detections) == 0
 def test_compute_average_precision(
     recall: np.ndarray,
     precision: np.ndarray,
