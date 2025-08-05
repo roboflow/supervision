@@ -204,40 +204,20 @@ class Detections:
                 is_metadata_equal(self.metadata, other.metadata),
             ]
         )
-
     @classmethod
-    def from_yolov5(cls, yolov5_results) -> Detections:
-        """
-        Creates a Detections instance from a
-        [YOLOv5](https://github.com/ultralytics/yolov5) inference result.
-
-        Args:
-            yolov5_results (yolov5.models.common.Detections):
-                The output Detections instance from YOLOv5
-
-        Returns:
-            Detections: A new Detections object.
-
-        Example:
-            ```python
-            import cv2
-            import torch
-            import supervision as sv
-
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
-            model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
-            result = model(image)
-            detections = sv.Detections.from_yolov5(result)
-            ```
-        """
-        yolov5_detections_predictions = yolov5_results.pred[0].cpu().cpu().numpy()
-
+def from_yolo(cls, yolo_results) -> Detections:
+    yolo_results = yolo_results.cpu().numpy()
+    if yolo_results.shape[0] == 0:  # Handle empty predictions
         return cls(
-            xyxy=yolov5_detections_predictions[:, :4],
-            confidence=yolov5_detections_predictions[:, 4],
-            class_id=yolov5_detections_predictions[:, 5].astype(int),
+            xyxy=np.empty((0, 4), dtype=np.float32),
+            confidence=np.array([], dtype=np.float32),
+            class_id=np.array([], dtype=int),
         )
-
+    return cls(
+        xyxy=yolo_results[:, :4],
+        confidence=yolo_results[:, 4],
+        class_id=yolo_results[:, 5].astype(int),
+    )
     @classmethod
     def from_ultralytics(cls, ultralytics_results) -> Detections:
         """
