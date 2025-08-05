@@ -445,7 +445,6 @@ def test_drop_extra_matches(
         ),
     ],
 )
-
 def test_from_yolo_empty():
     """Test empty YOLOv5 predictions"""
     empty_tensor = np.empty((0, 6))
@@ -455,11 +454,14 @@ def test_from_yolo_empty():
     assert detections.confidence.shape == (0,)
     assert detections.class_id.shape == (0,)
 
+
 def test_from_yolo_normal():
     """Test standard YOLOv5 predictions"""
     mock_pred = np.array([[10, 10, 20, 20, 0.9, 0]])
     detections = Detections.from_yolo(mock_pred)
     assert len(detections) == 1
+
+
 def test_compute_average_precision(
     recall: np.ndarray,
     precision: np.ndarray,
