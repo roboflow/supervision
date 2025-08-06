@@ -165,6 +165,16 @@ class OpenCVBackend(Backend):
         self.path = None
 
     def get_sink(self, target_path: str, video_info: VideoInfo, codec: str = "mp4v"):
+        """Create a video writer for saving frames using OpenCV.
+
+        Args:
+            target_path (str): Path where the video will be saved.
+            video_info (VideoInfo): Video information containing resolution and FPS.
+            codec (str, optional): FourCC code for video codec. Defaults to "mp4v".
+
+        Returns:
+            OpenCVWriter: A video writer object for writing frames.
+        """
         return OpenCVWriter(target_path, video_info.fps, video_info.resolution_wh, codec)
 
     def open(self, path: str) -> None:
@@ -343,6 +353,20 @@ class OpenCVBackend(Backend):
         progress_message: str = "Processing video",
         show_progress: bool = False,
     ):
+        """Save processed video frames to a file with audio preservation.
+
+        Args:
+            target_path (str): Path where the processed video will be saved.
+            callback (Callable[[np.ndarray, int], np.ndarray]): Function that processes
+                each frame. Takes frame and index as input, returns processed frame.
+            fps (int | None, optional): Output video FPS. If None, uses source FPS.
+            progress_message (str, optional): Message to show in progress bar.
+            show_progress (bool, optional): Whether to show progress bar.
+
+        Raises:
+            RuntimeError: If video source is not opened.
+            ValueError: If source is not a video file.
+        """
         if self.cap is None:
             raise RuntimeError("Video not opened yet.")
 
@@ -497,7 +521,17 @@ class Video:
         """
         return self.backend.frames()
 
-    def sink(self, target_path: str, info: VideoInfo, codec: str = "mp4v"):
+    def sink(self, target_path: str, info: VideoInfo, codec: str = "mp4v") -> Writer:
+        """Create a video writer for saving frames.
+
+        Args:
+            target_path (str): Path where the video will be saved.
+            info (VideoInfo): Video information containing resolution and FPS.
+            codec (str, optional): FourCC code for video codec. Defaults to "mp4v".
+
+        Returns:
+            Writer: A video writer object for writing frames.
+        """
         return self.backend.get_sink(target_path, info, codec)
 
     def frames(
