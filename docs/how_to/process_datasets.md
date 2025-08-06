@@ -331,12 +331,9 @@ for i in range(16):
     annotated_image = label_annotator.annotate(annotated_image, annotations, labels)
     annotated_images.append(annotated_image)
 
-grid = sv.create_tiles(
+sv.plot_images_grid(
     annotated_images,
-    grid_size=(4, 4),
-    single_tile_size=(400, 400),
-    tile_padding_color=sv.Color.WHITE,
-    tile_margin_color=sv.Color.WHITE
+    grid_size=(4, 4)
 )
 ```
 

@@ -94,7 +94,7 @@ from supervision.detection.utils.polygons import (
 )
 from supervision.detection.utils.vlms import edit_distance, fuzzy_match_index
 from supervision.detection.vlm import LMM, VLM
-from supervision.draw.color import Color, ColorPalette
+from supervision.draw.core import Color, ColorPalette
 from supervision.draw.utils import (
     calculate_optimal_line_thickness,
     calculate_optimal_text_scale,
@@ -120,7 +120,6 @@ from supervision.utils.conversion import cv2_to_pillow, pillow_to_cv2
 from supervision.utils.file import list_files_with_extensions
 from supervision.utils.image import (
     ImageSink,
-    create_tiles,
     crop_image,
     letterbox_image,
     overlay_image,
@@ -206,7 +205,6 @@ __all__ = [
     "clip_boxes",
     "contains_holes",
     "contains_multiple_segments",
-    "create_tiles",
     "crop_image",
     "cv2_to_pillow",
     "draw_filled_polygon",
