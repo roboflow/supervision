@@ -681,6 +681,12 @@ class Detections:
         return cls(xyxy=xyxy, mask=mask)
 
     @classmethod
+    def from_samurai(cls, samurai_result: list[dict]) -> Detections:
+        mask = samurai_result['out_binary_masks']
+        xyxy = mask_to_xyxy(mask)
+        return cls(xyxy=xyxy, mask=mask)
+
+    @classmethod
     def from_azure_analyze_image(
         cls, azure_result: dict, class_map: dict[int, str] | None = None
     ) -> Detections:
