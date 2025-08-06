@@ -113,48 +113,13 @@ def test_resolve_color_idx(
 @pytest.mark.parametrize(
     "text, max_line_length, expected_result, exception",
     [
-        (
-            None,
-            None,
-            [""],
-            DoesNotRaise()
-        ),  # text is None
-        (
-            "",
-            None,
-            [""],
-            DoesNotRaise()
-        ),  # empty string
-        (
-            "   \t  ",
-            3,
-            [""],
-            DoesNotRaise()
-        ),  # whitespace-only (spaces + tab)
-        (
-            12345,
-            None,
-            ["12345"],
-            DoesNotRaise()
-        ),  # plain integer
-        (
-            -6789,
-            None,
-            ["-6789"],
-            DoesNotRaise()
-        ),  # negative integer
-        (
-            np.int64(1000),
-            None,
-            ["1000"],
-            DoesNotRaise()
-        ),  # NumPy int64
-        (
-            [1, 2, 3],
-            None,
-            ["[1, 2, 3]"],
-            DoesNotRaise()
-        ),  # list to string
+        (None, None, [""], DoesNotRaise()),  # text is None
+        ("", None, [""], DoesNotRaise()),  # empty string
+        ("   \t  ", 3, [""], DoesNotRaise()),  # whitespace-only (spaces + tab)
+        (12345, None, ["12345"], DoesNotRaise()),  # plain integer
+        (-6789, None, ["-6789"], DoesNotRaise()),  # negative integer
+        (np.int64(1000), None, ["1000"], DoesNotRaise()),  # NumPy int64
+        ([1, 2, 3], None, ["[1, 2, 3]"], DoesNotRaise()),  # list to string
         (
             "When you play the game of thrones, you win or you die.\nFear cuts deeper than swords.\nA mind needs books as a sword needs a whetstone.",  # noqa: E501
             None,
