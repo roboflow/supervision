@@ -4,7 +4,7 @@ from contextlib import ExitStack as DoesNotRaise
 
 import pytest
 
-from supervision.draw.color import Color
+from supervision.draw.core import Color
 
 
 @pytest.mark.parametrize(

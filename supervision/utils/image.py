@@ -11,7 +11,7 @@ import numpy.typing as npt
 from supervision.draw.core import Color, unify_to_bgr
 from supervision.draw.core import ImageType
 from supervision.utils.conversion import (
-    ensure_cv2_image_for_processing,
+    ensure_cv2_image,
 )
 
 RelativePosition = Literal["top", "bottom"]
@@ -19,7 +19,7 @@ RelativePosition = Literal["top", "bottom"]
 MAX_COLUMNS_FOR_SINGLE_ROW_GRID = 3
 
 
-@ensure_cv2_image_for_processing
+@ensure_cv2_image
 def crop_image(
     image: ImageType,
     xyxy: npt.NDArray[int] | list[int] | tuple[int, int, int, int],
@@ -80,7 +80,7 @@ def crop_image(
     return image[y_min:y_max, x_min:x_max]
 
 
-@ensure_cv2_image_for_processing
+@ensure_cv2_image
 def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     """
     Scales the given image based on the given scale factor.
@@ -137,7 +137,7 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
 
 
-@ensure_cv2_image_for_processing
+@ensure_cv2_image
 def resize_image(
     image: ImageType,
     resolution_wh: tuple[int, int],
@@ -210,7 +210,7 @@ def resize_image(
     return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
 
 
-@ensure_cv2_image_for_processing
+@ensure_cv2_image
 def letterbox_image(
     image: ImageType,
     resolution_wh: tuple[int, int],

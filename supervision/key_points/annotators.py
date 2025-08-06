@@ -6,14 +6,13 @@ from logging import warn
 import cv2
 import numpy as np
 
-from supervision.annotators.base import ImageType
 from supervision.detection.utils.boxes import pad_boxes, spread_out_boxes
-from supervision.draw.color import Color
+from supervision.draw.core import Color, ImageType
 from supervision.draw.utils import draw_rounded_rectangle
 from supervision.geometry.core import Rect
 from supervision.key_points.core import KeyPoints
 from supervision.key_points.skeletons import SKELETONS_BY_VERTEX_COUNT
-from supervision.utils.conversion import ensure_cv2_image_for_annotation
+from supervision.utils.conversion import ensure_cv2_image
 
 
 class BaseKeyPointAnnotator(ABC):
@@ -43,7 +42,7 @@ class VertexAnnotator(BaseKeyPointAnnotator):
         self.color = color
         self.radius = radius
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
         """
         Annotates the given scene with skeleton vertices based on the provided key

@@ -8,7 +8,7 @@ import numpy as np
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
-from supervision.draw.color import Color, ColorPalette
+from supervision.draw.core import Color, ColorPalette
 from supervision.geometry.core import Position
 
 PENDING_TRACK_COLOR = Color.GREY

@@ -14,7 +14,7 @@ from matplotlib import pyplot as plt
 
 from supervision import box_iou_batch_with_jaccard
 from supervision.detection.core import Detections
-from supervision.draw.color import LEGACY_COLOR_PALETTE
+from supervision.draw.core import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import Metric, MetricTarget
 from supervision.metrics.utils.utils import ensure_pandas_installed
 

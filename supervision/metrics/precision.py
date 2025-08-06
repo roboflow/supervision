@@ -14,7 +14,7 @@ from supervision.detection.utils.iou_and_nms import (
     mask_iou_batch,
     oriented_box_iou_batch,
 )
-from supervision.draw.color import LEGACY_COLOR_PALETTE
+from supervision.draw.core import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,

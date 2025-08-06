@@ -59,13 +59,13 @@ comments: true
 :::supervision.draw.utils.calculate_optimal_line_thickness
 
 <div class="md-typeset">
-    <h2><a href="#supervision.draw.color.Color">Color</a></h2>
+    <h2><a href="#supervision.draw.core.Color">Color</a></h2>
 </div>
 
-:::supervision.draw.color.Color
+:::supervision.draw.core.Color
 
 <div class="md-typeset">
-    <h2><a href="#supervision.draw.color.ColorPalette">ColorPalette</a></h2>
+    <h2><a href="#supervision.draw.core.ColorPalette">ColorPalette</a></h2>
 </div>
 
-:::supervision.draw.color.ColorPalette
+:::supervision.draw.core.ColorPalette

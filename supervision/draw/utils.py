@@ -5,29 +5,33 @@ import os
 import cv2
 import numpy as np
 
-from supervision.draw.color import Color
+from supervision.draw.core import Color, ImageType
 from supervision.geometry.core import Point, Rect
+from supervision.utils.conversion import ensure_cv2_image
 
 
+@ensure_cv2_image
 def draw_line(
-    scene: np.ndarray,
+    scene: ImageType,
     start: Point,
     end: Point,
     color: Color = Color.ROBOFLOW,
     thickness: int = 2,
-) -> np.ndarray:
+) -> ImageType:
     """
     Draws a line on a given scene.
 
     Parameters:
-        scene (np.ndarray): The scene on which the line will be drawn
+        scene (ImageType): The image where line will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray` or
+                `PIL.Image.Image`.
         start (Point): The starting point of the line
         end (Point): The end point of the line
         color (Color): The color of the line, defaults to Color.ROBOFLOW
         thickness (int): The thickness of the line
 
     Returns:
-        np.ndarray: The scene with the line drawn on it
+        ImageType: The scene with the line drawn on it
     """
     cv2.line(
         scene,
@@ -39,20 +43,23 @@ def draw_line(
     return scene
 
 
+@ensure_cv2_image
 def draw_rectangle(
-    scene: np.ndarray, rect: Rect, color: Color = Color.ROBOFLOW, thickness: int = 2
-) -> np.ndarray:
+    scene: ImageType, rect: Rect, color: Color = Color.ROBOFLOW, thickness: int = 2
+) -> ImageType:
     """
     Draws a rectangle on an image.
 
     Parameters:
-        scene (np.ndarray): The scene on which the rectangle will be drawn
+        scene (ImageType): The image where rectangle will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray` or
+                `PIL.Image.Image`.
         rect (Rect): The rectangle to be drawn
         color (Color): The color of the rectangle
         thickness (int): The thickness of the rectangle border
 
     Returns:
-        np.ndarray: The scene with the rectangle drawn on it
+        ImageType: The scene with the rectangle drawn on it
     """
     cv2.rectangle(
         scene,
@@ -64,20 +71,23 @@ def draw_rectangle(
     return scene
 
 
+@ensure_cv2_image
 def draw_filled_rectangle(
-    scene: np.ndarray, rect: Rect, color: Color = Color.ROBOFLOW, opacity: float = 1
-) -> np.ndarray:
+    scene: ImageType, rect: Rect, color: Color = Color.ROBOFLOW, opacity: float = 1
+) -> ImageType:
     """
     Draws a filled rectangle on an image.
 
     Parameters:
-        scene (np.ndarray): The scene on which the rectangle will be drawn
+        scene (ImageType): The image where filled rectangle will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray` or
+                `PIL.Image.Image`.
         rect (Rect): The rectangle to be drawn
         color (Color): The color of the rectangle
         opacity (float): The opacity of rectangle when drawn on the scene.
 
     Returns:
-        np.ndarray: The scene with the rectangle drawn on it
+        ImageType: The scene with the rectangle drawn on it
     """
     if opacity == 1:
         cv2.rectangle(
@@ -103,23 +113,26 @@ def draw_filled_rectangle(
     return scene
 
 
+@ensure_cv2_image
 def draw_rounded_rectangle(
-    scene: np.ndarray,
+    scene: ImageType,
     rect: Rect,
     color: Color,
     border_radius: int,
-) -> np.ndarray:
+) -> ImageType:
     """
     Draws a rounded rectangle on an image.
 
     Parameters:
-        scene (np.ndarray): The image on which the rounded rectangle will be drawn.
+        scene (ImageType): The image where rounded rectangle will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray` or
+                `PIL.Image.Image`.
         rect (Rect): The rectangle to be drawn.
         color (Color): The color of the rounded rectangle.
         border_radius (int): The radius of the corner rounding.
 
     Returns:
-        np.ndarray: The image with the rounded rectangle drawn on it.
+        ImageType: The image with the rounded rectangle drawn on it.
     """
     x1, y1, x2, y2 = rect.as_xyxy_int_tuple()
     width, height = x2 - x1, y2 - y1
@@ -155,22 +168,25 @@ def draw_rounded_rectangle(
     return scene
 
 
+@ensure_cv2_image
 def draw_polygon(
-    scene: np.ndarray,
+    scene: ImageType,
     polygon: np.ndarray,
     color: Color = Color.ROBOFLOW,
     thickness: int = 2,
-) -> np.ndarray:
+) -> ImageType:
     """Draw a polygon on a scene.
 
     Parameters:
-        scene (np.ndarray): The scene to draw the polygon on.
+        scene (ImageType): The image where polygon will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray` or
+                `PIL.Image.Image`.
         polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.
         color (Color): The color of the polygon. Defaults to Color.ROBOFLOW.
         thickness (int): The thickness of the polygon lines, by default 2.
 
     Returns:
-        np.ndarray: The scene with the polygon drawn on it.
+        ImageType: The scene with the polygon drawn on it.
     """
     cv2.polylines(
         scene, [polygon], isClosed=True, color=color.as_bgr(), thickness=thickness
@@ -178,22 +194,25 @@ def draw_polygon(
     return scene
 
 
+@ensure_cv2_image
 def draw_filled_polygon(
-    scene: np.ndarray,
+    scene: ImageType,
     polygon: np.ndarray,
     color: Color = Color.ROBOFLOW,
     opacity: float = 1,
-) -> np.ndarray:
+) -> ImageType:
     """Draw a filled polygon on a scene.
 
     Parameters:
-        scene (np.ndarray): The scene to draw the polygon on.
+        scene (ImageType): The image where filled polygon will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray` or
+                `PIL.Image.Image`.
         polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.
         color (Color): The color of the polygon. Defaults to Color.ROBOFLOW.
         opacity (float): The opacity of polygon when drawn on the scene.
 
     Returns:
-        np.ndarray: The scene with the polygon drawn on it.
+        ImageType: The scene with the polygon drawn on it.
     """
     if opacity == 1:
         cv2.fillPoly(scene, [polygon], color=color.as_bgr())
@@ -207,8 +226,9 @@ def draw_filled_polygon(
     return scene
 
 
+@ensure_cv2_image
 def draw_text(
-    scene: np.ndarray,
+    scene: ImageType,
     text: str,
     text_anchor: Point,
     text_color: Color = Color.BLACK,
@@ -217,12 +237,14 @@ def draw_text(
     text_padding: int = 10,
     text_font: int = cv2.FONT_HERSHEY_SIMPLEX,
     background_color: Color | None = None,
-) -> np.ndarray:
+) -> ImageType:
     """
     Draw text with background on a scene.
 
     Parameters:
-        scene (np.ndarray): A 2-dimensional numpy ndarray representing an image or scene
+        scene (ImageType): The image where text will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray` or
+                `PIL.Image.Image`.
         text (str): The text to be drawn.
         text_anchor (Point): The anchor point for the text, represented as a
             Point object with x and y attributes.
@@ -237,7 +259,7 @@ def draw_text(
             if one is to be drawn. Defaults to None.
 
     Returns:
-        np.ndarray: The input scene with the text drawn on it.
+        ImageType: The input scene with the text drawn on it.
 
     Examples:
         ```python
@@ -282,20 +304,23 @@ def draw_text(
     return scene
 
 
+@ensure_cv2_image
 def draw_image(
-    scene: np.ndarray, image: str | np.ndarray, opacity: float, rect: Rect
-) -> np.ndarray:
+    scene: ImageType, image: str | ImageType, opacity: float, rect: Rect
+) -> ImageType:
     """
     Draws an image onto a given scene with specified opacity and dimensions.
 
     Args:
-        scene (np.ndarray): Background image where the new image will be drawn.
-        image (Union[str, np.ndarray]): Image to draw.
+        scene (ImageType): The image where another image will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray` or
+                `PIL.Image.Image`.
+        image (Union[str, ImageType]): Image to draw.
         opacity (float): Opacity of the image to be drawn.
         rect (Rect): Rectangle specifying where to draw the image.
 
     Returns:
-        np.ndarray: The updated scene.
+        ImageType: The updated scene.
 
     Raises:
         FileNotFoundError: If the image path does not exist.
@@ -344,30 +369,120 @@ def draw_image(
     return scene
 
 
-def calculate_optimal_text_scale(resolution_wh: tuple[int, int]) -> float:
+@ensure_cv2_image
+def convert_to_grayscale(
+    scene: ImageType,
+) -> ImageType:
     """
-    Calculate font scale based on the resolution of an image.
+    Convert an RGB/BGR image to 3-channel grayscale.
 
     Parameters:
-        resolution_wh (Tuple[int, int]): A tuple representing the width and height
-            of the image.
+        scene (ImageType): The image that will get gray scaled.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray` or
+                `PIL.Image.Image`.
 
     Returns:
-         float: The calculated font scale factor.
+        ImageType: Grayscale version of *scene* where the luminance channel
+            is replicated across the three BGR channels, preserving the
+            original 3-channel shape so it can be passed back into other
+            drawing helpers without additional checks.
+
+    Example:
+        ```
+        frame = cv2.imread("frame.jpg")
+        frame = convert_to_grayscale(scene=frame)
+        ```
+    """
+    gray = cv2.cvtColor(scene, cv2.COLOR_BGR2GRAY)
+    return cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+
+
+@ensure_cv2_image
+def draw_overlay(
+    scene: ImageType,
+    color: Color = Color.BLACK,
+    opacity: float = 0.35,
+) -> ImageType:
+    """
+    Blend a solid-color overlay onto *scene*.
+
+    Parameters:
+        scene (ImageType): The image where overlay will be drawn.
+                `ImageType` is a flexible type, accepting either `numpy.ndarray` or
+                `PIL.Image.Image`.
+        color (Color): Overlay tint.
+        opacity (float): Blend ratio.
+
+    Returns:
+        ImageType: The tinted image.
+
+    Example:
+        ```
+        frame = cv2.imread("frame.jpg")
+        frame = draw_overlay(scene=frame, color=Color.ROBOFLOW, opacity=0.5)
+        ```
+    """
+    if not 0.0 <= opacity <= 1.0:
+        raise ValueError("opacity must be between 0.0 and 1.0")
+
+    overlay = np.full_like(scene, fill_value=color.as_bgr(), dtype=scene.dtype)
+    cv2.addWeighted(
+        src1=overlay,
+        alpha=opacity,
+        src2=scene,
+        beta=1 - opacity,
+        gamma=0,
+        dst=scene
+    )
+    return scene
+
+
+def calculate_optimal_text_scale(resolution_wh: tuple[int, int]) -> float:
+    """
+    Calculate optimal font scale based on image resolution.
+
+    Adjusts font scale proportionally to the smallest dimension of the given image
+    resolution for consistent readability.
+
+    Args:
+        resolution_wh (tuple[int, int]): (width, height) of the image in pixels
+
+    Returns:
+        float: recommended font scale factor
+
+    Examples:
+        ```pycon
+        >>> from supervision import calculate_optimal_text_scale
+        >>> calculate_optimal_text_scale((1920, 1080))
+        1.08
+        >>> calculate_optimal_text_scale((640, 480))
+        0.48
+        ```
     """
     return min(resolution_wh) * 1e-3
 
 
 def calculate_optimal_line_thickness(resolution_wh: tuple[int, int]) -> int:
     """
-    Calculate line thickness based on the resolution of an image.
+    Calculate optimal line thickness based on image resolution.
 
-    Parameters:
-        resolution_wh (Tuple[int, int]): A tuple representing the width and height
-            of the image.
+    Adjusts the line thickness for readability depending on the smallest dimension
+    of the provided image resolution.
+
+    Args:
+        resolution_wh (tuple[int, int]): (width, height) of the image in pixels
 
     Returns:
-        int: The calculated line thickness in pixels.
+        int: recommended line thickness in pixels
+
+    Examples:
+        ```pycon
+        >>> from supervision import calculate_optimal_line_thickness
+        >>> calculate_optimal_line_thickness((1920, 1080))
+        4
+        >>> calculate_optimal_line_thickness((640, 480))
+        2
+        ```
     """
     if min(resolution_wh) < 1080:
         return 2

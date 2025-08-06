@@ -14,7 +14,7 @@ import numpy.typing as npt
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.utils.internal import cross_product
-from supervision.draw.color import Color
+from supervision.draw.core import Color
 from supervision.draw.utils import draw_rectangle, draw_text
 from supervision.geometry.core import Point, Position, Rect, Vector
 from supervision.utils.image import overlay_image

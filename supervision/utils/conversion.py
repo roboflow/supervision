@@ -1,61 +1,58 @@
+import inspect
 from functools import wraps
 
 import cv2
 import numpy as np
 from PIL import Image
 
-from supervision.annotators.base import ImageType
+from supervision.draw.core import ImageType
 
 
-def ensure_cv2_image_for_annotation(annotate_func):
+def ensure_cv2_image(annotate_func):
     """
-    Decorates `BaseAnnotator.annotate` implementations, converts scene to
-    an image type used internally by the annotators, converts back when annotation
-    is complete.
+    Decorates functions and methods that accept an image ('scene') as their first argument,
+    converting PIL.Image to OpenCV-compatible NumPy arrays and back.
 
-    Assumes the annotators modify the scene in-place.
+    Assumes in-place modification of the image.
+
+    Works with both methods and standalone functions, supporting positional and keyword arguments.
     """
-
     @wraps(annotate_func)
-    def wrapper(self, scene: ImageType, *args, **kwargs):
-        if isinstance(scene, np.ndarray):
-            return annotate_func(self, scene, *args, **kwargs)
+    def wrapper(*args, **kwargs):
+        sig = inspect.signature(annotate_func)
+        params = list(sig.parameters)
 
+        # Check if it's a method by looking for 'self'
+        is_method = params[0] == 'self'
+
+        bound_args = sig.bind_partial(*args, **kwargs)
+        bound_args.apply_defaults()
+
+        if 'scene' not in bound_args.arguments:
+            raise ValueError("Missing required argument 'scene'")
+
+        scene = bound_args.arguments['scene']
+
+        # Convert PIL Image to np.ndarray if needed
         if isinstance(scene, Image.Image):
             scene_np = pillow_to_cv2(scene)
-            annotated_np = annotate_func(self, scene_np, *args, **kwargs)
-            scene.paste(cv2_to_pillow(annotated_np))
+            bound_args.arguments['scene'] = scene_np
+            result_np = annotate_func(*bound_args.args, **bound_args.kwargs)
+            # In-place modification assumed; paste back to original PIL image
+            scene.paste(cv2_to_pillow(result_np))
             return scene
 
-        raise ValueError(f"Unsupported image type: {type(scene)}")
+        elif isinstance(scene, np.ndarray):
+            bound_args.arguments['scene'] = scene
+            return annotate_func(*bound_args.args, **bound_args.kwargs)
+
+        else:
+            raise ValueError(f"Unsupported image type: {type(scene)}")
 
     return wrapper
 
 
-def ensure_cv2_image_for_processing(image_processing_fun):
-    """
-    Decorates image processing functions that accept np.ndarray, converting `image` to
-    np.ndarray, converts back when processing is complete.
-
-    Assumes the annotators do NOT modify the scene in-place.
-    """
-
-    @wraps(image_processing_fun)
-    def wrapper(image: ImageType, *args, **kwargs):
-        if isinstance(image, np.ndarray):
-            return image_processing_fun(image, *args, **kwargs)
-
-        if isinstance(image, Image.Image):
-            scene = pillow_to_cv2(image)
-            annotated = image_processing_fun(scene, *args, **kwargs)
-            return cv2_to_pillow(annotated)
-
-        raise ValueError(f"Unsupported image type: {type(image)}")
-
-    return wrapper
-
-
-def ensure_pil_image_for_annotation(annotate_func):
+def ensure_pil_image(annotate_func):
     """
     Decorates image processing functions that accept np.ndarray, converting `image` to
     PIL image, converts back when processing is complete.
