@@ -82,7 +82,9 @@ class Backend(ABC):
         self.path = None
 
     @abstractmethod
-    def get_sink(self, target_path: str, video_info: VideoInfo, codec: str = "mp4v") -> Writer:
+    def get_sink(
+        self, target_path: str, video_info: VideoInfo, codec: str = "mp4v"
+    ) -> Writer:
         pass
 
     @abstractmethod
@@ -175,7 +177,9 @@ class OpenCVBackend(Backend):
         Returns:
             OpenCVWriter: A video writer object for writing frames.
         """
-        return OpenCVWriter(target_path, video_info.fps, video_info.resolution_wh, codec)
+        return OpenCVWriter(
+            target_path, video_info.fps, video_info.resolution_wh, codec
+        )
 
     def open(self, path: str) -> None:
         """
@@ -472,10 +476,10 @@ class OpenCVWriter(Writer):
             self.writer = cv2.VideoWriter(filename, fourcc_int, fps, frame_size)
         if not self.writer.isOpened():
             raise RuntimeError(f"Cannot open video writer for file: {filename}")
-        
+
     def __enter__(self):
         return self
-    
+
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
