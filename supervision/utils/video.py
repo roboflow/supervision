@@ -52,7 +52,7 @@ class VideoInfo:
 
     width: int
     height: int
-    fps: int
+    fps: float
     total_frames: int | None = None
     source_type: SOURCE_TYPE | None = None
 
@@ -590,6 +590,7 @@ class Video:
         )
 
 
+@DeprecationWarning
 class VideoSink:
     """
     Context manager that saves video frames to a file using OpenCV.
@@ -646,7 +647,7 @@ class VideoSink:
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.__writer.release()
 
-
+@DeprecationWarning
 def _validate_and_setup_video(
     source_path: str, start: int, end: int | None, iterative_seek: bool = False
 ):
@@ -670,7 +671,7 @@ def _validate_and_setup_video(
 
     return video, start, end
 
-
+@DeprecationWarning
 def get_video_frames_generator(
     source_path: str,
     stride: int = 1,
@@ -721,7 +722,7 @@ def get_video_frames_generator(
         frame_position += stride
     video.release()
 
-
+@DeprecationWarning
 def process_video(
     source_path: str,
     target_path: str,
