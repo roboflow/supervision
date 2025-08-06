@@ -175,7 +175,7 @@ def wrap_text(text: Any, max_line_length=None) -> list[str]:
         return text.splitlines() or [""]
 
     if max_line_length <= 0:
-        raise ValueError(f"max_line_length must be a positive integer")
+        raise ValueError("max_line_length must be a positive integer")
 
     paragraphs = text.split("\n")
     all_lines: list[str] = []

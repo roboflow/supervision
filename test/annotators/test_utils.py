@@ -113,72 +113,29 @@ def test_resolve_color_idx(
 @pytest.mark.parametrize(
     "text, max_line_length, expected_result, exception",
     [
+        (None, None, [""], DoesNotRaise()),  # text is None
+        ("", None, [""], DoesNotRaise()),  # empty string
+        ("   \t  ", 3, [""], DoesNotRaise()),  # whitespace-only (spaces + tab)
+        (12345, None, ["12345"], DoesNotRaise()),  # plain integer
+        (-6789, None, ["-6789"], DoesNotRaise()),  # negative integer
+        (np.int64(1000), None, ["1000"], DoesNotRaise()),  # NumPy int64
+        ([1, 2, 3], None, ["[1, 2, 3]"], DoesNotRaise()),  # list to string
         (
-            None,
-            None,
-            [""],
-            DoesNotRaise()
-        ),  # text is None
-        (
-            "",
-            None,
-            [""],
-            DoesNotRaise()
-        ),  # empty string
-        (
-            "   \t  ",
-            3,
-            [""],
-            DoesNotRaise()
-        ),  # whitespace-only (spaces + tab)
-
-        (
-            12345,
-            None,
-            ["12345"],
-            DoesNotRaise()
-        ),  # plain integer
-        (
-            -6789,
-            None,
-            ["-6789"],
-            DoesNotRaise()
-        ),  # negative integer
-        (
-            np.int64(1000),
-            None,
-            ["1000"],
-            DoesNotRaise()
-        ),  # NumPy int64
-        (
-            [1, 2, 3],
-            None,
-            ["[1, 2, 3]"],
-            DoesNotRaise()
-        ),  # list to string
-
-        (
-            "When you play the game of thrones, you win or you die.\nFear cuts deeper than swords.\nA mind needs books as a sword needs a whetstone.", # noqa: E501
+            "When you play the game of thrones, you win or you die.\nFear cuts deeper than swords.\nA mind needs books as a sword needs a whetstone.",  # noqa: E501
             None,
             [
                 "When you play the game of thrones, you win or you die.",
                 "Fear cuts deeper than swords.",
                 "A mind needs books as a sword needs a whetstone.",
             ],
-            DoesNotRaise()
+            DoesNotRaise(),
         ),  # Game-of-Thrones quotes, multiline
-        (
-            "\n",
-            None,
-            [""],
-            DoesNotRaise()
-        ),  # single newline
-
+        ("\n", None, [""], DoesNotRaise()),  # single newline
         (
             "valarmorghulisvalardoharis",
             6,
             ["valarm", "orghul", "isvala", "rdohar", "is"],
-            DoesNotRaise()
+            DoesNotRaise(),
         ),  # long Valyrian phrase, wrapped
         (
             "Winter is coming\nFire and blood",
@@ -189,28 +146,21 @@ def test_resolve_color_idx(
                 "Fire and",
                 "blood",
             ],
-            DoesNotRaise()
+            DoesNotRaise(),
         ),  # mix of short/long with newline
-
         (
             "What is dead may never die",
             0,
             None,
-            pytest.raises(ValueError)
+            pytest.raises(ValueError),
         ),  # width 0 – invalid
         (
             "A Lannister always pays his debts",
             -1,
             None,
-            pytest.raises(ValueError)
+            pytest.raises(ValueError),
         ),  # width -1 – invalid
-
-        (
-            None,
-            10,
-            [""],
-            DoesNotRaise()
-        ),  # text None, width set
+        (None, 10, [""], DoesNotRaise()),  # text None, width set
     ],
 )
 def test_wrap_text(
