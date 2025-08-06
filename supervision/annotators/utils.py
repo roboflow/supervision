@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import textwrap
 from enum import Enum
+from typing import Any
 
 import numpy as np
 
@@ -151,30 +152,36 @@ def resolve_color(
     return get_color_by_index(color=color, idx=idx)
 
 
-def wrap_text(text: str, max_line_length=None) -> list[str]:
+def wrap_text(text: Any, max_line_length=None) -> list[str]:
     """
-    Wraps text to the specified maximum line length, respecting existing newlines.
-    Uses the textwrap library for robust text wrapping.
+    Wrap `text` to the specified maximum line length, respecting existing
+    newlines. Falls back to str() if `text` is not already a string.
 
     Args:
-        text (str): The text to wrap.
+        text (Any): The text (or object) to wrap.
+        max_line_length (int | None): Maximum width for each wrapped line.
 
     Returns:
-        List[str]: A list of text lines after wrapping.
+        list[str]: Wrapped lines.
     """
 
     if not text:
         return [""]
 
+    if not isinstance(text, str):
+        text = str(text)
+
     if max_line_length is None:
         return text.splitlines() or [""]
 
+    if max_line_length <= 0:
+        raise ValueError(f"max_line_length must be a positive integer")
+
     paragraphs = text.split("\n")
-    all_lines = []
+    all_lines: list[str] = []
 
     for paragraph in paragraphs:
-        if not paragraph:
-            # Keep empty lines
+        if paragraph == "":
             all_lines.append("")
             continue
 
@@ -186,12 +193,9 @@ def wrap_text(text: str, max_line_length=None) -> list[str]:
             drop_whitespace=True,
         )
 
-        if wrapped:
-            all_lines.extend(wrapped)
-        else:
-            all_lines.append("")
+        all_lines.extend(wrapped or [""])
 
-    return all_lines if all_lines else [""]
+    return all_lines or [""]
 
 
 def validate_labels(labels: list[str] | None, detections: Detections):
