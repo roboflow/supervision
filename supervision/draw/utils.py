@@ -346,28 +346,50 @@ def draw_image(
 
 def calculate_optimal_text_scale(resolution_wh: tuple[int, int]) -> float:
     """
-    Calculate font scale based on the resolution of an image.
+    Calculate optimal font scale based on image resolution.
 
-    Parameters:
-        resolution_wh (Tuple[int, int]): A tuple representing the width and height
-            of the image.
+    Adjusts font scale proportionally to the smallest dimension of the given image
+    resolution for consistent readability.
+
+    Args:
+        resolution_wh (tuple[int, int]): (width, height) of the image in pixels
 
     Returns:
-         float: The calculated font scale factor.
+        float: recommended font scale factor
+
+    Examples:
+        ```pycon
+        >>> from supervision import calculate_optimal_text_scale
+        >>> calculate_optimal_text_scale((1920, 1080))
+        1.08
+        >>> calculate_optimal_text_scale((640, 480))
+        0.48
+        ```
     """
     return min(resolution_wh) * 1e-3
 
 
 def calculate_optimal_line_thickness(resolution_wh: tuple[int, int]) -> int:
     """
-    Calculate line thickness based on the resolution of an image.
+    Calculate optimal line thickness based on image resolution.
 
-    Parameters:
-        resolution_wh (Tuple[int, int]): A tuple representing the width and height
-            of the image.
+    Adjusts the line thickness for readability depending on the smallest dimension
+    of the provided image resolution.
+
+    Args:
+        resolution_wh (tuple[int, int]): (width, height) of the image in pixels
 
     Returns:
-        int: The calculated line thickness in pixels.
+        int: recommended line thickness in pixels
+
+    Examples:
+        ```pycon
+        >>> from supervision import calculate_optimal_line_thickness
+        >>> calculate_optimal_line_thickness((1920, 1080))
+        4
+        >>> calculate_optimal_line_thickness((640, 480))
+        2
+        ```
     """
     if min(resolution_wh) < 1080:
         return 2

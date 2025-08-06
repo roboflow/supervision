@@ -26,7 +26,8 @@ extra:
 
 extra_css:
   - stylesheets/extra.css
-  - stylesheets/cookbooks-card.css
+  - stylesheets/cookbooks_card.css
+  - stylesheets/code_select.css
 
 nav:
   - Home: index.md
@@ -169,6 +170,7 @@ markdown_extensions:
   - pymdownx.snippets:
       check_paths: true
   - pymdownx.highlight:
+      use_pygments: true
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
