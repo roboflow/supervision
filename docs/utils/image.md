@@ -29,12 +29,6 @@ comments: true
 :::supervision.utils.image.letterbox_image
 
 <div class="md-typeset">
-    <h2><a href="#supervision.utils.image.overlay_image">overlay_image</a></h2>
-</div>
-
-:::supervision.utils.image.overlay_image
-
-<div class="md-typeset">
     <h2><a href="#supervision.utils.image.tint_image">tint_image</a></h2>
 </div>
 

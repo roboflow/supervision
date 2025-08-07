@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import shutil
-from typing import Literal
 
 import cv2
 import numpy as np
@@ -13,10 +12,7 @@ from supervision.draw.color import Color, unify_to_bgr
 from supervision.utils.conversion import (
     ensure_cv2_image_for_standalone_function,
 )
-
-RelativePosition = Literal["top", "bottom"]
-
-MAX_COLUMNS_FOR_SINGLE_ROW_GRID = 3
+from supervision.utils.internal import deprecated
 
 
 @ensure_cv2_image_for_standalone_function
@@ -25,54 +21,48 @@ def crop_image(
     xyxy: npt.NDArray[int] | list[int] | tuple[int, int, int, int],
 ) -> ImageType:
     """
-    Crops the given image based on the given bounding box.
+    Crop image based on bounding box coordinates.
 
     Args:
-        image (ImageType): The image to be cropped. `ImageType` is a flexible type,
-            accepting either `numpy.ndarray` or `PIL.Image.Image`.
-        xyxy (Union[np.ndarray, List[int], Tuple[int, int, int, int]]): A bounding box
-            coordinates in the format `(x_min, y_min, x_max, y_max)`, accepted as either
-            a `numpy.ndarray`, a `list`, or a `tuple`.
+        image (`numpy.ndarray` or `PIL.Image.Image`): The image to crop.
+        xyxy (`numpy.array`, `list[int]`, or `tuple[int, int, int, int]`):
+            Bounding box coordinates in `(x_min, y_min, x_max, y_max)` format.
 
     Returns:
-        (ImageType): The cropped image. The type is determined by the input type and
-            may be either a `numpy.ndarray` or `PIL.Image.Image`.
+        (`numpy.ndarray` or `PIL.Image.Image`): Cropped image matching input
+            type.
 
-    === "OpenCV"
-
+    Examples:
         ```python
         import cv2
         import supervision as sv
 
-        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        image = cv2.imread("source.png")
         image.shape
         # (1080, 1920, 3)
 
-        xyxy = [200, 400, 600, 800]
+        xyxy = (200, 400, 600, 800)
         cropped_image = sv.crop_image(image=image, xyxy=xyxy)
         cropped_image.shape
         # (400, 400, 3)
         ```
 
-    === "Pillow"
-
         ```python
         from PIL import Image
         import supervision as sv
 
-        image = Image.open(<SOURCE_IMAGE_PATH>)
+        image = Image.open("source.png")
         image.size
         # (1920, 1080)
 
-        xyxy = [200, 400, 600, 800]
+        xyxy = (200, 400, 600, 800)
         cropped_image = sv.crop_image(image=image, xyxy=xyxy)
         cropped_image.size
         # (400, 400)
         ```
-
+        
     ![crop_image](https://media.roboflow.com/supervision-docs/crop-image.png){ align=center width="800" }
     """  # noqa E501 // docs
-
     if isinstance(xyxy, (list, tuple)):
         xyxy = np.array(xyxy)
     xyxy = np.round(xyxy).astype(int)
@@ -83,28 +73,25 @@ def crop_image(
 @ensure_cv2_image_for_standalone_function
 def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     """
-    Scales the given image based on the given scale factor.
+    Scale image by given factor. Scale factor > 1.0 zooms in, < 1.0 zooms out.
 
     Args:
-        image (ImageType): The image to be scaled. `ImageType` is a flexible type,
-            accepting either `numpy.ndarray` or `PIL.Image.Image`.
-        scale_factor (float): The factor by which the image will be scaled. Scale
-            factor > `1.0` zooms in, < `1.0` zooms out.
+        image (`numpy.ndarray` or `PIL.Image.Image`): The image to scale.
+        scale_factor (`float`): Factor by which to scale the image.
 
     Returns:
-        (ImageType): The scaled image. The type is determined by the input type and
-            may be either a `numpy.ndarray` or `PIL.Image.Image`.
+        (`numpy.ndarray` or `PIL.Image.Image`): Scaled image matching input
+            type.
 
     Raises:
-        ValueError: If the scale factor is non-positive.
+        ValueError: If scale factor is non-positive.
 
-    === "OpenCV"
-
+    Examples:
         ```python
         import cv2
         import supervision as sv
 
-        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        image = cv2.imread("source.png")
         image.shape
         # (1080, 1920, 3)
 
@@ -113,13 +100,11 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
         # (540, 960, 3)
         ```
 
-    === "Pillow"
-
         ```python
         from PIL import Image
         import supervision as sv
 
-        image = Image.open(<SOURCE_IMAGE_PATH>)
+        image = Image.open("source.png")
         image.size
         # (1920, 1080)
 
@@ -144,28 +129,24 @@ def resize_image(
     keep_aspect_ratio: bool = False,
 ) -> ImageType:
     """
-    Resizes the given image to a specified resolution. Can maintain the original aspect
-    ratio or resize directly to the desired dimensions.
+    Resize image to specified resolution. Can optionally maintain aspect ratio.
 
     Args:
-        image (ImageType): The image to be resized. `ImageType` is a flexible type,
-            accepting either `numpy.ndarray` or `PIL.Image.Image`.
-        resolution_wh (Tuple[int, int]): The target resolution as
-            `(width, height)`.
-        keep_aspect_ratio (bool): Flag to maintain the image's original
-            aspect ratio. Defaults to `False`.
+        image (`numpy.ndarray` or `PIL.Image.Image`): The image to resize.
+        resolution_wh (`tuple[int, int]`): Target resolution as `(width, height)`.
+        keep_aspect_ratio (`bool`): Flag to maintain original aspect ratio.
+            Defaults to `False`.
 
     Returns:
-        (ImageType): The resized image. The type is determined by the input type and
-            may be either a `numpy.ndarray` or `PIL.Image.Image`.
+        (`numpy.ndarray` or `PIL.Image.Image`): Resized image matching input
+            type.
 
-    === "OpenCV"
-
+    Examples:
         ```python
         import cv2
         import supervision as sv
 
-        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        image = cv2.imread("source.png")
         image.shape
         # (1080, 1920, 3)
 
@@ -176,13 +157,11 @@ def resize_image(
         # (562, 1000, 3)
         ```
 
-    === "Pillow"
-
         ```python
         from PIL import Image
         import supervision as sv
 
-        image = Image.open(<SOURCE_IMAGE_PATH>)
+        image = Image.open("source.png")
         image.size
         # (1920, 1080)
 
@@ -192,7 +171,7 @@ def resize_image(
         resized_image.size
         # (1000, 562)
         ```
-
+        
     ![resize_image](https://media.roboflow.com/supervision-docs/resize-image.png){ align=center width="800" }
     """  # noqa E501 // docs
     if keep_aspect_ratio:
@@ -217,51 +196,50 @@ def letterbox_image(
     color: tuple[int, int, int] | Color = Color.BLACK,
 ) -> ImageType:
     """
-    Resizes and pads an image to a specified resolution with a given color, maintaining
-    the original aspect ratio.
+    Resize image and pad with color to achieve desired resolution while
+    maintaining aspect ratio.
 
     Args:
-        image (ImageType): The image to be resized. `ImageType` is a flexible type,
-            accepting either `numpy.ndarray` or `PIL.Image.Image`.
-        resolution_wh (Tuple[int, int]): The target resolution as
-            `(width, height)`.
-        color (Union[Tuple[int, int, int], Color]): The color to pad with. If tuple
-            provided it should be in BGR format.
+        image (`numpy.ndarray` or `PIL.Image.Image`): The image to resize and pad.
+        resolution_wh (`tuple[int, int]`): Target resolution as `(width, height)`.
+        color (`tuple[int, int, int]` or `Color`): Padding color. If tuple, should
+            be in BGR format. Defaults to `Color.BLACK`.
 
     Returns:
-        (ImageType): The resized image. The type is determined by the input type and
-            may be either a `numpy.ndarray` or `PIL.Image.Image`.
+        (`numpy.ndarray` or `PIL.Image.Image`): Letterboxed image matching input
+            type.
 
-    === "OpenCV"
-
+    Examples:
         ```python
         import cv2
         import supervision as sv
 
-        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        image = cv2.imread("source.png")
         image.shape
         # (1080, 1920, 3)
 
-        letterboxed_image = sv.letterbox_image(image=image, resolution_wh=(1000, 1000))
+        letterboxed_image = sv.letterbox_image(
+            image=image, resolution_wh=(1000, 1000)
+        )
         letterboxed_image.shape
         # (1000, 1000, 3)
         ```
-
-    === "Pillow"
 
         ```python
         from PIL import Image
         import supervision as sv
 
-        image = Image.open(<SOURCE_IMAGE_PATH>)
+        image = Image.open("source.png")
         image.size
         # (1920, 1080)
 
-        letterboxed_image = sv.letterbox_image(image=image, resolution_wh=(1000, 1000))
+        letterboxed_image = sv.letterbox_image(
+            image=image, resolution_wh=(1000, 1000)
+        )
         letterboxed_image.size
         # (1000, 1000)
         ```
-
+        
     ![letterbox_image](https://media.roboflow.com/supervision-docs/letterbox-image.png){ align=center width="800" }
     """  # noqa E501 // docs
     assert isinstance(image, np.ndarray)
@@ -293,37 +271,59 @@ def letterbox_image(
     return image_with_borders
 
 
+@deprecated(
+    "`overlay_image` function is deprecated and will be removed in "
+    "`supervision-0.32.0`. Use `draw_image` instead."
+)
 def overlay_image(
     image: npt.NDArray[np.uint8],
     overlay: npt.NDArray[np.uint8],
     anchor: tuple[int, int],
 ) -> npt.NDArray[np.uint8]:
     """
-    Places an image onto a scene at a given anchor point, handling cases where
-    the image's position is partially or completely outside the scene's bounds.
+    Overlay image onto scene at specified anchor point. Handles cases where
+    overlay position is partially or completely outside scene bounds.
 
     Args:
-        image (np.ndarray): The background scene onto which the image is placed.
-        overlay (np.ndarray): The image to be placed onto the scene.
-        anchor (Tuple[int, int]): The `(x, y)` coordinates in the scene where the
-            top-left corner of the image will be placed.
+        image (`numpy.array`): Background scene with shape `(height, width, 3)`.
+        overlay (`numpy.array`): Image to overlay with shape
+            `(height, width, 3)` or `(height, width, 4)`.
+        anchor (`tuple[int, int]`): Coordinates `(x, y)` where top-left corner
+            of overlay will be placed.
 
     Returns:
-        (np.ndarray): The result image with overlay.
+        (`numpy.array`): Scene with overlay applied, shape `(height, width, 3)`.
 
     Examples:
-        ```python
+        ```
         import cv2
         import numpy as np
         import supervision as sv
 
-        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        image = cv2.imread("source.png")
         overlay = np.zeros((400, 400, 3), dtype=np.uint8)
-        result_image = sv.overlay_image(image=image, overlay=overlay, anchor=(200, 400))
+        overlay[:] = (0, 255, 0)  # Green overlay
+
+        result_image = sv.overlay_image(
+            image=image, overlay=overlay, anchor=(200, 400)
+        )
+        cv2.imwrite("target.png", result_image)
         ```
 
-    ![overlay_image](https://media.roboflow.com/supervision-docs/overlay-image.png){ align=center width="800" }
-    """  # noqa E501 // docs
+        ```
+        import cv2
+        import numpy as np
+        import supervision as sv
+
+        image = cv2.imread("source.png")
+        overlay = cv2.imread("overlay.png", cv2.IMREAD_UNCHANGED)
+
+        result_image = sv.overlay_image(
+            image=image, overlay=overlay, anchor=(100, 100)
+        )
+        cv2.imwrite("target.png", result_image)
+        ```
+    """
     scene_height, scene_width = image.shape[:2]
     image_height, image_width = overlay.shape[:2]
     anchor_x, anchor_y = anchor
@@ -369,39 +369,44 @@ def tint_image(
     opacity: float = 0.5,
 ) -> ImageType:
     """
-    Blend a solid-color overlay onto an image. Create a tinted effect by blending a
-    uniform color overlay with the input image at a specified opacity.
+    Tint image with solid color overlay at specified opacity.
 
     Args:
-        scene (ImageType): input image to be tinted (`numpy.ndarray` or `PIL.Image.Image`)
-        color (Color): overlay tint color
-        opacity (float): blend ratio between overlay and image (0.0–1.0, inclusive)
+        scene (`numpy.ndarray` or `PIL.Image.Image`): The image to tint.
+        color (`Color`): Overlay tint color. Defaults to `Color.BLACK`.
+        opacity (`float`): Blend ratio between overlay and image (0.0-1.0).
+            Defaults to `0.5`.
 
     Returns:
-        ImageType: tinted image in the same format as the input
+        (`numpy.ndarray` or `PIL.Image.Image`): Tinted image matching input
+            type.
 
     Raises:
-        ValueError: if opacity is outside the range [0.0, 1.0]
+        ValueError: If opacity is outside range [0.0, 1.0].
 
     Examples:
         ```python
         import cv2
         import supervision as sv
 
-        image = cv2.imread("source.jpg")
-        tinted = sv.tint_image(scene=image, color=sv.Color.BLACK, opacity=0.5)
-        cv2.imwrite("result.jpg", tinted)
+        image = cv2.imread("source.png")
+        tinted_image = sv.tint_image(
+            scene=image, color=sv.Color.BLACK, opacity=0.5
+        )
+        cv2.imwrite("target.png", tinted_image)
         ```
 
         ```python
         from PIL import Image
         import supervision as sv
 
-        image = Image.open("source.jpg")
-        tinted = sv.tint_image(scene=image, color=Color.BLACK, opacity=0.5)
-        tinted.save("result.jpg")
+        image = Image.open("source.png")
+        tinted_image = sv.tint_image(
+            scene=image, color=sv.Color.BLACK, opacity=0.5
+        )
+        tinted_image.save("target.png")
         ```
-    """  # noqa: E501 // docs
+    """
     if not 0.0 <= opacity <= 1.0:
         raise ValueError("opacity must be between 0.0 and 1.0")
 
@@ -420,35 +425,36 @@ def tint_image(
 @ensure_cv2_image_for_standalone_function
 def grayscale_image(scene: ImageType) -> ImageType:
     """
-    Convert an RGB or BGR image to 3-channel grayscale. The luminance channel is
-    broadcast to all three channels, ensuring compatibility with color-based drawing
-    helpers that expect 3-channel input.
+    Convert image to 3-channel grayscale. Luminance channel is broadcast to
+    all three channels for compatibility with color-based drawing helpers.
 
     Args:
-        scene (ImageType): input image to be converted (`numpy.ndarray` or `PIL.Image.Image`)
+        scene (`numpy.ndarray` or `PIL.Image.Image`): The image to convert to
+            grayscale.
 
     Returns:
-        ImageType: 3-channel grayscale version in the same format as input
+        (`numpy.ndarray` or `PIL.Image.Image`): 3-channel grayscale image
+            matching input type.
 
     Examples:
         ```python
         import cv2
         import supervision as sv
 
-        image = cv2.imread("source.jpg")
-        grayscaled = sv.grayscale_image(scene=image)
-        cv2.imwrite("result.jpg", grayscaled)
+        image = cv2.imread("source.png")
+        grayscale_image = sv.grayscale_image(scene=image)
+        cv2.imwrite("target.png", grayscale_image)
         ```
 
         ```python
         from PIL import Image
         import supervision as sv
 
-        image = Image.open("source.jpg")
-        grayscaled = sv.grayscale_image(scene=image)
-        grayscaled.save("result.jpg")
+        image = Image.open("source.png")
+        grayscale_image = sv.grayscale_image(scene=image)
+        grayscale_image.save("target.png")
         ```
-    """  # noqa: E501 // docs
+    """
     grayscaled = cv2.cvtColor(scene, cv2.COLOR_BGR2GRAY)
     return cv2.cvtColor(grayscaled, cv2.COLOR_GRAY2BGR)
 
@@ -461,27 +467,64 @@ class ImageSink:
         image_name_pattern: str = "image_{:05d}.png",
     ):
         """
-        Initialize a context manager for saving images.
+        Initialize context manager for saving images to directory.
 
         Args:
-            target_dir_path (str): The target directory where images will be saved.
-            overwrite (bool): Whether to overwrite the existing directory.
-                Defaults to False.
-            image_name_pattern (str): The image file name pattern.
-                Defaults to "image_{:05d}.png".
+            target_dir_path (`str`): Target directory path where images will be
+                saved.
+            overwrite (`bool`): Whether to overwrite existing directory.
+                Defaults to `False`.
+            image_name_pattern (`str`): File name pattern for saved images.
+                Defaults to `"image_{:05d}.png"`.
 
         Examples:
             ```python
             import supervision as sv
 
-            frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>, stride=2)
+            frames_generator = sv.get_video_frames_generator(
+                "source.mp4", stride=2
+            )
 
-            with sv.ImageSink(target_dir_path=<TARGET_CROPS_DIRECTORY>) as sink:
+            with sv.ImageSink(target_dir_path="output_frames") as sink:
                 for image in frames_generator:
                     sink.save_image(image=image)
-            ```
-        """  # noqa E501 // docs
 
+            # Directory structure:
+            # output_frames/
+            # ├── image_00000.png
+            # ├── image_00001.png
+            # ├── image_00002.png
+            # └── image_00003.png
+            ```
+
+            ```python
+            import cv2
+            import supervision as sv
+
+            image = cv2.imread("source.png")
+            crop_boxes = [
+                (  0,   0, 400, 400),
+                (400,   0, 800, 400),
+                (  0, 400, 400, 800),
+                (400, 400, 800, 800)
+            ]
+
+            with sv.ImageSink(
+                target_dir_path="image_crops",
+                overwrite=True
+            ) as sink:
+                for i, xyxy in enumerate(crop_boxes):
+                    crop = sv.crop_image(image=image, xyxy=xyxy)
+                    sink.save_image(image=crop, image_name=f"crop_{i}.png")
+
+            # Directory structure:
+            # image_crops/
+            # ├── crop_0.png
+            # ├── crop_1.png
+            # ├── crop_2.png
+            # └── crop_3.png
+            ```
+        """
         self.target_dir_path = target_dir_path
         self.overwrite = overwrite
         self.image_name_pattern = image_name_pattern
@@ -499,14 +542,14 @@ class ImageSink:
 
     def save_image(self, image: np.ndarray, image_name: str | None = None):
         """
-        Save a given image in the target directory.
+        Save image to target directory with optional custom filename.
 
         Args:
-            image (np.ndarray): The image to be saved. The image must be in BGR color
-                format.
-            image_name (Optional[str]): The name to use for the saved image.
-                If not provided, a name will be
-                generated using the `image_name_pattern`.
+            image (`numpy.array`): Image to save with shape `(height, width, 3)`
+                in BGR format.
+            image_name (`str` or `None`): Custom filename for saved image. If
+                `None`, generates name using `image_name_pattern`. Defaults to
+                `None`.
         """
         if image_name is None:
             image_name = self.image_name_pattern.format(self.image_count)
