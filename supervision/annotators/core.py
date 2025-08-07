@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from math import sqrt
 
 import cv2
 import numpy as np
@@ -573,9 +572,7 @@ class ColorAnnotator(BaseAnnotator):
             scene[y1:y2, x1:x2] = cv2.addWeighted(
                 scene[y1:y2, x1:x2],
                 1 - color.a / 255,
-                np.full_like(
-                    scene[y1:y2, x1:x2], color.as_bgr(), dtype=np.uint8
-                ),
+                np.full_like(scene[y1:y2, x1:x2], color.as_bgr(), dtype=np.uint8),
                 color.a / 255,
                 0,
             )
@@ -652,7 +649,7 @@ class HaloAnnotator(BaseAnnotator):
         assert isinstance(scene, np.ndarray)
         if detections.mask is None:
             return scene
-        
+
         for detection_idx in np.flip(np.argsort(detections.area)):
             color = resolve_color(
                 color=self.color,
@@ -664,7 +661,7 @@ class HaloAnnotator(BaseAnnotator):
             )
 
             mask = detections.mask[detection_idx]
-            
+
             non_zero_mask = (mask > 0).astype(np.uint8)
 
             dilated_mask = cv2.dilate(
@@ -676,7 +673,7 @@ class HaloAnnotator(BaseAnnotator):
             blurred_mask = cv2.GaussianBlur(
                 dilated_mask.astype(float), (self.kernel_size, self.kernel_size), 0
             )
-            
+
             # The alpha channel is the blurred mask scaled by the color's alpha
             alpha = blurred_mask * (color.a / 255.0)
 
@@ -687,7 +684,7 @@ class HaloAnnotator(BaseAnnotator):
             alpha = alpha[..., np.newaxis]
             scene = (1 - alpha) * scene + alpha * color_layer
             scene = scene.astype(np.uint8)
-        
+
         return scene
 
 
@@ -772,7 +769,7 @@ class EllipseAnnotator(BaseAnnotator):
             )
             center = (int((x1 + x2) / 2), y2)
             width = x2 - x1
-            
+
             if color.a == 255:
                 cv2.ellipse(
                     scene,
