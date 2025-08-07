@@ -8,19 +8,16 @@ from supervision.detection.utils.iou_and_nms import box_iou_batch
 
 def clip_boxes(xyxy: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
     """
-    Clips bounding boxes coordinates to fit within the frame resolution.
+    Clip bounding box coordinates to fit within frame resolution.
 
     Args:
-        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
-            row corresponds to a bounding box in
-            the format `(x_min, y_min, x_max, y_max)`.
-        resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`
-            representing the resolution of the frame.
+        xyxy (`numpy.array`): Bounding boxes with shape `(N, 4)` where each
+            row represents `(x_min, y_min, x_max, y_max)`.
+        resolution_wh (`tuple[int, int]`): Frame resolution as `(width, height)`.
 
     Returns:
-        np.ndarray: A numpy array of shape `(N, 4)` where each row
-            corresponds to a bounding box with coordinates clipped to fit
-            within the frame resolution.
+        (`numpy.array`): Clipped bounding boxes with shape `(N, 4)` and
+            coordinates within frame bounds.
 
     Examples:
         ```python
@@ -33,7 +30,7 @@ def clip_boxes(xyxy: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
             [-10, -20, 30, 40]
         ])
 
-        sv.clip_boxes(xyxy=xyxy, resolution_wh=(320, 240))
+        clipped_boxes = sv.clip_boxes(xyxy=xyxy, resolution_wh=(320, 240))
         # array([
         #     [ 10,  20, 300, 200],
         #     [ 15,  25, 320, 240],
@@ -50,22 +47,17 @@ def clip_boxes(xyxy: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
 
 def pad_boxes(xyxy: np.ndarray, px: int, py: int | None = None) -> np.ndarray:
     """
-    Pads bounding boxes coordinates with a constant padding.
+    Pad bounding box coordinates with specified padding values.
 
     Args:
-        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
-            row corresponds to a bounding box in the format
-            `(x_min, y_min, x_max, y_max)`.
-        px (int): The padding value to be added to both the left and right sides of
-            each bounding box.
-        py (Optional[int]): The padding value to be added to both the top and bottom
-            sides of each bounding box. If not provided, `px` will be used for both
-            dimensions.
+        xyxy (`numpy.array`): Bounding boxes with shape `(N, 4)` where each
+            row represents `(x_min, y_min, x_max, y_max)`.
+        px (`int`): Padding value added to left and right sides of each box.
+        py (`int` or `None`): Padding value added to top and bottom sides of
+            each box. If `None`, uses `px` value. Defaults to `None`.
 
     Returns:
-        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds to a
-            bounding box with coordinates padded according to the provided padding
-            values.
+        (`numpy.array`): Padded bounding boxes with shape `(N, 4)`.
 
     Examples:
         ```python
@@ -77,10 +69,21 @@ def pad_boxes(xyxy: np.ndarray, px: int, py: int | None = None) -> np.ndarray:
             [15, 25, 35, 45]
         ])
 
-        sv.pad_boxes(xyxy=xyxy, px=5, py=10)
+        padded_boxes = sv.pad_boxes(xyxy=xyxy, px=5, py=10)
         # array([
         #     [ 5, 10, 35, 50],
         #     [10, 15, 40, 55]
+        # ])
+
+        xyxy = np.array([
+            [10, 20, 30, 40],
+            [15, 25, 35, 45]
+        ])
+
+        padded_boxes = sv.pad_boxes(xyxy=xyxy, px=-5)
+        # array([
+        #     [15, 25, 25, 35],
+        #     [20, 30, 35, 50]
         # ])
         ```
     """
@@ -100,50 +103,56 @@ def denormalize_boxes(
     normalization_factor: float = 1.0,
 ) -> np.ndarray:
     """
-    Converts normalized bounding box coordinates to absolute pixel values.
+    Convert normalized bounding box coordinates to absolute pixel values.
 
     Args:
-        normalized_xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each row
-            contains normalized coordinates in the format `(x_min, y_min, x_max, y_max)`,
+        normalized_xyxy (`numpy.array`): Normalized bounding boxes with shape
+            `(N, 4)` where each row represents `(x_min, y_min, x_max, y_max)`
             with values between 0 and `normalization_factor`.
-        resolution_wh (Tuple[int, int]): A tuple `(width, height)` representing the
-            target image resolution.
-        normalization_factor (float, optional): The normalization range of the input
-            coordinates. Defaults to 1.0.
+        resolution_wh (`tuple[int, int]`): Target image resolution as
+            `(width, height)`.
+        normalization_factor (`float`): Normalization range of input
+            coordinates. Defaults to `1.0`.
 
     Returns:
-        np.ndarray: An array of shape `(N, 4)` with absolute coordinates in
-            `(x_min, y_min, x_max, y_max)` format.
+        (`numpy.array`): Absolute bounding box coordinates with shape `(N, 4)`
+            in `(x_min, y_min, x_max, y_max)` format.
 
     Examples:
         ```python
         import numpy as np
         import supervision as sv
 
-        # Default normalization (0-1)
         normalized_xyxy = np.array([
             [0.1, 0.2, 0.5, 0.6],
             [0.3, 0.4, 0.7, 0.8]
         ])
-        resolution_wh = (100, 200)
-        sv.denormalize_boxes(normalized_xyxy, resolution_wh)
+
+        absolute_boxes = sv.denormalize_boxes(
+            normalized_xyxy=normalized_xyxy,
+            resolution_wh=(100, 200)
+        )
         # array([
-        #     [ 10.,  40.,  50., 120.],
-        #     [ 30.,  80.,  70., 160.]
+        #     [ 10.0,  40.0,  50.0, 120.0],
+        #     [ 30.0,  80.0,  70.0, 160.0]
         # ])
 
-        # Custom normalization (0-100)
         normalized_xyxy = np.array([
-            [10., 20., 50., 60.],
-            [30., 40., 70., 80.]
+            [10.0, 20.0, 50.0, 60.0],
+            [30.0, 40.0, 70.0, 80.0]
         ])
-        sv.denormalize_boxes(normalized_xyxy, resolution_wh, normalization_factor=100.0)
+
+        absolute_boxes = sv.denormalize_boxes(
+            normalized_xyxy=normalized_xyxy,
+            resolution_wh=(100, 200),
+            normalization_factor=100.0
+        )
         # array([
-        #     [ 10.,  40.,  50., 120.],
-        #     [ 30.,  80.,  70., 160.]
+        #     [ 10.0,  40.0,  50.0, 120.0],
+        #     [ 30.0,  80.0,  70.0, 160.0]
         # ])
         ```
-    """  # noqa E501 // docs
+    """
     width, height = resolution_wh
     result = normalized_xyxy.copy()
 

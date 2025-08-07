@@ -5,7 +5,7 @@ from contextlib import ExitStack as DoesNotRaise
 import numpy as np
 import pytest
 
-from supervision.detection.utils.boxes import clip_boxes, move_boxes, scale_boxes
+from supervision.detection.utils.boxes import clip_boxes, move_boxes, scale_boxes, pad_boxes
 
 
 @pytest.mark.parametrize(
@@ -50,6 +50,78 @@ def test_clip_boxes(
 ) -> None:
     result = clip_boxes(xyxy=xyxy, resolution_wh=resolution_wh)
     assert np.array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "xyxy, px, py, expected_result, exception",
+    [
+        (
+            np.empty(shape=(0, 4)),
+            5,
+            None,
+            np.empty(shape=(0, 4)),
+            DoesNotRaise(),
+        ),  # empty xyxy array
+        (
+            np.array([[10.0, 20.0, 30.0, 40.0]]),
+            5,
+            None,
+            np.array([[5.0, 15.0, 35.0, 45.0]]),
+            DoesNotRaise(),
+        ),  # py omitted defaults to px
+        (
+            np.array([[10.0, 20.0, 30.0, 40.0]]),
+            5,
+            10,
+            np.array([[5.0, 10.0, 35.0, 50.0]]),
+            DoesNotRaise(),
+        ),  # distinct px and py
+        (
+            np.array([
+                [0.0, 0.0, 10.0, 10.0],
+                [5.0, 5.0, 15.0, 15.0]
+            ]),
+            3,
+            None,
+            np.array([
+                [-3.0, -3.0, 13.0, 13.0],
+                [2.0, 2.0, 18.0, 18.0]
+            ]),
+            DoesNotRaise(),
+        ),  # multiple boxes
+        (
+            np.array([[2.0, 2.0, 10.0, 10.0]]),
+            -2,
+            None,
+            np.array([[4.0, 4.0, 8.0, 8.0]]),
+            DoesNotRaise(),
+        ),  # negative padding
+        (
+            np.array([[2.0, 2.0, 10.0, 10.0]]),
+            0,
+            None,
+            np.array([[2.0, 2.0, 10.0, 10.0]]),
+            DoesNotRaise(),
+        ),  # zero padding
+        (
+            np.array([[0.0, 5.0, 100.0, 105.0]]),
+            10,
+            -5,
+            np.array([[-10.0, 10.0, 110.0, 100.0]]),
+            DoesNotRaise(),
+        ),  # mixed-sign padding
+    ],
+)
+def test_pad_boxes(
+    xyxy: np.ndarray,
+    px: int,
+    py: int | None,
+    expected_result: np.ndarray,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = pad_boxes(xyxy=xyxy, px=px, py=py)
+        assert np.array_equal(result, expected_result)
 
 
 @pytest.mark.parametrize(

@@ -143,6 +143,7 @@ plugins:
             show_root_heading: True
             show_symbol_type_toc: true
             show_category_heading: true
+            show_source: false
           inventories:
           - url: https://docs.python-requests.org/en/master/objects.inv
             domains: [std, py]
@@ -152,6 +153,11 @@ plugins:
       token: !ENV ["GITHUB_TOKEN"]
   - git-revision-date-localized:
       enable_creation_date: true
+  - llmstxt:
+      full_output: llms-full.txt
+      sections:
+        API documentation:
+          - utils/image.md: crop_image, scale_image, resize_image, letterbox_image, tint_image, grayscale_image
 
 markdown_extensions:
   - admonition

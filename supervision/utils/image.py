@@ -484,10 +484,10 @@ class ImageSink:
 
             # Directory structure:
             # output_frames/
-            # ├── image_00000.png
-            # ├── image_00001.png
-            # ├── image_00002.png
-            # └── image_00003.png
+            # - image_00000.png
+            # - image_00001.png
+            # - image_00002.png
+            # - image_00003.png
             ```
 
             ```python
@@ -512,10 +512,10 @@ class ImageSink:
 
             # Directory structure:
             # image_crops/
-            # ├── crop_0.png
-            # ├── crop_1.png
-            # ├── crop_2.png
-            # └── crop_3.png
+            # - crop_0.png
+            # - crop_1.png
+            # - crop_2.png
+            # - crop_3.png
             ```
         """
         self.target_dir_path = target_dir_path
