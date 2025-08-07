@@ -10,7 +10,9 @@ import pytest
 import supervision as sv
 
 
-def _make_test_video(path: Path, *, width: int = 320, height: int = 240, fps: int = 10, frames: int = 20) -> None:
+def _make_test_video(
+    path: Path, *, width: int = 320, height: int = 240, fps: int = 10, frames: int = 20
+) -> None:
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     writer = cv2.VideoWriter(str(path), fourcc, fps, (width, height))
     for i in range(frames):
@@ -57,7 +59,9 @@ def test_save_with_callback_and_fps_override(video_file: Path, tmp_path: Path):
     def cb(frame: np.ndarray, i: int) -> np.ndarray:
         return cv2.GaussianBlur(frame, (9, 9), 0)
 
-    sv.Video(str(video_file)).save(str(target), callback=cb, fps=60, show_progress=False)
+    sv.Video(str(video_file)).save(
+        str(target), callback=cb, fps=60, show_progress=False
+    )
 
     assert target.exists() and target.stat().st_size > 0
     cap = cv2.VideoCapture(str(target))
@@ -108,10 +112,12 @@ def test_backend_selection_opencv(video_file: Path):
     assert v.info.width == 320
 
 
-@pytest.mark.skipif("av" not in {m.split(".")[0] for m in list({*map(lambda x: x, os.sys.modules.keys())})}, reason="PyAV not installed")
+@pytest.mark.skipif(
+    "av"
+    not in {m.split(".")[0] for m in list({*map(lambda x: x, os.sys.modules.keys())})},
+    reason="PyAV not installed",
+)
 def test_backend_selection_pyav(video_file: Path):
     # Only run if PyAV is installed in the environment
     v = sv.Video(str(video_file), backend="pyav")
     assert v.info.width == 320
-
-

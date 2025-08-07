@@ -1,13 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Generator, Iterable
 from dataclasses import dataclass
-from typing import Any, Generator, Iterable, Optional, Protocol, Tuple, Union
+from typing import Any, Optional, Protocol, Tuple, Union
 
 import cv2
 import numpy as np
 
 from supervision.utils.internal import warn_deprecated
-
 
 # -----------------------------
 # Public data structures
@@ -31,10 +31,10 @@ class VideoInfo:
     width: int
     height: int
     fps: float
-    total_frames: Optional[int] = None
+    total_frames: int | None = None
 
     @property
-    def resolution_wh(self) -> Tuple[int, int]:
+    def resolution_wh(self) -> tuple[int, int]:
         return self.width, self.height
 
 
@@ -50,11 +50,11 @@ class Writer(Protocol):
 
 
 class Backend(Protocol):
-    def open(self, source: Union[str, int]) -> Any: ...
+    def open(self, source: str | int) -> Any: ...
 
     def info(self, handle: Any) -> VideoInfo: ...
 
-    def read(self, handle: Any) -> Tuple[bool, Optional[np.ndarray]]: ...
+    def read(self, handle: Any) -> tuple[bool, np.ndarray | None]: ...
 
     def grab(self, handle: Any) -> bool: ...
 
@@ -75,7 +75,9 @@ class _OpenCVWriter:
         except TypeError:
             # Fallback for safety
             fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-        self._writer = cv2.VideoWriter(path, fourcc, info.fps if info.fps > 0 else 30.0, info.resolution_wh)
+        self._writer = cv2.VideoWriter(
+            path, fourcc, info.fps if info.fps > 0 else 30.0, info.resolution_wh
+        )
 
     def write(self, frame: np.ndarray) -> None:
         self._writer.write(frame)
@@ -85,7 +87,7 @@ class _OpenCVWriter:
 
 
 class OpenCVBackend:
-    def open(self, source: Union[str, int]) -> Any:
+    def open(self, source: str | int) -> Any:
         cap = cv2.VideoCapture(source)
         if not cap.isOpened():
             raise RuntimeError(f"Could not open video source: {source}")
@@ -102,7 +104,7 @@ class OpenCVBackend:
             total = None
         return VideoInfo(width=width, height=height, fps=fps, total_frames=total)
 
-    def read(self, handle: Any) -> Tuple[bool, Optional[np.ndarray]]:
+    def read(self, handle: Any) -> tuple[bool, np.ndarray | None]:
         ok, frame = handle.read()
         if not ok:
             return False, None
@@ -128,11 +130,15 @@ class _PyAVWriter:
         try:
             import av  # type: ignore
         except Exception as e:  # pragma: no cover - import error path
-            raise RuntimeError("PyAV is required for 'pyav' backend. Install 'av'.") from e
+            raise RuntimeError(
+                "PyAV is required for 'pyav' backend. Install 'av'."
+            ) from e
 
         self._av = av
         self._container = av.open(path, mode="w")
-        stream = self._container.add_stream(codec or "libx264", rate=info.fps if info.fps > 0 else 30.0)
+        stream = self._container.add_stream(
+            codec or "libx264", rate=info.fps if info.fps > 0 else 30.0
+        )
         stream.width = info.width
         stream.height = info.height
         stream.pix_fmt = "yuv420p"
@@ -156,17 +162,23 @@ class PyAVBackend:
         try:
             import av  # type: ignore
         except Exception as e:  # pragma: no cover - import error path
-            raise RuntimeError("PyAV is required for 'pyav' backend. Install 'av'.") from e
+            raise RuntimeError(
+                "PyAV is required for 'pyav' backend. Install 'av'."
+            ) from e
         self._av = av
 
-    def open(self, source: Union[str, int]) -> Any:
+    def open(self, source: str | int) -> Any:
         if isinstance(source, int):
             # PyAV does not handle webcams by index directly; use OpenCV instead.
-            raise RuntimeError("PyAV backend does not support webcam index sources. Use 'opencv' backend.")
+            raise RuntimeError(
+                "PyAV backend does not support webcam index sources. Use 'opencv' backend."
+            )
         try:
             container = self._av.open(source)
         except Exception as e:
-            raise RuntimeError(f"Could not open video source with PyAV: {source}") from e
+            raise RuntimeError(
+                f"Could not open video source with PyAV: {source}"
+            ) from e
         return container
 
     def info(self, handle: Any) -> VideoInfo:
@@ -193,10 +205,17 @@ class PyAVBackend:
             fps = 0.0
         # total_frames can be derived for files; for some codecs it's None
         total = getattr(vs, "frames", None)
-        total_frames = int(total) if isinstance(total, (int, np.integer)) and total > 0 else None
-        return VideoInfo(width=width, height=height, fps=fps if fps > 0 else 0.0, total_frames=total_frames)
+        total_frames = (
+            int(total) if isinstance(total, (int, np.integer)) and total > 0 else None
+        )
+        return VideoInfo(
+            width=width,
+            height=height,
+            fps=fps if fps > 0 else 0.0,
+            total_frames=total_frames,
+        )
 
-    def read(self, handle: Any) -> Tuple[bool, Optional[np.ndarray]]:
+    def read(self, handle: Any) -> tuple[bool, np.ndarray | None]:
         av = self._av
         for packet in handle.demux(video=0):
             for frame in packet.decode():
@@ -249,13 +268,15 @@ class Video(Iterable[np.ndarray]):
 
     def __init__(
         self,
-        source: Union[str, int],
-        backend: Union[str, Backend] = "opencv",
+        source: str | int,
+        backend: str | Backend = "opencv",
     ) -> None:
         if isinstance(backend, str):
             backend_lower = backend.lower()
             if backend_lower not in _BACKENDS:
-                raise ValueError(f"Unknown backend '{backend}'. Supported: {list(_BACKENDS)}")
+                raise ValueError(
+                    f"Unknown backend '{backend}'. Supported: {list(_BACKENDS)}"
+                )
             self._backend: Backend = _BACKENDS[backend_lower]()
             self._backend_name = backend_lower
         else:
@@ -264,7 +285,7 @@ class Video(Iterable[np.ndarray]):
 
         self._source = source
         self._handle = self._backend.open(source)
-        self._cached_info: Optional[VideoInfo] = None
+        self._cached_info: VideoInfo | None = None
 
     @property
     def info(self) -> VideoInfo:
@@ -275,17 +296,17 @@ class Video(Iterable[np.ndarray]):
                 self._cached_info.fps = 0.0  # type: ignore[assignment]
         return self._cached_info
 
-    def __iter__(self) -> Generator[np.ndarray, None, None]:
+    def __iter__(self) -> Generator[np.ndarray]:
         yield from self.frames()
 
     def frames(
         self,
         stride: int = 1,
         start: int = 0,
-        end: Optional[int] = None,
-        resolution_wh: Optional[Tuple[int, int]] = None,
+        end: int | None = None,
+        resolution_wh: tuple[int, int] | None = None,
         iterative_seek: bool = False,
-    ) -> Generator[np.ndarray, None, None]:
+    ) -> Generator[np.ndarray]:
         """Iterate frames with optional stride, range and on-the-fly resize."""
         # Setup start/end
         start = max(start, 0)
@@ -316,7 +337,10 @@ class Video(Iterable[np.ndarray]):
             if end is not None and frame_position >= end:
                 break
 
-            if resolution_wh is not None and (frame.shape[1], frame.shape[0]) != resolution_wh:
+            if (
+                resolution_wh is not None
+                and (frame.shape[1], frame.shape[0]) != resolution_wh
+            ):
                 frame = cv2.resize(frame, resolution_wh)
 
             yield frame
@@ -333,14 +357,14 @@ class Video(Iterable[np.ndarray]):
         target_path: str,
         callback,
         *,
-        fps: Optional[float] = None,
+        fps: float | None = None,
         codec: str = "mp4v",
         show_progress: bool = False,
         progress_message: str = "Processing video",
         stride: int = 1,
         start: int = 0,
-        end: Optional[int] = None,
-        resolution_wh: Optional[Tuple[int, int]] = None,
+        end: int | None = None,
+        resolution_wh: tuple[int, int] | None = None,
     ) -> None:
         """Process and save to a new video using a callback(frame, index) -> frame."""
         from tqdm.auto import tqdm  # lightweight import
@@ -349,25 +373,34 @@ class Video(Iterable[np.ndarray]):
         target_info = VideoInfo(
             width=resolution_wh[0] if resolution_wh else src_info.width,
             height=resolution_wh[1] if resolution_wh else src_info.height,
-            fps=float(fps if fps is not None else (src_info.fps if src_info.fps > 0 else 30.0)),
+            fps=float(
+                fps if fps is not None else (src_info.fps if src_info.fps > 0 else 30.0)
+            ),
             total_frames=None,
         )
 
         writer = self._backend.writer(target_path, target_info, codec)
 
         # total for progress bar if known
-        total_frames: Optional[int] = None
+        total_frames: int | None = None
         if end is not None:
             total_frames = max(0, (end - start + (stride - 1)) // stride)
         elif src_info.total_frames is not None:
-            total_frames = max(0, (src_info.total_frames - start + (stride - 1)) // stride)
+            total_frames = max(
+                0, (src_info.total_frames - start + (stride - 1)) // stride
+            )
 
         try:
             iterator: Iterable[np.ndarray] = self.frames(
                 stride=stride, start=start, end=end, resolution_wh=resolution_wh
             )
             if show_progress:
-                iterator = tqdm(iterator, total=total_frames, desc=progress_message, disable=not show_progress)
+                iterator = tqdm(
+                    iterator,
+                    total=total_frames,
+                    desc=progress_message,
+                    disable=not show_progress,
+                )
             for idx, frame in enumerate(iterator):
                 out = callback(frame, idx)
                 writer.write(out)
@@ -375,7 +408,12 @@ class Video(Iterable[np.ndarray]):
             writer.close()
 
     def sink(
-        self, target_path: str, *, info: Optional[VideoInfo] = None, codec: str = "mp4v", fps: Optional[float] = None
+        self,
+        target_path: str,
+        *,
+        info: VideoInfo | None = None,
+        codec: str = "mp4v",
+        fps: float | None = None,
     ) -> Writer:
         """Create a writer for manual control.
 
@@ -387,12 +425,16 @@ class Video(Iterable[np.ndarray]):
             info = VideoInfo(
                 width=src_info.width,
                 height=src_info.height,
-                fps=float(fps if fps is not None else (src_info.fps if src_info.fps > 0 else 30.0)),
+                fps=float(
+                    fps
+                    if fps is not None
+                    else (src_info.fps if src_info.fps > 0 else 30.0)
+                ),
                 total_frames=None,
             )
         else:
             if fps is not None:
-                warn_deprecated("'fps' parameter is ignored when 'info' is provided. Set 'info.fps' instead.")
+                warn_deprecated(
+                    "'fps' parameter is ignored when 'info' is provided. Set 'info.fps' instead."
+                )
         return self._backend.writer(target_path, info, codec)
-
-

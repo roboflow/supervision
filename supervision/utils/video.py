@@ -7,8 +7,6 @@ from dataclasses import dataclass
 
 import cv2
 import numpy as np
-from tqdm.auto import tqdm
-from typing import Optional
 
 from supervision.utils.internal import deprecated, warn_deprecated
 from supervision.video import Video as _NewVideo
@@ -48,7 +46,7 @@ class VideoInfo:
     total_frames: int | None = None
 
     @classmethod
-    def from_video_path(cls, video_path: str) -> "VideoInfo":
+    def from_video_path(cls, video_path: str) -> VideoInfo:
         warn_deprecated(
             "VideoInfo.from_video_path is deprecated and will be removed in at least 5 releases. "
             "Use sv.Video(video_path).info instead."
@@ -56,14 +54,21 @@ class VideoInfo:
         v = _NewVideo(video_path)
         info = v.info
         # Map new VideoInfo to legacy class
-        return VideoInfo(width=info.width, height=info.height, fps=info.fps, total_frames=info.total_frames)
+        return VideoInfo(
+            width=info.width,
+            height=info.height,
+            fps=info.fps,
+            total_frames=info.total_frames,
+        )
 
     @property
     def resolution_wh(self) -> tuple[int, int]:
         return self.width, self.height
 
 
-@deprecated("Use sv.Video(...).sink(...) for manual writers. This alias will be supported for at least 5 releases.")
+@deprecated(
+    "Use sv.Video(...).sink(...) for manual writers. This alias will be supported for at least 5 releases."
+)
 class VideoSink:
     """
     Context manager that saves video frames to a file using OpenCV.
@@ -98,12 +103,16 @@ class VideoSink:
         from supervision.video import OpenCVBackend  # type: ignore
 
         backend = OpenCVBackend()
-        writer = backend.writer(self.target_path, _NewVideoInfo(
-            width=self.video_info.width,
-            height=self.video_info.height,
-            fps=float(self.video_info.fps),
-            total_frames=self.video_info.total_frames,
-        ), self.__codec)
+        writer = backend.writer(
+            self.target_path,
+            _NewVideoInfo(
+                width=self.video_info.width,
+                height=self.video_info.height,
+                fps=float(self.video_info.fps),
+                total_frames=self.video_info.total_frames,
+            ),
+            self.__codec,
+        )
         self.__writer = writer
         return self
 
@@ -145,7 +154,9 @@ def _validate_and_setup_video(
     return video, start, end
 
 
-@deprecated("Use sv.Video(source).frames(...) or iterate over sv.Video(source). This function will be supported for at least 5 releases.")
+@deprecated(
+    "Use sv.Video(source).frames(...) or iterate over sv.Video(source). This function will be supported for at least 5 releases."
+)
 def get_video_frames_generator(
     source_path: str,
     stride: int = 1,
@@ -190,7 +201,9 @@ def get_video_frames_generator(
     )
 
 
-@deprecated("Use sv.Video(source).save(target, callback=...). This function will be supported for at least 5 releases.")
+@deprecated(
+    "Use sv.Video(source).save(target, callback=...). This function will be supported for at least 5 releases."
+)
 def process_video(
     source_path: str,
     target_path: str,
