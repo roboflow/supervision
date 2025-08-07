@@ -60,7 +60,7 @@ def crop_image(
         cropped_image.size
         # (400, 400)
         ```
-        
+
     ![crop_image](https://media.roboflow.com/supervision-docs/crop-image.png){ align=center width="800" }
     """  # noqa E501 // docs
     if isinstance(xyxy, (list, tuple)):
@@ -171,7 +171,7 @@ def resize_image(
         resized_image.size
         # (1000, 562)
         ```
-        
+
     ![resize_image](https://media.roboflow.com/supervision-docs/resize-image.png){ align=center width="800" }
     """  # noqa E501 // docs
     if keep_aspect_ratio:
@@ -239,7 +239,7 @@ def letterbox_image(
         letterboxed_image.size
         # (1000, 1000)
         ```
-        
+
     ![letterbox_image](https://media.roboflow.com/supervision-docs/letterbox-image.png){ align=center width="800" }
     """  # noqa E501 // docs
     assert isinstance(image, np.ndarray)
@@ -412,12 +412,7 @@ def tint_image(
 
     overlay = np.full_like(image, fill_value=color.as_bgr(), dtype=image.dtype)
     cv2.addWeighted(
-        src1=overlay,
-        alpha=opacity,
-        src2=image,
-        beta=1 - opacity,
-        gamma=0,
-        dst=image
+        src1=overlay, alpha=opacity, src2=image, beta=1 - opacity, gamma=0, dst=image
     )
     return image
 
