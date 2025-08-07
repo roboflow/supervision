@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 from PIL import Image
 
-from supervision.annotators.base import ImageType
+from supervision.draw.base import ImageType
 
 
 def ensure_cv2_image_for_annotation(annotate_func):

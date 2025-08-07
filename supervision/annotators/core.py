@@ -9,7 +9,8 @@ import numpy.typing as npt
 from PIL import Image, ImageDraw, ImageFont
 from scipy.interpolate import splev, splprep
 
-from supervision.annotators.base import BaseAnnotator, ImageType
+from supervision.draw.base import ImageType
+from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import (
     PENDING_TRACK_ID,
     ColorLookup,
