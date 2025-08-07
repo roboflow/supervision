@@ -132,9 +132,7 @@ class Color:
             r, g, b = (int(color_hex[i : i + 2], 16) for i in range(0, 6, 2))
             a = 255
         else:
-            r, g, b, a = (
-                int(color_hex[i : i + 2], 16) for i in (0, 2, 4, 6)
-            )
+            r, g, b, a = (int(color_hex[i : i + 2], 16) for i in (0, 2, 4, 6))
         return cls(r, g, b, a)
 
     @classmethod

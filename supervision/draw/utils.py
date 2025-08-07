@@ -185,7 +185,9 @@ def draw_rounded_rectangle(
             thickness=-1,
         )
     if target is not scene:
-        cv2.addWeighted(target, effective_opacity, scene, 1 - effective_opacity, 0, dst=scene)
+        cv2.addWeighted(
+            target, effective_opacity, scene, 1 - effective_opacity, 0, dst=scene
+        )
     return scene
 
 

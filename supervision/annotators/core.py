@@ -594,7 +594,9 @@ class ColorAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            effective_opacity = self.opacity * (color.a / 255 if hasattr(color, "a") else 1.0)
+            effective_opacity = self.opacity * (
+                color.a / 255 if hasattr(color, "a") else 1.0
+            )
             if effective_opacity >= 1:
                 cv2.rectangle(
                     img=scene,
@@ -613,7 +615,12 @@ class ColorAnnotator(BaseAnnotator):
                     thickness=-1,
                 )
                 cv2.addWeighted(
-                    overlay, effective_opacity, scene, 1 - effective_opacity, gamma=0, dst=scene
+                    overlay,
+                    effective_opacity,
+                    scene,
+                    1 - effective_opacity,
+                    gamma=0,
+                    dst=scene,
                 )
         return scene
 
@@ -914,24 +921,40 @@ class BoxCornerAnnotator(BaseAnnotator):
                 opacity = color.a / 255 if hasattr(color, "a") else 1.0
                 if opacity >= 1:
                     cv2.line(
-                        scene, (x, y), (x_end, y), color.as_bgr(), thickness=self.thickness
+                        scene,
+                        (x, y),
+                        (x_end, y),
+                        color.as_bgr(),
+                        thickness=self.thickness,
                     )
                 else:
                     overlay = scene.copy()
                     cv2.line(
-                        overlay, (x, y), (x_end, y), color.as_bgr(), thickness=self.thickness
+                        overlay,
+                        (x, y),
+                        (x_end, y),
+                        color.as_bgr(),
+                        thickness=self.thickness,
                     )
                     cv2.addWeighted(overlay, opacity, scene, 1 - opacity, 0, dst=scene)
 
                 y_end = y + self.corner_length if y == y1 else y - self.corner_length
                 if opacity >= 1:
                     cv2.line(
-                        scene, (x, y), (x, y_end), color.as_bgr(), thickness=self.thickness
+                        scene,
+                        (x, y),
+                        (x, y_end),
+                        color.as_bgr(),
+                        thickness=self.thickness,
                     )
                 else:
                     overlay = scene.copy()
                     cv2.line(
-                        overlay, (x, y), (x, y_end), color.as_bgr(), thickness=self.thickness
+                        overlay,
+                        (x, y),
+                        (x, y_end),
+                        color.as_bgr(),
+                        thickness=self.thickness,
                     )
                     cv2.addWeighted(overlay, opacity, scene, 1 - opacity, 0, dst=scene)
         return scene
@@ -1140,7 +1163,9 @@ class DotAnnotator(BaseAnnotator):
                     if custom_color_lookup is None
                     else custom_color_lookup,
                 )
-                outline_opacity = outline_color.a / 255 if hasattr(outline_color, "a") else 1.0
+                outline_opacity = (
+                    outline_color.a / 255 if hasattr(outline_color, "a") else 1.0
+                )
                 if outline_opacity >= 1:
                     cv2.circle(
                         scene,
@@ -1158,7 +1183,14 @@ class DotAnnotator(BaseAnnotator):
                         outline_color.as_bgr(),
                         self.outline_thickness,
                     )
-                    cv2.addWeighted(overlay2, outline_opacity, scene, 1 - outline_opacity, 0, dst=scene)
+                    cv2.addWeighted(
+                        overlay2,
+                        outline_opacity,
+                        scene,
+                        1 - outline_opacity,
+                        0,
+                        dst=scene,
+                    )
         return scene
 
 
@@ -1386,7 +1418,9 @@ class LabelAnnotator(_BaseLabelAnnotator):
                 xyxy=box_xyxy,
                 color=background_color.as_bgr(),
                 border_radius=self.border_radius,
-                opacity=(background_color.a / 255 if hasattr(background_color, "a") else 1.0),
+                opacity=(
+                    background_color.a / 255 if hasattr(background_color, "a") else 1.0
+                ),
             )
 
             # Handle multiline text
@@ -2329,7 +2363,9 @@ class TriangleAnnotator(BaseAnnotator):
                     if custom_color_lookup is None
                     else custom_color_lookup,
                 )
-                outline_opacity = outline_color.a / 255 if hasattr(outline_color, "a") else 1.0
+                outline_opacity = (
+                    outline_color.a / 255 if hasattr(outline_color, "a") else 1.0
+                )
                 if outline_opacity >= 1:
                     cv2.polylines(
                         scene,
@@ -2347,7 +2383,14 @@ class TriangleAnnotator(BaseAnnotator):
                         outline_color.as_bgr(),
                         thickness=self.outline_thickness,
                     )
-                    cv2.addWeighted(overlay2, outline_opacity, scene, 1 - outline_opacity, 0, dst=scene)
+                    cv2.addWeighted(
+                        overlay2,
+                        outline_opacity,
+                        scene,
+                        1 - outline_opacity,
+                        0,
+                        dst=scene,
+                    )
         return scene
 
 
@@ -2828,7 +2871,9 @@ class CropAnnotator(BaseAnnotator):
                     color=color.as_bgr(),
                     thickness=self.border_thickness,
                 )
-                cv2.addWeighted(overlay, border_opacity, scene, 1 - border_opacity, 0, dst=scene)
+                cv2.addWeighted(
+                    overlay, border_opacity, scene, 1 - border_opacity, 0, dst=scene
+                )
 
         return scene
 
