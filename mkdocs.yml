@@ -26,7 +26,7 @@ extra:
 
 extra_css:
   - stylesheets/extra.css
-  - stylesheets/cookbooks-card.css
+  - stylesheets/cookbooks_card.css
 
 nav:
   - Home: index.md
