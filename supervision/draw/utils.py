@@ -65,7 +65,7 @@ def draw_rectangle(
 
 
 def draw_filled_rectangle(
-    scene: np.ndarray, rect: Rect, color: Color = Color.ROBOFLOW, opacity: float = 1
+    scene: np.ndarray, rect: Rect, color: Color = Color.ROBOFLOW
 ) -> np.ndarray:
     """
     Draws a filled rectangle on an image.
@@ -74,12 +74,11 @@ def draw_filled_rectangle(
         scene (np.ndarray): The scene on which the rectangle will be drawn
         rect (Rect): The rectangle to be drawn
         color (Color): The color of the rectangle
-        opacity (float): The opacity of rectangle when drawn on the scene.
 
     Returns:
         np.ndarray: The scene with the rectangle drawn on it
     """
-    if opacity == 1:
+    if color.a == 255:
         cv2.rectangle(
             scene,
             rect.top_left.as_xy_int_tuple(),
@@ -97,7 +96,12 @@ def draw_filled_rectangle(
             -1,
         )
         cv2.addWeighted(
-            scene_with_annotations, opacity, scene, 1 - opacity, gamma=0, dst=scene
+            scene_with_annotations,
+            color.a / 255,
+            scene,
+            1 - color.a / 255,
+            gamma=0,
+            dst=scene,
         )
 
     return scene
@@ -172,9 +176,27 @@ def draw_polygon(
     Returns:
         np.ndarray: The scene with the polygon drawn on it.
     """
-    cv2.polylines(
-        scene, [polygon], isClosed=True, color=color.as_bgr(), thickness=thickness
-    )
+    if color.a == 255:
+        cv2.polylines(
+            scene, [polygon], isClosed=True, color=color.as_bgr(), thickness=thickness
+        )
+    else:
+        scene_with_annotations = scene.copy()
+        cv2.polylines(
+            scene_with_annotations,
+            [polygon],
+            isClosed=True,
+            color=color.as_bgr(),
+            thickness=thickness,
+        )
+        cv2.addWeighted(
+            scene_with_annotations,
+            color.a / 255,
+            scene,
+            1 - color.a / 255,
+            gamma=0,
+            dst=scene,
+        )
     return scene
 
 
@@ -182,7 +204,6 @@ def draw_filled_polygon(
     scene: np.ndarray,
     polygon: np.ndarray,
     color: Color = Color.ROBOFLOW,
-    opacity: float = 1,
 ) -> np.ndarray:
     """Draw a filled polygon on a scene.
 
@@ -190,18 +211,22 @@ def draw_filled_polygon(
         scene (np.ndarray): The scene to draw the polygon on.
         polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.
         color (Color): The color of the polygon. Defaults to Color.ROBOFLOW.
-        opacity (float): The opacity of polygon when drawn on the scene.
 
     Returns:
         np.ndarray: The scene with the polygon drawn on it.
     """
-    if opacity == 1:
+    if color.a == 255:
         cv2.fillPoly(scene, [polygon], color=color.as_bgr())
     else:
         scene_with_annotations = scene.copy()
         cv2.fillPoly(scene_with_annotations, [polygon], color=color.as_bgr())
         cv2.addWeighted(
-            scene_with_annotations, opacity, scene, 1 - opacity, gamma=0, dst=scene
+            scene_with_annotations,
+            color.a / 255,
+            scene,
+            1 - color.a / 255,
+            gamma=0,
+            dst=scene,
         )
 
     return scene

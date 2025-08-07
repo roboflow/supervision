@@ -142,7 +142,6 @@ class PolygonZoneAnnotator:
         text_thickness: int = 1,
         text_padding: int = 10,
         display_in_zone_count: bool = True,
-        opacity: float = 0,
     ):
         self.zone = zone
         self.color = color
@@ -154,7 +153,6 @@ class PolygonZoneAnnotator:
         self.font = cv2.FONT_HERSHEY_SIMPLEX
         self.center = get_polygon_center(polygon=zone.polygon)
         self.display_in_zone_count = display_in_zone_count
-        self.opacity = opacity
 
     def annotate(self, scene: np.ndarray, label: str | None = None) -> np.ndarray:
         """
@@ -168,26 +166,17 @@ class PolygonZoneAnnotator:
         Returns:
             np.ndarray: The image with the polygon zone and count of detected objects
         """
-        if self.opacity == 0:
-            annotated_frame = draw_polygon(
-                scene=scene,
-                polygon=self.zone.polygon,
-                color=self.color,
-                thickness=self.thickness,
-            )
-        else:
-            annotated_frame = draw_filled_polygon(
-                scene=scene.copy(),
-                polygon=self.zone.polygon,
-                color=self.color,
-                opacity=self.opacity,
-            )
-            annotated_frame = draw_polygon(
-                scene=annotated_frame,
-                polygon=self.zone.polygon,
-                color=self.color,
-                thickness=self.thickness,
-            )
+        annotated_frame = draw_filled_polygon(
+            scene=scene.copy(),
+            polygon=self.zone.polygon,
+            color=self.color,
+        )
+        annotated_frame = draw_polygon(
+            scene=annotated_frame,
+            polygon=self.zone.polygon,
+            color=self.color,
+            thickness=self.thickness,
+        )
 
         if self.display_in_zone_count:
             annotated_frame = draw_text(

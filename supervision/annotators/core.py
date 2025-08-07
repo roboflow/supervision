@@ -334,19 +334,16 @@ class MaskAnnotator(BaseAnnotator):
     def __init__(
         self,
         color: Color | ColorPalette = ColorPalette.DEFAULT,
-        opacity: float = 0.5,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
         Args:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
-            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Color | ColorPalette = color
-        self.opacity = opacity
         self.color_lookup: ColorLookup = color_lookup
 
     @ensure_cv2_image_for_annotation
@@ -392,8 +389,6 @@ class MaskAnnotator(BaseAnnotator):
         if detections.mask is None:
             return scene
 
-        colored_mask = np.array(scene, copy=True, dtype=np.uint8)
-
         for detection_idx in np.flip(np.argsort(detections.area)):
             color = resolve_color(
                 color=self.color,
@@ -404,11 +399,13 @@ class MaskAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
             mask = detections.mask[detection_idx]
-            colored_mask[mask] = color.as_bgr()
-
-        cv2.addWeighted(
-            colored_mask, self.opacity, scene, 1 - self.opacity, 0, dst=scene
-        )
+            scene[mask] = cv2.addWeighted(
+                scene[mask],
+                1 - color.a / 255,
+                np.full_like(scene[mask], color.as_bgr(), dtype=np.uint8),
+                color.a / 255,
+                0,
+            )
         return scene
 
 
@@ -511,20 +508,17 @@ class ColorAnnotator(BaseAnnotator):
     def __init__(
         self,
         color: Color | ColorPalette = ColorPalette.DEFAULT,
-        opacity: float = 0.5,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
         Args:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
-            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Color | ColorPalette = color
         self.color_lookup: ColorLookup = color_lookup
-        self.opacity = opacity
 
     @ensure_cv2_image_for_annotation
     def annotate(
@@ -566,7 +560,6 @@ class ColorAnnotator(BaseAnnotator):
         supervision-annotator-examples/box-mask-annotator-example-purple.png)
         """
         assert isinstance(scene, np.ndarray)
-        scene_with_boxes = scene.copy()
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             color = resolve_color(
@@ -577,17 +570,15 @@ class ColorAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            cv2.rectangle(
-                img=scene_with_boxes,
-                pt1=(x1, y1),
-                pt2=(x2, y2),
-                color=color.as_bgr(),
-                thickness=-1,
+            scene[y1:y2, x1:x2] = cv2.addWeighted(
+                scene[y1:y2, x1:x2],
+                1 - color.a / 255,
+                np.full_like(
+                    scene[y1:y2, x1:x2], color.as_bgr(), dtype=np.uint8
+                ),
+                color.a / 255,
+                0,
             )
-
-        cv2.addWeighted(
-            scene_with_boxes, self.opacity, scene, 1 - self.opacity, gamma=0, dst=scene
-        )
         return scene
 
 
@@ -603,7 +594,6 @@ class HaloAnnotator(BaseAnnotator):
     def __init__(
         self,
         color: Color | ColorPalette = ColorPalette.DEFAULT,
-        opacity: float = 0.8,
         kernel_size: int = 40,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -611,14 +601,12 @@ class HaloAnnotator(BaseAnnotator):
         Args:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating detections.
-            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
             kernel_size (int): The size of the average pooling kernel used for creating
                 the halo.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Color | ColorPalette = color
-        self.opacity = opacity
         self.color_lookup: ColorLookup = color_lookup
         self.kernel_size: int = kernel_size
 
@@ -664,11 +652,7 @@ class HaloAnnotator(BaseAnnotator):
         assert isinstance(scene, np.ndarray)
         if detections.mask is None:
             return scene
-        colored_mask = np.zeros_like(scene, dtype=np.uint8)
-        fmask = np.array([False] * scene.shape[0] * scene.shape[1]).reshape(
-            scene.shape[0], scene.shape[1]
-        )
-
+        
         for detection_idx in np.flip(np.argsort(detections.area)):
             color = resolve_color(
                 color=self.color,
@@ -678,18 +662,32 @@ class HaloAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            mask = detections.mask[detection_idx]
-            fmask = np.logical_or(fmask, mask)
-            color_bgr = color.as_bgr()
-            colored_mask[mask] = color_bgr
 
-        colored_mask = cv2.blur(colored_mask, (self.kernel_size, self.kernel_size))
-        colored_mask[fmask] = [0, 0, 0]
-        gray = cv2.cvtColor(colored_mask, cv2.COLOR_BGR2GRAY)
-        alpha = self.opacity * gray / gray.max()
-        alpha_mask = alpha[:, :, np.newaxis]
-        blended_scene = np.uint8(scene * (1 - alpha_mask) + colored_mask * self.opacity)
-        np.copyto(scene, blended_scene)
+            mask = detections.mask[detection_idx]
+            
+            non_zero_mask = (mask > 0).astype(np.uint8)
+
+            dilated_mask = cv2.dilate(
+                non_zero_mask,
+                np.ones((self.kernel_size, self.kernel_size), np.uint8),
+                iterations=1,
+            )
+
+            blurred_mask = cv2.GaussianBlur(
+                dilated_mask.astype(float), (self.kernel_size, self.kernel_size), 0
+            )
+            
+            # The alpha channel is the blurred mask scaled by the color's alpha
+            alpha = blurred_mask * (color.a / 255.0)
+
+            # Create a color layer for blending
+            color_layer = np.full(scene.shape, color.as_bgr(), dtype=np.uint8)
+
+            # Use the alpha channel for blending
+            alpha = alpha[..., np.newaxis]
+            scene = (1 - alpha) * scene + alpha * color_layer
+            scene = scene.astype(np.uint8)
+        
         return scene
 
 
@@ -774,17 +772,35 @@ class EllipseAnnotator(BaseAnnotator):
             )
             center = (int((x1 + x2) / 2), y2)
             width = x2 - x1
-            cv2.ellipse(
-                scene,
-                center=center,
-                axes=(int(width), int(0.35 * width)),
-                angle=0.0,
-                startAngle=self.start_angle,
-                endAngle=self.end_angle,
-                color=color.as_bgr(),
-                thickness=self.thickness,
-                lineType=cv2.LINE_4,
-            )
+            
+            if color.a == 255:
+                cv2.ellipse(
+                    scene,
+                    center=center,
+                    axes=(int(width), int(0.35 * width)),
+                    angle=0.0,
+                    startAngle=self.start_angle,
+                    endAngle=self.end_angle,
+                    color=color.as_bgr(),
+                    thickness=self.thickness,
+                    lineType=cv2.LINE_4,
+                )
+            else:
+                overlay = scene.copy()
+                cv2.ellipse(
+                    overlay,
+                    center=center,
+                    axes=(int(width), int(0.35 * width)),
+                    angle=0.0,
+                    startAngle=self.start_angle,
+                    endAngle=self.end_angle,
+                    color=color.as_bgr(),
+                    thickness=self.thickness,
+                    lineType=cv2.LINE_4,
+                )
+                scene = cv2.addWeighted(
+                    overlay, color.a / 255, scene, 1 - color.a / 255, 0
+                )
         return scene
 
 
@@ -866,16 +882,55 @@ class BoxCornerAnnotator(BaseAnnotator):
             )
             corners = [(x1, y1), (x2, y1), (x1, y2), (x2, y2)]
 
-            for x, y in corners:
-                x_end = x + self.corner_length if x == x1 else x - self.corner_length
-                cv2.line(
-                    scene, (x, y), (x_end, y), color.as_bgr(), thickness=self.thickness
+            if color.a == 255:
+                for x, y in corners:
+                    x_end = (
+                        x + self.corner_length if x == x1 else x - self.corner_length
+                    )
+                    cv2.line(
+                        scene,
+                        (x, y),
+                        (x_end, y),
+                        color.as_bgr(),
+                        thickness=self.thickness,
+                    )
+                    y_end = (
+                        y + self.corner_length if y == y1 else y - self.corner_length
+                    )
+                    cv2.line(
+                        scene,
+                        (x, y),
+                        (x, y_end),
+                        color.as_bgr(),
+                        thickness=self.thickness,
+                    )
+            else:
+                overlay = scene.copy()
+                for x, y in corners:
+                    x_end = (
+                        x + self.corner_length if x == x1 else x - self.corner_length
+                    )
+                    cv2.line(
+                        overlay,
+                        (x, y),
+                        (x_end, y),
+                        color.as_bgr(),
+                        thickness=self.thickness,
+                    )
+                    y_end = (
+                        y + self.corner_length if y == y1 else y - self.corner_length
+                    )
+                    cv2.line(
+                        overlay,
+                        (x, y),
+                        (x, y_end),
+                        color.as_bgr(),
+                        thickness=self.thickness,
+                    )
+                scene = cv2.addWeighted(
+                    overlay, color.a / 255, scene, 1 - color.a / 255, 0
                 )
 
-                y_end = y + self.corner_length if y == y1 else y - self.corner_length
-                cv2.line(
-                    scene, (x, y), (x, y_end), color.as_bgr(), thickness=self.thickness
-                )
         return scene
 
 
@@ -946,8 +1001,6 @@ class CircleAnnotator(BaseAnnotator):
         assert isinstance(scene, np.ndarray)
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            center = ((x1 + x2) // 2, (y1 + y2) // 2)
-            distance = sqrt((x1 - center[0]) ** 2 + (y1 - center[1]) ** 2)
             color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -956,13 +1009,31 @@ class CircleAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            cv2.circle(
-                img=scene,
-                center=center,
-                radius=int(distance),
-                color=color.as_bgr(),
-                thickness=self.thickness,
-            )
+            center = (int((x1 + x2) / 2), int((y1 + y2) / 2))
+            width = x2 - x1
+            height = y2 - y1
+            radius = int((width + height) / 4)
+
+            if color.a == 255:
+                cv2.circle(
+                    scene,
+                    center=center,
+                    radius=radius,
+                    color=color.as_bgr(),
+                    thickness=self.thickness,
+                )
+            else:
+                overlay = scene.copy()
+                cv2.circle(
+                    overlay,
+                    center=center,
+                    radius=radius,
+                    color=color.as_bgr(),
+                    thickness=self.thickness,
+                )
+                scene = cv2.addWeighted(
+                    overlay, color.a / 255, scene, 1 - color.a / 255, 0
+                )
 
         return scene
 
