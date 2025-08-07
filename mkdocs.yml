@@ -72,7 +72,7 @@ nav:
           - Common Values: metrics/common_values.md
           - Legacy Metrics: detection/metrics.md
       - Utils:
-          - Video: utils/video.md
+          - Video: video/core.md
           - Image: utils/image.md
           - Iterables: utils/iterables.md
           - Notebook: utils/notebook.md
