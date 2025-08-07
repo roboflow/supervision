@@ -173,7 +173,7 @@ def resize_image(
         resized_image.size
         # (1000, 562)
         ```
-        
+
     ![resize-image](https://media.roboflow.com/supervision-docs/supervision-docs-resize-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
     if keep_aspect_ratio:
@@ -241,7 +241,7 @@ def letterbox_image(
         letterboxed_image.size
         # (1000, 1000)
         ```
-        
+
     ![letterbox-image](https://media.roboflow.com/supervision-docs/supervision-docs-letterbox-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
     assert isinstance(image, np.ndarray)
@@ -416,12 +416,7 @@ def tint_image(
 
     overlay = np.full_like(image, fill_value=color.as_bgr(), dtype=image.dtype)
     cv2.addWeighted(
-        src1=overlay,
-        alpha=opacity,
-        src2=image,
-        beta=1 - opacity,
-        gamma=0,
-        dst=image
+        src1=overlay, alpha=opacity, src2=image, beta=1 - opacity, gamma=0, dst=image
     )
     return image
 
@@ -458,7 +453,7 @@ def grayscale_image(image: ImageType) -> ImageType:
         grayscale_image = sv.grayscale_image(image=image)
         grayscale_image.save("target.png")
         ```
-        
+
     ![grayscale-image](https://media.roboflow.com/supervision-docs/supervision-docs-grayscale-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
     grayscaled = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
