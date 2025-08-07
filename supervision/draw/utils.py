@@ -358,12 +358,12 @@ def calculate_optimal_text_scale(resolution_wh: tuple[int, int]) -> float:
         float: recommended font scale factor
 
     Examples:
-        ```pycon
-        >>> from supervision import calculate_optimal_text_scale
-        >>> calculate_optimal_text_scale((1920, 1080))
-        1.08
-        >>> calculate_optimal_text_scale((640, 480))
-        0.48
+        ```python
+        from supervision import calculate_optimal_text_scale
+        calculate_optimal_text_scale((1920, 1080))
+        # 1.08
+        calculate_optimal_text_scale((640, 480))
+        # 0.48
         ```
     """
     return min(resolution_wh) * 1e-3
@@ -383,12 +383,12 @@ def calculate_optimal_line_thickness(resolution_wh: tuple[int, int]) -> int:
         int: recommended line thickness in pixels
 
     Examples:
-        ```pycon
-        >>> from supervision import calculate_optimal_line_thickness
-        >>> calculate_optimal_line_thickness((1920, 1080))
-        4
-        >>> calculate_optimal_line_thickness((640, 480))
-        2
+        ```python
+        from supervision import calculate_optimal_line_thickness
+        calculate_optimal_line_thickness((1920, 1080))
+        # 4
+        calculate_optimal_line_thickness((640, 480))
+        # 2
         ```
     """
     if min(resolution_wh) < 1080:
