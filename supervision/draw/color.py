@@ -57,7 +57,7 @@ def _validate_color_hex(color_hex: str):
     color_hex = color_hex.lstrip("#")
     if not all(c in "0123456789abcdefABCDEF" for c in color_hex):
         raise ValueError("Invalid characters in color hash")
-    if len(color_hex) not in (3, 6):
+    if len(color_hex) not in (3, 4, 6, 8):
         raise ValueError("Invalid length of color hash")
 
 
@@ -97,6 +97,7 @@ class Color:
     r: int
     g: int
     b: int
+    a: int = 255
 
     @classmethod
     def from_hex(cls, color_hex: str) -> Color:
@@ -105,9 +106,9 @@ class Color:
 
         Args:
             color_hex (str): The hex string representing the color. This string can
-                start with '#' followed by either 3 or 6 hexadecimal characters. In
-                case of 3 characters, each character is repeated to form the full
-                6-character hex code.
+                start with '#' followed by 3, 4, 6, or 8 hexadecimal characters. In
+                case of 3 or 4 characters, each character is repeated to form the full
+                6- or 8-character hex code. 4 and 8 digit codes include alpha.
 
         Returns:
             Color: An instance representing the color.
@@ -121,14 +122,26 @@ class Color:
 
             sv.Color.from_hex('#f0f')
             # Color(r=255, g=0, b=255)
+
+            sv.Color.from_hex('#ff00ff80')
+            # Color(r=255, g=0, b=255, a=128)
+
+            sv.Color.from_hex('#f0f8')
+            # Color(r=255, g=0, b=255, a=136)
             ```
         """
         _validate_color_hex(color_hex)
         color_hex = color_hex.lstrip("#")
-        if len(color_hex) == 3:
+        if len(color_hex) in (3, 4):
             color_hex = "".join(c * 2 for c in color_hex)
-        r, g, b = (int(color_hex[i : i + 2], 16) for i in range(0, 6, 2))
-        return cls(r, g, b)
+        if len(color_hex) == 6:
+            r, g, b = (int(color_hex[i : i + 2], 16) for i in range(0, 6, 2))
+            a = 255
+        elif len(color_hex) == 8:
+            r, g, b, a = (int(color_hex[i : i + 2], 16) for i in range(0, 8, 2))
+        else:
+            raise ValueError("Invalid length of color hash after normalization")
+        return cls(r, g, b, a)
 
     @classmethod
     def from_rgb_tuple(cls, color_tuple: tuple[int, int, int]) -> Color:
@@ -189,8 +202,12 @@ class Color:
 
             sv.Color(r=255, g=255, b=0).as_hex()
             # '#ffff00'
+            sv.Color(r=255, g=255, b=0, a=128).as_hex()
+            # '#ffff0080'
             ```
         """
+        if self.a != 255:
+            return f"#{self.r:02x}{self.g:02x}{self.b:02x}{self.a:02x}"
         return f"#{self.r:02x}{self.g:02x}{self.b:02x}"
 
     def as_rgb(self) -> tuple[int, int, int]:
@@ -226,6 +243,23 @@ class Color:
             ```
         """
         return self.b, self.g, self.r
+
+    def as_rgba(self) -> tuple[int, int, int, int]:
+        """
+        Returns the color as an RGBA tuple.
+
+        Returns:
+            Tuple[int, int, int, int]: RGBA tuple.
+
+        Example:
+            ```python
+            import supervision as sv
+
+            sv.Color(r=255, g=255, b=0, a=128).as_rgba()
+            # (255, 255, 0, 128)
+            ```
+        """
+        return (self.r, self.g, self.b, self.a)
 
     @classproperty
     def WHITE(cls) -> Color:

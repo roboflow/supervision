@@ -227,6 +227,8 @@ class BoxAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
+            # Use color alpha for opacity if not 255
+            effective_opacity = (color.a / 255.0) if color.a != 255 else self.opacity
             cv2.rectangle(
                 img=scene,
                 pt1=(x1, y1),
@@ -234,6 +236,17 @@ class BoxAnnotator(BaseAnnotator):
                 color=color.as_bgr(),
                 thickness=self.thickness,
             )
+            # If opacity < 1, blend with background
+            if effective_opacity < 1.0:
+                overlay = scene.copy()
+                cv2.rectangle(
+                    img=overlay,
+                    pt1=(x1, y1),
+                    pt2=(x2, y2),
+                    color=color.as_bgr(),
+                    thickness=self.thickness,
+                )
+                cv2.addWeighted(overlay, effective_opacity, scene, 1 - effective_opacity, 0, dst=scene)
         return scene
 
 
@@ -577,6 +590,8 @@ class ColorAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
+            # Use color alpha for opacity if not 255
+            effective_opacity = (color.a / 255.0) if color.a != 255 else self.opacity
             cv2.rectangle(
                 img=scene_with_boxes,
                 pt1=(x1, y1),
@@ -584,11 +599,19 @@ class ColorAnnotator(BaseAnnotator):
                 color=color.as_bgr(),
                 thickness=-1,
             )
+            # If opacity < 1, blend with background
+            if effective_opacity < 1.0:
+                overlay = scene_with_boxes.copy()
+                cv2.rectangle(
+                    img=overlay,
+                    pt1=(x1, y1),
+                    pt2=(x2, y2),
+                    color=color.as_bgr(),
+                    thickness=-1,
+                )
+                cv2.addWeighted(overlay, effective_opacity, scene_with_boxes, 1 - effective_opacity, 0, dst=scene_with_boxes)
 
-        cv2.addWeighted(
-            scene_with_boxes, self.opacity, scene, 1 - self.opacity, gamma=0, dst=scene
-        )
-        return scene
+        return scene_with_boxes
 
 
 class HaloAnnotator(BaseAnnotator):

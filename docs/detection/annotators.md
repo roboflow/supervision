@@ -75,15 +75,18 @@ Annotators accept detections and apply box or mask visualizations to the detecti
     ```python
     import supervision as sv
 
-    image = ...
-    detections = sv.Detections(...)
-
-    color_annotator = sv.ColorAnnotator()
+    # Now supports RGBA hex codes
+    color = sv.Color.from_hex('#ff00ff80')  # 50% transparent magenta
+    color_annotator = sv.ColorAnnotator(color=color)
     annotated_frame = color_annotator.annotate(
         scene=image.copy(),
         detections=detections
     )
     ```
+
+    > **Note:**
+    > - `Color` now supports 4- and 8-digit hex codes (e.g., `#f0f8`, `#ff00ff80`) for RGBA colors.
+    > - If a color with alpha is provided, the alpha value is used for opacity in annotators.
 
     <div class="result" markdown>
 
