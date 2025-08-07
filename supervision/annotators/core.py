@@ -246,7 +246,14 @@ class BoxAnnotator(BaseAnnotator):
                     color=color.as_bgr(),
                     thickness=self.thickness,
                 )
-                cv2.addWeighted(overlay, effective_opacity, scene, 1 - effective_opacity, 0, dst=scene)
+                cv2.addWeighted(
+                    overlay,
+                    effective_opacity,
+                    scene,
+                    1 - effective_opacity,
+                    0,
+                    dst=scene,
+                )
         return scene
 
 
@@ -609,7 +616,14 @@ class ColorAnnotator(BaseAnnotator):
                     color=color.as_bgr(),
                     thickness=-1,
                 )
-                cv2.addWeighted(overlay, effective_opacity, scene_with_boxes, 1 - effective_opacity, 0, dst=scene_with_boxes)
+                cv2.addWeighted(
+                    overlay,
+                    effective_opacity,
+                    scene_with_boxes,
+                    1 - effective_opacity,
+                    0,
+                    dst=scene_with_boxes,
+                )
 
         return scene_with_boxes
 
