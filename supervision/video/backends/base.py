@@ -49,8 +49,9 @@ class Backend(Protocol):
     # ------------------------------------------------------------------
     # Writing
     # ------------------------------------------------------------------
-    def writer(self, path: str, info: VideoInfo, codec: str = "mp4v") -> Writer:  # pragma: no cover
+    def writer(
+        self, path: str, info: VideoInfo, codec: str = "mp4v"
+    ) -> Writer:  # pragma: no cover
         """Return a :class:`Writer` instance for saving frames."""
 
         ...
-

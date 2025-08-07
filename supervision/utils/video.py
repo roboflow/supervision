@@ -9,8 +9,8 @@ import cv2
 import numpy as np
 from tqdm.auto import tqdm
 
-from supervision.video import Video as _NewVideo
 from supervision.utils.internal import deprecated, warn_deprecated
+from supervision.video import Video as _NewVideo
 
 warn_deprecated(
     "The module 'supervision.utils.video' is deprecated and will be removed in a future release. "
@@ -54,6 +54,7 @@ class VideoInfo:
     @classmethod
     def from_video_path(cls, video_path: str) -> VideoInfo:
         from supervision.video import Video as _NewVideo
+
         video = _NewVideo(video_path)
         return video.info
 
@@ -180,6 +181,7 @@ def get_video_frames_generator(
         ```
     """
     from supervision.video import Video as _NewVideo
+
     vid = _NewVideo(source_path)
     yield from vid.frames(stride=stride, start=start, end=end)
 
@@ -226,6 +228,7 @@ def process_video(
     frame_iter = vid.frames()
     if max_frames is not None:
         from itertools import islice
+
         frame_iter = islice(frame_iter, max_frames)
     writer_ctx = vid.sink(target_path)
     iterator = frame_iter

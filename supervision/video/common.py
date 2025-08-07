@@ -47,4 +47,3 @@ class Writer(Protocol):
 
     def close(self) -> None:  # pragma: no cover
         ...
-

@@ -128,14 +128,16 @@ from supervision.utils.image import (
     scale_image,
 )
 from supervision.utils.notebook import plot_image, plot_images_grid
-from supervision.video import Video, VideoInfo
 from supervision.utils.video import (
     FPSMonitor,
-    VideoInfo as _DeprecatedVideoInfo,
     VideoSink,
     get_video_frames_generator,
     process_video,
 )
+from supervision.utils.video import (
+    VideoInfo as _DeprecatedVideoInfo,
+)
+from supervision.video import Video, VideoInfo
 
 __all__ = [
     "LMM",

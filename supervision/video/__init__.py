@@ -1,18 +1,20 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Callable, Iterator, Any
+from typing import Any
+from collections.abc import Callable
 
 import cv2  # Only needed for resize utility even when using PyAV backend
 import numpy as np
 from tqdm.auto import tqdm
 
 from supervision.utils.internal import warn_deprecated
-from supervision.video.common import VideoInfo, Writer
 from supervision.video.backends.base import Backend
 from supervision.video.backends.opencv_backend import OpenCVBackend
 from supervision.video.backends.pyav_backend import PyAVBackend
+from supervision.video.common import VideoInfo, Writer
 
 logger = logging.getLogger(__name__)
 
@@ -117,7 +119,9 @@ class Video:
             try:
                 self._backend.seek(self._handle, start)
             except Exception as e:
-                logger.debug("Backend seek failed (%s). Falling back to iterative seek.", e)
+                logger.debug(
+                    "Backend seek failed (%s). Falling back to iterative seek.", e
+                )
                 # fallback: iterative grabbing
                 for _ in range(start):
                     ok = self._backend.grab(self._handle)
@@ -220,4 +224,3 @@ class Video:
         warn_deprecated(
             f"{name} will be removed in a future release. Use the new supervision.Video class instead."
         )
-

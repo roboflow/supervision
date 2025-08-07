@@ -1,7 +1,7 @@
-import numpy as np
-import cv2
 import os
-import pytest
+
+import cv2
+import numpy as np
 
 import supervision as sv
 
@@ -76,4 +76,3 @@ def test_legacy_process_video(tmp_path):
 
     assert os.path.exists(dst)
     assert sv.Video(str(dst)).info.total_frames == 4
-

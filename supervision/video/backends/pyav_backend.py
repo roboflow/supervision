@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Iterator
+from collections.abc import Iterator
+from typing import Any
 
 import numpy as np
 
-from supervision.video.common import VideoInfo, Writer
 from supervision.video.backends.base import Backend
+from supervision.video.common import VideoInfo, Writer
 
 # PyAV is an optional dependency – we import lazily and fail with clear message.
 try:
@@ -19,7 +20,7 @@ class _PyAVWriter(Writer):
 
     def __init__(self, path: str, info: VideoInfo, codec: str):
         if av is None:
-            raise RuntimeError("PyAV is not installed. Install with `pip install av`." )
+            raise RuntimeError("PyAV is not installed. Install with `pip install av`.")
         self._container = av.open(path, mode="w")
         self._stream = self._container.add_stream(codec, rate=info.fps)
         self._stream.width = info.width
@@ -98,4 +99,3 @@ class PyAVBackend(Backend):
     def writer(self, path: str, info: VideoInfo, codec: str = "libx264") -> Writer:  # type: ignore[override]
         self._require_av()
         return _PyAVWriter(path, info, codec)
-

@@ -5,8 +5,8 @@ from typing import Any
 import cv2
 import numpy as np
 
-from supervision.video.common import VideoInfo, Writer
 from supervision.video.backends.base import Backend
+from supervision.video.common import VideoInfo, Writer
 
 
 class _OpenCVWriter:
@@ -16,7 +16,9 @@ class _OpenCVWriter:
         fourcc = cv2.VideoWriter_fourcc(*codec)
         self._writer = cv2.VideoWriter(path, fourcc, info.fps, info.resolution_wh)
         if not self._writer.isOpened():
-            raise RuntimeError(f"Failed to open VideoWriter at {path} using codec {codec}.")
+            raise RuntimeError(
+                f"Failed to open VideoWriter at {path} using codec {codec}."
+            )
 
     def write(self, frame: np.ndarray) -> None:  # type: ignore[override]
         self._writer.write(frame)
@@ -67,4 +69,3 @@ class OpenCVBackend(Backend):
     # ------------------------------------------------------------------
     def writer(self, path: str, info: VideoInfo, codec: str = "mp4v") -> Writer:  # type: ignore[override]
         return _OpenCVWriter(path=path, info=info, codec=codec)
-
