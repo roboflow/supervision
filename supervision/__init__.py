@@ -125,6 +125,8 @@ from supervision.utils.image import (
     overlay_image,
     resize_image,
     scale_image,
+    tint_image,
+    grayscale_image
 )
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (
@@ -248,4 +250,6 @@ __all__ = [
     "xyxy_to_polygons",
     "xyxy_to_xcycarh",
     "xyxy_to_xywh",
+    "tint_image",
+    "grayscale_image"
 ]

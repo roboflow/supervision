@@ -1,11 +1,7 @@
 from __future__ import annotations
 
-import itertools
-import math
 import os
 import shutil
-from collections.abc import Callable
-from functools import partial
 from typing import Literal
 
 import cv2
@@ -14,21 +10,16 @@ import numpy.typing as npt
 
 from supervision.annotators.base import ImageType
 from supervision.draw.color import Color, unify_to_bgr
-from supervision.draw.utils import calculate_optimal_text_scale, draw_text
-from supervision.geometry.core import Point
 from supervision.utils.conversion import (
-    cv2_to_pillow,
-    ensure_cv2_image_for_processing,
-    images_to_cv2,
+    ensure_cv2_image_for_standalone_function,
 )
-from supervision.utils.iterables import create_batches, fill
 
 RelativePosition = Literal["top", "bottom"]
 
 MAX_COLUMNS_FOR_SINGLE_ROW_GRID = 3
 
 
-@ensure_cv2_image_for_processing
+@ensure_cv2_image_for_standalone_function
 def crop_image(
     image: ImageType,
     xyxy: npt.NDArray[int] | list[int] | tuple[int, int, int, int],
@@ -89,7 +80,7 @@ def crop_image(
     return image[y_min:y_max, x_min:x_max]
 
 
-@ensure_cv2_image_for_processing
+@ensure_cv2_image_for_standalone_function
 def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     """
     Scales the given image based on the given scale factor.
@@ -146,7 +137,7 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
 
 
-@ensure_cv2_image_for_processing
+@ensure_cv2_image_for_standalone_function
 def resize_image(
     image: ImageType,
     resolution_wh: tuple[int, int],
@@ -219,7 +210,7 @@ def resize_image(
     return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
 
 
-@ensure_cv2_image_for_processing
+@ensure_cv2_image_for_standalone_function
 def letterbox_image(
     image: ImageType,
     resolution_wh: tuple[int, int],
@@ -369,6 +360,97 @@ def overlay_image(
         ]
 
     return image
+
+
+@ensure_cv2_image_for_standalone_function
+def tint_image(
+    scene: ImageType,
+    color: Color = Color.BLACK,
+    opacity: float = 0.5,
+) -> ImageType:
+    """
+    Blend a solid-color overlay onto an image. Create a tinted effect by blending a
+    uniform color overlay with the input image at a specified opacity.
+
+    Args:
+        scene (ImageType): input image to be tinted (`numpy.ndarray` or `PIL.Image.Image`)
+        color (Color): overlay tint color
+        opacity (float): blend ratio between overlay and image (0.0–1.0, inclusive)
+
+    Returns:
+        ImageType: tinted image in the same format as the input
+
+    Raises:
+        ValueError: if opacity is outside the range [0.0, 1.0]
+
+    Examples:
+        ```python
+        import cv2
+        import supervision as sv
+
+        image = cv2.imread("source.jpg")
+        tinted = sv.tint_image(scene=image, color=sv.Color.BLACK, opacity=0.5)
+        cv2.imwrite("result.jpg", tinted)
+        ```
+
+        ```python
+        from PIL import Image
+        import supervision as sv
+
+        image = Image.open("source.jpg")
+        tinted = sv.tint_image(scene=image, color=Color.BLACK, opacity=0.5)
+        tinted.save("result.jpg")
+        ```
+    """  # noqa: E501 // docs
+    if not 0.0 <= opacity <= 1.0:
+        raise ValueError("opacity must be between 0.0 and 1.0")
+
+    overlay = np.full_like(scene, fill_value=color.as_bgr(), dtype=scene.dtype)
+    cv2.addWeighted(
+        src1=overlay,
+        alpha=opacity,
+        src2=scene,
+        beta=1 - opacity,
+        gamma=0,
+        dst=scene
+    )
+    return scene
+
+
+@ensure_cv2_image_for_standalone_function
+def grayscale_image(scene: ImageType) -> ImageType:
+    """
+    Convert an RGB or BGR image to 3-channel grayscale. The luminance channel is
+    broadcast to all three channels, ensuring compatibility with color-based drawing
+    helpers that expect 3-channel input.
+
+    Args:
+        scene (ImageType): input image to be converted (`numpy.ndarray` or `PIL.Image.Image`)
+
+    Returns:
+        ImageType: 3-channel grayscale version in the same format as input
+
+    Examples:
+        ```python
+        import cv2
+        import supervision as sv
+
+        image = cv2.imread("source.jpg")
+        grayscaled = sv.grayscale_image(scene=image)
+        cv2.imwrite("result.jpg", grayscaled)
+        ```
+
+        ```python
+        from PIL import Image
+        import supervision as sv
+
+        image = Image.open("source.jpg")
+        grayscaled = sv.grayscale_image(scene=image)
+        grayscaled.save("result.jpg")
+        ```
+    """  # noqa: E501 // docs
+    grayscaled = cv2.cvtColor(scene, cv2.COLOR_BGR2GRAY)
+    return cv2.cvtColor(grayscaled, cv2.COLOR_GRAY2BGR)
 
 
 class ImageSink:

@@ -35,6 +35,18 @@ comments: true
 :::supervision.utils.image.overlay_image
 
 <div class="md-typeset">
+    <h2><a href="#supervision.utils.image.tint_image">tint_image</a></h2>
+</div>
+
+:::supervision.utils.image.tint_image
+
+<div class="md-typeset">
+    <h2><a href="#supervision.utils.image.grayscale_image">grayscale_image</a></h2>
+</div>
+
+:::supervision.utils.image.grayscale_image
+
+<div class="md-typeset">
     <h2><a href="#supervision.utils.image.ImageSink">ImageSink</a></h2>
 </div>
 
