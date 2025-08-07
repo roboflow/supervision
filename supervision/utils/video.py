@@ -8,6 +8,11 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 from tqdm.auto import tqdm
+from typing import Optional
+
+from supervision.utils.internal import deprecated, warn_deprecated
+from supervision.video import Video as _NewVideo
+from supervision.video import VideoInfo as _NewVideoInfo
 
 
 @dataclass
@@ -39,27 +44,26 @@ class VideoInfo:
 
     width: int
     height: int
-    fps: int
+    fps: float
     total_frames: int | None = None
 
     @classmethod
-    def from_video_path(cls, video_path: str) -> VideoInfo:
-        video = cv2.VideoCapture(video_path)
-        if not video.isOpened():
-            raise Exception(f"Could not open video at {video_path}")
-
-        width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = int(video.get(cv2.CAP_PROP_FPS))
-        total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-        video.release()
-        return VideoInfo(width, height, fps, total_frames)
+    def from_video_path(cls, video_path: str) -> "VideoInfo":
+        warn_deprecated(
+            "VideoInfo.from_video_path is deprecated and will be removed in at least 5 releases. "
+            "Use sv.Video(video_path).info instead."
+        )
+        v = _NewVideo(video_path)
+        info = v.info
+        # Map new VideoInfo to legacy class
+        return VideoInfo(width=info.width, height=info.height, fps=info.fps, total_frames=info.total_frames)
 
     @property
     def resolution_wh(self) -> tuple[int, int]:
         return self.width, self.height
 
 
+@deprecated("Use sv.Video(...).sink(...) for manual writers. This alias will be supported for at least 5 releases.")
 class VideoSink:
     """
     Context manager that saves video frames to a file using OpenCV.
@@ -90,17 +94,17 @@ class VideoSink:
         self.__writer = None
 
     def __enter__(self):
-        try:
-            self.__fourcc = cv2.VideoWriter_fourcc(*self.__codec)
-        except TypeError as e:
-            print(str(e) + ". Defaulting to mp4v...")
-            self.__fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-        self.__writer = cv2.VideoWriter(
-            self.target_path,
-            self.__fourcc,
-            self.video_info.fps,
-            self.video_info.resolution_wh,
-        )
+        # Create writer via OpenCV backend by default
+        from supervision.video import OpenCVBackend  # type: ignore
+
+        backend = OpenCVBackend()
+        writer = backend.writer(self.target_path, _NewVideoInfo(
+            width=self.video_info.width,
+            height=self.video_info.height,
+            fps=float(self.video_info.fps),
+            total_frames=self.video_info.total_frames,
+        ), self.__codec)
+        self.__writer = writer
         return self
 
     def write_frame(self, frame: np.ndarray):
@@ -114,7 +118,7 @@ class VideoSink:
         self.__writer.write(frame)
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        self.__writer.release()
+        self.__writer.close()
 
 
 def _validate_and_setup_video(
@@ -141,6 +145,7 @@ def _validate_and_setup_video(
     return video, start, end
 
 
+@deprecated("Use sv.Video(source).frames(...) or iterate over sv.Video(source). This function will be supported for at least 5 releases.")
 def get_video_frames_generator(
     source_path: str,
     stride: int = 1,
@@ -175,23 +180,17 @@ def get_video_frames_generator(
             ...
         ```
     """
-    video, start, end = _validate_and_setup_video(
-        source_path, start, end, iterative_seek
+    # Route to new API
+    video = _NewVideo(source_path)
+    yield from video.frames(
+        stride=stride,
+        start=start,
+        end=end,
+        iterative_seek=iterative_seek,
     )
-    frame_position = start
-    while True:
-        success, frame = video.read()
-        if not success or frame_position >= end:
-            break
-        yield frame
-        for _ in range(stride - 1):
-            success = video.grab()
-            if not success:
-                break
-        frame_position += stride
-    video.release()
 
 
+@deprecated("Use sv.Video(source).save(target, callback=...). This function will be supported for at least 5 releases.")
 def process_video(
     source_path: str,
     target_path: str,
@@ -229,30 +228,14 @@ def process_video(
         )
         ```
     """
-    source_video_info = VideoInfo.from_video_path(video_path=source_path)
-    video_frames_generator = get_video_frames_generator(
-        source_path=source_path, end=max_frames
+    video = _NewVideo(source_path)
+    video.save(
+        target_path,
+        callback=callback,
+        show_progress=show_progress,
+        progress_message=progress_message,
+        end=max_frames,
     )
-    with VideoSink(target_path=target_path, video_info=source_video_info) as sink:
-        total_frames = (
-            min(source_video_info.total_frames, max_frames)
-            if max_frames is not None
-            else source_video_info.total_frames
-        )
-        for index, frame in enumerate(
-            tqdm(
-                video_frames_generator,
-                total=total_frames,
-                disable=not show_progress,
-                desc=progress_message,
-            )
-        ):
-            result_frame = callback(frame, index)
-            sink.write_frame(frame=result_frame)
-        else:
-            for index, frame in enumerate(video_frames_generator):
-                result_frame = callback(frame, index)
-                sink.write_frame(frame=result_frame)
 
 
 class FPSMonitor:
