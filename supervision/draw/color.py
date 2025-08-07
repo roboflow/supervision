@@ -81,7 +81,7 @@ class Color:
 
         sv.Color.WHITE
         # Color(r=255, g=255, b=255, a=255)
-        
+
         sv.Color(r=255, g=0, b=255, a=128)
         # Color(r=255, g=0, b=255, a=128)
         ```
@@ -128,17 +128,17 @@ class Color:
 
             sv.Color.from_hex('#f0f')
             # Color(r=255, g=0, b=255, a=255)
-            
+
             sv.Color.from_hex('#ff00ff80')
             # Color(r=255, g=0, b=255, a=128)
-            
+
             sv.Color.from_hex('#f0f8')
             # Color(r=255, g=0, b=255, a=136)
             ```
         """
         _validate_color_hex(color_hex)
         color_hex = color_hex.lstrip("#")
-        
+
         if len(color_hex) == 3:
             # RGB shorthand
             color_hex = "".join(c * 2 for c in color_hex)
@@ -207,7 +207,7 @@ class Color:
     def as_hex(self) -> str:
         """
         Converts the Color instance to a hex string.
-        
+
         If the alpha channel is 255 (fully opaque), returns a 6-digit hex string.
         Otherwise, returns an 8-digit hex string including the alpha channel.
 
@@ -220,7 +220,7 @@ class Color:
 
             sv.Color(r=255, g=255, b=0).as_hex()
             # '#ffff00'
-            
+
             sv.Color(r=255, g=0, b=255, a=128).as_hex()
             # '#ff00ff80'
             ```
@@ -246,7 +246,7 @@ class Color:
             ```
         """
         return self.r, self.g, self.b
-    
+
     def as_rgba(self) -> tuple[int, int, int, int]:
         """
         Returns the color as an RGBA tuple.
@@ -260,7 +260,7 @@ class Color:
 
             sv.Color(r=255, g=255, b=0).as_rgba()
             # (255, 255, 0, 255)
-            
+
             sv.Color(r=255, g=0, b=255, a=128).as_rgba()
             # (255, 0, 255, 128)
             ```

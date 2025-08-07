@@ -83,7 +83,7 @@ def draw_filled_rectangle(
     """
     # Use color's alpha channel if it's not fully opaque
     effective_opacity = opacity if color.a == 255 else color.a / 255.0
-    
+
     if effective_opacity == 1:
         cv2.rectangle(
             scene,
@@ -102,7 +102,12 @@ def draw_filled_rectangle(
             -1,
         )
         cv2.addWeighted(
-            scene_with_annotations, effective_opacity, scene, 1 - effective_opacity, gamma=0, dst=scene
+            scene_with_annotations,
+            effective_opacity,
+            scene,
+            1 - effective_opacity,
+            gamma=0,
+            dst=scene,
         )
 
     return scene
@@ -204,14 +209,19 @@ def draw_filled_polygon(
     """
     # Use color's alpha channel if it's not fully opaque
     effective_opacity = opacity if color.a == 255 else color.a / 255.0
-    
+
     if effective_opacity == 1:
         cv2.fillPoly(scene, [polygon], color=color.as_bgr())
     else:
         scene_with_annotations = scene.copy()
         cv2.fillPoly(scene_with_annotations, [polygon], color=color.as_bgr())
         cv2.addWeighted(
-            scene_with_annotations, effective_opacity, scene, 1 - effective_opacity, gamma=0, dst=scene
+            scene_with_annotations,
+            effective_opacity,
+            scene,
+            1 - effective_opacity,
+            gamma=0,
+            dst=scene,
         )
 
     return scene

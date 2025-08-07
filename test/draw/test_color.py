@@ -91,7 +91,9 @@ def test_color_as_hex(
         (Color.BLACK, (0, 0, 0, 255)),
     ],
 )
-def test_color_as_rgba(color: Color, expected_result: tuple[int, int, int, int]) -> None:
+def test_color_as_rgba(
+    color: Color, expected_result: tuple[int, int, int, int]
+) -> None:
     result = color.as_rgba()
     assert result == expected_result
 
@@ -125,6 +127,6 @@ def test_color_hash(color: Color) -> None:
     # Test that colors can be hashed and used in sets/dicts
     color_set = {color}
     assert color in color_set
-    
+
     color_dict = {color: "test"}
     assert color_dict[color] == "test"
