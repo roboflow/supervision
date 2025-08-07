@@ -153,7 +153,9 @@ class Color:
         return cls(r=r, g=g, b=b, a=a)
 
     @classmethod
-    def from_rgb_tuple(cls, color_tuple: tuple[int, int, int] | tuple[int, int, int, int]) -> Color:
+    def from_rgb_tuple(
+        cls, color_tuple: tuple[int, int, int] | tuple[int, int, int, int]
+    ) -> Color:
         """
         Create a Color instance from an RGB tuple.
 
@@ -183,7 +185,9 @@ class Color:
         return cls(r=r, g=g, b=b, a=a)
 
     @classmethod
-    def from_bgr_tuple(cls, color_tuple: tuple[int, int, int] | tuple[int, int, int, int]) -> Color:
+    def from_bgr_tuple(
+        cls, color_tuple: tuple[int, int, int] | tuple[int, int, int, int]
+    ) -> Color:
         """
         Create a Color instance from a BGR tuple.
 
