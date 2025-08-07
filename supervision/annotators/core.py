@@ -227,13 +227,25 @@ class BoxAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            cv2.rectangle(
-                img=scene,
-                pt1=(x1, y1),
-                pt2=(x2, y2),
-                color=color.as_bgr(),
-                thickness=self.thickness,
-            )
+            opacity = color.a / 255 if hasattr(color, "a") else 1.0
+            if opacity >= 1:
+                cv2.rectangle(
+                    img=scene,
+                    pt1=(x1, y1),
+                    pt2=(x2, y2),
+                    color=color.as_bgr(),
+                    thickness=self.thickness,
+                )
+            else:
+                overlay = scene.copy()
+                cv2.rectangle(
+                    img=overlay,
+                    pt1=(x1, y1),
+                    pt2=(x2, y2),
+                    color=color.as_bgr(),
+                    thickness=self.thickness,
+                )
+                cv2.addWeighted(overlay, opacity, scene, 1 - opacity, 0, dst=scene)
         return scene
 
 
@@ -317,7 +329,13 @@ class OrientedBoxAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
 
-            cv2.drawContours(scene, [obb], 0, color.as_bgr(), self.thickness)
+            opacity = color.a / 255 if hasattr(color, "a") else 1.0
+            if opacity >= 1:
+                cv2.drawContours(scene, [obb], 0, color.as_bgr(), self.thickness)
+            else:
+                overlay = scene.copy()
+                cv2.drawContours(overlay, [obb], 0, color.as_bgr(), self.thickness)
+                cv2.addWeighted(overlay, opacity, scene, 1 - opacity, 0, dst=scene)
 
         return scene
 
@@ -566,7 +584,6 @@ class ColorAnnotator(BaseAnnotator):
         supervision-annotator-examples/box-mask-annotator-example-purple.png)
         """
         assert isinstance(scene, np.ndarray)
-        scene_with_boxes = scene.copy()
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             color = resolve_color(
@@ -577,17 +594,27 @@ class ColorAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            cv2.rectangle(
-                img=scene_with_boxes,
-                pt1=(x1, y1),
-                pt2=(x2, y2),
-                color=color.as_bgr(),
-                thickness=-1,
-            )
-
-        cv2.addWeighted(
-            scene_with_boxes, self.opacity, scene, 1 - self.opacity, gamma=0, dst=scene
-        )
+            effective_opacity = self.opacity * (color.a / 255 if hasattr(color, "a") else 1.0)
+            if effective_opacity >= 1:
+                cv2.rectangle(
+                    img=scene,
+                    pt1=(x1, y1),
+                    pt2=(x2, y2),
+                    color=color.as_bgr(),
+                    thickness=-1,
+                )
+            else:
+                overlay = scene.copy()
+                cv2.rectangle(
+                    img=overlay,
+                    pt1=(x1, y1),
+                    pt2=(x2, y2),
+                    color=color.as_bgr(),
+                    thickness=-1,
+                )
+                cv2.addWeighted(
+                    overlay, effective_opacity, scene, 1 - effective_opacity, gamma=0, dst=scene
+                )
         return scene
 
 
@@ -774,17 +801,33 @@ class EllipseAnnotator(BaseAnnotator):
             )
             center = (int((x1 + x2) / 2), y2)
             width = x2 - x1
-            cv2.ellipse(
-                scene,
-                center=center,
-                axes=(int(width), int(0.35 * width)),
-                angle=0.0,
-                startAngle=self.start_angle,
-                endAngle=self.end_angle,
-                color=color.as_bgr(),
-                thickness=self.thickness,
-                lineType=cv2.LINE_4,
-            )
+            opacity = color.a / 255 if hasattr(color, "a") else 1.0
+            if opacity >= 1:
+                cv2.ellipse(
+                    scene,
+                    center=center,
+                    axes=(int(width), int(0.35 * width)),
+                    angle=0.0,
+                    startAngle=self.start_angle,
+                    endAngle=self.end_angle,
+                    color=color.as_bgr(),
+                    thickness=self.thickness,
+                    lineType=cv2.LINE_4,
+                )
+            else:
+                overlay = scene.copy()
+                cv2.ellipse(
+                    overlay,
+                    center=center,
+                    axes=(int(width), int(0.35 * width)),
+                    angle=0.0,
+                    startAngle=self.start_angle,
+                    endAngle=self.end_angle,
+                    color=color.as_bgr(),
+                    thickness=self.thickness,
+                    lineType=cv2.LINE_4,
+                )
+                cv2.addWeighted(overlay, opacity, scene, 1 - opacity, 0, dst=scene)
         return scene
 
 
@@ -868,14 +911,29 @@ class BoxCornerAnnotator(BaseAnnotator):
 
             for x, y in corners:
                 x_end = x + self.corner_length if x == x1 else x - self.corner_length
-                cv2.line(
-                    scene, (x, y), (x_end, y), color.as_bgr(), thickness=self.thickness
-                )
+                opacity = color.a / 255 if hasattr(color, "a") else 1.0
+                if opacity >= 1:
+                    cv2.line(
+                        scene, (x, y), (x_end, y), color.as_bgr(), thickness=self.thickness
+                    )
+                else:
+                    overlay = scene.copy()
+                    cv2.line(
+                        overlay, (x, y), (x_end, y), color.as_bgr(), thickness=self.thickness
+                    )
+                    cv2.addWeighted(overlay, opacity, scene, 1 - opacity, 0, dst=scene)
 
                 y_end = y + self.corner_length if y == y1 else y - self.corner_length
-                cv2.line(
-                    scene, (x, y), (x, y_end), color.as_bgr(), thickness=self.thickness
-                )
+                if opacity >= 1:
+                    cv2.line(
+                        scene, (x, y), (x, y_end), color.as_bgr(), thickness=self.thickness
+                    )
+                else:
+                    overlay = scene.copy()
+                    cv2.line(
+                        overlay, (x, y), (x, y_end), color.as_bgr(), thickness=self.thickness
+                    )
+                    cv2.addWeighted(overlay, opacity, scene, 1 - opacity, 0, dst=scene)
         return scene
 
 
@@ -956,13 +1014,25 @@ class CircleAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            cv2.circle(
-                img=scene,
-                center=center,
-                radius=int(distance),
-                color=color.as_bgr(),
-                thickness=self.thickness,
-            )
+            opacity = color.a / 255 if hasattr(color, "a") else 1.0
+            if opacity >= 1:
+                cv2.circle(
+                    img=scene,
+                    center=center,
+                    radius=int(distance),
+                    color=color.as_bgr(),
+                    thickness=self.thickness,
+                )
+            else:
+                overlay = scene.copy()
+                cv2.circle(
+                    img=overlay,
+                    center=center,
+                    radius=int(distance),
+                    color=color.as_bgr(),
+                    thickness=self.thickness,
+                )
+                cv2.addWeighted(overlay, opacity, scene, 1 - opacity, 0, dst=scene)
 
         return scene
 
@@ -1054,7 +1124,13 @@ class DotAnnotator(BaseAnnotator):
             )
             center = (int(xy[detection_idx, 0]), int(xy[detection_idx, 1]))
 
-            cv2.circle(scene, center, self.radius, color.as_bgr(), -1)
+            opacity = color.a / 255 if hasattr(color, "a") else 1.0
+            if opacity >= 1:
+                cv2.circle(scene, center, self.radius, color.as_bgr(), -1)
+            else:
+                overlay = scene.copy()
+                cv2.circle(overlay, center, self.radius, color.as_bgr(), -1)
+                cv2.addWeighted(overlay, opacity, scene, 1 - opacity, 0, dst=scene)
             if self.outline_thickness:
                 outline_color = resolve_color(
                     color=self.outline_color,
@@ -1064,13 +1140,25 @@ class DotAnnotator(BaseAnnotator):
                     if custom_color_lookup is None
                     else custom_color_lookup,
                 )
-                cv2.circle(
-                    scene,
-                    center,
-                    self.radius,
-                    outline_color.as_bgr(),
-                    self.outline_thickness,
-                )
+                outline_opacity = outline_color.a / 255 if hasattr(outline_color, "a") else 1.0
+                if outline_opacity >= 1:
+                    cv2.circle(
+                        scene,
+                        center,
+                        self.radius,
+                        outline_color.as_bgr(),
+                        self.outline_thickness,
+                    )
+                else:
+                    overlay2 = scene.copy()
+                    cv2.circle(
+                        overlay2,
+                        center,
+                        self.radius,
+                        outline_color.as_bgr(),
+                        self.outline_thickness,
+                    )
+                    cv2.addWeighted(overlay2, outline_opacity, scene, 1 - outline_opacity, 0, dst=scene)
         return scene
 
 
@@ -1298,6 +1386,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
                 xyxy=box_xyxy,
                 color=background_color.as_bgr(),
                 border_radius=self.border_radius,
+                opacity=(background_color.a / 255 if hasattr(background_color, "a") else 1.0),
             )
 
             # Handle multiline text
@@ -1345,6 +1434,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
         xyxy: tuple[int, int, int, int],
         color: tuple[int, int, int],
         border_radius: int,
+        opacity: float = 1.0,
     ) -> np.ndarray:
         x1, y1, x2, y2 = xyxy
         width = x2 - x1
@@ -1363,9 +1453,14 @@ class LabelAnnotator(_BaseLabelAnnotator):
             (x2 - border_radius, y2 - border_radius),
         ]
 
+        if opacity >= 1:
+            target = scene
+        else:
+            target = scene.copy()
+
         for coordinates in rectangle_coordinates:
             cv2.rectangle(
-                img=scene,
+                img=target,
                 pt1=coordinates[0],
                 pt2=coordinates[1],
                 color=color,
@@ -1373,12 +1468,14 @@ class LabelAnnotator(_BaseLabelAnnotator):
             )
         for center in circle_centers:
             cv2.circle(
-                img=scene,
+                img=target,
                 center=center,
                 radius=border_radius,
                 color=color,
                 thickness=-1,
             )
+        if target is not scene:
+            cv2.addWeighted(target, opacity, scene, 1 - opacity, 0, dst=scene)
         return scene
 
 
@@ -1921,13 +2018,25 @@ class TraceAnnotator(BaseAnnotator):
                 spline_points = np.stack([x_new, y_new], axis=1).astype(np.int32)
 
             if len(xy) > 1:
-                scene = cv2.polylines(
-                    scene,
-                    [spline_points],
-                    False,
-                    color=color.as_bgr(),
-                    thickness=self.thickness,
-                )
+                opacity = color.a / 255 if hasattr(color, "a") else 1.0
+                if opacity >= 1:
+                    scene = cv2.polylines(
+                        scene,
+                        [spline_points],
+                        False,
+                        color=color.as_bgr(),
+                        thickness=self.thickness,
+                    )
+                else:
+                    overlay = scene.copy()
+                    cv2.polylines(
+                        overlay,
+                        [spline_points],
+                        False,
+                        color=color.as_bgr(),
+                        thickness=self.thickness,
+                    )
+                    cv2.addWeighted(overlay, opacity, scene, 1 - opacity, 0, dst=scene)
         return scene
 
 
@@ -2204,7 +2313,13 @@ class TriangleAnnotator(BaseAnnotator):
                 np.int32,
             )
 
-            cv2.fillPoly(scene, [vertices], color.as_bgr())
+            opacity = color.a / 255 if hasattr(color, "a") else 1.0
+            if opacity >= 1:
+                cv2.fillPoly(scene, [vertices], color.as_bgr())
+            else:
+                overlay = scene.copy()
+                cv2.fillPoly(overlay, [vertices], color.as_bgr())
+                cv2.addWeighted(overlay, opacity, scene, 1 - opacity, 0, dst=scene)
             if self.outline_thickness:
                 outline_color = resolve_color(
                     color=self.outline_color,
@@ -2214,13 +2329,25 @@ class TriangleAnnotator(BaseAnnotator):
                     if custom_color_lookup is None
                     else custom_color_lookup,
                 )
-                cv2.polylines(
-                    scene,
-                    [vertices],
-                    True,
-                    outline_color.as_bgr(),
-                    thickness=self.outline_thickness,
-                )
+                outline_opacity = outline_color.a / 255 if hasattr(outline_color, "a") else 1.0
+                if outline_opacity >= 1:
+                    cv2.polylines(
+                        scene,
+                        [vertices],
+                        True,
+                        outline_color.as_bgr(),
+                        thickness=self.outline_thickness,
+                    )
+                else:
+                    overlay2 = scene.copy()
+                    cv2.polylines(
+                        overlay2,
+                        [vertices],
+                        True,
+                        outline_color.as_bgr(),
+                        thickness=self.outline_thickness,
+                    )
+                    cv2.addWeighted(overlay2, outline_opacity, scene, 1 - outline_opacity, 0, dst=scene)
         return scene
 
 
@@ -2334,24 +2461,50 @@ class RoundBoxAnnotator(BaseAnnotator):
             for center_coordinates, line, start_angle, end_angle in zip(
                 circle_coordinates, line_coordinates, start_angles, end_angles
             ):
-                cv2.ellipse(
-                    img=scene,
-                    center=center_coordinates,
-                    axes=(radius, radius),
-                    angle=0,
-                    startAngle=start_angle,
-                    endAngle=end_angle,
-                    color=color.as_bgr(),
-                    thickness=self.thickness,
-                )
+                opacity = color.a / 255 if hasattr(color, "a") else 1.0
+                if opacity >= 1:
+                    cv2.ellipse(
+                        img=scene,
+                        center=center_coordinates,
+                        axes=(radius, radius),
+                        angle=0,
+                        startAngle=start_angle,
+                        endAngle=end_angle,
+                        color=color.as_bgr(),
+                        thickness=self.thickness,
+                    )
+                else:
+                    overlay = scene.copy()
+                    cv2.ellipse(
+                        img=overlay,
+                        center=center_coordinates,
+                        axes=(radius, radius),
+                        angle=0,
+                        startAngle=start_angle,
+                        endAngle=end_angle,
+                        color=color.as_bgr(),
+                        thickness=self.thickness,
+                    )
+                    cv2.addWeighted(overlay, opacity, scene, 1 - opacity, 0, dst=scene)
 
-                cv2.line(
-                    img=scene,
-                    pt1=line[0],
-                    pt2=line[1],
-                    color=color.as_bgr(),
-                    thickness=self.thickness,
-                )
+                if opacity >= 1:
+                    cv2.line(
+                        img=scene,
+                        pt1=line[0],
+                        pt2=line[1],
+                        color=color.as_bgr(),
+                        thickness=self.thickness,
+                    )
+                else:
+                    overlay2 = scene.copy()
+                    cv2.line(
+                        img=overlay2,
+                        pt1=line[0],
+                        pt2=line[1],
+                        color=color.as_bgr(),
+                        thickness=self.thickness,
+                    )
+                    cv2.addWeighted(overlay2, opacity, scene, 1 - opacity, 0, dst=scene)
 
         return scene
 
@@ -2470,16 +2623,31 @@ class PercentageBarAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            cv2.rectangle(
-                img=scene,
-                pt1=border_coordinates[0],
-                pt2=(
-                    border_coordinates[0][0] + int(border_width * value),
-                    border_coordinates[1][1],
-                ),
-                color=color.as_bgr(),
-                thickness=-1,
-            )
+            opacity = color.a / 255 if hasattr(color, "a") else 1.0
+            if opacity >= 1:
+                cv2.rectangle(
+                    img=scene,
+                    pt1=border_coordinates[0],
+                    pt2=(
+                        border_coordinates[0][0] + int(border_width * value),
+                        border_coordinates[1][1],
+                    ),
+                    color=color.as_bgr(),
+                    thickness=-1,
+                )
+            else:
+                overlay = scene.copy()
+                cv2.rectangle(
+                    img=overlay,
+                    pt1=border_coordinates[0],
+                    pt2=(
+                        border_coordinates[0][0] + int(border_width * value),
+                        border_coordinates[1][1],
+                    ),
+                    color=color.as_bgr(),
+                    thickness=-1,
+                )
+                cv2.addWeighted(overlay, opacity, scene, 1 - opacity, 0, dst=scene)
             cv2.rectangle(
                 img=scene,
                 pt1=border_coordinates[0],
@@ -2642,13 +2810,25 @@ class CropAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            cv2.rectangle(
-                img=scene,
-                pt1=(x1, y1),
-                pt2=(x2, y2),
-                color=color.as_bgr(),
-                thickness=self.border_thickness,
-            )
+            border_opacity = color.a / 255 if hasattr(color, "a") else 1.0
+            if border_opacity >= 1:
+                cv2.rectangle(
+                    img=scene,
+                    pt1=(x1, y1),
+                    pt2=(x2, y2),
+                    color=color.as_bgr(),
+                    thickness=self.border_thickness,
+                )
+            else:
+                overlay = scene.copy()
+                cv2.rectangle(
+                    img=overlay,
+                    pt1=(x1, y1),
+                    pt2=(x2, y2),
+                    color=color.as_bgr(),
+                    thickness=self.border_thickness,
+                )
+                cv2.addWeighted(overlay, border_opacity, scene, 1 - border_opacity, 0, dst=scene)
 
         return scene
 

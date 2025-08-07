@@ -29,13 +29,25 @@ def draw_line(
     Returns:
         np.ndarray: The scene with the line drawn on it
     """
-    cv2.line(
-        scene,
-        start.as_xy_int_tuple(),
-        end.as_xy_int_tuple(),
-        color.as_bgr(),
-        thickness=thickness,
-    )
+    opacity = color.a / 255 if hasattr(color, "a") else 1.0
+    if opacity >= 1:
+        cv2.line(
+            scene,
+            start.as_xy_int_tuple(),
+            end.as_xy_int_tuple(),
+            color.as_bgr(),
+            thickness=thickness,
+        )
+    else:
+        overlay = scene.copy()
+        cv2.line(
+            overlay,
+            start.as_xy_int_tuple(),
+            end.as_xy_int_tuple(),
+            color.as_bgr(),
+            thickness=thickness,
+        )
+        cv2.addWeighted(overlay, opacity, scene, 1 - opacity, 0, dst=scene)
     return scene
 
 
@@ -54,13 +66,25 @@ def draw_rectangle(
     Returns:
         np.ndarray: The scene with the rectangle drawn on it
     """
-    cv2.rectangle(
-        scene,
-        rect.top_left.as_xy_int_tuple(),
-        rect.bottom_right.as_xy_int_tuple(),
-        color.as_bgr(),
-        thickness=thickness,
-    )
+    opacity = color.a / 255 if hasattr(color, "a") else 1.0
+    if opacity >= 1:
+        cv2.rectangle(
+            scene,
+            rect.top_left.as_xy_int_tuple(),
+            rect.bottom_right.as_xy_int_tuple(),
+            color.as_bgr(),
+            thickness=thickness,
+        )
+    else:
+        overlay = scene.copy()
+        cv2.rectangle(
+            overlay,
+            rect.top_left.as_xy_int_tuple(),
+            rect.bottom_right.as_xy_int_tuple(),
+            color.as_bgr(),
+            thickness=thickness,
+        )
+        cv2.addWeighted(overlay, opacity, scene, 1 - opacity, 0, dst=scene)
     return scene
 
 
@@ -79,7 +103,8 @@ def draw_filled_rectangle(
     Returns:
         np.ndarray: The scene with the rectangle drawn on it
     """
-    if opacity == 1:
+    opacity = opacity * (color.a / 255 if hasattr(color, "a") else 1.0)
+    if opacity >= 1:
         cv2.rectangle(
             scene,
             rect.top_left.as_xy_int_tuple(),
@@ -108,6 +133,7 @@ def draw_rounded_rectangle(
     rect: Rect,
     color: Color,
     border_radius: int,
+    opacity: float = 1.0,
 ) -> np.ndarray:
     """
     Draws a rounded rectangle on an image.
@@ -136,9 +162,15 @@ def draw_rounded_rectangle(
         (x2 - border_radius, y2 - border_radius),
     ]
 
+    effective_opacity = opacity * (color.a / 255 if hasattr(color, "a") else 1.0)
+    if effective_opacity >= 1:
+        target = scene
+    else:
+        target = scene.copy()
+
     for coordinates in rectangle_coordinates:
         cv2.rectangle(
-            img=scene,
+            img=target,
             pt1=coordinates[0],
             pt2=coordinates[1],
             color=color.as_bgr(),
@@ -146,12 +178,14 @@ def draw_rounded_rectangle(
         )
     for center in circle_centers:
         cv2.circle(
-            img=scene,
+            img=target,
             center=center,
             radius=border_radius,
             color=color.as_bgr(),
             thickness=-1,
         )
+    if target is not scene:
+        cv2.addWeighted(target, effective_opacity, scene, 1 - effective_opacity, 0, dst=scene)
     return scene
 
 
@@ -172,9 +206,17 @@ def draw_polygon(
     Returns:
         np.ndarray: The scene with the polygon drawn on it.
     """
-    cv2.polylines(
-        scene, [polygon], isClosed=True, color=color.as_bgr(), thickness=thickness
-    )
+    opacity = color.a / 255 if hasattr(color, "a") else 1.0
+    if opacity >= 1:
+        cv2.polylines(
+            scene, [polygon], isClosed=True, color=color.as_bgr(), thickness=thickness
+        )
+    else:
+        overlay = scene.copy()
+        cv2.polylines(
+            overlay, [polygon], isClosed=True, color=color.as_bgr(), thickness=thickness
+        )
+        cv2.addWeighted(overlay, opacity, scene, 1 - opacity, 0, dst=scene)
     return scene
 
 
@@ -195,7 +237,8 @@ def draw_filled_polygon(
     Returns:
         np.ndarray: The scene with the polygon drawn on it.
     """
-    if opacity == 1:
+    opacity = opacity * (color.a / 255 if hasattr(color, "a") else 1.0)
+    if opacity >= 1:
         cv2.fillPoly(scene, [polygon], color=color.as_bgr())
     else:
         scene_with_annotations = scene.copy()

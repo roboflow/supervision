@@ -57,14 +57,14 @@ def _validate_color_hex(color_hex: str):
     color_hex = color_hex.lstrip("#")
     if not all(c in "0123456789abcdefABCDEF" for c in color_hex):
         raise ValueError("Invalid characters in color hash")
-    if len(color_hex) not in (3, 6):
+    if len(color_hex) not in (3, 4, 6, 8):
         raise ValueError("Invalid length of color hash")
 
 
 @dataclass
 class Color:
     """
-    Represents a color in RGB format.
+    Represents a color in RGBA format.
 
     This class provides methods to work with colors, including creating colors from hex
     codes, converting colors to hex strings, RGB tuples, and BGR tuples.
@@ -97,6 +97,7 @@ class Color:
     r: int
     g: int
     b: int
+    a: int = 255
 
     @classmethod
     def from_hex(cls, color_hex: str) -> Color:
@@ -125,10 +126,16 @@ class Color:
         """
         _validate_color_hex(color_hex)
         color_hex = color_hex.lstrip("#")
-        if len(color_hex) == 3:
+        if len(color_hex) in (3, 4):
             color_hex = "".join(c * 2 for c in color_hex)
-        r, g, b = (int(color_hex[i : i + 2], 16) for i in range(0, 6, 2))
-        return cls(r, g, b)
+        if len(color_hex) == 6:
+            r, g, b = (int(color_hex[i : i + 2], 16) for i in range(0, 6, 2))
+            a = 255
+        else:
+            r, g, b, a = (
+                int(color_hex[i : i + 2], 16) for i in (0, 2, 4, 6)
+            )
+        return cls(r, g, b, a)
 
     @classmethod
     def from_rgb_tuple(cls, color_tuple: tuple[int, int, int]) -> Color:
@@ -191,7 +198,8 @@ class Color:
             # '#ffff00'
             ```
         """
-        return f"#{self.r:02x}{self.g:02x}{self.b:02x}"
+        base = f"#{self.r:02x}{self.g:02x}{self.b:02x}"
+        return base if self.a == 255 else f"{base}{self.a:02x}"
 
     def as_rgb(self) -> tuple[int, int, int]:
         """
@@ -227,6 +235,23 @@ class Color:
         """
         return self.b, self.g, self.r
 
+    def as_rgba(self) -> tuple[int, int, int, int]:
+        """
+        Returns the color as an RGBA tuple.
+
+        Returns:
+            Tuple[int, int, int, int]: RGBA tuple.
+
+        Example:
+            ```python
+            import supervision as sv
+
+            sv.Color(r=255, g=255, b=0, a=128).as_rgba()
+            # (255, 255, 0, 128)
+            ```
+        """
+        return self.r, self.g, self.b, self.a
+
     @classproperty
     def WHITE(cls) -> Color:
         return Color.from_hex("#FFFFFF")
@@ -260,7 +285,7 @@ class Color:
         return Color.from_hex("#A351FB")
 
     def __hash__(self):
-        return hash((self.r, self.g, self.b))
+        return hash((self.r, self.g, self.b, self.a))
 
     def __eq__(self, other):
         return (
@@ -268,6 +293,7 @@ class Color:
             and self.r == other.r
             and self.g == other.g
             and self.b == other.b
+            and self.a == other.a
         )
 
 

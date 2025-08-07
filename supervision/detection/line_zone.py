@@ -388,31 +388,70 @@ class LineZoneAnnotator:
         """
         line_start = line_counter.vector.start.as_xy_int_tuple()
         line_end = line_counter.vector.end.as_xy_int_tuple()
-        cv2.line(
-            frame,
-            line_start,
-            line_end,
-            self.color.as_bgr(),
-            self.thickness,
-            lineType=cv2.LINE_AA,
-            shift=0,
-        )
-        cv2.circle(
-            frame,
-            line_start,
-            radius=5,
-            color=self.text_color.as_bgr(),
-            thickness=-1,
-            lineType=cv2.LINE_AA,
-        )
-        cv2.circle(
-            frame,
-            line_end,
-            radius=5,
-            color=self.text_color.as_bgr(),
-            thickness=-1,
-            lineType=cv2.LINE_AA,
-        )
+        opacity = self.color.a / 255 if hasattr(self.color, "a") else 1.0
+        if opacity >= 1:
+            cv2.line(
+                frame,
+                line_start,
+                line_end,
+                self.color.as_bgr(),
+                self.thickness,
+                lineType=cv2.LINE_AA,
+                shift=0,
+            )
+        else:
+            overlay = frame.copy()
+            cv2.line(
+                overlay,
+                line_start,
+                line_end,
+                self.color.as_bgr(),
+                self.thickness,
+                lineType=cv2.LINE_AA,
+                shift=0,
+            )
+            cv2.addWeighted(overlay, opacity, frame, 1 - opacity, 0, dst=frame)
+        t_opacity = self.text_color.a / 255 if hasattr(self.text_color, "a") else 1.0
+        if t_opacity >= 1:
+            cv2.circle(
+                frame,
+                line_start,
+                radius=5,
+                color=self.text_color.as_bgr(),
+                thickness=-1,
+                lineType=cv2.LINE_AA,
+            )
+        else:
+            overlay2 = frame.copy()
+            cv2.circle(
+                overlay2,
+                line_start,
+                radius=5,
+                color=self.text_color.as_bgr(),
+                thickness=-1,
+                lineType=cv2.LINE_AA,
+            )
+            cv2.addWeighted(overlay2, t_opacity, frame, 1 - t_opacity, 0, dst=frame)
+        if t_opacity >= 1:
+            cv2.circle(
+                frame,
+                line_end,
+                radius=5,
+                color=self.text_color.as_bgr(),
+                thickness=-1,
+                lineType=cv2.LINE_AA,
+            )
+        else:
+            overlay3 = frame.copy()
+            cv2.circle(
+                overlay3,
+                line_end,
+                radius=5,
+                color=self.text_color.as_bgr(),
+                thickness=-1,
+                lineType=cv2.LINE_AA,
+            )
+            cv2.addWeighted(overlay3, t_opacity, frame, 1 - t_opacity, 0, dst=frame)
 
         in_text = f"{self.in_text}: {line_counter.in_count}"
         out_text = f"{self.out_text}: {line_counter.out_count}"

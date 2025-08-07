@@ -18,9 +18,11 @@ from supervision.draw.color import Color
         ("0f0", Color.GREEN, DoesNotRaise()),
         ("00f", Color.BLUE, DoesNotRaise()),
         ("#808000", Color(r=128, g=128, b=0), DoesNotRaise()),
+        ("#ff00ff80", Color(r=255, g=0, b=255, a=128), DoesNotRaise()),
+        ("f0f8", Color(r=255, g=0, b=255, a=136), DoesNotRaise()),
         ("", None, pytest.raises(ValueError)),
         ("00", None, pytest.raises(ValueError)),
-        ("0000", None, pytest.raises(ValueError)),
+        ("00000", None, pytest.raises(ValueError)),
         ("0000000", None, pytest.raises(ValueError)),
         ("ffg", None, pytest.raises(ValueError)),
     ],
@@ -42,6 +44,7 @@ def test_color_from_hex(
         (Color.GREEN, "#00ff00", DoesNotRaise()),
         (Color.BLUE, "#0000ff", DoesNotRaise()),
         (Color(r=128, g=128, b=0), "#808000", DoesNotRaise()),
+        (Color(r=255, g=0, b=255, a=128), "#ff00ff80", DoesNotRaise()),
     ],
 )
 def test_color_as_hex(
@@ -50,3 +53,8 @@ def test_color_as_hex(
     with exception:
         result = color.as_hex()
         assert result == expected_result
+
+
+def test_color_as_rgba() -> None:
+    color = Color(r=10, g=20, b=30, a=40)
+    assert color.as_rgba() == (10, 20, 30, 40)

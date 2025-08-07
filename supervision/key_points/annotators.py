@@ -86,13 +86,25 @@ class VertexAnnotator(BaseKeyPointAnnotator):
 
         for xy in key_points.xy:
             for x, y in xy:
-                cv2.circle(
-                    img=scene,
-                    center=(int(x), int(y)),
-                    radius=self.radius,
-                    color=self.color.as_bgr(),
-                    thickness=-1,
-                )
+                opacity = self.color.a / 255 if hasattr(self.color, "a") else 1.0
+                if opacity >= 1:
+                    cv2.circle(
+                        img=scene,
+                        center=(int(x), int(y)),
+                        radius=self.radius,
+                        color=self.color.as_bgr(),
+                        thickness=-1,
+                    )
+                else:
+                    overlay = scene.copy()
+                    cv2.circle(
+                        img=overlay,
+                        center=(int(x), int(y)),
+                        radius=self.radius,
+                        color=self.color.as_bgr(),
+                        thickness=-1,
+                    )
+                    cv2.addWeighted(overlay, opacity, scene, 1 - opacity, 0, dst=scene)
 
         return scene
 
@@ -178,13 +190,25 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
                 if missing_a or missing_b:
                     continue
 
-                cv2.line(
-                    img=scene,
-                    pt1=(int(xy_a[0]), int(xy_a[1])),
-                    pt2=(int(xy_b[0]), int(xy_b[1])),
-                    color=self.color.as_bgr(),
-                    thickness=self.thickness,
-                )
+                opacity = self.color.a / 255 if hasattr(self.color, "a") else 1.0
+                if opacity >= 1:
+                    cv2.line(
+                        img=scene,
+                        pt1=(int(xy_a[0]), int(xy_a[1])),
+                        pt2=(int(xy_b[0]), int(xy_b[1])),
+                        color=self.color.as_bgr(),
+                        thickness=self.thickness,
+                    )
+                else:
+                    overlay = scene.copy()
+                    cv2.line(
+                        img=overlay,
+                        pt1=(int(xy_a[0]), int(xy_a[1])),
+                        pt2=(int(xy_b[0]), int(xy_b[1])),
+                        color=self.color.as_bgr(),
+                        thickness=self.thickness,
+                    )
+                    cv2.addWeighted(overlay, opacity, scene, 1 - opacity, 0, dst=scene)
 
         return scene
 
