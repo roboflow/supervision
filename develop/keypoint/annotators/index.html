@@ -59,7 +59,7 @@
     
       <link rel="stylesheet" href="../../stylesheets/extra.css">
     
-      <link rel="stylesheet" href="../../stylesheets/cookbooks-card.css">
+      <link rel="stylesheet" href="../../stylesheets/cookbooks_card.css">
     
     <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -3448,7 +3448,7 @@ drawn.</p>
 </span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="n">color</span>
 </span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">radius</span> <span class="o">=</span> <span class="n">radius</span>
 </span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45"></a>
-</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46"></a>    <span class="nd">@ensure_cv2_image_for_annotation</span>
+</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46"></a>    <span class="nd">@ensure_cv2_image_for_class_method</span>
 </span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">annotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">key_points</span><span class="p">:</span> <span class="n">KeyPoints</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span><span class="p">:</span>
 </span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49"></a><span class="sd">        Annotates the given scene with skeleton vertices based on the provided key</span>
@@ -3645,7 +3645,7 @@ points. It draws circles at each key point location.</p>
 <h5 id="supervision.key_points.annotators.VertexAnnotator.annotate(scene)" class="doc doc-heading doc-heading-parameter">                  <code>scene</code>
 <a href="#supervision.key_points.annotators.VertexAnnotator.annotate(scene)" class="headerlink" title="Permanent link">&para;</a></h5>            </td>
             <td>
-                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
+                  <code><span title="supervision.draw.base.ImageType">ImageType</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3695,7 +3695,7 @@ consists of x and y coordinates.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
+                  <code><span title="supervision.draw.base.ImageType">ImageType</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3781,7 +3781,7 @@ supervision-annotator-examples/vertex-annotator-example.png" /></p>
 <span class="normal"><a href="#__codelineno-0-94">94</a></span>
 <span class="normal"><a href="#__codelineno-0-95">95</a></span>
 <span class="normal"><a href="#__codelineno-0-96">96</a></span>
-<span class="normal"><a href="#__codelineno-0-97">97</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="nd">@ensure_cv2_image_for_annotation</span>
+<span class="normal"><a href="#__codelineno-0-97">97</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="nd">@ensure_cv2_image_for_class_method</span>
 </span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="k">def</span><span class="w"> </span><span class="nf">annotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">key_points</span><span class="p">:</span> <span class="n">KeyPoints</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span><span class="p">:</span>
 </span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49"></a><span class="sd">    Annotates the given scene with skeleton vertices based on the provided key</span>
@@ -3990,7 +3990,7 @@ points. It connects key points with lines to form the skeleton structure.</p>
 </span><span id="__span-0-120"><a id="__codelineno-0-120" name="__codelineno-0-120"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">thickness</span> <span class="o">=</span> <span class="n">thickness</span>
 </span><span id="__span-0-121"><a id="__codelineno-0-121" name="__codelineno-0-121"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">edges</span> <span class="o">=</span> <span class="n">edges</span>
 </span><span id="__span-0-122"><a id="__codelineno-0-122" name="__codelineno-0-122"></a>
-</span><span id="__span-0-123"><a id="__codelineno-0-123" name="__codelineno-0-123"></a>    <span class="nd">@ensure_cv2_image_for_annotation</span>
+</span><span id="__span-0-123"><a id="__codelineno-0-123" name="__codelineno-0-123"></a>    <span class="nd">@ensure_cv2_image_for_class_method</span>
 </span><span id="__span-0-124"><a id="__codelineno-0-124" name="__codelineno-0-124"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">annotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">key_points</span><span class="p">:</span> <span class="n">KeyPoints</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span><span class="p">:</span>
 </span><span id="__span-0-125"><a id="__codelineno-0-125" name="__codelineno-0-125"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="__span-0-126"><a id="__codelineno-0-126" name="__codelineno-0-126"></a><span class="sd">        Annotates the given scene by drawing lines between specified key points to form</span>
@@ -4224,7 +4224,7 @@ edges.</p>
 <h5 id="supervision.key_points.annotators.EdgeAnnotator.annotate(scene)" class="doc doc-heading doc-heading-parameter">                  <code>scene</code>
 <a href="#supervision.key_points.annotators.EdgeAnnotator.annotate(scene)" class="headerlink" title="Permanent link">&para;</a></h5>            </td>
             <td>
-                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
+                  <code><span title="supervision.draw.base.ImageType">ImageType</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4274,7 +4274,7 @@ consists of x and y coordinates.</p>
       <tbody>
           <tr class="doc-section-item">
 <td><code>Returns</code></td>            <td>
-                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
+                  <code><span title="supervision.draw.base.ImageType">ImageType</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4375,7 +4375,7 @@ supervision-annotator-examples/edge-annotator-example.png" /></p>
 <span class="normal"><a href="#__codelineno-0-186">186</a></span>
 <span class="normal"><a href="#__codelineno-0-187">187</a></span>
 <span class="normal"><a href="#__codelineno-0-188">188</a></span>
-<span class="normal"><a href="#__codelineno-0-189">189</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-123"><a id="__codelineno-0-123" name="__codelineno-0-123"></a><span class="nd">@ensure_cv2_image_for_annotation</span>
+<span class="normal"><a href="#__codelineno-0-189">189</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-123"><a id="__codelineno-0-123" name="__codelineno-0-123"></a><span class="nd">@ensure_cv2_image_for_class_method</span>
 </span><span id="__span-0-124"><a id="__codelineno-0-124" name="__codelineno-0-124"></a><span class="k">def</span><span class="w"> </span><span class="nf">annotate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">key_points</span><span class="p">:</span> <span class="n">KeyPoints</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span><span class="p">:</span>
 </span><span id="__span-0-125"><a id="__codelineno-0-125" name="__codelineno-0-125"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="__span-0-126"><a id="__codelineno-0-126" name="__codelineno-0-126"></a><span class="sd">    Annotates the given scene by drawing lines between specified key points to form</span>
@@ -5270,7 +5270,7 @@ boxes. Set to a high value to produce circles.</p>
 <h5 id="supervision.key_points.annotators.VertexLabelAnnotator.annotate(scene)" class="doc doc-heading doc-heading-parameter">                  <code>scene</code>
 <a href="#supervision.key_points.annotators.VertexLabelAnnotator.annotate(scene)" class="headerlink" title="Permanent link">&para;</a></h5>            </td>
             <td>
-                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
+                  <code><span title="supervision.draw.base.ImageType">ImageType</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5337,7 +5337,7 @@ annotated image. If not provided, keypoint indices will be used.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code><span title="supervision.annotators.base.ImageType">ImageType</span></code>
+                  <code><span title="supervision.draw.base.ImageType">ImageType</span></code>
             </td>
             <td>
               <div class="doc-md-description">
