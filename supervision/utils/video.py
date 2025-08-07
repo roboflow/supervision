@@ -73,6 +73,7 @@ class VideoInfo:
     def resolution_wh(self) -> tuple[int, int]:
         return self.width, self.height
 
+
 class Backend(ABC):
     def __init__(self):
         self.cap = None
@@ -646,6 +647,7 @@ class VideoSink:
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.__writer.release()
 
+
 @DeprecationWarning
 def _validate_and_setup_video(
     source_path: str, start: int, end: int | None, iterative_seek: bool = False
@@ -669,6 +671,7 @@ def _validate_and_setup_video(
         video.set(cv2.CAP_PROP_POS_FRAMES, start)
 
     return video, start, end
+
 
 @DeprecationWarning
 def get_video_frames_generator(
@@ -720,6 +723,7 @@ def get_video_frames_generator(
                 break
         frame_position += stride
     video.release()
+
 
 @DeprecationWarning
 def process_video(
