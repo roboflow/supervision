@@ -364,7 +364,7 @@ def overlay_image(
 
 @ensure_cv2_image_for_standalone_function
 def tint_image(
-    scene: ImageType,
+    image: ImageType,
     color: Color = Color.BLACK,
     opacity: float = 0.5,
 ) -> ImageType:
@@ -372,7 +372,7 @@ def tint_image(
     Tint image with solid color overlay at specified opacity.
 
     Args:
-        scene (`numpy.ndarray` or `PIL.Image.Image`): The image to tint.
+        image (`numpy.ndarray` or `PIL.Image.Image`): The image to tint.
         color (`Color`): Overlay tint color. Defaults to `Color.BLACK`.
         opacity (`float`): Blend ratio between overlay and image (0.0-1.0).
             Defaults to `0.5`.
@@ -391,7 +391,7 @@ def tint_image(
 
         image = cv2.imread("source.png")
         tinted_image = sv.tint_image(
-            scene=image, color=sv.Color.BLACK, opacity=0.5
+            image=image, color=sv.Color.BLACK, opacity=0.5
         )
         cv2.imwrite("target.png", tinted_image)
         ```
@@ -402,7 +402,7 @@ def tint_image(
 
         image = Image.open("source.png")
         tinted_image = sv.tint_image(
-            scene=image, color=sv.Color.BLACK, opacity=0.5
+            image=image, color=sv.Color.BLACK, opacity=0.5
         )
         tinted_image.save("target.png")
         ```
@@ -410,26 +410,26 @@ def tint_image(
     if not 0.0 <= opacity <= 1.0:
         raise ValueError("opacity must be between 0.0 and 1.0")
 
-    overlay = np.full_like(scene, fill_value=color.as_bgr(), dtype=scene.dtype)
+    overlay = np.full_like(image, fill_value=color.as_bgr(), dtype=image.dtype)
     cv2.addWeighted(
         src1=overlay,
         alpha=opacity,
-        src2=scene,
+        src2=image,
         beta=1 - opacity,
         gamma=0,
-        dst=scene
+        dst=image
     )
-    return scene
+    return image
 
 
 @ensure_cv2_image_for_standalone_function
-def grayscale_image(scene: ImageType) -> ImageType:
+def grayscale_image(image: ImageType) -> ImageType:
     """
     Convert image to 3-channel grayscale. Luminance channel is broadcast to
     all three channels for compatibility with color-based drawing helpers.
 
     Args:
-        scene (`numpy.ndarray` or `PIL.Image.Image`): The image to convert to
+        image (`numpy.ndarray` or `PIL.Image.Image`): The image to convert to
             grayscale.
 
     Returns:
@@ -442,7 +442,7 @@ def grayscale_image(scene: ImageType) -> ImageType:
         import supervision as sv
 
         image = cv2.imread("source.png")
-        grayscale_image = sv.grayscale_image(scene=image)
+        grayscale_image = sv.grayscale_image(image=image)
         cv2.imwrite("target.png", grayscale_image)
         ```
 
@@ -455,7 +455,7 @@ def grayscale_image(scene: ImageType) -> ImageType:
         grayscale_image.save("target.png")
         ```
     """
-    grayscaled = cv2.cvtColor(scene, cv2.COLOR_BGR2GRAY)
+    grayscaled = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     return cv2.cvtColor(grayscaled, cv2.COLOR_GRAY2BGR)
 
 
