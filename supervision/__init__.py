@@ -121,12 +121,12 @@ from supervision.utils.file import list_files_with_extensions
 from supervision.utils.image import (
     ImageSink,
     crop_image,
+    grayscale_image,
     letterbox_image,
     overlay_image,
     resize_image,
     scale_image,
     tint_image,
-    grayscale_image
 )
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (
@@ -222,6 +222,7 @@ __all__ = [
     "get_coco_class_index_mapping",
     "get_polygon_center",
     "get_video_frames_generator",
+    "grayscale_image",
     "letterbox_image",
     "list_files_with_extensions",
     "mask_iou_batch",
@@ -245,11 +246,10 @@ __all__ = [
     "rle_to_mask",
     "scale_boxes",
     "scale_image",
+    "tint_image",
     "xcycwh_to_xyxy",
     "xywh_to_xyxy",
     "xyxy_to_polygons",
     "xyxy_to_xcycarh",
     "xyxy_to_xywh",
-    "tint_image",
-    "grayscale_image"
 ]
