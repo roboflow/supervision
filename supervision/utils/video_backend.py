@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Protocol, Union
 
 import cv2
@@ -26,7 +24,7 @@ class VideoInfo:
 
     Attributes:
         width: Width of the video in pixels
-        height: Height of the video in pixels  
+        height: Height of the video in pixels
         fps: Frames per second of the video (as float for precision)
         total_frames: Total number of frames in the video, None for streams
         codec: Video codec used (e.g., 'h264', 'mjpeg')
@@ -51,13 +49,13 @@ class VideoInfo:
     def from_video_path(cls, video_path: str) -> VideoInfo:
         """
         Create VideoInfo from a video file path.
-        
+
         Args:
             video_path: Path to the video file
-            
+
         Returns:
             VideoInfo object with video metadata
-            
+
         Raises:
             Exception: If video cannot be opened
         """
@@ -84,13 +82,13 @@ class Writer(Protocol):
 class Backend(Protocol):
     """Protocol defining the interface for video backends."""
 
-    def open(self, path: Union[str, int]) -> Any:
+    def open(self, path: str | int) -> Any:
         """
         Open a video source.
-        
+
         Args:
             path: Path to video file, RTSP URL, or device index for webcam
-            
+
         Returns:
             Handle to the opened video source
         """
@@ -99,10 +97,10 @@ class Backend(Protocol):
     def info(self, handle: Any) -> VideoInfo:
         """
         Get video information from an opened handle.
-        
+
         Args:
             handle: Video handle from open()
-            
+
         Returns:
             VideoInfo object with video metadata
         """
@@ -111,10 +109,10 @@ class Backend(Protocol):
     def read(self, handle: Any) -> tuple[bool, np.ndarray | None]:
         """
         Read the next frame from the video.
-        
+
         Args:
             handle: Video handle from open()
-            
+
         Returns:
             Tuple of (success, frame) where frame is None if unsuccessful
         """
@@ -123,10 +121,10 @@ class Backend(Protocol):
     def grab(self, handle: Any) -> bool:
         """
         Grab the next frame without decoding it.
-        
+
         Args:
             handle: Video handle from open()
-            
+
         Returns:
             True if frame was grabbed successfully
         """
@@ -135,7 +133,7 @@ class Backend(Protocol):
     def seek(self, handle: Any, frame_idx: int) -> None:
         """
         Seek to a specific frame index.
-        
+
         Args:
             handle: Video handle from open()
             frame_idx: Frame index to seek to
@@ -145,12 +143,12 @@ class Backend(Protocol):
     def writer(self, path: str, info: VideoInfo, codec: str | None = None) -> Writer:
         """
         Create a video writer.
-        
+
         Args:
             path: Output file path
             info: Video information for output
             codec: Video codec to use (backend-specific format)
-            
+
         Returns:
             Writer object for writing frames
         """
@@ -159,7 +157,7 @@ class Backend(Protocol):
     def close(self, handle: Any) -> None:
         """
         Close the video handle.
-        
+
         Args:
             handle: Video handle from open()
         """
@@ -206,7 +204,7 @@ class OpenCVWriter:
 class OpenCVBackend:
     """OpenCV-based video backend implementation."""
 
-    def open(self, path: Union[str, int]) -> cv2.VideoCapture:
+    def open(self, path: str | int) -> cv2.VideoCapture:
         """Open a video source using OpenCV."""
         video = cv2.VideoCapture(path)
         if not video.isOpened():
@@ -219,22 +217,22 @@ class OpenCVBackend:
         height = int(handle.get(cv2.CAP_PROP_FRAME_HEIGHT))
         fps = handle.get(cv2.CAP_PROP_FPS)  # Keep as float for precision
         total_frames = int(handle.get(cv2.CAP_PROP_FRAME_COUNT))
-        
+
         # Handle invalid values for streams
         if total_frames <= 0:
             total_frames = None
-            
+
         # Calculate duration if we have total frames and FPS
         duration = None
         if total_frames is not None and fps > 0:
             duration = total_frames / fps
-            
+
         # Get codec information
         codec_int = int(handle.get(cv2.CAP_PROP_FOURCC))
         codec = None
         if codec_int > 0:
             codec = "".join([chr((codec_int >> 8 * i) & 0xFF) for i in range(4)])
-            
+
         # Get bit rate if available
         bit_rate = None
         try:
@@ -322,7 +320,9 @@ if PYAV_AVAILABLE:
     class PyAVBackend:
         """PyAV-based video backend implementation."""
 
-        def open(self, path: Union[str, int]) -> tuple[av.container.InputContainer, av.video.stream.VideoStream]:
+        def open(
+            self, path: str | int
+        ) -> tuple[av.container.InputContainer, av.video.stream.VideoStream]:
             """Open a video source using PyAV."""
             if isinstance(path, int):
                 # Convert webcam index to device path
@@ -337,19 +337,24 @@ if PYAV_AVAILABLE:
                 elif system == "Windows":
                     path = f"video={path}"
                 else:
-                    raise NotImplementedError(f"Webcam support not implemented for {system}")
+                    raise NotImplementedError(
+                        f"Webcam support not implemented for {system}"
+                    )
 
             container = av.open(path)
             video_stream = container.streams.video[0]
             return container, video_stream
 
-        def info(self, handle: tuple[av.container.InputContainer, av.video.stream.VideoStream]) -> VideoInfo:
+        def info(
+            self,
+            handle: tuple[av.container.InputContainer, av.video.stream.VideoStream],
+        ) -> VideoInfo:
             """Get video information from PyAV container."""
             container, stream = handle
-            
+
             width = stream.width
             height = stream.height
-            
+
             # Get FPS as float for precision
             if stream.average_rate:
                 fps = float(stream.average_rate)
@@ -357,7 +362,7 @@ if PYAV_AVAILABLE:
                 fps = float(stream.guessed_rate)
             else:
                 fps = 30.0  # Default fallback
-            
+
             # Get total frames
             total_frames = stream.frames
             if total_frames == 0:
@@ -367,17 +372,17 @@ if PYAV_AVAILABLE:
                     total_frames = int(duration_sec * fps)
                 else:
                     total_frames = None
-                    
+
             # Get duration
             duration = None
             if stream.duration and stream.time_base:
                 duration = float(stream.duration * stream.time_base)
             elif total_frames and fps > 0:
                 duration = total_frames / fps
-                
+
             # Get codec name
             codec = stream.codec_context.name if stream.codec_context else None
-            
+
             # Get bit rate
             bit_rate = stream.bit_rate if stream.bit_rate else None
 
@@ -391,7 +396,10 @@ if PYAV_AVAILABLE:
                 bit_rate=bit_rate,
             )
 
-        def read(self, handle: tuple[av.container.InputContainer, av.video.stream.VideoStream]) -> tuple[bool, np.ndarray | None]:
+        def read(
+            self,
+            handle: tuple[av.container.InputContainer, av.video.stream.VideoStream],
+        ) -> tuple[bool, np.ndarray | None]:
             """Read the next frame from the video."""
             container, stream = handle
             try:
@@ -406,7 +414,10 @@ if PYAV_AVAILABLE:
             except StopIteration:
                 return False, None
 
-        def grab(self, handle: tuple[av.container.InputContainer, av.video.stream.VideoStream]) -> bool:
+        def grab(
+            self,
+            handle: tuple[av.container.InputContainer, av.video.stream.VideoStream],
+        ) -> bool:
             """Grab the next frame without fully decoding it."""
             container, stream = handle
             try:
@@ -417,20 +428,29 @@ if PYAV_AVAILABLE:
             except (av.error.EOFError, StopIteration):
                 return False
 
-        def seek(self, handle: tuple[av.container.InputContainer, av.video.stream.VideoStream], frame_idx: int) -> None:
+        def seek(
+            self,
+            handle: tuple[av.container.InputContainer, av.video.stream.VideoStream],
+            frame_idx: int,
+        ) -> None:
             """Seek to a specific frame index."""
             container, stream = handle
             # Convert frame index to timestamp
             timestamp = int(frame_idx / stream.average_rate * av.time_base)
             container.seek(timestamp, stream=stream)
 
-        def writer(self, path: str, info: VideoInfo, codec: str | None = None) -> Writer:
+        def writer(
+            self, path: str, info: VideoInfo, codec: str | None = None
+        ) -> Writer:
             """Create a PyAV video writer."""
             if codec is None:
                 codec = "h264"
             return PyAVWriter(path, info, codec)
 
-        def close(self, handle: tuple[av.container.InputContainer, av.video.stream.VideoStream]) -> None:
+        def close(
+            self,
+            handle: tuple[av.container.InputContainer, av.video.stream.VideoStream],
+        ) -> None:
             """Close the PyAV container."""
             container, _ = handle
             container.close()
@@ -439,13 +459,13 @@ if PYAV_AVAILABLE:
 def get_backend(backend_name: str | None = None) -> Backend:
     """
     Get a video backend by name.
-    
+
     Args:
         backend_name: Name of the backend ('opencv', 'pyav', or None for auto-selection)
-        
+
     Returns:
         Backend instance
-        
+
     Raises:
         ValueError: If requested backend is not available
     """
@@ -459,7 +479,11 @@ def get_backend(backend_name: str | None = None) -> Backend:
         return OpenCVBackend()
     elif backend_name.lower() == "pyav":
         if not PYAV_AVAILABLE:
-            raise ValueError("PyAV backend requested but av package is not installed. Install with: pip install av")
+            raise ValueError(
+                "PyAV backend requested but av package is not installed. Install with: pip install av"
+            )
         return PyAVBackend()
     else:
-        raise ValueError(f"Unknown backend: {backend_name}. Available: 'opencv', 'pyav'")
+        raise ValueError(
+            f"Unknown backend: {backend_name}. Available: 'opencv', 'pyav'"
+        )

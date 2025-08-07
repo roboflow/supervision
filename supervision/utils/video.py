@@ -7,7 +7,6 @@ from dataclasses import dataclass
 
 import cv2
 import numpy as np
-from tqdm.auto import tqdm
 
 from supervision.utils.internal import deprecated
 from supervision.utils.video_backend import VideoInfo as VideoInfoNew
@@ -110,6 +109,7 @@ class VideoSink:
     def __enter__(self):
         # Use the backend directly to create a writer
         from supervision.utils.video_backend import get_backend
+
         backend = get_backend()
         self.__writer = backend.writer(self.target_path, self.__new_info, self.__codec)
         return self
