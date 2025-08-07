@@ -54,10 +54,19 @@ ROBOFLOW_COLOR_PALETTE = ["C28DFC", "A351FB", "8315F9", "6706CE", "5905B3", "4D0
 
 
 def _validate_color_hex(color_hex: str):
+    """Validate hexadecimal color value.
+
+    Accepts 3-, 4-, 6- or 8-digit hexadecimal strings. 3/4-digit strings
+    are shorthand (#RGB / #RGBA) and will be expanded by repeating each
+    nibble when converting to an integer value.
+    """
     color_hex = color_hex.lstrip("#")
+
+    # ensure all chars are valid hex digits
     if not all(c in "0123456789abcdefABCDEF" for c in color_hex):
         raise ValueError("Invalid characters in color hash")
-    if len(color_hex) not in (3, 6):
+
+    if len(color_hex) not in (3, 4, 6, 8):
         raise ValueError("Invalid length of color hash")
 
 
@@ -97,6 +106,7 @@ class Color:
     r: int
     g: int
     b: int
+    a: int = 255
 
     @classmethod
     def from_hex(cls, color_hex: str) -> Color:
@@ -125,13 +135,25 @@ class Color:
         """
         _validate_color_hex(color_hex)
         color_hex = color_hex.lstrip("#")
-        if len(color_hex) == 3:
+
+        # Expand shorthand notation (#RGB or #RGBA) by duplicating each nibble
+        if len(color_hex) in (3, 4):
             color_hex = "".join(c * 2 for c in color_hex)
-        r, g, b = (int(color_hex[i : i + 2], 16) for i in range(0, 6, 2))
-        return cls(r, g, b)
+
+        # After possible expansion we expect either 6 or 8 characters
+        if len(color_hex) == 6:
+            r, g, b = (int(color_hex[i : i + 2], 16) for i in range(0, 6, 2))
+            a = 255
+        elif len(color_hex) == 8:
+            r, g, b, a = (int(color_hex[i : i + 2], 16) for i in range(0, 8, 2))
+        else:
+            # This should not happen due to earlier validation but kept for safety
+            raise ValueError("Invalid length of color hash after processing")
+
+        return cls(r=r, g=g, b=b, a=a)
 
     @classmethod
-    def from_rgb_tuple(cls, color_tuple: tuple[int, int, int]) -> Color:
+    def from_rgb_tuple(cls, color_tuple: tuple[int, int, int] | tuple[int, int, int, int]) -> Color:
         """
         Create a Color instance from an RGB tuple.
 
@@ -150,11 +172,18 @@ class Color:
             # Color(r=255, g=255, b=0)
             ```
         """
-        r, g, b = color_tuple
-        return cls(r=r, g=g, b=b)
+        # Allow passing optional alpha channel in the tuple
+        if len(color_tuple) == 3:
+            r, g, b = color_tuple
+            a = 255
+        elif len(color_tuple) == 4:
+            r, g, b, a = color_tuple
+        else:
+            raise ValueError("RGB(A) tuple must have length 3 or 4")
+        return cls(r=r, g=g, b=b, a=a)
 
     @classmethod
-    def from_bgr_tuple(cls, color_tuple: tuple[int, int, int]) -> Color:
+    def from_bgr_tuple(cls, color_tuple: tuple[int, int, int] | tuple[int, int, int, int]) -> Color:
         """
         Create a Color instance from a BGR tuple.
 
@@ -173,8 +202,15 @@ class Color:
             # Color(r=255, g=255, b=0)
             ```
         """
-        b, g, r = color_tuple
-        return cls(r=r, g=g, b=b)
+        # Allow passing optional alpha channel in the tuple
+        if len(color_tuple) == 3:
+            b, g, r = color_tuple
+            a = 255
+        elif len(color_tuple) == 4:
+            b, g, r, a = color_tuple
+        else:
+            raise ValueError("BGR(A) tuple must have length 3 or 4")
+        return cls(r=r, g=g, b=b, a=a)
 
     def as_hex(self) -> str:
         """
@@ -191,7 +227,17 @@ class Color:
             # '#ffff00'
             ```
         """
+        if self.a != 255:
+            return f"#{self.r:02x}{self.g:02x}{self.b:02x}{self.a:02x}"
         return f"#{self.r:02x}{self.g:02x}{self.b:02x}"
+
+    def as_rgba(self) -> tuple[int, int, int, int]:
+        """Returns the color as an RGBA tuple.
+
+        Returns:
+            Tuple[int, int, int, int]: RGBA tuple.
+        """
+        return self.r, self.g, self.b, self.a
 
     def as_rgb(self) -> tuple[int, int, int]:
         """
@@ -260,7 +306,7 @@ class Color:
         return Color.from_hex("#A351FB")
 
     def __hash__(self):
-        return hash((self.r, self.g, self.b))
+        return hash((self.r, self.g, self.b, self.a))
 
     def __eq__(self, other):
         return (
@@ -268,6 +314,7 @@ class Color:
             and self.r == other.r
             and self.g == other.g
             and self.b == other.b
+            and self.a == other.a
         )
 
 
