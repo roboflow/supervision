@@ -60,9 +60,7 @@ def crop_image(
         cropped_image.size
         # (400, 400)
         ```
-        
-    ![crop_image](https://media.roboflow.com/supervision-docs/crop-image.png){ align=center width="800" }
-    """  # noqa E501 // docs
+    """
     if isinstance(xyxy, (list, tuple)):
         xyxy = np.array(xyxy)
     xyxy = np.round(xyxy).astype(int)
@@ -451,7 +449,7 @@ def grayscale_image(image: ImageType) -> ImageType:
         import supervision as sv
 
         image = Image.open("source.png")
-        grayscale_image = sv.grayscale_image(scene=image)
+        grayscale_image = sv.grayscale_image(image=image)
         grayscale_image.save("target.png")
         ```
     """
