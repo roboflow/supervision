@@ -64,7 +64,7 @@ class VideoInfo:
 
         width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = (round(video.get(cv2.CAP_PROP_FPS)))
+        fps = round(video.get(cv2.CAP_PROP_FPS))
         total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
         video.release()
         return VideoInfo(width, height, fps, total_frames)
@@ -231,7 +231,7 @@ class OpenCVBackend(Backend):
             raise RuntimeError("Video not opened yet.")
         width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = (round(self.cap.get(cv2.CAP_PROP_FPS)))
+        fps = round(self.cap.get(cv2.CAP_PROP_FPS))
         total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         return VideoInfo(width, height, fps, total_frames)
 
