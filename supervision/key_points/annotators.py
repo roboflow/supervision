@@ -6,8 +6,8 @@ from logging import warn
 import cv2
 import numpy as np
 
-from supervision.draw.base import ImageType
 from supervision.detection.utils.boxes import pad_boxes, spread_out_boxes
+from supervision.draw.base import ImageType
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_rounded_rectangle
 from supervision.geometry.core import Rect

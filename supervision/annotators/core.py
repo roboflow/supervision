@@ -9,7 +9,6 @@ import numpy.typing as npt
 from PIL import Image, ImageDraw, ImageFont
 from scipy.interpolate import splev, splprep
 
-from supervision.draw.base import ImageType
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import (
     PENDING_TRACK_ID,
@@ -30,6 +29,7 @@ from supervision.detection.utils.converters import (
     polygon_to_mask,
     xyxy_to_polygons,
 )
+from supervision.draw.base import ImageType
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_polygon, draw_rounded_rectangle, draw_text
 from supervision.geometry.core import Point, Position, Rect
