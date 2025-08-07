@@ -41,7 +41,7 @@ def crop_image(
         image.shape
         # (1080, 1920, 3)
 
-        xyxy = (200, 400, 600, 800)
+        xyxy = (400, 400, 800, 800)
         cropped_image = sv.crop_image(image=image, xyxy=xyxy)
         cropped_image.shape
         # (400, 400, 3)
@@ -55,12 +55,14 @@ def crop_image(
         image.size
         # (1920, 1080)
 
-        xyxy = (200, 400, 600, 800)
+        xyxy = (400, 400, 800, 800)
         cropped_image = sv.crop_image(image=image, xyxy=xyxy)
         cropped_image.size
         # (400, 400)
         ```
-    """
+
+    ![crop-image](https://media.roboflow.com/supervision-docs/supervision-docs-crop-image-2.png){ align=center width="1000" }
+    """  # noqa E501 // docs
     if isinstance(xyxy, (list, tuple)):
         xyxy = np.array(xyxy)
     xyxy = np.round(xyxy).astype(int)
@@ -110,7 +112,9 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
         scaled_image.size
         # (960, 540)
         ```
-    """
+
+    ![scale-image](https://media.roboflow.com/supervision-docs/supervision-docs-scale-image-2.png){ align=center width="1000" }
+    """  # noqa E501 // docs
     if scale_factor <= 0:
         raise ValueError("Scale factor must be positive.")
 
@@ -170,7 +174,7 @@ def resize_image(
         # (1000, 562)
         ```
         
-    ![resize_image](https://media.roboflow.com/supervision-docs/resize-image.png){ align=center width="800" }
+    ![resize-image](https://media.roboflow.com/supervision-docs/supervision-docs-resize-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
     if keep_aspect_ratio:
         image_ratio = image.shape[1] / image.shape[0]
@@ -238,7 +242,7 @@ def letterbox_image(
         # (1000, 1000)
         ```
         
-    ![letterbox_image](https://media.roboflow.com/supervision-docs/letterbox-image.png){ align=center width="800" }
+    ![letterbox-image](https://media.roboflow.com/supervision-docs/supervision-docs-letterbox-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
     assert isinstance(image, np.ndarray)
     color = unify_to_bgr(color=color)
@@ -389,7 +393,7 @@ def tint_image(
 
         image = cv2.imread("source.png")
         tinted_image = sv.tint_image(
-            image=image, color=sv.Color.BLACK, opacity=0.5
+            image=image, color=sv.Color.ROBOFLOW, opacity=0.5
         )
         cv2.imwrite("target.png", tinted_image)
         ```
@@ -400,11 +404,13 @@ def tint_image(
 
         image = Image.open("source.png")
         tinted_image = sv.tint_image(
-            image=image, color=sv.Color.BLACK, opacity=0.5
+            image=image, color=sv.Color.ROBOFLOW, opacity=0.5
         )
         tinted_image.save("target.png")
         ```
-    """
+
+    ![tint-image](https://media.roboflow.com/supervision-docs/supervision-docs-tint-image-2.png){ align=center width="1000" }
+    """  # noqa E501 // docs
     if not 0.0 <= opacity <= 1.0:
         raise ValueError("opacity must be between 0.0 and 1.0")
 
@@ -452,7 +458,9 @@ def grayscale_image(image: ImageType) -> ImageType:
         grayscale_image = sv.grayscale_image(image=image)
         grayscale_image.save("target.png")
         ```
-    """
+        
+    ![grayscale-image](https://media.roboflow.com/supervision-docs/supervision-docs-grayscale-image-2.png){ align=center width="1000" }
+    """  # noqa E501 // docs
     grayscaled = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     return cv2.cvtColor(grayscaled, cv2.COLOR_GRAY2BGR)
 
