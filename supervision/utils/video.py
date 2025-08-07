@@ -52,7 +52,7 @@ class VideoInfo:
 
     width: int
     height: int
-    fps: float
+    fps: int
     total_frames: int | None = None
     source_type: SOURCE_TYPE | None = None
 
@@ -64,7 +64,7 @@ class VideoInfo:
 
         width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = int(video.get(cv2.CAP_PROP_FPS))
+        fps = int(round(video.get(cv2.CAP_PROP_FPS)))
         total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
         video.release()
         return VideoInfo(width, height, fps, total_frames)
@@ -72,7 +72,6 @@ class VideoInfo:
     @property
     def resolution_wh(self) -> tuple[int, int]:
         return self.width, self.height
-
 
 class Backend(ABC):
     def __init__(self):
@@ -231,9 +230,9 @@ class OpenCVBackend(Backend):
             raise RuntimeError("Video not opened yet.")
         width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = self.cap.get(cv2.CAP_PROP_FPS)
+        fps = int(round(self.cap.get(cv2.CAP_PROP_FPS)))
         total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        return VideoInfo(width, height, int(fps), total_frames)
+        return VideoInfo(width, height, fps, total_frames)
 
     def info(self) -> VideoInfo:
         """Get video information.
