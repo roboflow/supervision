@@ -57,29 +57,33 @@ def _validate_color_hex(color_hex: str):
     color_hex = color_hex.lstrip("#")
     if not all(c in "0123456789abcdefABCDEF" for c in color_hex):
         raise ValueError("Invalid characters in color hash")
-    if len(color_hex) not in (3, 6):
+    if len(color_hex) not in (3, 4, 6, 8):
         raise ValueError("Invalid length of color hash")
 
 
 @dataclass
 class Color:
     """
-    Represents a color in RGB format.
+    Represents a color in RGB format with optional alpha channel.
 
     This class provides methods to work with colors, including creating colors from hex
-    codes, converting colors to hex strings, RGB tuples, and BGR tuples.
+    codes, converting colors to hex strings, RGB/RGBA tuples, and BGR tuples.
 
     Attributes:
         r (int): Red channel value (0-255).
         g (int): Green channel value (0-255).
         b (int): Blue channel value (0-255).
+        a (int): Alpha channel value (0-255). Defaults to 255 (fully opaque).
 
     Example:
         ```python
         import supervision as sv
 
         sv.Color.WHITE
-        # Color(r=255, g=255, b=255)
+        # Color(r=255, g=255, b=255, a=255)
+        
+        sv.Color(r=255, g=0, b=255, a=128)
+        # Color(r=255, g=0, b=255, a=128)
         ```
 
     | Constant   | Hex Code   | RGB               |
@@ -97,6 +101,7 @@ class Color:
     r: int
     g: int
     b: int
+    a: int = 255
 
     @classmethod
     def from_hex(cls, color_hex: str) -> Color:
@@ -105,9 +110,11 @@ class Color:
 
         Args:
             color_hex (str): The hex string representing the color. This string can
-                start with '#' followed by either 3 or 6 hexadecimal characters. In
-                case of 3 characters, each character is repeated to form the full
-                6-character hex code.
+                start with '#' followed by either 3, 4, 6, or 8 hexadecimal characters.
+                - 3 characters: RGB, each character is repeated (e.g., 'f0f' -> 'ff00ff')
+                - 4 characters: RGBA, each character is repeated (e.g., 'f0f8' -> 'ff00ff88')
+                - 6 characters: RGB (e.g., 'ff00ff')
+                - 8 characters: RGBA (e.g., 'ff00ff80')
 
         Returns:
             Color: An instance representing the color.
@@ -117,18 +124,39 @@ class Color:
             import supervision as sv
 
             sv.Color.from_hex('#ff00ff')
-            # Color(r=255, g=0, b=255)
+            # Color(r=255, g=0, b=255, a=255)
 
             sv.Color.from_hex('#f0f')
-            # Color(r=255, g=0, b=255)
+            # Color(r=255, g=0, b=255, a=255)
+            
+            sv.Color.from_hex('#ff00ff80')
+            # Color(r=255, g=0, b=255, a=128)
+            
+            sv.Color.from_hex('#f0f8')
+            # Color(r=255, g=0, b=255, a=136)
             ```
         """
         _validate_color_hex(color_hex)
         color_hex = color_hex.lstrip("#")
+        
         if len(color_hex) == 3:
+            # RGB shorthand
             color_hex = "".join(c * 2 for c in color_hex)
-        r, g, b = (int(color_hex[i : i + 2], 16) for i in range(0, 6, 2))
-        return cls(r, g, b)
+            r, g, b = (int(color_hex[i : i + 2], 16) for i in range(0, 6, 2))
+            return cls(r, g, b)
+        elif len(color_hex) == 4:
+            # RGBA shorthand
+            color_hex = "".join(c * 2 for c in color_hex)
+            r, g, b, a = (int(color_hex[i : i + 2], 16) for i in range(0, 8, 2))
+            return cls(r, g, b, a)
+        elif len(color_hex) == 6:
+            # RGB full
+            r, g, b = (int(color_hex[i : i + 2], 16) for i in range(0, 6, 2))
+            return cls(r, g, b)
+        else:  # len(color_hex) == 8
+            # RGBA full
+            r, g, b, a = (int(color_hex[i : i + 2], 16) for i in range(0, 8, 2))
+            return cls(r, g, b, a)
 
     @classmethod
     def from_rgb_tuple(cls, color_tuple: tuple[int, int, int]) -> Color:
@@ -179,6 +207,9 @@ class Color:
     def as_hex(self) -> str:
         """
         Converts the Color instance to a hex string.
+        
+        If the alpha channel is 255 (fully opaque), returns a 6-digit hex string.
+        Otherwise, returns an 8-digit hex string including the alpha channel.
 
         Returns:
             str: The hexadecimal color string.
@@ -189,9 +220,15 @@ class Color:
 
             sv.Color(r=255, g=255, b=0).as_hex()
             # '#ffff00'
+            
+            sv.Color(r=255, g=0, b=255, a=128).as_hex()
+            # '#ff00ff80'
             ```
         """
-        return f"#{self.r:02x}{self.g:02x}{self.b:02x}"
+        if self.a == 255:
+            return f"#{self.r:02x}{self.g:02x}{self.b:02x}"
+        else:
+            return f"#{self.r:02x}{self.g:02x}{self.b:02x}{self.a:02x}"
 
     def as_rgb(self) -> tuple[int, int, int]:
         """
@@ -209,6 +246,26 @@ class Color:
             ```
         """
         return self.r, self.g, self.b
+    
+    def as_rgba(self) -> tuple[int, int, int, int]:
+        """
+        Returns the color as an RGBA tuple.
+
+        Returns:
+            Tuple[int, int, int, int]: RGBA tuple.
+
+        Example:
+            ```python
+            import supervision as sv
+
+            sv.Color(r=255, g=255, b=0).as_rgba()
+            # (255, 255, 0, 255)
+            
+            sv.Color(r=255, g=0, b=255, a=128).as_rgba()
+            # (255, 0, 255, 128)
+            ```
+        """
+        return self.r, self.g, self.b, self.a
 
     def as_bgr(self) -> tuple[int, int, int]:
         """
@@ -260,7 +317,7 @@ class Color:
         return Color.from_hex("#A351FB")
 
     def __hash__(self):
-        return hash((self.r, self.g, self.b))
+        return hash((self.r, self.g, self.b, self.a))
 
     def __eq__(self, other):
         return (
@@ -268,6 +325,7 @@ class Color:
             and self.r == other.r
             and self.g == other.g
             and self.b == other.b
+            and self.a == other.a
         )
 
 

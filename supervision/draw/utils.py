@@ -75,11 +75,16 @@ def draw_filled_rectangle(
         rect (Rect): The rectangle to be drawn
         color (Color): The color of the rectangle
         opacity (float): The opacity of rectangle when drawn on the scene.
+            If the color has an alpha channel (a != 255), it will be used
+            instead of this parameter.
 
     Returns:
         np.ndarray: The scene with the rectangle drawn on it
     """
-    if opacity == 1:
+    # Use color's alpha channel if it's not fully opaque
+    effective_opacity = opacity if color.a == 255 else color.a / 255.0
+    
+    if effective_opacity == 1:
         cv2.rectangle(
             scene,
             rect.top_left.as_xy_int_tuple(),
@@ -97,7 +102,7 @@ def draw_filled_rectangle(
             -1,
         )
         cv2.addWeighted(
-            scene_with_annotations, opacity, scene, 1 - opacity, gamma=0, dst=scene
+            scene_with_annotations, effective_opacity, scene, 1 - effective_opacity, gamma=0, dst=scene
         )
 
     return scene
@@ -191,17 +196,22 @@ def draw_filled_polygon(
         polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.
         color (Color): The color of the polygon. Defaults to Color.ROBOFLOW.
         opacity (float): The opacity of polygon when drawn on the scene.
+            If the color has an alpha channel (a != 255), it will be used
+            instead of this parameter.
 
     Returns:
         np.ndarray: The scene with the polygon drawn on it.
     """
-    if opacity == 1:
+    # Use color's alpha channel if it's not fully opaque
+    effective_opacity = opacity if color.a == 255 else color.a / 255.0
+    
+    if effective_opacity == 1:
         cv2.fillPoly(scene, [polygon], color=color.as_bgr())
     else:
         scene_with_annotations = scene.copy()
         cv2.fillPoly(scene_with_annotations, [polygon], color=color.as_bgr())
         cv2.addWeighted(
-            scene_with_annotations, opacity, scene, 1 - opacity, gamma=0, dst=scene
+            scene_with_annotations, effective_opacity, scene, 1 - effective_opacity, gamma=0, dst=scene
         )
 
     return scene
