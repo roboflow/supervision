@@ -135,6 +135,7 @@ from supervision.utils.video import (
     get_video_frames_generator,
     process_video,
 )
+from supervision.utils.video_new import Video
 
 __all__ = [
     "LMM",
@@ -192,6 +193,7 @@ __all__ = [
     "TriangleAnnotator",
     "VertexAnnotator",
     "VertexLabelAnnotator",
+    "Video",
     "VideoInfo",
     "VideoSink",
     "approximate_polygon",

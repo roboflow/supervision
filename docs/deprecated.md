@@ -12,6 +12,10 @@ These features are phased out due to better alternatives or potential issues in 
 - `overlap_ratio_wh` in [`InferenceSlicer.__init__`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/) is deprecated and will be removed in `supervision-0.27.0`. Use `overlap_wh` instead.
 - `sv.LMM` enum is deprecated and will be removed in `supervision-0.31.0`. Use `sv.VLM` instead.
 - [`sv.Detections.from_lmm`](https://supervision.roboflow.com/0.26.0/detection/core/#supervision.detection.core.Detections.from_lmm) property is deprecated and will be removed in `supervision-0.31.0`. Use [`sv.Detections.from_vlm`](https://supervision.roboflow.com/0.26.0/detection/core/#supervision.detection.core.Detections.from_vlm) instead.
+- [`sv.VideoInfo`](https://supervision.roboflow.com/latest/utils/video/#supervision.utils.video.VideoInfo) class is deprecated and will be removed in `supervision-0.32.0`. Use the new [`sv.Video`](https://supervision.roboflow.com/latest/utils/video/#supervision.utils.video_new.Video) API instead.
+- [`sv.VideoSink`](https://supervision.roboflow.com/latest/utils/video/#supervision.utils.video.VideoSink) class is deprecated and will be removed in `supervision-0.32.0`. Use [`sv.Video.sink()`](https://supervision.roboflow.com/latest/utils/video/#supervision.utils.video_new.Video.sink) or [`sv.Video.save()`](https://supervision.roboflow.com/latest/utils/video/#supervision.utils.video_new.Video.save) instead.
+- [`sv.get_video_frames_generator`](https://supervision.roboflow.com/latest/utils/video/#supervision.utils.video.get_video_frames_generator) function is deprecated and will be removed in `supervision-0.32.0`. Use [`sv.Video.frames()`](https://supervision.roboflow.com/latest/utils/video/#supervision.utils.video_new.Video.frames) instead.
+- [`sv.process_video`](https://supervision.roboflow.com/latest/utils/video/#supervision.utils.video.process_video) function is deprecated and will be removed in `supervision-0.32.0`. Use [`sv.Video.save()`](https://supervision.roboflow.com/latest/utils/video/#supervision.utils.video_new.Video.save) instead.
 
 # Removed
 

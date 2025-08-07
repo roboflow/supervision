@@ -9,7 +9,15 @@ import cv2
 import numpy as np
 from tqdm.auto import tqdm
 
+from supervision.utils.internal import deprecated
+from supervision.utils.video_backend import VideoInfo as VideoInfoNew
+from supervision.utils.video_new import Video
 
+
+@deprecated(
+    "VideoInfo is deprecated and will be removed in supervision-0.32.0. "
+    "Use supervision.utils.video_backend.VideoInfo or the new Video API instead."
+)
 @dataclass
 class VideoInfo:
     """
@@ -44,22 +52,25 @@ class VideoInfo:
 
     @classmethod
     def from_video_path(cls, video_path: str) -> VideoInfo:
-        video = cv2.VideoCapture(video_path)
-        if not video.isOpened():
-            raise Exception(f"Could not open video at {video_path}")
-
-        width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = int(video.get(cv2.CAP_PROP_FPS))
-        total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-        video.release()
-        return VideoInfo(width, height, fps, total_frames)
+        # Use new Video API internally
+        video = Video(video_path)
+        info = video.info
+        return VideoInfo(
+            width=info.width,
+            height=info.height,
+            fps=int(info.fps),  # Convert to int for backward compatibility
+            total_frames=info.total_frames,
+        )
 
     @property
     def resolution_wh(self) -> tuple[int, int]:
         return self.width, self.height
 
 
+@deprecated(
+    "VideoSink is deprecated and will be removed in supervision-0.32.0. "
+    "Use the new Video API with Video.sink() or Video.save() instead."
+)
 class VideoSink:
     """
     Context manager that saves video frames to a file using OpenCV.
@@ -88,19 +99,19 @@ class VideoSink:
         self.video_info = video_info
         self.__codec = codec
         self.__writer = None
+        # Convert old VideoInfo to new format
+        self.__new_info = VideoInfoNew(
+            width=video_info.width,
+            height=video_info.height,
+            fps=float(video_info.fps),
+            total_frames=video_info.total_frames,
+        )
 
     def __enter__(self):
-        try:
-            self.__fourcc = cv2.VideoWriter_fourcc(*self.__codec)
-        except TypeError as e:
-            print(str(e) + ". Defaulting to mp4v...")
-            self.__fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-        self.__writer = cv2.VideoWriter(
-            self.target_path,
-            self.__fourcc,
-            self.video_info.fps,
-            self.video_info.resolution_wh,
-        )
+        # Use the backend directly to create a writer
+        from supervision.utils.video_backend import get_backend
+        backend = get_backend()
+        self.__writer = backend.writer(self.target_path, self.__new_info, self.__codec)
         return self
 
     def write_frame(self, frame: np.ndarray):
@@ -111,12 +122,18 @@ class VideoSink:
             frame (np.ndarray): The video frame to be written to the file. The frame
                 must be in BGR color format.
         """
-        self.__writer.write(frame)
+        if self.__writer:
+            self.__writer.write(frame)
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        self.__writer.release()
+        if self.__writer:
+            self.__writer.close()
 
 
+@deprecated(
+    "_validate_and_setup_video is deprecated and will be removed in supervision-0.32.0. "
+    "This function is no longer needed with the new Video API."
+)
 def _validate_and_setup_video(
     source_path: str, start: int, end: int | None, iterative_seek: bool = False
 ):
@@ -141,6 +158,10 @@ def _validate_and_setup_video(
     return video, start, end
 
 
+@deprecated(
+    "get_video_frames_generator is deprecated and will be removed in supervision-0.32.0. "
+    "Use Video.frames() instead: Video(source_path).frames(stride=stride, start=start, end=end)"
+)
 def get_video_frames_generator(
     source_path: str,
     stride: int = 1,
@@ -175,23 +196,20 @@ def get_video_frames_generator(
             ...
         ```
     """
-    video, start, end = _validate_and_setup_video(
-        source_path, start, end, iterative_seek
+    # Use new Video API
+    video = Video(source_path)
+    yield from video.frames(
+        stride=stride,
+        start=start,
+        end=end,
+        iterative_seek=iterative_seek,
     )
-    frame_position = start
-    while True:
-        success, frame = video.read()
-        if not success or frame_position >= end:
-            break
-        yield frame
-        for _ in range(stride - 1):
-            success = video.grab()
-            if not success:
-                break
-        frame_position += stride
-    video.release()
 
 
+@deprecated(
+    "process_video is deprecated and will be removed in supervision-0.32.0. "
+    "Use Video.save() instead: Video(source_path).save(target_path, callback=callback)"
+)
 def process_video(
     source_path: str,
     target_path: str,
@@ -229,30 +247,15 @@ def process_video(
         )
         ```
     """
-    source_video_info = VideoInfo.from_video_path(video_path=source_path)
-    video_frames_generator = get_video_frames_generator(
-        source_path=source_path, end=max_frames
+    # Use new Video API
+    video = Video(source_path)
+    video.save(
+        target_path=target_path,
+        callback=callback,
+        max_frames=max_frames,
+        show_progress=show_progress,
+        progress_message=progress_message,
     )
-    with VideoSink(target_path=target_path, video_info=source_video_info) as sink:
-        total_frames = (
-            min(source_video_info.total_frames, max_frames)
-            if max_frames is not None
-            else source_video_info.total_frames
-        )
-        for index, frame in enumerate(
-            tqdm(
-                video_frames_generator,
-                total=total_frames,
-                disable=not show_progress,
-                desc=progress_message,
-            )
-        ):
-            result_frame = callback(frame, index)
-            sink.write_frame(frame=result_frame)
-        else:
-            for index, frame in enumerate(video_frames_generator):
-                result_frame = callback(frame, index)
-                sink.write_frame(frame=result_frame)
 
 
 class FPSMonitor:
