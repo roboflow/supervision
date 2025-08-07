@@ -64,7 +64,7 @@ class VideoInfo:
 
         width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = int(round(video.get(cv2.CAP_PROP_FPS)))
+        fps = (round(video.get(cv2.CAP_PROP_FPS)))
         total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
         video.release()
         return VideoInfo(width, height, fps, total_frames)
@@ -231,7 +231,7 @@ class OpenCVBackend(Backend):
             raise RuntimeError("Video not opened yet.")
         width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = int(round(self.cap.get(cv2.CAP_PROP_FPS)))
+        fps = (round(self.cap.get(cv2.CAP_PROP_FPS)))
         total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         return VideoInfo(width, height, fps, total_frames)
 
@@ -453,7 +453,7 @@ class OpenCVWriter(Writer):
     def __init__(
         self,
         filename: str,
-        fps: float,
+        fps: int,
         frame_size: tuple[int, int],
         codec: str = "mp4v",
     ):
@@ -461,7 +461,7 @@ class OpenCVWriter(Writer):
 
         Args:
             filename (str): Path to the output video file.
-            fps (float): Frames per second for the output video.
+            fps (int): Frames per second for the output video.
             frame_size (tuple[int, int]): Width and height of the output video frames.
             codec (str, optional): FourCC code for the video codec. Defaults to "mp4v".
 
