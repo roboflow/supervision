@@ -5,13 +5,10 @@ from collections import deque
 from collections.abc import Callable, Generator
 
 import numpy as np
-from tqdm.auto import tqdm
 
 from supervision.utils.internal import deprecated
 from supervision.video import Video
 from supervision.video.dataclasses import VideoInfo
-
-
 
 
 @deprecated(
@@ -33,8 +30,6 @@ class VideoSink:
         self.writer.release()
 
 
-
-
 @deprecated(
     "`get_video_frames_generator` is deprecated and will be removed in "
     "supervision-0.23.0. Use `sv.Video(...)` instead."
@@ -44,7 +39,7 @@ def get_video_frames_generator(
     stride: int = 1,
     start: int = 0,
     end: int | None = None,
-) -> Generator[np.ndarray, None, None]:
+) -> Generator[np.ndarray]:
     video = Video(source_path)
     yield from video.frames(stride=stride, start=start, end=end)
 

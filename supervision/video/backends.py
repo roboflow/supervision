@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Tuple
+from typing import Tuple
 
 import av
 import cv2
@@ -10,38 +10,30 @@ from supervision.video.dataclasses import VideoInfo
 
 class VideoBackend(ABC):
     @abstractmethod
-    def __init__(self, source_path: str):
-        ...
+    def __init__(self, source_path: str): ...
 
     @abstractmethod
-    def read(self) -> Tuple[bool, np.ndarray]:
-        ...
+    def read(self) -> tuple[bool, np.ndarray]: ...
 
     @abstractmethod
-    def get_info(self) -> VideoInfo:
-        ...
+    def get_info(self) -> VideoInfo: ...
 
     @abstractmethod
-    def seek(self, frame_idx: int):
-        ...
+    def seek(self, frame_idx: int): ...
 
     @abstractmethod
-    def release(self) -> None:
-        ...
+    def release(self) -> None: ...
 
 
 class VideoWriter(ABC):
     @abstractmethod
-    def __init__(self, target_path: str, video_info: VideoInfo):
-        ...
+    def __init__(self, target_path: str, video_info: VideoInfo): ...
 
     @abstractmethod
-    def write(self, frame: np.ndarray):
-        ...
+    def write(self, frame: np.ndarray): ...
 
     @abstractmethod
-    def release(self) -> None:
-        ...
+    def release(self) -> None: ...
 
 
 class OpenCVBackend(VideoBackend):
@@ -51,7 +43,7 @@ class OpenCVBackend(VideoBackend):
         if not self.video.isOpened():
             raise Exception(f"Could not open video at {source_path}")
 
-    def read(self) -> Tuple[bool, np.ndarray]:
+    def read(self) -> tuple[bool, np.ndarray]:
         return self.video.read()
 
     def get_info(self) -> VideoInfo:
@@ -107,7 +99,7 @@ class PyAVBackend(VideoBackend):
         except av.AVError:
             raise Exception(f"Could not open video at {source_path}")
 
-    def read(self) -> Tuple[bool, np.ndarray]:
+    def read(self) -> tuple[bool, np.ndarray]:
         try:
             frame = next(self.container.decode(video=0))
             return True, frame.to_ndarray(format="bgr24")
@@ -153,4 +145,3 @@ class PyAVWriter(VideoWriter):
         for packet in self.stream.encode():
             self.container.mux(packet)
         self.container.close()
-

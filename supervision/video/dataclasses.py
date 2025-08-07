@@ -35,17 +35,18 @@ class VideoInfo:
         # VideoInfo(width=1280, height=720, fps=25, total_frames=None)
         ```
     """
+
     width: int
     height: int
     fps: int
-    total_frames: Optional[int] = None
+    total_frames: int | None = None
 
     @classmethod
     @deprecated(
         "VideoInfo.from_video_path is deprecated and will be removed in "
         "supervision-0.23.0. Use `sv.Video.info` instead."
     )
-    def from_video_path(cls, video_path: str) -> "VideoInfo":
+    def from_video_path(cls, video_path: str) -> VideoInfo:
         from supervision.video.core import Video
 
         return Video(video_path).info
@@ -56,4 +57,3 @@ class VideoInfo:
         Returns the resolution of the video as a tuple `(width, height)`.
         """
         return self.width, self.height
-

@@ -1,4 +1,5 @@
 import os
+
 import cv2
 import numpy as np
 import pytest
@@ -104,4 +105,3 @@ class TestVideo:
         assert saved_video.info.width == 20
         assert saved_video.info.height == 20
         os.remove(target_path)
-

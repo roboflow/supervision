@@ -1,4 +1,5 @@
-from typing import Optional, Tuple, Callable
+from typing import Optional, Tuple
+from collections.abc import Callable
 
 import cv2
 import numpy as np
@@ -10,7 +11,6 @@ from supervision.video.backends import (
     PyAVBackend,
     PyAVWriter,
     VideoBackend,
-    VideoWriter,
 )
 from supervision.video.dataclasses import VideoInfo
 
@@ -84,8 +84,8 @@ class Video:
         self,
         stride: int = 1,
         start: int = 0,
-        end: Optional[int] = None,
-        resolution_wh: Optional[Tuple[int, int]] = None,
+        end: int | None = None,
+        resolution_wh: tuple[int, int] | None = None,
     ):
         """
         A generator that yields frames from the video with specific settings.
@@ -123,7 +123,7 @@ class Video:
         target_path: str,
         callback: Callable[[np.ndarray, int], np.ndarray],
         show_progress: bool = True,
-        fps: Optional[int] = None,
+        fps: int | None = None,
         codec: str = "mp4v",
     ):
         """
@@ -178,4 +178,3 @@ class Video:
             OpenCVWriter if isinstance(self.backend, OpenCVBackend) else PyAVWriter
         )
         return writer_class(target_path, info)
-
