@@ -1123,10 +1123,9 @@ class DotAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            center = (int(xy[detection_idx, 0]), int(xy[detection_idx, 1]))
+            center = (int(xy[detection_idx][0]), int(xy[detection_idx][1]))
 
-            cv2.circle(scene, center, self.radius, color.as_bgr(), -1)
-            if self.outline_thickness:
+            if self.outline_thickness > 0:
                 outline_color = resolve_color(
                     color=self.outline_color,
                     detections=detections,
@@ -1135,13 +1134,40 @@ class DotAnnotator(BaseAnnotator):
                     if custom_color_lookup is None
                     else custom_color_lookup,
                 )
-                cv2.circle(
-                    scene,
-                    center,
-                    self.radius,
-                    outline_color.as_bgr(),
-                    self.outline_thickness,
+                if outline_color.a < 255:
+                    overlay = scene.copy()
+                    cv2.circle(
+                        overlay,
+                        center,
+                        self.radius + self.outline_thickness,
+                        outline_color.as_bgr(),
+                        -1,
+                    )
+                    scene = cv2.addWeighted(
+                        overlay,
+                        outline_color.a / 255,
+                        scene,
+                        1 - outline_color.a / 255,
+                        0,
+                    )
+                else:
+                    cv2.circle(
+                        scene,
+                        center,
+                        self.radius + self.outline_thickness,
+                        outline_color.as_bgr(),
+                        -1,
+                    )
+
+            if color.a < 255:
+                overlay = scene.copy()
+                cv2.circle(overlay, center, self.radius, color.as_bgr(), -1)
+                scene = cv2.addWeighted(
+                    overlay, color.a / 255, scene, 1 - color.a / 255, 0
                 )
+            else:
+                cv2.circle(scene, center, self.radius, color.as_bgr(), -1)
+
         return scene
 
 
