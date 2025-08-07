@@ -2,34 +2,63 @@
 comments: true
 ---
 
-# Video Utils
+# Video API (v2)
 
-<div class="md-typeset">
-    <h2><a href="#supervision.utils.video.VideoInfo">VideoInfo</a></h2>
-</div>
+The new unified video interface lives in `supervision.Video` and is **backend-agnostic**. It supersedes the helpers previously found in `supervision.utils.video`.
 
-:::supervision.utils.video.VideoInfo
+## Quick-start
 
-<div class="md-typeset">
-    <h2><a href="#supervision.utils.video.VideoSink">VideoSink</a></h2>
-</div>
+```python
+import supervision as sv
 
-:::supervision.utils.video.VideoSink
+# Static video
+video = sv.Video("example.mp4")
+print(video.info)
 
-<div class="md-typeset">
-    <h2><a href="#supervision.utils.video.FPSMonitor">FPSMonitor</a></h2>
-</div>
+# Iterate with stride & resize
+for frame in video.frames(stride=5, resolution_wh=(1280, 720)):
+    ...
 
-:::supervision.utils.video.FPSMonitor
+# Process and save
+video.save(
+    "blurred.mp4",
+    callback=lambda f, i: cv2.GaussianBlur(f, (11, 11), 0),
+    show_progress=True,
+)
+```
 
-<div class="md-typeset">
-    <h2><a href="#supervision.utils.video.get_video_frames_generator">get_video_frames_generator</a></h2>
-</div>
+## `sv.Video` reference
 
-:::supervision.utils.video.get_video_frames_generator
+::: supervision.video.Video
 
-<div class="md-typeset">
-    <h2><a href="#supervision.utils.video.process_video">process_video</a></h2>
-</div>
+## `sv.VideoInfo` reference
 
-:::supervision.utils.video.process_video
+::: supervision.video.common.VideoInfo
+
+## Backends
+
+`Video` delegates decoding/encoding to pluggable backends. Two are bundled:
+
+| Name   | Package  | Notes                               |
+| ------ | -------- | ----------------------------------- |
+| opencv | OpenCV   | Default. Fast, ubiquitous.          |
+| pyav   | PyAV/FFmpeg | Optional, install `pip install av` |
+
+Select backend via the constructor:
+
+```python
+sv.Video("clip.mkv", backend="pyav")
+```
+
+## Writing frames manually
+
+```python
+src = sv.Video("input.mp4")
+with src.sink("out.mp4") as sink:
+    for fr in src.frames():
+        sink.write(fr)
+```
+
+## Legacy helpers
+
+Functions and classes in `supervision.utils.video` are **deprecated** and will be removed in 5 releases. They transparently wrap the new API and emit a `SupervisionWarnings` warning. Migrate as soon as convenient.

@@ -9,7 +9,16 @@ import cv2
 import numpy as np
 from tqdm.auto import tqdm
 
+from supervision.video import Video as _NewVideo
+from supervision.utils.internal import deprecated, warn_deprecated
 
+warn_deprecated(
+    "The module 'supervision.utils.video' is deprecated and will be removed in a future release. "
+    "Use 'supervision.Video' and related helpers instead."
+)
+
+
+@deprecated("Use supervision.VideoInfo")
 @dataclass
 class VideoInfo:
     """
@@ -44,22 +53,16 @@ class VideoInfo:
 
     @classmethod
     def from_video_path(cls, video_path: str) -> VideoInfo:
-        video = cv2.VideoCapture(video_path)
-        if not video.isOpened():
-            raise Exception(f"Could not open video at {video_path}")
-
-        width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = int(video.get(cv2.CAP_PROP_FPS))
-        total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-        video.release()
-        return VideoInfo(width, height, fps, total_frames)
+        from supervision.video import Video as _NewVideo
+        video = _NewVideo(video_path)
+        return video.info
 
     @property
     def resolution_wh(self) -> tuple[int, int]:
         return self.width, self.height
 
 
+@deprecated("Use supervision.Video.sink")
 class VideoSink:
     """
     Context manager that saves video frames to a file using OpenCV.
@@ -141,6 +144,7 @@ def _validate_and_setup_video(
     return video, start, end
 
 
+@deprecated("Use supervision.Video.frames")
 def get_video_frames_generator(
     source_path: str,
     stride: int = 1,
@@ -175,23 +179,12 @@ def get_video_frames_generator(
             ...
         ```
     """
-    video, start, end = _validate_and_setup_video(
-        source_path, start, end, iterative_seek
-    )
-    frame_position = start
-    while True:
-        success, frame = video.read()
-        if not success or frame_position >= end:
-            break
-        yield frame
-        for _ in range(stride - 1):
-            success = video.grab()
-            if not success:
-                break
-        frame_position += stride
-    video.release()
+    from supervision.video import Video as _NewVideo
+    vid = _NewVideo(source_path)
+    yield from vid.frames(stride=stride, start=start, end=end)
 
 
+@deprecated("Use supervision.Video.save")
 def process_video(
     source_path: str,
     target_path: str,
@@ -229,30 +222,20 @@ def process_video(
         )
         ```
     """
-    source_video_info = VideoInfo.from_video_path(video_path=source_path)
-    video_frames_generator = get_video_frames_generator(
-        source_path=source_path, end=max_frames
-    )
-    with VideoSink(target_path=target_path, video_info=source_video_info) as sink:
-        total_frames = (
-            min(source_video_info.total_frames, max_frames)
-            if max_frames is not None
-            else source_video_info.total_frames
-        )
-        for index, frame in enumerate(
-            tqdm(
-                video_frames_generator,
-                total=total_frames,
-                disable=not show_progress,
-                desc=progress_message,
-            )
-        ):
-            result_frame = callback(frame, index)
-            sink.write_frame(frame=result_frame)
-        else:
-            for index, frame in enumerate(video_frames_generator):
-                result_frame = callback(frame, index)
-                sink.write_frame(frame=result_frame)
+    vid = _NewVideo(source_path)
+    frame_iter = vid.frames()
+    if max_frames is not None:
+        from itertools import islice
+        frame_iter = islice(frame_iter, max_frames)
+    writer_ctx = vid.sink(target_path)
+    iterator = frame_iter
+    total_frames = vid.info.total_frames if max_frames is None else max_frames
+    if show_progress:
+        iterator = tqdm(iterator, total=total_frames, desc=progress_message)
+    with writer_ctx as sink:
+        for idx, frame in enumerate(iterator):
+            processed = callback(frame, idx)
+            sink.write(processed)
 
 
 class FPSMonitor:

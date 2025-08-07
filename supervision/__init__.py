@@ -128,9 +128,10 @@ from supervision.utils.image import (
     scale_image,
 )
 from supervision.utils.notebook import plot_image, plot_images_grid
+from supervision.video import Video, VideoInfo
 from supervision.utils.video import (
     FPSMonitor,
-    VideoInfo,
+    VideoInfo as _DeprecatedVideoInfo,
     VideoSink,
     get_video_frames_generator,
     process_video,
@@ -192,6 +193,7 @@ __all__ = [
     "TriangleAnnotator",
     "VertexAnnotator",
     "VertexLabelAnnotator",
+    "Video",
     "VideoInfo",
     "VideoSink",
     "approximate_polygon",
