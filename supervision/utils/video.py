@@ -5,14 +5,16 @@ from collections import deque
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
 
-import cv2
 import numpy as np
 from tqdm.auto import tqdm
 
-from supervision.utils.internal import warn_deprecated, deprecated
+from supervision.utils.internal import deprecated, warn_deprecated
 from supervision.video import Video
 
-@deprecated("VideoInfo is replaced by sv.Video.info. This class will be removed in 5 releases.")
+
+@deprecated(
+    "VideoInfo is replaced by sv.Video.info. This class will be removed in 5 releases."
+)
 @dataclass
 class VideoInfo:
     width: int
@@ -22,14 +24,19 @@ class VideoInfo:
 
     @classmethod
     def from_video_path(cls, video_path: str) -> VideoInfo:
-        warn_deprecated("VideoInfo.from_video_path is deprecated. Use sv.Video(video_path).info instead.")
+        warn_deprecated(
+            "VideoInfo.from_video_path is deprecated. Use sv.Video(video_path).info instead."
+        )
         return Video(video_path).info
 
     @property
     def resolution_wh(self) -> tuple[int, int]:
         return self.width, self.height
 
-@deprecated("VideoSink is replaced by sv.Video.sink(). This class will be removed in 5 releases.")
+
+@deprecated(
+    "VideoSink is replaced by sv.Video.sink(). This class will be removed in 5 releases."
+)
 class VideoSink:
     def __init__(self, target_path: str, video_info: VideoInfo, codec: str = "mp4v"):
         warn_deprecated("VideoSink is deprecated. Use sv.Video.sink() instead.")
@@ -41,7 +48,9 @@ class VideoSink:
 
     def __enter__(self):
         self._video = Video(None)  # Dummy, just to access sink
-        self._sink = Video.sink(self._video, self.target_path, self.video_info, self.codec)
+        self._sink = Video.sink(
+            self._video, self.target_path, self.video_info, self.codec
+        )
         return self
 
     def write_frame(self, frame: np.ndarray):
@@ -54,7 +63,9 @@ class VideoSink:
 def _validate_and_setup_video(
     source_path: str, start: int, end: int | None, iterative_seek: bool = False
 ):
-    warn_deprecated("_validate_and_setup_video is deprecated and will be removed in 5 releases.")
+    warn_deprecated(
+        "_validate_and_setup_video is deprecated and will be removed in 5 releases."
+    )
     video = Video(source_path)
     total_frames = video.info.total_frames
     if end is not None and end > total_frames:
@@ -71,7 +82,9 @@ def get_video_frames_generator(
     end: int | None = None,
     iterative_seek: bool = False,
 ) -> Generator[np.ndarray]:
-    warn_deprecated("get_video_frames_generator is deprecated. Use sv.Video(...).frames() instead.")
+    warn_deprecated(
+        "get_video_frames_generator is deprecated. Use sv.Video(...).frames() instead."
+    )
     video = Video(source_path)
     for idx, frame in enumerate(video.frames(stride=stride, start=start, end=end)):
         yield frame
@@ -99,6 +112,7 @@ def process_video(
             sink = video.sink(target_path)
         sink.write(result_frame)
     sink.close()
+
 
 @deprecated("FPSMonitor is deprecated and will be removed in 5 releases.")
 class FPSMonitor:
