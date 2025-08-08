@@ -72,37 +72,9 @@ class Video:
         Returns:
             Generator: A generator yielding video frames.
         """
-        if self.backend.cap is None:
-            raise RuntimeError("Video not opened yet.")
-
-        total_frames = self.backend.video_info.total_frames if self.backend.video_info else 0
-        is_live_stream = total_frames <= 0
-
-        if is_live_stream:
-            while True:
-                for _ in range(stride - 1):
-                    if not self.backend.grab():
-                        return
-                ret, frame = self.backend.read()
-                if not ret:
-                    return
-                if resolution_wh is not None:
-                    frame = cv2.resize(frame, resolution_wh)
-                yield frame
-        else:
-            if end is None or end > total_frames:
-                end = total_frames
-
-            frame_idx = start
-            while frame_idx < end:
-                self.backend.seek(frame_idx)
-                ret, frame = self.backend.read()
-                if not ret:
-                    break
-                if resolution_wh is not None:
-                    frame = cv2.resize(frame, resolution_wh)
-                yield frame
-                frame_idx += stride
+        return self.backend.frames(
+            stride=stride, start=start, end=end, resolution_wh=resolution_wh
+        )
 
     def save(
         self,

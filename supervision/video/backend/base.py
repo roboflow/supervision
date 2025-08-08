@@ -44,6 +44,17 @@ class BaseBackend(ABC):
     @abstractmethod
     def seek(self, frame_idx: int) -> None:
         pass
+    
+    @abstractmethod
+    def frames(
+        self,
+        *,
+        start: int = 0,
+        end: int | None = None,
+        stride: int = 1,
+        resolution_wh: tuple[int, int] | None = None,
+    ):
+        pass
 
     @abstractmethod
     def release(self) -> None:
