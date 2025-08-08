@@ -134,14 +134,8 @@ from supervision.utils.video import (
     get_video_frames_generator,
     process_video,
 )
-
-from supervision.video.utils import (
-    VideoInfo
-)
-
-from supervision.video.core import (
-    Video
-)
+from supervision.video.core import Video
+from supervision.video.utils import VideoInfo
 
 __all__ = [
     "LMM",
