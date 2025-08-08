@@ -210,6 +210,7 @@ class OpenCVBackend(BaseBackend):
         fps: int | None = None,
         progress_message: str = "Processing video",
         show_progress: bool = False,
+        codec: str = None
     ):
         """Save processed video frames to a file with audio preservation.
 
@@ -235,7 +236,7 @@ class OpenCVBackend(BaseBackend):
             self.writer.close()
             self.writer = None
 
-        source_codec = self.cap.get(cv2.CAP_PROP_FOURCC)
+        source_codec = codec if codec is None else self.cap.get(cv2.CAP_PROP_FOURCC)
 
         if fps is None:
             fps = self.video_info.fps
