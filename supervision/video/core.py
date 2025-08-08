@@ -83,6 +83,7 @@ class Video:
         fps: int | None = None,
         progress_message: str = "Processing video",
         show_progress: bool = False,
+        codec: str = "mp4v"
     ):
         """Save processed video frames to a file.
 
@@ -102,5 +103,6 @@ class Video:
             fps=fps,
             progress_message=progress_message,
             show_progress=show_progress,
+            codec=codec
         )
 

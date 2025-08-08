@@ -68,7 +68,7 @@ class BaseBackend(ABC):
         fps: int | None = None,
         progress_message: str = "Processing video",
         show_progress: bool = False,
-        codec = "mp4v"
+        codec: str = "mp4v"
     ):
         pass
 
