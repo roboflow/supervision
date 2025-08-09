@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
+from typing import Optional, Tuple, Union
 
 import cv2
 
@@ -40,8 +41,8 @@ class VideoInfo:
     width: int
     height: int
     fps: int
-    total_frames: int | None = None
-    source_type: SOURCE_TYPE | None = None
+    total_frames: Optional[int] = None
+    source_type: Optional[SOURCE_TYPE] = None
 
     @classmethod
     def from_video_path(cls, video_path: str) -> "VideoInfo":
@@ -51,7 +52,7 @@ class VideoInfo:
             video_path (str): Path to the video file.
 
         Returns:
-            VideoInfo: Video information containing width, height, fps, and total frames.
+            VideoInfo: Video info containing width, height, fps, and total frames.
 
         Raises:
             ValueError: If video cannot be opened or has invalid properties.
@@ -80,5 +81,5 @@ class VideoInfo:
         return VideoInfo(width, height, fps, total_frames)
 
     @property
-    def resolution_wh(self) -> tuple[int, int]:
+    def resolution_wh(self) -> Tuple[int, int]:
         return self.width, self.height
