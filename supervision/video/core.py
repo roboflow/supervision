@@ -1,10 +1,14 @@
-from collections.abc import Callable
 
+from collections.abc import Callable, Generator
+
+import cv2
 import numpy as np
+from tqdm.auto import tqdm
 
-from supervision.video.backend.base import BaseBackend, BaseWriter
-from supervision.video.backend.openCV import OpenCVBackend
 from supervision.video.utils import VideoInfo
+from supervision.video.backend.base import BaseBackend, BaseWriter
+
+from supervision.video.backend.openCV import OpenCVBackend
 
 
 class Video:
@@ -19,7 +23,7 @@ class Video:
     backend: BaseBackend
 
     def __init__(
-        self, source: str | int, info: VideoInfo = None, backend: str = "opencv"
+        self, source: str | int, info: VideoInfo | None = None, backend: str = "opencv"
     ):
         if backend == "opencv":
             self.backend = OpenCVBackend()
@@ -36,9 +40,7 @@ class Video:
         """
         return self.backend.frames()
 
-    def sink(
-        self, target_path: str, info: VideoInfo, codec: str = "mp4v"
-    ) -> BaseWriter:
+    def sink(self, target_path: str, info: VideoInfo, codec: str = "mp4v") -> BaseWriter:
         """Create a video writer for saving frames.
 
         Args:
@@ -55,16 +57,16 @@ class Video:
         self,
         stride: int = 1,
         start: int = 0,
-        end: int = None,
-        resolution_wh: tuple[int, int] = None,
+        end: int | None = None,
+        resolution_wh: tuple[int, int] | None = None,
     ):
         """Generate frames from the video.
 
         Args:
             stride (int, optional): Number of frames to skip. Defaults to 1.
             start (int, optional): Starting frame index. Defaults to 0.
-            end (int, optional): Ending frame index. Defaults to None.
-            resolution_wh (tuple[int, int], optional): Target resolution
+            end (int | None, optional): Ending frame index. Defaults to None.
+            resolution_wh (tuple[int, int] | None, optional): Target resolution
                 (width, height). If provided, frames will be resized. Defaults to None.
 
         Returns:
@@ -78,10 +80,10 @@ class Video:
         self,
         target_path: str,
         callback: Callable[[np.ndarray, int], np.ndarray],
-        fps: int = None,
+        fps: int | None = None,
         progress_message: str = "Processing video",
         show_progress: bool = False,
-        codec: str = "mp4v",
+        codec: str = "mp4v"
     ):
         """Save processed video frames to a file.
 
@@ -89,7 +91,7 @@ class Video:
             target_path (str): Path where the processed video will be saved.
             callback (Callable[[np.ndarray, int], np.ndarray]): Function that processes
                 each frame. Takes frame and index as input, returns processed frame.
-            fps (int, optional): Output video FPS.
+            fps (int | None, optional): Output video FPS.
             progress_message (str, optional): Message to show in progress bar.
                 Defaults to "Processing video".
             show_progress (bool, optional): Whether to show progress bar.
@@ -101,5 +103,6 @@ class Video:
             fps=fps,
             progress_message=progress_message,
             show_progress=show_progress,
-            codec=codec,
+            codec=codec
         )
+

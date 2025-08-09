@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
+from typing import Optional, Tuple
 
 import cv2
 
@@ -42,8 +43,8 @@ class VideoInfo:
     width: int
     height: int
     fps: int
-    total_frames: int = None
-    source_type: SOURCE_TYPE = None
+    total_frames: int | None = None
+    source_type: SOURCE_TYPE | None = None
 
     @classmethod
     def from_video_path(cls, video_path: str) -> "VideoInfo":

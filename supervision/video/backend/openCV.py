@@ -1,12 +1,10 @@
-from collections.abc import Callable
+from supervision.video.backend.base import BaseBackend, BaseWriter
+from supervision.video.utils import SOURCE_TYPE, VideoInfo
 
 import cv2
 import numpy as np
 from tqdm.auto import tqdm
-
-from supervision.video.backend.base import BaseBackend, BaseWriter
-from supervision.video.utils import SOURCE_TYPE, VideoInfo
-
+from typing import Callable
 
 class OpenCVBackend(BaseBackend):
     """
@@ -156,17 +154,17 @@ class OpenCVBackend(BaseBackend):
         self,
         *,
         start: int = 0,
-        end: int = None,
+        end: int | None = None,
         stride: int = 1,
-        resolution_wh: tuple[int, int] = None,
+        resolution_wh: tuple[int, int] | None = None,
     ):
         """Generate frames from the video source.
 
         Args:
             start (int, optional): Starting frame index. Defaults to 0.
-            end (int, optional): Ending frame index. Defaults to None.
+            end (int | None, optional): Ending frame index. Defaults to None.
         stride (int, optional): Number of frames to skip. Defaults to 1.
-            resolution_wh (tuple[int, int], optional): Target resolution
+            resolution_wh (tuple[int, int] | None, optional): Target resolution
                 (width, height). If provided, frames will be resized. Defaults to None.
 
             Yields:
@@ -209,10 +207,10 @@ class OpenCVBackend(BaseBackend):
         self,
         target_path: str,
         callback: Callable[[np.ndarray, int], np.ndarray],
-        fps: int = None,
+        fps: int | None = None,
         progress_message: str = "Processing video",
         show_progress: bool = False,
-        codec: str = "mp4v",
+        codec: str = "mp4v"
     ):
         """Save processed video frames to a file with audio preservation.
 
@@ -220,7 +218,7 @@ class OpenCVBackend(BaseBackend):
             target_path (str): Path where the processed video will be saved.
             callback (Callable[[np.ndarray, int], np.ndarray]): Function that processes
                 each frame. Takes frame and index as input, returns processed frame.
-            fps (int, optional): Output video FPS. If None, uses source FPS.
+            fps (int | None, optional): Output video FPS. If None, uses source FPS.
             progress_message (str, optional): Message to show in progress bar.
             show_progress (bool, optional): Whether to show progress bar.
 
@@ -237,7 +235,7 @@ class OpenCVBackend(BaseBackend):
         if self.writer is not None:
             self.writer.close()
             self.writer = None
-
+        
         if fps is None:
             fps = self.video_info.fps
 
