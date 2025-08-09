@@ -1,34 +1,42 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import overload
 
 import numpy as np
 import cv2
 from tqdm.auto import tqdm
 
-from supervision.video.backend.base import BaseBackend, BaseWriter
-from supervision.video.backend.openCV import OpenCVBackend
+from supervision.video.backend import (
+    BaseBackend,
+    BaseWriter,
+    getBackend,
+    BackendLiteral,
+)
 from supervision.video.utils import VideoInfo, SOURCE_TYPE
-from supervision.video.backend.pyAV import pyAVBackend
 
 
 class Video:
-    """High-level interface for video operations.
-
-    This class provides a convenient interface for video operations including
-    reading frames, saving processed videos, and video information access.
-    """
-
     info: VideoInfo
     source: str | int
     backend: BaseBackend
 
+    @overload
     def __init__(
-        self, source: str | int, info: VideoInfo | None = None, backend: str = "opencv"
-    ):
-        if backend == "opencv":
-            self.backend = pyAVBackend()
+        self, 
+        source: str | int, 
+        info: VideoInfo | None = None, 
+        backend: BackendLiteral = "opencv"
+    ) -> None:
+        ...
 
+    def __init__(
+        self, 
+        source: str | int, 
+        info: VideoInfo | None = None, 
+        backend: BackendLiteral = "opencv"
+    ) -> None:
+        self.backend = getBackend(backend)
         self.backend.open(source)
         self.info = self.backend.video_info
         self.source = source
