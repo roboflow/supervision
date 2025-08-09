@@ -3,11 +3,12 @@ from __future__ import annotations
 from collections.abc import Callable
 
 import numpy as np
+import cv2
 from tqdm.auto import tqdm
 
 from supervision.video.backend.base import BaseBackend, BaseWriter
 from supervision.video.backend.openCV import OpenCVBackend
-from supervision.video.utils import SOURCE_TYPE, VideoInfo
+from supervision.video.utils import VideoInfo, SOURCE_TYPE
 
 
 class Video:
@@ -52,7 +53,9 @@ class Video:
         Returns:
             Writer: A video writer object for writing frames.
         """
-        return self.backend.writer(target_path, info.fps, info.resolution_wh, codec)
+        return self.backend.writer(
+             target_path, info.fps, info.resolution_wh, codec
+        )
 
     def frames(
         self,
@@ -73,9 +76,37 @@ class Video:
         Returns:
             Generator: A generator yielding video frames.
         """
-        return self.backend.frames(
-            stride=stride, start=start, end=end, resolution_wh=resolution_wh
-        )
+        if self.backend.cap is None:
+            raise RuntimeError("Video not opened yet.")
+
+        total_frames = self.backend.video_info.total_frames if self.backend.video_info else 0
+        is_live_stream = total_frames <= 0
+
+        if is_live_stream:
+            while True:
+                for _ in range(stride - 1):
+                    if not self.backend.grab():
+                        return
+                ret, frame = self.backend.read()
+                if not ret:
+                    return
+                if resolution_wh is not None:
+                    frame = cv2.resize(frame, resolution_wh)
+                yield frame
+        else:
+            if end is None or end > total_frames:
+                end = total_frames
+
+            frame_idx = start
+            while frame_idx < end:
+                self.backend.seek(frame_idx)
+                ret, frame = self.backend.read()
+                if not ret:
+                    break
+                if resolution_wh is not None:
+                    frame = cv2.resize(frame, resolution_wh)
+                yield frame
+                frame_idx += stride
 
     def save(
         self,

@@ -136,59 +136,6 @@ class OpenCVBackend(BaseBackend):
             self.cap.release()
             self.cap = None
 
-    def frames(
-        self,
-        *,
-        start: int = 0,
-        end: int | None = None,
-        stride: int = 1,
-        resolution_wh: tuple[int, int] | None = None,
-    ):
-        """Generate frames from the video source.
-
-        Args:
-            start (int, optional): Starting frame index. Defaults to 0.
-            end (int | None, optional): Ending frame index. Defaults to None.
-        stride (int, optional): Number of frames to skip. Defaults to 1.
-            resolution_wh (tuple[int, int] | None, optional): Target resolution
-                (width, height). If provided, frames will be resized. Defaults to None.
-
-            Yields:
-                np.ndarray: Video frames in BGR format.        Raises:
-            RuntimeError: If the video source is not opened yet.
-        """
-        if self.cap is None:
-            raise RuntimeError("Video not opened yet.")
-
-        total_frames = self.video_info.total_frames if self.video_info else 0
-        is_live_stream = total_frames <= 0
-
-        if is_live_stream:
-            while True:
-                for _ in range(stride - 1):
-                    if not self.grab():
-                        return
-                ret, frame = self.read()
-                if not ret:
-                    return
-                if resolution_wh is not None:
-                    frame = cv2.resize(frame, resolution_wh)
-                yield frame
-        else:
-            if end is None or end > total_frames:
-                end = total_frames
-
-            frame_idx = start
-            while frame_idx < end:
-                self.seek(frame_idx)
-                ret, frame = self.read()
-                if not ret:
-                    break
-                if resolution_wh is not None:
-                    frame = cv2.resize(frame, resolution_wh)
-                yield frame
-                frame_idx += stride
-
 
 class OpenCVWriter(BaseWriter):
     """A class to handle video writing operations using OpenCV's VideoWriter.
