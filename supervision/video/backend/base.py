@@ -52,7 +52,7 @@ class BaseBackend(ABC):
         self,
         *,
         start: int = 0,
-        end: int | None = None,
+        end: int = None,
         stride: int = 1,
         resolution_wh: tuple[int, int] | None = None,
     ):
@@ -67,7 +67,7 @@ class BaseBackend(ABC):
         self,
         target_path: str,
         callback: Callable[[np.ndarray, int], np.ndarray],
-        fps: int | None = None,
+        fps: int = None,
         progress_message: str = "Processing video",
         show_progress: bool = False,
         codec: str = "mp4v",
