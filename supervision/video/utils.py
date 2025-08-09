@@ -23,6 +23,8 @@ class VideoInfo:
         fps (int): frames per second of the video
         total_frames (Optional[int]): total number of frames in the video,
             default is None
+        source_type (Optional[SOURCE_TYPE]): source type of the video,
+            default is None
 
     Examples:
         ```python
@@ -41,7 +43,7 @@ class VideoInfo:
     width: int
     height: int
     fps: int
-    total_frames: int | None = None
+    total_frames: Optional[int] = None
     source_type: SOURCE_TYPE | None = None
 
     @classmethod
