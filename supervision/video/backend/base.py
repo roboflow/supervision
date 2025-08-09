@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
 from collections.abc import Callable
+from typing import Optional, Tuple, TYPE_CHECKING
 
 import numpy as np
 
-from supervision.video.utils import VideoInfo
+if TYPE_CHECKING:
+    from supervision.video.utils import VideoInfo
 
 
 class BaseBackend(ABC):
