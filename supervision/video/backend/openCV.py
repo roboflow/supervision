@@ -191,8 +191,6 @@ class OpenCVBackend(BaseBackend):
                 yield frame
                 frame_idx += stride
         
-
-
 class OpenCVWriter(BaseWriter):
     """A class to handle video writing operations using OpenCV's VideoWriter.
 
