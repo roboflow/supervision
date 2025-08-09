@@ -2,10 +2,11 @@ from __future__ import annotations
 from collections.abc import Callable
 
 import numpy as np
+from tqdm.auto import tqdm
 
 from supervision.video.backend.base import BaseBackend, BaseWriter
 from supervision.video.backend.openCV import OpenCVBackend
-from supervision.video.utils import VideoInfo
+from supervision.video.utils import VideoInfo, SOURCE_TYPE
 
 
 class Video:
@@ -96,11 +97,29 @@ class Video:
             show_progress (bool, optional): Whether to show progress bar.
                 Defaults to False.
         """
-        self.backend.save(
-            target_path=target_path,
-            callback=callback,
-            fps=fps,
-            progress_message=progress_message,
-            show_progress=show_progress,
-            codec=codec,
+        if self.backend.cap is None:
+            raise RuntimeError("Video not opened yet.")
+
+        if self.backend.video_info.source_type != SOURCE_TYPE.VIDEO_FILE:
+            raise ValueError("Only video files can be saved.")
+
+        if fps is None:
+            fps = self.backend.video_info.fps
+
+        writer = self.backend.writer(
+            target_path, fps, self.backend.video_info.resolution_wh, codec
         )
+        total_frames = self.backend.video_info.total_frames
+        frames_generator = self.frames()
+        for index, frame in enumerate(
+            tqdm(
+                frames_generator,
+                total=total_frames,
+                disable=not show_progress,
+                desc=progress_message,
+            )
+        ):
+            result_frame = callback(frame, index)
+            writer.write(frame=result_frame)
+
+        writer.close()

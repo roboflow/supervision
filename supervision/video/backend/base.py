@@ -64,19 +64,6 @@ class BaseBackend(ABC):
     def release(self) -> None:
         pass
 
-    @abstractmethod
-    def save(
-        self,
-        target_path: str,
-        callback: Callable[[np.ndarray, int], np.ndarray],
-        fps: int | None = None,
-        progress_message: str = "Processing video",
-        show_progress: bool = False,
-        codec: str = "mp4v",
-    ):
-        pass
-
-
 class BaseWriter(ABC):
     @abstractmethod
     def write(self, frame: np.ndarray) -> None:

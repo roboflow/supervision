@@ -3,7 +3,6 @@ from collections.abc import Callable
 
 import cv2
 import numpy as np
-from tqdm.auto import tqdm
 
 from supervision.video.backend.base import BaseBackend, BaseWriter
 from supervision.video.utils import SOURCE_TYPE, VideoInfo
@@ -20,7 +19,7 @@ class OpenCVBackend(BaseBackend):
         super().__init__()
         self.cap = None
         self.video_info = None
-        self.writer = None
+        self.writer = OpenCVWriter
         self.path = None
 
     def get_sink(self, target_path: str, video_info: VideoInfo, codec: str = "mp4v"):
@@ -205,60 +204,7 @@ class OpenCVBackend(BaseBackend):
                     frame = cv2.resize(frame, resolution_wh)
                 yield frame
                 frame_idx += stride
-
-    def save(
-        self,
-        target_path: str,
-        callback: Callable[[np.ndarray, int], np.ndarray],
-        fps: int | None = None,
-        progress_message: str = "Processing video",
-        show_progress: bool = False,
-        codec: str = "mp4v",
-    ):
-        """Save processed video frames to a file with audio preservation.
-
-        Args:
-            target_path (str): Path where the processed video will be saved.
-            callback (Callable[[np.ndarray, int], np.ndarray]): Function that processes
-                each frame. Takes frame and index as input, returns processed frame.
-            fps (int | None, optional): Output video FPS. If None, uses source FPS.
-            progress_message (str, optional): Message to show in progress bar.
-            show_progress (bool, optional): Whether to show progress bar.
-
-        Raises:
-            RuntimeError: If video source is not opened.
-            ValueError: If source is not a video file.
-        """
-        if self.cap is None:
-            raise RuntimeError("Video not opened yet.")
-
-        if self.video_info.source_type != SOURCE_TYPE.VIDEO_FILE:
-            raise ValueError("Only video files can be saved.")
-
-        if self.writer is not None:
-            self.writer.close()
-            self.writer = None
-
-        if fps is None:
-            fps = self.video_info.fps
-
-        self.writer = OpenCVWriter(
-            target_path, fps, self.video_info.resolution_wh, codec
-        )
-        total_frames = self.video_info.total_frames
-        frames_generator = self.frames()
-        for index, frame in enumerate(
-            tqdm(
-                frames_generator,
-                total=total_frames,
-                disable=not show_progress,
-                desc=progress_message,
-            )
-        ):
-            result_frame = callback(frame, index)
-            self.writer.write(frame=result_frame)
-
-        self.writer.close()
+        
 
 
 class OpenCVWriter(BaseWriter):
