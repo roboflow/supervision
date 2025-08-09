@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple
 
 import cv2
 
@@ -41,8 +41,8 @@ class VideoInfo:
     width: int
     height: int
     fps: int
-    total_frames: Optional[int] = None
-    source_type: Optional[SOURCE_TYPE] = None
+    total_frames: int | None = None
+    source_type: SOURCE_TYPE | None = None
 
     @classmethod
     def from_video_path(cls, video_path: str) -> "VideoInfo":
@@ -81,5 +81,5 @@ class VideoInfo:
         return VideoInfo(width, height, fps, total_frames)
 
     @property
-    def resolution_wh(self) -> Tuple[int, int]:
+    def resolution_wh(self) -> tuple[int, int]:
         return self.width, self.height
