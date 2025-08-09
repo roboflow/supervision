@@ -4,8 +4,7 @@ from typing import Optional, Tuple, TYPE_CHECKING
 
 import numpy as np
 
-if TYPE_CHECKING:
-    from supervision.video.utils import VideoInfo
+from supervision.video.utils import VideoInfo
 
 
 class BaseBackend(ABC):
