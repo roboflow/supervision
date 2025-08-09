@@ -9,6 +9,7 @@ from tqdm.auto import tqdm
 from supervision.video.backend.base import BaseBackend, BaseWriter
 from supervision.video.backend.openCV import OpenCVBackend
 from supervision.video.utils import VideoInfo, SOURCE_TYPE
+from supervision.video.backend.pyAV import pyAVBackend
 
 
 class Video:
@@ -26,7 +27,7 @@ class Video:
         self, source: str | int, info: VideoInfo | None = None, backend: str = "opencv"
     ):
         if backend == "opencv":
-            self.backend = OpenCVBackend()
+            self.backend = pyAVBackend()
 
         self.backend.open(source)
         self.info = self.backend.video_info
@@ -41,14 +42,14 @@ class Video:
         return self.backend.frames()
 
     def sink(
-        self, target_path: str, info: VideoInfo, codec: str = "mp4v"
+        self, target_path: str, info: VideoInfo, codec: str | None = None
     ) -> BaseWriter:
         """Create a video writer for saving frames.
 
         Args:
             target_path (str): Path where the video will be saved.
             info (VideoInfo): Video information containing resolution and FPS.
-            codec (str, optional): FourCC code for video codec. Defaults to "mp4v".
+            codec (str, optional): FourCC code for video codec. Defaults to "None".
 
         Returns:
             Writer: A video writer object for writing frames.
@@ -115,7 +116,7 @@ class Video:
         fps: int | None = None,
         progress_message: str = "Processing video",
         show_progress: bool = False,
-        codec: str = "mp4v",
+        codec: str | None = None,
     ):
         """Save processed video frames to a file.
 
@@ -142,6 +143,7 @@ class Video:
             target_path, fps, self.backend.video_info.resolution_wh, codec
         )
         total_frames = self.backend.video_info.total_frames
+        print(self.backend.video_info)
         frames_generator = self.frames()
         for index, frame in enumerate(
             tqdm(
