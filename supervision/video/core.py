@@ -7,7 +7,7 @@ from tqdm.auto import tqdm
 
 from supervision.video.backend.base import BaseBackend, BaseWriter
 from supervision.video.backend.openCV import OpenCVBackend
-from supervision.video.utils import VideoInfo, SOURCE_TYPE
+from supervision.video.utils import SOURCE_TYPE, VideoInfo
 
 
 class Video:
@@ -52,9 +52,7 @@ class Video:
         Returns:
             Writer: A video writer object for writing frames.
         """
-        return self.backend.writer(
-             target_path, info.fps, info.resolution_wh, codec
-        )
+        return self.backend.writer(target_path, info.fps, info.resolution_wh, codec)
 
     def frames(
         self,

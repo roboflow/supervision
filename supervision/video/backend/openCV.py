@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-
 import cv2
 import numpy as np
 
@@ -190,7 +188,8 @@ class OpenCVBackend(BaseBackend):
                     frame = cv2.resize(frame, resolution_wh)
                 yield frame
                 frame_idx += stride
-        
+
+
 class OpenCVWriter(BaseWriter):
     """A class to handle video writing operations using OpenCV's VideoWriter.
 

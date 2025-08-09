@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 
 import numpy as np
 
@@ -57,6 +56,7 @@ class BaseBackend(ABC):
     @abstractmethod
     def release(self) -> None:
         pass
+
 
 class BaseWriter(ABC):
     @abstractmethod
