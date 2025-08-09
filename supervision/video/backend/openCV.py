@@ -148,10 +148,10 @@ class OpenCVWriter(BaseWriter):
     def __init__(
         self,
         filename: str,
+        backend: OpenCVBackend,
         fps: int,
         frame_size: tuple[int, int],
         codec: str = "mp4v",
-        backend: OpenCVBackend = None,
     ):
         """Initialize the video writer.
 

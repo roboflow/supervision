@@ -52,10 +52,10 @@ class BaseWriter(ABC):
     def __init__(
         self,
         filename: str,
+        backend: BaseBackend,
         fps: int,
         frame_size: tuple[int, int],
         codec: str | None = None,
-        backend: BaseBackend = None,
     ):
         pass
 
