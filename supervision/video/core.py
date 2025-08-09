@@ -19,7 +19,7 @@ class Video:
     backend: BaseBackend
 
     def __init__(
-        self, source: str | int, info: VideoInfo | None = None, backend: str = "opencv"
+        self, source: str | int, info: VideoInfo = None, backend: str = "opencv"
     ):
         if backend == "opencv":
             self.backend = OpenCVBackend()
@@ -55,16 +55,16 @@ class Video:
         self,
         stride: int = 1,
         start: int = 0,
-        end: int | None = None,
-        resolution_wh: tuple[int, int] | None = None,
+        end: int = None,
+        resolution_wh: tuple[int, int] = None,
     ):
         """Generate frames from the video.
 
         Args:
             stride (int, optional): Number of frames to skip. Defaults to 1.
             start (int, optional): Starting frame index. Defaults to 0.
-            end (int | None, optional): Ending frame index. Defaults to None.
-            resolution_wh (tuple[int, int] | None, optional): Target resolution
+            end (int, optional): Ending frame index. Defaults to None.
+            resolution_wh (tuple[int, int], optional): Target resolution
                 (width, height). If provided, frames will be resized. Defaults to None.
 
         Returns:
@@ -78,7 +78,7 @@ class Video:
         self,
         target_path: str,
         callback: Callable[[np.ndarray, int], np.ndarray],
-        fps: int | None = None,
+        fps: int = None,
         progress_message: str = "Processing video",
         show_progress: bool = False,
         codec: str = "mp4v",
@@ -89,7 +89,7 @@ class Video:
             target_path (str): Path where the processed video will be saved.
             callback (Callable[[np.ndarray, int], np.ndarray]): Function that processes
                 each frame. Takes frame and index as input, returns processed frame.
-            fps (int | None, optional): Output video FPS.
+            fps (int, optional): Output video FPS.
             progress_message (str, optional): Message to show in progress bar.
                 Defaults to "Processing video".
             show_progress (bool, optional): Whether to show progress bar.
