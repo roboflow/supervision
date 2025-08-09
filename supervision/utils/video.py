@@ -9,6 +9,8 @@ import cv2
 import numpy as np
 from tqdm.auto import tqdm
 
+from supervision.utils.internal import deprecated
+
 
 @dataclass
 class VideoInfo:
@@ -59,7 +61,7 @@ class VideoInfo:
     def resolution_wh(self) -> tuple[int, int]:
         return self.width, self.height
 
-
+@deprecated
 class VideoSink:
     """
     Context manager that saves video frames to a file using OpenCV.
@@ -116,7 +118,7 @@ class VideoSink:
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.__writer.release()
 
-
+@deprecated
 def _validate_and_setup_video(
     source_path: str, start: int, end: int | None, iterative_seek: bool = False
 ):
@@ -140,7 +142,7 @@ def _validate_and_setup_video(
 
     return video, start, end
 
-
+@deprecated
 def get_video_frames_generator(
     source_path: str,
     stride: int = 1,
@@ -191,7 +193,7 @@ def get_video_frames_generator(
         frame_position += stride
     video.release()
 
-
+@deprecated
 def process_video(
     source_path: str,
     target_path: str,
