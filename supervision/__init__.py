@@ -130,8 +130,8 @@ from supervision.utils.image import (
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (
     FPSMonitor,
-    VideoSink,
     VideoInfo,
+    VideoSink,
     get_video_frames_generator,
     process_video,
 )
