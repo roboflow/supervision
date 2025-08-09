@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import time
-from abc import ABC, abstractmethod
 from collections import deque
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
-from enum import Enum
 
 import cv2
 import numpy as np
 from tqdm.auto import tqdm
+
 
 @DeprecationWarning
 @dataclass
@@ -259,6 +258,7 @@ def process_video(
             for index, frame in enumerate(video_frames_generator):
                 result_frame = callback(frame, index)
                 sink.write_frame(frame=result_frame)
+
 
 class FPSMonitor:
     """

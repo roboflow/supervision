@@ -1,11 +1,14 @@
 from dataclasses import dataclass
 from enum import Enum
+
 import cv2
+
 
 class SOURCE_TYPE(Enum):
     VIDEO_FILE = "VIDEO_FILE"
     WEBCAM = "WEBCAM"
     RTSP = "RTSP"
+
 
 @dataclass
 class VideoInfo:
