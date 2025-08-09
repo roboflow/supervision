@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Tuple
+from typing import Optional
 
 import cv2
 
@@ -43,7 +43,7 @@ class VideoInfo:
     width: int
     height: int
     fps: int
-    total_frames: Optional[int] = None
+    total_frames: int | None = None
     source_type: SOURCE_TYPE | None = None
 
     @classmethod

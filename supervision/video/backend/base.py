@@ -5,6 +5,7 @@ import numpy as np
 
 from supervision.video.utils import VideoInfo
 
+
 class BaseBackend(ABC):
     def __init__(self):
         self.cap = None
