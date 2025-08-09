@@ -54,7 +54,7 @@ class BaseBackend(ABC):
         start: int = 0,
         end: int = None,
         stride: int = 1,
-        resolution_wh: tuple[int, int] | None = None,
+        resolution_wh: tuple[int, int] = None,
     ):
         pass
 
