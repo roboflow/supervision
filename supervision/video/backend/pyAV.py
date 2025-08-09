@@ -56,7 +56,10 @@ class pyAVWriter(BaseWriter):
         self.container.close()
 
 class pyAVBackend(BaseBackend):
-
+    """
+    PyAV implementation of the Backend interface.
+    Handles video capture, frame reading, seeking, and writing operations using PyAV.
+    """
 
     def __init__(self):
         super().__init__()
@@ -65,16 +68,25 @@ class pyAVBackend(BaseBackend):
         self.writer = pyAVWriter
         self.frame_generator = None
         self.video_info = None
-        self.current_frame_idx = 0 
+        self.current_frame_idx = 0  # Track current frame number in decoding
 
     def open(self, path: str) -> None:
-    
+        """Open and initialize a video source.
+
+        Opens a video file, RTSP stream, or webcam and initializes all necessary
+        components for video processing.
+
+        Args:
+            path (str): Path to video file, RTSP URL, or camera index.
+
+        Raises:
+            RuntimeError: If unable to open the video source.
+            ValueError: If the source type is not supported.
+        """
         try:
             self.container = av.open(path)
             self.stream = self.container.streams.video[0]
             self.stream.thread_type = "AUTO"
-
-            # cap is used for internals
             self.cap = self.container
 
             self.frame_generator = self.container.decode(video=0)
@@ -120,7 +132,16 @@ class pyAVBackend(BaseBackend):
         return self.video_info
 
     def read(self) -> tuple[bool, np.ndarray]:
-    
+        """Read the next frame from the video stream.
+
+        Returns:
+            tuple[bool, np.ndarray]: A tuple containing:
+                - bool: True if frame was successfully read
+                - np.ndarray: The video frame in BGR format (H, W, 3)
+
+        Raises:
+            RuntimeError: If the video source is not opened.
+        """
         if not self.isOpened():
             raise RuntimeError("Video not opened yet.")
 
@@ -133,7 +154,17 @@ class pyAVBackend(BaseBackend):
             return False, np.array([])
 
     def grab(self) -> bool:
-    
+        """Grab the next frame packet without decoding.
+
+        A lightweight operation that skips frame decoding, useful for
+        quick frame navigation. Returns success status of the grab operation.
+
+        Returns:
+            bool: True if a frame was successfully grabbed, False otherwise.
+
+        Raises:
+            RuntimeError: If the video source is not opened.
+        """
         if not self.isOpened():
             raise RuntimeError("Video not opened yet.")
 
@@ -146,7 +177,18 @@ class pyAVBackend(BaseBackend):
             return False
 
     def seek(self, frame_idx: int) -> None:
-    
+        """Seek to a specific frame in the video.
+
+        Performs frame-accurate seeking by navigating to the nearest keyframe and
+        decoding forward to the exact target frame. The next read() call will
+        return the target frame.
+
+        Args:
+            frame_idx (int): Target frame index (0-based) to seek to.
+
+        Raises:
+            RuntimeError: If the video source is not opened.
+        """
         if not self.isOpened():
             raise RuntimeError("Video not opened yet.")
 
@@ -182,7 +224,11 @@ class pyAVBackend(BaseBackend):
                 break
 
     def release(self) -> None:
-    
+        """Release all resources associated with the video stream.
+
+        Closes the video container and resets all internal state variables
+        to ensure proper cleanup of resources.
+        """
         if self.container:
             self.container.close()
             self.container = None
