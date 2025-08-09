@@ -156,17 +156,17 @@ class OpenCVBackend(BaseBackend):
         self,
         *,
         start: int = 0,
-        end: int | None = None,
+        end: int = None,
         stride: int = 1,
-        resolution_wh: tuple[int, int] | None = None,
+        resolution_wh: tuple[int, int] = None,
     ):
         """Generate frames from the video source.
 
         Args:
             start (int, optional): Starting frame index. Defaults to 0.
-            end (int | None, optional): Ending frame index. Defaults to None.
+            end (int, optional): Ending frame index. Defaults to None.
         stride (int, optional): Number of frames to skip. Defaults to 1.
-            resolution_wh (tuple[int, int] | None, optional): Target resolution
+            resolution_wh (tuple[int, int], optional): Target resolution
                 (width, height). If provided, frames will be resized. Defaults to None.
 
             Yields:
@@ -209,7 +209,7 @@ class OpenCVBackend(BaseBackend):
         self,
         target_path: str,
         callback: Callable[[np.ndarray, int], np.ndarray],
-        fps: int | None = None,
+        fps: int = None,
         progress_message: str = "Processing video",
         show_progress: bool = False,
         codec: str = "mp4v",
@@ -220,7 +220,7 @@ class OpenCVBackend(BaseBackend):
             target_path (str): Path where the processed video will be saved.
             callback (Callable[[np.ndarray, int], np.ndarray]): Function that processes
                 each frame. Takes frame and index as input, returns processed frame.
-            fps (int | None, optional): Output video FPS. If None, uses source FPS.
+            fps (int, optional): Output video FPS. If None, uses source FPS.
             progress_message (str, optional): Message to show in progress bar.
             show_progress (bool, optional): Whether to show progress bar.
 
