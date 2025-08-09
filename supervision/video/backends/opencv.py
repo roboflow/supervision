@@ -1,6 +1,5 @@
-from collections.abc import Iterator
-from typing import Any, Optional
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from typing import Any
 
 import cv2
 import numpy as np
