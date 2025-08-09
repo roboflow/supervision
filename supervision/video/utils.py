@@ -43,8 +43,8 @@ class VideoInfo:
     width: int
     height: int
     fps: int
-    total_frames: int | None = None
-    source_type: SOURCE_TYPE | None = None
+    total_frames: int = None
+    source_type: SOURCE_TYPE = None
 
     @classmethod
     def from_video_path(cls, video_path: str) -> "VideoInfo":
