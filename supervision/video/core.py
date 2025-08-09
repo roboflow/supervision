@@ -1,14 +1,10 @@
+from collections.abc import Callable
 
-from collections.abc import Callable, Generator
-
-import cv2
 import numpy as np
-from tqdm.auto import tqdm
 
-from supervision.video.utils import VideoInfo
 from supervision.video.backend.base import BaseBackend, BaseWriter
-
 from supervision.video.backend.openCV import OpenCVBackend
+from supervision.video.utils import VideoInfo
 
 
 class Video:
@@ -40,7 +36,9 @@ class Video:
         """
         return self.backend.frames()
 
-    def sink(self, target_path: str, info: VideoInfo, codec: str = "mp4v") -> BaseWriter:
+    def sink(
+        self, target_path: str, info: VideoInfo, codec: str = "mp4v"
+    ) -> BaseWriter:
         """Create a video writer for saving frames.
 
         Args:
@@ -83,7 +81,7 @@ class Video:
         fps: int | None = None,
         progress_message: str = "Processing video",
         show_progress: bool = False,
-        codec: str = "mp4v"
+        codec: str = "mp4v",
     ):
         """Save processed video frames to a file.
 
@@ -103,6 +101,5 @@ class Video:
             fps=fps,
             progress_message=progress_message,
             show_progress=show_progress,
-            codec=codec
+            codec=codec,
         )
-

@@ -1,10 +1,12 @@
-from supervision.video.backend.base import BaseBackend, BaseWriter
-from supervision.video.utils import SOURCE_TYPE, VideoInfo
+from collections.abc import Callable
 
 import cv2
 import numpy as np
 from tqdm.auto import tqdm
-from typing import Callable
+
+from supervision.video.backend.base import BaseBackend, BaseWriter
+from supervision.video.utils import SOURCE_TYPE, VideoInfo
+
 
 class OpenCVBackend(BaseBackend):
     """
@@ -210,7 +212,7 @@ class OpenCVBackend(BaseBackend):
         fps: int | None = None,
         progress_message: str = "Processing video",
         show_progress: bool = False,
-        codec: str = "mp4v"
+        codec: str = "mp4v",
     ):
         """Save processed video frames to a file with audio preservation.
 
@@ -235,7 +237,7 @@ class OpenCVBackend(BaseBackend):
         if self.writer is not None:
             self.writer.close()
             self.writer = None
-        
+
         if fps is None:
             fps = self.video_info.fps
 
