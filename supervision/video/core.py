@@ -52,7 +52,9 @@ class Video:
         Returns:
             Writer: A video writer object for writing frames.
         """
-        return self.backend.get_sink(target_path, info, codec)
+        return self.backend.writer(
+             target_path, info.fps, info.resolution_wh, codec
+        )
 
     def frames(
         self,

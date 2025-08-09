@@ -23,21 +23,6 @@ class OpenCVBackend(BaseBackend):
         self.writer = OpenCVWriter
         self.path = None
 
-    def get_sink(self, target_path: str, video_info: VideoInfo, codec: str = "mp4v"):
-        """Create a video writer for saving frames using OpenCV.
-
-        Args:
-            target_path (str): Path where the video will be saved.
-            video_info (VideoInfo): Video information containing resolution and FPS.
-            codec (str, optional): FourCC code for video codec. Defaults to "mp4v".
-
-        Returns:
-            OpenCVWriter: A video writer object for writing frames.
-        """
-        return OpenCVWriter(
-            target_path, video_info.fps, video_info.resolution_wh, codec
-        )
-
     def open(self, path: str) -> None:
         """
         Open a video source and initialize the video capture object.
