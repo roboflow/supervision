@@ -49,6 +49,17 @@ class BaseBackend(ABC):
 
 class BaseWriter(ABC):
     @abstractmethod
+    def __init__(
+        self,
+        filename: str,
+        fps: int,
+        frame_size: tuple[int, int],
+        codec: str | None = None,
+        backend: BaseBackend = None,
+    ):
+        pass
+
+    @abstractmethod
     def write(self, frame: np.ndarray) -> None:
         pass
 

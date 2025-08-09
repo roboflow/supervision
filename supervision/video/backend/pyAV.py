@@ -13,10 +13,12 @@ class pyAVWriter(BaseWriter):
         fps: int,
         frame_size: tuple[int, int],
         codec: str = "h264",
-    ):
+        backend: "pyAVBackend" = None,
+    ):        
         try:
             self.container = av.open(filename, mode="w")
-
+            self.backend = backend
+            
             if codec is None:
                 codec = "h264"
             self.stream = self.container.add_stream(codec, rate=fps)
@@ -29,6 +31,16 @@ class pyAVWriter(BaseWriter):
 
             # Frame index for PTS
             self.frame_idx = 0
+            
+            self.audio_stream_out = None
+            self.audio_packets = []
+            if backend.audio_stream and backend.audio_src_container:
+                audio_codec_name = backend.audio_stream.codec_context.name
+                audio_rate = backend.audio_stream.codec_context.rate  # Can be None for some codecs
+                self.audio_stream_out = self.container.add_stream(audio_codec_name, rate=audio_rate)
+                for packet in backend.audio_src_container.demux(backend.audio_stream):
+                    if packet.dts is not None:
+                        self.audio_packets.append(packet)
 
         except Exception as e:
             raise RuntimeError(f"Cannot open video writer for file: {filename}") from e
@@ -53,6 +65,11 @@ class pyAVWriter(BaseWriter):
         for packet in packets:
             self.container.mux(packet)
 
+        if self.audio_stream_out:
+            for packet in self.audio_packets:
+                packet.stream = self.audio_stream_out
+                self.container.mux(packet)
+
         self.container.close()
 
 class pyAVBackend(BaseBackend):
@@ -69,7 +86,7 @@ class pyAVBackend(BaseBackend):
         self.frame_generator = None
         self.video_info = None
         self.current_frame_idx = 0  # Track current frame number in decoding
-
+    
     def open(self, path: str) -> None:
         """Open and initialize a video source.
 
@@ -85,6 +102,7 @@ class pyAVBackend(BaseBackend):
         """
         try:
             self.container = av.open(path)
+            self.audio_src_container = self.container
             self.stream = self.container.streams.video[0]
             self.stream.thread_type = "AUTO"
             self.cap = self.container
@@ -92,6 +110,10 @@ class pyAVBackend(BaseBackend):
             self.frame_generator = self.container.decode(video=0)
             self.video_info = self._set_video_info()
             self.current_frame_idx = 0
+
+             # If audio exists
+            if len(self.container.streams.audio) > 0:
+                self.audio_stream = self.container.streams.audio[0]
 
             if isinstance(path, int):
                 self.video_info.source_type = SOURCE_TYPE.WEBCAM
@@ -106,7 +128,7 @@ class pyAVBackend(BaseBackend):
 
         except Exception as e:
             raise RuntimeError(f"Cannot open video source: {path}") from e
-
+    
     def isOpened(self) -> bool:
         return self.container is not None and self.stream is not None
 

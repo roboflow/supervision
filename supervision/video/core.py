@@ -140,7 +140,7 @@ class Video:
             fps = self.backend.video_info.fps
 
         writer = self.backend.writer(
-            target_path, fps, self.backend.video_info.resolution_wh, codec
+            target_path, fps, self.backend.video_info.resolution_wh, codec, self.backend
         )
         total_frames = self.backend.video_info.total_frames
         print(self.backend.video_info)
