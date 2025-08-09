@@ -151,6 +151,7 @@ class OpenCVWriter(BaseWriter):
         fps: int,
         frame_size: tuple[int, int],
         codec: str = "mp4v",
+        backend: OpenCVBackend = None,
     ):
         """Initialize the video writer.
 
@@ -163,6 +164,7 @@ class OpenCVWriter(BaseWriter):
         Raises:
             RuntimeError: If the video writer cannot be initialized.
         """
+        self.backend = backend
         try:
             fourcc_int = cv2.VideoWriter_fourcc(*codec)
             self.writer = cv2.VideoWriter(filename, fourcc_int, fps, frame_size)
