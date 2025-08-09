@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum
 
@@ -47,7 +48,7 @@ class VideoInfo:
     source_type: SOURCE_TYPE | None = None
 
     @classmethod
-    def from_video_path(cls, video_path: str) -> "VideoInfo":
+    def from_video_path(cls, video_path: str) -> VideoInfo:
         """Create VideoInfo from a video file path.
 
         Args:

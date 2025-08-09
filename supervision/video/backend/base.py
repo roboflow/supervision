@@ -18,7 +18,7 @@ class BaseBackend(ABC):
     @abstractmethod
     def get_sink(
         self, target_path: str, video_info: VideoInfo, codec: str = "mp4v"
-    ) -> "BaseWriter":
+    ) -> BaseWriter:
         pass
 
     @abstractmethod
