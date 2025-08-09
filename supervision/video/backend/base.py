@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
+from collections.abc import Callable
+
 import numpy as np
-from collections.abc import Callable, Generator
 
 from supervision.video.utils import VideoInfo
+
 
 class BaseBackend(ABC):
     def __init__(self):
@@ -44,7 +46,7 @@ class BaseBackend(ABC):
     @abstractmethod
     def seek(self, frame_idx: int) -> None:
         pass
-    
+
     @abstractmethod
     def frames(
         self,
@@ -68,7 +70,7 @@ class BaseBackend(ABC):
         fps: int | None = None,
         progress_message: str = "Processing video",
         show_progress: bool = False,
-        codec: str = "mp4v"
+        codec: str = "mp4v",
     ):
         pass
 
