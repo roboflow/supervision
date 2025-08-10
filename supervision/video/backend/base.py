@@ -58,6 +58,14 @@ class BaseWriter(ABC):
         backend: BaseBackend | None = None,
     ):
         pass
+    
+    @abstractmethod
+    def __enter__(self):
+        pass
+
+    @abstractmethod
+    def __exit__(self, exc_type, exc_value, traceback):
+        pass
 
     @abstractmethod
     def write(self, frame: np.ndarray) -> None:

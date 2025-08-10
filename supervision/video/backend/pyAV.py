@@ -19,7 +19,7 @@ class pyAVBackend(BaseBackend):
         self.writer = pyAVWriter
         self.frame_generator = None
         self.video_info = None
-        self.current_frame_idx = 0  # Track current frame number in decoding
+        self.current_frame_idx = 0  
     
     def open(self, path: str) -> None:
         """Open and initialize a video source.
@@ -74,7 +74,7 @@ class pyAVBackend(BaseBackend):
         height = self.stream.height
         fps = float(self.stream.average_rate or self.stream.guessed_rate)
         if fps <= 0:
-            fps = 30  # Default to 30fps if invalid
+            fps = 30 
 
         total_frames = self.stream.frames
         if total_frames == 0:
@@ -221,7 +221,7 @@ class pyAVWriter(BaseWriter):
             self.audio_packets = []
             if backend.audio_stream and backend.audio_src_container:
                 audio_codec_name = backend.audio_stream.codec_context.name
-                audio_rate = backend.audio_stream.codec_context.rate  # Can be None for some codecs
+                audio_rate = backend.audio_stream.codec_context.rate 
                 self.audio_stream_out = self.container.add_stream(audio_codec_name, rate=audio_rate)
                 for packet in backend.audio_src_container.demux(backend.audio_stream):
                     if packet.dts is not None:
@@ -229,9 +229,14 @@ class pyAVWriter(BaseWriter):
 
         except Exception as e:
             raise RuntimeError(f"Cannot open video writer for file: {filename}") from e
+        
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
 
     def write(self, frame: np.ndarray) -> None:
-        # Convert BGR (OpenCV) to RGB for PyAV
         frame_rgb = frame[..., ::-1]
         av_frame = av.VideoFrame.from_ndarray(frame_rgb, format="rgb24")
 
@@ -239,13 +244,11 @@ class pyAVWriter(BaseWriter):
         av_frame.time_base = self.stream.codec_context.time_base
         self.frame_idx += 1
 
-        # Encode frame and mux packets immediately
         packets = self.stream.encode(av_frame)
         for packet in packets:
             self.container.mux(packet)
 
     def close(self) -> None:
-        # Flush encoder by calling encode() with no frame, mux all packets
         packets = self.stream.encode()
         for packet in packets:
             self.container.mux(packet)
