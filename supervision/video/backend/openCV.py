@@ -177,9 +177,11 @@ class OpenCVWriter(BaseWriter):
             RuntimeError: If the writer cannot be opened.
         """
         if render_audio:
-            raise ValueError("OpenCV backend does not support audio. " \
-            "Please use `pyav` backend instead or set `render_audio=False`")
-        
+            raise ValueError(
+                "OpenCV backend does not support audio. "
+                "Please use `pyav` backend instead or set `render_audio=False`"
+            )
+
         self.backend = backend
         try:
             fourcc_int = cv2.VideoWriter_fourcc(*codec)

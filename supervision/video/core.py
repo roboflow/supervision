@@ -53,7 +53,11 @@ class Video:
         return self.backend.frames()
 
     def sink(
-        self, target_path: str, info: VideoInfo, codec: str | None = None, render_audio: bool = False
+        self,
+        target_path: str,
+        info: VideoInfo,
+        codec: str | None = None,
+        render_audio: bool = False,
     ) -> BaseWriter:
         """
         Create a video writer for saving frames to a file.
@@ -172,7 +176,12 @@ class Video:
             fps = self.backend.video_info.fps
 
         writer = self.backend.writer(
-            target_path, fps, self.backend.video_info.resolution_wh, codec, self.backend, render_audio
+            target_path,
+            fps,
+            self.backend.video_info.resolution_wh,
+            codec,
+            self.backend,
+            render_audio,
         )
         total_frames = self.backend.video_info.total_frames
         frames_generator = self.frames()

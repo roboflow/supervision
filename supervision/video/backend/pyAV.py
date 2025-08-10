@@ -231,6 +231,7 @@ class pyAVBackend(BaseBackend):
             self.stream = None
             self.frame_generator = None
 
+
 class pyAVWriter(BaseWriter):
     """
     PyAV-based video writer.
@@ -280,8 +281,13 @@ class pyAVWriter(BaseWriter):
 
             self.audio_stream_out = None
             self.audio_packets = []
-            
-            if render_audio and backend and backend.audio_stream and backend.audio_src_container:
+
+            if (
+                render_audio
+                and backend
+                and backend.audio_stream
+                and backend.audio_src_container
+            ):
                 audio_codec_name = backend.audio_stream.codec_context.name
                 audio_rate = backend.audio_stream.codec_context.rate
                 self.audio_stream_out = self.container.add_stream(
