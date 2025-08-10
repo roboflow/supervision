@@ -23,8 +23,10 @@ class pyAVBackend(BaseBackend):
         super().__init__()
 
         if av is None:
-            raise RuntimeError("PyAV (`av` module) is not installed. Please install it to use this feature.")
-        
+            raise RuntimeError(
+                "PyAV (`av` module) is not installed. Please install it to use this feature."
+            )
+
         self.container = None
         self.stream = None
         self.writer = pyAVWriter
@@ -202,9 +204,9 @@ class pyAVBackend(BaseBackend):
                 break
 
             if getattr(frame, "time", None) is not None:
-                self.current_frame_idx = (round(frame.time * framerate))
+                self.current_frame_idx = round(frame.time * framerate)
             elif getattr(frame, "pts", None) is not None:
-                self.current_frame_idx = (round((frame.pts * time_base) * framerate))
+                self.current_frame_idx = round((frame.pts * time_base) * framerate)
             else:
                 self.current_frame_idx += 1
 
