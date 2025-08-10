@@ -3,7 +3,7 @@ from __future__ import annotations
 import cv2
 import numpy as np
 
-from supervision.video.backend.base import BaseBackend, BaseWriter
+from supervision.video.backend import BaseBackend, BaseWriter
 from supervision.video.utils import SOURCE_TYPE, VideoInfo
 
 

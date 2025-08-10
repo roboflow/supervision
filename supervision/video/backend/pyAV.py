@@ -2,75 +2,9 @@ import av
 import numpy as np
 
 from fractions import Fraction
-from supervision.video.backend.base import BaseBackend, BaseWriter
+from supervision.video.backend import BaseBackend, BaseWriter
 from supervision.video.utils import VideoInfo, SOURCE_TYPE
 
-
-class pyAVWriter(BaseWriter):
-    def __init__(
-        self,
-        filename: str,
-        backend: "pyAVBackend",
-        fps: int,
-        frame_size: tuple[int, int],
-        codec: str = "h264",
-    ):        
-        try:
-            self.container = av.open(filename, mode="w")
-            self.backend = backend
-            
-            if codec is None:
-                codec = "h264"
-            self.stream = self.container.add_stream(codec, rate=fps)
-            self.stream.width = frame_size[0]
-            self.stream.height = frame_size[1]
-            self.stream.pix_fmt = "yuv420p"
-
-            # Set time_base explicitly for correct timing
-            self.stream.codec_context.time_base = Fraction(1, fps)
-
-            # Frame index for PTS
-            self.frame_idx = 0
-            
-            self.audio_stream_out = None
-            self.audio_packets = []
-            if backend.audio_stream and backend.audio_src_container:
-                audio_codec_name = backend.audio_stream.codec_context.name
-                audio_rate = backend.audio_stream.codec_context.rate  # Can be None for some codecs
-                self.audio_stream_out = self.container.add_stream(audio_codec_name, rate=audio_rate)
-                for packet in backend.audio_src_container.demux(backend.audio_stream):
-                    if packet.dts is not None:
-                        self.audio_packets.append(packet)
-
-        except Exception as e:
-            raise RuntimeError(f"Cannot open video writer for file: {filename}") from e
-
-    def write(self, frame: np.ndarray) -> None:
-        # Convert BGR (OpenCV) to RGB for PyAV
-        frame_rgb = frame[..., ::-1]
-        av_frame = av.VideoFrame.from_ndarray(frame_rgb, format="rgb24")
-
-        av_frame.pts = self.frame_idx
-        av_frame.time_base = self.stream.codec_context.time_base
-        self.frame_idx += 1
-
-        # Encode frame and mux packets immediately
-        packets = self.stream.encode(av_frame)
-        for packet in packets:
-            self.container.mux(packet)
-
-    def close(self) -> None:
-        # Flush encoder by calling encode() with no frame, mux all packets
-        packets = self.stream.encode()
-        for packet in packets:
-            self.container.mux(packet)
-
-        if self.audio_stream_out:
-            for packet in self.audio_packets:
-                packet.stream = self.audio_stream_out
-                self.container.mux(packet)
-
-        self.container.close()
 
 class pyAVBackend(BaseBackend):
     """
@@ -256,3 +190,69 @@ class pyAVBackend(BaseBackend):
             self.container = None
             self.stream = None
             self.frame_generator = None
+
+class pyAVWriter(BaseWriter):
+    def __init__(
+        self,
+        filename: str,
+        backend: pyAVBackend,
+        fps: int,
+        frame_size: tuple[int, int],
+        codec: str = "h264",
+    ):        
+        try:
+            self.container = av.open(filename, mode="w")
+            self.backend = backend
+            
+            if codec is None:
+                codec = "h264"
+            self.stream = self.container.add_stream(codec, rate=fps)
+            self.stream.width = frame_size[0]
+            self.stream.height = frame_size[1]
+            self.stream.pix_fmt = "yuv420p"
+
+            # Set time_base explicitly for correct timing
+            self.stream.codec_context.time_base = Fraction(1, fps)
+
+            # Frame index for PTS
+            self.frame_idx = 0
+            
+            self.audio_stream_out = None
+            self.audio_packets = []
+            if backend.audio_stream and backend.audio_src_container:
+                audio_codec_name = backend.audio_stream.codec_context.name
+                audio_rate = backend.audio_stream.codec_context.rate  # Can be None for some codecs
+                self.audio_stream_out = self.container.add_stream(audio_codec_name, rate=audio_rate)
+                for packet in backend.audio_src_container.demux(backend.audio_stream):
+                    if packet.dts is not None:
+                        self.audio_packets.append(packet)
+
+        except Exception as e:
+            raise RuntimeError(f"Cannot open video writer for file: {filename}") from e
+
+    def write(self, frame: np.ndarray) -> None:
+        # Convert BGR (OpenCV) to RGB for PyAV
+        frame_rgb = frame[..., ::-1]
+        av_frame = av.VideoFrame.from_ndarray(frame_rgb, format="rgb24")
+
+        av_frame.pts = self.frame_idx
+        av_frame.time_base = self.stream.codec_context.time_base
+        self.frame_idx += 1
+
+        # Encode frame and mux packets immediately
+        packets = self.stream.encode(av_frame)
+        for packet in packets:
+            self.container.mux(packet)
+
+    def close(self) -> None:
+        # Flush encoder by calling encode() with no frame, mux all packets
+        packets = self.stream.encode()
+        for packet in packets:
+            self.container.mux(packet)
+
+        if self.audio_stream_out:
+            for packet in self.audio_packets:
+                packet.stream = self.audio_stream_out
+                self.container.mux(packet)
+
+        self.container.close()

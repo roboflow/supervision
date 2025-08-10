@@ -5,13 +5,14 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from supervision.video.utils import VideoInfo
+from supervision.video.backend import BackendTypes, WriterTypes
 
 
 class BaseBackend(ABC):
     def __init__(self):
         self.cap = None
         self.video_info = None
-        self.writer = None
+        self.writer: WriterTypes = None
         self.path = None
 
     @abstractmethod
@@ -52,7 +53,7 @@ class BaseWriter(ABC):
     def __init__(
         self,
         filename: str,
-        backend: BaseBackend,
+        backend: BackendTypes,
         fps: int,
         frame_size: tuple[int, int],
         codec: str | None = None,

@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import overload
-
 import numpy as np
 import cv2
 from tqdm.auto import tqdm
 
 from supervision.video.backend import (
-    BaseBackend,
+    BackendTypes,
+    BackendLiteral,
     BaseWriter,
     getBackend,
-    BackendLiteral,
 )
 from supervision.video.utils import VideoInfo, SOURCE_TYPE
 
@@ -19,26 +17,16 @@ from supervision.video.utils import VideoInfo, SOURCE_TYPE
 class Video:
     info: VideoInfo
     source: str | int
-    backend: BaseBackend
-
-    @overload
-    def __init__(
-        self, 
-        source: str | int, 
-        info: VideoInfo | None = None, 
-        backend: BackendLiteral = "opencv"
-    ) -> None:
-        ...
+    backend: BackendTypes
 
     def __init__(
         self, 
         source: str | int, 
-        info: VideoInfo | None = None, 
         backend: BackendLiteral = "opencv"
     ) -> None:
         self.backend = getBackend(backend)
         self.backend.open(source)
-        self.info = self.backend.video_info
+        self.info = self.backend.info()
         self.source = source
 
     def __iter__(self):
