@@ -29,7 +29,7 @@ class Video:
     source: str | int
     backend: BackendTypes
 
-    def __init__(self, source: str | int, backend: BackendLiteral = "opencv") -> None:
+    def __init__(self, source: str | int, backend: BackendLiteral = "opencv", render_audio=False) -> None:
         """
         Initialize the Video object.
 
@@ -38,7 +38,7 @@ class Video:
             backend (BackendLiteral, optional): Backend type for video I/O.
                 Defaults to "opencv".
         """
-        self.backend = getBackend(backend)
+        self.backend = getBackend(backend)(render_audio=render_audio)
         self.backend.open(source)
         self.info = self.backend.info()
         self.source = source

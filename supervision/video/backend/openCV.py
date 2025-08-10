@@ -15,13 +15,17 @@ class OpenCVBackend(BaseBackend):
     grabbing, and retrieving metadata using OpenCV.
     """
 
-    def __init__(self):
+    def __init__(self, render_audio=False):
         """Initialize with no active capture, writer, or path."""
-        super().__init__()
+        if render_audio:
+            raise ValueError("OpenCV backend does not support audio. " \
+            "Please use `pyAV` backend instead or set `render_audio=False`")
+        
         self.cap = None
         self.video_info = None
         self.writer = OpenCVWriter
         self.path = None
+        self.render_audio = render_audio
 
     def open(self, path: str | int) -> None:
         """

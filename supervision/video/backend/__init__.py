@@ -18,7 +18,7 @@ _backends = {
 
 def getBackend(backend: str) -> BaseBackend:
     if backend.lower() in _backends:
-        return _backends[backend.lower()]()
+        return _backends[backend.lower()]
     else:
         raise ValueError(f"Unsupported backend: {backend}")
 
