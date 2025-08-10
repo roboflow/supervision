@@ -5,12 +5,13 @@ from collections import deque
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
 
+from supervision.utils.internal import deprecated
+
 import cv2
 import numpy as np
 from tqdm.auto import tqdm
 
-
-@DeprecationWarning
+@deprecated("Use `sv.VideoInfo` for video metadata.")
 @dataclass
 class VideoInfo:
     """
@@ -60,8 +61,7 @@ class VideoInfo:
     def resolution_wh(self) -> tuple[int, int]:
         return self.width, self.height
 
-
-@DeprecationWarning
+@deprecated("Please use `sv.Video` for video writing and processing.")
 class VideoSink:
     """
     Context manager that saves video frames to a file using OpenCV.
@@ -118,8 +118,6 @@ class VideoSink:
     def __exit__(self, exc_type, exc_value, exc_traceback):
         self.__writer.release()
 
-
-@DeprecationWarning
 def _validate_and_setup_video(
     source_path: str, start: int, end: int | None, iterative_seek: bool = False
 ):
@@ -143,8 +141,7 @@ def _validate_and_setup_video(
 
     return video, start, end
 
-
-@DeprecationWarning
+@deprecated("Use `sv.Video().frames()` or `sv.Video()` for frame iteration.")
 def get_video_frames_generator(
     source_path: str,
     stride: int = 1,
@@ -195,8 +192,7 @@ def get_video_frames_generator(
         frame_position += stride
     video.release()
 
-
-@DeprecationWarning
+@deprecated("Use `sv.Video.save()` with a callback for processing and saving videos.")
 def process_video(
     source_path: str,
     target_path: str,
