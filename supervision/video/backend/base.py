@@ -46,6 +46,7 @@ class BaseBackend(ABC):
     def release(self) -> None:
         pass
 
+
 class BaseWriter(ABC):
     @abstractmethod
     def __init__(
@@ -57,7 +58,7 @@ class BaseWriter(ABC):
         backend: BaseBackend | None = None,
     ):
         pass
-    
+
     @abstractmethod
     def __enter__(self):
         pass

@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-import numpy as np
+
 import cv2
+import numpy as np
 from tqdm.auto import tqdm
 
 from supervision.video.backend import (
-    BackendTypes,
     BackendLiteral,
+    BackendTypes,
     BaseWriter,
     getBackend,
 )
-from supervision.video.utils import VideoInfo, SOURCE_TYPE
+from supervision.video.utils import SOURCE_TYPE, VideoInfo
 
 
 class Video:
@@ -28,11 +29,7 @@ class Video:
     source: str | int
     backend: BackendTypes
 
-    def __init__(
-        self,
-        source: str | int,
-        backend: BackendLiteral = "opencv"
-    ) -> None:
+    def __init__(self, source: str | int, backend: BackendLiteral = "opencv") -> None:
         """
         Initialize the Video object.
 
@@ -99,7 +96,9 @@ class Video:
         if self.backend.cap is None:
             raise RuntimeError("Video not opened yet.")
 
-        total_frames = self.backend.video_info.total_frames if self.backend.video_info else 0
+        total_frames = (
+            self.backend.video_info.total_frames if self.backend.video_info else 0
+        )
         is_live_stream = total_frames <= 0
 
         if is_live_stream:

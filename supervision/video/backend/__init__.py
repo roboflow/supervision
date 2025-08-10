@@ -15,20 +15,22 @@ _backends = {
     "pyav": pyAVBackend,
 }
 
+
 def getBackend(backend: str) -> BaseBackend:
     if backend.lower() in _backends:
         return _backends[backend.lower()]()
     else:
         raise ValueError(f"Unsupported backend: {backend}")
 
+
 __all__ = [
+    "BackendLiteral",
+    "BackendType",
     "BaseBackend",
     "BaseWriter",
     "OpenCVBackend",
     "OpenCVWriter",
+    "getBackend",
     "pyAVBackend",
     "pyAVWriter",
-    "getBackend",
-    "BackendLiteral",
-    "BackendType"
 ]

@@ -1,9 +1,10 @@
+from fractions import Fraction
+
 import av
 import numpy as np
 
-from fractions import Fraction
 from supervision.video.backend import BaseBackend, BaseWriter
-from supervision.video.utils import VideoInfo, SOURCE_TYPE
+from supervision.video.utils import SOURCE_TYPE, VideoInfo
 
 
 class pyAVBackend(BaseBackend):
@@ -22,7 +23,7 @@ class pyAVBackend(BaseBackend):
         self.writer = pyAVWriter
         self.frame_generator = None
         self.video_info = None
-        self.current_frame_idx = 0  
+        self.current_frame_idx = 0
 
     def open(self, path: str) -> None:
         """
@@ -117,8 +118,8 @@ class pyAVBackend(BaseBackend):
         Read and decode the next frame from the video source.
 
         Returns:
-            tuple[bool, np.ndarray]:  
-                - `bool`: True if a frame was read successfully, False if end of stream.  
+            tuple[bool, np.ndarray]:
+                - `bool`: True if a frame was read successfully, False if end of stream.
                 - `np.ndarray`: Frame data in BGR format (H, W, 3). Empty array if unsuccessful.
 
         Raises:
@@ -152,7 +153,7 @@ class pyAVBackend(BaseBackend):
 
         try:
             for packet in self.container.demux(video=0):
-                if packet.stream.type == 'video':
+                if packet.stream.type == "video":
                     return True
             return False
         except (StopIteration, av.error.EOFError):
@@ -181,7 +182,9 @@ class pyAVBackend(BaseBackend):
         time_base = float(self.stream.time_base)
         timestamp = int((frame_idx / framerate) / time_base)
 
-        self.container.seek(timestamp, stream=self.stream, any_frame=False, backward=True)
+        self.container.seek(
+            timestamp, stream=self.stream, any_frame=False, backward=True
+        )
         self.frame_generator = self.container.decode(video=0)
 
         self.current_frame_idx = 0
@@ -199,9 +202,11 @@ class pyAVBackend(BaseBackend):
                 self.current_frame_idx += 1
 
             if self.current_frame_idx >= frame_idx:
+
                 def _prepend_frame(first_frame, gen):
                     yield first_frame
                     yield from gen
+
                 self.frame_generator = _prepend_frame(frame, self.frame_generator)
                 break
 
@@ -247,7 +252,7 @@ class pyAVWriter(BaseWriter):
         try:
             self.container = av.open(filename, mode="w")
             self.backend = backend
-            
+
             if codec is None:
                 codec = "h264"
             self.stream = self.container.add_stream(codec, rate=fps)
@@ -261,13 +266,15 @@ class pyAVWriter(BaseWriter):
 
             # Frame index for PTS
             self.frame_idx = 0
-            
+
             self.audio_stream_out = None
             self.audio_packets = []
             if backend and backend.audio_stream and backend.audio_src_container:
                 audio_codec_name = backend.audio_stream.codec_context.name
                 audio_rate = backend.audio_stream.codec_context.rate
-                self.audio_stream_out = self.container.add_stream(audio_codec_name, rate=audio_rate)
+                self.audio_stream_out = self.container.add_stream(
+                    audio_codec_name, rate=audio_rate
+                )
                 for packet in backend.audio_src_container.demux(backend.audio_stream):
                     if packet.dts is not None:
                         self.audio_packets.append(packet)
@@ -313,4 +320,3 @@ class pyAVWriter(BaseWriter):
                 self.container.mux(packet)
 
         self.container.close()
-

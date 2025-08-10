@@ -15,6 +15,7 @@ class SOURCE_TYPE(Enum):
         WEBCAM: A webcam or other direct camera device.
         RTSP: A network RTSP video stream.
     """
+
     VIDEO_FILE = "VIDEO_FILE"
     WEBCAM = "WEBCAM"
     RTSP = "RTSP"
