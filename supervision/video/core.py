@@ -15,43 +15,63 @@ from supervision.video.utils import VideoInfo, SOURCE_TYPE
 
 
 class Video:
+    """
+    A high-level interface for reading, processing, and writing video files or streams.
+
+    Attributes:
+        info (VideoInfo): Metadata about the video, such as resolution, FPS, and frame count.
+        source (str | int): Path to the video file or index of the camera device.
+        backend (BackendTypes): Video backend used for I/O operations.
+    """
+
     info: VideoInfo
     source: str | int
     backend: BackendTypes
 
     def __init__(
-        self, 
-        source: str | int, 
+        self,
+        source: str | int,
         backend: BackendLiteral = "opencv"
     ) -> None:
+        """
+        Initialize the Video object.
+
+        Args:
+            source (str | int): Path to a video file or index of a camera device.
+            backend (BackendLiteral, optional): Backend type for video I/O.
+                Defaults to "opencv".
+        """
         self.backend = getBackend(backend)
         self.backend.open(source)
         self.info = self.backend.info()
         self.source = source
 
     def __iter__(self):
-        """Make the Video class iterable over frames.
+        """
+        Make the Video object iterable over frames.
 
-        Returns:
-            Generator: A generator yielding video frames.
+        Yields:
+            np.ndarray: The next frame in the video.
         """
         return self.backend.frames()
 
     def sink(
         self, target_path: str, info: VideoInfo, codec: str | None = None
     ) -> BaseWriter:
-        """Create a video writer for saving frames.
+        """
+        Create a video writer for saving frames to a file.
 
         Args:
-            target_path (str): Path where the video will be saved.
-            info (VideoInfo): Video information containing resolution and FPS.
-            codec (str, optional): FourCC code for video codec. Defaults to "None".
+            target_path (str): Output file path for the video.
+            info (VideoInfo): Video information including resolution and FPS.
+            codec (str, optional): FourCC video codec code.
+                If None, the backend's default codec is used.
 
         Returns:
-            Writer: A video writer object for writing frames.
+            BaseWriter: Video writer instance for writing frames.
         """
         return self.backend.writer(
-             target_path, info.fps, info.resolution_wh, codec, self.backend
+            target_path, info.fps, info.resolution_wh, codec, self.backend
         )
 
     def frames(
@@ -61,17 +81,20 @@ class Video:
         end: int | None = None,
         resolution_wh: tuple[int, int] | None = None,
     ):
-        """Generate frames from the video.
+        """
+        Generate frames from the video with optional skipping, cropping, and resizing.
 
         Args:
-            stride (int, optional): Number of frames to skip. Defaults to 1.
-            start (int, optional): Starting frame index. Defaults to 0.
-            end (int | None, optional): Ending frame index. Defaults to None.
+            stride (int, optional): Number of frames to skip between each yield.
+                Defaults to 1 (no skipping).
+            start (int, optional): Index of the first frame to read. Defaults to 0.
+            end (int | None, optional): Index after the last frame to read.
+                If None, reads until the end of the video.
             resolution_wh (tuple[int, int] | None, optional): Target resolution
-                (width, height). If provided, frames will be resized. Defaults to None.
+                (width, height) for resizing frames. If None, keeps original size.
 
-        Returns:
-            Generator: A generator yielding video frames.
+        Yields:
+            np.ndarray: The next frame in the video.
         """
         if self.backend.cap is None:
             raise RuntimeError("Video not opened yet.")
@@ -114,17 +137,29 @@ class Video:
         show_progress: bool = False,
         codec: str | None = None,
     ):
-        """Save processed video frames to a file.
+        """
+        Process and save video frames to a file.
 
         Args:
-            target_path (str): Path where the processed video will be saved.
-            callback (Callable[[np.ndarray, int], np.ndarray]): Function that processes
-                each frame. Takes frame and index as input, returns processed frame.
-            fps (int | None, optional): Output video FPS.
-            progress_message (str, optional): Message to show in progress bar.
+            target_path (str): Output file path for the processed video.
+            callback (Callable[[np.ndarray, int], np.ndarray]): Function applied to each frame.
+                Takes the frame (np.ndarray) and frame index (int) as input,
+                returns the processed frame (np.ndarray).
+            fps (int | None, optional): Frames per second of the output video.
+                If None, uses the original FPS.
+            progress_message (str, optional): Message displayed in the progress bar.
                 Defaults to "Processing video".
-            show_progress (bool, optional): Whether to show progress bar.
+            show_progress (bool, optional): If True, displays a tqdm progress bar.
                 Defaults to False.
+            codec (str | None, optional): FourCC video codec code.
+                If None, uses the backend's default codec.
+
+        Raises:
+            RuntimeError: If the video has not been opened.
+            ValueError: If the video source is not a file.
+
+        Returns:
+            None
         """
         if self.backend.cap is None:
             raise RuntimeError("Video not opened yet.")
@@ -139,7 +174,6 @@ class Video:
             target_path, fps, self.backend.video_info.resolution_wh, codec, self.backend
         )
         total_frames = self.backend.video_info.total_frames
-        print(self.backend.video_info)
         frames_generator = self.frames()
         for index, frame in enumerate(
             tqdm(

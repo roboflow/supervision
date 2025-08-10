@@ -9,34 +9,37 @@ from supervision.video.utils import SOURCE_TYPE, VideoInfo
 
 class OpenCVBackend(BaseBackend):
     """
-    OpenCV implementation of the Backend interface.
-    Handles video capture, frame reading, seeking, and writing operations using OpenCV.
+    OpenCV-based implementation of the video backend interface.
+
+    Provides methods for opening video sources, reading frames, seeking,
+    grabbing, and retrieving metadata using OpenCV.
     """
 
     def __init__(self):
-        """Initialize the OpenCV backend with empty video capture and writer objects."""
+        """Initialize with no active capture, writer, or path."""
         super().__init__()
         self.cap = None
         self.video_info = None
         self.writer = OpenCVWriter
         self.path = None
 
-    def open(self, path: str) -> None:
+    def open(self, path: str | int) -> None:
         """
-        Open a video source and initialize the video capture object.
+        Open a video source and initialize capture.
 
         Args:
-            path (str): Path to the video file, RTSP URL, or camera index.
+            path (str | int): Path to a video file, RTSP URL, or webcam index.
 
         Raises:
-            RuntimeError: If unable to open the video source.
-            ValueError: If the source type is not supported.
+            RuntimeError: If the source cannot be opened.
+            ValueError: If the source type is unsupported.
         """
         self.cap = cv2.VideoCapture(path)
         self.path = path
 
         if not self.cap.isOpened():
             raise RuntimeError(f"Cannot open video source: {path}")
+
         self.video_info = self._set_video_info()
 
         if isinstance(path, int):
@@ -51,98 +54,105 @@ class OpenCVBackend(BaseBackend):
             raise ValueError("Unsupported source type")
 
     def isOpened(self) -> bool:
-        """Check if the video source is opened successfully.
+        """
+        Check if the video source is currently open.
 
         Returns:
-            bool: True if the video source is opened, False otherwise.
+            bool: True if the source is open, False otherwise.
         """
         return self.cap.isOpened()
 
     def _set_video_info(self) -> VideoInfo:
-        """Set up video information from the opened video source.
+        """
+        Extract and store video metadata from the open capture.
 
         Returns:
-            VideoInfo: Object containing video properties like width, height, fps, etc.
+            VideoInfo: Video properties such as width, height, FPS, and frame count.
 
         Raises:
-            RuntimeError: If the video source is not opened yet.
+            RuntimeError: If no source is open.
         """
         if not self.isOpened():
             raise RuntimeError("Video not opened yet.")
+
         width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         fps = round(self.cap.get(cv2.CAP_PROP_FPS))
         total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
         return VideoInfo(width, height, fps, total_frames)
 
     def info(self) -> VideoInfo:
-        """Get video information.
+        """
+        Get the stored video metadata.
 
         Returns:
-            VideoInfo: Object containing video properties.
+            VideoInfo: Metadata for the open source.
 
         Raises:
-            RuntimeError: If the video source is not opened yet.
+            RuntimeError: If no source is open.
         """
         if not self.isOpened():
             raise RuntimeError("Video not opened yet.")
         return self.video_info
 
     def read(self) -> tuple[bool, np.ndarray]:
-        """Read a frame from the video source.
+        """
+        Read the next frame from the source.
 
         Returns:
-            tuple[bool, np.ndarray]: A tuple containing:
-                - bool: True if frame was successfully read
-                - np.ndarray: The video frame in BGR format
+            tuple[bool, np.ndarray]:
+                - bool: True if a frame was read successfully.
+                - np.ndarray: The frame in BGR format.
 
         Raises:
-            RuntimeError: If the video source is not opened yet.
+            RuntimeError: If no source is open.
         """
         if self.cap is None:
             raise RuntimeError("Video not opened yet.")
-        ret, frame = self.cap.read()
-        return ret, frame
+        return self.cap.read()
 
     def grab(self) -> bool:
-        """Grab a frame from video source without decoding.
+        """
+        Grab the next frame without decoding.
 
         Returns:
-            bool: True if frame was successfully grabbed.
+            bool: True if the frame pointer advanced successfully.
 
         Raises:
-            RuntimeError: If the video source is not opened yet.
+            RuntimeError: If no source is open.
         """
         if self.cap is None:
             raise RuntimeError("Video not opened yet.")
         return self.cap.grab()
 
     def seek(self, frame_idx: int) -> None:
-        """Seek to a specific frame in the video.
+        """
+        Jump to a specific frame.
 
         Args:
-            frame_idx (int): Index of the frame to seek to (0-based).
+            frame_idx (int): Zero-based frame index to seek to.
 
         Raises:
-            RuntimeError: If the video source is not opened yet.
+            RuntimeError: If no source is open.
         """
         if self.cap is None:
             raise RuntimeError("Video not opened yet.")
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
 
     def release(self) -> None:
-        """Release the video capture resources."""
+        """Release capture resources."""
         if self.cap is not None and self.cap.isOpened():
             self.cap.release()
             self.cap = None
 
 
 class OpenCVWriter(BaseWriter):
-    """A class to handle video writing operations using OpenCV's VideoWriter.
+    """
+    Video writer implementation using OpenCV's VideoWriter.
 
-    This class provides an interface to write frames to a video file using OpenCV,
-    with support for different codecs and automatic fallback to mp4v if the specified
-    codec fails.
+    Supports configurable codecs, frame sizes, and FPS, with a fallback
+    to "mp4v" if the specified codec fails.
     """
 
     def __init__(
@@ -153,17 +163,18 @@ class OpenCVWriter(BaseWriter):
         codec: str = "mp4v",
         backend: OpenCVBackend | None = None,
     ):
-        """Initialize the video writer.
+        """
+        Initialize the writer.
 
         Args:
-            filename (str): Path to the output video file.
-            fps (int): Frames per second for the output video.
-            frame_size (tuple[int, int]): Width and height of the output video frames.
-            codec (str, optional): FourCC code for the video codec. Defaults to "mp4v".
+            filename (str): Output video file path.
+            fps (int): Output frames per second.
+            frame_size (tuple[int, int]): Frame dimensions (width, height).
+            codec (str, optional): FourCC codec code. Defaults to "mp4v".
             backend (OpenCVBackend | None, optional): Backend instance. Defaults to None.
 
         Raises:
-            RuntimeError: If the video writer cannot be initialized.
+            RuntimeError: If the writer cannot be opened.
         """
         self.backend = backend
         try:
@@ -172,6 +183,7 @@ class OpenCVWriter(BaseWriter):
         except Exception:
             fourcc_int = cv2.VideoWriter_fourcc(*"mp4v")
             self.writer = cv2.VideoWriter(filename, fourcc_int, fps, frame_size)
+
         if not self.writer.isOpened():
             raise RuntimeError(f"Cannot open video writer for file: {filename}")
 
@@ -182,13 +194,14 @@ class OpenCVWriter(BaseWriter):
         self.close()
 
     def write(self, frame: np.ndarray) -> None:
-        """Write a frame to the video file.
+        """
+        Write a frame to the output.
 
         Args:
-            frame (np.ndarray): The frame to write, in BGR format.
+            frame (np.ndarray): Frame in BGR format.
         """
         self.writer.write(frame)
 
     def close(self) -> None:
-        """Release the video writer resources."""
+        """Release writer resources."""
         self.writer.release()

@@ -8,8 +8,11 @@ from supervision.video.utils import VideoInfo, SOURCE_TYPE
 
 class pyAVBackend(BaseBackend):
     """
-    PyAV implementation of the Backend interface.
-    Handles video capture, frame reading, seeking, and writing operations using PyAV.
+    PyAV-based implementation of the `BaseBackend` interface.
+
+    This backend handles video capture, frame reading, seeking, and writing
+    operations using the PyAV library. Supports local video files, webcams,
+    and RTSP streams.
     """
 
     def __init__(self):
@@ -20,19 +23,20 @@ class pyAVBackend(BaseBackend):
         self.frame_generator = None
         self.video_info = None
         self.current_frame_idx = 0  
-    
-    def open(self, path: str) -> None:
-        """Open and initialize a video source.
 
-        Opens a video file, RTSP stream, or webcam and initializes all necessary
-        components for video processing.
+    def open(self, path: str) -> None:
+        """
+        Open and initialize a video source.
+
+        This method opens a video file, RTSP stream, or webcam, and sets up
+        the necessary components for decoding and reading frames.
 
         Args:
-            path (str): Path to video file, RTSP URL, or camera index.
+            path (str | int): Path to the video file, RTSP URL, or webcam index.
 
         Raises:
-            RuntimeError: If unable to open the video source.
-            ValueError: If the source type is not supported.
+            RuntimeError: If the video source cannot be opened.
+            ValueError: If the source type is unsupported.
         """
         try:
             self.container = av.open(path)
@@ -45,7 +49,7 @@ class pyAVBackend(BaseBackend):
             self.video_info = self._set_video_info()
             self.current_frame_idx = 0
 
-             # If audio exists
+            # If audio exists
             if len(self.container.streams.audio) > 0:
                 self.audio_stream = self.container.streams.audio[0]
 
@@ -62,11 +66,21 @@ class pyAVBackend(BaseBackend):
 
         except Exception as e:
             raise RuntimeError(f"Cannot open video source: {path}") from e
-    
+
     def isOpened(self) -> bool:
+        """Check if the video source has been successfully opened."""
         return self.container is not None and self.stream is not None
 
     def _set_video_info(self) -> VideoInfo:
+        """
+        Extract video information from the opened source.
+
+        Returns:
+            VideoInfo: Object containing width, height, fps, and frame count.
+
+        Raises:
+            RuntimeError: If the video source is not opened.
+        """
         if not self.isOpened():
             raise RuntimeError("Video not opened yet.")
 
@@ -74,7 +88,7 @@ class pyAVBackend(BaseBackend):
         height = self.stream.height
         fps = float(self.stream.average_rate or self.stream.guessed_rate)
         if fps <= 0:
-            fps = 30 
+            fps = 30
 
         total_frames = self.stream.frames
         if total_frames == 0:
@@ -83,17 +97,27 @@ class pyAVBackend(BaseBackend):
         return VideoInfo(width, height, round(fps), total_frames)
 
     def info(self) -> VideoInfo:
+        """
+        Retrieve video information.
+
+        Returns:
+            VideoInfo: Video properties for the opened source.
+
+        Raises:
+            RuntimeError: If the video source is not opened.
+        """
         if not self.isOpened():
             raise RuntimeError("Video not opened yet.")
         return self.video_info
 
     def read(self) -> tuple[bool, np.ndarray]:
-        """Read the next frame from the video stream.
+        """
+        Read and decode the next frame from the video source.
 
         Returns:
-            tuple[bool, np.ndarray]: A tuple containing:
-                - bool: True if frame was successfully read
-                - np.ndarray: The video frame in BGR format (H, W, 3)
+            tuple[bool, np.ndarray]:  
+                - `bool`: True if a frame was read successfully, False if end of stream.  
+                - `np.ndarray`: Frame data in BGR format (H, W, 3). Empty array if unsuccessful.
 
         Raises:
             RuntimeError: If the video source is not opened.
@@ -110,13 +134,13 @@ class pyAVBackend(BaseBackend):
             return False, np.array([])
 
     def grab(self) -> bool:
-        """Grab the next frame packet without decoding.
+        """
+        Grab the next frame packet without decoding it.
 
-        A lightweight operation that skips frame decoding, useful for
-        quick frame navigation. Returns success status of the grab operation.
+        Useful for skipping frames quickly without the overhead of decoding.
 
         Returns:
-            bool: True if a frame was successfully grabbed, False otherwise.
+            bool: True if a frame packet was grabbed successfully, False otherwise.
 
         Raises:
             RuntimeError: If the video source is not opened.
@@ -133,14 +157,14 @@ class pyAVBackend(BaseBackend):
             return False
 
     def seek(self, frame_idx: int) -> None:
-        """Seek to a specific frame in the video.
+        """
+        Seek to a specific frame index in the video.
 
-        Performs frame-accurate seeking by navigating to the nearest keyframe and
-        decoding forward to the exact target frame. The next read() call will
-        return the target frame.
+        This uses keyframe-based seeking, then decodes forward to the exact
+        requested frame.
 
         Args:
-            frame_idx (int): Target frame index (0-based) to seek to.
+            frame_idx (int): Zero-based index of the target frame.
 
         Raises:
             RuntimeError: If the video source is not opened.
@@ -180,10 +204,8 @@ class pyAVBackend(BaseBackend):
                 break
 
     def release(self) -> None:
-        """Release all resources associated with the video stream.
-
-        Closes the video container and resets all internal state variables
-        to ensure proper cleanup of resources.
+        """
+        Release the video source and free all associated resources.
         """
         if self.container:
             self.container.close()
@@ -191,7 +213,14 @@ class pyAVBackend(BaseBackend):
             self.stream = None
             self.frame_generator = None
 
+
 class pyAVWriter(BaseWriter):
+    """
+    PyAV-based video writer.
+
+    Writes frames to a video file with optional audio from a backend source.
+    """
+
     def __init__(
         self,
         filename: str,
@@ -199,7 +228,20 @@ class pyAVWriter(BaseWriter):
         frame_size: tuple[int, int],
         codec: str = "h264",
         backend: pyAVBackend | None = None,
-    ):        
+    ):
+        """
+        Initialize a video writer.
+
+        Args:
+            filename (str): Output video file path.
+            fps (int): Frames per second for the output video.
+            frame_size (tuple[int, int]): Frame dimensions as (width, height).
+            codec (str, optional): Video codec (default: "h264").
+            backend (pyAVBackend, optional): Backend providing audio stream.
+
+        Raises:
+            RuntimeError: If the output file cannot be created.
+        """
         try:
             self.container = av.open(filename, mode="w")
             self.backend = backend
@@ -219,9 +261,9 @@ class pyAVWriter(BaseWriter):
             
             self.audio_stream_out = None
             self.audio_packets = []
-            if backend.audio_stream and backend.audio_src_container:
+            if backend and backend.audio_stream and backend.audio_src_container:
                 audio_codec_name = backend.audio_stream.codec_context.name
-                audio_rate = backend.audio_stream.codec_context.rate 
+                audio_rate = backend.audio_stream.codec_context.rate
                 self.audio_stream_out = self.container.add_stream(audio_codec_name, rate=audio_rate)
                 for packet in backend.audio_src_container.demux(backend.audio_stream):
                     if packet.dts is not None:
@@ -229,7 +271,7 @@ class pyAVWriter(BaseWriter):
 
         except Exception as e:
             raise RuntimeError(f"Cannot open video writer for file: {filename}") from e
-        
+
     def __enter__(self):
         return self
 
@@ -237,6 +279,12 @@ class pyAVWriter(BaseWriter):
         self.close()
 
     def write(self, frame: np.ndarray) -> None:
+        """
+        Write a single frame to the output video.
+
+        Args:
+            frame (np.ndarray): Frame in BGR format (H, W, 3).
+        """
         frame_rgb = frame[..., ::-1]
         av_frame = av.VideoFrame.from_ndarray(frame_rgb, format="rgb24")
 
@@ -249,6 +297,9 @@ class pyAVWriter(BaseWriter):
             self.container.mux(packet)
 
     def close(self) -> None:
+        """
+        Finalize the video file and close the writer.
+        """
         packets = self.stream.encode()
         for packet in packets:
             self.container.mux(packet)

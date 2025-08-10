@@ -46,7 +46,6 @@ class BaseBackend(ABC):
     def release(self) -> None:
         pass
 
-
 class BaseWriter(ABC):
     @abstractmethod
     def __init__(
