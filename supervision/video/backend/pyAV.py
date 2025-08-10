@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from fractions import Fraction
 
 try:
@@ -286,6 +285,7 @@ class pyAVWriter(BaseWriter):
                 self.audio_stream_out = self.container.add_stream(
                     audio_codec_name, rate=audio_rate
                 )
+                
                 for packet in backend.audio_src_container.demux(backend.audio_stream):
                     if packet.dts is not None:
                         self.audio_packets.append(packet)
@@ -320,12 +320,41 @@ class pyAVWriter(BaseWriter):
     def close(self) -> None:
         """
         Finalize the video file and close the writer.
+        Automatically calculate speed factor based on original audio length
+        and output video length, then speed up audio accordingly.
         """
+        # Flush video encoder
         packets = self.stream.encode()
         for packet in packets:
             self.container.mux(packet)
 
-        if self.audio_stream_out:
+        speed_factor = 1.0
+        try:
+            if self.backend and self.backend.audio_stream and self.backend.audio_stream.duration:
+                orig_audio_duration = float(self.backend.audio_stream.duration * self.backend.audio_stream.time_base)
+            elif self.backend and self.backend.audio_src_container and self.backend.audio_src_container.duration:
+                orig_audio_duration = self.backend.audio_src_container.duration / 1_000_000  # us to s
+            else:
+                orig_audio_duration = None
+
+            fps = float(1 / self.stream.codec_context.time_base)
+            new_video_duration = self.frame_idx / fps
+
+            if orig_audio_duration and new_video_duration > 0:
+                speed_factor = orig_audio_duration / new_video_duration
+        except Exception:
+            speed_factor = 1.0
+
+        if self.audio_stream_out and speed_factor != 1.0:
+            for packet in self.audio_packets:
+                if packet.pts is not None:
+                    packet.pts = int(packet.pts / speed_factor)
+                if packet.dts is not None:
+                    packet.dts = int(packet.dts / speed_factor)
+                packet.stream = self.audio_stream_out
+                packet.time_base = self.audio_stream_out.time_base
+                self.container.mux(packet)
+        elif self.audio_stream_out:
             for packet in self.audio_packets:
                 packet.stream = self.audio_stream_out
                 self.container.mux(packet)
