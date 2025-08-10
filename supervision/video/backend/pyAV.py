@@ -52,6 +52,8 @@ class pyAVBackend(BaseBackend):
             # If audio exists
             if len(self.container.streams.audio) > 0:
                 self.audio_stream = self.container.streams.audio[0]
+            else:
+                self.audio_stream = None
 
             if isinstance(path, int):
                 self.video_info.source_type = SOURCE_TYPE.WEBCAM
@@ -254,6 +256,7 @@ class pyAVWriter(BaseWriter):
             self.stream.pix_fmt = "yuv420p"
 
             # Set time_base explicitly for correct timing
+            print(fps)
             self.stream.codec_context.time_base = Fraction(1, fps)
 
             # Frame index for PTS
@@ -310,3 +313,4 @@ class pyAVWriter(BaseWriter):
                 self.container.mux(packet)
 
         self.container.close()
+
