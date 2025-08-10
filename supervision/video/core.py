@@ -20,7 +20,7 @@ class Video:
     A high-level interface for reading, processing, and writing video files or streams.
 
     Attributes:
-        info (VideoInfo): Metadata about the video, such as resolution, FPS, and frame count.
+        info (VideoInfo): Metadata about the video.
         source (str | int): Path to the video file or index of the camera device.
         backend (BackendTypes): Video backend used for I/O operations.
     """
@@ -141,9 +141,10 @@ class Video:
 
         Args:
             target_path (str): Output file path for the processed video.
-            callback (Callable[[np.ndarray, int], np.ndarray]): Function applied to each frame.
-                Takes the frame (np.ndarray) and frame index (int) as input,
-                returns the processed frame (np.ndarray).
+            callback (Callable[[np.ndarray, int], np.ndarray]): A function that takes in
+                a numpy ndarray representation of a video frame and an
+                int index of the frame and returns a processed numpy ndarray
+                representation of the frame.
             fps (int | None, optional): Frames per second of the output video.
                 If None, uses the original FPS.
             progress_message (str, optional): Message displayed in the progress bar.

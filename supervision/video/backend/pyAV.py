@@ -1,6 +1,9 @@
 from fractions import Fraction
 
-import av
+try:
+    import av
+except ImportError:
+    av = None
 import numpy as np
 
 from supervision.video.backend import BaseBackend, BaseWriter
@@ -18,6 +21,10 @@ class pyAVBackend(BaseBackend):
 
     def __init__(self):
         super().__init__()
+
+        if av is None:
+            raise RuntimeError("PyAV (`av` module) is not installed. Please install it to use this feature.")
+        
         self.container = None
         self.stream = None
         self.writer = pyAVWriter
@@ -120,7 +127,7 @@ class pyAVBackend(BaseBackend):
         Returns:
             tuple[bool, np.ndarray]:
                 - `bool`: True if a frame was read successfully, False if end of stream.
-                - `np.ndarray`: Frame data in BGR format (H, W, 3). Empty array if unsuccessful.
+                - `np.ndarray`: Frame data in BGR format (H, W, 3).
 
         Raises:
             RuntimeError: If the video source is not opened.
@@ -195,9 +202,9 @@ class pyAVBackend(BaseBackend):
                 break
 
             if getattr(frame, "time", None) is not None:
-                self.current_frame_idx = int(round(frame.time * framerate))
+                self.current_frame_idx = (round(frame.time * framerate))
             elif getattr(frame, "pts", None) is not None:
-                self.current_frame_idx = int(round((frame.pts * time_base) * framerate))
+                self.current_frame_idx = (round((frame.pts * time_base) * framerate))
             else:
                 self.current_frame_idx += 1
 

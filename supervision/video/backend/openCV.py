@@ -171,7 +171,7 @@ class OpenCVWriter(BaseWriter):
             fps (int): Output frames per second.
             frame_size (tuple[int, int]): Frame dimensions (width, height).
             codec (str, optional): FourCC codec code. Defaults to "mp4v".
-            backend (OpenCVBackend | None, optional): Backend instance. Defaults to None.
+            backend (OpenCVBackend | None, optional): Backend instance. Defaults to None
 
         Raises:
             RuntimeError: If the writer cannot be opened.
