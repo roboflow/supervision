@@ -31,7 +31,7 @@ class VideoInfo:
         height (int): Height of the video in pixels.
         fps (int): Frames per second of the video.
         total_frames (int | None): Total number of frames, or None if unknown.
-        source_type (SOURCE_TYPE | None): Source type: VIDEO_FILE, WEBCAM, RTSP, or None.
+        source_type (SOURCE_TYPE | None): Source type: VIDEO_FILE, WEBCAM, RTSP.
 
     Methods:
         from_video_path(video file, webcam, RTSP, or None).

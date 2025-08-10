@@ -1,3 +1,4 @@
+from __future__ import annotations
 from fractions import Fraction
 
 try:
@@ -24,7 +25,7 @@ class pyAVBackend(BaseBackend):
 
         if av is None:
             raise RuntimeError(
-                "PyAV (`av` module) is not installed. Please install it to use this feature."
+                "PyAV (`av` module) is not installed. Run `pip install av`."
             )
 
         self.container = None
