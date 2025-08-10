@@ -29,7 +29,7 @@ class Video:
     source: str | int
     backend: BackendTypes
 
-    def __init__(self, source: str | int, backend: BackendLiteral = "opencv", render_audio=False) -> None:
+    def __init__(self, source: str | int, backend: BackendLiteral = "opencv") -> None:
         """
         Initialize the Video object.
 
@@ -38,7 +38,7 @@ class Video:
             backend (BackendLiteral, optional): Backend type for video I/O.
                 Defaults to "opencv".
         """
-        self.backend = getBackend(backend)(render_audio=render_audio)
+        self.backend = getBackend(backend)()
         self.backend.open(source)
         self.info = self.backend.info()
         self.source = source
@@ -53,7 +53,7 @@ class Video:
         return self.backend.frames()
 
     def sink(
-        self, target_path: str, info: VideoInfo, codec: str | None = None
+        self, target_path: str, info: VideoInfo, codec: str | None = None, render_audio: bool = False
     ) -> BaseWriter:
         """
         Create a video writer for saving frames to a file.
@@ -68,7 +68,7 @@ class Video:
             BaseWriter: Video writer instance for writing frames.
         """
         return self.backend.writer(
-            target_path, info.fps, info.resolution_wh, codec, self.backend
+            target_path, info.fps, info.resolution_wh, codec, self.backend, render_audio
         )
 
     def frames(
@@ -135,6 +135,7 @@ class Video:
         progress_message: str = "Processing video",
         show_progress: bool = False,
         codec: str | None = None,
+        render_audio: bool = False,
     ):
         """
         Process and save video frames to a file.
@@ -171,7 +172,7 @@ class Video:
             fps = self.backend.video_info.fps
 
         writer = self.backend.writer(
-            target_path, fps, self.backend.video_info.resolution_wh, codec, self.backend
+            target_path, fps, self.backend.video_info.resolution_wh, codec, self.backend, render_audio
         )
         total_frames = self.backend.video_info.total_frames
         frames_generator = self.frames()

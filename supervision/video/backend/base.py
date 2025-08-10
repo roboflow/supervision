@@ -8,12 +8,11 @@ from supervision.video.utils import VideoInfo
 
 
 class BaseBackend(ABC):
-    def __init__(self, render_audio=False):
+    def __init__(self):
         self.cap = None
         self.video_info = None
         self.writer = None
         self.path = None
-        self.render_audio = render_audio
 
     @abstractmethod
     def open(self, path: str) -> None:
@@ -57,6 +56,7 @@ class BaseWriter(ABC):
         frame_size: tuple[int, int],
         codec: str | None = None,
         backend: BaseBackend | None = None,
+        render_audio: bool = False,
     ):
         pass
 

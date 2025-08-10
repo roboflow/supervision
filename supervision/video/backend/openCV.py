@@ -15,17 +15,12 @@ class OpenCVBackend(BaseBackend):
     grabbing, and retrieving metadata using OpenCV.
     """
 
-    def __init__(self, render_audio=False):
+    def __init__(self):
         """Initialize with no active capture, writer, or path."""
-        if render_audio:
-            raise ValueError("OpenCV backend does not support audio. " \
-            "Please use `pyAV` backend instead or set `render_audio=False`")
-        
         self.cap = None
         self.video_info = None
         self.writer = OpenCVWriter
         self.path = None
-        self.render_audio = render_audio
 
     def open(self, path: str | int) -> None:
         """
@@ -166,6 +161,7 @@ class OpenCVWriter(BaseWriter):
         frame_size: tuple[int, int],
         codec: str = "mp4v",
         backend: OpenCVBackend | None = None,
+        render_audio: bool = False,
     ):
         """
         Initialize the writer.
@@ -180,6 +176,10 @@ class OpenCVWriter(BaseWriter):
         Raises:
             RuntimeError: If the writer cannot be opened.
         """
+        if render_audio:
+            raise ValueError("OpenCV backend does not support audio. " \
+            "Please use `pyav` backend instead or set `render_audio=False`")
+        
         self.backend = backend
         try:
             fourcc_int = cv2.VideoWriter_fourcc(*codec)

@@ -21,7 +21,7 @@ class pyAVBackend(BaseBackend):
     and RTSP streams.
     """
 
-    def __init__(self, render_audio=False):
+    def __init__(self):
         super().__init__()
 
         if av is None:
@@ -35,7 +35,6 @@ class pyAVBackend(BaseBackend):
         self.frame_generator = None
         self.video_info = None
         self.current_frame_idx = 0
-        self.render_audio = render_audio
 
     def open(self, path: str) -> None:
         """
@@ -63,7 +62,7 @@ class pyAVBackend(BaseBackend):
             self.current_frame_idx = 0
 
             # If audio exists
-            if self.render_audio and len(self.container.streams.audio) > 0:
+            if len(self.container.streams.audio) > 0:
                 self.audio_stream = self.container.streams.audio[0]
             else:
                 self.audio_stream = None
@@ -247,6 +246,7 @@ class pyAVWriter(BaseWriter):
         frame_size: tuple[int, int],
         codec: str = "h264",
         backend: pyAVBackend | None = None,
+        render_audio: bool = False,
     ):
         """
         Initialize the video writer.
@@ -280,7 +280,8 @@ class pyAVWriter(BaseWriter):
 
             self.audio_stream_out = None
             self.audio_packets = []
-            if backend and backend.audio_stream and backend.audio_src_container:
+            
+            if render_audio and backend and backend.audio_stream and backend.audio_src_container:
                 audio_codec_name = backend.audio_stream.codec_context.name
                 audio_rate = backend.audio_stream.codec_context.rate
                 self.audio_stream_out = self.container.add_stream(
