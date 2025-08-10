@@ -236,6 +236,7 @@ class pyAVWriter(BaseWriter):
     PyAV-based video writer.
 
     Writes frames to a video file with optional audio from a backend source.
+    Uses finer timestamp granularity (milliseconds) for smoother video playback.
     """
 
     def __init__(
@@ -244,16 +245,16 @@ class pyAVWriter(BaseWriter):
         fps: int,
         frame_size: tuple[int, int],
         codec: str = "h264",
-        backend: pyAVBackend | None = None,
+        backend: "pyAVBackend" | None = None,
     ):
         """
-        Initialize a video writer.
+        Initialize the video writer.
 
         Args:
-            filename (str): Output video file path.
+            filename (str): Path to the output video file.
             fps (int): Frames per second for the output video.
-            frame_size (tuple[int, int]): Frame dimensions as (width, height).
-            codec (str, optional): Video codec (default: "h264").
+            frame_size (tuple[int, int]): Width and height of the video frames.
+            codec (str, optional): Video codec name (default "h264").
             backend (pyAVBackend, optional): Backend providing audio stream.
 
         Raises:
@@ -270,12 +271,11 @@ class pyAVWriter(BaseWriter):
             self.stream.height = frame_size[1]
             self.stream.pix_fmt = "yuv420p"
 
-            # Set time_base explicitly for correct timing
-            print(fps)
-            self.stream.codec_context.time_base = Fraction(1, fps)
+            # Use finer time_base (1/1000) for millisecond precision timestamps
+            self.stream.codec_context.time_base = Fraction(1, 1000)
 
-            # Frame index for PTS
             self.frame_idx = 0
+            self.fps = fps  # Store FPS for timestamp calculations
 
             self.audio_stream_out = None
             self.audio_packets = []
@@ -285,7 +285,8 @@ class pyAVWriter(BaseWriter):
                 self.audio_stream_out = self.container.add_stream(
                     audio_codec_name, rate=audio_rate
                 )
-                
+
+                # Buffer all audio packets from backend for muxing later
                 for packet in backend.audio_src_container.demux(backend.audio_stream):
                     if packet.dts is not None:
                         self.audio_packets.append(packet)
@@ -294,22 +295,27 @@ class pyAVWriter(BaseWriter):
             raise RuntimeError(f"Cannot open video writer for file: {filename}") from e
 
     def __enter__(self):
+        """Enable use as a context manager."""
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        """Close the writer on context exit."""
         self.close()
 
     def write(self, frame: np.ndarray) -> None:
         """
-        Write a single frame to the output video.
+        Write a single video frame.
 
         Args:
-            frame (np.ndarray): Frame in BGR format (H, W, 3).
+            frame (np.ndarray): Frame data in BGR format (H, W, 3).
         """
-        frame_rgb = frame[..., ::-1]
+        # Calculate PTS as milliseconds: frame_index * (1000 ms / fps)
+        pts = int(self.frame_idx * (1000 / self.fps))
+
+        frame_rgb = frame[..., ::-1]  # Convert BGR to RGB
         av_frame = av.VideoFrame.from_ndarray(frame_rgb, format="rgb24")
 
-        av_frame.pts = self.frame_idx
+        av_frame.pts = pts
         av_frame.time_base = self.stream.codec_context.time_base
         self.frame_idx += 1
 
@@ -319,26 +325,38 @@ class pyAVWriter(BaseWriter):
 
     def close(self) -> None:
         """
-        Finalize the video file and close the writer.
-        Automatically calculate speed factor based on original audio length
-        and output video length, then speed up audio accordingly.
+        Finalize the video file, mux audio with adjusted timestamps to sync with video,
+        and close the container.
         """
-        # Flush video encoder
+        def rescale_timestamp(value, src_tb, dst_tb):
+            """
+            Rescale timestamp value from source timebase to destination timebase.
+
+            Args:
+                value (int): Timestamp value (PTS or DTS).
+                src_tb (Fraction): Source time base.
+                dst_tb (Fraction): Destination time base.
+
+            Returns:
+                int: Rescaled timestamp.
+            """
+            return int(value * src_tb / dst_tb)
+
         packets = self.stream.encode()
         for packet in packets:
             self.container.mux(packet)
 
         speed_factor = 1.0
+
         try:
             if self.backend and self.backend.audio_stream and self.backend.audio_stream.duration:
                 orig_audio_duration = float(self.backend.audio_stream.duration * self.backend.audio_stream.time_base)
             elif self.backend and self.backend.audio_src_container and self.backend.audio_src_container.duration:
-                orig_audio_duration = self.backend.audio_src_container.duration / 1_000_000  # us to s
+                orig_audio_duration = self.backend.audio_src_container.duration / 1000
             else:
                 orig_audio_duration = None
 
-            fps = float(1 / self.stream.codec_context.time_base)
-            new_video_duration = self.frame_idx / fps
+            new_video_duration = (self.frame_idx * (1 / self.fps))
 
             if orig_audio_duration and new_video_duration > 0:
                 speed_factor = orig_audio_duration / new_video_duration
@@ -348,15 +366,21 @@ class pyAVWriter(BaseWriter):
         if self.audio_stream_out and speed_factor != 1.0:
             for packet in self.audio_packets:
                 if packet.pts is not None:
+                    packet.pts = rescale_timestamp(packet.pts, packet.time_base, self.audio_stream_out.time_base)
                     packet.pts = int(packet.pts / speed_factor)
                 if packet.dts is not None:
+                    packet.dts = rescale_timestamp(packet.dts, packet.time_base, self.audio_stream_out.time_base)
                     packet.dts = int(packet.dts / speed_factor)
                 packet.stream = self.audio_stream_out
-                packet.time_base = self.audio_stream_out.time_base
                 self.container.mux(packet)
         elif self.audio_stream_out:
             for packet in self.audio_packets:
+                if packet.pts is not None:
+                    packet.pts = rescale_timestamp(packet.pts, packet.time_base, self.audio_stream_out.time_base)
+                if packet.dts is not None:
+                    packet.dts = rescale_timestamp(packet.dts, packet.time_base, self.audio_stream_out.time_base)
                 packet.stream = self.audio_stream_out
                 self.container.mux(packet)
 
         self.container.close()
+
