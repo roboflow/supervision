@@ -195,10 +195,10 @@ class pyAVWriter(BaseWriter):
     def __init__(
         self,
         filename: str,
-        backend: pyAVBackend,
         fps: int,
         frame_size: tuple[int, int],
         codec: str = "h264",
+        backend: pyAVBackend | None = None,
     ):        
         try:
             self.container = av.open(filename, mode="w")

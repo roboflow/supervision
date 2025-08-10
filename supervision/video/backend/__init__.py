@@ -29,7 +29,6 @@ __all__ = [
     "pyAVBackend",
     "pyAVWriter",
     "getBackend",
-    "BackendT",
     "BackendLiteral",
     "BackendType"
 ]

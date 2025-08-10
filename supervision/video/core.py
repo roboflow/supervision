@@ -51,7 +51,7 @@ class Video:
             Writer: A video writer object for writing frames.
         """
         return self.backend.writer(
-             target_path, info.fps, info.resolution_wh, codec
+             target_path, info.fps, info.resolution_wh, codec, self.backend
         )
 
     def frames(

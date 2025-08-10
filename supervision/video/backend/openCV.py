@@ -148,10 +148,10 @@ class OpenCVWriter(BaseWriter):
     def __init__(
         self,
         filename: str,
-        backend: OpenCVBackend,
         fps: int,
         frame_size: tuple[int, int],
         codec: str = "mp4v",
+        backend: OpenCVBackend | None = None,
     ):
         """Initialize the video writer.
 
@@ -160,6 +160,7 @@ class OpenCVWriter(BaseWriter):
             fps (int): Frames per second for the output video.
             frame_size (tuple[int, int]): Width and height of the output video frames.
             codec (str, optional): FourCC code for the video codec. Defaults to "mp4v".
+            backend (OpenCVBackend | None, optional): Backend instance. Defaults to None.
 
         Raises:
             RuntimeError: If the video writer cannot be initialized.
