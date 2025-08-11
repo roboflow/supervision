@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 
 from supervision.video.backend import BaseBackend, BaseWriter
-from supervision.video.utils import SOURCE_TYPE, VideoInfo
+from supervision.video.utils import SourceType, VideoInfo
 
 
 class OpenCVBackend(BaseBackend):
@@ -42,12 +42,12 @@ class OpenCVBackend(BaseBackend):
         self.video_info = self._set_video_info()
 
         if isinstance(path, int):
-            self.video_info.source_type = SOURCE_TYPE.WEBCAM
+            self.video_info.SourceType = SourceType.WEBCAM
         elif isinstance(path, str):
-            self.video_info.source_type = (
-                SOURCE_TYPE.RTSP
+            self.video_info.SourceType = (
+                SourceType.RTSP
                 if path.lower().startswith("rtsp://")
-                else SOURCE_TYPE.VIDEO_FILE
+                else SourceType.VIDEO_FILE
             )
         else:
             raise ValueError("Unsupported source type")

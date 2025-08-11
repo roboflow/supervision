@@ -6,7 +6,7 @@ from enum import Enum
 import cv2
 
 
-class SOURCE_TYPE(Enum):
+class SourceType(Enum):
     """
     Enumeration of supported video source types.
 
@@ -16,9 +16,28 @@ class SOURCE_TYPE(Enum):
         RTSP: A network RTSP video stream.
     """
 
-    VIDEO_FILE = "VIDEO_FILE"
-    WEBCAM = "WEBCAM"
-    RTSP = "RTSP"
+    VIDEO_FILE = "video_file"
+    WEBCAM = "webcam"
+    RTSP = "rtsp"
+
+    @classmethod  
+    def list(cls):  
+        return list(map(lambda c: c.value, cls))  
+
+    @classmethod  
+    def from_value(cls, value: SourceType | str) -> SourceType:  
+        if isinstance(value, cls):  
+            return value  
+        if isinstance(value, str):  
+            value = value.lower()  
+            try:  
+                return cls(value)  
+            except ValueError:  
+                raise ValueError(f"Invalid value: {value}. Must be one of {cls.list()}")  
+        raise ValueError(  
+            f"Invalid value type: {type(value)}. Must be an instance of "  
+            f"{cls.__name__} or str."  
+        )  
 
 
 @dataclass
@@ -31,7 +50,7 @@ class VideoInfo:
         height (int): Height of the video in pixels.
         fps (int): Frames per second of the video.
         total_frames (int | None): Total number of frames, or None if unknown.
-        source_type (SOURCE_TYPE | None): Source type: VIDEO_FILE, WEBCAM, RTSP.
+        SourceType (SourceType | None): Source type: VIDEO_FILE, WEBCAM, RTSP.
 
     Methods:
         from_video_path(video file, webcam, RTSP, or None).
@@ -54,7 +73,7 @@ class VideoInfo:
     height: int
     fps: int
     total_frames: int | None = None
-    source_type: SOURCE_TYPE | None = None
+    SourceType: SourceType | None = None
 
     @classmethod
     def from_video_path(cls, video_path: str) -> VideoInfo:

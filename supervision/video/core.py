@@ -12,7 +12,7 @@ from supervision.video.backend import (
     BaseWriter,
     getBackend,
 )
-from supervision.video.utils import SOURCE_TYPE, VideoInfo
+from supervision.video.utils import SourceType, VideoInfo
 
 
 class Video:
@@ -169,7 +169,7 @@ class Video:
         if self.backend.cap is None:
             raise RuntimeError("Video not opened yet.")
 
-        if self.backend.video_info.source_type != SOURCE_TYPE.VIDEO_FILE:
+        if self.backend.video_info.SourceType != SourceType.VIDEO_FILE:
             raise ValueError("Only video files can be saved.")
 
         if fps is None:

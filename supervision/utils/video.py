@@ -12,7 +12,10 @@ from tqdm.auto import tqdm
 from supervision.utils.internal import deprecated
 
 
-@deprecated("Use `sv.VideoInfo` for video metadata.")
+@deprecated(  
+    "`process_video` is deprecated and will be removed in "  
+    "`supervision-0.32.0`. Use `sv.VideoInfo` instead."  
+) 
 @dataclass
 class VideoInfo:
     """
@@ -63,7 +66,10 @@ class VideoInfo:
         return self.width, self.height
 
 
-@deprecated("Please use `sv.Video` for video writing and processing.")
+@deprecated(  
+    "`process_video` is deprecated and will be removed in "  
+    "`supervision-0.32.0`. Use `sv.Video().save` instead."  
+) 
 class VideoSink:
     """
     Context manager that saves video frames to a file using OpenCV.
@@ -145,7 +151,10 @@ def _validate_and_setup_video(
     return video, start, end
 
 
-@deprecated("Use `sv.Video().frames()` or `sv.Video()` for frame iteration.")
+@deprecated(  
+    "`process_video` is deprecated and will be removed in "  
+    "`supervision-0.32.0`. Use `sv.Video().frame()` or `sv.Video()` instead."  
+) 
 def get_video_frames_generator(
     source_path: str,
     stride: int = 1,
@@ -197,7 +206,10 @@ def get_video_frames_generator(
     video.release()
 
 
-@deprecated("Use `sv.Video.save()` with a callback for processing and saving videos.")
+@deprecated(  
+    "`process_video` is deprecated and will be removed in "  
+    "`supervision-0.32.0`. Use `sv.Video().save` instead."  
+)  
 def process_video(
     source_path: str,
     target_path: str,
