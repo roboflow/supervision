@@ -58,7 +58,7 @@ Documentation = "https://supervision.roboflow.com/latest/"
 metrics = [
     "pandas>=2.0.0",
 ]
-video = ["av (>=15.0.0,<16.0.0)"]
+ffmpeg = ["av (>=15.0.0)"]
 
 [dependency-groups]
 dev = [
