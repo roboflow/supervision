@@ -42,6 +42,9 @@ class Video:
         if self.backend is None:
             raise ValueError(f"Unsupported backend: {backend}")
         
+        # Instantiate the backend class once sanity check is done
+        self.backend = self.backend()
+
         self.backend.open(source)
         self.info = self.backend.info()
         self.source = source
