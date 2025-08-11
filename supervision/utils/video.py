@@ -10,6 +10,7 @@ import numpy as np
 from tqdm.auto import tqdm
 
 from supervision.utils.internal import deprecated
+from supervision.video.backend import BackendTypes
 
 
 @deprecated(  
@@ -49,17 +50,21 @@ class VideoInfo:
     total_frames: int | None = None
 
     @classmethod
-    def from_video_path(cls, video_path: str) -> VideoInfo:
-        video = cv2.VideoCapture(video_path)
-        if not video.isOpened():
-            raise Exception(f"Could not open video at {video_path}")
+    def from_video_path(cls, backend: BackendTypes) -> VideoInfo:
+        if not backend.isOpened():
+            raise RuntimeError("Video not opened yet.")
 
-        width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = int(video.get(cv2.CAP_PROP_FPS))
-        total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-        video.release()
-        return VideoInfo(width, height, fps, total_frames)
+        width = backend.stream.width
+        height = backend.stream.height
+        fps = float(backend.stream.average_rate or backend.stream.guessed_rate)
+        if fps <= 0:
+            fps = 30
+
+        total_frames = backend.stream.frames
+        if total_frames == 0:
+            total_frames = None
+
+        return VideoInfo(width, height, round(fps), total_frames)
 
     @property
     def resolution_wh(self) -> tuple[int, int]:

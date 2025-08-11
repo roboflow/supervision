@@ -75,43 +75,6 @@ class VideoInfo:
     total_frames: int | None = None
     SourceType: SourceType | None = None
 
-    @classmethod
-    def from_video_path(cls, video_path: str) -> VideoInfo:
-        """
-        Create a VideoInfo instance from a video file.
-
-        Args:
-            video_path (str): Path to the video file.
-
-        Returns:
-            VideoInfo: Metadata including width, height, FPS, and total frames.
-
-        Raises:
-            ValueError: If the video cannot be opened or has invalid properties.
-        """
-        video = cv2.VideoCapture(video_path)
-        if not video.isOpened():
-            raise ValueError(f"Could not open video at {video_path}")
-
-        try:
-            width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
-            height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            if width <= 0 or height <= 0:
-                raise ValueError(f"Invalid video dimensions: {width}x{height}")
-
-            fps = video.get(cv2.CAP_PROP_FPS)
-            if fps <= 0:
-                fps = 30  # Default to 30fps if invalid
-            fps = round(fps)
-
-            total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-            if total_frames < 0:
-                total_frames = None  # Some formats may not report frame count
-        finally:
-            video.release()
-
-        return VideoInfo(width, height, fps, total_frames)
-
     @property
     def resolution_wh(self) -> tuple[int, int]:
         """
