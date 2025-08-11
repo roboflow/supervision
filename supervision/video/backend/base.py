@@ -56,7 +56,7 @@ class BaseWriter(ABC):
         frame_size: tuple[int, int],
         codec: str | None = None,
         backend: BaseBackend | None = None,
-        render_audio: bool = False,
+        render_audio: bool | None = None,
     ):
         pass
 

@@ -161,7 +161,7 @@ class OpenCVWriter(BaseWriter):
         frame_size: tuple[int, int],
         codec: str = "mp4v",
         backend: OpenCVBackend | None = None,
-        render_audio: bool = False,
+        render_audio: bool | None = None,
     ):
         """
         Initialize the writer.
@@ -176,10 +176,10 @@ class OpenCVWriter(BaseWriter):
         Raises:
             RuntimeError: If the writer cannot be opened.
         """
-        if render_audio:
+        if render_audio or render_audio == False:
             raise ValueError(
                 "OpenCV backend does not support audio. "
-                "Please use `pyav` backend instead or set `render_audio=False`"
+                "Please use `pyav` backend instead or set `render_audio=None`"
             )
 
         self.backend = backend

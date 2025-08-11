@@ -247,7 +247,7 @@ class pyAVWriter(BaseWriter):
         frame_size: tuple[int, int],
         codec: str = "h264",
         backend: pyAVBackend | None = None,
-        render_audio: bool = False,
+        render_audio: bool | None = None,
     ):
         """
         Initialize the video writer.
@@ -265,6 +265,9 @@ class pyAVWriter(BaseWriter):
         try:
             self.container = av.open(filename, mode="w")
             self.backend = backend
+
+            if render_audio is None:
+                render_audio = True
 
             if codec is None:
                 codec = "h264"

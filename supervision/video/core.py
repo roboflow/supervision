@@ -63,7 +63,7 @@ class Video:
         target_path: str,
         info: VideoInfo,
         codec: str | None = None,
-        render_audio: bool = False,
+        render_audio: bool | None = None,
     ) -> WriterTypes:
         """
         Create a video writer for saving frames to a file.
@@ -145,7 +145,7 @@ class Video:
         progress_message: str = "Processing video",
         show_progress: bool = False,
         codec: str | None = None,
-        render_audio: bool = False,
+        render_audio: bool | None = None,
     ):
         """
         Process and save video frames to a file.
