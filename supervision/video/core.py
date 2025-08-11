@@ -7,8 +7,8 @@ import numpy as np
 from tqdm.auto import tqdm
 
 from supervision.video.backend import (
-    BackendTypes,
     Backend,
+    BackendTypes,
     BackendDict,
     WriterTypes
 )

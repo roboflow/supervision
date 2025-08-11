@@ -47,8 +47,8 @@ WriterDict = {
 }
 
 __all__ = [
-    "BackendType",
-    "WriterType",
+    "BackendTypes",
+    "WriterTypes",
     "Backend",
     "BackendDict",
     "WriterDict",
