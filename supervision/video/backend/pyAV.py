@@ -8,7 +8,7 @@ except ImportError:
     av = None
 import numpy as np
 
-from supervision.video.backend import BaseBackend, BaseWriter
+from supervision.video.backend.base import BaseBackend, BaseWriter
 from supervision.video.utils import SourceType, VideoInfo
 
 
