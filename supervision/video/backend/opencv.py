@@ -9,14 +9,24 @@ from supervision.video.utils import SourceType, VideoInfo
 
 class OpenCVBackend(BaseBackend):
     """
-    OpenCV-based implementation of the video backend interface.
+    OpenCV-based video backend implementation for video capture and processing.
 
-    Provides methods for opening video sources, reading frames, seeking,
-    grabbing, and retrieving metadata using OpenCV.
+    This backend provides video reading capabilities using OpenCV's VideoCapture.
+    It supports:
+    - Local video files
+    - Webcam streams
+    - RTSP network streams
+
+    Attributes:
+        cap (cv2.VideoCapture): OpenCV video capture instance.
+        video_info (VideoInfo): Metadata about the video source.
+        writer (class): Reference to the OpenCVWriter class for video writing.
+        path (str | int): Path to the video source or webcam index.
+
     """
 
     def __init__(self):
-        """Initialize with no active capture, writer, or path."""
+        """Initialize the OpenCV backend with no active capture."""
         self.cap = None
         self.video_info = None
         self.writer = OpenCVWriter
@@ -24,10 +34,11 @@ class OpenCVBackend(BaseBackend):
 
     def open(self, path: str | int) -> None:
         """
-        Open a video source and initialize capture.
+        Open a video source for reading.
 
         Args:
-            path (str | int): Path to a video file, RTSP URL, or webcam index.
+            path (str | int): Path to video file, RTSP URL, or webcam index.
+                Webcam indices are typically 0 for default camera.
 
         Raises:
             RuntimeError: If the source cannot be opened.
@@ -54,19 +65,23 @@ class OpenCVBackend(BaseBackend):
 
     def isOpened(self) -> bool:
         """
-        Check if the video source is currently open.
+        Check if the video source is currently open and available.
 
         Returns:
-            bool: True if the source is open, False otherwise.
+            bool: True if source is open and ready for reading, False otherwise.
         """
         return self.cap.isOpened()
 
     def _set_video_info(self) -> VideoInfo:
         """
-        Extract and store video metadata from the open capture.
+        Extract and store video metadata from the opened source.
 
         Returns:
-            VideoInfo: Video properties such as width, height, FPS, and frame count.
+            VideoInfo: Object containing:
+                - width (int): Frame width in pixels
+                - height (int): Frame height in pixels
+                - fps (int): Frames per second
+                - total_frames (int): Total frame count (0 for streams)
 
         Raises:
             RuntimeError: If no source is open.
@@ -83,10 +98,10 @@ class OpenCVBackend(BaseBackend):
 
     def info(self) -> VideoInfo:
         """
-        Get the stored video metadata.
+        Retrieve stored video metadata.
 
         Returns:
-            VideoInfo: Metadata for the open source.
+            VideoInfo: Video properties including dimensions, FPS, and frame count.
 
         Raises:
             RuntimeError: If no source is open.
@@ -97,12 +112,12 @@ class OpenCVBackend(BaseBackend):
 
     def read(self) -> tuple[bool, np.ndarray]:
         """
-        Read the next frame from the source.
+        Read and decode the next frame from the video source.
 
         Returns:
             tuple[bool, np.ndarray]:
-                - bool: True if a frame was read successfully.
-                - np.ndarray: The frame in BGR format.
+                - bool: True if frame was read successfully, False at end of stream
+                - np.ndarray: Frame data in BGR format (height, width, 3)
 
         Raises:
             RuntimeError: If no source is open.
@@ -113,10 +128,12 @@ class OpenCVBackend(BaseBackend):
 
     def grab(self) -> bool:
         """
-        Grab the next frame without decoding.
+        Advance to the next frame without decoding.
+
+        Useful for quickly skipping frames when pixel data isn't needed.
 
         Returns:
-            bool: True if the frame pointer advanced successfully.
+            bool: True if frame was advanced successfully, False otherwise
 
         Raises:
             RuntimeError: If no source is open.
@@ -127,10 +144,12 @@ class OpenCVBackend(BaseBackend):
 
     def seek(self, frame_idx: int) -> None:
         """
-        Jump to a specific frame.
+        Seek to a specific frame index.
+
+        Note: Seeking may be imprecise with compressed video formats.
 
         Args:
-            frame_idx (int): Zero-based frame index to seek to.
+            frame_idx (int): Zero-based index of target frame.
 
         Raises:
             RuntimeError: If no source is open.
@@ -140,7 +159,7 @@ class OpenCVBackend(BaseBackend):
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
 
     def release(self) -> None:
-        """Release capture resources."""
+        """Release the video capture resources."""
         if self.cap is not None and self.cap.isOpened():
             self.cap.release()
             self.cap = None
@@ -148,10 +167,10 @@ class OpenCVBackend(BaseBackend):
 
 class OpenCVWriter(BaseWriter):
     """
-    Video writer implementation using OpenCV's VideoWriter.
+    OpenCV-based video writer for creating video files.
 
-    Supports configurable codecs, frame sizes, and FPS, with a fallback
-    to "mp4v" if the specified codec fails.
+    This writer provides basic video encoding capabilities using OpenCV's VideoWriter.
+    Note: Does not support audio writing - use pyAVWriter for audio support.
     """
 
     def __init__(
@@ -164,17 +183,22 @@ class OpenCVWriter(BaseWriter):
         render_audio: bool | None = None,
     ):
         """
-        Initialize the writer.
+        Initialize the video writer.
 
         Args:
-            filename (str): Output video file path.
-            fps (int): Output frames per second.
-            frame_size (tuple[int, int]): Frame dimensions (width, height).
-            codec (str, optional): FourCC codec code. Defaults to "mp4v".
-            backend (OpenCVBackend | None, optional): Backend instance. Defaults to None
+            filename (str): Output video file path (e.g., "output.mp4").
+            fps (int): Target frames per second for output video.
+            frame_size (tuple[int, int]): (width, height) of output frames.
+            codec (str, optional): FourCC codec code (default "mp4v").
+            backend (OpenCVBackend, optional): Unused (for API compatibility).
+            render_audio (bool, optional): Must be None (OpenCV doesn't support audio).
 
         Raises:
-            RuntimeError: If the writer cannot be opened.
+            ValueError: If render_audio is specified (not supported).
+            RuntimeError: If writer cannot be initialized.
+
+        Note:
+            Falls back to "mp4v" codec if specified codec fails.
         """
         if render_audio or render_audio is False:
             raise ValueError(
@@ -194,20 +218,22 @@ class OpenCVWriter(BaseWriter):
             raise RuntimeError(f"Cannot open video writer for file: {filename}")
 
     def __enter__(self):
+        """Enable context manager support (with statement)."""
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        """Ensure proper cleanup when exiting context."""
         self.close()
 
     def write(self, frame: np.ndarray) -> None:
         """
-        Write a frame to the output.
+        Write a single frame to the output video.
 
         Args:
-            frame (np.ndarray): Frame in BGR format.
+            frame (np.ndarray): Frame data in BGR format (height, width, 3).
         """
         self.writer.write(frame)
 
     def close(self) -> None:
-        """Release writer resources."""
+        """Finalize and close the output video file."""
         self.writer.release()

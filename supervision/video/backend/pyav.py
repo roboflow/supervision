@@ -16,14 +16,22 @@ from supervision.video.utils import SourceType, VideoInfo
 
 class pyAVBackend(BaseBackend):
     """
-    PyAV-based implementation of the `BaseBackend` interface.
+    PyAV-based implementation of the `BaseBackend` interface for video processing.
 
-    This backend handles video capture, frame reading, seeking, and writing
-    operations using the PyAV library. Supports local video files, webcams,
-    and RTSP streams.
+    This backend provides video capture and frame reading capabilities using the PyAV
+    library, which is a Pythonic binding for FFmpeg. It supports:
+    - Local video files
+    - Webcam streams (platform-specific)
+    - RTSP network streams
     """
 
     def __init__(self):
+        """
+        Initialize the pyAVBackend instance.
+
+        Raises:
+            RuntimeError: If PyAV (`av` module) is not installed.
+        """
         super().__init__()
 
         if av is None:
@@ -46,7 +54,7 @@ class pyAVBackend(BaseBackend):
         the necessary components for decoding and reading frames.
 
         Args:
-            path (str | int): Path to the video file, RTSP URL, or webcam index.
+            path (str | int): Path to the video file, RTSP URL, or webcam path.
 
         Raises:
             RuntimeError: If the video source cannot be opened.
@@ -56,8 +64,17 @@ class pyAVBackend(BaseBackend):
         _format = None
 
         def is_webcam_path(path: str) -> tuple[bool, str]:
+            """
+            Determine if the path refers to a webcam and get platform-specific format.
+
+            Args:
+                path (str): The path to check.
+
+            Returns:
+                tuple[bool, str]: (True if webcam, FFmpeg format string)
+            """
             if not isinstance(path, str):
-                return False
+                return False, None
 
             system = platform.system()
             path_lower = path.lower()
@@ -69,7 +86,7 @@ class pyAVBackend(BaseBackend):
             elif system == "Darwin":
                 return path_lower.isdigit(), "avfoundation"
             else:
-                return False
+                return False, None
 
         isWebcam, ffmpeg_os_format = is_webcam_path(path=path)
         if isWebcam:
@@ -107,15 +124,24 @@ class pyAVBackend(BaseBackend):
             raise RuntimeError(f"Cannot open video source: {path}") from e
 
     def isOpened(self) -> bool:
-        """Check if the video source has been successfully opened."""
+        """
+        Check if the video source has been successfully opened.
+
+        Returns:
+            bool: True if video source is opened and ready, False otherwise.
+        """
         return self.container is not None and self.stream is not None
 
     def _set_video_info(self) -> VideoInfo:
         """
-        Extract video information from the opened source.
+        Extract and calculate video information from the opened source.
 
         Returns:
-            VideoInfo: Object containing width, height, fps, and frame count.
+            VideoInfo: Object containing:
+                - width (int): Frame width in pixels
+                - height (int): Frame height in pixels
+                - fps (int): Frames per second (estimated if not available)
+                - total_frames (int | None): Total frame count if available
 
         Raises:
             RuntimeError: If the video source is not opened.
@@ -127,20 +153,20 @@ class pyAVBackend(BaseBackend):
         height = self.stream.height
         fps = float(self.stream.average_rate or self.stream.guessed_rate)
         if fps <= 0:
-            fps = 30
+            fps = 30  # Default FPS if cannot be determined
 
         total_frames = self.stream.frames
         if total_frames == 0:
-            total_frames = None
+            total_frames = None  # Unknown frame count
 
         return VideoInfo(width, height, round(fps), total_frames)
 
     def info(self) -> VideoInfo:
         """
-        Retrieve video information.
+        Retrieve video information for the opened source.
 
         Returns:
-            VideoInfo: Video properties for the opened source.
+            VideoInfo: Video properties including dimensions, FPS, and frame count.
 
         Raises:
             RuntimeError: If the video source is not opened.
@@ -155,8 +181,8 @@ class pyAVBackend(BaseBackend):
 
         Returns:
             tuple[bool, np.ndarray]:
-                - `bool`: True if a frame was read successfully, False if end of stream.
-                - `np.ndarray`: Frame data in BGR format (H, W, 3).
+                - bool: True if frame was read successfully, False at end of stream
+                - np.ndarray: Frame data in BGR format with shape (height, width, 3)
 
         Raises:
             RuntimeError: If the video source is not opened.
@@ -174,12 +200,12 @@ class pyAVBackend(BaseBackend):
 
     def grab(self) -> bool:
         """
-        Grab the next frame packet without decoding it.
+        Advance to the next frame packet without decoding it.
 
-        Useful for skipping frames quickly without the overhead of decoding.
+        This is useful for quickly skipping frames when decoding isn't needed.
 
         Returns:
-            bool: True if a frame packet was grabbed successfully, False otherwise.
+            bool: True if frame packet was advanced, False at end of stream
 
         Raises:
             RuntimeError: If the video source is not opened.
@@ -199,8 +225,9 @@ class pyAVBackend(BaseBackend):
         """
         Seek to a specific frame index in the video.
 
-        This uses keyframe-based seeking, then decodes forward to the exact
-        requested frame.
+        Uses keyframe-based seeking followed by sequential decoding to reach
+        the exact requested frame. This is more efficient than sequential seeking
+        but may be slower for very large jumps.
 
         Args:
             frame_idx (int): Zero-based index of the target frame.
@@ -249,6 +276,9 @@ class pyAVBackend(BaseBackend):
     def release(self) -> None:
         """
         Release the video source and free all associated resources.
+
+        This closes the video container and resets all internal state.
+        Should be called when finished with the video source.
         """
         if self.container:
             self.container.close()
@@ -259,10 +289,14 @@ class pyAVBackend(BaseBackend):
 
 class pyAVWriter(BaseWriter):
     """
-    PyAV-based video writer.
+    PyAV-based video writer for creating video files with optional audio.
 
-    Writes frames to a video file with optional audio from a backend source.
-    Uses finer timestamp granularity (milliseconds) for smoother video playback.
+    This writer provides high-quality video encoding with precise frame timing
+    (millisecond accuracy) and supports audio muxing from a source video.
+
+    Methods:
+        write(frame): Write a video frame.
+        close(): Finalize and close the video file.
     """
 
     def __init__(
@@ -279,10 +313,11 @@ class pyAVWriter(BaseWriter):
 
         Args:
             filename (str): Path to the output video file.
-            fps (int): Frames per second for the output video.
-            frame_size (tuple[int, int]): Width and height of the video frames.
+            fps (int): Target frames per second for the output video.
+            frame_size (tuple[int, int]): (width, height) of output frames.
             codec (str, optional): Video codec name (default "h264").
-            backend (pyAVBackend, optional): Backend providing audio stream.
+            backend (pyAVBackend, optional): Source backend for audio muxing.
+            render_audio (bool, optional): Whether to include audio (default True if available).
 
         Raises:
             RuntimeError: If the output file cannot be created.
@@ -331,19 +366,19 @@ class pyAVWriter(BaseWriter):
             raise RuntimeError(f"Cannot open video writer for file: {filename}") from e
 
     def __enter__(self):
-        """Enable use as a context manager."""
+        """Enable use as a context manager (with statement)."""
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        """Close the writer on context exit."""
+        """Ensure proper cleanup when exiting context."""
         self.close()
 
     def write(self, frame: np.ndarray) -> None:
         """
-        Write a single video frame.
+        Write a single video frame to the output file.
 
         Args:
-            frame (np.ndarray): Frame data in BGR format (H, W, 3).
+            frame (np.ndarray): Frame data in BGR format (height, width, 3).
         """
         # Calculate PTS as milliseconds: frame_index * (1000 ms / fps)
         pts = int(self.frame_idx * (1000 / self.fps))
@@ -364,25 +399,26 @@ class pyAVWriter(BaseWriter):
         Finalize the video file, mux audio with adjusted timestamps to sync with video,
         and close the container.
         """
-
         def rescale_timestamp(value, src_tb, dst_tb):
             """
-            Rescale timestamp value from source timebase to destination timebase.
+            Rescale timestamp between timebases.
 
             Args:
-                value (int): Timestamp value (PTS or DTS).
-                src_tb (Fraction): Source time base.
-                dst_tb (Fraction): Destination time base.
+                value (int): Original timestamp value
+                src_tb (Fraction): Source timebase
+                dst_tb (Fraction): Destination timebase
 
             Returns:
-                int: Rescaled timestamp.
+                int: Rescaled timestamp
             """
             return int(value * src_tb / dst_tb)
 
+        # Flush any remaining video packets
         packets = self.stream.encode()
         for packet in packets:
             self.container.mux(packet)
 
+        # Calculate audio speed adjustment factor if needed
         speed_factor = 1.0
 
         try:
@@ -411,6 +447,7 @@ class pyAVWriter(BaseWriter):
         except Exception:
             speed_factor = 1.0
 
+        # Process and mux audio packets with timestamp adjustments
         if self.audio_stream_out and speed_factor != 1.0:
             for packet in self.audio_packets:
                 if packet.pts is not None:

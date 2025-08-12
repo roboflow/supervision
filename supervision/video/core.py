@@ -15,7 +15,7 @@ class Video:
     A high-level interface for reading, processing, and writing video files or streams.
 
     Attributes:
-        info (VideoInfo): Metadata about the video.
+        info (VideoInfo): Metadata about the opened video (e.g., FPS, resolution, duration).
         source (str | int): Path to the video file or index of the camera device.
         backend (BackendTypes): Video backend used for I/O operations.
     """
@@ -28,12 +28,15 @@ class Video:
         self, source: str | int, backend: Backend | str = Backend.OPENCV
     ) -> None:
         """
-        Initialize the Video object.
+        Initialize the Video object and open the source.
 
         Args:
             source (str | int): Path to a video file or index of a camera device.
-            backend (BackendLiteral, optional): Backend type for video I/O.
-                Defaults to "opencv".
+            backend (Backend | str, optional): Backend type or name for video I/O.
+                Defaults to Backend.OPENCV.
+
+        Raises:
+            ValueError: If the specified backend is not supported.
         """
         self.backend = BackendDict.get(Backend.from_value(backend))
         if self.backend is None:
@@ -48,10 +51,10 @@ class Video:
 
     def __iter__(self):
         """
-        Make the Video object iterable over frames.
+        Make the Video object directly iterable over frames.
 
         Yields:
-            np.ndarray: The next frame in the video.
+            np.ndarray: The next frame in the video stream.
         """
         return self.backend.frames()
 
@@ -67,12 +70,13 @@ class Video:
 
         Args:
             target_path (str): Output file path for the video.
-            info (VideoInfo): Video information including resolution and FPS.
+            info (VideoInfo): Video metadata including resolution and FPS.
             codec (str, optional): FourCC video codec code.
                 If None, the backend's default codec is used.
+            render_audio (bool | None, optional): Whether to include audio if supported.
 
         Returns:
-            BaseWriter: Video writer instance for writing frames.
+            WriterTypes: Video writer instance for writing frames.
         """
         return self.backend.writer(
             target_path, info.fps, info.resolution_wh, codec, self.backend, render_audio
@@ -86,7 +90,7 @@ class Video:
         resolution_wh: tuple[int, int] | None = None,
     ):
         """
-        Generate frames from the video with optional skipping, cropping, and resizing.
+        Generate frames from the video with optional skipping, seeking, and resizing.
 
         Args:
             stride (int, optional): Number of frames to skip between each yield.
@@ -99,6 +103,9 @@ class Video:
 
         Yields:
             np.ndarray: The next frame in the video.
+
+        Raises:
+            RuntimeError: If the video has not been opened.
         """
         if self.backend.cap is None:
             raise RuntimeError("Video not opened yet.")
@@ -109,6 +116,7 @@ class Video:
         is_live_stream = total_frames is None or total_frames <= 0
 
         if is_live_stream:
+            # Live stream handling
             while True:
                 for _ in range(stride - 1):
                     if not self.backend.grab():
@@ -120,6 +128,7 @@ class Video:
                     frame = cv2.resize(frame, resolution_wh)
                 yield frame
         else:
+            # Video file handling
             if end is None or end > total_frames:
                 end = total_frames
 
@@ -147,12 +156,13 @@ class Video:
         """
         Process and save video frames to a file.
 
+        Reads frames from the source, applies the given `callback` function to each
+        frame, and writes the processed frames to the specified output file.
+
         Args:
             target_path (str): Output file path for the processed video.
             callback (Callable[[np.ndarray, int], np.ndarray]): A function that takes in
-                a numpy ndarray representation of a video frame and an
-                int index of the frame and returns a processed numpy ndarray
-                representation of the frame.
+                a video frame (numpy array) and its frame index, and returns a processed frame.
             fps (int | None, optional): Frames per second of the output video.
                 If None, uses the original FPS.
             progress_message (str, optional): Message displayed in the progress bar.
@@ -161,6 +171,7 @@ class Video:
                 Defaults to False.
             codec (str | None, optional): FourCC video codec code.
                 If None, uses the backend's default codec.
+            render_audio (bool | None, optional): Whether to include audio if supported.
 
         Raises:
             RuntimeError: If the video has not been opened.
