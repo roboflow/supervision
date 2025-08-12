@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from fractions import Fraction
+import platform
+import re
 
 try:
     import av
@@ -36,7 +38,7 @@ class pyAVBackend(BaseBackend):
         self.video_info = None
         self.current_frame_idx = 0
 
-    def open(self, path: str) -> None:
+    def open(self, path: str | int) -> None:
         """
         Open and initialize a video source.
 
@@ -50,8 +52,40 @@ class pyAVBackend(BaseBackend):
             RuntimeError: If the video source cannot be opened.
             ValueError: If the source type is unsupported.
         """
+        _source_type = None
+        _format = None
+        
+        def is_webcam_path(path: str) -> tuple[bool, str]:
+            if not isinstance(path, str):
+                return False
+            
+            system = platform.system()
+            path_lower = path.lower()
+
+            if system == "Windows":
+                return path_lower.startswith("video="), "dshow"
+            elif system == "Linux":
+                return bool(re.match(r"^/dev/video\d+$", path_lower)), "v4l2"
+            elif system == "Darwin":
+                return path_lower.isdigit(), "avfoundation"
+            else:
+                return False
+        
+        isWebcam, ffmpeg_os_format = is_webcam_path(path=path)
+        if isWebcam:
+            _source_type = SourceType.WEBCAM
+            _format = ffmpeg_os_format
+        elif isinstance(path, str):
+            _source_type = (
+                SourceType.RTSP
+                if path.lower().startswith("rtsp://")
+                else SourceType.VIDEO_FILE
+            )
+        else:
+            raise ValueError("Unsupported source type")
+        
         try:
-            self.container = av.open(path)
+            self.container = av.open(path, format=_format)
             self.audio_src_container = self.container
             self.stream = self.container.streams.video[0]
             self.stream.thread_type = "AUTO"
@@ -67,16 +101,7 @@ class pyAVBackend(BaseBackend):
             else:
                 self.audio_stream = None
 
-            if isinstance(path, int):
-                self.video_info.SourceType = SourceType.WEBCAM
-            elif isinstance(path, str):
-                self.video_info.SourceType = (
-                    SourceType.RTSP
-                    if path.lower().startswith("rtsp://")
-                    else SourceType.VIDEO_FILE
-                )
-            else:
-                raise ValueError("Unsupported source type")
+            self.video_info.SourceType = _source_type
 
         except Exception as e:
             raise RuntimeError(f"Cannot open video source: {path}") from e

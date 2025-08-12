@@ -109,7 +109,7 @@ class Video:
         total_frames = (
             self.backend.video_info.total_frames if self.backend.video_info else 0
         )
-        is_live_stream = total_frames <= 0
+        is_live_stream = total_frames is None or total_frames <= 0
 
         if is_live_stream:
             while True:

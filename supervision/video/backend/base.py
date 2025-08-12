@@ -15,7 +15,7 @@ class BaseBackend(ABC):
         self.path = None
 
     @abstractmethod
-    def open(self, path: str) -> None:
+    def open(self, path: str | int) -> None:
         pass
 
     @abstractmethod
