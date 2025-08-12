@@ -13,7 +13,7 @@ WriterTypes = Union[OpenCVWriter, pyAVWriter]
 class Backend(Enum):
     """
     Enumeration of Backends.
-    
+
     Attributes:
         PYAV (str): PyAV backend (powered by FFmpeg, supports audio rendering)
         OPENCV (str): OpenCV backend

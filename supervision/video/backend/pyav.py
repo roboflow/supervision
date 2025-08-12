@@ -399,6 +399,7 @@ class pyAVWriter(BaseWriter):
         Finalize the video file, mux audio with adjusted timestamps to sync with video,
         and close the container.
         """
+
         def rescale_timestamp(value, src_tb, dst_tb):
             """
             Rescale timestamp between timebases.
