@@ -317,7 +317,7 @@ class pyAVWriter(BaseWriter):
             frame_size (tuple[int, int]): (width, height) of output frames.
             codec (str, optional): Video codec name (default "h264").
             backend (pyAVBackend, optional): Source backend for audio muxing.
-            render_audio (bool, optional): Whether to include audio (default True if available).
+            render_audio (bool, optional): Include audio (default True if available).
 
         Raises:
             RuntimeError: If the output file cannot be created.
