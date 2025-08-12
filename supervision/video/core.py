@@ -221,7 +221,7 @@ class Video:
         display-related exceptions gracefully.
 
         Args:
-            resolution_wh (tuple[int, int] | None): Optional target resolution as 
+            resolution_wh (tuple[int, int] | None): Optional target resolution as
                 (width, height) tuple. If None, uses native video resolution.
                 Note: Aspect ratio may not be preserved.
         """
@@ -230,12 +230,15 @@ class Video:
                 cv2.imshow(str(self.source), frame)
                 key = cv2.waitKey(1) & 0xFF
 
-                if key == ord('q'):
+                if key == ord("q"):
                     break
 
             cv2.destroyAllWindows()
         except cv2.error as e:
-            if "The function is not implemented" in str(e) or "could not connect to display" in str(e).lower():
+            if (
+                "The function is not implemented" in str(e)
+                or "could not connect to display" in str(e).lower()
+            ):
                 print("Error: No display found or GUI support not available.")
             else:
                 print("OpenCV error:", e)
