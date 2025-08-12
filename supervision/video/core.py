@@ -211,3 +211,35 @@ class Video:
             writer.write(frame=result_frame)
 
         writer.close()
+
+    def show(self, resolution_wh: tuple[int, int] | None = None):
+        """
+        Display video frames in a window with interactive playback controls.
+
+        This method streams video frames to an OpenCV window, allowing real-time
+        visualization. Press 'q' to quit playback. The method handles various
+        display-related exceptions gracefully.
+
+        Args:
+            resolution_wh (tuple[int, int] | None): Optional target resolution as 
+                (width, height) tuple. If None, uses native video resolution.
+                Note: Aspect ratio may not be preserved.
+        """
+        try:
+            for frame in self.frames(resolution_wh=resolution_wh):
+                cv2.imshow(str(self.source), frame)
+                key = cv2.waitKey(1) & 0xFF
+
+                if key == ord('q'):
+                    break
+
+            cv2.destroyAllWindows()
+        except cv2.error as e:
+            if "The function is not implemented" in str(e) or "could not connect to display" in str(e).lower():
+                print("Error: No display found or GUI support not available.")
+            else:
+                print("OpenCV error:", e)
+        except Exception as e:
+            print("Error:", e)
+        finally:
+            cv2.destroyAllWindows()
