@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from fractions import Fraction
 import platform
 import re
+from fractions import Fraction
 
 try:
     import av
@@ -54,11 +54,11 @@ class pyAVBackend(BaseBackend):
         """
         _source_type = None
         _format = None
-        
+
         def is_webcam_path(path: str) -> tuple[bool, str]:
             if not isinstance(path, str):
                 return False
-            
+
             system = platform.system()
             path_lower = path.lower()
 
@@ -70,7 +70,7 @@ class pyAVBackend(BaseBackend):
                 return path_lower.isdigit(), "avfoundation"
             else:
                 return False
-        
+
         isWebcam, ffmpeg_os_format = is_webcam_path(path=path)
         if isWebcam:
             _source_type = SourceType.WEBCAM
@@ -83,7 +83,7 @@ class pyAVBackend(BaseBackend):
             )
         else:
             raise ValueError("Unsupported source type")
-        
+
         try:
             self.container = av.open(path, format=_format)
             self.audio_src_container = self.container

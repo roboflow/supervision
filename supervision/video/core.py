@@ -6,12 +6,7 @@ import cv2
 import numpy as np
 from tqdm.auto import tqdm
 
-from supervision.video.backend import (
-    Backend,
-    BackendTypes,
-    BackendDict,
-    WriterTypes
-)
+from supervision.video.backend import Backend, BackendDict, BackendTypes, WriterTypes
 from supervision.video.utils import SourceType, VideoInfo
 
 
@@ -29,7 +24,9 @@ class Video:
     source: str | int
     backend: BackendTypes
 
-    def __init__(self, source: str | int, backend: Backend | str = Backend.OPENCV) -> None:
+    def __init__(
+        self, source: str | int, backend: Backend | str = Backend.OPENCV
+    ) -> None:
         """
         Initialize the Video object.
 
@@ -41,7 +38,7 @@ class Video:
         self.backend = BackendDict.get(Backend.from_value(backend))
         if self.backend is None:
             raise ValueError(f"Unsupported backend: {backend}")
-        
+
         # Instantiate the backend class once sanity check is done
         self.backend = self.backend()
 
