@@ -176,7 +176,7 @@ class OpenCVWriter(BaseWriter):
         Raises:
             RuntimeError: If the writer cannot be opened.
         """
-        if render_audio or render_audio == False:
+        if render_audio or not render_audio:
             raise ValueError(
                 "OpenCV backend does not support audio. "
                 "Please use `pyav` backend instead or set `render_audio=None`"
