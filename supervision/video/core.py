@@ -259,7 +259,8 @@ class Video:
         if in_notebook():
             if iPyDisplay is None:
                 raise RuntimeError(
-                    "IPython (`IPython` module) is not installed. Run `pip install IPython`."
+                    "IPython (`IPython` module) is not installed. " \
+                    "Run `pip install IPython`."
                 )
 
             self.save("temp.mp4", lambda frame, _: frame, show_progress=False)
@@ -288,7 +289,8 @@ class Video:
         else:
             if iPyDisplay is None:
                 raise RuntimeError(
-                    "IPython (`IPython` module) is not installed. Run `pip install IPython`."
+                    "IPython (`IPython` module) is not installed. " \
+                    "Run `pip install IPython`."
                 )
 
             self.save("temp.mp4", lambda frame, _: frame, show_progress=False)
