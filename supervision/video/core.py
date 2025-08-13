@@ -3,11 +3,18 @@ from __future__ import annotations
 from collections.abc import Callable
 
 import cv2
+import os
+import sys
 import numpy as np
 from tqdm.auto import tqdm
 
 from supervision.video.backend import Backend, BackendDict, BackendTypes, WriterTypes
 from supervision.video.utils import SourceType, VideoInfo
+
+try:
+    import IPython.display as iPyDisplay
+except ImportError:
+    iPyDisplay = None
 
 
 class Video:
@@ -225,7 +232,38 @@ class Video:
                 (width, height) tuple. If None, uses native video resolution.
                 Note: Aspect ratio may not be preserved.
         """
-        try:
+        # On Jupyter Notebook
+        def in_notebook():
+            argv = getattr(sys, "argv", [])
+            return any("jupyter" in arg or "ipykernel_launcher" in arg for arg in argv)
+        
+        def is_Headless():
+            if sys.platform.startswith("linux"):
+                return not bool(os.environ.get("DISPLAY", ""))
+            if sys.platform == "darwin":
+                return not bool(os.environ.get("TERM_PROGRAM") or os.environ.get("DISPLAY"))
+            if sys.platform.startswith("win"):
+                try:
+                    import ctypes
+                    user32 = ctypes.windll.user32
+                    return user32.GetDesktopWindow() == 0
+                except Exception:
+                    return True
+            return True
+        
+        # On a notebook
+        if in_notebook():
+            if iPyDisplay is None:
+                raise ValueError("IPython is not installed")
+            
+            self.save("temp.mp4", lambda frame, _: frame, show_progress=False)
+
+            width = resolution_wh[0] if resolution_wh is not None else None
+            height = resolution_wh[1] if resolution_wh is not None else None
+            iPyDisplay.display(iPyDisplay.Video("temp.mp4", embed=True, width=width, height=height))
+            os.remove("temp.mp4")
+        # On a computer
+        elif not is_Headless():
             for frame in self.frames(resolution_wh=resolution_wh):
                 cv2.imshow(str(self.source), frame)
                 key = cv2.waitKey(1) & 0xFF
@@ -233,16 +271,27 @@ class Video:
                 if key == ord("q"):
                     break
 
+            while True:
+                if cv2.getWindowProperty(str(self.source), cv2.WND_PROP_VISIBLE) < 1:
+                    break
+                cv2.waitKey(100)
             cv2.destroyAllWindows()
-        except cv2.error as e:
-            if (
-                "The function is not implemented" in str(e)
-                or "could not connect to display" in str(e).lower()
-            ):
-                print("Error: No display found or GUI support not available.")
-            else:
-                print("OpenCV error:", e)
-        except Exception as e:
-            print("Error:", e)
-        finally:
-            cv2.destroyAllWindows()
+        # On a headless system
+        else:
+            if iPyDisplay is None:
+                raise ValueError("IPython is not installed")
+            
+            self.save("temp.mp4", lambda frame, _: frame, show_progress=False)
+            
+            width = resolution_wh[0] if resolution_wh is not None else None
+            height = resolution_wh[1] if resolution_wh is not None else None
+
+            display_video = (iPyDisplay.Video("temp.mp4", embed=True, width=width, height=height))
+            html_code = display_video._repr_html_()
+            export_path = "video_display.html"
+
+            with open(export_path, "w") as f:
+                f.write(html_code)
+            print(f"Video exported as HTML to {export_path}")
+
+            os.remove("temp.mp4")
