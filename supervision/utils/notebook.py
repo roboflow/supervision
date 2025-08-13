@@ -4,7 +4,7 @@ import cv2
 import matplotlib.pyplot as plt
 from PIL import Image
 
-from supervision.annotators.base import ImageType
+from supervision.draw.base import ImageType
 from supervision.utils.conversion import pillow_to_cv2
 
 

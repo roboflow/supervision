@@ -1,5 +1,6 @@
 ---
 comments: true
+status: new
 ---
 
 # Image Utils
@@ -29,10 +30,16 @@ comments: true
 :::supervision.utils.image.letterbox_image
 
 <div class="md-typeset">
-    <h2><a href="#supervision.utils.image.overlay_image">overlay_image</a></h2>
+    <h2><a href="#supervision.utils.image.tint_image">tint_image</a></h2>
 </div>
 
-:::supervision.utils.image.overlay_image
+:::supervision.utils.image.tint_image
+
+<div class="md-typeset">
+    <h2><a href="#supervision.utils.image.grayscale_image">grayscale_image</a></h2>
+</div>
+
+:::supervision.utils.image.grayscale_image
 
 <div class="md-typeset">
     <h2><a href="#supervision.utils.image.ImageSink">ImageSink</a></h2>

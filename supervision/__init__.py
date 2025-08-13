@@ -120,12 +120,13 @@ from supervision.utils.conversion import cv2_to_pillow, pillow_to_cv2
 from supervision.utils.file import list_files_with_extensions
 from supervision.utils.image import (
     ImageSink,
-    create_tiles,
     crop_image,
+    grayscale_image,
     letterbox_image,
     overlay_image,
     resize_image,
     scale_image,
+    tint_image,
 )
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (
@@ -206,7 +207,6 @@ __all__ = [
     "clip_boxes",
     "contains_holes",
     "contains_multiple_segments",
-    "create_tiles",
     "crop_image",
     "cv2_to_pillow",
     "draw_filled_polygon",
@@ -222,6 +222,7 @@ __all__ = [
     "get_coco_class_index_mapping",
     "get_polygon_center",
     "get_video_frames_generator",
+    "grayscale_image",
     "letterbox_image",
     "list_files_with_extensions",
     "mask_iou_batch",
@@ -245,6 +246,7 @@ __all__ = [
     "rle_to_mask",
     "scale_boxes",
     "scale_image",
+    "tint_image",
     "xcycwh_to_xyxy",
     "xywh_to_xyxy",
     "xyxy_to_polygons",
