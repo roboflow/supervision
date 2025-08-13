@@ -59,6 +59,7 @@ metrics = [
     "pandas>=2.0.0",
 ]
 ffmpeg = ["av (>=15.0.0)"]
+rich_display = ["ipython (>=8.15,<9.0)"]
 
 [dependency-groups]
 dev = [
