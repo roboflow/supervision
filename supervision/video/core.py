@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import os
+import sys
 from collections.abc import Callable
 
 import cv2
-import os
-import sys
 import numpy as np
 from tqdm.auto import tqdm
 
@@ -232,35 +232,41 @@ class Video:
                 (width, height) tuple. If None, uses native video resolution.
                 Note: Aspect ratio may not be preserved.
         """
+
         # On Jupyter Notebook
         def in_notebook():
             argv = getattr(sys, "argv", [])
             return any("jupyter" in arg or "ipykernel_launcher" in arg for arg in argv)
-        
+
         def is_Headless():
             if sys.platform.startswith("linux"):
                 return not bool(os.environ.get("DISPLAY", ""))
             if sys.platform == "darwin":
-                return not bool(os.environ.get("TERM_PROGRAM") or os.environ.get("DISPLAY"))
+                return not bool(
+                    os.environ.get("TERM_PROGRAM") or os.environ.get("DISPLAY")
+                )
             if sys.platform.startswith("win"):
                 try:
                     import ctypes
+
                     user32 = ctypes.windll.user32
                     return user32.GetDesktopWindow() == 0
                 except Exception:
                     return True
             return True
-        
+
         # On a notebook
         if in_notebook():
             if iPyDisplay is None:
                 raise ValueError("IPython is not installed")
-            
+
             self.save("temp.mp4", lambda frame, _: frame, show_progress=False)
 
             width = resolution_wh[0] if resolution_wh is not None else None
             height = resolution_wh[1] if resolution_wh is not None else None
-            iPyDisplay.display(iPyDisplay.Video("temp.mp4", embed=True, width=width, height=height))
+            iPyDisplay.display(
+                iPyDisplay.Video("temp.mp4", embed=True, width=width, height=height)
+            )
             os.remove("temp.mp4")
         # On a computer
         elif not is_Headless():
@@ -280,13 +286,15 @@ class Video:
         else:
             if iPyDisplay is None:
                 raise ValueError("IPython is not installed")
-            
+
             self.save("temp.mp4", lambda frame, _: frame, show_progress=False)
-            
+
             width = resolution_wh[0] if resolution_wh is not None else None
             height = resolution_wh[1] if resolution_wh is not None else None
 
-            display_video = (iPyDisplay.Video("temp.mp4", embed=True, width=width, height=height))
+            display_video = iPyDisplay.Video(
+                "temp.mp4", embed=True, width=width, height=height
+            )
             html_code = display_video._repr_html_()
             export_path = "video_display.html"
 
