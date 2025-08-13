@@ -1,6 +1,6 @@
-from collections.abc import Iterator
-from typing import Any, Optional
 from collections.abc import Callable
+from collections.abc import Iterator
+from typing import Any
 
 import cv2
 import numpy as np
@@ -11,6 +11,12 @@ from .base import Writer
 
 class OpenCVWriter:
     def __init__(self, vw: cv2.VideoWriter, info: VideoInfo):
+        """OpenCV-based video writer.
+
+        Args:
+            vw: An initialized ``cv2.VideoWriter`` instance.
+            info: Output video information used to validate/resize frames.
+        """
         self._vw = vw
         self.info = info
 
@@ -20,6 +26,14 @@ class OpenCVWriter:
         frame_number: int,
         callback: Callable[[np.ndarray], None] | None = None,
     ) -> None:
+        """Write a frame, applying an optional callback and resize if needed.
+
+        Args:
+            frame: Input frame array.
+            frame_number: Sequential frame number being written.
+            callback: Optional function ``(frame, frame_number) -> frame`` to
+                transform the frame before writing.
+        """
         if callback:
             frame = callback(frame, frame_number)
         if frame.shape[0] != self.info.height or frame.shape[1] != self.info.width:
@@ -27,6 +41,7 @@ class OpenCVWriter:
         self._vw.write(frame)
 
     def close(self) -> None:
+        """Release the underlying ``cv2.VideoWriter``."""
         self._vw.release()
 
     def __enter__(self) -> Writer:
@@ -36,13 +51,13 @@ class OpenCVWriter:
         self.close()
 
 
-class Backend:
+class OpenCVBackend:
     def __init__(self, source_path: str | int):
-        """Create a new backend for source.
+        """Create a new backend for a source path or webcam index.
 
-        `source`` can b
-        * ``str`` - file path, RTSP/HTTP URL …
-        * ``int`` - webcam index (OpenCV-style)
+        Args:
+            source_path: File path or stream URL (``str``) or webcam index
+                (``int``).
         """
         self.source_path = source_path
         self.cap = cv2.VideoCapture(self.source_path)
@@ -50,7 +65,7 @@ class Backend:
             raise ValueError(f"Could not open video source {self.source_path}")
 
     def info(self) -> VideoInfo:
-        """Return static information (width / height / fps / total_frames)."""
+        """Return static information (width, height, fps, total_frames)."""
         from ..core import VideoInfo
 
         w = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -69,21 +84,17 @@ class Backend:
         return self.cap.grab()
 
     def seek(self, frame_idx: int) -> None:
-        """Seek to frame_idx so that the next :py:meth:`read` returns it."""
+        """Seek so that the next call to ``read`` returns ``frame_idx``."""
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
 
     # ? Do we want to mix and match different writers to different backends?
     def writer(self, path: str, info: VideoInfo, codec: str | None = None) -> Writer:
-        """Return a writer that encodes frames to path.
+        """Return a writer that encodes frames to a file path.
 
-        Parameters
-        ----------
-        path:
-            Target file path.
-        info:"
-            Expected output resolution / fps (copied from source by default).
-        codec:
-            FourCC / codec name to override the backend default.
+        Args:
+            path: Target file path.
+            info: Expected output resolution and fps (copied from source by default).
+            codec: FourCC or codec name to override the backend default.
         """
         fourcc = (
             cv2.VideoWriter_fourcc(*codec) if codec else cv2.VideoWriter_fourcc(*"mp4v")
@@ -101,21 +112,15 @@ class Backend:
     ) -> Iterator[np.ndarray]:
         """Yield frames lazily, with optional skipping and resizing.
 
-        Parameters
-        ----------
-        stride:
-            Number of frames to skip between yielded frames (``1`` yields every frame).
-        start:
-            First frame index (0-based) to yield.
-        end:
-            Index after the last frame to yield. ``None`` means until exhaustion.
-        resolution_wh:
-            Optional ``(width, height)`` to resize each yielded frame to.
+        Args:
+            stride: Number of frames to skip between yielded frames (``1`` yields every frame).
+            start: First frame index (0-based) to yield.
+            end: Index after the last frame to yield. ``None`` means until exhaustion.
+            resolution_wh: Optional ``(width, height)`` to resize each yielded frame to.
+            interpolation: OpenCV interpolation flag used when resizing.
 
-        Yields
-        ------
-        np.ndarray
-            The next decoded (and optionally resized) video frame.
+        Yields:
+            np.ndarray: The next decoded (and optionally resized) video frame.
         """
         if stride < 1:
             raise ValueError("stride must be >= 1")
@@ -159,8 +164,8 @@ class Backend:
     def __iter__(self) -> Iterator[np.ndarray]:
         """Yield successive frames until exhaustion.
 
-        This is considered convenience behaviour; the default implementation
-        below is fine for most back-ends.
+        This is considered convenience behavior; the default implementation is
+        sufficient for most backends.
         """
         while True:
             success, frame = self.read()
@@ -194,3 +199,7 @@ class Backend:
         if not success:
             raise IndexError(f"Failed to read frame {index}")
         return frame
+
+
+# Provide a consistent alias for the core loader
+Backend = OpenCVBackend
