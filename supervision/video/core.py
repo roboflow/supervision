@@ -259,7 +259,7 @@ class Video:
         if in_notebook():
             if iPyDisplay is None:
                 raise RuntimeError(
-                    "IPython (`IPython` module) is not installed. " \
+                    "IPython (`IPython` module) is not installed. "
                     "Run `pip install IPython`."
                 )
 
@@ -289,7 +289,7 @@ class Video:
         else:
             if iPyDisplay is None:
                 raise RuntimeError(
-                    "IPython (`IPython` module) is not installed. " \
+                    "IPython (`IPython` module) is not installed. "
                     "Run `pip install IPython`."
                 )
 
