@@ -2,17 +2,27 @@ from __future__ import annotations
 
 import platform
 import re
+import sys
 from fractions import Fraction
 
-try:
-    import av
-except ImportError:
-    av = None
 import numpy as np
 
 from supervision.video.backend.base import BaseBackend, BaseWriter
 from supervision.video.utils import SourceType, VideoInfo
 
+av = None
+
+def get_av():
+    if 'av' in sys.modules and sys.modules['av'] is None:
+        del sys.modules['av']
+
+    try:
+        import av
+        return av
+    except ImportError:
+        raise RuntimeError(
+            "PyAV (`av` module) is not installed. Run `pip install av`."
+        )
 
 class pyAVBackend(BaseBackend):
     """
@@ -34,10 +44,8 @@ class pyAVBackend(BaseBackend):
         """
         super().__init__()
 
-        if av is None:
-            raise RuntimeError(
-                "PyAV (`av` module) is not installed. Run `pip install av`."
-            )
+        global av
+        av = get_av()
 
         self.container = None
         self.stream = None
