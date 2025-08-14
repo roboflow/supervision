@@ -86,7 +86,6 @@ class OpenCVBackend:
         """Seek so that the next call to ``read`` returns ``frame_idx``."""
         self.cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
 
-    # ? Do we want to mix and match different writers to different backends?
     def writer(self, path: str, info: VideoInfo, codec: str | None = None) -> Writer:
         """Return a writer that encodes frames to a file path.
 
