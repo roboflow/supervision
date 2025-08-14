@@ -1,5 +1,4 @@
-from collections.abc import Callable
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import Any
 
 import cv2
