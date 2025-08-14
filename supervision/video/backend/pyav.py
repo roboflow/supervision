@@ -35,13 +35,9 @@ class pyAVBackend(BaseBackend):
         super().__init__()
 
         if av is None:
-            try:
-                import av
-            except ImportError:
-                av = None
-                raise RuntimeError(
-                    "PyAV (`av` module) is not installed. Run `pip install av`."
-                )
+            raise RuntimeError(
+                "PyAV (`av` module) is not installed. Run `pip install av`."
+            )
 
         self.container = None
         self.stream = None
