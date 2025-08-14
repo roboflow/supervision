@@ -219,7 +219,12 @@ class Video:
 
         writer.close()
 
-    def show(self, resolution_wh: tuple[int, int] | None = None):
+    def show(self, resolution_wh: tuple[int, int] | None = None, 
+        callback: Callable[[np.ndarray, int], np.ndarray] = lambda f, i: f,
+        fps: int | None = None,
+        progress_message: str = "Processing video",
+        show_progress: bool = False,
+        render_audio: bool | None = None):
         """
         Display video frames in a window with interactive playback controls.
 
@@ -263,7 +268,13 @@ class Video:
                     "Run `pip install IPython`."
                 )
 
-            self.save("temp.mp4", lambda frame, _: frame, show_progress=False)
+            self.save("temp.mp4",
+                      callback=callback,
+                      fps=fps,
+                      progress_message=progress_message,
+                      show_progress=show_progress,
+                      render_audio=render_audio
+                      )
 
             width = resolution_wh[0] if resolution_wh is not None else None
             height = resolution_wh[1] if resolution_wh is not None else None
@@ -293,7 +304,13 @@ class Video:
                     "Run `pip install IPython`."
                 )
 
-            self.save("temp.mp4", lambda frame, _: frame, show_progress=False)
+            self.save("temp.mp4",
+                      callback=callback,
+                      fps=fps,
+                      progress_message=progress_message,
+                      show_progress=show_progress,
+                      render_audio=render_audio
+                      )
 
             width = resolution_wh[0] if resolution_wh is not None else None
             height = resolution_wh[1] if resolution_wh is not None else None
