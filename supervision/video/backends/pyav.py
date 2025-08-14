@@ -120,10 +120,7 @@ class PyAVBackend:
         self.video_stream: av.video.stream.VideoStream = cast(
             av.video.stream.VideoStream, video_streams[0]
         )
-        # Improve performance on some inputs
-        self.video_stream.thread_type = "AUTO"
-
-        # Decoder iterator that we refresh after seeking
+        self.video_stream.thread_type = "AUTO"  # Improve performance on some inputs
         self._decoder = self.container.decode(video=self.video_stream.index)
 
     def _compute_fps(self) -> tuple[int, float]:
@@ -131,7 +128,7 @@ class PyAVBackend:
         if avg is None:
             avg = self.video_stream.guessed_rate
         if avg is None:
-            precise = 30.0 # As a last resort, fall back to 30 fps
+            precise = 30.0  # As a last resort, fall back to 30 fps
         else:
             # average_rate is a Fraction
             precise = float(avg)
@@ -143,7 +140,6 @@ class PyAVBackend:
         w = int(self.video_stream.codec_context.width or self.video_stream.width)
         h = int(self.video_stream.codec_context.height or self.video_stream.height)
         fps_int, precise = self._compute_fps()
-        # stream.frames can be 0 or None for many containers
         n = (
             int(self.video_stream.frames)
             if self.video_stream.frames not in (None, 0)
