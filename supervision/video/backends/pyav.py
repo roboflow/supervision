@@ -293,7 +293,7 @@ class PyAVBackend:
         finally:
             self._decoder = iter(())
 
-    def __enter__(self) -> "PyAVBackend":
+    def __enter__(self) -> PyAVBackend:
         return self
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
