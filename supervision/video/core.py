@@ -11,11 +11,18 @@ from tqdm.auto import tqdm
 from supervision.video.backend import Backend, BackendDict, BackendTypes, WriterTypes
 from supervision.video.utils import SourceType, VideoInfo
 
-try:
-    import IPython.display as iPyDisplay
-except ImportError:
-    iPyDisplay = None
+def get_iPython():
+    if "IPython" in sys.modules and sys.modules["IPython"] is None:
+        del sys.modules["IPython"]
 
+    try:
+        import IPython
+        return IPython
+    except ImportError:
+        raise RuntimeError(
+                    "IPython (`IPython` module) is not installed. "
+                    "Run `pip install IPython`."
+                )
 
 class Video:
     """
@@ -265,11 +272,7 @@ class Video:
 
         # On a notebook
         if in_notebook():
-            if iPyDisplay is None:
-                raise RuntimeError(
-                    "IPython (`IPython` module) is not installed. "
-                    "Run `pip install IPython`."
-                )
+            iPyDisplay = get_iPython().display
 
             self.save(
                 "temp.mp4",
