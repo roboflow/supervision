@@ -11,18 +11,20 @@ from tqdm.auto import tqdm
 from supervision.video.backend import Backend, BackendDict, BackendTypes, WriterTypes
 from supervision.video.utils import SourceType, VideoInfo
 
+
 def get_iPython():
     if "IPython" in sys.modules and sys.modules["IPython"] is None:
         del sys.modules["IPython"]
 
     try:
         import IPython
+
         return IPython
     except ImportError:
         raise RuntimeError(
-                    "IPython (`IPython` module) is not installed. "
-                    "Run `pip install IPython`."
-                )
+            "IPython (`IPython` module) is not installed. Run `pip install IPython`."
+        )
+
 
 class Video:
     """
