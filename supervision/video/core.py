@@ -72,7 +72,7 @@ class Video:
         Yields:
             np.ndarray: The next frame in the video stream.
         """
-        return self.backend.frames()
+        return self.frames()
 
     def sink(
         self,
