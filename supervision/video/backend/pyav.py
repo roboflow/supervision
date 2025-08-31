@@ -355,11 +355,7 @@ class pyAVWriter(BaseWriter):
             self.audio_stream_out = None
             self.audio_packets = []
 
-            if (
-                render_audio
-                and backend
-                and backend.audio_stream
-            ):
+            if render_audio and backend and backend.audio_stream:
                 audio_codec_name = backend.audio_stream.codec_context.name
                 audio_rate = backend.audio_stream.codec_context.rate
                 self.audio_stream_out = self.container.add_stream(
@@ -417,15 +413,17 @@ class pyAVWriter(BaseWriter):
             This method should always be called when finished writing frames.
             It ensures proper file finalization and resource cleanup.
         """
-        if (self.audio_stream_out is not None):
+        if self.audio_stream_out is not None:
             src = av.open(self.backend.path)
-            src_fps = src.streams.video[0].average_rate or src.streams.video[0].guessed_rate
+            src_fps = (
+                src.streams.video[0].average_rate or src.streams.video[0].guessed_rate
+            )
             audio_stream = src.streams.audio[0]
 
             graph = av.filter.Graph()
             graph.link_nodes(
                 graph.add_abuffer(template=audio_stream),
-                graph.add("atempo", str(self.fps/src_fps)), 
+                graph.add("atempo", str(self.fps / src_fps)),
                 graph.add("abuffersink"),
             ).configure()
 
