@@ -112,7 +112,7 @@ class pyAVBackend(BaseBackend):
 
         try:
             self.container = av.open(path, format=_format)
-            self.audio_src_container = self.container
+            self.path = path
             self.stream = self.container.streams.video[0]
             self.stream.thread_type = "AUTO"
             self.cap = self.container
@@ -333,6 +333,7 @@ class pyAVWriter(BaseWriter):
         """
         try:
             self.container = av.open(filename, mode="w")
+            self.path = filename
             self.backend = backend
 
             if render_audio is None:
@@ -358,18 +359,12 @@ class pyAVWriter(BaseWriter):
                 render_audio
                 and backend
                 and backend.audio_stream
-                and backend.audio_src_container
             ):
                 audio_codec_name = backend.audio_stream.codec_context.name
                 audio_rate = backend.audio_stream.codec_context.rate
                 self.audio_stream_out = self.container.add_stream(
                     audio_codec_name, rate=audio_rate
                 )
-
-                # Buffer all audio packets from backend for muxing later
-                for packet in backend.audio_src_container.demux(backend.audio_stream):
-                    if packet.dts is not None:
-                        self.audio_packets.append(packet)
 
         except Exception as e:
             raise RuntimeError(f"Cannot open video writer for file: {filename}") from e
@@ -404,85 +399,46 @@ class pyAVWriter(BaseWriter):
             self.container.mux(packet)
 
     def close(self) -> None:
-        """
-        Finalize the video file, mux audio with adjusted timestamps to sync with video,
-        and close the container.
-        """
+        if (self.audio_stream_out is not None):
+            src = av.open(self.backend.path)
+            src_fps = src.streams.video[0].average_rate or src.streams.video[0].guessed_rate
+            audio_stream = src.streams.audio[0]
 
-        def rescale_timestamp(value, src_tb, dst_tb):
-            """
-            Rescale timestamp between timebases.
+            graph = av.filter.Graph()
+            graph.link_nodes(
+                graph.add_abuffer(template=audio_stream),
+                graph.add("atempo", str(self.fps/src_fps)), 
+                graph.add("abuffersink"),
+            ).configure()
 
-            Args:
-                value (int): Original timestamp value
-                src_tb (Fraction): Source timebase
-                dst_tb (Fraction): Destination timebase
+            for packet in src.demux(audio_stream):
+                for frame in packet.decode():
+                    graph.push(frame)
 
-            Returns:
-                int: Rescaled timestamp
-            """
-            return int(value * src_tb / dst_tb)
+                    while True:
+                        try:
+                            f = graph.pull()
+                        except Exception:
+                            break
+                        for pkt in self.audio_stream_out.encode(f):
+                            self.container.mux(pkt)
 
-        # Flush any remaining video packets
-        packets = self.stream.encode()
-        for packet in packets:
-            self.container.mux(packet)
+            graph.push(None)
+            while True:
+                try:
+                    f = graph.pull()
+                except Exception:
+                    break
+                for pkt in self.audio_stream_out.encode(f):
+                    self.container.mux(pkt)
 
-        # Calculate audio speed adjustment factor if needed
-        speed_factor = 1.0
+            for pkt in self.audio_stream_out.encode(None):
+                self.container.mux(pkt)
 
-        try:
-            if (
-                self.backend
-                and self.backend.audio_stream
-                and self.backend.audio_stream.duration
-            ):
-                orig_audio_duration = float(
-                    self.backend.audio_stream.duration
-                    * self.backend.audio_stream.time_base
-                )
-            elif (
-                self.backend
-                and self.backend.audio_src_container
-                and self.backend.audio_src_container.duration
-            ):
-                orig_audio_duration = self.backend.audio_src_container.duration / 1000
-            else:
-                orig_audio_duration = None
+            src.close()
 
-            new_video_duration = self.frame_idx * (1 / self.fps)
-
-            if orig_audio_duration and new_video_duration > 0:
-                speed_factor = orig_audio_duration / new_video_duration
-        except Exception:
-            speed_factor = 1.0
-
-        # Process and mux audio packets with timestamp adjustments
-        if self.audio_stream_out and speed_factor != 1.0:
-            for packet in self.audio_packets:
-                if packet.pts is not None:
-                    packet.pts = rescale_timestamp(
-                        packet.pts, packet.time_base, self.audio_stream_out.time_base
-                    )
-                    packet.pts = int(packet.pts / speed_factor)
-                if packet.dts is not None:
-                    packet.dts = rescale_timestamp(
-                        packet.dts, packet.time_base, self.audio_stream_out.time_base
-                    )
-                    packet.dts = int(packet.dts / speed_factor)
-                packet.stream = self.audio_stream_out
-                self.container.mux(packet)
-        elif self.audio_stream_out:
-            for packet in self.audio_packets:
-                if packet.pts is not None:
-                    packet.pts = rescale_timestamp(
-                        packet.pts, packet.time_base, self.audio_stream_out.time_base
-                    )
-                if packet.dts is not None:
-                    packet.dts = rescale_timestamp(
-                        packet.dts, packet.time_base, self.audio_stream_out.time_base
-                    )
-                packet.stream = self.audio_stream_out
-                self.container.mux(packet)
+        # flush video
+        for pkt in self.stream.encode():
+            self.container.mux(pkt)
 
         self.container.close()
