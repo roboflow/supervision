@@ -399,6 +399,24 @@ class pyAVWriter(BaseWriter):
             self.container.mux(packet)
 
     def close(self) -> None:
+        """
+        Finalize and close the video file, including audio processing if enabled.
+
+        This method performs several critical operations:
+        1. If audio is enabled, processes and muxes the audio stream from the source
+        2. Applies tempo adjustment to match the output video FPS
+        3. Flushes all remaining video frames from the encoder
+        4. Properly closes the output container
+
+        The audio processing uses FFmpeg filters to:
+        - Read audio from the original source
+        - Apply tempo scaling based on FPS differences between source and output
+        - Encode and mux the processed audio into the output file
+
+        Note:
+            This method should always be called when finished writing frames.
+            It ensures proper file finalization and resource cleanup.
+        """
         if (self.audio_stream_out is not None):
             src = av.open(self.backend.path)
             src_fps = src.streams.video[0].average_rate or src.streams.video[0].guessed_rate
