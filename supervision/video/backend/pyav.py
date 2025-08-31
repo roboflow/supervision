@@ -414,6 +414,25 @@ class pyAVWriter(BaseWriter):
             It ensures proper file finalization and resource cleanup.
         """
         if self.audio_stream_out is not None:
+            def atempo_chain(speed: float) -> list[str]:
+                if speed <= 0:
+                    raise ValueError("Speed factor must be > 0")
+
+                chain = []
+
+                while speed > 2.0:
+                    chain.append("2.0")
+                    speed /= 2.0
+
+                while speed < 0.5:
+                    chain.append("0.5")
+                    speed /= 0.5
+
+                if abs(speed - 1.0) > 1e-6:
+                    chain.append(f"{speed:.6f}")
+
+                return chain
+
             src = av.open(self.backend.path)
             src_fps = (
                 src.streams.video[0].average_rate or src.streams.video[0].guessed_rate
@@ -421,11 +440,14 @@ class pyAVWriter(BaseWriter):
             audio_stream = src.streams.audio[0]
 
             graph = av.filter.Graph()
-            graph.link_nodes(
-                graph.add_abuffer(template=audio_stream),
-                graph.add("atempo", str(self.fps / src_fps)),
-                graph.add("abuffersink"),
-            ).configure()
+            filters = atempo_chain(self.fps / src_fps)
+            nodes = [graph.add_abuffer(template=audio_stream)]
+            for f in filters:
+                nodes.append(graph.add("atempo", f))
+
+            nodes.append(graph.add("abuffersink"))
+            graph.link_nodes(*nodes)
+            graph.configure()
 
             for packet in src.demux(audio_stream):
                 for frame in packet.decode():
