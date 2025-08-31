@@ -8,7 +8,12 @@ import cv2
 import numpy as np
 from tqdm.auto import tqdm
 
-from supervision.video.backend import VideoBackend, VideoBackendDict, VideoBackendTypes, VideoWriterTypes
+from supervision.video.backend import (
+    VideoBackend,
+    VideoBackendDict,
+    VideoBackendTypes,
+    VideoWriterTypes,
+)
 from supervision.video.utils import SourceType, VideoInfo
 
 
