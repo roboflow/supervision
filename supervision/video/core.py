@@ -8,7 +8,12 @@ import cv2
 import numpy as np
 from tqdm.auto import tqdm
 
-from supervision.video.backend import VideoBackendType, VideoBackendDict, VideoBackendTypes, VideoWriterTypes
+from supervision.video.backend import (
+    VideoBackendDict,
+    VideoBackendType,
+    VideoBackendTypes,
+    VideoWriterTypes,
+)
 from supervision.video.utils import SourceType, VideoInfo
 
 
@@ -41,7 +46,9 @@ class Video:
     backend: VideoBackendTypes
 
     def __init__(
-        self, source: str | int, backend: VideoBackendType | str = VideoBackendType.OPENCV
+        self,
+        source: str | int,
+        backend: VideoBackendType | str = VideoBackendType.OPENCV,
     ) -> None:
         """
         Initialize the Video object and open the source.
