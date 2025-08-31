@@ -414,6 +414,7 @@ class pyAVWriter(BaseWriter):
             It ensures proper file finalization and resource cleanup.
         """
         if self.audio_stream_out is not None:
+
             def atempo_chain(speed: float) -> list[str]:
                 if speed <= 0:
                     raise ValueError("Speed factor must be > 0")
