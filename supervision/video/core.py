@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 from tqdm.auto import tqdm
 
-from supervision.video.backend import Backend, BackendDict, BackendTypes, WriterTypes
+from supervision.video.backend import VideoBackend, VideoBackendDict, VideoBackendTypes, VideoWriterTypes
 from supervision.video.utils import SourceType, VideoInfo
 
 
@@ -33,15 +33,15 @@ class Video:
     Attributes:
         info (VideoInfo): Metadata about the opened video.
         source (str | int): Path to the video file or index of the camera device.
-        backend (BackendTypes): Video backend used for I/O operations.
+        backend (VideoBackendTypes): Video backend used for I/O operations.
     """
 
     info: VideoInfo
     source: str | int
-    backend: BackendTypes
+    backend: VideoBackendTypes
 
     def __init__(
-        self, source: str | int, backend: Backend | str = Backend.OPENCV
+        self, source: str | int, backend: VideoBackend | str = VideoBackend.OPENCV
     ) -> None:
         """
         Initialize the Video object and open the source.
@@ -54,7 +54,7 @@ class Video:
         Raises:
             ValueError: If the specified backend is not supported.
         """
-        self.backend = BackendDict.get(Backend.from_value(backend))
+        self.backend = VideoBackendDict.get(VideoBackend.from_value(backend))
         if self.backend is None:
             raise ValueError(f"Unsupported backend: {backend}")
 
@@ -80,7 +80,7 @@ class Video:
         info: VideoInfo,
         codec: str | None = None,
         render_audio: bool | None = None,
-    ) -> WriterTypes:
+    ) -> VideoWriterTypes:
         """
         Create a video writer for saving frames to a file.
 

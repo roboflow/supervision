@@ -6,11 +6,11 @@ from typing import Literal, Union
 from supervision.video.backend.opencv import OpenCVBackend, OpenCVWriter
 from supervision.video.backend.pyav import pyAVBackend, pyAVWriter
 
-BackendTypes = Union[OpenCVBackend, pyAVBackend]
-WriterTypes = Union[OpenCVWriter, pyAVWriter]
+VideoBackendTypes = Union[OpenCVBackend, pyAVBackend]
+VideoWriterTypes = Union[OpenCVWriter, pyAVWriter]
 
 
-class Backend(Enum):
+class VideoBackendType(Enum):
     """
     Enumeration of Backends.
 
@@ -28,7 +28,7 @@ class Backend(Enum):
         return list(map(lambda c: c.value, cls))
 
     @classmethod
-    def from_value(cls, value: Backend | str) -> Backend:
+    def from_value(cls, value: VideoBackendType | str) -> VideoBackendType:
         if isinstance(value, cls):
             return value
         if isinstance(value, str):
@@ -43,20 +43,20 @@ class Backend(Enum):
         )
 
 
-BackendDict = {
-    Backend.PYAV: pyAVBackend,
-    Backend.OPENCV: OpenCVBackend,
+VideoBackendDict = {
+    VideoBackendType.PYAV: pyAVBackend,
+    VideoBackendType.OPENCV: OpenCVBackend,
 }
 
-WriterDict = {
-    Backend.PYAV: pyAVWriter,
-    Backend.OPENCV: OpenCVWriter,
+VideoWriterDict = {
+    VideoBackendType.PYAV: pyAVWriter,
+    VideoBackendType.OPENCV: OpenCVWriter,
 }
 
 __all__ = [
-    "Backend",
-    "BackendDict",
-    "BackendTypes",
-    "WriterDict",
-    "WriterTypes",
+    "VideoBackendType",
+    "VideoBackendDict",
+    "VideoBackendTypes",
+    "VideoWriterDict",
+    "VideoWriterTypes",
 ]

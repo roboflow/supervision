@@ -135,6 +135,7 @@ from supervision.utils.video import (
     process_video,
 )
 from supervision.video import Video, VideoInfo
+from supervision.video.backend import VideoBackendType
 
 __all__ = [
     "LMM",
@@ -193,6 +194,7 @@ __all__ = [
     "VertexAnnotator",
     "VertexLabelAnnotator",
     "Video",
+    "VideoBackendType",
     "VideoInfo",
     "VideoSink",
     "approximate_polygon",
