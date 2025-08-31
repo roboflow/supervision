@@ -54,8 +54,8 @@ VideoWriterDict = {
 }
 
 __all__ = [
-    "VideoBackendType",
     "VideoBackendDict",
+    "VideoBackendType",
     "VideoBackendTypes",
     "VideoWriterDict",
     "VideoWriterTypes",
