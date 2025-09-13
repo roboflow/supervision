@@ -805,15 +805,15 @@ def test_line_zone_long_horizon_disappearing_detections(
             [
                 # Frame 1: Both objects on right side
                 {
-                    "xyxy": [[2, 4, 4, 6], [6, 4, 8, 6]], 
-                    "tracker_id": [1, 2], 
-                    "class_id": [0, 1]
+                    "xyxy": [[2, 4, 4, 6], [6, 4, 8, 6]],
+                    "tracker_id": [1, 2],
+                    "class_id": [0, 1],
                 },
                 # Frame 2: Both objects cross to left side
                 {
-                    "xyxy": [[2, -6, 4, -4], [6, -6, 8, -4]], 
-                    "tracker_id": [1, 2], 
-                    "class_id": [0, 1]
+                    "xyxy": [[2, -6, 4, -4], [6, -6, 8, -4]],
+                    "tracker_id": [1, 2],
+                    "class_id": [0, 1],
                 },
             ],
             [[False, False], [True, True]],
@@ -833,27 +833,25 @@ def test_line_zone_class_id_tracking(
 ) -> None:
     """Test that LineZone properly handles class_id changes during tracking."""
     line_zone = LineZone(
-        start=vector.start, 
-        end=vector.end,
-        triggering_anchors=[Position.CENTER]
+        start=vector.start, end=vector.end, triggering_anchors=[Position.CENTER]
     )
-    
+
     crossed_in_results = []
     crossed_out_results = []
-    
+
     for frame in test_sequence:
         detections = mock_detections(**frame)
         crossed_in, crossed_out = line_zone.trigger(detections)
         crossed_in_results.append(list(crossed_in))
         crossed_out_results.append(list(crossed_out))
-    
+
     assert crossed_in_results == expected_crossed_in
     assert crossed_out_results == expected_crossed_out
-    
+
     # Check per-class counts
     for class_id, expected_count in expected_in_count_per_class.items():
         assert line_zone.in_count_per_class.get(class_id, 0) == expected_count
-    
+
     for class_id, expected_count in expected_out_count_per_class.items():
         assert line_zone.out_count_per_class.get(class_id, 0) == expected_count
 
@@ -888,16 +886,16 @@ def test_line_zone_class_id_with_minimum_threshold(
 ) -> None:
     """Test class_id changes work correctly with minimum crossing threshold."""
     line_zone = LineZone(
-        start=vector.start, 
+        start=vector.start,
         end=vector.end,
         triggering_anchors=[Position.CENTER],
-        minimum_crossing_threshold=minimum_crossing_threshold
+        minimum_crossing_threshold=minimum_crossing_threshold,
     )
-    
+
     for frame in test_sequence:
         detections = mock_detections(**frame)
         line_zone.trigger(detections)
-    
+
     # Check final counts
     for class_id, expected_count in expected_final_counts.items():
         assert line_zone.in_count_per_class.get(class_id, 0) == expected_count
@@ -906,11 +904,9 @@ def test_line_zone_class_id_with_minimum_threshold(
 def test_line_zone_class_id_none_handling() -> None:
     """Test LineZone handles None class_id values correctly."""
     line_zone = LineZone(
-        start=Point(0, 0), 
-        end=Point(10, 0),
-        triggering_anchors=[Position.CENTER]
+        start=Point(0, 0), end=Point(10, 0), triggering_anchors=[Position.CENTER]
     )
-    
+
     # Object with None class_id crosses the line
     test_sequence = [
         # Frame 1: Object on right side, no class_id
@@ -918,11 +914,11 @@ def test_line_zone_class_id_none_handling() -> None:
         # Frame 2: Object crosses to left side, still no class_id
         {"xyxy": [[4, -6, 6, -4]], "tracker_id": [1], "class_id": None},
     ]
-    
+
     for frame in test_sequence:
         detections = mock_detections(**frame)
         line_zone.trigger(detections)
-    
+
     # Should work with None class_id
     assert line_zone.in_count_per_class[None] == 1
     assert line_zone.in_count == 1

@@ -102,8 +102,8 @@ class LineZone:
         self.vector = Vector(start=start, end=end)
         self.limits = self._calculate_region_of_interest_limits(vector=self.vector)
         self.crossing_history_length = max(2, minimum_crossing_threshold + 1)
-        self.crossing_state_history: dict[tuple[int, int | None], deque[bool]] = defaultdict(
-            lambda: deque(maxlen=self.crossing_history_length)
+        self.crossing_state_history: dict[tuple[int, int | None], deque[bool]] = (
+            defaultdict(lambda: deque(maxlen=self.crossing_history_length))
         )
         self._in_count_per_class: Counter = Counter()
         self._out_count_per_class: Counter = Counter()
