@@ -777,3 +777,152 @@ def test_line_zone_long_horizon_disappearing_detections(
         assert crossed_out_list == expected_crossed_out
         assert count_in_list == expected_count_in
         assert count_out_list == expected_count_out
+
+
+@pytest.mark.parametrize(
+    "vector, test_sequence, expected_crossed_in, expected_crossed_out, "
+    "expected_in_count_per_class, expected_out_count_per_class",
+    [
+        (  # Object changes class during tracking
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                # Frame 1: Object on right side, class 0
+                {"xyxy": [[4, 4, 6, 6]], "tracker_id": [1], "class_id": [0]},
+                # Frame 2: Object crosses to left side, still class 0
+                {"xyxy": [[4, -6, 6, -4]], "tracker_id": [1], "class_id": [0]},
+                # Frame 3: Object stays on left side, class changes to 1
+                {"xyxy": [[4, -6, 6, -4]], "tracker_id": [1], "class_id": [1]},
+                # Frame 4: Object crosses back to right side, still class 1
+                {"xyxy": [[4, 4, 6, 6]], "tracker_id": [1], "class_id": [1]},
+            ],
+            [False, True, False, False],
+            [False, False, False, True],
+            {0: 1, 1: 0},  # Class 0 crossed in once, class 1 never crossed in
+            {0: 0, 1: 1},  # Class 0 never crossed out, class 1 crossed out once
+        ),
+        (  # Multiple objects with different classes
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                # Frame 1: Both objects on right side
+                {
+                    "xyxy": [[2, 4, 4, 6], [6, 4, 8, 6]], 
+                    "tracker_id": [1, 2], 
+                    "class_id": [0, 1]
+                },
+                # Frame 2: Both objects cross to left side
+                {
+                    "xyxy": [[2, -6, 4, -4], [6, -6, 8, -4]], 
+                    "tracker_id": [1, 2], 
+                    "class_id": [0, 1]
+                },
+            ],
+            [[False, False], [True, True]],
+            [[False, False], [False, False]],
+            {0: 1, 1: 1},  # Both classes crossed in once
+            {0: 0, 1: 0},  # Neither class crossed out
+        ),
+    ],
+)
+def test_line_zone_class_id_tracking(
+    vector: Vector,
+    test_sequence: list[dict],
+    expected_crossed_in: list[list[bool]],
+    expected_crossed_out: list[list[bool]],
+    expected_in_count_per_class: dict[int, int],
+    expected_out_count_per_class: dict[int, int],
+) -> None:
+    """Test that LineZone properly handles class_id changes during tracking."""
+    line_zone = LineZone(
+        start=vector.start, 
+        end=vector.end,
+        triggering_anchors=[Position.CENTER]
+    )
+    
+    crossed_in_results = []
+    crossed_out_results = []
+    
+    for frame in test_sequence:
+        detections = mock_detections(**frame)
+        crossed_in, crossed_out = line_zone.trigger(detections)
+        crossed_in_results.append(list(crossed_in))
+        crossed_out_results.append(list(crossed_out))
+    
+    assert crossed_in_results == expected_crossed_in
+    assert crossed_out_results == expected_crossed_out
+    
+    # Check per-class counts
+    for class_id, expected_count in expected_in_count_per_class.items():
+        assert line_zone.in_count_per_class.get(class_id, 0) == expected_count
+    
+    for class_id, expected_count in expected_out_count_per_class.items():
+        assert line_zone.out_count_per_class.get(class_id, 0) == expected_count
+
+
+@pytest.mark.parametrize(
+    "vector, test_sequence, minimum_crossing_threshold, expected_final_counts",
+    [
+        (  # Class change with minimum threshold
+            Vector(Point(0, 0), Point(10, 0)),
+            [
+                # Frames 1-3: Object oscillates on right side, class 0
+                {"xyxy": [[4, 4, 6, 6]], "tracker_id": [1], "class_id": [0]},
+                {"xyxy": [[4, -2, 6, 0]], "tracker_id": [1], "class_id": [0]},
+                {"xyxy": [[4, 4, 6, 6]], "tracker_id": [1], "class_id": [0]},
+                # Frame 4: Class changes to 1, still on right side
+                {"xyxy": [[4, 4, 6, 6]], "tracker_id": [1], "class_id": [1]},
+                # Frames 5-7: Object crosses to left side as class 1
+                {"xyxy": [[4, -6, 6, -4]], "tracker_id": [1], "class_id": [1]},
+                {"xyxy": [[4, -6, 6, -4]], "tracker_id": [1], "class_id": [1]},
+                {"xyxy": [[4, -6, 6, -4]], "tracker_id": [1], "class_id": [1]},
+            ],
+            2,
+            {0: 0, 1: 1},  # Only class 1 should have crossed after threshold met
+        ),
+    ],
+)
+def test_line_zone_class_id_with_minimum_threshold(
+    vector: Vector,
+    test_sequence: list[dict],
+    minimum_crossing_threshold: int,
+    expected_final_counts: dict[int, int],
+) -> None:
+    """Test class_id changes work correctly with minimum crossing threshold."""
+    line_zone = LineZone(
+        start=vector.start, 
+        end=vector.end,
+        triggering_anchors=[Position.CENTER],
+        minimum_crossing_threshold=minimum_crossing_threshold
+    )
+    
+    for frame in test_sequence:
+        detections = mock_detections(**frame)
+        line_zone.trigger(detections)
+    
+    # Check final counts
+    for class_id, expected_count in expected_final_counts.items():
+        assert line_zone.in_count_per_class.get(class_id, 0) == expected_count
+
+
+def test_line_zone_class_id_none_handling() -> None:
+    """Test LineZone handles None class_id values correctly."""
+    line_zone = LineZone(
+        start=Point(0, 0), 
+        end=Point(10, 0),
+        triggering_anchors=[Position.CENTER]
+    )
+    
+    # Object with None class_id crosses the line
+    test_sequence = [
+        # Frame 1: Object on right side, no class_id
+        {"xyxy": [[4, 4, 6, 6]], "tracker_id": [1], "class_id": None},
+        # Frame 2: Object crosses to left side, still no class_id
+        {"xyxy": [[4, -6, 6, -4]], "tracker_id": [1], "class_id": None},
+    ]
+    
+    for frame in test_sequence:
+        detections = mock_detections(**frame)
+        line_zone.trigger(detections)
+    
+    # Should work with None class_id
+    assert line_zone.in_count_per_class[None] == 1
+    assert line_zone.in_count == 1
