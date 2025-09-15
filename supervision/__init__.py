@@ -139,6 +139,7 @@ from supervision.utils.video import (
 
 __all__ = [
     "LMM",
+    "VLM",
     "BackgroundOverlayAnnotator",
     "BaseDataset",
     "BlurAnnotator",

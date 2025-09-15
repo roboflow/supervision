@@ -1,0 +1,138 @@
+[1mdiff --git a/supervision/detection/line_zone.py b/supervision/detection/line_zone.py[m
+[1mindex 9baa2edb..16e8232a 100644[m
+[1m--- a/supervision/detection/line_zone.py[m
+[1m+++ b/supervision/detection/line_zone.py[m
+[36m@@ -102,7 +102,7 @@[m [mclass LineZone:[m
+         self.vector = Vector(start=start, end=end)[m
+         self.limits = self._calculate_region_of_interest_limits(vector=self.vector)[m
+         self.crossing_history_length = max(2, minimum_crossing_threshold + 1)[m
+[31m-        self.crossing_state_history: dict[int, deque[bool]] = defaultdict([m
+[32m+[m[32m        self.crossing_state_history: dict[tuple[int, int | None], deque[bool]] = defaultdict([m
+             lambda: deque(maxlen=self.crossing_history_length)[m
+         )[m
+         self._in_count_per_class: Counter = Counter()[m
+[36m@@ -179,16 +179,14 @@[m [mclass LineZone:[m
+                 continue[m
+ [m
+             tracker_state: bool = has_any_left_trigger[i][m
+[31m-            crossing_history = self.crossing_state_history[tracker_id][m
+[32m+[m[32m            # Use (tracker_id, class_id) as key to handle class changes during tracking[m
+[32m+[m[32m            crossing_key = (tracker_id, class_id)[m
+[32m+[m[32m            crossing_history = self.crossing_state_history[crossing_key][m
+             crossing_history.append(tracker_state)[m
+ [m
+             if len(crossing_history) < self.crossing_history_length:[m
+                 continue[m
+ [m
+[31m-            # TODO: Account for incorrect class_id.[m
+[31m-            #   Most likely this would involve indexing self.crossing_state_history[m
+[31m-            #   with (tracker_id, class_id).[m
+[31m-[m
+             oldest_state = crossing_history[0][m
+             if crossing_history.count(oldest_state) > 1:[m
+                 continue[m
+[1mdiff --git a/test/detection/test_line_counter.py b/test/detection/test_line_counter.py[m
+[1mindex f7227fa6..1d279a8b 100644[m
+[1m--- a/test/detection/test_line_counter.py[m
+[1m+++ b/test/detection/test_line_counter.py[m
+[36m@@ -777,3 +777,152 @@[m [mdef test_line_zone_long_horizon_disappearing_detections([m
+         assert crossed_out_list == expected_crossed_out[m
+         assert count_in_list == expected_count_in[m
+         assert count_out_list == expected_count_out[m
+[32m+[m
+[32m+[m
+[32m+[m[32m@pytest.mark.parametrize([m
+[32m+[m[32m    "vector, test_sequence, expected_crossed_in, expected_crossed_out, "[m
+[32m+[m[32m    "expected_in_count_per_class, expected_out_count_per_class",[m
+[32m+[m[32m    [[m
+[32m+[m[32m        (  # Object changes class during tracking[m
+[32m+[m[32m            Vector(Point(0, 0), Point(10, 0)),[m
+[32m+[m[32m            [[m
+[32m+[m[32m                # Frame 1: Object on right side, class 0[m
+[32m+[m[32m                {"xyxy": [[4, 4, 6, 6]], "tracker_id": [1], "class_id": [0]},[m
+[32m+[m[32m                # Frame 2: Object crosses to left side, still class 0[m
+[32m+[m[32m                {"xyxy": [[4, -6, 6, -4]], "tracker_id": [1], "class_id": [0]},[m
+[32m+[m[32m                # Frame 3: Object stays on left side, class changes to 1[m
+[32m+[m[32m                {"xyxy": [[4, -6, 6, -4]], "tracker_id": [1], "class_id": [1]},[m
+[32m+[m[32m                # Frame 4: Object crosses back to right side, still class 1[m
+[32m+[m[32m                {"xyxy": [[4, 4, 6, 6]], "tracker_id": [1], "class_id": [1]},[m
+[32m+[m[32m            ],[m
+[32m+[m[32m            [False, True, False, False],[m
+[32m+[m[32m            [False, False, False, True],[m
+[32m+[m[32m            {0: 1, 1: 0},  # Class 0 crossed in once, class 1 never crossed in[m
+[32m+[m[32m            {0: 0, 1: 1},  # Class 0 never crossed out, class 1 crossed out once[m
+[32m+[m[32m        ),[m
+[32m+[m[32m        (  # Multiple objects with different classes[m
+[32m+[m[32m            Vector(Point(0, 0), Point(10, 0)),[m
+[32m+[m[32m            [[m
+[32m+[m[32m                # Frame 1: Both objects on right side[m
+[32m+[m[32m                {[m
+[32m+[m[32m                    "xyxy": [[2, 4, 4, 6], [6, 4, 8, 6]],[m[41m [m
+[32m+[m[32m                    "tracker_id": [1, 2],[m[41m [m
+[32m+[m[32m                    "class_id": [0, 1][m
+[32m+[m[32m                },[m
+[32m+[m[32m                # Frame 2: Both objects cross to left side[m
+[32m+[m[32m                {[m
+[32m+[m[32m                    "xyxy": [[2, -6, 4, -4], [6, -6, 8, -4]],[m[41m [m
+[32m+[m[32m                    "tracker_id": [1, 2],[m[41m [m
+[32m+[m[32m                    "class_id": [0, 1][m
+[32m+[m[32m                },[m
+[32m+[m[32m            ],[m
+[32m+[m[32m            [[False, False], [True, True]],[m
+[32m+[m[32m            [[False, False], [False, False]],[m
+[32m+[m[32m            {0: 1, 1: 1},  # Both classes crossed in once[m
+[32m+[m[32m            {0: 0, 1: 0},  # Neither class crossed out[m
+[32m+[m[32m        ),[m
+[32m+[m[32m    ],[m
+[32m+[m[32m)[m
+[32m+[m[32mdef test_line_zone_class_id_tracking([m
+[32m+[m[32m    vector: Vector,[m
+[32m+[m[32m    test_sequence: list[dict],[m
+[32m+[m[32m    expected_crossed_in: list[list[bool]],[m
+[32m+[m[32m    expected_crossed_out: list[list[bool]],[m
+[32m+[m[32m    expected_in_count_per_class: dict[int, int],[m
+[32m+[m[32m    expected_out_count_per_class: dict[int, int],[m
+[32m+[m[32m) -> None:[m
+[32m+[m[32m    """Test that LineZone properly handles class_id changes during tracking."""[m
+[32m+[m[32m    line_zone = LineZone([m
+[32m+[m[32m        start=vector.start,[m[41m [m
+[32m+[m[32m        end=vector.end,[m
+[32m+[m[32m        triggering_anchors=[Position.CENTER][m
+[32m+[m[32m    )[m
+[32m+[m[41m    [m
+[32m+[m[32m    crossed_in_results = [][m
+[32m+[m[32m    crossed_out_results = [][m
+[32m+[m[41m    [m
+[32m+[m[32m    for frame in test_sequence:[m
+[32m+[m[32m        detections = mock_detections(**frame)[m
+[32m+[m[32m        crossed_in, crossed_out = line_zone.trigger(detections)[m
+[32m+[m[32m        crossed_in_results.append(list(crossed_in))[m
+[32m+[m[32m        crossed_out_results.append(list(crossed_out))[m
+[32m+[m[41m    [m
+[32m+[m[32m    assert crossed_in_results == expected_crossed_in[m
+[32m+[m[32m    assert crossed_out_results == expected_crossed_out[m
+[32m+[m[41m    [m
+[32m+[m[32m    # Check per-class counts[m
+[32m+[m[32m    for class_id, expected_count in expected_in_count_per_class.items():[m
+[32m+[m[32m        assert line_zone.in_count_per_class.get(class_id, 0) == expected_count[m
+[32m+[m[41m    [m
+[32m+[m[32m    for class_id, expected_count in expected_out_count_per_class.items():[m
+[32m+[m[32m        assert line_zone.out_count_per_class.get(class_id, 0) == expected_count[m
+[32m+[m
+[32m+[m
+[32m+[m[32m@pytest.mark.parametrize([m
+[32m+[m[32m    "vector, test_sequence, minimum_crossing_threshold, expected_final_counts",[m
+[32m+[m[32m    [[m
+[32m+[m[32m        (  # Class change with minimum threshold[m
+[32m+[m[32m            Vector(Point(0, 0), Point(10, 0)),[m
+[32m+[m[32m            [[m
+[32m+[m[32m                # Frames 1-3: Object oscillates on right side, class 0[m
+[32m+[m[32m                {"xyxy": [[4, 4, 6, 6]], "tracker_id": [1], "class_id": [0]},[m
+[32m+[m[32m                {"xyxy": [[4, -2, 6, 0]], "tracker_id": [1], "class_id": [0]},[m
+[32m+[m[32m                {"xyxy": [[4, 4, 6, 6]], "tracker_id": [1], "class_id": [0]},[m
+[32m+[m[32m                # Frame 4: Class changes to 1, still on right side[m
+[32m+[m[32m                {"xyxy": [[4, 4, 6, 6]], "tracker_id": [1], "class_id": [1]},[m
+[32m+[m[32m                # Frames 5-7: Object crosses to left side as class 1[m
+[32m+[m[32m                {"xyxy": [[4, -6, 6, -4]], "tracker_id": [1], "class_id": [1]},[m
+[32m+[m[32m                {"xyxy": [[4, -6, 6, -4]], "tracker_id": [1], "class_id": [1]},[m
+[32m+[m[32m                {"xyxy": [[4, -6, 6, -4]], "tracker
