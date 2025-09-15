@@ -75,9 +75,9 @@
   ESC-^F _<_c_1_> _<_c_2_>  *  Find close bracket _<_c_2_>.
   ESC-^B _<_c_1_> _<_c_2_>  *  Find open bracket _<_c_1_>.
         ---------------------------------------------------
-        Each "find close bracket" command goes forward to the close bracket 
+        Each "find close bracket" command goes forward to the close bracket
           matching the (_N-th) open bracket in the top line.
-        Each "find open bracket" command goes backward to the open bracket 
+        Each "find open bracket" command goes backward to the open bracket
           matching the (_N-th) close bracket in the bottom line.
 
   m_<_l_e_t_t_e_r_>            Mark the current top line with <letter>.
@@ -303,7 +303,7 @@
 
                           LLIINNEE EEDDIITTIINNGG
 
-        These keys can be used to edit text being entered 
+        These keys can be used to edit text being entered
         on the "command line" at the bottom of the screen.
 
  RightArrow ..................... ESC-l ... Move cursor right one character.
