@@ -39,29 +39,29 @@ def main(
         for polygon in polygons
     ]
     timers = [FPSBasedTimer(video_info.fps) for _ in zones]
-    
+
     # Video writer setup
     video_writer = None
     if output_video_path:
         # Use Twitter-compatible codec - try H264 first, then XVID
         try:
-            fourcc = cv2.VideoWriter_fourcc(*'H264')
+            fourcc = cv2.VideoWriter_fourcc(*"H264")
             video_writer = cv2.VideoWriter(
-                output_video_path, 
-                fourcc, 
-                video_info.fps, 
-                (video_info.width, video_info.height)
+                output_video_path,
+                fourcc,
+                video_info.fps,
+                (video_info.width, video_info.height),
             )
             print(f"Video output being saved: {output_video_path}")
             print("Using Twitter-compatible H.264 codec")
         except:
             # H264 desteklenmiyorsa XVID kullan
-            fourcc = cv2.VideoWriter_fourcc(*'XVID')
+            fourcc = cv2.VideoWriter_fourcc(*"XVID")
             video_writer = cv2.VideoWriter(
-                output_video_path, 
-                fourcc, 
-                video_info.fps, 
-                (video_info.width, video_info.height)
+                output_video_path,
+                fourcc,
+                video_info.fps,
+                (video_info.width, video_info.height),
             )
             print(f"Video output being saved: {output_video_path}")
             print("Using XVID codec (convert with FFmpeg for Twitter)")
@@ -101,19 +101,19 @@ def main(
             )
 
         cv2.imshow("Processed Video", annotated_frame)
-        
+
         # Save frame to output video if writer is available
         if video_writer is not None:
             video_writer.write(annotated_frame)
-        
+
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
-    
+
     # Cleanup
     if video_writer is not None:
         video_writer.release()
         print(f"Video successfully saved: {output_video_path}")
-    
+
     cv2.destroyAllWindows()
 
 
