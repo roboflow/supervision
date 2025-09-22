@@ -240,17 +240,21 @@ class MeanAverageRecall(Metric):
         stats: list[tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]],
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         recalls_at_k = []
-    
+
         for max_detections in self.max_detections:
             filtered_stats = []
             for matches, confidence, class_id, true_class_id in stats:
                 sorted_indices = np.argsort(-confidence)[:max_detections]
-                filtered_stats.append((
-                    matches[sorted_indices],
-                    class_id[sorted_indices],
-                    true_class_id,
-                ))
-            concatenated_stats = [np.concatenate(items, 0) for items in zip(*filtered_stats)]
+                filtered_stats.append(
+                    (
+                        matches[sorted_indices],
+                        class_id[sorted_indices],
+                        true_class_id,
+                    )
+                )
+            concatenated_stats = [
+                np.concatenate(items, 0) for items in zip(*filtered_stats)
+            ]
 
             filtered_matches, prediction_class_ids, true_class_ids = concatenated_stats
             unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
