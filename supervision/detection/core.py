@@ -2153,6 +2153,55 @@ class Detections:
 
         return Detections.merge(result)
 
+    def transform(self, dataset, class_mapping: Optional[dict] = None) -> Detections:
+        """
+        Remap and filter detections to match a target dataset's class set.
+
+        Args:
+            dataset: An object with a .classes attribute (list of class names).
+            class_mapping (dict, optional): Mapping from model class names to
+                dataset class names.
+
+        Returns:
+            Detections: A new Detections object with class names and IDs
+                remapped and filtered.
+        """
+        # Get class names for each detection
+        class_names = self.data.get("class_name")
+        if class_names is None:
+            raise ValueError(
+                "Detections must have 'class_name' in .data to use transform()."
+            )
+        class_names = np.array(class_names)
+        # Remap class names if mapping is provided
+        if class_mapping is not None:
+            class_names = np.array(
+                [class_mapping.get(name, name) for name in class_names]
+            )
+        # Filter out detections whose class is not in dataset.classes
+        keep = np.isin(class_names, dataset.classes)
+        # Remap class_id to match dataset.classes
+        new_class_id = np.array(
+            [dataset.classes.index(name) for name in class_names[keep]]
+        )
+        # Build new Detections object
+        return Detections(
+            xyxy=self.xyxy[keep],
+            mask=self.mask[keep] if self.mask is not None else None,
+            confidence=self.confidence[keep] if self.confidence is not None else None,
+            class_id=new_class_id,
+            tracker_id=self.tracker_id[keep] if self.tracker_id is not None else None,
+            data={
+                k: (
+                    np.array(v)[keep]
+                    if isinstance(v, (list, np.ndarray)) and len(v) == len(self)
+                    else v
+                )
+                for k, v in self.data.items()
+            },
+            metadata=self.metadata.copy(),
+        )
+
 
 def merge_inner_detection_object_pair(
     detections_1: Detections, detections_2: Detections
