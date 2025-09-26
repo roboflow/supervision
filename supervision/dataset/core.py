@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import os
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
@@ -812,6 +813,27 @@ class ClassificationDataset(BaseDataset):
             image_save_path = os.path.join(root_directory_path, class_name, image_name)
             cv2.imwrite(image_save_path, image)
 
+    def as_multiclass_folder(self, root_directory_path: str) -> None:
+        """
+        Saves the dataset as a multi-class folder structure.
+
+        Args:
+            root_directory_path (str): The path to the directory
+                where the dataset will be saved.
+        """
+        os.makedirs(root_directory_path, exist_ok=True)
+
+        with open(os.path.join(root_directory_path, "_classes.csv"), "w") as f:
+            writer = csv.writer(f)
+            writer.writerow(["image_name"] + self.classes)
+
+            for image_path in self.images:
+                classification = self.annotations[image_path]
+                image_name = Path(image_path).name
+                class_ids = classification.class_id.tolist()
+                writer.writerow([image_name] + class_ids)
+                cv2.imwrite(os.path.join(root_directory_path, image_name), image)
+
     @classmethod
     def from_folder_structure(cls, root_directory_path: str) -> ClassificationDataset:
         """
@@ -859,5 +881,63 @@ class ClassificationDataset(BaseDataset):
         return cls(
             classes=classes,
             images=image_paths,
+            annotations=annotations,
+        )
+
+    @classmethod
+    def from_multiclass_folder(cls, root_directory_path: str) -> ClassificationDataset:
+        """
+        Load data from a multiclass folder structure into a ClassificationDataset.
+
+        Args:
+            root_directory_path (str): The path to the dataset directory.
+
+        Returns:
+            ClassificationDataset: The dataset.
+
+        Example:
+            ```python
+            >>> import roboflow
+            >>> from roboflow import Roboflow
+            >>> import supervision as sv
+
+            >>> roboflow.login()
+
+            >>> rf = Roboflow()
+
+            >>> project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)
+            >>> dataset = project.version(PROJECT_VERSION).download("folder")
+
+            >>> cd = sv.ClassificationDataset.from_multiclass_folder(
+            ...     root_directory_path=f"{dataset.location}/train"
+            ... )
+            ```
+        """
+
+        images = {}
+        annotations = {}
+        class_names = {}
+
+        with open(os.path.join(root_directory_path, "_classes.csv")) as f:
+            reader = csv.reader(f)
+
+            header = next(reader)
+
+            for item in enumerate(header[1:]):
+                class_names[item[0]] = item[1]
+
+            for row in reader:
+                image_name = row[0]
+                image_path = os.path.join(root_directory_path, image_name)
+                images[image_path] = cv2.imread(image_path)
+
+                class_ids = np.array([int(x) for x in row[1:]])
+                annotations[image_path] = Classifications(
+                    class_id=class_ids,
+                )
+
+        return cls(
+            classes=list(class_names.values()),
+            images=images,
             annotations=annotations,
         )
