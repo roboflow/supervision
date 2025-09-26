@@ -60,6 +60,23 @@ model.
         outputs=outputs, target_sizes=target_size)[0]
     ```
 
+=== "MMDetections"
+
+    ```python
+    import cv2
+    from mmengine import Config
+    from mmdet.apis import init_detector, inference_detector
+
+    CONFIG_FILE = "mmdetection/checkpoint/rtmdet_s_8xb32-300e_coco.py"
+    CHECKPOINT_FILE = "mmdetection/checkpoint/rtmdet_s_8xb32-300e_coco_20220905_161602-387a891e.pth"
+
+    cfg = Config.fromfile(CONFIG_FILE)
+    model = init_detector(cfg, CHECKPOINT_FILE)
+
+    image = cv2.imread(<SOURCE_IMAGE_PATH>)
+    result = inference_detector(model, image)
+    ```
+
 ## Load Predictions into Supervision
 
 Now that we have predictions from a model, we can load them into Supervision.
@@ -119,11 +136,32 @@ Now that we have predictions from a model, we can load them into Supervision.
         id2label=model.config.id2label)
     ```
 
+=== "MMDetections"
+
+    We can do so using the [`sv.Detections.from_mmdetections`](detection/core/#supervision.detection.core.Detections.from_mmdetection) method, which accepts model results from both detection and segmentation models.
+
+    ```{ .py hl_lines="2 14-15" }
+    import cv2
+    import supervision as sv
+    from mmengine import Config
+    from mmdet.apis import init_detector, inference_detector
+
+    CONFIG_FILE = "mmdetection/checkpoint/rtmdet_s_8xb32-300e_coco.py"
+    CHECKPOINT_FILE = "mmdetection/checkpoint/rtmdet_s_8xb32-300e_coco_20220905_161602-387a891e.pth"
+
+    cfg = Config.fromfile(CONFIG_FILE)
+    model = init_detector(cfg, CHECKPOINT_FILE)
+
+    image = cv2.imread(<SOURCE_IMAGE_PATH>)
+    result = inference_detector(model, image)
+    detections = sv.Detections.from_mmdetection(result).with_nms(threshold=0.3)
+    detections = detections[detections.confidence > 0.3]
+    ```
+
 You can load predictions from other computer vision frameworks and libraries using:
 
 - [`from_deepsparse`](/latest/detection/core/#supervision.detection.core.Detections.from_deepsparse) ([Deepsparse](https://github.com/neuralmagic/deepsparse))
 - [`from_detectron2`](/latest/detection/core/#supervision.detection.core.Detections.from_detectron2) ([Detectron2](https://github.com/facebookresearch/detectron2))
-- [`from_mmdetection`](/latest/detection/core/#supervision.detection.core.Detections.from_mmdetection) ([MMDetection](https://github.com/open-mmlab/mmdetection))
 - [`from_sam`](/latest/detection/core/#supervision.detection.core.Detections.from_sam) ([Segment Anything Model](https://github.com/facebookresearch/segment-anything))
 - [`from_yolo_nas`](/latest/detection/core/#supervision.detection.core.Detections.from_yolo_nas) ([YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md))
 
@@ -199,6 +237,34 @@ Finally, we can annotate the image with the predictions. Since we are working wi
     label_annotator = sv.LabelAnnotator()
 
     annotated_image = box_annotator.annotate(
+        scene=image, detections=detections)
+    annotated_image = label_annotator.annotate(
+        scene=annotated_image, detections=detections)
+    ```
+
+=== "MMDetections"
+
+    ```{ .py hl_lines="17-23" }
+    import cv2
+    import supervision as sv
+    from mmengine import Config
+    from mmdet.apis import init_detector, inference_detector
+
+    CONFIG_FILE = "mmdetection/checkpoint/rtmdet_s_8xb32-300e_coco.py"
+    CHECKPOINT_FILE = "mmdetection/checkpoint/rtmdet_s_8xb32-300e_coco_20220905_161602-387a891e.pth"
+
+    cfg = Config.fromfile(CONFIG_FILE)
+    model = init_detector(cfg, CHECKPOINT_FILE)
+
+    image = cv2.imread(<SOURCE_IMAGE_PATH>)
+    result = inference_detector(model, image)
+    detections = sv.Detections.from_mmdetection(result).with_nms(threshold=0.3)
+    detections = detections[detections.confidence > 0.3]
+
+    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    label_annotator = sv.LabelAnnotator()
+
+    annotated_image = bounding_box_annotator.annotate(
         scene=image, detections=detections)
     annotated_image = label_annotator.annotate(
         scene=annotated_image, detections=detections)
@@ -303,6 +369,40 @@ override this behavior by passing a list of custom `labels` to the `annotate` me
         scene=annotated_image, detections=detections, labels=labels)
     ```
 
+=== "MMDetections"
+
+    ```{ .py hl_lines="17-21 29" }
+    import cv2
+    import supervision as sv
+    from mmengine import Config
+    from mmdet.apis import init_detector, inference_detector
+
+    CONFIG_FILE = "mmdetection/checkpoint/rtmdet_s_8xb32-300e_coco.py"
+    CHECKPOINT_FILE = "mmdetection/checkpoint/rtmdet_s_8xb32-300e_coco_20220905_161602-387a891e.pth"
+
+    cfg = Config.fromfile(CONFIG_FILE)
+    model = init_detector(cfg, CHECKPOINT_FILE)
+
+    image = cv2.imread(<SOURCE_IMAGE_PATH>)
+    result = inference_detector(model, image)
+    detections = sv.Detections.from_mmdetection(result).with_nms(threshold=0.3)
+    detections = detections[detections.confidence > 0.3]
+
+    labels = [
+        f"{class_id} {confidence:.2f}"
+        for class_id, confidence
+        in zip(detections.class_id, detections.confidence)
+    ]
+
+    bounding_box_annotator = sv.BoundingBoxAnnotator()
+    label_annotator = sv.LabelAnnotator()
+
+    annotated_image = bounding_box_annotator.annotate(
+        scene=image, detections=detections)
+    annotated_image = label_annotator.annotate(
+        scene=annotated_image, detections=detections, labels=labels)
+    ```
+
 ![custom-label-annotation](https://media.roboflow.com/supervision_detect_and_annotate_example_2.png)
 
 ## Annotate Image with Segmentations
@@ -385,6 +485,40 @@ that will allow you to draw masks instead of boxes.
         for class_name, confidence
         in zip(detections['class_name'], detections.confidence)
     ]
+
+    annotated_image = mask_annotator.annotate(
+        scene=image, detections=detections)
+    annotated_image = label_annotator.annotate(
+        scene=annotated_image, detections=detections, labels=labels)
+    ```
+
+=== "MMDetections"
+
+    ```python
+    import cv2
+    import supervision as sv
+    from mmengine import Config
+    from mmdet.apis import init_detector, inference_detector
+
+    CONFIG_FILE = "mmdetection/checkpoint/rtmdet-ins_s_8xb32-300e_coco.py"
+    CHECKPOINT_FILE = "mmdetection/checkpoint/rtmdet-ins_s_8xb32-300e_coco_20221121_212604-fdc5d7ec.pth"
+
+    cfg = Config.fromfile(CONFIG_FILE)
+    model = init_detector(cfg, CHECKPOINT_FILE)
+
+    image = cv2.imread(<SOURCE_IMAGE_PATH>)
+    result = inference_detector(model, image)
+    detections = sv.Detections.from_mmdetection(result).with_nms(threshold=0.3)
+    detections = detections[detections.confidence > 0.3]
+
+    labels = [
+        f"{class_id} {confidence:.2f}"
+        for class_id, confidence
+        in zip(detections.class_id, detections.confidence)
+    ]
+
+    mask_annotator = sv.MaskAnnotator()
+    label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER_OF_MASS)
 
     annotated_image = mask_annotator.annotate(
         scene=image, detections=detections)
