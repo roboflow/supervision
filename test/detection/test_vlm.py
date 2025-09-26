@@ -214,7 +214,7 @@ def test_from_paligemma(
         ),  # no snippet
         (
             does_not_raise(),
-            "```json\nnot valid json\n```",
+            "```json\ninvalid json\n```",
             (640, 640),
             (1280, 720),
             None,
@@ -227,7 +227,7 @@ def test_from_paligemma(
             (1280, 720),
             None,
             (np.empty((0, 4)), None, np.empty(0, dtype=str)),
-        ),  # empty list
+        ),  # empty JSON array
         (
             does_not_raise(),
             """```json
@@ -1231,4 +1231,118 @@ def test_from_deepseek_vl_2(
         assert np.array_equal(
             detections.data[CLASS_NAME_DATA_FIELD],
             expected_detections.data[CLASS_NAME_DATA_FIELD],
+        )
+
+
+@pytest.mark.parametrize(
+    "exception, result, resolution_wh, classes, expected_results",
+    [
+        (
+            DoesNotRaise(),
+            ("", []),
+            (1000, 1000),
+            None,
+            (np.empty((0, 4)), None, np.empty(0).astype(str)),
+        ),  # empty result
+        (
+            DoesNotRaise(),
+            ("An image of a cat and a dog.", []),
+            (1000, 1000),
+            None,
+            (np.empty((0, 4)), None, np.empty(0).astype(str)),
+        ),  # caption but no detections
+        (
+            DoesNotRaise(),
+            ("An image of a cat.", [("a cat", (12, 17), [(0.2, 0.3, 0.6, 0.7)])]),
+            (1000, 1000),
+            None,
+            (
+                np.array([[200.0, 300.0, 600.0, 700.0]]),
+                np.array([0]),
+                np.array(["a cat"]).astype(str),
+            ),
+        ),  # single detection
+        (
+            DoesNotRaise(),
+            (
+                "An image of a cat and a dog.",
+                [
+                    ("a cat", (12, 17), [(0.2, 0.3, 0.6, 0.7)]),
+                    ("a dog", (23, 28), [(0.5, 0.6, 0.8, 0.9)]),
+                ],
+            ),
+            (1000, 1000),
+            None,
+            (
+                np.array([[200.0, 300.0, 600.0, 700.0], [500.0, 600.0, 800.0, 900.0]]),
+                np.array([0, 1]),
+                np.array(["a cat", "a dog"]).astype(str),
+            ),
+        ),  # multiple detections
+        (
+            DoesNotRaise(),
+            (
+                "An image of a cat and a dog.",
+                [
+                    ("a cat", (12, 17), [(0.2, 0.3, 0.6, 0.7)]),
+                    ("a dog", (23, 28), [(0.5, 0.6, 0.8, 0.9)]),
+                ],
+            ),
+            (500, 500),
+            None,
+            (
+                np.array([[100.0, 150.0, 300.0, 350.0], [250.0, 300.0, 400.0, 450.0]]),
+                np.array([0, 1]),
+                np.array(["a cat", "a dog"]).astype(str),
+            ),
+        ),  # different resolution
+        (
+            DoesNotRaise(),
+            (
+                "An image of a cat and a dog.",
+                [
+                    ("a cat", (12, 17), [(0.2, 0.3, 0.6, 0.7)]),
+                    ("a dog", (23, 28), [(0.5, 0.6, 0.8, 0.9)]),
+                ],
+            ),
+            (1000, 1000),
+            ["a dog"],
+            (
+                np.array([[500.0, 600.0, 800.0, 900.0]]),
+                np.array([0]),
+                np.array(["a dog"]).astype(str),
+            ),
+        ),  # with class filtering
+    ],
+)
+def test_kosmos_2(
+    exception,
+    result: tuple[
+        str, list[tuple[str, tuple[int, int], list[tuple[float, float, float, float]]]]
+    ],
+    resolution_wh: tuple[int, int],
+    classes: list[str] | None,
+    expected_results: tuple[np.ndarray, np.ndarray | None, np.ndarray],
+):
+    with exception:
+        detections = Detections.from_vlm(
+            vlm=VLM.KOSMOS_2,
+            result=result,
+            resolution_wh=resolution_wh,
+            classes=classes,
+        )
+
+        xyxy, class_id, class_name = expected_results
+
+        assert len(detections) == len(xyxy)
+
+        if len(detections) == 0:
+            return
+
+        assert np.allclose(detections.xyxy, xyxy)
+        if class_id is not None:
+            assert np.array_equal(detections.class_id, class_id)
+        assert np.array_equal(
+            detections.data[CLASS_NAME_DATA_FIELD],
+            class_name,
         )
