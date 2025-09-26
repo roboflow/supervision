@@ -2,6 +2,8 @@ from typing import Any
 
 import numpy as np
 
+from supervision.utils.internal import warn_deprecated
+
 
 def validate_xyxy(xyxy: Any) -> None:
     expected_shape = "(_, 4)"
@@ -15,15 +17,29 @@ def validate_xyxy(xyxy: Any) -> None:
 
 
 def validate_mask(mask: Any, n: int) -> None:
+    if mask is None:
+        return
+
     expected_shape = f"({n}, H, W)"
     actual_shape = str(getattr(mask, "shape", None))
-    is_valid = mask is None or (
+    actual_dtype = getattr(mask, "dtype", None)
+
+    is_valid_shape = (
         isinstance(mask, np.ndarray) and len(mask.shape) == 3 and mask.shape[0] == n
     )
-    if not is_valid:
+    if not is_valid_shape:
         raise ValueError(
-            f"mask must be a 3D np.ndarray with shape {expected_shape}, but got shape "
-            f"{actual_shape}"
+            "Mask must be a 3D np.ndarray with shape "
+            + f"{expected_shape}, but got shape {actual_shape}"
+        )
+    if not np.issubdtype(actual_dtype, bool):
+        warn_deprecated(
+            f"A `Detections` object was created with a mask of type {actual_dtype}."
+            " Masks of type other than `bool` are deprecated and may produce unexpected"
+            " behavior. Stricter type checking will be introduced in"
+            " `supervision-0.28.0`. Please use `mask = np.array(..., dtype=bool)` when"
+            " creating the mask manually. If you did not create the mask manually,"
+            " please report the issue to the `supervision` team."
         )
 
 
