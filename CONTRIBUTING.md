@@ -23,7 +23,7 @@ Please read and adhere to our [Code of Conduct](https://supervision.roboflow.com
 - [Tests](#tests)
 - [License](#license)
 
-  
+
 ## Contribution Guidelines
 
 We welcome contributions to:
