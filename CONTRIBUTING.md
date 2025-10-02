@@ -23,6 +23,7 @@ Please read and adhere to our [Code of Conduct](https://supervision.roboflow.com
 - [Tests](#tests)
 - [License](#license)
 
+  
 ## Contribution Guidelines
 
 We welcome contributions to:
@@ -83,7 +84,7 @@ git push -u origin <your_branch_name>
 
 Use conventional commit messages to clearly describe your changes. The format is:
 
-<type>\[optional scope\]: <description>
+<type>[optional scope]: <description>
 
 Common types include:
 
@@ -132,7 +133,7 @@ Before starting your work on the project, set up your development environment:
 
     **Option A: Recommended for most contributors (shallow clone of develop branch):**
 
-    ```bash
+    ```bash:disable-run
     git clone --depth 1 -b develop https://github.com/YOUR_USERNAME/supervision.git
     cd supervision
     ```
@@ -197,7 +198,7 @@ All new functions and classes in `supervision` should include docstrings. This i
 
 ### Type checking
 
-So far, **there is no type checking with mypy**. See [issue](https://github.com/roboflow-ai/template-python/issues/4).
+We use type hints throughout the codebase. Contributors are encouraged to use tools like mypy or pyright for static type checking. Run `mypy .` or `pyright .` to verify types.
 
 ## 📝 Documentation
 
@@ -215,7 +216,7 @@ submit a PR with your example. Here are some guidelines for submitting a new exa
 
 - Create a new notebook in the [`docs/notebooks`](https://github.com/roboflow/supervision/tree/develop/docs/notebooks) folder.
 - Add a link to the new notebook in [`docs/theme/cookbooks.html`](https://github.com/roboflow/supervision/blob/develop/docs/theme/cookbooks.html). Make sure to add the path to the new notebook, as well as a title, labels, author and supervision version.
-- Use the [Count Objects Crossing the Line](https://supervision.roboflow.com/develop/notebooks/count-objects-crossing-the-line/) example as a template for your new example.
+- Use the [Count Objects Crossing the Line](https://supervision.roboflow.com/latest/notebooks/count-objects-crossing-the-line/) example as a template for your new example.
 - Freeze the version of `supervision` you are using.
 - Place an appropriate Open in Colab button at the top of the notebook. You can find an example of such a button in the aforementioned `Count Objects Crossing the Line` cookbook.
 - Notebook should be self-contained. If you rely on external data ( videos, images, etc.) or libraries, include download and installation commands in the notebook.
@@ -223,8 +224,9 @@ submit a PR with your example. Here are some guidelines for submitting a new exa
 
 ## 🧪 Tests
 
-[`pytests`](https://docs.pytest.org/en/7.1.x/) is used to run our tests.
+[`pytest`](https://docs.pytest.org/en/stable/) is used to run our tests.
 
 ## 📄 License
 
-By contributing, you agree that your contributions will be licensed under an [MIT license](https://github.com/roboflow/supervision/blob/develop/LICENSE.md).
+By contributing, you agree that your contributions will be licensed under an [MIT license](https://github.com/roboflow/supervision/blob/main/LICENSE).
+```
