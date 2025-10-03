@@ -810,6 +810,61 @@ def test_compute_average_precision(
             ),
             DoesNotRaise(),
         ),
+
+        # Test 13: Empty Ground Truths
+        (
+            [mock_detections(
+                xyxy=[[0,0,2,2], [0,4,2,6]],    
+                class_id=[0, 0],
+                confidence=[0.9, 0.9]
+            )],
+            [Detections.empty()],
+            [0, 1, 2],  # Class ids
+            0.5,  # Confidence threshold
+            0.5,  # IOU threshold
+            np.array([
+                [0., 0., 0., 0.], 
+                [0., 0., 0., 0.],
+                [0., 0., 0., 0.],  
+                [2., 0., 0., 0.]   # 2 FP
+            ]),
+            DoesNotRaise(),
+        ),
+
+        # Test 14: Empty Detections
+        (
+            [Detections.empty()],
+            [mock_detections(
+                xyxy=[[0, 0, 2, 2], [0, 4, 2, 6]],       
+                class_id=[0, 0]
+            )],
+            [0, 1, 2],  # Class ids
+            0.5,  # Confidence threshold
+            0.5,  # IOU threshold
+            np.array([
+                [0., 0., 0., 2.],  # 2 TP
+                [0., 0., 0., 0.],  
+                [0., 0., 0., 0.],   
+                [0., 0., 0., 0.] 
+            ]),
+            DoesNotRaise(),
+        ),
+
+        # Test 15: Symmetric multi-class confusions with higher counts
+        (
+            [Detections.empty()],
+            [Detections.empty()],
+            [0, 1, 2],  # Class ids
+            0.5,  # Confidence threshold
+            0.5,  # IOU threshold
+            np.array([
+                [0., 0., 0., 0.],  
+                [0., 0., 0., 0.],
+                [0., 0., 0., 0.], 
+                [0., 0., 0., 0.]  
+            ]),
+            DoesNotRaise(),
+        ),
     ],
 )
 def test_confusion_matrix(
