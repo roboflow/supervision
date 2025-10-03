@@ -58,8 +58,6 @@ Documentation = "https://supervision.roboflow.com/latest/"
 metrics = [
     "pandas>=2.0.0",
 ]
-
-[dependency-groups]
 dev = [
     "pytest>=7.2.2,<9.0.0",
     "tox>=4.11.4",
@@ -67,7 +65,8 @@ dev = [
     "ipywidgets>=8.1.1",
     "jupytext>=1.16.1",
     "nbconvert>=7.14.2",
-    "docutils!=0.21"
+    "docutils!=0.21",
+    "pre-commit",
 ]
 docs = [
     "mkdocs-material[imaging]>=9.5.5",
@@ -78,6 +77,8 @@ docs = [
     "mkdocs-git-committers-plugin-2>=2.4.1; python_version >= '3.9' and python_version < '4'",
     "mkdocs-git-revision-date-localized-plugin>=1.2.4"
 ]
+
+[dependency-groups]
 build = [
     "twine>=5.1.1,<7.0.0",
     "wheel>=0.40,<0.46",
