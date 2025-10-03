@@ -11,6 +11,7 @@ from supervision.metrics.detection import (
     detections_to_tensor,
 )
 from test.test_utils import assert_almost_equal, mock_detections
+from typing import Optional
 
 CLASSES = np.arange(80)
 NUM_CLASSES = len(CLASSES)
@@ -460,7 +461,7 @@ def test_compute_average_precision(
 
 
 @pytest.mark.parametrize(
-    "predictions, targets, classes, conf_threshold, iou_threshold, expected_result, exception",
+    "preds, gts, classes, conf_thresh, iou_thresh, expected_result, exception",
     [
         # Test 1: Class priority over IoU - correct class with lower IoU should win
         (
