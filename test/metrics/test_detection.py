@@ -11,7 +11,6 @@ from supervision.metrics.detection import (
     detections_to_tensor,
 )
 from test.test_utils import assert_almost_equal, mock_detections
-from typing import Optional
 
 CLASSES = np.arange(80)
 NUM_CLASSES = len(CLASSES)
@@ -880,7 +879,7 @@ def test_confusion_matrix(
     classes,
     conf_threshold,
     iou_threshold,
-    expected_result: Optional[np.ndarray],
+    expected_result,
     exception: Exception,
 ):
     with exception:
