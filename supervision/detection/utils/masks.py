@@ -98,7 +98,7 @@ def calculate_masks_centroids(masks: np.ndarray) -> np.ndarray:
         A 2D NumPy array of shape (num_masks, 2), where each row contains the x and y
             coordinates (in that order) of the centroid of the corresponding mask.
     """
-    num_masks, height, width = masks.shape
+    _num_masks, height, width = masks.shape
     total_pixels = masks.sum(axis=(1, 2))
 
     # offset for 1-based indexing
