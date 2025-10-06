@@ -1,7 +1,7 @@
 """
 Text-Driven Image Segmentation with Grounded SAM2
 
-This module demonstrates image segmentation using Meta's Segment Anything Model 2 (SAM 2)
+This module demonstrates image segmentation using Meta's Segment Anything Model 2
 combined with text prompts for automatic object detection and segmentation.
 """
 
@@ -218,10 +218,10 @@ def demonstrate_point_prompt(predictor, image):
         borders=True,
     )
 
-    return logits
+    return masks, scores, logits
 
 
-def demonstrate_multiple_points(predictor, image, previous_logits):
+def demonstrate_multiple_points(predictor, image, previous_masks, previous_scores, previous_logits):
     """Demonstrate segmentation using multiple point prompts"""
     print("=== Multiple Points Prompt ===")
 
@@ -231,7 +231,7 @@ def demonstrate_multiple_points(predictor, image, previous_logits):
 
     # Use best mask from previous prediction
     mask_input = (
-        previous_logits[np.argmax(scores), :, :]
+        previous_logits[np.argmax(previous_scores), :, :]
         if previous_logits is not None
         else None
     )
@@ -403,8 +403,8 @@ def main():
     predictor.set_image(image)
 
     # Run demonstrations
-    logits = demonstrate_point_prompt(predictor, image)
-    demonstrate_multiple_points(predictor, image, logits)
+    masks, scores, logits = demonstrate_point_prompt(predictor, image)
+    demonstrate_multiple_points(predictor, image, masks, scores, logits)
     demonstrate_box_prompt(predictor, image)
     demonstrate_combined_prompts(predictor, image)
     demonstrate_batched_prompts(predictor, image)
