@@ -1,13 +1,13 @@
 # Text-Driven Image Segmentation with SAM 2
 
-This example demonstrates **text-prompted image segmentation** using the **Segment Anything Model 2 (SAM 2)**.
-You can specify an object in the image via a **text description**, and the model automatically segments that region.
+This example demonstrates **image segmentation** using the **Segment Anything Model 2**.
+You can specify an object in the image via a **Points or Boxes*, and the model automatically segments that region.
 
 ---
 
 ## 🧠 Overview
 
-Text-driven segmentation allows you to extract a specific object or region from an image by providing a natural language prompt.
+Points or Boxes segmentation allows you to extract a specific object or region from an image by providing a natural language prompt.
 
 This implementation integrates SAM 2 with a grounding model (like GroundingDINO/GLIP) to link text to image regions.
 
@@ -47,6 +47,7 @@ Upload your segmented image result below:
 ```
 
 <img width="794" height="536" alt="download" src="https://github.com/user-attachments/assets/f0ecb469-f330-4a4c-ac70-8f18105501e7" />
+<img width="839" height="565" alt="download (1)" src="https://github.com/user-attachments/assets/470acbf2-4046-48d7-86b9-08731d64e900" />
 
 ---
 
