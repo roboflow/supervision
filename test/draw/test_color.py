@@ -68,7 +68,9 @@ def test_color_as_hex(
     ],
 )
 def test_color_from_rgb_tuple(
-    color_tuple: tuple[int, int, int], expected_result: Color | None, exception: Exception
+    color_tuple: tuple[int, int, int],
+    expected_result: Color | None,
+    exception: Exception,
 ) -> None:
     with exception:
         result = Color.from_rgb_tuple(color_tuple=color_tuple)
@@ -91,7 +93,9 @@ def test_color_from_rgb_tuple(
     ],
 )
 def test_color_from_bgr_tuple(
-    color_tuple: tuple[int, int, int], expected_result: Color | None, exception: Exception
+    color_tuple: tuple[int, int, int],
+    expected_result: Color | None,
+    exception: Exception,
 ) -> None:
     with exception:
         result = Color.from_bgr_tuple(color_tuple=color_tuple)
