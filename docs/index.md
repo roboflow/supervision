@@ -30,7 +30,7 @@ hide:
 
 ## 👋 Hello
 
-We build **reusable computer vision tools** to make your workflow faster and easier.  
+We build **reusable computer vision tools** to make your workflow faster and easier.
 Whether you need to **load datasets**, **visualize detections**, or **count objects in specific zones** — you can count on us!
 
 <video controls>
