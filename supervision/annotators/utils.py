@@ -354,3 +354,46 @@ class Trace:
 
     def get(self, tracker_id: int) -> np.ndarray:
         return self.xy[self.tracker_id == tracker_id]
+
+def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
+    """
+    Converts a hex color string (e.g. "#FF00FF" or "#FF00FF80") to an RGBA tuple.
+
+    Args:
+        hex_color (str): A hex color string.
+
+    Returns:
+        tuple[int, int, int, int]: RGBA values in range 0–255.
+
+    Raises:
+        ValueError: If the format is invalid.
+    """
+    hex_color = hex_color.strip().lstrip('#')
+    if len(hex_color) == 6:
+        hex_color += "FF"  # default full opacity
+    if len(hex_color) != 8:
+        raise ValueError(f"Invalid hex color format: {hex_color}")
+    try:
+        r = int(hex_color[0:2], 16)
+        g = int(hex_color[2:4], 16)
+        b = int(hex_color[4:6], 16)
+        a = int(hex_color[6:8], 16)
+    except ValueError:
+        raise ValueError(f"Invalid hex digits in {hex_color}")
+    return (r, g, b, a)
+
+def rgba_to_hex(rgba: tuple[int, int, int, int]) -> str:
+    """
+    Converts an RGBA tuple (0–255 each) to a hex color string.
+    """
+    if len(rgba) != 4 or not all(0 <= c <= 255 for c in rgba):
+        raise ValueError("RGBA must be a 4-tuple with values between 0–255.")
+    return "#{:02X}{:02X}{:02X}{:02X}".format(*rgba)
+
+
+def is_valid_hex(hex_color: str) -> bool:
+    """
+    Checks if a given string is a valid hex color.
+    """
+    import re
+    return bool(re.fullmatch(r"#?[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?", hex_color.strip()))

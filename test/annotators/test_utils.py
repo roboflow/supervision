@@ -172,3 +172,31 @@ def test_wrap_text(
     with exception:
         result = wrap_text(text=text, max_line_length=max_line_length)
         assert result == expected_result
+
+def test_hex_to_rgba_valid():
+    from supervision.annotators.utils import hex_to_rgba
+    assert hex_to_rgba("#FF00FF") == (255, 0, 255, 255)
+    assert hex_to_rgba("#FF00FF80") == (255, 0, 255, 128)
+    assert hex_to_rgba("00FF0080") == (0, 255, 0, 128)
+
+
+def test_hex_to_rgba_invalid():
+    from supervision.annotators.utils import hex_to_rgba
+    import pytest
+
+    with pytest.raises(ValueError):
+        hex_to_rgba("#FF00F")  # wrong length
+
+    with pytest.raises(ValueError):
+        hex_to_rgba("#GGHHII")  # invalid chars
+
+def test_rgba_to_hex_and_is_valid_hex():
+    from supervision.annotators.utils import rgba_to_hex, is_valid_hex
+
+    assert rgba_to_hex((255, 0, 255, 255)) == "#FF00FFFF"
+    assert rgba_to_hex((0, 255, 0, 128)) == "#00FF0080"
+
+    assert is_valid_hex("#FF00FF")
+    assert is_valid_hex("00FF0080")
+    assert not is_valid_hex("#XYZ123")
+    assert not is_valid_hex("FF00F")
