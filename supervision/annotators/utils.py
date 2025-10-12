@@ -355,6 +355,7 @@ class Trace:
     def get(self, tracker_id: int) -> np.ndarray:
         return self.xy[self.tracker_id == tracker_id]
 
+
 def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
     """
     Converts a hex color string (e.g. "#FF00FF" or "#FF00FF80") to an RGBA tuple.
@@ -368,7 +369,7 @@ def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
     Raises:
         ValueError: If the format is invalid.
     """
-    hex_color = hex_color.strip().lstrip('#')
+    hex_color = hex_color.strip().lstrip("#")
     if len(hex_color) == 6:
         hex_color += "FF"  # default full opacity
     if len(hex_color) != 8:
@@ -381,6 +382,7 @@ def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
     except ValueError:
         raise ValueError(f"Invalid hex digits in {hex_color}")
     return (r, g, b, a)
+
 
 def rgba_to_hex(rgba: tuple[int, int, int, int]) -> str:
     """
@@ -396,4 +398,5 @@ def is_valid_hex(hex_color: str) -> bool:
     Checks if a given string is a valid hex color.
     """
     import re
+
     return bool(re.fullmatch(r"#?[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?", hex_color.strip()))

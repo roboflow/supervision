@@ -44,6 +44,7 @@ from supervision.utils.image import (
     scale_image,
 )
 
+
 def hex_to_rgba(hex_color: str):
     """
     Convert a hexadecimal color string (#RRGGBB or #RRGGBBAA) to an RGBA tuple.
@@ -54,15 +55,16 @@ def hex_to_rgba(hex_color: str):
     Returns:
         Tuple[int, int, int, int]: Corresponding (R, G, B, A) tuple.
     """
-    hex_color = hex_color.lstrip('#')
+    hex_color = hex_color.lstrip("#")
     if len(hex_color) == 6:
-        r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+        r, g, b = tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
         a = 255
     elif len(hex_color) == 8:
-        r, g, b, a = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4, 6))
+        r, g, b, a = tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4, 6))
     else:
         raise ValueError(f"Invalid hex color format: {hex_color}")
     return (r, g, b, a)
+
 
 CV2_FONT = cv2.FONT_HERSHEY_SIMPLEX
 
