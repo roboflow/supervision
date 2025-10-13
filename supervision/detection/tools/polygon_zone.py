@@ -8,7 +8,6 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision import Detections
-from supervision.detection.utils.boxes import clip_boxes
 from supervision.detection.utils.converters import polygon_to_mask
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
@@ -34,6 +33,7 @@ class PolygonZone:
             whether the detection fits within the PolygonZone
             (default: (sv.Position.BOTTOM_CENTER,)).
         current_count (int): The current count of detected objects within the zone
+        max_coords (np.ndarray): The X and Y max values to contain the given polygon.
         mask (np.ndarray): The 2D bool mask for the polygon zone
 
     Example:
@@ -64,6 +64,15 @@ class PolygonZone:
         polygon: npt.NDArray[np.int64],
         triggering_anchors: Iterable[Position] = (Position.BOTTOM_CENTER,),
     ):
+        """
+        Args:
+            polygon (Point): (np.ndarray): A polygon represented by a numpy array of shape
+                aining the `x`, `y` coordinates of the points.
+            triggering_anchors (Iterable[sv.Position]): A list of positions specifying
+                which anchors of the detections bounding box to consider when deciding on
+                whether the detection fits within the PolygonZone
+                (default: (sv.Position.BOTTOM_CENTER,)).
+        """
         self.polygon = polygon.astype(int)
         self.triggering_anchors = triggering_anchors
         if not list(self.triggering_anchors):
@@ -72,10 +81,8 @@ class PolygonZone:
         self.current_count = 0
 
         x_max, y_max = np.max(polygon, axis=0)
-        self.frame_resolution_wh = (x_max + 1, y_max + 1)
-        self.mask = polygon_to_mask(
-            polygon=polygon, resolution_wh=(x_max + 2, y_max + 2)
-        )
+        self.max_coords = np.array([x_max + 1, y_max + 1])
+        self.mask = polygon_to_mask(polygon=polygon, resolution_wh=(x_max + 2, y_max + 2))
 
     def trigger(self, detections: Detections) -> npt.NDArray[np.bool_]:
         """
@@ -89,25 +96,21 @@ class PolygonZone:
             np.ndarray: A boolean numpy array indicating
                 if each detection is within the polygon zone
         """
-
-        clipped_xyxy = clip_boxes(
-            xyxy=detections.xyxy, resolution_wh=self.frame_resolution_wh
+        # Generate anchor points for the given boxes
+        anchor_pts = np.array(
+            [np.ceil(detections.get_anchors_coordinates(anchor)).astype(int) for anchor in self.triggering_anchors]
         )
-        clipped_detections = replace(detections, xyxy=clipped_xyxy)
-        all_clipped_anchors = np.array(
-            [
-                np.ceil(clipped_detections.get_anchors_coordinates(anchor)).astype(int)
-                for anchor in self.triggering_anchors
-            ]
-        )
-
+        # Mask all anchor points that exceed the ROI bounds in question
+        mask = np.all(anchor_pts <= self.max_coords, axis=-1)
+        # Filter each batch and collect non-empty results
+        result = np.array([anchor_pts[i][mask[i]] for i in range(len(anchor_pts)) if np.any(mask[i])])
+        # Create an empty array with correct shape if all coords filtered out
+        filtered_coords = result if result.size > 0 else np.empty((0, 0, 2), dtype=anchor_pts.dtype)
+        # Test if the given coords are within the zone mask
         is_in_zone: npt.NDArray[np.bool_] = (
-            self.mask[all_clipped_anchors[:, :, 1], all_clipped_anchors[:, :, 0]]
-            .transpose()
-            .astype(bool)
+            self.mask[filtered_coords[:, :, 1], filtered_coords[:, :, 0]].transpose().astype(bool)
         )
-
-        is_in_zone: npt.NDArray[np.bool_] = np.all(is_in_zone, axis=1)
+        is_in_zone = np.all(is_in_zone, axis=1)
         self.current_count = int(np.sum(is_in_zone))
         return is_in_zone.astype(bool)
 
