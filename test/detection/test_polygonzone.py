@@ -21,11 +21,20 @@ DETECTION_BOXES = np.array(
     dtype=np.float32,
 )
 
+DETECTION_BOX = = np.array(
+    [[150.0, 25.0, 225.0, 75.0]],
+    dtype=np.float32,
+)
+
 DETECTIONS = mock_detections(
     xyxy=DETECTION_BOXES, class_id=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0])
 )
+DETECTION = mock_detections(
+    xyxy=DETECTION_BOX, class_id=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0])
+)
 
 POLYGON = np.array([[100, 100], [200, 100], [200, 200], [100, 200]])
+POLYGON2 = np.array([[202, 100], [402, 100], [402, 200], [202, 200]])
 
 
 @pytest.mark.parametrize(
@@ -103,3 +112,49 @@ def test_polygon_zone_trigger(
 def test_polygon_zone_initialization(polygon, triggering_anchors, exception):
     with exception:
         sv.PolygonZone(polygon, triggering_anchors=triggering_anchors)
+
+
+"""
+Test that a detection box that overlaps two polygon zones
+triggers only one of the zones.
+https://github.com/roboflow/supervision/issues/1987
+"""
+@pytest.mark.parametrize(
+    "detection, polygon_zone1, polygon_zone2, expected_results1, expected_results2, exception",
+    [
+        (
+            DETECTION,
+            sv.PolygonZone(
+                POLYGON,
+                triggering_anchors=(
+                    sv.Position.CENTER
+                ),
+            ),
+            sv.PolygonZone(
+                POLYGON2,
+                triggering_anchors=(
+                    sv.Position.CENTER
+                ),
+            ),
+            np.array(
+                [True], dtype=bool
+            ),
+            np.array(
+                [False], dtype=bool
+            ),
+            DoesNotRaise(),
+        ),
+    ],
+)
+def test_polygon_zone_det_overlap(
+    detection: sv.Detections,
+    polygon_zone1: sv.PolygonZone,
+    polygon_zone2: sv.PolygonZone,
+    expected_results1: np.ndarray,
+    expected_results2: np.ndarray,
+    exception: Exception,polygon_zone1, polygon_zone2, triggering_anchors, exception):
+    with exception:
+        in_zone1 = polygon_zone1.trigger(detection)
+        in_zone2 = polygon_zone2.trigger(detection)
+        assert in_zone1 == expected_results1
+        assert in_zone2 == expected_results2
