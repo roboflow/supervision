@@ -82,7 +82,7 @@ class PolygonZone:
         Anchor points are calculated from original (unclipped) detection boxes.
         to ensure a single object can only appear in one zone. This prevents
         detections spanning multiple non-overlapping ROIs from being counted
-        in multiple zones simulataneously.
+        in multiple zones simultaneously.
 
         Parameters:
             detections (Detections): The detections
