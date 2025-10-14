@@ -120,7 +120,8 @@ https://github.com/roboflow/supervision/issues/1987
 
 
 @pytest.mark.parametrize(
-    "detection, polygon_zone1, polygon_zone2, expected_results1, expected_results2, exception",
+    ("detection, polygon_zone1, polygon_zone2, expected_results1,"
+        "expected_results2, exception"),
     [
         (
             DETECTION,

@@ -66,11 +66,11 @@ class PolygonZone:
     ):
         """
         Args:
-            polygon (Point): (np.ndarray): A polygon represented by a numpy array of shape
-                aining the `x`, `y` coordinates of the points.
+            polygon (np.ndarray): A polygon represented by a numpy array of shape
+            `(N, 2)`, containing the `x`, `y` coordinates of the points.
             triggering_anchors (Iterable[sv.Position]): A list of positions specifying
-                which anchors of the detections bounding box to consider when deciding on
-                whether the detection fits within the PolygonZone
+                which anchors of the detections bounding box to consider when deciding
+                on whether the detection fits within the PolygonZone
                 (default: (sv.Position.BOTTOM_CENTER,)).
         """
         self.polygon = polygon.astype(int)
@@ -113,9 +113,9 @@ class PolygonZone:
         # Find which boxes meet both criteria
         mask = np.logical_and(max_mask, min_mask)
         # Collapse into 1d array requiring ALL points to be within the zone
-        any_mask = np.all(mask, axis=0)
-        self.current_count = int(np.sum(any_mask))
-        return any_mask
+        all_mask = np.all(mask, axis=0)
+        self.current_count = int(np.sum(all_mask))
+        return all_mask
 
 
 class PolygonZoneAnnotator:
