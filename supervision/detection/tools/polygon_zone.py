@@ -30,7 +30,8 @@ class PolygonZone:
             `(N, 2)`, containing the `x`, `y` coordinates of the points.
         triggering_anchors (Iterable[sv.Position]): A list of positions specifying
             which anchors of the detections bounding box to consider when deciding on
-            whether the detection fits within the PolygonZone
+            whether the detection fits within the PolygonZone. All points must reside
+            in the zone to be considered occupants.
             (default: (sv.Position.BOTTOM_CENTER,)).
         current_count (int): The current count of detected objects within the zone
         max_coords (np.ndarray): The X and Y max values to contain the given polygon.
@@ -81,7 +82,9 @@ class PolygonZone:
         self.current_count = 0
 
         x_max, y_max = np.max(polygon, axis=0)
+        x_min, y_min = np.min(polygon, axis=0)
         self.max_coords = np.array([x_max + 1, y_max + 1])
+        self.min_coords = np.array([x_min, y_min])
         self.mask = polygon_to_mask(polygon=polygon, resolution_wh=(x_max + 2, y_max + 2))
 
     def trigger(self, detections: Detections) -> npt.NDArray[np.bool_]:
@@ -101,18 +104,14 @@ class PolygonZone:
             [np.ceil(detections.get_anchors_coordinates(anchor)).astype(int) for anchor in self.triggering_anchors]
         )
         # Mask all anchor points that exceed the ROI bounds in question
-        mask = np.all(anchor_pts <= self.max_coords, axis=-1)
-        # Filter each batch and collect non-empty results
-        result = np.array([anchor_pts[i][mask[i]] for i in range(len(anchor_pts)) if np.any(mask[i])])
-        # Create an empty array with correct shape if all coords filtered out
-        filtered_coords = result if result.size > 0 else np.empty((0, 0, 2), dtype=anchor_pts.dtype)
-        # Test if the given coords are within the zone mask
-        is_in_zone: npt.NDArray[np.bool_] = (
-            self.mask[filtered_coords[:, :, 1], filtered_coords[:, :, 0]].transpose().astype(bool)
-        )
-        is_in_zone = np.all(is_in_zone, axis=1)
-        self.current_count = int(np.sum(is_in_zone))
-        return is_in_zone.astype(bool)
+        max_mask = np.all(anchor_pts <= self.max_coords, axis=-1)
+        min_mask = np.all(anchor_pts >= self.min_coords, axis=-1)
+        # Find which boxes meet both criteria
+        mask = np.logical_and(max_mask, min_mask)
+        # Collapse into 1d array requiring ALL points to be within the zone
+        any_mask = np.all(mask, axis=0)
+        self.current_count = int(np.sum(any_mask))
+        return any_mask
 
 
 class PolygonZoneAnnotator:

@@ -21,8 +21,8 @@ DETECTION_BOXES = np.array(
     dtype=np.float32,
 )
 
-DETECTION_BOX = = np.array(
-    [[150.0, 25.0, 225.0, 75.0]],
+DETECTION_BOX = np.array(
+    [[150.0, 100.0, 225.0, 150.0]],
     dtype=np.float32,
 )
 
@@ -30,7 +30,7 @@ DETECTIONS = mock_detections(
     xyxy=DETECTION_BOXES, class_id=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0])
 )
 DETECTION = mock_detections(
-    xyxy=DETECTION_BOX, class_id=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0])
+    xyxy=DETECTION_BOX, class_id=np.array([0])
 )
 
 POLYGON = np.array([[100, 100], [200, 100], [200, 200], [100, 200]])
@@ -127,13 +127,13 @@ https://github.com/roboflow/supervision/issues/1987
             sv.PolygonZone(
                 POLYGON,
                 triggering_anchors=(
-                    sv.Position.CENTER
+                    [sv.Position.CENTER]
                 ),
             ),
             sv.PolygonZone(
                 POLYGON2,
                 triggering_anchors=(
-                    sv.Position.CENTER
+                    [sv.Position.CENTER]
                 ),
             ),
             np.array(
@@ -152,7 +152,7 @@ def test_polygon_zone_det_overlap(
     polygon_zone2: sv.PolygonZone,
     expected_results1: np.ndarray,
     expected_results2: np.ndarray,
-    exception: Exception,polygon_zone1, polygon_zone2, triggering_anchors, exception):
+    exception: Exception):
     with exception:
         in_zone1 = polygon_zone1.trigger(detection)
         in_zone2 = polygon_zone2.trigger(detection)
