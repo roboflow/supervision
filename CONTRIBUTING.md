@@ -162,7 +162,7 @@ Before starting your work on the project, set up your development environment:
 4. Install project dependencies:
 
     ```bash
-    uv pip install -r pyproject.toml --extra dev --extra docs --extra metrics
+    uv pip install -r pyproject.toml --group dev --group docs --extra metrics
     ```
 
 5. Run pytest to verify the setup:
