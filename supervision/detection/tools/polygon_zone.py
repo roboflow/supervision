@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import replace
 
 import cv2
 import numpy as np
 import numpy.typing as npt
 
 from supervision import Detections
-from supervision.detection.utils.boxes import clip_boxes
 from supervision.detection.utils.converters import polygon_to_mask
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
@@ -79,29 +77,30 @@ class PolygonZone:
 
     def trigger(self, detections: Detections) -> npt.NDArray[np.bool_]:
         """
-    Determines if the detections are within the polygon zone.
+        Determines if the detections are within the polygon zone.
 
-    Anchor points are calculated from original (unclipped) detection boxes.
-    to ensure a single object can only appear in one zone. This prevents 
-    detections spanning multiple non-overlapping ROIs from being counted
-    in multiple zones simulataneously.
+        Anchor points are calculated from original (unclipped) detection boxes.
+        to ensure a single object can only appear in one zone. This prevents
+        detections spanning multiple non-overlapping ROIs from being counted
+        in multiple zones simulataneously.
 
-    Parameters:
-        detections (Detections): The detections
-            to be checked against the polygon zone
+        Parameters:
+            detections (Detections): The detections
+                to be checked against the polygon zone
 
-    Returns:
-        np.ndarray: A boolean numpy array indicating
-            if each detection is within the polygon zone
-    """
+        Returns:
+            np.ndarray: A boolean numpy array indicating
+                if each detection is within the polygon zone
+        """
         if len(detections) == 0:
             return np.array([], dtype=bool)
-        
 
-        all_anchors = np.array([
-            np.ceil(detections.get_anchors_coordinates(anchors)).astype(int)
-            for anchors in self.triggering_anchors
-        ])
+        all_anchors = np.array(
+            [
+                np.ceil(detections.get_anchors_coordinates(anchors)).astype(int)
+                for anchors in self.triggering_anchors
+            ]
+        )
 
         is_in_zone: npt.NDArray[np.bool_] = np.zeros(len(detections), dtype=bool)
 
@@ -121,10 +120,9 @@ class PolygonZone:
                     break
 
             is_in_zone[detection_idx] = all_in_zone
-            
+
         self.current_count = int(np.sum(is_in_zone))
         return is_in_zone.astype(bool)
-
 
 
 class PolygonZoneAnnotator:
