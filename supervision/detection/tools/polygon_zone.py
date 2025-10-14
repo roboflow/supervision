@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import replace
 
 import cv2
 import numpy as np
@@ -85,7 +84,9 @@ class PolygonZone:
         x_min, y_min = np.min(polygon, axis=0)
         self.max_coords = np.array([x_max + 1, y_max + 1])
         self.min_coords = np.array([x_min, y_min])
-        self.mask = polygon_to_mask(polygon=polygon, resolution_wh=(x_max + 2, y_max + 2))
+        self.mask = polygon_to_mask(
+            polygon=polygon, resolution_wh=(x_max + 2, y_max + 2)
+        )
 
     def trigger(self, detections: Detections) -> npt.NDArray[np.bool_]:
         """
@@ -101,7 +102,10 @@ class PolygonZone:
         """
         # Generate anchor points for the given boxes
         anchor_pts = np.array(
-            [np.ceil(detections.get_anchors_coordinates(anchor)).astype(int) for anchor in self.triggering_anchors]
+            [
+                np.ceil(detections.get_anchors_coordinates(anchor)).astype(int)
+                for anchor in self.triggering_anchors
+            ]
         )
         # Mask all anchor points that exceed the ROI bounds in question
         max_mask = np.all(anchor_pts <= self.max_coords, axis=-1)
