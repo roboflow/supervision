@@ -116,6 +116,8 @@ def test_polygon_zone_initialization(polygon, triggering_anchors, exception):
 """
 Test polygons with angular shapes
 """
+
+
 @pytest.mark.parametrize(
     ("detection, polygon_zone, expected_results, exception"),
     [
@@ -131,7 +133,8 @@ Test polygons with angular shapes
                 ),
             ),
             np.array(
-                [False, False, False, True, True, False, False, False, False], dtype=bool
+                [False, False, False, True, True, False, False, False, False],
+                dtype=bool,
             ),
             DoesNotRaise(),
         ),  # Test all four corners
@@ -150,11 +153,15 @@ def test_polygon_zone_det_overlap(
         in_zone2 = polygon_zone2.trigger(detection)
         assert in_zone1 == expected_results1
         assert in_zone2 == expected_results2
+
+
 """
 Test that a detection box that overlaps two polygon zones
 triggers only one of the zones.
 https://github.com/roboflow/supervision/issues/1987
 """
+
+
 @pytest.mark.parametrize(
     (
         "detection, polygon_zone1, polygon_zone2, expected_results1,"

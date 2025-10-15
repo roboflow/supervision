@@ -117,12 +117,11 @@ class PolygonZone:
         in_zone = np.flatnonzero(all_mask)
         # Select only those anchor points that won't exceed our mask
         masked_anchors = anchor_pts[:, in_zone, :]
-        is_in_zone: npt.NDArray[np.bool_] = (
-            self.mask[masked_anchors[:, :, 1], masked_anchors[:, :, 0]]
-            .astype(bool)
-        )
+        is_in_zone: npt.NDArray[np.bool_] = self.mask[
+            masked_anchors[:, :, 1], masked_anchors[:, :, 0]
+        ].astype(bool)
         # Updated original array with new boolean values based on complex geo
-        mask[:,in_zone] = is_in_zone
+        mask[:, in_zone] = is_in_zone
         # Collapse into 1d array requiring ALL points to be within the zone
         all_mask = np.all(mask, axis=0)
         self.current_count = int(np.sum(all_mask))
