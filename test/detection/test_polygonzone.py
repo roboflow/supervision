@@ -84,6 +84,22 @@ POLYGON_ANGULAR = np.array([[100, 100], [200, 100], [200, 150], [100, 200]])
             np.array([], dtype=bool),
             DoesNotRaise(),
         ),  # Test empty detections
+        (
+            DETECTIONS,
+            sv.PolygonZone(
+                POLYGON_ANGULAR,
+                triggering_anchors=(
+                    sv.Position.TOP_LEFT,
+                    sv.Position.TOP_RIGHT,
+                    sv.Position.BOTTOM_LEFT,
+                    sv.Position.BOTTOM_RIGHT,
+                ),
+            ),
+            np.array(
+                [False, False, False, True, True, False, False, False, False], dtype=bool
+            ),
+            DoesNotRaise(),
+        ),  # Test angular polygon
     ],
 )
 def test_polygon_zone_trigger(
@@ -111,49 +127,6 @@ def test_polygon_zone_trigger(
 def test_polygon_zone_initialization(polygon, triggering_anchors, exception):
     with exception:
         sv.PolygonZone(polygon, triggering_anchors=triggering_anchors)
-
-
-"""
-Test polygons with angular shapes
-"""
-
-
-@pytest.mark.parametrize(
-    ("detection, polygon_zone, expected_results, exception"),
-    [
-        (
-            DETECTIONS,
-            sv.PolygonZone(
-                POLYGON_ANGULAR,
-                triggering_anchors=(
-                    sv.Position.TOP_LEFT,
-                    sv.Position.TOP_RIGHT,
-                    sv.Position.BOTTOM_LEFT,
-                    sv.Position.BOTTOM_RIGHT,
-                ),
-            ),
-            np.array(
-                [False, False, False, True, True, False, False, False, False],
-                dtype=bool,
-            ),
-            DoesNotRaise(),
-        ),  # Test all four corners
-    ],
-)
-def test_polygon_zone_det_overlap(
-    detection: sv.Detections,
-    polygon_zone1: sv.PolygonZone,
-    polygon_zone2: sv.PolygonZone,
-    expected_results1: np.ndarray,
-    expected_results2: np.ndarray,
-    exception: Exception,
-):
-    with exception:
-        in_zone1 = polygon_zone1.trigger(detection)
-        in_zone2 = polygon_zone2.trigger(detection)
-        assert in_zone1 == expected_results1
-        assert in_zone2 == expected_results2
-
 
 """
 Test that a detection box that overlaps two polygon zones
