@@ -96,7 +96,8 @@ POLYGON_ANGULAR = np.array([[100, 100], [200, 100], [200, 150], [100, 200]])
                 ),
             ),
             np.array(
-                [False, False, False, True, True, False, False, False, False], dtype=bool
+                [False, False, False, True, True, False, False, False, False],
+                dtype=bool,
             ),
             DoesNotRaise(),
         ),  # Test angular polygon
@@ -127,6 +128,7 @@ def test_polygon_zone_trigger(
 def test_polygon_zone_initialization(polygon, triggering_anchors, exception):
     with exception:
         sv.PolygonZone(polygon, triggering_anchors=triggering_anchors)
+
 
 """
 Test that a detection box that overlaps two polygon zones
