@@ -7,10 +7,13 @@ import pytest
 
 from supervision.detection.utils.iou_and_nms import (
     _group_overlapping_boxes,
+    box_iou_batch,
+    box_iou_batch_alt,
     box_non_max_suppression,
     mask_non_max_merge,
     mask_non_max_suppression,
 )
+from test.detection.utils.functions import generate_boxes
 
 
 @pytest.mark.parametrize(
@@ -631,3 +634,14 @@ def test_mask_non_max_merge(
         sorted_result = sorted([sorted(group) for group in result])
         sorted_expected_result = sorted([sorted(group) for group in expected_result])
         assert sorted_result == sorted_expected_result
+
+
+def test_box_iou_batch_and_alt_equivalence():
+    boxes_true = generate_boxes(20, seed=1)
+    boxes_detection = generate_boxes(30, seed=2)
+
+    iou_a = box_iou_batch(boxes_true, boxes_detection)
+    iou_b = box_iou_batch_alt(boxes_true, boxes_detection)
+
+    assert iou_a.shape == iou_b.shape
+    assert np.allclose(iou_a, iou_b, rtol=1e-6, atol=1e-6)

@@ -231,6 +231,96 @@ def box_iou_batch(
     return ious
 
 
+def box_iou_batch_alt(
+    boxes_true: np.ndarray,
+    boxes_detection: np.ndarray,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+) -> np.ndarray:
+    """
+    Compute Intersection over Union (IoU) of two sets of bounding boxes -
+        `boxes_true` and `boxes_detection`. Both sets
+        of boxes are expected to be in `(x_min, y_min, x_max, y_max)` format.
+
+    Note:
+        Use `box_iou` when computing IoU between two individual boxes.
+        For comparing multiple boxes (arrays of boxes), use `box_iou_batch` for better
+        performance.
+
+    Args:
+        boxes_true (np.ndarray): 2D `np.ndarray` representing ground-truth boxes.
+            `shape = (N, 4)` where `N` is number of true objects.
+        boxes_detection (np.ndarray): 2D `np.ndarray` representing detection boxes.
+            `shape = (M, 4)` where `M` is number of detected objects.
+        overlap_metric (OverlapMetric): Metric used to compute the degree of overlap
+            between pairs of boxes (e.g., IoU, IoS).
+
+    Returns:
+        np.ndarray: Pairwise IoU of boxes from `boxes_true` and `boxes_detection`.
+            `shape = (N, M)` where `N` is number of true objects and
+            `M` is number of detected objects.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        boxes_true = np.array([
+            [100, 100, 200, 200],
+            [300, 300, 400, 400]
+        ])
+        boxes_detection = np.array([
+            [150, 150, 250, 250],
+            [320, 320, 420, 420]
+        ])
+
+        sv.box_iou_batch(boxes_true=boxes_true, boxes_detection=boxes_detection)
+        # array([
+        #     [0.14285714, 0.        ],
+        #     [0.        , 0.47058824]
+        # ])
+        ```
+
+    """
+
+    tx1, ty1, tx2, ty2 = boxes_true.T
+    dx1, dy1, dx2, dy2 = boxes_detection.T
+    N, M = boxes_true.shape[0], boxes_detection.shape[0]
+
+    top_left_x = np.empty((N, M), dtype=np.float32)
+    bottom_right_x = np.empty_like(top_left_x)
+    top_left_y = np.empty_like(top_left_x)
+    bottom_right_y = np.empty_like(top_left_x)
+
+    np.maximum(tx1[:, None], dx1[None, :], out=top_left_x)
+    np.minimum(tx2[:, None], dx2[None, :], out=bottom_right_x)
+    np.maximum(ty1[:, None], dy1[None, :], out=top_left_y)
+    np.minimum(ty2[:, None], dy2[None, :], out=bottom_right_y)
+
+    np.subtract(bottom_right_x, top_left_x, out=bottom_right_x)  # W
+    np.subtract(bottom_right_y, top_left_y, out=bottom_right_y)  # H
+    np.clip(bottom_right_x, 0.0, None, out=bottom_right_x)
+    np.clip(bottom_right_y, 0.0, None, out=bottom_right_y)
+
+    area_inter = bottom_right_x * bottom_right_y
+
+    area_true = (tx2 - tx1) * (ty2 - ty1)
+    area_detection = (dx2 - dx1) * (dy2 - dy1)
+
+    if overlap_metric == OverlapMetric.IOU:
+        denom = area_true[:, None] + area_detection[None, :] - area_inter
+    elif overlap_metric == OverlapMetric.IOS:
+        denom = np.minimum(area_true[:, None], area_detection[None, :])
+    else:
+        raise ValueError(
+            f"overlap_metric {overlap_metric} is not supported, "
+            "only 'IOU' and 'IOS' are supported"
+        )
+
+    out = np.zeros_like(area_inter, dtype=np.float32)
+    np.divide(area_inter, denom, out=out, where=denom > 0)
+    return out
+
+
 def _jaccard(box_a: list[float], box_b: list[float], is_crowd: bool) -> float:
     """
     Calculate the Jaccard index (intersection over union) between two bounding boxes.
