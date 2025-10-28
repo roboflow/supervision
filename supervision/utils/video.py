@@ -249,10 +249,6 @@ def process_video(
         ):
             result_frame = callback(frame, index)
             sink.write_frame(frame=result_frame)
-        else:
-            for index, frame in enumerate(video_frames_generator):
-                result_frame = callback(frame, index)
-                sink.write_frame(frame=result_frame)
 
 
 class FPSMonitor:
