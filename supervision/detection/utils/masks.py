@@ -303,7 +303,7 @@ def filter_segments_by_distance(
     Returns:
         Boolean mask after filtering.
 
-        Examples:
+    Examples:
         ```python
         import numpy as np
         import supervision as sv
