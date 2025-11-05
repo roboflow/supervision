@@ -61,6 +61,7 @@ from supervision.detection.utils.boxes import (
 from supervision.detection.utils.converters import (
     mask_to_polygons,
     mask_to_xyxy,
+    xyxy_to_mask,
     polygon_to_mask,
     polygon_to_xyxy,
     xcycwh_to_xyxy,
@@ -252,4 +253,5 @@ __all__ = [
     "xyxy_to_polygons",
     "xyxy_to_xcycarh",
     "xyxy_to_xywh",
+    "xyxy_to_mask"
 ]
