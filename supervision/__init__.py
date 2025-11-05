@@ -87,8 +87,8 @@ from supervision.detection.utils.masks import (
     calculate_masks_centroids,
     contains_holes,
     contains_multiple_segments,
-    move_masks,
     filter_segments_by_distance,
+    move_masks,
 )
 from supervision.detection.utils.polygons import (
     approximate_polygon,
