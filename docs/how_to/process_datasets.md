@@ -398,7 +398,7 @@ increase the size and diversity of training datasets, leading to improved model
 performance and generalization.
 
 ```bash
-pip install augmentation
+pip install albumentations
 ```
 
 Albumentations provides a flexible and powerful API for image augmentation. The core of
