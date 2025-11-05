@@ -504,7 +504,7 @@ def test_contains_multiple_segments(
 
 
 @pytest.mark.parametrize(
-    "mask, connectivity, mode, absolute_distance, relative_distance, expected_result, exception",
+    "mask, connectivity, mode, absolute_distance, relative_distance, expected_result, exception",  # noqa: E501
     [
         # single component, unchanged
         (
