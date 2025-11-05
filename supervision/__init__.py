@@ -88,6 +88,7 @@ from supervision.detection.utils.masks import (
     contains_holes,
     contains_multiple_segments,
     move_masks,
+    filter_segments_by_distance,
 )
 from supervision.detection.utils.polygons import (
     approximate_polygon,
@@ -219,6 +220,7 @@ __all__ = [
     "draw_text",
     "edit_distance",
     "filter_polygons_by_area",
+    "filter_segments_by_distance",
     "fuzzy_match_index",
     "get_coco_class_index_mapping",
     "get_polygon_center",
