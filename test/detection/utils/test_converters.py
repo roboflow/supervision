@@ -6,9 +6,9 @@ import pytest
 from supervision.detection.utils.converters import (
     xcycwh_to_xyxy,
     xywh_to_xyxy,
+    xyxy_to_mask,
     xyxy_to_xcycarh,
     xyxy_to_xywh,
-    xyxy_to_mask
 )
 
 
@@ -141,7 +141,6 @@ def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None
             (5, 4),
             np.array([], dtype=bool).reshape(0, 4, 5),
         ),
-
         # 1) Single pixel box
         (
             np.array([[2, 1, 2, 1]], dtype=float),
@@ -150,7 +149,7 @@ def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None
                 [
                     [
                         [False, False, False, False, False],
-                        [False, False,  True, False, False],
+                        [False, False, True, False, False],
                         [False, False, False, False, False],
                         [False, False, False, False, False],
                     ]
@@ -158,7 +157,6 @@ def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None
                 dtype=bool,
             ),
         ),
-
         # 2) Horizontal line, inclusive bounds
         (
             np.array([[1, 2, 3, 2]], dtype=float),
@@ -168,14 +166,13 @@ def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None
                     [
                         [False, False, False, False, False],
                         [False, False, False, False, False],
-                        [False,  True,  True,  True, False],
+                        [False, True, True, True, False],
                         [False, False, False, False, False],
                     ]
                 ],
                 dtype=bool,
             ),
         ),
-
         # 3) Vertical line, inclusive bounds
         (
             np.array([[3, 0, 3, 2]], dtype=float),
@@ -183,16 +180,15 @@ def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None
             np.array(
                 [
                     [
-                        [False, False, False,  True, False],
-                        [False, False, False,  True, False],
-                        [False, False, False,  True, False],
+                        [False, False, False, True, False],
+                        [False, False, False, True, False],
+                        [False, False, False, True, False],
                         [False, False, False, False, False],
                     ]
                 ],
                 dtype=bool,
             ),
         ),
-
         # 4) Proper rectangle fill
         (
             np.array([[1, 1, 3, 2]], dtype=float),
@@ -201,15 +197,14 @@ def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None
                 [
                     [
                         [False, False, False, False, False],
-                        [False,  True,  True,  True, False],
-                        [False,  True,  True,  True, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
                         [False, False, False, False, False],
                     ]
                 ],
                 dtype=bool,
             ),
         ),
-
         # 5) Negative coordinates clipped to [0, 0]
         (
             np.array([[-2, -1, 1, 1]], dtype=float),
@@ -217,8 +212,8 @@ def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None
             np.array(
                 [
                     [
-                        [ True,  True, False, False, False],
-                        [ True,  True, False, False, False],
+                        [True, True, False, False, False],
+                        [True, True, False, False, False],
                         [False, False, False, False, False],
                         [False, False, False, False, False],
                     ]
@@ -226,7 +221,6 @@ def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None
                 dtype=bool,
             ),
         ),
-
         # 6) Overflow coordinates clipped to width-1 and height-1
         (
             np.array([[3, 2, 10, 10]], dtype=float),
@@ -236,14 +230,13 @@ def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None
                     [
                         [False, False, False, False, False],
                         [False, False, False, False, False],
-                        [False, False, False,  True,  True],
-                        [False, False, False,  True,  True],
+                        [False, False, False, True, True],
+                        [False, False, False, True, True],
                     ]
                 ],
                 dtype=bool,
             ),
         ),
-
         # 7) Invalid box where max < min after ints, mask stays empty
         (
             np.array([[3, 2, 1, 4]], dtype=float),
@@ -260,7 +253,6 @@ def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None
                 dtype=bool,
             ),
         ),
-
         # 8) Fractional coordinates are floored by int conversion
         #    (0.2,0.2)-(2.8,1.9) -> (0,0)-(2,1)
         (
@@ -269,8 +261,8 @@ def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None
             np.array(
                 [
                     [
-                        [ True,  True,  True, False, False],
-                        [ True,  True,  True, False, False],
+                        [True, True, True, False, False],
+                        [True, True, True, False, False],
                         [False, False, False, False, False],
                         [False, False, False, False, False],
                     ]
@@ -278,7 +270,6 @@ def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None
                 dtype=bool,
             ),
         ),
-
         # 9) Multiple boxes, separate masks
         (
             np.array([[0, 0, 1, 0], [2, 1, 4, 3]], dtype=float),
@@ -287,7 +278,7 @@ def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None
                 [
                     # Box 0: row 0, cols 0..1
                     [
-                        [ True,  True, False, False, False],
+                        [True, True, False, False, False],
                         [False, False, False, False, False],
                         [False, False, False, False, False],
                         [False, False, False, False, False],
@@ -295,9 +286,9 @@ def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None
                     # Box 1: rows 1..3, cols 2..4
                     [
                         [False, False, False, False, False],
-                        [False, False,  True,  True,  True],
-                        [False, False,  True,  True,  True],
-                        [False, False,  True,  True,  True],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
                     ],
                 ],
                 dtype=bool,

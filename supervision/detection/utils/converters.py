@@ -254,7 +254,7 @@ def xyxy_to_mask(boxes: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarra
         y_max = min(height - 1, int(y_max))
 
         if x_max >= x_min and y_max >= y_min:
-            masks[i, y_min:y_max + 1, x_min:x_max + 1] = True
+            masks[i, y_min : y_max + 1, x_min : x_max + 1] = True
 
     return masks
 
