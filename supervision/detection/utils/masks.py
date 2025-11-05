@@ -272,7 +272,8 @@ def filter_segments_by_distance(
     mode: Literal["edge", "centroid"] = "edge",
 ) -> npt.NDArray[np.bool_]:
     """
-    Keep the largest connected component and any other components within a distance threshold.
+    Keep the largest connected component and any other components within a distance
+    threshold.
 
     Distance can be absolute in pixels or relative to the image diagonal.
 
@@ -345,9 +346,9 @@ def filter_segments_by_distance(
         # ], dtype=bool)
 
         # The nearby 2×2 block at columns 6–7 is kept because its edge distance
-        # is within 2 pixels. The distant block at columns 9–10 is removed.
+        # is within 2 pixels. The distant block at columns 9-10 is removed.
         ```
-    """
+    """  # noqa E501 // docs
     if mask.dtype != bool:
         raise TypeError("mask must be boolean")
 
