@@ -242,6 +242,40 @@ def xyxy_to_mask(boxes: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarra
     Returns:
         np.ndarray: A 3D `np.ndarray` of shape `(N, height, width)`
             containing 2D bool masks for each bounding box
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        boxes = np.array([[0, 0, 2, 2]])
+
+        sv.xyxy_to_mask(boxes, (5, 5))
+        # array([
+        #     [[ True,  True,  True, False, False],
+        #      [ True,  True,  True, False, False],
+        #      [ True,  True,  True, False, False],
+        #      [False, False, False, False, False],
+        #      [False, False, False, False, False]]
+        # ])
+
+        boxes = np.array([[0, 0, 1, 1], [3, 3, 4, 4]])
+
+        sv.xyxy_to_mask(boxes, (5, 5))
+        # array([
+        #     [[ True,  True, False, False, False],
+        #      [ True,  True, False, False, False],
+        #      [False, False, False, False, False],
+        #      [False, False, False, False, False],
+        #      [False, False, False, False, False]],
+        #
+        #     [[False, False, False, False, False],
+        #      [False, False, False, False, False],
+        #      [False, False, False, False, False],
+        #      [False, False, False,  True,  True],
+        #      [False, False, False,  True,  True]]
+        # ])
+        ```
     """
     width, height = resolution_wh
     n = boxes.shape[0]
