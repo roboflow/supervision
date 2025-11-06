@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import cv2
 import numpy as np
+
 import supervision as sv
 
 
@@ -99,7 +100,9 @@ class CameraMotionCompensator:
             self.tracker.reset()
 
     @staticmethod
-    def _calculate_motion_matrix(self, frame1: np.ndarray, frame2: np.ndarray) -> np.ndarray | None:
+    def _calculate_motion_matrix(
+        self, frame1: np.ndarray, frame2: np.ndarray
+    ) -> np.ndarray | None:
         """
         Calculates the motion between two consecutive frames using feature matching.
         """
@@ -120,15 +123,21 @@ class CameraMotionCompensator:
 
         MIN_MATCH_COUNT = 10
         if len(good_matches) > MIN_MATCH_COUNT:
-            src_pts = np.float32([keypoints1[m.queryIdx].pt for m in good_matches]).reshape(-1, 1, 2)
-            dst_pts = np.float32([keypoints2[m.trainIdx].pt for m in good_matches]).reshape(-1, 1, 2)
+            src_pts = np.float32(
+                [keypoints1[m.queryIdx].pt for m in good_matches]
+            ).reshape(-1, 1, 2)
+            dst_pts = np.float32(
+                [keypoints2[m.trainIdx].pt for m in good_matches]
+            ).reshape(-1, 1, 2)
             matrix, _ = cv2.estimateAffine2D(src_pts, dst_pts)
             return matrix
 
         return None
 
     @staticmethod
-    def _transform_detections(detections: sv.Detections, matrix: np.ndarray) -> sv.Detections:
+    def _transform_detections(
+        detections: sv.Detections, matrix: np.ndarray
+    ) -> sv.Detections:
         """
         Applies an affine transformation matrix to the bounding boxes of a Detections object.
         """
@@ -143,9 +152,15 @@ class CameraMotionCompensator:
         return sv.Detections(
             xyxy=new_xyxy,
             mask=detections.mask.copy() if detections.mask is not None else None,
-            confidence=detections.confidence.copy() if detections.confidence is not None else None,
-            class_id=detections.class_id.copy() if detections.class_id is not None else None,
-            tracker_id=detections.tracker_id.copy() if detections.tracker_id is not None else None,
+            confidence=detections.confidence.copy()
+            if detections.confidence is not None
+            else None,
+            class_id=detections.class_id.copy()
+            if detections.class_id is not None
+            else None,
+            tracker_id=detections.tracker_id.copy()
+            if detections.tracker_id is not None
+            else None,
             data={k: v.copy() for k, v in detections.data.items()},
         )
 
@@ -159,7 +174,9 @@ class CameraMotionCompensator:
         """
         self.motion_matrix = None
         if self.previous_frame is not None:
-            self.motion_matrix = self._calculate_motion_matrix(self.previous_frame, frame)
+            self.motion_matrix = self._calculate_motion_matrix(
+                self.previous_frame, frame
+            )
         self.previous_frame = frame.copy()
 
     def compensate(self, detections: sv.Detections) -> sv.Detections:
@@ -196,7 +213,9 @@ class CameraMotionCompensator:
             return detections
         return self._transform_detections(detections, self.motion_matrix)
 
-    def update_with_detections(self, detections: sv.Detections, frame: np.ndarray) -> sv.Detections:
+    def update_with_detections(
+        self, detections: sv.Detections, frame: np.ndarray
+    ) -> sv.Detections:
         """
         A convenience method for the simple case of a single, wrapped tracker.
         Requires a tracker to have been provided during initialization.
