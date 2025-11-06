@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from supervision.detection.utils.iou_and_nms import (
-    OverlapMetric,
     _group_overlapping_boxes,
     box_iou,
     box_iou_batch,
@@ -718,23 +717,21 @@ def test_box_iou_batch_consistency_with_box_iou():
     for i, box_true in enumerate(boxes_true):
         for j, box_detection in enumerate(boxes_detection):
             single_result = box_iou(box_true, box_detection)
-            assert np.allclose(
-                batch_result[i, j], single_result, rtol=1e-5, atol=1e-5
-            )
+            assert np.allclose(batch_result[i, j], single_result, rtol=1e-5, atol=1e-5)
 
 
 def test_box_iou_batch_with_mock_detections():
-    """ Test box_iou_batch with generated boxes and verify results are valid. """
+    """Test box_iou_batch with generated boxes and verify results are valid."""
     boxes_true = np.array(mock_boxes(10, seed=1), dtype=np.float32)
     boxes_detection = np.array(mock_boxes(15, seed=2), dtype=np.float32)
 
     result = box_iou_batch(boxes_true, boxes_detection)
 
     assert result.shape == (10, 15)
-    
+
     assert np.all(result >= 0)
     assert np.all(result <= 1.0)
-    
+
     # and symetric
     result_reversed = box_iou_batch(boxes_detection, boxes_true)
     assert result_reversed.shape == (15, 10)
