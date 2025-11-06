@@ -6,14 +6,15 @@ import numpy as np
 import pytest
 
 from supervision.detection.utils.iou_and_nms import (
+    OverlapMetric,
     _group_overlapping_boxes,
+    box_iou,
     box_iou_batch,
-    box_iou_batch_alt,
     box_non_max_suppression,
     mask_non_max_merge,
     mask_non_max_suppression,
 )
-from test.detection.utils.functions import generate_boxes
+from test.test_utils import mock_boxes
 
 
 @pytest.mark.parametrize(
@@ -636,12 +637,105 @@ def test_mask_non_max_merge(
         assert sorted_result == sorted_expected_result
 
 
-def test_box_iou_batch_and_alt_equivalence():
-    boxes_true = generate_boxes(20, seed=1)
-    boxes_detection = generate_boxes(30, seed=2)
+@pytest.mark.parametrize(
+    "boxes_true, boxes_detection, expected_iou, exception",
+    [
+        (
+            np.empty((0, 4), dtype=np.float32),
+            np.empty((0, 4), dtype=np.float32),
+            np.empty((0, 0), dtype=np.float32),
+            DoesNotRaise(),
+        ),  # empty
+        (
+            np.array([[0, 0, 10, 10]], dtype=np.float32),
+            np.empty((0, 4), dtype=np.float32),
+            np.empty((1, 0), dtype=np.float32),
+            DoesNotRaise(),
+        ),  # one true box, no detections
+        (
+            np.empty((0, 4), dtype=np.float32),
+            np.array([[0, 0, 10, 10]], dtype=np.float32),
+            np.empty((0, 1), dtype=np.float32),
+            DoesNotRaise(),
+        ),  # no true boxes, one detection
+        (
+            np.array([[0, 0, 10, 10]], dtype=np.float32),
+            np.array([[0, 0, 10, 10]], dtype=np.float32),
+            np.array([[1.0]]),
+            DoesNotRaise(),
+        ),  # perfect overlap
+        (
+            np.array([[0, 0, 10, 10]], dtype=np.float32),
+            np.array([[20, 20, 30, 30]], dtype=np.float32),
+            np.array([[0.0]]),
+            DoesNotRaise(),
+        ),  # no overlap
+        (
+            np.array([[0, 0, 10, 10]], dtype=np.float32),
+            np.array([[5, 5, 15, 15]], dtype=np.float32),
+            np.array([[25.0 / 175.0]]),  # intersection: 5x5=25, union: 100+100-25=175
+            DoesNotRaise(),
+        ),  # partial overlap
+        (
+            np.array([[0, 0, 10, 10]], dtype=np.float32),
+            np.array([[0, 0, 5, 5]], dtype=np.float32),
+            np.array([[25.0 / 100.0]]),  # intersection: 5x5=25, union: 100
+            DoesNotRaise(),
+        ),  # detection inside true box
+        (
+            np.array([[0, 0, 5, 5]], dtype=np.float32),
+            np.array([[0, 0, 10, 10]], dtype=np.float32),
+            np.array([[25.0 / 100.0]]),  # true box inside detection
+            DoesNotRaise(),
+        ),
+        (
+            np.array([[0, 0, 10, 10], [20, 20, 30, 30]], dtype=np.float32),
+            np.array([[0, 0, 10, 10], [20, 20, 30, 30]], dtype=np.float32),
+            np.array([[1.0, 0.0], [0.0, 1.0]]),
+            DoesNotRaise(),
+        ),  # two boxes, perfect matches
+    ],
+)
+def test_box_iou_batch(
+    boxes_true: np.ndarray,
+    boxes_detection: np.ndarray,
+    expected_iou: np.ndarray,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = box_iou_batch(boxes_true, boxes_detection)
+        assert result.shape == expected_iou.shape
+        assert np.allclose(result, expected_iou, rtol=1e-5, atol=1e-5)
 
-    iou_a = box_iou_batch(boxes_true, boxes_detection)
-    iou_b = box_iou_batch_alt(boxes_true, boxes_detection)
 
-    assert iou_a.shape == iou_b.shape
-    assert np.allclose(iou_a, iou_b, rtol=1e-6, atol=1e-6)
+def test_box_iou_batch_consistency_with_box_iou():
+    """Test that box_iou_batch gives same results as box_iou for single boxes."""
+    boxes_true = np.array(mock_boxes(5, seed=1), dtype=np.float32)
+    boxes_detection = np.array(mock_boxes(5, seed=2), dtype=np.float32)
+
+    batch_result = box_iou_batch(boxes_true, boxes_detection)
+
+    for i, box_true in enumerate(boxes_true):
+        for j, box_detection in enumerate(boxes_detection):
+            single_result = box_iou(box_true, box_detection)
+            assert np.allclose(
+                batch_result[i, j], single_result, rtol=1e-5, atol=1e-5
+            )
+
+
+def test_box_iou_batch_with_mock_detections():
+    """ Test box_iou_batch with generated boxes and verify results are valid. """
+    boxes_true = np.array(mock_boxes(10, seed=1), dtype=np.float32)
+    boxes_detection = np.array(mock_boxes(15, seed=2), dtype=np.float32)
+
+    result = box_iou_batch(boxes_true, boxes_detection)
+
+    assert result.shape == (10, 15)
+    
+    assert np.all(result >= 0)
+    assert np.all(result <= 1.0)
+    
+    # and symetric
+    result_reversed = box_iou_batch(boxes_detection, boxes_true)
+    assert result_reversed.shape == (15, 10)
+    assert np.allclose(result.T, result_reversed, rtol=1e-5, atol=1e-5)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from typing import Any
 
 import numpy as np
@@ -50,6 +51,41 @@ def mock_key_points(
         class_id=(class_id if class_id is None else np.array(class_id, dtype=int)),
         data=convert_data(data) if data else {},
     )
+
+
+def mock_boxes(
+    n: int,
+    resolution_wh: tuple[int, int] = (1920, 1080),
+    min_size: int = 20,
+    max_size: int = 200,
+    seed: int | None = None,
+) -> list[list[float]]:
+    """
+    Generate N valid bounding boxes of format [x_min, y_min, x_max, y_max].
+
+    Args:
+        n: Number of boxes to generate.
+        resolution_wh: Image resolution as (width, height). Defaults to (1920, 1080).
+        min_size: Minimum box size (width/height). Defaults to 20.
+        max_size: Maximum box size (width/height). Defaults to 200.
+        seed: Random seed for reproducibility. Defaults to None.
+
+    Returns:
+        List of boxes, each as [x_min, y_min, x_max, y_max].
+    """
+    if seed is not None:
+        random.seed(seed)
+    width, height = resolution_wh
+    boxes = []
+    for _ in range(n):
+        w = random.uniform(min_size, max_size)
+        h = random.uniform(min_size, max_size)
+        x1 = random.uniform(0, width - w)
+        y1 = random.uniform(0, height - h)
+        x2 = x1 + w
+        y2 = y1 + h
+        boxes.append([x1, y1, x2, y2])
+    return boxes
 
 
 def assert_almost_equal(actual, expected, tolerance=1e-5):
