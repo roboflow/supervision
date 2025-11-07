@@ -1,7 +1,6 @@
-import tempfile
-
 import cv2
 import numpy as np
+import pytest
 
 from supervision.utils.video import process_video
 
@@ -17,16 +16,15 @@ def create_test_video(path, num_frames, width=20, height=10):
     out.release()
 
 
-def test_process_video_max_frames_exceeds_total_frames():
-    with (
-        tempfile.NamedTemporaryFile(suffix=".mp4") as source_file,
-        tempfile.NamedTemporaryFile(suffix=".mp4") as target_file,
-    ):
-        create_test_video(source_file.name, num_frames=5)
+def test_process_video_max_frames_exceeds_total_frames(tmp_path):
+    source_path = tmp_path / "source.mp4"
+    target_path = tmp_path / "target.mp4"
 
-        process_video(
-            source_path=source_file.name,
-            target_path=target_file.name,
-            callback=lambda frame, _: frame,
-            max_frames=10,
-        )
+    create_test_video(str(source_path), num_frames=5)
+
+    process_video(
+        source_path=str(source_path),
+        target_path=str(target_path),
+        callback=lambda frame, _: frame,
+        max_frames=10,
+    )
