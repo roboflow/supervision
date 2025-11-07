@@ -230,29 +230,24 @@ def process_video(
         ```
     """
     source_video_info = VideoInfo.from_video_path(video_path=source_path)
+    max_frames = max_frames or source_video_info.total_frames
+    if source_video_info.total_frames is not None and max_frames is not None:
+        max_frames = min(max_frames, source_video_info.total_frames)
+
     video_frames_generator = get_video_frames_generator(
         source_path=source_path, end=max_frames
     )
     with VideoSink(target_path=target_path, video_info=source_video_info) as sink:
-        total_frames = (
-            min(source_video_info.total_frames, max_frames)
-            if max_frames is not None
-            else source_video_info.total_frames
-        )
         for index, frame in enumerate(
             tqdm(
                 video_frames_generator,
-                total=total_frames,
+                total=max_frames,
                 disable=not show_progress,
                 desc=progress_message,
             )
         ):
             result_frame = callback(frame, index)
             sink.write_frame(frame=result_frame)
-        else:
-            for index, frame in enumerate(video_frames_generator):
-                result_frame = callback(frame, index)
-                sink.write_frame(frame=result_frame)
 
 
 class FPSMonitor:
