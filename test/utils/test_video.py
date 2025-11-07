@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import pytest
 
 from supervision.utils.video import process_video
 
