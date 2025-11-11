@@ -229,6 +229,70 @@ def mask_to_xyxy(masks: np.ndarray) -> np.ndarray:
     return xyxy
 
 
+def xyxy_to_mask(boxes: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
+    """
+    Converts a 2D `np.ndarray` of bounding boxes into a 3D `np.ndarray` of bool masks.
+
+    Parameters:
+        boxes (np.ndarray): A 2D `np.ndarray` of shape `(N, 4)`
+            containing bounding boxes `(x_min, y_min, x_max, y_max)`
+        resolution_wh (Tuple[int, int]): A tuple `(width, height)` specifying
+            the resolution of the output masks
+
+    Returns:
+        np.ndarray: A 3D `np.ndarray` of shape `(N, height, width)`
+            containing 2D bool masks for each bounding box
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        boxes = np.array([[0, 0, 2, 2]])
+
+        sv.xyxy_to_mask(boxes, (5, 5))
+        # array([
+        #     [[ True,  True,  True, False, False],
+        #      [ True,  True,  True, False, False],
+        #      [ True,  True,  True, False, False],
+        #      [False, False, False, False, False],
+        #      [False, False, False, False, False]]
+        # ])
+
+        boxes = np.array([[0, 0, 1, 1], [3, 3, 4, 4]])
+
+        sv.xyxy_to_mask(boxes, (5, 5))
+        # array([
+        #     [[ True,  True, False, False, False],
+        #      [ True,  True, False, False, False],
+        #      [False, False, False, False, False],
+        #      [False, False, False, False, False],
+        #      [False, False, False, False, False]],
+        #
+        #     [[False, False, False, False, False],
+        #      [False, False, False, False, False],
+        #      [False, False, False, False, False],
+        #      [False, False, False,  True,  True],
+        #      [False, False, False,  True,  True]]
+        # ])
+        ```
+    """
+    width, height = resolution_wh
+    n = boxes.shape[0]
+    masks = np.zeros((n, height, width), dtype=bool)
+
+    for i, (x_min, y_min, x_max, y_max) in enumerate(boxes):
+        x_min = max(0, int(x_min))
+        y_min = max(0, int(y_min))
+        x_max = min(width - 1, int(x_max))
+        y_max = min(height - 1, int(y_max))
+
+        if x_max >= x_min and y_max >= y_min:
+            masks[i, y_min : y_max + 1, x_min : x_max + 1] = True
+
+    return masks
+
+
 def mask_to_polygons(mask: np.ndarray) -> list[np.ndarray]:
     """
     Converts a binary mask to a list of polygons.

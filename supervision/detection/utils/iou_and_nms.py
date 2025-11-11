@@ -72,7 +72,7 @@ class OverlapMetric(Enum):
         if isinstance(value, cls):
             return value
         if isinstance(value, str):
-            value = value.lower()
+            value = value.upper()
             try:
                 return cls(value)
             except ValueError:

@@ -10,6 +10,7 @@ from supervision.detection.utils.masks import (
     calculate_masks_centroids,
     contains_holes,
     contains_multiple_segments,
+    filter_segments_by_distance,
     move_masks,
 )
 
@@ -500,3 +501,228 @@ def test_contains_multiple_segments(
     with exception:
         result = contains_multiple_segments(mask=mask, connectivity=connectivity)
         assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "mask, connectivity, mode, absolute_distance, relative_distance, expected_result, exception",  # noqa: E501
+    [
+        # single component, unchanged
+        (
+            np.array(
+                [
+                    [0, 0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 0, 0],
+                    [0, 1, 1, 1, 0, 0],
+                    [0, 1, 1, 1, 0, 0],
+                    [0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0],
+                ],
+                dtype=bool,
+            ),
+            8,
+            "edge",
+            2.0,
+            None,
+            np.array(
+                [
+                    [0, 0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 0, 0],
+                    [0, 1, 1, 1, 0, 0],
+                    [0, 1, 1, 1, 0, 0],
+                    [0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0],
+                ],
+                dtype=bool,
+            ),
+            DoesNotRaise(),
+        ),
+        # two components, edge distance 2, kept with abs=1
+        (
+            np.array(
+                [
+                    [0, 0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 0, 1],
+                    [0, 1, 1, 1, 0, 1],
+                    [0, 1, 1, 1, 0, 1],
+                    [0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0],
+                ],
+                dtype=bool,
+            ),
+            8,
+            "edge",
+            2.0,
+            None,
+            np.array(
+                [
+                    [0, 0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 0, 1],
+                    [0, 1, 1, 1, 0, 1],
+                    [0, 1, 1, 1, 0, 1],
+                    [0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0],
+                ],
+                dtype=bool,
+            ),
+            DoesNotRaise(),
+        ),
+        # centroid mode, far centroids, dropped with small relative threshold
+        (
+            np.array(
+                [
+                    [1, 1, 1, 0, 0, 0],
+                    [1, 1, 1, 0, 0, 0],
+                    [1, 1, 1, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 1, 1, 1],
+                    [0, 0, 0, 1, 1, 1],
+                ],
+                dtype=bool,
+            ),
+            8,
+            "centroid",
+            None,
+            0.3,  # diagonal ~8.49, threshold ~2.55, centroid gap ~4.24
+            np.array(
+                [
+                    [1, 1, 1, 0, 0, 0],
+                    [1, 1, 1, 0, 0, 0],
+                    [1, 1, 1, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0],
+                ],
+                dtype=bool,
+            ),
+            DoesNotRaise(),
+        ),
+        # centroid mode, larger relative threshold, kept
+        (
+            np.array(
+                [
+                    [1, 1, 1, 0, 0, 0],
+                    [1, 1, 1, 0, 0, 0],
+                    [1, 1, 1, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 1, 1, 1],
+                    [0, 0, 0, 1, 1, 1],
+                ],
+                dtype=bool,
+            ),
+            8,
+            "centroid",
+            None,
+            0.6,  # diagonal ~8.49, threshold ~5.09, centroid gap ~4.24
+            np.array(
+                [
+                    [1, 1, 1, 0, 0, 0],
+                    [1, 1, 1, 0, 0, 0],
+                    [1, 1, 1, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 1, 1, 1],
+                    [0, 0, 0, 1, 1, 1],
+                ],
+                dtype=bool,
+            ),
+            DoesNotRaise(),
+        ),
+        # empty mask
+        (
+            np.zeros((4, 4), dtype=bool),
+            4,
+            "edge",
+            2.0,
+            None,
+            np.zeros((4, 4), dtype=bool),
+            DoesNotRaise(),
+        ),
+        # full mask
+        (
+            np.ones((4, 4), dtype=bool),
+            8,
+            "centroid",
+            None,
+            0.2,
+            np.ones((4, 4), dtype=bool),
+            DoesNotRaise(),
+        ),
+        # two components, pixel distance = 2, kept with abs=2
+        (
+            np.array(
+                [
+                    [0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 0, 1, 1, 1],
+                    [0, 1, 1, 1, 0, 1, 1, 1],
+                    [0, 1, 1, 1, 0, 1, 1, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0],
+                ],
+                dtype=bool,
+            ),
+            8,
+            "edge",
+            2.0,  # was 1.0
+            None,
+            np.array(
+                [
+                    [0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 0, 1, 1, 1],
+                    [0, 1, 1, 1, 0, 1, 1, 1],
+                    [0, 1, 1, 1, 0, 1, 1, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0],
+                ],
+                dtype=bool,
+            ),
+            DoesNotRaise(),
+        ),
+        # two components, pixel distance = 3, dropped with abs=2
+        (
+            np.array(
+                [
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 0, 0, 0, 1, 1],
+                    [0, 1, 1, 1, 0, 0, 0, 1, 1],
+                    [0, 1, 1, 1, 0, 0, 0, 1, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                ],
+                dtype=bool,
+            ),
+            8,
+            "edge",
+            2.0,  # keep threshold below 3 so the right blob is removed
+            None,
+            np.array(
+                [
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
+                ],
+                dtype=bool,
+            ),
+            DoesNotRaise(),
+        ),
+    ],
+)
+def test_filter_segments_by_distance_sweep(
+    mask: npt.NDArray,
+    connectivity: int,
+    mode: str,
+    absolute_distance: float | None,
+    relative_distance: float | None,
+    expected_result: npt.NDArray | None,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = filter_segments_by_distance(
+            mask=mask,
+            connectivity=connectivity,
+            mode=mode,  # type: ignore[arg-type]
+            absolute_distance=absolute_distance,
+            relative_distance=relative_distance,
+        )
+        assert np.array_equal(result, expected_result)

@@ -65,6 +65,7 @@ from supervision.detection.utils.converters import (
     polygon_to_xyxy,
     xcycwh_to_xyxy,
     xywh_to_xyxy,
+    xyxy_to_mask,
     xyxy_to_polygons,
     xyxy_to_xcycarh,
     xyxy_to_xywh,
@@ -86,6 +87,7 @@ from supervision.detection.utils.masks import (
     calculate_masks_centroids,
     contains_holes,
     contains_multiple_segments,
+    filter_segments_by_distance,
     move_masks,
 )
 from supervision.detection.utils.polygons import (
@@ -218,6 +220,7 @@ __all__ = [
     "draw_text",
     "edit_distance",
     "filter_polygons_by_area",
+    "filter_segments_by_distance",
     "fuzzy_match_index",
     "get_coco_class_index_mapping",
     "get_polygon_center",
@@ -249,6 +252,7 @@ __all__ = [
     "tint_image",
     "xcycwh_to_xyxy",
     "xywh_to_xyxy",
+    "xyxy_to_mask",
     "xyxy_to_polygons",
     "xyxy_to_xcycarh",
     "xyxy_to_xywh",
