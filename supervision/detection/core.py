@@ -296,7 +296,10 @@ class Detections:
                 class_id=np.arange(len(ultralytics_results)),
             )
 
-        if hasattr(ultralytics_results, "boxes") and ultralytics_results.boxes is not None:
+        if (
+            hasattr(ultralytics_results, "boxes")
+            and ultralytics_results.boxes is not None
+        ):
             class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
             class_names = np.array([ultralytics_results.names[i] for i in class_id])
             return cls(

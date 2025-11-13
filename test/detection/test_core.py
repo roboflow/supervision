@@ -816,6 +816,7 @@ def test_merge_inner_detection_object_pair(
         result = merge_inner_detection_object_pair(detection_1, detection_2)
         assert result == expected_result
 
+
 class TestFromUltralytics:
     """Test suite for Detections.from_ultralytics method."""
 
@@ -824,6 +825,7 @@ class TestFromUltralytics:
 
         Regression test for issue #2000.
         """
+
         # Create a mock ultralytics result without boxes attribute
         class MockUltralyticsResult:
             def __init__(self):
@@ -839,6 +841,7 @@ class TestFromUltralytics:
 
     def test_from_ultralytics_with_boxes_none(self):
         """Test that from_ultralytics handles boxes=None (segmentation-only models)."""
+
         # Create a mock ultralytics result with boxes=None
         class MockUltralyticsResult:
             def __init__(self):
@@ -859,6 +862,7 @@ class TestFromUltralytics:
 
     def test_from_ultralytics_with_valid_boxes(self):
         """Test that from_ultralytics works correctly with valid boxes."""
+
         # Create a mock ultralytics result with valid boxes
         class MockBoxes:
             def __init__(self):
