@@ -147,8 +147,8 @@ def denormalize_boxes(
     width, height = resolution_wh
     result = normalized_xyxy.copy()
 
-    result[[0, 2]] = (result[[0, 2]] * width) / normalization_factor
-    result[[1, 3]] = (result[[1, 3]] * height) / normalization_factor
+    result[:, [0, 2]] = (result[:, [0, 2]] * width) / normalization_factor
+    result[:, [1, 3]] = (result[:, [1, 3]] * height) / normalization_factor
 
     return result
 
