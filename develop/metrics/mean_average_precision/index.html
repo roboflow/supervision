@@ -3005,6 +3005,7 @@
               Bases: <code><span title="supervision.metrics.core.Metric">Metric</span></code></p>
 
 
+
         <p>Mean Average Precision (mAP) is a metric used to evaluate object detection models.
 It is the average of the precision-recall curves at different IoU thresholds.</p>
 
@@ -3049,7 +3050,8 @@ It is the average of the precision-recall curves at different IoU thresholds.</p
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>supervision/metrics/mean_average_precision.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1137">1137</a></span>
 <span class="normal"><a href="#__codelineno-0-1138">1138</a></span>
@@ -3577,6 +3579,7 @@ It is the average of the precision-recall curves at different IoU thresholds.</p
 
 
 
+
 <h3 id="supervision.metrics.mean_average_precision.MeanAveragePrecision-functions">Functions<a href="#supervision.metrics.mean_average_precision.MeanAveragePrecision-functions" class="headerlink" title="Permanent link">&para;</a></h3>
 
 <div class="doc doc-object doc-function">
@@ -3672,7 +3675,7 @@ It is the average of the precision-recall curves at different IoU thresholds.</p
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>supervision/metrics/mean_average_precision.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1180">1180</a></span>
 <span class="normal"><a href="#__codelineno-0-1181">1181</a></span>
@@ -3771,7 +3774,7 @@ Source: https://github.com/rafaelpadilla/review_object_detection_metrics</p>
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>supervision/metrics/mean_average_precision.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1323">1323</a></span>
 <span class="normal"><a href="#__codelineno-0-1324">1324</a></span>
@@ -3934,7 +3937,7 @@ Source: https://github.com/rafaelpadilla/review_object_detection_metrics</p>
         <p>Reset the metric to its initial state, clearing all stored data.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>supervision/metrics/mean_average_precision.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1205">1205</a></span>
 <span class="normal"><a href="#__codelineno-0-1206">1206</a></span>
@@ -4057,7 +4060,7 @@ Source: https://github.com/rafaelpadilla/review_object_detection_metrics</p>
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>supervision/metrics/mean_average_precision.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-1212">1212</a></span>
 <span class="normal"><a href="#__codelineno-0-1213">1213</a></span>
@@ -4170,6 +4173,7 @@ Source: https://github.com/rafaelpadilla/review_object_detection_metrics</p>
 
 
     <div class="doc doc-contents first">
+
 
 
         <p>The result of the Mean Average Precision calculation.</p>
@@ -4350,7 +4354,8 @@ for large objects (area ≥ 96²).</p>
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>supervision/metrics/mean_average_precision.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-25"> 25</a></span>
 <span class="normal"><a href="#__codelineno-0-26"> 26</a></span>
@@ -4744,6 +4749,7 @@ for large objects (area ≥ 96²).</p>
 
 
 
+
 <h3 id="supervision.metrics.mean_average_precision.MeanAveragePrecisionResult-functions">Functions<a href="#supervision.metrics.mean_average_precision.MeanAveragePrecisionResult-functions" class="headerlink" title="Permanent link">&para;</a></h3>
 
 <div class="doc doc-object doc-function">
@@ -4774,7 +4780,7 @@ Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.629
  ```</p>
 </details>
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>supervision/metrics/mean_average_precision.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-82"> 82</a></span>
 <span class="normal"><a href="#__codelineno-0-83"> 83</a></span>
@@ -4856,7 +4862,7 @@ Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.629
 <p><img align="center" alt="example_plot" src="https://media.roboflow.com/supervision-docs/metrics/mAP_plot_example.png" width="800" /></p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>supervision/metrics/mean_average_precision.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-148">148</a></span>
 <span class="normal"><a href="#__codelineno-0-149">149</a></span>
@@ -5034,7 +5040,7 @@ Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.629
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>supervision/metrics/mean_average_precision.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-113">113</a></span>
 <span class="normal"><a href="#__codelineno-0-114">114</a></span>
@@ -5225,7 +5231,7 @@ ids.</p>
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>supervision/dataset/formats/coco.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-173">173</a></span>
 <span class="normal"><a href="#__codelineno-0-174">174</a></span>

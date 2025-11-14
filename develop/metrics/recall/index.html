@@ -2864,6 +2864,7 @@
               Bases: <code><span title="supervision.metrics.core.Metric">Metric</span></code></p>
 
 
+
         <p>Recall is a metric used to evaluate object detection models. It is the ratio of
 true positive detections to the total number of ground truth instances. We calculate
 it at different IoU thresholds.</p>
@@ -2912,7 +2913,8 @@ number of false negatives (missed detections).</p>
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>supervision/metrics/recall.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-29"> 29</a></span>
 <span class="normal"><a href="#__codelineno-0-30"> 30</a></span>
@@ -3782,6 +3784,7 @@ number of false negatives (missed detections).</p>
 
 
 
+
 <h3 id="supervision.metrics.recall.Recall-functions">Functions<a href="#supervision.metrics.recall.Recall-functions" class="headerlink" title="Permanent link">&para;</a></h3>
 
 <div class="doc doc-object doc-function">
@@ -3846,7 +3849,7 @@ recall. Determines how the recall is aggregated across classes.</p>
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>supervision/metrics/recall.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-80">80</a></span>
 <span class="normal"><a href="#__codelineno-0-81">81</a></span>
@@ -3932,7 +3935,7 @@ data, at different IoU thresholds.</p>
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>supervision/metrics/recall.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-137">137</a></span>
 <span class="normal"><a href="#__codelineno-0-138">138</a></span>
@@ -4009,7 +4012,7 @@ data, at different IoU thresholds.</p>
         <p>Reset the metric to its initial state, clearing all stored data.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>supervision/metrics/recall.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-99"> 99</a></span>
 <span class="normal"><a href="#__codelineno-0-100">100</a></span>
@@ -4132,7 +4135,7 @@ data, at different IoU thresholds.</p>
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>supervision/metrics/recall.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-106">106</a></span>
 <span class="normal"><a href="#__codelineno-0-107">107</a></span>
@@ -4227,6 +4230,7 @@ data, at different IoU thresholds.</p>
 
 
     <div class="doc doc-contents first">
+
 
 
         <p>The results of the recall metric calculation.</p>
@@ -4396,7 +4400,8 @@ for large objects (area ≥ 96²).</p>
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>supervision/metrics/recall.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-459">459</a></span>
 <span class="normal"><a href="#__codelineno-0-460">460</a></span>
@@ -4798,6 +4803,7 @@ for large objects (area ≥ 96²).</p>
 
 
 
+
 <h3 id="supervision.metrics.recall.RecallResult-functions">Functions<a href="#supervision.metrics.recall.RecallResult-functions" class="headerlink" title="Permanent link">&para;</a></h3>
 
 <div class="doc doc-object doc-function">
@@ -4833,7 +4839,7 @@ for large objects (area ≥ 96²).</p>
 </span></code></pre></div>
 </details>
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>supervision/metrics/recall.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-508">508</a></span>
 <span class="normal"><a href="#__codelineno-0-509">509</a></span>
@@ -4957,7 +4963,7 @@ for large objects (area ≥ 96²).</p>
 <p><img align="center" alt="example_plot" src="https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png" width="800" /></p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>supervision/metrics/recall.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-590">590</a></span>
 <span class="normal"><a href="#__codelineno-0-591">591</a></span>
@@ -5127,7 +5133,7 @@ for large objects (area ≥ 96²).</p>
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>supervision/metrics/recall.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-560">560</a></span>
 <span class="normal"><a href="#__codelineno-0-561">561</a></span>
