@@ -234,7 +234,7 @@ with
     model = get_model(model_id="yolov8n-640")
     frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
 
-    with sv.JSONSink(<TARGET_CSV_PATH>) as sink:
+    with sv.JSONSink(<TARGET_JSON_PATH>) as sink:
         for frame_index, frame in enumerate(frames_generator):
 
             results = model.infer(image)[0]
@@ -250,7 +250,7 @@ with
     model = YOLO("yolov8n.pt")
     frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
 
-    with sv.JSONSink(<TARGET_CSV_PATH>) as sink:
+    with sv.JSONSink(<TARGET_JSON_PATH>) as sink:
         for frame_index, frame in enumerate(frames_generator):
 
             results = model(frame)[0]
@@ -268,7 +268,7 @@ with
     model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
     frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
 
-    with sv.JSONSink(<TARGET_CSV_PATH>) as sink:
+    with sv.JSONSink(<TARGET_JSON_PATH>) as sink:
         for frame_index, frame in enumerate(frames_generator):
 
             frame = sv.cv2_to_pillow(frame)
