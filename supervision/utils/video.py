@@ -198,75 +198,12 @@ def process_video(
     source_path: str,
     target_path: str,
     callback: Callable[[np.ndarray, int], np.ndarray],
-    max_frames: int | None = None,
-    show_progress: bool = False,
-    progress_message: str = "Processing video",
-) -> None:
-    """
-    Process a video file by applying a callback function on each frame
-        and saving the result to a target video file.
-
-    Args:
-        source_path (str): The path to the source video file.
-        target_path (str): The path to the target video file.
-        callback (Callable[[np.ndarray, int], np.ndarray]): A function that takes in
-            a numpy ndarray representation of a video frame and an
-            int index of the frame and returns a processed numpy ndarray
-            representation of the frame.
-        max_frames (Optional[int]): The maximum number of frames to process.
-        show_progress (bool): Whether to show a progress bar.
-        progress_message (str): The message to display in the progress bar.
-
-    Examples:
-        ```python
-        import supervision as sv
-
-        def callback(scene: np.ndarray, index: int) -> np.ndarray:
-            ...
-
-        process_video(
-            source_path=<SOURCE_VIDEO_PATH>,
-            target_path=<TARGET_VIDEO_PATH>,
-            callback=callback
-        )
-        ```
-    """
-    source_video_info = VideoInfo.from_video_path(video_path=source_path)
-    video_frames_generator = get_video_frames_generator(
-        source_path=source_path, end=max_frames
-    )
-    with VideoSink(target_path=target_path, video_info=source_video_info) as sink:
-        total_frames = (
-            min(source_video_info.total_frames, max_frames)
-            if max_frames is not None
-            else source_video_info.total_frames
-        )
-        for index, frame in enumerate(
-            tqdm(
-                video_frames_generator,
-                total=total_frames,
-                disable=not show_progress,
-                desc=progress_message,
-            )
-        ):
-            result_frame = callback(frame, index)
-            sink.write_frame(frame=result_frame)
-        else:
-            for index, frame in enumerate(video_frames_generator):
-                result_frame = callback(frame, index)
-                sink.write_frame(frame=result_frame)
-
-
-def process_video_threads(
-    source_path: str,
-    target_path: str,
-    callback: Callable[[np.ndarray, int], np.ndarray],
     *,
     max_frames: int | None = None,
     prefetch: int = 32,
     writer_buffer: int = 32,
     show_progress: bool = False,
-    progress_message: str = "Processing video (with threads)",
+    progress_message: str = "Processing video",
 ) -> None:
     """
     Process a video using a threaded pipeline that asynchronously
