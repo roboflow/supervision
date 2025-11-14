@@ -6,13 +6,13 @@ import numpy as np
 import pytest
 
 from supervision.detection.utils.iou_and_nms import (
+    OverlapMetric,
     _group_overlapping_boxes,
     box_iou,
     box_iou_batch,
     box_non_max_suppression,
     mask_non_max_merge,
     mask_non_max_suppression,
-    OverlapMetric
 )
 from test.test_utils import random_boxes
 
@@ -654,7 +654,6 @@ def test_mask_non_max_merge(
             0.25,
             DoesNotRaise(),
         ),  # partial overlap, IOS
-
         (
             np.array([0.0, 0.0, 10.0, 10.0], dtype=np.float32),
             np.array([0.0, 0.0, 10.0, 10.0], dtype=np.float32),
@@ -683,7 +682,7 @@ def test_mask_non_max_merge(
             1.0,
             DoesNotRaise(),
         ),  # identical boxes, both boxes are arrays, IOS as lowercase string
-(
+        (
             [0.0, 0.0, 10.0, 10.0],
             [0.0, 0.0, 10.0, 10.0],
             "IOU",
@@ -697,7 +696,6 @@ def test_mask_non_max_merge(
             1.0,
             DoesNotRaise(),
         ),  # identical boxes, both boxes are arrays, IOS as uppercase string
-
         (
             [0.0, 0.0, 10.0, 10.0],
             [20.0, 20.0, 30.0, 30.0],
@@ -712,7 +710,6 @@ def test_mask_non_max_merge(
             0.0,
             DoesNotRaise(),
         ),  # no overlap, IOS
-
         (
             [0.0, 0.0, 10.0, 10.0],
             [10.0, 0.0, 20.0, 10.0],
@@ -727,7 +724,6 @@ def test_mask_non_max_merge(
             0.0,
             DoesNotRaise(),
         ),  # boxes touch at edge, zero intersection, IOU
-
         (
             [0.0, 0.0, 10.0, 10.0],
             [2.0, 2.0, 8.0, 8.0],
@@ -742,7 +738,6 @@ def test_mask_non_max_merge(
             1.0,
             DoesNotRaise(),
         ),  # one box inside another, IOS
-
         (
             [0.0, 0.0, 0.0, 0.0],
             [0.0, 0.0, 10.0, 10.0],
@@ -757,7 +752,6 @@ def test_mask_non_max_merge(
             0.0,
             DoesNotRaise(),
         ),  # degenerate true box with zero area, IOS
-
         (
             [0.0, 0.0, 0.0, 0.0],
             [0.0, 0.0, 0.0, 0.0],
@@ -772,7 +766,6 @@ def test_mask_non_max_merge(
             0.0,
             DoesNotRaise(),
         ),  # both boxes fully degenerate, IOS
-
         (
             [-5.0, 0.0, 5.0, 10.0],
             [0.0, 0.0, 10.0, 10.0],
@@ -787,7 +780,6 @@ def test_mask_non_max_merge(
             0.5,
             DoesNotRaise(),
         ),  # negative x_min, overlapping boxes, IOS is 0.5
-
         (
             [0.0, 0.0, 1.0, 1.0],
             [0.5, 0.5, 1.5, 1.5],

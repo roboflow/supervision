@@ -230,12 +230,12 @@ def box_iou_batch(
     np.minimum(y_max_true[:, None], y_max_det[None, :], out=y_max_inter)
 
     # we reuse x_max_inter and y_max_inter to store inter_w and inter_h
-    np.subtract(x_max_inter, x_min_inter, out=x_max_inter) # inter_w
-    np.subtract(y_max_inter, y_min_inter, out=y_max_inter) # inter_h
+    np.subtract(x_max_inter, x_min_inter, out=x_max_inter)  # inter_w
+    np.subtract(y_max_inter, y_min_inter, out=y_max_inter)  # inter_h
     np.clip(x_max_inter, 0.0, None, out=x_max_inter)
     np.clip(y_max_inter, 0.0, None, out=y_max_inter)
 
-    area_inter = x_max_inter * y_max_inter # inter_w * inter_h
+    area_inter = x_max_inter * y_max_inter  # inter_w * inter_h
 
     area_true = (x_max_true - x_min_true) * (y_max_true - y_min_true)
     area_det = (x_max_det - x_min_det) * (y_max_det - y_min_det)
