@@ -13,8 +13,7 @@ from supervision.detection.utils.iou_and_nms import OverlapFilter, OverlapMetric
 from supervision.detection.utils.masks import move_masks
 from supervision.utils.image import crop_image
 from supervision.utils.internal import (
-    SupervisionWarnings,
-    warn_deprecated,
+    SupervisionWarnings
 )
 
 
@@ -62,15 +61,9 @@ class InferenceSlicer:
     Args:
         slice_wh (Tuple[int, int]): Dimensions of each slice measured in pixels. The
             tuple should be in the format `(width, height)`.
-        overlap_ratio_wh (Optional[Tuple[float, float]]): [⚠️ Deprecated: please set
-                to `None` and use `overlap_wh`] A tuple representing the
-            desired overlap ratio for width and height between consecutive slices.
-            Each value should be in the range [0, 1), where 0 means no overlap and
-            a value close to 1 means high overlap.
-        overlap_wh (Optional[Tuple[int, int]]): A tuple representing the desired
+        overlap_wh (Tuple[int, int]): A tuple representing the desired
             overlap for width and height between consecutive slices measured in pixels.
-            Each value should be greater than or equal to 0. Takes precedence over
-            `overlap_ratio_wh`.
+            Each value must be greater than or equal to 0.
         overlap_filter (Union[OverlapFilter, str]): Strategy for
             filtering or merging overlapping detections in slices.
         iou_threshold (float): Intersection over Union (IoU) threshold
@@ -91,26 +84,16 @@ class InferenceSlicer:
     def __init__(
         self,
         callback: Callable[[np.ndarray], Detections],
-        slice_wh: tuple[int, int] = (320, 320),
-        overlap_ratio_wh: tuple[float, float] | None = (0.2, 0.2),
-        overlap_wh: tuple[int, int] | None = None,
+        slice_wh: tuple[int, int] = (640, 640),
+        overlap_wh: tuple[int, int] = (100, 100),
         overlap_filter: OverlapFilter | str = OverlapFilter.NON_MAX_SUPPRESSION,
         iou_threshold: float = 0.5,
         overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
         thread_workers: int = 1,
     ):
-        if overlap_ratio_wh is not None:
-            warn_deprecated(
-                "`overlap_ratio_wh` in `InferenceSlicer.__init__` is deprecated and "
-                "will be removed in `supervision-0.27.0`. Please manually set it to "
-                "`None` and use `overlap_wh` instead."
-            )
-
-        self._validate_overlap(overlap_ratio_wh, overlap_wh)
-        self.overlap_ratio_wh = overlap_ratio_wh
         self.overlap_wh = overlap_wh
-
         self.slice_wh = slice_wh
+        self._validate_overlap(slice_wh=self.slice_wh, overlap_wh=overlap_wh)
         self.iou_threshold = iou_threshold
         self.overlap_metric = OverlapMetric.from_value(overlap_metric)
         self.overlap_filter = OverlapFilter.from_value(overlap_filter)
@@ -146,7 +129,7 @@ class InferenceSlicer:
 
             slicer = sv.InferenceSlicer(
                 callback=callback,
-                overlap_filter_strategy=sv.OverlapFilter.NON_MAX_SUPPRESSION,
+                overlap_filter=sv.OverlapFilter.NON_MAX_SUPPRESSION,
             )
 
             detections = slicer(image)
@@ -157,7 +140,6 @@ class InferenceSlicer:
         offsets = self._generate_offset(
             resolution_wh=resolution_wh,
             slice_wh=self.slice_wh,
-            overlap_ratio_wh=self.overlap_ratio_wh,
             overlap_wh=self.overlap_wh,
         )
 
@@ -211,25 +193,20 @@ class InferenceSlicer:
     def _generate_offset(
         resolution_wh: tuple[int, int],
         slice_wh: tuple[int, int],
-        overlap_ratio_wh: tuple[float, float] | None,
-        overlap_wh: tuple[int, int] | None,
+        overlap_wh: tuple[int, int],
     ) -> np.ndarray:
         """
         Generate offset coordinates for slicing an image based on the given resolution,
-        slice dimensions, and overlap ratios.
+        slice dimensions, and pixel overlap.
 
         Args:
             resolution_wh (Tuple[int, int]): A tuple representing the width and height
                 of the image to be sliced.
             slice_wh (Tuple[int, int]): Dimensions of each slice measured in pixels. The
             tuple should be in the format `(width, height)`.
-            overlap_ratio_wh (Optional[Tuple[float, float]]): A tuple representing the
-                desired overlap ratio for width and height between consecutive slices.
-                Each value should be in the range [0, 1), where 0 means no overlap and
-                a value close to 1 means high overlap.
-            overlap_wh (Optional[Tuple[int, int]]): A tuple representing the desired
+            overlap_wh (Tuple[int, int]): A tuple representing the desired
                 overlap for width and height between consecutive slices measured in
-                pixels. Each value should be greater than or equal to 0.
+                pixels. Each value must be greater than or equal to 0.
 
         Returns:
             np.ndarray: An array of shape `(n, 4)` containing coordinates for each
@@ -244,16 +221,7 @@ class InferenceSlicer:
         """
         slice_width, slice_height = slice_wh
         image_width, image_height = resolution_wh
-        overlap_width = (
-            overlap_wh[0]
-            if overlap_wh is not None
-            else int(overlap_ratio_wh[0] * slice_width)
-        )
-        overlap_height = (
-            overlap_wh[1]
-            if overlap_wh is not None
-            else int(overlap_ratio_wh[1] * slice_height)
-        )
+        overlap_width, overlap_height = overlap_wh
 
         width_stride = slice_width - overlap_width
         height_stride = slice_height - overlap_height
@@ -271,29 +239,27 @@ class InferenceSlicer:
 
     @staticmethod
     def _validate_overlap(
-        overlap_ratio_wh: tuple[float, float] | None,
-        overlap_wh: tuple[int, int] | None,
+            slice_wh: tuple[int, int],
+            overlap_wh: tuple[int, int],
     ) -> None:
-        if overlap_ratio_wh is not None and overlap_wh is not None:
+        if not isinstance(overlap_wh, tuple) or len(overlap_wh) != 2:
             raise ValueError(
-                "Both `overlap_ratio_wh` and `overlap_wh` cannot be provided. "
-                "Please provide only one of them."
-            )
-        if overlap_ratio_wh is None and overlap_wh is None:
-            raise ValueError(
-                "Either `overlap_ratio_wh` or `overlap_wh` must be provided. "
-                "Please provide one of them."
+                "`overlap_wh` must be a tuple of two non-negative values "
+                "(overlap_w, overlap_h)."
             )
 
-        if overlap_ratio_wh is not None:
-            if not (0 <= overlap_ratio_wh[0] < 1 and 0 <= overlap_ratio_wh[1] < 1):
-                raise ValueError(
-                    "Overlap ratios must be in the range [0, 1). "
-                    f"Received: {overlap_ratio_wh}"
-                )
-        if overlap_wh is not None:
-            if not (overlap_wh[0] >= 0 and overlap_wh[1] >= 0):
-                raise ValueError(
-                    "Overlap values must be greater than or equal to 0. "
-                    f"Received: {overlap_wh}"
-                )
+        overlap_w, overlap_h = overlap_wh
+        slice_w, slice_h = slice_wh
+
+        if overlap_w < 0 or overlap_h < 0:
+            raise ValueError(
+                "Overlap values must be greater than or equal to 0. "
+                f"Received: {overlap_wh}"
+            )
+
+        if overlap_w >= slice_w or overlap_h >= slice_h:
+            raise ValueError(
+                "`overlap_wh` must be smaller than `slice_wh` in both dimensions "
+                f"to keep a positive stride. Received overlap_wh={overlap_wh}, "
+                f"slice_wh={slice_wh}."
+            )
