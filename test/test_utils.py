@@ -68,10 +68,10 @@ def random_boxes(
 
     Args:
         count (`int`): Number of random bounding boxes to generate.
-        image_size (`tuple[int, int]`): Image size as `(width, height)`. Defaults to `(1920, 1080)`.
-        min_box_size (`int`): Minimum side length (pixels) for generated boxes. Defaults to `20`.
-        max_box_size (`int`): Maximum side length (pixels) for generated boxes. Defaults to `200`.
-        seed (`int` or `None`): Optional random seed for reproducibility. Defaults to `None`.
+        image_size (`tuple[int, int]`): Image size as `(width, height)`.
+        min_box_size (`int`): Minimum side length (pixels) for generated boxes.
+        max_box_size (`int`): Maximum side length (pixels) for generated boxes.
+        seed (`int` or `None`): Optional random seed for reproducibility.
 
     Returns:
         (`numpy.ndarray`): Array of shape `(count, 4)` with bounding boxes as
