@@ -11,7 +11,8 @@ from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import move_boxes, move_oriented_boxes
 from supervision.detection.utils.iou_and_nms import OverlapFilter, OverlapMetric
 from supervision.detection.utils.masks import move_masks
-from supervision.utils.image import crop_image
+from supervision.draw.base import ImageType
+from supervision.utils.image import crop_image, get_image_resolution_wh
 from supervision.utils.internal import SupervisionWarnings
 
 
@@ -50,91 +51,98 @@ def move_detections(
 
 class InferenceSlicer:
     """
-    InferenceSlicer performs slicing-based inference for small target detection. This
-    method, often referred to as
-    [Slicing Adaptive Inference (SAHI)](https://ieeexplore.ieee.org/document/9897990),
-    involves dividing a larger image into smaller slices, performing inference on each
-    slice, and then merging the detections.
+    Perform tiled inference on large images by slicing them into overlapping patches.
+
+    This class divides an input image into overlapping slices of configurable size
+    and overlap, runs inference on each slice through a user-provided callback, and
+    merges the resulting detections. The slicing process allows efficient processing
+    of large images with limited resources while preserving detection accuracy via
+    configurable overlap and post-processing of overlaps. Uses multi-threading for
+    parallel slice inference.
 
     Args:
-        slice_wh (Tuple[int, int]): Dimensions of each slice measured in pixels. The
-            tuple should be in the format `(width, height)`.
-        overlap_wh (Tuple[int, int]): A tuple representing the desired
-            overlap for width and height between consecutive slices measured in pixels.
-            Each value must be greater than or equal to 0.
-        overlap_filter (Union[OverlapFilter, str]): Strategy for
-            filtering or merging overlapping detections in slices.
-        iou_threshold (float): Intersection over Union (IoU) threshold
-            used when filtering by overlap.
-        overlap_metric (Union[OverlapMetric, str]): Metric used for matching detections
-            in slices.
-        callback (Callable): A function that performs inference on a given image
-            slice and returns detections.
-        thread_workers (int): Number of threads for parallel execution.
+        callback (Callable[[ImageType], Detections]): Inference function that takes
+            a sliced image and returns a `Detections` object.
+        slice_wh (int or tuple[int, int]): Size of each slice `(width, height)`.
+            If int, both width and height are set to this value.
+        overlap_wh (int or tuple[int, int]): Overlap size `(width, height)` between
+            slices. If int, both width and height are set to this value.
+        overlap_filter (OverlapFilter or str): Strategy to merge overlapping
+            detections (`NON_MAX_SUPPRESSION`, `NON_MAX_MERGE`, or `NONE`).
+        iou_threshold (float): IOU threshold used in merging overlap filtering.
+        overlap_metric (OverlapMetric or str): Metric to compute overlap
+            (`IOU` or `IOS`).
+        thread_workers (int): Number of threads for concurrent slice inference.
 
-    Note:
-        The class ensures that slices do not exceed the boundaries of the original
-        image. As a result, the final slices in the row and column dimensions might be
-        smaller than the specified slice dimensions if the image's width or height is
-        not a multiple of the slice's width or height minus the overlap.
+    Raises:
+        ValueError: If `slice_wh` or `overlap_wh` are invalid or inconsistent.
+
+    Example:
+        ```python
+        import cv2
+        import supervision as sv
+        from rfdetr import RFDETRMedium
+
+        def callback(tile):
+            return model.predict(tile)
+
+        slicer = sv.InferenceSlicer(callback, slice_wh=640, overlap_wh=100)
+
+        image = cv2.imread("example.png")
+        detections = slicer(image)
+        ```
+
+        ```python
+        import supervision as sv
+        from PIL import Image
+        from ultralytics import YOLO
+
+        def callback(tile):
+            results = model(tile)[0]
+            return sv.Detections.from_ultralytics(results)
+
+        slicer = sv.InferenceSlicer(callback, slice_wh=640, overlap_wh=100)
+
+        image = Image.open("example.png")
+        detections = slicer(image)
+        ```
     """
-
     def __init__(
         self,
-        callback: Callable[[np.ndarray], Detections],
-        slice_wh: tuple[int, int] = (640, 640),
-        overlap_wh: tuple[int, int] = (100, 100),
+        callback: Callable[[ImageType], Detections],
+        slice_wh: int | tuple[int, int] = 640,
+        overlap_wh: int | tuple[int, int] = 100,
         overlap_filter: OverlapFilter | str = OverlapFilter.NON_MAX_SUPPRESSION,
         iou_threshold: float = 0.5,
         overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
         thread_workers: int = 1,
     ):
-        self.overlap_wh = overlap_wh
-        self.slice_wh = slice_wh
-        self._validate_overlap(slice_wh=self.slice_wh, overlap_wh=overlap_wh)
+        slice_wh_norm = self._normalize_slice_wh(slice_wh)
+        overlap_wh_norm = self._normalize_overlap_wh(overlap_wh)
+
+        self._validate_overlap(slice_wh=slice_wh_norm, overlap_wh=overlap_wh_norm)
+
+        self.slice_wh = slice_wh_norm
+        self.overlap_wh = overlap_wh_norm
         self.iou_threshold = iou_threshold
         self.overlap_metric = OverlapMetric.from_value(overlap_metric)
         self.overlap_filter = OverlapFilter.from_value(overlap_filter)
         self.callback = callback
         self.thread_workers = thread_workers
 
-    def __call__(self, image: np.ndarray) -> Detections:
+    def __call__(self, image: ImageType) -> Detections:
         """
-        Performs slicing-based inference on the provided image using the specified
-            callback.
+        Perform tiled inference on the full image and return merged detections.
 
         Args:
-            image (np.ndarray): The input image on which inference needs to be
-                performed. The image should be in the format
-                `(height, width, channels)`.
+            image (ImageType): The full image to run inference on.
 
         Returns:
-            Detections: A collection of detections for the entire image after merging
-                results from all slices and applying NMS.
-
-        Example:
-            ```python
-            import cv2
-            import supervision as sv
-            from ultralytics import YOLO
-
-            image = cv2.imread(SOURCE_IMAGE_PATH)
-            model = YOLO(...)
-
-            def callback(image_slice: np.ndarray) -> sv.Detections:
-                result = model(image_slice)[0]
-                return sv.Detections.from_ultralytics(result)
-
-            slicer = sv.InferenceSlicer(
-                callback=callback,
-                overlap_filter=sv.OverlapFilter.NON_MAX_SUPPRESSION,
-            )
-
-            detections = slicer(image)
-            ```
+            Detections: Merged detections across all slices.
         """
-        detections_list = []
-        resolution_wh = (image.shape[1], image.shape[0])
+        detections_list: list[Detections] = []
+        resolution_wh = get_image_resolution_wh(image)
+
         offsets = self._generate_offset(
             resolution_wh=resolution_wh,
             slice_wh=self.slice_wh,
@@ -151,41 +159,99 @@ class InferenceSlicer:
         merged = Detections.merge(detections_list=detections_list)
         if self.overlap_filter == OverlapFilter.NONE:
             return merged
-        elif self.overlap_filter == OverlapFilter.NON_MAX_SUPPRESSION:
+        if self.overlap_filter == OverlapFilter.NON_MAX_SUPPRESSION:
             return merged.with_nms(
-                threshold=self.iou_threshold, overlap_metric=self.overlap_metric
+                threshold=self.iou_threshold,
+                overlap_metric=self.overlap_metric,
             )
-        elif self.overlap_filter == OverlapFilter.NON_MAX_MERGE:
+        if self.overlap_filter == OverlapFilter.NON_MAX_MERGE:
             return merged.with_nmm(
-                threshold=self.iou_threshold, overlap_metric=self.overlap_metric
+                threshold=self.iou_threshold,
+                overlap_metric=self.overlap_metric,
             )
-        else:
-            warnings.warn(
-                f"Invalid overlap filter strategy: {self.overlap_filter}",
-                category=SupervisionWarnings,
-            )
-            return merged
 
-    def _run_callback(self, image, offset) -> Detections:
+        warnings.warn(
+            f"Invalid overlap filter strategy: {self.overlap_filter}",
+            category=SupervisionWarnings,
+        )
+        return merged
+
+    def _run_callback(self, image: ImageType, offset: np.ndarray) -> Detections:
         """
-        Run the provided callback on a slice of an image.
+        Run detection callback on a sliced portion of the image and adjust coordinates.
 
         Args:
-            image (np.ndarray): The input image on which inference needs to run
-            offset (np.ndarray): An array of shape `(4,)` containing coordinates
-                for the slice.
+            image (ImageType): The full image.
+            offset (numpy.ndarray): Coordinates `(x_min, y_min, x_max, y_max)` defining
+                the slice region.
 
         Returns:
-            Detections: A collection of detections for the slice.
+            Detections: Detections adjusted to the full image coordinate system.
         """
-        image_slice = crop_image(image=image, xyxy=offset)
+        image_slice: ImageType = crop_image(image=image, xyxy=offset)
         detections = self.callback(image_slice)
-        resolution_wh = (image.shape[1], image.shape[0])
+        resolution_wh = get_image_resolution_wh(image)
+
         detections = move_detections(
-            detections=detections, offset=offset[:2], resolution_wh=resolution_wh
+            detections=detections,
+            offset=offset[:2],
+            resolution_wh=resolution_wh,
+        )
+        return detections
+
+    @staticmethod
+    def _normalize_slice_wh(
+        slice_wh: int | tuple[int, int],
+    ) -> tuple[int, int]:
+        if isinstance(slice_wh, int):
+            if slice_wh <= 0:
+                raise ValueError(
+                    "`slice_wh` must be a positive integer. "
+                    f"Received: {slice_wh}"
+                )
+            return slice_wh, slice_wh
+
+        if isinstance(slice_wh, tuple) and len(slice_wh) == 2:
+            width, height = slice_wh
+            if width <= 0 or height <= 0:
+                raise ValueError(
+                    "`slice_wh` values must be positive. "
+                    f"Received: {slice_wh}"
+                )
+            return width, height
+
+        raise ValueError(
+            "`slice_wh` must be an int or a tuple of two positive integers "
+            "(slice_w, slice_h). "
+            f"Received: {slice_wh}"
         )
 
-        return detections
+    @staticmethod
+    def _normalize_overlap_wh(
+        overlap_wh: int | tuple[int, int],
+    ) -> tuple[int, int]:
+        if isinstance(overlap_wh, int):
+            if overlap_wh < 0:
+                raise ValueError(
+                    "`overlap_wh` must be a non negative integer. "
+                    f"Received: {overlap_wh}"
+                )
+            return overlap_wh, overlap_wh
+
+        if isinstance(overlap_wh, tuple) and len(overlap_wh) == 2:
+            overlap_w, overlap_h = overlap_wh
+            if overlap_w < 0 or overlap_h < 0:
+                raise ValueError(
+                    "`overlap_wh` values must be non negative. "
+                    f"Received: {overlap_wh}"
+                )
+            return overlap_w, overlap_h
+
+        raise ValueError(
+            "`overlap_wh` must be an int or a tuple of two non negative integers "
+            "(overlap_w, overlap_h). "
+            f"Received: {overlap_wh}"
+        )
 
     @staticmethod
     def _generate_offset(
@@ -194,16 +260,16 @@ class InferenceSlicer:
         overlap_wh: tuple[int, int],
     ) -> np.ndarray:
         """
-        Generate offset coordinates for slicing an image based on the given resolution,
-        slice dimensions, and pixel overlap.
+        Generate bounding boxes defining the coordinates of image slices with overlap.
 
         Args:
-            resolution_wh (Tuple[int, int]): Width and height of the image to be sliced.
-            slice_wh (Tuple[int, int]): Dimensions of each slice in pixels (width, height).
-            overlap_wh (Tuple[int, int]): Overlap in pixels (overlap_w, overlap_h).
+            resolution_wh (tuple[int, int]): Image resolution `(width, height)`.
+            slice_wh (tuple[int, int]): Size of each slice `(width, height)`.
+            overlap_wh (tuple[int, int]): Overlap size between slices `(width, height)`.
 
         Returns:
-            np.ndarray: Array of shape (n, 4) with [x_min, y_min, x_max, y_max] slices.
+            numpy.ndarray: Array of shape `(num_slices, 4)` with each row as
+                `(x_min, y_min, x_max, y_max)` coordinates for a slice.
         """
         slice_width, slice_height = slice_wh
         image_width, image_height = resolution_wh
@@ -220,11 +286,9 @@ class InferenceSlicer:
             if image_size <= slice_size:
                 return [0]
 
-            # No overlap case, preserve original behavior, no overlapping tiles
             if stride == slice_size:
                 return np.arange(0, image_size, stride).tolist()
 
-            # Overlap case, ensure last tile touches the border without redundancy
             last_start = image_size - slice_size
             starts = np.arange(0, last_start, stride).tolist()
             if not starts or starts[-1] != last_start:
@@ -258,12 +322,6 @@ class InferenceSlicer:
         slice_wh: tuple[int, int],
         overlap_wh: tuple[int, int],
     ) -> None:
-        if not isinstance(overlap_wh, tuple) or len(overlap_wh) != 2:
-            raise ValueError(
-                "`overlap_wh` must be a tuple of two non-negative values "
-                "(overlap_w, overlap_h)."
-            )
-
         overlap_w, overlap_h = overlap_wh
         slice_w, slice_h = slice_wh
 
