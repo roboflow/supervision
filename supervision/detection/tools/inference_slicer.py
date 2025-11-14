@@ -83,6 +83,8 @@ class InferenceSlicer:
         import supervision as sv
         from rfdetr import RFDETRMedium
 
+        model = RFDETRMedium()
+
         def callback(tile):
             return model.predict(tile)
 
@@ -96,6 +98,8 @@ class InferenceSlicer:
         import supervision as sv
         from PIL import Image
         from ultralytics import YOLO
+
+        model = YOLO("yolo11m.pt")
 
         def callback(tile):
             results = model(tile)[0]
