@@ -296,18 +296,24 @@ class Detections:
                 class_id=np.arange(len(ultralytics_results)),
             )
 
-        class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
-        class_names = np.array([ultralytics_results.names[i] for i in class_id])
-        return cls(
-            xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
-            confidence=ultralytics_results.boxes.conf.cpu().numpy(),
-            class_id=class_id,
-            mask=extract_ultralytics_masks(ultralytics_results),
-            tracker_id=ultralytics_results.boxes.id.int().cpu().numpy()
-            if ultralytics_results.boxes.id is not None
-            else None,
-            data={CLASS_NAME_DATA_FIELD: class_names},
-        )
+        if (
+            hasattr(ultralytics_results, "boxes")
+            and ultralytics_results.boxes is not None
+        ):
+            class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
+            class_names = np.array([ultralytics_results.names[i] for i in class_id])
+            return cls(
+                xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
+                confidence=ultralytics_results.boxes.conf.cpu().numpy(),
+                class_id=class_id,
+                mask=extract_ultralytics_masks(ultralytics_results),
+                tracker_id=ultralytics_results.boxes.id.int().cpu().numpy()
+                if ultralytics_results.boxes.id is not None
+                else None,
+                data={CLASS_NAME_DATA_FIELD: class_names},
+            )
+
+        return cls.empty()
 
     @classmethod
     def from_yolo_nas(cls, yolo_nas_results) -> Detections:

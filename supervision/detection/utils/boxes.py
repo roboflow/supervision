@@ -95,24 +95,27 @@ def pad_boxes(xyxy: np.ndarray, px: int, py: int | None = None) -> np.ndarray:
 
 
 def denormalize_boxes(
-    normalized_xyxy: np.ndarray,
+    xyxy: np.ndarray,
     resolution_wh: tuple[int, int],
     normalization_factor: float = 1.0,
 ) -> np.ndarray:
     """
-    Converts normalized bounding box coordinates to absolute pixel values.
+    Convert normalized bounding box coordinates to absolute pixel coordinates.
+
+    Multiplies each bounding box coordinate by image size and divides by
+    `normalization_factor`, mapping values from normalized `[0, normalization_factor]`
+    to absolute pixel values for a given resolution.
 
     Args:
-        normalized_xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each row
-            contains normalized coordinates in the format `(x_min, y_min, x_max, y_max)`,
-            with values between 0 and `normalization_factor`.
-        resolution_wh (Tuple[int, int]): A tuple `(width, height)` representing the
-            target image resolution.
-        normalization_factor (float, optional): The normalization range of the input
-            coordinates. Defaults to 1.0.
+        xyxy (`numpy.ndarray`): Normalized bounding boxes of shape `(N, 4)`,
+            where each row is `(x_min, y_min, x_max, y_max)`, values in
+            `[0, normalization_factor]`.
+        resolution_wh (`tuple[int, int]`): Target image resolution as `(width, height)`.
+        normalization_factor (`float`): Maximum value of input coordinate range.
+            Defaults to `1.0`.
 
     Returns:
-        np.ndarray: An array of shape `(N, 4)` with absolute coordinates in
+        (`numpy.ndarray`): Array of shape `(N, 4)` with absolute coordinates in
             `(x_min, y_min, x_max, y_max)` format.
 
     Examples:
@@ -120,35 +123,39 @@ def denormalize_boxes(
         import numpy as np
         import supervision as sv
 
-        # Default normalization (0-1)
-        normalized_xyxy = np.array([
+        xyxy = np.array([
             [0.1, 0.2, 0.5, 0.6],
-            [0.3, 0.4, 0.7, 0.8]
+            [0.3, 0.4, 0.7, 0.8],
+            [0.2, 0.1, 0.6, 0.5]
         ])
-        resolution_wh = (100, 200)
-        sv.denormalize_boxes(normalized_xyxy, resolution_wh)
-        # array([
-        #     [ 10.,  40.,  50., 120.],
-        #     [ 30.,  80.,  70., 160.]
-        # ])
 
-        # Custom normalization (0-100)
-        normalized_xyxy = np.array([
-            [10., 20., 50., 60.],
-            [30., 40., 70., 80.]
-        ])
-        sv.denormalize_boxes(normalized_xyxy, resolution_wh, normalization_factor=100.0)
+        sv.denormalize_boxes(xyxy, (1280, 720))
         # array([
-        #     [ 10.,  40.,  50., 120.],
-        #     [ 30.,  80.,  70., 160.]
+        #     [128., 144., 640., 432.],
+        #     [384., 288., 896., 576.],
+        #     [256.,  72., 768., 360.]
         # ])
         ```
-    """  # noqa E501 // docs
-    width, height = resolution_wh
-    result = normalized_xyxy.copy()
 
-    result[[0, 2]] = (result[[0, 2]] * width) / normalization_factor
-    result[[1, 3]] = (result[[1, 3]] * height) / normalization_factor
+        ```
+        import numpy as np
+        import supervision as sv
+
+        xyxy = np.array([
+            [256., 128., 768., 640.]
+        ])
+
+        sv.denormalize_boxes(xyxy, (1280, 720), normalization_factor=1024.0)
+        # array([
+        #     [320.,  90., 960., 450.]
+        # ])
+        ```
+    """
+    width, height = resolution_wh
+    result = xyxy.copy()
+
+    result[:, [0, 2]] = (result[:, [0, 2]] * width) / normalization_factor
+    result[:, [1, 3]] = (result[:, [1, 3]] * height) / normalization_factor
 
     return result
 
