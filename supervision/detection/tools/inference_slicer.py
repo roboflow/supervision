@@ -200,40 +200,58 @@ class InferenceSlicer:
         slice dimensions, and pixel overlap.
 
         Args:
-            resolution_wh (Tuple[int, int]): A tuple representing the width and height
-                of the image to be sliced.
-            slice_wh (Tuple[int, int]): Dimensions of each slice measured in pixels. The
-            tuple should be in the format `(width, height)`.
-            overlap_wh (Tuple[int, int]): A tuple representing the desired
-                overlap for width and height between consecutive slices measured in
-                pixels. Each value must be greater than or equal to 0.
+            resolution_wh (Tuple[int, int]): Width and height of the image to be sliced.
+            slice_wh (Tuple[int, int]): Dimensions of each slice in pixels (width, height).
+            overlap_wh (Tuple[int, int]): Overlap in pixels (overlap_w, overlap_h).
 
         Returns:
-            np.ndarray: An array of shape `(n, 4)` containing coordinates for each
-                slice in the format `[xmin, ymin, xmax, ymax]`.
-
-        Note:
-            The function ensures that slices do not exceed the boundaries of the
-                original image. As a result, the final slices in the row and column
-                dimensions might be smaller than the specified slice dimensions if the
-                image's width or height is not a multiple of the slice's width or
-                height minus the overlap.
+            np.ndarray: Array of shape (n, 4) with [x_min, y_min, x_max, y_max] slices.
         """
         slice_width, slice_height = slice_wh
         image_width, image_height = resolution_wh
         overlap_width, overlap_height = overlap_wh
 
-        width_stride = slice_width - overlap_width
-        height_stride = slice_height - overlap_height
+        stride_x = slice_width - overlap_width
+        stride_y = slice_height - overlap_height
 
-        ws = np.arange(0, image_width, width_stride)
-        hs = np.arange(0, image_height, height_stride)
+        def _compute_axis_starts(
+            image_size: int,
+            slice_size: int,
+            stride: int,
+        ) -> list[int]:
+            if image_size <= slice_size:
+                return [0]
 
-        xmin, ymin = np.meshgrid(ws, hs)
-        xmax = np.clip(xmin + slice_width, 0, image_width)
-        ymax = np.clip(ymin + slice_height, 0, image_height)
+            # No overlap case, preserve original behavior, no overlapping tiles
+            if stride == slice_size:
+                return np.arange(0, image_size, stride).tolist()
 
-        offsets = np.stack([xmin, ymin, xmax, ymax], axis=-1).reshape(-1, 4)
+            # Overlap case, ensure last tile touches the border without redundancy
+            last_start = image_size - slice_size
+            starts = np.arange(0, last_start, stride).tolist()
+            if not starts or starts[-1] != last_start:
+                starts.append(last_start)
+            return starts
+
+        x_starts = _compute_axis_starts(
+            image_size=image_width,
+            slice_size=slice_width,
+            stride=stride_x,
+        )
+        y_starts = _compute_axis_starts(
+            image_size=image_height,
+            slice_size=slice_height,
+            stride=stride_y,
+        )
+
+        x_min, y_min = np.meshgrid(x_starts, y_starts)
+        x_max = np.clip(x_min + slice_width, 0, image_width)
+        y_max = np.clip(y_min + slice_height, 0, image_height)
+
+        offsets = np.stack(
+            [x_min, y_min, x_max, y_max],
+            axis=-1,
+        ).reshape(-1, 4)
 
         return offsets
 
