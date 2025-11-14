@@ -251,6 +251,18 @@ def process_video(
         - When the callback function is Python-heavy and GIL-bound. In that case,
           using a process-based approach is more effective.
 
+    Examples:
+        ```python
+        import supervision as sv
+        def callback(scene: np.ndarray, index: int) -> np.ndarray:
+            ...
+        process_video(
+            source_path=<SOURCE_VIDEO_PATH>,
+            target_path=<TARGET_VIDEO_PATH>,
+            callback=callback
+        )
+        ```
+
     Args:
         source_path (str): The path to the source video file.
         target_path (str): The path to the target video file.
