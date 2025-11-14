@@ -53,39 +53,48 @@ def mock_key_points(
     )
 
 
-def mock_boxes(
-    n: int,
-    resolution_wh: tuple[int, int] = (1920, 1080),
-    min_size: int = 20,
-    max_size: int = 200,
+def random_boxes(
+    count: int,
+    image_size: tuple[int, int] = (1920, 1080),
+    min_box_size: int = 20,
+    max_box_size: int = 200,
     seed: int | None = None,
-) -> list[list[float]]:
+) -> np.ndarray:
     """
-    Generate N valid bounding boxes of format [x_min, y_min, x_max, y_max].
+    Generate random bounding boxes within given image dimensions and size constraints.
+
+    Creates `count` bounding boxes randomly positioned and sized, ensuring each
+    stays within image bounds and has width and height in the specified range.
 
     Args:
-        n: Number of boxes to generate.
-        resolution_wh: Image resolution as (width, height). Defaults to (1920, 1080).
-        min_size: Minimum box size (width/height). Defaults to 20.
-        max_size: Maximum box size (width/height). Defaults to 200.
-        seed: Random seed for reproducibility. Defaults to None.
+        count (`int`): Number of random bounding boxes to generate.
+        image_size (`tuple[int, int]`): Image size as `(width, height)`. Defaults to `(1920, 1080)`.
+        min_box_size (`int`): Minimum side length (pixels) for generated boxes. Defaults to `20`.
+        max_box_size (`int`): Maximum side length (pixels) for generated boxes. Defaults to `200`.
+        seed (`int` or `None`): Optional random seed for reproducibility. Defaults to `None`.
 
     Returns:
-        List of boxes, each as [x_min, y_min, x_max, y_max].
+        (`numpy.ndarray`): Array of shape `(count, 4)` with bounding boxes as
+            `(x_min, y_min, x_max, y_max)`.
     """
     if seed is not None:
         random.seed(seed)
-    width, height = resolution_wh
-    boxes = []
-    for _ in range(n):
-        w = random.uniform(min_size, max_size)
-        h = random.uniform(min_size, max_size)
-        x1 = random.uniform(0, width - w)
-        y1 = random.uniform(0, height - h)
-        x2 = x1 + w
-        y2 = y1 + h
-        boxes.append([x1, y1, x2, y2])
-    return boxes
+
+    img_w, img_h = image_size
+    out = np.zeros((count, 4), dtype=np.float32)
+
+    for i in range(count):
+        w = random.uniform(min_box_size, max_box_size)
+        h = random.uniform(min_box_size, max_box_size)
+
+        x_min = random.uniform(0, img_w - w)
+        y_min = random.uniform(0, img_h - h)
+        x_max = x_min + w
+        y_max = y_min + h
+
+        out[i] = (x_min, y_min, x_max, y_max)
+
+    return out
 
 
 def assert_almost_equal(actual, expected, tolerance=1e-5):

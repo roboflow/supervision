@@ -64,7 +64,7 @@ class OverlapMetric(Enum):
     IOS = "IOS"
 
     @classmethod
-    def list(cls):
+    def list(cls) -> list[str]:
         return list(map(lambda c: c.value, cls))
 
     @classmethod
@@ -72,7 +72,7 @@ class OverlapMetric(Enum):
         if isinstance(value, cls):
             return value
         if isinstance(value, str):
-            value = value.lower()
+            value = value.upper()
             try:
                 return cls(value)
             except ValueError:
@@ -86,91 +86,107 @@ class OverlapMetric(Enum):
 def box_iou(
     box_true: list[float] | np.ndarray,
     box_detection: list[float] | np.ndarray,
+    overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
 ) -> float:
-    r"""
-    Compute the Intersection over Union (IoU) between two bounding boxes.
+    """
+    Compute overlap metric between two bounding boxes.
 
-    \[
-    \text{IoU} = \frac{|\text{box}_{\text{true}} \cap \text{box}_{\text{detection}}|}{|\text{box}_{\text{true}} \cup \text{box}_{\text{detection}}|}
-    \]
-
-    Note:
-        Use `box_iou` when computing IoU between two individual boxes.
-        For comparing multiple boxes (arrays of boxes), use `box_iou_batch` for better
-        performance.
+    Supports standard IOU (intersection-over-union) and IOS
+    (intersection-over-smaller-area) metrics. Returns the overlap value in range
+    `[0, 1]`.
 
     Args:
-        box_true (Union[List[float], np.ndarray]): A single bounding box represented as
-            [x_min, y_min, x_max, y_max].
-        box_detection (Union[List[float], np.ndarray]):
-            A single bounding box represented as [x_min, y_min, x_max, y_max].
+        box_true (`list[float]` or `numpy.array`): Ground truth box in format
+          `(x_min, y_min, x_max, y_max)`.
+        box_detection (`list[float]` or `numpy.array`): Detected box in format
+          `(x_min, y_min, x_max, y_max)`.
+        overlap_metric (`OverlapMetric` or `str`): Overlap type.
+          Use `OverlapMetric.IOU` for IOU or
+          `OverlapMetric.IOS` for IOS. Defaults to `OverlapMetric.IOU`.
 
     Returns:
-        IoU (float): IoU score between the two boxes. Ranges from 0.0 (no overlap)
-            to 1.0 (perfect overlap).
+        (`float`): Overlap value between boxes in `[0, 1]`.
+
+    Raises:
+        ValueError: If `overlap_metric` is not IOU or IOS.
 
     Examples:
-        ```python
-        import numpy as np
+        ```
         import supervision as sv
 
-        box_true = np.array([100, 100, 200, 200])
-        box_detection = np.array([150, 150, 250, 250])
+        box_true = [100, 100, 200, 200]
+        box_detection = [150, 150, 250, 250]
 
-        sv.box_iou(box_true=box_true, box_detection=box_detection)
-        # 0.14285814285714285
+        sv.box_iou(box_true, box_detection, overlap_metric=sv.OverlapMetric.IOU)
+        # 0.14285714285714285
+
+        sv.box_iou(box_true, box_detection, overlap_metric=sv.OverlapMetric.IOS)
+        # 0.25
         ```
-    """  # noqa: E501
-    box_true = np.array(box_true)
-    box_detection = np.array(box_detection)
+    """
+    overlap_metric = OverlapMetric.from_value(overlap_metric)
+    x_min_true, y_min_true, x_max_true, y_max_true = np.array(box_true)
+    x_min_det, y_min_det, x_max_det, y_max_det = np.array(box_detection)
 
-    inter_x1 = max(box_true[0], box_detection[0])
-    inter_y1 = max(box_true[1], box_detection[1])
-    inter_x2 = min(box_true[2], box_detection[2])
-    inter_y2 = min(box_true[3], box_detection[3])
+    x_min_inter = max(x_min_true, x_min_det)
+    y_min_inter = max(y_min_true, y_min_det)
+    x_max_inter = min(x_max_true, x_max_det)
+    y_max_inter = min(y_max_true, y_max_det)
 
-    inter_w = max(0, inter_x2 - inter_x1)
-    inter_h = max(0, inter_y2 - inter_y1)
+    inter_w = max(0.0, x_max_inter - x_min_inter)
+    inter_h = max(0.0, y_max_inter - y_min_inter)
 
-    inter_area = inter_w * inter_h
+    area_inter = inter_w * inter_h
 
-    area_true = (box_true[2] - box_true[0]) * (box_true[3] - box_true[1])
-    area_detection = (box_detection[2] - box_detection[0]) * (
-        box_detection[3] - box_detection[1]
-    )
+    area_true = (x_max_true - x_min_true) * (y_max_true - y_min_true)
+    area_det = (x_max_det - x_min_det) * (y_max_det - y_min_det)
 
-    union_area = area_true + area_detection - inter_area
+    if overlap_metric == OverlapMetric.IOU:
+        area_norm = area_true + area_det - area_inter
+    elif overlap_metric == OverlapMetric.IOS:
+        area_norm = min(area_true, area_det)
+    else:
+        raise ValueError(
+            f"overlap_metric {overlap_metric} is not supported, "
+            "only 'IOU' and 'IOS' are supported"
+        )
 
-    return inter_area / union_area + 1e-6
+    if area_norm <= 0.0:
+        return 0.0
+
+    return float(area_inter / area_norm)
 
 
 def box_iou_batch(
     boxes_true: np.ndarray,
     boxes_detection: np.ndarray,
-    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+    overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
 ) -> np.ndarray:
     """
-    Compute Intersection over Union (IoU) of two sets of bounding boxes -
-        `boxes_true` and `boxes_detection`. Both sets
-        of boxes are expected to be in `(x_min, y_min, x_max, y_max)` format.
+    Compute pairwise overlap scores between batches of bounding boxes.
 
-    Note:
-        Use `box_iou` when computing IoU between two individual boxes.
-        For comparing multiple boxes (arrays of boxes), use `box_iou_batch` for better
-        performance.
+    Supports standard IOU (intersection-over-union) and IOS
+    (intersection-over-smaller-area) metrics for all `boxes_true` and
+    `boxes_detection` pairs. Returns a matrix of overlap values in range
+    `[0, 1]`, matching each box from the first batch to each from the second.
 
     Args:
-        boxes_true (np.ndarray): 2D `np.ndarray` representing ground-truth boxes.
-            `shape = (N, 4)` where `N` is number of true objects.
-        boxes_detection (np.ndarray): 2D `np.ndarray` representing detection boxes.
-            `shape = (M, 4)` where `M` is number of detected objects.
-        overlap_metric (OverlapMetric): Metric used to compute the degree of overlap
-            between pairs of boxes (e.g., IoU, IoS).
+        boxes_true (`numpy.array`): Array of reference boxes in
+            shape `(N, 4)` as `(x_min, y_min, x_max, y_max)`.
+        boxes_detection (`numpy.array`): Array of detected boxes in
+            shape `(M, 4)` as `(x_min, y_min, x_max, y_max)`.
+        overlap_metric (`OverlapMetric` or `str`): Overlap type.
+            Use `OverlapMetric.IOU` for intersection-over-union,
+            `OverlapMetric.IOS` for intersection-over-smaller-area.
+            Defaults to `OverlapMetric.IOU`.
 
     Returns:
-        np.ndarray: Pairwise IoU of boxes from `boxes_true` and `boxes_detection`.
-            `shape = (N, M)` where `N` is number of true objects and
-            `M` is number of detected objects.
+        (`numpy.array`): Overlap matrix of shape `(N, M)`, where entry
+            `[i, j]` is the overlap between `boxes_true[i]` and
+            `boxes_detection[j]`.
+
+    Raises:
+        ValueError: If `overlap_metric` is not IOU or IOS.
 
     Examples:
         ```python
@@ -186,43 +202,48 @@ def box_iou_batch(
             [320, 320, 420, 420]
         ])
 
-        sv.box_iou_batch(boxes_true=boxes_true, boxes_detection=boxes_detection)
-        # array([
-        #     [0.14285714, 0.        ],
-        #     [0.        , 0.47058824]
-        # ])
+        sv.box_iou_batch(boxes_true, boxes_detection, overlap_metric=OverlapMetric.IOU)
+        # array([[0.14285715, 0.        ],
+        #        [0.        , 0.47058824]])
+
+        sv.box_iou_batch(boxes_true, boxes_detection, overlap_metric=OverlapMetric.IOS)
+        # array([[0.25, 0.  ],
+        #        [0.  , 0.64]])
         ```
-
     """
+    overlap_metric = OverlapMetric.from_value(overlap_metric)
+    x_min_true, y_min_true, x_max_true, y_max_true = boxes_true.T
+    x_min_det, y_min_det, x_max_det, y_max_det = boxes_detection.T
+    count_true, count_det = boxes_true.shape[0], boxes_detection.shape[0]
 
-    tx1, ty1, tx2, ty2 = boxes_true.T
-    dx1, dy1, dx2, dy2 = boxes_detection.T
-    N, M = boxes_true.shape[0], boxes_detection.shape[0]
+    if count_true == 0 or count_det == 0:
+        return np.empty((count_true, count_det), dtype=np.float32)
 
-    top_left_x = np.empty((N, M), dtype=np.float32)
-    bottom_right_x = np.empty_like(top_left_x)
-    top_left_y = np.empty_like(top_left_x)
-    bottom_right_y = np.empty_like(top_left_x)
+    x_min_inter = np.empty((count_true, count_det), dtype=np.float32)
+    x_max_inter = np.empty_like(x_min_inter)
+    y_min_inter = np.empty_like(x_min_inter)
+    y_max_inter = np.empty_like(x_min_inter)
 
-    np.maximum(tx1[:, None], dx1[None, :], out=top_left_x)
-    np.minimum(tx2[:, None], dx2[None, :], out=bottom_right_x)
-    np.maximum(ty1[:, None], dy1[None, :], out=top_left_y)
-    np.minimum(ty2[:, None], dy2[None, :], out=bottom_right_y)
+    np.maximum(x_min_true[:, None], x_min_det[None, :], out=x_min_inter)
+    np.minimum(x_max_true[:, None], x_max_det[None, :], out=x_max_inter)
+    np.maximum(y_min_true[:, None], y_min_det[None, :], out=y_min_inter)
+    np.minimum(y_max_true[:, None], y_max_det[None, :], out=y_max_inter)
 
-    np.subtract(bottom_right_x, top_left_x, out=bottom_right_x)  # W
-    np.subtract(bottom_right_y, top_left_y, out=bottom_right_y)  # H
-    np.clip(bottom_right_x, 0.0, None, out=bottom_right_x)
-    np.clip(bottom_right_y, 0.0, None, out=bottom_right_y)
+    # we reuse x_max_inter and y_max_inter to store inter_w and inter_h
+    np.subtract(x_max_inter, x_min_inter, out=x_max_inter) # inter_w
+    np.subtract(y_max_inter, y_min_inter, out=y_max_inter) # inter_h
+    np.clip(x_max_inter, 0.0, None, out=x_max_inter)
+    np.clip(y_max_inter, 0.0, None, out=y_max_inter)
 
-    area_inter = bottom_right_x * bottom_right_y
+    area_inter = x_max_inter * y_max_inter # inter_w * inter_h
 
-    area_true = (tx2 - tx1) * (ty2 - ty1)
-    area_detection = (dx2 - dx1) * (dy2 - dy1)
+    area_true = (x_max_true - x_min_true) * (y_max_true - y_min_true)
+    area_det = (x_max_det - x_min_det) * (y_max_det - y_min_det)
 
     if overlap_metric == OverlapMetric.IOU:
-        denom = area_true[:, None] + area_detection[None, :] - area_inter
+        area_norm = area_true[:, None] + area_det[None, :] - area_inter
     elif overlap_metric == OverlapMetric.IOS:
-        denom = np.minimum(area_true[:, None], area_detection[None, :])
+        area_norm = np.minimum(area_true[:, None], area_det[None, :])
     else:
         raise ValueError(
             f"overlap_metric {overlap_metric} is not supported, "
@@ -230,7 +251,7 @@ def box_iou_batch(
         )
 
     out = np.zeros_like(area_inter, dtype=np.float32)
-    np.divide(area_inter, denom, out=out, where=denom > 0)
+    np.divide(area_inter, area_norm, out=out, where=area_norm > 0)
     return out
 
 
