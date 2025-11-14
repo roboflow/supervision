@@ -219,7 +219,7 @@ def test_scale_boxes(
     ],
 )
 def test_denormalize_boxes(
-    normalized_xyxy: np.ndarray,
+    xyxy: np.ndarray,
     resolution_wh: tuple[int, int],
     normalization_factor: float,
     expected_result: np.ndarray,
@@ -227,7 +227,7 @@ def test_denormalize_boxes(
 ) -> None:
     with exception:
         result = denormalize_boxes(
-            normalized_xyxy=normalized_xyxy,
+            xyxy=xyxy,
             resolution_wh=resolution_wh,
             normalization_factor=normalization_factor,
         )
