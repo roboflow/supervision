@@ -107,6 +107,7 @@ class InferenceSlicer:
         detections = slicer(image)
         ```
     """
+
     def __init__(
         self,
         callback: Callable[[ImageType], Detections],
@@ -206,8 +207,7 @@ class InferenceSlicer:
         if isinstance(slice_wh, int):
             if slice_wh <= 0:
                 raise ValueError(
-                    "`slice_wh` must be a positive integer. "
-                    f"Received: {slice_wh}"
+                    f"`slice_wh` must be a positive integer. Received: {slice_wh}"
                 )
             return slice_wh, slice_wh
 
@@ -215,8 +215,7 @@ class InferenceSlicer:
             width, height = slice_wh
             if width <= 0 or height <= 0:
                 raise ValueError(
-                    "`slice_wh` values must be positive. "
-                    f"Received: {slice_wh}"
+                    f"`slice_wh` values must be positive. Received: {slice_wh}"
                 )
             return width, height
 
@@ -242,8 +241,7 @@ class InferenceSlicer:
             overlap_w, overlap_h = overlap_wh
             if overlap_w < 0 or overlap_h < 0:
                 raise ValueError(
-                    "`overlap_wh` values must be non negative. "
-                    f"Received: {overlap_wh}"
+                    f"`overlap_wh` values must be non negative. Received: {overlap_wh}"
                 )
             return overlap_w, overlap_h
 
