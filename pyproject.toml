@@ -82,7 +82,7 @@ docs = [
 build = [
     "twine>=5.1.1,<7.0.0",
     "wheel>=0.40,<0.46",
-    "build>=0.10,<1.3"
+    "build>=0.10,<1.4"
 ]
 
 [tool.bandit]
