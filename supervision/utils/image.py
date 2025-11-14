@@ -6,6 +6,7 @@ import shutil
 import cv2
 import numpy as np
 import numpy.typing as npt
+from PIL import Image
 
 from supervision.annotators.base import ImageType
 from supervision.draw.color import Color, unify_to_bgr
@@ -15,7 +16,6 @@ from supervision.utils.conversion import (
 from supervision.utils.internal import deprecated
 
 
-@ensure_cv2_image_for_standalone_function
 def crop_image(
     image: ImageType,
     xyxy: npt.NDArray[int] | list[int] | tuple[int, int, int, int],
@@ -65,9 +65,20 @@ def crop_image(
     """  # noqa E501 // docs
     if isinstance(xyxy, (list, tuple)):
         xyxy = np.array(xyxy)
+
     xyxy = np.round(xyxy).astype(int)
     x_min, y_min, x_max, y_max = xyxy.flatten()
-    return image[y_min:y_max, x_min:x_max]
+
+    if isinstance(image, np.ndarray):
+        return image[y_min:y_max, x_min:x_max]
+
+    if isinstance(image, Image.Image):
+        return image.crop((x_min, y_min, x_max, y_max))
+
+    raise TypeError(
+        "`image` must be a numpy.ndarray or PIL.Image.Image. "
+        f"Received {type(image)}"
+    )
 
 
 @ensure_cv2_image_for_standalone_function
@@ -459,6 +470,61 @@ def grayscale_image(image: ImageType) -> ImageType:
     grayscaled = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     return cv2.cvtColor(grayscaled, cv2.COLOR_GRAY2BGR)
 
+
+def get_image_resolution_wh(image: ImageType) -> tuple[int, int]:
+    """
+    Get image width and height as a tuple `(width, height)` for various image formats.
+
+    Supports both `numpy.ndarray` images (with shape `(H, W, ...)`) and
+    `PIL.Image.Image` inputs.
+
+    Args:
+        image (`numpy.ndarray` or `PIL.Image.Image`): Input image.
+
+    Returns:
+        (`tuple[int, int]`): Image resolution as `(width, height)`.
+
+    Raises:
+        ValueError: If a `numpy.ndarray` image has fewer than 2 dimensions.
+        TypeError: If `image` is not a supported type (`numpy.ndarray` or
+            `PIL.Image.Image`).
+
+    Examples:
+        ```python
+        import cv2
+        import supervision as sv
+
+        image = cv2.imread("example.png")
+        sv.get_image_resolution_wh(image)
+        # (1920, 1080)
+        ```
+
+        ```python
+        from PIL import Image
+        import supervision as sv
+
+        image = Image.open("example.png")
+        sv.get_image_resolution_wh(image)
+        # (1920, 1080)
+        ```
+    """
+    if isinstance(image, np.ndarray):
+        if image.ndim < 2:
+            raise ValueError(
+                "NumPy image must have at least 2 dimensions (H, W, ...). "
+                f"Received shape: {image.shape}"
+            )
+        height, width = image.shape[:2]
+        return int(width), int(height)
+
+    if isinstance(image, Image.Image):
+        width, height = image.size
+        return int(width), int(height)
+
+    raise TypeError(
+        "`image` must be a numpy.ndarray or PIL.Image.Image. "
+        f"Received type: {type(image)}"
+    )
 
 class ImageSink:
     def __init__(

@@ -129,6 +129,7 @@ from supervision.utils.image import (
     resize_image,
     scale_image,
     tint_image,
+    get_image_resolution_wh,
 )
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (
@@ -163,6 +164,7 @@ __all__ = [
     "DetectionsSmoother",
     "DotAnnotator",
     "EdgeAnnotator",
+    "get_image_resolution_wh",
     "EllipseAnnotator",
     "FPSMonitor",
     "HaloAnnotator",
