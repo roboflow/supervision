@@ -538,7 +538,7 @@ def from_google_gemini_2_0(
         return np.empty((0, 4)), None, np.empty((0,), dtype=str)
 
     labels = []
-    boxes_list = []
+    xyxy = []
 
     for item in data:
         if "box_2d" not in item or "label" not in item:
@@ -546,18 +546,16 @@ def from_google_gemini_2_0(
         labels.append(item["label"])
         box = item["box_2d"]
         # Gemini bbox order is [y_min, x_min, y_max, x_max]
-        boxes_list.append(
-            denormalize_boxes(
-                np.array([box[1], box[0], box[3], box[2]]).astype(np.float64),
-                resolution_wh=(w, h),
-                normalization_factor=1000,
-            )
-        )
+        xyxy.append([box[1], box[0], box[3], box[2]])
 
-    if not boxes_list:
+    if len(xyxy) == 0:
         return np.empty((0, 4)), None, np.empty((0,), dtype=str)
 
-    xyxy = np.array(boxes_list)
+    xyxy = denormalize_boxes(
+        np.array(xyxy, dtype=np.float64),
+        resolution_wh=(w, h),
+        normalization_factor=1000,
+    )
     class_name = np.array(labels)
     class_id = None
 
@@ -649,10 +647,10 @@ def from_google_gemini_2_5(
         box = item["box_2d"]
         # Gemini bbox order is [y_min, x_min, y_max, x_max]
         absolute_bbox = denormalize_boxes(
-            np.array([box[1], box[0], box[3], box[2]]).astype(np.float64),
+            np.array([[box[1], box[0], box[3], box[2]]]).astype(np.float64),
             resolution_wh=(w, h),
             normalization_factor=1000,
-        )
+        )[0]
         boxes_list.append(absolute_bbox)
 
         if "mask" in item:
@@ -735,7 +733,7 @@ def from_google_gemini_2_5(
 def from_moondream(
     result: dict,
     resolution_wh: tuple[int, int],
-) -> tuple[np.ndarray]:
+) -> np.ndarray:
     """
     Parse and scale bounding boxes from moondream JSON output.
 
@@ -773,7 +771,7 @@ def from_moondream(
     if "objects" not in result or not isinstance(result["objects"], list):
         return np.empty((0, 4), dtype=float)
 
-    denormalize_xyxy = []
+    xyxy = []
 
     for item in result["objects"]:
         if not all(k in item for k in ["x_min", "y_min", "x_max", "y_max"]):
@@ -784,14 +782,12 @@ def from_moondream(
         x_max = item["x_max"]
         y_max = item["y_max"]
 
-        denormalize_xyxy.append(
-            denormalize_boxes(
-                np.array([x_min, y_min, x_max, y_max]).astype(np.float64),
-                resolution_wh=(w, h),
-            )
-        )
+        xyxy.append([x_min, y_min, x_max, y_max])
 
-    if not denormalize_xyxy:
+    if len(xyxy) == 0:
         return np.empty((0, 4))
 
-    return np.array(denormalize_xyxy, dtype=float)
+    return denormalize_boxes(
+        np.array(xyxy).astype(np.float64),
+        resolution_wh=(w, h),
+    )

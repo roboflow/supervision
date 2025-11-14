@@ -150,7 +150,7 @@ def test_scale_boxes(
 
 
 @pytest.mark.parametrize(
-    "normalized_xyxy, resolution_wh, normalization_factor, expected_result, exception",
+    "xyxy, resolution_wh, normalization_factor, expected_result, exception",
     [
         (
             np.empty(shape=(0, 4)),

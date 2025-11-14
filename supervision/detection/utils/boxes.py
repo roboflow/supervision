@@ -123,12 +123,13 @@ def denormalize_boxes(
         import numpy as np
         import supervision as sv
 
-        normalized_xyxy = np.array([
+        xyxy = np.array([
             [0.1, 0.2, 0.5, 0.6],
             [0.3, 0.4, 0.7, 0.8],
             [0.2, 0.1, 0.6, 0.5]
         ])
-        sv.denormalize_boxes(normalized_xyxy, (1280, 720))
+
+        sv.denormalize_boxes(xyxy, (1280, 720))
         # array([
         #     [128., 144., 640., 432.],
         #     [384., 288., 896., 576.],
@@ -140,14 +141,11 @@ def denormalize_boxes(
         import numpy as np
         import supervision as sv
 
-        normalized_xyxy = np.array([
+        xyxy = np.array([
             [256., 128., 768., 640.]
         ])
-        result = sv.denormalize_boxes(
-            normalized_xyxy,
-            (1280, 720),
-            normalization_factor=1024.0
-        )
+
+        sv.denormalize_boxes(xyxy, (1280, 720), normalization_factor=1024.0)
         # array([
         #     [320.,  90., 960., 450.]
         # ])
