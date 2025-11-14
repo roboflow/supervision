@@ -16,6 +16,7 @@ def mock_callback():
 
     return callback
 
+
 @pytest.mark.parametrize(
     "resolution_wh, slice_wh, overlap_wh, expected_offsets",
     [

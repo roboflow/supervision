@@ -123,13 +123,13 @@ from supervision.utils.file import list_files_with_extensions
 from supervision.utils.image import (
     ImageSink,
     crop_image,
+    get_image_resolution_wh,
     grayscale_image,
     letterbox_image,
     overlay_image,
     resize_image,
     scale_image,
     tint_image,
-    get_image_resolution_wh,
 )
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (
@@ -164,7 +164,6 @@ __all__ = [
     "DetectionsSmoother",
     "DotAnnotator",
     "EdgeAnnotator",
-    "get_image_resolution_wh",
     "EllipseAnnotator",
     "FPSMonitor",
     "HaloAnnotator",
@@ -225,6 +224,7 @@ __all__ = [
     "filter_segments_by_distance",
     "fuzzy_match_index",
     "get_coco_class_index_mapping",
+    "get_image_resolution_wh",
     "get_polygon_center",
     "get_video_frames_generator",
     "grayscale_image",

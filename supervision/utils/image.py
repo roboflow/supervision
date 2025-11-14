@@ -76,8 +76,7 @@ def crop_image(
         return image.crop((x_min, y_min, x_max, y_max))
 
     raise TypeError(
-        "`image` must be a numpy.ndarray or PIL.Image.Image. "
-        f"Received {type(image)}"
+        f"`image` must be a numpy.ndarray or PIL.Image.Image. Received {type(image)}"
     )
 
 
@@ -525,6 +524,7 @@ def get_image_resolution_wh(image: ImageType) -> tuple[int, int]:
         "`image` must be a numpy.ndarray or PIL.Image.Image. "
         f"Received type: {type(image)}"
     )
+
 
 class ImageSink:
     def __init__(

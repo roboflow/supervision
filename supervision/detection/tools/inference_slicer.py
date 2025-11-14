@@ -12,9 +12,7 @@ from supervision.detection.utils.boxes import move_boxes, move_oriented_boxes
 from supervision.detection.utils.iou_and_nms import OverlapFilter, OverlapMetric
 from supervision.detection.utils.masks import move_masks
 from supervision.utils.image import crop_image
-from supervision.utils.internal import (
-    SupervisionWarnings
-)
+from supervision.utils.internal import SupervisionWarnings
 
 
 def move_detections(
@@ -257,8 +255,8 @@ class InferenceSlicer:
 
     @staticmethod
     def _validate_overlap(
-            slice_wh: tuple[int, int],
-            overlap_wh: tuple[int, int],
+        slice_wh: tuple[int, int],
+        overlap_wh: tuple[int, int],
     ) -> None:
         if not isinstance(overlap_wh, tuple) or len(overlap_wh) != 2:
             raise ValueError(
