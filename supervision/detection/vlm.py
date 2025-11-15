@@ -344,10 +344,19 @@ def from_qwen_2_5_vl(
             try:
                 data = ast.literal_eval(text)
             except (ValueError, SyntaxError, TypeError):
-                return np.empty((0, 4)), None, np.empty((0,), dtype=str)
+                return (
+                    np.empty((0, 4)),
+                    np.empty((0,), dtype=int),
+                    np.empty((0,), dtype=str)
+                )
 
     if not isinstance(data, list):
-        return np.empty((0, 4)), None, np.empty((0,), dtype=str)
+        return (
+            np.empty((0, 4)),
+            np.empty((0,), dtype=int),
+            np.empty((0,), dtype=str)
+        )
+
 
     boxes_list = []
     labels_list = []
@@ -359,7 +368,12 @@ def from_qwen_2_5_vl(
         labels_list.append(item["label"])
 
     if not boxes_list:
-        return np.empty((0, 4)), None, np.empty((0,), dtype=str)
+        return (
+            np.empty((0, 4)),
+            np.empty((0,), dtype=int),
+            np.empty((0,), dtype=str)
+        )
+
 
     xyxy = np.array(boxes_list, dtype=float)
     class_name = np.array(labels_list, dtype=str)
