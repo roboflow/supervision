@@ -47,7 +47,7 @@ from supervision.detection.vlm import (
     from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
-    validate_vlm_parameters,
+    validate_vlm_parameters, from_qwen_3_vl,
 )
 from supervision.geometry.core import Position
 from supervision.utils.internal import deprecated, get_instance_variables
@@ -1560,7 +1560,7 @@ class Detections:
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
         if vlm == VLM.QWEN_3_VL:
-            xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
+            xyxy, class_id, class_name = from_qwen_3_vl(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
