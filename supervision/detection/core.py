@@ -951,7 +951,7 @@ class Detections:
             detections.class_id
             # array([0, 1])
             ```
-            
+
         !!! example "Qwen3-VL"
 
             ```python
@@ -1359,7 +1359,7 @@ class Detections:
             detections.class_id
             # array([0, 1])
             ```
-            
+
         !!! example "Qwen3-VL"
 
             ```python
