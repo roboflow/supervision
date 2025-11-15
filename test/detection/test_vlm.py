@@ -320,7 +320,7 @@ def test_from_paligemma(
                 np.array(["dog"], dtype=str),
             ),
         ),  # out-of-bounds box
-(
+        (
             does_not_raise(),
             """[
                 {'bbox_2d': [10, 20, 110, 120], 'label': 'cat'}
@@ -346,15 +346,15 @@ def test_from_paligemma(
             (640, 640),
             None,
             (
-                    np.array(
-                        [
-                            [0.0, 0.0, 64.0, 64.0],
-                            [10.0, 20.0, 110.0, 120.0],
-                        ],
-                        dtype=float,
-                    ),
-                    None,
-                    np.array(["dog", "cat"], dtype=str),
+                np.array(
+                    [
+                        [0.0, 0.0, 64.0, 64.0],
+                        [10.0, 20.0, 110.0, 120.0],
+                    ],
+                    dtype=float,
+                ),
+                None,
+                np.array(["dog", "cat"], dtype=str),
             ),
         ),  # truncated response, last object unfinished, previous ones recovered
         (

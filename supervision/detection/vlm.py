@@ -332,7 +332,7 @@ def from_qwen_2_5_vl(
     start = text.find("[")
     end = text.rfind("]")
     if start != -1 and end != -1 and end > start:
-        text = text[start: end + 1].strip()
+        text = text[start : end + 1].strip()
 
     try:
         data = json.loads(text)
@@ -404,7 +404,7 @@ def from_qwen_3_vl(
         result=result,
         input_wh=(1000, 1000),
         resolution_wh=resolution_wh,
-        classes=classes
+        classes=classes,
     )
 
 
