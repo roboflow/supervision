@@ -52,12 +52,12 @@ from supervision.detection.tools.json_sink import JSONSink
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
 from supervision.detection.tools.smoother import DetectionsSmoother
 from supervision.detection.utils.boxes import (
+    box_aspect_ratio,
     clip_boxes,
     denormalize_boxes,
     move_boxes,
     pad_boxes,
     scale_boxes,
-    box_aspect_ratio
 )
 from supervision.detection.utils.converters import (
     mask_to_polygons,
@@ -197,12 +197,12 @@ __all__ = [
     "VideoInfo",
     "VideoSink",
     "approximate_polygon",
+    "box_aspect_ratio",
     "box_iou",
     "box_iou_batch",
     "box_iou_batch_with_jaccard",
     "box_non_max_merge",
     "box_non_max_suppression",
-    "box_aspect_ratio",
     "calculate_masks_centroids",
     "calculate_optimal_line_thickness",
     "calculate_optimal_text_scale",
