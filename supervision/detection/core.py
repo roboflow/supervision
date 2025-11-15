@@ -1558,13 +1558,13 @@ class Detections:
         if vlm == VLM.QWEN_2_5_VL:
             xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
-            confidence = np.ones(len(class_id), dtype=float)
+            confidence = np.ones(len(xyxy), dtype=float)
             return cls(xyxy=xyxy, class_id=class_id, confidence=confidence, data=data)
 
         if vlm == VLM.QWEN_3_VL:
             xyxy, class_id, class_name = from_qwen_3_vl(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
-            confidence = np.ones(len(class_id), dtype=float)
+            confidence = np.ones(len(xyxy), dtype=float)
             return cls(xyxy=xyxy, class_id=class_id, confidence=confidence, data=data)
 
         if vlm == VLM.DEEPSEEK_VL_2:
