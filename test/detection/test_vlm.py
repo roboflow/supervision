@@ -361,6 +361,18 @@ def test_from_paligemma(
             pytest.raises(ValueError),
             """```json
             [
+                {"bbox_2d": [10, 20, 110, 120], "label": "cat"}
+            ]
+            ```""",
+            (0, 640),
+            (1280, 720),
+            None,
+            None,  # invalid input_wh
+        ),
+        (
+            pytest.raises(ValueError),
+            """```json
+            [
                 {"bbox_2d": [10, 20, 110, 120], "label": "dog"}
             ]
             ```""",
