@@ -47,7 +47,8 @@ from supervision.detection.vlm import (
     from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
-    validate_vlm_parameters, from_qwen_3_vl,
+    from_qwen_3_vl,
+    validate_vlm_parameters,
 )
 from supervision.geometry.core import Position
 from supervision.utils.internal import deprecated, get_instance_variables
