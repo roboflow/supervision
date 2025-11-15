@@ -14,8 +14,8 @@ def clip_boxes(xyxy: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
         xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
             row corresponds to a bounding box in
             the format `(x_min, y_min, x_max, y_max)`.
-        resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`
-            representing the resolution of the frame.
+        resolution_wh (Tuple[int, int]): A tuple of the form
+            `(width, height)` representing the resolution of the frame.
 
     Returns:
         np.ndarray: A numpy array of shape `(N, 4)` where each row
