@@ -951,6 +951,36 @@ class Detections:
             detections.class_id
             # array([0, 1])
             ```
+            
+        !!! example "Qwen3-VL"
+
+            ```python
+            import supervision as sv
+
+            qwen_3_vl_result = \"\"\"```json
+            [
+                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+            ]
+            ```\"\"\"
+            detections = sv.Detections.from_lmm(
+                sv.LMM.QWEN_3_VL,
+                qwen_3_vl_result,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+            detections.xyxy
+            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
+
+            detections.class_id
+            # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
 
         !!! example "Gemini 2.0"
             ```python
@@ -1314,6 +1344,36 @@ class Detections:
                 sv.VLM.QWEN_2_5_VL,
                 qwen_2_5_vl_result,
                 input_wh=(1000, 1000),
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+            detections.xyxy
+            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
+
+            detections.class_id
+            # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+            
+        !!! example "Qwen3-VL"
+
+            ```python
+            import supervision as sv
+
+            qwen_3_vl_result = \"\"\"```json
+            [
+                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+            ]
+            ```\"\"\"
+            detections = sv.Detections.from_vlm(
+                sv.VLM.QWEN_3_VL,
+                qwen_3_vl_result,
                 resolution_wh=(1000, 1000),
                 classes=['cat', 'dog'],
             )
