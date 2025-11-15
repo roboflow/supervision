@@ -206,128 +206,118 @@ def process_video(
     progress_message: str = "Processing video",
 ) -> None:
     """
-    Process a video using a threaded pipeline that asynchronously
-    reads frames, applies a callback to each, and writes the results
-    to an output file.
+    Process video frames asynchronously using a threaded pipeline.
 
-    Overview:
-    This function implements a three-stage pipeline designed to maximize
-    frame throughput.
+    This function orchestrates a three-stage pipeline to optimize video processing
+    throughput:
 
-        │   Reader   │ >> │  Processor   │ >> │   Writer   │
-           (thread)           (main)             (thread)
-
-    - Reader thread: reads frames from disk into a bounded queue ('read_q')
-      until full, then blocks. This ensures we never load more than 'prefetch'
-      frames into memory at once.
-
-    - Main thread: dequeues frames, applies the 'callback(frame, idx)',
-      and enqueues the processed result into 'write_q'.
-      This is the compute stage. It's important to note that it's not threaded,
-      so you can safely use any detectors, trackers, or other stateful objects
-      without synchronization issues.
-
-    - Writer thread: dequeues frames and writes them to disk.
-
-    Both queues are bounded to enforce back-pressure:
-      - The reader cannot outpace processing (avoids unbounded RAM usage).
-      - The processor cannot outpace writing (avoids output buffer bloat).
-
-    Summary:
-    - It's thread-safe: because the callback runs only in the main thread,
-    using a single stateful detector/tracker inside callback does not require
-    synchronization with the reader/writer threads.
-
-    - While the main thread processes frame N, the reader is already decoding frame N+1,
-      and the writer is encoding frame N-1. They operate concurrently without blocking
-      each other.
-
-    - When is it fastest?
-        - When there's heavy computation in the callback function that releases
-          the Python GIL (for example, OpenCV filters, resizes, color conversions, ...)
-        - When using CUDA or GPU-accelerated inference.
-
-    - When is it better not to use it?
-        - When the callback function is Python-heavy and GIL-bound. In that case,
-          using a process-based approach is more effective.
-
-    Examples:
-        ```python
-        import supervision as sv
-        def callback(scene: np.ndarray, index: int) -> np.ndarray:
-            ...
-        process_video(
-            source_path=<SOURCE_VIDEO_PATH>,
-            target_path=<TARGET_VIDEO_PATH>,
-            callback=callback
-        )
-        ```
+    1. Reader thread: Continuously reads frames from the source video file and
+       enqueues them into a bounded queue (`frame_read_queue`). The queue size is
+       limited by the `prefetch` parameter to control memory usage.
+    2. Main thread (Processor): Dequeues frames from `frame_read_queue`, applies the
+       user-defined `callback` function to process each frame, then enqueues the
+       processed frames into another bounded queue (`frame_write_queue`) for writing.
+       The processing happens in the main thread, simplifying use of stateful objects
+       without synchronization.
+    3. Writer thread: Dequeues processed frames from `frame_write_queue` and writes
+       them sequentially to the output video file.
 
     Args:
-        source_path (str): The path to the source video file.
-        target_path (str): The path to the target video file.
-        callback (Callable[[np.ndarray, int], np.ndarray]): A function that takes in
-            a numpy ndarray representation of a video frame and an
-            int index of the frame and returns a processed numpy ndarray
-            representation of the frame.
-        max_frames (Optional[int]): The maximum number of frames to process.
-        prefetch (int): The maximum number of frames buffered by the reader thread.
-        writer_buffer (int): The maximum number of frames buffered before writing.
-        show_progress (bool): Whether to show a progress bar.
-        progress_message (str): The message to display in the progress bar.
-    """
+        source_path (str): Path to the input video file.
+        target_path (str): Path where the processed video will be saved.
+        callback (Callable[[numpy.ndarray, int], numpy.ndarray]): Function called for
+            each frame, accepting the frame as a numpy array and its zero-based index,
+            returning the processed frame.
+        max_frames (int | None): Optional maximum number of frames to process.
+            If None, the entire video is processed (default).
+        prefetch (int): Maximum number of frames buffered by the reader thread.
+            Controls memory use; default is 32.
+        writer_buffer (int): Maximum number of frames buffered before writing.
+            Controls output buffer size; default is 32.
+        show_progress (bool): Whether to display a tqdm progress bar during processing.
+            Default is False.
+        progress_message (str): Description shown in the progress bar.
 
-    source_video_info = VideoInfo.from_video_path(video_path=source_path)
+    Returns:
+        None
+
+    Example:
+        ```python
+        import cv2
+        import supervision as sv
+        from rfdetr import RFDETRMedium
+
+        model = RFDETRMedium()
+
+        def callback(frame, frame_index):
+            return model.predict(frame)
+
+        process_video(
+            source_path="source.mp4",
+            target_path="target.mp4",
+            callback=frame_callback,
+        )
+        ```
+    """
+    video_info = VideoInfo.from_video_path(video_path=source_path)
     total_frames = (
-        min(source_video_info.total_frames, max_frames)
+        min(video_info.total_frames, max_frames)
         if max_frames is not None
-        else source_video_info.total_frames
+        else video_info.total_frames
     )
 
-    # Each queue includes frames + sentinel
-    read_q: Queue[tuple[int, np.ndarray] | None] = Queue(maxsize=prefetch)
-    write_q: Queue[np.ndarray | None] = Queue(maxsize=writer_buffer)
+    frame_read_queue: Queue[tuple[int, np.ndarray] | None] = Queue(maxsize=prefetch)
+    frame_write_queue: Queue[np.ndarray | None] = Queue(maxsize=writer_buffer)
 
-    def reader_thread():
-        gen = get_video_frames_generator(source_path=source_path, end=max_frames)
-        for idx, frame in enumerate(gen):
-            read_q.put((idx, frame))
-        read_q.put(None)  # sentinel
+    def reader_thread() -> None:
+        frame_generator = get_video_frames_generator(
+            source_path=source_path,
+            end=max_frames,
+        )
+        for frame_index, frame in enumerate(frame_generator):
+            frame_read_queue.put((frame_index, frame))
+        frame_read_queue.put(None)
 
-    def writer_thread(video_sink: VideoSink):
+    def writer_thread(video_sink: VideoSink) -> None:
         while True:
-            frame = write_q.get()
+            frame = frame_write_queue.get()
             if frame is None:
                 break
             video_sink.write_frame(frame=frame)
 
-    # Heads up! We set 'daemon=True' so this thread won't block program exit
-    # if the main thread finishes first.
-    t_reader = threading.Thread(target=reader_thread, daemon=True)
-    with VideoSink(target_path=target_path, video_info=source_video_info) as sink:
-        t_writer = threading.Thread(target=writer_thread, args=(sink,), daemon=True)
-        t_reader.start()
-        t_writer.start()
-
-        process_bar = tqdm(
-            total=total_frames, disable=not show_progress, desc=progress_message
+    reader_worker = threading.Thread(target=reader_thread, daemon=True)
+    with VideoSink(target_path=target_path, video_info=video_info) as video_sink:
+        writer_worker = threading.Thread(
+            target=writer_thread,
+            args=(video_sink,),
+            daemon=True,
         )
 
-        # Main thread: we take a frame, apply function and update process bar.
-        while True:
-            item = read_q.get()
-            if item is None:
-                break
-            idx, frame = item
-            out = callback(frame, idx)
-            write_q.put(out)
-            if total_frames is not None:
-                process_bar.update(1)
+        reader_worker.start()
+        writer_worker.start()
 
-        write_q.put(None)
-        t_reader.join()
-        t_writer.join()
-        process_bar.close()
+        progress_bar = tqdm(
+            total=total_frames,
+            disable=not show_progress,
+            desc=progress_message,
+        )
+
+        try:
+            while True:
+                read_item = frame_read_queue.get()
+                if read_item is None:
+                    break
+
+                frame_index, frame = read_item
+                processed_frame = callback(frame, frame_index)
+
+                frame_write_queue.put(processed_frame)
+                progress_bar.update(1)
+        finally:
+            frame_write_queue.put(None)
+            reader_worker.join()
+            writer_worker.join()
+            progress_bar.close()
 
 
 class FPSMonitor:

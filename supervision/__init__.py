@@ -57,6 +57,7 @@ from supervision.detection.utils.boxes import (
     move_boxes,
     pad_boxes,
     scale_boxes,
+    box_aspect_ratio
 )
 from supervision.detection.utils.converters import (
     mask_to_polygons,
@@ -201,6 +202,7 @@ __all__ = [
     "box_iou_batch_with_jaccard",
     "box_non_max_merge",
     "box_non_max_suppression",
+    "box_aspect_ratio",
     "calculate_masks_centroids",
     "calculate_optimal_line_thickness",
     "calculate_optimal_text_scale",
