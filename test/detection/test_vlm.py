@@ -320,18 +320,43 @@ def test_from_paligemma(
                 np.array(["dog"], dtype=str),
             ),
         ),  # out-of-bounds box
-        (
-            pytest.raises(ValueError),
-            """```json
-            [
-                {"bbox_2d": [10, 20, 110, 120], "label": "cat"}
-            ]
-            ```""",
-            (0, 640),
+(
+            does_not_raise(),
+            """[
+                {'bbox_2d': [10, 20, 110, 120], 'label': 'cat'}
+            ]""",
+            (640, 640),
             (1280, 720),
             None,
-            None,  # won't be compared because we expect an exception
-        ),  # zero input width -> ValueError
+            (
+                np.array([[20.0, 22.5, 220.0, 135.0]]),
+                None,
+                np.array(["cat"], dtype=str),
+            ),
+        ),  # python-style list, single quotes, no fences
+        (
+            does_not_raise(),
+            """```json
+            [
+                {"bbox_2d": [0, 0, 64, 64], "label": "dog"},
+                {"bbox_2d": [10, 20, 110, 120], "label": "cat"},
+                {"bbox_2d": [30, 40, 130, 140], "label":
+            """,
+            (640, 640),
+            (640, 640),
+            None,
+            (
+                    np.array(
+                        [
+                            [0.0, 0.0, 64.0, 64.0],
+                            [10.0, 20.0, 110.0, 120.0],
+                        ],
+                        dtype=float,
+                    ),
+                    None,
+                    np.array(["dog", "cat"], dtype=str),
+            ),
+        ),  # truncated response, last object unfinished, previous ones recovered
         (
             pytest.raises(ValueError),
             """```json
@@ -342,8 +367,8 @@ def test_from_paligemma(
             (640, 640),
             (1280, -100),
             None,
-            None,
-        ),  # negative resolution height -> ValueError
+            None,  # invalid resolution_wh
+        ),
     ],
 )
 def test_from_qwen_2_5_vl(
