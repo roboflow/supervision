@@ -14,8 +14,8 @@ def box_aspect_ratio(xyxy: np.ndarray) -> np.ndarray:
     for boxes with zero height to avoid division errors.
 
     Args:
-        xyxy (`numpy.ndarray`): Array of bounding boxes in `(x_min, y_min, x_max, y_max)`
-            format with shape `(N, 4)`.
+        xyxy (`numpy.ndarray`): Array of bounding boxes in
+            `(x_min, y_min, x_max, y_max)` format with shape `(N, 4)`.
 
     Returns:
         `numpy.ndarray`: Array of aspect ratios with shape `(N,)`, where each element is
