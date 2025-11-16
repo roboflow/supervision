@@ -11,7 +11,13 @@ import cv2
 import numpy as np
 from tqdm.auto import tqdm
 
+from supervision.utils.internal import deprecated
 
+
+@deprecated(
+    "`process_video` is deprecated and will be removed in "
+    "`supervision-0.32.0`. Use `sv.VideoInfo` instead."
+)
 @dataclass
 class VideoInfo:
     """
@@ -62,6 +68,10 @@ class VideoInfo:
         return self.width, self.height
 
 
+@deprecated(
+    "`process_video` is deprecated and will be removed in "
+    "`supervision-0.32.0`. Use `sv.Video().save` instead."
+)
 class VideoSink:
     """
     Context manager that saves video frames to a file using OpenCV.
@@ -143,6 +153,10 @@ def _validate_and_setup_video(
     return video, start, end
 
 
+@deprecated(
+    "`process_video` is deprecated and will be removed in "
+    "`supervision-0.32.0`. Use `sv.Video().frame()` or `sv.Video()` instead."
+)
 def get_video_frames_generator(
     source_path: str,
     stride: int = 1,
@@ -194,6 +208,10 @@ def get_video_frames_generator(
     video.release()
 
 
+@deprecated(
+    "`process_video` is deprecated and will be removed in "
+    "`supervision-0.32.0`. Use `sv.Video().save` instead."
+)
 def process_video(
     source_path: str,
     target_path: str,
