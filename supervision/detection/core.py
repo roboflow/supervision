@@ -47,6 +47,7 @@ from supervision.detection.vlm import (
     from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
+    from_qwen_3_vl,
     validate_vlm_parameters,
 )
 from supervision.geometry.core import Position
@@ -951,6 +952,36 @@ class Detections:
             # array([0, 1])
             ```
 
+        !!! example "Qwen3-VL"
+
+            ```python
+            import supervision as sv
+
+            qwen_3_vl_result = \"\"\"```json
+            [
+                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+            ]
+            ```\"\"\"
+            detections = sv.Detections.from_lmm(
+                sv.LMM.QWEN_3_VL,
+                qwen_3_vl_result,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+            detections.xyxy
+            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
+
+            detections.class_id
+            # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
         !!! example "Gemini 2.0"
             ```python
             import supervision as sv
@@ -1211,6 +1242,7 @@ class Detections:
         | PaliGemma           | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
         | PaliGemma 2         | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
         | Qwen2.5-VL          | `QWEN_2_5_VL`        | detection               | `resolution_wh`, `input_wh` | `classes`           |
+        | Qwen3-VL            | `QWEN_3_VL`          | detection               | `resolution_wh`,            | `classes`           |
         | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
@@ -1312,6 +1344,36 @@ class Detections:
                 sv.VLM.QWEN_2_5_VL,
                 qwen_2_5_vl_result,
                 input_wh=(1000, 1000),
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+            detections.xyxy
+            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
+
+            detections.class_id
+            # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
+        !!! example "Qwen3-VL"
+
+            ```python
+            import supervision as sv
+
+            qwen_3_vl_result = \"\"\"```json
+            [
+                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+            ]
+            ```\"\"\"
+            detections = sv.Detections.from_vlm(
+                sv.VLM.QWEN_3_VL,
+                qwen_3_vl_result,
                 resolution_wh=(1000, 1000),
                 classes=['cat', 'dog'],
             )
@@ -1556,7 +1618,14 @@ class Detections:
         if vlm == VLM.QWEN_2_5_VL:
             xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
-            return cls(xyxy=xyxy, class_id=class_id, data=data)
+            confidence = np.ones(len(xyxy), dtype=float)
+            return cls(xyxy=xyxy, class_id=class_id, confidence=confidence, data=data)
+
+        if vlm == VLM.QWEN_3_VL:
+            xyxy, class_id, class_name = from_qwen_3_vl(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            confidence = np.ones(len(xyxy), dtype=float)
+            return cls(xyxy=xyxy, class_id=class_id, confidence=confidence, data=data)
 
         if vlm == VLM.DEEPSEEK_VL_2:
             xyxy, class_id, class_name = from_deepseek_vl_2(result, **kwargs)
