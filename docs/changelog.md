@@ -1,5 +1,73 @@
 # Changelog
 
+### 0.27.0 <small>Nov 16, 2025</small>
+
+- Added [#2008](https://github.com/roboflow/supervision/pull/2008): [`sv.filter_segments_by_distance`](https://supervision.roboflow.com/0.27.0/detection/utils/masks/#supervision.detection.utils.masks.filter_segments_by_distance) to keep the largest connected component and nearby components within an absolute or relative distance threshold. Useful for cleaning segmentation predictions from models such as SAM, SAM2, YOLO segmentation, and RF-DETR segmentation.
+
+- Added [#2006](https://github.com/roboflow/supervision/pull/2006): [`sv.xyxy_to_mask`](https://supervision.roboflow.com/0.27.0/detection/utils/converters/#supervision.detection.utils.converters.xyxy_to_mask) to convert bounding boxes into 2D boolean masks, where each mask corresponds to a single box.
+
+- Added [#1943](https://github.com/roboflow/supervision/pull/1943): [`sv.tint_image`](https://supervision.roboflow.com/0.27.0/utils/image/#supervision.utils.image.tint_image) to apply a solid color overlay to an image at a given opacity. Works with both NumPy and PIL inputs.
+
+- Added [#1943](https://github.com/roboflow/supervision/pull/1943): [`sv.grayscale_image`](https://supervision.roboflow.com/0.27.0/utils/image/#supervision.utils.image.tint_image) to convert an image to 3 channel grayscale for compatibility with color based drawing utilities.
+
+- Added [#2014](https://github.com/roboflow/supervision/pull/2014): [`sv.get_image_resolution_wh`](https://supervision.roboflow.com/0.27.0/utils/image/#supervision.utils.image.get_image_resolution_wh) as a unified way to read image width and height from NumPy and PIL inputs.
+
+- Added [#1912](https://github.com/roboflow/supervision/pull/1912): [`sv.edit_distance`](https://supervision.roboflow.com/0.27.0/detection/utils/vlms/#supervision.detection.utils.vlms.edit_distance) for Levenshtein distance between two strings. Supports insert, delete, and substitute operations.
+
+- Added [#1912](https://github.com/roboflow/supervision/pull/1912): [`sv.fuzzy_match_index`](https://supervision.roboflow.com/0.27.0/detection/utils/vlms/#supervision.detection.utils.vlms.fuzzy_match_index) to find the first close match in a list using edit distance.
+
+- Changed [#2015](https://github.com/roboflow/supervision/pull/2015): [`sv.Detections.from_vlm`](https://supervision.roboflow.com/0.27.0/detection/core/#supervision.detection.core.Detections.from_vlm) and legacy `from_lmm` now support Qwen3 VL via `vlm=sv.VLM.QWEN_3_VL`.
+
+- Changed [#1884](https://github.com/roboflow/supervision/pull/1884): [`sv.Detections.from_vlm`](https://supervision.roboflow.com/0.27.0/detection/core/#supervision.detection.core.Detections.from_vlm) and legacy `from_lmm` now support DeepSeek VL 2 via `vlm=sv.VLM.DEEPSEEK_VL_2`.
+
+- Changed [#2015](https://github.com/roboflow/supervision/pull/2015): [`sv.Detections.from_vlm`](https://supervision.roboflow.com/0.27.0/detection/core/#supervision.detection.core.Detections.from_vlm) now parses Qwen 2.5 VL outputs more robustly and handles incomplete or truncated JSON responses.
+
+- Changed [#2014](https://github.com/roboflow/supervision/pull/2014): [`sv.InferenceSlicer`](https://supervision.roboflow.com/0.27.0/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer) now uses a new offset generation logic that removes redundant tiles and aligns borders cleanly. This reduces the number of processed tiles and shortens inference time without hurting detection quality.
+
+- Changed [#2016](https://github.com/roboflow/supervision/pull/2016): [`sv.Detections`](https://supervision.roboflow.com/0.27.0/detection/core/#supervision.detection.core.Detections) now includes a `box_aspect_ratio` property for vectorized aspect ratio computation, useful for filtering detections based on box shape.
+
+- Changed [#2001](https://github.com/roboflow/supervision/pull/2001): Significantly improved the performance of [`sv.box_iou_batch`](https://supervision.roboflow.com/0.27.0/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.box_iou_batch). On internal benchmarks, processing runs approximately 2x to 5x faster.
+
+- Changed [#1997](https://github.com/roboflow/supervision/pull/1997): [`sv.process_video`](https://supervision.roboflow.com/0.27.0/utils/video/#supervision.utils.video.process_video) now uses a threaded reader, processor, and writer pipeline. This removes I/O stalls and improves throughput while keeping the callback single threaded and safe for stateful models.
+
+- Changed: [`sv.denormalize_boxes`](https://supervision.roboflow.com/0.27.0/detection/utils/boxes/#supervision.detection.utils.boxes.denormalize_boxes) now supports batch conversion of bounding boxes. The function accepts arrays of shape `(N, 4)` and returns a batch of absolute pixel coordinates.
+
+- Changed [#1917](https://github.com/roboflow/supervision/pull/1917): [`sv.LabelAnnotator`](https://supervision.roboflow.com/develop/0.27.0/annotators/#supervision.annotators.core.LabelAnnotator) and [`sv.RichLabelAnnotator`](https://supervision.roboflow.com/develop/0.27.0/annotators/#supervision.annotators.core.LabelAnnotator) now accept `text_offset=(x, y)` to shift the label relative to `text_position`. Works with smart label position and line wrapping.
+
+!!! failure "Removed"
+    Removed the deprecated `overlap_ratio_wh` argument from `sv.InferenceSlicer`. Use the pixel based `overlap_wh` argument to control slice overlap.
+
+!!! info "Tip"
+    Convert your old ratio based overlap to pixel based overlap by multiplying each ratio by the slice dimensions.
+
+    ```python
+    # before
+
+    slice_wh = (640, 640)
+    overlap_ratio_wh = (0.25, 0.25)
+
+    slicer = sv.InferenceSlicer(
+        callback=callback,
+        slice_wh=slice_wh,
+        overlap_ratio_wh=overlap_ratio_wh,
+        overlap_filter=sv.OverlapFilter.NON_MAX_SUPPRESSION,
+    )
+
+    # after
+
+    overlap_wh = (
+        int(overlap_ratio_wh[0] * slice_wh[0]),
+        int(overlap_ratio_wh[1] * slice_wh[1]),
+    )
+
+    slicer = sv.InferenceSlicer(
+        callback=callback,
+        slice_wh=slice_wh,
+        overlap_wh=overlap_wh,
+        overlap_filter=sv.OverlapFilter.NON_MAX_SUPPRESSION,
+    )
+    ```
+
 ### 0.26.1 <small>Jul 22, 2025</small>
 
 - Fixed [1894](https://github.com/roboflow/supervision/pull/1894): Error in [`sv.MeanAveragePrecision`](https://supervision.roboflow.com/0.26.1/metrics/mean_average_precision/#supervision.metrics.mean_average_precision.MeanAveragePrecision) where the area used for size-specific evaluation (small / medium / large) was always zero unless explicitly provided in `sv.Detections.data`.

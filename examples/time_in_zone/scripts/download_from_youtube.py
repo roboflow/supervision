@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import os
 
-from pytube import YouTube
+from pytubefix import YouTube
 
 
 def main(url: str, output_path: str | None, file_name: str | None) -> None:

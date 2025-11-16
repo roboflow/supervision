@@ -65,6 +65,7 @@ from supervision.detection.utils.converters import (
     polygon_to_xyxy,
     xcycwh_to_xyxy,
     xywh_to_xyxy,
+    xyxy_to_mask,
     xyxy_to_polygons,
     xyxy_to_xcycarh,
     xyxy_to_xywh,
@@ -86,12 +87,14 @@ from supervision.detection.utils.masks import (
     calculate_masks_centroids,
     contains_holes,
     contains_multiple_segments,
+    filter_segments_by_distance,
     move_masks,
 )
 from supervision.detection.utils.polygons import (
     approximate_polygon,
     filter_polygons_by_area,
 )
+from supervision.detection.utils.vlms import edit_distance, fuzzy_match_index
 from supervision.detection.vlm import LMM, VLM
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import (
@@ -107,24 +110,26 @@ from supervision.draw.utils import (
 )
 from supervision.geometry.core import Point, Position, Rect
 from supervision.geometry.utils import get_polygon_center
-from supervision.keypoint.annotators import (
+from supervision.key_points.annotators import (
     EdgeAnnotator,
     VertexAnnotator,
     VertexLabelAnnotator,
 )
-from supervision.keypoint.core import KeyPoints
+from supervision.key_points.core import KeyPoints
 from supervision.metrics.detection import ConfusionMatrix, MeanAveragePrecision
 from supervision.tracker.byte_tracker.core import ByteTrack
 from supervision.utils.conversion import cv2_to_pillow, pillow_to_cv2
 from supervision.utils.file import list_files_with_extensions
 from supervision.utils.image import (
     ImageSink,
-    create_tiles,
     crop_image,
+    get_image_resolution_wh,
+    grayscale_image,
     letterbox_image,
     overlay_image,
     resize_image,
     scale_image,
+    tint_image,
 )
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (
@@ -205,7 +210,6 @@ __all__ = [
     "clip_boxes",
     "contains_holes",
     "contains_multiple_segments",
-    "create_tiles",
     "crop_image",
     "cv2_to_pillow",
     "draw_filled_polygon",
@@ -215,10 +219,15 @@ __all__ = [
     "draw_polygon",
     "draw_rectangle",
     "draw_text",
+    "edit_distance",
     "filter_polygons_by_area",
+    "filter_segments_by_distance",
+    "fuzzy_match_index",
     "get_coco_class_index_mapping",
+    "get_image_resolution_wh",
     "get_polygon_center",
     "get_video_frames_generator",
+    "grayscale_image",
     "letterbox_image",
     "list_files_with_extensions",
     "mask_iou_batch",
@@ -242,8 +251,10 @@ __all__ = [
     "rle_to_mask",
     "scale_boxes",
     "scale_image",
+    "tint_image",
     "xcycwh_to_xyxy",
     "xywh_to_xyxy",
+    "xyxy_to_mask",
     "xyxy_to_polygons",
     "xyxy_to_xcycarh",
     "xyxy_to_xywh",

@@ -2,8 +2,12 @@ import numpy as np
 import pytest
 from PIL import Image, ImageChops
 
-from supervision import Color, Point
-from supervision.utils.image import create_tiles, letterbox_image, resize_image
+from supervision.utils.image import (
+    crop_image,
+    get_image_resolution_wh,
+    letterbox_image,
+    resize_image,
+)
 
 
 def test_resize_image_for_opencv_image() -> None:
@@ -98,145 +102,59 @@ def test_letterbox_image_for_pillow_image() -> None:
     )
 
 
-def test_create_tiles_with_one_image(
-    one_image: np.ndarray, single_image_tile: np.ndarray
-) -> None:
-    # when
-    result = create_tiles(images=[one_image], single_tile_size=(240, 240))
-
-    # # then
-    assert np.allclose(result, single_image_tile, atol=5.0)
-
-
-def test_create_tiles_with_one_image_and_enforced_grid(
-    one_image: np.ndarray, single_image_tile_enforced_grid: np.ndarray
-) -> None:
-    # when
-    result = create_tiles(
-        images=[one_image],
-        grid_size=(None, 3),
-        single_tile_size=(240, 240),
-    )
-
-    # then
-    assert np.allclose(result, single_image_tile_enforced_grid, atol=5.0)
-
-
-def test_create_tiles_with_two_images(
-    two_images: list[np.ndarray], two_images_tile: np.ndarray
-) -> None:
-    # when
-    result = create_tiles(images=two_images, single_tile_size=(240, 240))
-
-    # then
-    assert np.allclose(result, two_images_tile, atol=5.0)
-
-
-def test_create_tiles_with_three_images(
-    three_images: list[np.ndarray], three_images_tile: np.ndarray
-) -> None:
-    # when
-    result = create_tiles(images=three_images, single_tile_size=(240, 240))
-
-    # then
-    assert np.allclose(result, three_images_tile, atol=5.0)
+@pytest.mark.parametrize(
+    "image, xyxy, expected_size",
+    [
+        # NumPy RGB
+        (
+            np.zeros((4, 6, 3), dtype=np.uint8),
+            (2, 1, 5, 3),
+            (3, 2),  # width = 5-2, height = 3-1
+        ),
+        # NumPy grayscale
+        (
+            np.zeros((5, 5), dtype=np.uint8),
+            (1, 1, 4, 4),
+            (3, 3),
+        ),
+        # Pillow RGB
+        (
+            Image.new("RGB", (6, 4), color=0),
+            (2, 1, 5, 3),
+            (3, 2),
+        ),
+        # Pillow grayscale
+        (
+            Image.new("L", (5, 5), color=0),
+            (1, 1, 4, 4),
+            (3, 3),
+        ),
+    ],
+)
+def test_crop_image(image, xyxy, expected_size):
+    cropped = crop_image(image=image, xyxy=xyxy)
+    if isinstance(image, np.ndarray):
+        assert isinstance(cropped, np.ndarray)
+        assert cropped.shape[1] == expected_size[0]  # width
+        assert cropped.shape[0] == expected_size[1]  # height
+    else:
+        assert isinstance(cropped, Image.Image)
+        assert cropped.size == expected_size
 
 
-def test_create_tiles_with_four_images(
-    four_images: list[np.ndarray],
-    four_images_tile: np.ndarray,
-) -> None:
-    # when
-    result = create_tiles(images=four_images, single_tile_size=(240, 240))
-
-    # then
-    assert np.allclose(result, four_images_tile, atol=5.0)
-
-
-def test_create_tiles_with_all_images(
-    all_images: list[np.ndarray],
-    all_images_tile: np.ndarray,
-) -> None:
-    # when
-    result = create_tiles(images=all_images, single_tile_size=(240, 240))
-
-    # then
-    assert np.allclose(result, all_images_tile, atol=5.0)
-
-
-def test_create_tiles_with_all_images_and_custom_grid(
-    all_images: list[np.ndarray], all_images_tile_and_custom_grid: np.ndarray
-) -> None:
-    # when
-    result = create_tiles(
-        images=all_images,
-        grid_size=(3, 3),
-        single_tile_size=(240, 240),
-    )
-
-    # then
-    assert np.allclose(result, all_images_tile_and_custom_grid, atol=5.0)
-
-
-def test_create_tiles_with_all_images_and_custom_colors(
-    all_images: list[np.ndarray], all_images_tile_and_custom_colors: np.ndarray
-) -> None:
-    # when
-    result = create_tiles(
-        images=all_images,
-        tile_margin_color=(127, 127, 127),
-        tile_padding_color=(224, 224, 224),
-        single_tile_size=(240, 240),
-    )
-
-    # then
-    assert np.allclose(result, all_images_tile_and_custom_colors, atol=5.0)
-
-
-def test_create_tiles_with_all_images_and_titles(
-    all_images: list[np.ndarray],
-    all_images_tile_and_custom_colors_and_titles: np.ndarray,
-) -> None:
-    # when
-    result = create_tiles(
-        images=all_images,
-        titles=["Image 1", None, "Image 3", "Image 4"],
-        single_tile_size=(240, 240),
-    )
-
-    # then
-    assert np.allclose(result, all_images_tile_and_custom_colors_and_titles, atol=5.0)
-
-
-def test_create_tiles_with_all_images_and_titles_with_custom_configs(
-    all_images: list[np.ndarray],
-    all_images_tile_and_titles_with_custom_configs: np.ndarray,
-) -> None:
-    # when
-    result = create_tiles(
-        images=all_images,
-        titles=["Image 1", None, "Image 3", "Image 4"],
-        single_tile_size=(240, 240),
-        titles_anchors=[
-            Point(x=200, y=300),
-            Point(x=300, y=400),
-            None,
-            Point(x=300, y=400),
-        ],
-        titles_color=Color.RED,
-        titles_scale=1.5,
-        titles_thickness=3,
-        titles_padding=20,
-        titles_background_color=Color.BLACK,
-        default_title_placement="bottom",
-    )
-
-    # then
-    assert np.allclose(result, all_images_tile_and_titles_with_custom_configs, atol=5.0)
-
-
-def test_create_tiles_with_all_images_and_custom_grid_to_small_to_fit_images(
-    all_images: list[np.ndarray],
-) -> None:
-    with pytest.raises(ValueError):
-        _ = create_tiles(images=all_images, grid_size=(2, 2))
+@pytest.mark.parametrize(
+    "image, expected",
+    [
+        # NumPy RGB
+        (np.zeros((4, 6, 3), dtype=np.uint8), (6, 4)),
+        # NumPy grayscale
+        (np.zeros((10, 20), dtype=np.uint8), (20, 10)),
+        # Pillow RGB
+        (Image.new("RGB", (6, 4), color=0), (6, 4)),
+        # Pillow grayscale
+        (Image.new("L", (20, 10), color=0), (20, 10)),
+    ],
+)
+def test_get_image_resolution_wh(image, expected):
+    resolution = get_image_resolution_wh(image)
+    assert resolution == expected

@@ -1,16 +1,16 @@
 from __future__ import annotations
 
+import random
 from typing import Any
 
 import numpy as np
-import numpy.typing as npt
 
 from supervision.detection.core import Detections
-from supervision.keypoint.core import KeyPoints
+from supervision.key_points.core import KeyPoints
 
 
 def mock_detections(
-    xyxy: npt.NDArray[np.float32],
+    xyxy: list[list[float]],
     mask: list[np.ndarray] | None = None,
     confidence: list[float] | None = None,
     class_id: list[int] | None = None,
@@ -34,9 +34,9 @@ def mock_detections(
     )
 
 
-def mock_keypoints(
-    xy: npt.NDArray[np.float32],
-    confidence: list[float] | None = None,
+def mock_key_points(
+    xy: list[list[list[float]]],
+    confidence: list[list[float]] | None = None,
     class_id: list[int] | None = None,
     data: dict[str, list[Any]] | None = None,
 ) -> KeyPoints:
@@ -51,6 +51,50 @@ def mock_keypoints(
         class_id=(class_id if class_id is None else np.array(class_id, dtype=int)),
         data=convert_data(data) if data else {},
     )
+
+
+def random_boxes(
+    count: int,
+    image_size: tuple[int, int] = (1920, 1080),
+    min_box_size: int = 20,
+    max_box_size: int = 200,
+    seed: int | None = None,
+) -> np.ndarray:
+    """
+    Generate random bounding boxes within given image dimensions and size constraints.
+
+    Creates `count` bounding boxes randomly positioned and sized, ensuring each
+    stays within image bounds and has width and height in the specified range.
+
+    Args:
+        count (`int`): Number of random bounding boxes to generate.
+        image_size (`tuple[int, int]`): Image size as `(width, height)`.
+        min_box_size (`int`): Minimum side length (pixels) for generated boxes.
+        max_box_size (`int`): Maximum side length (pixels) for generated boxes.
+        seed (`int` or `None`): Optional random seed for reproducibility.
+
+    Returns:
+        (`numpy.ndarray`): Array of shape `(count, 4)` with bounding boxes as
+            `(x_min, y_min, x_max, y_max)`.
+    """
+    if seed is not None:
+        random.seed(seed)
+
+    img_w, img_h = image_size
+    out = np.zeros((count, 4), dtype=np.float32)
+
+    for i in range(count):
+        w = random.uniform(min_box_size, max_box_size)
+        h = random.uniform(min_box_size, max_box_size)
+
+        x_min = random.uniform(0, img_w - w)
+        y_min = random.uniform(0, img_h - h)
+        x_max = x_min + w
+        y_max = y_min + h
+
+        out[i] = (x_min, y_min, x_max, y_max)
+
+    return out
 
 
 def assert_almost_equal(actual, expected, tolerance=1e-5):

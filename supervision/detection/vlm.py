@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import base64
 import io
 import json
@@ -27,7 +28,8 @@ class LMM(Enum):
     Attributes:
         PALIGEMMA: Google's PaliGemma vision-language model.
         FLORENCE_2: Microsoft's Florence-2 vision-language model.
-        QWEN_2_5_VL: Qwen2.5-VL open vision-language model from Alibaba.
+        QWEN_2_5_VL: Qwen2.5-VL open vision-language model from Alibaba.\
+        QWEN_3_VL: Qwen3-VL open vision-language model from Alibaba.
         GOOGLE_GEMINI_2_0: Google Gemini 2.0 vision-language model.
         GOOGLE_GEMINI_2_5: Google Gemini 2.5 vision-language model.
         MOONDREAM: The Moondream vision-language model.
@@ -36,6 +38,8 @@ class LMM(Enum):
     PALIGEMMA = "paligemma"
     FLORENCE_2 = "florence_2"
     QWEN_2_5_VL = "qwen_2_5_vl"
+    QWEN_3_VL = "qwen_3_vl"
+    DEEPSEEK_VL_2 = "deepseek_vl_2"
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
     MOONDREAM = "moondream"
@@ -68,6 +72,7 @@ class VLM(Enum):
         PALIGEMMA: Google's PaliGemma vision-language model.
         FLORENCE_2: Microsoft's Florence-2 vision-language model.
         QWEN_2_5_VL: Qwen2.5-VL open vision-language model from Alibaba.
+        QWEN_3_VL: Qwen3-VL open vision-language model from Alibaba.
         GOOGLE_GEMINI_2_0: Google Gemini 2.0 vision-language model.
         GOOGLE_GEMINI_2_5: Google Gemini 2.5 vision-language model.
         MOONDREAM: The Moondream vision-language model.
@@ -76,6 +81,8 @@ class VLM(Enum):
     PALIGEMMA = "paligemma"
     FLORENCE_2 = "florence_2"
     QWEN_2_5_VL = "qwen_2_5_vl"
+    QWEN_3_VL = "qwen_3_vl"
+    DEEPSEEK_VL_2 = "deepseek_vl_2"
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
     MOONDREAM = "moondream"
@@ -104,6 +111,8 @@ RESULT_TYPES: dict[VLM, type] = {
     VLM.PALIGEMMA: str,
     VLM.FLORENCE_2: dict,
     VLM.QWEN_2_5_VL: str,
+    VLM.QWEN_3_VL: str,
+    VLM.DEEPSEEK_VL_2: str,
     VLM.GOOGLE_GEMINI_2_0: str,
     VLM.GOOGLE_GEMINI_2_5: str,
     VLM.MOONDREAM: dict,
@@ -113,6 +122,8 @@ REQUIRED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.PALIGEMMA: ["resolution_wh"],
     VLM.FLORENCE_2: ["resolution_wh"],
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh"],
+    VLM.QWEN_3_VL: ["resolution_wh"],
+    VLM.DEEPSEEK_VL_2: ["resolution_wh"],
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh"],
     VLM.MOONDREAM: ["resolution_wh"],
@@ -122,6 +133,8 @@ ALLOWED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.PALIGEMMA: ["resolution_wh", "classes"],
     VLM.FLORENCE_2: ["resolution_wh"],
     VLM.QWEN_2_5_VL: ["input_wh", "resolution_wh", "classes"],
+    VLM.QWEN_3_VL: ["resolution_wh", "classes"],
+    VLM.DEEPSEEK_VL_2: ["resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh", "classes"],
     VLM.MOONDREAM: ["resolution_wh"],
@@ -230,6 +243,51 @@ def from_paligemma(
     return xyxy, class_id, class_name
 
 
+def recover_truncated_qwen_2_5_vl_response(text: str) -> Any | None:
+    """
+    Attempt to recover and parse a truncated or malformed JSON snippet from Qwen-2.5-VL
+    output.
+
+    This utility extracts a JSON-like portion from a string that may be truncated or
+    malformed, cleans trailing commas, and attempts to parse it into a Python object.
+
+    Args:
+        text (str): Raw text containing the JSON snippet possibly truncated or
+            incomplete.
+
+    Returns:
+        Parsed Python object (usually list) if recovery and parsing succeed;
+            otherwise `None`.
+    """
+    try:
+        first_bracket = text.find("[")
+        if first_bracket == -1:
+            return None
+        snippet = text[first_bracket:]
+
+        last_brace = snippet.rfind("}")
+        if last_brace == -1:
+            return None
+
+        snippet = snippet[: last_brace + 1]
+
+        prefix_end = snippet.find("[")
+        if prefix_end == -1:
+            return None
+
+        prefix = snippet[: prefix_end + 1]
+        body = snippet[prefix_end + 1 :].rstrip()
+
+        if body.endswith(","):
+            body = body[:-1].rstrip()
+
+        repaired = prefix + body + "]"
+
+        return json.loads(repaired)
+    except Exception:
+        return None
+
+
 def from_qwen_2_5_vl(
     result: str,
     input_wh: tuple[int, int],
@@ -237,7 +295,7 @@ def from_qwen_2_5_vl(
     classes: list[str] | None = None,
 ) -> tuple[np.ndarray, np.ndarray | None, np.ndarray]:
     """
-    Parse and scale bounding boxes from Qwen-2.5-VL style JSON output.
+    Parse and rescale bounding boxes and class labels from Qwen-2.5-VL JSON output.
 
     The JSON is expected to be enclosed in triple backticks with the format:
       ```json
@@ -248,38 +306,52 @@ def from_qwen_2_5_vl(
       ```
 
     Args:
-        result: String containing the JSON snippet enclosed by triple backticks.
-        input_wh: (input_width, input_height) describing the original bounding box
-            scale.
-        resolution_wh: (output_width, output_height) to which we rescale the boxes.
-        classes: Optional list of valid class names. If provided, returned boxes/labels
-            are filtered to only those classes found here.
+        result (str): String containing Qwen-2.5-VL JSON bounding box and label data.
+        input_wh (tuple[int, int]): Width and height of the coordinate space where boxes
+            are normalized.
+        resolution_wh (tuple[int, int]): Target width and height to scale bounding
+            boxes.
+        classes (list[str] or None): Optional list of valid class names to filter
+            results. If provided, only boxes with labels in this list are returned.
 
     Returns:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing
-            the bounding boxes coordinates in format `[x1, y1, x2, y2]`
-        class_id (Optional[np.ndarray]): An array of shape `(n,)` containing
-            the class indices for each bounding box (or None if `classes` is not
-            provided)
-        class_name (np.ndarray): An array of shape `(n,)` containing
-            the class labels for each bounding box
+        xyxy (np.ndarray): Array of shape `(N, 4)` with rescaled bounding boxes in
+            `(x_min, y_min, x_max, y_max)` format.
+        class_id (np.ndarray or None): Array of shape `(N,)` with indices of classes,
+            or `None` if no filtering applied.
+        class_name (np.ndarray): Array of shape `(N,)` with class names as strings.
     """
 
     in_w, in_h = validate_resolution(input_wh)
     out_w, out_h = validate_resolution(resolution_wh)
 
-    pattern = re.compile(r"```json\s*(.*?)\s*```", re.DOTALL)
+    text = result.strip()
+    text = re.sub(r"^```(json)?", "", text, flags=re.IGNORECASE).strip()
+    text = re.sub(r"```$", "", text).strip()
 
-    match = pattern.search(result)
-    if not match:
-        return np.empty((0, 4)), None, np.empty((0,), dtype=str)
-
-    json_snippet = match.group(1)
+    start = text.find("[")
+    end = text.rfind("]")
+    if start != -1 and end != -1 and end > start:
+        text = text[start : end + 1].strip()
 
     try:
-        data = json.loads(json_snippet)
+        data = json.loads(text)
     except json.JSONDecodeError:
-        return np.empty((0, 4)), None, np.empty((0,), dtype=str)
+        repaired = recover_truncated_qwen_2_5_vl_response(text)
+        if repaired is not None:
+            data = repaired
+        else:
+            try:
+                data = ast.literal_eval(text)
+            except (ValueError, SyntaxError, TypeError):
+                return (
+                    np.empty((0, 4)),
+                    np.empty((0,), dtype=int),
+                    np.empty((0,), dtype=str),
+                )
+
+    if not isinstance(data, list):
+        return (np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str))
 
     boxes_list = []
     labels_list = []
@@ -291,7 +363,7 @@ def from_qwen_2_5_vl(
         labels_list.append(item["label"])
 
     if not boxes_list:
-        return np.empty((0, 4)), None, np.empty((0,), dtype=str)
+        return (np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str))
 
     xyxy = np.array(boxes_list, dtype=float)
     class_name = np.array(labels_list, dtype=str)
@@ -306,6 +378,109 @@ def from_qwen_2_5_vl(
         xyxy = xyxy[mask]
         class_name = class_name[mask]
         class_id = np.array([classes.index(label) for label in class_name], dtype=int)
+
+    return xyxy, class_id, class_name
+
+
+def from_qwen_3_vl(
+    result: str,
+    resolution_wh: tuple[int, int],
+    classes: list[str] | None = None,
+) -> tuple[np.ndarray, np.ndarray | None, np.ndarray]:
+    """
+    Parse and scale bounding boxes from Qwen-3-VL style JSON output.
+
+    Args:
+        result (str): String containing the Qwen-3-VL JSON output.
+        resolution_wh (tuple[int, int]): Target resolution `(width, height)` to
+            scale bounding boxes.
+        classes (list[str] or None): Optional list of valid classes to filter
+            results.
+
+    Returns:
+        xyxy (np.ndarray): Array of bounding boxes with shape `(N, 4)` in
+            `(x_min, y_min, x_max, y_max)` format scaled to `resolution_wh`.
+        class_id (np.ndarray or None): Array of class indices for each box, or
+            None if no filtering by classes.
+        class_name (np.ndarray): Array of class names as strings.
+    """
+    return from_qwen_2_5_vl(
+        result=result,
+        input_wh=(1000, 1000),
+        resolution_wh=resolution_wh,
+        classes=classes,
+    )
+
+
+def from_deepseek_vl_2(
+    result: str, resolution_wh: tuple[int, int], classes: list[str] | None = None
+) -> tuple[np.ndarray, np.ndarray | None, np.ndarray]:
+    """
+    Parse bounding boxes from deepseek-vl2-formatted text, scale them to the specified
+    resolution, and optionally filter by classes.
+
+    The DeepSeek-VL2 output typically contains pairs of <|ref|> ... <|/ref|> labels
+    and <|det|> ... <|/det|> bounding box definitions. Each <|det|> section may
+    contain one or more bounding boxes in the form [[x1, y1, x2, y2], [x1, y1, x2, y2], ...]
+    (scaled to 0..999). For example:
+
+    ```
+    <|ref|>The giraffe at the back<|/ref|><|det|>[[580, 270, 999, 904]]<|/det|><|ref|>The giraffe at the front<|/ref|><|det|>[[26, 31, 632, 998]]<|/det|><|end▁of▁sentence|>
+    ```
+
+    Args:
+        result: String containing deepseek-vl2-formatted locations and labels.
+        resolution_wh: Tuple (width, height) to which we scale the box coordinates.
+        classes: Optional list of valid class names. If provided, boxes and labels not
+            in this list are filtered out.
+
+    Returns:
+        xyxy (np.ndarray): An array of shape `(n, 4)` containing
+            the bounding boxes coordinates in format `[x1, y1, x2, y2]`.
+        class_id (Optional[np.ndarray]): An array of shape `(n,)` containing
+            the class indices for each bounding box (or `None` if classes is not
+            provided).
+        class_name (np.ndarray): An array of shape `(n,)` containing
+            the class labels for each bounding box.
+    """  # noqa: E501
+
+    width, height = resolution_wh
+    label_segments = re.findall(r"<\|ref\|>(.*?)<\|/ref\|>", result, flags=re.S)
+    detection_segments = re.findall(r"<\|det\|>(.*?)<\|/det\|>", result, flags=re.S)
+
+    if len(label_segments) != len(detection_segments):
+        raise ValueError(
+            f"Number of ref tags ({len(label_segments)}) "
+            f"and det tags ({len(detection_segments)}) in the result must be equal."
+        )
+
+    xyxy, class_name_list = [], []
+    for label, detection_blob in zip(label_segments, detection_segments):
+        current_class_name = label.strip()
+        for box in re.findall(r"\[(.*?)\]", detection_blob):
+            x1, y1, x2, y2 = map(float, box.strip("[]").split(","))
+            xyxy.append(
+                [
+                    (x1 / 999 * width),
+                    (y1 / 999 * height),
+                    (x2 / 999 * width),
+                    (y2 / 999 * height),
+                ]
+            )
+            class_name_list.append(current_class_name)
+
+    xyxy = np.array(xyxy, dtype=np.float32)
+    class_name = np.array(class_name_list)
+
+    if classes is not None:
+        mask = np.array([name in classes for name in class_name], dtype=bool)
+        xyxy = xyxy[mask]
+        class_name = class_name[mask]
+        class_id = np.array([classes.index(name) for name in class_name])
+    else:
+        unique_classes = sorted(list(set(class_name)))
+        class_to_id = {name: i for i, name in enumerate(unique_classes)}
+        class_id = np.array([class_to_id[name] for name in class_name])
 
     return xyxy, class_id, class_name
 
@@ -460,7 +635,7 @@ def from_google_gemini_2_0(
         return np.empty((0, 4)), None, np.empty((0,), dtype=str)
 
     labels = []
-    boxes_list = []
+    xyxy = []
 
     for item in data:
         if "box_2d" not in item or "label" not in item:
@@ -468,18 +643,16 @@ def from_google_gemini_2_0(
         labels.append(item["label"])
         box = item["box_2d"]
         # Gemini bbox order is [y_min, x_min, y_max, x_max]
-        boxes_list.append(
-            denormalize_boxes(
-                np.array([box[1], box[0], box[3], box[2]]).astype(np.float64),
-                resolution_wh=(w, h),
-                normalization_factor=1000,
-            )
-        )
+        xyxy.append([box[1], box[0], box[3], box[2]])
 
-    if not boxes_list:
+    if len(xyxy) == 0:
         return np.empty((0, 4)), None, np.empty((0,), dtype=str)
 
-    xyxy = np.array(boxes_list)
+    xyxy = denormalize_boxes(
+        np.array(xyxy, dtype=np.float64),
+        resolution_wh=(w, h),
+        normalization_factor=1000,
+    )
     class_name = np.array(labels)
     class_id = None
 
@@ -571,10 +744,10 @@ def from_google_gemini_2_5(
         box = item["box_2d"]
         # Gemini bbox order is [y_min, x_min, y_max, x_max]
         absolute_bbox = denormalize_boxes(
-            np.array([box[1], box[0], box[3], box[2]]).astype(np.float64),
+            np.array([[box[1], box[0], box[3], box[2]]]).astype(np.float64),
             resolution_wh=(w, h),
             normalization_factor=1000,
-        )
+        )[0]
         boxes_list.append(absolute_bbox)
 
         if "mask" in item:
@@ -657,7 +830,7 @@ def from_google_gemini_2_5(
 def from_moondream(
     result: dict,
     resolution_wh: tuple[int, int],
-) -> tuple[np.ndarray]:
+) -> np.ndarray:
     """
     Parse and scale bounding boxes from moondream JSON output.
 
@@ -695,7 +868,7 @@ def from_moondream(
     if "objects" not in result or not isinstance(result["objects"], list):
         return np.empty((0, 4), dtype=float)
 
-    denormalize_xyxy = []
+    xyxy = []
 
     for item in result["objects"]:
         if not all(k in item for k in ["x_min", "y_min", "x_max", "y_max"]):
@@ -706,14 +879,12 @@ def from_moondream(
         x_max = item["x_max"]
         y_max = item["y_max"]
 
-        denormalize_xyxy.append(
-            denormalize_boxes(
-                np.array([x_min, y_min, x_max, y_max]).astype(np.float64),
-                resolution_wh=(w, h),
-            )
-        )
+        xyxy.append([x_min, y_min, x_max, y_max])
 
-    if not denormalize_xyxy:
+    if len(xyxy) == 0:
         return np.empty((0, 4))
 
-    return np.array(denormalize_xyxy, dtype=float)
+    return denormalize_boxes(
+        np.array(xyxy).astype(np.float64),
+        resolution_wh=(w, h),
+    )

@@ -40,12 +40,14 @@ from supervision.detection.utils.masks import calculate_masks_centroids
 from supervision.detection.vlm import (
     LMM,
     VLM,
+    from_deepseek_vl_2,
     from_florence_2,
     from_google_gemini_2_0,
     from_google_gemini_2_5,
     from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
+    from_qwen_3_vl,
     validate_vlm_parameters,
 )
 from supervision.geometry.core import Position
@@ -295,18 +297,24 @@ class Detections:
                 class_id=np.arange(len(ultralytics_results)),
             )
 
-        class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
-        class_names = np.array([ultralytics_results.names[i] for i in class_id])
-        return cls(
-            xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
-            confidence=ultralytics_results.boxes.conf.cpu().numpy(),
-            class_id=class_id,
-            mask=extract_ultralytics_masks(ultralytics_results),
-            tracker_id=ultralytics_results.boxes.id.int().cpu().numpy()
-            if ultralytics_results.boxes.id is not None
-            else None,
-            data={CLASS_NAME_DATA_FIELD: class_names},
-        )
+        if (
+            hasattr(ultralytics_results, "boxes")
+            and ultralytics_results.boxes is not None
+        ):
+            class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
+            class_names = np.array([ultralytics_results.names[i] for i in class_id])
+            return cls(
+                xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
+                confidence=ultralytics_results.boxes.conf.cpu().numpy(),
+                class_id=class_id,
+                mask=extract_ultralytics_masks(ultralytics_results),
+                tracker_id=ultralytics_results.boxes.id.int().cpu().numpy()
+                if ultralytics_results.boxes.id is not None
+                else None,
+                data={CLASS_NAME_DATA_FIELD: class_names},
+            )
+
+        return cls.empty()
 
     @classmethod
     def from_yolo_nas(cls, yolo_nas_results) -> Detections:
@@ -830,6 +838,7 @@ class Detections:
         | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
+        | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
 
         Args:
             lmm (Union[LMM, str]): The type of LMM (Large Multimodal Model) to use.
@@ -927,6 +936,36 @@ class Detections:
                 sv.LMM.QWEN_2_5_VL,
                 qwen_2_5_vl_result,
                 input_wh=(1000, 1000),
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+            detections.xyxy
+            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
+
+            detections.class_id
+            # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
+        !!! example "Qwen3-VL"
+
+            ```python
+            import supervision as sv
+
+            qwen_3_vl_result = \"\"\"```json
+            [
+                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+            ]
+            ```\"\"\"
+            detections = sv.Detections.from_lmm(
+                sv.LMM.QWEN_3_VL,
+                qwen_3_vl_result,
                 resolution_wh=(1000, 1000),
                 classes=['cat', 'dog'],
             )
@@ -1117,6 +1156,47 @@ class Detections:
             # array([[1752.28,  818.82, 2165.72, 1229.14],
             #        [1908.01, 1346.67, 2585.99, 2024.11]])
             ```
+
+        !!! example "DeepSeek-VL2"
+
+
+            ??? tip "Prompt engineering"
+
+                To get the best results from DeepSeek-VL2, use optimized prompts that leverage
+                its object detection and visual grounding capabilities effectively.
+
+                **For general object detection, use the following user prompt:**
+
+                ```
+                <image>\\n<|ref|>The giraffe at the front<|/ref|>
+                ```
+
+                **For visual grounding, use the following user prompt:**
+
+                ```
+                <image>\\n<|grounding|>Detect the giraffes
+                ```
+
+            ```python
+            from PIL import Image
+            import supervision as sv
+
+            deepseek_vl2_result = "<|ref|>The giraffe at the back<|/ref|><|det|>[[580, 270, 999, 904]]<|/det|><|ref|>The giraffe at the front<|/ref|><|det|>[[26, 31, 632, 998]]<|/det|><|end▁of▁sentence|>"
+
+            detections = sv.Detections.from_vlm(
+                vlm=sv.VLM.DEEPSEEK_VL_2, result=deepseek_vl2_result, resolution_wh=image.size
+            )
+
+            detections.xyxy
+            # array([[ 420,  293,  724,  982],
+            #        [  18,   33,  458, 1084]])
+
+            detections.class_id
+            # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['The giraffe at the back', 'The giraffe at the front'], dtype='<U24')}
+            ```
         """  # noqa: E501
 
         # filler logic mapping old from_lmm to new from_vlm
@@ -1124,6 +1204,7 @@ class Detections:
             LMM.PALIGEMMA: VLM.PALIGEMMA,
             LMM.FLORENCE_2: VLM.FLORENCE_2,
             LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL,
+            LMM.DEEPSEEK_VL_2: VLM.DEEPSEEK_VL_2,
             LMM.GOOGLE_GEMINI_2_0: VLM.GOOGLE_GEMINI_2_0,
             LMM.GOOGLE_GEMINI_2_5: VLM.GOOGLE_GEMINI_2_5,
         }
@@ -1161,9 +1242,11 @@ class Detections:
         | PaliGemma           | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
         | PaliGemma 2         | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
         | Qwen2.5-VL          | `QWEN_2_5_VL`        | detection               | `resolution_wh`, `input_wh` | `classes`           |
+        | Qwen3-VL            | `QWEN_3_VL`          | detection               | `resolution_wh`,            | `classes`           |
         | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
+        | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
 
         Args:
             vlm (Union[VLM, str]): The type of VLM (Vision Language Model) to use.
@@ -1261,6 +1344,36 @@ class Detections:
                 sv.VLM.QWEN_2_5_VL,
                 qwen_2_5_vl_result,
                 input_wh=(1000, 1000),
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+            detections.xyxy
+            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
+
+            detections.class_id
+            # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
+        !!! example "Qwen3-VL"
+
+            ```python
+            import supervision as sv
+
+            qwen_3_vl_result = \"\"\"```json
+            [
+                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+            ]
+            ```\"\"\"
+            detections = sv.Detections.from_vlm(
+                sv.VLM.QWEN_3_VL,
+                qwen_3_vl_result,
                 resolution_wh=(1000, 1000),
                 classes=['cat', 'dog'],
             )
@@ -1452,6 +1565,47 @@ class Detections:
             #        [1908.01, 1346.67, 2585.99, 2024.11]])
             ```
 
+        !!! example "DeepSeek-VL2"
+
+
+            ??? tip "Prompt engineering"
+
+                To get the best results from DeepSeek-VL2, use optimized prompts that leverage
+                its object detection and visual grounding capabilities effectively.
+
+                **For general object detection, use the following user prompt:**
+
+                ```
+                <image>\\n<|ref|>The giraffe at the front<|/ref|>
+                ```
+
+                **For visual grounding, use the following user prompt:**
+
+                ```
+                <image>\\n<|grounding|>Detect the giraffes
+                ```
+
+            ```python
+            from PIL import Image
+            import supervision as sv
+
+            deepseek_vl2_result = "<|ref|>The giraffe at the back<|/ref|><|det|>[[580, 270, 999, 904]]<|/det|><|ref|>The giraffe at the front<|/ref|><|det|>[[26, 31, 632, 998]]<|/det|><|end▁of▁sentence|>"
+
+            detections = sv.Detections.from_vlm(
+                vlm=sv.VLM.DEEPSEEK_VL_2, result=deepseek_vl2_result, resolution_wh=image.size
+            )
+
+            detections.xyxy
+            # array([[ 420,  293,  724,  982],
+            #        [  18,   33,  458, 1084]])
+
+            detections.class_id
+            # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['The giraffe at the back', 'The giraffe at the front'], dtype='<U24')}
+            ```
+
         """  # noqa: E501
 
         vlm = validate_vlm_parameters(vlm, result, kwargs)
@@ -1463,6 +1617,18 @@ class Detections:
 
         if vlm == VLM.QWEN_2_5_VL:
             xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            confidence = np.ones(len(xyxy), dtype=float)
+            return cls(xyxy=xyxy, class_id=class_id, confidence=confidence, data=data)
+
+        if vlm == VLM.QWEN_3_VL:
+            xyxy, class_id, class_name = from_qwen_3_vl(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            confidence = np.ones(len(xyxy), dtype=float)
+            return cls(xyxy=xyxy, class_id=class_id, confidence=confidence, data=data)
+
+        if vlm == VLM.DEEPSEEK_VL_2:
+            xyxy, class_id, class_name = from_deepseek_vl_2(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
@@ -1921,6 +2087,43 @@ class Detections:
                 where n is the number of detections.
         """
         return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
+
+    @property
+    def box_aspect_ratio(self) -> np.ndarray:
+        """
+        Compute the aspect ratio (width divided by height) for each bounding box.
+
+        Returns:
+            np.ndarray: Array of shape `(N,)` containing aspect ratios, where `N` is the
+            number of boxes (width / height for each box).
+
+        Examples:
+            ```python
+            import numpy as np
+            import supervision as sv
+
+            xyxy = np.array([
+                [10, 10, 50, 50],
+                [60, 10, 180, 50],
+                [10, 60, 50, 180],
+            ])
+
+            detections = sv.Detections(xyxy=xyxy)
+
+            detections.box_aspect_ratio
+            # array([1.0, 3.0, 0.33333333])
+
+            ar = detections.box_aspect_ratio
+            detections[(ar < 2.0) & (ar > 0.5)].xyxy
+            # array([[10., 10., 50., 50.]])
+            ```
+        """
+        widths = self.xyxy[:, 2] - self.xyxy[:, 0]
+        heights = self.xyxy[:, 3] - self.xyxy[:, 1]
+
+        aspect_ratios = np.full_like(widths, np.nan, dtype=np.float64)
+        np.divide(widths, heights, out=aspect_ratios, where=heights != 0)
+        return aspect_ratios
 
     def with_nms(
         self,

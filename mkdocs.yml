@@ -26,7 +26,7 @@ extra:
 
 extra_css:
   - stylesheets/extra.css
-  - stylesheets/cookbooks-card.css
+  - stylesheets/cookbooks_card.css
 
 nav:
   - Home: index.md
@@ -47,6 +47,7 @@ nav:
           - Boxes: detection/utils/boxes.md
           - Masks: detection/utils/masks.md
           - Polygons: detection/utils/polygons.md
+          - VLMs: detection/utils/vlms.md
       - Keypoint Detection:
           - Core: keypoint/core.md
           - Annotators: keypoint/annotators.md
