@@ -2088,6 +2088,43 @@ class Detections:
         """
         return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
 
+    @property
+    def box_aspect_ratio(self) -> np.ndarray:
+        """
+        Compute the aspect ratio (width divided by height) for each bounding box.
+
+        Returns:
+            np.ndarray: Array of shape `(N,)` containing aspect ratios, where `N` is the
+            number of boxes (width / height for each box).
+
+        Examples:
+            ```python
+            import numpy as np
+            import supervision as sv
+
+            xyxy = np.array([
+                [10, 10, 50, 50],
+                [60, 10, 180, 50],
+                [10, 60, 50, 180],
+            ])
+
+            detections = sv.Detections(xyxy=xyxy)
+
+            detections.box_aspect_ratio
+            # array([1.0, 3.0, 0.33333333])
+
+            ar = detections.box_aspect_ratio
+            detections[(ar < 2.0) & (ar > 0.5)].xyxy
+            # array([[10., 10., 50., 50.]])
+            ```
+        """
+        widths = self.xyxy[:, 2] - self.xyxy[:, 0]
+        heights = self.xyxy[:, 3] - self.xyxy[:, 1]
+
+        aspect_ratios = np.full_like(widths, np.nan, dtype=np.float64)
+        np.divide(widths, heights, out=aspect_ratios, where=heights != 0)
+        return aspect_ratios
+
     def with_nms(
         self,
         threshold: float = 0.5,

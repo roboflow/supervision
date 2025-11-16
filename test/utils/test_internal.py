@@ -145,6 +145,7 @@ class MockDataclass:
                 "metadata",
                 "area",
                 "box_area",
+                "box_aspect_ratio",
             },
             DoesNotRaise(),
         ),

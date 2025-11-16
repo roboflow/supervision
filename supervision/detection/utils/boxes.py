@@ -6,57 +6,6 @@ import numpy.typing as npt
 from supervision.detection.utils.iou_and_nms import box_iou_batch
 
 
-def box_aspect_ratio(xyxy: np.ndarray) -> np.ndarray:
-    """
-    Calculate aspect ratios of bounding boxes given in xyxy format.
-
-    Computes the width divided by height for each bounding box. Returns NaN
-    for boxes with zero height to avoid division errors.
-
-    Args:
-        xyxy (`numpy.ndarray`): Array of bounding boxes in
-            `(x_min, y_min, x_max, y_max)` format with shape `(N, 4)`.
-
-    Returns:
-        `numpy.ndarray`: Array of aspect ratios with shape `(N,)`, where each element is
-            the width divided by height of a box. Elements are NaN if height is zero.
-
-    Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
-
-        xyxy = np.array([
-            [10, 20, 30, 50],
-            [0, 0, 40, 10],
-        ])
-
-        sv.box_aspect_ratio(xyxy)
-        # array([0.66666667, 4.        ])
-
-        xyxy = np.array([
-            [10, 10, 30, 10],
-            [5, 5, 25, 25],
-        ])
-
-        sv.box_aspect_ratio(xyxy)
-        # array([       nan, 1.        ])
-        ```
-    """
-    widths = xyxy[:, 2] - xyxy[:, 0]
-    heights = xyxy[:, 3] - xyxy[:, 1]
-
-    aspect_ratios = np.full_like(widths, np.nan, dtype=np.float64)
-    np.divide(
-        widths,
-        heights,
-        out=aspect_ratios,
-        where=heights != 0,
-    )
-
-    return aspect_ratios
-
-
 def clip_boxes(xyxy: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
     """
     Clips bounding boxes coordinates to fit within the frame resolution.
