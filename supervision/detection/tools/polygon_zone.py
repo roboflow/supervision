@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import replace
 
 import cv2
 import numpy as np
 import numpy.typing as npt
 
 from supervision import Detections
-from supervision.detection.utils.boxes import clip_boxes
 from supervision.detection.utils.converters import polygon_to_mask
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
@@ -31,9 +29,11 @@ class PolygonZone:
             `(N, 2)`, containing the `x`, `y` coordinates of the points.
         triggering_anchors (Iterable[sv.Position]): A list of positions specifying
             which anchors of the detections bounding box to consider when deciding on
-            whether the detection fits within the PolygonZone
+            whether the detection fits within the PolygonZone. All points must reside
+            in the zone to be considered occupants.
             (default: (sv.Position.BOTTOM_CENTER,)).
         current_count (int): The current count of detected objects within the zone
+        max_coords (np.ndarray): The X and Y max values to contain the given polygon.
         mask (np.ndarray): The 2D bool mask for the polygon zone
 
     Example:
@@ -64,6 +64,15 @@ class PolygonZone:
         polygon: npt.NDArray[np.int64],
         triggering_anchors: Iterable[Position] = (Position.BOTTOM_CENTER,),
     ):
+        """
+        Args:
+            polygon (np.ndarray): A polygon represented by a numpy array of shape
+            `(N, 2)`, containing the `x`, `y` coordinates of the points.
+            triggering_anchors (Iterable[sv.Position]): A list of positions specifying
+                which anchors of the detections bounding box to consider when deciding
+                on whether the detection fits within the PolygonZone
+                (default: (sv.Position.BOTTOM_CENTER,)).
+        """
         self.polygon = polygon.astype(int)
         self.triggering_anchors = triggering_anchors
         if not list(self.triggering_anchors):
@@ -72,7 +81,9 @@ class PolygonZone:
         self.current_count = 0
 
         x_max, y_max = np.max(polygon, axis=0)
-        self.frame_resolution_wh = (x_max + 1, y_max + 1)
+        x_min, y_min = np.min(polygon, axis=0)
+        self.max_coords = np.array([x_max + 1, y_max + 1])
+        self.min_coords = np.array([x_min, y_min])
         self.mask = polygon_to_mask(
             polygon=polygon, resolution_wh=(x_max + 2, y_max + 2)
         )
@@ -89,27 +100,32 @@ class PolygonZone:
             np.ndarray: A boolean numpy array indicating
                 if each detection is within the polygon zone
         """
-
-        clipped_xyxy = clip_boxes(
-            xyxy=detections.xyxy, resolution_wh=self.frame_resolution_wh
-        )
-        clipped_detections = replace(detections, xyxy=clipped_xyxy)
-        all_clipped_anchors = np.array(
+        # Generate anchor points for the given boxes
+        # Shape is [num triggering anchors, num dets, 2]
+        anchor_pts = np.array(
             [
-                np.ceil(clipped_detections.get_anchors_coordinates(anchor)).astype(int)
+                np.ceil(detections.get_anchors_coordinates(anchor)).astype(int)
                 for anchor in self.triggering_anchors
             ]
         )
-
-        is_in_zone: npt.NDArray[np.bool_] = (
-            self.mask[all_clipped_anchors[:, :, 1], all_clipped_anchors[:, :, 0]]
-            .transpose()
-            .astype(bool)
-        )
-
-        is_in_zone: npt.NDArray[np.bool_] = np.all(is_in_zone, axis=1)
-        self.current_count = int(np.sum(is_in_zone))
-        return is_in_zone.astype(bool)
+        # Mask all anchor points that exceed the ROI bounds in question
+        max_mask = np.all(anchor_pts <= self.max_coords, axis=-1)
+        min_mask = np.all(anchor_pts >= self.min_coords, axis=-1)
+        # Find which boxes meet both criteria
+        mask = np.logical_and(max_mask, min_mask)
+        all_mask = np.all(mask, axis=0)
+        in_zone = np.flatnonzero(all_mask)
+        # Select only those anchor points that won't exceed our mask
+        masked_anchors = anchor_pts[:, in_zone, :]
+        is_in_zone: npt.NDArray[np.bool_] = self.mask[
+            masked_anchors[:, :, 1], masked_anchors[:, :, 0]
+        ].astype(bool)
+        # Updated original array with new boolean values based on complex geo
+        mask[:, in_zone] = is_in_zone
+        # Collapse into 1d array requiring ALL points to be within the zone
+        all_mask = np.all(mask, axis=0)
+        self.current_count = int(np.sum(all_mask))
+        return all_mask
 
 
 class PolygonZoneAnnotator:
