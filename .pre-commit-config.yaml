@@ -7,7 +7,7 @@ ci:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
         exclude: test/.*\.py
@@ -32,9 +32,9 @@ repos:
           additional_dependencies: ["bandit[toml]"]
 
   -   repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.12.5
+      rev: v0.13.3
       hooks:
-      -   id: ruff
+      -   id: ruff-check
           args: [--fix, --exit-non-zero-on-fix]
       -   id: ruff-format
           types_or: [ python, pyi, jupyter ]
