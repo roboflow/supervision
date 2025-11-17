@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import replace
 
 import cv2
 import numpy as np
 import numpy.typing as npt
 
 from supervision import Detections
-from supervision.detection.utils.boxes import clip_boxes
 from supervision.detection.utils.converters import polygon_to_mask
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
@@ -81,6 +79,11 @@ class PolygonZone:
         """
         Determines if the detections are within the polygon zone.
 
+        Anchor points are calculated from original (unclipped) detection boxes.
+        to ensure a single object can only appear in one zone. This prevents
+        detections spanning multiple non-overlapping ROIs from being counted
+        in multiple zones simultaneously.
+
         Parameters:
             detections (Detections): The detections
                 to be checked against the polygon zone
@@ -89,25 +92,35 @@ class PolygonZone:
             np.ndarray: A boolean numpy array indicating
                 if each detection is within the polygon zone
         """
+        if len(detections) == 0:
+            return np.array([], dtype=bool)
 
-        clipped_xyxy = clip_boxes(
-            xyxy=detections.xyxy, resolution_wh=self.frame_resolution_wh
-        )
-        clipped_detections = replace(detections, xyxy=clipped_xyxy)
-        all_clipped_anchors = np.array(
+        all_anchors = np.array(
             [
-                np.ceil(clipped_detections.get_anchors_coordinates(anchor)).astype(int)
-                for anchor in self.triggering_anchors
+                np.ceil(detections.get_anchors_coordinates(anchors)).astype(int)
+                for anchors in self.triggering_anchors
             ]
         )
 
-        is_in_zone: npt.NDArray[np.bool_] = (
-            self.mask[all_clipped_anchors[:, :, 1], all_clipped_anchors[:, :, 0]]
-            .transpose()
-            .astype(bool)
-        )
+        is_in_zone: npt.NDArray[np.bool_] = np.zeros(len(detections), dtype=bool)
 
-        is_in_zone: npt.NDArray[np.bool_] = np.all(is_in_zone, axis=1)
+        for detection_idx in range(len(detections)):
+            anchors = all_anchors[:, detection_idx, :]
+            all_in_zone = True
+
+            for anchor in anchors:
+                x, y = anchor
+
+                if x < 0 or y < 0 or x >= self.mask.shape[1] or y >= self.mask.shape[0]:
+                    all_in_zone = False
+                    break
+
+                if not self.mask[y, x]:
+                    all_in_zone = False
+                    break
+
+            is_in_zone[detection_idx] = all_in_zone
+
         self.current_count = int(np.sum(is_in_zone))
         return is_in_zone.astype(bool)
 
