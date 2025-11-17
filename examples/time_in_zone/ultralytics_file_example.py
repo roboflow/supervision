@@ -23,6 +23,7 @@ def main(
     confidence: float,
     iou: float,
     classes: list[int],
+    output_video_path: str = None,
 ) -> None:
     model = YOLO(weights)
     tracker = sv.ByteTrack(minimum_matching_threshold=0.5)
@@ -38,6 +39,32 @@ def main(
         for polygon in polygons
     ]
     timers = [FPSBasedTimer(video_info.fps) for _ in zones]
+
+    # Video writer setup
+    video_writer = None
+    if output_video_path:
+        # Use Twitter-compatible codec - try H264 first, then XVID
+        try:
+            fourcc = cv2.VideoWriter_fourcc(*"H264")
+            video_writer = cv2.VideoWriter(
+                output_video_path,
+                fourcc,
+                video_info.fps,
+                (video_info.width, video_info.height),
+            )
+            print(f"Video output being saved: {output_video_path}")
+            print("Using Twitter-compatible H.264 codec")
+        except:
+            # H264 desteklenmiyorsa XVID kullan
+            fourcc = cv2.VideoWriter_fourcc(*"XVID")
+            video_writer = cv2.VideoWriter(
+                output_video_path,
+                fourcc,
+                video_info.fps,
+                (video_info.width, video_info.height),
+            )
+            print(f"Video output being saved: {output_video_path}")
+            print("Using XVID codec (convert with FFmpeg for Twitter)")
 
     for frame in frames_generator:
         results = model(frame, verbose=False, device=device, conf=confidence)[0]
@@ -74,8 +101,19 @@ def main(
             )
 
         cv2.imshow("Processed Video", annotated_frame)
+
+        # Save frame to output video if writer is available
+        if video_writer is not None:
+            video_writer.write(annotated_frame)
+
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
+
+    # Cleanup
+    if video_writer is not None:
+        video_writer.release()
+        print(f"Video successfully saved: {output_video_path}")
+
     cv2.destroyAllWindows()
 
 
@@ -126,6 +164,12 @@ if __name__ == "__main__":
         default=[],
         help="List of class IDs to track. If empty, all classes are tracked.",
     )
+    parser.add_argument(
+        "--output_video_path",
+        type=str,
+        default=None,
+        help="Path to save the output video. If not provided, video will only be displayed.",
+    )
     args = parser.parse_args()
 
     main(
@@ -136,4 +180,5 @@ if __name__ == "__main__":
         confidence=args.confidence_threshold,
         iou=args.iou_threshold,
         classes=args.classes,
+        output_video_path=args.output_video_path,
     )
