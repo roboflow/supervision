@@ -142,6 +142,9 @@ class Color:
         Returns:
             Color: An instance representing the color.
 
+        Raises:
+            ValueError: If any RGB value is outside the range 0-255.
+
         Example:
             ```python
             import supervision as sv
@@ -151,6 +154,8 @@ class Color:
             ```
         """
         r, g, b = color_tuple
+        if not (0 <= r <= 255 and 0 <= g <= 255 and 0 <= b <= 255):
+            raise ValueError(f"RGB values must be in range 0-255, got ({r}, {g}, {b})")
         return cls(r=r, g=g, b=b)
 
     @classmethod
@@ -165,6 +170,9 @@ class Color:
         Returns:
             Color: An instance representing the color.
 
+        Raises:
+            ValueError: If any BGR value is outside the range 0-255.
+
         Example:
             ```python
             import supervision as sv
@@ -174,6 +182,8 @@ class Color:
             ```
         """
         b, g, r = color_tuple
+        if not (0 <= r <= 255 and 0 <= g <= 255 and 0 <= b <= 255):
+            raise ValueError(f"BGR values must be in range 0-255, got ({b}, {g}, {r})")
         return cls(r=r, g=g, b=b)
 
     def as_hex(self) -> str:

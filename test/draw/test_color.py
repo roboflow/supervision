@@ -50,3 +50,53 @@ def test_color_as_hex(
     with exception:
         result = color.as_hex()
         assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "color_tuple, expected_result, exception",
+    [
+        ((255, 255, 255), Color.WHITE, DoesNotRaise()),
+        ((0, 0, 0), Color.BLACK, DoesNotRaise()),
+        ((255, 0, 0), Color.RED, DoesNotRaise()),
+        ((0, 255, 0), Color.GREEN, DoesNotRaise()),
+        ((0, 0, 255), Color.BLUE, DoesNotRaise()),
+        ((128, 128, 0), Color(r=128, g=128, b=0), DoesNotRaise()),
+        ((300, 0, 0), None, pytest.raises(ValueError)),  # R out of range
+        ((0, -10, 0), None, pytest.raises(ValueError)),  # G out of range
+        ((0, 0, 500), None, pytest.raises(ValueError)),  # B out of range
+        ((300, -10, 500), None, pytest.raises(ValueError)),  # All out of range
+    ],
+)
+def test_color_from_rgb_tuple(
+    color_tuple: tuple[int, int, int],
+    expected_result: Color | None,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = Color.from_rgb_tuple(color_tuple=color_tuple)
+        assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "color_tuple, expected_result, exception",
+    [
+        ((255, 255, 255), Color.WHITE, DoesNotRaise()),
+        ((0, 0, 0), Color.BLACK, DoesNotRaise()),
+        ((0, 0, 255), Color.RED, DoesNotRaise()),  # BGR format
+        ((0, 255, 0), Color.GREEN, DoesNotRaise()),  # BGR format
+        ((255, 0, 0), Color.BLUE, DoesNotRaise()),  # BGR format
+        ((0, 128, 128), Color(r=128, g=128, b=0), DoesNotRaise()),  # BGR format
+        ((300, 0, 0), None, pytest.raises(ValueError)),  # B out of range
+        ((0, -10, 0), None, pytest.raises(ValueError)),  # G out of range
+        ((0, 0, 500), None, pytest.raises(ValueError)),  # R out of range
+        ((300, -10, 500), None, pytest.raises(ValueError)),  # All out of range
+    ],
+)
+def test_color_from_bgr_tuple(
+    color_tuple: tuple[int, int, int],
+    expected_result: Color | None,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = Color.from_bgr_tuple(color_tuple=color_tuple)
+        assert result == expected_result
