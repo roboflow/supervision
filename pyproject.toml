@@ -84,6 +84,9 @@ build = [
     "wheel>=0.40,<0.46",
     "build>=0.10,<1.4"
 ]
+video = [
+    "av>=15.0.0"
+]
 
 [tool.bandit]
 target = ["test", "supervision"]
