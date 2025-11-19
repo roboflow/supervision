@@ -456,3 +456,442 @@ def test_compute_average_precision(
             recall=recall, precision=precision
         )
         assert_almost_equal(result, expected_result, tolerance=0.01)
+
+
+@pytest.mark.parametrize(
+    "predictions, "
+    "targets, "
+    "classes, "
+    "conf_threshold, "
+    "iou_threshold, "
+    "expected_result, "
+    "exception",
+    [
+        # Test 1: Class priority over IoU - correct class with lower IoU should win
+        (
+            [
+                mock_detections(
+                    xyxy=[[0.1, 0.1, 2.1, 2.1], [0.0, 0.0, 2.0, 2.0]],
+                    class_id=[0, 1],
+                    confidence=[0.9, 0.95],
+                )
+            ],
+            [mock_detections(xyxy=[[0, 0, 2, 2]], class_id=[0])],
+            [0, 1, 2],
+            0.5,
+            0.5,
+            np.array(
+                [
+                    [1.0, 0.0, 0.0, 0.0],  # 1 TP
+                    [0.0, 0.0, 0.0, 0.0],  # none
+                    [0.0, 0.0, 0.0, 0.0],  # one
+                    [0.0, 1.0, 0.0, 0.0],  # 1 FP:
+                ]
+            ),
+            DoesNotRaise(),
+        ),
+        # Test 2: Multiple overlapping predictions with different classes
+        (
+            [
+                mock_detections(
+                    xyxy=[
+                        [0.1, 0.1, 2.1, 2.1],
+                        [0.2, 0.2, 2.2, 2.2],
+                        [0.3, 0.3, 2.3, 2.3],
+                        [4.1, 4.1, 6.1, 6.1],
+                    ],
+                    class_id=[0, 1, 2, 1],
+                    confidence=[0.9, 0.8, 0.7, 0.85],
+                )
+            ],
+            [mock_detections(xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1])],
+            [0, 1, 2],
+            0.5,
+            0.5,
+            np.array(
+                [
+                    [1.0, 0.0, 0.0, 0.0],  # 1 TP
+                    [0.0, 1.0, 0.0, 0.0],  # 1 TP
+                    [0.0, 0.0, 0.0, 0.0],  # none
+                    [0.0, 1.0, 1.0, 0.0],  # 2 FP
+                ]
+            ),
+            DoesNotRaise(),
+        ),
+        # Test 3: Confidence threshold filtering with edge cases
+        (
+            [
+                mock_detections(
+                    xyxy=[[0, 0, 2, 2], [4, 4, 6, 6], [8, 8, 10, 10]],
+                    class_id=[0, 1, 2],
+                    confidence=[0.6, 0.4, 0.8],  # middle one below threshold
+                )
+            ],
+            [mock_detections(xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1])],
+            [0, 1, 2],
+            0.5,
+            0.5,
+            np.array(
+                [
+                    [1.0, 0.0, 0.0, 0.0],  # 1 TP
+                    [0.0, 0.0, 0.0, 1.0],  # 1 FN (filtered by conf)
+                    [0.0, 0.0, 0.0, 0.0],  # none
+                    [0.0, 0.0, 1.0, 0.0],  # 1 FP
+                ]
+            ),
+            DoesNotRaise(),
+        ),
+        # Test 4: IoU threshold boundary cases (IoU = 0.5 exactly)
+        (
+            [
+                mock_detections(
+                    xyxy=[[0, 0, 1.5, 1.5], [4, 4, 5.5, 5.5]],  # IoU = 0.5 for both
+                    class_id=[0, 1],
+                    confidence=[0.9, 0.8],
+                )
+            ],
+            [mock_detections(xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1])],
+            [0, 1, 2],
+            0.5,
+            0.5,
+            np.array(
+                [
+                    [1.0, 0.0, 0.0, 0.0],  # 1 TP (IoU = 0.5 meets threshold)
+                    [0.0, 1.0, 0.0, 0.0],  # 1 TP (IoU = 0.5 meets threshold)
+                    [0.0, 0.0, 0.0, 0.0],  # none
+                    [0.0, 0.0, 0.0, 0.0],  # none
+                ]
+            ),
+            DoesNotRaise(),
+        ),
+        # Test 5: Chain of overlapping detections
+        (
+            [
+                mock_detections(
+                    xyxy=[[0.1, 0.1, 2.1, 2.1], [1.9, 1.9, 3.9, 3.9]],
+                    class_id=[0, 2],
+                    confidence=[0.9, 0.8],
+                )
+            ],
+            [
+                mock_detections(
+                    xyxy=[[0, 0, 2, 2], [1, 1, 3, 3], [2, 2, 4, 4]], class_id=[0, 1, 2]
+                )
+            ],
+            [0, 1, 2],
+            0.5,
+            0.5,
+            np.array(
+                [
+                    [1.0, 0.0, 0.0, 0.0],  # 1 TP
+                    [0.0, 0.0, 0.0, 1.0],  # 1 FN (no matching label)
+                    [0.0, 0.0, 1.0, 0.0],  # 1 TP
+                    [0.0, 0.0, 0.0, 0.0],  # none
+                ]
+            ),
+            DoesNotRaise(),
+        ),
+        # Test 6: All false positives (no ground truth)
+        (
+            [
+                mock_detections(
+                    xyxy=[[0, 0, 2, 2], [4, 4, 6, 6], [8, 8, 10, 10]],
+                    class_id=[0, 1, 2],
+                    confidence=[0.9, 0.8, 0.7],
+                )
+            ],
+            [mock_detections(xyxy=np.empty((0, 4)), class_id=np.array([], dtype=int))],
+            [0, 1, 2],
+            0.5,
+            0.5,
+            np.array(
+                [
+                    [0.0, 0.0, 0.0, 0.0],  # none
+                    [0.0, 0.0, 0.0, 0.0],  # none
+                    [0.0, 0.0, 0.0, 0.0],  # none
+                    [1.0, 1.0, 1.0, 0.0],  # 3 FP
+                ]
+            ),
+            DoesNotRaise(),
+        ),
+        # Test 7: Empty predictions and empty ground truth
+        (
+            [
+                mock_detections(
+                    xyxy=np.empty((0, 4)),
+                    class_id=np.array([], dtype=int),
+                    confidence=np.array([], dtype=float),
+                )
+            ],
+            [mock_detections(xyxy=np.empty((0, 4)), class_id=np.array([], dtype=int))],
+            [0, 1, 2],
+            0.5,
+            0.5,
+            np.zeros((4, 4)),
+            DoesNotRaise(),
+        ),
+        # Test 8: Multi-class misclassifications
+        (
+            [
+                mock_detections(
+                    xyxy=[[0, 0, 2, 2], [4, 4, 6, 6], [10, 10, 12, 12]],
+                    class_id=[0, 2, 1],
+                    confidence=[0.9, 0.8, 0.7],
+                )
+            ],
+            [
+                mock_detections(
+                    xyxy=[[0, 0, 2, 2], [4, 4, 6, 6], [8, 8, 10, 10]],
+                    class_id=[0, 1, 2],
+                )
+            ],
+            [0, 1, 2],
+            0.5,
+            0.5,
+            np.array(
+                [
+                    [1.0, 0.0, 0.0, 0.0],  # 1 TP
+                    [0.0, 0.0, 1.0, 0.0],  # 1 misclassified
+                    [0.0, 0.0, 0.0, 1.0],  # 1 FN
+                    [0.0, 1.0, 0.0, 0.0],  # 1 FP
+                ]
+            ),
+            DoesNotRaise(),
+        ),
+        # Test 9: Complex multiple predictions with mixed results
+        (
+            [
+                mock_detections(
+                    xyxy=[
+                        [0, 0, 2, 2],
+                        [4, 4, 6, 6],
+                        [8, 8, 10, 10],
+                        [12, 12, 14, 14],
+                        [16, 16, 18, 18],
+                    ],
+                    class_id=[0, 1, 1, 2, 2],
+                    confidence=[0.9, 0.8, 0.7, 0.6, 0.5],
+                )
+            ],
+            [
+                mock_detections(
+                    xyxy=[[0, 0, 2, 2], [4, 4, 6, 6], [8, 8, 10, 10], [12, 12, 14, 14]],
+                    class_id=[0, 1, 2, 0],
+                )
+            ],
+            [0, 1, 2],
+            0.5,
+            0.5,
+            np.array(
+                [
+                    [1.0, 0.0, 1.0, 0.0],  # 1 TP and 1 misclassified
+                    [0.0, 1.0, 0.0, 0.0],  # 1 TP
+                    [0.0, 1.0, 0.0, 0.0],  # 1 misclassified
+                    [0.0, 0.0, 1.0, 0.0],  # 1 FP
+                ]
+            ),
+            DoesNotRaise(),
+        ),
+        # Test 10: Large complex example with confidence filtering
+        (
+            [
+                mock_detections(
+                    xyxy=[
+                        [0, 0, 2, 2],
+                        [4, 4, 6, 6],
+                        [8, 8, 10, 10],
+                        [12, 12, 14, 14],
+                        [16, 16, 18, 18],
+                        [18, 18, 20, 20],
+                    ],
+                    class_id=[0, 0, 1, 2, 1, 2],
+                    confidence=[0.9, 0.8, 0.7, 0.6, 0.5, 0.4],  # last one filtered
+                )
+            ],
+            [
+                mock_detections(
+                    xyxy=[[0, 0, 2, 2], [4, 4, 6, 6], [8, 8, 10, 10], [12, 12, 14, 14]],
+                    class_id=[0, 1, 2, 0],
+                )
+            ],
+            [0, 1, 2],
+            0.5,  # conf_threshold filters out last prediction
+            0.5,
+            np.array(
+                [
+                    [1.0, 0.0, 1.0, 0.0],  # 1 TP and 1 misclassified
+                    [1.0, 0.0, 0.0, 0.0],  # 1 misclassified
+                    [0.0, 1.0, 0.0, 0.0],  # 1 misclassified
+                    [0.0, 1.0, 0.0, 0.0],  # 1 FP
+                ]
+            ),
+            DoesNotRaise(),
+        ),
+        # Test 11: High counts with multiple TPs and misclassifications
+        (
+            [
+                mock_detections(
+                    xyxy=[
+                        [0, 0, 2, 2],
+                        [0, 3, 2, 5],
+                        [0, 6, 2, 8],
+                        [4, 0, 6, 2],
+                        [4, 3, 6, 5],
+                        [8, 0, 10, 2],
+                        [12, 0, 14, 2],
+                    ],
+                    class_id=[0, 0, 0, 2, 2, 2, 0],
+                    confidence=[0.95, 0.95, 0.95, 0.9, 0.9, 0.9, 0.8],
+                )
+            ],
+            [
+                mock_detections(
+                    xyxy=[
+                        [0, 0, 2, 2],
+                        [0, 3, 2, 5],
+                        [0, 6, 2, 8],
+                        [4, 0, 6, 2],
+                        [4, 3, 6, 5],
+                        [8, 0, 10, 2],
+                        [8, 3, 10, 5],
+                    ],
+                    class_id=[0, 0, 0, 1, 1, 2, 2],
+                )
+            ],
+            [0, 1, 2],
+            0.5,
+            0.5,
+            np.array(
+                [
+                    [3.0, 0.0, 0.0, 0.0],  # 3 TP
+                    [0.0, 0.0, 2.0, 0.0],  # 2 misclassified
+                    [0.0, 0.0, 1.0, 1.0],  # 1 TP, 1 FN
+                    [1.0, 0.0, 0.0, 0.0],  # 1 FP
+                ]
+            ),
+            DoesNotRaise(),
+        ),
+        # Test 12: Symmetric multi-class confusions with higher counts
+        (
+            [
+                mock_detections(
+                    xyxy=[
+                        [0, 0, 2, 2],
+                        [0, 4, 2, 6],
+                        [4, 0, 6, 2],
+                        [4, 4, 6, 6],
+                        [8, 0, 10, 2],
+                        [8, 4, 10, 6],
+                        [12, 0, 14, 2],
+                        [12, 4, 14, 6],
+                    ],
+                    class_id=[0, 0, 1, 1, 0, 0, 1, 1],
+                    confidence=[0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.8, 0.8],
+                )
+            ],
+            [
+                mock_detections(
+                    xyxy=[
+                        [0, 0, 2, 2],
+                        [0, 4, 2, 6],
+                        [4, 0, 6, 2],
+                        [4, 4, 6, 6],
+                        [8, 0, 10, 2],
+                        [8, 4, 10, 6],
+                    ],
+                    class_id=[0, 0, 1, 1, 2, 2],
+                )
+            ],
+            [0, 1, 2],  # Class ids
+            0.5,  # Confidence threshold
+            0.5,  # IOU threshold
+            np.array(
+                [
+                    [2.0, 0.0, 0.0, 0.0],  # 2 TP
+                    [0.0, 2.0, 0.0, 0.0],  # TP
+                    [2.0, 0.0, 0.0, 0.0],  # 2 misclassified
+                    [0.0, 2.0, 0.0, 0.0],  # 2 FP
+                ]
+            ),
+            DoesNotRaise(),
+        ),
+        # Test 13: Empty Ground Truths
+        (
+            [
+                mock_detections(
+                    xyxy=[[0, 0, 2, 2], [0, 4, 2, 6]],
+                    class_id=[0, 0],
+                    confidence=[0.9, 0.9],
+                )
+            ],
+            [Detections.empty()],
+            [0, 1, 2],  # Class ids
+            0.5,  # Confidence threshold
+            0.5,  # IOU threshold
+            np.array(
+                [
+                    [0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0],
+                    [2.0, 0.0, 0.0, 0.0],  # 2 FP
+                ]
+            ),
+            DoesNotRaise(),
+        ),
+        # Test 14: Empty Detections
+        (
+            [Detections.empty()],
+            [mock_detections(xyxy=[[0, 0, 2, 2], [0, 4, 2, 6]], class_id=[0, 0])],
+            [0, 1, 2],  # Class ids
+            0.5,  # Confidence threshold
+            0.5,  # IOU threshold
+            np.array(
+                [
+                    [0.0, 0.0, 0.0, 2.0],  # 2 TP
+                    [0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0],
+                ]
+            ),
+            DoesNotRaise(),
+        ),
+        # Test 15: Symmetric multi-class confusions with higher counts
+        (
+            [Detections.empty()],
+            [Detections.empty()],
+            [0, 1, 2],  # Class ids
+            0.5,  # Confidence threshold
+            0.5,  # IOU threshold
+            np.array(
+                [
+                    [0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0],
+                ]
+            ),
+            DoesNotRaise(),
+        ),
+    ],
+)
+def test_confusion_matrix(
+    predictions,
+    targets,
+    classes,
+    conf_threshold,
+    iou_threshold,
+    expected_result,
+    exception: Exception,
+):
+    with exception:
+        confusion_matrix = ConfusionMatrix.from_detections(
+            predictions=predictions,
+            targets=targets,
+            classes=classes,
+            conf_threshold=conf_threshold,
+            iou_threshold=iou_threshold,
+        )
+
+        # Verify the confusion matrix matches expected
+        # AssertionError if the two arrays are not equal
+        np.testing.assert_array_equal(confusion_matrix.matrix, expected_result)
