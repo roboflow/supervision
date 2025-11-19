@@ -219,9 +219,8 @@ class MeanAverageRecall(Metric):
                 large_objects=None,
             )
 
-        concatenated_stats = [np.concatenate(items, 0) for items in zip(*stats)]
         recall_scores_per_k, recall_per_class, unique_classes = (
-            self._compute_average_recall_for_classes(*concatenated_stats)
+            self._compute_average_recall_for_classes(stats)
         )
 
         return MeanAverageRecallResult(
@@ -238,25 +237,34 @@ class MeanAverageRecall(Metric):
 
     def _compute_average_recall_for_classes(
         self,
-        matches: np.ndarray,
-        prediction_confidence: np.ndarray,
-        prediction_class_ids: np.ndarray,
-        true_class_ids: np.ndarray,
+        stats: list[tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]],
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        sorted_indices = np.argsort(-prediction_confidence)
-        matches = matches[sorted_indices]
-        prediction_class_ids = prediction_class_ids[sorted_indices]
-        unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
-
         recalls_at_k = []
+
         for max_detections in self.max_detections:
+            filtered_stats = []
+            for matches, confidence, class_id, true_class_id in stats:
+                sorted_indices = np.argsort(-confidence)[:max_detections]
+                filtered_stats.append(
+                    (
+                        matches[sorted_indices],
+                        class_id[sorted_indices],
+                        true_class_id,
+                    )
+                )
+            concatenated_stats = [
+                np.concatenate(items, 0) for items in zip(*filtered_stats)
+            ]
+
+            filtered_matches, prediction_class_ids, true_class_ids = concatenated_stats
+            unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
+
             # Shape: PxTh,P,C,C -> CxThx3
             confusion_matrix = self._compute_confusion_matrix(
-                matches,
+                filtered_matches,
                 prediction_class_ids,
                 unique_classes,
                 class_counts,
-                max_detections=max_detections,
             )
 
             # Shape: CxThx3 -> CxTh
