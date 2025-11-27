@@ -302,22 +302,37 @@ def process_video(
             desc=progress_message,
         )
 
+        exception_in_worker: Exception | None = None
+        read_finished = False
+
         try:
             while True:
                 read_item = frame_read_queue.get()
                 if read_item is None:
+                    read_finished = True
                     break
 
                 frame_index, frame = read_item
-                processed_frame = callback(frame, frame_index)
+                try:
+                    processed_frame = callback(frame, frame_index)
+                except Exception as exc:
+                    exception_in_worker = exc
+                    break
 
                 frame_write_queue.put(processed_frame)
                 progress_bar.update(1)
         finally:
             frame_write_queue.put(None)
+            if not read_finished:
+                while True:
+                    read_item = frame_read_queue.get()
+                    if read_item is None:
+                        break
             reader_worker.join()
             writer_worker.join()
             progress_bar.close()
+            if exception_in_worker is not None:
+                raise exception_in_worker
 
 
 class FPSMonitor:
