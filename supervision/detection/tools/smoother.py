@@ -27,7 +27,8 @@ class DetectionsSmoother:
         - `DetectionsSmoother` requires the `tracker_id` for each detection. Refer to
           [Roboflow Trackers](/latest/trackers/) for
           information on integrating tracking into your inference pipeline.
-        - This class is not compatible with segmentation models.
+        - For segmentation models, bounding boxes are smoothed, while masks are taken
+          from the most recent frame in the history that contains a mask.
 
     Example:
         ```python
@@ -83,7 +84,6 @@ class DetectionsSmoother:
 
         for detection_idx in range(len(detections)):
             tracker_id = detections.tracker_id[detection_idx]
-
             self.tracks[tracker_id].append(detections[detection_idx])
 
         for track_id in self.tracks.keys():
@@ -91,7 +91,7 @@ class DetectionsSmoother:
                 self.tracks[track_id].append(None)
 
         for track_id in list(self.tracks.keys()):
-            if all([d is None for d in self.tracks[track_id]]):
+            if all(detection is None for detection in self.tracks[track_id]):
                 del self.tracks[track_id]
 
         return self.get_smoothed_detections()
@@ -101,15 +101,34 @@ class DetectionsSmoother:
         if track is None:
             return None
 
-        track = [d for d in track if d is not None]
+        track = [detection for detection in track if detection is not None]
         if len(track) == 0:
             return None
 
-        ret = deepcopy(track[0])
-        ret.xyxy = np.mean([d.xyxy for d in track], axis=0)
-        ret.confidence = np.mean([d.confidence for d in track], axis=0)
+        result = deepcopy(track[0])
 
-        return ret
+        xyxy_values = [detection.xyxy for detection in track]
+        result.xyxy = np.mean(xyxy_values, axis=0)
+
+        confidence_values = [
+            detection.confidence
+            for detection in track
+            if detection.confidence is not None
+        ]
+        if len(confidence_values) > 0:
+            result.confidence = np.mean(confidence_values, axis=0)
+        else:
+            result.confidence = None
+
+        latest_mask = None
+        for detection in reversed(track):
+            if detection.mask is not None:
+                latest_mask = detection.mask
+                break
+
+        result.mask = latest_mask
+
+        return result
 
     def get_smoothed_detections(self) -> Detections:
         tracked_detections = []
