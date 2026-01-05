@@ -24,7 +24,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
           activate-environment: true
 
-
       - name: 🚀 Install Packages
         run: uv pip install -r pyproject.toml --group dev --group docs --extra metrics
 
@@ -33,3 +32,17 @@ jobs:
 
       - name: 🧪 Run the Test
         run: uv run pytest
+
+  testing-guardian:
+    runs-on: ubuntu-latest
+    needs: run-tests
+    if: always()
+    steps:
+      - run: echo "${{ needs.run-tests.result }}"
+      - name: failing...
+        if: needs.run-tests.result == 'failure'
+        run: exit 1
+      - name: cancelled or skipped...
+        if: contains(fromJSON('["cancelled", "skipped"]'), needs.run-tests.result)
+        timeout-minutes: 1
+        run: sleep 90
