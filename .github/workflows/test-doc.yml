@@ -1,6 +1,8 @@
 name: 🧪 Docs Test WorkFlow 📚
 
 on:
+  push:
+    branches: [main, develop]
   pull_request:
     branches: [main, develop]
 
