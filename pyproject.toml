@@ -73,7 +73,7 @@ dev = [
 docs = [
     "mkdocs-material[imaging]>=9.5.5",
     "mkdocstrings>=0.25.2,<0.31.0",
-    "mkdocstrings-python>=1.10.9",
+    "mkdocstrings-python>=1.10.9, <2.0.0",  # todo: breaking changes in 2.x
     "mike>=2.0.0",
     "mkdocs-jupyter>=0.24.3",
     "mkdocs-git-committers-plugin-2>=2.4.1; python_version >= '3.9' and python_version < '4'",
