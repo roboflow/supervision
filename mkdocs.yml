@@ -133,7 +133,7 @@ plugins:
         python:
           options:
             parameter_headings: true
-            path: [supervision]
+            paths: [supervision]
             load_external_modules: true
             allow_inspection: true
             show_bases: true
