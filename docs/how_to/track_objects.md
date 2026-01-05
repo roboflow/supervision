@@ -1,6 +1,5 @@
 ---
 comments: true
-status: new
 ---
 
 # Track Objects

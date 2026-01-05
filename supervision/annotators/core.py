@@ -764,7 +764,7 @@ class EllipseAnnotator(BaseAnnotator):
         """
         assert isinstance(scene, np.ndarray)
         for detection_idx in range(len(detections)):
-            x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+            x1, _y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -1621,7 +1621,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
                 )
 
                 # Move to the next line position
-                left, top, right, bottom = draw.textbbox((0, 0), line, font=self.font)
+                _left, top, _right, bottom = draw.textbbox((0, 0), line, font=self.font)
                 line_height = bottom - top
                 y_position += line_height + self.text_padding
 
@@ -1917,7 +1917,7 @@ class TraceAnnotator(BaseAnnotator):
 
             if len(xy) > 3 and self.smooth:
                 x, y = xy[:, 0], xy[:, 1]
-                tck, u = splprep([x, y], s=20)
+                tck, _u = splprep([x, y], s=20)
                 x_new, y_new = splev(np.linspace(0, 1, 100), tck)
                 spline_points = np.stack([x_new, y_new], axis=1).astype(np.int32)
 

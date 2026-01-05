@@ -5,7 +5,12 @@ from contextlib import ExitStack as DoesNotRaise
 import numpy as np
 import pytest
 
-from supervision.detection.utils.boxes import clip_boxes, move_boxes, scale_boxes
+from supervision.detection.utils.boxes import (
+    clip_boxes,
+    denormalize_boxes,
+    move_boxes,
+    scale_boxes,
+)
 
 
 @pytest.mark.parametrize(
@@ -142,3 +147,88 @@ def test_scale_boxes(
     with exception:
         result = scale_boxes(xyxy=xyxy, factor=factor)
         assert np.array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    "xyxy, resolution_wh, normalization_factor, expected_result, exception",
+    [
+        (
+            np.empty(shape=(0, 4)),
+            (1280, 720),
+            1.0,
+            np.empty(shape=(0, 4)),
+            DoesNotRaise(),
+        ),  # empty array
+        (
+            np.array([[0.1, 0.2, 0.5, 0.6]]),
+            (1280, 720),
+            1.0,
+            np.array([[128.0, 144.0, 640.0, 432.0]]),
+            DoesNotRaise(),
+        ),  # single box with default normalization
+        (
+            np.array([[0.1, 0.2, 0.5, 0.6], [0.3, 0.4, 0.7, 0.8]]),
+            (1280, 720),
+            1.0,
+            np.array([[128.0, 144.0, 640.0, 432.0], [384.0, 288.0, 896.0, 576.0]]),
+            DoesNotRaise(),
+        ),  # two boxes with default normalization
+        (
+            np.array(
+                [[0.1, 0.2, 0.5, 0.6], [0.3, 0.4, 0.7, 0.8], [0.2, 0.1, 0.6, 0.5]]
+            ),
+            (1280, 720),
+            1.0,
+            np.array(
+                [
+                    [128.0, 144.0, 640.0, 432.0],
+                    [384.0, 288.0, 896.0, 576.0],
+                    [256.0, 72.0, 768.0, 360.0],
+                ]
+            ),
+            DoesNotRaise(),
+        ),  # three boxes - regression test for issue #1959
+        (
+            np.array([[10.0, 20.0, 50.0, 60.0]]),
+            (100, 200),
+            100.0,
+            np.array([[10.0, 40.0, 50.0, 120.0]]),
+            DoesNotRaise(),
+        ),  # single box with custom normalization factor
+        (
+            np.array([[10.0, 20.0, 50.0, 60.0], [30.0, 40.0, 70.0, 80.0]]),
+            (100, 200),
+            100.0,
+            np.array([[10.0, 40.0, 50.0, 120.0], [30.0, 80.0, 70.0, 160.0]]),
+            DoesNotRaise(),
+        ),  # two boxes with custom normalization factor
+        (
+            np.array([[0.0, 0.0, 1.0, 1.0]]),
+            (1920, 1080),
+            1.0,
+            np.array([[0.0, 0.0, 1920.0, 1080.0]]),
+            DoesNotRaise(),
+        ),  # full frame box
+        (
+            np.array([[0.5, 0.5, 0.5, 0.5]]),
+            (640, 480),
+            1.0,
+            np.array([[320.0, 240.0, 320.0, 240.0]]),
+            DoesNotRaise(),
+        ),  # zero-area box (point)
+    ],
+)
+def test_denormalize_boxes(
+    xyxy: np.ndarray,
+    resolution_wh: tuple[int, int],
+    normalization_factor: float,
+    expected_result: np.ndarray,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = denormalize_boxes(
+            xyxy=xyxy,
+            resolution_wh=resolution_wh,
+            normalization_factor=normalization_factor,
+        )
+        assert np.allclose(result, expected_result)
