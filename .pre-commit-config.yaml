@@ -25,7 +25,7 @@ repos:
       - id: mixed-line-ending
 
   -   repo: https://github.com/PyCQA/bandit
-      rev: '1.8.6'
+      rev: '1.9.2'
       hooks:
       -   id: bandit
           args: ["-c", "pyproject.toml"]
@@ -35,7 +35,7 @@ repos:
       rev: v0.13.3
       hooks:
       -   id: ruff-check
-          args: [--fix, --exit-non-zero-on-fix]
+          args: [--fix]
       -   id: ruff-format
           types_or: [ python, pyi, jupyter ]
 
@@ -55,7 +55,7 @@ repos:
           - tomli
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.20.0
+    rev: v3.21.2
     hooks:
     -   id: pyupgrade
         args: ["--py310-plus"]
