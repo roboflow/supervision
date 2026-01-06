@@ -50,3 +50,6 @@ jobs:
         if: contains(fromJSON('["cancelled", "skipped"]'), needs.run-tests.result)
         timeout-minutes: 1
         run: sleep 90
+      - name: tests succeeded
+        if: needs.run-tests.result == 'success'
+        run: echo "All tests completed successfully in job 'run-tests'."
