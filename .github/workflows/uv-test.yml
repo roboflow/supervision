@@ -4,6 +4,9 @@ on:
   pull_request:
     branches: [main, develop]
 
+permissions:
+  contents: read
+
 jobs:
   run-tests:
     name: Import Test and Pytest Run
