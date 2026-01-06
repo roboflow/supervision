@@ -1,8 +1,14 @@
 name: 🔧 Pytest/Test Workflow
 
 on:
+  push:
+    branches: [main, develop]
   pull_request:
     branches: [main, develop]
+
+concurrency:
+  group: pytest-test-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   run-tests:
