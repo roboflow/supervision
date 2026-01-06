@@ -36,6 +36,7 @@ jobs:
       - name: 🧪 Run the Test
         run: uv run pytest
 
+
   testing-guardian:
     runs-on: ubuntu-latest
     needs: run-tests
@@ -46,10 +47,13 @@ jobs:
       - name: Fail guardian on test failure
         if: needs.run-tests.result == 'failure'
         run: exit 1
-      - name: Handle cancelled or skipped tests
+      # Ensure that cancelled or skipped test runs still cause this guardian job to fail,
+      # using an explicit exit code instead of relying on timeout behavior.
+      - name: cancelled or skipped...
         if: contains(fromJSON('["cancelled", "skipped"]'), needs.run-tests.result)
-        timeout-minutes: 1
-        run: sleep 90
+        run: |
+          echo "run-tests job result is '${{ needs.run-tests.result }}'; failing explicitly."
+          exit 1
       - name: tests succeeded
         if: needs.run-tests.result == 'success'
         run: echo "All tests completed successfully in job 'run-tests'."
