@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main, develop]
 
+permissions:
+  contents: read
+
 concurrency:
   group: pytest-test-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -39,16 +42,24 @@ jobs:
       - name: 🧪 Run the Test
         run: uv run pytest
 
+
   testing-guardian:
     runs-on: ubuntu-latest
     needs: run-tests
     if: always()
     steps:
-      - run: echo "${{ needs.run-tests.result }}"
-      - name: failing...
+      - name: Display test result
+        run: echo "${{ needs.run-tests.result }}"
+      - name: Fail guardian on test failure
         if: needs.run-tests.result == 'failure'
         run: exit 1
+      # Ensure that cancelled or skipped test runs still cause this guardian job to fail,
+      # using an explicit exit code instead of relying on timeout behavior.
       - name: cancelled or skipped...
         if: contains(fromJSON('["cancelled", "skipped"]'), needs.run-tests.result)
-        timeout-minutes: 1
-        run: sleep 90
+        run: |
+          echo "run-tests job result is '${{ needs.run-tests.result }}'; failing explicitly."
+          exit 1
+      - name: tests succeeded
+        if: needs.run-tests.result == 'success'
+        run: echo "All tests completed successfully in job 'run-tests'."
