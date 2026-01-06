@@ -98,7 +98,7 @@ def plot_images_grid(
             " or reduce the number of images."
         )
 
-    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=size)
+    _fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=size)
 
     for idx, ax in enumerate(axes.flat):
         if idx < len(images):
