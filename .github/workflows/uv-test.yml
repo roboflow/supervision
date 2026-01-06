@@ -41,11 +41,12 @@ jobs:
     needs: run-tests
     if: always()
     steps:
-      - run: echo "${{ needs.run-tests.result }}"
-      - name: failing...
+      - name: Display test result
+        run: echo "${{ needs.run-tests.result }}"
+      - name: Fail guardian on test failure
         if: needs.run-tests.result == 'failure'
         run: exit 1
-      - name: cancelled or skipped...
+      - name: Handle cancelled or skipped tests
         if: contains(fromJSON('["cancelled", "skipped"]'), needs.run-tests.result)
         timeout-minutes: 1
         run: sleep 90
