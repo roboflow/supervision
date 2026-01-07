@@ -128,7 +128,7 @@ line-length = 88
 indent-width = 4
 
 [tool.ruff.lint]
-# Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
+# Enable linting rules for code style, imports, and best practices.
 select = [
     "E",    # pycodestyle errors - https://docs.astral.sh/ruff/rules/#error-e
     "F",    # Pyflakes - https://docs.astral.sh/ruff/rules/#pyflakes-f
