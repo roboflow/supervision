@@ -129,7 +129,7 @@ indent-width = 4
 
 [tool.ruff.lint]
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-select = ["E", "F", "I", "A", "Q", "W", "RUF", "UP"]
+select = ["E", "F", "I", "A", "Q", "W", "RUF", "UP", "PT"]
 ignore = []
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = [
