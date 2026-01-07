@@ -85,10 +85,6 @@ build = [
     "build>=0.10,<1.4"
 ]
 
-[tool.bandit]
-target = ["test", "supervision"]
-tests = ["B201", "B301", "B318", "B314", "B303", "B413", "B412"]
-
 [tool.autoflake]
 check = true
 imports = ["cv2", "supervision"]
@@ -129,7 +125,7 @@ indent-width = 4
 
 [tool.ruff.lint]
 # Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-select = ["E", "F", "I", "A", "Q", "W", "RUF", "UP"]
+select = ["E", "F", "I", "A", "Q", "W", "RUF", "UP", "S"]
 ignore = []
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = [
@@ -193,6 +189,12 @@ convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402", "F401"]
+"test/**" = [
+    "S101"  # Use of `assert` detected
+]
+"supervision/**" = [
+    "S101"  # TODO: Replace asserts with proper error handling
+]
 
 [tool.ruff.lint.mccabe]
 # Flag errors (`C901`) whenever the complexity level exceeds 5.
