@@ -21,8 +21,6 @@ extra:
   analytics:
     provider: google
     property: G-P7ZG0Y19G5
-  version:
-    provider: mike
 
 extra_css:
   - stylesheets/extra.css
