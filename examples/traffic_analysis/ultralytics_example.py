@@ -211,7 +211,6 @@ if __name__ == "__main__":
     except ImportError:
         # Fallback if jsonargparse is not installed
         print("Warning: jsonargparse not installed. Using plain positional arguments.")
-        # Positional args: source_weights_path, source_video_path, target_video_path, [confidence_threshold], [iou_threshold]
         if len(sys.argv) < 4:
             raise ValueError("Insufficient arguments provided.")
         main(
