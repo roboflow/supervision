@@ -1,7 +1,6 @@
 from enum import Enum
-from typing import Dict, Tuple
 
-Edges = Tuple[Tuple[int, int], ...]
+Edges = tuple[tuple[int, int], ...]
 
 
 class Skeleton(Enum):
@@ -2637,11 +2636,11 @@ class Skeleton(Enum):
     )
 
 
-SKELETONS_BY_EDGE_COUNT: Dict[int, Edges] = {}
-SKELETONS_BY_VERTEX_COUNT: Dict[int, Edges] = {}
+SKELETONS_BY_EDGE_COUNT: dict[int, Edges] = {}
+SKELETONS_BY_VERTEX_COUNT: dict[int, Edges] = {}
 
 for skeleton in Skeleton:
     SKELETONS_BY_EDGE_COUNT[len(skeleton.value)] = skeleton.value
 
-    unique_vertices = set(vertex for edge in skeleton.value for vertex in edge)
+    unique_vertices = {vertex for edge in skeleton.value for vertex in edge}
     SKELETONS_BY_VERTEX_COUNT[len(unique_vertices)] = skeleton.value

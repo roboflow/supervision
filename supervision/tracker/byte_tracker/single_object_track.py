@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List
 
 import numpy as np
 import numpy.typing as npt
@@ -57,7 +56,7 @@ class STrack:
         )
 
     @staticmethod
-    def multi_predict(stracks: List[STrack], shared_kalman: KalmanFilter) -> None:
+    def multi_predict(stracks: list[STrack], shared_kalman: KalmanFilter) -> None:
         if len(stracks) > 0:
             multi_mean = []
             multi_covariance = []
@@ -173,6 +172,4 @@ class STrack:
         return ret
 
     def __repr__(self) -> str:
-        return "OT_{}_({}-{})".format(
-            self.internal_track_id, self.start_frame, self.frame_id
-        )
+        return f"OT_{self.internal_track_id}_({self.start_frame}-{self.frame_id})"

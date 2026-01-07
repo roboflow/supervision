@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Dict, Tuple
 
 BASE_VIDEO_URL = "https://media.roboflow.com/supervision/video-examples/"
 
@@ -39,7 +38,7 @@ class VideoAssets(Enum):
         return list(map(lambda c: c.value, cls))
 
 
-VIDEO_ASSETS: Dict[str, Tuple[str, str]] = {
+VIDEO_ASSETS: dict[str, tuple[str, str]] = {
     VideoAssets.VEHICLES.value: (
         f"{BASE_VIDEO_URL}{VideoAssets.VEHICLES.value}",
         "8155ff4e4de08cfa25f39de96483f918",

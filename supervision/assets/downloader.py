@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import os
 from hashlib import new as hash_new
 from pathlib import Path
 from shutil import copyfileobj
-from typing import Union
 
 from requests import get
 from tqdm.auto import tqdm
@@ -32,7 +33,7 @@ def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:
     return computed_md5_hash.hexdigest() == original_md5_hash
 
 
-def download_assets(asset_name: Union[VideoAssets, str]) -> str:
+def download_assets(asset_name: VideoAssets | str) -> str:
     """
     Download a specified asset if it doesn't already exist or is corrupted.
 

@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from typing import Optional, Union
 
 import numpy as np
 import pytest
@@ -103,9 +104,7 @@ def update_ideal_conf_matrix(conf_matrix: np.ndarray, class_ids: np.ndarray):
     return conf_matrix
 
 
-def worsen_ideal_conf_matrix(
-    conf_matrix: np.ndarray, class_ids: Union[np.ndarray, list]
-):
+def worsen_ideal_conf_matrix(conf_matrix: np.ndarray, class_ids: np.ndarray | list):
     for class_id in class_ids:
         class_id = int(class_id)
         conf_matrix[class_id, class_id] -= 1
@@ -177,7 +176,7 @@ BAD_CONF_MATRIX = worsen_ideal_conf_matrix(
 def test_detections_to_tensor(
     detections: Detections,
     with_confidence: bool,
-    expected_result: Optional[np.ndarray],
+    expected_result: np.ndarray | None,
     exception: Exception,
 ):
     with exception:
@@ -343,7 +342,7 @@ def test_from_tensors(
     classes,
     conf_threshold,
     iou_threshold,
-    expected_result: Optional[np.ndarray],
+    expected_result: np.ndarray | None,
     exception: Exception,
 ):
     with exception:
@@ -380,7 +379,7 @@ def test_evaluate_detection_batch(
     num_classes,
     conf_threshold,
     iou_threshold,
-    expected_result: Optional[np.ndarray],
+    expected_result: np.ndarray | None,
     exception: Exception,
 ):
     with exception:
@@ -408,7 +407,7 @@ def test_evaluate_detection_batch(
 )
 def test_drop_extra_matches(
     matches,
-    expected_result: Optional[np.ndarray],
+    expected_result: np.ndarray | None,
     exception: Exception,
 ):
     with exception:

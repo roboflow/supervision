@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
 from contextlib import nullcontext as does_not_raise
-from typing import List, Optional, Tuple
 
 import numpy as np
 import pytest
 
+from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.detection.core import Detections
 from supervision.detection.vlm import (
+    VLM,
     from_florence_2,
     from_google_gemini_2_0,
     from_google_gemini_2_5,
@@ -184,9 +188,9 @@ from supervision.detection.vlm import (
 def test_from_paligemma(
     exception,
     result: str,
-    resolution_wh: Tuple[int, int],
-    classes: Optional[List[str]],
-    expected_results: Tuple[np.ndarray, Optional[np.ndarray], np.ndarray],
+    resolution_wh: tuple[int, int],
+    classes: list[str] | None,
+    expected_results: tuple[np.ndarray, np.ndarray | None, np.ndarray],
 ) -> None:
     with exception:
         result = from_paligemma(
@@ -317,6 +321,43 @@ def test_from_paligemma(
             ),
         ),  # out-of-bounds box
         (
+            does_not_raise(),
+            """[
+                {'bbox_2d': [10, 20, 110, 120], 'label': 'cat'}
+            ]""",
+            (640, 640),
+            (1280, 720),
+            None,
+            (
+                np.array([[20.0, 22.5, 220.0, 135.0]]),
+                None,
+                np.array(["cat"], dtype=str),
+            ),
+        ),  # python-style list, single quotes, no fences
+        (
+            does_not_raise(),
+            """```json
+            [
+                {"bbox_2d": [0, 0, 64, 64], "label": "dog"},
+                {"bbox_2d": [10, 20, 110, 120], "label": "cat"},
+                {"bbox_2d": [30, 40, 130, 140], "label":
+            """,
+            (640, 640),
+            (640, 640),
+            None,
+            (
+                np.array(
+                    [
+                        [0.0, 0.0, 64.0, 64.0],
+                        [10.0, 20.0, 110.0, 120.0],
+                    ],
+                    dtype=float,
+                ),
+                None,
+                np.array(["dog", "cat"], dtype=str),
+            ),
+        ),  # truncated response, last object unfinished, previous ones recovered
+        (
             pytest.raises(ValueError),
             """```json
             [
@@ -326,8 +367,8 @@ def test_from_paligemma(
             (0, 640),
             (1280, 720),
             None,
-            None,  # won't be compared because we expect an exception
-        ),  # zero input width -> ValueError
+            None,  # invalid input_wh
+        ),
         (
             pytest.raises(ValueError),
             """```json
@@ -338,16 +379,16 @@ def test_from_paligemma(
             (640, 640),
             (1280, -100),
             None,
-            None,
-        ),  # negative resolution height -> ValueError
+            None,  # invalid resolution_wh
+        ),
     ],
 )
 def test_from_qwen_2_5_vl(
     exception,
     result: str,
-    input_wh: Tuple[int, int],
-    resolution_wh: Tuple[int, int],
-    classes: Optional[List[str]],
+    input_wh: tuple[int, int],
+    resolution_wh: tuple[int, int],
+    classes: list[str] | None,
     expected_results,
 ) -> None:
     with exception:
@@ -488,9 +529,9 @@ def test_from_qwen_2_5_vl(
 def test_from_google_gemini(
     exception,
     result: str,
-    resolution_wh: Tuple[int, int],
-    classes: Optional[List[str]],
-    expected_results: Tuple[np.ndarray, Optional[np.ndarray], np.ndarray],
+    resolution_wh: tuple[int, int],
+    classes: list[str] | None,
+    expected_results: tuple[np.ndarray, np.ndarray | None, np.ndarray],
 ) -> None:
     with exception:
         xyxy, class_id, class_name = from_google_gemini_2_0(
@@ -590,7 +631,7 @@ def test_from_google_gemini(
 def test_from_moondream(
     exception,
     result: dict,
-    resolution_wh: Tuple[int, int],
+    resolution_wh: tuple[int, int],
     expected_results,
 ) -> None:
     with exception:
@@ -863,9 +904,9 @@ def test_from_moondream(
 )
 def test_florence_2(
     florence_result: dict,
-    resolution_wh: Tuple[int, int],
-    expected_results: Tuple[
-        np.ndarray, Optional[np.ndarray], Optional[np.ndarray], Optional[np.ndarray]
+    resolution_wh: tuple[int, int],
+    expected_results: tuple[
+        np.ndarray, np.ndarray | None, np.ndarray | None, np.ndarray | None
     ],
     exception: Exception,
 ) -> None:
@@ -1080,11 +1121,10 @@ def test_florence_2(
 def test_from_google_gemini_2_5(
     exception,
     result: str,
-    resolution_wh: Tuple[int, int],
-    classes: Optional[List[str]],
-    expected_results: Optional[
-        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
-    ],
+    resolution_wh: tuple[int, int],
+    classes: list[str] | None,
+    expected_results: None
+    | (tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]),
 ):
     with exception:
         (
@@ -1122,3 +1162,110 @@ def test_from_google_gemini_2_5(
             assert masks is not None
             assert masks.shape == expected_results[4].shape
             assert np.array_equal(masks, expected_results[4])
+
+
+@pytest.mark.parametrize(
+    "exception, result, resolution_wh, classes, expected_detections",
+    [
+        (
+            pytest.raises(ValueError),
+            "",
+            (100, 100),
+            None,
+            None,
+        ),  # empty text
+        (
+            pytest.raises(ValueError),
+            "random text",
+            (100, 100),
+            None,
+            None,
+        ),  # random text
+        (
+            does_not_raise(),
+            "<|ref|>cat<|/ref|><|det|>[[100, 200, 300, 400]]<|/det|>",
+            (1000, 1000),
+            None,
+            Detections(
+                xyxy=np.array([[100.1, 200.2, 300.3, 400.4]]),
+                class_id=np.array([0]),
+                data={CLASS_NAME_DATA_FIELD: np.array(["cat"])},
+            ),
+        ),  # single box, no classes
+        (
+            does_not_raise(),
+            "<|ref|>cat<|/ref|><|det|>[[100, 200, 300, 400]]<|/det|>",
+            (1000, 1000),
+            ["cat", "dog"],
+            Detections(
+                xyxy=np.array([[100.1, 200.2, 300.3, 400.4]]),
+                class_id=np.array([0]),
+                data={CLASS_NAME_DATA_FIELD: np.array(["cat"])},
+            ),
+        ),  # single box, with classes
+        (
+            does_not_raise(),
+            "<|ref|>person<|/ref|><|det|>[[100, 200, 300, 400]]<|/det|>",
+            (1000, 1000),
+            ["cat", "dog"],
+            Detections.empty(),
+        ),  # single box, wrong class
+        (
+            does_not_raise(),
+            (
+                "<|ref|>cat<|/ref|><|det|>[[100, 200, 300, 400]]<|/det|>"
+                "<|ref|>dog<|/ref|><|det|>[[500, 600, 700, 800]]<|/det|>"
+            ),
+            (1000, 1000),
+            ["cat"],
+            Detections(
+                xyxy=np.array([[100.1, 200.2, 300.3, 400.4]]),
+                class_id=np.array([0]),
+                data={CLASS_NAME_DATA_FIELD: np.array(["cat"])},
+            ),
+        ),  # multiple boxes, one class correct
+        (
+            pytest.raises(ValueError),
+            "<|ref|>cat<|/ref|>",
+            (100, 100),
+            None,
+            None,
+        ),  # only ref
+        (
+            pytest.raises(ValueError),
+            "<|det|>[[100, 200, 300, 400]]<|/det|>",
+            (100, 100),
+            None,
+            None,
+        ),  # only det
+    ],
+)
+def test_from_deepseek_vl_2(
+    exception,
+    result: str,
+    resolution_wh: tuple[int, int],
+    classes: list[str] | None,
+    expected_detections: Detections,
+):
+    with exception:
+        detections = Detections.from_vlm(
+            vlm=VLM.DEEPSEEK_VL_2,
+            result=result,
+            resolution_wh=resolution_wh,
+            classes=classes,
+        )
+
+        if expected_detections is None:
+            return
+
+        assert len(detections) == len(expected_detections)
+
+        if len(detections) == 0:
+            return
+
+        assert np.allclose(detections.xyxy, expected_detections.xyxy, atol=1e-1)
+        assert np.array_equal(detections.class_id, expected_detections.class_id)
+        assert np.array_equal(
+            detections.data[CLASS_NAME_DATA_FIELD],
+            expected_detections.data[CLASS_NAME_DATA_FIELD],
+        )

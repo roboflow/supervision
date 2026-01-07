@@ -1,12 +1,15 @@
+from __future__ import annotations
+
+from collections.abc import Iterable
 from dataclasses import replace
-from typing import Iterable, Optional
 
 import cv2
 import numpy as np
 import numpy.typing as npt
 
 from supervision import Detections
-from supervision.detection.utils import clip_boxes, polygon_to_mask
+from supervision.detection.utils.boxes import clip_boxes
+from supervision.detection.utils.converters import polygon_to_mask
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
 from supervision.geometry.core import Position
@@ -153,7 +156,7 @@ class PolygonZoneAnnotator:
         self.display_in_zone_count = display_in_zone_count
         self.opacity = opacity
 
-    def annotate(self, scene: np.ndarray, label: Optional[str] = None) -> np.ndarray:
+    def annotate(self, scene: np.ndarray, label: str | None = None) -> np.ndarray:
         """
         Annotates the polygon zone within a frame with a count of detected objects.
 

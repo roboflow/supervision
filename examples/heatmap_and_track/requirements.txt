@@ -1,2 +1,2 @@
-supervision[assets]==0.19.0
-ultralytics<=8.3.40
+supervision
+ultralytics

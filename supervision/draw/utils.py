@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import os
-from typing import Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -215,7 +216,7 @@ def draw_text(
     text_thickness: int = 1,
     text_padding: int = 10,
     text_font: int = cv2.FONT_HERSHEY_SIMPLEX,
-    background_color: Optional[Color] = None,
+    background_color: Color | None = None,
 ) -> np.ndarray:
     """
     Draw text with background on a scene.
@@ -282,7 +283,7 @@ def draw_text(
 
 
 def draw_image(
-    scene: np.ndarray, image: Union[str, np.ndarray], opacity: float, rect: Rect
+    scene: np.ndarray, image: str | np.ndarray, opacity: float, rect: Rect
 ) -> np.ndarray:
     """
     Draws an image onto a given scene with specified opacity and dimensions.
@@ -343,30 +344,52 @@ def draw_image(
     return scene
 
 
-def calculate_optimal_text_scale(resolution_wh: Tuple[int, int]) -> float:
+def calculate_optimal_text_scale(resolution_wh: tuple[int, int]) -> float:
     """
-    Calculate font scale based on the resolution of an image.
+    Calculate optimal font scale based on image resolution. Adjusts font scale
+    proportionally to the smallest dimension of the given image resolution for
+    consistent readability.
 
-    Parameters:
-        resolution_wh (Tuple[int, int]): A tuple representing the width and height
-            of the image.
+    Args:
+        resolution_wh (tuple[int, int]): (width, height) of the image in pixels
 
     Returns:
-         float: The calculated font scale factor.
+        float: recommended font scale factor
+
+    Examples:
+        ```python
+        import supervision as sv
+
+        sv.calculate_optimal_text_scale((1920, 1080))
+        # 1.08
+        sv.calculate_optimal_text_scale((640, 480))
+        # 0.48
+        ```
     """
     return min(resolution_wh) * 1e-3
 
 
-def calculate_optimal_line_thickness(resolution_wh: Tuple[int, int]) -> int:
+def calculate_optimal_line_thickness(resolution_wh: tuple[int, int]) -> int:
     """
-    Calculate line thickness based on the resolution of an image.
+    Calculate optimal line thickness based on image resolution. Adjusts the line
+    thickness for readability depending on the smallest dimension of the provided
+    image resolution.
 
-    Parameters:
-        resolution_wh (Tuple[int, int]): A tuple representing the width and height
-            of the image.
+    Args:
+        resolution_wh (tuple[int, int]): (width, height) of the image in pixels
 
     Returns:
-        int: The calculated line thickness in pixels.
+        int: recommended line thickness in pixels
+
+    Examples:
+        ```python
+        import supervision as sv
+
+        sv.calculate_optimal_line_thickness((1920, 1080))
+        # 4
+        sv.calculate_optimal_line_thickness((640, 480))
+        # 2
+        ```
     """
     if min(resolution_wh) < 1080:
         return 2

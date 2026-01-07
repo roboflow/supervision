@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from typing import List, Optional, Tuple
 
 import numpy as np
 import pytest
@@ -13,7 +14,7 @@ from supervision.dataset.formats.yolo import (
 from supervision.detection.core import Detections
 
 
-def _mock_simple_mask(resolution_wh: Tuple[int, int], box: List[int]) -> np.ndarray:
+def _mock_simple_mask(resolution_wh: tuple[int, int], box: list[int]) -> np.ndarray:
     x_min, y_min, x_max, y_max = box
     mask = np.full(resolution_wh, False, dtype=bool)
     mask[y_min:y_max, x_min:x_max] = True
@@ -57,7 +58,7 @@ def _arrays_almost_equal(
     ],
 )
 def test_with_mask(
-    lines: List[str], expected_result: Optional[bool], exception: Exception
+    lines: list[str], expected_result: bool | None, exception: Exception
 ) -> None:
     with exception:
         result = _with_mask(lines=lines)
@@ -171,10 +172,10 @@ def test_with_mask(
     ],
 )
 def test_yolo_annotations_to_detections(
-    lines: List[str],
-    resolution_wh: Tuple[int, int],
+    lines: list[str],
+    resolution_wh: tuple[int, int],
     with_masks: bool,
-    expected_result: Optional[Detections],
+    expected_result: Detections | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -202,7 +203,7 @@ def test_yolo_annotations_to_detections(
     ],
 )
 def test_image_name_to_annotation_name(
-    image_name: str, expected_result: Optional[str], exception: Exception
+    image_name: str, expected_result: str | None, exception: Exception
 ) -> None:
     with exception:
         result = _image_name_to_annotation_name(image_name=image_name)
@@ -267,9 +268,9 @@ def test_image_name_to_annotation_name(
 def test_object_to_yolo(
     xyxy: np.ndarray,
     class_id: int,
-    image_shape: Tuple[int, int, int],
-    polygon: Optional[np.ndarray],
-    expected_result: Optional[str],
+    image_shape: tuple[int, int, int],
+    polygon: np.ndarray | None,
+    expected_result: str | None,
     exception: Exception,
 ) -> None:
     with exception:

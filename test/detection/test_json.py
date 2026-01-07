@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
@@ -226,11 +226,11 @@ from test.test_utils import mock_detections
 )
 def test_json_sink(
     detections: mock_detections,
-    custom_data: Dict[str, Any],
+    custom_data: dict[str, Any],
     second_detections: mock_detections,
-    second_custom_data: Dict[str, Any],
+    second_custom_data: dict[str, Any],
     file_name: str,
-    expected_result: List[List[Any]],
+    expected_result: list[list[Any]],
 ) -> None:
     with sv.JSONSink(file_name) as sink:
         sink.append(detections, custom_data)
@@ -240,7 +240,7 @@ def test_json_sink(
 
 
 def assert_json_equal(file_name, expected_rows):
-    with open(file_name, "r") as file:
+    with open(file_name) as file:
         data = json.load(file)
         assert data == expected_rows, (
             f"Data in JSON file didn't match expected output: {data} != {expected_rows}"

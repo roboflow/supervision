@@ -1,35 +1,41 @@
+from __future__ import annotations
+
 from functools import lru_cache
 from math import sqrt
-from typing import List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
 import numpy.typing as npt
 from PIL import Image, ImageDraw, ImageFont
+from scipy.interpolate import splev, splprep
 
-from supervision.annotators.base import BaseAnnotator, ImageType
+from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import (
     PENDING_TRACK_ID,
     ColorLookup,
     Trace,
+    get_labels_text,
     resolve_color,
     resolve_text_background_xyxy,
+    snap_boxes,
+    validate_labels,
+    wrap_text,
 )
-from supervision.config import CLASS_NAME_DATA_FIELD, ORIENTED_BOX_COORDINATES
+from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
-from supervision.detection.utils import (
-    clip_boxes,
+from supervision.detection.utils.boxes import clip_boxes, spread_out_boxes
+from supervision.detection.utils.converters import (
     mask_to_polygons,
     polygon_to_mask,
-    spread_out_boxes,
     xyxy_to_polygons,
 )
+from supervision.draw.base import ImageType
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_polygon, draw_rounded_rectangle, draw_text
 from supervision.geometry.core import Point, Position, Rect
 from supervision.utils.conversion import (
-    ensure_cv2_image_for_annotation,
-    ensure_pil_image_for_annotation,
+    ensure_cv2_image_for_class_method,
+    ensure_pil_image_for_class_method,
 )
 from supervision.utils.image import (
     crop_image,
@@ -41,6 +47,114 @@ from supervision.utils.image import (
 CV2_FONT = cv2.FONT_HERSHEY_SIMPLEX
 
 
+class _BaseLabelAnnotator(BaseAnnotator):
+    """
+    Base class for annotators that add labels to detections.
+
+    Attributes:
+        color (Union[Color, ColorPalette]): The color to use for the label background.
+        color_lookup (ColorLookup): The method used to determine the color of the label.
+        text_color (Union[Color, ColorPalette]): The color to use for the label text.
+        text_padding (int): The padding around the label text, in pixels.
+        text_anchor (Position): The position of the text relative to the detection
+            bounding box.
+        text_offset (Tuple[int, int]): A tuple of 2D coordinates `(x, y)` to
+            offset the text position from the anchor point, in pixels.
+        border_radius (int): The radius of the label background corners, in pixels.
+        smart_position (bool): Whether to intelligently adjust the label position to
+            avoid overlapping with other elements.
+        max_line_length (Optional[int]): Maximum number of characters per line before
+            wrapping the text. None means no wrapping.
+    """
+
+    def __init__(
+        self,
+        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
+        text_color: Color | ColorPalette = Color.WHITE,
+        text_padding: int = 10,
+        text_position: Position = Position.TOP_LEFT,
+        text_offset: tuple[int, int] = (0, 0),
+        border_radius: int = 0,
+        smart_position: bool = False,
+        max_line_length: int | None = None,
+    ):
+        """
+        Initializes the _BaseLabelAnnotator.
+
+        Args:
+            color (Union[Color, ColorPalette], optional): The color to use for the label
+                background.
+            color_lookup (ColorLookup, optional): The method used to determine the color
+                of the label
+            text_color (Union[Color, ColorPalette], optional): The color to use for the
+                label text.
+            text_padding (int, optional): The padding around the label text, in pixels.
+            text_position (Position, optional): The position of the text relative to the
+                detection bounding box.
+            text_offset (Tuple[int, int], optional): A tuple of 2D coordinates
+                `(x, y)` to offset the text position from the anchor point, in pixels.
+            border_radius (int, optional): The radius of the label background corners,
+                in pixels.
+            smart_position (bool, optional): Whether to intelligently adjust the label
+                position to avoid overlapping with other elements.
+            max_line_length (Optional[int], optional): Maximum number of characters per
+                line before wrapping the text. None means no wrapping.
+        """
+        self.color: Color | ColorPalette = color
+        self.color_lookup: ColorLookup = color_lookup
+        self.text_color: Color | ColorPalette = text_color
+        self.text_padding: int = text_padding
+        self.text_anchor: Position = text_position
+        self.text_offset: tuple[int, int] = text_offset
+        self.border_radius: int = border_radius
+        self.smart_position = smart_position
+        self.max_line_length: int | None = max_line_length
+
+    def _adjust_labels_in_frame(
+        self,
+        resolution_wh: tuple[int, int],
+        labels: list[str],
+        label_properties: np.ndarray,
+    ) -> np.ndarray:
+        """
+        Adjusts the position of labels to ensure they stay within the frame boundaries.
+
+        Args:
+            frame_width (int): The width of the frame.
+            resolution_wh (int, int): The width and height of the frame.
+            labels (List[str]): The list of text labels.
+            label_properties (np.ndarray): An array of label properties, where each row
+                            contains [x1, y1, x2, y2, text_height, ...].
+
+        Returns:
+            np.ndarray: The adjusted label properties.
+        """
+        adjusted_properties = label_properties.copy()
+
+        # First, make sure the boxes don't go outside the frame
+        adjusted_properties[:, :4] = snap_boxes(
+            adjusted_properties[:, :4],
+            resolution_wh,
+        )
+
+        # Apply the spread out algorithm to avoid box overlaps
+        if len(labels) > 1:
+            # Extract the box coordinates
+            boxes = adjusted_properties[:, :4]
+            # Use the spread_out_boxes function to adjust overlapping boxes
+            spread_boxes = spread_out_boxes(boxes)
+            # Update the properties with the spread out boxes
+            adjusted_properties[:, :4] = spread_boxes
+
+            # Additional check to ensure boxes are still within frame after spreading
+            adjusted_properties[:, :4] = snap_boxes(
+                adjusted_properties[:, :4], resolution_wh
+            )
+
+        return adjusted_properties
+
+
 class BoxAnnotator(BaseAnnotator):
     """
     A class for drawing bounding boxes on an image using provided detections.
@@ -48,7 +162,7 @@ class BoxAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        color: Color | ColorPalette = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -60,16 +174,16 @@ class BoxAnnotator(BaseAnnotator):
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Union[Color, ColorPalette] = color
+        self.color: Color | ColorPalette = color
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+        custom_color_lookup: np.ndarray | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with bounding boxes based on the provided detections.
@@ -131,7 +245,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        color: Color | ColorPalette = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -143,16 +257,16 @@ class OrientedBoxAnnotator(BaseAnnotator):
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Union[Color, ColorPalette] = color
+        self.color: Color | ColorPalette = color
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+        custom_color_lookup: np.ndarray | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with oriented bounding boxes based on the provided detections.
@@ -220,7 +334,7 @@ class MaskAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        color: Color | ColorPalette = ColorPalette.DEFAULT,
         opacity: float = 0.5,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -232,16 +346,16 @@ class MaskAnnotator(BaseAnnotator):
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Union[Color, ColorPalette] = color
+        self.color: Color | ColorPalette = color
         self.opacity = opacity
         self.color_lookup: ColorLookup = color_lookup
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+        custom_color_lookup: np.ndarray | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with masks based on the provided detections.
@@ -310,7 +424,7 @@ class PolygonAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        color: Color | ColorPalette = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -322,16 +436,16 @@ class PolygonAnnotator(BaseAnnotator):
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Union[Color, ColorPalette] = color
+        self.color: Color | ColorPalette = color
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+        custom_color_lookup: np.ndarray | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with polygons based on the provided detections.
@@ -397,7 +511,7 @@ class ColorAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        color: Color | ColorPalette = ColorPalette.DEFAULT,
         opacity: float = 0.5,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -409,16 +523,16 @@ class ColorAnnotator(BaseAnnotator):
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Union[Color, ColorPalette] = color
+        self.color: Color | ColorPalette = color
         self.color_lookup: ColorLookup = color_lookup
         self.opacity = opacity
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+        custom_color_lookup: np.ndarray | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with box masks based on the provided detections.
@@ -489,7 +603,7 @@ class HaloAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        color: Color | ColorPalette = ColorPalette.DEFAULT,
         opacity: float = 0.8,
         kernel_size: int = 40,
         color_lookup: ColorLookup = ColorLookup.CLASS,
@@ -504,17 +618,17 @@ class HaloAnnotator(BaseAnnotator):
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Union[Color, ColorPalette] = color
+        self.color: Color | ColorPalette = color
         self.opacity = opacity
         self.color_lookup: ColorLookup = color_lookup
         self.kernel_size: int = kernel_size
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+        custom_color_lookup: np.ndarray | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with halos based on the provided detections.
@@ -587,7 +701,7 @@ class EllipseAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        color: Color | ColorPalette = ColorPalette.DEFAULT,
         thickness: int = 2,
         start_angle: int = -45,
         end_angle: int = 235,
@@ -603,18 +717,18 @@ class EllipseAnnotator(BaseAnnotator):
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Union[Color, ColorPalette] = color
+        self.color: Color | ColorPalette = color
         self.thickness: int = thickness
         self.start_angle: int = start_angle
         self.end_angle: int = end_angle
         self.color_lookup: ColorLookup = color_lookup
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+        custom_color_lookup: np.ndarray | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with ellipses based on the provided detections.
@@ -650,7 +764,7 @@ class EllipseAnnotator(BaseAnnotator):
         """
         assert isinstance(scene, np.ndarray)
         for detection_idx in range(len(detections)):
-            x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
+            x1, _y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -682,7 +796,7 @@ class BoxCornerAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        color: Color | ColorPalette = ColorPalette.DEFAULT,
         thickness: int = 4,
         corner_length: int = 15,
         color_lookup: ColorLookup = ColorLookup.CLASS,
@@ -696,17 +810,17 @@ class BoxCornerAnnotator(BaseAnnotator):
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Union[Color, ColorPalette] = color
+        self.color: Color | ColorPalette = color
         self.thickness: int = thickness
         self.corner_length: int = corner_length
         self.color_lookup: ColorLookup = color_lookup
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+        custom_color_lookup: np.ndarray | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with box corners based on the provided detections.
@@ -773,7 +887,7 @@ class CircleAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        color: Color | ColorPalette = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -786,16 +900,16 @@ class CircleAnnotator(BaseAnnotator):
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
 
-        self.color: Union[Color, ColorPalette] = color
+        self.color: Color | ColorPalette = color
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+        custom_color_lookup: np.ndarray | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with circles based on the provided detections.
@@ -862,12 +976,12 @@ class DotAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        color: Color | ColorPalette = ColorPalette.DEFAULT,
         radius: int = 4,
         position: Position = Position.CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         outline_thickness: int = 0,
-        outline_color: Union[Color, ColorPalette] = Color.BLACK,
+        outline_color: Color | ColorPalette = Color.BLACK,
     ):
         """
         Args:
@@ -882,19 +996,19 @@ class DotAnnotator(BaseAnnotator):
                 use for outline. It is activated by setting outline_thickness to a value
                 greater than 0.
         """
-        self.color: Union[Color, ColorPalette] = color
+        self.color: Color | ColorPalette = color
         self.radius: int = radius
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
         self.outline_thickness = outline_thickness
-        self.outline_color: Union[Color, ColorPalette] = outline_color
+        self.outline_color: Color | ColorPalette = outline_color
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+        custom_color_lookup: np.ndarray | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with dots based on the provided detections.
@@ -961,27 +1075,31 @@ class DotAnnotator(BaseAnnotator):
         return scene
 
 
-class LabelAnnotator(BaseAnnotator):
+class LabelAnnotator(_BaseLabelAnnotator):
     """
     A class for annotating labels on an image using provided detections.
     """
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
-        text_color: Union[Color, ColorPalette] = Color.WHITE,
+        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
+        text_color: Color | ColorPalette = Color.WHITE,
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
         text_position: Position = Position.TOP_LEFT,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+        text_offset: tuple[int, int] = (0, 0),
         border_radius: int = 0,
         smart_position: bool = False,
+        max_line_length: int | None = None,
     ):
         """
         Args:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating the text background.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+                Options are `INDEX`, `CLASS`, `TRACK`.
             text_color (Union[Color, ColorPalette]): The color or color palette to use
                 for the text.
             text_scale (float): Font scale for the text.
@@ -989,30 +1107,36 @@ class LabelAnnotator(BaseAnnotator):
             text_padding (int): Padding around the text within its background box.
             text_position (Position): Position of the text relative to the detection.
                 Possible values are defined in the `Position` enum.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACK`.
+            text_offset (Tuple[int, int]): A tuple of 2D coordinates `(x, y)` to
+                offset the text position from the anchor point, in pixels.
             border_radius (int): The radius to apply round edges. If the selected
                 value is higher than the lower dimension, width or height, is clipped.
             smart_position (bool): Spread out the labels to avoid overlapping.
+            max_line_length (Optional[int]): Maximum number of characters per line
+                before wrapping the text. None means no wrapping.
         """
-        self.border_radius: int = border_radius
-        self.color: Union[Color, ColorPalette] = color
-        self.text_color: Union[Color, ColorPalette] = text_color
         self.text_scale: float = text_scale
         self.text_thickness: int = text_thickness
-        self.text_padding: int = text_padding
-        self.text_anchor: Position = text_position
-        self.color_lookup: ColorLookup = color_lookup
-        self.smart_position = smart_position
+        super().__init__(
+            color=color,
+            color_lookup=color_lookup,
+            text_color=text_color,
+            text_padding=text_padding,
+            text_position=text_position,
+            text_offset=text_offset,
+            border_radius=border_radius,
+            smart_position=smart_position,
+            max_line_length=max_line_length,
+        )
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(
         self,
         scene: ImageType,
         detections: Detections,
-        labels: Optional[List[str]] = None,
-        custom_color_lookup: Optional[np.ndarray] = None,
-    ) -> ImageType:
+        labels: list[str] | None = None,
+        custom_color_lookup: np.ndarray | None = None,
+    ) -> np.ndarray:
         """
         Annotates the given scene with labels based on the provided detections.
 
@@ -1053,17 +1177,22 @@ class LabelAnnotator(BaseAnnotator):
         ![label-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/label-annotator-example-purple.png)
         """
-
         assert isinstance(scene, np.ndarray)
-        self._validate_labels(labels, detections)
+        validate_labels(labels, detections)
 
-        labels = self._get_labels_text(detections, labels)
+        labels = get_labels_text(detections, labels)
         label_properties = self._get_label_properties(detections, labels)
 
         if self.smart_position:
             xyxy = label_properties[:, :4]
             xyxy = spread_out_boxes(xyxy)
             label_properties[:, :4] = xyxy
+
+            label_properties = self._adjust_labels_in_frame(
+                (scene.shape[1], scene.shape[0]),
+                labels,
+                label_properties,
+            )
 
         self._draw_labels(
             scene=scene,
@@ -1075,44 +1204,48 @@ class LabelAnnotator(BaseAnnotator):
 
         return scene
 
-    def _validate_labels(self, labels: Optional[List[str]], detections: Detections):
-        if labels is not None and len(labels) != len(detections):
-            raise ValueError(
-                f"The number of labels ({len(labels)}) does not match the "
-                f"number of detections ({len(detections)}). Each detection "
-                f"should have exactly 1 label."
-            )
-
     def _get_label_properties(
         self,
         detections: Detections,
-        labels: List[str],
+        labels: list[str],
     ) -> np.ndarray:
-        """
-        Calculate the numerical properties required to draw the labels on the image.
-
-        Returns:
-            (np.ndarray): An array of label properties, containing columns:
-                `min_x`, `min_y`, `max_x`, `max_y`, `padded_text_height`.
-        """
         label_properties = []
         anchors_coordinates = detections.get_anchors_coordinates(
             anchor=self.text_anchor
         ).astype(int)
 
-        for label, center_coords in zip(labels, anchors_coordinates):
-            (text_w, text_h) = cv2.getTextSize(
-                text=label,
-                fontFace=CV2_FONT,
-                fontScale=self.text_scale,
-                thickness=self.text_thickness,
-            )[0]
+        for label, center_coordinates in zip(labels, anchors_coordinates):
+            center_coordinates = (
+                center_coordinates[0] + self.text_offset[0],
+                center_coordinates[1] + self.text_offset[1],
+            )
 
-            width_padded = text_w + 2 * self.text_padding
-            height_padded = text_h + 2 * self.text_padding
+            wrapped_lines = wrap_text(label, self.max_line_length)
+            line_heights = []
+            line_widths = []
+
+            for line in wrapped_lines:
+                (text_w, text_h) = cv2.getTextSize(
+                    text=line,
+                    fontFace=CV2_FONT,
+                    fontScale=self.text_scale,
+                    thickness=self.text_thickness,
+                )[0]
+                line_heights.append(text_h)
+                line_widths.append(text_w)
+
+            # Get the maximum width and total height
+            max_width = max(line_widths) if line_widths else 0
+            total_height = (
+                sum(line_heights) + (len(line_heights) - 1) * self.text_padding
+            )
+
+            # Add padding around all sides
+            width_padded = max_width + 2 * self.text_padding
+            height_padded = total_height + 2 * self.text_padding
 
             text_background_xyxy = resolve_text_background_xyxy(
-                center_coordinates=tuple(center_coords),
+                center_coordinates=center_coordinates,
                 text_wh=(width_padded, height_padded),
                 position=self.text_anchor,
             )
@@ -1120,36 +1253,18 @@ class LabelAnnotator(BaseAnnotator):
             label_properties.append(
                 [
                     *text_background_xyxy,
-                    text_h,
+                    total_height,
                 ]
             )
-
         return np.array(label_properties).reshape(-1, 5)
-
-    @staticmethod
-    def _get_labels_text(
-        detections: Detections, custom_labels: Optional[List[str]]
-    ) -> List[str]:
-        if custom_labels is not None:
-            return [str(label) for label in custom_labels]
-
-        labels = []
-        for idx in range(len(detections)):
-            if CLASS_NAME_DATA_FIELD in detections.data:
-                labels.append(detections.data[CLASS_NAME_DATA_FIELD][idx])
-            elif detections.class_id is not None:
-                labels.append(str(detections.class_id[idx]))
-            else:
-                labels.append(str(idx))
-        return labels
 
     def _draw_labels(
         self,
         scene: np.ndarray,
-        labels: List[str],
+        labels: list[str],
         label_properties: np.ndarray,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray],
+        custom_color_lookup: np.ndarray | None,
     ) -> None:
         assert len(labels) == len(label_properties) == len(detections), (
             f"Number of label properties ({len(label_properties)}), "
@@ -1177,8 +1292,8 @@ class LabelAnnotator(BaseAnnotator):
                 color_lookup=color_lookup,
             )
 
-            box_xyxy = label_property[:4]
-            text_height_padded = label_property[4]
+            box_xyxy = label_property[:4].astype(int)
+
             self.draw_rounded_rectangle(
                 scene=scene,
                 xyxy=box_xyxy,
@@ -1186,24 +1301,50 @@ class LabelAnnotator(BaseAnnotator):
                 border_radius=self.border_radius,
             )
 
-            text_x = box_xyxy[0] + self.text_padding
-            text_y = box_xyxy[1] + self.text_padding + text_height_padded
-            cv2.putText(
-                img=scene,
-                text=labels[idx],
-                org=(text_x, text_y),
-                fontFace=CV2_FONT,
-                fontScale=self.text_scale,
-                color=text_color.as_bgr(),
-                thickness=self.text_thickness,
-                lineType=cv2.LINE_AA,
-            )
+            # Handle multiline text
+            wrapped_lines = wrap_text(labels[idx], self.max_line_length)
+            current_y = box_xyxy[1] + self.text_padding  # Start y position
+
+            for line in wrapped_lines:
+                if not line:
+                    # Use a character with ascenders and descenders as height reference
+                    (_, text_h) = cv2.getTextSize(
+                        text="Tg",
+                        fontFace=CV2_FONT,
+                        fontScale=self.text_scale,
+                        thickness=self.text_thickness,
+                    )[0]
+                    current_y += text_h + self.text_padding
+                    continue
+
+                (_, text_h) = cv2.getTextSize(
+                    text=line,
+                    fontFace=CV2_FONT,
+                    fontScale=self.text_scale,
+                    thickness=self.text_thickness,
+                )[0]
+
+                text_x = box_xyxy[0] + self.text_padding
+                text_y = current_y + text_h  # Add height to get to text baseline
+
+                cv2.putText(
+                    img=scene,
+                    text=line,
+                    org=(text_x, text_y),
+                    fontFace=CV2_FONT,
+                    fontScale=self.text_scale,
+                    color=text_color.as_bgr(),
+                    thickness=self.text_thickness,
+                    lineType=cv2.LINE_AA,
+                )
+
+                current_y += text_h + self.text_padding  # Move to next line position
 
     @staticmethod
     def draw_rounded_rectangle(
         scene: np.ndarray,
-        xyxy: Tuple[int, int, int, int],
-        color: Tuple[int, int, int],
+        xyxy: tuple[int, int, int, int],
+        color: tuple[int, int, int],
         border_radius: int,
     ) -> np.ndarray:
         x1, y1, x2, y2 = xyxy
@@ -1242,7 +1383,7 @@ class LabelAnnotator(BaseAnnotator):
         return scene
 
 
-class RichLabelAnnotator(BaseAnnotator):
+class RichLabelAnnotator(_BaseLabelAnnotator):
     """
     A class for annotating labels on an image using provided detections,
     with support for Unicode characters by using a custom font.
@@ -1250,20 +1391,24 @@ class RichLabelAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
-        text_color: Union[Color, ColorPalette] = Color.WHITE,
-        font_path: Optional[str] = None,
+        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color_lookup: ColorLookup = ColorLookup.CLASS,
+        text_color: Color | ColorPalette = Color.WHITE,
+        font_path: str | None = None,
         font_size: int = 10,
         text_padding: int = 10,
         text_position: Position = Position.TOP_LEFT,
-        color_lookup: ColorLookup = ColorLookup.CLASS,
+        text_offset: tuple[int, int] = (0, 0),
         border_radius: int = 0,
         smart_position: bool = False,
+        max_line_length: int | None = None,
     ):
         """
         Args:
             color (Union[Color, ColorPalette]): The color or color palette to use for
                 annotating the text background.
+            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+                Options are `INDEX`, `CLASS`, `TRACK`.
             text_color (Union[Color, ColorPalette]): The color to use for the text.
             font_path (Optional[str]): Path to the font file (e.g., ".ttf" or ".otf")
                 to use for rendering text. If `None`, the default PIL font will be used.
@@ -1271,28 +1416,36 @@ class RichLabelAnnotator(BaseAnnotator):
             text_padding (int): Padding around the text within its background box.
             text_position (Position): Position of the text relative to the detection.
                 Possible values are defined in the `Position` enum.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
-                Options are `INDEX`, `CLASS`, `TRACK`.
+            text_offset (Tuple[int, int]): A tuple of 2D coordinates `(x, y)` to
+                offset the text position from the anchor point, in pixels.
             border_radius (int): The radius to apply round edges. If the selected
                 value is higher than the lower dimension, width or height, is clipped.
             smart_position (bool): Spread out the labels to avoid overlapping.
+            max_line_length (Optional[int]): Maximum number of characters per line
+                before wrapping the text. None means no wrapping.
         """
-        self.color = color
-        self.text_color = text_color
-        self.text_padding = text_padding
-        self.text_anchor = text_position
-        self.color_lookup = color_lookup
-        self.border_radius = border_radius
-        self.smart_position = smart_position
+        self.font_path = font_path
+        self.font_size = font_size
         self.font = self._load_font(font_size, font_path)
+        super().__init__(
+            color=color,
+            color_lookup=color_lookup,
+            text_color=text_color,
+            text_padding=text_padding,
+            text_position=text_position,
+            text_offset=text_offset,
+            border_radius=border_radius,
+            smart_position=smart_position,
+            max_line_length=max_line_length,
+        )
 
-    @ensure_pil_image_for_annotation
+    @ensure_pil_image_for_class_method
     def annotate(
         self,
         scene: ImageType,
         detections: Detections,
-        labels: Optional[List[str]] = None,
-        custom_color_lookup: Optional[np.ndarray] = None,
+        labels: list[str] | None = None,
+        custom_color_lookup: np.ndarray | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with labels based on the provided
@@ -1331,19 +1484,24 @@ class RichLabelAnnotator(BaseAnnotator):
                 labels=labels
             )
             ```
-
         """
         assert isinstance(scene, Image.Image)
-        self._validate_labels(labels, detections)
+        validate_labels(labels, detections)
 
         draw = ImageDraw.Draw(scene)
-        labels = self._get_labels_text(detections, labels)
+        labels = get_labels_text(detections, labels)
         label_properties = self._get_label_properties(draw, detections, labels)
 
         if self.smart_position:
             xyxy = label_properties[:, :4]
             xyxy = spread_out_boxes(xyxy)
             label_properties[:, :4] = xyxy
+
+            label_properties = self._adjust_labels_in_frame(
+                (scene.width, scene.height),
+                labels,
+                label_properties,
+            )
 
         self._draw_labels(
             draw=draw,
@@ -1355,75 +1513,62 @@ class RichLabelAnnotator(BaseAnnotator):
 
         return scene
 
-    def _validate_labels(self, labels: Optional[List[str]], detections: Detections):
-        if labels is not None and len(labels) != len(detections):
-            raise ValueError(
-                f"The number of labels ({len(labels)}) does not match the "
-                f"number of detections ({len(detections)}). Each detection "
-                f"should have exactly 1 label."
-            )
-
     def _get_label_properties(
-        self, draw, detections: Detections, labels: List[str]
+        self, draw: ImageDraw.ImageDraw, detections: Detections, labels: list[str]
     ) -> np.ndarray:
-        """
-        Calculate the numerical properties required to draw the labels on the image.
-
-        Returns:
-            (np.ndarray): An array of label properties, containing columns:
-                `min_x`, `min_y`, `max_x`, `max_y`, `text_left_coordinate`,
-                `text_top_coordinate`. The first 4 values are already padded
-                with `text_padding`.
-        """
         label_properties = []
 
         anchor_coordinates = detections.get_anchors_coordinates(
             anchor=self.text_anchor
         ).astype(int)
 
-        for label, center_coords in zip(labels, anchor_coordinates):
-            text_left, text_top, text_right, text_bottom = draw.textbbox(
-                (0, 0), label, font=self.font
+        for label, center_coordinates in zip(labels, anchor_coordinates):
+            center_coordinates = (
+                center_coordinates[0] + self.text_offset[0],
+                center_coordinates[1] + self.text_offset[1],
             )
-            text_width = text_right - text_left
-            text_height = text_bottom - text_top
-            width_padded = text_width + 2 * self.text_padding
-            height_padded = text_height + 2 * self.text_padding
+
+            wrapped_lines = wrap_text(label, self.max_line_length)
+
+            # Calculate the total text height and maximum width
+            max_width = 0
+            total_height = 0
+
+            for line in wrapped_lines:
+                left, top, right, bottom = draw.textbbox((0, 0), line, font=self.font)
+                line_width = right - left
+                line_height = bottom - top
+
+                max_width = max(max_width, line_width)
+                total_height += line_height
+
+            # Add inter-line spacing
+            if len(wrapped_lines) > 1:
+                total_height += (len(wrapped_lines) - 1) * self.text_padding
+
+            width_padded = int(max_width + 2 * self.text_padding)
+            height_padded = int(total_height + 2 * self.text_padding)
 
             text_background_xyxy = resolve_text_background_xyxy(
-                center_coordinates=tuple(center_coords),
+                center_coordinates=center_coordinates,
                 text_wh=(width_padded, height_padded),
                 position=self.text_anchor,
             )
+
+            # Get the text origin offsets
+            text_left, text_top, _, _ = draw.textbbox((0, 0), "Tg", font=self.font)
 
             label_properties.append([*text_background_xyxy, text_left, text_top])
 
         return np.array(label_properties).reshape(-1, 6)
 
-    @staticmethod
-    def _get_labels_text(
-        detections: Detections, custom_labels: Optional[List[str]]
-    ) -> List[str]:
-        if custom_labels is not None:
-            return custom_labels
-
-        labels = []
-        for idx in range(len(detections)):
-            if CLASS_NAME_DATA_FIELD in detections.data:
-                labels.append(detections.data[CLASS_NAME_DATA_FIELD][idx])
-            elif detections.class_id is not None:
-                labels.append(str(detections.class_id[idx]))
-            else:
-                labels.append(str(idx))
-        return labels
-
     def _draw_labels(
         self,
-        draw,
-        labels: List[str],
+        draw: ImageDraw.ImageDraw,
+        labels: list[str],
         label_properties: np.ndarray,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray],
+        custom_color_lookup: np.ndarray | None,
     ) -> None:
         assert len(labels) == len(label_properties) == len(detections), (
             f"Number of label properties ({len(label_properties)}), "
@@ -1450,27 +1595,38 @@ class RichLabelAnnotator(BaseAnnotator):
                 color_lookup=color_lookup,
             )
 
-            box_xyxy = label_property[:4]
+            box_xyxy = label_property[:4].astype(int)
             text_left = label_property[4]
             text_top = label_property[5]
-            label_x_position = box_xyxy[0] + self.text_padding - text_left
-            label_y_position = box_xyxy[1] + self.text_padding - text_top
 
+            # Draw the rounded rectangle background
             draw.rounded_rectangle(
                 tuple(box_xyxy),
                 radius=self.border_radius,
                 fill=background_color.as_rgb(),
                 outline=None,
             )
-            draw.text(
-                xy=(label_x_position, label_y_position),
-                text=labels[idx],
-                font=self.font,
-                fill=text_color.as_rgb(),
-            )
+
+            # Draw each line of text
+            wrapped_lines = wrap_text(labels[idx], self.max_line_length)
+            x_position = box_xyxy[0] + self.text_padding - text_left
+            y_position = box_xyxy[1] + self.text_padding - text_top
+
+            for line in wrapped_lines:
+                draw.text(
+                    xy=(x_position, y_position),
+                    text=line,
+                    font=self.font,
+                    fill=text_color.as_rgb(),
+                )
+
+                # Move to the next line position
+                _left, top, _right, bottom = draw.textbbox((0, 0), line, font=self.font)
+                line_height = bottom - top
+                y_position += line_height + self.text_padding
 
     @staticmethod
-    def _load_font(font_size: int, font_path: Optional[str]):
+    def _load_font(font_size: int, font_path: str | None):
         def load_default_font(size):
             try:
                 return ImageFont.load_default(size)
@@ -1494,9 +1650,9 @@ class IconAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        icon_resolution_wh: Tuple[int, int] = (64, 64),
+        icon_resolution_wh: tuple[int, int] = (64, 64),
         icon_position: Position = Position.TOP_CENTER,
-        offset_xy: Tuple[int, int] = (0, 0),
+        offset_xy: tuple[int, int] = (0, 0),
     ):
         """
         Args:
@@ -1510,9 +1666,9 @@ class IconAnnotator(BaseAnnotator):
         self.position = icon_position
         self.offset_xy = offset_xy
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(
-        self, scene: ImageType, detections: Detections, icon_path: Union[str, List[str]]
+        self, scene: ImageType, detections: Detections, icon_path: str | list[str]
     ) -> ImageType:
         """
         Annotates the given scene with given icons.
@@ -1599,7 +1755,7 @@ class BlurAnnotator(BaseAnnotator):
         """
         self.kernel_size: int = kernel_size
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(
         self,
         scene: ImageType,
@@ -1662,10 +1818,11 @@ class TraceAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        color: Color | ColorPalette = ColorPalette.DEFAULT,
         position: Position = Position.CENTER,
         trace_length: int = 30,
         thickness: int = 2,
+        smooth: bool = False,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
         """
@@ -1677,20 +1834,22 @@ class TraceAnnotator(BaseAnnotator):
             trace_length (int): The maximum length of the trace in terms of historical
                 points. Defaults to `30`.
             thickness (int): The thickness of the trace lines. Defaults to `2`.
+            smooth (bool): Smooth the trace lines.
             color_lookup (ColorLookup): Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Union[Color, ColorPalette] = color
+        self.color: Color | ColorPalette = color
         self.trace = Trace(max_size=trace_length, anchor=position)
         self.thickness = thickness
+        self.smooth = smooth
         self.color_lookup: ColorLookup = color_lookup
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+        custom_color_lookup: np.ndarray | None = None,
     ) -> ImageType:
         """
         Draws trace paths on the frame based on the detection coordinates provided.
@@ -1754,10 +1913,18 @@ class TraceAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
             xy = self.trace.get(tracker_id=tracker_id)
+            spline_points = xy.astype(np.int32)
+
+            if len(xy) > 3 and self.smooth:
+                x, y = xy[:, 0], xy[:, 1]
+                tck, _u = splprep([x, y], s=20)
+                x_new, y_new = splev(np.linspace(0, 1, 100), tck)
+                spline_points = np.stack([x_new, y_new], axis=1).astype(np.int32)
+
             if len(xy) > 1:
                 scene = cv2.polylines(
                     scene,
-                    [xy.astype(np.int32)],
+                    [spline_points],
                     False,
                     color=color.as_bgr(),
                     thickness=self.thickness,
@@ -1797,9 +1964,9 @@ class HeatMapAnnotator(BaseAnnotator):
         self.kernel_size = kernel_size
         self.top_hue = top_hue
         self.low_hue = low_hue
-        self.heat_mask: Optional[npt.NDArray[np.float32]] = None
+        self.heat_mask: npt.NDArray[np.float32] | None = None
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
         """
         Annotates the scene with a heatmap based on the provided detections.
@@ -1881,7 +2048,7 @@ class PixelateAnnotator(BaseAnnotator):
         """
         self.pixel_size: int = pixel_size
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(
         self,
         scene: ImageType,
@@ -1948,13 +2115,13 @@ class TriangleAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        color: Color | ColorPalette = ColorPalette.DEFAULT,
         base: int = 10,
         height: int = 10,
         position: Position = Position.TOP_CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         outline_thickness: int = 0,
-        outline_color: Union[Color, ColorPalette] = Color.BLACK,
+        outline_color: Color | ColorPalette = Color.BLACK,
     ):
         """
         Args:
@@ -1970,20 +2137,20 @@ class TriangleAnnotator(BaseAnnotator):
                 use for outline. It is activated by setting outline_thickness to a value
                 greater than 0.
         """
-        self.color: Union[Color, ColorPalette] = color
+        self.color: Color | ColorPalette = color
         self.base: int = base
         self.height: int = height
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
         self.outline_thickness: int = outline_thickness
-        self.outline_color: Union[Color, ColorPalette] = outline_color
+        self.outline_color: Color | ColorPalette = outline_color
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+        custom_color_lookup: np.ndarray | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with triangles based on the provided detections.
@@ -2066,7 +2233,7 @@ class RoundBoxAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        color: Color | ColorPalette = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         roundness: float = 0.6,
@@ -2083,19 +2250,19 @@ class RoundBoxAnnotator(BaseAnnotator):
                 By default roundness percent is calculated based on smaller side
                 length (width or height).
         """
-        self.color: Union[Color, ColorPalette] = color
+        self.color: Color | ColorPalette = color
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
         if not 0 < roundness <= 1.0:
             raise ValueError("roundness attribute must be float between (0, 1.0]")
         self.roundness: float = roundness
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+        custom_color_lookup: np.ndarray | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with bounding boxes with rounded edges
@@ -2199,11 +2366,11 @@ class PercentageBarAnnotator(BaseAnnotator):
         self,
         height: int = 16,
         width: int = 80,
-        color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        color: Color | ColorPalette = ColorPalette.DEFAULT,
         border_color: Color = Color.BLACK,
         position: Position = Position.TOP_CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-        border_thickness: Optional[int] = None,
+        border_thickness: int | None = None,
     ):
         """
         Args:
@@ -2219,21 +2386,24 @@ class PercentageBarAnnotator(BaseAnnotator):
         """
         self.height: int = height
         self.width: int = width
-        self.color: Union[Color, ColorPalette] = color
+        self.color: Color | ColorPalette = color
         self.border_color: Color = border_color
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
 
-        if border_thickness is None:
-            self.border_thickness = int(0.15 * self.height)
+        self.border_thickness = (
+            border_thickness
+            if border_thickness is not None
+            else int(0.15 * self.height)
+        )
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
-        custom_values: Optional[np.ndarray] = None,
+        custom_color_lookup: np.ndarray | None = None,
+        custom_values: np.ndarray | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with percentage bars based on the provided
@@ -2322,8 +2492,8 @@ class PercentageBarAnnotator(BaseAnnotator):
 
     @staticmethod
     def calculate_border_coordinates(
-        anchor_xy: Tuple[int, int], border_wh: Tuple[int, int], position: Position
-    ) -> Tuple[Tuple[int, int], Tuple[int, int]]:
+        anchor_xy: tuple[int, int], border_wh: tuple[int, int], position: Position
+    ) -> tuple[tuple[int, int], tuple[int, int]]:
         cx, cy = anchor_xy
         width, height = border_wh
 
@@ -2351,7 +2521,7 @@ class PercentageBarAnnotator(BaseAnnotator):
 
     @staticmethod
     def validate_custom_values(
-        custom_values: Optional[Union[np.ndarray, List[float]]], detections: Detections
+        custom_values: np.ndarray | list[float] | None, detections: Detections
     ) -> None:
         if custom_values is None:
             if detections.confidence is None:
@@ -2385,7 +2555,7 @@ class CropAnnotator(BaseAnnotator):
         self,
         position: Position = Position.TOP_CENTER,
         scale_factor: float = 2.0,
-        border_color: Union[Color, ColorPalette] = ColorPalette.DEFAULT,
+        border_color: Color | ColorPalette = ColorPalette.DEFAULT,
         border_thickness: int = 2,
         border_color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -2404,16 +2574,16 @@ class CropAnnotator(BaseAnnotator):
         """
         self.position: Position = position
         self.scale_factor: float = scale_factor
-        self.border_color: Union[Color, ColorPalette] = border_color
+        self.border_color: Color | ColorPalette = border_color
         self.border_thickness: int = border_thickness
         self.border_color_lookup: ColorLookup = border_color_lookup
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: Optional[np.ndarray] = None,
+        custom_color_lookup: np.ndarray | None = None,
     ) -> ImageType:
         """
         Annotates the provided scene with scaled and cropped parts of the image based
@@ -2485,8 +2655,8 @@ class CropAnnotator(BaseAnnotator):
 
     @staticmethod
     def calculate_crop_coordinates(
-        anchor: Tuple[int, int], crop_wh: Tuple[int, int], position: Position
-    ) -> Tuple[Tuple[int, int], Tuple[int, int]]:
+        anchor: tuple[int, int], crop_wh: tuple[int, int], position: Position
+    ) -> tuple[tuple[int, int], tuple[int, int]]:
         anchor_x, anchor_y = anchor
         width, height = crop_wh
 
@@ -2557,7 +2727,7 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
         self.opacity = opacity
         self.force_box = force_box
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
         """
         Applies a colored overlay to the scene outside of the detected regions.
@@ -2655,7 +2825,7 @@ class ComparisonAnnotator:
         self.label_scale = label_scale
         self.text_thickness = int(self.label_scale + 1.2)
 
-    @ensure_cv2_image_for_annotation
+    @ensure_cv2_image_for_class_method
     def annotate(
         self, scene: ImageType, detections_1: Detections, detections_2: Detections
     ) -> ImageType:

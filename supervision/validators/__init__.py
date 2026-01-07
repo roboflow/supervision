@@ -1,4 +1,4 @@
-from typing import Any, Dict, Tuple
+from typing import Any
 
 import numpy as np
 
@@ -53,7 +53,7 @@ def validate_confidence(confidence: Any, n: int) -> None:
         )
 
 
-def validate_keypoint_confidence(confidence: Any, n: int, m: int) -> None:
+def validate_key_point_confidence(confidence: Any, n: int, m: int) -> None:
     expected_shape = f"({n, m})"
     actual_shape = str(getattr(confidence, "shape", None))
 
@@ -79,7 +79,7 @@ def validate_tracker_id(tracker_id: Any, n: int) -> None:
         )
 
 
-def validate_data(data: Dict[str, Any], n: int) -> None:
+def validate_data(data: dict[str, Any], n: int) -> None:
     for key, value in data.items():
         if isinstance(value, list):
             if len(value) != n:
@@ -115,7 +115,7 @@ def validate_detections_fields(
     class_id: Any,
     confidence: Any,
     tracker_id: Any,
-    data: Dict[str, Any],
+    data: dict[str, Any],
 ) -> None:
     validate_xyxy(xyxy)
     n = len(xyxy)
@@ -126,21 +126,21 @@ def validate_detections_fields(
     validate_data(data, n)
 
 
-def validate_keypoints_fields(
+def validate_key_points_fields(
     xy: Any,
     class_id: Any,
     confidence: Any,
-    data: Dict[str, Any],
+    data: dict[str, Any],
 ) -> None:
     n = len(xy)
     m = len(xy[0]) if len(xy) > 0 else 0
     validate_xy(xy, n, m)
     validate_class_id(class_id, n)
-    validate_keypoint_confidence(confidence, n, m)
+    validate_key_point_confidence(confidence, n, m)
     validate_data(data, n)
 
 
-def validate_resolution(resolution: Any) -> Tuple[int, int]:
+def validate_resolution(resolution: Any) -> tuple[int, int]:
     if not (isinstance(resolution, tuple) and len(resolution) == 2):
         raise ValueError(
             f"""

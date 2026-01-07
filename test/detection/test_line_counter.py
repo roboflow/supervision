@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from typing import List, Optional, Tuple
 
 import pytest
 
@@ -65,7 +66,7 @@ from test.test_utils import mock_detections
 )
 def test_calculate_region_of_interest_limits(
     vector: Vector,
-    expected_result: Optional[Tuple[Vector, Vector]],
+    expected_result: tuple[Vector, Vector] | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -233,9 +234,9 @@ def test_calculate_region_of_interest_limits(
 )
 def test_line_zone_one_detection_default_anchors(
     vector: Vector,
-    xyxy_sequence: List[List[float]],
-    expected_crossed_in: List[bool],
-    expected_crossed_out: List[bool],
+    xyxy_sequence: list[list[float]],
+    expected_crossed_in: list[bool],
+    expected_crossed_out: list[bool],
 ) -> None:
     line_zone = LineZone(start=vector.start, end=vector.end)
 
@@ -395,10 +396,10 @@ def test_line_zone_one_detection_default_anchors(
 )
 def test_line_zone_one_detection(
     vector: Vector,
-    xyxy_sequence: List[List[float]],
-    triggering_anchors: List[Position],
-    expected_crossed_in: List[bool],
-    expected_crossed_out: List[bool],
+    xyxy_sequence: list[list[float]],
+    triggering_anchors: list[Position],
+    expected_crossed_in: list[bool],
+    expected_crossed_out: list[bool],
 ) -> None:
     line_zone = LineZone(
         start=vector.start, end=vector.end, triggering_anchors=triggering_anchors
@@ -467,10 +468,10 @@ def test_line_zone_one_detection(
 )
 def test_line_zone_multiple_detections(
     vector: Vector,
-    xyxy_sequence: List[List[List[float]]],
-    anchors: List[Position],
-    expected_crossed_in: List[List[bool]],
-    expected_crossed_out: List[List[bool]],
+    xyxy_sequence: list[list[list[float]]],
+    anchors: list[Position],
+    expected_crossed_in: list[list[bool]],
+    expected_crossed_out: list[list[bool]],
     exception: Exception,
 ) -> None:
     with exception:
@@ -576,11 +577,11 @@ def test_line_zone_multiple_detections(
 )
 def test_line_zone_one_detection_long_horizon(
     vector: Vector,
-    xyxy_sequence: List[List[float]],
-    triggering_anchors: List[Position],
+    xyxy_sequence: list[list[float]],
+    triggering_anchors: list[Position],
     minimum_crossing_threshold: int,
-    expected_crossed_in: List[bool],
-    expected_crossed_out: List[bool],
+    expected_crossed_in: list[bool],
+    expected_crossed_out: list[bool],
 ) -> None:
     line_zone = LineZone(
         start=vector.start,
@@ -741,13 +742,13 @@ def test_line_zone_one_detection_long_horizon(
 )
 def test_line_zone_long_horizon_disappearing_detections(
     vector: Vector,
-    xyxy_sequence: List[List[Optional[List[float]]]],
-    anchors: List[Position],
+    xyxy_sequence: list[list[list[float] | None]],
+    anchors: list[Position],
     minimum_crossing_threshold: int,
-    expected_crossed_in: List[List[bool]],
-    expected_crossed_out: List[List[bool]],
-    expected_count_in: List[int],
-    expected_count_out: List[int],
+    expected_crossed_in: list[list[bool]],
+    expected_crossed_out: list[list[bool]],
+    expected_count_in: list[int],
+    expected_count_out: list[int],
     exception: Exception,
 ) -> None:
     with exception:
