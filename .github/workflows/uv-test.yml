@@ -14,8 +14,14 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  build:
+    uses: ./.github/workflows/build-package.yml
+    with:
+      python-version: "3.10"
+
   run-tests:
     name: Import Test and Pytest Run
+    needs: build
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -33,8 +39,15 @@ jobs:
           python-version: ${{ matrix.python-version }}
           activate-environment: true
 
+      - name: 📥 Download distribution artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+
       - name: 🚀 Install Packages
-        run: uv pip install -r pyproject.toml --group dev --group docs --extra metrics
+        run: |
+          uv pip install dist/*.whl[metrics]
+          uv pip install -r pyproject.toml --group dev
 
       - name: 🧪 Run the Import test
         run: uv run python -c "import supervision; from supervision import assets; from supervision import metrics; print(supervision.__version__)"

@@ -13,8 +13,6 @@ permissions: {} # Explicitly remove all permissions by default
 jobs:
   build:
     uses: ./.github/workflows/build-package.yml
-    with:
-      python-version: "3.10"
 
   publish-pre-release:
     name: Publish Pre-release Package
