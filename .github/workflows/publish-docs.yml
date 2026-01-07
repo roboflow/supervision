@@ -21,6 +21,8 @@ permissions:
 
 jobs:
   build-docs:
+    permissions:
+      contents: read
     uses: ./.github/workflows/build-docs.yml
 
   deploy:

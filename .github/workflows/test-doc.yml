@@ -17,4 +17,7 @@ permissions:
 
 jobs:
   docs-build-test:
+    permissions:
+      contents: read
+      checks: write
     uses: ./.github/workflows/build-docs.yml
