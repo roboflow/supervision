@@ -1,4 +1,4 @@
-import argparse
+import sys
 
 import cv2
 import numpy as np
@@ -77,13 +77,24 @@ class CustomSink:
 
 
 def main(
-    rtsp_url: str,
     zone_configuration_path: str,
-    model_id: str,
-    confidence: float,
-    iou: float,
-    classes: list[int],
+    rtsp_url: str,
+    model_id: str = "yolov8s-640",
+    confidence: float = 0.3,
+    iou: float = 0.7,
+    classes: list[int] = [],
 ) -> None:
+    """
+    Calculating detections dwell time in zones, using RTSP stream.
+
+    Args:
+        zone_configuration_path: Path to the zone configuration JSON file
+        rtsp_url: Complete RTSP URL for the video stream
+        model_id: Roboflow model ID
+        confidence: Confidence level for detections (0 to 1)
+        iou: IOU threshold for non-max suppression
+        classes: List of class IDs to track. If empty, all classes are tracked
+    """
     sink = CustomSink(zone_configuration_path=zone_configuration_path, classes=classes)
 
     pipeline = InferencePipeline.init(
@@ -103,50 +114,26 @@ def main(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Calculating detections dwell time in zones, using RTSP stream."
-    )
-    parser.add_argument(
-        "--zone_configuration_path",
-        type=str,
-        required=True,
-        help="Path to the zone configuration JSON file.",
-    )
-    parser.add_argument(
-        "--rtsp_url",
-        type=str,
-        required=True,
-        help="Complete RTSP URL for the video stream.",
-    )
-    parser.add_argument(
-        "--model_id", type=str, default="yolov8s-640", help="Roboflow model ID."
-    )
-    parser.add_argument(
-        "--confidence_threshold",
-        type=float,
-        default=0.3,
-        help="Confidence level for detections (0 to 1). Default is 0.3.",
-    )
-    parser.add_argument(
-        "--iou_threshold",
-        default=0.7,
-        type=float,
-        help="IOU threshold for non-max suppression. Default is 0.7.",
-    )
-    parser.add_argument(
-        "--classes",
-        nargs="*",
-        type=int,
-        default=[],
-        help="List of class IDs to track. If empty, all classes are tracked.",
-    )
-    args = parser.parse_args()
-
-    main(
-        rtsp_url=args.rtsp_url,
-        zone_configuration_path=args.zone_configuration_path,
-        model_id=args.model_id,
-        confidence=args.confidence_threshold,
-        iou=args.iou_threshold,
-        classes=args.classes,
-    )
+    try:
+        # Try to import jsonargparse for CLI parsing
+        from jsonargparse import ArgumentParser
+    except ImportError:
+        # Fallback if jsonargparse is not installed
+        print("Warning: jsonargparse not installed. Using plain positional arguments.")
+        # Positional args: zone_configuration_path, rtsp_url, [model_id], [confidence], [iou], [classes]
+        if len(sys.argv) < 3:
+            raise ValueError("Insufficient arguments provided.")
+        main(
+            zone_configuration_path=sys.argv[1],
+            rtsp_url=sys.argv[2],
+            model_id=sys.argv[3] if len(sys.argv) > 3 else "yolov8s-640",
+            confidence=float(sys.argv[4]) if len(sys.argv) > 4 else 0.3,
+            iou=float(sys.argv[5]) if len(sys.argv) > 5 else 0.7,
+            classes=[int(x) for x in sys.argv[6:]] if len(sys.argv) > 6 else [],
+        )
+    else:
+        # Use jsonargparse for automatic CLI if import succeeded
+        parser = ArgumentParser()
+        parser.add_function_arguments(main)
+        args = parser.parse_args()
+        main(**vars(args))
