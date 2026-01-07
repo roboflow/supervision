@@ -122,7 +122,7 @@ if __name__ == "__main__":
     except ImportError:
         # Fallback if jsonargparse is not installed
         print("Warning: jsonargparse not installed. Using plain positional arguments.")
-        # Positional args: source_weights_path, source_video_path, target_video_path, [confidence_threshold], [iou_threshold], [heatmap_alpha], [radius], [track_activation_threshold], [track_seconds], [minimum_matching_threshold]
+        # CLI args after script name: source_weights_path (required), [source_video_path] (optional, default: downloaded demo video), [target_video_path] (optional, default: "output.mp4"), [confidence_threshold], [iou_threshold], [heatmap_alpha], [radius], [track_activation_threshold], [track_seconds], [minimum_matching_threshold]
         if len(sys.argv) < 4:
             raise ValueError("Insufficient arguments provided.")
         main(
