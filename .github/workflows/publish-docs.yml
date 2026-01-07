@@ -20,40 +20,34 @@ permissions:
   pull-requests: write # Required for PR comments
 
 jobs:
+  build-docs:
+    uses: ./.github/workflows/build-docs.yml
+    with:
+      insiders: true
+    secrets:
+      MKDOCS_APP_ID: ${{ secrets.MKDOCS_APP_ID }}
+      MKDOCS_PEM: ${{ secrets.MKDOCS_PEM }}
+
   deploy:
     name: Publish Docs
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    strategy:
-      matrix:
-        python-version: ["3.10"]
+    needs: build-docs
     steps:
       - name: 📥 Checkout the repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
 
-      - name: 🐍 Install uv and set Python ${{ matrix.python-version }}
+      - name: 🐍 Install uv and set Python 3.10
         uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.10"
           activate-environment: true
-
-
-      - name: 🔑 Create GitHub App token (mkdocs)
-        id: mkdocs_token
-        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
-        with:
-          app-id: ${{ secrets.MKDOCS_APP_ID }}
-          private-key: ${{ secrets.MKDOCS_PEM }}
-          owner: roboflow
-          repositories: mkdocs-material-insiders
 
       - name: 🏗️ Install dependencies
         run: |
           uv pip install -r pyproject.toml --group docs
-          # Install mkdocs-material-insiders using the GitHub App token
-          uv pip install "git+https://roboflow:${{ steps.mkdocs_token.outputs.token }}@github.com/roboflow/mkdocs-material-insiders.git@9.5.49-insiders-4.53.14#egg=mkdocs-material[imaging]"
 
       - name: ⚙️ Configure git for github-actions
         run: |

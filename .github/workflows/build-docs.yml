@@ -1,0 +1,64 @@
+name: Build Docs
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        required: false
+        type: string
+        default: "3.10"
+      insiders:
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      MKDOCS_APP_ID:
+        required: false
+      MKDOCS_PEM:
+        required: false
+
+jobs:
+  build:
+    name: Build Docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 📥 Checkout the repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 Install uv and set Python ${{ inputs.python-version }}
+        uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
+        with:
+          python-version: ${{ inputs.python-version }}
+          activate-environment: true
+
+      - name: 🏗️ Install dependencies
+        run: |
+          uv pip install -r pyproject.toml --group docs
+
+      - name: 🔑 Create GitHub App token (mkdocs)
+        # todo: this template need to be public for proper testing
+        if: inputs.insiders
+        id: mkdocs_token
+        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        with:
+          app-id: ${{ secrets.MKDOCS_APP_ID }}
+          private-key: ${{ secrets.MKDOCS_PEM }}
+          owner: roboflow
+          repositories: mkdocs-material-insiders
+
+      - name: 🏗️ Install mkdocs-material-insiders
+        if: inputs.insiders
+        run: |
+          uv pip install "git+https://roboflow:${{ steps.mkdocs_token.outputs.token }}@github.com/roboflow/mkdocs-material-insiders.git@9.5.49-insiders-4.53.14#egg=mkdocs-material[imaging]"
+
+      - name: 🧪 Build Docs
+        run: uv run mkdocs build --verbose
+
+      - name: 📤 Upload docs site as artifact
+        uses: actions/upload-artifact@4.33.0
+        with:
+          name: docs-site
+          path: site/
