@@ -40,6 +40,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: docs-site
+          path: site
 
       - name: 🚀 Deploy Development Docs
         if: (github.event_name == 'push' && github.ref == 'refs/heads/develop') || github.event_name == 'workflow_dispatch'
