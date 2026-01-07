@@ -40,9 +40,9 @@ Closes #(issue)
 
 <!-- List the main changes made in this PR -->
 
-- 
-- 
-- 
+-
+-
+-
 
 ## Testing
 
@@ -57,7 +57,7 @@ Closes #(issue)
 <!-- If applicable, provide a link to a Google Colab notebook demonstrating the feature/fix -->
 <!-- Ensure the notebook is publicly accessible -->
 
-Colab link: 
+Colab link:
 
 ## Screenshots/Videos (optional)
 
@@ -66,4 +66,3 @@ Colab link:
 ## Additional Notes
 
 <!-- Any additional information that reviewers should know -->
-
