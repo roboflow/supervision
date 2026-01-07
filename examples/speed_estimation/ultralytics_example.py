@@ -133,10 +133,16 @@ if __name__ == "__main__":
         from jsonargparse import ArgumentParser
     except ImportError:
         # Fallback if jsonargparse is not installed
-        print("Warning: jsonargparse not installed. Using plain positional arguments.")
+        print("Warning: jsonargparse is not installed. Using plain positional arguments.")
         # Positional args: source_video_path, target_video_path, [confidence_threshold], [iou_threshold]
         if len(sys.argv) < 3:
-            raise ValueError("Insufficient arguments provided.")
+            raise ValueError(
+                "Insufficient arguments provided.\n"
+                "Required: source_video_path target_video_path\n"
+                "Optional: confidence_threshold iou_threshold\n"
+                f"Usage: python {sys.argv[0]} source_video_path target_video_path "
+                "[confidence_threshold] [iou_threshold]"
+            )
         main(
             source_video_path=sys.argv[1],
             target_video_path=sys.argv[2],
