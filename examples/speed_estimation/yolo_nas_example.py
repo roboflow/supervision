@@ -85,7 +85,9 @@ def main(
 
     with sv.VideoSink(target_video_path, video_info) as sink:
         for frame in frame_generator:
-            result = model.predict(frame, conf=confidence_threshold, iou=iou_threshold)[0]
+            result = model.predict(frame, conf=confidence_threshold, iou=iou_threshold)[
+                0
+            ]
             detections = sv.Detections.from_yolo_nas(result)
             detections = detections[polygon_zone.trigger(detections)]
             detections = byte_track.update_with_detections(detections=detections)

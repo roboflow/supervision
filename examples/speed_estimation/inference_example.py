@@ -98,7 +98,9 @@ def main(
 
     with sv.VideoSink(target_video_path, video_info) as sink:
         for frame in frame_generator:
-            results = model.infer(frame, confidence=confidence_threshold, iou=iou_threshold)[0]
+            results = model.infer(
+                frame, confidence=confidence_threshold, iou=iou_threshold
+            )[0]
             detections = sv.Detections.from_inference(results)
             detections = detections[polygon_zone.trigger(detections)]
             detections = byte_track.update_with_detections(detections=detections)
