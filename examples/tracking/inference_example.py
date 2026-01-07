@@ -26,16 +26,14 @@ def main(
         confidence_threshold: Confidence threshold for the model
         iou_threshold: IOU threshold for the model
     """
-    api_key = roboflow_api_key
-    api_key = os.environ.get("ROBOFLOW_API_KEY", api_key)
+    api_key = os.environ.get("ROBOFLOW_API_KEY", roboflow_api_key)
     if api_key is None:
         raise ValueError(
             "Roboflow API key is missing. Please provide it as an argument or set the "
             "ROBOFLOW_API_KEY environment variable."
         )
-    roboflow_api_key = api_key
 
-    model = get_roboflow_model(model_id=model_id, api_key=roboflow_api_key)
+    model = get_roboflow_model(model_id=model_id, api_key=api_key)
 
     tracker = sv.ByteTrack()
     box_annotator = sv.BoxAnnotator()
