@@ -133,9 +133,13 @@ if __name__ == "__main__":
             iou_threshold=float(sys.argv[5]) if len(sys.argv) > 5 else 0.5,
             heatmap_alpha=float(sys.argv[6]) if len(sys.argv) > 6 else 0.5,
             radius=int(sys.argv[7]) if len(sys.argv) > 7 else 25,
-            track_activation_threshold=float(sys.argv[8]) if len(sys.argv) > 8 else 0.35,
+            track_activation_threshold=float(sys.argv[8])
+            if len(sys.argv) > 8
+            else 0.35,
             track_seconds=int(sys.argv[9]) if len(sys.argv) > 9 else 5,
-            minimum_matching_threshold=float(sys.argv[10]) if len(sys.argv) > 10 else 0.99,
+            minimum_matching_threshold=float(sys.argv[10])
+            if len(sys.argv) > 10
+            else 0.99,
         )
     else:
         # Use jsonargparse for automatic CLI if import succeeded
