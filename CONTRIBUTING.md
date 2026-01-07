@@ -118,7 +118,7 @@ When creating new functions, please ensure you have the following:
 2. Unit tests for the function.
 3. Examples in the documentation for the function.
 4. Created an entry in our docs to autogenerate the documentation for the function.
-5. Please share a Google Colab with minimal code to test new feature or reproduce the issue whenever possible. Please ensure that Google Colab can be accessed without any restrictions.
+5. Please share a Google Colab with minimal code to test a new feature or reproduce the issue whenever possible. Please ensure that Google Colab can be accessed without any restrictions.
 
 When you submit your Pull Request, you will be asked to sign a Contributor License Agreement (CLA) by the `cla-assistant` GitHub bot. We can only respond to PRs from contributors who have signed the project CLA.
 
