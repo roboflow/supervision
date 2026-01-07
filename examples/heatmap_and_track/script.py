@@ -123,8 +123,40 @@ if __name__ == "__main__":
         # Fallback if jsonargparse is not installed
         print("Warning: jsonargparse not installed. Using plain positional arguments.")
         # CLI args after script name: source_weights_path (required), [source_video_path] (optional, default: downloaded demo video), [target_video_path] (optional, default: "output.mp4"), [confidence_threshold], [iou_threshold], [heatmap_alpha], [radius], [track_activation_threshold], [track_seconds], [minimum_matching_threshold]
-        if len(sys.argv) < 4:
-            raise ValueError("Insufficient arguments provided.")
+        if len(sys.argv) < 2:
+            script_name = sys.argv[0] if sys.argv else "script.py"
+            usage_message = (
+                "Insufficient arguments provided.\n\n"
+                f"Usage:\n"
+                f"  python {script_name} "
+                "source_weights_path [source_video_path] [target_video_path] "
+                "[confidence_threshold] [iou_threshold] [heatmap_alpha] [radius] "
+                "[track_activation_threshold] [track_seconds] "
+                "[minimum_matching_threshold]\n\n"
+                "Arguments:\n"
+                "  source_weights_path          (required) Path to YOLO weights file.\n"
+                "  source_video_path            (optional) Input video path. "
+                "Defaults to a downloaded PEOPLE_WALKING demo video.\n"
+                "  target_video_path            (optional) Output video path. "
+                "Defaults to 'output.mp4'.\n"
+                "  confidence_threshold         (optional) Detection confidence "
+                "threshold. Default: 0.35\n"
+                "  iou_threshold                (optional) IOU threshold. "
+                "Default: 0.5\n"
+                "  heatmap_alpha                (optional) Heatmap alpha value. "
+                "Default: 0.5\n"
+                "  radius                       (optional) Heatmap radius (pixels). "
+                "Default: 25\n"
+                "  track_activation_threshold   (optional) Track activation "
+                "threshold. Default: 0.35\n"
+                "  track_seconds                (optional) Track smoothing window "
+                "in seconds. Default: 5\n"
+                "  minimum_matching_threshold   (optional) Minimum matching "
+                "threshold. Default: 0.99\n\n"
+                "Tip: Install 'jsonargparse' to get automatic '--help' and richer "
+                "command-line parsing.\n"
+            )
+            raise ValueError(usage_message)
         main(
             source_weights_path=sys.argv[1],
             source_video_path=sys.argv[2] if len(sys.argv) > 2 else download_video(),
