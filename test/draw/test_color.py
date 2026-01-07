@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from typing import Optional
 
 import pytest
 
@@ -25,7 +26,7 @@ from supervision.draw.color import Color
     ],
 )
 def test_color_from_hex(
-    color_hex, expected_result: Optional[Color], exception: Exception
+    color_hex, expected_result: Color | None, exception: Exception
 ) -> None:
     with exception:
         result = Color.from_hex(color_hex=color_hex)
@@ -44,7 +45,7 @@ def test_color_from_hex(
     ],
 )
 def test_color_as_hex(
-    color: Color, expected_result: Optional[str], exception: Exception
+    color: Color, expected_result: str | None, exception: Exception
 ) -> None:
     with exception:
         result = color.as_hex()

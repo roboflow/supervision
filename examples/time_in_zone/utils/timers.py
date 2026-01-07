@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Dict
 
 import numpy as np
 
@@ -22,11 +21,11 @@ class FPSBasedTimer:
         """Initializes the FPSBasedTimer with the specified frames per second rate.
 
         Args:
-            fps (int, optional): The frame rate of the video stream. Defaults to 30.
+            fps (int): The frame rate of the video stream. Defaults to 30.
         """
         self.fps = fps
         self.frame_id = 0
-        self.tracker_id2frame_id: Dict[int, int] = {}
+        self.tracker_id2frame_id: dict[int, int] = {}
 
     def tick(self, detections: sv.Detections) -> np.ndarray:
         """Processes the current frame, updating time durations for each tracker.
@@ -63,7 +62,7 @@ class ClockBasedTimer:
 
     def __init__(self) -> None:
         """Initializes the ClockBasedTimer."""
-        self.tracker_id2start_time: Dict[int, datetime] = {}
+        self.tracker_id2start_time: dict[int, datetime] = {}
 
     def tick(self, detections: sv.Detections) -> np.ndarray:
         """Processes the current frame, updating time durations for each tracker.

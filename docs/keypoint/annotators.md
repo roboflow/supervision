@@ -78,19 +78,19 @@ comments: true
     </div>
 
 <div class="md-typeset">
-  <h2><a href="#supervision.keypoint.annotators.VertexAnnotator">VertexAnnotator</a></h2>
+  <h2><a href="#supervision.key_points.annotators.VertexAnnotator">VertexAnnotator</a></h2>
 </div>
 
-:::supervision.keypoint.annotators.VertexAnnotator
+:::supervision.key_points.annotators.VertexAnnotator
 
 <div class="md-typeset">
-  <h2><a href="#supervision.keypoint.annotators.EdgeAnnotator">EdgeAnnotator</a></h2>
+  <h2><a href="#supervision.key_points.annotators.EdgeAnnotator">EdgeAnnotator</a></h2>
 </div>
 
-:::supervision.keypoint.annotators.EdgeAnnotator
+:::supervision.key_points.annotators.EdgeAnnotator
 
 <div class="md-typeset">
-  <h2><a href="#supervision.keypoint.annotators.VertexLabelAnnotator">VertexLabelAnnotator</a></h2>
+  <h2><a href="#supervision.key_points.annotators.VertexLabelAnnotator">VertexLabelAnnotator</a></h2>
 </div>
 
-:::supervision.keypoint.annotators.VertexLabelAnnotator
+:::supervision.key_points.annotators.VertexLabelAnnotator

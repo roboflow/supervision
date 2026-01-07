@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from test.test_utils import mock_detections
-from typing import Dict, List, Optional, Tuple, TypeVar
+from typing import TypeVar
 
 import numpy as np
 import numpy.typing as npt
@@ -15,6 +16,7 @@ from supervision.dataset.utils import (
     rle_to_mask,
     train_test_split,
 )
+from test.test_utils import mock_detections
 
 T = TypeVar("T")
 
@@ -74,11 +76,11 @@ T = TypeVar("T")
     ],
 )
 def test_train_test_split(
-    data: List[T],
+    data: list[T],
     train_ratio: float,
     random_state: int,
     shuffle: bool,
-    expected_result: Optional[Tuple[List[T], List[T]]],
+    expected_result: tuple[list[T], list[T]] | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -118,7 +120,7 @@ def test_train_test_split(
     ],
 )
 def test_merge_class_maps(
-    class_lists: List[List[str]], expected_result: List[str], exception: Exception
+    class_lists: list[list[str]], expected_result: list[str], exception: Exception
 ) -> None:
     with exception:
         result = merge_class_lists(class_lists=class_lists)
@@ -163,9 +165,9 @@ def test_merge_class_maps(
     ],
 )
 def test_build_class_index_mapping(
-    source_classes: List[str],
-    target_classes: List[str],
-    expected_result: Optional[Dict[int, int]],
+    source_classes: list[str],
+    target_classes: list[str],
+    expected_result: dict[int, int] | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -223,9 +225,9 @@ def test_build_class_index_mapping(
     ],
 )
 def test_map_detections_class_id(
-    source_to_target_mapping: Dict[int, int],
+    source_to_target_mapping: dict[int, int],
     detections: Detections,
-    expected_result: Optional[Detections],
+    expected_result: Detections | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -278,7 +280,7 @@ def test_map_detections_class_id(
             np.array([[[]]]).astype(bool),
             None,
             pytest.raises(AssertionError),
-        ),  # raises AssertionError because mask dimentionality is not 2D
+        ),  # raises AssertionError because mask dimensionality is not 2D
         (
             np.array([[]]).astype(bool),
             None,
@@ -287,7 +289,7 @@ def test_map_detections_class_id(
     ],
 )
 def test_mask_to_rle(
-    mask: npt.NDArray[np.bool_], expected_rle: List[int], exception: Exception
+    mask: npt.NDArray[np.bool_], expected_rle: list[int], exception: Exception
 ) -> None:
     with exception:
         result = mask_to_rle(mask=mask)
@@ -354,7 +356,7 @@ def test_mask_to_rle(
 )
 def test_rle_to_mask(
     rle: npt.NDArray[np.int_],
-    resolution_wh: Tuple[int, int],
+    resolution_wh: tuple[int, int],
     expected_mask: npt.NDArray[np.bool_],
     exception: Exception,
 ) -> None:

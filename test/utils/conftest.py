@@ -1,5 +1,4 @@
 import os
-from typing import List
 
 import cv2
 import numpy as np
@@ -21,7 +20,7 @@ def empty_pillow_image() -> Image.Image:
 
 
 @fixture(scope="function")
-def all_images() -> List[np.ndarray]:
+def all_images() -> list[np.ndarray]:
     return [cv2.imread(path) for path in ALL_IMAGES_LIST]
 
 
@@ -31,17 +30,17 @@ def one_image() -> np.ndarray:
 
 
 @fixture(scope="function")
-def two_images() -> List[np.ndarray]:
+def two_images() -> list[np.ndarray]:
     return [cv2.imread(path) for path in ALL_IMAGES_LIST[:2]]
 
 
 @fixture(scope="function")
-def three_images() -> List[np.ndarray]:
+def three_images() -> list[np.ndarray]:
     return [cv2.imread(path) for path in ALL_IMAGES_LIST[:3]]
 
 
 @fixture(scope="function")
-def four_images() -> List[np.ndarray]:
+def four_images() -> list[np.ndarray]:
     return [cv2.imread(path) for path in ALL_IMAGES_LIST[:4]]
 
 

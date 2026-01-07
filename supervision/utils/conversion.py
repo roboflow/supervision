@@ -1,14 +1,13 @@
 from functools import wraps
-from typing import List
 
 import cv2
 import numpy as np
 from PIL import Image
 
-from supervision.annotators.base import ImageType
+from supervision.draw.base import ImageType
 
 
-def ensure_cv2_image_for_annotation(annotate_func):
+def ensure_cv2_image_for_class_method(annotate_func):
     """
     Decorates `BaseAnnotator.annotate` implementations, converts scene to
     an image type used internally by the annotators, converts back when annotation
@@ -33,7 +32,7 @@ def ensure_cv2_image_for_annotation(annotate_func):
     return wrapper
 
 
-def ensure_cv2_image_for_processing(image_processing_fun):
+def ensure_cv2_image_for_standalone_function(image_processing_fun):
     """
     Decorates image processing functions that accept np.ndarray, converting `image` to
     np.ndarray, converts back when processing is complete.
@@ -56,7 +55,7 @@ def ensure_cv2_image_for_processing(image_processing_fun):
     return wrapper
 
 
-def ensure_pil_image_for_annotation(annotate_func):
+def ensure_pil_image_for_class_method(annotate_func):
     """
     Decorates image processing functions that accept np.ndarray, converting `image` to
     PIL image, converts back when processing is complete.
@@ -80,7 +79,7 @@ def ensure_pil_image_for_annotation(annotate_func):
     return wrapper
 
 
-def images_to_cv2(images: List[ImageType]) -> List[np.ndarray]:
+def images_to_cv2(images: list[ImageType]) -> list[np.ndarray]:
     """
     Converts images provided either as Pillow images or OpenCV
     images into OpenCV format.

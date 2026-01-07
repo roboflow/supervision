@@ -95,7 +95,7 @@ if __name__ == "__main__":
     model = get_roboflow_model(model_id=args.model_id, api_key=args.roboflow_api_key)
 
     byte_track = sv.ByteTrack(
-        frame_rate=video_info.fps, track_thresh=args.confidence_threshold
+        frame_rate=video_info.fps, track_activation_threshold=args.confidence_threshold
     )
 
     thickness = sv.calculate_optimal_line_thickness(

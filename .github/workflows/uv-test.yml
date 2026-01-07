@@ -1,0 +1,65 @@
+name: 🔧 Pytest/Test Workflow
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pytest-test-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  run-tests:
+    name: Import Test and Pytest Run
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: 📥 Checkout the repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: 🐍 Install uv and set Python version ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
+        with:
+          python-version: ${{ matrix.python-version }}
+          activate-environment: true
+
+      - name: 🚀 Install Packages
+        run: uv pip install -r pyproject.toml --group dev --group docs --extra metrics
+
+      - name: 🧪 Run the Import test
+        run: uv run python -c "import supervision; from supervision import assets; from supervision import metrics; print(supervision.__version__)"
+
+      - name: 🧪 Run the Test
+        run: uv run pytest
+
+
+  testing-guardian:
+    runs-on: ubuntu-latest
+    needs: run-tests
+    if: always()
+    steps:
+      - name: Display test result
+        run: echo "${{ needs.run-tests.result }}"
+      - name: Fail guardian on test failure
+        if: needs.run-tests.result == 'failure'
+        run: exit 1
+      # Ensure that cancelled or skipped test runs still cause this guardian job to fail,
+      # using an explicit exit code instead of relying on timeout behavior.
+      - name: cancelled or skipped...
+        if: contains(fromJSON('["cancelled", "skipped"]'), needs.run-tests.result)
+        run: |
+          echo "run-tests job result is '${{ needs.run-tests.result }}'; failing explicitly."
+          exit 1
+      - name: tests succeeded
+        if: needs.run-tests.result == 'success'
+        run: echo "All tests completed successfully in job 'run-tests'."

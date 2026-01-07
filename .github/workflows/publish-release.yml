@@ -1,0 +1,45 @@
+name: Publish Supervision Releases to PyPI
+
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+[0-9]+.[0-9]"
+  workflow_dispatch:
+
+permissions: {} # Explicitly remove all permissions by default
+
+jobs:
+  publish-release:
+    name: Publish Release Package
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/project/supervision/
+    timeout-minutes: 10
+    permissions:
+      id-token: write # Required for PyPI publishing
+      contents: read # Required for checkout
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+    steps:
+      - name: 📥 Checkout the repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: 🐍 Install uv and set Python version ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
+        with:
+          python-version: ${{ matrix.python-version }}
+          activate-environment: true
+
+
+      - name: 🏗️ Build source and wheel distributions
+        run: |
+          uv pip install -r pyproject.toml --group build
+          uv build
+          uv run twine check --strict dist/*
+
+      - name: 🚀 Publish to PyPi
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
+        with:
+          attestations: true

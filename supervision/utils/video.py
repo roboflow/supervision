@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import threading
 import time
 from collections import deque
+from collections.abc import Callable, Generator
 from dataclasses import dataclass
-from typing import Callable, Generator, Optional, Tuple
+from queue import Queue
 
 import cv2
 import numpy as np
+from tqdm.auto import tqdm
 
 
 @dataclass
@@ -19,7 +22,7 @@ class VideoInfo:
         width (int): width of the video in pixels
         height (int): height of the video in pixels
         fps (int): frames per second of the video
-        total_frames (int, optional): total number of frames in the video,
+        total_frames (Optional[int]): total number of frames in the video,
             default is None
 
     Examples:
@@ -39,7 +42,7 @@ class VideoInfo:
     width: int
     height: int
     fps: int
-    total_frames: Optional[int] = None
+    total_frames: int | None = None
 
     @classmethod
     def from_video_path(cls, video_path: str) -> VideoInfo:
@@ -55,7 +58,7 @@ class VideoInfo:
         return VideoInfo(width, height, fps, total_frames)
 
     @property
-    def resolution_wh(self) -> Tuple[int, int]:
+    def resolution_wh(self) -> tuple[int, int]:
         return self.width, self.height
 
 
@@ -116,7 +119,9 @@ class VideoSink:
         self.__writer.release()
 
 
-def _validate_and_setup_video(source_path: str, start: int, end: Optional[int]):
+def _validate_and_setup_video(
+    source_path: str, start: int, end: int | None, iterative_seek: bool = False
+):
     video = cv2.VideoCapture(source_path)
     if not video.isOpened():
         raise Exception(f"Could not open video at {source_path}")
@@ -125,13 +130,26 @@ def _validate_and_setup_video(source_path: str, start: int, end: Optional[int]):
         raise Exception("Requested frames are outbound")
     start = max(start, 0)
     end = min(end, total_frames) if end is not None else total_frames
-    video.set(cv2.CAP_PROP_POS_FRAMES, start)
+
+    if iterative_seek:
+        while start > 0:
+            success = video.grab()
+            if not success:
+                break
+            start -= 1
+    elif start > 0:
+        video.set(cv2.CAP_PROP_POS_FRAMES, start)
+
     return video, start, end
 
 
 def get_video_frames_generator(
-    source_path: str, stride: int = 1, start: int = 0, end: Optional[int] = None
-) -> Generator[np.ndarray, None, None]:
+    source_path: str,
+    stride: int = 1,
+    start: int = 0,
+    end: int | None = None,
+    iterative_seek: bool = False,
+) -> Generator[np.ndarray]:
     """
     Get a generator that yields the frames of the video.
 
@@ -143,6 +161,9 @@ def get_video_frames_generator(
             video should generate frames
         end (Optional[int]): Indicates the ending position at which video
             should stop generating frames. If None, video will be read to the end.
+        iterative_seek (bool): If True, the generator will seek to the
+            `start` frame by grabbing each frame, which is much slower. This is a
+            workaround for videos that don't open at all when you set the `start` value.
 
     Returns:
         (Generator[np.ndarray, None, None]): A generator that yields the
@@ -156,7 +177,9 @@ def get_video_frames_generator(
             ...
         ```
     """
-    video, start, end = _validate_and_setup_video(source_path, start, end)
+    video, start, end = _validate_and_setup_video(
+        source_path, start, end, iterative_seek
+    )
     frame_position = start
     while True:
         success, frame = video.read()
@@ -175,40 +198,126 @@ def process_video(
     source_path: str,
     target_path: str,
     callback: Callable[[np.ndarray, int], np.ndarray],
+    *,
+    max_frames: int | None = None,
+    prefetch: int = 32,
+    writer_buffer: int = 32,
+    show_progress: bool = False,
+    progress_message: str = "Processing video",
 ) -> None:
     """
-    Process a video file by applying a callback function on each frame
-        and saving the result to a target video file.
+    Process video frames asynchronously using a threaded pipeline.
+
+    This function orchestrates a three-stage pipeline to optimize video processing
+    throughput:
+
+    1. Reader thread: Continuously reads frames from the source video file and
+       enqueues them into a bounded queue (`frame_read_queue`). The queue size is
+       limited by the `prefetch` parameter to control memory usage.
+    2. Main thread (Processor): Dequeues frames from `frame_read_queue`, applies the
+       user-defined `callback` function to process each frame, then enqueues the
+       processed frames into another bounded queue (`frame_write_queue`) for writing.
+       The processing happens in the main thread, simplifying use of stateful objects
+       without synchronization.
+    3. Writer thread: Dequeues processed frames from `frame_write_queue` and writes
+       them sequentially to the output video file.
 
     Args:
-        source_path (str): The path to the source video file.
-        target_path (str): The path to the target video file.
-        callback (Callable[[np.ndarray, int], np.ndarray]): A function that takes in
-            a numpy ndarray representation of a video frame and an
-            int index of the frame and returns a processed numpy ndarray
-            representation of the frame.
+        source_path (str): Path to the input video file.
+        target_path (str): Path where the processed video will be saved.
+        callback (Callable[[numpy.ndarray, int], numpy.ndarray]): Function called for
+            each frame, accepting the frame as a numpy array and its zero-based index,
+            returning the processed frame.
+        max_frames (int | None): Optional maximum number of frames to process.
+            If None, the entire video is processed (default).
+        prefetch (int): Maximum number of frames buffered by the reader thread.
+            Controls memory use; default is 32.
+        writer_buffer (int): Maximum number of frames buffered before writing.
+            Controls output buffer size; default is 32.
+        show_progress (bool): Whether to display a tqdm progress bar during processing.
+            Default is False.
+        progress_message (str): Description shown in the progress bar.
 
-    Examples:
+    Returns:
+        None
+
+    Example:
         ```python
+        import cv2
         import supervision as sv
+        from rfdetr import RFDETRMedium
 
-        def callback(scene: np.ndarray, index: int) -> np.ndarray:
-            ...
+        model = RFDETRMedium()
+
+        def callback(frame, frame_index):
+            return model.predict(frame)
 
         process_video(
-            source_path=<SOURCE_VIDEO_PATH>,
-            target_path=<TARGET_VIDEO_PATH>,
-            callback=callback
+            source_path="source.mp4",
+            target_path="target.mp4",
+            callback=frame_callback,
         )
         ```
     """
-    source_video_info = VideoInfo.from_video_path(video_path=source_path)
-    with VideoSink(target_path=target_path, video_info=source_video_info) as sink:
-        for index, frame in enumerate(
-            get_video_frames_generator(source_path=source_path)
-        ):
-            result_frame = callback(frame, index)
-            sink.write_frame(frame=result_frame)
+    video_info = VideoInfo.from_video_path(video_path=source_path)
+    total_frames = (
+        min(video_info.total_frames, max_frames)
+        if max_frames is not None
+        else video_info.total_frames
+    )
+
+    frame_read_queue: Queue[tuple[int, np.ndarray] | None] = Queue(maxsize=prefetch)
+    frame_write_queue: Queue[np.ndarray | None] = Queue(maxsize=writer_buffer)
+
+    def reader_thread() -> None:
+        frame_generator = get_video_frames_generator(
+            source_path=source_path,
+            end=max_frames,
+        )
+        for frame_index, frame in enumerate(frame_generator):
+            frame_read_queue.put((frame_index, frame))
+        frame_read_queue.put(None)
+
+    def writer_thread(video_sink: VideoSink) -> None:
+        while True:
+            frame = frame_write_queue.get()
+            if frame is None:
+                break
+            video_sink.write_frame(frame=frame)
+
+    reader_worker = threading.Thread(target=reader_thread, daemon=True)
+    with VideoSink(target_path=target_path, video_info=video_info) as video_sink:
+        writer_worker = threading.Thread(
+            target=writer_thread,
+            args=(video_sink,),
+            daemon=True,
+        )
+
+        reader_worker.start()
+        writer_worker.start()
+
+        progress_bar = tqdm(
+            total=total_frames,
+            disable=not show_progress,
+            desc=progress_message,
+        )
+
+        try:
+            while True:
+                read_item = frame_read_queue.get()
+                if read_item is None:
+                    break
+
+                frame_index, frame = read_item
+                processed_frame = callback(frame, frame_index)
+
+                frame_write_queue.put(processed_frame)
+                progress_bar.update(1)
+        finally:
+            frame_write_queue.put(None)
+            reader_worker.join()
+            writer_worker.join()
+            progress_bar.close()
 
 
 class FPSMonitor:

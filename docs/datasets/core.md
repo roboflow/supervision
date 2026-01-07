@@ -1,12 +1,10 @@
 ---
 comments: true
-status: new
 ---
 
 # Datasets
 
 !!! warning
-
     Dataset API is still fluid and may change. If you use Dataset API in your project until further notice, freeze the
     `supervision` version in your `requirements.txt` or `setup.py`.
 
