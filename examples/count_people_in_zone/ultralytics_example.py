@@ -1,5 +1,5 @@
-import argparse
 import json
+import sys
 
 import cv2
 import numpy as np
@@ -60,7 +60,7 @@ def initiate_annotators(
 
 
 def detect(
-    frame: np.ndarray, model: YOLO, confidence_threshold: float = 0.5
+    frame: np.ndarray, model: YOLO, confidence_threshold: float = 0.5, iou_threshold: float = 0.7
 ) -> sv.Detections:
     """
     Detect objects in a frame using a YOLO model, filtering detections by class ID and
@@ -71,6 +71,7 @@ def detect(
         model (YOLO): The YOLO model used for processing the frame.
         confidence_threshold (float): The confidence threshold for filtering
             detections. Default is 0.5.
+        iou_threshold (float): The IoU threshold for non-maximum suppression. Default is 0.7.
 
     Returns:
         sv.Detections: Filtered detections after processing the frame with the YOLO
@@ -80,7 +81,7 @@ def detect(
         This function is specifically tailored for a YOLO model and assumes class ID 0
             for filtering.
     """
-    results = model(frame, imgsz=1280, verbose=False)[0]
+    results = model(frame, conf=confidence_threshold, iou=iou_threshold, imgsz=1280, verbose=False)[0]
     detections = sv.Detections.from_ultralytics(results)
     filter_by_class = detections.class_id == 0
     filter_by_confidence = detections.confidence > confidence_threshold
@@ -121,63 +122,38 @@ def annotate(
     return annotated_frame
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Counting people in zones with YOLO and Supervision"
-    )
+def main(
+    zone_configuration_path: str,
+    source_video_path: str,
+    source_weights_path: str = "yolo11x.pt",
+    target_video_path: str = None,
+    confidence_threshold: float = 0.3,
+    iou_threshold: float = 0.7,
+):
+    """
+    Counting people in zones with YOLO and Supervision.
 
-    parser.add_argument(
-        "--zone_configuration_path",
-        required=True,
-        help="Path to the zone configuration JSON file",
-        type=str,
-    )
-    parser.add_argument(
-        "--source_weights_path",
-        default="yolo11x.pt",
-        help="Path to the source weights file",
-        type=str,
-    )
-    parser.add_argument(
-        "--source_video_path",
-        required=True,
-        help="Path to the source video file",
-        type=str,
-    )
-    parser.add_argument(
-        "--target_video_path",
-        default=None,
-        help="Path to the target video file (output)",
-        type=str,
-    )
-    parser.add_argument(
-        "--confidence_threshold",
-        default=0.3,
-        help="Confidence threshold for the model",
-        type=float,
-    )
-    parser.add_argument(
-        "--iou_threshold",
-        default=0.7,
-        help="IOU threshold for the model",
-        type=float,
-    )
-
-    args = parser.parse_args()
-
-    video_info = sv.VideoInfo.from_video_path(args.source_video_path)
-    polygons = load_zones_config(args.zone_configuration_path)
+    Args:
+        zone_configuration_path: Path to the zone configuration JSON file
+        source_video_path: Path to the source video file
+        source_weights_path: Path to the source weights file
+        target_video_path: Path to the target video file (output)
+        confidence_threshold: Confidence threshold for the model
+        iou_threshold: IOU threshold for the model
+    """
+    video_info = sv.VideoInfo.from_video_path(source_video_path)
+    polygons = load_zones_config(zone_configuration_path)
     zones, zone_annotators, box_annotators = initiate_annotators(
         polygons=polygons, resolution_wh=video_info.resolution_wh
     )
 
-    model = YOLO(args.source_weights_path)
+    model = YOLO(source_weights_path)
 
-    frames_generator = sv.get_video_frames_generator(args.source_video_path)
-    if args.target_video_path is not None:
-        with sv.VideoSink(args.target_video_path, video_info) as sink:
+    frames_generator = sv.get_video_frames_generator(source_video_path)
+    if target_video_path is not None:
+        with sv.VideoSink(target_video_path, video_info) as sink:
             for frame in tqdm(frames_generator, total=video_info.total_frames):
-                detections = detect(frame, model, args.confidence_threshold)
+                detections = detect(frame, model, confidence_threshold, iou_threshold)
                 annotated_frame = annotate(
                     frame=frame,
                     zones=zones,
@@ -188,7 +164,7 @@ if __name__ == "__main__":
                 sink.write_frame(annotated_frame)
     else:
         for frame in tqdm(frames_generator, total=video_info.total_frames):
-            detections = detect(frame, model, args.confidence_threshold)
+            detections = detect(frame, model, confidence_threshold, iou_threshold)
             annotated_frame = annotate(
                 frame=frame,
                 zones=zones,
@@ -201,3 +177,29 @@ if __name__ == "__main__":
                 break
 
         cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    try:
+        # Try to import jsonargparse for CLI parsing
+        from jsonargparse import ArgumentParser
+    except ImportError:
+        # Fallback if jsonargparse is not installed
+        print("Warning: jsonargparse not installed. Using plain positional arguments.")
+        # Positional args: zone_configuration_path, source_video_path, [source_weights_path], [target_video_path], [confidence_threshold], [iou_threshold]
+        if len(sys.argv) < 3:
+            raise ValueError("Insufficient arguments provided.")
+        main(
+            zone_configuration_path=sys.argv[1],
+            source_video_path=sys.argv[2],
+            source_weights_path=sys.argv[3] if len(sys.argv) > 3 else "yolo11x.pt",
+            target_video_path=sys.argv[4] if len(sys.argv) > 4 else None,
+            confidence_threshold=float(sys.argv[5]) if len(sys.argv) > 5 else 0.3,
+            iou_threshold=float(sys.argv[6]) if len(sys.argv) > 6 else 0.7,
+        )
+    else:
+        # Use jsonargparse for automatic CLI if import succeeded
+        parser = ArgumentParser()
+        parser.add_function_arguments(main)
+        args = parser.parse_args()
+        main(**vars(args))
