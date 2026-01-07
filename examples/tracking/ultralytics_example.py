@@ -58,10 +58,12 @@ if __name__ == "__main__":
         # Fallback if jsonargparse is not installed
         print("Warning: jsonargparse not installed. Using plain positional arguments.")
         if len(sys.argv) < 4:
-            raise ValueError("Insufficient arguments provided."
-                             "Usage: python ultralytics_example.py "
-                             "<source_weights_path> <source_video_path> <target_video_path> "
-                             "[confidence_threshold] [iou_threshold]")
+            raise ValueError(
+                "Insufficient arguments provided."
+                "Usage: python ultralytics_example.py "
+                "<source_weights_path> <source_video_path> <target_video_path> "
+                "[confidence_threshold] [iou_threshold]"
+            )
         main(
             source_weights_path=sys.argv[1],
             source_video_path=sys.argv[2],
