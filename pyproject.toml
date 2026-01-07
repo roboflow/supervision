@@ -21,7 +21,7 @@ keywords = [
     "Roboflow",
 ]
 classifiers = [
-    'Development Status :: 4 - Beta',
+    'Development Status :: 5 - Production/Stable',
     'Intended Audience :: Developers',
     'Intended Audience :: Education',
     'Intended Audience :: Science/Research',
@@ -32,6 +32,8 @@ classifiers = [
     'Topic :: Scientific/Engineering',
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Scientific/Engineering :: Image Recognition",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Multimedia :: Video",
     'Typing :: Typed',
     'Operating System :: Microsoft :: Windows',
     'Operating System :: POSIX :: Linux',
