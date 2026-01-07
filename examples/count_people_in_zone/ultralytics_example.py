@@ -60,7 +60,10 @@ def initiate_annotators(
 
 
 def detect(
-    frame: np.ndarray, model: YOLO, confidence_threshold: float = 0.5, iou_threshold: float = 0.7
+    frame: np.ndarray,
+    model: YOLO,
+    confidence_threshold: float = 0.5,
+    iou_threshold: float = 0.7,
 ) -> sv.Detections:
     """
     Detect objects in a frame using a YOLO model, filtering detections by class ID and
@@ -81,7 +84,9 @@ def detect(
         This function is specifically tailored for a YOLO model and assumes class ID 0
             for filtering.
     """
-    results = model(frame, conf=confidence_threshold, iou=iou_threshold, imgsz=1280, verbose=False)[0]
+    results = model(
+        frame, conf=confidence_threshold, iou=iou_threshold, imgsz=1280, verbose=False
+    )[0]
     detections = sv.Detections.from_ultralytics(results)
     filter_by_class = detections.class_id == 0
     filter_by_confidence = detections.confidence > confidence_threshold

@@ -62,7 +62,10 @@ def initiate_annotators(
 
 
 def detect(
-    frame: np.ndarray, model: RoboflowInferenceModel, confidence_threshold: float = 0.5, iou_threshold: float = 0.7
+    frame: np.ndarray,
+    model: RoboflowInferenceModel,
+    confidence_threshold: float = 0.5,
+    iou_threshold: float = 0.7,
 ) -> sv.Detections:
     """
     Detect objects in a frame using Inference model, filtering detections by class ID
