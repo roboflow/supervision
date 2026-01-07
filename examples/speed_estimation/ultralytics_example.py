@@ -1,4 +1,4 @@
-import argparse
+import sys
 from collections import defaultdict, deque
 
 import cv2
@@ -37,43 +37,26 @@ class ViewTransformer:
         return transformed_points.reshape(-1, 2)
 
 
-def parse_arguments() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Vehicle Speed Estimation using Ultralytics and Supervision"
-    )
-    parser.add_argument(
-        "--source_video_path",
-        required=True,
-        help="Path to the source video file",
-        type=str,
-    )
-    parser.add_argument(
-        "--target_video_path",
-        required=True,
-        help="Path to the target video file (output)",
-        type=str,
-    )
-    parser.add_argument(
-        "--confidence_threshold",
-        default=0.3,
-        help="Confidence threshold for the model",
-        type=float,
-    )
-    parser.add_argument(
-        "--iou_threshold", default=0.7, help="IOU threshold for the model", type=float
-    )
+def main(
+    source_video_path: str,
+    target_video_path: str,
+    confidence_threshold: float = 0.3,
+    iou_threshold: float = 0.7,
+):
+    """
+    Vehicle Speed Estimation using Ultralytics and Supervision.
 
-    return parser.parse_args()
-
-
-if __name__ == "__main__":
-    args = parse_arguments()
-
-    video_info = sv.VideoInfo.from_video_path(video_path=args.source_video_path)
+    Args:
+        source_video_path: Path to the source video file
+        target_video_path: Path to the target video file (output)
+        confidence_threshold: Confidence threshold for the model
+        iou_threshold: IOU threshold for the model
+    """
+    video_info = sv.VideoInfo.from_video_path(video_path=source_video_path)
     model = YOLO("yolo11x.pt")
 
     byte_track = sv.ByteTrack(
-        frame_rate=video_info.fps, track_activation_threshold=args.confidence_threshold
+        frame_rate=video_info.fps, track_activation_threshold=confidence_threshold
     )
 
     thickness = sv.calculate_optimal_line_thickness(
@@ -92,20 +75,18 @@ if __name__ == "__main__":
         position=sv.Position.BOTTOM_CENTER,
     )
 
-    frame_generator = sv.get_video_frames_generator(source_path=args.source_video_path)
+    frame_generator = sv.get_video_frames_generator(source_path=source_video_path)
 
     polygon_zone = sv.PolygonZone(polygon=SOURCE)
     view_transformer = ViewTransformer(source=SOURCE, target=TARGET)
 
     coordinates = defaultdict(lambda: deque(maxlen=video_info.fps))
 
-    with sv.VideoSink(args.target_video_path, video_info) as sink:
+    with sv.VideoSink(target_video_path, video_info) as sink:
         for frame in frame_generator:
-            result = model(frame)[0]
+            result = model(frame, conf=confidence_threshold, iou=iou_threshold)[0]
             detections = sv.Detections.from_ultralytics(result)
-            detections = detections[detections.confidence > args.confidence_threshold]
             detections = detections[polygon_zone.trigger(detections)]
-            detections = detections.with_nms(threshold=args.iou_threshold)
             detections = byte_track.update_with_detections(detections=detections)
 
             points = detections.get_anchors_coordinates(
@@ -144,3 +125,27 @@ if __name__ == "__main__":
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
         cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    try:
+        # Try to import jsonargparse for CLI parsing
+        from jsonargparse import ArgumentParser
+    except ImportError:
+        # Fallback if jsonargparse is not installed
+        print("Warning: jsonargparse not installed. Using plain positional arguments.")
+        # Positional args: source_video_path, target_video_path, [confidence_threshold], [iou_threshold]
+        if len(sys.argv) < 3:
+            raise ValueError("Insufficient arguments provided.")
+        main(
+            source_video_path=sys.argv[1],
+            target_video_path=sys.argv[2],
+            confidence_threshold=float(sys.argv[3]) if len(sys.argv) > 3 else 0.3,
+            iou_threshold=float(sys.argv[4]) if len(sys.argv) > 4 else 0.7,
+        )
+    else:
+        # Use jsonargparse for automatic CLI if import succeeded
+        parser = ArgumentParser()
+        parser.add_function_arguments(main)
+        args = parser.parse_args()
+        main(**vars(args))
