@@ -1,5 +1,8 @@
 name: Build Package
 
+permissions:
+  contents: read
+
 on:
   workflow_call:
     inputs:
