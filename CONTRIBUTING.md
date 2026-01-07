@@ -200,7 +200,7 @@ To run the pre-commit tool, follow these steps:
 
 1. **Install pre-commit** (already included if you followed the installation steps above):
    ```bash
-   uv sync --extra dev
+   uv sync --group dev
    ```
 
 2. **Navigate to the project's root directory** (if not already there).
@@ -237,7 +237,7 @@ To run the documentation locally:
 
 1. **Install documentation dependencies** (if not already installed):
    ```bash
-   uv sync --extra docs
+   uv sync --group docs
    ```
 
 2. **Start the documentation server**:
