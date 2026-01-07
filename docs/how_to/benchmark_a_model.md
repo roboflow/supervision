@@ -41,7 +41,6 @@ pip install git+https://github.com/roboflow/inference.git@linas/allow-latest-rc-
 ```
 
 !!! info
-
     We're updating `inference` at the moment. Please install it as shown above.
 
 Here's how you can download a dataset:
@@ -75,7 +74,6 @@ This will create a folder called `Corgi-v2-4` with the dataset in the current wo
 Let's load a model.
 
 === "Inference, Local"
-
     Roboflow supports a range of state-of-the-art [pre-trained models](https://inference.roboflow.com/quickstart/aliases/) for object detection, instance segmentation, and pose tracking. You don't even need an API key!
 
     Let's load such a model with inference [`inference`](https://inference.roboflow.com/).
@@ -87,7 +85,6 @@ Let's load a model.
     ```
 
 === "Inference, Deployed"
-
     You can train and deploy a model without leaving the Roboflow platform. See this [guide](https://docs.roboflow.com/train/train/train-from-scratch) for more details.
 
     To load a model, you can use inference:
@@ -100,7 +97,6 @@ Let's load a model.
     ```
 
 === "Ultralytics"
-
     Similarly to Inference, Ultralytics allows you to run a variety of models.
 
     ```bash
@@ -141,14 +137,13 @@ With these ready, we can now run the model and obtain predictions.
 We'll use `supervision` to create a dataset iterator, and then run the model on each image.
 
 === "Inference"
-
     ```python
     import supervision as sv
 
     test_set = sv.DetectionDataset.from_yolo(
         images_directory_path=f"{dataset.location}/test/images",
         annotations_directory_path=f"{dataset.location}/test/labels",
-        data_yaml_path=f"{dataset.location}/data.yaml"
+        data_yaml_path=f"{dataset.location}/data.yaml",
     )
 
     image_paths = []
@@ -165,14 +160,13 @@ We'll use `supervision` to create a dataset iterator, and then run the model on 
     ```
 
 === "Ultralytics"
-
     ```python
     import supervision as sv
 
     test_set = sv.DetectionDataset.from_yolo(
         images_directory_path=f"{dataset.location}/test/images",
         annotations_directory_path=f"{dataset.location}/test/labels",
-        data_yaml_path=f"{dataset.location}/data.yaml"
+        data_yaml_path=f"{dataset.location}/data.yaml",
     )
 
     image_paths = []
@@ -199,21 +193,22 @@ We need to remap them to match the dataset classes. Here's how to do it:
 def remap_classes(
     detections: sv.Detections,
     class_ids_from_to: dict[int, int],
-    class_names_from_to: dict[str, str]
+    class_names_from_to: dict[str, str],
 ) -> None:
     new_class_ids = [
-        class_ids_from_to.get(class_id, class_id) for class_id in detections.class_id]
+        class_ids_from_to.get(class_id, class_id) for class_id in detections.class_id
+    ]
     detections.class_id = np.array(new_class_ids)
 
     new_class_names = [
-        class_names_from_to.get(name, name) for name in detections["class_name"]]
+        class_names_from_to.get(name, name) for name in detections["class_name"]
+    ]
     predictions["class_name"] = np.array(new_class_names)
 ```
 
 Let's also remove the predictions that are not in the dataset classes.
 
 === "Inference"
-
     Dataset class names and IDs can be found in the `data.yaml` file, or by printing `dataset.classes`.
 
     ```python
@@ -222,7 +217,7 @@ Let's also remove the predictions that are not in the dataset classes.
     test_set = sv.DetectionDataset.from_yolo(
         images_directory_path=f"{dataset.location}/test/images",
         annotations_directory_path=f"{dataset.location}/test/labels",
-        data_yaml_path=f"{dataset.location}/data.yaml"
+        data_yaml_path=f"{dataset.location}/data.yaml",
     )
 
     image_paths = []
@@ -236,11 +231,9 @@ Let's also remove the predictions that are not in the dataset classes.
         remap_classes(
             detections=predictions,
             class_ids_from_to={16: 0},
-            class_names_from_to={"dog": "Corgi"}
+            class_names_from_to={"dog": "Corgi"},
         )
-        predictions = predictions[
-            np.isin(predictions["class_name"], test_set.classes)
-        ]
+        predictions = predictions[np.isin(predictions["class_name"], test_set.classes)]
 
         image_paths.append(image_path)
         predictions_list.append(predictions)
@@ -248,7 +241,6 @@ Let's also remove the predictions that are not in the dataset classes.
     ```
 
 === "Ultralytics"
-
     Dataset class names and IDs can be found in the `data.yaml` file, or by printing `dataset.classes`.
 
     Each model will have a different class mapping, so make sure to check the model's documentation. In this case, the model was trained on the COCO dataset, with a class
@@ -260,7 +252,7 @@ Let's also remove the predictions that are not in the dataset classes.
     test_set = sv.DetectionDataset.from_yolo(
         images_directory_path=f"{dataset.location}/test/images",
         annotations_directory_path=f"{dataset.location}/test/labels",
-        data_yaml_path=f"{dataset.location}/data.yaml"
+        data_yaml_path=f"{dataset.location}/data.yaml",
     )
 
     image_paths = []
@@ -274,11 +266,9 @@ Let's also remove the predictions that are not in the dataset classes.
         remap_classes(
             detections=predictions,
             class_ids_from_to={16: 0},
-            class_names_from_to={"dog": "Corgi"}
+            class_names_from_to={"dog": "Corgi"},
         )
-        predictions = predictions[
-            np.isin(predictions["class_name"], test_set.classes)
-        ]
+        predictions = predictions[np.isin(predictions["class_name"], test_set.classes)]
 
         image_paths.append(image_path)
         predictions_list.append(predictions)
@@ -297,16 +287,22 @@ N = 9
 GRID_SIZE = (3, 3)
 
 target_annotator = sv.PolygonAnnotator(color=sv.Color.from_hex("#8315f9"), thickness=8)
-prediction_annotator = sv.PolygonAnnotator(color=sv.Color.from_hex("#00cfc6"), thickness=6)
+prediction_annotator = sv.PolygonAnnotator(
+    color=sv.Color.from_hex("#00cfc6"), thickness=6
+)
 
 
 annotated_images = []
 for image_path, predictions, targets in zip(
-  image_paths[:N], predictions_list[:N], targets_list[:N]
+    image_paths[:N], predictions_list[:N], targets_list[:N]
 ):
     annotated_image = cv2.imread(image_path)
-    annotated_image = target_annotator.annotate(scene=annotated_image, detections=targets)
-    annotated_image = prediction_annotator.annotate(scene=annotated_image, detections=prediction)
+    annotated_image = target_annotator.annotate(
+        scene=annotated_image, detections=targets
+    )
+    annotated_image = prediction_annotator.annotate(
+        scene=annotated_image, detections=prediction
+    )
     annotated_images.append(annotated_image)
 
 sv.plot_images_grid(images=annotated_images, grid_size=GRID_SIZE)
@@ -317,7 +313,6 @@ Here, predictions in purple are targets (ground truth), and predictions in teal 
 ![Basic Model Comparison](https://media.roboflow.com/supervision/image-examples/how-to/benchmark-models/basic-model-comparison-corgi.png)
 
 !!! tip
-
     Use `sv.BoxAnnotator` for object detection and `sv.OrientedBoxAnnotator` for OBB.
 
     See [annotator documentation](https://supervision.roboflow.com/latest/detection/annotators/) for even more options.

@@ -43,11 +43,9 @@ This `callback` function will be essential in the subsequent steps of the tutori
 it will be modified to include tracking, labeling, and trace annotations.
 
 !!! tip
-
     Both object detection and segmentation models are supported. Try it with `yolov8n.pt` or `yolov8n-640-seg`!
 
 === "Ultralytics"
-
     ```{ .py }
     import numpy as np
     import supervision as sv
@@ -69,7 +67,6 @@ it will be modified to include tracking, labeling, and trace annotations.
     ```
 
 === "Inference"
-
     ```{ .py }
     import numpy as np
     import supervision as sv
@@ -103,7 +100,6 @@ functionality, each detected object is assigned a unique tracker ID,
 enabling the continuous following of the object's motion path across different frames.
 
 === "Ultralytics"
-
     ```{ .py hl_lines="6 12" }
     import numpy as np
     import supervision as sv
@@ -127,7 +123,6 @@ enabling the continuous following of the object's motion path across different f
     ```
 
 === "Inference"
-
     ```{ .py hl_lines="6 12" }
     import numpy as np
     import supervision as sv
@@ -159,7 +154,6 @@ in Supervision, we can overlay the tracker IDs and class labels on the detected 
 offering a clear visual representation of each object's class and unique identifier.
 
 === "Ultralytics"
-
     ```{ .py hl_lines="8 15-19 23-24" }
     import numpy as np
     import supervision as sv
@@ -194,7 +188,6 @@ offering a clear visual representation of each object's class and unique identif
     ```
 
 === "Inference"
-
     ```{ .py hl_lines="8 15-19 23-24" }
     import numpy as np
     import supervision as sv
@@ -241,7 +234,6 @@ allows for visualizing the trajectories of objects, helping in understanding the
 movement patterns and interactions between objects in the video.
 
 === "Ultralytics"
-
     ```{ .py hl_lines="9 26-27" }
     import numpy as np
     import supervision as sv
@@ -279,7 +271,6 @@ movement patterns and interactions between objects in the video.
     ```
 
 === "Inference"
-
     ```{ .py hl_lines="9 26-27" }
     import numpy as np
     import supervision as sv
@@ -347,7 +338,6 @@ We will define a `callback` function, which will process each frame of the video
 Let's immediately visualize the results with our [`EdgeAnnotator`](/latest/keypoint/annotators/#supervision.key_points.annotators.EdgeAnnotator) and [`VertexAnnotator`](https://supervision.roboflow.com/latest/keypoint/annotators/#supervision.key_points.annotators.VertexAnnotator).
 
 === "Ultralytics"
-
     ```{ .py hl_lines="5 10-11" }
     import numpy as np
     import supervision as sv
@@ -374,7 +364,6 @@ Let's immediately visualize the results with our [`EdgeAnnotator`](/latest/keypo
     ```
 
 === "Inference"
-
     ```{ .py hl_lines="5-6 11-12" }
     import numpy as np
     import supervision as sv
@@ -412,11 +401,9 @@ Keypoint tracking is currently supported via the conversion of `KeyPoints` to `D
 Let's convert to detections and visualize the results with our [`BoxAnnotator`](/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator).
 
 !!! tip
-
     You may use the `selected_keypoint_indices` argument to specify a subset of keypoints to convert. This is useful when some keypoints could be occluded. For example: a person might swing their arm, causing the elbow to be occluded by the torso sometimes.
 
 === "Ultralytics"
-
     ```{ .py hl_lines="8 13 19-20" }
     import numpy as np
     import supervision as sv
@@ -447,7 +434,6 @@ Let's convert to detections and visualize the results with our [`BoxAnnotator`](
     ```
 
 === "Inference"
-
     ```{ .py hl_lines="9 14 20-21" }
     import numpy as np
     import supervision as sv
@@ -487,7 +473,6 @@ Let's convert to detections and visualize the results with our [`BoxAnnotator`](
 Now that we have a `Detections` object, we can track it throughout the video. Utilizing Supervision’s [`sv.ByteTrack`](/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) functionality, each detected object is assigned a unique tracker ID, enabling the continuous following of the object's motion path across different frames. We shall visualize the result with `TraceAnnotator`.
 
 === "Ultralytics"
-
     ```{ .py hl_lines="10-11 17 25-26" }
     import numpy as np
     import supervision as sv
@@ -524,7 +509,6 @@ Now that we have a `Detections` object, we can track it throughout the video. Ut
     ```
 
 === "Inference"
-
     ```{ .py hl_lines="11-12 18 26-27" }
     import numpy as np
     import supervision as sv
@@ -570,7 +554,6 @@ Now that we have a `Detections` object, we can track it throughout the video. Ut
 We could stop here as we have successfully tracked the object detected by the keypoint model. However, we can further enhance the stability of the boxes by applying [`DetectionsSmoother`](/latest/detection/tools/smoother/). This tool helps in stabilizing the boxes by smoothing the bounding box coordinates across frames. It is very simple to use:
 
 === "Ultralytics"
-
     ```{ .py hl_lines="11 19" }
     import numpy as np
     import supervision as sv
@@ -609,7 +592,6 @@ We could stop here as we have successfully tracked the object detected by the ke
     ```
 
 === "Inference"
-
     ```{ .py hl_lines="12 20" }
     import numpy as np
     import supervision as sv
