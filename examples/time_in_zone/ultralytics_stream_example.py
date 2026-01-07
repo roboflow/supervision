@@ -100,7 +100,9 @@ def main(
     model = YOLO(weights)
 
     def inference_callback(frame: VideoFrame) -> sv.Detections:
-        results = model(frame.image, verbose=False, conf=confidence, iou=iou, device=device)[0]
+        results = model(
+            frame.image, verbose=False, conf=confidence, iou=iou, device=device
+        )[0]
         return sv.Detections.from_ultralytics(results)
 
     sink = CustomSink(zone_configuration_path=zone_configuration_path, classes=classes)

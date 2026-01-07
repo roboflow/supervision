@@ -52,7 +52,9 @@ def main(
     timers = [FPSBasedTimer(video_info.fps) for _ in zones]
 
     for frame in frames_generator:
-        results = model(frame, verbose=False, device=device, conf=confidence, iou=iou)[0]
+        results = model(frame, verbose=False, device=device, conf=confidence, iou=iou)[
+            0
+        ]
         detections = sv.Detections.from_ultralytics(results)
         detections = detections[find_in_list(detections.class_id, classes)]
         detections = tracker.update_with_detections(detections)

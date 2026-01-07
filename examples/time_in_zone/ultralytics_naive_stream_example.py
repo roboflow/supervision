@@ -55,7 +55,9 @@ def main(
         fps_monitor.tick()
         fps = fps_monitor.fps
 
-        results = model(frame, verbose=False, device=device, conf=confidence, iou=iou)[0]
+        results = model(frame, verbose=False, device=device, conf=confidence, iou=iou)[
+            0
+        ]
         detections = sv.Detections.from_ultralytics(results)
         detections = detections[find_in_list(detections.class_id, classes)]
         detections = tracker.update_with_detections(detections)
