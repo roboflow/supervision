@@ -18,13 +18,13 @@ body:
       placeholder: |
         **What's the bug?**
         Brief description...
-        
+
         **Expected behavior:**
         What should happen...
-        
+
         **Actual behavior:**
         What actually happens...
-        
+
         **Error/Traceback (if any):**
         ```python
         # Paste error messages here
@@ -41,8 +41,8 @@ body:
         - Python: 3.10.12
         - OS: Ubuntu 22.04
       value: |
-        - Supervision: 
-        - Python: 
+        - Supervision:
+        - Python:
         - OS:
     validations:
       required: true
@@ -54,7 +54,7 @@ body:
       placeholder: |
         ```python
         import supervision as sv
-        
+
         # Your code here
         ```
     validations:

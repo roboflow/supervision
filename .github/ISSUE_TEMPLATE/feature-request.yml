@@ -22,9 +22,9 @@ body:
       description: What feature would you like and why?
       placeholder: |
         **What:** Describe the feature...
-        
+
         **Why:** What problem does it solve? Who would benefit?
-        
+
         **How (optional):** Any ideas on implementation?
     validations:
       required: true
@@ -36,7 +36,7 @@ body:
       placeholder: |
         ```python
         import supervision as sv
-        
+
         # Your example usage here
         ```
     validations:
