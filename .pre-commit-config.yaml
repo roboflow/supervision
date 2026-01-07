@@ -31,12 +31,12 @@ repos:
           args: ["-c", "pyproject.toml"]
           additional_dependencies: ["bandit[toml]"]
 
-  - repo: https://github.com/tox-dev/pyproject-fmt
+  -   repo: https://github.com/tox-dev/pyproject-fmt
     rev: v2.6.0
     hooks:
       - id: pyproject-fmt
-        additional_dependencies: [tox]
-  - repo: https://github.com/abravalheri/validate-pyproject
+
+  -   repo: https://github.com/abravalheri/validate-pyproject
     rev: v0.24.1
     hooks:
       - id: validate-pyproject
