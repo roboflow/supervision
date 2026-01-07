@@ -11,9 +11,8 @@ repos:
     hooks:
       - id: trailing-whitespace
         exclude: test/.*\.py
-      - id: check-yaml
-        exclude: mkdocs.yml
       - id: check-executables-have-shebangs
+      - id: check-yaml
       - id: check-toml
       - id: check-case-conflict
       - id: check-added-large-files

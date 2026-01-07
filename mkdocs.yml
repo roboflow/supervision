@@ -149,7 +149,7 @@ plugins:
   - git-committers:
       repository: roboflow/supervision
       branch: develop
-      token: !ENV ["GITHUB_TOKEN"]
+      token: '!ENV ["GITHUB_TOKEN"]'
   - git-revision-date-localized:
       enable_creation_date: true
 
@@ -164,8 +164,8 @@ markdown_extensions:
   - toc:
       permalink: true
   - pymdownx.emoji:
-      emoji_index: !!python/name:material.extensions.emoji.twemoji
-      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      emoji_index: '!!python/name:material.extensions.emoji.twemoji'
+      emoji_generator: '!!python/name:material.extensions.emoji.to_svg'
   - pymdownx.snippets:
       check_paths: true
   - pymdownx.highlight:
