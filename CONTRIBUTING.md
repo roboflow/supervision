@@ -209,14 +209,14 @@ To run the pre-commit tool, follow these steps:
    ```bash
    uv run pre-commit run --all-files
    ```
-   
+
    This will execute the pre-commit hooks configured for this project. If any issues are found, the pre-commit tool will provide feedback on how to resolve them. Make the necessary changes and re-run the command until all issues are resolved.
 
 4. **Install pre-commit as a git hook** (optional but recommended):
    ```bash
    uv run pre-commit install
    ```
-   
+
    This will automatically run pre-commit checks every time you make a `git commit`.
 
 ### Docstrings
