@@ -74,7 +74,7 @@ def detect(
         model (YOLO): The YOLO model used for processing the frame.
         confidence_threshold (float): The confidence threshold for filtering
             detections. Default is 0.5.
-        iou_threshold (float): The IoU threshold for non-maximum suppression. Default is 0.7.
+        iou_threshold (float): The IoU threshold for non-maximum suppression.
 
     Returns:
         sv.Detections: Filtered detections after processing the frame with the YOLO
@@ -131,7 +131,7 @@ def main(
     zone_configuration_path: str,
     source_video_path: str,
     source_weights_path: str = "yolo11x.pt",
-    target_video_path: str = None,
+    target_video_path: str | None = None,
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ):
@@ -191,12 +191,15 @@ if __name__ == "__main__":
     except ImportError:
         # Fallback if jsonargparse is not installed
         print("Warning: jsonargparse not installed. Using plain positional arguments.")
-        # Positional args: zone_configuration_path, source_video_path, [source_weights_path], [target_video_path], [confidence_threshold], [iou_threshold]
+        # Positional args: zone_configuration_path, source_video_path,
+        # [source_weights_path], [target_video_path], [confidence_threshold],
+        # [iou_threshold]
         if len(sys.argv) < 3:
             raise ValueError(
                 "Insufficient arguments provided.\n"
                 f"Usage: {sys.argv[0]} zone_configuration_path source_video_path "
-                "[source_weights_path] [target_video_path] [confidence_threshold] [iou_threshold]"
+                "[source_weights_path] [target_video_path] [confidence_threshold] "
+                "[iou_threshold]"
             )
         main(
             zone_configuration_path=sys.argv[1],

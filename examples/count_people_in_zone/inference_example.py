@@ -76,8 +76,8 @@ def detect(
         model (RoboflowInferenceModel): The Inference model used for processing the
             frame.
         confidence_threshold (float): The confidence threshold for filtering
-            detections. Default is 0.5.
-        iou_threshold (float): The IoU threshold for non-maximum suppression. Default is 0.7.
+            detections.
+        iou_threshold (float): The IoU threshold for non-maximum suppression.
 
     Returns:
         sv.Detections: Filtered detections after processing the frame with the Inference
@@ -132,8 +132,8 @@ def main(
     zone_configuration_path: str,
     source_video_path: str,
     model_id: str = "yolov8x-1280",
-    roboflow_api_key: str = None,
-    target_video_path: str = None,
+    roboflow_api_key: str | None = None,
+    target_video_path: str | None = None,
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ):
@@ -203,7 +203,9 @@ if __name__ == "__main__":
     except ImportError:
         # Fallback if jsonargparse is not installed
         print("Warning: jsonargparse not installed. Using plain positional arguments.")
-        # Positional args: zone_configuration_path, source_video_path, [model_id], [roboflow_api_key], [target_video_path], [confidence_threshold], [iou_threshold]
+        # Positional args: zone_configuration_path, source_video_path, [model_id],
+        # [roboflow_api_key], [target_video_path], [confidence_threshold],
+        # [iou_threshold]
         if len(sys.argv) < 3:
             script_name = (
                 os.path.basename(sys.argv[0])
