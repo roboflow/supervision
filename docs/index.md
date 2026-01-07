@@ -44,7 +44,7 @@ You can install `supervision` in a
     === "pip (recommended)"
         [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
         [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
-        [![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
+        [![license](https://img.shields.io/pypi/l/supervision)](../LICENSE.md)
         [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 
         ```bash
@@ -54,7 +54,7 @@ You can install `supervision` in a
     === "poetry"
         [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
         [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
-        [![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
+        [![license](https://img.shields.io/pypi/l/supervision)](../LICENSE.md)
         [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 
         ```bash
@@ -64,7 +64,7 @@ You can install `supervision` in a
     === "uv"
         [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
         [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
-        [![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
+        [![license](https://img.shields.io/pypi/l/supervision)](../LICENSE.md)
         [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 
         ```bash
@@ -80,7 +80,7 @@ You can install `supervision` in a
     === "rye"
         [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
         [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
-        [![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
+        [![license](https://img.shields.io/pypi/l/supervision)](../LICENSE.md)
         [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 
         ```bash
