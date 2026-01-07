@@ -32,14 +32,14 @@ repos:
           additional_dependencies: ["bandit[toml]"]
 
   -   repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.6.0
-    hooks:
-      - id: pyproject-fmt
+      rev: v2.6.0
+      hooks:
+        - id: pyproject-fmt
 
   -   repo: https://github.com/abravalheri/validate-pyproject
-    rev: v0.24.1
-    hooks:
-      - id: validate-pyproject
+      rev: v0.24.1
+      hooks:
+        - id: validate-pyproject
 
   -   repo: https://github.com/astral-sh/ruff-pre-commit
       rev: v0.14.10
