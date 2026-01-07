@@ -105,9 +105,13 @@ if __name__ == "__main__":
     except ImportError:
         # Fallback if jsonargparse is not installed
         print("Warning: jsonargparse not installed. Using plain positional arguments.")
-        # Positional args: zone_configuration_path, rtsp_url, [model_id], [confidence], [iou], [classes]
         if len(sys.argv) < 3:
-            raise ValueError("Insufficient arguments provided.")
+            raise ValueError(
+                "Insufficient arguments provided."
+                "Usage: python inference_naive_stream_example.py "
+                "<zone_configuration_path> <source_video_path> "
+                "[model_id] [confidence] [iou] [classes]"
+            )
         main(
             zone_configuration_path=sys.argv[1],
             rtsp_url=sys.argv[2],
