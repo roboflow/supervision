@@ -139,9 +139,12 @@ if __name__ == "__main__":
         print(
             "Warning: jsonargparse is not installed. Using plain positional arguments."
         )
-        # Positional args: source_video_path, target_video_path, [confidence_threshold], [iou_threshold]
         if len(sys.argv) < 3:
-            raise ValueError("Insufficient arguments provided.")
+            raise ValueError(
+                "Insufficient arguments provided."
+                f"Usage: python {sys.argv[0]} source_video_path target_video_path "
+                "[confidence_threshold] [iou_threshold]"
+            )
         main(
             source_video_path=sys.argv[1],
             target_video_path=sys.argv[2],
