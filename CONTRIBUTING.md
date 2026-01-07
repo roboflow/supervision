@@ -179,7 +179,7 @@ Before starting your work on the project, set up your development environment:
 5. **Install project dependencies:**
 
     ```bash
-    uv sync --extra dev --extra docs --extra metrics
+    uv sync --group dev --group docs --extra metrics
     ```
 
 6. **Verify the setup:**
