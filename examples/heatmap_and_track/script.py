@@ -1,4 +1,4 @@
-import argparse
+import sys
 
 import cv2
 from ultralytics import YOLO
@@ -12,7 +12,7 @@ def download_video() -> str:
     return VideoAssets.PEOPLE_WALKING.value
 
 
-def heatmap_and_track(
+def main(
     source_weights_path: str,
     source_video_path: str,
     target_video_path: str,
@@ -24,6 +24,21 @@ def heatmap_and_track(
     track_seconds: int = 5,
     minimum_matching_threshold: float = 0.99,
 ) -> None:
+    """
+    Heatmap and Tracking with Supervision.
+
+    Args:
+        source_weights_path: Path to the source weights file
+        source_video_path: Path to the source video file
+        target_video_path: Path to the target video file (output)
+        confidence_threshold: Confidence threshold for the model
+        iou_threshold: IOU threshold for the model
+        heatmap_alpha: Opacity of the overlay mask, between 0 and 1
+        radius: Radius of the heat circle
+        track_activation_threshold: Detection confidence threshold for track activation
+        track_seconds: Number of seconds to buffer when a track is lost
+        minimum_matching_threshold: Threshold for matching tracks with detections
+    """
     ### instantiate model
     model = YOLO(source_weights_path)
 
@@ -101,81 +116,30 @@ def heatmap_and_track(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Heatmap and Tracking with Supervision"
-    )
-    parser.add_argument(
-        "--source_weights_path",
-        required=True,
-        help="Path to the source weights file",
-        type=str,
-    )
-    parser.add_argument(
-        "--source_video_path",
-        default=download_video(),
-        help="Path to the source video file",
-        type=str,
-    )
-    parser.add_argument(
-        "--target_video_path",
-        default="output.mp4",
-        help="Path to the target video file (output)",
-        type=str,
-    )
-    parser.add_argument(
-        "--confidence_threshold",
-        default=0.35,
-        help="Confidence threshold for the model",
-        type=float,
-    )
-    parser.add_argument(
-        "--iou_threshold",
-        default=0.5,
-        help="IOU threshold for the model",
-        type=float,
-    )
-    parser.add_argument(
-        "--heatmap_alpha",
-        default=0.5,
-        help="Opacity of the overlay mask, between 0 and 1",
-        type=float,
-    )
-    parser.add_argument(
-        "--radius",
-        default=25,
-        help="Radius of the heat circle",
-        type=float,
-    )
-    parser.add_argument(
-        "--track_threshold",
-        default=0.35,
-        help="Detection confidence threshold for track activation",
-        type=float,
-    )
-    parser.add_argument(
-        "--track_seconds",
-        default=5,
-        help="Number of seconds to buffer when a track is lost",
-        type=int,
-    )
-    parser.add_argument(
-        "--match_threshold",
-        default=0.99,
-        help="Threshold for matching tracks with detections",
-        type=float,
-    )
-
-    args = parser.parse_args()
-
-    heatmap_and_track(
-        source_weights_path=args.source_weights_path,
-        source_video_path=args.source_video_path,
-        target_video_path=args.target_video_path,
-        confidence_threshold=args.confidence_threshold,
-        iou_threshold=args.iou_threshold,
-        heatmap_alpha=args.heatmap_alpha,
-        radius=args.radius,
-        track_activation_threshold=args.track_threshold,
-        track_seconds=args.track_seconds,
-        minimum_matching_threshold=args.match_threshold,
-    )
+    try:
+        # Try to import jsonargparse for CLI parsing
+        from jsonargparse import ArgumentParser
+    except ImportError:
+        # Fallback if jsonargparse is not installed
+        print("Warning: jsonargparse not installed. Using plain positional arguments.")
+        # Positional args: source_weights_path, source_video_path, target_video_path, [confidence_threshold], [iou_threshold], [heatmap_alpha], [radius], [track_activation_threshold], [track_seconds], [minimum_matching_threshold]
+        if len(sys.argv) < 4:
+            raise ValueError("Insufficient arguments provided.")
+        main(
+            source_weights_path=sys.argv[1],
+            source_video_path=sys.argv[2] if len(sys.argv) > 2 else download_video(),
+            target_video_path=sys.argv[3] if len(sys.argv) > 3 else "output.mp4",
+            confidence_threshold=float(sys.argv[4]) if len(sys.argv) > 4 else 0.35,
+            iou_threshold=float(sys.argv[5]) if len(sys.argv) > 5 else 0.5,
+            heatmap_alpha=float(sys.argv[6]) if len(sys.argv) > 6 else 0.5,
+            radius=int(sys.argv[7]) if len(sys.argv) > 7 else 25,
+            track_activation_threshold=float(sys.argv[8]) if len(sys.argv) > 8 else 0.35,
+            track_seconds=int(sys.argv[9]) if len(sys.argv) > 9 else 5,
+            minimum_matching_threshold=float(sys.argv[10]) if len(sys.argv) > 10 else 0.99,
+        )
+    else:
+        # Use jsonargparse for automatic CLI if import succeeded
+        parser = ArgumentParser()
+        parser.add_function_arguments(main)
+        args = parser.parse_args()
+        main(**vars(args))
