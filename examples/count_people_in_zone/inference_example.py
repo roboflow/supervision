@@ -203,9 +203,6 @@ if __name__ == "__main__":
     except ImportError:
         # Fallback if jsonargparse is not installed
         print("Warning: jsonargparse not installed. Using plain positional arguments.")
-        # Positional args: zone_configuration_path, source_video_path, [model_id],
-        # [roboflow_api_key], [target_video_path], [confidence_threshold],
-        # [iou_threshold]
         if len(sys.argv) < 3:
             script_name = (
                 os.path.basename(sys.argv[0])
