@@ -69,7 +69,7 @@ if __name__ == "__main__":
         print("Warning: jsonargparse not installed. Using plain positional arguments.")
         if len(sys.argv) < 4:
             raise ValueError(
-                "Insufficient arguments provided."
+                "Insufficient arguments provided.\n"
                 "Usage: python inference_example.py "
                 "<source_video_path> <target_video_path> <roboflow_api_key> "
                 "[model_id] [confidence_threshold] [iou_threshold]"
