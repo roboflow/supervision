@@ -36,28 +36,23 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🐍 Install uv and set Python 3.10
-        uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
+      - name: 📥 Download docs site artifacts
+        uses: actions/download-artifact@v4
         with:
-          python-version: "3.10"
-          activate-environment: true
-
-      - name: 🏗️ Install dependencies
-        run: |
-          uv pip install -r pyproject.toml --group docs
-
-      - name: ⚙️ Configure git for github-actions
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          name: docs-site
 
       - name: 🚀 Deploy Development Docs
         if: (github.event_name == 'push' && github.ref == 'refs/heads/develop') || github.event_name == 'workflow_dispatch'
-        run: |
-          MKDOCS_GIT_COMMITTERS_APIKEY=${{ secrets.GITHUB_TOKEN }} uv run mike deploy --push develop
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: site
+          destination_dir: develop
 
       - name: 🚀 Deploy Release Docs
         if: github.event_name == 'release' && github.event.action == 'published'
-        run: |
-          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
-          MKDOCS_GIT_COMMITTERS_APIKEY=${{ secrets.GITHUB_TOKEN }} uv run mike deploy --push --update-aliases $latest_tag latest
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: site
+          destination_dir: ${{ github.event.release.tag_name }}
