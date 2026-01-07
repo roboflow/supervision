@@ -205,7 +205,13 @@ if __name__ == "__main__":
         print("Warning: jsonargparse not installed. Using plain positional arguments.")
         # Positional args: zone_configuration_path, source_video_path, [model_id], [roboflow_api_key], [target_video_path], [confidence_threshold], [iou_threshold]
         if len(sys.argv) < 3:
-            raise ValueError("Insufficient arguments provided.")
+            script_name = os.path.basename(sys.argv[0]) if sys.argv and sys.argv[0] else "script.py"
+            raise ValueError(
+                "Insufficient arguments provided.\n"
+                f"Usage: {script_name} zone_configuration_path source_video_path "
+                "[model_id] [roboflow_api_key] [target_video_path] "
+                "[confidence_threshold] [iou_threshold]"
+            )
         main(
             zone_configuration_path=sys.argv[1],
             source_video_path=sys.argv[2],
