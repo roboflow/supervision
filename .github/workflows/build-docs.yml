@@ -7,15 +7,6 @@ on:
         required: false
         type: string
         default: "3.10"
-      insiders:
-        required: false
-        type: boolean
-        default: false
-    secrets:
-      MKDOCS_APP_ID:
-        required: false
-      MKDOCS_PEM:
-        required: false
 
 jobs:
   build:
@@ -37,23 +28,6 @@ jobs:
       - name: 🏗️ Install dependencies
         run: |
           uv pip install -r pyproject.toml --group docs
-
-      - name: 🔑 Create GitHub App token (mkdocs)
-        # todo: this template need to be public for proper testing
-        if: inputs.insiders
-        id: mkdocs_token
-        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
-        with:
-          app-id: ${{ secrets.MKDOCS_APP_ID }}
-          private-key: ${{ secrets.MKDOCS_PEM }}
-          owner: roboflow
-          repositories: mkdocs-material-insiders
-
-      - name: 🏗️ Install mkdocs-material-insiders
-        if: inputs.insiders
-        run: |
-          uv pip install "git+https://roboflow:${{ steps.mkdocs_token.outputs.token }}@github.com/roboflow/mkdocs-material-insiders.git@9.5.49-insiders-4.53.14#egg=mkdocs-material[imaging]"
-
       - name: 🧪 Build Docs
         run: uv run mkdocs build --verbose
 
