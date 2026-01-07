@@ -32,7 +32,7 @@ jobs:
         run: uv run mkdocs build --verbose
 
       - name: 📤 Upload docs site as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.4.3
         with:
           name: docs-site
           path: site/
