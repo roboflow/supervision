@@ -18,5 +18,3 @@ permissions:
 jobs:
   docs-build-test:
     uses: ./.github/workflows/build-docs.yml
-    with:
-      insiders: false

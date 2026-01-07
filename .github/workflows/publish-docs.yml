@@ -22,11 +22,6 @@ permissions:
 jobs:
   build-docs:
     uses: ./.github/workflows/build-docs.yml
-    with:
-      insiders: true
-    secrets:
-      MKDOCS_APP_ID: ${{ secrets.MKDOCS_APP_ID }}
-      MKDOCS_PEM: ${{ secrets.MKDOCS_PEM }}
 
   deploy:
     name: Publish Docs
