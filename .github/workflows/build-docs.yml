@@ -28,7 +28,6 @@ jobs:
       - name: 🏗️ Install dependencies
         run: |
           uv pip install -r pyproject.toml --group docs
-
       - name: 🧪 Build Docs
         run: uv run mkdocs build --verbose
 
