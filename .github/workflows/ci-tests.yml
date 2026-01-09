@@ -42,6 +42,9 @@ jobs:
       - name: 🧪 Run the Test
         run: uv run pytest
 
+      - name: Minimize uv cache
+        run: uv cache prune --ci
+
 
   testing-guardian:
     runs-on: ubuntu-latest
