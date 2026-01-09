@@ -21,7 +21,7 @@ coverage:
       default:
         informational: true
         target: 95% # specify the target coverage for each commit status
-        threshold: 30% # allow this little decrease on project
+        threshold: 10% # allow this little decrease on project
         # https://github.com/codecov/support/wiki/Filtering-Branches
         # branches: master
         if_ci_failed: error
@@ -29,22 +29,14 @@ coverage:
     patch:
       default:
         informational: true
-        threshold: 50% # allow this much decrease on patch
+        target: 95% # enforce same coverage target for new/changed code as the project
+        threshold: 10% # allow only a small decrease on patch coverage
     changes: false
 
 # https://docs.codecov.com/docs/github-checks#disabling-github-checks-patch-annotations
 github_checks:
   annotations: false
 
-parsers:
-  gcov:
-    branch_detection:
-      conditional: true
-      loop: true
-      macro: false
-      method: false
-  javascript:
-    enable_partials: false
 
 comment:
   layout: header, diff
