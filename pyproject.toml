@@ -196,9 +196,6 @@ convention = "google"
 "supervision/**" = [
     "S101"  # TODO: Replace asserts with proper error handling
 ]
-"examples/**" = [
-    "S603",  # subprocess call: check for execution of untrusted input (false positive with shell=False and list args)
-]
 
 [tool.ruff.lint.mccabe]
 # Flag errors (`C901`) whenever the complexity level exceeds 5.
