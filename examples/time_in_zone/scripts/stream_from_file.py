@@ -77,7 +77,7 @@ def run_command_in_thread(command: list) -> Thread:
 
 
 def run_command(command: list) -> int:
-    process = subprocess.run(command)  # noqa: S603 # TODO: Validate command input to prevent execution of untrusted input
+    process = subprocess.run(command, shell=False, check=False)
     return process.returncode
 
 

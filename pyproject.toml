@@ -190,10 +190,14 @@ convention = "google"
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402", "F401"]
 "test/**" = [
-    "S101"  # Use of `assert` detected
+    "S101",  # Use of `assert` detected
+    "S311",  # Standard pseudo-random generators are not suitable for cryptographic purposes
 ]
 "supervision/**" = [
     "S101"  # TODO: Replace asserts with proper error handling
+]
+"examples/**" = [
+    "S603",  # subprocess call: check for execution of untrusted input (false positive with shell=False and list args)
 ]
 
 [tool.ruff.lint.mccabe]
