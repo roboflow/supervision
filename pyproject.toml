@@ -62,6 +62,7 @@ metrics = [
 [dependency-groups]
 dev = [
     "pytest>=7.2.2,<9.0.0",
+    "pytest-cov>=4.0.0,<5.0.0",
     "tox>=4.11.4",
     "notebook>=6.5.3,<8.0.0",
     "ipywidgets>=8.1.1",
