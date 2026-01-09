@@ -237,7 +237,7 @@ for path, image, annotation in ds:
 </details>
 
 ### 🏃‍♂️ tracking
-[Track objects across frames with state-of-the-art trackers like ByteTrack.]
+Track objects across frames with state-of-the-art trackers like ByteTrack.
 
 ```python
 import supervision as sv
