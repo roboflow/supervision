@@ -34,6 +34,22 @@
 
 **We write your reusable computer vision tools.** Whether you need to load your dataset from your hard drive, draw detections on an image or video, or count how many detections are in a zone. You can count on us! 🤝
 
+## 🌟 Key Features
+- 🚀 **Model Agnostic**: Connectors for Ultralytics YOLO, Transformers, MMDetection, Roboflow Inference &amp; more ([docs](https://supervision.roboflow.com/latest/detection/core/#detections))
+- 🎨 **25+ Annotators**: Box, Label, Mask, Trace, HeatMap, Icon, Blur, Pixelate, Halo &amp; many others ([docs](https://supervision.roboflow.com/latest/detection/annotators/))
+- 🏃‍♂️ **Object Tracking**: ByteTracker &amp; more for multi-object tracking ([docs](https://supervision.roboflow.com/latest/trackers/byte_tracker/))
+- 📏 **Line &amp; Polygon Zones**: Count/filter objects crossing lines or in polygons
+- 📊 **Metrics**: mAP, Precision, Recall, F1 Score ([docs](https://supervision.roboflow.com/latest/metrics/mean_average_precision/))
+- 🗂️ **Datasets**: Load, split, convert (COCO, YOLO, Pascal VOC, etc.) ([docs](https://supervision.roboflow.com/latest/datasets/core/))
+- 🔧 **Utils**: NMS/IoU filters, geometry primitives, drawing helpers
+
+## 🚀 Why Supervision?
+- ⏱️ **Accelerate Development**: Ready-to-use utilities for annotations, tracking, zones, metrics – skip boilerplate code.
+- 🤖 **Model Agnostic**: Integrates seamlessly with YOLO, Transformers, MMDetection, Roboflow Inference &amp; more.
+- ⚡ **Lightweight**: Minimal deps (numpy, opencv), no ML frameworks needed, optimized for speed.
+- 🏗️ **Production-Ready**: Robust, battle-tested tools used in Roboflow products.
+- 📚 **Rich Ecosystem**: 25+ annotators, full docs, tutorials, notebooks, active Discord ([join here](https://discord.gg/GbfgXGJ8Bk)).
+
 ## 💻 install
 
 Pip install the supervision package in a
@@ -220,6 +236,57 @@ for path, image, annotation in ds:
 
 </details>
 
+### 🏃‍♂️ tracking
+[Track objects across frames with state-of-the-art trackers like ByteTrack.]
+
+```python
+import supervision as sv
+
+byte_tracker = sv.ByteTracker()
+tracks = byte_tracker.update_with_detections(detections=detections)
+```
+Use `sv.IdAnnotator()` to visualize track `id`.
+
+### 📏 line zone
+Count objects crossing a line.
+
+```python
+line_zone = sv.LineZone(start=sv.Point(0, 0), end=sv.Point(640, 640))
+line_zone_annotator = sv.LineZoneAnnotator()
+
+line_zone.trigger(detections=detections)
+annotated_frame = line_zone_annotator.annotate(scene=image, line_counter=line_zone)
+```
+
+### 🔶 polygon zone
+Count/filter objects in polygon zone.
+
+```python
+import numpy as np
+polygon = np.array([
+    [0, 0],
+    [100, 0],
+    [100, 100],
+    [0, 100]
+])
+polygon_zone = sv.PolygonZone(polygon=polygon)
+polygon_zone_annotator = sv.PolygonZoneAnnotator()
+
+polygon_zone.trigger(detections=detections)
+annotated_frame = polygon_zone_annotator.annotate(scene=image, polygon_zone=polygon_zone)
+```
+
+### 📊 metrics
+Evaluate detection performance (mAP, etc.).
+
+```python
+from supervision.metrics import MeanAveragePrecision
+
+metric = MeanAveragePrecision(class_names=["class1", "class2"])
+metric.update(predictions=predictions, ground_truths=ground_truths)
+print(metric.result())
+```
+
 ## 🎬 tutorials
 
 Want to learn how to use Supervision? Explore our [how-to guides](https://supervision.roboflow.com/develop/how_to/detect_and_annotate/), [end-to-end examples](https://github.com/roboflow/supervision/tree/develop/examples), [cheatsheet](https://roboflow.github.io/cheatsheet-supervision/), and [cookbooks](https://supervision.roboflow.com/develop/cookbooks/)!
@@ -243,12 +310,9 @@ Want to learn how to use Supervision? Explore our [how-to guides](https://superv
 ## 💜 built with supervision
 
 Did you build something cool using supervision? [Let us know!](https://github.com/roboflow/supervision/discussions/categories/built-with-supervision)
-
-https://user-images.githubusercontent.com/26109316/207858600-ee862b22-0353-440b-ad85-caa0c4777904.mp4
-
-https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-60e9c81b3900
-
-https://github.com/roboflow/supervision/assets/26109316/3ac6982f-4943-4108-9b7f-51787ef1a69f
+- [Video Demo](https://user-images.githubusercontent.com/26109316/207858600-ee862b22-0353-440b-ad85-caa0c4777904.mp4)
+- [Demo 1](https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-60e9c81b3900)
+- [Demo 2](https://github.com/roboflow/supervision/assets/26109316/3ac6982f-4943-4108-9b7f-51787ef1a69f)
 
 ## 📚 documentation
 
@@ -270,45 +334,28 @@ We love your input! Please see our [contributing guide](https://github.com/robof
 
 <div align="center">
       <a href="https://youtube.com/roboflow">
-          <img
-            src="https://media.roboflow.com/notebooks/template/icons/purple/youtube.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949634652"
-            width="3%"
-          />
+          <img src="https://media.roboflow.com/notebooks/template/icons/purple/youtube.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949634652" width="3%" />
       </a>
       <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
       <a href="https://roboflow.com">
-          <img
-            src="https://media.roboflow.com/notebooks/template/icons/purple/roboflow-app.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949746649"
-            width="3%"
-          />
+          <img src="https://media.roboflow.com/notebooks/template/icons/purple/roboflow-app.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949746649" width="3%" />
       </a>
       <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
       <a href="https://www.linkedin.com/company/roboflow-ai/">
-          <img
-            src="https://media.roboflow.com/notebooks/template/icons/purple/linkedin.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633691"
-            width="3%"
-          />
+          <img src="https://media.roboflow.com/notebooks/template/icons/purple/linkedin.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633691" width="3%" />
       </a>
       <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
       <a href="https://docs.roboflow.com">
-          <img
-            src="https://media.roboflow.com/notebooks/template/icons/purple/knowledge.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949634511"
-            width="3%"
-          />
+          <img src="https://media.roboflow.com/notebooks/template/icons/purple/knowledge.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949634511" width="3%" />
       </a>
       <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
       <a href="https://discuss.roboflow.com">
-          <img
-            src="https://media.roboflow.com/notebooks/template/icons/purple/forum.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633584"
-            width="3%"
-          />
-      <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
+          <img src="https://media.roboflow.com/notebooks/template/icons/purple/forum.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633584" width="3%" />
+          <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
+      </a>
       <a href="https://blog.roboflow.com">
           <img
-            src="https://media.roboflow.com/notebooks/template/icons/purple/blog.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633605"
-            width="3%"
-          />
-      </a>
+            src="https://media.roboflow.com/notebooks/template/icons/purple/blog.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633605" width="3%" />
       </a>
   </div>
 </div>
