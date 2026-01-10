@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import argparse
-from typing import Dict, Iterable, List, Set
+from collections.abc import Iterable
 
 import cv2
 import numpy as np
@@ -27,14 +29,14 @@ ZONE_OUT_POLYGONS = [
 
 class DetectionsManager:
     def __init__(self) -> None:
-        self.tracker_id_to_zone_id: Dict[int, int] = {}
-        self.counts: Dict[int, Dict[int, Set[int]]] = {}
+        self.tracker_id_to_zone_id: dict[int, int] = {}
+        self.counts: dict[int, dict[int, set[int]]] = {}
 
     def update(
         self,
         detections_all: sv.Detections,
-        detections_in_zones: List[sv.Detections],
-        detections_out_zones: List[sv.Detections],
+        detections_in_zones: list[sv.Detections],
+        detections_out_zones: list[sv.Detections],
     ) -> sv.Detections:
         for zone_in_id, detections_in_zone in enumerate(detections_in_zones):
             for tracker_id in detections_in_zone.tracker_id:
@@ -57,9 +59,9 @@ class DetectionsManager:
 
 
 def initiate_polygon_zones(
-    polygons: List[np.ndarray],
+    polygons: list[np.ndarray],
     triggering_anchors: Iterable[sv.Position] = [sv.Position.CENTER],
-) -> List[sv.PolygonZone]:
+) -> list[sv.PolygonZone]:
     return [
         sv.PolygonZone(
             polygon=polygon,
@@ -74,7 +76,7 @@ class VideoProcessor:
         self,
         source_weights_path: str,
         source_video_path: str,
-        target_video_path: str = None,
+        target_video_path: str | None = None,
         confidence_threshold: float = 0.3,
         iou_threshold: float = 0.7,
     ) -> None:
@@ -90,7 +92,7 @@ class VideoProcessor:
         self.zones_in = initiate_polygon_zones(ZONE_IN_POLYGONS, [sv.Position.CENTER])
         self.zones_out = initiate_polygon_zones(ZONE_OUT_POLYGONS, [sv.Position.CENTER])
 
-        self.bounding_box_annotator = sv.BoundingBoxAnnotator(color=COLORS)
+        self.box_annotator = sv.BoxAnnotator(color=COLORS)
         self.label_annotator = sv.LabelAnnotator(
             color=COLORS, text_color=sv.Color.BLACK
         )
@@ -131,9 +133,7 @@ class VideoProcessor:
 
         labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
         annotated_frame = self.trace_annotator.annotate(annotated_frame, detections)
-        annotated_frame = self.bounding_box_annotator.annotate(
-            annotated_frame, detections
-        )
+        annotated_frame = self.box_annotator.annotate(annotated_frame, detections)
         annotated_frame = self.label_annotator.annotate(
             annotated_frame, detections, labels
         )

@@ -1,7 +1,6 @@
 import argparse
 import json
 import os
-from typing import List, Tuple
 
 import cv2
 import numpy as np
@@ -11,10 +10,10 @@ from tqdm import tqdm
 
 import supervision as sv
 
-COLORS = sv.ColorPalette.default()
+COLORS = sv.ColorPalette.DEFAULT
 
 
-def load_zones_config(file_path: str) -> List[np.ndarray]:
+def load_zones_config(file_path: str) -> list[np.ndarray]:
     """
     Load polygon zone configurations from a JSON file.
 
@@ -28,16 +27,14 @@ def load_zones_config(file_path: str) -> List[np.ndarray]:
     Returns:
     List[np.ndarray]: A list of polygons, each represented as a NumPy array.
     """
-    with open(file_path, "r") as file:
+    with open(file_path) as file:
         data = json.load(file)
         return [np.array(polygon, np.int32) for polygon in data["polygons"]]
 
 
 def initiate_annotators(
-    polygons: List[np.ndarray], resolution_wh: Tuple[int, int]
-) -> Tuple[
-    List[sv.PolygonZone], List[sv.PolygonZoneAnnotator], List[sv.BoundingBoxAnnotator]
-]:
+    polygons: list[np.ndarray], resolution_wh: tuple[int, int]
+) -> tuple[list[sv.PolygonZone], list[sv.PolygonZoneAnnotator], list[sv.BoxAnnotator]]:
     line_thickness = sv.calculate_optimal_line_thickness(resolution_wh=resolution_wh)
     text_scale = sv.calculate_optimal_text_scale(resolution_wh=resolution_wh)
 
@@ -54,7 +51,7 @@ def initiate_annotators(
             text_thickness=line_thickness * 2,
             text_scale=text_scale * 2,
         )
-        box_annotator = sv.BoundingBoxAnnotator(
+        box_annotator = sv.BoxAnnotator(
             color=COLORS.by_idx(index), thickness=line_thickness
         )
         zones.append(zone)
@@ -75,7 +72,7 @@ def detect(
         frame (np.ndarray): The frame to process, expected to be a NumPy array.
         model (RoboflowInferenceModel): The Inference model used for processing the
             frame.
-        confidence_threshold (float, optional): The confidence threshold for filtering
+        confidence_threshold (float): The confidence threshold for filtering
             detections. Default is 0.5.
 
     Returns:
@@ -95,9 +92,9 @@ def detect(
 
 def annotate(
     frame: np.ndarray,
-    zones: List[sv.PolygonZone],
-    zone_annotators: List[sv.PolygonZoneAnnotator],
-    box_annotators: List[sv.BoundingBoxAnnotator],
+    zones: list[sv.PolygonZone],
+    zone_annotators: list[sv.PolygonZoneAnnotator],
+    box_annotators: list[sv.BoxAnnotator],
     detections: sv.Detections,
 ) -> np.ndarray:
     """
@@ -108,7 +105,7 @@ def annotate(
         zones (List[sv.PolygonZone]): A list of polygon zones used for detection.
         zone_annotators (List[sv.PolygonZoneAnnotator]): A list of annotators for
             drawing zone annotations.
-        box_annotators (List[sv.BoundingBoxAnnotator]): A list of annotators for
+        box_annotators (List[sv.BoxAnnotator]): A list of annotators for
             drawing box annotations.
         detections (sv.Detections): Detections to be used for annotation.
 

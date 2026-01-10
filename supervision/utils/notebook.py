@@ -1,15 +1,15 @@
-from typing import List, Optional, Tuple
+from __future__ import annotations
 
 import cv2
 import matplotlib.pyplot as plt
 from PIL import Image
 
-from supervision.annotators.base import ImageType
+from supervision.draw.base import ImageType
 from supervision.utils.conversion import pillow_to_cv2
 
 
 def plot_image(
-    image: ImageType, size: Tuple[int, int] = (12, 12), cmap: Optional[str] = "gray"
+    image: ImageType, size: tuple[int, int] = (12, 12), cmap: str | None = "gray"
 ) -> None:
     """
     Plots image using matplotlib.
@@ -17,7 +17,7 @@ def plot_image(
     Args:
         image (ImageType): The frame to be displayed ImageType
              is a flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
-        size (Tuple[int, int]): The size of the plot.
+        size (Tuple[int, int]): The size of the plot in inches.
         cmap (str): the colormap to use for single channel images.
 
     Examples:
@@ -46,11 +46,11 @@ def plot_image(
 
 
 def plot_images_grid(
-    images: List[ImageType],
-    grid_size: Tuple[int, int],
-    titles: Optional[List[str]] = None,
-    size: Tuple[int, int] = (12, 12),
-    cmap: Optional[str] = "gray",
+    images: list[ImageType],
+    grid_size: tuple[int, int],
+    titles: list[str] | None = None,
+    size: tuple[int, int] = (12, 12),
+    cmap: str | None = "gray",
 ) -> None:
     """
     Plots images in a grid using matplotlib.
@@ -98,7 +98,7 @@ def plot_images_grid(
             " or reduce the number of images."
         )
 
-    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=size)
+    _fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=size)
 
     for idx, ax in enumerate(axes.flat):
         if idx < len(images):

@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 
@@ -53,8 +53,8 @@ def validate_confidence(confidence: Any, n: int) -> None:
         )
 
 
-def validate_keypoint_confidence(confidence: Any, n: int, m: int) -> None:
-    expected_shape = f"({n,m})"
+def validate_key_point_confidence(confidence: Any, n: int, m: int) -> None:
+    expected_shape = f"({n, m})"
     actual_shape = str(getattr(confidence, "shape", None))
 
     if confidence is not None:
@@ -62,8 +62,7 @@ def validate_keypoint_confidence(confidence: Any, n: int, m: int) -> None:
         if not is_valid:
             raise ValueError(
                 f"confidence must be a 1D np.ndarray with shape {expected_shape}, but "
-                "got"
-                f"shape {actual_shape}"
+                f"got shape {actual_shape}"
             )
 
 
@@ -80,7 +79,7 @@ def validate_tracker_id(tracker_id: Any, n: int) -> None:
         )
 
 
-def validate_data(data: Dict[str, Any], n: int) -> None:
+def validate_data(data: dict[str, Any], n: int) -> None:
     for key, value in data.items():
         if isinstance(value, list):
             if len(value) != n:
@@ -116,7 +115,7 @@ def validate_detections_fields(
     class_id: Any,
     confidence: Any,
     tracker_id: Any,
-    data: Dict[str, Any],
+    data: dict[str, Any],
 ) -> None:
     validate_xyxy(xyxy)
     n = len(xyxy)
@@ -127,15 +126,38 @@ def validate_detections_fields(
     validate_data(data, n)
 
 
-def validate_keypoints_fields(
+def validate_key_points_fields(
     xy: Any,
     class_id: Any,
     confidence: Any,
-    data: Dict[str, Any],
+    data: dict[str, Any],
 ) -> None:
     n = len(xy)
     m = len(xy[0]) if len(xy) > 0 else 0
     validate_xy(xy, n, m)
     validate_class_id(class_id, n)
-    validate_keypoint_confidence(confidence, n, m)
+    validate_key_point_confidence(confidence, n, m)
     validate_data(data, n)
+
+
+def validate_resolution(resolution: Any) -> tuple[int, int]:
+    if not (isinstance(resolution, tuple) and len(resolution) == 2):
+        raise ValueError(
+            f"""
+            resolution must be a tuple of two integers, got
+            {type(resolution)} with value {resolution}
+            """
+        )
+    w, h = resolution
+    if not (isinstance(w, int) and isinstance(h, int)):
+        raise ValueError(
+            f"""
+            Both elements in resolution must be integers.
+            Got types ({type(w)}, {type(h)})
+            """
+        )
+    if w <= 0 or h <= 0:
+        raise ValueError(
+            f"Both dimensions in resolution must be positive. Got ({w}, {h})."
+        )
+    return w, h

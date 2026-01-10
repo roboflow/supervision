@@ -12,7 +12,7 @@ status: new
 :::supervision.utils.image.crop_image
 
 <div class="md-typeset">
-    <h2><a href="#supervision.utils.image.scale_image">crop_image</a></h2>
+    <h2><a href="#supervision.utils.image.scale_image">scale_image</a></h2>
 </div>
 
 :::supervision.utils.image.scale_image
@@ -30,10 +30,22 @@ status: new
 :::supervision.utils.image.letterbox_image
 
 <div class="md-typeset">
-    <h2><a href="#supervision.utils.image.overlay_image">overlay_image</a></h2>
+    <h2><a href="#supervision.utils.image.tint_image">tint_image</a></h2>
 </div>
 
-:::supervision.utils.image.overlay_image
+:::supervision.utils.image.tint_image
+
+<div class="md-typeset">
+    <h2><a href="#supervision.utils.image.grayscale_image">grayscale_image</a></h2>
+</div>
+
+:::supervision.utils.image.grayscale_image
+
+<div class="md-typeset">
+    <h2><a href="#supervision.utils.image.get_image_resolution_wh">get_image_resolution_wh</a></h2>
+</div>
+
+:::supervision.utils.image.get_image_resolution_wh
 
 <div class="md-typeset">
     <h2><a href="#supervision.utils.image.ImageSink">ImageSink</a></h2>

@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Dict, Tuple
 
 BASE_VIDEO_URL = "https://media.roboflow.com/supervision/video-examples/"
 
@@ -20,6 +19,7 @@ class VideoAssets(Enum):
     | `PEOPLE_WALKING`       | `people-walking.mp4`       | [Link](https://media.roboflow.com/supervision/video-examples/people-walking.mp4)      |
     | `BEACH`                | `beach-1.mp4`              | [Link](https://media.roboflow.com/supervision/video-examples/beach-1.mp4)             |
     | `BASKETBALL`           | `basketball-1.mp4`         | [Link](https://media.roboflow.com/supervision/video-examples/basketball-1.mp4)        |
+    | `SKIING`               | `skiing.mp4`               | [Link](https://media.roboflow.com/supervision/video-examples/skiing.mp4)              |
     """  # noqa: E501 // docs
 
     VEHICLES = "vehicles.mp4"
@@ -31,13 +31,14 @@ class VideoAssets(Enum):
     PEOPLE_WALKING = "people-walking.mp4"
     BEACH = "beach-1.mp4"
     BASKETBALL = "basketball-1.mp4"
+    SKIING = "skiing.mp4"
 
     @classmethod
     def list(cls):
         return list(map(lambda c: c.value, cls))
 
 
-VIDEO_ASSETS: Dict[str, Tuple[str, str]] = {
+VIDEO_ASSETS: dict[str, tuple[str, str]] = {
     VideoAssets.VEHICLES.value: (
         f"{BASE_VIDEO_URL}{VideoAssets.VEHICLES.value}",
         "8155ff4e4de08cfa25f39de96483f918",
@@ -73,5 +74,9 @@ VIDEO_ASSETS: Dict[str, Tuple[str, str]] = {
     VideoAssets.BASKETBALL.value: (
         f"{BASE_VIDEO_URL}{VideoAssets.BASKETBALL.value}",
         "60d94a3c7c47d16f09d342b088012ecc",
+    ),
+    VideoAssets.SKIING.value: (
+        f"{BASE_VIDEO_URL}{VideoAssets.SKIING.value}",
+        "d30987cbab1bbc5934199cdd1b293119",
     ),
 }

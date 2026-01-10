@@ -1,34 +1,43 @@
 name: 🧪 Docs Test WorkFlow 📚
 
 on:
+  push:
+    branches: [main, develop]
   pull_request:
     branches: [main, develop]
 
+concurrency:
+  group: docs-test-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Restrict permissions by default
+permissions:
+  contents: read # Required for checkout
+  checks: write # Required for test reporting
+
 jobs:
   docs-build-test:
+    name: Test docs build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        python-version: ["3.10"]
     steps:
-      - name: 🔄 Checkout code
-        uses: actions/checkout@v4
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v5
+      - name: 📥 Checkout the repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
-          python-version: '3.10'
-      - name: 📦 Install mkdocs-material
-        run: pip install "mkdocs-material[all]"
-      - name: 📦 Install mkdocstrings[python]
-        run: pip install "mkdocstrings[python]"
-      - name: 📦 Install mkdocs-material[imaging]
-        run: pip install "mkdocs-material[imaging]"
-      - name: 📦 Install mike
-        run: pip install "mike"
-      - name: 📦 Install mkdocs-git-revision-date-localized-plugin
-        run: pip install "mkdocs-git-revision-date-localized-plugin"
-      - name: 📦 Install JupyterLab
-        run: pip install jupyterlab
-      - name: 📦 Install mkdocs-jupyter
-        run: pip install mkdocs-jupyter
-      - name: 📦 Install mkdocs-git-committers-plugin-2
-        run: pip install mkdocs-git-committers-plugin-2
-      - name: 🧪 Test documentation build
-        run: mkdocs build --verbose
+          fetch-depth: 0
+
+      - name: 🐍 Install uv and set Python ${{ matrix.python-version }}
+        uses: astral-sh/setup-uv@681c641aba71e4a1c380be3ab5e12ad51f415867 # v7.1.6
+        with:
+          python-version: ${{ matrix.python-version }}
+          activate-environment: true
+
+      - name: 🏗️ Install dependencies
+        run: |
+          uv pip install -r pyproject.toml --group docs
+
+      - name: 🧪 Test Docs Build
+        run: uv run mkdocs build --verbose

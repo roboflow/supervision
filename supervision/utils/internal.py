@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 import functools
+import inspect
 import os
 import warnings
-from typing import Callable
+from collections.abc import Callable
+from typing import Any, Generic, TypeVar
 
 
 class SupervisionWarnings(Warning):
@@ -30,6 +34,16 @@ else:
     warnings.simplefilter("always", SupervisionWarnings)
 
 
+def warn_deprecated(message: str):
+    """
+    Issue a warning that a function is deprecated.
+
+    Args:
+        message (str): The message to display when the function is called.
+    """
+    warnings.warn(message, category=SupervisionWarnings, stacklevel=2)
+
+
 def deprecated_parameter(
     old_parameter: str,
     new_parameter: str,
@@ -45,9 +59,9 @@ def deprecated_parameter(
     Parameters:
         old_parameter (str): The name of the deprecated parameter.
         new_parameter (str): The name of the parameter that should be used instead.
-        map_function (Callable, optional): A function used to map the value of the old
+        map_function (Callable): A function used to map the value of the old
             parameter to the new parameter. Defaults to the identity function.
-        warning_message (str, optional): The warning message to be displayed when the
+        warning_message (str): The warning message to be displayed when the
             deprecated parameter is used. Defaults to a generic warning message with
             placeholders for the old parameter, new parameter, and function name.
         **message_kwargs: Additional keyword arguments that can be used to customize
@@ -81,15 +95,13 @@ def deprecated_parameter(
                 else:
                     function_name = func.__name__
 
-                warnings.warn(
+                warn_deprecated(
                     message=warning_message.format(
                         function_name=function_name,
                         old_parameter=old_parameter,
                         new_parameter=new_parameter,
                         **message_kwargs,
-                    ),
-                    category=SupervisionWarnings,
-                    stacklevel=2,
+                    )
                 )
 
                 kwargs[new_parameter] = map_function(kwargs.pop(old_parameter))
@@ -102,22 +114,33 @@ def deprecated_parameter(
 
 
 def deprecated(reason: str):
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            warnings.warn(
-                f"{func.__name__} is deprecated: {reason}",
-                category=SupervisionWarnings,
-                stacklevel=2,
-            )
-            return func(*args, **kwargs)
+    def decorator(cls_or_func):
+        if inspect.isclass(cls_or_func):
+            original_init = cls_or_func.__init__
 
-        return wrapper
+            @functools.wraps(original_init)
+            def new_init(self, *args, **kwargs):
+                warn_deprecated(f"{cls_or_func.__name__} is deprecated: {reason}")
+                original_init(self, *args, **kwargs)
+
+            cls_or_func.__init__ = new_init
+            return cls_or_func
+        else:
+
+            @functools.wraps(cls_or_func)
+            def wrapper(*args, **kwargs):
+                warn_deprecated(f"{cls_or_func.__name__} is deprecated: {reason}")
+                return cls_or_func(*args, **kwargs)
+
+            return wrapper
 
     return decorator
 
 
-class classproperty(property):
+T = TypeVar("T")
+
+
+class classproperty(Generic[T]):
     """
     A decorator that combines @classmethod and @property.
     It allows a method to be accessed as a property of the class,
@@ -129,15 +152,60 @@ class classproperty(property):
             ...
     """
 
-    def __get__(self, owner_self: object, owner_cls: type) -> object:
+    def __init__(self, fget: Callable[..., T]):
+        """
+        Args:
+            The function that is called when the property is accessed.
+        """
+        self.fget = fget
+
+    def __get__(self, owner_self: Any, owner_cls: type | None = None) -> T:
         """
         Override the __get__ method to return the result of the function call.
 
         Args:
-        owner_self: The instance through which the attribute was accessed, or None.
-        owner_cls: The class through which the attribute was accessed.
+            owner_self: The instance through which the attribute was accessed, or None.
+                Irrelevant for class properties.
+            owner_cls: The class through which the attribute was accessed.
 
         Returns:
-        The result of calling the function stored in 'fget' with 'owner_cls'.
+            The result of calling the function stored in 'fget' with 'owner_cls'.
         """
+        if self.fget is None:
+            raise AttributeError("unreadable attribute")
         return self.fget(owner_cls)
+
+
+def get_instance_variables(instance: Any, include_properties=False) -> set[str]:
+    """
+    Get the public variables of a class instance.
+
+    Args:
+        instance (Any): The instance of a class
+        include_properties (bool): Whether to include properties in the result
+
+    Usage:
+        ```python
+        detections = Detections(xyxy=np.array([1,2,3,4]))
+        variables = get_class_variables(detections)
+        # ["xyxy", "mask", "confidence", ..., "data"]
+        ```
+    """
+    if isinstance(instance, type):
+        raise ValueError("Only class instances are supported, not classes.")
+
+    fields = {
+        name
+        for name, val in inspect.getmembers(instance)
+        if not callable(val) and not name.startswith("_")
+    }
+
+    if not include_properties:
+        properties = {
+            name
+            for name, val in inspect.getmembers(instance.__class__)
+            if isinstance(val, property)
+        }
+        fields -= properties
+
+    return fields
