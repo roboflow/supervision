@@ -48,6 +48,12 @@ status: new
 :::supervision.detection.utils.converters.mask_to_polygons
 
 <div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.converters.polygons_to_mask">polygons_to_mask</a></h2>
+</div>
+
+:::supervision.detection.utils.converters.polygons_to_mask
+
+<div class="md-typeset">
   <h2><a href="#supervision.detection.utils.converters.polygon_to_mask">polygon_to_mask</a></h2>
 </div>
 

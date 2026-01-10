@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 
+from supervision.utils.internal import deprecated
+
 MIN_POLYGON_POINT_COUNT = 3
 
 
@@ -23,6 +25,60 @@ def xyxy_to_polygons(box: np.ndarray) -> np.ndarray:
     return polygon
 
 
+def polygons_to_mask(
+    polygons: list[np.ndarray], resolution_wh: tuple[int, int]
+) -> np.ndarray:
+    """Generate a mask from an array of polygon(s).
+
+    Args:
+        polygons (List[np.ndarray]): A nested list of vertices, with each
+            list representing one polygon
+        resolution_wh (Tuple[int, int]): The width (w) and height (h)
+            of the desired binary mask.
+
+    Returns:
+        np.ndarray: The generated 2D mask, where the polygon is marked with
+            `1`'s and the rest is filled with `0`'s.
+
+    Examples:
+        ```python
+        import supervision as sv
+
+        sv.polygons_to_mask([[1.0, 1.0, 2.0, 3.0], [1.0, 1.0, 3.0, 2.0]], (8, 4))
+        # array([
+        #     [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        #     [0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        #     [0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+        #     [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        # ])
+        ```
+    """
+
+    width, height = map(int, resolution_wh)
+    parent_polygon = np.reshape(
+        np.asarray(polygons[0], dtype=np.int32),
+        (-1, 2),
+    )
+    parent_mask = np.zeros((height, width), dtype=np.uint8)
+    cv2.fillPoly(parent_mask, [parent_polygon.astype(np.int32)], color=1)
+
+    for p in polygons[1:]:
+        p = np.reshape(
+            np.asarray(p, dtype=np.int32),
+            (-1, 2),
+        )
+        child_mask = np.zeros((height, width), dtype=np.uint8)
+        cv2.fillPoly(child_mask, [p.astype(np.int32)], color=1)
+
+        parent_mask = np.logical_or(parent_mask, child_mask)
+
+    return parent_mask.astype(float)
+
+
+@deprecated(
+    "`polygon_to_mask` is deprecated and will be removed in "
+    "`supervision-0.27.0`. Use `polygons_to_mask` instead."
+)
 def polygon_to_mask(polygon: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
     """Generate a mask from a polygon.
 

@@ -10,11 +10,10 @@ from supervision.dataset.utils import (
     approximate_mask_with_polygons,
     map_detections_class_id,
     mask_to_rle,
-    merge_polygons,
     rle_to_mask,
 )
 from supervision.detection.core import Detections
-from supervision.detection.utils.converters import polygon_to_mask
+from supervision.detection.utils.converters import polygons_to_mask
 from supervision.detection.utils.masks import contains_holes, contains_multiple_segments
 from supervision.utils.file import read_json_file, save_json_file
 
@@ -69,19 +68,13 @@ def coco_annotations_to_masks(
 ) -> npt.NDArray[np.bool_]:
     return np.array(
         [
-            rle_to_mask(
-                rle=np.array(image_annotation["segmentation"]["counts"]),
-                resolution_wh=resolution_wh,
-            )
-            if image_annotation["iscrowd"]
-            else merge_polygons(image_annotation["segmentation"], resolution_wh)
-            if len(image_annotation["segmentation"]) > 1
-            else polygon_to_mask(
-                polygon=np.reshape(
-                    np.asarray(image_annotation["segmentation"], dtype=np.int32),
-                    (-1, 2),
-                ),
-                resolution_wh=resolution_wh,
+            (
+                rle_to_mask(
+                    rle=np.array(image_annotation["segmentation"]["counts"]),
+                    resolution_wh=resolution_wh,
+                )
+                if image_annotation["iscrowd"]
+                else polygons_to_mask([image_annotation["segmentation"]], resolution_wh)
             )
             for image_annotation in image_annotations
         ],

@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from supervision.detection.utils.converters import (
+    polygons_to_mask,
     xcycwh_to_xyxy,
     xywh_to_xyxy,
     xyxy_to_mask,
@@ -301,3 +302,57 @@ def test_xyxy_to_mask(boxes: np.ndarray, resolution_wh, expected: np.ndarray) ->
     assert result.dtype == np.bool_
     assert result.shape == expected.shape
     np.testing.assert_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "polygons, resolution_wh, expected_result",
+    [
+        (
+            np.array([[1.0, 1.0, 2.0, 3.0]]),
+            (8, 4),
+            np.array(
+                [
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                ]
+            ),
+        ),  # single polygon
+        (
+            np.array([[1.0, 1.0, 2.0, 3.0], [1.0, 1.0, 3.0, 2.0]]),
+            (8, 4),
+            np.array(
+                [
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                ]
+            ),
+        ),  # two polygons
+        (
+            np.array(
+                [[1.0, 0.0, 2.0, 3.0], [1.0, 1.0, 3.0, 2.0], [1.0, 2.0, 1.0, 2.0]]
+            ),
+            (8, 4),
+            np.array(
+                [
+                    [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                ]
+            ),
+        ),  # multiple polygons
+    ],
+)
+def test_polygons_to_mask(
+    polygons: list[np.ndarray],
+    resolution_wh: tuple[int, int],
+    expected_result: np.ndarray,
+    exception: Exception,
+) -> None:
+    with exception:
+        result = polygons_to_mask(polygons=polygons, resolution_wh=resolution_wh)
+        assert np.array_equal(result, expected_result)
