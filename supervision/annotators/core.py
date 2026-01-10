@@ -26,7 +26,7 @@ from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import clip_boxes, spread_out_boxes
 from supervision.detection.utils.converters import (
     mask_to_polygons,
-    polygon_to_mask,
+    polygons_to_mask,
     xyxy_to_polygons,
 )
 from supervision.draw.base import ImageType
@@ -2936,7 +2936,7 @@ class ComparisonAnnotator:
         polygons = xyxy_to_polygons(detections.xyxy)
 
         for polygon in polygons:
-            polygon_mask = polygon_to_mask(polygon, resolution_wh=resolution_wh)
+            polygon_mask = polygons_to_mask(polygon, resolution_wh=resolution_wh)
             mask |= polygon_mask.astype(np.bool_)
         return mask
 
@@ -2949,7 +2949,7 @@ class ComparisonAnnotator:
         resolution_wh = scene.shape[1], scene.shape[0]
 
         for polygon in detections.data[ORIENTED_BOX_COORDINATES]:
-            polygon_mask = polygon_to_mask(polygon, resolution_wh=resolution_wh)
+            polygon_mask = polygons_to_mask(polygon, resolution_wh=resolution_wh)
             mask |= polygon_mask.astype(np.bool_)
         return mask
 

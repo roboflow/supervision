@@ -10,7 +10,7 @@ from PIL import Image
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
-from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
+from supervision.detection.utils.converters import polygon_to_xyxy, polygons_to_mask
 from supervision.utils.file import (
     list_files_with_extensions,
     read_txt_file,
@@ -51,7 +51,7 @@ def _polygons_to_masks(
 ) -> np.ndarray:
     return np.array(
         [
-            polygon_to_mask(polygon=polygon, resolution_wh=resolution_wh)
+            polygons_to_mask(polygons=[polygon], resolution_wh=resolution_wh)
             for polygon in polygons
         ],
         dtype=bool,

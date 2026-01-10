@@ -12,7 +12,7 @@ import numpy as np
 from PIL import Image
 
 from supervision.detection.utils.boxes import denormalize_boxes
-from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
+from supervision.detection.utils.converters import polygon_to_xyxy, polygons_to_mask
 from supervision.utils.internal import deprecated
 from supervision.validators import validate_resolution
 
@@ -537,7 +537,7 @@ def from_florence_2(
         for polygons_of_same_class in result["polygons"]:
             for polygon in polygons_of_same_class:
                 polygon = np.reshape(polygon, (-1, 2)).astype(np.int32)
-                mask = polygon_to_mask(polygon, resolution_wh).astype(bool)
+                mask = polygons_to_mask([polygon], resolution_wh).astype(bool)
                 masks_list.append(mask)
                 xyxy = polygon_to_xyxy(polygon)
                 xyxy_list.append(xyxy)

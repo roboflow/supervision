@@ -9,7 +9,7 @@ import numpy.typing as npt
 
 from supervision import Detections
 from supervision.detection.utils.boxes import clip_boxes
-from supervision.detection.utils.converters import polygon_to_mask
+from supervision.detection.utils.converters import polygons_to_mask
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
 from supervision.geometry.core import Position
@@ -73,8 +73,8 @@ class PolygonZone:
 
         x_max, y_max = np.max(polygon, axis=0)
         self.frame_resolution_wh = (x_max + 1, y_max + 1)
-        self.mask = polygon_to_mask(
-            polygon=polygon, resolution_wh=(x_max + 2, y_max + 2)
+        self.mask = polygons_to_mask(
+            polygons=[polygon], resolution_wh=(x_max + 2, y_max + 2)
         )
 
     def trigger(self, detections: Detections) -> npt.NDArray[np.bool_]:

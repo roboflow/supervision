@@ -8,7 +8,7 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
-from supervision.detection.utils.converters import polygon_to_mask
+from supervision.detection.utils.converters import polygons_to_mask
 from supervision.geometry.core import Vector
 
 
@@ -99,7 +99,9 @@ def process_roboflow_result(
             polygon = np.array(
                 [[point["x"], point["y"]] for point in prediction["points"]], dtype=int
             )
-            mask = polygon_to_mask(polygon, resolution_wh=(image_width, image_height))
+            mask = polygons_to_mask(
+                [polygon], resolution_wh=(image_width, image_height)
+            )
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])
@@ -152,12 +154,14 @@ def is_metadata_equal(metadata_a: dict[str, Any], metadata_b: dict[str, Any]) ->
         True if the metadata payloads are equal, False otherwise.
     """
     return set(metadata_a.keys()) == set(metadata_b.keys()) and all(
-        np.array_equal(metadata_a[key], metadata_b[key])
-        if (
-            isinstance(metadata_a[key], np.ndarray)
-            and isinstance(metadata_b[key], np.ndarray)
+        (
+            np.array_equal(metadata_a[key], metadata_b[key])
+            if (
+                isinstance(metadata_a[key], np.ndarray)
+                and isinstance(metadata_b[key], np.ndarray)
+            )
+            else metadata_a[key] == metadata_b[key]
         )
-        else metadata_a[key] == metadata_b[key]
         for key in metadata_a
     )
 

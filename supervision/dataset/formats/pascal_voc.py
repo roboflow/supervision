@@ -11,7 +11,7 @@ from defusedxml.minidom import parseString
 
 from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
-from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
+from supervision.detection.utils.converters import polygon_to_xyxy, polygons_to_mask
 from supervision.utils.file import list_files_with_extensions
 
 
@@ -246,8 +246,8 @@ def detections_from_xml_obj(
             # https://github.com/roboflow/supervision/issues/144
             polygon -= 1
 
-            mask_from_polygon = polygon_to_mask(
-                polygon=polygon,
+            mask_from_polygon = polygons_to_mask(
+                polygons=polygon,
                 resolution_wh=resolution_wh,
             )
             masks.append(mask_from_polygon)

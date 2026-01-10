@@ -5,7 +5,7 @@ from enum import Enum
 import numpy as np
 import numpy.typing as npt
 
-from supervision.detection.utils.converters import polygon_to_mask
+from supervision.detection.utils.converters import polygons_to_mask
 from supervision.detection.utils.masks import resize_masks
 
 
@@ -383,11 +383,11 @@ def oriented_box_iou_batch(
 
     mask_true = np.zeros((boxes_true.shape[0], max_height, max_width))
     for i, box_true in enumerate(boxes_true):
-        mask_true[i] = polygon_to_mask(box_true, (max_width, max_height))
+        mask_true[i] = polygons_to_mask(box_true, (max_width, max_height))
 
     mask_detection = np.zeros((boxes_detection.shape[0], max_height, max_width))
     for i, box_detection in enumerate(boxes_detection):
-        mask_detection[i] = polygon_to_mask(box_detection, (max_width, max_height))
+        mask_detection[i] = polygons_to_mask(box_detection, (max_width, max_height))
 
     ious = mask_iou_batch(mask_true, mask_detection)
     return ious

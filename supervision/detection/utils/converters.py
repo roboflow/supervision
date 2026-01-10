@@ -63,12 +63,12 @@ def polygons_to_mask(
     cv2.fillPoly(parent_mask, [parent_polygon.astype(np.int32)], color=1)
 
     for p in polygons[1:]:
-        p = np.reshape(
+        child_polygon = np.reshape(
             np.asarray(p, dtype=np.int32),
             (-1, 2),
         )
         child_mask = np.zeros((height, width), dtype=np.uint8)
-        cv2.fillPoly(child_mask, [p.astype(np.int32)], color=1)
+        cv2.fillPoly(child_mask, [child_polygon.astype(np.int32)], color=1)
 
         parent_mask = np.logical_or(parent_mask, child_mask)
 
