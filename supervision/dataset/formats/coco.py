@@ -74,7 +74,7 @@ def coco_annotations_to_masks(
                     resolution_wh=resolution_wh,
                 )
                 if image_annotation["iscrowd"]
-                else polygons_to_mask([image_annotation["segmentation"]], resolution_wh)
+                else polygons_to_mask(image_annotation["segmentation"], resolution_wh)
             )
             for image_annotation in image_annotations
         ],
