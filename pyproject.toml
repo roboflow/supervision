@@ -58,6 +58,10 @@ Documentation = "https://supervision.roboflow.com/latest/"
 metrics = [
     "pandas>=2.0.0",
 ]
+cli = [
+    # to be used for examples and other CLI utilities
+    "jsonargparse[signatures]>=4.38.0",
+]
 
 [dependency-groups]
 dev = [
