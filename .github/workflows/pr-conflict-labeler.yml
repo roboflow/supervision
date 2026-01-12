@@ -1,25 +1,27 @@
-name: 🔴 PR Conflict Labeler
+name: PR Conflict Labeler
 
 on:
+  # So that PRs touching the same files as the push are updated
   push:
-    branches: [main, develop]
+    branches:
+      - main
+      - develop
+  # So that the `dirtyLabel` is removed if conflicts are resolved
+  # We recommend `pull_request_target` so that github secrets are available.
+  # In `pull_request` we wouldn't be able to change labels of fork PRs
   pull_request_target:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [synchronize]
 
 permissions:
-  contents: write
   pull-requests: write
   issues: write
-
 jobs:
-  label:
-    name: Label PRs with conflicts
+  main:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
-      - name: 🤖 Check conflicts and manage label
-        uses: sequelize/pr-auto-update-and-handle-conflicts@74929c430b8843e691e7b83d229d8d13d78d89e3 # pinned latest commit
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: check if prs are dirty
+        uses: eps1lon/actions-label-merge-conflict@v3
         with:
-          conflict-label: has-conflict
+          dirtyLabel: "has conflicts"
+          removeOnDirtyLabel: "has conflicts"
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
