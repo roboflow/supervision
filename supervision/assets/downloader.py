@@ -27,7 +27,7 @@ def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:
 
     with open(filename, "rb") as file:
         file_contents = file.read()
-        computed_md5_hash = hash_new(name="MD5")
+        computed_md5_hash = hash_new(name="MD5")  # noqa: S324 # TODO: Replace MD5 with a secure hash function like SHA-256
         computed_md5_hash.update(file_contents)
 
     return computed_md5_hash.hexdigest() == original_md5_hash
@@ -57,7 +57,7 @@ def download_assets(asset_name: VideoAssets | str) -> str:
 
     if not Path(filename).exists() and filename in VIDEO_ASSETS:
         print(f"Downloading {filename} assets \n")
-        response = get(VIDEO_ASSETS[filename][0], stream=True, allow_redirects=True)
+        response = get(VIDEO_ASSETS[filename][0], stream=True, allow_redirects=True)  # noqa: S113 # TODO: Add timeout to requests call
         response.raise_for_status()
 
         file_size = int(response.headers.get("Content-Length", 0))
