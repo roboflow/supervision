@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-from hashlib import md5
 from pathlib import Path
 from shutil import copyfileobj
 
@@ -30,7 +29,9 @@ def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:
 
     with open(filename, "rb") as file:
         file_contents = file.read()
-        computed_md5_hash = hash_new(name="MD5")  # noqa: S324 # TODO: Replace MD5 with a secure hash function like SHA-256
+        computed_md5_hash = hash_new(
+            name="MD5"
+        )  # TODO: Replace MD5 with a secure hash function like SHA-256
         computed_md5_hash.update(file_contents)
 
     return computed_md5_hash.hexdigest() == original_md5_hash
