@@ -6,10 +6,10 @@ version = "0.27.0"
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
-    { name = "Piotr Skalski", email = "piotr.skalski92@gmail.com" }
+    { name = "Roboflow et al.", email = "develop@roboflow.com" }
 ]
 maintainers = [
-    { name = "Piotr Skalski", email = "piotr.skalski92@gmail.com" },
+    { name = "Piotr Skalski", email = "piotr@roboflow.com" },
 ]
 keywords = [
     "machine-learning",
@@ -21,7 +21,7 @@ keywords = [
     "Roboflow",
 ]
 classifiers = [
-    'Development Status :: 4 - Beta',
+    'Development Status :: 5 - Production/Stable',
     'Intended Audience :: Developers',
     'Intended Audience :: Education',
     'Intended Audience :: Science/Research',
@@ -32,6 +32,8 @@ classifiers = [
     'Topic :: Scientific/Engineering',
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Scientific/Engineering :: Image Recognition",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Multimedia :: Video",
     'Typing :: Typed',
     'Operating System :: Microsoft :: Windows',
     'Operating System :: POSIX :: Linux',
@@ -62,6 +64,7 @@ metrics = [
 [dependency-groups]
 dev = [
     "pytest>=7.2.2,<9.0.0",
+    "pytest-cov>=4.0.0,<8.0.0",
     "tox>=4.11.4",
     "notebook>=6.5.3,<8.0.0",
     "ipywidgets>=8.1.1",
@@ -71,7 +74,7 @@ dev = [
     "pre-commit>=3.8.0"
 ]
 docs = [
-    "mkdocs-material[imaging]>=9.5.5",
+    "mkdocs-material[imaging]>=9.7.0",
     "mkdocstrings>=0.25.2,<0.31.0",
     "mkdocstrings-python>=1.10.9, <2.0.0",  # todo: breaking changes in 2.x
     "mike>=2.0.0",
@@ -82,7 +85,7 @@ docs = [
 build = [
     "twine>=5.1.1,<7.0.0",
     "wheel>=0.40,<0.46",
-    "build>=0.10,<1.4"
+    "build>=0.10,<1.5"
 ]
 
 [tool.autoflake]

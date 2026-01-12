@@ -9,7 +9,6 @@ repos:
     rev: v6.0.0
     hooks:
       - id: trailing-whitespace
-        exclude: test/.*\.py
       - id: check-yaml
         exclude: mkdocs.yml
       - id: check-executables-have-shebangs
@@ -43,13 +42,5 @@ repos:
     rev: v2.4.1
     hooks:
       - id: codespell
-        additional_dependencies:
-          - tomli
-
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.21.2
-    hooks:
-    -   id: pyupgrade
-        args: ["--py310-plus"]
         additional_dependencies:
           - tomli
