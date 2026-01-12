@@ -21,7 +21,7 @@ https://github.com/roboflow/supervision/assets/26109316/f84db7b5-79e2-4142-a1da-
     cd supervision/examples/count_people_in_zone
     ```
 
-- setup python environment and activate it \[optional\]
+- setup python environment and activate it [optional]
 
     ```bash
     python3 -m venv venv
