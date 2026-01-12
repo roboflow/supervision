@@ -134,7 +134,7 @@ select = [
     "W",    # pycodestyle warnings - https://docs.astral.sh/ruff/rules/#pycodestyle-w
     "RUF",  # Ruff-specific rules - https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
     "UP",   # pyupgrade - https://docs.astral.sh/ruff/rules/#pyupgrade-up
-    "S",
+    "S",    # bandit - https://docs.astral.sh/ruff/rules/#flake8-bandit-s
 ]
 ignore = []
 unfixable = []
