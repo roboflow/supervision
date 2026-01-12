@@ -40,6 +40,7 @@ You can install `supervision` in a
 [**Python>=3.9**](https://www.python.org/) environment.
 
 !!! example "Installation"
+
     === "pip (recommended)"
         [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
         [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
@@ -85,6 +86,7 @@ You can install `supervision` in a
         ```bash
         rye add supervision
         ```
+
 
 !!! example "conda/mamba install"
     === "conda"

@@ -37,6 +37,7 @@ repos:
         additional_dependencies:
           - "mdformat-mkdocs[recommended]>=2.1.0"
         args: ["--number"]
+        exclude: ^docs/
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.1

@@ -25,36 +25,39 @@ COCO, YOLO, or Pascal VOC format. You can customize the following code snippet w
 your workspace ID, project ID, and version number.
 
 === "COCO"
+
     ```python
     import roboflow
 
     roboflow.login()
 
     rf = roboflow.Roboflow()
-    project = rf.workspace("<WORKSPACE_ID>").project("<PROJECT_ID>")
-    dataset = project.version("<PROJECT_VERSION>").download("coco")
+    project = rf.workspace('<WORKSPACE_ID>').project('<PROJECT_ID>')
+    dataset = project.version('<PROJECT_VERSION>').download("coco")
     ```
 
 === "YOLO"
+
     ```python
     import roboflow
 
     roboflow.login()
 
     rf = roboflow.Roboflow()
-    project = rf.workspace("<WORKSPACE_ID>").project("<PROJECT_ID>")
-    dataset = project.version("<PROJECT_VERSION>").download("yolov8")
+    project = rf.workspace('<WORKSPACE_ID>').project('<PROJECT_ID>')
+    dataset = project.version('<PROJECT_VERSION>').download("yolov8")
     ```
 
 === "Pascal VOC"
+
     ```python
     import roboflow
 
     roboflow.login()
 
     rf = roboflow.Roboflow()
-    project = rf.workspace("<WORKSPACE_ID>").project("<PROJECT_ID>")
-    dataset = project.version("<PROJECT_VERSION>").download("voc")
+    project = rf.workspace('<WORKSPACE_ID>').project('<PROJECT_ID>')
+    dataset = project.version('<PROJECT_VERSION>').download("voc")
     ```
 
 ## Load Dataset
@@ -65,22 +68,23 @@ load each of those as separate [`sv.DetectionDataset`](https://supervision.robof
 instances.
 
 === "COCO"
+
     We can do so using the [`sv.DetectionDataset.from_coco`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.from_coco) to load annotations in [COCO](https://roboflow.com/formats/coco-json) format.
 
     ```python
     import supervision as sv
 
     ds_train = sv.DetectionDataset.from_coco(
-        images_directory_path=f"{dataset.location}/train",
-        annotations_path=f"{dataset.location}/train/_annotations.coco.json",
+        images_directory_path=f'{dataset.location}/train',
+        annotations_path=f'{dataset.location}/train/_annotations.coco.json',
     )
     ds_valid = sv.DetectionDataset.from_coco(
-        images_directory_path=f"{dataset.location}/valid",
-        annotations_path=f"{dataset.location}/valid/_annotations.coco.json",
+        images_directory_path=f'{dataset.location}/valid',
+        annotations_path=f'{dataset.location}/valid/_annotations.coco.json',
     )
     ds_test = sv.DetectionDataset.from_coco(
-        images_directory_path=f"{dataset.location}/test",
-        annotations_path=f"{dataset.location}/test/_annotations.coco.json",
+        images_directory_path=f'{dataset.location}/test',
+        annotations_path=f'{dataset.location}/test/_annotations.coco.json',
     )
 
     ds_train.classes
@@ -91,25 +95,26 @@ instances.
     ```
 
 === "YOLO"
+
     We can do so using the [`sv.DetectionDataset.from_yolo`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.from_yolo) to load annotations in [YOLO](https://roboflow.com/formats/yolov8-pytorch-txt) format.
 
     ```python
     import supervision as sv
 
     ds_train = sv.DetectionDataset.from_yolo(
-        images_directory_path=f"{dataset.location}/train/images",
-        annotations_directory_path=f"{dataset.location}/train/labels",
-        data_yaml_path=f"{dataset.location}/data.yaml",
+        images_directory_path=f'{dataset.location}/train/images',
+        annotations_directory_path=f'{dataset.location}/train/labels',
+        data_yaml_path=f'{dataset.location}/data.yaml'
     )
     ds_valid = sv.DetectionDataset.from_yolo(
-        images_directory_path=f"{dataset.location}/valid/images",
-        annotations_directory_path=f"{dataset.location}/valid/labels",
-        data_yaml_path=f"{dataset.location}/data.yaml",
+        images_directory_path=f'{dataset.location}/valid/images',
+        annotations_directory_path=f'{dataset.location}/valid/labels',
+        data_yaml_path=f'{dataset.location}/data.yaml'
     )
     ds_test = sv.DetectionDataset.from_yolo(
-        images_directory_path=f"{dataset.location}/test/images",
-        annotations_directory_path=f"{dataset.location}/test/labels",
-        data_yaml_path=f"{dataset.location}/data.yaml",
+        images_directory_path=f'{dataset.location}/test/images',
+        annotations_directory_path=f'{dataset.location}/test/labels',
+        data_yaml_path=f'{dataset.location}/data.yaml'
     )
 
     ds_train.classes
@@ -120,22 +125,23 @@ instances.
     ```
 
 === "Pascal VOC"
+
     We can do so using the [`sv.DetectionDataset.from_pascal_voc`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.from_pascal_voc) to load annotations in [Pascal VOC](https://roboflow.com/formats/pascal-voc-xml) format.
 
     ```python
     import supervision as sv
 
     ds_train = sv.DetectionDataset.from_pascal_voc(
-        images_directory_path=f"{dataset.location}/train/images",
-        annotations_directory_path=f"{dataset.location}/train/labels",
+        images_directory_path=f'{dataset.location}/train/images',
+        annotations_directory_path=f'{dataset.location}/train/labels'
     )
     ds_valid = sv.DetectionDataset.from_pascal_voc(
-        images_directory_path=f"{dataset.location}/valid/images",
-        annotations_directory_path=f"{dataset.location}/valid/labels",
+        images_directory_path=f'{dataset.location}/valid/images',
+        annotations_directory_path=f'{dataset.location}/valid/labels'
     )
     ds_test = sv.DetectionDataset.from_pascal_voc(
-        images_directory_path=f"{dataset.location}/test/images",
-        annotations_directory_path=f"{dataset.location}/test/labels",
+        images_directory_path=f'{dataset.location}/test/images',
+        annotations_directory_path=f'{dataset.location}/test/labels'
     )
 
     ds_train.classes
@@ -173,6 +179,7 @@ If you have multiple datasets that you would like to merge, you can do so using 
 method.
 
 === "COCO"
+
     ```{ .py hl_lines="22-28" }
     import supervision as sv
 
@@ -205,6 +212,7 @@ method.
     ```
 
 === "YOLO"
+
     ```{ .py hl_lines="25-31" }
     import supervision as sv
 
@@ -240,6 +248,7 @@ method.
     ```
 
 === "Pascal VOC"
+
     ```{ .py hl_lines="22-28" }
     import supervision as sv
 
@@ -285,12 +294,12 @@ ds = sv.DetectionDataset(...)
 
 # Option 1
 for image_path, image, annotations in ds:
-    ...  # Process each image and its annotations
+    ... # Process each image and its annotations
 
 # Option 2
 for idx in range(len(ds)):
     image_path, image, annotations = ds[idx]
-    ...  # Process the image and annotations at index `idx`
+    ... # Process the image and annotations at index `idx`
 ```
 
 ## Visualize Dataset
@@ -333,6 +342,7 @@ sv.plot_images_grid(
 ## Save Dataset
 
 === "COCO"
+
     We can do so using the [`sv.DetectionDataset.as_coco`](https://supervision.roboflow.com/datasets/#supervision.dataset.core.DetectionDataset.as_coco) method to save annotations in [COCO](https://roboflow.com/formats/coco-json) format.
 
     ```python
@@ -341,12 +351,13 @@ sv.plot_images_grid(
     ds = sv.DetectionDataset(...)
 
     ds.as_coco(
-        images_directory_path="<IMAGE_DIRECTORY_PATH>",
-        annotations_path="<ANNOTATIONS_PATH>",
+        images_directory_path='<IMAGE_DIRECTORY_PATH>',
+        annotations_path='<ANNOTATIONS_PATH>'
     )
     ```
 
 === "YOLO"
+
     We can do so using the [`sv.DetectionDataset.as_yolo`](https://supervision.roboflow.com/datasets/#supervision.dataset.core.DetectionDataset.as_yolo) method to save annotations in [YOLO](https://roboflow.com/formats/yolov8-pytorch-txt) format.
 
     ```python
@@ -355,13 +366,14 @@ sv.plot_images_grid(
     ds = sv.DetectionDataset(...)
 
     ds.as_yolo(
-        images_directory_path="<IMAGE_DIRECTORY_PATH>",
-        annotations_directory_path="<ANNOTATIONS_DIRECTORY_PATH>",
-        data_yaml_path="<DATA_YAML_PATH>",
+        images_directory_path='<IMAGE_DIRECTORY_PATH>',
+        annotations_directory_path='<ANNOTATIONS_DIRECTORY_PATH>',
+        data_yaml_path='<DATA_YAML_PATH>'
     )
     ```
 
 === "Pascal VOC"
+
     We can do so using the [`sv.DetectionDataset.as_pascal_voc`](https://supervision.roboflow.com/datasets/#supervision.dataset.core.DetectionDataset.as_pascal_voc) method to save annotations in [Pascal VOC](https://roboflow.com/formats/pascal-voc-xml) format.
 
     ```python
@@ -370,8 +382,8 @@ sv.plot_images_grid(
     ds = sv.DetectionDataset(...)
 
     ds.as_pascal_voc(
-        images_directory_path="<IMAGE_DIRECTORY_PATH>",
-        annotations_directory_path="<ANNOTATIONS_DIRECTORY_PATH>",
+        images_directory_path='<IMAGE_DIRECTORY_PATH>',
+        annotations_directory_path='<ANNOTATIONS_DIRECTORY_PATH>'
     )
     ```
 
@@ -401,9 +413,12 @@ augmentation = A.Compose(
     transforms=[
         A.Perspective(p=0.1),
         A.HorizontalFlip(p=0.5),
-        A.RandomBrightnessContrast(p=0.5),
+        A.RandomBrightnessContrast(p=0.5)
     ],
-    bbox_params=A.BboxParams(format="pascal_voc", label_fields=["category"]),
+    bbox_params=A.BboxParams(
+        format='pascal_voc',
+        label_fields=['category']
+    ),
 )
 ```
 
@@ -422,14 +437,14 @@ _, original_image, original_annotations = ds[0]
 output = augmentation(
     image=original_image,
     bboxes=original_annotations.xyxy,
-    category=original_annotations.class_id,
+    category=original_annotations.class_id
 )
 
-augmented_image = output["image"]
+augmented_image = output['image']
 augmented_annotations = replace(
     original_annotations,
-    xyxy=np.array(output["bboxes"]),
-    class_id=np.array(output["category"]),
+    xyxy=np.array(output['bboxes']),
+    class_id=np.array(output['category'])
 )
 ```
 
