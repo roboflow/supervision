@@ -78,7 +78,7 @@ len(detections)
     from inference import get_model
 
     image = cv2.imread(...)
-    model = get_model(model_id="yolov8s-640", api_key=<ROBOFLOW API KEY>)
+    model = get_model(model_id="yolov8s-640", api_key="ROBOFLOW_API_KEY")
     result = model.infer(image)[0]
     detections = sv.Detections.from_inference(result)
 
@@ -113,8 +113,8 @@ Supervision provides a set of [utils](https://supervision.roboflow.com/latest/da
 import supervision as sv
 from roboflow import Roboflow
 
-project = Roboflow().workspace(<WORKSPACE_ID>).project(<PROJECT_ID>)
-dataset = project.version(<PROJECT_VERSION>).download("coco")
+project = Roboflow().workspace("WORKSPACE_ID").project("PROJECT_ID")
+dataset = project.version("PROJECT_VERSION").download("coco")
 
 ds = sv.DetectionDataset.from_coco(
     images_directory_path=f"{dataset.location}/train",
@@ -122,10 +122,11 @@ ds = sv.DetectionDataset.from_coco(
 )
 
 path, image, annotation = ds[0]
-    # loads image on demand
+# loads image on demand
 
 for path, image, annotation in ds:
     # loads image on demand
+    pass
 ```
 
 <details close>

@@ -17,7 +17,7 @@ https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-
     cd supervision/examples/traffic_analysis
     ```
 
-- setup python environment and activate it \[optional\]
+- setup python environment and activate it [optional]
 
     ```bash
     python3 -m venv venv
@@ -101,7 +101,7 @@ https://github.com/roboflow/supervision/assets/26109316/c9436828-9fbf-4c25-ae8c-
 
     ```bash
     python inference_example.py \
-        --roboflow_api_key <ROBOFLOW API KEY> \
+        --roboflow_api_key "ROBOFLOW_API_KEY" \
         --source_video_path data/traffic_analysis.mov \
         --confidence_threshold 0.3 \
         --iou_threshold 0.5 \
