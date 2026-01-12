@@ -6,7 +6,6 @@
 - [ ] Added docs entry for autogeneration (if new functions/classes)
 - [ ] Added/updated tests
 - [ ] All tests pass locally
-- [ ] Updated changelog (if applicable)
 
 </details>
 
