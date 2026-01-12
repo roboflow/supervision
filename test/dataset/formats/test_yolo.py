@@ -31,7 +31,7 @@ def _arrays_almost_equal(
 
 
 @pytest.mark.parametrize(
-    "lines, expected_result, exception",
+    ("lines", "expected_result", "exception"),
     [
         ([], False, DoesNotRaise()),  # empty yolo annotation file
         (
@@ -66,7 +66,7 @@ def test_with_mask(
 
 
 @pytest.mark.parametrize(
-    "lines, resolution_wh, with_masks, expected_result, exception",
+    ("lines", "resolution_wh", "with_masks", "expected_result", "exception"),
     [
         (
             [],
@@ -190,7 +190,7 @@ def test_yolo_annotations_to_detections(
 
 
 @pytest.mark.parametrize(
-    "image_name, expected_result, exception",
+    ("image_name", "expected_result", "exception"),
     [
         ("image.png", "image.txt", DoesNotRaise()),  # simple png image
         ("image.jpeg", "image.txt", DoesNotRaise()),  # simple jpeg image
@@ -211,7 +211,7 @@ def test_image_name_to_annotation_name(
 
 
 @pytest.mark.parametrize(
-    "xyxy, class_id, image_shape, polygon, expected_result, exception",
+    ("xyxy", "class_id", "image_shape", "polygon", "expected_result", "exception"),
     [
         (
             np.array([100, 100, 200, 200], dtype=np.float32),

@@ -18,7 +18,7 @@ def mock_callback():
 
 
 @pytest.mark.parametrize(
-    "resolution_wh, slice_wh, overlap_wh, expected_offsets",
+    ("resolution_wh", "slice_wh", "overlap_wh", "expected_offsets"),
     [
         # Case 1: Square image, square slices, no overlap
         (

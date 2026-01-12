@@ -18,7 +18,7 @@ from test.test_utils import random_boxes
 
 
 @pytest.mark.parametrize(
-    "predictions, iou_threshold, expected_result, exception",
+    ("predictions", "iou_threshold", "expected_result", "exception"),
     [
         (
             np.empty(shape=(0, 5), dtype=float),
@@ -145,7 +145,7 @@ def test_group_overlapping_boxes(
 
 
 @pytest.mark.parametrize(
-    "predictions, iou_threshold, expected_result, exception",
+    ("predictions", "iou_threshold", "expected_result", "exception"),
     [
         (
             np.empty(shape=(0, 5)),
@@ -250,7 +250,7 @@ def test_box_non_max_suppression(
 
 
 @pytest.mark.parametrize(
-    "predictions, masks, iou_threshold, expected_result, exception",
+    ("predictions", "masks", "iou_threshold", "expected_result", "exception"),
     [
         (
             np.empty((0, 6)),
@@ -456,7 +456,7 @@ def test_mask_non_max_suppression(
 
 
 @pytest.mark.parametrize(
-    "predictions, masks, iou_threshold, expected_result, exception",
+    ("predictions", "masks", "iou_threshold", "expected_result", "exception"),
     [
         (
             np.empty((0, 6)),
@@ -638,7 +638,7 @@ def test_mask_non_max_merge(
 
 
 @pytest.mark.parametrize(
-    "box_true, box_detection, overlap_metric, expected_overlap, exception",
+    ("box_true", "box_detection", "overlap_metric", "expected_overlap", "exception"),
     [
         (
             [100.0, 100.0, 200.0, 200.0],
@@ -813,7 +813,13 @@ def test_box_iou(
 
 
 @pytest.mark.parametrize(
-    "boxes_true, boxes_detection, overlap_metric, expected_overlap, exception",
+    (
+        "boxes_true",
+        "boxes_detection",
+        "overlap_metric",
+        "expected_overlap",
+        "exception",
+    ),
     [
         # both inputs empty
         (
@@ -1086,7 +1092,7 @@ def test_box_iou_batch(
 
 
 @pytest.mark.parametrize(
-    "num_true, num_det",
+    ("num_true", "num_det"),
     [
         (5, 5),
         (5, 10),

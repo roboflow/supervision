@@ -22,7 +22,7 @@ ANNOTATED_SCENE_0_5_OPACITY = sv.draw_filled_polygon(
 
 
 @pytest.mark.parametrize(
-    "scene, polygon_zone_annotator, expected_results",
+    ("scene", "polygon_zone_annotator", "expected_results"),
     [
         (
             SCENE,

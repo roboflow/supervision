@@ -4,7 +4,7 @@ from supervision.detection.utils.vlms import edit_distance, fuzzy_match_index
 
 
 @pytest.mark.parametrize(
-    "string_1, string_2, case_sensitive, expected_result",
+    ("string_1", "string_2", "case_sensitive", "expected_result"),
     [
         # identical strings, various cases
         ("hello", "hello", True, 0),
@@ -68,7 +68,7 @@ def test_edit_distance(string_1, string_2, case_sensitive, expected_result):
 
 
 @pytest.mark.parametrize(
-    "candidates, query, threshold, case_sensitive, expected_result",
+    ("candidates", "query", "threshold", "case_sensitive", "expected_result"),
     [
         # exact match at index 0
         (["cat", "dog", "rat"], "cat", 0, True, 0),

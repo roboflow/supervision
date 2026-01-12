@@ -9,7 +9,7 @@ from supervision.classification.core import Classifications
 
 
 @pytest.mark.parametrize(
-    "class_id, confidence, k, expected_result, exception",
+    ("class_id", "confidence", "k", "expected_result", "exception"),
     [
         (
             np.array([0, 1, 2, 3, 4]),

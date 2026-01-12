@@ -16,7 +16,7 @@ from supervision.detection.utils.masks import (
 
 
 @pytest.mark.parametrize(
-    "masks, offset, resolution_wh, expected_result, exception",
+    ("masks", "offset", "resolution_wh", "expected_result", "exception"),
     [
         (
             np.array(
@@ -278,7 +278,7 @@ def test_move_masks(
 
 
 @pytest.mark.parametrize(
-    "masks, expected_result, exception",
+    ("masks", "expected_result", "exception"),
     [
         (
             np.array(
@@ -369,7 +369,7 @@ def test_calculate_masks_centroids(
 
 
 @pytest.mark.parametrize(
-    "mask, expected_result, exception",
+    ("mask", "expected_result", "exception"),
     [
         (
             np.array([[0, 0, 0, 0], [0, 1, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0]]).astype(
@@ -424,7 +424,7 @@ def test_contains_holes(
 
 
 @pytest.mark.parametrize(
-    "mask, connectivity, expected_result, exception",
+    ("mask", "connectivity", "expected_result", "exception"),
     [
         (
             np.array([[0, 0, 0, 0], [0, 1, 1, 0], [0, 1, 0, 0], [0, 1, 1, 0]]).astype(
@@ -504,7 +504,15 @@ def test_contains_multiple_segments(
 
 
 @pytest.mark.parametrize(
-    "mask, connectivity, mode, absolute_distance, relative_distance, expected_result, exception",  # noqa: E501
+    (
+        "mask",
+        "connectivity",
+        "mode",
+        "absolute_distance",
+        "relative_distance",
+        "expected_result",
+        "exception",
+    ),
     [
         # single component, unchanged
         (
