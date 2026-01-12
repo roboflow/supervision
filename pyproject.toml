@@ -191,7 +191,6 @@ convention = "google"
 "__init__.py" = ["E402", "F401"]
 "test/**" = [
     "S101",  # Use of `assert` detected
-    "S311",  # Standard pseudo-random generators are not suitable for cryptographic purposes
 ]
 "supervision/**" = [
     "S101"  # TODO: Replace asserts with proper error handling
