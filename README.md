@@ -135,14 +135,14 @@ for path, image, annotation in ds:
 
     ```python
     dataset = sv.DetectionDataset.from_yolo(
-        images_directory_path=..., annotations_directory_path=..., data_yaml_path=...
+        images_directory_path=..., annotations_directory_path=..., data_yaml_path=...,
     )
 
     dataset = sv.DetectionDataset.from_pascal_voc(
-        images_directory_path=..., annotations_directory_path=...
+        images_directory_path=..., annotations_directory_path=...,
     )
 
-    dataset = sv.DetectionDataset.from_coco(images_directory_path=..., annotations_path=...)
+    dataset = sv.DetectionDataset.from_coco(images_directory_path=..., annotations_path=...,)
     ```
 
 - split
@@ -181,12 +181,12 @@ for path, image, annotation in ds:
 
     ```python
     dataset.as_yolo(
-        images_directory_path=..., annotations_directory_path=..., data_yaml_path=...
+        images_directory_path=..., annotations_directory_path=..., data_yaml_path=...,
     )
 
-    dataset.as_pascal_voc(images_directory_path=..., annotations_directory_path=...)
+    dataset.as_pascal_voc(images_directory_path=..., annotations_directory_path=...,)
 
-    dataset.as_coco(images_directory_path=..., annotations_path=...)
+    dataset.as_coco(images_directory_path=..., annotations_path=...,)
     ```
 
 - convert
