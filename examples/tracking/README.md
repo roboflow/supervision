@@ -14,7 +14,7 @@ detection and Supervision for tracking and annotation.
     cd supervision/examples/tracking
     ```
 
-- setup python environment and activate it \[optional\]
+- setup python environment and activate it [optional]
 
     ```bash
     python3 -m venv venv
@@ -79,7 +79,7 @@ detection and Supervision for tracking and annotation.
 
     ```bash
     python inference_example.py \
-        --roboflow_api_key <ROBOFLOW API KEY> \
+        --roboflow_api_key "ROBOFLOW_API_KEY" \
         --source_video_path input.mp4 \
         --target_video_path tracking_result.mp4
     ```
