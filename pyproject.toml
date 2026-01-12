@@ -6,10 +6,10 @@ version = "0.27.0"
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
-    { name = "Piotr Skalski", email = "piotr.skalski92@gmail.com" }
+    { name = "Roboflow et al.", email = "develop@roboflow.com" }
 ]
 maintainers = [
-    { name = "Piotr Skalski", email = "piotr.skalski92@gmail.com" },
+    { name = "Piotr Skalski", email = "piotr@roboflow.com" },
 ]
 keywords = [
     "machine-learning",
@@ -21,7 +21,7 @@ keywords = [
     "Roboflow",
 ]
 classifiers = [
-    'Development Status :: 4 - Beta',
+    'Development Status :: 5 - Production/Stable',
     'Intended Audience :: Developers',
     'Intended Audience :: Education',
     'Intended Audience :: Science/Research',
@@ -32,6 +32,8 @@ classifiers = [
     'Topic :: Scientific/Engineering',
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Scientific/Engineering :: Image Recognition",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Multimedia :: Video",
     'Typing :: Typed',
     'Operating System :: Microsoft :: Windows',
     'Operating System :: POSIX :: Linux',
@@ -62,6 +64,7 @@ metrics = [
 [dependency-groups]
 dev = [
     "pytest>=7.2.2,<9.0.0",
+    "pytest-cov>=4.0.0,<8.0.0",
     "tox>=4.11.4",
     "notebook>=6.5.3,<8.0.0",
     "ipywidgets>=8.1.1",
@@ -71,7 +74,7 @@ dev = [
     "pre-commit>=3.8.0"
 ]
 docs = [
-    "mkdocs-material[imaging]>=9.5.5",
+    "mkdocs-material[imaging]>=9.7.0",
     "mkdocstrings>=0.25.2,<0.31.0",
     "mkdocstrings-python>=1.10.9, <2.0.0",  # todo: breaking changes in 2.x
     "mike>=2.0.0",
@@ -82,12 +85,8 @@ docs = [
 build = [
     "twine>=5.1.1,<7.0.0",
     "wheel>=0.40,<0.46",
-    "build>=0.10,<1.4"
+    "build>=0.10,<1.5"
 ]
-
-[tool.bandit]
-target = ["test", "supervision"]
-tests = ["B201", "B301", "B318", "B314", "B303", "B413", "B412"]
 
 [tool.autoflake]
 check = true
@@ -128,56 +127,20 @@ line-length = 88
 indent-width = 4
 
 [tool.ruff.lint]
-# Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-select = ["E", "F", "I", "A", "Q", "W", "RUF", "UP", "PT"]
-ignore = []
-# Allow autofix for all enabled rules (when `--fix`) is provided.
-fixable = [
-    "A",
-    "B",
-    "C",
-    "D",
-    "E",
-    "F",
-    "G",
-    "I",
-    "N",
-    "Q",
-    "S",
-    "T",
-    "W",
-    "ANN",
-    "ARG",
-    "BLE",
-    "COM",
-    "DJ",
-    "DTZ",
-    "EM",
-    "ERA",
-    "EXE",
-    "FBT",
-    "ICN",
-    "INP",
-    "ISC",
-    "NPY",
-    "PD",
-    "PGH",
-    "PIE",
-    "PL",
+# Enable linting rules for code style, imports, and best practices.
+select = [
+    "E",    # pycodestyle errors - https://docs.astral.sh/ruff/rules/#error-e
+    "F",    # Pyflakes - https://docs.astral.sh/ruff/rules/#pyflakes-f
+    "I",    # isort - https://docs.astral.sh/ruff/rules/#isort-i
+    "A",    # flake8-builtins - https://docs.astral.sh/ruff/rules/#flake8-builtins-a
+    "Q",    # flake8-quotes - https://docs.astral.sh/ruff/rules/#flake8-quotes-q
+    "W",    # pycodestyle warnings - https://docs.astral.sh/ruff/rules/#pycodestyle-w
+    "RUF",  # Ruff-specific rules - https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
+    "UP",   # pyupgrade - https://docs.astral.sh/ruff/rules/#pyupgrade-up
+    "S",    # bandit - https://docs.astral.sh/ruff/rules/#flake8-bandit-s
     "PT",
-    "PTH",
-    "PYI",
-    "RET",
-    "RSE",
-    "RUF",
-    "SIM",
-    "SLF",
-    "TCH",
-    "TID",
-    "TRY",
-    "UP",
-    "YTT",
 ]
+ignore = []
 unfixable = []
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
@@ -193,6 +156,12 @@ convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402", "F401"]
+"test/**" = [
+    "S101",  # Use of `assert` detected
+]
+"supervision/**" = [
+    "S101"  # TODO: Replace asserts with proper error handling
+]
 
 [tool.ruff.lint.mccabe]
 # Flag errors (`C901`) whenever the complexity level exceeds 5.
