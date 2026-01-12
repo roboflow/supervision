@@ -1,0 +1,25 @@
+name: 🔴 PR Conflict Labeler
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  label:
+    name: Label PRs with conflicts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 🤖 Check conflicts and manage label
+        uses: sequelize/pr-auto-update-and-handle-conflicts@74929c430b8843e691e7b83d229d8d13d78d89e3 # pinned latest commit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          conflict-label: has-conflict
