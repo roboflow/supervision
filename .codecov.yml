@@ -1,0 +1,45 @@
+# see https://docs.codecov.io/docs/codecov-yaml
+# Validation check:
+# $ curl --data-binary @.codecov.yml https://codecov.io/validate
+
+# https://docs.codecov.io/docs/codecovyml-reference
+codecov:
+  bot: "codecov-io"
+  strict_yaml_branch: "yaml-config"
+  require_ci_to_pass: yes
+  notify:
+    # after_n_builds: 2
+    wait_for_ci: yes
+
+coverage:
+  precision: 0 # 2 = xx.xx%, 0 = xx%
+  round: nearest # how coverage is rounded: down/up/nearest
+  range: 40...100 # custom range of coverage colors from red -> yellow -> green
+  status:
+    # https://codecov.readme.io/v1.0/docs/commit-status
+    project:
+      default:
+        informational: true
+        target: 95% # specify the target coverage for each commit status
+        threshold: 10% # allow this little decrease on project
+        # https://github.com/codecov/support/wiki/Filtering-Branches
+        # branches: master
+        if_ci_failed: error
+    # https://github.com/codecov/support/wiki/Patch-Status
+    patch:
+      default:
+        informational: true
+        target: 95% # enforce same coverage target for new/changed code as the project
+        threshold: 10% # allow only a small decrease on patch coverage
+    changes: false
+
+# https://docs.codecov.com/docs/github-checks#disabling-github-checks-patch-annotations
+github_checks:
+  annotations: false
+
+
+comment:
+  layout: header, diff
+  require_changes: false
+  behavior: default # update if exists else create new
+  # branches: *
