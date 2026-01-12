@@ -10,9 +10,11 @@ permissions:
 
 jobs:
   label:
+    name: Label PRs with conflicts
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: 🤖 Check conflicts and manage label
-        uses: sequelize/pr-auto-update-and-handle-conflicts@1.0.1
+        uses: sequelize/pr-auto-update-and-handle-conflicts@6e4c1f2f8c9634b0c4a96522132f3aaba3a0998a # v1
         with:
           conflict-label: "has conflict"
