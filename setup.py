@@ -11,11 +11,13 @@ _pre_build()  ← YOUR CODE RUNS HERE
         ↓
 Files packaged into wheel/sdist
 """
+
 import re
 from pathlib import Path
+
 from setuptools import setup
-from setuptools.command.sdist import sdist
 from setuptools.command.build_py import build_py
+from setuptools.command.sdist import sdist
 
 
 class PreBuildMixin:
@@ -35,7 +37,7 @@ class PreBuildMixin:
             updated = re.sub(
                 r"(https://github\.com/user/repo/tree/)main",
                 r"\1v0.1.0",  # or dynamically get version
-                content
+                content,
             )
             readme.write_text(updated)
             print("  📝 Updated README links")
