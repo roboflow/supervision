@@ -138,7 +138,7 @@ select = [
     "RUF",  # Ruff-specific rules - https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
     "UP",   # pyupgrade - https://docs.astral.sh/ruff/rules/#pyupgrade-up
     "S",    # bandit - https://docs.astral.sh/ruff/rules/#flake8-bandit-s
-    "PT",
+    "PT",   # pytest - https://docs.astral.sh/ruff/rules/#flake8-pytest-style-pt
 ]
 ignore = []
 unfixable = []
