@@ -3,8 +3,7 @@
 
 - [ ] Self-reviewed the code
 - [ ] Added comments to complex code
-- [ ] Added [Google-style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods) docstrings to new functions/classes
-- [ ] Updated documentation
+- [ ] Updated documentation, follow [Google-style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods)
 - [ ] Added docs entry for autogeneration (if new functions/classes)
 - [ ] Added/updated tests
 - [ ] All tests pass locally
