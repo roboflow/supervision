@@ -15,6 +15,6 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: 🤖 Check conflicts and manage label
-        uses: sequelize/pr-auto-update-and-handle-conflicts@6e4c1f2f8c9634b0c4a96522132f3aaba3a0998a # v1
+        uses: sequelize/pr-auto-update-and-handle-conflicts@74929c430b8843e691e7b83d229d8d13d78d89e3 # pinned latest commit
         with:
-          conflict-label: "has conflict"
+          conflict-label: has-conflict
