@@ -15,4 +15,4 @@ jobs:
       - name: 🤖 Check conflicts and manage label
         uses: sequelize/pr-auto-update-and-handle-conflicts@v1
         with:
-          conflict-label: has-conflict
+          conflict-label: "has conflict"
