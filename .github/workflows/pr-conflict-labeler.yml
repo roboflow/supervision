@@ -13,6 +13,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 🤖 Check conflicts and manage label
-        uses: sequelize/pr-auto-update-and-handle-conflicts@v1
+        uses: sequelize/pr-auto-update-and-handle-conflicts@1.0.1
         with:
           conflict-label: "has conflict"
