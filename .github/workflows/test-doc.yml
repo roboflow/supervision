@@ -1,4 +1,4 @@
-name: 🧪 Docs Test WorkFlow 📚
+name: Test Docs Build
 
 on:
   push:
@@ -16,23 +16,20 @@ permissions:
   checks: write # Required for test reporting
 
 jobs:
-  docs-build-test:
+  docs-build:
     name: Test docs build
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    strategy:
-      matrix:
-        python-version: ["3.10"]
     steps:
       - name: 📥 Checkout the repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
 
-      - name: 🐍 Install uv and set Python ${{ matrix.python-version }}
+      - name: 🐍 Install uv and set Python
         uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b # v7.2.0
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.10"
           activate-environment: true
 
       - name: 🏗️ Install dependencies
