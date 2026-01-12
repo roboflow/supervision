@@ -156,7 +156,7 @@ convention = "google"
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402", "F401"]
 "test/**" = [
-    "S101"  # Use of `assert` detected
+    "S101",  # Use of `assert` detected
 ]
 "supervision/**" = [
     "S101"  # TODO: Replace asserts with proper error handling

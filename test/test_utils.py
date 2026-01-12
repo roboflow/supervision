@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import random
 from typing import Any
 
 import numpy as np
@@ -77,18 +76,17 @@ def random_boxes(
         (`numpy.ndarray`): Array of shape `(count, 4)` with bounding boxes as
             `(x_min, y_min, x_max, y_max)`.
     """
-    if seed is not None:
-        random.seed(seed)
+    rng = np.random.default_rng(seed)
 
     img_w, img_h = image_size
     out = np.zeros((count, 4), dtype=np.float32)
 
     for i in range(count):
-        w = random.uniform(min_box_size, max_box_size)  # noqa: S311 # TODO: Use secrets module if cryptographic security is needed
-        h = random.uniform(min_box_size, max_box_size)  # noqa: S311 # TODO: Use secrets module if cryptographic security is needed
+        w = rng.uniform(min_box_size, max_box_size)
+        h = rng.uniform(min_box_size, max_box_size)
 
-        x_min = random.uniform(0, img_w - w)  # noqa: S311 # TODO: Use secrets module if cryptographic security is needed
-        y_min = random.uniform(0, img_h - h)  # noqa: S311 # TODO: Use secrets module if cryptographic security is needed
+        x_min = rng.uniform(0, img_w - w)
+        y_min = rng.uniform(0, img_h - h)
         x_max = x_min + w
         y_max = y_min + h
 
