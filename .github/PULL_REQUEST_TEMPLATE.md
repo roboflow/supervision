@@ -2,7 +2,6 @@
 <summary>Before submitting</summary>
 
 - [ ] Self-reviewed the code
-- [ ] Added comments to complex code
 - [ ] Updated documentation, follow [Google-style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods)
 - [ ] Added docs entry for autogeneration (if new functions/classes)
 - [ ] Added/updated tests
