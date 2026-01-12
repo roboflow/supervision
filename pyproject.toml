@@ -85,10 +85,6 @@ build = [
     "build>=0.10,<1.4"
 ]
 
-[tool.bandit]
-target = ["test", "supervision"]
-tests = ["B201", "B301", "B318", "B314", "B303", "B413", "B412"]
-
 [tool.autoflake]
 check = true
 imports = ["cv2", "supervision"]
@@ -138,6 +134,7 @@ select = [
     "W",    # pycodestyle warnings - https://docs.astral.sh/ruff/rules/#pycodestyle-w
     "RUF",  # Ruff-specific rules - https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
     "UP",   # pyupgrade - https://docs.astral.sh/ruff/rules/#pyupgrade-up
+    "S",
 ]
 ignore = []
 unfixable = []
@@ -155,6 +152,12 @@ convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402", "F401"]
+"test/**" = [
+    "S101"  # Use of `assert` detected
+]
+"supervision/**" = [
+    "S101"  # TODO: Replace asserts with proper error handling
+]
 
 [tool.ruff.lint.mccabe]
 # Flag errors (`C901`) whenever the complexity level exceeds 5.
