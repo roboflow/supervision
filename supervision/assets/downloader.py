@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from hashlib import new as hash_new
+from hashlib import md5
 from pathlib import Path
 from shutil import copyfileobj
 
@@ -15,6 +15,9 @@ def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:
     """
     Check if the MD5 hash of a file matches the original hash.
 
+    Note: MD5 is used here for file integrity checking (detecting corruption),
+    not for cryptographic security purposes.
+
     Parameters:
         filename (str): The path to the file to be checked as a string.
         original_md5_hash (str): The original MD5 hash to compare against.
@@ -27,8 +30,7 @@ def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:
 
     with open(filename, "rb") as file:
         file_contents = file.read()
-        computed_md5_hash = hash_new(name="MD5")  # noqa: S324 # TODO: Replace MD5 with a secure hash function like SHA-256
-        computed_md5_hash.update(file_contents)
+        computed_md5_hash = md5(file_contents, usedforsecurity=False)
 
     return computed_md5_hash.hexdigest() == original_md5_hash
 
@@ -57,7 +59,9 @@ def download_assets(asset_name: VideoAssets | str) -> str:
 
     if not Path(filename).exists() and filename in VIDEO_ASSETS:
         print(f"Downloading {filename} assets \n")
-        response = get(VIDEO_ASSETS[filename][0], stream=True, allow_redirects=True)  # noqa: S113 # TODO: Add timeout to requests call
+        response = get(
+            VIDEO_ASSETS[filename][0], stream=True, allow_redirects=True, timeout=30
+        )
         response.raise_for_status()
 
         file_size = int(response.headers.get("Content-Length", 0))
