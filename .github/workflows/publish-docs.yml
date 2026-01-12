@@ -20,53 +20,41 @@ permissions:
   pull-requests: write # Required for PR comments
 
 jobs:
-  deploy:
+  docs-build-deploy:
     name: Publish Docs
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    strategy:
-      matrix:
-        python-version: ["3.10"]
     steps:
       - name: 📥 Checkout the repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           fetch-depth: 0
 
-      - name: 🐍 Install uv and set Python ${{ matrix.python-version }}
+      - name: 🐍 Install uv and set Python
         uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b # v7.2.0
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.10"
           activate-environment: true
 
-
-      - name: 🔑 Create GitHub App token (mkdocs)
-        id: mkdocs_token
-        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
-        with:
-          app-id: ${{ secrets.MKDOCS_APP_ID }}
-          private-key: ${{ secrets.MKDOCS_PEM }}
-          owner: roboflow
-          repositories: mkdocs-material-insiders
-
       - name: 🏗️ Install dependencies
-        run: |
-          uv pip install -r pyproject.toml --group docs
-          # Install mkdocs-material-insiders using the GitHub App token
-          uv pip install "git+https://roboflow:${{ steps.mkdocs_token.outputs.token }}@github.com/roboflow/mkdocs-material-insiders.git@9.5.49-insiders-4.53.14#egg=mkdocs-material[imaging]"
+        run: uv pip install -r pyproject.toml --group docs
 
       - name: ⚙️ Configure git for github-actions
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
 
       - name: 🚀 Deploy Development Docs
         if: (github.event_name == 'push' && github.ref == 'refs/heads/develop') || github.event_name == 'workflow_dispatch'
+        env:
+          MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          MKDOCS_GIT_COMMITTERS_APIKEY=${{ secrets.GITHUB_TOKEN }} uv run mike deploy --push develop
+          uv run mike deploy --push develop
 
       - name: 🚀 Deploy Release Docs
         if: github.event_name == 'release' && github.event.action == 'published'
+        env:
+          MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
         run: |
           latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
-          MKDOCS_GIT_COMMITTERS_APIKEY=${{ secrets.GITHUB_TOKEN }} uv run mike deploy --push --update-aliases $latest_tag latest
+          uv run mike deploy --push --update-aliases $latest_tag latest
