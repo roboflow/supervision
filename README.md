@@ -193,8 +193,13 @@ for path, image, annotation in ds:
 
     ```python
     sv.DetectionDataset.from_yolo(
-        images_directory_path=..., annotations_directory_path=..., data_yaml_path=...,
-    ).as_pascal_voc(images_directory_path=..., annotations_directory_path=...,)
+        images_directory_path=...,
+        annotations_directory_path=...,
+        data_yaml_path=...,
+    ).as_pascal_voc(
+        images_directory_path=...,
+        annotations_directory_path=...,
+    )
     ```
 
 </details>
