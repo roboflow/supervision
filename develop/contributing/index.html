@@ -2679,14 +2679,14 @@
 </li>
 <li>
 <p><strong>Create and activate a virtual environment:</strong></p>
-<p><strong>On Linux/macOS:</strong>
+<p><strong>On Linux/macOS:</strong></p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
-</span></code></pre></div></p>
-<p><strong>On Windows:</strong>
+</span></code></pre></div>
+<p><strong>On Windows:</strong></p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>python -m venv .venv
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>.venv\Scripts\activate
-</span></code></pre></div></p>
+</span></code></pre></div>
 </li>
 <li>
 <p><strong>Install <code>uv</code>:</strong></p>
@@ -2710,26 +2710,26 @@
 <p>To run the pre-commit tool, follow these steps:</p>
 <ol>
 <li>
-<p><strong>Install pre-commit</strong> (already included if you followed the installation steps above):
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--group<span class="w"> </span>dev
-</span></code></pre></div></p>
+<p><strong>Install pre-commit</strong> (already included if you followed the installation steps above):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--group<span class="w"> </span>dev
+</span></code></pre></div>
 </li>
 <li>
 <p><strong>Navigate to the project's root directory</strong> (if not already there).</p>
 </li>
 <li>
-<p><strong>Run pre-commit checks</strong>:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
-</span></code></pre></div></p>
+<p><strong>Run pre-commit checks</strong>:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
+</span></code></pre></div>
+<p>This will execute the pre-commit hooks configured for this project. If any issues are found, the pre-commit tool will provide feedback on how to resolve them. Make the necessary changes and re-run the command until all issues are resolved.</p>
+</li>
+<li>
+<p><strong>Install pre-commit as a git hook</strong> (optional but recommended):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pre-commit<span class="w"> </span>install
+</span></code></pre></div>
+<p>This will automatically run pre-commit checks every time you make a <code>git commit</code>.</p>
 </li>
 </ol>
-<p>This will execute the pre-commit hooks configured for this project. If any issues are found, the pre-commit tool will provide feedback on how to resolve them. Make the necessary changes and re-run the command until all issues are resolved.</p>
-<ol>
-<li><strong>Install pre-commit as a git hook</strong> (optional but recommended):
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pre-commit<span class="w"> </span>install
-</span></code></pre></div></li>
-</ol>
-<p>This will automatically run pre-commit checks every time you make a <code>git commit</code>.</p>
 <h3 id="docstrings">Docstrings<a class="headerlink" href="#docstrings" title="Permanent link">&para;</a></h3>
 <p>All new functions and classes in <code>supervision</code> should include docstrings. This is a prerequisite for any new functions and classes to be added to the library.</p>
 <p><code>supervision</code> adheres to the <a href="https://google.github.io/styleguide/pyguide.html#383-functions-and-methods">Google Python docstring style</a>. Please refer to the style guide while writing docstrings for your contribution.</p>
@@ -2740,14 +2740,14 @@
 <p>To run the documentation locally:</p>
 <ol>
 <li>
-<p><strong>Install documentation dependencies</strong> (if not already installed):
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--group<span class="w"> </span>docs
-</span></code></pre></div></p>
+<p><strong>Install documentation dependencies</strong> (if not already installed):</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--group<span class="w"> </span>docs
+</span></code></pre></div>
 </li>
 <li>
-<p><strong>Start the documentation server</strong>:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>uv<span class="w"> </span>run<span class="w"> </span>mkdocs<span class="w"> </span>serve
-</span></code></pre></div></p>
+<p><strong>Start the documentation server</strong>:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>uv<span class="w"> </span>run<span class="w"> </span>mkdocs<span class="w"> </span>serve
+</span></code></pre></div>
 </li>
 <li>
 <p><strong>Access the documentation</strong> at <code>http://127.0.0.1:8000</code> in your browser.</p>
