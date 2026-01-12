@@ -161,12 +161,14 @@ Before starting your work on the project, set up your development environment:
 3. **Create and activate a virtual environment:**
 
     **On Linux/macOS:**
+
     ```bash
     python3 -m venv .venv
     source .venv/bin/activate
     ```
 
     **On Windows:**
+
     ```cmd
     python -m venv .venv
     .venv\Scripts\activate
@@ -199,25 +201,28 @@ Furthermore, we have integrated a pre-commit GitHub Action into our workflow. Th
 To run the pre-commit tool, follow these steps:
 
 1. **Install pre-commit** (already included if you followed the installation steps above):
-   ```bash
-   uv sync --group dev
-   ```
+
+    ```bash
+    uv sync --group dev
+    ```
 
 2. **Navigate to the project's root directory** (if not already there).
 
 3. **Run pre-commit checks**:
-   ```bash
-   uv run pre-commit run --all-files
-   ```
 
-   This will execute the pre-commit hooks configured for this project. If any issues are found, the pre-commit tool will provide feedback on how to resolve them. Make the necessary changes and re-run the command until all issues are resolved.
+    ```bash
+    uv run pre-commit run --all-files
+    ```
+
+    This will execute the pre-commit hooks configured for this project. If any issues are found, the pre-commit tool will provide feedback on how to resolve them. Make the necessary changes and re-run the command until all issues are resolved.
 
 4. **Install pre-commit as a git hook** (optional but recommended):
-   ```bash
-   uv run pre-commit install
-   ```
 
-   This will automatically run pre-commit checks every time you make a `git commit`.
+    ```bash
+    uv run pre-commit install
+    ```
+
+    This will automatically run pre-commit checks every time you make a `git commit`.
 
 ### Docstrings
 
@@ -236,14 +241,16 @@ The `supervision` documentation is stored in a folder called `docs`. The project
 To run the documentation locally:
 
 1. **Install documentation dependencies** (if not already installed):
-   ```bash
-   uv sync --group docs
-   ```
+
+    ```bash
+    uv sync --group docs
+    ```
 
 2. **Start the documentation server**:
-   ```bash
-   uv run mkdocs serve
-   ```
+
+    ```bash
+    uv run mkdocs serve
+    ```
 
 3. **Access the documentation** at `http://127.0.0.1:8000` in your browser.
 

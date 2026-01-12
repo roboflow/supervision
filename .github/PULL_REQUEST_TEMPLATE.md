@@ -29,6 +29,7 @@
 ## Motivation and Context
 
 <!-- Why is this change required? What problem does it solve? -->
+
 <!-- If it fixes an open issue, please link to the issue here -->
 
 Closes #(issue)
@@ -52,6 +53,7 @@ Closes #(issue)
 ## Google Colab (optional)
 
 <!-- If applicable, provide a link to a Google Colab notebook demonstrating the feature/fix -->
+
 <!-- Ensure the notebook is publicly accessible -->
 
 Colab link:
