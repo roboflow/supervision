@@ -84,11 +84,11 @@ def random_boxes(
     out = np.zeros((count, 4), dtype=np.float32)
 
     for i in range(count):
-        w = random.uniform(min_box_size, max_box_size)
-        h = random.uniform(min_box_size, max_box_size)
+        w = random.uniform(min_box_size, max_box_size)  # noqa: S311 # TODO: Use secrets module if cryptographic security is needed
+        h = random.uniform(min_box_size, max_box_size)  # noqa: S311 # TODO: Use secrets module if cryptographic security is needed
 
-        x_min = random.uniform(0, img_w - w)
-        y_min = random.uniform(0, img_h - h)
+        x_min = random.uniform(0, img_w - w)  # noqa: S311 # TODO: Use secrets module if cryptographic security is needed
+        y_min = random.uniform(0, img_h - h)  # noqa: S311 # TODO: Use secrets module if cryptographic security is needed
         x_max = x_min + w
         y_max = y_min + h
 
