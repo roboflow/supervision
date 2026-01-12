@@ -14,7 +14,7 @@ detection and Supervision for tracking and annotation.
     cd supervision/examples/tracking
     ```
 
-- setup python environment and activate it [optional]
+- setup python environment and activate it \[optional\]
 
     ```bash
     python3 -m venv venv
