@@ -83,18 +83,20 @@ git push -u origin <your_branch_name>
 
 Use conventional commit messages to clearly describe your changes. The format is:
 
-<type>\[optional scope\]: <description>
+```
+<type>[optional scope]: <description>
+```
 
 Common types include:
 
-- feat: A new feature
-- fix: A bug fix
-- docs: Documentation only changes
-- style: Changes that do not affect the meaning of the code (white-space, formatting, etc)
-- refactor: A code change that neither fixes a bug nor adds a feature
-- perf: A code change that improves performance
-- test: Adding missing tests or correcting existing tests
-- chore: Changes to the build process or auxiliary tools and libraries
+- `feat`: A new feature
+- `fix`: A bug fix
+- `docs`: Documentation only changes
+- `style`: Changes that do not affect the meaning of the code (white-space, formatting, etc)
+- `refactor`: A code change that neither fixes a bug nor adds a feature
+- `perf`: A code change that improves performance
+- `test`: Adding missing tests or correcting existing tests
+- `chore`: Changes to the build process or auxiliary tools and libraries
 
 Then, go back to your fork of the `supervision` repository, click "Pull Requests", and click "New Pull Request".
 
@@ -116,7 +118,7 @@ When creating new functions, please ensure you have the following:
 2. Unit tests for the function.
 3. Examples in the documentation for the function.
 4. Created an entry in our docs to autogenerate the documentation for the function.
-5. Please share a Google Colab with minimal code to test new feature or reproduce PR whenever it is possible. Please ensure that Google Colab can be accessed without any issue.
+5. Please share a Google Colab with minimal code to test a new feature or reproduce the issue whenever possible. Please ensure that Google Colab can be accessed without any restrictions.
 
 When you submit your Pull Request, you will be asked to sign a Contributor License Agreement (CLA) by the `cla-assistant` GitHub bot. We can only respond to PRs from contributors who have signed the project CLA.
 
@@ -128,7 +130,7 @@ PRs must pass all tests and linting requirements before they can be merged.
 
 Before starting your work on the project, set up your development environment:
 
-1. Clone your fork of the project (recommended to use shallow clone of develop branch):
+1. **Clone your fork of the project:**
 
     **Option A: Recommended for most contributors (shallow clone of develop branch):**
 
@@ -139,33 +141,48 @@ Before starting your work on the project, set up your development environment:
 
     Replace `YOUR_USERNAME` with your GitHub username.
 
-    > Note: Using `--depth 1` creates a shallow clone with minimal history and `-b develop` ensures you start with the development branch. This significantly reduces download size while providing everything needed to contribute.
+    > **Note**: Using `--depth 1` creates a shallow clone with minimal history and `-b develop` ensures you start with the development branch. This significantly reduces download size while providing everything needed to contribute.
 
     **Option B: Full repository clone (if you need complete history):**
 
     ```bash
     git clone https://github.com/YOUR_USERNAME/supervision.git
     cd supervision
+    git checkout develop
     ```
 
-2. Create and activate a virtual environment:
+2. **Set up the upstream remote:**
 
+    ```bash
+    git remote add upstream https://github.com/roboflow/supervision.git
+    git fetch upstream
+    ```
+
+3. **Create and activate a virtual environment:**
+
+    **On Linux/macOS:**
     ```bash
     python3 -m venv .venv
     source .venv/bin/activate
     ```
 
-3. Install `uv`:
+    **On Windows:**
+    ```cmd
+    python -m venv .venv
+    .venv\Scripts\activate
+    ```
+
+4. **Install `uv`:**
 
     Follow the instructions on the [uv installation page](https://docs.astral.sh/uv/getting-started/installation/).
 
-4. Install project dependencies:
+5. **Install project dependencies:**
 
     ```bash
-    uv pip install -r pyproject.toml --extra dev --extra docs --extra metrics
+    uv sync --group dev --group docs --extra metrics
     ```
 
-5. Run pytest to verify the setup:
+6. **Verify the setup:**
 
     ```bash
     uv run pytest
@@ -181,13 +198,26 @@ Furthermore, we have integrated a pre-commit GitHub Action into our workflow. Th
 
 To run the pre-commit tool, follow these steps:
 
-1. Install pre-commit by running the following command: `uv pip install -r pyproject.toml --extra dev`. It will not only install pre-commit but also install all the deps and dev-deps of project
+1. **Install pre-commit** (already included if you followed the installation steps above):
+   ```bash
+   uv sync --group dev
+   ```
 
-2. Once pre-commit is installed, navigate to the project's root directory.
+2. **Navigate to the project's root directory** (if not already there).
 
-3. Run the command `pre-commit run --all-files`. This will execute the pre-commit hooks configured for this project against the modified files. If any issues are found, the pre-commit tool will provide feedback on how to resolve them. Make the necessary changes and re-run the pre-commit command until all issues are resolved.
+3. **Run pre-commit checks**:
+   ```bash
+   uv run pre-commit run --all-files
+   ```
 
-4. You can also install pre-commit as a git hook by executing `pre-commit install`. Every time you do a `git commit` pre-commit run automatically for you.
+   This will execute the pre-commit hooks configured for this project. If any issues are found, the pre-commit tool will provide feedback on how to resolve them. Make the necessary changes and re-run the command until all issues are resolved.
+
+4. **Install pre-commit as a git hook** (optional but recommended):
+   ```bash
+   uv run pre-commit install
+   ```
+
+   This will automatically run pre-commit checks every time you make a `git commit`.
 
 ### Docstrings
 
@@ -197,13 +227,25 @@ All new functions and classes in `supervision` should include docstrings. This i
 
 ### Type checking
 
-So far, **there is no type checking with mypy**. See [issue](https://github.com/roboflow-ai/template-python/issues/4).
+Currently, there is no systematic type checking with mypy implemented in the project. This is a known limitation that may be addressed in future updates.
 
 ## 📝 Documentation
 
 The `supervision` documentation is stored in a folder called `docs`. The project documentation is built using `mkdocs`.
 
-To run the documentation, install the project requirements with `uv pip install -r pyproject.toml --extra dev --extra docs`. Then, run `mkdocs serve` to start the documentation server.
+To run the documentation locally:
+
+1. **Install documentation dependencies** (if not already installed):
+   ```bash
+   uv sync --group docs
+   ```
+
+2. **Start the documentation server**:
+   ```bash
+   uv run mkdocs serve
+   ```
+
+3. **Access the documentation** at `http://127.0.0.1:8000` in your browser.
 
 You can learn more about mkdocs on the [mkdocs website](https://www.mkdocs.org/).
 
@@ -216,14 +258,26 @@ submit a PR with your example. Here are some guidelines for submitting a new exa
 - Create a new notebook in the [`docs/notebooks`](https://github.com/roboflow/supervision/tree/develop/docs/notebooks) folder.
 - Add a link to the new notebook in [`docs/theme/cookbooks.html`](https://github.com/roboflow/supervision/blob/develop/docs/theme/cookbooks.html). Make sure to add the path to the new notebook, as well as a title, labels, author and supervision version.
 - Use the [Count Objects Crossing the Line](https://supervision.roboflow.com/develop/notebooks/count-objects-crossing-the-line/) example as a template for your new example.
-- Freeze the version of `supervision` you are using.
-- Place an appropriate Open in Colab button at the top of the notebook. You can find an example of such a button in the aforementioned `Count Objects Crossing the Line` cookbook.
-- Notebook should be self-contained. If you rely on external data ( videos, images, etc.) or libraries, include download and installation commands in the notebook.
+- Pin the version of `supervision` you are using in the notebook.
+- Place an appropriate "Open in Colab" button at the top of the notebook. You can find an example of such a button in the aforementioned `Count Objects Crossing the Line` cookbook.
+- **Notebook should be self-contained**. If you rely on external data (videos, images, etc.) or libraries, include download and installation commands in the notebook.
 - Annotate the code with appropriate comments, including links to the documentation describing each of the tools you have used.
 
 ## 🧪 Tests
 
-[`pytests`](https://docs.pytest.org/en/7.1.x/) is used to run our tests.
+[`pytest`](https://docs.pytest.org/en/7.1.x/) is used to run our tests.
+
+To run tests:
+
+```bash
+uv run pytest
+```
+
+To run tests with coverage:
+
+```bash
+uv run pytest --cov=supervision
+```
 
 ## 📄 License
 
