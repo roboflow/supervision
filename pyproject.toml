@@ -124,56 +124,19 @@ line-length = 88
 indent-width = 4
 
 [tool.ruff.lint]
-# Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-select = ["E", "F", "I", "A", "Q", "W", "RUF", "UP", "S"]
-ignore = []
-# Allow autofix for all enabled rules (when `--fix`) is provided.
-fixable = [
-    "A",
-    "B",
-    "C",
-    "D",
-    "E",
-    "F",
-    "G",
-    "I",
-    "N",
-    "Q",
-    "S",
-    "T",
-    "W",
-    "ANN",
-    "ARG",
-    "BLE",
-    "COM",
-    "DJ",
-    "DTZ",
-    "EM",
-    "ERA",
-    "EXE",
-    "FBT",
-    "ICN",
-    "INP",
-    "ISC",
-    "NPY",
-    "PD",
-    "PGH",
-    "PIE",
-    "PL",
-    "PT",
-    "PTH",
-    "PYI",
-    "RET",
-    "RSE",
-    "RUF",
-    "SIM",
-    "SLF",
-    "TCH",
-    "TID",
-    "TRY",
-    "UP",
-    "YTT",
+# Enable linting rules for code style, imports, and best practices.
+select = [
+    "E",    # pycodestyle errors - https://docs.astral.sh/ruff/rules/#error-e
+    "F",    # Pyflakes - https://docs.astral.sh/ruff/rules/#pyflakes-f
+    "I",    # isort - https://docs.astral.sh/ruff/rules/#isort-i
+    "A",    # flake8-builtins - https://docs.astral.sh/ruff/rules/#flake8-builtins-a
+    "Q",    # flake8-quotes - https://docs.astral.sh/ruff/rules/#flake8-quotes-q
+    "W",    # pycodestyle warnings - https://docs.astral.sh/ruff/rules/#pycodestyle-w
+    "RUF",  # Ruff-specific rules - https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
+    "UP",   # pyupgrade - https://docs.astral.sh/ruff/rules/#pyupgrade-up
+    "S",    # bandit - https://docs.astral.sh/ruff/rules/#flake8-bandit-s
 ]
+ignore = []
 unfixable = []
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
