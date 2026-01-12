@@ -2545,17 +2545,18 @@
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>git<span class="w"> </span>push<span class="w"> </span>-u<span class="w"> </span>origin<span class="w"> </span>&lt;your_branch_name&gt;
 </span></code></pre></div>
 <p>Use conventional commit messages to clearly describe your changes. The format is:</p>
-<p><type>[optional scope]: <description></p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>&lt;type&gt;[optional scope]: &lt;description&gt;
+</span></code></pre></div>
 <p>Common types include:</p>
 <ul>
-<li>feat: A new feature</li>
-<li>fix: A bug fix</li>
-<li>docs: Documentation only changes</li>
-<li>style: Changes that do not affect the meaning of the code (white-space, formatting, etc)</li>
-<li>refactor: A code change that neither fixes a bug nor adds a feature</li>
-<li>perf: A code change that improves performance</li>
-<li>test: Adding missing tests or correcting existing tests</li>
-<li>chore: Changes to the build process or auxiliary tools and libraries</li>
+<li><code>feat</code>: A new feature</li>
+<li><code>fix</code>: A bug fix</li>
+<li><code>docs</code>: Documentation only changes</li>
+<li><code>style</code>: Changes that do not affect the meaning of the code (white-space, formatting, etc)</li>
+<li><code>refactor</code>: A code change that neither fixes a bug nor adds a feature</li>
+<li><code>perf</code>: A code change that improves performance</li>
+<li><code>test</code>: Adding missing tests or correcting existing tests</li>
+<li><code>chore</code>: Changes to the build process or auxiliary tools and libraries</li>
 </ul>
 <p>Then, go back to your fork of the <code>supervision</code> repository, click "Pull Requests", and click "New Pull Request".</p>
 <p><img alt="Opening a pull request" src="https://media.roboflow.com/open_pr.png" /></p>
@@ -2570,7 +2571,7 @@
 <li>Unit tests for the function.</li>
 <li>Examples in the documentation for the function.</li>
 <li>Created an entry in our docs to autogenerate the documentation for the function.</li>
-<li>Please share a Google Colab with minimal code to test new feature or reproduce PR whenever it is possible. Please ensure that Google Colab can be accessed without any issue.</li>
+<li>Please share a Google Colab with minimal code to test a new feature or reproduce the issue whenever possible. Please ensure that Google Colab can be accessed without any restrictions.</li>
 </ol>
 <p>When you submit your Pull Request, you will be asked to sign a Contributor License Agreement (CLA) by the <code>cla-assistant</code> GitHub bot. We can only respond to PRs from contributors who have signed the project CLA.</p>
 <p>All pull requests will be reviewed by the maintainers of the project. We will provide feedback and ask for changes if necessary.</p>
@@ -2579,38 +2580,50 @@
 <p>Before starting your work on the project, set up your development environment:</p>
 <ol>
 <li>
-<p>Clone your fork of the project (recommended to use shallow clone of develop branch):</p>
+<p><strong>Clone your fork of the project:</strong></p>
 <p><strong>Option A: Recommended for most contributors (shallow clone of develop branch):</strong></p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>git<span class="w"> </span>clone<span class="w"> </span>--depth<span class="w"> </span><span class="m">1</span><span class="w"> </span>-b<span class="w"> </span>develop<span class="w"> </span>https://github.com/YOUR_USERNAME/supervision.git
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nb">cd</span><span class="w"> </span>supervision
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>git<span class="w"> </span>clone<span class="w"> </span>--depth<span class="w"> </span><span class="m">1</span><span class="w"> </span>-b<span class="w"> </span>develop<span class="w"> </span>https://github.com/YOUR_USERNAME/supervision.git
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nb">cd</span><span class="w"> </span>supervision
 </span></code></pre></div>
 <p>Replace <code>YOUR_USERNAME</code> with your GitHub username.</p>
 <blockquote>
-<p>Note: Using <code>--depth 1</code> creates a shallow clone with minimal history and <code>-b develop</code> ensures you start with the development branch. This significantly reduces download size while providing everything needed to contribute.</p>
+<p><strong>Note</strong>: Using <code>--depth 1</code> creates a shallow clone with minimal history and <code>-b develop</code> ensures you start with the development branch. This significantly reduces download size while providing everything needed to contribute.</p>
 </blockquote>
 <p><strong>Option B: Full repository clone (if you need complete history):</strong></p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/YOUR_USERNAME/supervision.git
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nb">cd</span><span class="w"> </span>supervision
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/YOUR_USERNAME/supervision.git
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nb">cd</span><span class="w"> </span>supervision
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>git<span class="w"> </span>checkout<span class="w"> </span>develop
 </span></code></pre></div>
 </li>
 <li>
-<p>Create and activate a virtual environment:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+<p><strong>Set up the upstream remote:</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>git<span class="w"> </span>remote<span class="w"> </span>add<span class="w"> </span>upstream<span class="w"> </span>https://github.com/roboflow/supervision.git
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>git<span class="w"> </span>fetch<span class="w"> </span>upstream
 </span></code></pre></div>
 </li>
 <li>
-<p>Install <code>uv</code>:</p>
+<p><strong>Create and activate a virtual environment:</strong></p>
+<p><strong>On Linux/macOS:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>.venv
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+</span></code></pre></div></p>
+<p><strong>On Windows:</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>python -m venv .venv
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>.venv\Scripts\activate
+</span></code></pre></div></p>
+</li>
+<li>
+<p><strong>Install <code>uv</code>:</strong></p>
 <p>Follow the instructions on the <a href="https://docs.astral.sh/uv/getting-started/installation/">uv installation page</a>.</p>
 </li>
 <li>
-<p>Install project dependencies:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-r<span class="w"> </span>pyproject.toml<span class="w"> </span>--extra<span class="w"> </span>dev<span class="w"> </span>--extra<span class="w"> </span>docs<span class="w"> </span>--extra<span class="w"> </span>metrics
+<p><strong>Install project dependencies:</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--group<span class="w"> </span>dev<span class="w"> </span>--group<span class="w"> </span>docs<span class="w"> </span>--extra<span class="w"> </span>metrics
 </span></code></pre></div>
 </li>
 <li>
-<p>Run pytest to verify the setup:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest
+<p><strong>Verify the setup:</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest
 </span></code></pre></div>
 </li>
 </ol>
@@ -2621,26 +2634,49 @@
 <p>To run the pre-commit tool, follow these steps:</p>
 <ol>
 <li>
-<p>Install pre-commit by running the following command: <code>uv pip install -r pyproject.toml --extra dev</code>. It will not only install pre-commit but also install all the deps and dev-deps of project</p>
+<p><strong>Install pre-commit</strong> (already included if you followed the installation steps above):
+   <div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--group<span class="w"> </span>dev
+</span></code></pre></div></p>
 </li>
 <li>
-<p>Once pre-commit is installed, navigate to the project's root directory.</p>
+<p><strong>Navigate to the project's root directory</strong> (if not already there).</p>
 </li>
 <li>
-<p>Run the command <code>pre-commit run --all-files</code>. This will execute the pre-commit hooks configured for this project against the modified files. If any issues are found, the pre-commit tool will provide feedback on how to resolve them. Make the necessary changes and re-run the pre-commit command until all issues are resolved.</p>
-</li>
-<li>
-<p>You can also install pre-commit as a git hook by executing <code>pre-commit install</code>. Every time you do a <code>git commit</code> pre-commit run automatically for you.</p>
+<p><strong>Run pre-commit checks</strong>:
+   <div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
+</span></code></pre></div></p>
 </li>
 </ol>
+<p>This will execute the pre-commit hooks configured for this project. If any issues are found, the pre-commit tool will provide feedback on how to resolve them. Make the necessary changes and re-run the command until all issues are resolved.</p>
+<ol>
+<li><strong>Install pre-commit as a git hook</strong> (optional but recommended):
+   <div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pre-commit<span class="w"> </span>install
+</span></code></pre></div></li>
+</ol>
+<p>This will automatically run pre-commit checks every time you make a <code>git commit</code>.</p>
 <h3 id="docstrings">Docstrings<a class="headerlink" href="#docstrings" title="Permanent link">&para;</a></h3>
 <p>All new functions and classes in <code>supervision</code> should include docstrings. This is a prerequisite for any new functions and classes to be added to the library.</p>
 <p><code>supervision</code> adheres to the <a href="https://google.github.io/styleguide/pyguide.html#383-functions-and-methods">Google Python docstring style</a>. Please refer to the style guide while writing docstrings for your contribution.</p>
 <h3 id="type-checking">Type checking<a class="headerlink" href="#type-checking" title="Permanent link">&para;</a></h3>
-<p>So far, <strong>there is no type checking with mypy</strong>. See <a href="https://github.com/roboflow-ai/template-python/issues/4">issue</a>.</p>
+<p>Currently, there is no systematic type checking with mypy implemented in the project. This is a known limitation that may be addressed in future updates.</p>
 <h2 id="documentation">📝 Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h2>
 <p>The <code>supervision</code> documentation is stored in a folder called <code>docs</code>. The project documentation is built using <code>mkdocs</code>.</p>
-<p>To run the documentation, install the project requirements with <code>uv pip install -r pyproject.toml --extra dev --extra docs</code>. Then, run <code>mkdocs serve</code> to start the documentation server.</p>
+<p>To run the documentation locally:</p>
+<ol>
+<li>
+<p><strong>Install documentation dependencies</strong> (if not already installed):
+   <div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--group<span class="w"> </span>docs
+</span></code></pre></div></p>
+</li>
+<li>
+<p><strong>Start the documentation server</strong>:
+   <div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>uv<span class="w"> </span>run<span class="w"> </span>mkdocs<span class="w"> </span>serve
+</span></code></pre></div></p>
+</li>
+<li>
+<p><strong>Access the documentation</strong> at <code>http://127.0.0.1:8000</code> in your browser.</p>
+</li>
+</ol>
 <p>You can learn more about mkdocs on the <a href="https://www.mkdocs.org/">mkdocs website</a>.</p>
 <h2 id="cookbooks">🧑‍🍳 Cookbooks<a class="headerlink" href="#cookbooks" title="Permanent link">&para;</a></h2>
 <p>We are always looking for new examples and cookbooks to add to the <code>supervision</code>
@@ -2650,13 +2686,19 @@ submit a PR with your example. Here are some guidelines for submitting a new exa
 <li>Create a new notebook in the <a href="https://github.com/roboflow/supervision/tree/develop/docs/notebooks"><code>docs/notebooks</code></a> folder.</li>
 <li>Add a link to the new notebook in <a href="https://github.com/roboflow/supervision/blob/develop/docs/theme/cookbooks.html"><code>docs/theme/cookbooks.html</code></a>. Make sure to add the path to the new notebook, as well as a title, labels, author and supervision version.</li>
 <li>Use the <a href="https://supervision.roboflow.com/develop/notebooks/count-objects-crossing-the-line/">Count Objects Crossing the Line</a> example as a template for your new example.</li>
-<li>Freeze the version of <code>supervision</code> you are using.</li>
-<li>Place an appropriate Open in Colab button at the top of the notebook. You can find an example of such a button in the aforementioned <code>Count Objects Crossing the Line</code> cookbook.</li>
-<li>Notebook should be self-contained. If you rely on external data ( videos, images, etc.) or libraries, include download and installation commands in the notebook.</li>
+<li>Pin the version of <code>supervision</code> you are using in the notebook.</li>
+<li>Place an appropriate "Open in Colab" button at the top of the notebook. You can find an example of such a button in the aforementioned <code>Count Objects Crossing the Line</code> cookbook.</li>
+<li><strong>Notebook should be self-contained</strong>. If you rely on external data (videos, images, etc.) or libraries, include download and installation commands in the notebook.</li>
 <li>Annotate the code with appropriate comments, including links to the documentation describing each of the tools you have used.</li>
 </ul>
 <h2 id="tests">🧪 Tests<a class="headerlink" href="#tests" title="Permanent link">&para;</a></h2>
-<p><a href="https://docs.pytest.org/en/7.1.x/"><code>pytests</code></a> is used to run our tests.</p>
+<p><a href="https://docs.pytest.org/en/7.1.x/"><code>pytest</code></a> is used to run our tests.</p>
+<p>To run tests:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest
+</span></code></pre></div>
+<p>To run tests with coverage:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>--cov<span class="o">=</span>supervision
+</span></code></pre></div>
 <h2 id="license">📄 License<a class="headerlink" href="#license" title="Permanent link">&para;</a></h2>
 <p>By contributing, you agree that your contributions will be licensed under an <a href="https://github.com/roboflow/supervision/blob/develop/LICENSE.md">MIT license</a>.</p>
 
