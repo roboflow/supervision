@@ -9,9 +9,14 @@ from test.test_utils import mock_detections
 
 
 @pytest.mark.parametrize(
-    "detections, custom_data, "
-    "second_detections, second_custom_data, "
-    "file_name, expected_result",
+    (
+        "detections",
+        "custom_data",
+        "second_detections",
+        "second_custom_data",
+        "file_name",
+        "expected_result",
+    ),
     [
         (
             mock_detections(
@@ -206,9 +211,14 @@ def test_csv_sink(
 
 
 @pytest.mark.parametrize(
-    "detections, custom_data, "
-    "second_detections, second_custom_data, "
-    "file_name, expected_result",
+    (
+        "detections",
+        "custom_data",
+        "second_detections",
+        "second_custom_data",
+        "file_name",
+        "expected_result",
+    ),
     [
         (
             mock_detections(

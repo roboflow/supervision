@@ -4,7 +4,7 @@ from supervision.utils.iterables import create_batches, fill
 
 
 @pytest.mark.parametrize(
-    "sequence, batch_size, expected",
+    ("sequence", "batch_size", "expected"),
     [
         # Empty sequence, non-zero batch size. Expect empty list.
         ([], 4, []),
@@ -24,7 +24,7 @@ def test_create_batches(sequence, batch_size, expected) -> None:
 
 
 @pytest.mark.parametrize(
-    "sequence, desired_size, content, expected",
+    ("sequence", "desired_size", "content", "expected"),
     [
         # Empty sequence, desired size 0. Expect empty list.
         ([], 0, 1, []),

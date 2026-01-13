@@ -13,7 +13,7 @@ from supervision.detection.utils.converters import (
 
 
 @pytest.mark.parametrize(
-    "xywh, expected_result",
+    ("xywh", "expected_result"),
     [
         (np.array([[10, 20, 30, 40]]), np.array([[10, 20, 40, 60]])),  # standard case
         (np.array([[0, 0, 0, 0]]), np.array([[0, 0, 0, 0]])),  # zero size bounding box
@@ -36,7 +36,7 @@ def test_xywh_to_xyxy(xywh: np.ndarray, expected_result: np.ndarray) -> None:
 
 
 @pytest.mark.parametrize(
-    "xyxy, expected_result",
+    ("xyxy", "expected_result"),
     [
         (np.array([[10, 20, 40, 60]]), np.array([[10, 20, 30, 40]])),  # standard case
         (np.array([[0, 0, 0, 0]]), np.array([[0, 0, 0, 0]])),  # zero size bounding box
@@ -59,7 +59,7 @@ def test_xyxy_to_xywh(xyxy: np.ndarray, expected_result: np.ndarray) -> None:
 
 
 @pytest.mark.parametrize(
-    "xyxy, expected_result",
+    ("xyxy", "expected_result"),
     [
         # Empty and zero cases
         (np.array([]).reshape(0, 4), np.array([]).reshape(0, 4)),  # empty array
@@ -110,7 +110,7 @@ def test_xyxy_to_xcycarh(xyxy: np.ndarray, expected_result: np.ndarray) -> None:
 
 
 @pytest.mark.parametrize(
-    "xcycwh, expected_result",
+    ("xcycwh", "expected_result"),
     [
         (np.array([[50, 50, 20, 30]]), np.array([[40, 35, 60, 65]])),  # standard case
         (np.array([[0, 0, 0, 0]]), np.array([[0, 0, 0, 0]])),  # zero size bounding box
@@ -133,7 +133,7 @@ def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None
 
 
 @pytest.mark.parametrize(
-    "boxes,resolution_wh,expected",
+    ("boxes", "resolution_wh", "expected"),
     [
         # 0) Empty input
         (
