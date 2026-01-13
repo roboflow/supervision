@@ -44,14 +44,14 @@ This script allows you to download a video from YouTube.
 - `--file_name` (optional): Sets the name of the saved video file.
 
 ```bash
-python scripts/script_download_from_youtube.py \
+python scripts/download_from_youtube.py \
     --url "https://www.youtube.com/watch?v=-8zyEwAa50Q" \
     --output_path "data/checkout" \
     --file_name "video.mp4"
 ```
 
 ```bash
-python scripts/script_download_from_youtube.py \
+python scripts/download_from_youtube.py \
     --url "https://www.youtube.com/watch?v=MNn9qKG2UFI" \
     --output_path "data/traffic" \
     --file_name "video.mp4"
@@ -67,13 +67,13 @@ mock a live video stream for local testing. Video will be streamed in a loop und
 - `--number_of_streams`: Number of video files to stream.
 
 ```bash
-python scripts/script_stream_from_file.py \
+python scripts/stream_from_file.py \
     --video_directory "data/checkout" \
     --number_of_streams 1
 ```
 
 ```bash
-python scripts/script_stream_from_file.py \
+python scripts/stream_from_file.py \
     --video_directory "data/traffic" \
     --number_of_streams 1
 ```
@@ -98,13 +98,13 @@ be saved as a JSON file.
 - `s` - save zone configuration to a JSON file.
 
 ```bash
-python scripts/script_draw_zones.py \
+python scripts/draw_zones.py \
     --source_path "data/checkout/video.mp4" \
     --zone_configuration_path "data/checkout/config.json"
 ```
 
 ```bash
-python scripts/script_draw_zones.py \
+python scripts/draw_zones.py \
     --source_path "data/traffic/video.mp4" \
     --zone_configuration_path "data/traffic/config.json"
 ```
