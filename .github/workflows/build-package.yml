@@ -26,7 +26,7 @@ jobs:
 
       - name: 🎨 Augment paths in README
         run: |
-          uv run python .github/scripts/augment_readme.py README.md
+          uv run python .github/scripts/augment_links.py README.md
           cat README.md
 
       - name: 🏗️ Build source and wheel distributions
