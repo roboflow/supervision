@@ -116,43 +116,7 @@ def main(
 
 
 if __name__ == "__main__":
-    try:
-        # Try to import jsonargparse for CLI parsing
-        from jsonargparse import ArgumentParser
-    except ImportError:
-        # Fallback if jsonargparse is not installed
-        print("Warning: jsonargparse not installed. Using plain positional arguments.")
-        if len(sys.argv) < 2:
-            script_name = sys.argv[0] if sys.argv else "script.py"
-            usage_message = (
-                "Insufficient arguments provided.\n\n"
-                f"Usage:\n"
-                f"  python {script_name} "
-                "source_weights_path [source_video_path] [target_video_path] "
-                "[confidence_threshold] [iou_threshold] [heatmap_alpha] [radius] "
-                "[track_activation_threshold] [track_seconds] "
-                "[minimum_matching_threshold]"
-            )
-            raise ValueError(usage_message)
-        main(
-            source_weights_path=sys.argv[1],
-            source_video_path=sys.argv[2] if len(sys.argv) > 2 else download_video(),
-            target_video_path=sys.argv[3] if len(sys.argv) > 3 else "output.mp4",
-            confidence_threshold=float(sys.argv[4]) if len(sys.argv) > 4 else 0.35,
-            iou_threshold=float(sys.argv[5]) if len(sys.argv) > 5 else 0.5,
-            heatmap_alpha=float(sys.argv[6]) if len(sys.argv) > 6 else 0.5,
-            radius=int(sys.argv[7]) if len(sys.argv) > 7 else 25,
-            track_activation_threshold=(
-                float(sys.argv[8]) if len(sys.argv) > 8 else 0.35
-            ),
-            track_seconds=int(sys.argv[9]) if len(sys.argv) > 9 else 5,
-            minimum_matching_threshold=(
-                float(sys.argv[10]) if len(sys.argv) > 10 else 0.99
-            ),
-        )
-    else:
-        # Use jsonargparse for automatic CLI if import succeeded
-        parser = ArgumentParser()
-        parser.add_function_arguments(main)
-        args = parser.parse_args()
-        main(**vars(args))
+    from jsonargparse import auto_cli, set_parsing_settings
+
+    set_parsing_settings(parse_optionals_as_positionals=True)
+    auto_cli(main, as_positional=False)
