@@ -9,7 +9,6 @@ from enum import Enum
 from typing import Any
 
 import numpy as np
-import pytest
 from PIL import Image
 
 from supervision.detection.utils.boxes import denormalize_boxes
