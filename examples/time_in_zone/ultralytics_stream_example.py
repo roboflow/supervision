@@ -1,5 +1,3 @@
-import sys
-
 import cv2
 import numpy as np
 from inference import InferencePipeline
