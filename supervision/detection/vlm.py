@@ -576,7 +576,7 @@ def from_florence_2(
         labels = np.array([result_string])
         return xyxy, labels, None, None
 
-    pytest.fail(f"Unimplemented task: {task}")
+    raise RuntimeError(f"Unimplemented task: {task}")
 
 
 def from_google_gemini_2_0(
