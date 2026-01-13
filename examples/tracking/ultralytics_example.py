@@ -1,5 +1,3 @@
-import sys
-
 from tqdm import tqdm
 from ultralytics import YOLO
 

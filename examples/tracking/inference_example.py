@@ -1,5 +1,4 @@
 import os
-import sys
 
 from inference.models.utils import get_roboflow_model
 from tqdm import tqdm
