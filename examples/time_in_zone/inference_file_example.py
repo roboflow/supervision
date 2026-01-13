@@ -89,30 +89,7 @@ def main(
 
 
 if __name__ == "__main__":
-    try:
-        # Try to import jsonargparse for CLI parsing
-        from jsonargparse import ArgumentParser
-    except ImportError:
-        # Fallback if jsonargparse is not installed
-        print("Warning: jsonargparse not installed. Using plain positional arguments.")
-        if len(sys.argv) < 3:
-            raise ValueError(
-                "Insufficient arguments provided."
-                "Usage: python inference_file_example.py "
-                "<zone_configuration_path> <source_video_path> "
-                "[model_id] [confidence] [iou] [classes]"
-            )
-        main(
-            zone_configuration_path=sys.argv[1],
-            source_video_path=sys.argv[2],
-            model_id=sys.argv[3] if len(sys.argv) > 3 else "yolov8s-640",
-            confidence=float(sys.argv[4]) if len(sys.argv) > 4 else 0.3,
-            iou=float(sys.argv[5]) if len(sys.argv) > 5 else 0.7,
-            classes=[int(x) for x in sys.argv[6:]] if len(sys.argv) > 6 else [],
-        )
-    else:
-        # Use jsonargparse for automatic CLI if import succeeded
-        parser = ArgumentParser()
-        parser.add_function_arguments(main)
-        args = parser.parse_args()
-        main(**vars(args))
+    from jsonargparse import auto_cli, set_parsing_settings
+
+    set_parsing_settings(parse_optionals_as_positionals=True)
+    auto_cli(main, as_positional=False)
