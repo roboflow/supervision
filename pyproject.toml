@@ -1,187 +1,182 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [ "setuptools>=61" ]
+
 [project]
 name = "supervision"
-description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
-license = { text = "MIT" }
 version = "0.27.0"
+description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 readme = "README.md"
-requires-python = ">=3.9"
-authors = [
-    { name = "Roboflow et al.", email = "develop@roboflow.com" }
-]
-maintainers = [
-    { name = "Piotr Skalski", email = "piotr@roboflow.com" },
-]
 keywords = [
-    "machine-learning",
-    "deep-learning",
-    "vision",
-    "ML",
-    "DL",
-    "AI",
-    "Roboflow",
+  "AI",
+  "deep-learning",
+  "DL",
+  "machine-learning",
+  "ML",
+  "Roboflow",
+  "vision",
 ]
+license = { text = "MIT" }
+maintainers = [
+  { name = "Piotr Skalski", email = "piotr@roboflow.com" },
+]
+authors = [
+  { name = "Roboflow et al.", email = "develop@roboflow.com" },
+]
+requires-python = ">=3.9"
 classifiers = [
-    'Development Status :: 5 - Production/Stable',
-    'Intended Audience :: Developers',
-    'Intended Audience :: Education',
-    'Intended Audience :: Science/Research',
-    'License :: OSI Approved :: MIT License',
-    'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3 :: Only',
-    'Topic :: Software Development',
-    'Topic :: Scientific/Engineering',
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "Topic :: Scientific/Engineering :: Image Recognition",
-    "Topic :: Multimedia :: Graphics",
-    "Topic :: Multimedia :: Video",
-    'Typing :: Typed',
-    'Operating System :: Microsoft :: Windows',
-    'Operating System :: POSIX :: Linux',
-    'Operating System :: MacOS',
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Education",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Multimedia :: Graphics",
+  "Topic :: Multimedia :: Video",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Scientific/Engineering :: Image Recognition",
+  "Topic :: Software Development",
+  "Typing :: Typed",
 ]
 dependencies = [
-    "numpy>=1.21.2",
-    "scipy>=1.10.0",
-    "matplotlib>=3.6.0",
-    "pyyaml>=5.3",
-    "defusedxml>=0.7.1",
-    "pillow>=9.4",
-    "requests>=2.26.0",
-    "tqdm>=4.62.3",
-    "opencv-python>=4.5.5.64"
+  "defusedxml>=0.7.1",
+  "matplotlib>=3.6",
+  "numpy>=1.21.2",
+  "opencv-python>=4.5.5.64",
+  "pillow>=9.4",
+  "pyyaml>=5.3",
+  "requests>=2.26",
+  "scipy>=1.10",
+  "tqdm>=4.62.3",
 ]
 
-[project.urls]
-Homepage = "https://github.com/roboflow/supervision"
-Repository = "https://github.com/roboflow/supervision"
-Documentation = "https://supervision.roboflow.com/latest/"
-
-[project.optional-dependencies]
-metrics = [
-    "pandas>=2.0.0",
+optional-dependencies.metrics = [
+  "pandas>=2",
 ]
+urls.Documentation = "https://supervision.roboflow.com/latest/"
+urls.Homepage = "https://github.com/roboflow/supervision"
+urls.Repository = "https://github.com/roboflow/supervision"
 
 [dependency-groups]
 dev = [
-    "pytest>=7.2.2,<9.0.0",
-    "pytest-cov>=4.0.0,<8.0.0",
-    "tox>=4.11.4",
-    "notebook>=6.5.3,<8.0.0",
-    "ipywidgets>=8.1.1",
-    "jupytext>=1.16.1",
-    "nbconvert>=7.14.2",
-    "docutils!=0.21",
-    "pre-commit>=3.8.0"
+  "docutils!=0.21",
+  "ipywidgets>=8.1.1",
+  "jupytext>=1.16.1",
+  "nbconvert>=7.14.2",
+  "notebook>=6.5.3,<8",
+  "pre-commit>=3.8",
+  "pytest>=7.2.2,<9",
+  "pytest-cov>=4,<8",
+  "tox>=4.11.4",
 ]
 docs = [
-    "mkdocs-material[imaging]>=9.7.0",
-    "mkdocstrings>=0.25.2,<0.31.0",
-    "mkdocstrings-python>=1.10.9, <2.0.0",  # todo: breaking changes in 2.x
-    "mike>=2.0.0",
-    "mkdocs-jupyter>=0.24.3",
-    "mkdocs-git-committers-plugin-2>=2.4.1; python_version >= '3.9' and python_version < '4'",
-    "mkdocs-git-revision-date-localized-plugin>=1.2.4"
+  "mike>=2",
+  "mkdocs-git-committers-plugin-2>=2.4.1; python_version>='3.9' and python_version<'4'",
+  "mkdocs-git-revision-date-localized-plugin>=1.2.4",
+  "mkdocs-jupyter>=0.24.3",
+  "mkdocs-material[imaging]>=9.7",
+  "mkdocstrings>=0.25.2,<0.31",
+  "mkdocstrings-python>=1.10.9,<2",                                                      # todo: breaking changes in 2.x
 ]
 build = [
-    "twine>=5.1.1,<7.0.0",
-    "wheel>=0.40,<0.46",
-    "build>=0.10,<1.5"
+  "build>=0.10,<1.5",
+  "twine>=5.1.1,<7",
+  "wheel>=0.40,<0.46",
 ]
 
-[tool.autoflake]
-check = true
-imports = ["cv2", "supervision"]
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+include = [ "supervision*" ]
+exclude = [ "docs*", "test*", "examples*" ]
+
+[tool.setuptools.package-data]
+supervision = [ "py.typed" ]
 
 [tool.ruff]
 target-version = "py39"
 
-# Exclude a variety of commonly ignored directories.
-exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".git-rewrite",
-    ".hg",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "venv",
-    "yarn-error.log",
-    "yarn.lock",
-    "docs",
-]
-
 line-length = 88
 indent-width = 4
 
-[tool.ruff.lint]
-# Enable linting rules for code style, imports, and best practices.
-select = [
-    "E",    # pycodestyle errors - https://docs.astral.sh/ruff/rules/#error-e
-    "F",    # Pyflakes - https://docs.astral.sh/ruff/rules/#pyflakes-f
-    "I",    # isort - https://docs.astral.sh/ruff/rules/#isort-i
-    "A",    # flake8-builtins - https://docs.astral.sh/ruff/rules/#flake8-builtins-a
-    "Q",    # flake8-quotes - https://docs.astral.sh/ruff/rules/#flake8-quotes-q
-    "W",    # pycodestyle warnings - https://docs.astral.sh/ruff/rules/#pycodestyle-w
-    "RUF",  # Ruff-specific rules - https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
-    "UP",   # pyupgrade - https://docs.astral.sh/ruff/rules/#pyupgrade-up
-    "S",    # bandit - https://docs.astral.sh/ruff/rules/#flake8-bandit-s
+# Exclude a variety of commonly ignored directories.
+exclude = [
+  ".bzr",
+  ".direnv",
+  ".eggs",
+  ".git",
+  ".git-rewrite",
+  ".hg",
+  ".mypy_cache",
+  ".nox",
+  ".pants.d",
+  ".pytype",
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  "__pypackages__",
+  "_build",
+  "buck-out",
+  "build",
+  "dist",
+  "docs",
+  "node_modules",
+  "venv",
+  "yarn-error.log",
+  "yarn.lock",
 ]
-ignore = []
-unfixable = []
-# Allow unused variables when underscore-prefixed.
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
-pylint.max-args = 20
-
-[tool.ruff.lint.flake8-quotes]
-inline-quotes = "double"
-multiline-quotes = "double"
-docstring-quotes = "double"
-
-[tool.ruff.lint.pydocstyle]
-convention = "google"
-
-[tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["E402", "F401"]
-"test/**" = [
-    "S101",  # Use of `assert` detected
-]
-"supervision/**" = [
-    "S101"  # TODO: Replace asserts with proper error handling
-]
-
-[tool.ruff.lint.mccabe]
-# Flag errors (`C901`) whenever the complexity level exceeds 5.
-max-complexity = 20
-
-[tool.ruff.lint.isort]
-order-by-type = true
-no-sections = false
-
-[tool.ruff.format]
-# Like Black, use double quotes for strings.
-quote-style = "double"
 
 # Like Black, indent with spaces, rather than tabs.
-indent-style = "space"
-
-# Like Black, respect magic trailing commas.
-skip-magic-trailing-comma = false
-
+format.indent-style = "space"
+# Like Black, use double quotes for strings.
+format.quote-style = "double"
 # Like Black, automatically detect the appropriate line ending.
-line-ending = "auto"
+format.line-ending = "auto"
+# Like Black, respect magic trailing commas.
+format.skip-magic-trailing-comma = false
+# Enable linting rules for code style, imports, and best practices.
+lint.select = [
+  "A",   # flake8-builtins - https://docs.astral.sh/ruff/rules/#flake8-builtins-a
+  "E",   # pycodestyle errors - https://docs.astral.sh/ruff/rules/#error-e
+  "F",   # Pyflakes - https://docs.astral.sh/ruff/rules/#pyflakes-f
+  "I",   # isort - https://docs.astral.sh/ruff/rules/#isort-i
+  "Q",   # flake8-quotes - https://docs.astral.sh/ruff/rules/#flake8-quotes-q
+  "RUF", # Ruff-specific rules - https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
+  "S",   # bandit - https://docs.astral.sh/ruff/rules/#flake8-bandit-s
+  "UP",  # pyupgrade - https://docs.astral.sh/ruff/rules/#pyupgrade-up
+  "W",   # pycodestyle warnings - https://docs.astral.sh/ruff/rules/#pycodestyle-w
+]
+lint.ignore = [  ]
+lint.per-file-ignores."__init__.py" = [ "E402", "F401" ]
+lint.per-file-ignores."supervision/**" = [
+  "S101", # TODO: Replace asserts with proper error handling
+]
+lint.per-file-ignores."test/**" = [
+  "S101", # Use of `assert` detected
+]
+lint.unfixable = [  ]
+# Allow unused variables when underscore-prefixed.
+lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+lint.flake8-quotes.docstring-quotes = "double"
+lint.flake8-quotes.inline-quotes = "double"
+lint.flake8-quotes.multiline-quotes = "double"
+lint.isort.no-sections = false
+lint.isort.order-by-type = true
+# Flag errors (`C901`) whenever the complexity level exceeds 5.
+lint.mccabe.max-complexity = 20
+lint.pydocstyle.convention = "google"
+lint.pylint.max-args = 20
 
 [tool.codespell]
 skip = "*.ipynb"
@@ -189,16 +184,6 @@ count = true
 quiet-level = 3
 ignore-words-list = "STrack,sTrack,strack"
 
-[tool.setuptools]
-include-package-data = false
-
-[tool.setuptools.packages.find]
-include = ["supervision*"]
-exclude = ["docs*", "test*", "examples*"]
-
-[tool.setuptools.package-data]
-supervision = ["py.typed"]
-
-[build-system]
-requires = ["setuptools >= 61.0"]
-build-backend = "setuptools.build_meta"
+[tool.autoflake]
+check = true
+imports = [ "cv2", "supervision" ]
