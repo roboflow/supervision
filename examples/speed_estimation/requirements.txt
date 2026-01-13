@@ -4,3 +4,4 @@ requests
 ultralytics
 super-gradients==3.5.0
 inference
+jsonargparse[signatures]
