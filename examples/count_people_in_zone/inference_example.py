@@ -1,6 +1,5 @@
 import json
 import os
-import sys
 
 import cv2
 import numpy as np
@@ -200,4 +199,4 @@ if __name__ == "__main__":
     from jsonargparse import auto_cli, set_parsing_settings
 
     set_parsing_settings(parse_optionals_as_positionals=True)
-    auto_cli(main, as_positional = False)
+    auto_cli(main, as_positional=False)
