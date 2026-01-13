@@ -185,30 +185,7 @@ def main(
 
 
 if __name__ == "__main__":
-    try:
-        # Try to import jsonargparse for CLI parsing
-        from jsonargparse import ArgumentParser
-    except ImportError:
-        # Fallback if jsonargparse is not installed
-        print("Warning: jsonargparse not installed. Using plain positional arguments.")
-        if len(sys.argv) < 3:
-            raise ValueError(
-                "Insufficient arguments provided.\n"
-                f"Usage: {sys.argv[0]} zone_configuration_path source_video_path "
-                "[source_weights_path] [target_video_path] [confidence_threshold] "
-                "[iou_threshold]"
-            )
-        main(
-            zone_configuration_path=sys.argv[1],
-            source_video_path=sys.argv[2],
-            source_weights_path=sys.argv[3] if len(sys.argv) > 3 else "yolo11x.pt",
-            target_video_path=sys.argv[4] if len(sys.argv) > 4 else None,
-            confidence_threshold=float(sys.argv[5]) if len(sys.argv) > 5 else 0.3,
-            iou_threshold=float(sys.argv[6]) if len(sys.argv) > 6 else 0.7,
-        )
-    else:
-        # Use jsonargparse for automatic CLI if import succeeded
-        parser = ArgumentParser()
-        parser.add_function_arguments(main)
-        args = parser.parse_args()
-        main(**vars(args))
+    from jsonargparse import auto_cli, set_parsing_settings
+
+    set_parsing_settings(parse_optionals_as_positionals=True)
+    auto_cli(main, as_positional=False)
