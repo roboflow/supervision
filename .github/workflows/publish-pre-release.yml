@@ -11,8 +11,12 @@ on:
 permissions: {} # Explicitly remove all permissions by default
 
 jobs:
+  build:
+    uses: ./.github/workflows/build-package.yml
+
   publish-pre-release:
     name: Publish Pre-release Package
+    needs: build
     runs-on: ubuntu-latest
     environment:
       name: test
@@ -21,27 +25,13 @@ jobs:
     permissions:
       id-token: write # Required for PyPI publishing
       contents: read # Required for checkout
-    strategy:
-      matrix:
-        python-version: ["3.10"]
     steps:
-      - name: 📥 Checkout the repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-
-      - name: 🐍 Install uv and set Python version ${{ matrix.python-version }}
-        uses: astral-sh/setup-uv@e92bafb6253dcd438e0484186d7669ea7a8ca1cc # v6.4.3
+      - name: 📥 Download distribution artifacts
+        uses: actions/download-artifact@v4
         with:
-          python-version: ${{ matrix.python-version }}
-          activate-environment: true
-
-
-      - name: 🏗️ Build source and wheel distributions
-        run: |
-          uv pip install -r pyproject.toml --group build
-          uv build
-          uv run twine check --strict dist/*
+          name: dist
 
       - name: 🚀 Publish to PyPi
-        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
         with:
           attestations: true

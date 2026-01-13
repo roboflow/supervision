@@ -15,7 +15,7 @@ supervision package for multiple tasks such as drawing heatmap annotations, trac
     cd supervision/examples/heatmap_and_track
     ```
 
-- setup python environment and activate it \[optional\]
+- setup python environment and activate it [optional]
 
     ```bash
     python3 -m venv venv
