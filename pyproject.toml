@@ -151,11 +151,11 @@ lint.select = [
   "E",   # pycodestyle errors - https://docs.astral.sh/ruff/rules/#error-e
   "F",   # Pyflakes - https://docs.astral.sh/ruff/rules/#pyflakes-f
   "I",   # isort - https://docs.astral.sh/ruff/rules/#isort-i
+  "PT",  # pytest - https://docs.astral.sh/ruff/rules/#flake8-pytest-style-pt
   "Q",   # flake8-quotes - https://docs.astral.sh/ruff/rules/#flake8-quotes-q
   "RUF", # Ruff-specific rules - https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
   "S",   # bandit - https://docs.astral.sh/ruff/rules/#flake8-bandit-s
-        "PT",   # pytest - https://docs.astral.sh/ruff/rules/#flake8-pytest-style-pt
-    "UP",  # pyupgrade - https://docs.astral.sh/ruff/rules/#pyupgrade-up
+  "UP",  # pyupgrade - https://docs.astral.sh/ruff/rules/#pyupgrade-up
   "W",   # pycodestyle warnings - https://docs.astral.sh/ruff/rules/#pycodestyle-w
 ]
 lint.ignore = [  ]
