@@ -134,11 +134,12 @@ from supervision.utils.image import (
 from supervision.utils.notebook import plot_image, plot_images_grid
 from supervision.utils.video import (
     FPSMonitor,
-    VideoInfo,
     VideoSink,
     get_video_frames_generator,
     process_video,
 )
+from supervision.video import Video, VideoInfo
+from supervision.video.backend import VideoBackendType
 
 __all__ = [
     "LMM",
@@ -196,6 +197,8 @@ __all__ = [
     "TriangleAnnotator",
     "VertexAnnotator",
     "VertexLabelAnnotator",
+    "Video",
+    "VideoBackendType",
     "VideoInfo",
     "VideoSink",
     "approximate_polygon",
