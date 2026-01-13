@@ -691,13 +691,6 @@ def test_mask_non_max_merge(
         ),  # identical boxes, both boxes are arrays, IOU as uppercase string
         (
             [0.0, 0.0, 10.0, 10.0],
-            [0.0, 0.0, 10.0, 10.0],
-            "IOU",
-            1.0,
-            DoesNotRaise(),
-        ),  # identical boxes, both boxes are arrays, IOS as uppercase string
-        (
-            [0.0, 0.0, 10.0, 10.0],
             [20.0, 20.0, 30.0, 30.0],
             OverlapMetric.IOU,
             0.0,

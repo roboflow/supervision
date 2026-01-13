@@ -44,7 +44,6 @@ def _arrays_almost_equal(
             False,
             DoesNotRaise(),
         ),  # yolo annotation file with two lines with box
-        (["0 0.5 0.5 0.2 0.2"], False, DoesNotRaise()),
         (
             ["0 0.4 0.4 0.6 0.4 0.6 0.6 0.4 0.6"],
             True,

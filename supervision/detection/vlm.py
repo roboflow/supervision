@@ -9,6 +9,7 @@ from enum import Enum
 from typing import Any
 
 import numpy as np
+import pytest
 from PIL import Image
 
 from supervision.detection.utils.boxes import denormalize_boxes
@@ -575,7 +576,7 @@ def from_florence_2(
         labels = np.array([result_string])
         return xyxy, labels, None, None
 
-    assert False, f"Unimplemented task: {task}"
+    pytest.fail(f"Unimplemented task: {task}")
 
 
 def from_google_gemini_2_0(

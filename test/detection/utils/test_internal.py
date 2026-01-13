@@ -445,7 +445,7 @@ def test_merge_data(
     with exception:
         result = merge_data(data_list=data_list)
         if expected_result is None:
-            assert False, f"Expected an error, but got result {result}"
+            pytest.fail(f"Expected an error, but got result {result}")
 
         for key in result:
             if isinstance(result[key], np.ndarray):

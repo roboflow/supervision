@@ -792,38 +792,6 @@ def test_from_moondream(
             ),
             DoesNotRaise(),
         ),
-        (  # Referring Expression Segmentation
-            {
-                "<REFERRING_EXPRESSION_SEGMENTATION>": {
-                    "polygons": [[[1, 1, 2, 1, 2, 2, 1, 2]]],
-                    "labels": [""],
-                }
-            },
-            (10, 10),
-            (
-                np.array([[1.0, 1.0, 2.0, 2.0]], dtype=np.float32),
-                None,
-                np.array(
-                    [
-                        [
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                        ]
-                    ],
-                    dtype=bool,
-                ),
-                None,
-            ),
-            DoesNotRaise(),
-        ),
         (  # OCR: unsupported
             {"<OCR>": "A"},
             (10, 10),
