@@ -24,6 +24,11 @@ jobs:
           python-version: ${{ inputs.python-version }}
           activate-environment: true
 
+      - name: 🎨 Augment paths in README
+        run: |
+          uv run python .github/scripts/augment_readme.py README.md
+          cat README.md
+
       - name: 🏗️ Build source and wheel distributions
         run: |
           uv pip install -r pyproject.toml --group build
