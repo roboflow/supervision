@@ -1,8 +1,10 @@
-import pytest
+import os
+
 import cv2
 import numpy as np
-import os
-from supervision.utils.video import process_video, VideoInfo, get_video_frames_generator
+import pytest
+
+from supervision.utils.video import VideoInfo, get_video_frames_generator, process_video
 
 
 @pytest.fixture
