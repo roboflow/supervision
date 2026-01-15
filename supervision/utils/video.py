@@ -255,7 +255,7 @@ def process_video(
         process_video(
             source_path="source.mp4",
             target_path="target.mp4",
-            callback=frame_callback,
+            callback=callback,
         )
         ```
     """
