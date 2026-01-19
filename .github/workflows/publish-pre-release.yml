@@ -38,7 +38,7 @@ jobs:
         with:
           name: dist
       - name: List distribution artifacts
-        run: ls -lh dist/
+        run: ls -lh .
 
       - name: 🚀 Publish to PyPi
         if: github.event_name != 'pull_request'
