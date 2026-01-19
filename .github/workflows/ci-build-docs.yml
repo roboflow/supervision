@@ -33,8 +33,7 @@ jobs:
           activate-environment: true
 
       - name: 🏗️ Install dependencies
-        run: |
-          uv pip install -r pyproject.toml --group docs
+        run: uv pip install -r pyproject.toml --group docs
 
       - name: 🧪 Test Docs Build
         run: uv run mkdocs build --verbose
