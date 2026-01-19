@@ -37,8 +37,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: dist
+          path: dist/
       - name: List distribution artifacts
-        run: ls -lh .
+        run: ls -lh dist/
 
       - name: 🚀 Publish to PyPi
         if: github.event_name != 'pull_request'
