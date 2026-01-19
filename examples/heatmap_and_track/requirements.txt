@@ -1,2 +1,2 @@
-supervision[assets]
+supervision
 ultralytics

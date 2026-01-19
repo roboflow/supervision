@@ -1,22 +1,28 @@
-from contextlib import ExitStack as DoesNotRaise
-from test.test_utils import mock_detections
-from typing import Dict, List, Optional, Tuple, TypeVar
+from __future__ import annotations
 
+from contextlib import ExitStack as DoesNotRaise
+from typing import TypeVar
+
+import numpy as np
+import numpy.typing as npt
 import pytest
 
 from supervision import Detections
 from supervision.dataset.utils import (
     build_class_index_mapping,
     map_detections_class_id,
+    mask_to_rle,
     merge_class_lists,
+    rle_to_mask,
     train_test_split,
 )
+from test.test_utils import mock_detections
 
 T = TypeVar("T")
 
 
 @pytest.mark.parametrize(
-    "data, train_ratio, random_state, shuffle, expected_result, exception",
+    ("data", "train_ratio", "random_state", "shuffle", "expected_result", "exception"),
     [
         ([], 0.5, None, False, ([], []), DoesNotRaise()),  # empty data
         (
@@ -70,11 +76,11 @@ T = TypeVar("T")
     ],
 )
 def test_train_test_split(
-    data: List[T],
+    data: list[T],
     train_ratio: float,
     random_state: int,
     shuffle: bool,
-    expected_result: Optional[Tuple[List[T], List[T]]],
+    expected_result: tuple[list[T], list[T]] | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -88,7 +94,7 @@ def test_train_test_split(
 
 
 @pytest.mark.parametrize(
-    "class_lists, expected_result, exception",
+    ("class_lists", "expected_result", "exception"),
     [
         ([], [], DoesNotRaise()),  # empty class lists
         (
@@ -114,7 +120,7 @@ def test_train_test_split(
     ],
 )
 def test_merge_class_maps(
-    class_lists: List[List[str]], expected_result: List[str], exception: Exception
+    class_lists: list[list[str]], expected_result: list[str], exception: Exception
 ) -> None:
     with exception:
         result = merge_class_lists(class_lists=class_lists)
@@ -122,7 +128,7 @@ def test_merge_class_maps(
 
 
 @pytest.mark.parametrize(
-    "source_classes, target_classes, expected_result, exception",
+    ("source_classes", "target_classes", "expected_result", "exception"),
     [
         ([], [], {}, DoesNotRaise()),  # empty class lists
         ([], ["dog", "person"], {}, DoesNotRaise()),  # empty source class list
@@ -159,9 +165,9 @@ def test_merge_class_maps(
     ],
 )
 def test_build_class_index_mapping(
-    source_classes: List[str],
-    target_classes: List[str],
-    expected_result: Optional[Dict[int, int]],
+    source_classes: list[str],
+    target_classes: list[str],
+    expected_result: dict[int, int] | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -172,7 +178,7 @@ def test_build_class_index_mapping(
 
 
 @pytest.mark.parametrize(
-    "source_to_target_mapping, detections, expected_result, exception",
+    ("source_to_target_mapping", "detections", "expected_result", "exception"),
     [
         (
             {},
@@ -219,9 +225,9 @@ def test_build_class_index_mapping(
     ],
 )
 def test_map_detections_class_id(
-    source_to_target_mapping: Dict[int, int],
+    source_to_target_mapping: dict[int, int],
     detections: Detections,
-    expected_result: Optional[Detections],
+    expected_result: Detections | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -229,3 +235,131 @@ def test_map_detections_class_id(
             source_to_target_mapping=source_to_target_mapping, detections=detections
         )
         assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    ("mask", "expected_rle", "exception"),
+    [
+        (
+            np.zeros((3, 3)).astype(bool),
+            [9],
+            DoesNotRaise(),
+        ),  # mask with background only (mask with only False values)
+        (
+            np.ones((3, 3)).astype(bool),
+            [0, 9],
+            DoesNotRaise(),
+        ),  # mask with foreground only (mask with only True values)
+        (
+            np.array(
+                [
+                    [0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 0],
+                    [0, 1, 0, 1, 0],
+                    [0, 1, 1, 1, 0],
+                    [0, 0, 0, 0, 0],
+                ]
+            ).astype(bool),
+            [6, 3, 2, 1, 1, 1, 2, 3, 6],
+            DoesNotRaise(),
+        ),  # mask where foreground object has hole
+        (
+            np.array(
+                [
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                ]
+            ).astype(bool),
+            [0, 5, 5, 5, 5, 5],
+            DoesNotRaise(),
+        ),  # mask where foreground consists of 3 separate components
+        (
+            np.array([[[]]]).astype(bool),
+            None,
+            pytest.raises(AssertionError),
+        ),  # raises AssertionError because mask dimensionality is not 2D
+        (
+            np.array([[]]).astype(bool),
+            None,
+            pytest.raises(AssertionError),
+        ),  # raises AssertionError because mask is empty
+    ],
+)
+def test_mask_to_rle(
+    mask: npt.NDArray[np.bool_], expected_rle: list[int], exception: Exception
+) -> None:
+    with exception:
+        result = mask_to_rle(mask=mask)
+        assert result == expected_rle
+
+
+@pytest.mark.parametrize(
+    ("rle", "resolution_wh", "expected_mask", "exception"),
+    [
+        (
+            np.array([9]),
+            [3, 3],
+            np.zeros((3, 3)).astype(bool),
+            DoesNotRaise(),
+        ),  # mask with background only (mask with only False values); rle as array
+        (
+            [9],
+            [3, 3],
+            np.zeros((3, 3)).astype(bool),
+            DoesNotRaise(),
+        ),  # mask with background only (mask with only False values); rle as list
+        (
+            np.array([0, 9]),
+            [3, 3],
+            np.ones((3, 3)).astype(bool),
+            DoesNotRaise(),
+        ),  # mask with foreground only (mask with only True values)
+        (
+            np.array([6, 3, 2, 1, 1, 1, 2, 3, 6]),
+            [5, 5],
+            np.array(
+                [
+                    [0, 0, 0, 0, 0],
+                    [0, 1, 1, 1, 0],
+                    [0, 1, 0, 1, 0],
+                    [0, 1, 1, 1, 0],
+                    [0, 0, 0, 0, 0],
+                ]
+            ).astype(bool),
+            DoesNotRaise(),
+        ),  # mask where foreground object has hole
+        (
+            np.array([0, 5, 5, 5, 5, 5]),
+            [5, 5],
+            np.array(
+                [
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 1, 0, 1],
+                ]
+            ).astype(bool),
+            DoesNotRaise(),
+        ),  # mask where foreground consists of 3 separate components
+        (
+            np.array([0, 5, 5, 5, 5, 5]),
+            [2, 2],
+            None,
+            pytest.raises(AssertionError),
+        ),  # raises AssertionError because number of pixels in RLE does not match
+        # number of pixels in expected mask (width x height).
+    ],
+)
+def test_rle_to_mask(
+    rle: npt.NDArray[np.int_],
+    resolution_wh: tuple[int, int],
+    expected_mask: npt.NDArray[np.bool_],
+    exception: Exception,
+) -> None:
+    with exception:
+        result = rle_to_mask(rle=rle, resolution_wh=resolution_wh)
+        assert np.all(result == expected_mask)

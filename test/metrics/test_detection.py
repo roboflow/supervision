@@ -1,6 +1,6 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from test.test_utils import assert_almost_equal, mock_detections
-from typing import Optional, Union
 
 import numpy as np
 import pytest
@@ -11,6 +11,7 @@ from supervision.metrics.detection import (
     MeanAveragePrecision,
     detections_to_tensor,
 )
+from test.test_utils import assert_almost_equal, mock_detections
 
 CLASSES = np.arange(80)
 NUM_CLASSES = len(CLASSES)
@@ -103,9 +104,7 @@ def update_ideal_conf_matrix(conf_matrix: np.ndarray, class_ids: np.ndarray):
     return conf_matrix
 
 
-def worsen_ideal_conf_matrix(
-    conf_matrix: np.ndarray, class_ids: Union[np.ndarray, list]
-):
+def worsen_ideal_conf_matrix(conf_matrix: np.ndarray, class_ids: np.ndarray | list):
     for class_id in class_ids:
         class_id = int(class_id)
         conf_matrix[class_id, class_id] -= 1
@@ -124,7 +123,7 @@ BAD_CONF_MATRIX = worsen_ideal_conf_matrix(
 
 
 @pytest.mark.parametrize(
-    "detections, with_confidence, expected_result, exception",
+    ("detections", "with_confidence", "expected_result", "exception"),
     [
         (
             Detections.empty(),
@@ -177,7 +176,7 @@ BAD_CONF_MATRIX = worsen_ideal_conf_matrix(
 def test_detections_to_tensor(
     detections: Detections,
     with_confidence: bool,
-    expected_result: Optional[np.ndarray],
+    expected_result: np.ndarray | None,
     exception: Exception,
 ):
     with exception:
@@ -188,8 +187,15 @@ def test_detections_to_tensor(
 
 
 @pytest.mark.parametrize(
-    "predictions, targets, classes, conf_threshold, iou_threshold, expected_result,"
-    " exception",
+    (
+        "predictions",
+        "targets",
+        "classes",
+        "conf_threshold",
+        "iou_threshold",
+        "expected_result",
+        "exception",
+    ),
     [
         (
             DETECTION_TENSORS,
@@ -343,7 +349,7 @@ def test_from_tensors(
     classes,
     conf_threshold,
     iou_threshold,
-    expected_result: Optional[np.ndarray],
+    expected_result: np.ndarray | None,
     exception: Exception,
 ):
     with exception:
@@ -360,8 +366,15 @@ def test_from_tensors(
 
 
 @pytest.mark.parametrize(
-    "predictions, targets, num_classes, conf_threshold, iou_threshold, expected_result,"
-    " exception",
+    (
+        "predictions",
+        "targets",
+        "num_classes",
+        "conf_threshold",
+        "iou_threshold",
+        "expected_result",
+        "exception",
+    ),
     [
         (
             DETECTION_TENSORS[0],
@@ -380,7 +393,7 @@ def test_evaluate_detection_batch(
     num_classes,
     conf_threshold,
     iou_threshold,
-    expected_result: Optional[np.ndarray],
+    expected_result: np.ndarray | None,
     exception: Exception,
 ):
     with exception:
@@ -397,7 +410,7 @@ def test_evaluate_detection_batch(
 
 
 @pytest.mark.parametrize(
-    "matches, expected_result, exception",
+    ("matches", "expected_result", "exception"),
     [
         (
             IDEAL_MATCHES,
@@ -408,7 +421,7 @@ def test_evaluate_detection_batch(
 )
 def test_drop_extra_matches(
     matches,
-    expected_result: Optional[np.ndarray],
+    expected_result: np.ndarray | None,
     exception: Exception,
 ):
     with exception:
@@ -418,7 +431,7 @@ def test_drop_extra_matches(
 
 
 @pytest.mark.parametrize(
-    "recall, precision, expected_result, exception",
+    ("recall", "precision", "expected_result", "exception"),
     [
         (
             np.array([1.0]),

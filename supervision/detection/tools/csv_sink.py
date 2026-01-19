@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import csv
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from supervision.detection.core import Detections
 
@@ -42,13 +42,13 @@ class CSVSink:
         csv_sink = sv.CSVSink(<RESULT_CSV_FILE_PATH>)
         frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
 
-        with csv_sink:
+        with csv_sink as sink:
             for frame in frames_generator:
                 result = model(frame)[0]
                 detections = sv.Detections.from_ultralytics(result)
                 sink.append(detections, custom_data={'<CUSTOM_LABEL>':'<CUSTOM_DATA>'})
         ```
-    """  # noqa: E501 // docs
+    """
 
     def __init__(self, file_name: str = "output.csv") -> None:
         """
@@ -61,8 +61,8 @@ class CSVSink:
             None
         """
         self.file_name = file_name
-        self.file: Optional[open] = None
-        self.writer: Optional[csv.writer] = None
+        self.file: open | None = None
+        self.writer: csv.writer | None = None
         self.header_written = False
         self.field_names = []
 
@@ -72,9 +72,9 @@ class CSVSink:
 
     def __exit__(
         self,
-        exc_type: Optional[type],
-        exc_val: Optional[Exception],
-        exc_tb: Optional[Any],
+        exc_type: type | None,
+        exc_val: Exception | None,
+        exc_tb: Any | None,
     ) -> None:
         self.close()
 
@@ -104,8 +104,8 @@ class CSVSink:
 
     @staticmethod
     def parse_detection_data(
-        detections: Detections, custom_data: Dict[str, Any] = None
-    ) -> List[Dict[str, Any]]:
+        detections: Detections, custom_data: dict[str, Any] | None = None
+    ) -> list[dict[str, Any]]:
         parsed_rows = []
         for i in range(len(detections.xyxy)):
             row = {
@@ -137,7 +137,7 @@ class CSVSink:
         return parsed_rows
 
     def append(
-        self, detections: Detections, custom_data: Dict[str, Any] = None
+        self, detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> None:
         """
         Append detection data to the CSV file.
@@ -173,8 +173,8 @@ class CSVSink:
 
     @staticmethod
     def parse_field_names(
-        detections: Detections, custom_data: Dict[str, Any]
-    ) -> List[str]:
+        detections: Detections, custom_data: dict[str, Any]
+    ) -> list[str]:
         dynamic_header = sorted(
             set(custom_data.keys()) | set(getattr(detections, "data", {}).keys())
         )

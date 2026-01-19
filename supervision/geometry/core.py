@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 from math import sqrt
-from typing import Tuple
 
 
 class Position(Enum):
@@ -32,10 +31,10 @@ class Point:
     x: float
     y: float
 
-    def as_xy_int_tuple(self) -> Tuple[int, int]:
+    def as_xy_int_tuple(self) -> tuple[int, int]:
         return int(self.x), int(self.y)
 
-    def as_xy_float_tuple(self) -> Tuple[float, float]:
+    def as_xy_float_tuple(self) -> tuple[float, float]:
         return self.x, self.y
 
 
@@ -98,6 +97,11 @@ class Rect:
     width: float
     height: float
 
+    @classmethod
+    def from_xyxy(cls, xyxy: tuple[float, float, float, float]) -> Rect:
+        x1, y1, x2, y2 = xyxy
+        return cls(x=x1, y=y1, width=x2 - x1, height=y2 - y1)
+
     @property
     def top_left(self) -> Point:
         return Point(x=self.x, y=self.y)
@@ -112,4 +116,12 @@ class Rect:
             y=self.y - padding,
             width=self.width + 2 * padding,
             height=self.height + 2 * padding,
+        )
+
+    def as_xyxy_int_tuple(self) -> tuple[int, int, int, int]:
+        return (
+            int(self.x),
+            int(self.y),
+            int(self.x + self.width),
+            int(self.y + self.height),
         )
