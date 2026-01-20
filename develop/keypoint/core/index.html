@@ -4979,7 +4979,7 @@ is either a NumPy array or a list of corresponding data of length <code>n</code>
 
 
 <h4 id="supervision.key_points.core.KeyPoints.__iter__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__iter__</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__iter__</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">list</span><span class="p">]]]</span></code>
 
 <a href="#supervision.key_points.core.KeyPoints.__iter__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -5047,7 +5047,7 @@ is either a NumPy array or a list of corresponding data of length <code>n</code>
 
 
 <h4 id="supervision.key_points.core.KeyPoints.__len__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__len__</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__len__</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span></code>
 
 <a href="#supervision.key_points.core.KeyPoints.__len__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -5078,7 +5078,7 @@ is either a NumPy array or a list of corresponding data of length <code>n</code>
 
 
 <h4 id="supervision.key_points.core.KeyPoints.__setitem__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__setitem__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__setitem__</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">list</span><span class="p">)</span></code>
 
 <a href="#supervision.key_points.core.KeyPoints.__setitem__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -5233,7 +5233,7 @@ is either a NumPy array or a list of corresponding data of length <code>n</code>
 
 
 <h4 id="supervision.key_points.core.KeyPoints.as_detections" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">as_detections</span><span class="p">(</span><span class="n">selected_keypoint_indices</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">as_detections</span><span class="p">(</span><span class="n">selected_keypoint_indices</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
 
 <a href="#supervision.key_points.core.KeyPoints.as_detections" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -5450,7 +5450,7 @@ e.g. when some are occluded. Captures all key points by default.</p>
 
 
 <h4 id="supervision.key_points.core.KeyPoints.empty" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">empty</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">empty</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">KeyPoints</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -5542,7 +5542,7 @@ e.g. when some are occluded. Captures all key points by default.</p>
 
 
 <h4 id="supervision.key_points.core.KeyPoints.from_detectron2" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_detectron2</span><span class="p">(</span><span class="n">detectron2_results</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_detectron2</span><span class="p">(</span><span class="n">detectron2_results</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyPoints</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -5747,7 +5747,7 @@ and class names, and confidences of each keypoint.</p>
 
 
 <h4 id="supervision.key_points.core.KeyPoints.from_inference" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_inference</span><span class="p">(</span><span class="n">inference_result</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_inference</span><span class="p">(</span><span class="n">inference_result</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyPoints</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -6023,7 +6023,7 @@ and class names, and confidences of each keypoint.</p>
 
 
 <h4 id="supervision.key_points.core.KeyPoints.from_mediapipe" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_mediapipe</span><span class="p">(</span><span class="n">mediapipe_results</span><span class="p">,</span> <span class="n">resolution_wh</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_mediapipe</span><span class="p">(</span><span class="n">mediapipe_results</span><span class="p">,</span> <span class="n">resolution_wh</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">KeyPoints</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -6438,7 +6438,7 @@ confidences of each keypoint.</p>
 
 
 <h4 id="supervision.key_points.core.KeyPoints.from_transformers" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_transformers</span><span class="p">(</span><span class="n">transformers_results</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_transformers</span><span class="p">(</span><span class="n">transformers_results</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyPoints</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -6740,7 +6740,7 @@ and class names, and confidences of each keypoint.</p>
 
 
 <h4 id="supervision.key_points.core.KeyPoints.from_ultralytics" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">ultralytics_results</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">ultralytics_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyPoints</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -6913,7 +6913,7 @@ and class names, and confidences of each keypoint.</p>
 
 
 <h4 id="supervision.key_points.core.KeyPoints.from_yolo_nas" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_yolo_nas</span><span class="p">(</span><span class="n">yolo_nas_results</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_yolo_nas</span><span class="p">(</span><span class="n">yolo_nas_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">KeyPoints</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -7133,7 +7133,7 @@ and class names, and confidences of each keypoint.</p>
 
 
 <h4 id="supervision.key_points.core.KeyPoints.is_empty" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">is_empty</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">is_empty</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span></code>
 
 <a href="#supervision.key_points.core.KeyPoints.is_empty" class="headerlink" title="Permanent link">&para;</a></h4>
 

@@ -3799,7 +3799,7 @@ recall (accuracy and completeness), calculated as:</p>
 
 
 <h4 id="supervision.metrics.f1_score.F1Score.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">metric_target</span><span class="o">=</span><span class="n">MetricTarget</span><span class="o">.</span><span class="n">BOXES</span><span class="p">,</span> <span class="n">averaging_method</span><span class="o">=</span><span class="n">AveragingMethod</span><span class="o">.</span><span class="n">WEIGHTED</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">metric_target</span><span class="p">:</span> <span class="n">MetricTarget</span> <span class="o">=</span> <span class="n">MetricTarget</span><span class="o">.</span><span class="n">BOXES</span><span class="p">,</span> <span class="n">averaging_method</span><span class="p">:</span> <span class="n">AveragingMethod</span> <span class="o">=</span> <span class="n">AveragingMethod</span><span class="o">.</span><span class="n">WEIGHTED</span><span class="p">)</span></code>
 
 <a href="#supervision.metrics.f1_score.F1Score.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -3904,7 +3904,7 @@ F1 scores. Determines how the F1 scores are aggregated across classes.</p>
 
 
 <h4 id="supervision.metrics.f1_score.F1Score.compute" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">compute</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">compute</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">F1ScoreResult</span></code>
 
 <a href="#supervision.metrics.f1_score.F1Score.compute" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -4010,7 +4010,7 @@ data, at different IoU thresholds.</p>
 
 
 <h4 id="supervision.metrics.f1_score.F1Score.reset" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">reset</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">reset</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#supervision.metrics.f1_score.F1Score.reset" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -4043,7 +4043,7 @@ data, at different IoU thresholds.</p>
 
 
 <h4 id="supervision.metrics.f1_score.F1Score.update" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">update</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">update</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Detections</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">Detections</span><span class="p">],</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Detections</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">Detections</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">F1Score</span></code>
 
 <a href="#supervision.metrics.f1_score.F1Score.update" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -4814,7 +4814,7 @@ for large objects (area ≥ 96²).</p>
 
 
 <h4 id="supervision.metrics.f1_score.F1ScoreResult.__str__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__str__</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__str__</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span></code>
 
 <a href="#supervision.metrics.f1_score.F1ScoreResult.__str__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -5100,7 +5100,7 @@ for large objects (area ≥ 96²).</p>
 
 
 <h4 id="supervision.metrics.f1_score.F1ScoreResult.to_pandas" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">to_pandas</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">to_pandas</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span></code>
 
 <a href="#supervision.metrics.f1_score.F1ScoreResult.to_pandas" class="headerlink" title="Permanent link">&para;</a></h4>
 

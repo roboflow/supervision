@@ -8810,7 +8810,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 
 
 <h4 id="supervision.detection.core.Detections.area" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <code class="highlight language-python"><span class="n">area</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <code class="highlight language-python"><span class="n">area</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-property"><code>property</code></small>
@@ -8859,7 +8859,7 @@ where n is the number of detections.</p>
 
 
 <h4 id="supervision.detection.core.Detections.box_area" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <code class="highlight language-python"><span class="n">box_area</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <code class="highlight language-python"><span class="n">box_area</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-property"><code>property</code></small>
@@ -8906,7 +8906,7 @@ where n is the number of detections.</p>
 
 
 <h4 id="supervision.detection.core.Detections.box_aspect_ratio" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <code class="highlight language-python"><span class="n">box_aspect_ratio</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <code class="highlight language-python"><span class="n">box_aspect_ratio</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-property"><code>property</code></small>
@@ -8984,7 +8984,7 @@ where n is the number of detections.</p>
 
 
 <h4 id="supervision.detection.core.Detections.__getitem__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__getitem__</span><span class="p">(</span><span class="n">index</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__getitem__</span><span class="p">(</span><span class="n">index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">slice</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span> <span class="o">|</span> <span class="nb">list</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span></code>
 
 <a href="#supervision.detection.core.Detections.__getitem__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -9184,7 +9184,7 @@ the data field.</p>
 
 
 <h4 id="supervision.detection.core.Detections.__iter__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__iter__</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__iter__</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">list</span><span class="p">]]]</span></code>
 
 <a href="#supervision.detection.core.Detections.__iter__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -9287,7 +9287,7 @@ the data field.</p>
 
 
 <h4 id="supervision.detection.core.Detections.__setitem__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__setitem__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__setitem__</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="nb">list</span><span class="p">)</span></code>
 
 <a href="#supervision.detection.core.Detections.__setitem__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -9443,7 +9443,7 @@ the data field.</p>
 
 
 <h4 id="supervision.detection.core.Detections.empty" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">empty</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">empty</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -9547,7 +9547,7 @@ the data field.</p>
 
 
 <h4 id="supervision.detection.core.Detections.from_azure_analyze_image" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_azure_analyze_image</span><span class="p">(</span><span class="n">azure_result</span><span class="p">,</span> <span class="n">class_map</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_azure_analyze_image</span><span class="p">(</span><span class="n">azure_result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">class_map</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -9846,7 +9846,7 @@ names (str). If None, a new mapping is created dynamically.</p>
 
 
 <h4 id="supervision.detection.core.Detections.from_deepsparse" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_deepsparse</span><span class="p">(</span><span class="n">deepsparse_results</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_deepsparse</span><span class="p">(</span><span class="n">deepsparse_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -10018,7 +10018,7 @@ inference result.</p>
 
 
 <h4 id="supervision.detection.core.Detections.from_detectron2" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_detectron2</span><span class="p">(</span><span class="n">detectron2_results</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_detectron2</span><span class="p">(</span><span class="n">detectron2_results</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -10212,7 +10212,7 @@ class IDs, and confidences of the predictions.</p>
 
 
 <h4 id="supervision.detection.core.Detections.from_easyocr" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_easyocr</span><span class="p">(</span><span class="n">easyocr_results</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_easyocr</span><span class="p">(</span><span class="n">easyocr_results</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -10400,7 +10400,7 @@ class IDs, and confidences of the predictions.</p>
 
 
 <h4 id="supervision.detection.core.Detections.from_inference" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_inference</span><span class="p">(</span><span class="n">roboflow_result</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_inference</span><span class="p">(</span><span class="n">roboflow_result</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">|</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -10606,7 +10606,7 @@ and confidences of the predictions.</p>
 
 
 <h4 id="supervision.detection.core.Detections.from_lmm" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_lmm</span><span class="p">(</span><span class="n">lmm</span><span class="p">,</span> <span class="n">result</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_lmm</span><span class="p">(</span><span class="n">lmm</span><span class="p">:</span> <span class="n">LMM</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -11950,7 +11950,7 @@ its object detection and visual grounding capabilities effectively.</p>
 
 
 <h4 id="supervision.detection.core.Detections.from_mmdetection" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_mmdetection</span><span class="p">(</span><span class="n">mmdet_results</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_mmdetection</span><span class="p">(</span><span class="n">mmdet_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -12122,7 +12122,7 @@ its object detection and visual grounding capabilities effectively.</p>
 
 
 <h4 id="supervision.detection.core.Detections.from_ncnn" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_ncnn</span><span class="p">(</span><span class="n">ncnn_results</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_ncnn</span><span class="p">(</span><span class="n">ncnn_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -12342,7 +12342,7 @@ Supports object detection models.</p>
 
 
 <h4 id="supervision.detection.core.Detections.from_paddledet" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_paddledet</span><span class="p">(</span><span class="n">paddledet_result</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_paddledet</span><span class="p">(</span><span class="n">paddledet_result</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -12530,7 +12530,7 @@ Supports object detection models.</p>
 
 
 <h4 id="supervision.detection.core.Detections.from_sam" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_sam</span><span class="p">(</span><span class="n">sam_result</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_sam</span><span class="p">(</span><span class="n">sam_result</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -12714,7 +12714,7 @@ inference result.</p>
 
 
 <h4 id="supervision.detection.core.Detections.from_tensorflow" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_tensorflow</span><span class="p">(</span><span class="n">tensorflow_results</span><span class="p">,</span> <span class="n">resolution_wh</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_tensorflow</span><span class="p">(</span><span class="n">tensorflow_results</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">resolution_wh</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -12895,7 +12895,7 @@ inference result.</p>
 
 
 <h4 id="supervision.detection.core.Detections.from_transformers" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_transformers</span><span class="p">(</span><span class="n">transformers_results</span><span class="p">,</span> <span class="n">id2label</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_transformers</span><span class="p">(</span><span class="n">transformers_results</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">id2label</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -13187,7 +13187,7 @@ provided, the resulting dictionary will include class names.</p>
 
 
 <h4 id="supervision.detection.core.Detections.from_ultralytics" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">ultralytics_results</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">ultralytics_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -13444,7 +13444,7 @@ provided, the resulting dictionary will include class names.</p>
 
 
 <h4 id="supervision.detection.core.Detections.from_vlm" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_vlm</span><span class="p">(</span><span class="n">vlm</span><span class="p">,</span> <span class="n">result</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_vlm</span><span class="p">(</span><span class="n">vlm</span><span class="p">:</span> <span class="n">VLM</span> <span class="o">|</span> <span class="nb">str</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -14840,7 +14840,7 @@ its object detection and visual grounding capabilities effectively.</p>
 
 
 <h4 id="supervision.detection.core.Detections.from_yolo_nas" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_yolo_nas</span><span class="p">(</span><span class="n">yolo_nas_results</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_yolo_nas</span><span class="p">(</span><span class="n">yolo_nas_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -15016,7 +15016,7 @@ ImageDetectionPrediction is coming from
 
 
 <h4 id="supervision.detection.core.Detections.from_yolov5" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_yolov5</span><span class="p">(</span><span class="n">yolov5_results</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_yolov5</span><span class="p">(</span><span class="n">yolov5_results</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -15178,7 +15178,7 @@ ImageDetectionPrediction is coming from
 
 
 <h4 id="supervision.detection.core.Detections.get_anchors_coordinates" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">get_anchors_coordinates</span><span class="p">(</span><span class="n">anchor</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">get_anchors_coordinates</span><span class="p">(</span><span class="n">anchor</span><span class="p">:</span> <span class="n">Position</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
 
 <a href="#supervision.detection.core.Detections.get_anchors_coordinates" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -15413,7 +15413,7 @@ anchor point for the corresponding bounding box.</p>
 
 
 <h4 id="supervision.detection.core.Detections.is_empty" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">is_empty</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">is_empty</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span></code>
 
 <a href="#supervision.detection.core.Detections.is_empty" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -15450,7 +15450,7 @@ anchor point for the corresponding bounding box.</p>
 
 
 <h4 id="supervision.detection.core.Detections.merge" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">merge</span><span class="p">(</span><span class="n">detections_list</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">merge</span><span class="p">(</span><span class="n">detections_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Detections</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -15787,7 +15787,7 @@ the merged data from the input list.</p>
 
 
 <h4 id="supervision.detection.core.Detections.with_nmm" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">with_nmm</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">class_agnostic</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">overlap_metric</span><span class="o">=</span><span class="n">OverlapMetric</span><span class="o">.</span><span class="n">IOU</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">with_nmm</span><span class="p">(</span><span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">overlap_metric</span><span class="p">:</span> <span class="n">OverlapMetric</span> <span class="o">=</span> <span class="n">OverlapMetric</span><span class="o">.</span><span class="n">IOU</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
 
 <a href="#supervision.detection.core.Detections.with_nmm" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -16075,7 +16075,7 @@ class_agnostic is False.</p>
 
 
 <h4 id="supervision.detection.core.Detections.with_nms" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">with_nms</span><span class="p">(</span><span class="n">threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">class_agnostic</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">overlap_metric</span><span class="o">=</span><span class="n">OverlapMetric</span><span class="o">.</span><span class="n">IOU</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">with_nms</span><span class="p">(</span><span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">overlap_metric</span><span class="p">:</span> <span class="n">OverlapMetric</span> <span class="o">=</span> <span class="n">OverlapMetric</span><span class="o">.</span><span class="n">IOU</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Detections</span></code>
 
 <a href="#supervision.detection.core.Detections.with_nms" class="headerlink" title="Permanent link">&para;</a></h4>
 

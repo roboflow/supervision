@@ -3805,7 +3805,7 @@ number of false negatives (missed detections).</p>
 
 
 <h4 id="supervision.metrics.recall.Recall.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">metric_target</span><span class="o">=</span><span class="n">MetricTarget</span><span class="o">.</span><span class="n">BOXES</span><span class="p">,</span> <span class="n">averaging_method</span><span class="o">=</span><span class="n">AveragingMethod</span><span class="o">.</span><span class="n">WEIGHTED</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">metric_target</span><span class="p">:</span> <span class="n">MetricTarget</span> <span class="o">=</span> <span class="n">MetricTarget</span><span class="o">.</span><span class="n">BOXES</span><span class="p">,</span> <span class="n">averaging_method</span><span class="p">:</span> <span class="n">AveragingMethod</span> <span class="o">=</span> <span class="n">AveragingMethod</span><span class="o">.</span><span class="n">WEIGHTED</span><span class="p">)</span></code>
 
 <a href="#supervision.metrics.recall.Recall.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -3910,7 +3910,7 @@ recall. Determines how the recall is aggregated across classes.</p>
 
 
 <h4 id="supervision.metrics.recall.Recall.compute" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">compute</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">compute</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">RecallResult</span></code>
 
 <a href="#supervision.metrics.recall.Recall.compute" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -4016,7 +4016,7 @@ data, at different IoU thresholds.</p>
 
 
 <h4 id="supervision.metrics.recall.Recall.reset" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">reset</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">reset</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#supervision.metrics.recall.Recall.reset" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -4049,7 +4049,7 @@ data, at different IoU thresholds.</p>
 
 
 <h4 id="supervision.metrics.recall.Recall.update" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">update</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">update</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Detections</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">Detections</span><span class="p">],</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Detections</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">Detections</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Recall</span></code>
 
 <a href="#supervision.metrics.recall.Recall.update" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -4824,7 +4824,7 @@ for large objects (area ≥ 96²).</p>
 
 
 <h4 id="supervision.metrics.recall.RecallResult.__str__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__str__</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__str__</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span></code>
 
 <a href="#supervision.metrics.recall.RecallResult.__str__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -5114,7 +5114,7 @@ for large objects (area ≥ 96²).</p>
 
 
 <h4 id="supervision.metrics.recall.RecallResult.to_pandas" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">to_pandas</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">to_pandas</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span></code>
 
 <a href="#supervision.metrics.recall.RecallResult.to_pandas" class="headerlink" title="Permanent link">&para;</a></h4>
 

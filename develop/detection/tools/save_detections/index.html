@@ -3422,7 +3422,7 @@ Defaults to 'output.csv'.</p>
 
 
 <h4 id="supervision.detection.tools.csv_sink.CSVSink.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">file_name</span><span class="o">=</span><span class="s1">&#39;output.csv&#39;</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;output.csv&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#supervision.detection.tools.csv_sink.CSVSink.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -3527,7 +3527,7 @@ Defaults to 'output.csv'.</p>
 
 
 <h4 id="supervision.detection.tools.csv_sink.CSVSink.append" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">append</span><span class="p">(</span><span class="n">detections</span><span class="p">,</span> <span class="n">custom_data</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">append</span><span class="p">(</span><span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">custom_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#supervision.detection.tools.csv_sink.CSVSink.append" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -3691,7 +3691,7 @@ Defaults to 'output.csv'.</p>
 
 
 <h4 id="supervision.detection.tools.csv_sink.CSVSink.close" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">close</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">close</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#supervision.detection.tools.csv_sink.CSVSink.close" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -3753,7 +3753,7 @@ Defaults to 'output.csv'.</p>
 
 
 <h4 id="supervision.detection.tools.csv_sink.CSVSink.open" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="nb">open</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="nb">open</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#supervision.detection.tools.csv_sink.CSVSink.open" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -4199,7 +4199,7 @@ Defaults to 'output.json'.</p>
 
 
 <h4 id="supervision.detection.tools.json_sink.JSONSink.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">file_name</span><span class="o">=</span><span class="s1">&#39;output.json&#39;</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;output.json&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#supervision.detection.tools.json_sink.JSONSink.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -4300,7 +4300,7 @@ Defaults to 'output.json'.</p>
 
 
 <h4 id="supervision.detection.tools.json_sink.JSONSink.append" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">append</span><span class="p">(</span><span class="n">detections</span><span class="p">,</span> <span class="n">custom_data</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">append</span><span class="p">(</span><span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">custom_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#supervision.detection.tools.json_sink.JSONSink.append" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -4426,7 +4426,7 @@ Defaults to 'output.json'.</p>
 
 
 <h4 id="supervision.detection.tools.json_sink.JSONSink.open" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="nb">open</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="nb">open</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#supervision.detection.tools.json_sink.JSONSink.open" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -4494,7 +4494,7 @@ Defaults to 'output.json'.</p>
 
 
 <h4 id="supervision.detection.tools.json_sink.JSONSink.write_and_close" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">write_and_close</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">write_and_close</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#supervision.detection.tools.json_sink.JSONSink.write_and_close" class="headerlink" title="Permanent link">&para;</a></h4>
 

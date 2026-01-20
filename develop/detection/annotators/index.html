@@ -10157,7 +10157,7 @@ comparison-annotator-example.png" width="800" /></p>
 
 
 <h4 id="supervision.annotators.core.BoxAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">color_lookup</span><span class="o">=</span><span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="n">ColorPalette</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.BoxAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -10201,7 +10201,7 @@ annotating detections.</p>
               </div>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ColorPalette&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -10286,7 +10286,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 
 
 <h4 id="supervision.annotators.core.BoxAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.BoxAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -10851,7 +10851,7 @@ using provided detections.</p>
 
 
 <h4 id="supervision.annotators.core.RoundBoxAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">color_lookup</span><span class="o">=</span><span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">,</span> <span class="n">roundness</span><span class="o">=</span><span class="mf">0.6</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="n">ColorPalette</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">,</span> <span class="n">roundness</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.6</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.RoundBoxAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -10895,7 +10895,7 @@ annotating detections.</p>
               </div>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ColorPalette&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -11015,7 +11015,7 @@ length (width or height).</p>
 
 
 <h4 id="supervision.annotators.core.RoundBoxAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.RoundBoxAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -11578,7 +11578,7 @@ supervision-annotator-examples/round-box-annotator-example-purple.png" /></p>
 
 
 <h4 id="supervision.annotators.core.BoxCornerAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">thickness</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">corner_length</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">color_lookup</span><span class="o">=</span><span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="n">ColorPalette</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="n">corner_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span> <span class="n">color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.BoxCornerAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -11622,7 +11622,7 @@ annotating detections.</p>
               </div>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ColorPalette&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -11729,7 +11729,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 
 
 <h4 id="supervision.annotators.core.BoxCornerAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.BoxCornerAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -12209,7 +12209,7 @@ supervision-annotator-examples/box-corner-annotator-example-purple.png" /></p>
 
 
 <h4 id="supervision.annotators.core.OrientedBoxAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">color_lookup</span><span class="o">=</span><span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="n">ColorPalette</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.OrientedBoxAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -12253,7 +12253,7 @@ annotating detections.</p>
               </div>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ColorPalette&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -12338,7 +12338,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 
 
 <h4 id="supervision.annotators.core.OrientedBoxAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.OrientedBoxAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -12821,7 +12821,7 @@ or <code>PIL.Image.Image</code>)</p>
 
 
 <h4 id="supervision.annotators.core.ColorAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">opacity</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">color_lookup</span><span class="o">=</span><span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="n">ColorPalette</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">opacity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.ColorAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -12865,7 +12865,7 @@ annotating detections.</p>
               </div>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ColorPalette&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -12950,7 +12950,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 
 
 <h4 id="supervision.annotators.core.ColorAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.ColorAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -13436,7 +13436,7 @@ supervision-annotator-examples/box-mask-annotator-example-purple.png" /></p>
 
 
 <h4 id="supervision.annotators.core.CircleAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">color_lookup</span><span class="o">=</span><span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="n">ColorPalette</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.CircleAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -13480,7 +13480,7 @@ annotating detections.</p>
               </div>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ColorPalette&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -13567,7 +13567,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 
 
 <h4 id="supervision.annotators.core.CircleAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.CircleAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -14090,7 +14090,7 @@ detections.</p>
 
 
 <h4 id="supervision.annotators.core.DotAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="n">Position</span><span class="o">.</span><span class="n">CENTER</span><span class="p">,</span> <span class="n">color_lookup</span><span class="o">=</span><span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">,</span> <span class="n">outline_thickness</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">outline_color</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="n">ColorPalette</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">radius</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span> <span class="n">position</span><span class="p">:</span> <span class="n">Position</span> <span class="o">=</span> <span class="n">Position</span><span class="o">.</span><span class="n">CENTER</span><span class="p">,</span> <span class="n">color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">,</span> <span class="n">outline_thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">outline_color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="n">ColorPalette</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.DotAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -14134,7 +14134,7 @@ annotating detections.</p>
               </div>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ColorPalette&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -14301,7 +14301,7 @@ greater than 0.</p>
 
 
 <h4 id="supervision.annotators.core.DotAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.DotAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -14862,7 +14862,7 @@ provided detections.</p>
 
 
 <h4 id="supervision.annotators.core.TriangleAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="n">Position</span><span class="o">.</span><span class="n">TOP_CENTER</span><span class="p">,</span> <span class="n">color_lookup</span><span class="o">=</span><span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">,</span> <span class="n">outline_thickness</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">outline_color</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="n">ColorPalette</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">base</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">height</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">position</span><span class="p">:</span> <span class="n">Position</span> <span class="o">=</span> <span class="n">Position</span><span class="o">.</span><span class="n">TOP_CENTER</span><span class="p">,</span> <span class="n">color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">,</span> <span class="n">outline_thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">outline_color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="n">ColorPalette</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.TriangleAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -14906,7 +14906,7 @@ annotating detections.</p>
               </div>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ColorPalette&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -15095,7 +15095,7 @@ greater than 0.</p>
 
 
 <h4 id="supervision.annotators.core.TriangleAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.TriangleAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -15625,7 +15625,7 @@ supervision-annotator-examples/triangle-annotator-example.png" /></p>
 
 
 <h4 id="supervision.annotators.core.EllipseAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">start_angle</span><span class="o">=-</span><span class="mi">45</span><span class="p">,</span> <span class="n">end_angle</span><span class="o">=</span><span class="mi">235</span><span class="p">,</span> <span class="n">color_lookup</span><span class="o">=</span><span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="n">ColorPalette</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">start_angle</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">45</span><span class="p">,</span> <span class="n">end_angle</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">235</span><span class="p">,</span> <span class="n">color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.EllipseAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -15669,7 +15669,7 @@ annotating detections.</p>
               </div>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ColorPalette&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -15798,7 +15798,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 
 
 <h4 id="supervision.annotators.core.EllipseAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.EllipseAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -16318,7 +16318,7 @@ supervision-annotator-examples/ellipse-annotator-example-purple.png" /></p>
 
 
 <h4 id="supervision.annotators.core.HaloAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">opacity</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">color_lookup</span><span class="o">=</span><span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="n">ColorPalette</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">opacity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span> <span class="n">color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.HaloAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -16362,7 +16362,7 @@ annotating detections.</p>
               </div>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ColorPalette&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -16472,7 +16472,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 
 
 <h4 id="supervision.annotators.core.HaloAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.HaloAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -17172,7 +17172,7 @@ supervision-annotator-examples/halo-annotator-example-purple.png" /></p>
 
 
 <h4 id="supervision.annotators.core.PercentageBarAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">height</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">80</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">border_color</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="n">Position</span><span class="o">.</span><span class="n">TOP_CENTER</span><span class="p">,</span> <span class="n">color_lookup</span><span class="o">=</span><span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">,</span> <span class="n">border_thickness</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">height</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">80</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="n">ColorPalette</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">border_color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">,</span> <span class="n">position</span><span class="p">:</span> <span class="n">Position</span> <span class="o">=</span> <span class="n">Position</span><span class="o">.</span><span class="n">TOP_CENTER</span><span class="p">,</span> <span class="n">color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">,</span> <span class="n">border_thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.PercentageBarAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -17248,7 +17248,7 @@ annotating detections.</p>
               </div>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ColorPalette&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -17404,7 +17404,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 
 
 <h4 id="supervision.annotators.core.PercentageBarAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_values</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">custom_values</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.PercentageBarAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -18004,7 +18004,7 @@ of blurred circles.</p>
 
 
 <h4 id="supervision.annotators.core.HeatMapAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">position</span><span class="o">=</span><span class="n">Position</span><span class="o">.</span><span class="n">BOTTOM_CENTER</span><span class="p">,</span> <span class="n">opacity</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span> <span class="n">top_hue</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">low_hue</span><span class="o">=</span><span class="mi">125</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">position</span><span class="p">:</span> <span class="n">Position</span> <span class="o">=</span> <span class="n">Position</span><span class="o">.</span><span class="n">BOTTOM_CENTER</span><span class="p">,</span> <span class="n">opacity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">,</span> <span class="n">radius</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span> <span class="n">top_hue</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">low_hue</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">125</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.HeatMapAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -18188,7 +18188,7 @@ of blurred circles.</p>
 
 
 <h4 id="supervision.annotators.core.HeatMapAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.HeatMapAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -18683,7 +18683,7 @@ supervision-annotator-examples/heat-map-annotator-example-purple.png" /></p>
 
 
 <h4 id="supervision.annotators.core.MaskAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">opacity</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">color_lookup</span><span class="o">=</span><span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="n">ColorPalette</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">opacity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.MaskAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -18727,7 +18727,7 @@ annotating detections.</p>
               </div>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ColorPalette&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -18812,7 +18812,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 
 
 <h4 id="supervision.annotators.core.MaskAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.MaskAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -19304,7 +19304,7 @@ supervision-annotator-examples/mask-annotator-example-purple.png" /></p>
 
 
 <h4 id="supervision.annotators.core.PolygonAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">color_lookup</span><span class="o">=</span><span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="n">ColorPalette</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.PolygonAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -19348,7 +19348,7 @@ annotating detections.</p>
               </div>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ColorPalette&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -19433,7 +19433,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 
 
 <h4 id="supervision.annotators.core.PolygonAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.PolygonAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -20357,7 +20357,7 @@ supervision-annotator-examples/polygon-annotator-example-purple.png" /></p>
 
 
 <h4 id="supervision.annotators.core.LabelAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">color_lookup</span><span class="o">=</span><span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">,</span> <span class="n">text_color</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">WHITE</span><span class="p">,</span> <span class="n">text_scale</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">text_thickness</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">text_padding</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">text_position</span><span class="o">=</span><span class="n">Position</span><span class="o">.</span><span class="n">TOP_LEFT</span><span class="p">,</span> <span class="n">text_offset</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">border_radius</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">smart_position</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">max_line_length</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="n">ColorPalette</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">,</span> <span class="n">text_color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="n">ColorPalette</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">WHITE</span><span class="p">,</span> <span class="n">text_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">text_thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">text_padding</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">text_position</span><span class="p">:</span> <span class="n">Position</span> <span class="o">=</span> <span class="n">Position</span><span class="o">.</span><span class="n">TOP_LEFT</span><span class="p">,</span> <span class="n">text_offset</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">border_radius</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">smart_position</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">max_line_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.LabelAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -20401,7 +20401,7 @@ annotating the text background.</p>
               </div>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ColorPalette&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -20691,7 +20691,7 @@ before wrapping the text. None means no wrapping.</p>
 
 
 <h4 id="supervision.annotators.core.LabelAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">labels</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
 
 <a href="#supervision.annotators.core.LabelAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -21567,7 +21567,7 @@ with support for Unicode characters by using a custom font.</p>
 
 
 <h4 id="supervision.annotators.core.RichLabelAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">color_lookup</span><span class="o">=</span><span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">,</span> <span class="n">text_color</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">WHITE</span><span class="p">,</span> <span class="n">font_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">font_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">text_padding</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">text_position</span><span class="o">=</span><span class="n">Position</span><span class="o">.</span><span class="n">TOP_LEFT</span><span class="p">,</span> <span class="n">text_offset</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">border_radius</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">smart_position</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">max_line_length</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="n">ColorPalette</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">,</span> <span class="n">text_color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="n">ColorPalette</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">WHITE</span><span class="p">,</span> <span class="n">font_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">font_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">text_padding</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">text_position</span><span class="p">:</span> <span class="n">Position</span> <span class="o">=</span> <span class="n">Position</span><span class="o">.</span><span class="n">TOP_LEFT</span><span class="p">,</span> <span class="n">text_offset</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">border_radius</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">smart_position</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">max_line_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.RichLabelAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -21611,7 +21611,7 @@ annotating the text background.</p>
               </div>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ColorPalette&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -21903,7 +21903,7 @@ before wrapping the text. None means no wrapping.</p>
 
 
 <h4 id="supervision.annotators.core.RichLabelAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">labels</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.RichLabelAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -22455,7 +22455,7 @@ or <code>PIL.Image.Image</code>)</p>
 
 
 <h4 id="supervision.annotators.core.IconAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">icon_resolution_wh</span><span class="o">=</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span> <span class="n">icon_position</span><span class="o">=</span><span class="n">Position</span><span class="o">.</span><span class="n">TOP_CENTER</span><span class="p">,</span> <span class="n">offset_xy</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">icon_resolution_wh</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="mi">64</span><span class="p">),</span> <span class="n">icon_position</span><span class="p">:</span> <span class="n">Position</span> <span class="o">=</span> <span class="n">Position</span><span class="o">.</span><span class="n">TOP_CENTER</span><span class="p">,</span> <span class="n">offset_xy</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span></code>
 
 <a href="#supervision.annotators.core.IconAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -22574,7 +22574,7 @@ in pixels. Can be both positive and negative.</p>
 
 
 <h4 id="supervision.annotators.core.IconAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">,</span> <span class="n">icon_path</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">icon_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.IconAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -23017,7 +23017,7 @@ supervision-annotator-examples/icon-annotator-example.png" /></p>
 
 
 <h4 id="supervision.annotators.core.BlurAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">kernel_size</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">15</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.BlurAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -23080,7 +23080,7 @@ supervision-annotator-examples/icon-annotator-example.png" /></p>
 
 
 <h4 id="supervision.annotators.core.BlurAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.BlurAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -23485,7 +23485,7 @@ supervision-annotator-examples/blur-annotator-example-purple.png" /></p>
 
 
 <h4 id="supervision.annotators.core.PixelateAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">pixel_size</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">pixel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.PixelateAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -23548,7 +23548,7 @@ supervision-annotator-examples/blur-annotator-example-purple.png" /></p>
 
 
 <h4 id="supervision.annotators.core.PixelateAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.PixelateAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -24090,7 +24090,7 @@ tracking into your inference pipeline.</p>
 
 
 <h4 id="supervision.annotators.core.TraceAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="n">Position</span><span class="o">.</span><span class="n">CENTER</span><span class="p">,</span> <span class="n">trace_length</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">smooth</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">color_lookup</span><span class="o">=</span><span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="n">ColorPalette</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">position</span><span class="p">:</span> <span class="n">Position</span> <span class="o">=</span> <span class="n">Position</span><span class="o">.</span><span class="n">CENTER</span><span class="p">,</span> <span class="n">trace_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span> <span class="n">thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">smooth</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.TraceAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -24134,7 +24134,7 @@ a single color or a color palette.</p>
               </div>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ColorPalette&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -24289,7 +24289,7 @@ Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</code>.</p>
 
 
 <h4 id="supervision.annotators.core.TraceAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.TraceAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -24953,7 +24953,7 @@ supervision-annotator-examples/trace-annotator-example-purple.png" /></p>
 
 
 <h4 id="supervision.annotators.core.CropAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">position</span><span class="o">=</span><span class="n">Position</span><span class="o">.</span><span class="n">TOP_CENTER</span><span class="p">,</span> <span class="n">scale_factor</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">border_color</span><span class="o">=</span><span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">border_thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">border_color_lookup</span><span class="o">=</span><span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">position</span><span class="p">:</span> <span class="n">Position</span> <span class="o">=</span> <span class="n">Position</span><span class="o">.</span><span class="n">TOP_CENTER</span><span class="p">,</span> <span class="n">scale_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span> <span class="n">border_color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="n">ColorPalette</span> <span class="o">=</span> <span class="n">ColorPalette</span><span class="o">.</span><span class="n">DEFAULT</span><span class="p">,</span> <span class="n">border_thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">border_color_lookup</span><span class="p">:</span> <span class="n">ColorLookup</span> <span class="o">=</span> <span class="n">ColorLookup</span><span class="o">.</span><span class="n">CLASS</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.CropAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -25032,7 +25032,7 @@ use for annotating border around the cropped area.</p>
               </div>
             </td>
             <td>
-                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-method&quot;&gt;&lt;/code&gt;            &lt;code class=&quot;highlight language-python&quot;&gt;&lt;span class=&quot;n&quot;&gt;DEFAULT&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span class=&quot;n&quot;&gt;ColorPalette&lt;/span&gt;&lt;/code&gt; (&lt;code&gt;supervision.draw.color.ColorPalette.DEFAULT&lt;/code&gt;)" href="../../utils/draw/#supervision.draw.color.ColorPalette.DEFAULT">DEFAULT</a></code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -25135,7 +25135,7 @@ annotations. Options are <code>INDEX</code>, <code>CLASS</code>, <code>TRACK</co
 
 
 <h4 id="supervision.annotators.core.CropAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">custom_color_lookup</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.CropAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -25641,7 +25641,7 @@ If masks are not provided, the background is colored outside the bounding boxes.
 
 
 <h4 id="supervision.annotators.core.BackgroundOverlayAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">,</span> <span class="n">opacity</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">force_box</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">,</span> <span class="n">opacity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">force_box</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.BackgroundOverlayAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -25762,7 +25762,7 @@ masks are provided in the supplied sv.Detections.</p>
 
 
 <h4 id="supervision.annotators.core.BackgroundOverlayAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.BackgroundOverlayAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -26544,7 +26544,7 @@ Otherwise, uses the bounding box data.</p>
 
 
 <h4 id="supervision.annotators.core.ComparisonAnnotator.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color_1</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">RED</span><span class="p">,</span> <span class="n">color_2</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">GREEN</span><span class="p">,</span> <span class="n">color_overlap</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">BLUE</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">opacity</span><span class="o">=</span><span class="mf">0.75</span><span class="p">,</span> <span class="n">label_1</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">label_2</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">label_overlap</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">label_scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">color_1</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">RED</span><span class="p">,</span> <span class="n">color_2</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">GREEN</span><span class="p">,</span> <span class="n">color_overlap</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">BLUE</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">opacity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.75</span><span class="p">,</span> <span class="n">label_1</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">label_2</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">label_overlap</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">label_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">)</span></code>
 
 <a href="#supervision.annotators.core.ComparisonAnnotator.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -26796,7 +26796,7 @@ detections.</p>
 
 
 <h4 id="supervision.annotators.core.ComparisonAnnotator.annotate" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">detections_1</span><span class="p">,</span> <span class="n">detections_2</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">annotate</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">detections_1</span><span class="p">:</span> <span class="n">Detections</span><span class="p">,</span> <span class="n">detections_2</span><span class="p">:</span> <span class="n">Detections</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.annotators.core.ComparisonAnnotator.annotate" class="headerlink" title="Permanent link">&para;</a></h4>
 

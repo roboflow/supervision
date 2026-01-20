@@ -3285,7 +3285,7 @@
 
 
 <h2 id="supervision.utils.image.crop_image" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">crop_image</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">xyxy</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">crop_image</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">xyxy</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.utils.image.crop_image" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -3533,7 +3533,7 @@ type.</p>
 
 
 <h2 id="supervision.utils.image.scale_image" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">scale_image</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">scale_factor</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">scale_image</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">scale_factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.utils.image.scale_image" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -3782,7 +3782,7 @@ type.</p>
 
 
 <h2 id="supervision.utils.image.resize_image" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">resize_image</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">resolution_wh</span><span class="p">,</span> <span class="n">keep_aspect_ratio</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">resize_image</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">resolution_wh</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">keep_aspect_ratio</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.utils.image.resize_image" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -4055,7 +4055,7 @@ type.</p>
 
 
 <h2 id="supervision.utils.image.letterbox_image" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">letterbox_image</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">resolution_wh</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">letterbox_image</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">resolution_wh</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">color</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.utils.image.letterbox_image" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -4359,7 +4359,7 @@ type.</p>
 
 
 <h2 id="supervision.utils.image.tint_image" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">tint_image</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">,</span> <span class="n">opacity</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">tint_image</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">,</span> <span class="n">opacity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.utils.image.tint_image" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -4627,7 +4627,7 @@ type.</p>
 
 
 <h2 id="supervision.utils.image.grayscale_image" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">grayscale_image</span><span class="p">(</span><span class="n">image</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">grayscale_image</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageType</span></code>
 
 <a href="#supervision.utils.image.grayscale_image" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -4801,7 +4801,7 @@ matching input type.</p>
 
 
 <h2 id="supervision.utils.image.get_image_resolution_wh" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">get_image_resolution_wh</span><span class="p">(</span><span class="n">image</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">get_image_resolution_wh</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">ImageType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span></code>
 
 <a href="#supervision.utils.image.get_image_resolution_wh" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -5282,7 +5282,7 @@ matching input type.</p>
 
 
 <h4 id="supervision.utils.image.ImageSink.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">target_dir_path</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">image_name_pattern</span><span class="o">=</span><span class="s1">&#39;image_</span><span class="si">{:05d}</span><span class="s1">.png&#39;</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">target_dir_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">image_name_pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;image_</span><span class="si">{:05d}</span><span class="s1">.png&#39;</span><span class="p">)</span></code>
 
 <a href="#supervision.utils.image.ImageSink.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -5553,7 +5553,7 @@ Defaults to <code>"image_{:05d}.png"</code>.</p>
 
 
 <h4 id="supervision.utils.image.ImageSink.save_image" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">save_image</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">image_name</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">save_image</span><span class="p">(</span><span class="n">image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">image_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span></code>
 
 <a href="#supervision.utils.image.ImageSink.save_image" class="headerlink" title="Permanent link">&para;</a></h4>
 

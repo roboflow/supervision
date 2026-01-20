@@ -4188,7 +4188,7 @@
 
 
 <h2 id="supervision.draw.utils.draw_line" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">draw_line</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">ROBOFLOW</span><span class="p">,</span> <span class="n">thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">draw_line</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">end</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">ROBOFLOW</span><span class="p">,</span> <span class="n">thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
 
 <a href="#supervision.draw.utils.draw_line" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -4392,7 +4392,7 @@
 
 
 <h2 id="supervision.draw.utils.draw_rectangle" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">draw_rectangle</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">rect</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">ROBOFLOW</span><span class="p">,</span> <span class="n">thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">draw_rectangle</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">rect</span><span class="p">:</span> <span class="n">Rect</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">ROBOFLOW</span><span class="p">,</span> <span class="n">thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
 
 <a href="#supervision.draw.utils.draw_rectangle" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -4570,7 +4570,7 @@
 
 
 <h2 id="supervision.draw.utils.draw_filled_rectangle" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">draw_filled_rectangle</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">rect</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">ROBOFLOW</span><span class="p">,</span> <span class="n">opacity</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">draw_filled_rectangle</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">rect</span><span class="p">:</span> <span class="n">Rect</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">ROBOFLOW</span><span class="p">,</span> <span class="n">opacity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
 
 <a href="#supervision.draw.utils.draw_filled_rectangle" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -4776,7 +4776,7 @@
 
 
 <h2 id="supervision.draw.utils.draw_polygon" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">draw_polygon</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">polygon</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">ROBOFLOW</span><span class="p">,</span> <span class="n">thickness</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">draw_polygon</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">polygon</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">ROBOFLOW</span><span class="p">,</span> <span class="n">thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
 
 <a href="#supervision.draw.utils.draw_polygon" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -4950,7 +4950,7 @@
 
 
 <h2 id="supervision.draw.utils.draw_filled_polygon" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">draw_filled_polygon</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">polygon</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">ROBOFLOW</span><span class="p">,</span> <span class="n">opacity</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">draw_filled_polygon</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">polygon</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">ROBOFLOW</span><span class="p">,</span> <span class="n">opacity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
 
 <a href="#supervision.draw.utils.draw_filled_polygon" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -5136,7 +5136,7 @@
 
 
 <h2 id="supervision.draw.utils.draw_text" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">draw_text</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">text_anchor</span><span class="p">,</span> <span class="n">text_color</span><span class="o">=</span><span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">,</span> <span class="n">text_scale</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">text_thickness</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">text_padding</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">text_font</span><span class="o">=</span><span class="n">cv2</span><span class="o">.</span><span class="n">FONT_HERSHEY_SIMPLEX</span><span class="p">,</span> <span class="n">background_color</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">draw_text</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">text_anchor</span><span class="p">:</span> <span class="n">Point</span><span class="p">,</span> <span class="n">text_color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">=</span> <span class="n">Color</span><span class="o">.</span><span class="n">BLACK</span><span class="p">,</span> <span class="n">text_scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">text_thickness</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">text_padding</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">text_font</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">FONT_HERSHEY_SIMPLEX</span><span class="p">,</span> <span class="n">background_color</span><span class="p">:</span> <span class="n">Color</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
 
 <a href="#supervision.draw.utils.draw_text" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -5512,7 +5512,7 @@ if one is to be drawn. Defaults to None.</p>
 
 
 <h2 id="supervision.draw.utils.draw_image" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">draw_image</span><span class="p">(</span><span class="n">scene</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">opacity</span><span class="p">,</span> <span class="n">rect</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">draw_image</span><span class="p">(</span><span class="n">scene</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">opacity</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">rect</span><span class="p">:</span> <span class="n">Rect</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
 
 <a href="#supervision.draw.utils.draw_image" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -5792,7 +5792,7 @@ if one is to be drawn. Defaults to None.</p>
 
 
 <h2 id="supervision.draw.utils.calculate_optimal_text_scale" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">calculate_optimal_text_scale</span><span class="p">(</span><span class="n">resolution_wh</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">calculate_optimal_text_scale</span><span class="p">(</span><span class="n">resolution_wh</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">float</span></code>
 
 <a href="#supervision.draw.utils.calculate_optimal_text_scale" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -5929,7 +5929,7 @@ consistent readability.</p>
 
 
 <h2 id="supervision.draw.utils.calculate_optimal_line_thickness" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">calculate_optimal_line_thickness</span><span class="p">(</span><span class="n">resolution_wh</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-function"></code>            <code class="highlight language-python"><span class="n">supervision</span><span class="o">.</span><span class="n">draw</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">calculate_optimal_line_thickness</span><span class="p">(</span><span class="n">resolution_wh</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span></code>
 
 <a href="#supervision.draw.utils.calculate_optimal_line_thickness" class="headerlink" title="Permanent link">&para;</a></h2>
 
@@ -6640,7 +6640,7 @@ codes, converting colors to hex strings, RGB tuples, and BGR tuples.</p>
 
 
 <h4 id="supervision.draw.color.Color.as_bgr" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">as_bgr</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">as_bgr</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span></code>
 
 <a href="#supervision.draw.color.Color.as_bgr" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -6725,7 +6725,7 @@ codes, converting colors to hex strings, RGB tuples, and BGR tuples.</p>
 
 
 <h4 id="supervision.draw.color.Color.as_hex" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">as_hex</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">as_hex</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span></code>
 
 <a href="#supervision.draw.color.Color.as_hex" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -6810,7 +6810,7 @@ codes, converting colors to hex strings, RGB tuples, and BGR tuples.</p>
 
 
 <h4 id="supervision.draw.color.Color.as_rgb" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">as_rgb</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">as_rgb</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span></code>
 
 <a href="#supervision.draw.color.Color.as_rgb" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -6895,7 +6895,7 @@ codes, converting colors to hex strings, RGB tuples, and BGR tuples.</p>
 
 
 <h4 id="supervision.draw.color.Color.from_bgr_tuple" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_bgr_tuple</span><span class="p">(</span><span class="n">color_tuple</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_bgr_tuple</span><span class="p">(</span><span class="n">color_tuple</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Color</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -7033,7 +7033,7 @@ format, where each element is an integer in the range 0-255.</p>
 
 
 <h4 id="supervision.draw.color.Color.from_hex" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -7194,7 +7194,7 @@ case of 3 characters, each character is repeated to form the full
 
 
 <h4 id="supervision.draw.color.Color.from_rgb_tuple" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_rgb_tuple</span><span class="p">(</span><span class="n">color_tuple</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_rgb_tuple</span><span class="p">(</span><span class="n">color_tuple</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Color</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -7663,7 +7663,7 @@ format, where each element is an integer in the range 0-255.</p>
 
 
 <h4 id="supervision.draw.color.ColorPalette.DEFAULT" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">DEFAULT</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">DEFAULT</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span></code>
 
 <a href="#supervision.draw.color.ColorPalette.DEFAULT" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -7763,7 +7763,7 @@ supervision-annotator-examples/default-color-palette.png" /></p>
 
 
 <h4 id="supervision.draw.color.ColorPalette.ROBOFLOW" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">ROBOFLOW</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">ROBOFLOW</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span></code>
 
 <a href="#supervision.draw.color.ColorPalette.ROBOFLOW" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -7863,7 +7863,7 @@ supervision-annotator-examples/roboflow-color-palette.png" /></p>
 
 
 <h4 id="supervision.draw.color.ColorPalette.__len__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__len__</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__len__</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span></code>
 
 <a href="#supervision.draw.color.ColorPalette.__len__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -7923,7 +7923,7 @@ supervision-annotator-examples/roboflow-color-palette.png" /></p>
 
 
 <h4 id="supervision.draw.color.ColorPalette.by_idx" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">by_idx</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">by_idx</span><span class="p">(</span><span class="n">idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Color</span></code>
 
 <a href="#supervision.draw.color.ColorPalette.by_idx" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -8059,7 +8059,7 @@ supervision-annotator-examples/roboflow-color-palette.png" /></p>
 
 
 <h4 id="supervision.draw.color.ColorPalette.from_hex" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex_list</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_hex</span><span class="p">(</span><span class="n">color_hex_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -8194,7 +8194,7 @@ supervision-annotator-examples/roboflow-color-palette.png" /></p>
 
 
 <h4 id="supervision.draw.color.ColorPalette.from_matplotlib" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_matplotlib</span><span class="p">(</span><span class="n">palette_name</span><span class="p">,</span> <span class="n">color_count</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_matplotlib</span><span class="p">(</span><span class="n">palette_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">color_count</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColorPalette</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>

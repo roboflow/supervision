@@ -3790,7 +3790,7 @@ confidence detection for each class.</p>
 
 
 <h4 id="supervision.metrics.mean_average_recall.MeanAverageRecall.__init__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">metric_target</span><span class="o">=</span><span class="n">MetricTarget</span><span class="o">.</span><span class="n">BOXES</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">metric_target</span><span class="p">:</span> <span class="n">MetricTarget</span> <span class="o">=</span> <span class="n">MetricTarget</span><span class="o">.</span><span class="n">BOXES</span><span class="p">)</span></code>
 
 <a href="#supervision.metrics.mean_average_recall.MeanAverageRecall.__init__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -3874,7 +3874,7 @@ confidence detection for each class.</p>
 
 
 <h4 id="supervision.metrics.mean_average_recall.MeanAverageRecall.compute" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">compute</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">compute</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">MeanAverageRecallResult</span></code>
 
 <a href="#supervision.metrics.mean_average_recall.MeanAverageRecall.compute" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -3980,7 +3980,7 @@ and ground-truth, at different IoU thresholds and maximum detection counts.</p>
 
 
 <h4 id="supervision.metrics.mean_average_recall.MeanAverageRecall.reset" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">reset</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">reset</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#supervision.metrics.mean_average_recall.MeanAverageRecall.reset" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -4013,7 +4013,7 @@ and ground-truth, at different IoU thresholds and maximum detection counts.</p>
 
 
 <h4 id="supervision.metrics.mean_average_recall.MeanAverageRecall.update" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">update</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">update</span><span class="p">(</span><span class="n">predictions</span><span class="p">:</span> <span class="n">Detections</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">Detections</span><span class="p">],</span> <span class="n">targets</span><span class="p">:</span> <span class="n">Detections</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="n">Detections</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">MeanAverageRecall</span></code>
 
 <a href="#supervision.metrics.mean_average_recall.MeanAverageRecall.update" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -4872,7 +4872,7 @@ metric results for large objects (area ≥ 96²).</p>
 
 
 <h4 id="supervision.metrics.mean_average_recall.MeanAverageRecallResult.__str__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__str__</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__str__</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span></code>
 
 <a href="#supervision.metrics.mean_average_recall.MeanAverageRecallResult.__str__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -5177,7 +5177,7 @@ metric results for large objects (area ≥ 96²).</p>
 
 
 <h4 id="supervision.metrics.mean_average_recall.MeanAverageRecallResult.to_pandas" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">to_pandas</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">to_pandas</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span></code>
 
 <a href="#supervision.metrics.mean_average_recall.MeanAverageRecallResult.to_pandas" class="headerlink" title="Permanent link">&para;</a></h4>
 

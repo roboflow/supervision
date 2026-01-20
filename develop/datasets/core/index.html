@@ -5117,7 +5117,7 @@ image paths.</p>
 
 
 <h4 id="supervision.dataset.core.DetectionDataset.__getitem__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__getitem__</span><span class="p">(</span><span class="n">i</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__getitem__</span><span class="p">(</span><span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Detections</span><span class="p">]</span></code>
 
 <a href="#supervision.dataset.core.DetectionDataset.__getitem__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -5186,7 +5186,7 @@ and its corresponding annotation at index i.</p>
 
 
 <h4 id="supervision.dataset.core.DetectionDataset.__iter__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__iter__</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__iter__</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Detections</span><span class="p">]]</span></code>
 
 <a href="#supervision.dataset.core.DetectionDataset.__iter__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -5261,7 +5261,7 @@ the image data, and its corresponding annotation.</p>
 
 
 <h4 id="supervision.dataset.core.DetectionDataset.as_coco" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">as_coco</span><span class="p">(</span><span class="n">images_directory_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">annotations_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_image_area_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">max_image_area_percentage</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">approximation_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">as_coco</span><span class="p">(</span><span class="n">images_directory_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">annotations_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">min_image_area_percentage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">max_image_area_percentage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">approximation_percentage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#supervision.dataset.core.DetectionDataset.as_coco" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -5515,7 +5515,7 @@ Argument is used only for segmentation datasets.</p>
 
 
 <h4 id="supervision.dataset.core.DetectionDataset.as_pascal_voc" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">as_pascal_voc</span><span class="p">(</span><span class="n">images_directory_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">annotations_directory_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_image_area_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">max_image_area_percentage</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">approximation_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">as_pascal_voc</span><span class="p">(</span><span class="n">images_directory_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">annotations_directory_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">min_image_area_percentage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">max_image_area_percentage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">approximation_percentage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#supervision.dataset.core.DetectionDataset.as_pascal_voc" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -5756,7 +5756,7 @@ in the range [0, 1). Argument is used only for segmentation datasets.</p>
 
 
 <h4 id="supervision.dataset.core.DetectionDataset.as_yolo" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">as_yolo</span><span class="p">(</span><span class="n">images_directory_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">annotations_directory_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">data_yaml_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_image_area_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">max_image_area_percentage</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">approximation_percentage</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">as_yolo</span><span class="p">(</span><span class="n">images_directory_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">annotations_directory_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">data_yaml_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">min_image_area_percentage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">max_image_area_percentage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">approximation_percentage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#supervision.dataset.core.DetectionDataset.as_yolo" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -6007,7 +6007,7 @@ Argument is used only for segmentation datasets.</p>
 
 
 <h4 id="supervision.dataset.core.DetectionDataset.from_coco" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_coco</span><span class="p">(</span><span class="n">images_directory_path</span><span class="p">,</span> <span class="n">annotations_path</span><span class="p">,</span> <span class="n">force_masks</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_coco</span><span class="p">(</span><span class="n">images_directory_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">annotations_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">force_masks</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DetectionDataset</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -6218,7 +6218,7 @@ regardless of whether they are present.</p>
 
 
 <h4 id="supervision.dataset.core.DetectionDataset.from_pascal_voc" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_pascal_voc</span><span class="p">(</span><span class="n">images_directory_path</span><span class="p">,</span> <span class="n">annotations_directory_path</span><span class="p">,</span> <span class="n">force_masks</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_pascal_voc</span><span class="p">(</span><span class="n">images_directory_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">annotations_directory_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">force_masks</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DetectionDataset</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -6460,7 +6460,7 @@ the loaded images and annotations.</p>
 
 
 <h4 id="supervision.dataset.core.DetectionDataset.from_yolo" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_yolo</span><span class="p">(</span><span class="n">images_directory_path</span><span class="p">,</span> <span class="n">annotations_directory_path</span><span class="p">,</span> <span class="n">data_yaml_path</span><span class="p">,</span> <span class="n">force_masks</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">is_obb</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_yolo</span><span class="p">(</span><span class="n">images_directory_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">annotations_directory_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data_yaml_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">force_masks</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">is_obb</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DetectionDataset</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -6757,7 +6757,7 @@ containing the loaded images and annotations.</p>
 
 
 <h4 id="supervision.dataset.core.DetectionDataset.merge" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">merge</span><span class="p">(</span><span class="n">dataset_list</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">merge</span><span class="p">(</span><span class="n">dataset_list</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">DetectionDataset</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">DetectionDataset</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -7058,7 +7058,7 @@ objects to merge.</p>
 
 
 <h4 id="supervision.dataset.core.DetectionDataset.split" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">split</span><span class="p">(</span><span class="n">split_ratio</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">split</span><span class="p">(</span><span class="n">split_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">random_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">shuffle</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">DetectionDataset</span><span class="p">,</span> <span class="n">DetectionDataset</span><span class="p">]</span></code>
 
 <a href="#supervision.dataset.core.DetectionDataset.split" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -7874,7 +7874,7 @@ image name to annotations.</p>
 
 
 <h4 id="supervision.dataset.core.ClassificationDataset.__getitem__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__getitem__</span><span class="p">(</span><span class="n">i</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__getitem__</span><span class="p">(</span><span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Classifications</span><span class="p">]</span></code>
 
 <a href="#supervision.dataset.core.ClassificationDataset.__getitem__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -7943,7 +7943,7 @@ and its corresponding annotation at index i.</p>
 
 
 <h4 id="supervision.dataset.core.ClassificationDataset.__iter__" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__iter__</span><span class="p">()</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="fm">__iter__</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Classifications</span><span class="p">]]</span></code>
 
 <a href="#supervision.dataset.core.ClassificationDataset.__iter__" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -8018,7 +8018,7 @@ the image data, and its corresponding annotation.</p>
 
 
 <h4 id="supervision.dataset.core.ClassificationDataset.as_folder_structure" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">as_folder_structure</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">as_folder_structure</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
 
 <a href="#supervision.dataset.core.ClassificationDataset.as_folder_structure" class="headerlink" title="Permanent link">&para;</a></h4>
 
@@ -8117,7 +8117,7 @@ where the dataset will be saved.</p>
 
 
 <h4 id="supervision.dataset.core.ClassificationDataset.from_folder_structure" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_folder_structure</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">from_folder_structure</span><span class="p">(</span><span class="n">root_directory_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ClassificationDataset</span></code>
 
   <span class="doc doc-labels">
       <small class="doc doc-label doc-label-classmethod"><code>classmethod</code></small>
@@ -8316,7 +8316,7 @@ where the dataset will be saved.</p>
 
 
 <h4 id="supervision.dataset.core.ClassificationDataset.split" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">split</span><span class="p">(</span><span class="n">split_ratio</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">split</span><span class="p">(</span><span class="n">split_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.8</span><span class="p">,</span> <span class="n">random_state</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">shuffle</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">ClassificationDataset</span><span class="p">,</span> <span class="n">ClassificationDataset</span><span class="p">]</span></code>
 
 <a href="#supervision.dataset.core.ClassificationDataset.split" class="headerlink" title="Permanent link">&para;</a></h4>
 
