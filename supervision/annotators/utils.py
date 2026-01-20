@@ -152,17 +152,17 @@ def resolve_color(
     return get_color_by_index(color=color, idx=idx)
 
 
-def wrap_text(text: Any, max_line_length=None) -> list[str]:
+def wrap_text(text: Any, max_line_length: int | None = None) -> list[str]:
     """
     Wrap `text` to the specified maximum line length, respecting existing
     newlines. Falls back to str() if `text` is not already a string.
 
     Args:
-        text (Any): The text (or object) to wrap.
-        max_line_length (int | None): Maximum width for each wrapped line.
+        text: The text (or object) to wrap.
+        max_line_length: Maximum width for each wrapped line.
 
     Returns:
-        list[str]: Wrapped lines.
+        Wrapped lines.
     """
 
     if not text:
@@ -198,18 +198,18 @@ def wrap_text(text: Any, max_line_length=None) -> list[str]:
     return all_lines or [""]
 
 
-def validate_labels(labels: list[str] | None, detections: Detections):
+def validate_labels(labels: list[str] | None, detections: Detections) -> None:
     """
     Validates that the number of provided labels matches the number of detections.
 
     Args:
-        labels (Optional[List[str]]): A list of labels, one for each detection. Can
-                                        be None.
-        detections (Detections): The detections to be labeled.
+        labels: A list of labels, one for each detection. Can
+            be None.
+        detections: The detections to be labeled.
 
     Raises:
         ValueError: If `labels` is not None and its length does not match the number
-        of detections.
+            of detections.
     """
     if labels is not None and len(labels) != len(detections):
         raise ValueError(
@@ -230,11 +230,11 @@ def get_labels_text(
     then the `class_id`, and finally using the detection index as a string.
 
     Args:
-        detections (Detections): The detections to get labels for.
-        custom_labels (Optional[List[str]]): An optional list of custom labels.
+        detections: The detections to get labels for.
+        custom_labels: An optional list of custom labels.
 
     Returns:
-        List[str]: A list of text labels for each detection.
+        A list of text labels for each detection.
     """
     if custom_labels is not None:
         return custom_labels
@@ -258,14 +258,14 @@ def snap_boxes(xyxy: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
     It moves them entirely if they exceed the frame boundaries.
 
     Args:
-        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
+        xyxy: A numpy array of shape `(N, 4)` where each
             row corresponds to a bounding box in the format
             `(x_min, y_min, x_max, y_max)`.
-        resolution_wh (Tuple[int, int]): A tuple `(width, height)`
+        resolution_wh: A tuple `(width, height)`
             representing the resolution of the frame.
 
     Returns:
-        np.ndarray: A numpy array of shape `(N, 4)` with boxes shifted into frame.
+        A numpy array of shape `(N, 4)` with boxes shifted into frame.
 
     Examples:
     ```python

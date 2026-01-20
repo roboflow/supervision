@@ -52,18 +52,18 @@ class _BaseLabelAnnotator(BaseAnnotator):
     Base class for annotators that add labels to detections.
 
     Attributes:
-        color (Union[Color, ColorPalette]): The color to use for the label background.
-        color_lookup (ColorLookup): The method used to determine the color of the label.
-        text_color (Union[Color, ColorPalette]): The color to use for the label text.
-        text_padding (int): The padding around the label text, in pixels.
-        text_anchor (Position): The position of the text relative to the detection
+        color: The color to use for the label background.
+        color_lookup: The method used to determine the color of the label.
+        text_color: The color to use for the label text.
+        text_padding: The padding around the label text, in pixels.
+        text_anchor: The position of the text relative to the detection
             bounding box.
-        text_offset (Tuple[int, int]): A tuple of 2D coordinates `(x, y)` to
+        text_offset: A tuple of 2D coordinates `(x, y)` to
             offset the text position from the anchor point, in pixels.
-        border_radius (int): The radius of the label background corners, in pixels.
-        smart_position (bool): Whether to intelligently adjust the label position to
+        border_radius: The radius of the label background corners, in pixels.
+        smart_position: Whether to intelligently adjust the label position to
             avoid overlapping with other elements.
-        max_line_length (Optional[int]): Maximum number of characters per line before
+        max_line_length: Maximum number of characters per line before
             wrapping the text. None means no wrapping.
     """
 
@@ -83,22 +83,22 @@ class _BaseLabelAnnotator(BaseAnnotator):
         Initializes the _BaseLabelAnnotator.
 
         Args:
-            color (Union[Color, ColorPalette], optional): The color to use for the label
+            color: The color to use for the label
                 background.
-            color_lookup (ColorLookup, optional): The method used to determine the color
+            color_lookup: The method used to determine the color
                 of the label
-            text_color (Union[Color, ColorPalette], optional): The color to use for the
+            text_color: The color to use for the
                 label text.
-            text_padding (int, optional): The padding around the label text, in pixels.
-            text_position (Position, optional): The position of the text relative to the
+            text_padding: The padding around the label text, in pixels.
+            text_position: The position of the text relative to the
                 detection bounding box.
-            text_offset (Tuple[int, int], optional): A tuple of 2D coordinates
+            text_offset: A tuple of 2D coordinates
                 `(x, y)` to offset the text position from the anchor point, in pixels.
-            border_radius (int, optional): The radius of the label background corners,
+            border_radius: The radius of the label background corners,
                 in pixels.
-            smart_position (bool, optional): Whether to intelligently adjust the label
+            smart_position: Whether to intelligently adjust the label
                 position to avoid overlapping with other elements.
-            max_line_length (Optional[int], optional): Maximum number of characters per
+            max_line_length: Maximum number of characters per
                 line before wrapping the text. None means no wrapping.
         """
         self.color: Color | ColorPalette = color
@@ -121,14 +121,13 @@ class _BaseLabelAnnotator(BaseAnnotator):
         Adjusts the position of labels to ensure they stay within the frame boundaries.
 
         Args:
-            frame_width (int): The width of the frame.
-            resolution_wh (int, int): The width and height of the frame.
-            labels (List[str]): The list of text labels.
-            label_properties (np.ndarray): An array of label properties, where each row
+            resolution_wh: The width and height of the frame.
+            labels: The list of text labels.
+            label_properties: An array of label properties, where each row
                             contains [x1, y1, x2, y2, text_height, ...].
 
         Returns:
-            np.ndarray: The adjusted label properties.
+            The adjusted label properties.
         """
         adjusted_properties = label_properties.copy()
 
@@ -168,10 +167,10 @@ class BoxAnnotator(BaseAnnotator):
     ):
         """
         Args:
-            color (Union[Color, ColorPalette]): The color or color palette to use for
+            color: The color or color palette to use for
                 annotating detections.
-            thickness (int): Thickness of the bounding box lines.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+            thickness: Thickness of the bounding box lines.
+            color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Color | ColorPalette = color
@@ -189,11 +188,11 @@ class BoxAnnotator(BaseAnnotator):
         Annotates the given scene with bounding boxes based on the provided detections.
 
         Args:
-            scene (ImageType): The image where bounding boxes will be drawn. `ImageType`
+            scene: The image where bounding boxes will be drawn. `ImageType`
                 is a flexible type, accepting either `numpy.ndarray` or
                 `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+            detections: Object detections to annotate.
+            custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
@@ -251,10 +250,10 @@ class OrientedBoxAnnotator(BaseAnnotator):
     ):
         """
         Args:
-            color (Union[Color, ColorPalette]): The color or color palette to use for
+            color: The color or color palette to use for
                 annotating detections.
-            thickness (int): Thickness of the bounding box lines.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+            thickness: Thickness of the bounding box lines.
+            color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Color | ColorPalette = color
@@ -269,14 +268,15 @@ class OrientedBoxAnnotator(BaseAnnotator):
         custom_color_lookup: np.ndarray | None = None,
     ) -> ImageType:
         """
-        Annotates the given scene with oriented bounding boxes based on the provided detections.
+        Annotates the given scene with oriented bounding boxes based on the
+        provided detections.
 
         Args:
-            scene (ImageType): The image where bounding boxes will be drawn.
+            scene: The image where bounding boxes will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+            detections: Object detections to annotate.
+            custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
@@ -340,10 +340,10 @@ class MaskAnnotator(BaseAnnotator):
     ):
         """
         Args:
-            color (Union[Color, ColorPalette]): The color or color palette to use for
+            color: The color or color palette to use for
                 annotating detections.
-            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+            opacity: Opacity of the overlay mask. Must be between `0` and `1`.
+            color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Color | ColorPalette = color
@@ -361,11 +361,11 @@ class MaskAnnotator(BaseAnnotator):
         Annotates the given scene with masks based on the provided detections.
 
         Args:
-            scene (ImageType): The image where masks will be drawn.
+            scene: The image where masks will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+            detections: Object detections to annotate.
+            custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
@@ -430,10 +430,10 @@ class PolygonAnnotator(BaseAnnotator):
     ):
         """
         Args:
-            color (Union[Color, ColorPalette]): The color or color palette to use for
+            color: The color or color palette to use for
                 annotating detections.
-            thickness (int): Thickness of the polygon lines.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+            thickness: Thickness of the polygon lines.
+            color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Color | ColorPalette = color
@@ -451,11 +451,11 @@ class PolygonAnnotator(BaseAnnotator):
         Annotates the given scene with polygons based on the provided detections.
 
         Args:
-            scene (ImageType): The image where polygons will be drawn.
+            scene: The image where polygons will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+            detections: Object detections to annotate.
+            custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
@@ -517,10 +517,10 @@ class ColorAnnotator(BaseAnnotator):
     ):
         """
         Args:
-            color (Union[Color, ColorPalette]): The color or color palette to use for
+            color: The color or color palette to use for
                 annotating detections.
-            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+            opacity: Opacity of the overlay mask. Must be between `0` and `1`.
+            color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Color | ColorPalette = color
@@ -538,11 +538,11 @@ class ColorAnnotator(BaseAnnotator):
         Annotates the given scene with box masks based on the provided detections.
 
         Args:
-            scene (ImageType): The image where bounding boxes will be drawn.
+            scene: The image where bounding boxes will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+            detections: Object detections to annotate.
+            custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
@@ -610,12 +610,12 @@ class HaloAnnotator(BaseAnnotator):
     ):
         """
         Args:
-            color (Union[Color, ColorPalette]): The color or color palette to use for
+            color: The color or color palette to use for
                 annotating detections.
-            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
-            kernel_size (int): The size of the average pooling kernel used for creating
+            opacity: Opacity of the overlay mask. Must be between `0` and `1`.
+            kernel_size: The size of the average pooling kernel used for creating
                 the halo.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+            color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Color | ColorPalette = color
@@ -634,11 +634,11 @@ class HaloAnnotator(BaseAnnotator):
         Annotates the given scene with halos based on the provided detections.
 
         Args:
-            scene (ImageType): The image where masks will be drawn.
+            scene: The image where masks will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+            detections: Object detections to annotate.
+            custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
@@ -709,12 +709,12 @@ class EllipseAnnotator(BaseAnnotator):
     ):
         """
         Args:
-            color (Union[Color, ColorPalette]): The color or color palette to use for
+            color: The color or color palette to use for
                 annotating detections.
-            thickness (int): Thickness of the ellipse lines.
-            start_angle (int): Starting angle of the ellipse.
-            end_angle (int): Ending angle of the ellipse.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+            thickness: Thickness of the ellipse lines.
+            start_angle: Starting angle of the ellipse.
+            end_angle: Ending angle of the ellipse.
+            color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Color | ColorPalette = color
@@ -734,11 +734,11 @@ class EllipseAnnotator(BaseAnnotator):
         Annotates the given scene with ellipses based on the provided detections.
 
         Args:
-            scene (ImageType): The image where ellipses will be drawn.
+            scene: The image where ellipses will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+            detections: Object detections to annotate.
+            custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
@@ -803,11 +803,11 @@ class BoxCornerAnnotator(BaseAnnotator):
     ):
         """
         Args:
-            color (Union[Color, ColorPalette]): The color or color palette to use for
+            color: The color or color palette to use for
                 annotating detections.
-            thickness (int): Thickness of the corner lines.
-            corner_length (int): Length of each corner line.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+            thickness: Thickness of the corner lines.
+            corner_length: Length of each corner line.
+            color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Color | ColorPalette = color
@@ -826,11 +826,11 @@ class BoxCornerAnnotator(BaseAnnotator):
         Annotates the given scene with box corners based on the provided detections.
 
         Args:
-            scene (ImageType): The image where box corners will be drawn.
+            scene: The image where box corners will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+            detections: Object detections to annotate.
+            custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
@@ -893,10 +893,10 @@ class CircleAnnotator(BaseAnnotator):
     ):
         """
         Args:
-            color (Union[Color, ColorPalette]): The color or color palette to use for
+            color: The color or color palette to use for
                 annotating detections.
-            thickness (int): Thickness of the circle line.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+            thickness: Thickness of the circle line.
+            color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
 
@@ -915,11 +915,11 @@ class CircleAnnotator(BaseAnnotator):
         Annotates the given scene with circles based on the provided detections.
 
         Args:
-            scene (ImageType): The image where box corners will be drawn.
+            scene: The image where box corners will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+            detections: Object detections to annotate.
+            custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
@@ -985,14 +985,14 @@ class DotAnnotator(BaseAnnotator):
     ):
         """
         Args:
-            color (Union[Color, ColorPalette]): The color or color palette to use for
+            color: The color or color palette to use for
                 annotating detections.
-            radius (int): Radius of the drawn dots.
-            position (Position): The anchor position for placing the dot.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+            radius: Radius of the drawn dots.
+            position: The anchor position for placing the dot.
+            color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
-            outline_thickness (int): Thickness of the outline of the dot.
-            outline_color (Union[Color, ColorPalette]): The color or color palette to
+            outline_thickness: Thickness of the outline of the dot.
+            outline_color: The color or color palette to
                 use for outline. It is activated by setting outline_thickness to a value
                 greater than 0.
         """
@@ -1014,11 +1014,11 @@ class DotAnnotator(BaseAnnotator):
         Annotates the given scene with dots based on the provided detections.
 
         Args:
-            scene (ImageType): The image where dots will be drawn.
+            scene: The image where dots will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+            detections: Object detections to annotate.
+            custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
@@ -1096,23 +1096,23 @@ class LabelAnnotator(_BaseLabelAnnotator):
     ):
         """
         Args:
-            color (Union[Color, ColorPalette]): The color or color palette to use for
+            color: The color or color palette to use for
                 annotating the text background.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+            color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
-            text_color (Union[Color, ColorPalette]): The color or color palette to use
+            text_color: The color or color palette to use
                 for the text.
-            text_scale (float): Font scale for the text.
-            text_thickness (int): Thickness of the text characters.
-            text_padding (int): Padding around the text within its background box.
-            text_position (Position): Position of the text relative to the detection.
+            text_scale: Font scale for the text.
+            text_thickness: Thickness of the text characters.
+            text_padding: Padding around the text within its background box.
+            text_position: Position of the text relative to the detection.
                 Possible values are defined in the `Position` enum.
-            text_offset (Tuple[int, int]): A tuple of 2D coordinates `(x, y)` to
+            text_offset: A tuple of 2D coordinates `(x, y)` to
                 offset the text position from the anchor point, in pixels.
-            border_radius (int): The radius to apply round edges. If the selected
+            border_radius: The radius to apply round edges. If the selected
                 value is higher than the lower dimension, width or height, is clipped.
-            smart_position (bool): Spread out the labels to avoid overlapping.
-            max_line_length (Optional[int]): Maximum number of characters per line
+            smart_position: Spread out the labels to avoid overlapping.
+            max_line_length: Maximum number of characters per line
                 before wrapping the text. None means no wrapping.
         """
         self.text_scale: float = text_scale
@@ -1136,17 +1136,17 @@ class LabelAnnotator(_BaseLabelAnnotator):
         detections: Detections,
         labels: list[str] | None = None,
         custom_color_lookup: np.ndarray | None = None,
-    ) -> np.ndarray:
+    ) -> ImageType:
         """
         Annotates the given scene with labels based on the provided detections.
 
         Args:
-            scene (ImageType): The image where labels will be drawn.
+            scene: The image where labels will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
-            labels (Optional[List[str]]): Custom labels for each detection.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+            detections: Object detections to annotate.
+            labels: Custom labels for each detection.
+            custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
@@ -1405,23 +1405,23 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
     ):
         """
         Args:
-            color (Union[Color, ColorPalette]): The color or color palette to use for
+            color: The color or color palette to use for
                 annotating the text background.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+            color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
-            text_color (Union[Color, ColorPalette]): The color to use for the text.
-            font_path (Optional[str]): Path to the font file (e.g., ".ttf" or ".otf")
+            text_color: The color to use for the text.
+            font_path: Path to the font file (e.g., ".ttf" or ".otf")
                 to use for rendering text. If `None`, the default PIL font will be used.
-            font_size (int): Font size for the text.
-            text_padding (int): Padding around the text within its background box.
-            text_position (Position): Position of the text relative to the detection.
+            font_size: Font size for the text.
+            text_padding: Padding around the text within its background box.
+            text_position: Position of the text relative to the detection.
                 Possible values are defined in the `Position` enum.
-            text_offset (Tuple[int, int]): A tuple of 2D coordinates `(x, y)` to
+            text_offset: A tuple of 2D coordinates `(x, y)` to
                 offset the text position from the anchor point, in pixels.
-            border_radius (int): The radius to apply round edges. If the selected
+            border_radius: The radius to apply round edges. If the selected
                 value is higher than the lower dimension, width or height, is clipped.
-            smart_position (bool): Spread out the labels to avoid overlapping.
-            max_line_length (Optional[int]): Maximum number of characters per line
+            smart_position: Spread out the labels to avoid overlapping.
+            max_line_length: Maximum number of characters per line
                 before wrapping the text. None means no wrapping.
         """
         self.font_path = font_path
@@ -1452,12 +1452,12 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         detections, with support for Unicode characters.
 
         Args:
-            scene (ImageType): The image where labels will be drawn.
+            scene: The image where labels will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
-            labels (Optional[List[str]]): Custom labels for each detection.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+            detections: Object detections to annotate.
+            labels: Custom labels for each detection.
+            custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
@@ -1656,10 +1656,10 @@ class IconAnnotator(BaseAnnotator):
     ):
         """
         Args:
-            icon_resolution_wh (Tuple[int, int]): The size of drawn icons.
+            icon_resolution_wh: The size of drawn icons.
                 All icons will be resized to this resolution, keeping the aspect ratio.
-            icon_position (Position): The position of the icon.
-            offset_xy (Tuple[int, int]): The offset to apply to the icon position,
+            icon_position: The position of the icon.
+            offset_xy: The offset to apply to the icon position,
                 in pixels. Can be both positive and negative.
         """
         self.icon_resolution_wh = icon_resolution_wh
@@ -1674,11 +1674,11 @@ class IconAnnotator(BaseAnnotator):
         Annotates the given scene with given icons.
 
         Args:
-            scene (ImageType): The image where labels will be drawn.
+            scene: The image where labels will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
-            icon_path (Union[str, List[str]]): The path to the PNG image to use as an
+            detections: Object detections to annotate.
+            icon_path: The path to the PNG image to use as an
                 icon. Must be a single path or a list of paths, one for each detection.
                 Pass an empty string `""` to draw nothing.
 
@@ -1751,7 +1751,7 @@ class BlurAnnotator(BaseAnnotator):
     def __init__(self, kernel_size: int = 15):
         """
         Args:
-            kernel_size (int): The size of the average pooling kernel used for blurring.
+            kernel_size: The size of the average pooling kernel used for blurring.
         """
         self.kernel_size: int = kernel_size
 
@@ -1765,10 +1765,10 @@ class BlurAnnotator(BaseAnnotator):
         Annotates the given scene by blurring regions based on the provided detections.
 
         Args:
-            scene (ImageType): The image where blurring will be applied.
+            scene: The image where blurring will be applied.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
+            detections: Object detections to annotate.
 
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
@@ -1827,15 +1827,15 @@ class TraceAnnotator(BaseAnnotator):
     ):
         """
         Args:
-            color (Union[Color, ColorPalette]): The color to draw the trace, can be
+            color: The color to draw the trace, can be
                 a single color or a color palette.
-            position (Position): The position of the trace.
+            position: The position of the trace.
                 Defaults to `CENTER`.
-            trace_length (int): The maximum length of the trace in terms of historical
+            trace_length: The maximum length of the trace in terms of historical
                 points. Defaults to `30`.
-            thickness (int): The thickness of the trace lines. Defaults to `2`.
-            smooth (bool): Smooth the trace lines.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+            thickness: The thickness of the trace lines. Defaults to `2`.
+            smooth: Smooth the trace lines.
+            color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Color | ColorPalette = color
@@ -1855,12 +1855,12 @@ class TraceAnnotator(BaseAnnotator):
         Draws trace paths on the frame based on the detection coordinates provided.
 
         Args:
-            scene (ImageType): The image on which the traces will be drawn.
+            scene: The image on which the traces will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections (Detections): The detections which include coordinates for
+            detections: The detections which include coordinates for
                 which the traces will be drawn.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+            custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
@@ -1950,13 +1950,13 @@ class HeatMapAnnotator(BaseAnnotator):
     ):
         """
         Args:
-            position (Position): The position of the heatmap. Defaults to
+            position: The position of the heatmap. Defaults to
                 `BOTTOM_CENTER`.
-            opacity (float): Opacity of the overlay mask, between 0 and 1.
-            radius (int): Radius of the heat circle.
-            kernel_size (int): Kernel size for blurring the heatmap.
-            top_hue (int): Hue at the top of the heatmap. Defaults to 0 (red).
-            low_hue (int): Hue at the bottom of the heatmap. Defaults to 125 (blue).
+            opacity: Opacity of the overlay mask, between 0 and 1.
+            radius: Radius of the heat circle.
+            kernel_size: Kernel size for blurring the heatmap.
+            top_hue: Hue at the top of the heatmap. Defaults to 0 (red).
+            low_hue: Hue at the bottom of the heatmap. Defaults to 125 (blue).
         """
         self.position = position
         self.opacity = opacity
@@ -1972,10 +1972,10 @@ class HeatMapAnnotator(BaseAnnotator):
         Annotates the scene with a heatmap based on the provided detections.
 
         Args:
-            scene (ImageType): The image where the heatmap will be drawn.
+            scene: The image where the heatmap will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
+            detections: Object detections to annotate.
 
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
@@ -2044,7 +2044,7 @@ class PixelateAnnotator(BaseAnnotator):
     def __init__(self, pixel_size: int = 20):
         """
         Args:
-            pixel_size (int): The size of the pixelation.
+            pixel_size: The size of the pixelation.
         """
         self.pixel_size: int = pixel_size
 
@@ -2059,10 +2059,10 @@ class PixelateAnnotator(BaseAnnotator):
             detections.
 
         Args:
-            scene (ImageType): The image where pixelating will be applied.
+            scene: The image where pixelating will be applied.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
+            detections: Object detections to annotate.
 
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
@@ -2125,15 +2125,15 @@ class TriangleAnnotator(BaseAnnotator):
     ):
         """
         Args:
-            color (Union[Color, ColorPalette]): The color or color palette to use for
+            color: The color or color palette to use for
                 annotating detections.
-            base (int): The base width of the triangle.
-            height (int): The height of the triangle.
-            position (Position): The anchor position for placing the triangle.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+            base: The base width of the triangle.
+            height: The height of the triangle.
+            position: The anchor position for placing the triangle.
+            color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
-            outline_thickness (int): Thickness of the outline of the triangle.
-            outline_color (Union[Color, ColorPalette]): The color or color palette to
+            outline_thickness: Thickness of the outline of the triangle.
+            outline_color: The color or color palette to
                 use for outline. It is activated by setting outline_thickness to a value
                 greater than 0.
         """
@@ -2156,11 +2156,11 @@ class TriangleAnnotator(BaseAnnotator):
         Annotates the given scene with triangles based on the provided detections.
 
         Args:
-            scene (ImageType): The image where triangles will be drawn.
+            scene: The image where triangles will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+            detections: Object detections to annotate.
+            custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
@@ -2240,12 +2240,12 @@ class RoundBoxAnnotator(BaseAnnotator):
     ):
         """
         Args:
-            color (Union[Color, ColorPalette]): The color or color palette to use for
+            color: The color or color palette to use for
                 annotating detections.
-            thickness (int): Thickness of the bounding box lines.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+            thickness: Thickness of the bounding box lines.
+            color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
-            roundness (float): Percent of roundness for edges of bounding box.
+            roundness: Percent of roundness for edges of bounding box.
                 Value must be float 0 < roundness <= 1.0
                 By default roundness percent is calculated based on smaller side
                 length (width or height).
@@ -2269,11 +2269,11 @@ class RoundBoxAnnotator(BaseAnnotator):
         based on the provided detections.
 
         Args:
-            scene (ImageType): The image where rounded bounding boxes will be drawn.
+            scene: The image where rounded bounding boxes will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+            detections: Object detections to annotate.
+            custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
@@ -2374,15 +2374,15 @@ class PercentageBarAnnotator(BaseAnnotator):
     ):
         """
         Args:
-            height (int): The height in pixels of the percentage bar.
-            width (int): The width in pixels of the percentage bar.
-            color (Union[Color, ColorPalette]): The color or color palette to use for
+            height: The height in pixels of the percentage bar.
+            width: The width in pixels of the percentage bar.
+            color: The color or color palette to use for
                 annotating detections.
-            border_color (Color): The color of the border lines.
-            position (Position): The anchor position of drawing the percentage bar.
-            color_lookup (ColorLookup): Strategy for mapping colors to annotations.
+            border_color: The color of the border lines.
+            position: The anchor position of drawing the percentage bar.
+            color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
-            border_thickness (Optional[int]): The thickness of the border lines.
+            border_thickness: The thickness of the border lines.
         """
         self.height: int = height
         self.width: int = width
@@ -2411,13 +2411,13 @@ class PercentageBarAnnotator(BaseAnnotator):
         values associated with each detection.
 
         Args:
-            scene (ImageType): The image where percentage bars will be drawn.
+            scene: The image where percentage bars will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+            detections: Object detections to annotate.
+            custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
-            custom_values (Optional[np.ndarray]): Custom values array to use instead
+            custom_values: Custom values array to use instead
                 of the default detection confidences. This array should have the
                 same length as the number of detections and contain a value between
                 0 and 1 (inclusive) for each detection, representing the percentage
@@ -2561,15 +2561,15 @@ class CropAnnotator(BaseAnnotator):
     ):
         """
         Args:
-            position (Position): The anchor position for placing the cropped and scaled
+            position: The anchor position for placing the cropped and scaled
                 part of the detection in the scene.
-            scale_factor (float): The factor by which to scale the cropped image part. A
+            scale_factor: The factor by which to scale the cropped image part. A
                 factor of 2, for example, would double the size of the cropped area,
                 allowing for a closer view of the detection.
-            border_color (Union[Color, ColorPalette]): The color or color palette to
+            border_color: The color or color palette to
                 use for annotating border around the cropped area.
-            border_thickness (int): The thickness of the border around the cropped area.
-            border_color_lookup (ColorLookup): Strategy for mapping colors to
+            border_thickness: The thickness of the border around the cropped area.
+            border_color_lookup: Strategy for mapping colors to
                 annotations. Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.position: Position = position
@@ -2593,11 +2593,11 @@ class CropAnnotator(BaseAnnotator):
 
 
         Args:
-            scene (ImageType): The image where cropped detection will be placed.
+            scene: The image where cropped detection will be placed.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
-            custom_color_lookup (Optional[np.ndarray]): Custom color lookup array.
+            detections: Object detections to annotate.
+            custom_color_lookup: Custom color lookup array.
                 Allows to override the default color mapping strategy.
 
         Returns:
@@ -2718,9 +2718,9 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
     ):
         """
         Args:
-            color (Color): The color to use for annotating detections.
-            opacity (float): Opacity of the overlay mask. Must be between `0` and `1`.
-            force_box (bool): If `True`, forces the annotator to use bounding boxes when
+            color: The color to use for annotating detections.
+            opacity: Opacity of the overlay mask. Must be between `0` and `1`.
+            force_box: If `True`, forces the annotator to use bounding boxes when
                 masks are provided in the supplied sv.Detections.
         """
         self.color: Color = color
@@ -2733,10 +2733,10 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
         Applies a colored overlay to the scene outside of the detected regions.
 
         Args:
-            scene (ImageType): The image where masks will be drawn.
+            scene: The image where masks will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections (Detections): Object detections to annotate.
+            detections: Object detections to annotate.
 
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
@@ -2802,16 +2802,16 @@ class ComparisonAnnotator:
     ):
         """
         Args:
-            color_1 (Color): Color of areas only present in the first set of
+            color_1: Color of areas only present in the first set of
                 detections.
-            color_2 (Color): Color of areas only present in the second set of
+            color_2: Color of areas only present in the second set of
                 detections.
-            color_overlap (Color): Color of areas present in both sets of detections.
-            opacity (float): Annotator opacity, from `0` to `1`.
-            label_1 (str): Label for the first set of detections.
-            label_2 (str): Label for the second set of detections.
-            label_overlap (str): Label for areas present in both sets of detections.
-            label_scale (float): Controls how large the labels are.
+            color_overlap: Color of areas present in both sets of detections.
+            opacity: Annotator opacity, from `0` to `1`.
+            label_1: Label for the first set of detections.
+            label_2: Label for the second set of detections.
+            label_overlap: Label for areas present in both sets of detections.
+            label_scale: Controls how large the labels are.
         """
 
         self.color_1 = color_1
@@ -2833,11 +2833,11 @@ class ComparisonAnnotator:
         Highlights the differences between two sets of detections.
 
         Args:
-            scene (ImageType): The image where detections will be drawn.
+            scene: The image where detections will be drawn.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
-            detections_1 (Detections): The first set of detections or predictions.
-            detections_2 (Detections): The second set of detections to compare or
+            detections_1: The first set of detections or predictions.
+            detections_2: The second set of detections to compare or
                 ground truth.
 
         Returns:
