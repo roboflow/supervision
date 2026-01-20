@@ -301,7 +301,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
                 detections=detections
             )
             ```
-        """  # noqa E501 // docs
+        """
         assert isinstance(scene, np.ndarray)
         if detections.data is None or ORIENTED_BOX_COORDINATES not in detections.data:
             return scene
