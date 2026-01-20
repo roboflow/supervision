@@ -143,7 +143,6 @@ plugins:
             show_root_heading: True
             show_symbol_type_toc: true
             show_category_heading: true
-            # Optional: render types in the signature header itself
             show_signature_annotations: true
           inventories:
           - url: https://docs.python-requests.org/en/master/objects.inv
