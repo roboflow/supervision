@@ -188,7 +188,7 @@ ignore-words-list = "STrack,sTrack,strack"
 
 [tool.mypy]
 python_version = "3.9"
-ignore_missing_imports = true
+ignore_missing_imports = false
 explicit_package_bases = true
 strict = true
 exclude = [
