@@ -186,6 +186,78 @@ count = true
 quiet-level = 3
 ignore-words-list = "STrack,sTrack,strack"
 
+[tool.mypy]
+python_version = "3.9"
+ignore_missing_imports = true
+explicit_package_bases = true
+strict = true
+exclude = [
+  "docs",
+  "test",
+  "examples",
+  "setup.py",
+]
+
+[[tool.mypy.overrides]]
+module = [
+  "test.*",
+  "examples.*",
+  # TODO: fix type errors in the following modules
+  "supervision.annotators.core",
+  "supervision.annotators.utils",
+  "supervision.assets.downloader",
+  "supervision.assets.list",
+  "supervision.classification.core",
+  "supervision.dataset.core",
+  "supervision.dataset.formats.coco",
+  "supervision.dataset.formats.pascal_voc",
+  "supervision.dataset.formats.yolo",
+  "supervision.dataset.utils",
+  "supervision.detection.core",
+  "supervision.detection.line_zone",
+  "supervision.detection.tools.csv_sink",
+  "supervision.detection.tools.inference_slicer",
+  "supervision.detection.tools.json_sink",
+  "supervision.detection.tools.polygon_zone",
+  "supervision.detection.tools.smoother",
+  "supervision.detection.tools.transformers",
+  "supervision.detection.utils.boxes",
+  "supervision.detection.utils.converters",
+  "supervision.detection.utils.internal",
+  "supervision.detection.utils.iou_and_nms",
+  "supervision.detection.utils.masks",
+  "supervision.detection.utils.polygons",
+  "supervision.detection.vlm",
+  "supervision.draw.base",
+  "supervision.draw.color",
+  "supervision.draw.utils",
+  "supervision.geometry.core",
+  "supervision.geometry.utils",
+  "supervision.key_points.annotators",
+  "supervision.key_points.core",
+  "supervision.key_points.skeletons",
+  "supervision.metrics.core",
+  "supervision.metrics.detection",
+  "supervision.metrics.f1_score",
+  "supervision.metrics.mean_average_precision",
+  "supervision.metrics.mean_average_recall",
+  "supervision.metrics.precision",
+  "supervision.metrics.recall",
+  "supervision.metrics.utils.utils",
+  "supervision.tracker.byte_tracker.core",
+  "supervision.tracker.byte_tracker.kalman_filter",
+  "supervision.tracker.byte_tracker.matching",
+  "supervision.tracker.byte_tracker.single_object_track",
+  "supervision.utils.conversion",
+  "supervision.utils.file",
+  "supervision.utils.image",
+  "supervision.utils.internal",
+  "supervision.utils.iterables",
+  "supervision.utils.notebook",
+  "supervision.utils.video",
+]
+ignore_errors = true
+
 [tool.autoflake]
 check = true
 imports = [ "cv2", "supervision" ]
