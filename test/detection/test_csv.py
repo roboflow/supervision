@@ -196,9 +196,9 @@ from test.helpers import _create_detections
     ],
 )
 def test_csv_sink(
-    detections: _create_detections,
+    detections: sv.Detections,
     custom_data: dict[str, Any],
-    second_detections: _create_detections,
+    second_detections: sv.Detections,
     second_custom_data: dict[str, Any],
     file_name: str,
     expected_result: list[list[Any]],
@@ -398,9 +398,9 @@ def test_csv_sink(
     ],
 )
 def test_csv_sink_manual(
-    detections: _create_detections,
+    detections: sv.Detections,
     custom_data: dict[str, Any],
-    second_detections: _create_detections,
+    second_detections: sv.Detections,
     second_custom_data: dict[str, Any],
     file_name: str,
     expected_result: list[list[Any]],
