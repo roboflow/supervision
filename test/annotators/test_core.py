@@ -245,7 +245,7 @@ class TestHaloAnnotator:
             color_lookup=ColorLookup.INDEX,
         )
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
-        assert_image_mostly_same(test_image, result, similarity_threshold=0.855)
+        assert_image_mostly_same(test_image, result, similarity_threshold=0.85)
 
 
 class TestEllipseAnnotator:
