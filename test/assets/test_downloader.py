@@ -97,7 +97,8 @@ class TestDownloadAssets:
         mock_response.raise_for_status.assert_called_once_with()
         mock_copyfileobj.assert_called_once()
 
-    def test_invalid_asset(self):
+    @patch("pathlib.Path.exists", return_value=False)
+    def test_invalid_asset(self, mock_exists):
         """Test download_assets with invalid asset name."""
         invalid_filename = "invalid.mp4"
 
