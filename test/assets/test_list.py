@@ -1,4 +1,4 @@
-from supervision.assets.list import VIDEO_ASSETS, VideoAssets
+from supervision.assets.list import BASE_VIDEO_URL, VIDEO_ASSETS, VideoAssets
 
 
 def test_video_assets_list():
@@ -42,7 +42,7 @@ def test_video_assets_dict_values():
     """Test that VIDEO_ASSETS values are tuples of (url, md5_hash)."""
     for filename, (url, md5_hash) in VIDEO_ASSETS.items():
         assert isinstance(url, str)
-        assert url.startswith("https://media.roboflow.com/supervision/video-examples/")
+        assert url.startswith(BASE_VIDEO_URL)
         assert url.endswith(filename)
         assert isinstance(md5_hash, str)
         assert len(md5_hash) == 32  # MD5 hash length
