@@ -46,7 +46,8 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🚀 Publish to PyPi
-        if: github.event_name != 'release' || github.event.release.prerelease != true
+        # We only want to publish to PyPi if the event is a release and it's not a pre-release.
+        if: github.event_name == 'release' && github.event.release.prerelease != true
         uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
         with:
           attestations: true
