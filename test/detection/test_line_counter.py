@@ -6,7 +6,7 @@ import pytest
 
 from supervision import LineZone
 from supervision.geometry.core import Point, Position, Vector
-from test.test_utils import mock_detections
+from test.helpers import _create_detections
 
 
 @pytest.mark.parametrize(
@@ -243,7 +243,7 @@ def test_line_zone_one_detection_default_anchors(
     crossed_in_list = []
     crossed_out_list = []
     for i, bbox in enumerate(xyxy_sequence):
-        detections = mock_detections(
+        detections = _create_detections(
             xyxy=[bbox],
             tracker_id=[0],
         )
@@ -413,7 +413,7 @@ def test_line_zone_one_detection(
     crossed_in_list = []
     crossed_out_list = []
     for i, bbox in enumerate(xyxy_sequence):
-        detections = mock_detections(
+        detections = _create_detections(
             xyxy=[bbox],
             tracker_id=[0],
         )
@@ -492,7 +492,7 @@ def test_line_zone_multiple_detections(
         crossed_in_list = []
         crossed_out_list = []
         for bboxes in xyxy_sequence:
-            detections = mock_detections(
+            detections = _create_detections(
                 xyxy=bboxes,
                 tracker_id=[i for i in range(0, len(bboxes))],
             )
@@ -610,7 +610,7 @@ def test_line_zone_one_detection_long_horizon(
     crossed_in_list = []
     crossed_out_list = []
     for i, bbox in enumerate(xyxy_sequence):
-        detections = mock_detections(
+        detections = _create_detections(
             xyxy=[bbox],
             tracker_id=[0],
         )
@@ -788,7 +788,7 @@ def test_line_zone_long_horizon_disappearing_detections(
         count_in_list = []
         count_out_list = []
         for bboxes in xyxy_sequence:
-            detections = mock_detections(
+            detections = _create_detections(
                 xyxy=bboxes,
                 tracker_id=[i for i in range(0, len(bboxes))],
             )

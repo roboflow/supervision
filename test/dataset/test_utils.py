@@ -16,7 +16,7 @@ from supervision.dataset.utils import (
     rle_to_mask,
     train_test_split,
 )
-from test.test_utils import mock_detections
+from test.helpers import _create_detections
 
 T = TypeVar("T")
 
@@ -182,14 +182,14 @@ def test_build_class_index_mapping(
     [
         (
             {},
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
             None,
             pytest.raises(ValueError),
         ),  # empty mapping
         (
             {0: 1},
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
             DoesNotRaise(),
         ),  # single mapping
         (
@@ -200,26 +200,26 @@ def test_build_class_index_mapping(
         ),  # empty detections
         (
             {0: 1, 1: 2},
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
             DoesNotRaise(),
         ),  # multiple mappings
         (
             {0: 1, 1: 2},
-            mock_detections(xyxy=[[0, 0, 10, 10], [0, 0, 10, 10]], class_id=[0, 1]),
-            mock_detections(xyxy=[[0, 0, 10, 10], [0, 0, 10, 10]], class_id=[1, 2]),
+            _create_detections(xyxy=[[0, 0, 10, 10], [0, 0, 10, 10]], class_id=[0, 1]),
+            _create_detections(xyxy=[[0, 0, 10, 10], [0, 0, 10, 10]], class_id=[1, 2]),
             DoesNotRaise(),
         ),  # multiple mappings
         (
             {0: 1, 1: 2},
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[2]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[2]),
             None,
             pytest.raises(ValueError),
         ),  # class_id not in mapping
         (
             {0: 1, 1: 2},
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0], confidence=[0.5]),
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[1], confidence=[0.5]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0], confidence=[0.5]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[1], confidence=[0.5]),
             DoesNotRaise(),
         ),  # confidence is not None
     ],

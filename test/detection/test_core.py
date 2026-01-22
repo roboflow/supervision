@@ -7,7 +7,7 @@ import pytest
 
 from supervision.detection.core import Detections, merge_inner_detection_object_pair
 from supervision.geometry.core import Position
-from test.test_utils import mock_detections
+from test.helpers import _create_detections
 
 PREDICTIONS = np.array(
     [
@@ -135,7 +135,7 @@ TEST_DET_DIFFERENT_METADATA = Detections(
         (
             DETECTIONS,
             DETECTIONS.class_id == 0,
-            mock_detections(
+            _create_detections(
                 xyxy=[[2254, 906, 2447, 1353]], confidence=[0.90538], class_id=[0]
             ),
             DoesNotRaise(),
@@ -143,7 +143,7 @@ TEST_DET_DIFFERENT_METADATA = Detections(
         (
             DETECTIONS,
             DETECTIONS.confidence > 0.5,
-            mock_detections(
+            _create_detections(
                 xyxy=[
                     [2254, 906, 2447, 1353],
                     [2049, 1133, 2226, 1371],
@@ -178,7 +178,7 @@ TEST_DET_DIFFERENT_METADATA = Detections(
         (
             DETECTIONS,
             [0, 2],
-            mock_detections(
+            _create_detections(
                 xyxy=[[2254, 906, 2447, 1353], [727, 1224, 838, 1601]],
                 confidence=[0.90538, 0.51119],
                 class_id=[0, 39],
@@ -188,7 +188,7 @@ TEST_DET_DIFFERENT_METADATA = Detections(
         (
             DETECTIONS,
             np.array([0, 2]),
-            mock_detections(
+            _create_detections(
                 xyxy=[[2254, 906, 2447, 1353], [727, 1224, 838, 1601]],
                 confidence=[0.90538, 0.51119],
                 class_id=[0, 39],
@@ -198,7 +198,7 @@ TEST_DET_DIFFERENT_METADATA = Detections(
         (
             DETECTIONS,
             0,
-            mock_detections(
+            _create_detections(
                 xyxy=[[2254, 906, 2447, 1353]], confidence=[0.90538], class_id=[0]
             ),
             DoesNotRaise(),
@@ -206,7 +206,7 @@ TEST_DET_DIFFERENT_METADATA = Detections(
         (
             DETECTIONS,
             slice(1, 3),
-            mock_detections(
+            _create_detections(
                 xyxy=[[2049, 1133, 2226, 1371], [727, 1224, 838, 1601]],
                 confidence=[0.59002, 0.51119],
                 class_id=[56, 39],
@@ -311,14 +311,14 @@ def test_getitem(
         ),  # Non-empty detections with different data keys
         (
             [
-                mock_detections(
+                _create_detections(
                     xyxy=[[10, 10, 20, 20]],
                     class_id=[1],
                     mask=[np.zeros((4, 4), dtype=bool)],
                 ),
                 Detections.empty(),
             ],
-            mock_detections(
+            _create_detections(
                 xyxy=np.array([[10, 10, 20, 20]]),
                 class_id=[1],
                 mask=[np.zeros((4, 4), dtype=bool)],
@@ -525,61 +525,61 @@ def test_merge(
             DoesNotRaise(),
         ),  # empty detections
         (
-            mock_detections(xyxy=[[10, 10, 20, 20]]),
+            _create_detections(xyxy=[[10, 10, 20, 20]]),
             Position.CENTER,
             np.array([[15, 15]], dtype=np.float32),
             DoesNotRaise(),
         ),  # single detection; center anchor
         (
-            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            _create_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
             Position.CENTER,
             np.array([[15, 15], [25, 25]], dtype=np.float32),
             DoesNotRaise(),
         ),  # two detections; center anchor
         (
-            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            _create_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
             Position.CENTER_LEFT,
             np.array([[10, 15], [20, 25]], dtype=np.float32),
             DoesNotRaise(),
         ),  # two detections; center left anchor
         (
-            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            _create_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
             Position.CENTER_RIGHT,
             np.array([[20, 15], [30, 25]], dtype=np.float32),
             DoesNotRaise(),
         ),  # two detections; center right anchor
         (
-            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            _create_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
             Position.TOP_CENTER,
             np.array([[15, 10], [25, 20]], dtype=np.float32),
             DoesNotRaise(),
         ),  # two detections; top center anchor
         (
-            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            _create_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
             Position.TOP_LEFT,
             np.array([[10, 10], [20, 20]], dtype=np.float32),
             DoesNotRaise(),
         ),  # two detections; top left anchor
         (
-            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            _create_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
             Position.TOP_RIGHT,
             np.array([[20, 10], [30, 20]], dtype=np.float32),
             DoesNotRaise(),
         ),  # two detections; top right anchor
         (
-            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            _create_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
             Position.BOTTOM_CENTER,
             np.array([[15, 20], [25, 30]], dtype=np.float32),
             DoesNotRaise(),
         ),  # two detections; bottom center anchor
         (
-            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            _create_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
             Position.BOTTOM_LEFT,
             np.array([[10, 20], [20, 30]], dtype=np.float32),
             DoesNotRaise(),
         ),  # two detections; bottom left anchor
         (
-            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            _create_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
             Position.BOTTOM_RIGHT,
             np.array([[20, 20], [30, 30]], dtype=np.float32),
             DoesNotRaise(),
@@ -606,38 +606,38 @@ def test_get_anchor_coordinates(
             True,
         ),  # empty detections
         (
-            mock_detections(xyxy=[[10, 10, 20, 20]]),
-            mock_detections(xyxy=[[10, 10, 20, 20]]),
+            _create_detections(xyxy=[[10, 10, 20, 20]]),
+            _create_detections(xyxy=[[10, 10, 20, 20]]),
             True,
         ),  # detections with xyxy field
         (
-            mock_detections(xyxy=[[10, 10, 20, 20]], confidence=[0.5]),
-            mock_detections(xyxy=[[10, 10, 20, 20]], confidence=[0.5]),
+            _create_detections(xyxy=[[10, 10, 20, 20]], confidence=[0.5]),
+            _create_detections(xyxy=[[10, 10, 20, 20]], confidence=[0.5]),
             True,
         ),  # detections with xyxy, confidence fields
         (
-            mock_detections(xyxy=[[10, 10, 20, 20]], confidence=[0.5]),
-            mock_detections(xyxy=[[10, 10, 20, 20]]),
+            _create_detections(xyxy=[[10, 10, 20, 20]], confidence=[0.5]),
+            _create_detections(xyxy=[[10, 10, 20, 20]]),
             False,
         ),  # detection with xyxy field + detection with xyxy, confidence fields
         (
-            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1]}),
-            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1]}),
+            _create_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1]}),
+            _create_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1]}),
             True,
         ),  # detections with xyxy, data fields
         (
-            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1]}),
-            mock_detections(xyxy=[[10, 10, 20, 20]]),
+            _create_detections(xyxy=[[10, 10, 20, 20]], data={"test": [1]}),
+            _create_detections(xyxy=[[10, 10, 20, 20]]),
             False,
         ),  # detection with xyxy field + detection with xyxy, data fields
         (
-            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test_1": [1]}),
-            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test_2": [1]}),
+            _create_detections(xyxy=[[10, 10, 20, 20]], data={"test_1": [1]}),
+            _create_detections(xyxy=[[10, 10, 20, 20]], data={"test_2": [1]}),
             False,
         ),  # detections with xyxy, and different data field names
         (
-            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test_1": [1]}),
-            mock_detections(xyxy=[[10, 10, 20, 20]], data={"test_1": [3]}),
+            _create_detections(xyxy=[[10, 10, 20, 20]], data={"test_1": [1]}),
+            _create_detections(xyxy=[[10, 10, 20, 20]], data={"test_1": [3]}),
             False,
         ),  # detections with xyxy, and different data field values
     ],
@@ -652,19 +652,19 @@ def test_equal(
     ("detection_1", "detection_2", "expected_result", "exception"),
     [
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[10, 10, 30, 30]],
             ),
-            mock_detections(
+            _create_detections(
                 xyxy=[[10, 10, 30, 30]],
             ),
-            mock_detections(
+            _create_detections(
                 xyxy=[[10, 10, 30, 30]],
             ),
             DoesNotRaise(),
         ),  # Merge with self
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[10, 10, 30, 30]],
             ),
             Detections.empty(),
@@ -672,17 +672,17 @@ def test_equal(
             pytest.raises(ValueError),
         ),  # merge with empty: error
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[10, 10, 30, 30]],
             ),
-            mock_detections(
+            _create_detections(
                 xyxy=[[10, 10, 30, 30], [40, 40, 60, 60]],
             ),
             None,
             pytest.raises(ValueError),
         ),  # merge with 2+ objects: error
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[10, 10, 30, 30]],
                 confidence=[0.1],
                 class_id=[1],
@@ -690,7 +690,7 @@ def test_equal(
                 tracker_id=[1],
                 data={"key_1": [1]},
             ),
-            mock_detections(
+            _create_detections(
                 xyxy=[[20, 20, 40, 40]],
                 confidence=[0.1],
                 class_id=[2],
@@ -698,7 +698,7 @@ def test_equal(
                 tracker_id=[2],
                 data={"key_2": [2]},
             ),
-            mock_detections(
+            _create_detections(
                 xyxy=[[10, 10, 40, 40]],
                 confidence=[0.1],
                 class_id=[1],
@@ -709,7 +709,7 @@ def test_equal(
             DoesNotRaise(),
         ),  # Same confidence - merge box & mask, tie-break to detection_1
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[0, 0, 20, 20]],
                 confidence=[0.1],
                 class_id=[1],
@@ -717,7 +717,7 @@ def test_equal(
                 tracker_id=[1],
                 data={"key_1": [1]},
             ),
-            mock_detections(
+            _create_detections(
                 xyxy=[[10, 10, 50, 50]],
                 confidence=[0.2],
                 class_id=[2],
@@ -725,7 +725,7 @@ def test_equal(
                 tracker_id=[2],
                 data={"key_2": [2]},
             ),
-            mock_detections(
+            _create_detections(
                 xyxy=[[0, 0, 50, 50]],
                 confidence=[(1 * 0.1 + 4 * 0.2) / 5],
                 class_id=[2],
@@ -736,7 +736,7 @@ def test_equal(
             DoesNotRaise(),
         ),  # Different confidence, different area
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[10, 10, 30, 30]],
                 confidence=None,
                 class_id=[1],
@@ -744,7 +744,7 @@ def test_equal(
                 tracker_id=[1],
                 data={"key_1": [1]},
             ),
-            mock_detections(
+            _create_detections(
                 xyxy=[[20, 20, 40, 40]],
                 confidence=None,
                 class_id=[2],
@@ -752,7 +752,7 @@ def test_equal(
                 tracker_id=[2],
                 data={"key_2": [2]},
             ),
-            mock_detections(
+            _create_detections(
                 xyxy=[[10, 10, 40, 40]],
                 confidence=None,
                 class_id=[1],
@@ -763,11 +763,11 @@ def test_equal(
             DoesNotRaise(),
         ),  # No confidence at all
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[0, 0, 20, 20]],
                 confidence=None,
             ),
-            mock_detections(
+            _create_detections(
                 xyxy=[[10, 10, 30, 30]],
                 confidence=[0.2],
             ),
@@ -775,11 +775,11 @@ def test_equal(
             pytest.raises(ValueError),
         ),  # confidence: None + [x]
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[0, 0, 20, 20]],
                 mask=[np.array([[1, 1, 0], [1, 1, 0], [0, 0, 0]], dtype=bool)],
             ),
-            mock_detections(
+            _create_detections(
                 xyxy=[[10, 10, 30, 30]],
                 mask=None,
             ),
@@ -787,8 +787,8 @@ def test_equal(
             pytest.raises(ValueError),
         ),  # mask: None + [x]
         (
-            mock_detections(xyxy=[[0, 0, 20, 20]], tracker_id=[1]),
-            mock_detections(
+            _create_detections(xyxy=[[0, 0, 20, 20]], tracker_id=[1]),
+            _create_detections(
                 xyxy=[[10, 10, 30, 30]],
                 tracker_id=None,
             ),
@@ -796,8 +796,8 @@ def test_equal(
             pytest.raises(ValueError),
         ),  # tracker_id: None + []
         (
-            mock_detections(xyxy=[[0, 0, 20, 20]], class_id=[1]),
-            mock_detections(
+            _create_detections(xyxy=[[0, 0, 20, 20]], class_id=[1]),
+            _create_detections(
                 xyxy=[[10, 10, 30, 30]],
                 class_id=None,
             ),

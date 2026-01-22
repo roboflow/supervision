@@ -14,7 +14,7 @@ from supervision.detection.utils.iou_and_nms import (
     mask_non_max_merge,
     mask_non_max_suppression,
 )
-from test.test_utils import random_boxes
+from test.helpers import _generate_random_boxes
 
 
 @pytest.mark.parametrize(
@@ -1106,8 +1106,8 @@ def test_box_iou_batch_symmetric_large(
     num_det: int,
     overlap_metric: OverlapMetric,
 ) -> None:
-    boxes_true = random_boxes(num_true)
-    boxes_det = random_boxes(num_det)
+    boxes_true = _generate_random_boxes(num_true)
+    boxes_det = _generate_random_boxes(num_det)
 
     result_ab = box_iou_batch(
         boxes_true=boxes_true,
