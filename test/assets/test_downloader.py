@@ -85,13 +85,17 @@ class TestDownloadAssets:
         mock_response.raise_for_status = MagicMock()
         mock_get.return_value = mock_response
 
-        mock_tqdm.return_value.__enter__ = MagicMock()
-        mock_tqdm.return_value.__exit__ = MagicMock()
+        mock_tqdm.wrapattr.return_value.__enter__ = MagicMock(
+            return_value=mock_response.raw
+        )
+        mock_tqdm.wrapattr.return_value.__exit__ = MagicMock()
 
         result = download_assets(filename)
         assert result == filename
         mock_print.assert_called_with(f"Downloading {filename} assets \n")
         mock_get.assert_called_once()
+        mock_response.raise_for_status.assert_called_once_with()
+        mock_copyfileobj.assert_called_once()
 
     def test_invalid_asset(self):
         """Test download_assets with invalid asset name."""
@@ -129,8 +133,8 @@ class TestDownloadAssets:
         mock_response.raise_for_status = MagicMock()
         mock_get.return_value = mock_response
 
-        mock_tqdm.return_value.__enter__ = MagicMock()
-        mock_tqdm.return_value.__exit__ = MagicMock()
+        mock_tqdm.wrapattr.return_value.__enter__ = MagicMock()
+        mock_tqdm.wrapattr.return_value.__exit__ = MagicMock()
 
         result = download_assets(asset)
         assert result == asset.value
