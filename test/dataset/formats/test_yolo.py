@@ -185,7 +185,7 @@ def test_with_mask(
                 ),
             ),
             DoesNotRaise(),
-        ),  # test rounding behavior with polygon coordinates that require rounding not flooring
+        ),
     ],
 )
 def test_yolo_annotations_to_detections(
