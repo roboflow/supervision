@@ -206,27 +206,33 @@ def process_video(
     progress_message: str = "Processing video",
     skip_on_error: bool = False,
 ) -> None:
-    """Process video frames using a three-stage threaded pipeline with controlled memory usage.
+    """Process video frames using a three-stage threaded pipeline with controlled
+    memory usage.
 
-    Reads frames in a background thread, processes them via user callback in the main thread,
-    and writes results in another background thread. Uses bounded queues to limit memory.
+    Reads frames in a background thread, processes them via user callback in the main
+    thread, and writes results in another background thread. Uses bounded queues to
+    limit memory.
 
     Args:
         source_path: Path to the input video file.
         target_path: Path where the processed video will be saved.
-        callback: Function called for each frame. Receives frame (`numpy.ndarray`, shape `(H, W, 3)`)
-            and zero-based frame index; must return processed frame of the same shape.
-        max_frames: Maximum number of frames to process. If `None`, processes entire video.
+        callback: Function called for each frame. Receives frame (`numpy.ndarray`,
+            shape `(H, W, 3)`) and zero-based frame index; must return processed frame
+            of the same shape.
+        max_frames: Maximum number of frames to process. If `None`, processes entire
+            video.
         prefetch: Maximum number of raw frames kept in memory before processing.
         writer_buffer: Maximum number of processed frames kept in memory before writing.
         show_progress: Whether to display a tqdm progress bar.
         progress_message: Text shown in the progress bar when enabled.
-        skip_on_error: If `True`, silently skip frames where callback raises an exception.
-            If `False` (default), exception is logged and re-raised after cleanup.
+        skip_on_error: If `True`, silently skip frames where callback raises an
+            exception. If `False` (default), exception is logged and re-raised after
+            cleanup.
 
     Raises:
         RuntimeError: When source video cannot be opened.
-        Exception: Any unhandled exception raised by the callback (unless `skip_on_error=True`).
+        Exception: Any unhandled exception raised by the callback (unless
+            `skip_on_error=True`).
     """
     video_info = VideoInfo.from_video_path(video_path=source_path)
     total_frames = (
@@ -264,7 +270,7 @@ def process_video(
                         time.sleep(0.01)  # light backoff
         finally:
             video.release()
-            # best-effort sentinel – never block forever during shutdown
+            # best-effort sentinel, never block forever during shutdown
             try:
                 frame_read_queue.put(None, timeout=0.1)
             except Full:
@@ -328,7 +334,7 @@ def process_video(
         finally:
             stop_event.set()
 
-            # best-effort sentinel for writer – never block shutdown
+            # best-effort sentinel for writer, never block shutdown
             try:
                 frame_write_queue.put(None, timeout=0.1)
             except Full:
