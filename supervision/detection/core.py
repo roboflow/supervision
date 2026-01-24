@@ -779,9 +779,7 @@ class Detections:
 
         width, height = resolution_wh
         for polygon, confidence, class_id in polygons_data:
-            mask = polygon_to_mask(
-                polygon=polygon, resolution_wh=(width, height)
-            )
+            mask = polygon_to_mask(polygon=polygon, resolution_wh=(width, height))
             masks.append(mask.astype(bool))
             confidences.append(confidence)
             class_ids.append(class_id)
