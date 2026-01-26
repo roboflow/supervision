@@ -5,7 +5,7 @@ import time
 from collections import deque
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
-from queue import Queue, Empty
+from queue import Empty, Queue
 
 import cv2
 import numpy as np
