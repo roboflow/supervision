@@ -324,6 +324,9 @@ def process_video(
             try:
                 frame_write_queue.put(None, timeout=1)
             except Full:
+                # Queue is full; this is a best-effort attempt to enqueue the sentinel.
+                # If we cannot enqueue it, the writer thread will still complete based
+                # on previously queued frames or other shutdown conditions.
                 pass
             if not read_finished:
                 while True:
@@ -340,8 +343,8 @@ def process_video(
                             break
                         # Reader is still alive; continue waiting for frames.
                         continue
-            reader_worker.join()
-            writer_worker.join()
+            reader_worker.join(timeout=10)
+            writer_worker.join(timeout=10)
             progress_bar.close()
             if exception_in_worker is not None:
                 raise exception_in_worker
