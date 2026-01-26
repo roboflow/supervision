@@ -58,3 +58,9 @@ status: new
 </div>
 
 :::supervision.detection.utils.converters.polygon_to_xyxy
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.converters.xyxy_to_mask">xyxy_to_mask</a></h2>
+</div>
+
+:::supervision.detection.utils.converters.xyxy_to_mask

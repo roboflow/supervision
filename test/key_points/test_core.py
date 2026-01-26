@@ -22,7 +22,7 @@ KEY_POINTS = mock_key_points(
 
 
 @pytest.mark.parametrize(
-    "key_points, index, expected_result, exception",
+    ("key_points", "index", "expected_result", "exception"),
     [
         (
             KeyPoints.empty(),
