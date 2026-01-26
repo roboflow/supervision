@@ -52,5 +52,48 @@ def mock_key_points(
     )
 
 
+def random_boxes(
+    count: int,
+    image_size: tuple[int, int] = (1920, 1080),
+    min_box_size: int = 20,
+    max_box_size: int = 200,
+    seed: int | None = None,
+) -> np.ndarray:
+    """
+    Generate random bounding boxes within given image dimensions and size constraints.
+
+    Creates `count` bounding boxes randomly positioned and sized, ensuring each
+    stays within image bounds and has width and height in the specified range.
+
+    Args:
+        count (`int`): Number of random bounding boxes to generate.
+        image_size (`tuple[int, int]`): Image size as `(width, height)`.
+        min_box_size (`int`): Minimum side length (pixels) for generated boxes.
+        max_box_size (`int`): Maximum side length (pixels) for generated boxes.
+        seed (`int` or `None`): Optional random seed for reproducibility.
+
+    Returns:
+        (`numpy.ndarray`): Array of shape `(count, 4)` with bounding boxes as
+            `(x_min, y_min, x_max, y_max)`.
+    """
+    rng = np.random.default_rng(seed)
+
+    img_w, img_h = image_size
+    out = np.zeros((count, 4), dtype=np.float32)
+
+    for i in range(count):
+        w = rng.uniform(min_box_size, max_box_size)
+        h = rng.uniform(min_box_size, max_box_size)
+
+        x_min = rng.uniform(0, img_w - w)
+        y_min = rng.uniform(0, img_h - h)
+        x_max = x_min + w
+        y_max = y_min + h
+
+        out[i] = (x_min, y_min, x_max, y_max)
+
+    return out
+
+
 def assert_almost_equal(actual, expected, tolerance=1e-5):
     assert abs(actual - expected) < tolerance, f"Expected {expected}, but got {actual}."

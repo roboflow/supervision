@@ -11,7 +11,7 @@ from test.test_utils import mock_detections
 
 
 @pytest.mark.parametrize(
-    "detections, detection_idx, color_lookup, expected_result, exception",
+    ("detections", "detection_idx", "color_lookup", "expected_result", "exception"),
     [
         (
             mock_detections(
@@ -111,7 +111,7 @@ def test_resolve_color_idx(
 
 
 @pytest.mark.parametrize(
-    "text, max_line_length, expected_result, exception",
+    ("text", "max_line_length", "expected_result", "exception"),
     [
         (None, None, [""], DoesNotRaise()),  # text is None
         ("", None, [""], DoesNotRaise()),  # empty string

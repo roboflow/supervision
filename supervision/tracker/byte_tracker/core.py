@@ -247,7 +247,7 @@ class ByteTrack:
             if strack_pool[i].state == TrackState.Tracked
         ]
         dists = matching.iou_distance(r_tracked_stracks, detections_second)
-        matches, u_track, u_detection_second = matching.linear_assignment(
+        matches, u_track, _u_detection_second = matching.linear_assignment(
             dists, thresh=0.5
         )
         for itracked, idet in matches:

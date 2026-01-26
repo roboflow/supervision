@@ -29,7 +29,7 @@ POLYGON = np.array([[100, 100], [200, 100], [200, 200], [100, 200]])
 
 
 @pytest.mark.parametrize(
-    "detections, polygon_zone, expected_results, exception",
+    ("detections", "polygon_zone", "expected_results", "exception"),
     [
         (
             DETECTIONS,
@@ -90,7 +90,7 @@ def test_polygon_zone_trigger(
 
 
 @pytest.mark.parametrize(
-    "polygon, triggering_anchors, exception",
+    ("polygon", "triggering_anchors", "exception"),
     [
         (POLYGON, [sv.Position.CENTER], DoesNotRaise()),
         (
