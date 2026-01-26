@@ -35,7 +35,7 @@ def test_process_video_exception_handling(dummy_video_path, tmp_path):
         )
 
 
-def test_process_video_success_after_fix(dummy_video_path, tmp_path):
+def test_process_video_success(dummy_video_path, tmp_path):
     target_path = str(tmp_path / "target_success.mp4")
 
     def callback_success(frame, index):
@@ -47,6 +47,24 @@ def test_process_video_success_after_fix(dummy_video_path, tmp_path):
     )
 
     assert os.path.exists(target_path)
+
+
+def test_process_video_exception_with_small_buffer(dummy_video_path, tmp_path):
+    target_path = str(tmp_path / "target_exception_small_buffer.mp4")
+
+    def callback_with_exception(frame, index):
+        if index == 5:
+            raise ValueError("Test exception at frame 5")
+        return frame
+
+    with pytest.raises(ValueError, match="Test exception at frame 5"):
+        process_video(
+            source_path=dummy_video_path,
+            target_path=target_path,
+            callback=callback_with_exception,
+            prefetch=1,
+            writer_buffer=1,
+        )
 
 
 def test_process_video_max_frames(dummy_video_path, tmp_path):
