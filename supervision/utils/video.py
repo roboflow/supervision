@@ -332,7 +332,7 @@ def process_video(
                         read_item = frame_read_queue.get(timeout=1)
                         if read_item is None:
                             break
-                    # If we timeout waiting for a frame, only assume failure if the reader
+                    # If we timeout waiting for a frame, only assume failure if reader
                     # thread is no longer alive. Otherwise, keep waiting as the reader
                     # may simply be slow (for example, due to a slow source).
                     except Empty:
