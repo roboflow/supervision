@@ -72,7 +72,7 @@ def test_color_as_hex(
 
 
 @pytest.mark.parametrize(
-    "color_tuple, expected_result, exception",
+    ("color_tuple", "expected_result", "exception"),
     [
         ((255, 255, 0, 128), Color(r=255, g=255, b=0, a=128), DoesNotRaise()),
         ((0, 255, 255, 255), Color(r=0, g=255, b=255, a=255), DoesNotRaise()),
@@ -90,7 +90,7 @@ def test_color_from_rgba_tuple(
 
 
 @pytest.mark.parametrize(
-    "color_tuple, expected_result, exception",
+    ("color_tuple", "expected_result", "exception"),
     [
         ((0, 255, 255, 128), Color(r=255, g=255, b=0, a=128), DoesNotRaise()),
         ((255, 255, 0, 255), Color(r=0, g=255, b=255, a=255), DoesNotRaise()),
@@ -108,7 +108,7 @@ def test_color_from_bgra_tuple(
 
 
 @pytest.mark.parametrize(
-    "color, expected_result, exception",
+    ("color", "expected_result", "exception"),
     [
         (Color(r=255, g=255, b=0, a=128), (255, 255, 0, 128), DoesNotRaise()),
         (Color(r=0, g=255, b=255, a=255), (0, 255, 255, 255), DoesNotRaise()),
@@ -126,7 +126,7 @@ def test_color_as_rgba(
 
 
 @pytest.mark.parametrize(
-    "color, expected_result, exception",
+    ("color", "expected_result", "exception"),
     [
         (Color(r=255, g=255, b=0, a=128), (0, 255, 255, 128), DoesNotRaise()),
         (Color(r=0, g=255, b=255, a=255), (255, 255, 0, 255), DoesNotRaise()),
