@@ -123,7 +123,7 @@ BAD_CONF_MATRIX = worsen_ideal_conf_matrix(
 
 
 @pytest.mark.parametrize(
-    "detections, with_confidence, expected_result, exception",
+    ("detections", "with_confidence", "expected_result", "exception"),
     [
         (
             Detections.empty(),
@@ -187,8 +187,15 @@ def test_detections_to_tensor(
 
 
 @pytest.mark.parametrize(
-    "predictions, targets, classes, conf_threshold, iou_threshold, expected_result,"
-    " exception",
+    (
+        "predictions",
+        "targets",
+        "classes",
+        "conf_threshold",
+        "iou_threshold",
+        "expected_result",
+        "exception",
+    ),
     [
         (
             DETECTION_TENSORS,
@@ -359,8 +366,15 @@ def test_from_tensors(
 
 
 @pytest.mark.parametrize(
-    "predictions, targets, num_classes, conf_threshold, iou_threshold, expected_result,"
-    " exception",
+    (
+        "predictions",
+        "targets",
+        "num_classes",
+        "conf_threshold",
+        "iou_threshold",
+        "expected_result",
+        "exception",
+    ),
     [
         (
             DETECTION_TENSORS[0],
@@ -396,7 +410,7 @@ def test_evaluate_detection_batch(
 
 
 @pytest.mark.parametrize(
-    "matches, expected_result, exception",
+    ("matches", "expected_result", "exception"),
     [
         (
             IDEAL_MATCHES,
@@ -417,7 +431,7 @@ def test_drop_extra_matches(
 
 
 @pytest.mark.parametrize(
-    "recall, precision, expected_result, exception",
+    ("recall", "precision", "expected_result", "exception"),
     [
         (
             np.array([1.0]),

@@ -21,7 +21,7 @@ https://github.com/roboflow/supervision/assets/26109316/f84db7b5-79e2-4142-a1da-
     cd supervision/examples/count_people_in_zone
     ```
 
-- setup python environment and activate it \[optional\]
+- setup python environment and activate it [optional]
 
     ```bash
     python3 -m venv venv
@@ -110,7 +110,7 @@ https://github.com/roboflow/supervision/assets/26109316/f84db7b5-79e2-4142-a1da-
 
     ```bash
     python inference_example.py \
-        --roboflow_api_key <ROBOFLOW API KEY> \
+        --roboflow_api_key "ROBOFLOW_API_KEY" \
         --zone_configuration_path data/multi-zone-config.json \
         --source_video_path data/market-square.mp4 \
         --confidence_threshold 0.3 \

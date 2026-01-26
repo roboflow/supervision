@@ -74,7 +74,7 @@ class MockDataclass:
 
 
 @pytest.mark.parametrize(
-    "input_instance, include_properties, expected, exception",
+    ("input_instance", "include_properties", "expected", "exception"),
     [
         (
             MockClass,
@@ -172,20 +172,6 @@ class MockDataclass:
                 tracker_id=np.array([1, 2]),
                 data={"key_1": [1, 2], "key_2": [3, 4]},
             ),
-            False,
-            {
-                "xyxy",
-                "class_id",
-                "confidence",
-                "mask",
-                "tracker_id",
-                "data",
-                "metadata",
-            },
-            DoesNotRaise(),
-        ),
-        (
-            Detections.empty(),
             False,
             {
                 "xyxy",

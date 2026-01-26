@@ -31,7 +31,7 @@ def _arrays_almost_equal(
 
 
 @pytest.mark.parametrize(
-    "lines, expected_result, exception",
+    ("lines", "expected_result", "exception"),
     [
         ([], False, DoesNotRaise()),  # empty yolo annotation file
         (
@@ -44,7 +44,6 @@ def _arrays_almost_equal(
             False,
             DoesNotRaise(),
         ),  # yolo annotation file with two lines with box
-        (["0 0.5 0.5 0.2 0.2"], False, DoesNotRaise()),
         (
             ["0 0.4 0.4 0.6 0.4 0.6 0.6 0.4 0.6"],
             True,
@@ -66,7 +65,7 @@ def test_with_mask(
 
 
 @pytest.mark.parametrize(
-    "lines, resolution_wh, with_masks, expected_result, exception",
+    ("lines", "resolution_wh", "with_masks", "expected_result", "exception"),
     [
         (
             [],
@@ -169,6 +168,24 @@ def test_with_mask(
             ),
             DoesNotRaise(),
         ),  # yolo annotation file with two lines - one box and one polygon
+        (
+            ["0 0.4056 0.4078 0.5967 0.4089 0.5978 0.6012 0.4067 0.5989"],
+            (1000, 1000),
+            True,
+            Detections(
+                xyxy=np.array([[405.6, 407.8, 597.8, 601.2]], dtype=np.float32),
+                class_id=np.array([0], dtype=int),
+                mask=np.array(
+                    [
+                        _mock_simple_mask(
+                            resolution_wh=(1000, 1000), box=[406, 408, 598, 601]
+                        )
+                    ],
+                    dtype=bool,
+                ),
+            ),
+            DoesNotRaise(),
+        ),
     ],
 )
 def test_yolo_annotations_to_detections(
@@ -190,7 +207,7 @@ def test_yolo_annotations_to_detections(
 
 
 @pytest.mark.parametrize(
-    "image_name, expected_result, exception",
+    ("image_name", "expected_result", "exception"),
     [
         ("image.png", "image.txt", DoesNotRaise()),  # simple png image
         ("image.jpeg", "image.txt", DoesNotRaise()),  # simple jpeg image
@@ -211,7 +228,7 @@ def test_image_name_to_annotation_name(
 
 
 @pytest.mark.parametrize(
-    "xyxy, class_id, image_shape, polygon, expected_result, exception",
+    ("xyxy", "class_id", "image_shape", "polygon", "expected_result", "exception"),
     [
         (
             np.array([100, 100, 200, 200], dtype=np.float32),
