@@ -23,7 +23,7 @@ repos:
       - id: mixed-line-ending
 
   -   repo: https://github.com/tox-dev/pyproject-fmt
-      rev: v2.6.0
+      rev: v2.11.1
       hooks:
         - id: pyproject-fmt
 
@@ -33,7 +33,7 @@ repos:
         - id: validate-pyproject
 
   -   repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.14.11
+      rev: v0.14.14
       hooks:
       -   id: ruff-check
           args: [--fix]
