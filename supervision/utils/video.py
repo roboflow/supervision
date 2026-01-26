@@ -5,7 +5,7 @@ import time
 from collections import deque
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
-from queue import Queue
+from queue import Queue, Empty
 
 import cv2
 import numpy as np
@@ -315,18 +315,22 @@ def process_video(
                 frame_index, frame = read_item
                 try:
                     processed_frame = callback(frame, frame_index)
+                    frame_write_queue.put(processed_frame)
+                    progress_bar.update(1)
                 except Exception as exc:
                     exception_in_worker = exc
                     break
-
-                frame_write_queue.put(processed_frame)
-                progress_bar.update(1)
         finally:
             frame_write_queue.put(None)
             if not read_finished:
                 while True:
-                    read_item = frame_read_queue.get()
-                    if read_item is None:
+                    try:
+                        # Use a timeout to prevent indefinite blocking if reader thread fails
+                        read_item = frame_read_queue.get(timeout=1)
+                        if read_item is None:
+                            break
+                    except Empty:
+                        # If we timeout waiting for a frame, assume the reader thread failed
                         break
             reader_worker.join()
             writer_worker.join()
