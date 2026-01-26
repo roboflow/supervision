@@ -90,7 +90,7 @@ docs = [
 build = [
   "build>=0.10,<1.5",
   "twine>=5.1.1,<7",
-  "wheel>=0.40,<0.46",
+  "wheel>=0.40,<0.47",
 ]
 
 [tool.setuptools]
