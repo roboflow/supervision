@@ -11,7 +11,7 @@ from supervision.dataset.formats.pascal_voc import (
     object_to_pascal_voc,
     parse_polygon_points,
 )
-from test.test_utils import mock_detections
+from test.helpers import _create_detections
 
 
 def are_xml_elements_equal(elem1, elem2):
@@ -31,7 +31,7 @@ def are_xml_elements_equal(elem1, elem2):
 
 
 @pytest.mark.parametrize(
-    "xyxy, name, polygon, expected_result, exception",
+    ("xyxy", "name", "polygon", "expected_result", "exception"),
     [
         (
             np.array([0, 0, 10, 10]),
@@ -71,7 +71,7 @@ def test_object_to_pascal_voc(
 
 
 @pytest.mark.parametrize(
-    "polygon_element, expected_result, exception",
+    ("polygon_element", "expected_result", "exception"),
     [
         (
             ElementTree.fromstring(
@@ -116,14 +116,21 @@ NO_DETECTIONS = """<annotation></annotation>"""
 
 
 @pytest.mark.parametrize(
-    "xml_string, classes, resolution_wh, force_masks, expected_result, exception",
+    (
+        "xml_string",
+        "classes",
+        "resolution_wh",
+        "force_masks",
+        "expected_result",
+        "exception",
+    ),
     [
         (
             ONE_CLASS_ONE_BBOX,
             ["test"],
             (100, 100),
             False,
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
             DoesNotRaise(),
         ),
         (
@@ -131,7 +138,7 @@ NO_DETECTIONS = """<annotation></annotation>"""
             ["test"],
             (100, 100),
             False,
-            mock_detections(
+            _create_detections(
                 xyxy=np.array([[0, 0, 10, 10], [10, 10, 20, 20]]), class_id=[0, 0]
             ),
             DoesNotRaise(),
@@ -141,7 +148,7 @@ NO_DETECTIONS = """<annotation></annotation>"""
             ["test", "test2"],
             (100, 100),
             False,
-            mock_detections(
+            _create_detections(
                 xyxy=np.array([[0, 0, 10, 10], [20, 30, 30, 40], [10, 10, 20, 20]]),
                 class_id=[0, 0, 1],
             ),
@@ -152,7 +159,7 @@ NO_DETECTIONS = """<annotation></annotation>"""
             [],
             (100, 100),
             False,
-            mock_detections(xyxy=np.empty((0, 4)), class_id=[]),
+            _create_detections(xyxy=np.empty((0, 4)), class_id=[]),
             DoesNotRaise(),
         ),
     ],

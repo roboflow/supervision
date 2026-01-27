@@ -5,7 +5,7 @@ import supervision as sv
 
 
 @pytest.mark.parametrize(
-    "detections, expected_results",
+    ("detections", "expected_results"),
     [
         (
             [

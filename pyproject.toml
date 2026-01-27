@@ -1,219 +1,185 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [ "setuptools>=61" ]
+
 [project]
 name = "supervision"
+version = "0.28.0rc0"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
-license = { text = "MIT" }
-version = "0.27.0"
 readme = "README.md"
-requires-python = ">=3.9"
-authors = [
-    { name = "Piotr Skalski", email = "piotr.skalski92@gmail.com" }
-]
-maintainers = [
-    { name = "Piotr Skalski", email = "piotr.skalski92@gmail.com" },
-]
 keywords = [
-    "machine-learning",
-    "deep-learning",
-    "vision",
-    "ML",
-    "DL",
-    "AI",
-    "Roboflow",
+  "AI",
+  "deep-learning",
+  "DL",
+  "machine-learning",
+  "ML",
+  "Roboflow",
+  "vision",
 ]
+license = { text = "MIT" }
+maintainers = [
+  { name = "Piotr Skalski", email = "piotr@roboflow.com" },
+]
+authors = [
+  { name = "Roboflow et al.", email = "develop@roboflow.com" },
+]
+requires-python = ">=3.9"
 classifiers = [
-    'Development Status :: 4 - Beta',
-    'Intended Audience :: Developers',
-    'Intended Audience :: Education',
-    'Intended Audience :: Science/Research',
-    'License :: OSI Approved :: MIT License',
-    'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3 :: Only',
-    'Topic :: Software Development',
-    'Topic :: Scientific/Engineering',
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "Topic :: Scientific/Engineering :: Image Recognition",
-    'Typing :: Typed',
-    'Operating System :: Microsoft :: Windows',
-    'Operating System :: POSIX :: Linux',
-    'Operating System :: MacOS',
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Education",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Multimedia :: Graphics",
+  "Topic :: Multimedia :: Video",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Scientific/Engineering :: Image Recognition",
+  "Topic :: Software Development",
+  "Typing :: Typed",
 ]
 dependencies = [
-    "numpy>=1.21.2",
-    "scipy>=1.10.0",
-    "matplotlib>=3.6.0",
-    "pyyaml>=5.3",
-    "defusedxml>=0.7.1",
-    "pillow>=9.4",
-    "requests>=2.26.0",
-    "tqdm>=4.62.3",
-    "opencv-python>=4.5.5.64"
+  "defusedxml>=0.7.1",
+  "matplotlib>=3.6",
+  "numpy>=1.21.2",
+  "opencv-python>=4.5.5.64",
+  "pillow>=9.4",
+  "pyyaml>=5.3",
+  "requests>=2.26",
+  "scipy>=1.10",
+  "tqdm>=4.62.3",
 ]
 
-[project.urls]
-Homepage = "https://github.com/roboflow/supervision"
-Repository = "https://github.com/roboflow/supervision"
-Documentation = "https://supervision.roboflow.com/latest/"
-
-[project.optional-dependencies]
-metrics = [
-    "pandas>=2.0.0",
+optional-dependencies.metrics = [
+  "pandas>=2",
 ]
+urls.Documentation = "https://supervision.roboflow.com/latest/"
+urls.Homepage = "https://github.com/roboflow/supervision"
+urls.Repository = "https://github.com/roboflow/supervision"
 
 [dependency-groups]
 dev = [
-    "pytest>=7.2.2,<9.0.0",
-    "tox>=4.11.4",
-    "notebook>=6.5.3,<8.0.0",
-    "ipywidgets>=8.1.1",
-    "jupytext>=1.16.1",
-    "nbconvert>=7.14.2",
-    "docutils!=0.21",
-    "pre-commit>=3.8.0"
+  "docutils!=0.21",
+  "ipywidgets>=8.1.1",
+  "jupytext>=1.16.1",
+  "nbconvert>=7.14.2",
+  "notebook>=6.5.3,<8",
+  "pre-commit>=3.8",
+  "pytest>=7.2.2,<9",
+  "pytest-cov>=4,<8",
+  "tox>=4.11.4",
 ]
 docs = [
-    "mkdocs-material[imaging]>=9.5.5",
-    "mkdocstrings>=0.25.2,<0.31.0",
-    "mkdocstrings-python>=1.10.9, <2.0.0",  # todo: breaking changes in 2.x
-    "mike>=2.0.0",
-    "mkdocs-jupyter>=0.24.3",
-    "mkdocs-git-committers-plugin-2>=2.4.1; python_version >= '3.9' and python_version < '4'",
-    "mkdocs-git-revision-date-localized-plugin>=1.2.4"
+  "mike>=2",
+  "mkdocs-git-committers-plugin-2>=2.4.1; python_version>='3.9' and python_version<'4'",
+  "mkdocs-git-revision-date-localized-plugin>=1.2.4",
+  "mkdocs-jupyter>=0.24.3",
+  "mkdocs-material[imaging]>=9.7",
+  "mkdocstrings>=0.25.2,<0.31",
+  "mkdocstrings-python>=1.10.9,<2",                                                      # todo: breaking changes in 2.x
 ]
 build = [
-    "twine>=5.1.1,<7.0.0",
-    "wheel>=0.40,<0.46",
-    "build>=0.10,<1.4"
+  "build>=0.10,<1.5",
+  "twine>=5.1.1,<7",
+  "wheel>=0.40,<0.47",
 ]
 
-[tool.bandit]
-target = ["test", "supervision"]
-tests = ["B201", "B301", "B318", "B314", "B303", "B413", "B412"]
+[tool.setuptools]
+include-package-data = false
 
-[tool.autoflake]
-check = true
-imports = ["cv2", "supervision"]
+[tool.setuptools.packages.find]
+include = [ "supervision*" ]
+exclude = [ "docs*", "test*", "examples*" ]
+
+[tool.setuptools.package-data]
+supervision = [ "py.typed" ]
 
 [tool.ruff]
 target-version = "py39"
 
-# Exclude a variety of commonly ignored directories.
-exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".git-rewrite",
-    ".hg",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "venv",
-    "yarn-error.log",
-    "yarn.lock",
-    "docs",
-]
-
 line-length = 88
 indent-width = 4
 
-[tool.ruff.lint]
-# Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-select = ["E", "F", "I", "A", "Q", "W", "RUF", "UP"]
-ignore = []
-# Allow autofix for all enabled rules (when `--fix`) is provided.
-fixable = [
-    "A",
-    "B",
-    "C",
-    "D",
-    "E",
-    "F",
-    "G",
-    "I",
-    "N",
-    "Q",
-    "S",
-    "T",
-    "W",
-    "ANN",
-    "ARG",
-    "BLE",
-    "COM",
-    "DJ",
-    "DTZ",
-    "EM",
-    "ERA",
-    "EXE",
-    "FBT",
-    "ICN",
-    "INP",
-    "ISC",
-    "NPY",
-    "PD",
-    "PGH",
-    "PIE",
-    "PL",
-    "PT",
-    "PTH",
-    "PYI",
-    "RET",
-    "RSE",
-    "RUF",
-    "SIM",
-    "SLF",
-    "TCH",
-    "TID",
-    "TRY",
-    "UP",
-    "YTT",
+# Exclude a variety of commonly ignored directories.
+exclude = [
+  ".bzr",
+  ".direnv",
+  ".eggs",
+  ".git",
+  ".git-rewrite",
+  ".hg",
+  ".mypy_cache",
+  ".nox",
+  ".pants.d",
+  ".pytype",
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  "__pypackages__",
+  "_build",
+  "buck-out",
+  "build",
+  "dist",
+  "docs",
+  "node_modules",
+  "venv",
+  "yarn-error.log",
+  "yarn.lock",
 ]
-unfixable = []
-# Allow unused variables when underscore-prefixed.
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
-pylint.max-args = 20
-
-[tool.ruff.lint.flake8-quotes]
-inline-quotes = "double"
-multiline-quotes = "double"
-docstring-quotes = "double"
-
-[tool.ruff.lint.pydocstyle]
-convention = "google"
-
-[tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["E402", "F401"]
-
-[tool.ruff.lint.mccabe]
-# Flag errors (`C901`) whenever the complexity level exceeds 5.
-max-complexity = 20
-
-[tool.ruff.lint.isort]
-order-by-type = true
-no-sections = false
-
-[tool.ruff.format]
-# Like Black, use double quotes for strings.
-quote-style = "double"
 
 # Like Black, indent with spaces, rather than tabs.
-indent-style = "space"
-
-# Like Black, respect magic trailing commas.
-skip-magic-trailing-comma = false
-
+format.indent-style = "space"
+# Like Black, use double quotes for strings.
+format.quote-style = "double"
 # Like Black, automatically detect the appropriate line ending.
-line-ending = "auto"
+format.line-ending = "auto"
+# Like Black, respect magic trailing commas.
+format.skip-magic-trailing-comma = false
+# Enable linting rules for code style, imports, and best practices.
+lint.select = [
+  "A",   # flake8-builtins - https://docs.astral.sh/ruff/rules/#flake8-builtins-a
+  "E",   # pycodestyle errors - https://docs.astral.sh/ruff/rules/#error-e
+  "F",   # Pyflakes - https://docs.astral.sh/ruff/rules/#pyflakes-f
+  "I",   # isort - https://docs.astral.sh/ruff/rules/#isort-i
+  "PT",  # pytest - https://docs.astral.sh/ruff/rules/#flake8-pytest-style-pt
+  "Q",   # flake8-quotes - https://docs.astral.sh/ruff/rules/#flake8-quotes-q
+  "RUF", # Ruff-specific rules - https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
+  "S",   # bandit - https://docs.astral.sh/ruff/rules/#flake8-bandit-s
+  "UP",  # pyupgrade - https://docs.astral.sh/ruff/rules/#pyupgrade-up
+  "W",   # pycodestyle warnings - https://docs.astral.sh/ruff/rules/#pycodestyle-w
+]
+lint.ignore = [  ]
+lint.per-file-ignores."__init__.py" = [ "E402", "F401" ]
+lint.per-file-ignores."supervision/**" = [
+  "S101", # TODO: Replace asserts with proper error handling
+]
+lint.per-file-ignores."test/**" = [
+  "PT011", # TODO: `pytest.raises(Exception)` is too broad, set the `match` parameter or use a more specific exception
+  "S101",  # Use of `assert` detected
+]
+lint.unfixable = [  ]
+# Allow unused variables when underscore-prefixed.
+lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+lint.flake8-quotes.docstring-quotes = "double"
+lint.flake8-quotes.inline-quotes = "double"
+lint.flake8-quotes.multiline-quotes = "double"
+lint.isort.no-sections = false
+lint.isort.order-by-type = true
+# Flag errors (`C901`) whenever the complexity level exceeds 5.
+lint.mccabe.max-complexity = 20
+lint.pydocstyle.convention = "google"
+lint.pylint.max-args = 20
 
 [tool.codespell]
 skip = "*.ipynb"
@@ -221,16 +187,76 @@ count = true
 quiet-level = 3
 ignore-words-list = "STrack,sTrack,strack"
 
-[tool.setuptools]
-include-package-data = false
+[tool.mypy]
+python_version = "3.9"
+ignore_missing_imports = false
+explicit_package_bases = true
+strict = true
+exclude = [
+  "docs",
+  "test",
+  "examples",
+  "setup.py",
+]
 
-[tool.setuptools.packages.find]
-include = ["supervision*"]
-exclude = ["docs*", "test*", "examples*"]
+[[tool.mypy.overrides]]
+module = [
+  "test.*",
+  "examples.*",
+  # TODO: fix type errors in the following modules
+  "supervision.annotators.core",
+  "supervision.annotators.utils",
+  "supervision.classification.core",
+  "supervision.dataset.core",
+  "supervision.dataset.formats.coco",
+  "supervision.dataset.formats.pascal_voc",
+  "supervision.dataset.formats.yolo",
+  "supervision.dataset.utils",
+  "supervision.detection.core",
+  "supervision.detection.line_zone",
+  "supervision.detection.tools.csv_sink",
+  "supervision.detection.tools.inference_slicer",
+  "supervision.detection.tools.json_sink",
+  "supervision.detection.tools.polygon_zone",
+  "supervision.detection.tools.smoother",
+  "supervision.detection.tools.transformers",
+  "supervision.detection.utils.boxes",
+  "supervision.detection.utils.converters",
+  "supervision.detection.utils.internal",
+  "supervision.detection.utils.iou_and_nms",
+  "supervision.detection.utils.masks",
+  "supervision.detection.utils.polygons",
+  "supervision.detection.vlm",
+  "supervision.draw.base",
+  "supervision.draw.color",
+  "supervision.draw.utils",
+  "supervision.geometry.core",
+  "supervision.geometry.utils",
+  "supervision.key_points.annotators",
+  "supervision.key_points.core",
+  "supervision.key_points.skeletons",
+  "supervision.metrics.core",
+  "supervision.metrics.detection",
+  "supervision.metrics.f1_score",
+  "supervision.metrics.mean_average_precision",
+  "supervision.metrics.mean_average_recall",
+  "supervision.metrics.precision",
+  "supervision.metrics.recall",
+  "supervision.metrics.utils.utils",
+  "supervision.tracker.byte_tracker.core",
+  "supervision.tracker.byte_tracker.kalman_filter",
+  "supervision.tracker.byte_tracker.matching",
+  "supervision.tracker.byte_tracker.single_object_track",
+  "supervision.utils.conversion",
+  "supervision.utils.file",
+  "supervision.utils.image",
+  "supervision.utils.internal",
+  "supervision.utils.iterables",
+  "supervision.utils.notebook",
+  "supervision.utils.video",
+]
+ignore_errors = true
 
-[tool.setuptools.package-data]
-supervision = ["py.typed"]
-
-[build-system]
-requires = ["setuptools >= 61.0"]
-build-backend = "setuptools.build_meta"
+[tool.autoflake]
+check = true
+imports = [ "cv2", "supervision" ]
