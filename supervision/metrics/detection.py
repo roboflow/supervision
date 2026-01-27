@@ -6,8 +6,8 @@ from dataclasses import dataclass
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-
 from deprecate import deprecated
+
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import box_iou_batch

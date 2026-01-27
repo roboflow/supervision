@@ -7,6 +7,7 @@ from functools import reduce
 from typing import Any
 
 import numpy as np
+from deprecate import deprecated
 
 from supervision.config import (
     CLASS_NAME_DATA_FIELD,
@@ -50,7 +51,6 @@ from supervision.detection.vlm import (
     from_qwen_3_vl,
     validate_vlm_parameters,
 )
-from deprecate import deprecated
 from supervision.geometry.core import Position
 from supervision.utils.internal import get_instance_variables
 from supervision.validators import validate_detections_fields
@@ -819,7 +819,7 @@ class Detections:
 
     @classmethod
     @deprecated(
-    target=None,
+        target=None,
         deprecated_in="0.27.0",
         remove_in="0.31.0",
     )

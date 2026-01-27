@@ -2,18 +2,17 @@ from __future__ import annotations
 
 import os
 import shutil
-from typing import Any
+from typing import Any, Literal
 
 import cv2
 import numpy as np
 import numpy.typing as npt
-from PIL import Image
-from supervision.geometry.core import Point
-from typing_extensions import Literal
-
 from deprecate import deprecated
+from PIL import Image
+
 from supervision.annotators.base import ImageType
 from supervision.draw.color import Color, unify_to_bgr
+from supervision.geometry.core import Point
 from supervision.utils.conversion import (
     ensure_cv2_image_for_standalone_function,
 )

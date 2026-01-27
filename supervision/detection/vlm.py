@@ -9,9 +9,9 @@ from enum import Enum
 from typing import Any
 
 import numpy as np
+from deprecate import deprecated
 from PIL import Image
 
-from deprecate import deprecated
 from supervision.detection.utils.boxes import denormalize_boxes
 from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
 from supervision.validators import validate_resolution
