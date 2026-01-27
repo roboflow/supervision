@@ -96,6 +96,7 @@ def pad_boxes(xyxy: np.ndarray, px: int, py: int | None = None) -> np.ndarray:
 
 
 @deprecated(
+    target=None,
     deprecated_in="0.27.0",
     remove_in="0.30.0",
     args_mapping={"normalized_xyxy": "xyxy"},
