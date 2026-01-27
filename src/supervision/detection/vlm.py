@@ -12,15 +12,16 @@ import numpy as np
 import numpy.typing as npt
 from PIL import Image
 
+from deprecate import deprecated
 from supervision.detection.utils.boxes import denormalize_boxes
 from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
-from supervision.utils.internal import deprecated
 from supervision.validators import validate_resolution
 
 
 @deprecated(
-    "`LMM` enum is deprecated and will be removed in "
-    "`supervision-0.31.0`. Use VLM instead."
+    target=None,
+    deprecated_in="0.27.0",
+    remove_in="0.31.0",
 )
 class LMM(Enum):
     """

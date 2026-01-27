@@ -8,8 +8,10 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 from PIL import Image
+from supervision.geometry.core import Point
 from typing_extensions import Literal
 
+from deprecate import deprecated
 from supervision.draw.base import ImageType
 from supervision import Point
 from supervision.annotators.base import ImageType
@@ -17,7 +19,6 @@ from supervision.draw.color import Color, unify_to_bgr
 from supervision.utils.conversion import (
     ensure_cv2_image_for_standalone_function,
 )
-from supervision.utils.internal import deprecated
 
 
 @ensure_cv2_image_for_standalone_function
@@ -261,8 +262,9 @@ def letterbox_image(
 
 
 @deprecated(
-    "`overlay_image` function is deprecated and will be removed in "
-    "`supervision-0.32.0`. Use `draw_image` instead."
+    target=None,
+    deprecated_in="0.27.0",
+    remove_in="0.32.0",
 )
 def overlay_image(
     image: npt.NDArray[np.uint8],
@@ -540,7 +542,11 @@ class ImageSink:
         pass
 
 
-@deprecated("`create_tiles` function is removed in `0.27.0`")
+@deprecated(
+    target=None,
+    deprecated_in="0.27.0",
+    remove_in="0.27.0",
+)
 def create_tiles(
     images: list[ImageType],
     grid_size: tuple[int | None, int | None] | None = None,

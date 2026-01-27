@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 
+from deprecate import deprecated
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import box_iou_batch
-from supervision.utils.internal import deprecated
 
 
 def detections_to_tensor(
@@ -539,10 +539,9 @@ class ConfusionMatrix:
 
 
 @deprecated(
-    "`MeanAveragePrecision` is deprecated and will be removed in "
-    "`supervision-0.31.0`. Use "
-    "`supervision.metrics.mean_average_precision.MeanAveragePrecision` instead. The "
-    "deprecated implementation provides results that are inconsistent with pycocotools."
+    target=None,
+    deprecated_in="0.27.0",
+    remove_in="0.31.0",
 )
 @dataclass(frozen=True)
 class MeanAveragePrecision:
