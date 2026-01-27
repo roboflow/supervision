@@ -475,12 +475,12 @@ def test_compute_average_precision(
 
 @pytest.mark.parametrize(
     (
-        "predictions, "
-        "targets, "
-        "classes, "
-        "conf_threshold, "
-        "iou_threshold, "
-        "expected_result, "
+        "predictions",
+        "targets",
+        "classes",
+        "conf_threshold",
+        "iou_threshold",
+        "expected_result",
         "exception",
     ),
     [
