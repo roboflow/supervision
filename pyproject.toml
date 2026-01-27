@@ -203,8 +203,6 @@ module = [
   "test.*",
   "examples.*",
   # TODO: fix type errors in the following modules
-  "supervision.annotators.core",
-  "supervision.annotators.utils",
   "supervision.assets.downloader",
   "supervision.assets.list",
   "supervision.classification.core",
