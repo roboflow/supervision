@@ -6,6 +6,10 @@ from collections import deque
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from queue import Queue
+from typing import Any, TypeVar
+
+# Define a type variable for numpy array dtypes
+DType = TypeVar("DType", bound=np.generic)
 
 import cv2
 import numpy as np
@@ -91,7 +95,7 @@ class VideoSink:
         self.__codec = codec
         self.__writer = None
 
-    def __enter__(self):
+    def __enter__(self) -> VideoSink:
         try:
             self.__fourcc = cv2.VideoWriter_fourcc(*self.__codec)
         except TypeError as e:
@@ -105,23 +109,30 @@ class VideoSink:
         )
         return self
 
-    def write_frame(self, frame: np.ndarray):
+    def write_frame(self, frame: np.ndarray[np.uint8, Any]) -> None:
         """
         Writes a single video frame to the target video file.
 
         Args:
-            frame (np.ndarray): The video frame to be written to the file. The frame
+            frame (np.ndarray[Any, Any]): The video frame to be written to the file. The frame
                 must be in BGR color format.
         """
-        self.__writer.write(frame)
+        if self.__writer is not None:
+            self.__writer.write(frame)
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        self.__writer.release()
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: Any,
+    ) -> None:
+        if self.__writer is not None:
+            self.__writer.release()
 
 
 def _validate_and_setup_video(
     source_path: str, start: int, end: int | None, iterative_seek: bool = False
-):
+) -> tuple[cv2.VideoCapture, int, int]:
     video = cv2.VideoCapture(source_path)
     if not video.isOpened():
         raise Exception(f"Could not open video at {source_path}")
@@ -149,7 +160,7 @@ def get_video_frames_generator(
     start: int = 0,
     end: int | None = None,
     iterative_seek: bool = False,
-) -> Generator[np.ndarray]:
+) -> Generator[np.ndarray[np.uint8, Any], None, None]:
     """
     Get a generator that yields the frames of the video.
 
@@ -185,7 +196,8 @@ def get_video_frames_generator(
         success, frame = video.read()
         if not success or frame_position >= end:
             break
-        yield frame
+        if frame is not None:
+            yield frame
         for _ in range(stride - 1):
             success = video.grab()
             if not success:
@@ -197,7 +209,7 @@ def get_video_frames_generator(
 def process_video(
     source_path: str,
     target_path: str,
-    callback: Callable[[np.ndarray, int], np.ndarray],
+    callback: Callable[[np.ndarray[np.uint8, Any], int], np.ndarray[np.uint8, Any]],
     *,
     max_frames: int | None = None,
     prefetch: int = 32,
@@ -261,13 +273,17 @@ def process_video(
     """
     video_info = VideoInfo.from_video_path(video_path=source_path)
     total_frames = (
-        min(video_info.total_frames, max_frames)
+        min(video_info.total_frames or 0, max_frames)
         if max_frames is not None
-        else video_info.total_frames
+        else video_info.total_frames or 0
     )
 
-    frame_read_queue: Queue[tuple[int, np.ndarray] | None] = Queue(maxsize=prefetch)
-    frame_write_queue: Queue[np.ndarray | None] = Queue(maxsize=writer_buffer)
+    frame_read_queue: Queue[tuple[int, np.ndarray[np.uint8, Any]] | None] = Queue(
+        maxsize=prefetch
+    )
+    frame_write_queue: Queue[np.ndarray[np.uint8, Any] | None] = Queue(
+        maxsize=writer_buffer
+    )
 
     def reader_thread() -> None:
         frame_generator = get_video_frames_generator(
@@ -344,7 +360,7 @@ class FPSMonitor:
                 fps = fps_monitor.fps
             ```
         """  # noqa: E501 // docs
-        self.all_timestamps = deque(maxlen=sample_size)
+        self.all_timestamps: deque[float] = deque(maxlen=sample_size)
 
     @property
     def fps(self) -> float:

@@ -248,13 +248,6 @@ module = [
   "supervision.tracker.byte_tracker.kalman_filter",
   "supervision.tracker.byte_tracker.matching",
   "supervision.tracker.byte_tracker.single_object_track",
-  "supervision.utils.conversion",
-  "supervision.utils.file",
-  "supervision.utils.image",
-  "supervision.utils.internal",
-  "supervision.utils.iterables",
-  "supervision.utils.notebook",
-  "supervision.utils.video",
 ]
 ignore_errors = true
 

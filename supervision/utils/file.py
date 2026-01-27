@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import yaml
 
 
 class NumpyJsonEncoder(json.JSONEncoder):
-    def default(self, obj):
+    def default(self, obj: Any) -> Any:
         if isinstance(obj, np.integer):
             return int(obj)
         if isinstance(obj, np.floating):
@@ -47,7 +48,7 @@ def list_files_with_extensions(
     """
 
     directory = Path(directory)
-    files_with_extensions = []
+    files_with_extensions: list[Path] = []
 
     if extensions is not None:
         for ext in extensions:
@@ -93,7 +94,7 @@ def save_text_file(lines: list[str], file_path: str | Path) -> None:
             file.write(line + "\n")
 
 
-def read_json_file(file_path: str | Path) -> dict:
+def read_json_file(file_path: str | Path) -> dict[str, Any]:
     """
     Read a json file and return a dict.
 
@@ -108,7 +109,9 @@ def read_json_file(file_path: str | Path) -> dict:
     return data
 
 
-def save_json_file(data: dict, file_path: str | Path, indent: int = 3) -> None:
+def save_json_file(
+    data: dict[str, Any], file_path: str | Path, indent: int = 3
+) -> None:
     """
     Write a dict to a json file.
 
@@ -121,7 +124,7 @@ def save_json_file(data: dict, file_path: str | Path, indent: int = 3) -> None:
         json.dump(data, fp, cls=NumpyJsonEncoder, indent=indent)
 
 
-def read_yaml_file(file_path: str | Path) -> dict:
+def read_yaml_file(file_path: str | Path) -> dict[str, Any]:
     """
     Read a yaml file and return a dict.
 
@@ -136,7 +139,7 @@ def read_yaml_file(file_path: str | Path) -> dict:
     return data
 
 
-def save_yaml_file(data: dict, file_path: str | Path) -> None:
+def save_yaml_file(data: dict[str, Any], file_path: str | Path) -> None:
     """
     Save a dict to a json file.
 

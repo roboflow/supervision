@@ -31,7 +31,7 @@ def create_batches(
         ```
     """
     batch_size = max(batch_size, 1)
-    current_batch = []
+    current_batch: list[V] = []
     for element in sequence:
         if len(current_batch) == batch_size:
             yield current_batch
@@ -71,7 +71,7 @@ def fill(sequence: list[V], desired_size: int, content: V) -> list[V]:
     return sequence
 
 
-def find_duplicates(sequence: list) -> list:
+def find_duplicates(sequence: list[V]) -> list[V]:
     """
     Find all duplicate elements in the input sequence.
     """

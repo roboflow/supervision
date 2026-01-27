@@ -8,7 +8,7 @@ from collections.abc import Callable
 from typing import Any, Generic, TypeVar
 
 
-class SupervisionWarnings(Warning):
+class SupervisionWarnings(warnings.Warning):
     """Supervision warning category.
     Set the deprecation warnings visibility for Supervision library.
     You can set the environment variable SUPERVISON_DEPRECATION_WARNING to '0' to
@@ -18,7 +18,13 @@ class SupervisionWarnings(Warning):
     pass
 
 
-def format_warning(msg, category, filename, lineno, line=None):
+def format_warning(
+    msg: str,
+    category: type[warnings.Warning],
+    filename: str,
+    lineno: int,
+    line: str | None = None,
+) -> str:
     """
     Format a warning the same way as the default formatter, but also include the
     category name in the output.
@@ -34,7 +40,7 @@ else:
     warnings.simplefilter("always", SupervisionWarnings)
 
 
-def warn_deprecated(message: str):
+def warn_deprecated(message: str) -> None:
     """
     Issue a warning that a function is deprecated.
 
@@ -47,11 +53,11 @@ def warn_deprecated(message: str):
 def deprecated_parameter(
     old_parameter: str,
     new_parameter: str,
-    map_function: Callable = lambda x: x,
+    map_function: Callable[[Any], Any] = lambda x: x,
     warning_message: str = "Warning: '{old_parameter}' in '{function_name}' is "
     "deprecated: use '{new_parameter}' instead.",
-    **message_kwargs,
-):
+    **message_kwargs: Any,
+) -> Callable[[Any], Any]:
     """
     A decorator to mark a function's parameter as deprecated and issue a warning when
     used.
@@ -85,9 +91,9 @@ def deprecated_parameter(
         ```
     """
 
-    def decorator(func):
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             if old_parameter in kwargs:
                 if args and hasattr(args[0], "__class__"):
                     class_name = args[0].__class__.__name__
@@ -113,13 +119,13 @@ def deprecated_parameter(
     return decorator
 
 
-def deprecated(reason: str):
-    def decorator(cls_or_func):
+def deprecated(reason: str) -> Callable[[Any], Any]:
+    def decorator(cls_or_func: Any) -> Any:
         if inspect.isclass(cls_or_func):
             original_init = cls_or_func.__init__
 
             @functools.wraps(original_init)
-            def new_init(self, *args, **kwargs):
+            def new_init(self, *args: Any, **kwargs: Any) -> None:
                 warn_deprecated(f"{cls_or_func.__name__} is deprecated: {reason}")
                 original_init(self, *args, **kwargs)
 
@@ -128,7 +134,7 @@ def deprecated(reason: str):
         else:
 
             @functools.wraps(cls_or_func)
-            def wrapper(*args, **kwargs):
+            def wrapper(*args: Any, **kwargs: Any) -> Any:
                 warn_deprecated(f"{cls_or_func.__name__} is deprecated: {reason}")
                 return cls_or_func(*args, **kwargs)
 
@@ -176,7 +182,7 @@ class classproperty(Generic[T]):
         return self.fget(owner_cls)
 
 
-def get_instance_variables(instance: Any, include_properties=False) -> set[str]:
+def get_instance_variables(instance: Any, include_properties: bool = False) -> set[str]:
     """
     Get the public variables of a class instance.
 
