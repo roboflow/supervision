@@ -7,14 +7,14 @@ import pytest
 
 from supervision.annotators.utils import ColorLookup, resolve_color_idx, wrap_text
 from supervision.detection.core import Detections
-from test.test_utils import mock_detections
+from test.helpers import _create_detections
 
 
 @pytest.mark.parametrize(
     ("detections", "detection_idx", "color_lookup", "expected_result", "exception"),
     [
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]],
                 class_id=[5, 3],
                 tracker_id=[2, 6],
@@ -25,7 +25,7 @@ from test.test_utils import mock_detections
             DoesNotRaise(),
         ),  # multiple detections; index lookup
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]],
                 class_id=[5, 3],
                 tracker_id=[2, 6],
@@ -36,7 +36,7 @@ from test.test_utils import mock_detections
             DoesNotRaise(),
         ),  # multiple detections; class lookup
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]],
                 class_id=[5, 3],
                 tracker_id=[2, 6],
@@ -54,7 +54,7 @@ from test.test_utils import mock_detections
             pytest.raises(ValueError),
         ),  # no detections; index lookup; out of bounds
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]],
                 class_id=[5, 3],
                 tracker_id=[2, 6],
@@ -65,28 +65,28 @@ from test.test_utils import mock_detections
             pytest.raises(ValueError),
         ),  # multiple detections; index lookup; out of bounds
         (
-            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            _create_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
             0,
             ColorLookup.CLASS,
             None,
             pytest.raises(ValueError),
         ),  # multiple detections; class lookup; no class_id
         (
-            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            _create_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
             0,
             ColorLookup.TRACK,
             None,
             pytest.raises(ValueError),
         ),  # multiple detections; class lookup; no track_id
         (
-            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            _create_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
             0,
             np.array([1, 0]),
             1,
             DoesNotRaise(),
         ),  # multiple detections; custom lookup; correct length
         (
-            mock_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
+            _create_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
             0,
             np.array([1]),
             None,
