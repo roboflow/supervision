@@ -474,15 +474,13 @@ def test_compute_average_precision(
 
 
 @pytest.mark.parametrize(
-    (
-        "predictions, "
-        "targets, "
-        "classes, "
-        "conf_threshold, "
-        "iou_threshold, "
-        "expected_result, "
-        "exception",
-    ),
+    "predictions, "
+    "targets, "
+    "classes, "
+    "conf_threshold, "
+    "iou_threshold, "
+    "expected_result, "
+    "exception",
     [
         # Test 1: Class priority over IoU - correct class with lower IoU should win
         (
