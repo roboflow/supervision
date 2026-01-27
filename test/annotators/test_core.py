@@ -31,7 +31,7 @@ from supervision.annotators.utils import ColorLookup
 from supervision.detection.core import Detections
 from supervision.draw.color import Color
 from supervision.geometry.core import Position
-from test.test_utils import mock_detections
+from test.helpers import _create_detections
 
 
 @pytest.fixture
@@ -100,7 +100,7 @@ class TestBoxAnnotator:
 
     def test_annotate_with_single_detection(self, test_image):
         """Test that annotate method correctly draws a single bounding box"""
-        detections = mock_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = BoxAnnotator(
             color=Color.WHITE, thickness=2, color_lookup=ColorLookup.INDEX
         )
@@ -109,7 +109,7 @@ class TestBoxAnnotator:
 
     def test_annotate_with_multiple_detections(self, test_image):
         """Test that annotate method correctly draws multiple bounding boxes"""
-        detections = mock_detections(
+        detections = _create_detections(
             xyxy=[[10, 10, 40, 40], [60, 60, 90, 90], [10, 60, 40, 90]],
             class_id=[0, 1, 2],
         )
@@ -132,7 +132,7 @@ class TestOrientedBoxAnnotator:
 
     def test_annotate_without_oriented_boxes(self, test_image):
         """Test that annotate method returns unmodified image when no OBB data"""
-        detections = mock_detections(xyxy=[[10, 10, 90, 90]])
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]])
         annotator = OrientedBoxAnnotator()
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
@@ -150,14 +150,14 @@ class TestMaskAnnotator:
 
     def test_annotate_without_masks(self, test_image):
         """Test that annotate method returns unmodified image when no masks"""
-        detections = mock_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = MaskAnnotator(color_lookup=ColorLookup.INDEX)
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_mask(self, test_image, test_mask):
         """Test that annotate method correctly draws a single mask"""
-        detections = mock_detections(
+        detections = _create_detections(
             xyxy=[[10, 10, 90, 90]], mask=[test_mask], class_id=[0]
         )
         annotator = MaskAnnotator(
@@ -179,14 +179,14 @@ class TestPolygonAnnotator:
 
     def test_annotate_without_masks(self, test_image):
         """Test that annotate method returns unmodified image when no masks"""
-        detections = mock_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = PolygonAnnotator(color_lookup=ColorLookup.INDEX)
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_mask(self, test_image, test_mask):
         """Test that annotate method correctly draws a single polygon from mask"""
-        detections = mock_detections(
+        detections = _create_detections(
             xyxy=[[10, 10, 90, 90]], mask=[test_mask], class_id=[0]
         )
         annotator = PolygonAnnotator(
@@ -208,7 +208,7 @@ class TestColorAnnotator:
 
     def test_annotate_with_single_detection(self, test_image):
         """Test that annotate method correctly draws a single color box"""
-        detections = mock_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = ColorAnnotator(
             color=Color.RED, opacity=1.0, color_lookup=ColorLookup.INDEX
         )
@@ -228,14 +228,14 @@ class TestHaloAnnotator:
 
     def test_annotate_without_masks(self, test_image):
         """Test that annotate method returns unmodified image when no masks"""
-        detections = mock_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = HaloAnnotator(color_lookup=ColorLookup.INDEX)
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
     def test_annotate_with_single_mask(self, test_image, test_mask):
         """Test that annotate method correctly draws a single halo"""
-        detections = mock_detections(
+        detections = _create_detections(
             xyxy=[[10, 10, 90, 90]], mask=[test_mask], class_id=[0]
         )
         annotator = HaloAnnotator(
@@ -260,7 +260,7 @@ class TestEllipseAnnotator:
 
     def test_annotate_with_single_detection(self, test_image):
         """Test that annotate method correctly draws a single ellipse"""
-        detections = mock_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = EllipseAnnotator(
             color=Color.YELLOW, thickness=2, color_lookup=ColorLookup.INDEX
         )
@@ -280,7 +280,7 @@ class TestBoxCornerAnnotator:
 
     def test_annotate_with_single_detection(self, test_image):
         """Test that annotate method correctly draws box corners"""
-        detections = mock_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = BoxCornerAnnotator(
             color=Color.WHITE,
             thickness=3,
@@ -303,7 +303,7 @@ class TestCircleAnnotator:
 
     def test_annotate_with_single_detection(self, test_image):
         """Test that annotate method correctly draws a circle"""
-        detections = mock_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = CircleAnnotator(
             color=Color.GREEN, thickness=2, color_lookup=ColorLookup.INDEX
         )
@@ -323,7 +323,7 @@ class TestDotAnnotator:
 
     def test_annotate_with_single_detection(self, test_image):
         """Test that annotate method correctly draws a dot"""
-        detections = mock_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = DotAnnotator(
             color=Color.RED,
             radius=5,
@@ -346,7 +346,7 @@ class TestLabelAnnotator:
 
     def test_annotate_with_single_detection(self, test_image):
         """Test that annotate method correctly draws a label"""
-        detections = mock_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = LabelAnnotator(color_lookup=ColorLookup.INDEX)
         result = annotator.annotate(
             scene=test_image.copy(), detections=detections, labels=["test"]
@@ -366,7 +366,7 @@ class TestRichLabelAnnotator:
 
     def test_annotate_with_single_detection(self, test_image):
         """Test that annotate method correctly draws a rich label"""
-        detections = mock_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = RichLabelAnnotator(color_lookup=ColorLookup.INDEX)
         result = annotator.annotate(
             scene=test_image.copy(), detections=detections, labels=["test"]
@@ -386,7 +386,7 @@ class TestBlurAnnotator:
 
     def test_annotate_with_single_detection(self, gradient_image):
         """Test that annotate method correctly blurs a region"""
-        detections = mock_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = BlurAnnotator(kernel_size=15)
         result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
         assert not np.array_equal(gradient_image, result)
@@ -404,7 +404,7 @@ class TestPixelateAnnotator:
 
     def test_annotate_with_single_detection(self, gradient_image):
         """Test that annotate method correctly pixelates a region"""
-        detections = mock_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = PixelateAnnotator(pixel_size=10)
         result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
         assert not np.array_equal(gradient_image, result)
@@ -422,7 +422,7 @@ class TestTriangleAnnotator:
 
     def test_annotate_with_single_detection(self, test_image):
         """Test that annotate method correctly draws a triangle"""
-        detections = mock_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = TriangleAnnotator(
             color=Color.RED, base=20, height=20, color_lookup=ColorLookup.INDEX
         )
@@ -442,7 +442,7 @@ class TestRoundBoxAnnotator:
 
     def test_annotate_with_single_detection(self, test_image):
         """Test that annotate method correctly draws a round box"""
-        detections = mock_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = RoundBoxAnnotator(
             color=Color.BLUE, thickness=2, roundness=0.5, color_lookup=ColorLookup.INDEX
         )
@@ -462,7 +462,7 @@ class TestPercentageBarAnnotator:
 
     def test_annotate_with_single_detection(self, test_image):
         """Test that annotate method correctly draws a percentage bar"""
-        detections = mock_detections(
+        detections = _create_detections(
             xyxy=[[10, 10, 90, 90]], confidence=[0.75], class_id=[0]
         )
         annotator = PercentageBarAnnotator(color_lookup=ColorLookup.INDEX)
@@ -482,7 +482,7 @@ class TestCropAnnotator:
 
     def test_annotate_with_single_detection(self, gradient_image):
         """Test that annotate method correctly draws a crop"""
-        detections = mock_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = CropAnnotator(border_color_lookup=ColorLookup.INDEX)
         result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
         assert not np.array_equal(gradient_image, result)
@@ -501,7 +501,7 @@ class TestBackgroundOverlayAnnotator:
     def test_annotate_with_single_detection(self):
         """Test that annotate method correctly draws background overlay"""
         image = np.ones((100, 100, 3), dtype=np.uint8) * 255
-        detections = mock_detections(xyxy=[[10, 10, 90, 90]])
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]])
         annotator = BackgroundOverlayAnnotator(color=Color.BLACK, opacity=0.5)
         result = annotator.annotate(scene=image.copy(), detections=detections)
         assert not np.array_equal(image, result)
@@ -523,8 +523,8 @@ class TestComparisonAnnotator:
     def test_annotate_with_single_detection_each(self):
         """Test that annotate method correctly compares two detections"""
         image = np.ones((100, 100, 3), dtype=np.uint8) * 255
-        detections1 = mock_detections(xyxy=[[10, 10, 50, 50]])
-        detections2 = mock_detections(xyxy=[[30, 30, 70, 70]])
+        detections1 = _create_detections(xyxy=[[10, 10, 50, 50]])
+        detections2 = _create_detections(xyxy=[[30, 30, 70, 70]])
         annotator = ComparisonAnnotator()
         result = annotator.annotate(
             scene=image.copy(), detections_1=detections1, detections_2=detections2
