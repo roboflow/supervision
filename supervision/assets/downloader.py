@@ -19,11 +19,11 @@ def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:
     not for cryptographic security purposes.
 
     Parameters:
-        filename (str): The path to the file to be checked as a string.
-        original_md5_hash (str): The original MD5 hash to compare against.
+        filename: The path to the file to be checked as a string.
+        original_md5_hash: The original MD5 hash to compare against.
 
     Returns:
-        bool: True if the hashes match, False otherwise.
+        True if the hashes match, False otherwise.
     """
     if not os.path.exists(filename):
         return False
@@ -40,11 +40,11 @@ def download_assets(asset_name: VideoAssets | str) -> str:
     Download a specified asset if it doesn't already exist or is corrupted.
 
     Parameters:
-        asset_name (Union[VideoAssets, str]): The name or type of the asset to be
+        asset_name: The name or type of the asset to be
             downloaded.
 
     Returns:
-        str: The filename of the downloaded asset.
+        The filename of the downloaded asset.
 
     Example:
         ```python
