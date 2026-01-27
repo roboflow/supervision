@@ -3,6 +3,7 @@ from functools import wraps
 import cv2
 import numpy as np
 from PIL import Image
+from deprecate import deprecated
 
 from supervision.draw.base import ImageType
 
@@ -30,6 +31,15 @@ def ensure_cv2_image_for_class_method(annotate_func):
         raise ValueError(f"Unsupported image type: {type(scene)}")
 
     return wrapper
+
+
+@deprecated(
+    target=ensure_cv2_image_for_class_method,
+    deprecated_in="0.27.0",
+    remove_in="0.30.0",
+)
+def ensure_cv2_image_for_annotation(annotate_func):
+    pass
 
 
 def ensure_cv2_image_for_standalone_function(image_processing_fun):
@@ -77,6 +87,15 @@ def ensure_pil_image_for_class_method(annotate_func):
         raise ValueError(f"Unsupported image type: {type(scene)}")
 
     return wrapper
+
+
+@deprecated(
+    target=ensure_pil_image_for_class_method,
+    deprecated_in="0.27.0",
+    remove_in="0.30.0",
+)
+def ensure_pil_image_for_annotation(annotate_func):
+    pass
 
 
 def images_to_cv2(images: list[ImageType]) -> list[np.ndarray]:
