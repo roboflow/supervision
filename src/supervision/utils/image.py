@@ -8,8 +8,11 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 from PIL import Image
+from typing_extensions import Literal
 
 from supervision.draw.base import ImageType
+from supervision import Point
+from supervision.annotators.base import ImageType
 from supervision.draw.color import Color, unify_to_bgr
 from supervision.utils.conversion import (
     ensure_cv2_image_for_standalone_function,
@@ -535,3 +538,26 @@ class ImageSink:
         exc_traceback: Any,
     ) -> None:
         pass
+
+
+@deprecated("`create_tiles` function is removed in `0.27.0`")
+def create_tiles(
+    images: list[ImageType],
+    grid_size: tuple[int | None, int | None] | None = None,
+    single_tile_size: tuple[int, int] | None = None,
+    tile_scaling: Literal["min", "max", "avg"] = "avg",
+    tile_padding_color: tuple[int, int, int] | Color = Color.from_hex("#D9D9D9"),
+    tile_margin: int = 10,
+    tile_margin_color: tuple[int, int, int] | Color = Color.from_hex("#BFBEBD"),
+    return_type: Literal["auto", "cv2", "pillow"] = "auto",
+    titles: list[str | None] | None = None,
+    titles_anchors: Point | list[Point | None] | None = None,
+    titles_color: tuple[int, int, int] | Color = Color.from_hex("#262523"),
+    titles_scale: float | None = None,
+    titles_thickness: int = 1,
+    titles_padding: int = 10,
+    titles_text_font: int = cv2.FONT_HERSHEY_SIMPLEX,
+    titles_background_color: tuple[int, int, int] | Color = Color.from_hex("#D9D9D9"),
+    default_title_placement: Any = "top",
+) -> ImageType:
+    return None
