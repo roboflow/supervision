@@ -495,6 +495,7 @@ class ConfusionMatrix:
 
 
 @deprecated(
+    target=None,
     deprecated_in="0.27.0",
     remove_in="0.31.0",
 )

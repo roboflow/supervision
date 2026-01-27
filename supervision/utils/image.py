@@ -8,10 +8,10 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 from PIL import Image
+from supervision.geometry.core import Point
 from typing_extensions import Literal
 
 from deprecate import deprecated
-from supervision import Point
 from supervision.annotators.base import ImageType
 from supervision.draw.color import Color, unify_to_bgr
 from supervision.utils.conversion import (
@@ -287,6 +287,7 @@ def letterbox_image(
 
 
 @deprecated(
+    target=None,
     deprecated_in="0.27.0",
     remove_in="0.32.0",
 )
@@ -633,6 +634,7 @@ class ImageSink:
 
 
 @deprecated(
+    target=None,
     deprecated_in="0.27.0",
     remove_in="0.27.0",
 )
