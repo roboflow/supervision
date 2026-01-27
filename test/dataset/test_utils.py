@@ -22,7 +22,7 @@ T = TypeVar("T")
 
 
 @pytest.mark.parametrize(
-    "data, train_ratio, random_state, shuffle, expected_result, exception",
+    ("data", "train_ratio", "random_state", "shuffle", "expected_result", "exception"),
     [
         ([], 0.5, None, False, ([], []), DoesNotRaise()),  # empty data
         (
@@ -94,7 +94,7 @@ def test_train_test_split(
 
 
 @pytest.mark.parametrize(
-    "class_lists, expected_result, exception",
+    ("class_lists", "expected_result", "exception"),
     [
         ([], [], DoesNotRaise()),  # empty class lists
         (
@@ -128,7 +128,7 @@ def test_merge_class_maps(
 
 
 @pytest.mark.parametrize(
-    "source_classes, target_classes, expected_result, exception",
+    ("source_classes", "target_classes", "expected_result", "exception"),
     [
         ([], [], {}, DoesNotRaise()),  # empty class lists
         ([], ["dog", "person"], {}, DoesNotRaise()),  # empty source class list
@@ -178,7 +178,7 @@ def test_build_class_index_mapping(
 
 
 @pytest.mark.parametrize(
-    "source_to_target_mapping, detections, expected_result, exception",
+    ("source_to_target_mapping", "detections", "expected_result", "exception"),
     [
         (
             {},
@@ -238,7 +238,7 @@ def test_map_detections_class_id(
 
 
 @pytest.mark.parametrize(
-    "mask, expected_rle, exception",
+    ("mask", "expected_rle", "exception"),
     [
         (
             np.zeros((3, 3)).astype(bool),
@@ -297,7 +297,7 @@ def test_mask_to_rle(
 
 
 @pytest.mark.parametrize(
-    "rle, resolution_wh, expected_mask, exception",
+    ("rle", "resolution_wh", "expected_mask", "exception"),
     [
         (
             np.array([9]),

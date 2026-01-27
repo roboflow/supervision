@@ -34,3 +34,9 @@ status: new
 </div>
 
 :::supervision.detection.utils.masks.resize_masks
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.masks.filter_segments_by_distance">filter_segments_by_distance</a></h2>
+</div>
+
+:::supervision.detection.utils.masks.filter_segments_by_distance

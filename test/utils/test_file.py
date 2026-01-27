@@ -12,12 +12,11 @@ Line 2
 Line 3
 """
 
-FILE_2_CONTENT = """   
-Line 2
+FILE_2_CONTENT = """   \nLine 2
 
 Line 4
 
-"""  # noqa
+"""
 
 FILE_3_CONTENT = """
 Line 2
@@ -44,7 +43,7 @@ def setup_and_teardown_files():
 
 
 @pytest.mark.parametrize(
-    "file_name, skip_empty, expected_result, exception",
+    ("file_name", "skip_empty", "expected_result", "exception"),
     [
         ("file_1.txt", False, ["Line 1", "Line 2", "Line 3"], DoesNotRaise()),
         ("file_2.txt", True, ["Line 2", "Line 4"], DoesNotRaise()),

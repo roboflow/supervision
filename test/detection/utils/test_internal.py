@@ -19,7 +19,7 @@ TEST_MASK[:, 300:351, 200:251] = True
 
 
 @pytest.mark.parametrize(
-    "roboflow_result, expected_result, exception",
+    ("roboflow_result", "expected_result", "exception"),
     [
         (
             {"predictions": [], "image": {"width": 1000, "height": 1000}},
@@ -251,7 +251,7 @@ def test_process_roboflow_result(
 
 
 @pytest.mark.parametrize(
-    "data_list, expected_result, exception",
+    ("data_list", "expected_result", "exception"),
     [
         (
             [],
@@ -445,7 +445,7 @@ def test_merge_data(
     with exception:
         result = merge_data(data_list=data_list)
         if expected_result is None:
-            assert False, f"Expected an error, but got result {result}"
+            pytest.fail(f"Expected an error, but got result {result}")
 
         for key in result:
             if isinstance(result[key], np.ndarray):
@@ -459,7 +459,7 @@ def test_merge_data(
 
 
 @pytest.mark.parametrize(
-    "data, index, expected_result, exception",
+    ("data", "index", "expected_result", "exception"),
     [
         ({}, 0, {}, DoesNotRaise()),  # empty data dict
         (
@@ -632,7 +632,7 @@ def test_get_data_item(
 
 
 @pytest.mark.parametrize(
-    "metadata_list, expected_result, exception",
+    ("metadata_list", "expected_result", "exception"),
     [
         # Identical metadata with a single key
         ([{"key1": "value1"}, {"key1": "value1"}], {"key1": "value1"}, DoesNotRaise()),

@@ -31,7 +31,7 @@ def are_xml_elements_equal(elem1, elem2):
 
 
 @pytest.mark.parametrize(
-    "xyxy, name, polygon, expected_result, exception",
+    ("xyxy", "name", "polygon", "expected_result", "exception"),
     [
         (
             np.array([0, 0, 10, 10]),
@@ -71,7 +71,7 @@ def test_object_to_pascal_voc(
 
 
 @pytest.mark.parametrize(
-    "polygon_element, expected_result, exception",
+    ("polygon_element", "expected_result", "exception"),
     [
         (
             ElementTree.fromstring(
@@ -116,7 +116,14 @@ NO_DETECTIONS = """<annotation></annotation>"""
 
 
 @pytest.mark.parametrize(
-    "xml_string, classes, resolution_wh, force_masks, expected_result, exception",
+    (
+        "xml_string",
+        "classes",
+        "resolution_wh",
+        "force_masks",
+        "expected_result",
+        "exception",
+    ),
     [
         (
             ONE_CLASS_ONE_BBOX,

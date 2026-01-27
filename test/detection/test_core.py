@@ -130,7 +130,7 @@ TEST_DET_DIFFERENT_METADATA = Detections(
 
 
 @pytest.mark.parametrize(
-    "detections, index, expected_result, exception",
+    ("detections", "index", "expected_result", "exception"),
     [
         (
             DETECTIONS,
@@ -244,7 +244,7 @@ def test_getitem(
 
 
 @pytest.mark.parametrize(
-    "detections_list, expected_result, exception",
+    ("detections_list", "expected_result", "exception"),
     [
         ([], Detections.empty(), DoesNotRaise()),  # empty detections list
         (
@@ -516,7 +516,7 @@ def test_merge(
 
 
 @pytest.mark.parametrize(
-    "detections, anchor, expected_result, exception",
+    ("detections", "anchor", "expected_result", "exception"),
     [
         (
             Detections.empty(),
@@ -598,7 +598,7 @@ def test_get_anchor_coordinates(
 
 
 @pytest.mark.parametrize(
-    "detections_a, detections_b, expected_result",
+    ("detections_a", "detections_b", "expected_result"),
     [
         (
             Detections.empty(),
@@ -649,7 +649,7 @@ def test_equal(
 
 
 @pytest.mark.parametrize(
-    "detection_1, detection_2, expected_result, exception",
+    ("detection_1", "detection_2", "expected_result", "exception"),
     [
         (
             mock_detections(

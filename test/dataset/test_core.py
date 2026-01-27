@@ -9,7 +9,7 @@ from test.test_utils import mock_detections
 
 
 @pytest.mark.parametrize(
-    "dataset_list, expected_result, exception",
+    ("dataset_list", "expected_result", "exception"),
     [
         (
             [],

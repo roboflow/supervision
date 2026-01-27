@@ -42,6 +42,12 @@ status: new
 :::supervision.utils.image.grayscale_image
 
 <div class="md-typeset">
+    <h2><a href="#supervision.utils.image.get_image_resolution_wh">get_image_resolution_wh</a></h2>
+</div>
+
+:::supervision.utils.image.get_image_resolution_wh
+
+<div class="md-typeset">
     <h2><a href="#supervision.utils.image.ImageSink">ImageSink</a></h2>
 </div>
 
