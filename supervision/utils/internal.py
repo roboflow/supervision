@@ -113,30 +113,6 @@ def deprecated_parameter(
     return decorator
 
 
-def deprecated(reason: str):
-    def decorator(cls_or_func):
-        if inspect.isclass(cls_or_func):
-            original_init = cls_or_func.__init__
-
-            @functools.wraps(original_init)
-            def new_init(self, *args, **kwargs):
-                warn_deprecated(f"{cls_or_func.__name__} is deprecated: {reason}")
-                original_init(self, *args, **kwargs)
-
-            cls_or_func.__init__ = new_init
-            return cls_or_func
-        else:
-
-            @functools.wraps(cls_or_func)
-            def wrapper(*args, **kwargs):
-                warn_deprecated(f"{cls_or_func.__name__} is deprecated: {reason}")
-                return cls_or_func(*args, **kwargs)
-
-            return wrapper
-
-    return decorator
-
-
 T = TypeVar("T")
 
 
