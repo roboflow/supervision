@@ -168,6 +168,24 @@ def test_with_mask(
             ),
             DoesNotRaise(),
         ),  # yolo annotation file with two lines - one box and one polygon
+        (
+            ["0 0.4056 0.4078 0.5967 0.4089 0.5978 0.6012 0.4067 0.5989"],
+            (1000, 1000),
+            True,
+            Detections(
+                xyxy=np.array([[405.6, 407.8, 597.8, 601.2]], dtype=np.float32),
+                class_id=np.array([0], dtype=int),
+                mask=np.array(
+                    [
+                        _mock_simple_mask(
+                            resolution_wh=(1000, 1000), box=[406, 408, 598, 601]
+                        )
+                    ],
+                    dtype=bool,
+                ),
+            ),
+            DoesNotRaise(),
+        ),
     ],
 )
 def test_yolo_annotations_to_detections(
