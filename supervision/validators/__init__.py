@@ -1,6 +1,7 @@
 from typing import Any
 
 import numpy as np
+from deprecate import deprecated
 
 
 def validate_xyxy(xyxy: Any) -> None:
@@ -64,6 +65,15 @@ def validate_key_point_confidence(confidence: Any, n: int, m: int) -> None:
                 f"confidence must be a 1D np.ndarray with shape {expected_shape}, but "
                 f"got shape {actual_shape}"
             )
+
+
+@deprecated(
+    target=validate_key_point_confidence,
+    deprecated_in="0.27.0",
+    remove_in="0.30.0",
+)
+def validate_keypoint_confidence(confidence: Any, n: int, m: int) -> None:
+    pass
 
 
 def validate_tracker_id(tracker_id: Any, n: int) -> None:
@@ -138,6 +148,17 @@ def validate_key_points_fields(
     validate_class_id(class_id, n)
     validate_key_point_confidence(confidence, n, m)
     validate_data(data, n)
+
+
+@deprecated(
+    target=validate_key_points_fields,
+    deprecated_in="0.27.0",
+    remove_in="0.30.0",
+)
+def validate_keypoints_fields(
+    xy: Any, class_id: Any, confidence: Any, data: dict[str, Any]
+) -> None:
+    pass
 
 
 def validate_resolution(resolution: Any) -> tuple[int, int]:
