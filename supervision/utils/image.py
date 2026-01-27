@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import os
 import shutil
+from typing import Any
 
 import cv2
 import numpy as np
 import numpy.typing as npt
 from PIL import Image
 
-from supervision.annotators.base import ImageType
+from supervision.draw.base import ImageType
 from supervision.draw.color import Color, unify_to_bgr
 from supervision.utils.conversion import (
     ensure_cv2_image_for_standalone_function,
@@ -16,6 +17,7 @@ from supervision.utils.conversion import (
 from supervision.utils.internal import deprecated
 
 
+@ensure_cv2_image_for_standalone_function
 def crop_image(
     image: ImageType,
     xyxy: npt.NDArray[int] | list[int] | tuple[int, int, int, int],
@@ -131,7 +133,7 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     width_old, height_old = image.shape[1], image.shape[0]
     width_new = int(width_old * scale_factor)
     height_new = int(height_old * scale_factor)
-    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
+    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)  # type: ignore
 
 
 @ensure_cv2_image_for_standalone_function
@@ -198,7 +200,7 @@ def resize_image(
     else:
         width_new, height_new = resolution_wh
 
-    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
+    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)  # type: ignore
 
 
 @ensure_cv2_image_for_standalone_function
@@ -280,7 +282,7 @@ def letterbox_image(
         image[:, :padding_left, 3] = 0
         image[:, width_new - padding_right :, 3] = 0
 
-    return image_with_borders
+    return image_with_borders  # type: ignore
 
 
 @deprecated(
@@ -467,7 +469,7 @@ def grayscale_image(image: ImageType) -> ImageType:
     ![grayscale-image](https://media.roboflow.com/supervision-docs/supervision-docs-grayscale-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
     grayscaled = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    return cv2.cvtColor(grayscaled, cv2.COLOR_GRAY2BGR)
+    return cv2.cvtColor(grayscaled, cv2.COLOR_GRAY2BGR)  # type: ignore
 
 
 def get_image_resolution_wh(image: ImageType) -> tuple[int, int]:
@@ -597,7 +599,7 @@ class ImageSink:
         self.image_name_pattern = image_name_pattern
         self.image_count = 0
 
-    def __enter__(self):
+    def __enter__(self) -> ImageSink:
         if os.path.exists(self.target_dir_path):
             if self.overwrite:
                 shutil.rmtree(self.target_dir_path)
@@ -607,7 +609,9 @@ class ImageSink:
 
         return self
 
-    def save_image(self, image: np.ndarray, image_name: str | None = None):
+    def save_image(
+        self, image: np.ndarray[np.uint8, Any], image_name: str | None = None
+    ) -> None:
         """
         Save image to target directory with optional custom filename.
 
@@ -625,5 +629,10 @@ class ImageSink:
         cv2.imwrite(image_path, image)
         self.image_count += 1
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: Any,
+    ) -> None:
         pass

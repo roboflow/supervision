@@ -20,7 +20,7 @@ def ensure_cv2_image_for_class_method(
     """
 
     @wraps(annotate_func)
-    def wrapper(self, scene: ImageType, *args: Any, **kwargs: Any) -> ImageType:
+    def wrapper(self: Any, scene: ImageType, *args: Any, **kwargs: Any) -> ImageType:
         if isinstance(scene, np.ndarray):
             return annotate_func(self, scene, *args, **kwargs)
 
@@ -71,7 +71,7 @@ def ensure_pil_image_for_class_method(
     """
 
     @wraps(annotate_func)
-    def wrapper(self, scene: ImageType, *args: Any, **kwargs: Any) -> ImageType:
+    def wrapper(self: Any, scene: ImageType, *args: Any, **kwargs: Any) -> ImageType:
         if isinstance(scene, np.ndarray):
             scene_pil = cv2_to_pillow(scene)
             annotated_pil = annotate_func(self, scene_pil, *args, **kwargs)
@@ -120,7 +120,7 @@ def pillow_to_cv2(image: Image.Image) -> np.ndarray[np.uint8, Any]:
     """
     scene = np.array(image)
     scene = cv2.cvtColor(scene, cv2.COLOR_RGB2BGR)
-    return scene.astype(np.uint8)
+    return scene.astype(np.uint8)  # type: ignore
 
 
 def cv2_to_pillow(image: np.ndarray[np.uint8, Any]) -> Image.Image:
@@ -129,7 +129,7 @@ def cv2_to_pillow(image: np.ndarray[np.uint8, Any]) -> Image.Image:
     conversion.
 
     Args:
-        image (np.ndarray[Any, Any]): OpenCV image (in BGR format).
+        image (np.ndarray[np.uint8, Any]): OpenCV image (in BGR format).
 
     Returns:
         (Image.Image): Input image converted to Pillow format.

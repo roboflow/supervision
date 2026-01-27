@@ -106,7 +106,7 @@ def read_json_file(file_path: str | Path) -> dict[str, Any]:
     """
     with open(str(file_path)) as file:
         data = json.load(file)
-    return data
+    return data  # type: ignore
 
 
 def save_json_file(
@@ -136,7 +136,7 @@ def read_yaml_file(file_path: str | Path) -> dict[str, Any]:
     """
     with open(str(file_path)) as file:
         data = yaml.safe_load(file)
-    return data
+    return data  # type: ignore
 
 
 def save_yaml_file(data: dict[str, Any], file_path: str | Path) -> None:
