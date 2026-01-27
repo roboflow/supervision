@@ -92,10 +92,10 @@ def images_to_cv2(images: list[ImageType]) -> list[np.ndarray[np.uint8, Any]]:
     images into OpenCV format.
 
     Args:
-        images (List[ImageType]): Images to be converted
+        images: Images to be converted
 
     Returns:
-        List[np.ndarray[Any, Any]]: List of input images in OpenCV format
+        List of input images in OpenCV format
             (with order preserved).
 
     """
@@ -113,10 +113,10 @@ def pillow_to_cv2(image: Image.Image) -> np.ndarray[np.uint8, Any]:
     conversion.
 
     Args:
-        image (Image.Image): Pillow image (in RGB format).
+        image: Pillow image (in RGB format).
 
     Returns:
-        (np.ndarray[Any, Any]): Input image converted to OpenCV format.
+        Input image converted to OpenCV format.
     """
     scene = np.array(image)
     scene = cv2.cvtColor(scene, cv2.COLOR_RGB2BGR)
@@ -129,10 +129,10 @@ def cv2_to_pillow(image: np.ndarray[np.uint8, Any]) -> Image.Image:
     conversion.
 
     Args:
-        image (np.ndarray[np.uint8, Any]): OpenCV image (in BGR format).
+        image: OpenCV image (in BGR format).
 
     Returns:
-        (Image.Image): Input image converted to Pillow format.
+        Input image converted to Pillow format.
     """
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return Image.fromarray(image)

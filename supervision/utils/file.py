@@ -27,12 +27,12 @@ def list_files_with_extensions(
         all files if no extensions are provided.
 
     Args:
-        directory (Union[str, Path]): The directory path as a string or Path object.
-        extensions (Optional[List[str]]): A list of file extensions to filter.
+        directory: The directory path as a string or Path object.
+        extensions: A list of file extensions to filter.
             Default is None, which lists all files.
 
     Returns:
-        (List[Path]): A list of Path objects for the matching files.
+        A list of Path objects for the matching files.
 
     Examples:
         ```python
@@ -65,12 +65,12 @@ def read_txt_file(file_path: str | Path, skip_empty: bool = False) -> list[str]:
     Optionally skip empty lines.
 
     Args:
-        file_path (Union[str, Path]): The file path as a string or Path object.
-        skip_empty (bool): If True, skip lines that are empty or contain only
+        file_path: The file path as a string or Path object.
+        skip_empty: If True, skip lines that are empty or contain only
             whitespace. Default is False.
 
     Returns:
-        List[str]: A list of strings representing the lines in the text file.
+        A list of strings representing the lines in the text file.
     """
     with open(str(file_path)) as file:
         if skip_empty:
@@ -86,8 +86,8 @@ def save_text_file(lines: list[str], file_path: str | Path) -> None:
     Write a list of strings to a text file, each string on a new line.
 
     Args:
-        lines (List[str]): The list of strings to be written to the file.
-        file_path (Union[str, Path]): The file path as a string or Path object.
+        lines: The list of strings to be written to the file.
+        file_path: The file path as a string or Path object.
     """
     with open(str(file_path), "w") as file:
         for line in lines:
@@ -99,10 +99,10 @@ def read_json_file(file_path: str | Path) -> dict[str, Any]:
     Read a json file and return a dict.
 
     Args:
-        file_path (Union[str, Path]): The file path as a string or Path object.
+        file_path: The file path as a string or Path object.
 
     Returns:
-        dict: A dict of annotations information
+        A dict of annotations information
     """
     with open(str(file_path)) as file:
         data = json.load(file)
@@ -117,8 +117,8 @@ def save_json_file(
 
     Args:
         indent:
-        data (dict): dict with unique keys and value as pair.
-        file_path (Union[str, Path]): The file path as a string or Path object.
+        data: dict with unique keys and value as pair.
+        file_path: The file path as a string or Path object.
     """
     with open(str(file_path), "w") as fp:
         json.dump(data, fp, cls=NumpyJsonEncoder, indent=indent)
@@ -129,10 +129,10 @@ def read_yaml_file(file_path: str | Path) -> dict[str, Any]:
     Read a yaml file and return a dict.
 
     Args:
-        file_path (Union[str, Path]): The file path as a string or Path object.
+        file_path: The file path as a string or Path object.
 
     Returns:
-        dict: A dict of content information
+        A dict of content information
     """
     with open(str(file_path)) as file:
         data = yaml.safe_load(file)
@@ -145,8 +145,8 @@ def save_yaml_file(data: dict[str, Any], file_path: str | Path) -> None:
 
     Args:
         indent:
-        data (dict): dict with unique keys and value as pair.
-        file_path (Union[str, Path]): The file path as a string or Path object.
+        data: dict with unique keys and value as pair.
+        file_path: The file path as a string or Path object.
     """
 
     with open(str(file_path), "w") as outfile:

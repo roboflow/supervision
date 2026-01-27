@@ -26,12 +26,12 @@ def crop_image(
     Crop image based on bounding box coordinates.
 
     Args:
-        image (`numpy.ndarray` or `PIL.Image.Image`): The image to crop.
-        xyxy (`numpy.array`, `list[int]`, or `tuple[int, int, int, int]`):
+        image: The image to crop.
+        xyxy:
             Bounding box coordinates in `(x_min, y_min, x_max, y_max)` format.
 
     Returns:
-        (`numpy.ndarray` or `PIL.Image.Image`): Cropped image matching input
+        Cropped image matching input
             type.
 
     Examples:
@@ -88,11 +88,11 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     Scale image by given factor. Scale factor > 1.0 zooms in, < 1.0 zooms out.
 
     Args:
-        image (`numpy.ndarray` or `PIL.Image.Image`): The image to scale.
-        scale_factor (`float`): Factor by which to scale the image.
+        image: The image to scale.
+        scale_factor: Factor by which to scale the image.
 
     Returns:
-        (`numpy.ndarray` or `PIL.Image.Image`): Scaled image matching input
+        Scaled image matching input
             type.
 
     Raises:
@@ -146,13 +146,13 @@ def resize_image(
     Resize image to specified resolution. Can optionally maintain aspect ratio.
 
     Args:
-        image (`numpy.ndarray` or `PIL.Image.Image`): The image to resize.
-        resolution_wh (`tuple[int, int]`): Target resolution as `(width, height)`.
-        keep_aspect_ratio (`bool`): Flag to maintain original aspect ratio.
+        image: The image to resize.
+        resolution_wh: Target resolution as `(width, height)`.
+        keep_aspect_ratio: Flag to maintain original aspect ratio.
             Defaults to `False`.
 
     Returns:
-        (`numpy.ndarray` or `PIL.Image.Image`): Resized image matching input
+        Resized image matching input
             type.
 
     Examples:
@@ -214,13 +214,13 @@ def letterbox_image(
     maintaining aspect ratio.
 
     Args:
-        image (`numpy.ndarray` or `PIL.Image.Image`): The image to resize and pad.
-        resolution_wh (`tuple[int, int]`): Target resolution as `(width, height)`.
-        color (`tuple[int, int, int]` or `Color`): Padding color. If tuple, should
+        image: The image to resize and pad.
+        resolution_wh: Target resolution as `(width, height)`.
+        color: Padding color. If tuple, should
             be in BGR format. Defaults to `Color.BLACK`.
 
     Returns:
-        (`numpy.ndarray` or `PIL.Image.Image`): Letterboxed image matching input
+        Letterboxed image matching input
             type.
 
     Examples:
@@ -299,14 +299,14 @@ def overlay_image(
     overlay position is partially or completely outside scene bounds.
 
     Args:
-        image (`numpy.array`): Background scene with shape `(height, width, 3)`.
-        overlay (`numpy.array`): Image to overlay with shape
+        image: Background scene with shape `(height, width, 3)`.
+        overlay: Image to overlay with shape
             `(height, width, 3)` or `(height, width, 4)`.
-        anchor (`tuple[int, int]`): Coordinates `(x, y)` where top-left corner
+        anchor: Coordinates `(x, y)` where top-left corner
             of overlay will be placed.
 
     Returns:
-        (`numpy.array`): Scene with overlay applied, shape `(height, width, 3)`.
+        Scene with overlay applied, shape `(height, width, 3)`.
 
     Examples:
         ```
@@ -386,13 +386,13 @@ def tint_image(
     Tint image with solid color overlay at specified opacity.
 
     Args:
-        image (`numpy.ndarray` or `PIL.Image.Image`): The image to tint.
-        color (`Color`): Overlay tint color. Defaults to `Color.BLACK`.
-        opacity (`float`): Blend ratio between overlay and image (0.0-1.0).
+        image: The image to tint.
+        color: Overlay tint color. Defaults to `Color.BLACK`.
+        opacity: Blend ratio between overlay and image (0.0-1.0).
             Defaults to `0.5`.
 
     Returns:
-        (`numpy.ndarray` or `PIL.Image.Image`): Tinted image matching input
+        Tinted image matching input
             type.
 
     Raises:
@@ -440,11 +440,11 @@ def grayscale_image(image: ImageType) -> ImageType:
     all three channels for compatibility with color-based drawing helpers.
 
     Args:
-        image (`numpy.ndarray` or `PIL.Image.Image`): The image to convert to
+        image: The image to convert to
             grayscale.
 
     Returns:
-        (`numpy.ndarray` or `PIL.Image.Image`): 3-channel grayscale image
+        3-channel grayscale image
             matching input type.
 
     Examples:
@@ -480,10 +480,10 @@ def get_image_resolution_wh(image: ImageType) -> tuple[int, int]:
     `PIL.Image.Image` inputs.
 
     Args:
-        image (`numpy.ndarray` or `PIL.Image.Image`): Input image.
+        image: Input image.
 
     Returns:
-        (`tuple[int, int]`): Image resolution as `(width, height)`.
+        Image resolution as `(width, height)`.
 
     Raises:
         ValueError: If a `numpy.ndarray` image has fewer than 2 dimensions.

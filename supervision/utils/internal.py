@@ -45,7 +45,7 @@ def warn_deprecated(message: str) -> None:
     Issue a warning that a function is deprecated.
 
     Args:
-        message (str): The message to display when the function is called.
+        message: The message to display when the function is called.
     """
     warnings.warn(message, category=SupervisionWarnings, stacklevel=2)
 
@@ -63,18 +63,18 @@ def deprecated_parameter(
     used.
 
     Parameters:
-        old_parameter (str): The name of the deprecated parameter.
-        new_parameter (str): The name of the parameter that should be used instead.
-        map_function (Callable): A function used to map the value of the old
+        old_parameter: The name of the deprecated parameter.
+        new_parameter: The name of the parameter that should be used instead.
+        map_function: A function used to map the value of the old
             parameter to the new parameter. Defaults to the identity function.
-        warning_message (str): The warning message to be displayed when the
+        warning_message: The warning message to be displayed when the
             deprecated parameter is used. Defaults to a generic warning message with
             placeholders for the old parameter, new parameter, and function name.
         **message_kwargs: Additional keyword arguments that can be used to customize
             the warning message.
 
     Returns:
-        Callable: A decorator function that can be applied to mark a function's
+        A decorator function that can be applied to mark a function's
             parameter as deprecated.
 
     Examples:
@@ -187,8 +187,8 @@ def get_instance_variables(instance: Any, include_properties: bool = False) -> s
     Get the public variables of a class instance.
 
     Args:
-        instance (Any): The instance of a class
-        include_properties (bool): Whether to include properties in the result
+        instance: The instance of a class
+        include_properties: Whether to include properties in the result
 
     Usage:
         ```python
