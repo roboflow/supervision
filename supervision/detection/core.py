@@ -50,8 +50,9 @@ from supervision.detection.vlm import (
     from_qwen_3_vl,
     validate_vlm_parameters,
 )
+from deprecate import deprecated
 from supervision.geometry.core import Position
-from supervision.utils.internal import deprecated, get_instance_variables
+from supervision.utils.internal import get_instance_variables
 from supervision.validators import validate_detections_fields
 
 
@@ -818,8 +819,8 @@ class Detections:
 
     @classmethod
     @deprecated(
-        "`Detections.from_lmm` property is deprecated and will be removed in "
-        "`supervision-0.31.0`. Use Detections.from_vlm instead."
+        deprecated_in="0.27.0",
+        remove_in="0.31.0",
     )
     def from_lmm(cls, lmm: LMM | str, result: str | dict, **kwargs: Any) -> Detections:
         """
