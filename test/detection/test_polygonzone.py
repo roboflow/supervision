@@ -57,9 +57,7 @@ POLYGON_ANGULAR = np.array([[100, 100], [200, 100], [200, 150], [100, 200]])
         ),  # Test all four corners
         (
             DETECTIONS,
-            sv.PolygonZone(
-                POLYGON,
-            ),
+            sv.PolygonZone(POLYGON),
             np.array(
                 [False, False, True, True, True, True, False, False, False], dtype=bool
             ),
@@ -78,9 +76,7 @@ POLYGON_ANGULAR = np.array([[100, 100], [200, 100], [200, 150], [100, 200]])
         ),  # Test default behaviour with deprecated api.
         (
             sv.Detections.empty(),
-            sv.PolygonZone(
-                POLYGON,
-            ),
+            sv.PolygonZone(POLYGON),
             np.array([], dtype=bool),
             DoesNotRaise(),
         ),  # Test empty detections
@@ -118,11 +114,7 @@ def test_polygon_zone_trigger(
     ("polygon", "triggering_anchors", "exception"),
     [
         (POLYGON, [sv.Position.CENTER], DoesNotRaise()),
-        (
-            POLYGON,
-            [],
-            pytest.raises(ValueError),
-        ),
+        (POLYGON, [], pytest.raises(ValueError)),
     ],
 )
 def test_polygon_zone_initialization(polygon, triggering_anchors, exception):
@@ -135,38 +127,17 @@ def test_polygon_zone_initialization(polygon, triggering_anchors, exception):
 # https://github.com/roboflow/supervision/issues/1987
 
 
-@pytest.mark.parametrize(
-    (
-        "detection, polygon_zone1, polygon_zone2, expected_results1,"
-        "expected_results2, exception"
-    ),
-    [
-        (
-            DETECTION,
-            sv.PolygonZone(
-                POLYGON,
-                triggering_anchors=([sv.Position.CENTER]),
-            ),
-            sv.PolygonZone(
-                POLYGON2,
-                triggering_anchors=([sv.Position.CENTER]),
-            ),
-            np.array([True], dtype=bool),
-            np.array([False], dtype=bool),
-            DoesNotRaise(),
-        ),
-    ],
-)
-def test_polygon_zone_det_overlap(
-    detection: sv.Detections,
-    polygon_zone1: sv.PolygonZone,
-    polygon_zone2: sv.PolygonZone,
-    expected_results1: np.ndarray,
-    expected_results2: np.ndarray,
-    exception: Exception,
-):
-    with exception:
-        in_zone1 = polygon_zone1.trigger(detection)
-        in_zone2 = polygon_zone2.trigger(detection)
-        assert in_zone1 == expected_results1
-        assert in_zone2 == expected_results2
+def test_polygon_zone_det_overlap():
+    polygon_zone1 = sv.PolygonZone(
+        POLYGON,
+        triggering_anchors=([sv.Position.CENTER]),
+    )
+    polygon_zone2 = sv.PolygonZone(
+        POLYGON2,
+        triggering_anchors=([sv.Position.CENTER]),
+    )
+    in_zone1 = polygon_zone1.trigger(DETECTION)
+    in_zone2 = polygon_zone2.trigger(DETECTION)
+
+    assert np.array_equal(in_zone1, np.array([True], dtype=bool))
+    assert np.array_equal(in_zone2, np.array([False], dtype=bool))
