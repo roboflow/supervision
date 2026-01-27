@@ -266,3 +266,100 @@ def test_key_points_getitem(key_points, index, expected_result, exception):
     with exception:
         result = key_points[index]
         assert result == expected_result
+
+
+def test_key_points_empty():
+    """Test the creation and behavior of an empty KeyPoints object."""
+    empty_key_points = KeyPoints.empty()
+    assert len(empty_key_points) == 0
+    assert empty_key_points.is_empty()
+    assert empty_key_points.xy.shape == (0, 0, 2)
+
+
+def test_key_points_is_empty():
+    """Test the is_empty method for KeyPoints objects."""
+    empty_key_points = KeyPoints.empty()
+    assert empty_key_points.is_empty()
+    
+    non_empty_key_points = _create_key_points(
+        xy=[[[0, 1], [2, 3]]],
+        confidence=[[0.8, 0.9]],
+        class_id=[0],
+    )
+    assert not non_empty_key_points.is_empty()
+
+
+def test_key_points_setitem():
+    """Test the __setitem__ method for KeyPoints objects."""
+    key_points = _create_key_points(
+        xy=[[[0, 1], [2, 3]]],
+        confidence=[[0.8, 0.9]],
+        class_id=[0],
+    )
+    
+    key_points['custom_data'] = ['value1']
+    assert 'custom_data' in key_points.data
+    assert np.array_equal(key_points.data['custom_data'], np.array(['value1']))
+    
+    with pytest.raises(TypeError):
+        key_points['invalid_data'] = 123
+
+
+def test_key_points_as_detections():
+    """Test the as_detections method for KeyPoints objects."""
+    key_points = _create_key_points(
+        xy=[[[0, 1], [2, 3], [4, 5]]],
+        confidence=[[0.8, 0.9, 0.7]],
+        class_id=[0],
+    )
+    
+    detections = key_points.as_detections()
+    assert len(detections) == 1
+    assert detections.xyxy.shape == (1, 4)
+    assert detections.confidence.shape == (1,)
+    
+    key_points_with_missing = _create_key_points(
+        xy=[[[0, 0], [2, 3], [4, 5]]],
+        confidence=[[0.8, 0.9, 0.7]],
+        class_id=[0],
+    )
+    detections_with_missing = key_points_with_missing.as_detections()
+    assert len(detections_with_missing) == 1
+
+
+def test_key_points_iteration():
+    """Test the iteration over KeyPoints objects."""
+    key_points = _create_key_points(
+        xy=[[[0, 1], [2, 3]], [[4, 5], [6, 7]]],
+        confidence=[[0.8, 0.9], [0.7, 0.6]],
+        class_id=[0, 1],
+    )
+    
+    for i, (xy, confidence, class_id, data) in enumerate(key_points):
+        assert xy.shape == (2, 2)
+        if confidence is not None:
+            assert confidence.shape == (2,)
+        assert class_id in [0, 1]
+        assert isinstance(data, dict)
+
+
+def test_key_points_equality():
+    """Test the equality comparison for KeyPoints objects."""
+    key_points1 = _create_key_points(
+        xy=[[[0, 1], [2, 3]]],
+        confidence=[[0.8, 0.9]],
+        class_id=[0],
+    )
+    key_points2 = _create_key_points(
+        xy=[[[0, 1], [2, 3]]],
+        confidence=[[0.8, 0.9]],
+        class_id=[0],
+    )
+    assert key_points1 == key_points2
+    
+    key_points3 = _create_key_points(
+        xy=[[[0, 1], [2, 3]]],
+        confidence=[[0.8, 0.9]],
+        class_id=[1],
+    )
+    assert key_points1 != key_points3
