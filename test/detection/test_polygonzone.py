@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import supervision as sv
-from test.test_utils import mock_detections
+from test.helpers import _create_detections
 
 DETECTION_BOXES = np.array(
     [
@@ -26,10 +26,10 @@ DETECTION_BOX = np.array(
     dtype=np.float32,
 )
 
-DETECTIONS = mock_detections(
+DETECTIONS = _create_detections(
     xyxy=DETECTION_BOXES, class_id=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0])
 )
-DETECTION = mock_detections(xyxy=DETECTION_BOX, class_id=np.array([0]))
+DETECTION = _create_detections(xyxy=DETECTION_BOX, class_id=np.array([0]))
 
 POLYGON = np.array([[100, 100], [200, 100], [200, 200], [100, 200]])
 POLYGON2 = np.array([[202, 100], [402, 100], [402, 200], [202, 200]])
@@ -37,7 +37,7 @@ POLYGON_ANGULAR = np.array([[100, 100], [200, 100], [200, 150], [100, 200]])
 
 
 @pytest.mark.parametrize(
-    "detections, polygon_zone, expected_results, exception",
+    ("detections", "polygon_zone", "expected_results", "exception"),
     [
         (
             DETECTIONS,
@@ -115,7 +115,7 @@ def test_polygon_zone_trigger(
 
 
 @pytest.mark.parametrize(
-    "polygon, triggering_anchors, exception",
+    ("polygon", "triggering_anchors", "exception"),
     [
         (POLYGON, [sv.Position.CENTER], DoesNotRaise()),
         (
@@ -130,11 +130,9 @@ def test_polygon_zone_initialization(polygon, triggering_anchors, exception):
         sv.PolygonZone(polygon, triggering_anchors=triggering_anchors)
 
 
-"""
-Test that a detection box that overlaps two polygon zones
-triggers only one of the zones.
-https://github.com/roboflow/supervision/issues/1987
-"""
+# Test that a detection box that overlaps two polygon zones
+# triggers only one of the zones.
+# https://github.com/roboflow/supervision/issues/1987
 
 
 @pytest.mark.parametrize(

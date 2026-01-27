@@ -1,0 +1,37 @@
+name: Build Package
+
+permissions:
+  contents: read
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        required: false
+        type: string
+        default: "3.10"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout the repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: 🐍 Install uv and set Python version ${{ inputs.python-version }}
+        uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b # v7.2.0
+        with:
+          python-version: ${{ inputs.python-version }}
+          activate-environment: true
+
+      - name: 🏗️ Build source and wheel distributions
+        run: |
+          uv pip install -r pyproject.toml --group build
+          uv build
+          uv run twine check --strict dist/*
+
+      - name: 📤 Upload distribution artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: dist
+          path: dist/
