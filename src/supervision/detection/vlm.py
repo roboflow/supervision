@@ -10,9 +10,10 @@ from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
-from PIL import Image
 
 from deprecate import deprecated
+from PIL import Image
+
 from supervision.detection.utils.boxes import denormalize_boxes
 from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
 from supervision.validators import validate_resolution

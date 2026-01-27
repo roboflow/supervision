@@ -7,6 +7,7 @@ from functools import reduce
 from typing import Any, cast
 
 import numpy as np
+from deprecate import deprecated
 import numpy.typing as npt
 
 from supervision.config import (
@@ -962,7 +963,7 @@ class Detections:
 
     @classmethod
     @deprecated(
-    target=None,
+        target=None,
         deprecated_in="0.27.0",
         remove_in="0.31.0",
     )

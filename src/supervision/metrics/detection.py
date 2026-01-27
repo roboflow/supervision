@@ -7,8 +7,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
-
 from deprecate import deprecated
+
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import box_iou_batch

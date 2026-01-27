@@ -4,8 +4,8 @@ from typing import Any, Callable
 import cv2
 import numpy as np
 import numpy.typing as npt
-from PIL import Image
 from deprecate import deprecated
+from PIL import Image
 
 from supervision.draw.base import ImageType
 
