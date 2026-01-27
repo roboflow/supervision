@@ -106,6 +106,15 @@ def ensure_pil_image_for_annotation(annotate_func):
     pass
 
 
+@deprecated(
+    target=ensure_cv2_image_for_standalone_function,
+    deprecated_in="0.27.0",
+    remove_in="0.30.0",
+)
+def ensure_cv2_image_for_processing(image_processing_fun):
+    pass
+
+
 def images_to_cv2(images: list[ImageType]) -> list[npt.NDArray[np.uint8]]:
     """
     Converts images provided either as Pillow images or OpenCV
