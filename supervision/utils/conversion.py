@@ -2,8 +2,8 @@ from functools import wraps
 
 import cv2
 import numpy as np
-from PIL import Image
 from deprecate import deprecated
+from PIL import Image
 
 from supervision.draw.base import ImageType
 

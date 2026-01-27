@@ -105,7 +105,7 @@ def denormalize_boxes(
     xyxy: np.ndarray,
     resolution_wh: tuple[int, int],
     normalization_factor: float = 1.0,
-    normalized_xyxy: np.ndarray = None
+    normalized_xyxy: np.ndarray = None,
 ) -> np.ndarray:
     """
     Convert normalized bounding box coordinates to absolute pixel coordinates.
