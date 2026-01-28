@@ -120,7 +120,7 @@ class TestBoxAnnotator:
         assert_image_mostly_same(test_image, result, similarity_threshold=0.85)
 
     def test_annotate_with_numpy_color_lookup(self, test_image):
-        """Test that annotate method works when color lookup is provided as numpy array"""
+        """Test that annotate works when color lookup is a NumPy array"""
         detections = Detections(
             xyxy=np.array([[10, 10, 20, 20], [30, 30, 40, 40]], dtype=np.float32),
             confidence=np.array([0.38, 0.21], dtype=np.float32),
