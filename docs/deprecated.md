@@ -7,9 +7,7 @@ status: deprecated
 
 These features are phased out due to better alternatives or potential issues in future versions. Deprecated functionalities are supported for **five subsequent releases**, providing time for users to transition to updated methods.
 
-
-- `overlap_filter_strategy` in [`InferenceSlicer.__init__`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/) is deprecated and will be removed in `supervision-0.27.0`. Use `overlap_strategy` instead.
-- `overlap_ratio_wh` in [`InferenceSlicer.__init__`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/) is deprecated and will be removed in `supervision-0.27.0`. Use `overlap_wh` instead.
+- `overlap_ratio_wh` in [`InferenceSlicer.__init__`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/) is deprecated and will be removed in `supervision-0.27.0`. Please set it to `None` and use `overlap_wh` instead.
 - `sv.LMM` enum is deprecated and will be removed in `supervision-0.31.0`. Use `sv.VLM` instead.
 - [`sv.Detections.from_lmm`](https://supervision.roboflow.com/0.26.0/detection/core/#supervision.detection.core.Detections.from_lmm) property is deprecated and will be removed in `supervision-0.31.0`. Use [`sv.Detections.from_vlm`](https://supervision.roboflow.com/0.26.0/detection/core/#supervision.detection.core.Detections.from_vlm) instead.
 
@@ -39,6 +37,6 @@ These features are phased out due to better alternatives or potential issues in 
 - The method `sv.Color.red()` was removed as of `supervision-0.22.0`. Use the constant `sv.Color.RED` instead.
 - The method `sv.Color.green()` was removed as of `supervision-0.22.0`. Use the constant `sv.Color.GREEN` instead.
 - The method `sv.Color.blue()` was removed as of `supervision-0.22.0`. Use the constant `sv.Color.BLUE` instead.
-- The method `sv.ColorPalette.default()` was removed as of `supervision-0.22.0`. Use the constant [`ColorPalette.DEFAULT`](/utils/draw/#supervision.draw.color.ColorPalette.DEFAULT) instead.
+- The method `sv.ColorPalette.default()` was removed as of `supervision-0.22.0`. Use the constant [`ColorPalette.DEFAULT`](utils/draw.md/#supervision.draw.color.ColorPalette.DEFAULT) instead.
 - `sv.BoxAnnotator` was removed as of `supervision-0.22.0`, however `sv.BoundingBoxAnnotator` was immediately renamed to `sv.BoxAnnotator`. Use [`BoxAnnotator`](detection/annotators.md/#supervision.annotators.core.BoxAnnotator) and [`LabelAnnotator`](detection/annotators.md/#supervision.annotators.core.LabelAnnotator) instead of the old `sv.BoxAnnotator`.
 - The method `sv.FPSMonitor.__call__` was removed as of `supervision-0.22.0`. Use the attribute [`sv.FPSMonitor.fps`](utils/video.md/#supervision.utils.video.FPSMonitor.fps) instead.

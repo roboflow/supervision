@@ -1,4 +1,4 @@
-name: 🔧 Pytest/Test Workflow
+name: Pytest/Test Workflow
 
 on:
   push:
@@ -15,7 +15,11 @@ concurrency:
 
 jobs:
   build-pkg:
+    name: Build this Package
     uses: ./.github/workflows/build-package.yml
+    with:
+      # only run link check on PRs from the same repo
+      link-check: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
 
   run-tests:
     name: Import Test and Pytest Run
@@ -29,10 +33,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: 📥 Checkout the repository
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: 🐍 Install uv and set Python version ${{ matrix.python-version }}
-        uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b # v7.2.0
+        uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b # v7.3.0
         with:
           python-version: ${{ matrix.python-version }}
           activate-environment: true
@@ -44,7 +48,7 @@ jobs:
         run: uv run python -c "import supervision; from supervision import assets; from supervision import metrics; print(supervision.__version__)"
 
       - name: 🧪 Run the Test
-        run: uv run pytest --cov=supervision --cov-report=xml
+        run: uv run pytest src/ tests/ --cov=supervision --cov-report=xml
 
       - name: Generate Coverage Report
         run: |
@@ -63,7 +67,6 @@ jobs:
 
       - name: Minimize uv cache
         run: uv cache prune --ci
-
 
   testing-guardian:
     runs-on: ubuntu-latest

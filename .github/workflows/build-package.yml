@@ -10,19 +10,38 @@ on:
         required: false
         type: string
         default: "3.10"
+      link-check:
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout the repository
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: 🐍 Install uv and set Python version ${{ inputs.python-version }}
-        uses: astral-sh/setup-uv@61cb8a9741eeb8a550a1b8544337180c0fc8476b # v7.2.0
+        uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b # v7.3.0
         with:
           python-version: ${{ inputs.python-version }}
           activate-environment: true
+
+      - name: 🎨 Augment paths in README
+        run: |
+          uv run python .github/scripts/augment_links.py README.md --branch ${{ github.head_ref || github.ref_name }}
+          cat README.md
+
+      - name: 🔗 Link Checker
+        if: inputs.link-check
+        uses: lycheeverse/lychee-action@v2
+        with:
+          lycheeVersion: v0.22.0
+          args: |
+            --config .github/lychee.toml
+            README.md
+          fail: true
 
       - name: 🏗️ Build source and wheel distributions
         run: |

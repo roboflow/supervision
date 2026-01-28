@@ -1,18 +1,26 @@
-import argparse
-
 from tqdm import tqdm
 from ultralytics import YOLO
 
 import supervision as sv
 
 
-def process_video(
+def main(
     source_weights_path: str,
     source_video_path: str,
     target_video_path: str,
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
 ) -> None:
+    """
+    Video Processing with YOLO and ByteTrack.
+
+    Args:
+        source_weights_path: Path to the source weights file
+        source_video_path: Path to the source video file
+        target_video_path: Path to the target video file (output)
+        confidence_threshold: Confidence threshold for the model
+        iou_threshold: IOU threshold for the model
+    """
     model = YOLO(source_weights_path)
 
     tracker = sv.ByteTrack()
@@ -41,43 +49,7 @@ def process_video(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Video Processing with YOLO and ByteTrack"
-    )
-    parser.add_argument(
-        "--source_weights_path",
-        required=True,
-        help="Path to the source weights file",
-        type=str,
-    )
-    parser.add_argument(
-        "--source_video_path",
-        required=True,
-        help="Path to the source video file",
-        type=str,
-    )
-    parser.add_argument(
-        "--target_video_path",
-        required=True,
-        help="Path to the target video file (output)",
-        type=str,
-    )
-    parser.add_argument(
-        "--confidence_threshold",
-        default=0.3,
-        help="Confidence threshold for the model",
-        type=float,
-    )
-    parser.add_argument(
-        "--iou_threshold", default=0.7, help="IOU threshold for the model", type=float
-    )
+    from jsonargparse import auto_cli, set_parsing_settings
 
-    args = parser.parse_args()
-
-    process_video(
-        source_weights_path=args.source_weights_path,
-        source_video_path=args.source_video_path,
-        target_video_path=args.target_video_path,
-        confidence_threshold=args.confidence_threshold,
-        iou_threshold=args.iou_threshold,
-    )
+    set_parsing_settings(parse_optionals_as_positionals=True)
+    auto_cli(main, as_positional=False)

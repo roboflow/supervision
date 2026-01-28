@@ -42,9 +42,10 @@ You can install `supervision` in a
 !!! example "Installation"
 
     === "pip (recommended)"
+
         [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
         [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
-        [![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
+        [![license](https://img.shields.io/pypi/l/supervision)](../LICENSE.md)
         [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 
         ```bash
@@ -52,9 +53,10 @@ You can install `supervision` in a
         ```
 
     === "poetry"
+
         [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
         [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
-        [![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
+        [![license](https://img.shields.io/pypi/l/supervision)](../LICENSE.md)
         [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 
         ```bash
@@ -62,9 +64,10 @@ You can install `supervision` in a
         ```
 
     === "uv"
+
         [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
         [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
-        [![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
+        [![license](https://img.shields.io/pypi/l/supervision)](../LICENSE.md)
         [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 
         ```bash
@@ -78,18 +81,20 @@ You can install `supervision` in a
         ```
 
     === "rye"
+
         [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
         [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
-        [![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
+        [![license](https://img.shields.io/pypi/l/supervision)](../LICENSE.md)
         [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 
         ```bash
         rye add supervision
         ```
 
-
 !!! example "conda/mamba install"
+
     === "conda"
+
         [![conda-recipe](https://img.shields.io/badge/recipe-supervision-green.svg)](https://anaconda.org/conda-forge/supervision) [![conda-downloads](https://img.shields.io/conda/dn/conda-forge/supervision.svg)](https://anaconda.org/conda-forge/supervision) [![conda-version](https://img.shields.io/conda/vn/conda-forge/supervision.svg)](https://anaconda.org/conda-forge/supervision) [![conda-platforms](https://img.shields.io/conda/pn/conda-forge/supervision.svg)](https://anaconda.org/conda-forge/supervision)
 
         ```bash
@@ -97,6 +102,7 @@ You can install `supervision` in a
         ```
 
     === "mamba"
+
         [![mamba-recipe](https://img.shields.io/badge/recipe-supervision-green.svg)](https://anaconda.org/conda-forge/supervision) [![mamba-downloads](https://img.shields.io/conda/dn/conda-forge/supervision.svg)](https://anaconda.org/conda-forge/supervision) [![mamba-version](https://img.shields.io/conda/vn/conda-forge/supervision.svg)](https://anaconda.org/conda-forge/supervision) [![mamba-platforms](https://img.shields.io/conda/pn/conda-forge/supervision.svg)](https://anaconda.org/conda-forge/supervision)
 
         ```bash
@@ -104,7 +110,9 @@ You can install `supervision` in a
         ```
 
 !!! example "git clone (for development)"
+
     === "virtualenv"
+
         ```bash
         # clone repository and navigate to root directory
         git clone --depth 1 -b develop https://github.com/roboflow/supervision.git
@@ -120,6 +128,7 @@ You can install `supervision` in a
         ```
 
     === "uv"
+
         ```bash
         # clone repository and navigate to root directory
         git clone --depth 1 -b develop https://github.com/roboflow/supervision.git
