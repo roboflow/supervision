@@ -187,6 +187,13 @@ count = true
 quiet-level = 3
 ignore-words-list = "STrack,sTrack,strack"
 
+[tool.pytest.ini_options]
+addopts = [
+  "--doctest-modules",
+  "--color=yes",
+]
+doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE"
+
 [tool.mypy]
 python_version = "3.9"
 ignore_missing_imports = false
@@ -260,10 +267,3 @@ ignore_errors = true
 [tool.autoflake]
 check = true
 imports = [ "cv2", "supervision" ]
-
-[tool.pytest.ini_options]
-addopts = [
-    "--doctest-modules",
-    "--color=yes",
-]
-doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE"
