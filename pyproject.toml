@@ -260,3 +260,10 @@ ignore_errors = true
 [tool.autoflake]
 check = true
 imports = [ "cv2", "supervision" ]
+
+[tool.pytest.ini_options]
+addopts = [
+    "--doctest-modules",
+    "--color=yes",
+]
+doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE"
