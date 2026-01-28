@@ -139,7 +139,7 @@ class TestBoxAnnotator:
             detections=detections,
             custom_color_lookup=lookup,
         )
-        assert result.shape == test_image.shape
+        assert_image_mostly_same(test_image, result, similarity_threshold=0.85)
 
 
 class TestOrientedBoxAnnotator:
