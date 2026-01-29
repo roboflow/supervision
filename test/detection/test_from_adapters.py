@@ -11,13 +11,13 @@ class _FakeTensor:
     def __init__(self, arr: np.ndarray):
         self._arr = np.asarray(arr)
 
-    def cpu(self) -> "_FakeTensor":
+    def cpu(self) -> _FakeTensor:
         return self
 
     def numpy(self) -> np.ndarray:
         return self._arr
 
-    def int(self) -> "_FakeTensor":
+    def int(self) -> _FakeTensor:
         return _FakeTensor(self._arr.astype(int))
 
 
@@ -111,7 +111,9 @@ def test_from_ultralytics_segmentation_only_branch_uses_masks_and_arange(
     fake_masks = np.zeros((3, 10, 10), dtype=bool)
     fake_xyxy = np.array([[0, 0, 1, 1], [2, 2, 3, 3], [4, 4, 5, 5]], dtype=np.float32)
 
-    monkeypatch.setattr(detection_core, "extract_ultralytics_masks", lambda _: fake_masks)
+    monkeypatch.setattr(
+        detection_core, "extract_ultralytics_masks", lambda _: fake_masks
+    )
     monkeypatch.setattr(detection_core, "mask_to_xyxy", lambda masks: fake_xyxy)
 
     det = Detections.from_ultralytics(results)
