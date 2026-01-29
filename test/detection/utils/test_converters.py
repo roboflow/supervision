@@ -6,13 +6,14 @@ import pytest
 from supervision.detection.utils.converters import (
     xcycwh_to_xyxy,
     xywh_to_xyxy,
+    xyxy_to_mask,
     xyxy_to_xcycarh,
     xyxy_to_xywh,
 )
 
 
 @pytest.mark.parametrize(
-    "xywh, expected_result",
+    ("xywh", "expected_result"),
     [
         (np.array([[10, 20, 30, 40]]), np.array([[10, 20, 40, 60]])),  # standard case
         (np.array([[0, 0, 0, 0]]), np.array([[0, 0, 0, 0]])),  # zero size bounding box
@@ -35,7 +36,7 @@ def test_xywh_to_xyxy(xywh: np.ndarray, expected_result: np.ndarray) -> None:
 
 
 @pytest.mark.parametrize(
-    "xyxy, expected_result",
+    ("xyxy", "expected_result"),
     [
         (np.array([[10, 20, 40, 60]]), np.array([[10, 20, 30, 40]])),  # standard case
         (np.array([[0, 0, 0, 0]]), np.array([[0, 0, 0, 0]])),  # zero size bounding box
@@ -58,7 +59,7 @@ def test_xyxy_to_xywh(xyxy: np.ndarray, expected_result: np.ndarray) -> None:
 
 
 @pytest.mark.parametrize(
-    "xyxy, expected_result",
+    ("xyxy", "expected_result"),
     [
         # Empty and zero cases
         (np.array([]).reshape(0, 4), np.array([]).reshape(0, 4)),  # empty array
@@ -109,7 +110,7 @@ def test_xyxy_to_xcycarh(xyxy: np.ndarray, expected_result: np.ndarray) -> None:
 
 
 @pytest.mark.parametrize(
-    "xcycwh, expected_result",
+    ("xcycwh", "expected_result"),
     [
         (np.array([[50, 50, 20, 30]]), np.array([[40, 35, 60, 65]])),  # standard case
         (np.array([[0, 0, 0, 0]]), np.array([[0, 0, 0, 0]])),  # zero size bounding box
@@ -129,3 +130,174 @@ def test_xyxy_to_xcycarh(xyxy: np.ndarray, expected_result: np.ndarray) -> None:
 def test_xcycwh_to_xyxy(xcycwh: np.ndarray, expected_result: np.ndarray) -> None:
     result = xcycwh_to_xyxy(xcycwh)
     np.testing.assert_array_equal(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    ("boxes", "resolution_wh", "expected"),
+    [
+        # 0) Empty input
+        (
+            np.array([], dtype=float).reshape(0, 4),
+            (5, 4),
+            np.array([], dtype=bool).reshape(0, 4, 5),
+        ),
+        # 1) Single pixel box
+        (
+            np.array([[2, 1, 2, 1]], dtype=float),
+            (5, 4),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, False, True, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
+        ),
+        # 2) Horizontal line, inclusive bounds
+        (
+            np.array([[1, 2, 3, 2]], dtype=float),
+            (5, 4),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
+        ),
+        # 3) Vertical line, inclusive bounds
+        (
+            np.array([[3, 0, 3, 2]], dtype=float),
+            (5, 4),
+            np.array(
+                [
+                    [
+                        [False, False, False, True, False],
+                        [False, False, False, True, False],
+                        [False, False, False, True, False],
+                        [False, False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
+        ),
+        # 4) Proper rectangle fill
+        (
+            np.array([[1, 1, 3, 2]], dtype=float),
+            (5, 4),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, True, True, True, False],
+                        [False, True, True, True, False],
+                        [False, False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
+        ),
+        # 5) Negative coordinates clipped to [0, 0]
+        (
+            np.array([[-2, -1, 1, 1]], dtype=float),
+            (5, 4),
+            np.array(
+                [
+                    [
+                        [True, True, False, False, False],
+                        [True, True, False, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
+        ),
+        # 6) Overflow coordinates clipped to width-1 and height-1
+        (
+            np.array([[3, 2, 10, 10]], dtype=float),
+            (5, 4),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, True, True],
+                        [False, False, False, True, True],
+                    ]
+                ],
+                dtype=bool,
+            ),
+        ),
+        # 7) Invalid box where max < min after ints, mask stays empty
+        (
+            np.array([[3, 2, 1, 4]], dtype=float),
+            (5, 4),
+            np.array(
+                [
+                    [
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
+        ),
+        # 8) Fractional coordinates are floored by int conversion
+        #    (0.2,0.2)-(2.8,1.9) -> (0,0)-(2,1)
+        (
+            np.array([[0.2, 0.2, 2.8, 1.9]], dtype=float),
+            (5, 4),
+            np.array(
+                [
+                    [
+                        [True, True, True, False, False],
+                        [True, True, True, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                    ]
+                ],
+                dtype=bool,
+            ),
+        ),
+        # 9) Multiple boxes, separate masks
+        (
+            np.array([[0, 0, 1, 0], [2, 1, 4, 3]], dtype=float),
+            (5, 4),
+            np.array(
+                [
+                    # Box 0: row 0, cols 0..1
+                    [
+                        [True, True, False, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                        [False, False, False, False, False],
+                    ],
+                    # Box 1: rows 1..3, cols 2..4
+                    [
+                        [False, False, False, False, False],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                        [False, False, True, True, True],
+                    ],
+                ],
+                dtype=bool,
+            ),
+        ),
+    ],
+)
+def test_xyxy_to_mask(boxes: np.ndarray, resolution_wh, expected: np.ndarray) -> None:
+    result = xyxy_to_mask(boxes, resolution_wh)
+    assert result.dtype == np.bool_
+    assert result.shape == expected.shape
+    np.testing.assert_array_equal(result, expected)

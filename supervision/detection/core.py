@@ -47,6 +47,7 @@ from supervision.detection.vlm import (
     from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
+    from_qwen_3_vl,
     validate_vlm_parameters,
 )
 from supervision.geometry.core import Position
@@ -296,18 +297,24 @@ class Detections:
                 class_id=np.arange(len(ultralytics_results)),
             )
 
-        class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
-        class_names = np.array([ultralytics_results.names[i] for i in class_id])
-        return cls(
-            xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
-            confidence=ultralytics_results.boxes.conf.cpu().numpy(),
-            class_id=class_id,
-            mask=extract_ultralytics_masks(ultralytics_results),
-            tracker_id=ultralytics_results.boxes.id.int().cpu().numpy()
-            if ultralytics_results.boxes.id is not None
-            else None,
-            data={CLASS_NAME_DATA_FIELD: class_names},
-        )
+        if (
+            hasattr(ultralytics_results, "boxes")
+            and ultralytics_results.boxes is not None
+        ):
+            class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
+            class_names = np.array([ultralytics_results.names[i] for i in class_id])
+            return cls(
+                xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
+                confidence=ultralytics_results.boxes.conf.cpu().numpy(),
+                class_id=class_id,
+                mask=extract_ultralytics_masks(ultralytics_results),
+                tracker_id=ultralytics_results.boxes.id.int().cpu().numpy()
+                if ultralytics_results.boxes.id is not None
+                else None,
+                data={CLASS_NAME_DATA_FIELD: class_names},
+            )
+
+        return cls.empty()
 
     @classmethod
     def from_yolo_nas(cls, yolo_nas_results) -> Detections:
@@ -945,6 +952,36 @@ class Detections:
             # array([0, 1])
             ```
 
+        !!! example "Qwen3-VL"
+
+            ```python
+            import supervision as sv
+
+            qwen_3_vl_result = \"\"\"```json
+            [
+                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+            ]
+            ```\"\"\"
+            detections = sv.Detections.from_lmm(
+                sv.LMM.QWEN_3_VL,
+                qwen_3_vl_result,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+            detections.xyxy
+            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
+
+            detections.class_id
+            # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
         !!! example "Gemini 2.0"
             ```python
             import supervision as sv
@@ -1205,6 +1242,7 @@ class Detections:
         | PaliGemma           | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
         | PaliGemma 2         | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
         | Qwen2.5-VL          | `QWEN_2_5_VL`        | detection               | `resolution_wh`, `input_wh` | `classes`           |
+        | Qwen3-VL            | `QWEN_3_VL`          | detection               | `resolution_wh`,            | `classes`           |
         | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
@@ -1306,6 +1344,36 @@ class Detections:
                 sv.VLM.QWEN_2_5_VL,
                 qwen_2_5_vl_result,
                 input_wh=(1000, 1000),
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+            detections.xyxy
+            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
+
+            detections.class_id
+            # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
+        !!! example "Qwen3-VL"
+
+            ```python
+            import supervision as sv
+
+            qwen_3_vl_result = \"\"\"```json
+            [
+                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+            ]
+            ```\"\"\"
+            detections = sv.Detections.from_vlm(
+                sv.VLM.QWEN_3_VL,
+                qwen_3_vl_result,
                 resolution_wh=(1000, 1000),
                 classes=['cat', 'dog'],
             )
@@ -1550,7 +1618,14 @@ class Detections:
         if vlm == VLM.QWEN_2_5_VL:
             xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
-            return cls(xyxy=xyxy, class_id=class_id, data=data)
+            confidence = np.ones(len(xyxy), dtype=float)
+            return cls(xyxy=xyxy, class_id=class_id, confidence=confidence, data=data)
+
+        if vlm == VLM.QWEN_3_VL:
+            xyxy, class_id, class_name = from_qwen_3_vl(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            confidence = np.ones(len(xyxy), dtype=float)
+            return cls(xyxy=xyxy, class_id=class_id, confidence=confidence, data=data)
 
         if vlm == VLM.DEEPSEEK_VL_2:
             xyxy, class_id, class_name = from_deepseek_vl_2(result, **kwargs)
@@ -1746,11 +1821,10 @@ class Detections:
             When merging, empty `Detections` objects are ignored.
 
         Args:
-            detections_list (List[Detections]): A list of Detections objects to merge.
+            detections_list: A list of Detections objects to merge.
 
         Returns:
-            (Detections): A single Detections object containing
-                the merged data from the input list.
+            A single Detections object containing the merged data from the input list.
 
         Example:
             ```python
@@ -2012,6 +2086,43 @@ class Detections:
                 where n is the number of detections.
         """
         return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
+
+    @property
+    def box_aspect_ratio(self) -> np.ndarray:
+        """
+        Compute the aspect ratio (width divided by height) for each bounding box.
+
+        Returns:
+            np.ndarray: Array of shape `(N,)` containing aspect ratios, where `N` is the
+            number of boxes (width / height for each box).
+
+        Examples:
+            ```python
+            import numpy as np
+            import supervision as sv
+
+            xyxy = np.array([
+                [10, 10, 50, 50],
+                [60, 10, 180, 50],
+                [10, 60, 50, 180],
+            ])
+
+            detections = sv.Detections(xyxy=xyxy)
+
+            detections.box_aspect_ratio
+            # array([1.0, 3.0, 0.33333333])
+
+            ar = detections.box_aspect_ratio
+            detections[(ar < 2.0) & (ar > 0.5)].xyxy
+            # array([[10., 10., 50., 50.]])
+            ```
+        """
+        widths = self.xyxy[:, 2] - self.xyxy[:, 0]
+        heights = self.xyxy[:, 3] - self.xyxy[:, 1]
+
+        aspect_ratios = np.full_like(widths, np.nan, dtype=np.float64)
+        np.divide(widths, heights, out=aspect_ratios, where=heights != 0)
+        return aspect_ratios
 
     def with_nms(
         self,

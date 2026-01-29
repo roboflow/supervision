@@ -35,7 +35,7 @@ def generate_test_polygon(n: int) -> np.ndarray:
 
 
 @pytest.mark.parametrize(
-    "polygon, expected_result",
+    ("polygon", "expected_result"),
     [
         (generate_test_polygon(10), Point(x=5.0, y=12.0)),
         (generate_test_polygon(50), Point(x=25.0, y=61.0)),

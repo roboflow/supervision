@@ -117,7 +117,8 @@ def yolo_annotations_to_detections(
         return Detections(class_id=class_id, xyxy=xyxy, data=data)
 
     polygons = [
-        (polygon * np.array(resolution_wh)).astype(int) for polygon in relative_polygon
+        np.round(polygon * np.array(resolution_wh, dtype=np.float32)).astype(int)
+        for polygon in relative_polygon
     ]
     mask = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
     return Detections(class_id=class_id, xyxy=xyxy, data=data, mask=mask)
