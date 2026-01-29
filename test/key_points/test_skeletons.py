@@ -46,11 +46,11 @@ class TestSkeletons:
         assert len(unique_vertices) == 17  # COCO has 17 keypoints
 
     def test_skeletons_by_vertex_count_mapping_behaviour(self):
-        """Test SKELETONS_BY_VERTEX_COUNT uses last-in-wins for duplicate vertex counts."""
+        """Test SKELETONS_BY_VERTEX_COUNT uses last-in-wins for duplicate counts."""
         expected_mapping = {}
         for skeleton in Skeleton:
             vertex_count = len({v for edge in skeleton.value for v in edge})
-            # Mimic the construction in skeletons.py: later skeletons overwrite earlier ones
+            # Mimic skeletons.py: later skeletons overwrite earlier ones
             expected_mapping[vertex_count] = skeleton.value
 
         # The keys (vertex counts) should match
