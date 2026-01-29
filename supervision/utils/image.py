@@ -610,7 +610,7 @@ class ImageSink:
         return self
 
     def save_image(
-        self, image: np.ndarray[np.uint8, Any], image_name: str | None = None
+        self, image: npt.NDArray[np.uint8], image_name: str | None = None
     ) -> None:
         """
         Save image to target directory with optional custom filename.

@@ -12,9 +12,6 @@ import cv2
 import numpy as np
 from tqdm.auto import tqdm
 
-# Define a type variable for numpy array dtypes
-DType = TypeVar("DType", bound=np.generic)
-
 
 @dataclass
 class VideoInfo:
