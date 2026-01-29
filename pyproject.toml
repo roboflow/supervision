@@ -100,8 +100,9 @@ include-package-data = false
 supervision = [ "py.typed" ]
 
 [tool.setuptools.packages.find]
+where = [ "src" ]
 include = [ "supervision*" ]
-exclude = [ "docs*", "test*", "examples*" ]
+#exclude = [ "docs*", "test*", "examples*" ]
 
 [tool.ruff]
 target-version = "py39"
