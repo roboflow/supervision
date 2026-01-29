@@ -119,6 +119,28 @@ class TestBoxAnnotator:
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert_image_mostly_same(test_image, result, similarity_threshold=0.85)
 
+    def test_annotate_with_numpy_color_lookup(self, test_image):
+        """Test that annotate works when color lookup is a NumPy array"""
+        detections = Detections(
+            xyxy=np.array([[10, 10, 20, 20], [30, 30, 40, 40]], dtype=np.float32),
+            confidence=np.array([0.38, 0.21], dtype=np.float32),
+            class_id=np.array([0, 0], dtype=np.int64),
+            tracker_id=None,
+        )
+
+        lookup = np.array([1, 0], dtype=np.int16)
+
+        annotator = BoxAnnotator(
+            color=Color.WHITE, thickness=2, color_lookup=ColorLookup.INDEX
+        )
+
+        result = annotator.annotate(
+            scene=test_image.copy(),
+            detections=detections,
+            custom_color_lookup=lookup,
+        )
+        assert_image_mostly_same(test_image, result, similarity_threshold=0.85)
+
 
 class TestOrientedBoxAnnotator:
     """Tests for OrientedBoxAnnotator class"""
