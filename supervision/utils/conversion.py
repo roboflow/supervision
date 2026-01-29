@@ -1,13 +1,17 @@
 from functools import wraps
+from typing import Any, Callable
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 from PIL import Image
 
 from supervision.draw.base import ImageType
 
 
-def ensure_cv2_image_for_class_method(annotate_func):
+def ensure_cv2_image_for_class_method(
+    annotate_func: Callable[..., ImageType],
+) -> Callable[..., ImageType]:
     """
     Decorates `BaseAnnotator.annotate` implementations, converts scene to
     an image type used internally by the annotators, converts back when annotation
@@ -17,7 +21,7 @@ def ensure_cv2_image_for_class_method(annotate_func):
     """
 
     @wraps(annotate_func)
-    def wrapper(self, scene: ImageType, *args, **kwargs):
+    def wrapper(self: Any, scene: ImageType, *args: Any, **kwargs: Any) -> ImageType:
         if isinstance(scene, np.ndarray):
             return annotate_func(self, scene, *args, **kwargs)
 
@@ -32,7 +36,9 @@ def ensure_cv2_image_for_class_method(annotate_func):
     return wrapper
 
 
-def ensure_cv2_image_for_standalone_function(image_processing_fun):
+def ensure_cv2_image_for_standalone_function(
+    image_processing_fun: Callable[..., ImageType],
+) -> Callable[..., ImageType]:
     """
     Decorates image processing functions that accept np.ndarray, converting `image` to
     np.ndarray, converts back when processing is complete.
@@ -41,7 +47,7 @@ def ensure_cv2_image_for_standalone_function(image_processing_fun):
     """
 
     @wraps(image_processing_fun)
-    def wrapper(image: ImageType, *args, **kwargs):
+    def wrapper(image: ImageType, *args: Any, **kwargs: Any) -> ImageType:
         if isinstance(image, np.ndarray):
             return image_processing_fun(image, *args, **kwargs)
 
@@ -55,7 +61,9 @@ def ensure_cv2_image_for_standalone_function(image_processing_fun):
     return wrapper
 
 
-def ensure_pil_image_for_class_method(annotate_func):
+def ensure_pil_image_for_class_method(
+    annotate_func: Callable[..., ImageType],
+) -> Callable[..., ImageType]:
     """
     Decorates image processing functions that accept np.ndarray, converting `image` to
     PIL image, converts back when processing is complete.
@@ -64,7 +72,7 @@ def ensure_pil_image_for_class_method(annotate_func):
     """
 
     @wraps(annotate_func)
-    def wrapper(self, scene: ImageType, *args, **kwargs):
+    def wrapper(self: Any, scene: ImageType, *args: Any, **kwargs: Any) -> ImageType:
         if isinstance(scene, np.ndarray):
             scene_pil = cv2_to_pillow(scene)
             annotated_pil = annotate_func(self, scene_pil, *args, **kwargs)
@@ -79,16 +87,16 @@ def ensure_pil_image_for_class_method(annotate_func):
     return wrapper
 
 
-def images_to_cv2(images: list[ImageType]) -> list[np.ndarray]:
+def images_to_cv2(images: list[ImageType]) -> list[npt.NDArray[np.uint8]]:
     """
     Converts images provided either as Pillow images or OpenCV
     images into OpenCV format.
 
     Args:
-        images (List[ImageType]): Images to be converted
+        images: Images to be converted
 
     Returns:
-        List[np.ndarray]: List of input images in OpenCV format
+        List of input images in OpenCV format
             (with order preserved).
 
     """
@@ -100,32 +108,32 @@ def images_to_cv2(images: list[ImageType]) -> list[np.ndarray]:
     return result
 
 
-def pillow_to_cv2(image: Image.Image) -> np.ndarray:
+def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
     """
     Converts Pillow image into OpenCV image, handling RGB -> BGR
     conversion.
 
     Args:
-        image (Image.Image): Pillow image (in RGB format).
+        image: Pillow image (in RGB format).
 
     Returns:
-        (np.ndarray): Input image converted to OpenCV format.
+        Input image converted to OpenCV format.
     """
     scene = np.array(image)
     scene = cv2.cvtColor(scene, cv2.COLOR_RGB2BGR)
-    return scene
+    return scene.astype(np.uint8)
 
 
-def cv2_to_pillow(image: np.ndarray) -> Image.Image:
+def cv2_to_pillow(image: npt.NDArray[np.uint8]) -> Image.Image:
     """
     Converts OpenCV image into Pillow image, handling BGR -> RGB
     conversion.
 
     Args:
-        image (np.ndarray): OpenCV image (in BGR format).
+        image: OpenCV image (in BGR format).
 
     Returns:
-        (Image.Image): Input image converted to Pillow format.
+        Input image converted to Pillow format.
     """
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return Image.fromarray(image)

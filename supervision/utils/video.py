@@ -6,9 +6,11 @@ from collections import deque
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from queue import Queue
+from typing import Any
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 from tqdm.auto import tqdm
 
 
@@ -19,10 +21,10 @@ class VideoInfo:
         total number of frames.
 
     Attributes:
-        width (int): width of the video in pixels
-        height (int): height of the video in pixels
-        fps (int): frames per second of the video
-        total_frames (Optional[int]): total number of frames in the video,
+        width: width of the video in pixels
+        height: height of the video in pixels
+        fps: frames per second of the video
+        total_frames: total number of frames in the video,
             default is None
 
     Examples:
@@ -67,10 +69,10 @@ class VideoSink:
     Context manager that saves video frames to a file using OpenCV.
 
     Attributes:
-        target_path (str): The path to the output file where the video will be saved.
-        video_info (VideoInfo): Information about the video resolution, fps,
+        target_path: The path to the output file where the video will be saved.
+        video_info: Information about the video resolution, fps,
             and total frame count.
-        codec (str): FOURCC code for video format
+        codec: FOURCC code for video format
 
     Example:
         ```python
@@ -91,7 +93,7 @@ class VideoSink:
         self.__codec = codec
         self.__writer = None
 
-    def __enter__(self):
+    def __enter__(self) -> VideoSink:
         try:
             self.__fourcc = cv2.VideoWriter_fourcc(*self.__codec)
         except TypeError as e:
@@ -105,23 +107,30 @@ class VideoSink:
         )
         return self
 
-    def write_frame(self, frame: np.ndarray):
+    def write_frame(self, frame: npt.NDArray[np.uint8]) -> None:
         """
         Writes a single video frame to the target video file.
 
         Args:
-            frame (np.ndarray): The video frame to be written to the file. The frame
+            frame: The video frame to be written to the file. The frame
                 must be in BGR color format.
         """
-        self.__writer.write(frame)
+        if self.__writer is not None:
+            self.__writer.write(frame)
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
-        self.__writer.release()
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: Any,
+    ) -> None:
+        if self.__writer is not None:
+            self.__writer.release()
 
 
 def _validate_and_setup_video(
     source_path: str, start: int, end: int | None, iterative_seek: bool = False
-):
+) -> tuple[cv2.VideoCapture, int, int]:
     video = cv2.VideoCapture(source_path)
     if not video.isOpened():
         raise Exception(f"Could not open video at {source_path}")
@@ -149,24 +158,24 @@ def get_video_frames_generator(
     start: int = 0,
     end: int | None = None,
     iterative_seek: bool = False,
-) -> Generator[np.ndarray]:
+) -> Generator[npt.NDArray[np.uint8], None, None]:
     """
     Get a generator that yields the frames of the video.
 
     Args:
-        source_path (str): The path of the video file.
-        stride (int): Indicates the interval at which frames are returned,
+        source_path: The path of the video file.
+        stride: Indicates the interval at which frames are returned,
             skipping stride - 1 frames between each.
-        start (int): Indicates the starting position from which
+        start: Indicates the starting position from which
             video should generate frames
-        end (Optional[int]): Indicates the ending position at which video
+        end: Indicates the ending position at which video
             should stop generating frames. If None, video will be read to the end.
-        iterative_seek (bool): If True, the generator will seek to the
+        iterative_seek: If True, the generator will seek to the
             `start` frame by grabbing each frame, which is much slower. This is a
             workaround for videos that don't open at all when you set the `start` value.
 
     Returns:
-        (Generator[np.ndarray, None, None]): A generator that yields the
+        A generator that yields the
             frames of the video.
 
     Examples:
@@ -185,7 +194,8 @@ def get_video_frames_generator(
         success, frame = video.read()
         if not success or frame_position >= end:
             break
-        yield frame
+        if frame is not None:
+            yield frame
         for _ in range(stride - 1):
             success = video.grab()
             if not success:
@@ -197,7 +207,7 @@ def get_video_frames_generator(
 def process_video(
     source_path: str,
     target_path: str,
-    callback: Callable[[np.ndarray, int], np.ndarray],
+    callback: Callable[[npt.NDArray[np.uint8], int], npt.NDArray[np.uint8]],
     *,
     max_frames: int | None = None,
     prefetch: int = 32,
@@ -223,20 +233,20 @@ def process_video(
        them sequentially to the output video file.
 
     Args:
-        source_path (str): Path to the input video file.
-        target_path (str): Path where the processed video will be saved.
-        callback (Callable[[numpy.ndarray, int], numpy.ndarray]): Function called for
+        source_path: Path to the input video file.
+        target_path: Path where the processed video will be saved.
+        callback: Function called for
             each frame, accepting the frame as a numpy array and its zero-based index,
             returning the processed frame.
-        max_frames (int | None): Optional maximum number of frames to process.
+        max_frames: Optional maximum number of frames to process.
             If None, the entire video is processed (default).
-        prefetch (int): Maximum number of frames buffered by the reader thread.
+        prefetch: Maximum number of frames buffered by the reader thread.
             Controls memory use; default is 32.
-        writer_buffer (int): Maximum number of frames buffered before writing.
+        writer_buffer: Maximum number of frames buffered before writing.
             Controls output buffer size; default is 32.
-        show_progress (bool): Whether to display a tqdm progress bar during processing.
+        show_progress: Whether to display a tqdm progress bar during processing.
             Default is False.
-        progress_message (str): Description shown in the progress bar.
+        progress_message: Description shown in the progress bar.
 
     Returns:
         None
@@ -261,13 +271,17 @@ def process_video(
     """
     video_info = VideoInfo.from_video_path(video_path=source_path)
     total_frames = (
-        min(video_info.total_frames, max_frames)
+        min(video_info.total_frames or 0, max_frames)
         if max_frames is not None
-        else video_info.total_frames
+        else video_info.total_frames or 0
     )
 
-    frame_read_queue: Queue[tuple[int, np.ndarray] | None] = Queue(maxsize=prefetch)
-    frame_write_queue: Queue[np.ndarray | None] = Queue(maxsize=writer_buffer)
+    frame_read_queue: Queue[tuple[int, npt.NDArray[np.uint8]] | None] = Queue(
+        maxsize=prefetch
+    )
+    frame_write_queue: Queue[npt.NDArray[np.uint8] | None] = Queue(
+        maxsize=writer_buffer
+    )
 
     def reader_thread() -> None:
         frame_generator = get_video_frames_generator(
@@ -328,7 +342,7 @@ class FPSMonitor:
     def __init__(self, sample_size: int = 30):
         """
         Args:
-            sample_size (int): The maximum number of observations for latency
+            sample_size: The maximum number of observations for latency
                 benchmarking.
 
         Examples:
@@ -344,7 +358,7 @@ class FPSMonitor:
                 fps = fps_monitor.fps
             ```
         """  # noqa: E501 // docs
-        self.all_timestamps = deque(maxlen=sample_size)
+        self.all_timestamps: deque[float] = deque(maxlen=sample_size)
 
     @property
     def fps(self) -> float:
@@ -352,7 +366,7 @@ class FPSMonitor:
         Computes and returns the average FPS based on the stored time stamps.
 
         Returns:
-            float: The average FPS. Returns 0.0 if no time stamps are stored.
+            The average FPS. Returns 0.0 if no time stamps are stored.
         """
         if not self.all_timestamps:
             return 0.0

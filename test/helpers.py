@@ -208,3 +208,33 @@ def assert_almost_equal(actual, expected, tolerance=1e-5):
         AssertionError: Expected 0.5, but got 0.6.
     """
     assert abs(actual - expected) < tolerance, f"Expected {expected}, but got {actual}."
+
+
+def assert_image_mostly_same(
+    original: np.ndarray, annotated: np.ndarray, similarity_threshold: float = 0.9
+) -> None:
+    """
+    Assert that the annotated image is mostly the same as the original.
+
+    Args:
+        original: Original image
+        annotated: Annotated image
+        similarity_threshold:
+          Minimum percentage of pixels that should be the same (0.0 to 1.0)
+    """
+    # Check that images have the same shape
+    assert original.shape == annotated.shape
+
+    # Calculate number of identical pixels
+    identical_pixels = np.sum(np.all(original == annotated, axis=-1))
+    total_pixels = original.shape[0] * original.shape[1]
+    similarity = identical_pixels / total_pixels
+
+    # Check that at least similarity_threshold of pixels are identical
+    assert similarity >= similarity_threshold, (
+        f"Images are only {similarity:.1%} similar, "
+        f"which is below the {similarity_threshold:.1%} threshold"
+    )
+
+    # Check that the image is not completely identical
+    assert not np.array_equal(original, annotated), "Images are completely identical"
