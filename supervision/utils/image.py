@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import os
 import shutil
+from typing import Any
 
 import cv2
 import numpy as np
 import numpy.typing as npt
 from PIL import Image
 
-from supervision.annotators.base import ImageType
+from supervision.draw.base import ImageType
 from supervision.draw.color import Color, unify_to_bgr
 from supervision.utils.conversion import (
     ensure_cv2_image_for_standalone_function,
@@ -16,6 +17,7 @@ from supervision.utils.conversion import (
 from supervision.utils.internal import deprecated
 
 
+@ensure_cv2_image_for_standalone_function
 def crop_image(
     image: ImageType,
     xyxy: npt.NDArray[int] | list[int] | tuple[int, int, int, int],
@@ -24,12 +26,12 @@ def crop_image(
     Crop image based on bounding box coordinates.
 
     Args:
-        image (`numpy.ndarray` or `PIL.Image.Image`): The image to crop.
-        xyxy (`numpy.array`, `list[int]`, or `tuple[int, int, int, int]`):
+        image: The image to crop.
+        xyxy:
             Bounding box coordinates in `(x_min, y_min, x_max, y_max)` format.
 
     Returns:
-        (`numpy.ndarray` or `PIL.Image.Image`): Cropped image matching input
+        Cropped image matching input
             type.
 
     Examples:
@@ -86,11 +88,11 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     Scale image by given factor. Scale factor > 1.0 zooms in, < 1.0 zooms out.
 
     Args:
-        image (`numpy.ndarray` or `PIL.Image.Image`): The image to scale.
-        scale_factor (`float`): Factor by which to scale the image.
+        image: The image to scale.
+        scale_factor: Factor by which to scale the image.
 
     Returns:
-        (`numpy.ndarray` or `PIL.Image.Image`): Scaled image matching input
+        Scaled image matching input
             type.
 
     Raises:
@@ -131,7 +133,7 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     width_old, height_old = image.shape[1], image.shape[0]
     width_new = int(width_old * scale_factor)
     height_new = int(height_old * scale_factor)
-    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
+    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)  # type: ignore
 
 
 @ensure_cv2_image_for_standalone_function
@@ -144,13 +146,13 @@ def resize_image(
     Resize image to specified resolution. Can optionally maintain aspect ratio.
 
     Args:
-        image (`numpy.ndarray` or `PIL.Image.Image`): The image to resize.
-        resolution_wh (`tuple[int, int]`): Target resolution as `(width, height)`.
-        keep_aspect_ratio (`bool`): Flag to maintain original aspect ratio.
+        image: The image to resize.
+        resolution_wh: Target resolution as `(width, height)`.
+        keep_aspect_ratio: Flag to maintain original aspect ratio.
             Defaults to `False`.
 
     Returns:
-        (`numpy.ndarray` or `PIL.Image.Image`): Resized image matching input
+        Resized image matching input
             type.
 
     Examples:
@@ -198,7 +200,7 @@ def resize_image(
     else:
         width_new, height_new = resolution_wh
 
-    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
+    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)  # type: ignore
 
 
 @ensure_cv2_image_for_standalone_function
@@ -212,13 +214,13 @@ def letterbox_image(
     maintaining aspect ratio.
 
     Args:
-        image (`numpy.ndarray` or `PIL.Image.Image`): The image to resize and pad.
-        resolution_wh (`tuple[int, int]`): Target resolution as `(width, height)`.
-        color (`tuple[int, int, int]` or `Color`): Padding color. If tuple, should
+        image: The image to resize and pad.
+        resolution_wh: Target resolution as `(width, height)`.
+        color: Padding color. If tuple, should
             be in BGR format. Defaults to `Color.BLACK`.
 
     Returns:
-        (`numpy.ndarray` or `PIL.Image.Image`): Letterboxed image matching input
+        Letterboxed image matching input
             type.
 
     Examples:
@@ -280,7 +282,7 @@ def letterbox_image(
         image[:, :padding_left, 3] = 0
         image[:, width_new - padding_right :, 3] = 0
 
-    return image_with_borders
+    return image_with_borders  # type: ignore
 
 
 @deprecated(
@@ -297,14 +299,14 @@ def overlay_image(
     overlay position is partially or completely outside scene bounds.
 
     Args:
-        image (`numpy.array`): Background scene with shape `(height, width, 3)`.
-        overlay (`numpy.array`): Image to overlay with shape
+        image: Background scene with shape `(height, width, 3)`.
+        overlay: Image to overlay with shape
             `(height, width, 3)` or `(height, width, 4)`.
-        anchor (`tuple[int, int]`): Coordinates `(x, y)` where top-left corner
+        anchor: Coordinates `(x, y)` where top-left corner
             of overlay will be placed.
 
     Returns:
-        (`numpy.array`): Scene with overlay applied, shape `(height, width, 3)`.
+        Scene with overlay applied, shape `(height, width, 3)`.
 
     Examples:
         ```
@@ -384,13 +386,13 @@ def tint_image(
     Tint image with solid color overlay at specified opacity.
 
     Args:
-        image (`numpy.ndarray` or `PIL.Image.Image`): The image to tint.
-        color (`Color`): Overlay tint color. Defaults to `Color.BLACK`.
-        opacity (`float`): Blend ratio between overlay and image (0.0-1.0).
+        image: The image to tint.
+        color: Overlay tint color. Defaults to `Color.BLACK`.
+        opacity: Blend ratio between overlay and image (0.0-1.0).
             Defaults to `0.5`.
 
     Returns:
-        (`numpy.ndarray` or `PIL.Image.Image`): Tinted image matching input
+        Tinted image matching input
             type.
 
     Raises:
@@ -438,11 +440,11 @@ def grayscale_image(image: ImageType) -> ImageType:
     all three channels for compatibility with color-based drawing helpers.
 
     Args:
-        image (`numpy.ndarray` or `PIL.Image.Image`): The image to convert to
+        image: The image to convert to
             grayscale.
 
     Returns:
-        (`numpy.ndarray` or `PIL.Image.Image`): 3-channel grayscale image
+        3-channel grayscale image
             matching input type.
 
     Examples:
@@ -467,7 +469,7 @@ def grayscale_image(image: ImageType) -> ImageType:
     ![grayscale-image](https://media.roboflow.com/supervision-docs/supervision-docs-grayscale-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
     grayscaled = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    return cv2.cvtColor(grayscaled, cv2.COLOR_GRAY2BGR)
+    return cv2.cvtColor(grayscaled, cv2.COLOR_GRAY2BGR)  # type: ignore
 
 
 def get_image_resolution_wh(image: ImageType) -> tuple[int, int]:
@@ -478,10 +480,10 @@ def get_image_resolution_wh(image: ImageType) -> tuple[int, int]:
     `PIL.Image.Image` inputs.
 
     Args:
-        image (`numpy.ndarray` or `PIL.Image.Image`): Input image.
+        image: Input image.
 
     Returns:
-        (`tuple[int, int]`): Image resolution as `(width, height)`.
+        Image resolution as `(width, height)`.
 
     Raises:
         ValueError: If a `numpy.ndarray` image has fewer than 2 dimensions.
@@ -597,7 +599,7 @@ class ImageSink:
         self.image_name_pattern = image_name_pattern
         self.image_count = 0
 
-    def __enter__(self):
+    def __enter__(self) -> ImageSink:
         if os.path.exists(self.target_dir_path):
             if self.overwrite:
                 shutil.rmtree(self.target_dir_path)
@@ -607,14 +609,16 @@ class ImageSink:
 
         return self
 
-    def save_image(self, image: np.ndarray, image_name: str | None = None):
+    def save_image(
+        self, image: npt.NDArray[np.uint8], image_name: str | None = None
+    ) -> None:
         """
         Save image to target directory with optional custom filename.
 
         Args:
-            image (`numpy.array`): Image to save with shape `(height, width, 3)`
+            image: Image to save with shape `(height, width, 3)`
                 in BGR format.
-            image_name (`str` or `None`): Custom filename for saved image. If
+            image_name: Custom filename for saved image. If
                 `None`, generates name using `image_name_pattern`. Defaults to
                 `None`.
         """
@@ -625,5 +629,10 @@ class ImageSink:
         cv2.imwrite(image_path, image)
         self.image_count += 1
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: Any,
+    ) -> None:
         pass

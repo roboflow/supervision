@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 import supervision as sv
-from test.test_utils import mock_detections
+from test.helpers import _create_detections
 
 DETECTION_BOXES = np.array(
     [
@@ -21,7 +21,7 @@ DETECTION_BOXES = np.array(
     dtype=np.float32,
 )
 
-DETECTIONS = mock_detections(
+DETECTIONS = _create_detections(
     xyxy=DETECTION_BOXES, class_id=np.array([0, 0, 0, 0, 0, 0, 0, 0, 0])
 )
 

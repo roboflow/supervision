@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 
 from supervision.key_points.core import KeyPoints
-from test.test_utils import mock_key_points
+from test.helpers import _create_key_points
 
-KEY_POINTS = mock_key_points(
+KEY_POINTS = _create_key_points(
     xy=[
         [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]],
         [[10, 11], [12, 13], [14, 15], [16, 17], [18, 19]],
@@ -39,7 +39,7 @@ KEY_POINTS = mock_key_points(
         (
             KEY_POINTS,
             slice(0, 1),
-            mock_key_points(
+            _create_key_points(
                 xy=[[[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]]],
                 confidence=[[0.8, 0.2, 0.6, 0.1, 0.5]],
                 class_id=[0],
@@ -49,7 +49,7 @@ KEY_POINTS = mock_key_points(
         (
             KEY_POINTS,
             slice(0, 2),
-            mock_key_points(
+            _create_key_points(
                 xy=[
                     [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]],
                     [[10, 11], [12, 13], [14, 15], [16, 17], [18, 19]],
@@ -65,7 +65,7 @@ KEY_POINTS = mock_key_points(
         (
             KEY_POINTS,
             0,
-            mock_key_points(
+            _create_key_points(
                 xy=[[[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]]],
                 confidence=[[0.8, 0.2, 0.6, 0.1, 0.5]],
                 class_id=[0],
@@ -75,7 +75,7 @@ KEY_POINTS = mock_key_points(
         (
             KEY_POINTS,
             -1,
-            mock_key_points(
+            _create_key_points(
                 xy=[[[20, 21], [22, 23], [24, 25], [26, 27], [28, 29]]],
                 confidence=[[0.1, 0.6, 0.8, 0.2, 0.7]],
                 class_id=[2],
@@ -85,7 +85,7 @@ KEY_POINTS = mock_key_points(
         (
             KEY_POINTS,
             [0, 1],
-            mock_key_points(
+            _create_key_points(
                 xy=[
                     [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]],
                     [[10, 11], [12, 13], [14, 15], [16, 17], [18, 19]],
@@ -101,7 +101,7 @@ KEY_POINTS = mock_key_points(
         (
             KEY_POINTS,
             np.array([0, 1]),
-            mock_key_points(
+            _create_key_points(
                 xy=[
                     [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]],
                     [[10, 11], [12, 13], [14, 15], [16, 17], [18, 19]],
@@ -117,7 +117,7 @@ KEY_POINTS = mock_key_points(
         (
             KEY_POINTS,
             [True, True, False],
-            mock_key_points(
+            _create_key_points(
                 xy=[
                     [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]],
                     [[10, 11], [12, 13], [14, 15], [16, 17], [18, 19]],
@@ -133,7 +133,7 @@ KEY_POINTS = mock_key_points(
         (
             KEY_POINTS,
             np.array([True, True, False]),
-            mock_key_points(
+            _create_key_points(
                 xy=[
                     [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]],
                     [[10, 11], [12, 13], [14, 15], [16, 17], [18, 19]],
@@ -155,7 +155,7 @@ KEY_POINTS = mock_key_points(
         (
             KEY_POINTS,
             (slice(None), slice(0, 1)),
-            mock_key_points(
+            _create_key_points(
                 xy=[[[0, 1]], [[10, 11]], [[20, 21]]],
                 confidence=[[0.8], [0.7], [0.1]],
                 class_id=[0, 1, 2],
@@ -165,7 +165,7 @@ KEY_POINTS = mock_key_points(
         (
             KEY_POINTS,
             (slice(None), slice(0, 2)),
-            mock_key_points(
+            _create_key_points(
                 xy=[[[0, 1], [2, 3]], [[10, 11], [12, 13]], [[20, 21], [22, 23]]],
                 confidence=[[0.8, 0.2], [0.7, 0.9], [0.1, 0.6]],
                 class_id=[0, 1, 2],
@@ -175,7 +175,7 @@ KEY_POINTS = mock_key_points(
         (
             KEY_POINTS,
             (slice(None), 0),
-            mock_key_points(
+            _create_key_points(
                 xy=[[[0, 1]], [[10, 11]], [[20, 21]]],
                 confidence=[[0.8], [0.7], [0.1]],
                 class_id=[0, 1, 2],
@@ -185,7 +185,7 @@ KEY_POINTS = mock_key_points(
         (
             KEY_POINTS,
             (slice(None), -1),
-            mock_key_points(
+            _create_key_points(
                 xy=[[[8, 9]], [[18, 19]], [[28, 29]]],
                 confidence=[[0.5], [0.0], [0.7]],
                 class_id=[0, 1, 2],
@@ -195,7 +195,7 @@ KEY_POINTS = mock_key_points(
         (
             KEY_POINTS,
             (slice(None), [0, 1]),
-            mock_key_points(
+            _create_key_points(
                 xy=[[[0, 1], [2, 3]], [[10, 11], [12, 13]], [[20, 21], [22, 23]]],
                 confidence=[[0.8, 0.2], [0.7, 0.9], [0.1, 0.6]],
                 class_id=[0, 1, 2],
@@ -205,7 +205,7 @@ KEY_POINTS = mock_key_points(
         (
             KEY_POINTS,
             (slice(None), np.array([0, 1])),
-            mock_key_points(
+            _create_key_points(
                 xy=[[[0, 1], [2, 3]], [[10, 11], [12, 13]], [[20, 21], [22, 23]]],
                 confidence=[[0.8, 0.2], [0.7, 0.9], [0.1, 0.6]],
                 class_id=[0, 1, 2],
@@ -215,7 +215,7 @@ KEY_POINTS = mock_key_points(
         (
             KEY_POINTS,
             (slice(None), [True, True, False, False, False]),
-            mock_key_points(
+            _create_key_points(
                 xy=[[[0, 1], [2, 3]], [[10, 11], [12, 13]], [[20, 21], [22, 23]]],
                 confidence=[[0.8, 0.2], [0.7, 0.9], [0.1, 0.6]],
                 class_id=[0, 1, 2],
@@ -225,7 +225,7 @@ KEY_POINTS = mock_key_points(
         (
             KEY_POINTS,
             (slice(None), np.array([True, True, False, False, False])),
-            mock_key_points(
+            _create_key_points(
                 xy=[[[0, 1], [2, 3]], [[10, 11], [12, 13]], [[20, 21], [22, 23]]],
                 confidence=[[0.8, 0.2], [0.7, 0.9], [0.1, 0.6]],
                 class_id=[0, 1, 2],
@@ -235,7 +235,7 @@ KEY_POINTS = mock_key_points(
         (
             KEY_POINTS,
             (0, 0),
-            mock_key_points(
+            _create_key_points(
                 xy=[
                     [[0, 1]],
                 ],
@@ -249,7 +249,7 @@ KEY_POINTS = mock_key_points(
         (
             KEY_POINTS,
             (0, -1),
-            mock_key_points(
+            _create_key_points(
                 xy=[
                     [[8, 9]],
                 ],
