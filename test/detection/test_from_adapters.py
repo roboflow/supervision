@@ -124,7 +124,7 @@ def test_from_ultralytics_segmentation_only_branch_uses_masks_and_arange(
 
 
 @pytest.mark.parametrize(
-    "bboxes, conf, labels, expected_len",
+    ("bboxes", "conf", "labels", "expected_len"),
     [
         (
             np.empty((0, 4), dtype=np.float32),
