@@ -1,5 +1,8 @@
 name: Check links & references
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main, develop]
