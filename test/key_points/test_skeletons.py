@@ -38,6 +38,7 @@ class TestSkeletons:
             expected[edge_count] = skeleton.value
 
         assert SKELETONS_BY_EDGE_COUNT == expected
+
     def test_unique_vertices_calculation(self):
         """Test unique vertices calculation from skeleton edges."""
         coco_skeleton = Skeleton.COCO.value
