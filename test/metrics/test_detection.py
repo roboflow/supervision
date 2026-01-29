@@ -11,7 +11,7 @@ from supervision.metrics.detection import (
     MeanAveragePrecision,
     detections_to_tensor,
 )
-from test.test_utils import assert_almost_equal, mock_detections
+from test.helpers import _create_detections, assert_almost_equal
 
 CLASSES = np.arange(80)
 NUM_CLASSES = len(CLASSES)
@@ -138,19 +138,19 @@ BAD_CONF_MATRIX = worsen_ideal_conf_matrix(
             DoesNotRaise(),
         ),  # empty detections; with confidence
         (
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0], confidence=[0.5]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0], confidence=[0.5]),
             False,
             np.array([[0, 0, 10, 10, 0]], dtype=np.float32),
             DoesNotRaise(),
         ),  # single detection; no confidence
         (
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0], confidence=[0.5]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0], confidence=[0.5]),
             True,
             np.array([[0, 0, 10, 10, 0, 0.5]], dtype=np.float32),
             DoesNotRaise(),
         ),  # single detection; with confidence
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[0, 0, 10, 10], [0, 0, 20, 20]],
                 class_id=[0, 1],
                 confidence=[0.5, 0.2],
@@ -160,7 +160,7 @@ BAD_CONF_MATRIX = worsen_ideal_conf_matrix(
             DoesNotRaise(),
         ),  # multiple detections; no confidence
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[0, 0, 10, 10], [0, 0, 20, 20]],
                 class_id=[0, 1],
                 confidence=[0.5, 0.2],
