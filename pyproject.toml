@@ -39,6 +39,7 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Multimedia :: Graphics",
   "Topic :: Multimedia :: Video",
   "Topic :: Scientific/Engineering",
@@ -186,6 +187,13 @@ count = true
 quiet-level = 3
 ignore-words-list = "STrack,sTrack,strack"
 
+[tool.pytest.ini_options]
+addopts = [
+  "--doctest-modules",
+  "--color=yes",
+]
+doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE"
+
 [tool.mypy]
 python_version = "3.9"
 ignore_missing_imports = false
@@ -203,8 +211,6 @@ module = [
   "test.*",
   "examples.*",
   # TODO: fix type errors in the following modules
-  "supervision.assets.downloader",
-  "supervision.assets.list",
   "supervision.classification.core",
   "supervision.dataset.core",
   "supervision.dataset.formats.coco",
@@ -246,13 +252,6 @@ module = [
   "supervision.tracker.byte_tracker.kalman_filter",
   "supervision.tracker.byte_tracker.matching",
   "supervision.tracker.byte_tracker.single_object_track",
-  "supervision.utils.conversion",
-  "supervision.utils.file",
-  "supervision.utils.image",
-  "supervision.utils.internal",
-  "supervision.utils.iterables",
-  "supervision.utils.notebook",
-  "supervision.utils.video",
 ]
 ignore_errors = true
 

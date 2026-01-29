@@ -15,10 +15,10 @@ def plot_image(
     Plots image using matplotlib.
 
     Args:
-        image (ImageType): The frame to be displayed ImageType
+        image: The frame to be displayed ImageType
              is a flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
-        size (Tuple[int, int]): The size of the plot in inches.
-        cmap (str): the colormap to use for single channel images.
+        size: The size of the plot in inches.
+        cmap: the colormap to use for single channel images.
 
     Examples:
         ```python
@@ -56,15 +56,15 @@ def plot_images_grid(
     Plots images in a grid using matplotlib.
 
     Args:
-       images (List[ImageType]): A list of images as ImageType
+       images: A list of images as ImageType
              is a flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
-       grid_size (Tuple[int, int]): A tuple specifying the number
+       grid_size: A tuple specifying the number
             of rows and columns for the grid.
-       titles (Optional[List[str]]): A list of titles for each image.
+       titles: A list of titles for each image.
             Defaults to None.
-       size (Tuple[int, int]): A tuple specifying the width and
+       size: A tuple specifying the width and
             height of the entire plot in inches.
-       cmap (str): the colormap to use for single channel images.
+       cmap: the colormap to use for single channel images.
 
     Raises:
        ValueError: If the number of images exceeds the grid size.
