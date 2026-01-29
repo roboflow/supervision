@@ -14,7 +14,7 @@ from supervision.detection.utils.iou_and_nms import (
     mask_non_max_merge,
     mask_non_max_suppression,
 )
-from test.helpers import _generate_random_boxes
+from tests.helpers import _generate_random_boxes
 
 
 @pytest.mark.parametrize(

@@ -7,7 +7,7 @@ import pytest
 
 from supervision.annotators.utils import ColorLookup, resolve_color_idx, wrap_text
 from supervision.detection.core import Detections
-from test.helpers import _create_detections
+from tests.helpers import _create_detections
 
 
 @pytest.mark.parametrize(
