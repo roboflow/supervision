@@ -157,7 +157,7 @@ class KeyPoints:
     xy: npt.NDArray[np.float32]
     class_id: npt.NDArray[np.int_] | None = None
     confidence: npt.NDArray[np.float32] | None = None
-    data: dict[str, npt.NDArray[Any] | list] = field(default_factory=dict)
+    data: dict[str, npt.NDArray[np.generic] | list] = field(default_factory=dict)
 
     def __post_init__(self):
         validate_key_points_fields(

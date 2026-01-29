@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
@@ -37,7 +38,7 @@ class ColorLookup(Enum):
 def resolve_color_idx(
     detections: Detections,
     detection_idx: int,
-    color_lookup: ColorLookup | np.ndarray[Any, np.dtype[Any]] = ColorLookup.CLASS,
+    color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
 ) -> int:
     if detection_idx >= len(detections):
         raise ValueError(
@@ -137,7 +138,7 @@ def resolve_color(
     color: Color | ColorPalette,
     detections: Detections,
     detection_idx: int,
-    color_lookup: ColorLookup | np.ndarray[Any, np.dtype[Any]] = ColorLookup.CLASS,
+    color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
 ) -> Color:
     idx = resolve_color_idx(
         detections=detections,
@@ -252,7 +253,8 @@ def get_labels_text(
 
 
 def snap_boxes(
-    xyxy: np.ndarray[Any, np.dtype[np.float32]], resolution_wh: tuple[int, int]
+    xyxy: np.ndarray[Any, np.dtype[np.float32]],
+    resolution_wh: tuple[int, int],
 ) -> np.ndarray[Any, np.dtype[np.float32]]:
     """
     Shifts `label` bounding boxes into the frame so that they are fully contained

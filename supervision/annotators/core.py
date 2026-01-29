@@ -116,7 +116,7 @@ class _BaseLabelAnnotator(BaseAnnotator):
         self,
         resolution_wh: tuple[int, int],
         labels: list[str],
-        label_properties: npt.NDArray[Any],
+        label_properties: npt.NDArray[np.float32],
     ) -> npt.NDArray[np.uint8]:
         """
         Adjusts the position of labels to ensure they stay within the frame boundaries.
@@ -183,7 +183,7 @@ class BoxAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: npt.NDArray[Any] | None = None,
+        custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with bounding boxes based on the provided detections.
@@ -267,7 +267,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: npt.NDArray[Any] | None = None,
+        custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with oriented bounding boxes based on the
@@ -358,7 +358,7 @@ class MaskAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: npt.NDArray[Any] | None = None,
+        custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with masks based on the provided detections.
@@ -449,7 +449,7 @@ class PolygonAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: npt.NDArray[Any] | None = None,
+        custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with polygons based on the provided detections.
@@ -537,7 +537,7 @@ class ColorAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: npt.NDArray[Any] | None = None,
+        custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with box masks based on the provided detections.
@@ -634,7 +634,7 @@ class HaloAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: npt.NDArray[Any] | None = None,
+        custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with halos based on the provided detections.
@@ -735,7 +735,7 @@ class EllipseAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: npt.NDArray[Any] | None = None,
+        custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with ellipses based on the provided detections.
@@ -828,7 +828,7 @@ class BoxCornerAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: npt.NDArray[Any] | None = None,
+        custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with box corners based on the provided detections.
@@ -918,7 +918,7 @@ class CircleAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: npt.NDArray[Any] | None = None,
+        custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with circles based on the provided detections.
@@ -1018,7 +1018,7 @@ class DotAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: npt.NDArray[Any] | None = None,
+        custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with dots based on the provided detections.
@@ -1146,7 +1146,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
         scene: Image.Image,
         detections: Detections,
         labels: list[str] | None = None,
-        custom_color_lookup: npt.NDArray[Any] | None = None,
+        custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> Image.Image:
         """
         Annotates the given scene with labels based on the provided detections.
@@ -1274,11 +1274,11 @@ class LabelAnnotator(_BaseLabelAnnotator):
 
     def _draw_labels(
         self,
-        scene: npt.NDArray[Any],
+        scene: npt.NDArray[np.uint8],
         labels: list[str],
-        label_properties: npt.NDArray[Any],
+        label_properties: npt.NDArray[np.float32],
         detections: Detections,
-        custom_color_lookup: npt.NDArray[Any] | None,
+        custom_color_lookup: npt.NDArray[np.int_] | None,
     ) -> None:
         assert len(labels) == len(label_properties) == len(detections), (
             f"Number of label properties ({len(label_properties)}), "
@@ -1356,7 +1356,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
 
     @staticmethod
     def draw_rounded_rectangle(
-        scene: npt.NDArray[Any],
+        scene: npt.NDArray[np.uint8],
         xyxy: tuple[int, int, int, int],
         color: tuple[int, int, int],
         border_radius: int,
@@ -1459,7 +1459,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         scene: Image.Image,
         detections: Detections,
         labels: list[str] | None = None,
-        custom_color_lookup: npt.NDArray[Any] | None = None,
+        custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> Image.Image:
         """
         Annotates the given scene with labels based on the provided
@@ -1585,9 +1585,9 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         self,
         draw: ImageDraw.ImageDraw,
         labels: list[str],
-        label_properties: npt.NDArray[Any],
+        label_properties: npt.NDArray[np.float32],
         detections: Detections,
-        custom_color_lookup: npt.NDArray[Any] | None,
+        custom_color_lookup: npt.NDArray[np.int_] | None,
     ) -> None:
         assert len(labels) == len(label_properties) == len(detections), (
             f"Number of label properties ({len(label_properties)}), "
@@ -1876,7 +1876,7 @@ class TraceAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: npt.NDArray[Any] | None = None,
+        custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
         """
         Draws trace paths on the frame based on the detection coordinates provided.
@@ -2185,7 +2185,7 @@ class TriangleAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: npt.NDArray[Any] | None = None,
+        custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with triangles based on the provided detections.
@@ -2298,7 +2298,7 @@ class RoundBoxAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: npt.NDArray[Any] | None = None,
+        custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with bounding boxes with rounded edges
@@ -2439,8 +2439,8 @@ class PercentageBarAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: npt.NDArray[Any] | None = None,
-        custom_values: npt.NDArray[Any] | None = None,
+        custom_color_lookup: npt.NDArray[np.int_] | None = None,
+        custom_values: npt.NDArray[np.float64] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with percentage bars based on the provided
@@ -2559,7 +2559,8 @@ class PercentageBarAnnotator(BaseAnnotator):
 
     @staticmethod
     def validate_custom_values(
-        custom_values: npt.NDArray[Any] | list[float] | None, detections: Detections
+        custom_values: npt.NDArray[np.float64] | list[float] | None,
+        detections: Detections,
     ) -> None:
         if custom_values is None:
             if detections.confidence is None:
@@ -2570,7 +2571,7 @@ class PercentageBarAnnotator(BaseAnnotator):
                 )
 
         else:
-            if not isinstance(custom_values, (npt.NDArray[Any], list)):
+            if not isinstance(custom_values, (np.ndarray, list)):
                 raise TypeError(
                     "custom_values must be either a numpy array or a list of floats."
                 )
@@ -2621,7 +2622,7 @@ class CropAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: npt.NDArray[Any] | None = None,
+        custom_color_lookup: npt.NDArray[np.int_] | None = None,
     ) -> ImageType:
         """
         Annotates the provided scene with scaled and cropped parts of the image based
@@ -2971,7 +2972,7 @@ class ComparisonAnnotator:
 
     @staticmethod
     def _mask_from_xyxy(
-        scene: npt.NDArray[Any], detections: Detections
+        scene: npt.NDArray[np.uint8], detections: Detections
     ) -> npt.NDArray[np.bool_]:
         mask = np.zeros(scene.shape[:2], dtype=np.bool_)
         if detections.is_empty():
@@ -2987,7 +2988,7 @@ class ComparisonAnnotator:
 
     @staticmethod
     def _mask_from_obb(
-        scene: npt.NDArray[Any], detections: Detections
+        scene: npt.NDArray[np.uint8], detections: Detections
     ) -> npt.NDArray[np.bool_]:
         mask = np.zeros(scene.shape[:2], dtype=np.bool_)
         if detections.is_empty():
@@ -3002,7 +3003,7 @@ class ComparisonAnnotator:
 
     @staticmethod
     def _mask_from_mask(
-        scene: npt.NDArray[Any], detections: Detections
+        scene: npt.NDArray[np.uint8], detections: Detections
     ) -> npt.NDArray[np.bool_]:
         mask = np.zeros(scene.shape[:2], dtype=np.bool_)
         if detections.is_empty():
@@ -3013,13 +3014,13 @@ class ComparisonAnnotator:
             mask |= detections_mask.astype(np.bool_)
         return mask
 
-    def _draw_labels(self, scene: npt.NDArray[Any]) -> None:
+    def _draw_labels(self, scene: npt.NDArray[np.uint8]) -> None:
         """
         Draw the labels, explaining what each color represents, with automatically
         computed positions.
 
         Args:
-            scene (npt.NDArray[Any]): The image where the labels will be drawn.
+            scene (npt.NDArray[np.uint8]): The image where the labels will be drawn.
         """
         margin = int(50 * self.label_scale)
         gap = int(40 * self.label_scale)
