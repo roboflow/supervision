@@ -39,6 +39,7 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Multimedia :: Graphics",
   "Topic :: Multimedia :: Video",
   "Topic :: Scientific/Engineering",
@@ -185,6 +186,13 @@ skip = "*.ipynb"
 count = true
 quiet-level = 3
 ignore-words-list = "STrack,sTrack,strack"
+
+[tool.pytest.ini_options]
+addopts = [
+  "--doctest-modules",
+  "--color=yes",
+]
+doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE"
 
 [tool.mypy]
 python_version = "3.9"
