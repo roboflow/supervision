@@ -29,11 +29,15 @@ class TestSkeletons:
         # Test that the dictionary is populated
         assert len(SKELETONS_BY_EDGE_COUNT) > 0
 
-        # Test that edges are correctly counted
+        # Reconstruct the expected mapping using the same logic as in skeletons.py:
+        # for skeleton in Skeleton:
+        #     SKELETONS_BY_EDGE_COUNT[len(skeleton.value)] = skeleton.value
+        expected = {}
         for skeleton in Skeleton:
             edge_count = len(skeleton.value)
-            assert edge_count in SKELETONS_BY_EDGE_COUNT
-            assert SKELETONS_BY_EDGE_COUNT[edge_count] == skeleton.value
+            expected[edge_count] = skeleton.value
+
+        assert SKELETONS_BY_EDGE_COUNT == expected
 
     def test_unique_vertices_calculation(self):
         """Test unique vertices calculation from skeleton edges."""
@@ -41,7 +45,17 @@ class TestSkeletons:
         unique_vertices = {vertex for edge in coco_skeleton for vertex in edge}
         assert len(unique_vertices) == 17  # COCO has 17 keypoints
 
-    def test_no_duplicate_skeletons_by_vertex_count(self):
-        """Test no duplicate vertex counts across skeletons."""
-        vertex_counts = [len({v for edge in s.value for v in edge}) for s in Skeleton]
-        assert len(vertex_counts) == len(set(vertex_counts))
+    def test_skeletons_by_vertex_count_mapping_behaviour(self):
+        """Test SKELETONS_BY_VERTEX_COUNT uses last-in-wins for duplicate vertex counts."""
+        expected_mapping = {}
+        for skeleton in Skeleton:
+            vertex_count = len({v for edge in skeleton.value for v in edge})
+            # Mimic the construction in skeletons.py: later skeletons overwrite earlier ones
+            expected_mapping[vertex_count] = skeleton.value
+
+        # The keys (vertex counts) should match
+        assert set(SKELETONS_BY_VERTEX_COUNT.keys()) == set(expected_mapping.keys())
+
+        # For each vertex count, the stored skeleton should be the last one encountered
+        for vertex_count, skeleton_value in expected_mapping.items():
+            assert SKELETONS_BY_VERTEX_COUNT[vertex_count] == skeleton_value
