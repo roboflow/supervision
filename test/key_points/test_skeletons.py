@@ -29,9 +29,8 @@ class TestSkeletons:
         # Test that the dictionary is populated
         assert len(SKELETONS_BY_EDGE_COUNT) > 0
 
-        # Reconstruct the expected mapping using the same logic as in skeletons.py:
-        # for skeleton in Skeleton:
-        #     SKELETONS_BY_EDGE_COUNT[len(skeleton.value)] = skeleton.value
+        # Reconstruct the expected mapping: for each skeleton, map the number of
+        # edges in skeleton.value to skeleton.value itself (as done in skeletons.py).
         expected = {}
         for skeleton in Skeleton:
             edge_count = len(skeleton.value)
