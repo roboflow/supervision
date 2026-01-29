@@ -49,7 +49,7 @@ class TestEdgeAnnotator:
 
     def test_annotate_with_custom_edges(self, scene, sample_key_points):
         """Test annotation with custom edge definitions."""
-        edges = [(0, 1), (1, 2)]
+        edges = [(1, 2), (2, 3)]
         annotator = sv.EdgeAnnotator(edges=edges)
         result = annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
 
