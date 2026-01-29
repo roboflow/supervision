@@ -72,9 +72,7 @@ class Recall(Metric):
 
         ```
 
-    ![example_plot](\
-        https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png\
-        ){ align=center width="800" }
+    ![example_plot](https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png){ align=center width="800" }
     """
 
     def __init__(
@@ -591,9 +589,7 @@ class RecallResult:
         """
         Plot the recall results.
 
-        ![example_plot](\
-            https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png\
-            ){ align=center width="800" }
+        ![example_plot](https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png){ align=center width="800" }
         """
 
         labels = ["Recall@50", "Recall@75"]

@@ -68,9 +68,7 @@ class F1Score(Metric):
         f1_result.plot()
         ```
 
-    ![example_plot](\
-        https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png\
-        ){ align=center width="800" }
+    ![example_plot](https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png){ align=center width="800" }
     """
 
     def __init__(
@@ -587,9 +585,7 @@ class F1ScoreResult:
         """
         Plot the F1 results.
 
-        ![example_plot](\
-            https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png\
-            ){ align=center width="800" }
+        ![example_plot](https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png){ align=center width="800" }
         """
 
         labels = ["F1@50", "F1@75"]

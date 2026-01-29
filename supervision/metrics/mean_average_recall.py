@@ -70,9 +70,7 @@ class MeanAverageRecall(Metric):
         mar_results.plot()
         ```
 
-    ![example_plot](\
-        https://media.roboflow.com/supervision-docs/metrics/mAR_plot_example.png\
-        ){ align=center width="800" }
+    ![example_plot](https://media.roboflow.com/supervision-docs/metrics/mAR_plot_example.png){ align=center width="800" }
     """
 
     def __init__(
@@ -626,9 +624,7 @@ class MeanAverageRecallResult:
         """
         Plot the Mean Average Recall results.
 
-        ![example_plot](\
-            https://media.roboflow.com/supervision-docs/metrics/mAR_plot_example.png\
-            ){ align=center width="800" }
+        ![example_plot](https://media.roboflow.com/supervision-docs/metrics/mAR_plot_example.png){ align=center width="800" }
         """
         labels = ["mAR @ 1", "mAR @ 10", "mAR @ 100"]
         values = [self.mAR_at_1, self.mAR_at_10, self.mAR_at_100]
