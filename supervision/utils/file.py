@@ -116,9 +116,9 @@ def save_json_file(
     Write a dict to a json file.
 
     Args:
-        indent:
         data: dict with unique keys and value as pair.
         file_path: The file path as a string or Path object.
+        indent:
     """
     with open(str(file_path), "w") as fp:
         json.dump(data, fp, cls=NumpyJsonEncoder, indent=indent)
@@ -141,10 +141,9 @@ def read_yaml_file(file_path: str | Path) -> dict[str, Any]:
 
 def save_yaml_file(data: dict[str, Any], file_path: str | Path) -> None:
     """
-    Save a dict to a json file.
+    Save a dict to a yaml file.
 
     Args:
-        indent:
         data: dict with unique keys and value as pair.
         file_path: The file path as a string or Path object.
     """

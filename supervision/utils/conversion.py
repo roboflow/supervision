@@ -3,6 +3,7 @@ from typing import Any, Callable
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 from PIL import Image
 
 from supervision.draw.base import ImageType
@@ -86,7 +87,7 @@ def ensure_pil_image_for_class_method(
     return wrapper
 
 
-def images_to_cv2(images: list[ImageType]) -> list[np.ndarray[np.uint8, Any]]:
+def images_to_cv2(images: list[ImageType]) -> list[npt.NDArray[np.uint8]]:
     """
     Converts images provided either as Pillow images or OpenCV
     images into OpenCV format.
@@ -107,7 +108,7 @@ def images_to_cv2(images: list[ImageType]) -> list[np.ndarray[np.uint8, Any]]:
     return result
 
 
-def pillow_to_cv2(image: Image.Image) -> np.ndarray[np.uint8, Any]:
+def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
     """
     Converts Pillow image into OpenCV image, handling RGB -> BGR
     conversion.
@@ -120,10 +121,10 @@ def pillow_to_cv2(image: Image.Image) -> np.ndarray[np.uint8, Any]:
     """
     scene = np.array(image)
     scene = cv2.cvtColor(scene, cv2.COLOR_RGB2BGR)
-    return scene.astype(np.uint8)  # type: ignore
+    return scene.astype(np.uint8)
 
 
-def cv2_to_pillow(image: np.ndarray[np.uint8, Any]) -> Image.Image:
+def cv2_to_pillow(image: npt.NDArray[np.uint8]) -> Image.Image:
     """
     Converts OpenCV image into Pillow image, handling BGR -> RGB
     conversion.

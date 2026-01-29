@@ -10,6 +10,7 @@ from typing import Any
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 from tqdm.auto import tqdm
 
 
@@ -106,7 +107,7 @@ class VideoSink:
         )
         return self
 
-    def write_frame(self, frame: np.ndarray[np.uint8, Any]) -> None:
+    def write_frame(self, frame: npt.NDArray[np.uint8]) -> None:
         """
         Writes a single video frame to the target video file.
 
@@ -157,7 +158,7 @@ def get_video_frames_generator(
     start: int = 0,
     end: int | None = None,
     iterative_seek: bool = False,
-) -> Generator[np.ndarray[np.uint8, Any], None, None]:
+) -> Generator[npt.NDArray[np.uint8], None, None]:
     """
     Get a generator that yields the frames of the video.
 
@@ -206,7 +207,7 @@ def get_video_frames_generator(
 def process_video(
     source_path: str,
     target_path: str,
-    callback: Callable[[np.ndarray[np.uint8, Any], int], np.ndarray[np.uint8, Any]],
+    callback: Callable[[npt.NDArray[np.uint8], int], npt.NDArray[np.uint8]],
     *,
     max_frames: int | None = None,
     prefetch: int = 32,
@@ -275,10 +276,10 @@ def process_video(
         else video_info.total_frames or 0
     )
 
-    frame_read_queue: Queue[tuple[int, np.ndarray[np.uint8, Any]] | None] = Queue(
+    frame_read_queue: Queue[tuple[int, npt.NDArray[np.uint8]] | None] = Queue(
         maxsize=prefetch
     )
-    frame_write_queue: Queue[np.ndarray[np.uint8, Any] | None] = Queue(
+    frame_write_queue: Queue[npt.NDArray[np.uint8] | None] = Queue(
         maxsize=writer_buffer
     )
 

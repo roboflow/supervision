@@ -616,9 +616,9 @@ class ImageSink:
         Save image to target directory with optional custom filename.
 
         Args:
-            image (`numpy.array`): Image to save with shape `(height, width, 3)`
+            image: Image to save with shape `(height, width, 3)`
                 in BGR format.
-            image_name (`str` or `None`): Custom filename for saved image. If
+            image_name: Custom filename for saved image. If
                 `None`, generates name using `image_name_pattern`. Defaults to
                 `None`.
         """
