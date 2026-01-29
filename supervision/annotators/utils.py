@@ -30,14 +30,14 @@ class ColorLookup(Enum):
     TRACK = "track"
 
     @classmethod
-    def list(cls):
+    def list(cls) -> list[str]:
         return list(map(lambda c: c.value, cls))
 
 
 def resolve_color_idx(
     detections: Detections,
     detection_idx: int,
-    color_lookup: ColorLookup | np.ndarray = ColorLookup.CLASS,
+    color_lookup: ColorLookup | np.ndarray[Any, np.dtype[Any]] = ColorLookup.CLASS,
 ) -> int:
     if detection_idx >= len(detections):
         raise ValueError(
@@ -51,7 +51,7 @@ def resolve_color_idx(
                 f"Length of color lookup {len(color_lookup)} "
                 f"does not match length of detections {len(detections)}"
             )
-        return color_lookup[detection_idx]
+        return int(color_lookup[detection_idx])
     elif color_lookup == ColorLookup.INDEX:
         return detection_idx
     elif color_lookup == ColorLookup.CLASS:
@@ -62,7 +62,7 @@ def resolve_color_idx(
                 "try setting color_lookup to sv.ColorLookup.INDEX or "
                 "sv.ColorLookup.TRACK."
             )
-        return detections.class_id[detection_idx]
+        return int(detections.class_id[detection_idx])
     elif color_lookup == ColorLookup.TRACK:
         if detections.tracker_id is None:
             raise ValueError(
@@ -70,7 +70,8 @@ def resolve_color_idx(
                 "Detections do not have tracker_id. Did you call "
                 "tracker.update_with_detections(...) before annotating?"
             )
-        return detections.tracker_id[detection_idx]
+        return int(detections.tracker_id[detection_idx])
+    raise ValueError(f"Unsupported color lookup strategy: {color_lookup}")
 
 
 def resolve_text_background_xyxy(
@@ -136,7 +137,7 @@ def resolve_color(
     color: Color | ColorPalette,
     detections: Detections,
     detection_idx: int,
-    color_lookup: ColorLookup | np.ndarray = ColorLookup.CLASS,
+    color_lookup: ColorLookup | np.ndarray[Any, np.dtype[Any]] = ColorLookup.CLASS,
 ) -> Color:
     idx = resolve_color_idx(
         detections=detections,
@@ -242,7 +243,7 @@ def get_labels_text(
     labels = []
     for idx in range(len(detections)):
         if CLASS_NAME_DATA_FIELD in detections.data:
-            labels.append(detections.data[CLASS_NAME_DATA_FIELD][idx])
+            labels.append(str(detections.data[CLASS_NAME_DATA_FIELD][idx]))
         elif detections.class_id is not None:
             labels.append(str(detections.class_id[idx]))
         else:
@@ -250,7 +251,9 @@ def get_labels_text(
     return labels
 
 
-def snap_boxes(xyxy: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
+def snap_boxes(
+    xyxy: np.ndarray[Any, np.dtype[np.float32]], resolution_wh: tuple[int, int]
+) -> np.ndarray[Any, np.dtype[np.float32]]:
     """
     Shifts `label` bounding boxes into the frame so that they are fully contained
     within the given resolution, prioritizing the top/left edge.
@@ -312,7 +315,7 @@ def snap_boxes(xyxy: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
     bottom_shift = height - result[bottom_overflow, 3]
     result[bottom_overflow, 1:4:2] += bottom_shift[:, np.newaxis]
 
-    return result
+    return result.astype(np.float32)  # type: ignore
 
 
 class Trace:
@@ -339,11 +342,17 @@ class Trace:
                 detections.get_anchors_coordinates(self.anchor),
             ]
         )
+        if detections.tracker_id is None:
+            raise ValueError(
+                "Could not put detections into Trace because "
+                "Detections do not have tracker_id."
+            )
+
         self.tracker_id = np.concatenate([self.tracker_id, detections.tracker_id])
 
         unique_frame_id = np.unique(self.frame_id)
 
-        if 0 < self.max_size < len(unique_frame_id):
+        if self.max_size is not None and 0 < self.max_size < len(unique_frame_id):
             max_allowed_frame_id = self.current_frame_id - self.max_size + 1
             filtering_mask = self.frame_id >= max_allowed_frame_id
             self.frame_id = self.frame_id[filtering_mask]
@@ -352,5 +361,8 @@ class Trace:
 
         self.current_frame_id += 1
 
-    def get(self, tracker_id: int) -> np.ndarray:
-        return self.xy[self.tracker_id == tracker_id]
+    def get(self, tracker_id: int) -> np.ndarray[Any, np.dtype[np.float32]]:
+        result: np.ndarray[Any, np.dtype[np.float32]] = self.xy[
+            self.tracker_id == tracker_id
+        ].copy()
+        return result

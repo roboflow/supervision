@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from math import sqrt
+from typing import Any
 
 import cv2
 import numpy as np
@@ -115,8 +116,8 @@ class _BaseLabelAnnotator(BaseAnnotator):
         self,
         resolution_wh: tuple[int, int],
         labels: list[str],
-        label_properties: np.ndarray,
-    ) -> np.ndarray:
+        label_properties: npt.NDArray[Any],
+    ) -> npt.NDArray[np.uint8]:
         """
         Adjusts the position of labels to ensure they stay within the frame boundaries.
 
@@ -182,7 +183,7 @@ class BoxAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: np.ndarray | None = None,
+        custom_color_lookup: npt.NDArray[Any] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with bounding boxes based on the provided detections.
@@ -216,7 +217,8 @@ class BoxAnnotator(BaseAnnotator):
         ![bounding-box-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/bounding-box-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             color = resolve_color(
@@ -265,7 +267,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: np.ndarray | None = None,
+        custom_color_lookup: npt.NDArray[Any] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with oriented bounding boxes based on the
@@ -302,7 +304,8 @@ class OrientedBoxAnnotator(BaseAnnotator):
             )
             ```
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         if detections.data is None or ORIENTED_BOX_COORDINATES not in detections.data:
             return scene
         obb_boxes = np.array(detections.data[ORIENTED_BOX_COORDINATES]).astype(int)
@@ -355,7 +358,7 @@ class MaskAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: np.ndarray | None = None,
+        custom_color_lookup: npt.NDArray[Any] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with masks based on the provided detections.
@@ -389,7 +392,8 @@ class MaskAnnotator(BaseAnnotator):
         ![mask-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/mask-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         if detections.mask is None:
             return scene
 
@@ -445,7 +449,7 @@ class PolygonAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: np.ndarray | None = None,
+        custom_color_lookup: npt.NDArray[Any] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with polygons based on the provided detections.
@@ -479,7 +483,8 @@ class PolygonAnnotator(BaseAnnotator):
         ![polygon-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/polygon-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         if detections.mask is None:
             return scene
 
@@ -532,7 +537,7 @@ class ColorAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: np.ndarray | None = None,
+        custom_color_lookup: npt.NDArray[Any] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with box masks based on the provided detections.
@@ -566,7 +571,8 @@ class ColorAnnotator(BaseAnnotator):
         ![box-mask-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/box-mask-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         scene_with_boxes = scene.copy()
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
@@ -628,7 +634,7 @@ class HaloAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: np.ndarray | None = None,
+        custom_color_lookup: npt.NDArray[Any] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with halos based on the provided detections.
@@ -662,7 +668,8 @@ class HaloAnnotator(BaseAnnotator):
         ![halo-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/halo-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         if detections.mask is None:
             return scene
         colored_mask = np.zeros_like(scene, dtype=np.uint8)
@@ -728,7 +735,7 @@ class EllipseAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: np.ndarray | None = None,
+        custom_color_lookup: npt.NDArray[Any] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with ellipses based on the provided detections.
@@ -762,7 +769,8 @@ class EllipseAnnotator(BaseAnnotator):
         ![ellipse-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/ellipse-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         for detection_idx in range(len(detections)):
             x1, _y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             color = resolve_color(
@@ -820,7 +828,7 @@ class BoxCornerAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: np.ndarray | None = None,
+        custom_color_lookup: npt.NDArray[Any] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with box corners based on the provided detections.
@@ -854,7 +862,8 @@ class BoxCornerAnnotator(BaseAnnotator):
         ![box-corner-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/box-corner-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             color = resolve_color(
@@ -909,7 +918,7 @@ class CircleAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: np.ndarray | None = None,
+        custom_color_lookup: npt.NDArray[Any] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with circles based on the provided detections.
@@ -944,7 +953,8 @@ class CircleAnnotator(BaseAnnotator):
         ![circle-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/circle-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             center = ((x1 + x2) // 2, (y1 + y2) // 2)
@@ -1008,7 +1018,7 @@ class DotAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: np.ndarray | None = None,
+        custom_color_lookup: npt.NDArray[Any] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with dots based on the provided detections.
@@ -1042,7 +1052,8 @@ class DotAnnotator(BaseAnnotator):
         ![dot-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/dot-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         xy = detections.get_anchors_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
             color = resolve_color(
@@ -1132,11 +1143,11 @@ class LabelAnnotator(_BaseLabelAnnotator):
     @ensure_cv2_image_for_class_method
     def annotate(
         self,
-        scene: ImageType,
+        scene: Image.Image,
         detections: Detections,
         labels: list[str] | None = None,
-        custom_color_lookup: np.ndarray | None = None,
-    ) -> ImageType:
+        custom_color_lookup: npt.NDArray[Any] | None = None,
+    ) -> Image.Image:
         """
         Annotates the given scene with labels based on the provided detections.
 
@@ -1177,11 +1188,14 @@ class LabelAnnotator(_BaseLabelAnnotator):
         ![label-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/label-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         validate_labels(labels, detections)
 
         labels = get_labels_text(detections, labels)
-        label_properties = self._get_label_properties(detections, labels)
+        label_properties: npt.NDArray[np.float32] = self._get_label_properties(
+            detections, labels
+        )
 
         if self.smart_position:
             xyxy = label_properties[:, :4]
@@ -1208,9 +1222,9 @@ class LabelAnnotator(_BaseLabelAnnotator):
         self,
         detections: Detections,
         labels: list[str],
-    ) -> np.ndarray:
+    ) -> Any:
         label_properties = []
-        anchors_coordinates = detections.get_anchors_coordinates(
+        anchors_coordinates: npt.NDArray[np.int32] = detections.get_anchors_coordinates(
             anchor=self.text_anchor
         ).astype(int)
 
@@ -1256,15 +1270,15 @@ class LabelAnnotator(_BaseLabelAnnotator):
                     total_height,
                 ]
             )
-        return np.array(label_properties).reshape(-1, 5)
+        return np.array(label_properties, dtype=np.float32).reshape(-1, 5)
 
     def _draw_labels(
         self,
-        scene: np.ndarray,
+        scene: npt.NDArray[Any],
         labels: list[str],
-        label_properties: np.ndarray,
+        label_properties: npt.NDArray[Any],
         detections: Detections,
-        custom_color_lookup: np.ndarray | None,
+        custom_color_lookup: npt.NDArray[Any] | None,
     ) -> None:
         assert len(labels) == len(label_properties) == len(detections), (
             f"Number of label properties ({len(label_properties)}), "
@@ -1342,11 +1356,11 @@ class LabelAnnotator(_BaseLabelAnnotator):
 
     @staticmethod
     def draw_rounded_rectangle(
-        scene: np.ndarray,
+        scene: npt.NDArray[Any],
         xyxy: tuple[int, int, int, int],
         color: tuple[int, int, int],
         border_radius: int,
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.uint8]:
         x1, y1, x2, y2 = xyxy
         width = x2 - x1
         height = y2 - y1
@@ -1442,11 +1456,11 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
     @ensure_pil_image_for_class_method
     def annotate(
         self,
-        scene: ImageType,
+        scene: Image.Image,
         detections: Detections,
         labels: list[str] | None = None,
-        custom_color_lookup: np.ndarray | None = None,
-    ) -> ImageType:
+        custom_color_lookup: npt.NDArray[Any] | None = None,
+    ) -> Image.Image:
         """
         Annotates the given scene with labels based on the provided
         detections, with support for Unicode characters.
@@ -1490,7 +1504,9 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
 
         draw = ImageDraw.Draw(scene)
         labels = get_labels_text(detections, labels)
-        label_properties = self._get_label_properties(draw, detections, labels)
+        label_properties: npt.NDArray[np.float32] = self._get_label_properties(
+            draw, detections, labels
+        )
 
         if self.smart_position:
             xyxy = label_properties[:, :4]
@@ -1515,10 +1531,10 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
 
     def _get_label_properties(
         self, draw: ImageDraw.ImageDraw, detections: Detections, labels: list[str]
-    ) -> np.ndarray:
+    ) -> Any:
         label_properties = []
 
-        anchor_coordinates = detections.get_anchors_coordinates(
+        anchor_coordinates: npt.NDArray[np.int32] = detections.get_anchors_coordinates(
             anchor=self.text_anchor
         ).astype(int)
 
@@ -1560,15 +1576,18 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
 
             label_properties.append([*text_background_xyxy, text_left, text_top])
 
-        return np.array(label_properties).reshape(-1, 6)
+        result: npt.NDArray[np.float32] = np.array(
+            label_properties, dtype=np.float32
+        ).reshape(-1, 6)
+        return result
 
     def _draw_labels(
         self,
         draw: ImageDraw.ImageDraw,
         labels: list[str],
-        label_properties: np.ndarray,
+        label_properties: npt.NDArray[Any],
         detections: Detections,
-        custom_color_lookup: np.ndarray | None,
+        custom_color_lookup: npt.NDArray[Any] | None,
     ) -> None:
         assert len(labels) == len(label_properties) == len(detections), (
             f"Number of label properties ({len(label_properties)}), "
@@ -1626,8 +1645,12 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
                 y_position += line_height + self.text_padding
 
     @staticmethod
-    def _load_font(font_size: int, font_path: str | None):
-        def load_default_font(size):
+    def _load_font(
+        font_size: int, font_path: str | None
+    ) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+        def load_default_font(
+            size: int,
+        ) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
             try:
                 return ImageFont.load_default(size)
             except TypeError:
@@ -1707,7 +1730,8 @@ class IconAnnotator(BaseAnnotator):
         ![icon-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/icon-annotator-example.png)
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         if isinstance(icon_path, list) and len(icon_path) != len(detections):
             raise ValueError(
                 f"The number of icon paths provided ({len(icon_path)}) does not match "
@@ -1715,7 +1739,9 @@ class IconAnnotator(BaseAnnotator):
                 f" icon path or one for each detection."
             )
 
-        xy = detections.get_anchors_coordinates(anchor=self.position).astype(int)
+        xy: npt.NDArray[np.int32] = detections.get_anchors_coordinates(
+            anchor=self.position
+        ).astype(int)
 
         for detection_idx in range(len(detections)):
             current_path = (
@@ -1733,7 +1759,7 @@ class IconAnnotator(BaseAnnotator):
         return scene
 
     @lru_cache
-    def _load_icon(self, icon_path: str) -> np.ndarray:
+    def _load_icon(self, icon_path: str) -> npt.NDArray[np.uint8]:
         icon = cv2.imread(icon_path, cv2.IMREAD_UNCHANGED)
         if icon is None:
             raise FileNotFoundError(
@@ -1791,9 +1817,10 @@ class BlurAnnotator(BaseAnnotator):
         ![blur-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/blur-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         image_height, image_width = scene.shape[:2]
-        clipped_xyxy = clip_boxes(
+        clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
             xyxy=detections.xyxy, resolution_wh=(image_width, image_height)
         ).astype(int)
 
@@ -1849,7 +1876,7 @@ class TraceAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: np.ndarray | None = None,
+        custom_color_lookup: npt.NDArray[Any] | None = None,
     ) -> ImageType:
         """
         Draws trace paths on the frame based on the detection coordinates provided.
@@ -1893,27 +1920,33 @@ class TraceAnnotator(BaseAnnotator):
         ![trace-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/trace-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         if detections.tracker_id is None:
             raise ValueError(
                 "The `tracker_id` field is missing in the provided detections."
                 " See more: https://supervision.roboflow.com/latest/how_to/track_objects"
             )
-        detections = detections[detections.tracker_id != PENDING_TRACK_ID]
+        filtered_detections: Detections = detections[
+            detections.tracker_id != PENDING_TRACK_ID
+        ]  # type: ignore
 
-        self.trace.put(detections)
-        for detection_idx in range(len(detections)):
-            tracker_id = int(detections.tracker_id[detection_idx])
+        self.trace.put(filtered_detections)
+        for detection_idx in range(len(filtered_detections)):
+            tracker_id_val = filtered_detections.tracker_id[detection_idx]  # type: ignore
+            if tracker_id_val is None:
+                continue
+            tracker_id = int(tracker_id_val)
             color = resolve_color(
                 color=self.color,
-                detections=detections,
+                detections=filtered_detections,
                 detection_idx=detection_idx,
                 color_lookup=self.color_lookup
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
             xy = self.trace.get(tracker_id=tracker_id)
-            spline_points = xy.astype(np.int32)
+            spline_points: npt.NDArray[np.int32] = xy.astype(np.int32)
 
             if len(xy) > 3 and self.smooth:
                 x, y = xy[:, 0], xy[:, 1]
@@ -1922,7 +1955,7 @@ class TraceAnnotator(BaseAnnotator):
                 spline_points = np.stack([x_new, y_new], axis=1).astype(np.int32)
 
             if len(xy) > 1:
-                scene = cv2.polylines(
+                cv2.polylines(
                     scene,
                     [spline_points],
                     False,
@@ -2006,7 +2039,8 @@ class HeatMapAnnotator(BaseAnnotator):
         ![heatmap-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/heat-map-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         if self.heat_mask is None:
             self.heat_mask = np.zeros(scene.shape[:2], dtype=np.float32)
 
@@ -2085,9 +2119,10 @@ class PixelateAnnotator(BaseAnnotator):
         ![pixelate-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/pixelate-annotator-example-10.png)
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         image_height, image_width = scene.shape[:2]
-        clipped_xyxy = clip_boxes(
+        clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
             xyxy=detections.xyxy, resolution_wh=(image_width, image_height)
         ).astype(int)
 
@@ -2150,7 +2185,7 @@ class TriangleAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: np.ndarray | None = None,
+        custom_color_lookup: npt.NDArray[Any] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with triangles based on the provided detections.
@@ -2184,7 +2219,8 @@ class TriangleAnnotator(BaseAnnotator):
         ![triangle-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/triangle-annotator-example.png)
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         xy = detections.get_anchors_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
             color = resolve_color(
@@ -2262,7 +2298,7 @@ class RoundBoxAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: np.ndarray | None = None,
+        custom_color_lookup: npt.NDArray[Any] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with bounding boxes with rounded edges
@@ -2297,7 +2333,8 @@ class RoundBoxAnnotator(BaseAnnotator):
         ![round-box-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/round-box-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             color = resolve_color(
@@ -2402,8 +2439,8 @@ class PercentageBarAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: np.ndarray | None = None,
-        custom_values: np.ndarray | None = None,
+        custom_color_lookup: npt.NDArray[Any] | None = None,
+        custom_values: npt.NDArray[Any] | None = None,
     ) -> ImageType:
         """
         Annotates the given scene with percentage bars based on the provided
@@ -2444,7 +2481,8 @@ class PercentageBarAnnotator(BaseAnnotator):
         ![percentage-bar-example](https://media.roboflow.com/
         supervision-annotator-examples/percentage-bar-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         self.validate_custom_values(custom_values=custom_values, detections=detections)
 
         anchors = detections.get_anchors_coordinates(anchor=self.position)
@@ -2521,7 +2559,7 @@ class PercentageBarAnnotator(BaseAnnotator):
 
     @staticmethod
     def validate_custom_values(
-        custom_values: np.ndarray | list[float] | None, detections: Detections
+        custom_values: npt.NDArray[Any] | list[float] | None, detections: Detections
     ) -> None:
         if custom_values is None:
             if detections.confidence is None:
@@ -2532,7 +2570,7 @@ class PercentageBarAnnotator(BaseAnnotator):
                 )
 
         else:
-            if not isinstance(custom_values, (np.ndarray, list)):
+            if not isinstance(custom_values, (npt.NDArray[Any], list)):
                 raise TypeError(
                     "custom_values must be either a numpy array or a list of floats."
                 )
@@ -2583,7 +2621,7 @@ class CropAnnotator(BaseAnnotator):
         self,
         scene: ImageType,
         detections: Detections,
-        custom_color_lookup: np.ndarray | None = None,
+        custom_color_lookup: npt.NDArray[Any] | None = None,
     ) -> ImageType:
         """
         Annotates the provided scene with scaled and cropped parts of the image based
@@ -2620,14 +2658,17 @@ class CropAnnotator(BaseAnnotator):
         ![crop-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/crop-annotator-example.png)
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         crops = [
             crop_image(image=scene, xyxy=xyxy) for xyxy in detections.xyxy.astype(int)
         ]
         resized_crops = [
             scale_image(image=crop, scale_factor=self.scale_factor) for crop in crops
         ]
-        anchors = detections.get_anchors_coordinates(anchor=self.position).astype(int)
+        anchors: npt.NDArray[np.int32] = detections.get_anchors_coordinates(
+            anchor=self.position
+        ).astype(int)
 
         for idx, (resized_crop, anchor) in enumerate(zip(resized_crops, anchors)):
             crop_wh = resized_crop.shape[1], resized_crop.shape[0]
@@ -2759,7 +2800,8 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
         ![background-overlay-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/background-color-annotator-example-purple.png)
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         colored_mask = np.full_like(scene, self.color.as_bgr(), dtype=np.uint8)
 
         cv2.addWeighted(
@@ -2862,7 +2904,8 @@ class ComparisonAnnotator:
         ![comparison-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/comparison-annotator-example.png)
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            return scene
         if detections_1.is_empty() and detections_2.is_empty():
             return scene
 
@@ -2927,7 +2970,9 @@ class ComparisonAnnotator:
         )
 
     @staticmethod
-    def _mask_from_xyxy(scene: np.ndarray, detections: Detections) -> np.ndarray:
+    def _mask_from_xyxy(
+        scene: npt.NDArray[Any], detections: Detections
+    ) -> npt.NDArray[np.bool_]:
         mask = np.zeros(scene.shape[:2], dtype=np.bool_)
         if detections.is_empty():
             return mask
@@ -2941,7 +2986,9 @@ class ComparisonAnnotator:
         return mask
 
     @staticmethod
-    def _mask_from_obb(scene: np.ndarray, detections: Detections) -> np.ndarray:
+    def _mask_from_obb(
+        scene: npt.NDArray[Any], detections: Detections
+    ) -> npt.NDArray[np.bool_]:
         mask = np.zeros(scene.shape[:2], dtype=np.bool_)
         if detections.is_empty():
             return mask
@@ -2954,7 +3001,9 @@ class ComparisonAnnotator:
         return mask
 
     @staticmethod
-    def _mask_from_mask(scene: np.ndarray, detections: Detections) -> np.ndarray:
+    def _mask_from_mask(
+        scene: npt.NDArray[Any], detections: Detections
+    ) -> npt.NDArray[np.bool_]:
         mask = np.zeros(scene.shape[:2], dtype=np.bool_)
         if detections.is_empty():
             return mask
@@ -2964,13 +3013,13 @@ class ComparisonAnnotator:
             mask |= detections_mask.astype(np.bool_)
         return mask
 
-    def _draw_labels(self, scene: np.ndarray) -> None:
+    def _draw_labels(self, scene: npt.NDArray[Any]) -> None:
         """
         Draw the labels, explaining what each color represents, with automatically
         computed positions.
 
         Args:
-            scene (np.ndarray): The image where the labels will be drawn.
+            scene (npt.NDArray[Any]): The image where the labels will be drawn.
         """
         margin = int(50 * self.label_scale)
         gap = int(40 * self.label_scale)
