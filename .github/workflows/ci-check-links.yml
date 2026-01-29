@@ -33,4 +33,6 @@ jobs:
             './**/*.yml'
             './**/*.toml'
             --include-verbatim
+            --exclude https://github.com/YOUR_USERNAME/supervision.git
+            --exclude http://127.0.0.1:8000
           fail: true
