@@ -336,7 +336,9 @@ class Trace:
         self.tracker_id = np.array([], dtype=int)
 
     def put(self, detections: Detections) -> None:
-        frame_id = np.full(len(detections), self.current_frame_id, dtype=int)
+        frame_id: npt.NDArray[np.int_] = np.full(
+            len(detections), self.current_frame_id, dtype=int
+        )
         self.frame_id = np.concatenate([self.frame_id, frame_id])
         self.xy = np.concatenate(
             [
