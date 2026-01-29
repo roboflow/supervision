@@ -6,7 +6,7 @@ from collections import deque
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from queue import Queue
-from typing import Any, TypeVar
+from typing import Any
 
 import cv2
 import numpy as np
