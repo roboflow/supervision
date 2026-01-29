@@ -2751,7 +2751,7 @@
 <h3 id="supervision.utils.notebook.plot_image(size)" class="doc doc-heading doc-heading-parameter">                  <code>size</code>
 <a href="#supervision.utils.notebook.plot_image(size)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code><span title="Tuple">Tuple</span>[<span title="int">int</span>, <span title="int">int</span>]</code>
+                  <code><span title="tuple">tuple</span>[<span title="int">int</span>, <span title="int">int</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2767,7 +2767,7 @@
 <h3 id="supervision.utils.notebook.plot_image(cmap)" class="doc doc-heading doc-heading-parameter">                  <code>cmap</code>
 <a href="#supervision.utils.notebook.plot_image(cmap)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code><span title="str">str</span></code>
+                  <code><span title="str">str</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2836,10 +2836,10 @@
 </span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="sd">    Plots image using matplotlib.</span>
 </span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a>
 </span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">        image (ImageType): The frame to be displayed ImageType</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">        image: The frame to be displayed ImageType</span>
 </span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="sd">             is a flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.</span>
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="sd">        size (Tuple[int, int]): The size of the plot in inches.</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="sd">        cmap (str): the colormap to use for single channel images.</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="sd">        size: The size of the plot in inches.</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="sd">        cmap: the colormap to use for single channel images.</span>
 </span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a>
 </span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="sd">    Examples:</span>
 </span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a><span class="sd">        ```python</span>
@@ -2904,7 +2904,7 @@
 <h3 id="supervision.utils.notebook.plot_images_grid(images)" class="doc doc-heading doc-heading-parameter">                  <code>images</code>
 <a href="#supervision.utils.notebook.plot_images_grid(images)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code><span title="List">List</span>[<span title="supervision.draw.base.ImageType">ImageType</span>]</code>
+                  <code><span title="list">list</span>[<span title="supervision.draw.base.ImageType">ImageType</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2921,7 +2921,7 @@
 <h3 id="supervision.utils.notebook.plot_images_grid(grid_size)" class="doc doc-heading doc-heading-parameter">                  <code>grid_size</code>
 <a href="#supervision.utils.notebook.plot_images_grid(grid_size)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code><span title="Tuple">Tuple</span>[<span title="int">int</span>, <span title="int">int</span>]</code>
+                  <code><span title="tuple">tuple</span>[<span title="int">int</span>, <span title="int">int</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2938,7 +2938,7 @@
 <h3 id="supervision.utils.notebook.plot_images_grid(titles)" class="doc doc-heading doc-heading-parameter">                  <code>titles</code>
 <a href="#supervision.utils.notebook.plot_images_grid(titles)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code><span title="Optional">Optional</span>[<span title="List">List</span>[<span title="str">str</span>]]</code>
+                  <code><span title="list">list</span>[<span title="str">str</span>] | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2955,7 +2955,7 @@
 <h3 id="supervision.utils.notebook.plot_images_grid(size)" class="doc doc-heading doc-heading-parameter">                  <code>size</code>
 <a href="#supervision.utils.notebook.plot_images_grid(size)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code><span title="Tuple">Tuple</span>[<span title="int">int</span>, <span title="int">int</span>]</code>
+                  <code><span title="tuple">tuple</span>[<span title="int">int</span>, <span title="int">int</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2972,7 +2972,7 @@
 <h3 id="supervision.utils.notebook.plot_images_grid(cmap)" class="doc doc-heading doc-heading-parameter">                  <code>cmap</code>
 <a href="#supervision.utils.notebook.plot_images_grid(cmap)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code><span title="str">str</span></code>
+                  <code><span title="str">str</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3106,15 +3106,15 @@
 </span><span id="__span-0-56"><a id="__codelineno-0-56" name="__codelineno-0-56"></a><span class="sd">    Plots images in a grid using matplotlib.</span>
 </span><span id="__span-0-57"><a id="__codelineno-0-57" name="__codelineno-0-57"></a>
 </span><span id="__span-0-58"><a id="__codelineno-0-58" name="__codelineno-0-58"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="sd">       images (List[ImageType]): A list of images as ImageType</span>
+</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="sd">       images: A list of images as ImageType</span>
 </span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60"></a><span class="sd">             is a flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.</span>
-</span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a><span class="sd">       grid_size (Tuple[int, int]): A tuple specifying the number</span>
+</span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a><span class="sd">       grid_size: A tuple specifying the number</span>
 </span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62"></a><span class="sd">            of rows and columns for the grid.</span>
-</span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63"></a><span class="sd">       titles (Optional[List[str]]): A list of titles for each image.</span>
+</span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63"></a><span class="sd">       titles: A list of titles for each image.</span>
 </span><span id="__span-0-64"><a id="__codelineno-0-64" name="__codelineno-0-64"></a><span class="sd">            Defaults to None.</span>
-</span><span id="__span-0-65"><a id="__codelineno-0-65" name="__codelineno-0-65"></a><span class="sd">       size (Tuple[int, int]): A tuple specifying the width and</span>
+</span><span id="__span-0-65"><a id="__codelineno-0-65" name="__codelineno-0-65"></a><span class="sd">       size: A tuple specifying the width and</span>
 </span><span id="__span-0-66"><a id="__codelineno-0-66" name="__codelineno-0-66"></a><span class="sd">            height of the entire plot in inches.</span>
-</span><span id="__span-0-67"><a id="__codelineno-0-67" name="__codelineno-0-67"></a><span class="sd">       cmap (str): the colormap to use for single channel images.</span>
+</span><span id="__span-0-67"><a id="__codelineno-0-67" name="__codelineno-0-67"></a><span class="sd">       cmap: the colormap to use for single channel images.</span>
 </span><span id="__span-0-68"><a id="__codelineno-0-68" name="__codelineno-0-68"></a>
 </span><span id="__span-0-69"><a id="__codelineno-0-69" name="__codelineno-0-69"></a><span class="sd">    Raises:</span>
 </span><span id="__span-0-70"><a id="__codelineno-0-70" name="__codelineno-0-70"></a><span class="sd">       ValueError: If the number of images exceeds the grid size.</span>
