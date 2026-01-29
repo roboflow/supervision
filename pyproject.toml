@@ -4,7 +4,7 @@ requires = [ "setuptools>=61" ]
 
 [project]
 name = "supervision"
-version = "0.27.0"
+version = "0.28.0rc0"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 readme = "README.md"
 keywords = [
@@ -39,6 +39,7 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Topic :: Multimedia :: Graphics",
   "Topic :: Multimedia :: Video",
   "Topic :: Scientific/Engineering",
@@ -90,7 +91,7 @@ docs = [
 build = [
   "build>=0.10,<1.5",
   "twine>=5.1.1,<7",
-  "wheel>=0.40,<0.46",
+  "wheel>=0.40,<0.47",
 ]
 
 [tool.setuptools]
@@ -185,6 +186,74 @@ skip = "*.ipynb"
 count = true
 quiet-level = 3
 ignore-words-list = "STrack,sTrack,strack"
+
+[tool.pytest.ini_options]
+addopts = [
+  "--doctest-modules",
+  "--color=yes",
+]
+doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE"
+
+[tool.mypy]
+python_version = "3.9"
+ignore_missing_imports = false
+explicit_package_bases = true
+strict = true
+exclude = [
+  "docs",
+  "test",
+  "examples",
+  "setup.py",
+]
+
+[[tool.mypy.overrides]]
+module = [
+  "test.*",
+  "examples.*",
+  # TODO: fix type errors in the following modules
+  "supervision.classification.core",
+  "supervision.dataset.core",
+  "supervision.dataset.formats.coco",
+  "supervision.dataset.formats.pascal_voc",
+  "supervision.dataset.formats.yolo",
+  "supervision.dataset.utils",
+  "supervision.detection.core",
+  "supervision.detection.line_zone",
+  "supervision.detection.tools.csv_sink",
+  "supervision.detection.tools.inference_slicer",
+  "supervision.detection.tools.json_sink",
+  "supervision.detection.tools.polygon_zone",
+  "supervision.detection.tools.smoother",
+  "supervision.detection.tools.transformers",
+  "supervision.detection.utils.boxes",
+  "supervision.detection.utils.converters",
+  "supervision.detection.utils.internal",
+  "supervision.detection.utils.iou_and_nms",
+  "supervision.detection.utils.masks",
+  "supervision.detection.utils.polygons",
+  "supervision.detection.vlm",
+  "supervision.draw.base",
+  "supervision.draw.color",
+  "supervision.draw.utils",
+  "supervision.geometry.core",
+  "supervision.geometry.utils",
+  "supervision.key_points.annotators",
+  "supervision.key_points.core",
+  "supervision.key_points.skeletons",
+  "supervision.metrics.core",
+  "supervision.metrics.detection",
+  "supervision.metrics.f1_score",
+  "supervision.metrics.mean_average_precision",
+  "supervision.metrics.mean_average_recall",
+  "supervision.metrics.precision",
+  "supervision.metrics.recall",
+  "supervision.metrics.utils.utils",
+  "supervision.tracker.byte_tracker.core",
+  "supervision.tracker.byte_tracker.kalman_filter",
+  "supervision.tracker.byte_tracker.matching",
+  "supervision.tracker.byte_tracker.single_object_track",
+]
+ignore_errors = true
 
 [tool.autoflake]
 check = true

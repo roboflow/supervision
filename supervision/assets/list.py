@@ -34,7 +34,7 @@ class VideoAssets(Enum):
     SKIING = "skiing.mp4"
 
     @classmethod
-    def list(cls):
+    def list(cls) -> list[str]:
         return list(map(lambda c: c.value, cls))
 
 

@@ -1,2 +1,2 @@
-CLASS_NAME_DATA_FIELD = "class_name"
-ORIENTED_BOX_COORDINATES = "xyxyxyxy"
+CLASS_NAME_DATA_FIELD: str = "class_name"
+ORIENTED_BOX_COORDINATES: str = "xyxyxyxy"
