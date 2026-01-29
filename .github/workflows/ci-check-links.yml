@@ -1,0 +1,30 @@
+name: Check links & references
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  schedule:
+    # Run once a week on Sundays
+    - cron: "0 9 * * 0"
+
+jobs:
+  links-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Link Checker
+        uses: lycheeverse/lychee-action@v2
+        with:
+          # default args: "--verbose --no-progress './**/*.md' './**/*.html' './**/*.rst'"
+          args: |
+            --verbose
+            --no-progress
+            './**/*.md'
+            './**/*.py'
+            './**/*.yml'
+            './**/*.toml'
+            --include-verbatim
+          fail: true
