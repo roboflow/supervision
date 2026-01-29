@@ -1,6 +1,4 @@
-import cv2
 import numpy as np
-import pytest
 
 import supervision as sv
 from test.annotators.test_core import assert_image_mostly_same
@@ -13,7 +11,9 @@ class TestVertexAnnotator:
         result = annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
 
         # Check that the scene has been modified
-        assert_image_mostly_same(original=scene, annotated=result, similarity_threshold=0.8)
+        assert_image_mostly_same(
+            original=scene, annotated=result, similarity_threshold=0.8
+        )
 
     def test_annotate_with_custom_color_and_radius(self, scene, sample_key_points):
         """Test annotation with custom color and radius."""
@@ -23,7 +23,9 @@ class TestVertexAnnotator:
         result = annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
 
         # Check that the scene has been modified
-        assert_image_mostly_same(original=scene, annotated=result, similarity_threshold=0.7)
+        assert_image_mostly_same(
+            original=scene, annotated=result, similarity_threshold=0.7
+        )
 
     def test_annotate_empty_key_points(self, scene, empty_key_points):
         """Test annotation with empty key points returns unchanged scene."""
@@ -41,7 +43,9 @@ class TestEdgeAnnotator:
         result = annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
 
         # Check that the scene has been modified
-        assert_image_mostly_same(original=scene, annotated=result, similarity_threshold=0.7)
+        assert_image_mostly_same(
+            original=scene, annotated=result, similarity_threshold=0.7
+        )
 
     def test_annotate_with_custom_edges(self, scene, sample_key_points):
         """Test annotation with custom edge definitions."""
@@ -50,7 +54,9 @@ class TestEdgeAnnotator:
         result = annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
 
         # Check that the scene has been modified
-        assert_image_mostly_same(original=scene, annotated=result, similarity_threshold=0.8)
+        assert_image_mostly_same(
+            original=scene, annotated=result, similarity_threshold=0.8
+        )
 
     def test_annotate_empty_key_points(self, scene, empty_key_points):
         """Test annotation with empty key points returns unchanged scene."""
