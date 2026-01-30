@@ -200,6 +200,7 @@ ignore_missing_imports = false
 explicit_package_bases = true
 strict = true
 exclude = [
+  ".github",
   "docs",
   "test",
   "examples",

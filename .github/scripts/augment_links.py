@@ -6,15 +6,16 @@ Script to augment relative links in markdown files to GitHub URLs.
 import argparse
 import os
 import re
+from re import Match
 
 
-def get_repo_root():
+def get_repo_root() -> str:
     """Get the repository root path."""
     script_dir = os.path.dirname(os.path.abspath(__file__))
     return os.path.dirname(os.path.dirname(script_dir))
 
 
-def augment_links_in_file(file_path, branch="main"):
+def augment_links_in_file(file_path: str, branch: str = "main") -> None:
     """
     Augment relative links in a markdown file to GitHub URLs.
 
@@ -30,7 +31,7 @@ def augment_links_in_file(file_path, branch="main"):
     with open(file_path) as f:
         content = f.read()
 
-    def replace_link(match):
+    def replace_link(match: Match[str]) -> str:
         full_match = match.group(0)
         text = match.group(2)
         url = match.group(3)
@@ -56,7 +57,7 @@ def augment_links_in_file(file_path, branch="main"):
         f.write(new_content)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Augment relative links to GitHub URLs."
     )
