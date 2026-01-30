@@ -7,4 +7,4 @@ warnings.warn(
     stacklevel=2,
 )
 
-from supervision.key_points.core import KeyPoints  # noqa: F401E402
+from supervision.key_points.core import KeyPoints  # noqa: F401, E402
