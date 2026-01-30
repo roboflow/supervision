@@ -6,13 +6,12 @@ import pytest
 import supervision.detection.core as detection_core
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
-
 from test.helpers import (
     _FakeUltralyticsBoxes,
     _FakeUltralyticsResults,
-    _FakeYOLOv5Results,
     _FakeYoloNasPrediction,
     _FakeYoloNasResults,
+    _FakeYOLOv5Results,
 )
 
 
@@ -63,7 +62,9 @@ def test_from_ultralytics_segmentation_only_branch_uses_masks_and_arange(
     fake_masks = np.zeros((3, 10, 10), dtype=bool)
     fake_xyxy = np.array([[0, 0, 1, 1], [2, 2, 3, 3], [4, 4, 5, 5]], dtype=np.float32)
 
-    monkeypatch.setattr(detection_core, "extract_ultralytics_masks", lambda _: fake_masks)
+    monkeypatch.setattr(
+        detection_core, "extract_ultralytics_masks", lambda _: fake_masks
+    )
     monkeypatch.setattr(detection_core, "mask_to_xyxy", lambda masks: fake_xyxy)
 
     det = Detections.from_ultralytics(results)
@@ -110,4 +111,3 @@ def test_from_yolo_nas_handles_empty_and_non_empty(
         np.testing.assert_allclose(det.xyxy, bboxes)
         np.testing.assert_allclose(det.confidence, conf)
         np.testing.assert_array_equal(det.class_id, labels.astype(int))
-
