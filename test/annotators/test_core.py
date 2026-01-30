@@ -31,7 +31,7 @@ from supervision.annotators.utils import ColorLookup
 from supervision.detection.core import Detections
 from supervision.draw.color import Color
 from supervision.geometry.core import Position
-from test.helpers import _create_detections
+from test.helpers import _create_detections, assert_image_mostly_same
 
 
 @pytest.fixture
@@ -56,36 +56,6 @@ def gradient_image() -> np.ndarray:
         for j in range(100):
             image[i, j] = [i, j, (i + j) // 2]
     return image
-
-
-def assert_image_mostly_same(
-    original: np.ndarray, annotated: np.ndarray, similarity_threshold: float = 0.9
-) -> None:
-    """
-    Assert that the annotated image is mostly the same as the original.
-
-    Args:
-        original: Original image
-        annotated: Annotated image
-        similarity_threshold:
-          Minimum percentage of pixels that should be the same (0.0 to 1.0)
-    """
-    # Check that images have the same shape
-    assert original.shape == annotated.shape
-
-    # Calculate number of identical pixels
-    identical_pixels = np.sum(np.all(original == annotated, axis=-1))
-    total_pixels = original.shape[0] * original.shape[1]
-    similarity = identical_pixels / total_pixels
-
-    # Check that at least similarity_threshold of pixels are identical
-    assert similarity >= similarity_threshold, (
-        f"Images are only {similarity:.1%} similar, "
-        f"which is below the {similarity_threshold:.1%} threshold"
-    )
-
-    # Check that the image is not completely identical
-    assert not np.array_equal(original, annotated), "Images are completely identical"
 
 
 class TestBoxAnnotator:
@@ -117,6 +87,28 @@ class TestBoxAnnotator:
             color=Color.WHITE, thickness=2, color_lookup=ColorLookup.INDEX
         )
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
+        assert_image_mostly_same(test_image, result, similarity_threshold=0.85)
+
+    def test_annotate_with_numpy_color_lookup(self, test_image):
+        """Test that annotate works when color lookup is a NumPy array"""
+        detections = Detections(
+            xyxy=np.array([[10, 10, 20, 20], [30, 30, 40, 40]], dtype=np.float32),
+            confidence=np.array([0.38, 0.21], dtype=np.float32),
+            class_id=np.array([0, 0], dtype=np.int64),
+            tracker_id=None,
+        )
+
+        lookup = np.array([1, 0], dtype=np.int16)
+
+        annotator = BoxAnnotator(
+            color=Color.WHITE, thickness=2, color_lookup=ColorLookup.INDEX
+        )
+
+        result = annotator.annotate(
+            scene=test_image.copy(),
+            detections=detections,
+            custom_color_lookup=lookup,
+        )
         assert_image_mostly_same(test_image, result, similarity_threshold=0.85)
 
 

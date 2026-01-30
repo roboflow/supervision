@@ -44,7 +44,7 @@ jobs:
         run: uv run python -c "import supervision; from supervision import assets; from supervision import metrics; print(supervision.__version__)"
 
       - name: 🧪 Run the Test
-        run: uv run pytest --cov=supervision --cov-report=xml
+        run: uv run pytest --cov=supervision --cov-report=xml --ignore=examples
 
       - name: Generate Coverage Report
         run: |
