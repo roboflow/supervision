@@ -13,7 +13,6 @@ from supervision.metrics.detection import (
 )
 from test.helpers import _create_detections, assert_almost_equal
 
-
 CLASSES = np.arange(80)
 NUM_CLASSES = len(CLASSES)
 
@@ -617,7 +616,11 @@ def test_compute_average_precision(
                     confidence=[0.9, 0.8, 0.7],
                 )
             ],
-            [_create_detections(xyxy=np.empty((0, 4)), class_id=np.array([], dtype=int))],
+            [
+                _create_detections(
+                    xyxy=np.empty((0, 4)), class_id=np.array([], dtype=int)
+                )
+            ],
             [0, 1, 2],
             0.5,
             0.5,
@@ -640,7 +643,11 @@ def test_compute_average_precision(
                     confidence=np.array([], dtype=float),
                 )
             ],
-            [_create_detections(xyxy=np.empty((0, 4)), class_id=np.array([], dtype=int))],
+            [
+                _create_detections(
+                    xyxy=np.empty((0, 4)), class_id=np.array([], dtype=int)
+                )
+            ],
             [0, 1, 2],
             0.5,
             0.5,
