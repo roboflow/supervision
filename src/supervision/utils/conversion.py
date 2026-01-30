@@ -40,7 +40,7 @@ def ensure_cv2_image_for_class_method(
 @deprecated(
     target=ensure_cv2_image_for_class_method,
     deprecated_in="0.27.0",
-    remove_in="0.30.0",
+    remove_in="0.31.0",
 )
 def ensure_cv2_image_for_annotation(annotate_func):
     pass
@@ -100,7 +100,7 @@ def ensure_pil_image_for_class_method(
 @deprecated(
     target=ensure_pil_image_for_class_method,
     deprecated_in="0.27.0",
-    remove_in="0.30.0",
+    remove_in="0.31.0",
 )
 def ensure_pil_image_for_annotation(annotate_func):
     pass
@@ -109,7 +109,7 @@ def ensure_pil_image_for_annotation(annotate_func):
 @deprecated(
     target=ensure_cv2_image_for_standalone_function,
     deprecated_in="0.27.0",
-    remove_in="0.30.0",
+    remove_in="0.31.0",
 )
 def ensure_cv2_image_for_processing(image_processing_fun):
     pass

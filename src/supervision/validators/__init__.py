@@ -105,7 +105,7 @@ def validate_key_point_confidence(confidence: Any, n: int, m: int) -> None:
 @deprecated(
     target=validate_key_point_confidence,
     deprecated_in="0.27.0",
-    remove_in="0.30.0",
+    remove_in="0.31.0",
 )
 def validate_keypoint_confidence(confidence: Any, n: int, m: int) -> None:
     pass
@@ -188,7 +188,7 @@ def validate_key_points_fields(
 @deprecated(
     target=validate_key_points_fields,
     deprecated_in="0.27.0",
-    remove_in="0.30.0",
+    remove_in="0.31.0",
 )
 def validate_keypoints_fields(
     xy: Any, class_id: Any, confidence: Any, data: dict[str, Any]

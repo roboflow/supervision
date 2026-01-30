@@ -7,7 +7,7 @@ warnings.warn(
     stacklevel=2,
 )
 
-from supervision.key_points.annotators import (  # noqa: F401E402
+from supervision.key_points.annotators import (  # noqa: F401, E402
     BaseKeyPointAnnotator,
     EdgeAnnotator,
     VertexAnnotator,
