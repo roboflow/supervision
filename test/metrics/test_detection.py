@@ -12,7 +12,7 @@ from supervision.metrics.detection import (
     detections_to_tensor,
 )
 from test.helpers import _create_detections, assert_almost_equal
-from test.metrics.utils import mock_detections
+
 
 CLASSES = np.arange(80)
 NUM_CLASSES = len(CLASSES)
@@ -487,13 +487,13 @@ def test_compute_average_precision(
         # Test 1: Class priority over IoU - correct class with lower IoU should win
         (
             [
-                mock_detections(
+                _create_detections(
                     xyxy=[[0.1, 0.1, 2.1, 2.1], [0.0, 0.0, 2.0, 2.0]],
                     class_id=[0, 1],
                     confidence=[0.9, 0.95],
                 )
             ],
-            [mock_detections(xyxy=[[0, 0, 2, 2]], class_id=[0])],
+            [_create_detections(xyxy=[[0, 0, 2, 2]], class_id=[0])],
             [0, 1, 2],
             0.5,
             0.5,
@@ -510,7 +510,7 @@ def test_compute_average_precision(
         # Test 2: Multiple overlapping predictions with different classes
         (
             [
-                mock_detections(
+                _create_detections(
                     xyxy=[
                         [0.1, 0.1, 2.1, 2.1],
                         [0.2, 0.2, 2.2, 2.2],
@@ -521,7 +521,7 @@ def test_compute_average_precision(
                     confidence=[0.9, 0.8, 0.7, 0.85],
                 )
             ],
-            [mock_detections(xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1])],
+            [_create_detections(xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1])],
             [0, 1, 2],
             0.5,
             0.5,
@@ -538,13 +538,13 @@ def test_compute_average_precision(
         # Test 3: Confidence threshold filtering with edge cases
         (
             [
-                mock_detections(
+                _create_detections(
                     xyxy=[[0, 0, 2, 2], [4, 4, 6, 6], [8, 8, 10, 10]],
                     class_id=[0, 1, 2],
                     confidence=[0.6, 0.4, 0.8],  # middle one below threshold
                 )
             ],
-            [mock_detections(xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1])],
+            [_create_detections(xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1])],
             [0, 1, 2],
             0.5,
             0.5,
@@ -561,13 +561,13 @@ def test_compute_average_precision(
         # Test 4: IoU threshold boundary cases (IoU = 0.5 exactly)
         (
             [
-                mock_detections(
+                _create_detections(
                     xyxy=[[0, 0, 1.5, 1.5], [4, 4, 5.5, 5.5]],  # IoU = 0.5 for both
                     class_id=[0, 1],
                     confidence=[0.9, 0.8],
                 )
             ],
-            [mock_detections(xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1])],
+            [_create_detections(xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1])],
             [0, 1, 2],
             0.5,
             0.5,
@@ -584,14 +584,14 @@ def test_compute_average_precision(
         # Test 5: Chain of overlapping detections
         (
             [
-                mock_detections(
+                _create_detections(
                     xyxy=[[0.1, 0.1, 2.1, 2.1], [1.9, 1.9, 3.9, 3.9]],
                     class_id=[0, 2],
                     confidence=[0.9, 0.8],
                 )
             ],
             [
-                mock_detections(
+                _create_detections(
                     xyxy=[[0, 0, 2, 2], [1, 1, 3, 3], [2, 2, 4, 4]], class_id=[0, 1, 2]
                 )
             ],
@@ -611,13 +611,13 @@ def test_compute_average_precision(
         # Test 6: All false positives (no ground truth)
         (
             [
-                mock_detections(
+                _create_detections(
                     xyxy=[[0, 0, 2, 2], [4, 4, 6, 6], [8, 8, 10, 10]],
                     class_id=[0, 1, 2],
                     confidence=[0.9, 0.8, 0.7],
                 )
             ],
-            [mock_detections(xyxy=np.empty((0, 4)), class_id=np.array([], dtype=int))],
+            [_create_detections(xyxy=np.empty((0, 4)), class_id=np.array([], dtype=int))],
             [0, 1, 2],
             0.5,
             0.5,
@@ -634,13 +634,13 @@ def test_compute_average_precision(
         # Test 7: Empty predictions and empty ground truth
         (
             [
-                mock_detections(
+                _create_detections(
                     xyxy=np.empty((0, 4)),
                     class_id=np.array([], dtype=int),
                     confidence=np.array([], dtype=float),
                 )
             ],
-            [mock_detections(xyxy=np.empty((0, 4)), class_id=np.array([], dtype=int))],
+            [_create_detections(xyxy=np.empty((0, 4)), class_id=np.array([], dtype=int))],
             [0, 1, 2],
             0.5,
             0.5,
@@ -650,14 +650,14 @@ def test_compute_average_precision(
         # Test 8: Multi-class misclassifications
         (
             [
-                mock_detections(
+                _create_detections(
                     xyxy=[[0, 0, 2, 2], [4, 4, 6, 6], [10, 10, 12, 12]],
                     class_id=[0, 2, 1],
                     confidence=[0.9, 0.8, 0.7],
                 )
             ],
             [
-                mock_detections(
+                _create_detections(
                     xyxy=[[0, 0, 2, 2], [4, 4, 6, 6], [8, 8, 10, 10]],
                     class_id=[0, 1, 2],
                 )
@@ -678,7 +678,7 @@ def test_compute_average_precision(
         # Test 9: Complex multiple predictions with mixed results
         (
             [
-                mock_detections(
+                _create_detections(
                     xyxy=[
                         [0, 0, 2, 2],
                         [4, 4, 6, 6],
@@ -691,7 +691,7 @@ def test_compute_average_precision(
                 )
             ],
             [
-                mock_detections(
+                _create_detections(
                     xyxy=[[0, 0, 2, 2], [4, 4, 6, 6], [8, 8, 10, 10], [12, 12, 14, 14]],
                     class_id=[0, 1, 2, 0],
                 )
@@ -712,7 +712,7 @@ def test_compute_average_precision(
         # Test 10: Large complex example with confidence filtering
         (
             [
-                mock_detections(
+                _create_detections(
                     xyxy=[
                         [0, 0, 2, 2],
                         [4, 4, 6, 6],
@@ -726,7 +726,7 @@ def test_compute_average_precision(
                 )
             ],
             [
-                mock_detections(
+                _create_detections(
                     xyxy=[[0, 0, 2, 2], [4, 4, 6, 6], [8, 8, 10, 10], [12, 12, 14, 14]],
                     class_id=[0, 1, 2, 0],
                 )
@@ -747,7 +747,7 @@ def test_compute_average_precision(
         # Test 11: High counts with multiple TPs and misclassifications
         (
             [
-                mock_detections(
+                _create_detections(
                     xyxy=[
                         [0, 0, 2, 2],
                         [0, 3, 2, 5],
@@ -762,7 +762,7 @@ def test_compute_average_precision(
                 )
             ],
             [
-                mock_detections(
+                _create_detections(
                     xyxy=[
                         [0, 0, 2, 2],
                         [0, 3, 2, 5],
@@ -791,7 +791,7 @@ def test_compute_average_precision(
         # Test 12: Symmetric multi-class confusions with higher counts
         (
             [
-                mock_detections(
+                _create_detections(
                     xyxy=[
                         [0, 0, 2, 2],
                         [0, 4, 2, 6],
@@ -807,7 +807,7 @@ def test_compute_average_precision(
                 )
             ],
             [
-                mock_detections(
+                _create_detections(
                     xyxy=[
                         [0, 0, 2, 2],
                         [0, 4, 2, 6],
@@ -835,7 +835,7 @@ def test_compute_average_precision(
         # Test 13: Empty Ground Truths
         (
             [
-                mock_detections(
+                _create_detections(
                     xyxy=[[0, 0, 2, 2], [0, 4, 2, 6]],
                     class_id=[0, 0],
                     confidence=[0.9, 0.9],
@@ -858,7 +858,7 @@ def test_compute_average_precision(
         # Test 14: Empty Detections
         (
             [Detections.empty()],
-            [mock_detections(xyxy=[[0, 0, 2, 2], [0, 4, 2, 6]], class_id=[0, 0])],
+            [_create_detections(xyxy=[[0, 0, 2, 2], [0, 4, 2, 6]], class_id=[0, 0])],
             [0, 1, 2],  # Class ids
             0.5,  # Confidence threshold
             0.5,  # IOU threshold
