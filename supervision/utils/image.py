@@ -288,7 +288,7 @@ def letterbox_image(
 @deprecated(
     target=None,
     deprecated_in="0.27.0",
-    remove_in="0.32.0",
+    remove_in="0.31.0",
 )
 def overlay_image(
     image: npt.NDArray[np.uint8],
@@ -635,7 +635,7 @@ class ImageSink:
 @deprecated(
     target=None,
     deprecated_in="0.27.0",
-    remove_in="0.27.0",
+    remove_in="0.31.0",
 )
 def create_tiles(
     images: list[ImageType],
