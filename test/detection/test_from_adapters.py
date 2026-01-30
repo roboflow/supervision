@@ -4,64 +4,16 @@ import numpy as np
 import pytest
 
 import supervision.detection.core as detection_core
-from supervision.detection.core import CLASS_NAME_DATA_FIELD, Detections
+from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.detection.core import Detections
 
-
-class _FakeTensor:
-    def __init__(self, arr: np.ndarray):
-        self._arr = np.asarray(arr)
-
-    def cpu(self) -> _FakeTensor:
-        return self
-
-    def numpy(self) -> np.ndarray:
-        return self._arr
-
-    def int(self) -> _FakeTensor:
-        return _FakeTensor(self._arr.astype(int))
-
-
-class _FakeYOLOv5Results:
-    def __init__(self, pred0: np.ndarray):
-        self.pred = [_FakeTensor(pred0)]
-
-
-class _FakeUltralyticsBoxes:
-    def __init__(
-        self,
-        xyxy: np.ndarray,
-        conf: np.ndarray,
-        cls: np.ndarray,
-        id_: np.ndarray | None = None,
-    ):
-        self.xyxy = _FakeTensor(xyxy)
-        self.conf = _FakeTensor(conf)
-        self.cls = _FakeTensor(cls)
-        self.id = _FakeTensor(id_) if id_ is not None else None
-
-
-class _FakeUltralyticsResults:
-    def __init__(self, boxes, names: dict[int, str], length: int = 0):
-        self.boxes = boxes
-        self.names = names
-        self.obb = None
-        self.masks = None
-        self._length = length
-
-    def __len__(self) -> int:
-        return self._length
-
-
-class _FakeYoloNasPrediction:
-    def __init__(self, bboxes_xyxy, confidence, labels):
-        self.bboxes_xyxy = bboxes_xyxy
-        self.confidence = confidence
-        self.labels = labels
-
-
-class _FakeYoloNasResults:
-    def __init__(self, prediction: _FakeYoloNasPrediction):
-        self.prediction = prediction
+from test.helpers import (
+    _FakeUltralyticsBoxes,
+    _FakeUltralyticsResults,
+    _FakeYOLOv5Results,
+    _FakeYoloNasPrediction,
+    _FakeYoloNasResults,
+)
 
 
 def test_from_yolov5_maps_columns_correctly() -> None:
@@ -85,7 +37,7 @@ def test_from_yolov5_maps_columns_correctly() -> None:
 def test_from_ultralytics_boxes_branch_maps_fields_and_class_names() -> None:
     xyxy = np.array([[0, 0, 10, 10], [5, 6, 7, 8]], dtype=np.float32)
     conf = np.array([0.8, 0.2], dtype=np.float32)
-    cls = np.array([1, 0], dtype=np.float32)  # becomes int
+    cls = np.array([1, 0], dtype=np.float32)
     names = {0: "cat", 1: "dog"}
 
     boxes = _FakeUltralyticsBoxes(xyxy=xyxy, conf=conf, cls=cls, id_=None)
@@ -111,9 +63,7 @@ def test_from_ultralytics_segmentation_only_branch_uses_masks_and_arange(
     fake_masks = np.zeros((3, 10, 10), dtype=bool)
     fake_xyxy = np.array([[0, 0, 1, 1], [2, 2, 3, 3], [4, 4, 5, 5]], dtype=np.float32)
 
-    monkeypatch.setattr(
-        detection_core, "extract_ultralytics_masks", lambda _: fake_masks
-    )
+    monkeypatch.setattr(detection_core, "extract_ultralytics_masks", lambda _: fake_masks)
     monkeypatch.setattr(detection_core, "mask_to_xyxy", lambda masks: fake_xyxy)
 
     det = Detections.from_ultralytics(results)
@@ -160,3 +110,4 @@ def test_from_yolo_nas_handles_empty_and_non_empty(
         np.testing.assert_allclose(det.xyxy, bboxes)
         np.testing.assert_allclose(det.confidence, conf)
         np.testing.assert_array_equal(det.class_id, labels.astype(int))
+
