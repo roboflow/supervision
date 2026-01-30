@@ -23,12 +23,14 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           activate-environment: true
-
+          enable-cache: true # Recommended: caches the uv download/builds
 
       - name: 🚀 Install Packages
-        run: uv pip install -r pyproject.toml --group dev --group docs --extra metrics
+        # CHANGED: 'uv sync' enforces the versions in uv.lock
+        run: uv sync --group dev --group docs --extra metrics
 
       - name: 🧪 Run the Import test
+        # 'uv run' executes inside the environment created by 'uv sync'
         run: uv run python -c "import supervision; from supervision import assets; from supervision import metrics; print(supervision.__version__)"
 
       - name: 🧪 Run the Test
