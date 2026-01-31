@@ -3744,37 +3744,7 @@ must be in BGR color format.</p>
 
               <details class="mkdocstrings-source">
                 <summary>Source code in <code>supervision/utils/video.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-337">337</a></span>
-<span class="normal"><a href="#__codelineno-0-338">338</a></span>
-<span class="normal"><a href="#__codelineno-0-339">339</a></span>
-<span class="normal"><a href="#__codelineno-0-340">340</a></span>
-<span class="normal"><a href="#__codelineno-0-341">341</a></span>
-<span class="normal"><a href="#__codelineno-0-342">342</a></span>
-<span class="normal"><a href="#__codelineno-0-343">343</a></span>
-<span class="normal"><a href="#__codelineno-0-344">344</a></span>
-<span class="normal"><a href="#__codelineno-0-345">345</a></span>
-<span class="normal"><a href="#__codelineno-0-346">346</a></span>
-<span class="normal"><a href="#__codelineno-0-347">347</a></span>
-<span class="normal"><a href="#__codelineno-0-348">348</a></span>
-<span class="normal"><a href="#__codelineno-0-349">349</a></span>
-<span class="normal"><a href="#__codelineno-0-350">350</a></span>
-<span class="normal"><a href="#__codelineno-0-351">351</a></span>
-<span class="normal"><a href="#__codelineno-0-352">352</a></span>
-<span class="normal"><a href="#__codelineno-0-353">353</a></span>
-<span class="normal"><a href="#__codelineno-0-354">354</a></span>
-<span class="normal"><a href="#__codelineno-0-355">355</a></span>
-<span class="normal"><a href="#__codelineno-0-356">356</a></span>
-<span class="normal"><a href="#__codelineno-0-357">357</a></span>
-<span class="normal"><a href="#__codelineno-0-358">358</a></span>
-<span class="normal"><a href="#__codelineno-0-359">359</a></span>
-<span class="normal"><a href="#__codelineno-0-360">360</a></span>
-<span class="normal"><a href="#__codelineno-0-361">361</a></span>
-<span class="normal"><a href="#__codelineno-0-362">362</a></span>
-<span class="normal"><a href="#__codelineno-0-363">363</a></span>
-<span class="normal"><a href="#__codelineno-0-364">364</a></span>
-<span class="normal"><a href="#__codelineno-0-365">365</a></span>
-<span class="normal"><a href="#__codelineno-0-366">366</a></span>
-<span class="normal"><a href="#__codelineno-0-367">367</a></span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-367">367</a></span>
 <span class="normal"><a href="#__codelineno-0-368">368</a></span>
 <span class="normal"><a href="#__codelineno-0-369">369</a></span>
 <span class="normal"><a href="#__codelineno-0-370">370</a></span>
@@ -3793,56 +3763,86 @@ must be in BGR color format.</p>
 <span class="normal"><a href="#__codelineno-0-383">383</a></span>
 <span class="normal"><a href="#__codelineno-0-384">384</a></span>
 <span class="normal"><a href="#__codelineno-0-385">385</a></span>
-<span class="normal"><a href="#__codelineno-0-386">386</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-337"><a id="__codelineno-0-337" name="__codelineno-0-337"></a><span class="k">class</span><span class="w"> </span><span class="nc">FPSMonitor</span><span class="p">:</span>
-</span><span id="__span-0-338"><a id="__codelineno-0-338" name="__codelineno-0-338"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-339"><a id="__codelineno-0-339" name="__codelineno-0-339"></a><span class="sd">    A class for monitoring frames per second (FPS) to benchmark latency.</span>
-</span><span id="__span-0-340"><a id="__codelineno-0-340" name="__codelineno-0-340"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-341"><a id="__codelineno-0-341" name="__codelineno-0-341"></a>
-</span><span id="__span-0-342"><a id="__codelineno-0-342" name="__codelineno-0-342"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">):</span>
-</span><span id="__span-0-343"><a id="__codelineno-0-343" name="__codelineno-0-343"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-344"><a id="__codelineno-0-344" name="__codelineno-0-344"></a><span class="sd">        Args:</span>
-</span><span id="__span-0-345"><a id="__codelineno-0-345" name="__codelineno-0-345"></a><span class="sd">            sample_size: The maximum number of observations for latency</span>
-</span><span id="__span-0-346"><a id="__codelineno-0-346" name="__codelineno-0-346"></a><span class="sd">                benchmarking.</span>
-</span><span id="__span-0-347"><a id="__codelineno-0-347" name="__codelineno-0-347"></a>
-</span><span id="__span-0-348"><a id="__codelineno-0-348" name="__codelineno-0-348"></a><span class="sd">        Examples:</span>
-</span><span id="__span-0-349"><a id="__codelineno-0-349" name="__codelineno-0-349"></a><span class="sd">            ```python</span>
-</span><span id="__span-0-350"><a id="__codelineno-0-350" name="__codelineno-0-350"></a><span class="sd">            import supervision as sv</span>
-</span><span id="__span-0-351"><a id="__codelineno-0-351" name="__codelineno-0-351"></a>
-</span><span id="__span-0-352"><a id="__codelineno-0-352" name="__codelineno-0-352"></a><span class="sd">            frames_generator = sv.get_video_frames_generator(source_path=&lt;SOURCE_FILE_PATH&gt;)</span>
-</span><span id="__span-0-353"><a id="__codelineno-0-353" name="__codelineno-0-353"></a><span class="sd">            fps_monitor = sv.FPSMonitor()</span>
-</span><span id="__span-0-354"><a id="__codelineno-0-354" name="__codelineno-0-354"></a>
-</span><span id="__span-0-355"><a id="__codelineno-0-355" name="__codelineno-0-355"></a><span class="sd">            for frame in frames_generator:</span>
-</span><span id="__span-0-356"><a id="__codelineno-0-356" name="__codelineno-0-356"></a><span class="sd">                # your processing code here</span>
-</span><span id="__span-0-357"><a id="__codelineno-0-357" name="__codelineno-0-357"></a><span class="sd">                fps_monitor.tick()</span>
-</span><span id="__span-0-358"><a id="__codelineno-0-358" name="__codelineno-0-358"></a><span class="sd">                fps = fps_monitor.fps</span>
-</span><span id="__span-0-359"><a id="__codelineno-0-359" name="__codelineno-0-359"></a><span class="sd">            ```</span>
-</span><span id="__span-0-360"><a id="__codelineno-0-360" name="__codelineno-0-360"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
-</span><span id="__span-0-361"><a id="__codelineno-0-361" name="__codelineno-0-361"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="p">:</span> <span class="n">deque</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="n">sample_size</span><span class="p">)</span>
-</span><span id="__span-0-362"><a id="__codelineno-0-362" name="__codelineno-0-362"></a>
-</span><span id="__span-0-363"><a id="__codelineno-0-363" name="__codelineno-0-363"></a>    <span class="nd">@property</span>
-</span><span id="__span-0-364"><a id="__codelineno-0-364" name="__codelineno-0-364"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">fps</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-</span><span id="__span-0-365"><a id="__codelineno-0-365" name="__codelineno-0-365"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-366"><a id="__codelineno-0-366" name="__codelineno-0-366"></a><span class="sd">        Computes and returns the average FPS based on the stored time stamps.</span>
-</span><span id="__span-0-367"><a id="__codelineno-0-367" name="__codelineno-0-367"></a>
-</span><span id="__span-0-368"><a id="__codelineno-0-368" name="__codelineno-0-368"></a><span class="sd">        Returns:</span>
-</span><span id="__span-0-369"><a id="__codelineno-0-369" name="__codelineno-0-369"></a><span class="sd">            The average FPS. Returns 0.0 if no time stamps are stored.</span>
-</span><span id="__span-0-370"><a id="__codelineno-0-370" name="__codelineno-0-370"></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="__span-0-371"><a id="__codelineno-0-371" name="__codelineno-0-371"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="p">:</span>
-</span><span id="__span-0-372"><a id="__codelineno-0-372" name="__codelineno-0-372"></a>            <span class="k">return</span> <span class="mf">0.0</span>
-</span><span id="__span-0-373"><a id="__codelineno-0-373" name="__codelineno-0-373"></a>        <span class="n">taken_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-</span><span id="__span-0-374"><a id="__codelineno-0-374" name="__codelineno-0-374"></a>        <span class="k">return</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="p">))</span> <span class="o">/</span> <span class="n">taken_time</span> <span class="k">if</span> <span class="n">taken_time</span> <span class="o">!=</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
-</span><span id="__span-0-375"><a id="__codelineno-0-375" name="__codelineno-0-375"></a>
-</span><span id="__span-0-376"><a id="__codelineno-0-376" name="__codelineno-0-376"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">tick</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-377"><a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-378"><a id="__codelineno-0-378" name="__codelineno-0-378"></a><span class="sd">        Adds a new time stamp to the deque for FPS calculation.</span>
-</span><span id="__span-0-379"><a id="__codelineno-0-379" name="__codelineno-0-379"></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="__span-0-380"><a id="__codelineno-0-380" name="__codelineno-0-380"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">())</span>
+<span class="normal"><a href="#__codelineno-0-386">386</a></span>
+<span class="normal"><a href="#__codelineno-0-387">387</a></span>
+<span class="normal"><a href="#__codelineno-0-388">388</a></span>
+<span class="normal"><a href="#__codelineno-0-389">389</a></span>
+<span class="normal"><a href="#__codelineno-0-390">390</a></span>
+<span class="normal"><a href="#__codelineno-0-391">391</a></span>
+<span class="normal"><a href="#__codelineno-0-392">392</a></span>
+<span class="normal"><a href="#__codelineno-0-393">393</a></span>
+<span class="normal"><a href="#__codelineno-0-394">394</a></span>
+<span class="normal"><a href="#__codelineno-0-395">395</a></span>
+<span class="normal"><a href="#__codelineno-0-396">396</a></span>
+<span class="normal"><a href="#__codelineno-0-397">397</a></span>
+<span class="normal"><a href="#__codelineno-0-398">398</a></span>
+<span class="normal"><a href="#__codelineno-0-399">399</a></span>
+<span class="normal"><a href="#__codelineno-0-400">400</a></span>
+<span class="normal"><a href="#__codelineno-0-401">401</a></span>
+<span class="normal"><a href="#__codelineno-0-402">402</a></span>
+<span class="normal"><a href="#__codelineno-0-403">403</a></span>
+<span class="normal"><a href="#__codelineno-0-404">404</a></span>
+<span class="normal"><a href="#__codelineno-0-405">405</a></span>
+<span class="normal"><a href="#__codelineno-0-406">406</a></span>
+<span class="normal"><a href="#__codelineno-0-407">407</a></span>
+<span class="normal"><a href="#__codelineno-0-408">408</a></span>
+<span class="normal"><a href="#__codelineno-0-409">409</a></span>
+<span class="normal"><a href="#__codelineno-0-410">410</a></span>
+<span class="normal"><a href="#__codelineno-0-411">411</a></span>
+<span class="normal"><a href="#__codelineno-0-412">412</a></span>
+<span class="normal"><a href="#__codelineno-0-413">413</a></span>
+<span class="normal"><a href="#__codelineno-0-414">414</a></span>
+<span class="normal"><a href="#__codelineno-0-415">415</a></span>
+<span class="normal"><a href="#__codelineno-0-416">416</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-367"><a id="__codelineno-0-367" name="__codelineno-0-367"></a><span class="k">class</span><span class="w"> </span><span class="nc">FPSMonitor</span><span class="p">:</span>
+</span><span id="__span-0-368"><a id="__codelineno-0-368" name="__codelineno-0-368"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-369"><a id="__codelineno-0-369" name="__codelineno-0-369"></a><span class="sd">    A class for monitoring frames per second (FPS) to benchmark latency.</span>
+</span><span id="__span-0-370"><a id="__codelineno-0-370" name="__codelineno-0-370"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-371"><a id="__codelineno-0-371" name="__codelineno-0-371"></a>
+</span><span id="__span-0-372"><a id="__codelineno-0-372" name="__codelineno-0-372"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">):</span>
+</span><span id="__span-0-373"><a id="__codelineno-0-373" name="__codelineno-0-373"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-374"><a id="__codelineno-0-374" name="__codelineno-0-374"></a><span class="sd">        Args:</span>
+</span><span id="__span-0-375"><a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="sd">            sample_size: The maximum number of observations for latency</span>
+</span><span id="__span-0-376"><a id="__codelineno-0-376" name="__codelineno-0-376"></a><span class="sd">                benchmarking.</span>
+</span><span id="__span-0-377"><a id="__codelineno-0-377" name="__codelineno-0-377"></a>
+</span><span id="__span-0-378"><a id="__codelineno-0-378" name="__codelineno-0-378"></a><span class="sd">        Examples:</span>
+</span><span id="__span-0-379"><a id="__codelineno-0-379" name="__codelineno-0-379"></a><span class="sd">            ```python</span>
+</span><span id="__span-0-380"><a id="__codelineno-0-380" name="__codelineno-0-380"></a><span class="sd">            import supervision as sv</span>
 </span><span id="__span-0-381"><a id="__codelineno-0-381" name="__codelineno-0-381"></a>
-</span><span id="__span-0-382"><a id="__codelineno-0-382" name="__codelineno-0-382"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-383"><a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-384"><a id="__codelineno-0-384" name="__codelineno-0-384"></a><span class="sd">        Clears all the time stamps from the deque.</span>
-</span><span id="__span-0-385"><a id="__codelineno-0-385" name="__codelineno-0-385"></a><span class="sd">        &quot;&quot;&quot;</span>
-</span><span id="__span-0-386"><a id="__codelineno-0-386" name="__codelineno-0-386"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+</span><span id="__span-0-382"><a id="__codelineno-0-382" name="__codelineno-0-382"></a><span class="sd">            frames_generator = sv.get_video_frames_generator(source_path=&lt;SOURCE_FILE_PATH&gt;)</span>
+</span><span id="__span-0-383"><a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="sd">            fps_monitor = sv.FPSMonitor()</span>
+</span><span id="__span-0-384"><a id="__codelineno-0-384" name="__codelineno-0-384"></a>
+</span><span id="__span-0-385"><a id="__codelineno-0-385" name="__codelineno-0-385"></a><span class="sd">            for frame in frames_generator:</span>
+</span><span id="__span-0-386"><a id="__codelineno-0-386" name="__codelineno-0-386"></a><span class="sd">                # your processing code here</span>
+</span><span id="__span-0-387"><a id="__codelineno-0-387" name="__codelineno-0-387"></a><span class="sd">                fps_monitor.tick()</span>
+</span><span id="__span-0-388"><a id="__codelineno-0-388" name="__codelineno-0-388"></a><span class="sd">                fps = fps_monitor.fps</span>
+</span><span id="__span-0-389"><a id="__codelineno-0-389" name="__codelineno-0-389"></a><span class="sd">            ```</span>
+</span><span id="__span-0-390"><a id="__codelineno-0-390" name="__codelineno-0-390"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+</span><span id="__span-0-391"><a id="__codelineno-0-391" name="__codelineno-0-391"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="p">:</span> <span class="n">deque</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="n">sample_size</span><span class="p">)</span>
+</span><span id="__span-0-392"><a id="__codelineno-0-392" name="__codelineno-0-392"></a>
+</span><span id="__span-0-393"><a id="__codelineno-0-393" name="__codelineno-0-393"></a>    <span class="nd">@property</span>
+</span><span id="__span-0-394"><a id="__codelineno-0-394" name="__codelineno-0-394"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">fps</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+</span><span id="__span-0-395"><a id="__codelineno-0-395" name="__codelineno-0-395"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-396"><a id="__codelineno-0-396" name="__codelineno-0-396"></a><span class="sd">        Computes and returns the average FPS based on the stored time stamps.</span>
+</span><span id="__span-0-397"><a id="__codelineno-0-397" name="__codelineno-0-397"></a>
+</span><span id="__span-0-398"><a id="__codelineno-0-398" name="__codelineno-0-398"></a><span class="sd">        Returns:</span>
+</span><span id="__span-0-399"><a id="__codelineno-0-399" name="__codelineno-0-399"></a><span class="sd">            The average FPS. Returns 0.0 if no time stamps are stored.</span>
+</span><span id="__span-0-400"><a id="__codelineno-0-400" name="__codelineno-0-400"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-0-401"><a id="__codelineno-0-401" name="__codelineno-0-401"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="p">:</span>
+</span><span id="__span-0-402"><a id="__codelineno-0-402" name="__codelineno-0-402"></a>            <span class="k">return</span> <span class="mf">0.0</span>
+</span><span id="__span-0-403"><a id="__codelineno-0-403" name="__codelineno-0-403"></a>        <span class="n">taken_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-0-404"><a id="__codelineno-0-404" name="__codelineno-0-404"></a>        <span class="k">return</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="p">))</span> <span class="o">/</span> <span class="n">taken_time</span> <span class="k">if</span> <span class="n">taken_time</span> <span class="o">!=</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
+</span><span id="__span-0-405"><a id="__codelineno-0-405" name="__codelineno-0-405"></a>
+</span><span id="__span-0-406"><a id="__codelineno-0-406" name="__codelineno-0-406"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">tick</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-407"><a id="__codelineno-0-407" name="__codelineno-0-407"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-408"><a id="__codelineno-0-408" name="__codelineno-0-408"></a><span class="sd">        Adds a new time stamp to the deque for FPS calculation.</span>
+</span><span id="__span-0-409"><a id="__codelineno-0-409" name="__codelineno-0-409"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-0-410"><a id="__codelineno-0-410" name="__codelineno-0-410"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">())</span>
+</span><span id="__span-0-411"><a id="__codelineno-0-411" name="__codelineno-0-411"></a>
+</span><span id="__span-0-412"><a id="__codelineno-0-412" name="__codelineno-0-412"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-413"><a id="__codelineno-0-413" name="__codelineno-0-413"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-414"><a id="__codelineno-0-414" name="__codelineno-0-414"></a><span class="sd">        Clears all the time stamps from the deque.</span>
+</span><span id="__span-0-415"><a id="__codelineno-0-415" name="__codelineno-0-415"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-0-416"><a id="__codelineno-0-416" name="__codelineno-0-416"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
 </span></code></pre></div></td></tr></table></div>
               </details>
 
@@ -3964,45 +3964,45 @@ benchmarking.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>supervision/utils/video.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-342">342</a></span>
-<span class="normal"><a href="#__codelineno-0-343">343</a></span>
-<span class="normal"><a href="#__codelineno-0-344">344</a></span>
-<span class="normal"><a href="#__codelineno-0-345">345</a></span>
-<span class="normal"><a href="#__codelineno-0-346">346</a></span>
-<span class="normal"><a href="#__codelineno-0-347">347</a></span>
-<span class="normal"><a href="#__codelineno-0-348">348</a></span>
-<span class="normal"><a href="#__codelineno-0-349">349</a></span>
-<span class="normal"><a href="#__codelineno-0-350">350</a></span>
-<span class="normal"><a href="#__codelineno-0-351">351</a></span>
-<span class="normal"><a href="#__codelineno-0-352">352</a></span>
-<span class="normal"><a href="#__codelineno-0-353">353</a></span>
-<span class="normal"><a href="#__codelineno-0-354">354</a></span>
-<span class="normal"><a href="#__codelineno-0-355">355</a></span>
-<span class="normal"><a href="#__codelineno-0-356">356</a></span>
-<span class="normal"><a href="#__codelineno-0-357">357</a></span>
-<span class="normal"><a href="#__codelineno-0-358">358</a></span>
-<span class="normal"><a href="#__codelineno-0-359">359</a></span>
-<span class="normal"><a href="#__codelineno-0-360">360</a></span>
-<span class="normal"><a href="#__codelineno-0-361">361</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-342"><a id="__codelineno-0-342" name="__codelineno-0-342"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">):</span>
-</span><span id="__span-0-343"><a id="__codelineno-0-343" name="__codelineno-0-343"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-344"><a id="__codelineno-0-344" name="__codelineno-0-344"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-345"><a id="__codelineno-0-345" name="__codelineno-0-345"></a><span class="sd">        sample_size: The maximum number of observations for latency</span>
-</span><span id="__span-0-346"><a id="__codelineno-0-346" name="__codelineno-0-346"></a><span class="sd">            benchmarking.</span>
-</span><span id="__span-0-347"><a id="__codelineno-0-347" name="__codelineno-0-347"></a>
-</span><span id="__span-0-348"><a id="__codelineno-0-348" name="__codelineno-0-348"></a><span class="sd">    Examples:</span>
-</span><span id="__span-0-349"><a id="__codelineno-0-349" name="__codelineno-0-349"></a><span class="sd">        ```python</span>
-</span><span id="__span-0-350"><a id="__codelineno-0-350" name="__codelineno-0-350"></a><span class="sd">        import supervision as sv</span>
-</span><span id="__span-0-351"><a id="__codelineno-0-351" name="__codelineno-0-351"></a>
-</span><span id="__span-0-352"><a id="__codelineno-0-352" name="__codelineno-0-352"></a><span class="sd">        frames_generator = sv.get_video_frames_generator(source_path=&lt;SOURCE_FILE_PATH&gt;)</span>
-</span><span id="__span-0-353"><a id="__codelineno-0-353" name="__codelineno-0-353"></a><span class="sd">        fps_monitor = sv.FPSMonitor()</span>
-</span><span id="__span-0-354"><a id="__codelineno-0-354" name="__codelineno-0-354"></a>
-</span><span id="__span-0-355"><a id="__codelineno-0-355" name="__codelineno-0-355"></a><span class="sd">        for frame in frames_generator:</span>
-</span><span id="__span-0-356"><a id="__codelineno-0-356" name="__codelineno-0-356"></a><span class="sd">            # your processing code here</span>
-</span><span id="__span-0-357"><a id="__codelineno-0-357" name="__codelineno-0-357"></a><span class="sd">            fps_monitor.tick()</span>
-</span><span id="__span-0-358"><a id="__codelineno-0-358" name="__codelineno-0-358"></a><span class="sd">            fps = fps_monitor.fps</span>
-</span><span id="__span-0-359"><a id="__codelineno-0-359" name="__codelineno-0-359"></a><span class="sd">        ```</span>
-</span><span id="__span-0-360"><a id="__codelineno-0-360" name="__codelineno-0-360"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
-</span><span id="__span-0-361"><a id="__codelineno-0-361" name="__codelineno-0-361"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="p">:</span> <span class="n">deque</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="n">sample_size</span><span class="p">)</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-372">372</a></span>
+<span class="normal"><a href="#__codelineno-0-373">373</a></span>
+<span class="normal"><a href="#__codelineno-0-374">374</a></span>
+<span class="normal"><a href="#__codelineno-0-375">375</a></span>
+<span class="normal"><a href="#__codelineno-0-376">376</a></span>
+<span class="normal"><a href="#__codelineno-0-377">377</a></span>
+<span class="normal"><a href="#__codelineno-0-378">378</a></span>
+<span class="normal"><a href="#__codelineno-0-379">379</a></span>
+<span class="normal"><a href="#__codelineno-0-380">380</a></span>
+<span class="normal"><a href="#__codelineno-0-381">381</a></span>
+<span class="normal"><a href="#__codelineno-0-382">382</a></span>
+<span class="normal"><a href="#__codelineno-0-383">383</a></span>
+<span class="normal"><a href="#__codelineno-0-384">384</a></span>
+<span class="normal"><a href="#__codelineno-0-385">385</a></span>
+<span class="normal"><a href="#__codelineno-0-386">386</a></span>
+<span class="normal"><a href="#__codelineno-0-387">387</a></span>
+<span class="normal"><a href="#__codelineno-0-388">388</a></span>
+<span class="normal"><a href="#__codelineno-0-389">389</a></span>
+<span class="normal"><a href="#__codelineno-0-390">390</a></span>
+<span class="normal"><a href="#__codelineno-0-391">391</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-372"><a id="__codelineno-0-372" name="__codelineno-0-372"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">):</span>
+</span><span id="__span-0-373"><a id="__codelineno-0-373" name="__codelineno-0-373"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-374"><a id="__codelineno-0-374" name="__codelineno-0-374"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-375"><a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="sd">        sample_size: The maximum number of observations for latency</span>
+</span><span id="__span-0-376"><a id="__codelineno-0-376" name="__codelineno-0-376"></a><span class="sd">            benchmarking.</span>
+</span><span id="__span-0-377"><a id="__codelineno-0-377" name="__codelineno-0-377"></a>
+</span><span id="__span-0-378"><a id="__codelineno-0-378" name="__codelineno-0-378"></a><span class="sd">    Examples:</span>
+</span><span id="__span-0-379"><a id="__codelineno-0-379" name="__codelineno-0-379"></a><span class="sd">        ```python</span>
+</span><span id="__span-0-380"><a id="__codelineno-0-380" name="__codelineno-0-380"></a><span class="sd">        import supervision as sv</span>
+</span><span id="__span-0-381"><a id="__codelineno-0-381" name="__codelineno-0-381"></a>
+</span><span id="__span-0-382"><a id="__codelineno-0-382" name="__codelineno-0-382"></a><span class="sd">        frames_generator = sv.get_video_frames_generator(source_path=&lt;SOURCE_FILE_PATH&gt;)</span>
+</span><span id="__span-0-383"><a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="sd">        fps_monitor = sv.FPSMonitor()</span>
+</span><span id="__span-0-384"><a id="__codelineno-0-384" name="__codelineno-0-384"></a>
+</span><span id="__span-0-385"><a id="__codelineno-0-385" name="__codelineno-0-385"></a><span class="sd">        for frame in frames_generator:</span>
+</span><span id="__span-0-386"><a id="__codelineno-0-386" name="__codelineno-0-386"></a><span class="sd">            # your processing code here</span>
+</span><span id="__span-0-387"><a id="__codelineno-0-387" name="__codelineno-0-387"></a><span class="sd">            fps_monitor.tick()</span>
+</span><span id="__span-0-388"><a id="__codelineno-0-388" name="__codelineno-0-388"></a><span class="sd">            fps = fps_monitor.fps</span>
+</span><span id="__span-0-389"><a id="__codelineno-0-389" name="__codelineno-0-389"></a><span class="sd">        ```</span>
+</span><span id="__span-0-390"><a id="__codelineno-0-390" name="__codelineno-0-390"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+</span><span id="__span-0-391"><a id="__codelineno-0-391" name="__codelineno-0-391"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="p">:</span> <span class="n">deque</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="n">sample_size</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4025,15 +4025,15 @@ benchmarking.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>supervision/utils/video.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-382">382</a></span>
-<span class="normal"><a href="#__codelineno-0-383">383</a></span>
-<span class="normal"><a href="#__codelineno-0-384">384</a></span>
-<span class="normal"><a href="#__codelineno-0-385">385</a></span>
-<span class="normal"><a href="#__codelineno-0-386">386</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-382"><a id="__codelineno-0-382" name="__codelineno-0-382"></a><span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-383"><a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-384"><a id="__codelineno-0-384" name="__codelineno-0-384"></a><span class="sd">    Clears all the time stamps from the deque.</span>
-</span><span id="__span-0-385"><a id="__codelineno-0-385" name="__codelineno-0-385"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-386"><a id="__codelineno-0-386" name="__codelineno-0-386"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-412">412</a></span>
+<span class="normal"><a href="#__codelineno-0-413">413</a></span>
+<span class="normal"><a href="#__codelineno-0-414">414</a></span>
+<span class="normal"><a href="#__codelineno-0-415">415</a></span>
+<span class="normal"><a href="#__codelineno-0-416">416</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-412"><a id="__codelineno-0-412" name="__codelineno-0-412"></a><span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-413"><a id="__codelineno-0-413" name="__codelineno-0-413"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-414"><a id="__codelineno-0-414" name="__codelineno-0-414"></a><span class="sd">    Clears all the time stamps from the deque.</span>
+</span><span id="__span-0-415"><a id="__codelineno-0-415" name="__codelineno-0-415"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-416"><a id="__codelineno-0-416" name="__codelineno-0-416"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4056,15 +4056,15 @@ benchmarking.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>supervision/utils/video.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-376">376</a></span>
-<span class="normal"><a href="#__codelineno-0-377">377</a></span>
-<span class="normal"><a href="#__codelineno-0-378">378</a></span>
-<span class="normal"><a href="#__codelineno-0-379">379</a></span>
-<span class="normal"><a href="#__codelineno-0-380">380</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-376"><a id="__codelineno-0-376" name="__codelineno-0-376"></a><span class="k">def</span><span class="w"> </span><span class="nf">tick</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-377"><a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-378"><a id="__codelineno-0-378" name="__codelineno-0-378"></a><span class="sd">    Adds a new time stamp to the deque for FPS calculation.</span>
-</span><span id="__span-0-379"><a id="__codelineno-0-379" name="__codelineno-0-379"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-380"><a id="__codelineno-0-380" name="__codelineno-0-380"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">())</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-406">406</a></span>
+<span class="normal"><a href="#__codelineno-0-407">407</a></span>
+<span class="normal"><a href="#__codelineno-0-408">408</a></span>
+<span class="normal"><a href="#__codelineno-0-409">409</a></span>
+<span class="normal"><a href="#__codelineno-0-410">410</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-406"><a id="__codelineno-0-406" name="__codelineno-0-406"></a><span class="k">def</span><span class="w"> </span><span class="nf">tick</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-407"><a id="__codelineno-0-407" name="__codelineno-0-407"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-408"><a id="__codelineno-0-408" name="__codelineno-0-408"></a><span class="sd">    Adds a new time stamp to the deque for FPS calculation.</span>
+</span><span id="__span-0-409"><a id="__codelineno-0-409" name="__codelineno-0-409"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-410"><a id="__codelineno-0-410" name="__codelineno-0-410"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">all_timestamps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">())</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4554,7 +4554,7 @@ Default is False.</p>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">process_video</span><span class="p">(</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">source_path</span><span class="o">=</span><span class="s2">&quot;source.mp4&quot;</span><span class="p">,</span>
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    <span class="n">target_path</span><span class="o">=</span><span class="s2">&quot;target.mp4&quot;</span><span class="p">,</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">callback</span><span class="o">=</span><span class="n">frame_callback</span><span class="p">,</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="n">callback</span><span class="o">=</span><span class="n">callback</span><span class="p">,</span>
 </span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="p">)</span>
 </span></code></pre></div>
 </details>
@@ -4688,7 +4688,37 @@ Default is False.</p>
 <span class="normal"><a href="#__codelineno-0-331">331</a></span>
 <span class="normal"><a href="#__codelineno-0-332">332</a></span>
 <span class="normal"><a href="#__codelineno-0-333">333</a></span>
-<span class="normal"><a href="#__codelineno-0-334">334</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-207"><a id="__codelineno-0-207" name="__codelineno-0-207"></a><span class="k">def</span><span class="w"> </span><span class="nf">process_video</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-334">334</a></span>
+<span class="normal"><a href="#__codelineno-0-335">335</a></span>
+<span class="normal"><a href="#__codelineno-0-336">336</a></span>
+<span class="normal"><a href="#__codelineno-0-337">337</a></span>
+<span class="normal"><a href="#__codelineno-0-338">338</a></span>
+<span class="normal"><a href="#__codelineno-0-339">339</a></span>
+<span class="normal"><a href="#__codelineno-0-340">340</a></span>
+<span class="normal"><a href="#__codelineno-0-341">341</a></span>
+<span class="normal"><a href="#__codelineno-0-342">342</a></span>
+<span class="normal"><a href="#__codelineno-0-343">343</a></span>
+<span class="normal"><a href="#__codelineno-0-344">344</a></span>
+<span class="normal"><a href="#__codelineno-0-345">345</a></span>
+<span class="normal"><a href="#__codelineno-0-346">346</a></span>
+<span class="normal"><a href="#__codelineno-0-347">347</a></span>
+<span class="normal"><a href="#__codelineno-0-348">348</a></span>
+<span class="normal"><a href="#__codelineno-0-349">349</a></span>
+<span class="normal"><a href="#__codelineno-0-350">350</a></span>
+<span class="normal"><a href="#__codelineno-0-351">351</a></span>
+<span class="normal"><a href="#__codelineno-0-352">352</a></span>
+<span class="normal"><a href="#__codelineno-0-353">353</a></span>
+<span class="normal"><a href="#__codelineno-0-354">354</a></span>
+<span class="normal"><a href="#__codelineno-0-355">355</a></span>
+<span class="normal"><a href="#__codelineno-0-356">356</a></span>
+<span class="normal"><a href="#__codelineno-0-357">357</a></span>
+<span class="normal"><a href="#__codelineno-0-358">358</a></span>
+<span class="normal"><a href="#__codelineno-0-359">359</a></span>
+<span class="normal"><a href="#__codelineno-0-360">360</a></span>
+<span class="normal"><a href="#__codelineno-0-361">361</a></span>
+<span class="normal"><a href="#__codelineno-0-362">362</a></span>
+<span class="normal"><a href="#__codelineno-0-363">363</a></span>
+<span class="normal"><a href="#__codelineno-0-364">364</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-207"><a id="__codelineno-0-207" name="__codelineno-0-207"></a><span class="k">def</span><span class="w"> </span><span class="nf">process_video</span><span class="p">(</span>
 </span><span id="__span-0-208"><a id="__codelineno-0-208" name="__codelineno-0-208"></a>    <span class="n">source_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 </span><span id="__span-0-209"><a id="__codelineno-0-209" name="__codelineno-0-209"></a>    <span class="n">target_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 </span><span id="__span-0-210"><a id="__codelineno-0-210" name="__codelineno-0-210"></a>    <span class="n">callback</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">],</span> <span class="nb">int</span><span class="p">],</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">]],</span>
@@ -4749,7 +4779,7 @@ Default is False.</p>
 </span><span id="__span-0-265"><a id="__codelineno-0-265" name="__codelineno-0-265"></a><span class="sd">        process_video(</span>
 </span><span id="__span-0-266"><a id="__codelineno-0-266" name="__codelineno-0-266"></a><span class="sd">            source_path=&quot;source.mp4&quot;,</span>
 </span><span id="__span-0-267"><a id="__codelineno-0-267" name="__codelineno-0-267"></a><span class="sd">            target_path=&quot;target.mp4&quot;,</span>
-</span><span id="__span-0-268"><a id="__codelineno-0-268" name="__codelineno-0-268"></a><span class="sd">            callback=frame_callback,</span>
+</span><span id="__span-0-268"><a id="__codelineno-0-268" name="__codelineno-0-268"></a><span class="sd">            callback=callback,</span>
 </span><span id="__span-0-269"><a id="__codelineno-0-269" name="__codelineno-0-269"></a><span class="sd">        )</span>
 </span><span id="__span-0-270"><a id="__codelineno-0-270" name="__codelineno-0-270"></a><span class="sd">        ```</span>
 </span><span id="__span-0-271"><a id="__codelineno-0-271" name="__codelineno-0-271"></a><span class="sd">    &quot;&quot;&quot;</span>
@@ -4800,22 +4830,52 @@ Default is False.</p>
 </span><span id="__span-0-316"><a id="__codelineno-0-316" name="__codelineno-0-316"></a>            <span class="n">desc</span><span class="o">=</span><span class="n">progress_message</span><span class="p">,</span>
 </span><span id="__span-0-317"><a id="__codelineno-0-317" name="__codelineno-0-317"></a>        <span class="p">)</span>
 </span><span id="__span-0-318"><a id="__codelineno-0-318" name="__codelineno-0-318"></a>
-</span><span id="__span-0-319"><a id="__codelineno-0-319" name="__codelineno-0-319"></a>        <span class="k">try</span><span class="p">:</span>
-</span><span id="__span-0-320"><a id="__codelineno-0-320" name="__codelineno-0-320"></a>            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-</span><span id="__span-0-321"><a id="__codelineno-0-321" name="__codelineno-0-321"></a>                <span class="n">read_item</span> <span class="o">=</span> <span class="n">frame_read_queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-</span><span id="__span-0-322"><a id="__codelineno-0-322" name="__codelineno-0-322"></a>                <span class="k">if</span> <span class="n">read_item</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-323"><a id="__codelineno-0-323" name="__codelineno-0-323"></a>                    <span class="k">break</span>
-</span><span id="__span-0-324"><a id="__codelineno-0-324" name="__codelineno-0-324"></a>
-</span><span id="__span-0-325"><a id="__codelineno-0-325" name="__codelineno-0-325"></a>                <span class="n">frame_index</span><span class="p">,</span> <span class="n">frame</span> <span class="o">=</span> <span class="n">read_item</span>
-</span><span id="__span-0-326"><a id="__codelineno-0-326" name="__codelineno-0-326"></a>                <span class="n">processed_frame</span> <span class="o">=</span> <span class="n">callback</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">frame_index</span><span class="p">)</span>
-</span><span id="__span-0-327"><a id="__codelineno-0-327" name="__codelineno-0-327"></a>
-</span><span id="__span-0-328"><a id="__codelineno-0-328" name="__codelineno-0-328"></a>                <span class="n">frame_write_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">processed_frame</span><span class="p">)</span>
-</span><span id="__span-0-329"><a id="__codelineno-0-329" name="__codelineno-0-329"></a>                <span class="n">progress_bar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-</span><span id="__span-0-330"><a id="__codelineno-0-330" name="__codelineno-0-330"></a>        <span class="k">finally</span><span class="p">:</span>
-</span><span id="__span-0-331"><a id="__codelineno-0-331" name="__codelineno-0-331"></a>            <span class="n">frame_write_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
-</span><span id="__span-0-332"><a id="__codelineno-0-332" name="__codelineno-0-332"></a>            <span class="n">reader_worker</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
-</span><span id="__span-0-333"><a id="__codelineno-0-333" name="__codelineno-0-333"></a>            <span class="n">writer_worker</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
-</span><span id="__span-0-334"><a id="__codelineno-0-334" name="__codelineno-0-334"></a>            <span class="n">progress_bar</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</span><span id="__span-0-319"><a id="__codelineno-0-319" name="__codelineno-0-319"></a>        <span class="n">exception_in_worker</span><span class="p">:</span> <span class="ne">Exception</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-0-320"><a id="__codelineno-0-320" name="__codelineno-0-320"></a>        <span class="n">read_finished</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="__span-0-321"><a id="__codelineno-0-321" name="__codelineno-0-321"></a>
+</span><span id="__span-0-322"><a id="__codelineno-0-322" name="__codelineno-0-322"></a>        <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-0-323"><a id="__codelineno-0-323" name="__codelineno-0-323"></a>            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+</span><span id="__span-0-324"><a id="__codelineno-0-324" name="__codelineno-0-324"></a>                <span class="n">read_item</span> <span class="o">=</span> <span class="n">frame_read_queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+</span><span id="__span-0-325"><a id="__codelineno-0-325" name="__codelineno-0-325"></a>                <span class="k">if</span> <span class="n">read_item</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-326"><a id="__codelineno-0-326" name="__codelineno-0-326"></a>                    <span class="n">read_finished</span> <span class="o">=</span> <span class="kc">True</span>
+</span><span id="__span-0-327"><a id="__codelineno-0-327" name="__codelineno-0-327"></a>                    <span class="k">break</span>
+</span><span id="__span-0-328"><a id="__codelineno-0-328" name="__codelineno-0-328"></a>
+</span><span id="__span-0-329"><a id="__codelineno-0-329" name="__codelineno-0-329"></a>                <span class="n">frame_index</span><span class="p">,</span> <span class="n">frame</span> <span class="o">=</span> <span class="n">read_item</span>
+</span><span id="__span-0-330"><a id="__codelineno-0-330" name="__codelineno-0-330"></a>                <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-0-331"><a id="__codelineno-0-331" name="__codelineno-0-331"></a>                    <span class="n">processed_frame</span> <span class="o">=</span> <span class="n">callback</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">frame_index</span><span class="p">)</span>
+</span><span id="__span-0-332"><a id="__codelineno-0-332" name="__codelineno-0-332"></a>                    <span class="n">frame_write_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">processed_frame</span><span class="p">)</span>
+</span><span id="__span-0-333"><a id="__codelineno-0-333" name="__codelineno-0-333"></a>                    <span class="n">progress_bar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-0-334"><a id="__codelineno-0-334" name="__codelineno-0-334"></a>                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+</span><span id="__span-0-335"><a id="__codelineno-0-335" name="__codelineno-0-335"></a>                    <span class="n">exception_in_worker</span> <span class="o">=</span> <span class="n">exc</span>
+</span><span id="__span-0-336"><a id="__codelineno-0-336" name="__codelineno-0-336"></a>                    <span class="k">break</span>
+</span><span id="__span-0-337"><a id="__codelineno-0-337" name="__codelineno-0-337"></a>        <span class="k">finally</span><span class="p">:</span>
+</span><span id="__span-0-338"><a id="__codelineno-0-338" name="__codelineno-0-338"></a>            <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-0-339"><a id="__codelineno-0-339" name="__codelineno-0-339"></a>                <span class="n">frame_write_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-0-340"><a id="__codelineno-0-340" name="__codelineno-0-340"></a>            <span class="k">except</span> <span class="n">Full</span><span class="p">:</span>
+</span><span id="__span-0-341"><a id="__codelineno-0-341" name="__codelineno-0-341"></a>                <span class="c1"># Queue is full; this is a best-effort attempt to enqueue the sentinel.</span>
+</span><span id="__span-0-342"><a id="__codelineno-0-342" name="__codelineno-0-342"></a>                <span class="c1"># If we cannot enqueue it, the writer thread will still complete based</span>
+</span><span id="__span-0-343"><a id="__codelineno-0-343" name="__codelineno-0-343"></a>                <span class="c1"># on previously queued frames or other shutdown conditions.</span>
+</span><span id="__span-0-344"><a id="__codelineno-0-344" name="__codelineno-0-344"></a>                <span class="k">pass</span>
+</span><span id="__span-0-345"><a id="__codelineno-0-345" name="__codelineno-0-345"></a>            <span class="k">if</span> <span class="ow">not</span> <span class="n">read_finished</span><span class="p">:</span>
+</span><span id="__span-0-346"><a id="__codelineno-0-346" name="__codelineno-0-346"></a>                <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+</span><span id="__span-0-347"><a id="__codelineno-0-347" name="__codelineno-0-347"></a>                    <span class="c1"># Use timeout to prevent indefinite blocking if reader thread fails</span>
+</span><span id="__span-0-348"><a id="__codelineno-0-348" name="__codelineno-0-348"></a>                    <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-0-349"><a id="__codelineno-0-349" name="__codelineno-0-349"></a>                        <span class="n">read_item</span> <span class="o">=</span> <span class="n">frame_read_queue</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="__span-0-350"><a id="__codelineno-0-350" name="__codelineno-0-350"></a>                        <span class="k">if</span> <span class="n">read_item</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-351"><a id="__codelineno-0-351" name="__codelineno-0-351"></a>                            <span class="k">break</span>
+</span><span id="__span-0-352"><a id="__codelineno-0-352" name="__codelineno-0-352"></a>                    <span class="c1"># If we timeout waiting for a frame, only assume failure if reader</span>
+</span><span id="__span-0-353"><a id="__codelineno-0-353" name="__codelineno-0-353"></a>                    <span class="c1"># thread is no longer alive. Otherwise, keep waiting as the reader</span>
+</span><span id="__span-0-354"><a id="__codelineno-0-354" name="__codelineno-0-354"></a>                    <span class="c1"># may simply be slow (for example, due to a slow source).</span>
+</span><span id="__span-0-355"><a id="__codelineno-0-355" name="__codelineno-0-355"></a>                    <span class="k">except</span> <span class="n">Empty</span><span class="p">:</span>
+</span><span id="__span-0-356"><a id="__codelineno-0-356" name="__codelineno-0-356"></a>                        <span class="k">if</span> <span class="ow">not</span> <span class="n">reader_worker</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+</span><span id="__span-0-357"><a id="__codelineno-0-357" name="__codelineno-0-357"></a>                            <span class="k">break</span>
+</span><span id="__span-0-358"><a id="__codelineno-0-358" name="__codelineno-0-358"></a>                        <span class="c1"># Reader is still alive; continue waiting for frames.</span>
+</span><span id="__span-0-359"><a id="__codelineno-0-359" name="__codelineno-0-359"></a>                        <span class="k">continue</span>
+</span><span id="__span-0-360"><a id="__codelineno-0-360" name="__codelineno-0-360"></a>            <span class="n">reader_worker</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+</span><span id="__span-0-361"><a id="__codelineno-0-361" name="__codelineno-0-361"></a>            <span class="n">writer_worker</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+</span><span id="__span-0-362"><a id="__codelineno-0-362" name="__codelineno-0-362"></a>            <span class="n">progress_bar</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</span><span id="__span-0-363"><a id="__codelineno-0-363" name="__codelineno-0-363"></a>            <span class="k">if</span> <span class="n">exception_in_worker</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-364"><a id="__codelineno-0-364" name="__codelineno-0-364"></a>                <span class="k">raise</span> <span class="n">exception_in_worker</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
