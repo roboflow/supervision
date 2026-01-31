@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any, cast
 
 import matplotlib.pyplot as plt
 
@@ -53,7 +54,7 @@ LEGACY_COLOR_PALETTE = [
 ROBOFLOW_COLOR_PALETTE = ["C28DFC", "A351FB", "8315F9", "6706CE", "5905B3", "4D049A"]
 
 
-def _validate_color_hex(color_hex: str):
+def _validate_color_hex(color_hex: str) -> None:
     color_hex = color_hex.lstrip("#")
     if not all(c in "0123456789abcdefABCDEF" for c in color_hex):
         raise ValueError("Invalid characters in color hash")
@@ -259,10 +260,10 @@ class Color:
     def ROBOFLOW(cls) -> Color:
         return Color.from_hex("#A351FB")
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.r, self.g, self.b))
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         return (
             isinstance(other, Color)
             and self.r == other.r
@@ -423,5 +424,7 @@ def unify_to_bgr(color: tuple[int, int, int] | Color) -> tuple[int, int, int]:
         Tuple[int, int, int]: The color in BGR format as a tuple of three integers.
     """
     if issubclass(type(color), Color):
+        color = cast(Color, color)
         return color.as_bgr()
+    color = cast(tuple[int, int, int], color)
     return color

@@ -22,7 +22,7 @@ class Position(Enum):
     CENTER_OF_MASS = "CENTER_OF_MASS"
 
     @classmethod
-    def list(cls):
+    def list(cls) -> list[str]:
         return list(map(lambda c: c.value, cls))
 
 
@@ -110,7 +110,7 @@ class Rect:
     def bottom_right(self) -> Point:
         return Point(x=self.x + self.width, y=self.y + self.height)
 
-    def pad(self, padding) -> Rect:
+    def pad(self, padding: int) -> Rect:
         return Rect(
             x=self.x - padding,
             y=self.y - padding,

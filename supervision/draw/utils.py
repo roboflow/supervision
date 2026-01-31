@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from typing import cast
 
 import cv2
 import numpy as np
@@ -312,26 +313,31 @@ def draw_image(
     if not 0.0 <= opacity <= 1.0:
         raise ValueError("Opacity must be between 0.0 and 1.0.")
 
+    rect_x = int(rect.x)
+    rect_y = int(rect.y)
+    rect_width = int(rect.width)
+    rect_height = int(rect.height)
     # Validate rectangle dimensions
     if (
-        rect.x < 0
-        or rect.y < 0
-        or rect.x + rect.width > scene.shape[1]
-        or rect.y + rect.height > scene.shape[0]
+        rect_x < 0
+        or rect_y < 0
+        or rect_x + rect_width > scene.shape[1]
+        or rect_y + rect_height > scene.shape[0]
     ):
         raise ValueError("Invalid rectangle dimensions.")
 
     # Resize and isolate alpha channel
-    image = cv2.resize(image, (rect.width, rect.height))
+    image = cv2.resize(image, (rect_width, rect_height))
+    image = cast(np.ndarray, image)
     alpha_channel = (
         image[:, :, 3]
         if image.shape[2] == 4
-        else np.ones((rect.height, rect.width), dtype=image.dtype) * 255
+        else np.ones((rect_height, rect_width), dtype=image.dtype) * 255
     )
     alpha_scaled = cv2.convertScaleAbs(alpha_channel * opacity)
 
     # Perform blending
-    scene_roi = scene[rect.y : rect.y + rect.height, rect.x : rect.x + rect.width]
+    scene_roi = scene[rect_y : rect_y + rect_height, rect_x : rect_x + rect_width]
     alpha_float = alpha_scaled.astype(np.float32) / 255.0
     blended_roi = cv2.convertScaleAbs(
         (1 - alpha_float[..., np.newaxis]) * scene_roi
@@ -339,7 +345,7 @@ def draw_image(
     )
 
     # Update the scene
-    scene[rect.y : rect.y + rect.height, rect.x : rect.x + rect.width] = blended_roi
+    scene[rect_y : rect_y + rect_height, rect_x : rect_x + rect_width] = blended_roi
 
     return scene
 
