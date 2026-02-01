@@ -85,8 +85,8 @@ class Precision(Metric):
         Initialize the Precision metric.
 
         Args:
-            metric_target (MetricTarget): The type of detection data to use.
-            averaging_method (AveragingMethod): The averaging method used to compute the
+            metric_target: The type of detection data to use.
+            averaging_method: The averaging method used to compute the
                 precision. Determines how the precision is aggregated across classes.
         """
         self._metric_target = metric_target
@@ -111,11 +111,11 @@ class Precision(Metric):
         Add new predictions and targets to the metric, but do not compute the result.
 
         Args:
-            predictions (Union[Detections, List[Detections]]): The predicted detections.
-            targets (Union[Detections, List[Detections]]): The target detections.
+            predictions: The predicted detections.
+            targets: The target detections.
 
         Returns:
-            (Precision): The updated metric instance.
+            The updated metric instance.
         """
         if not isinstance(predictions, list):
             predictions = [predictions]
@@ -139,7 +139,7 @@ class Precision(Metric):
         data, at different IoU thresholds.
 
         Returns:
-            (PrecisionResult): The precision metric result.
+            The precision metric result.
         """
         result = self._compute(self._predictions_list, self._targets_list)
 
@@ -317,18 +317,18 @@ class Precision(Metric):
         Assumes the matches and prediction_class_ids are sorted by confidence
         in descending order.
 
-        Arguments:
-            sorted_matches: np.ndarray, bool, shape (P, Th), that is True
+        Args:
+            sorted_matches: shape (P, Th), that is True
                 if the prediction is a true positive at the given IoU threshold.
-            sorted_prediction_class_ids: np.ndarray, int, shape (P,), containing
+            sorted_prediction_class_ids: shape (P,), containing
                 the class id for each prediction.
-            unique_classes: np.ndarray, int, shape (C,), containing the unique
+            unique_classes: shape (C,), containing the unique
                 class ids.
-            class_counts: np.ndarray, int, shape (C,), containing the number
+            class_counts: shape (C,), containing the number
                 of true instances for each class.
 
         Returns:
-            np.ndarray, shape (C, Th, 3), containing the true positives, false
+            shape (C, Th, 3), containing the true positives, false
                 positives, and false negatives for each class and IoU threshold.
         """
 
@@ -365,11 +365,11 @@ class Precision(Metric):
         Broadcastable function, computing the precision from the confusion matrix.
 
         Arguments:
-            confusion_matrix: np.ndarray, shape (N, ..., 3), where the last dimension
+            confusion_matrix: shape (N, ..., 3), where the last dimension
                 contains the true positives, false positives, and false negatives.
 
         Returns:
-            np.ndarray, shape (N, ...), containing the precision for each element.
+            shape (N, ...), containing the precision for each element.
         """
         if not confusion_matrix.shape[-1] == 3:
             raise ValueError(
@@ -465,24 +465,24 @@ class PrecisionResult:
     Defaults to `0` if no detections or targets were provided.
 
     Attributes:
-        metric_target (MetricTarget): the type of data used for the metric -
+        metric_target: the type of data used for the metric -
             boxes, masks or oriented bounding boxes.
-        averaging_method (AveragingMethod): the averaging method used to compute the
+        averaging_method: the averaging method used to compute the
             precision. Determines how the precision is aggregated across classes.
-        precision_at_50 (float): the precision at IoU threshold of `0.5`.
-        precision_at_75 (float): the precision at IoU threshold of `0.75`.
-        precision_scores (np.ndarray): the precision scores at each IoU threshold.
+        precision_at_50: the precision at IoU threshold of `0.5`.
+        precision_at_75: the precision at IoU threshold of `0.75`.
+        precision_scores: the precision scores at each IoU threshold.
             Shape: `(num_iou_thresholds,)`
-        precision_per_class (np.ndarray): the precision scores per class and
+        precision_per_class: the precision scores per class and
             IoU threshold. Shape: `(num_target_classes, num_iou_thresholds)`
-        iou_thresholds (np.ndarray): the IoU thresholds used in the calculations.
-        matched_classes (np.ndarray): the class IDs of all matched classes.
+        iou_thresholds: the IoU thresholds used in the calculations.
+        matched_classes: the class IDs of all matched classes.
             Corresponds to the rows of `precision_per_class`.
-        small_objects (Optional[PrecisionResult]): the Precision metric results
+        small_objects: the Precision metric results
             for small objects (area < 32²).
-        medium_objects (Optional[PrecisionResult]): the Precision metric results
+        medium_objects: the Precision metric results
             for medium objects (32² ≤ area < 96²).
-        large_objects (Optional[PrecisionResult]): the Precision metric results
+        large_objects: the Precision metric results
             for large objects (area ≥ 96²).
     """
 
@@ -563,7 +563,7 @@ class PrecisionResult:
         Convert the result to a pandas DataFrame.
 
         Returns:
-            (pd.DataFrame): The result as a DataFrame.
+            The result as a DataFrame.
         """
         ensure_pandas_installed()
         import pandas as pd
@@ -588,7 +588,7 @@ class PrecisionResult:
 
         return pd.DataFrame(pandas_data, index=[0])
 
-    def plot(self):
+    def plot(self) -> None:
         """
         Plot the precision results.
 
