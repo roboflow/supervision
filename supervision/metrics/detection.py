@@ -758,13 +758,17 @@ class MeanAveragePrecision:
         interpolated_precision = np.interp(
             interpolated_recall_levels, extended_recall, max_accumulated_precision
         )
-        
+
         # Check if we are running on NumPy 2.0+ or older
         if hasattr(np, "trapezoid"):
-            average_precision = np.trapezoid(interpolated_precision, interpolated_recall_levels)
+            average_precision = np.trapezoid(
+                interpolated_precision, interpolated_recall_levels
+            )
         else:
-            average_precision = np.trapz(interpolated_precision, interpolated_recall_levels)
-            
+            average_precision = np.trapz(
+                interpolated_precision, interpolated_recall_levels
+            )
+
         return average_precision
 
     @staticmethod

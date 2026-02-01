@@ -569,7 +569,7 @@ class MeanAverageRecall(Metric):
 
                 false_positives = (1 - limited_matches).sum(0)
                 false_negatives = num_true - true_positives
-                
+
             confusion_matrix[class_idx] = np.stack(
                 [true_positives, false_positives, false_negatives], axis=1
             )

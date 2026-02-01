@@ -331,9 +331,7 @@ class EvaluationDataset:
                 anns
                 if not area_range
                 else [
-                    ann
-                    for ann in anns
-                    if area_range[0] < ann["area"] < area_range[1]
+                    ann for ann in anns if area_range[0] < ann["area"] < area_range[1]
                 ]
             )
 
@@ -385,9 +383,7 @@ class EvaluationDataset:
 
             # Filter by id
             cats = (
-                cats
-                if not cat_ids
-                else [cat for cat in cats if cat["id"] in cat_ids]
+                cats if not cat_ids else [cat for cat in cats if cat["id"] in cat_ids]
             )
         ids = [cat["id"] for cat in cats]
         return ids
@@ -413,14 +409,14 @@ class EvaluationDataset:
             return list(ids)
 
         ids_set = set(img_ids) if img_ids else set()
-        
+
         if cat_ids:
             for i, cat_id in enumerate(cat_ids):
                 if i == 0 and not ids_set:
                     ids_set = set(self.cat_to_imgs[cat_id])
                 else:
                     ids_set &= set(self.cat_to_imgs[cat_id])
-        
+
         return list(ids_set)
 
     def get_annotations(self, ids: list[int] | None = None) -> list[dict]:
@@ -666,7 +662,11 @@ class COCOEvaluator:
         return iou
 
     def _evaluate_image(
-        self, img_id: int, cat_id: int, area_range: list[int] | tuple[int, int], max_det: int
+        self,
+        img_id: int,
+        cat_id: int,
+        area_range: list[int] | tuple[int, int],
+        max_det: int,
     ) -> dict[str, Any] | None:
         """
         Perform evaluation for single category and image.
@@ -1285,25 +1285,23 @@ class MeanAveragePrecision(Metric):
         """Transform targets into a dictionary that can be used by the COCO evaluator"""
         images = [{"id": img_id} for img_id in range(len(targets))]
         if self._image_indices is not None:
-            images = [
-                {"id": self._image_indices[img.get("id")]} for img in images
-            ]
+            images = [{"id": self._image_indices[img.get("id")]} for img in images]
         # Annotations list
         annotations = []
         for image_id, image_targets in enumerate(targets):
             if self._image_indices is not None:
                 image_id = self._image_indices[image_id]
-            
+
             # Ensure xyxy is not None
             if image_targets.xyxy is None:
                 continue
-                
+
             for target_idx, xyxy in enumerate(image_targets.xyxy):
                 xywh = [xyxy[0], xyxy[1], xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]]
-                
+
                 # Default values
                 category_id = 0
-                
+
                 if image_targets.class_id is not None:
                     cls_id = image_targets.class_id[target_idx]
                     if self._class_mapping is not None:
@@ -1315,7 +1313,7 @@ class MeanAveragePrecision(Metric):
                 area = None
                 if image_targets.data is not None and "area" in image_targets.data:
                     area = float(image_targets.data["area"][target_idx])
-                
+
                 if area is None:
                     area = xywh[2] * xywh[3]
 
@@ -1330,7 +1328,7 @@ class MeanAveragePrecision(Metric):
                     "bbox": xywh,
                     "category_id": category_id,
                     "id": len(annotations) + 1,  # Start IDs from 1 (0 means no match)
-                    "ignore": 0
+                    "ignore": 0,
                 }
                 annotations.append(dict_annotation)
         # Category list
@@ -1350,31 +1348,34 @@ class MeanAveragePrecision(Metric):
         for image_id, image_predictions in enumerate(predictions):
             if self._image_indices is not None:
                 image_id = self._image_indices[image_id]
-            
+
             if image_predictions.xyxy is None:
                 continue
-                
+
             for pred_idx, xyxy in enumerate(image_predictions.xyxy):
                 xywh = [xyxy[0], xyxy[1], xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]]
-                
+
                 category_id = 0
                 score = 0.0
-                
+
                 if image_predictions.class_id is not None:
                     cls_id = image_predictions.class_id[pred_idx]
                     if self._class_mapping is not None:
                         category_id = self._class_mapping[int(cls_id)]
                     else:
                         category_id = int(cls_id)
-                
+
                 if image_predictions.confidence is not None:
                     score = float(image_predictions.confidence[pred_idx])
 
                 # Use area from data if available, otherwise calculate from bbox
                 area = None
-                if image_predictions.data is not None and "area" in image_predictions.data:
+                if (
+                    image_predictions.data is not None
+                    and "area" in image_predictions.data
+                ):
                     area = float(image_predictions.data["area"][pred_idx])
-                
+
                 if area is None:
                     area = xywh[2] * xywh[3]
 
@@ -1384,7 +1385,7 @@ class MeanAveragePrecision(Metric):
                     "score": score,
                     "category_id": category_id,
                     "area": area,
-                    "id": len(coco_predictions) + 1
+                    "id": len(coco_predictions) + 1,
                 }
                 coco_predictions.append(dict_prediction)
         return coco_predictions
