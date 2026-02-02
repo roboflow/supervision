@@ -21,7 +21,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Link Checker
+      - name: 🔗 Link Checker
         uses: lycheeverse/lychee-action@v2
         with:
           lycheeVersion: v0.22.0
