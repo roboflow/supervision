@@ -149,7 +149,9 @@ class MeanAveragePrecisionResult:
         """
         Plot the mAP results.
 
-        ![example_plot](https://media.roboflow.com/supervision-docs/metrics/mAP_plot_example.png){ align=center width="800" }
+        ![example_plot](
+            https://media.roboflow.com/supervision-docs/metrics/mAP_plot_example.png
+        ){ align=center width="800" }
         """
 
         labels = ["mAP@50:95", "mAP@50", "mAP@75"]
@@ -1162,7 +1164,9 @@ class MeanAveragePrecision(Metric):
         Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = -1.000
         Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = -1.000
 
-    ![example_plot](https://media.roboflow.com/supervision-docs/metrics/mAP_plot_example.png){ align=center width="800" }
+    ![example_plot](
+        https://media.roboflow.com/supervision-docs/metrics/mAP_plot_example.png
+    ){ align=center width="800" }
     """
 
     def __init__(

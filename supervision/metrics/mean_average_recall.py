@@ -56,7 +56,9 @@ class MeanAverageRecall(Metric):
         >>> round(float(mar_result.mAR_at_100), 2)
         1.0
 
-    ![example_plot](https://media.roboflow.com/supervision-docs/metrics/mAR_plot_example.png){ align=center width="800" }
+    ![example_plot](
+        https://media.roboflow.com/supervision-docs/metrics/mAR_plot_example.png
+    ){ align=center width="800" }
     """
 
     def __init__(
@@ -610,7 +612,9 @@ class MeanAverageRecallResult:
         """
         Plot the Mean Average Recall results.
 
-        ![example_plot](https://media.roboflow.com/supervision-docs/metrics/mAR_plot_example.png){ align=center width="800" }
+        ![example_plot](
+            https://media.roboflow.com/supervision-docs/metrics/mAR_plot_example.png
+        ){ align=center width="800" }
         """
         labels = ["mAR @ 1", "mAR @ 10", "mAR @ 100"]
         values = [self.mAR_at_1, self.mAR_at_10, self.mAR_at_100]

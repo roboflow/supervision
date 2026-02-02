@@ -57,7 +57,9 @@ class Precision(Metric):
         >>> round(float(precision_result.precision_at_50), 2)
         1.0
 
-    ![example_plot](https://media.roboflow.com/supervision-docs/metrics/precision_plot_example.png){ align=center width="800" }
+    ![example_plot](
+        https://media.roboflow.com/supervision-docs/metrics/precision_plot_example.png
+    ){ align=center width="800" }
     """
 
     def __init__(
@@ -576,7 +578,9 @@ class PrecisionResult:
         """
         Plot the precision results.
 
-        ![example_plot](https://media.roboflow.com/supervision-docs/metrics/precision_plot_example.png){ align=center width="800" }
+        ![example_plot](
+            https://media.roboflow.com/supervision-docs/metrics/precision_plot_example.png
+        ){ align=center width="800" }
         """
 
         labels = ["Precision@50", "Precision@75"]
