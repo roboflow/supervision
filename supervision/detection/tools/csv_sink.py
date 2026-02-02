@@ -34,20 +34,23 @@ class CSVSink:
             Defaults to 'output.csv'.
 
     Example:
-        ```python
-        import supervision as sv
-        from ultralytics import YOLO
-
-        model = YOLO(<SOURCE_MODEL_PATH>)
-        csv_sink = sv.CSVSink(<RESULT_CSV_FILE_PATH>)
-        frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
-
-        with csv_sink as sink:
-            for frame in frames_generator:
-                result = model(frame)[0]
-                detections = sv.Detections.from_ultralytics(result)
-                sink.append(detections, custom_data={'<CUSTOM_LABEL>':'<CUSTOM_DATA>'})
-        ```
+        >>> import supervision as sv
+        >>> import numpy as np
+        >>> import tempfile
+        >>> import os
+        >>> # Create synthetic detections
+        >>> detections = sv.Detections(
+        ...     xyxy=np.array([[10, 20, 30, 40], [50, 60, 70, 80]]),
+        ...     confidence=np.array([0.9, 0.8]),
+        ...     class_id=np.array([0, 1])
+        ... )
+        >>> # Use temporary file
+        >>> temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False)
+        >>> temp_file.close()
+        >>> csv_sink = sv.CSVSink(temp_file.name)
+        >>> with csv_sink as sink:
+        ...     sink.append(detections, custom_data={'frame': 0})
+        >>> os.unlink(temp_file.name)  # Clean up
     """
 
     def __init__(self, file_name: str = "output.csv") -> None:
