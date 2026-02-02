@@ -399,12 +399,12 @@ pip install augmentation
 ```
 
 Albumentations provides a flexible and powerful API for image augmentation. The core of
-the library is the [`Compose`](https://albumentations.ai/docs/api_reference/full_reference/?h=compose#albumentations.core.composition.Compose)
+the library is the [`Compose`](https://albumentations.ai/docs/api-reference/albumentations/core/composition/#Compose)
 class, which allows you to chain multiple image transformations together. Each
 transformation is defined using a dedicated class, such as
-[`HorizontalFlip`](https://albumentations.ai/docs/api_reference/full_reference/?h=horizontalflip#albumentations.augmentations.geometric.transforms.HorizontalFlip),
-[`RandomBrightnessContrast`](https://albumentations.ai/docs/api_reference/full_reference/?h=horizontalflip#albumentations.augmentations.transforms.RandomBrightnessContrast),
-or [`Perspective`](https://albumentations.ai/docs/api_reference/full_reference/?h=horizontalflip#albumentations.augmentations.geometric.transforms.Perspective).
+[`HorizontalFlip`](https://albumentations.ai/docs/api-reference/albumentations/augmentations/geometric/flip/#HorizontalFlip),
+[`RandomBrightnessContrast`](https://albumentations.ai/docs/api-reference/albumentations/augmentations/pixel/transforms/#RandomBrightnessContrast),
+or [`Perspective`](https://albumentations.ai/docs/api-reference/albumentations/augmentations/geometric/transforms/#Perspective).
 
 ```python
 import albumentations as A
