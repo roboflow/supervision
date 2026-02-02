@@ -238,7 +238,7 @@ def detections_from_xml_obj(
 
         xyxy.append([x1, y1, x2, y2])
 
-        with_masks = force_masks if force_masks else _with_mask(obj)
+        with_masks = force_masks or _with_mask(obj)
 
         for polygon in obj.findall("polygon"):
             polygon = parse_polygon_points(polygon)
