@@ -364,7 +364,12 @@ class Recall(Metric):
         false_negatives = confusion_matrix[..., 2]
 
         denominator = true_positives + false_negatives
-        recall = np.where(denominator == 0, 0, true_positives / denominator)
+        recall = np.divide(
+            true_positives,
+            denominator,
+            out=np.zeros_like(true_positives),
+            where=denominator != 0,
+        )
 
         return recall
 
