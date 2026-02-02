@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Link Checker
-        uses: lycheeverse/lychee-action@v2
+        uses: lycheeverse/lychee-action@v2.7.0
         with:
           # default args: "--verbose --no-progress './**/*.md' './**/*.html' './**/*.rst'"
           args: |
