@@ -804,52 +804,55 @@ def test_line_zone_long_horizon_disappearing_detections(
         assert count_out_list == expected_count_out
 
 
-def test_line_zone_tracker_id_reuse_with_different_classes() -> None:
+@pytest.mark.parametrize(
+    "xyxy_sequence, tracker_id_sequence, class_id_sequence, expected_in_count_per_class, expected_out_count_per_class",
+    [
+        (
+            [
+                [[4, 4, 6, 6]],
+                [[4, -6, 6, -4]],
+                [[4, 4, 6, 6]],
+                [[4, 4, 6, 6]],
+                [[4, -6, 6, -4]],
+                [[4, 4, 6, 6]],
+            ],
+            [[0], [0], [0], [0], [0], [0]],
+            [[0], [0], [0], [1], [1], [1]],
+            {0: 1, 1: 1},
+            {0: 1, 1: 1},
+        ),
+        (  # Multiple objects, some with class ID reuse, some not
+            [
+                [[4, 4, 6, 6], [4, 4, 6, 6]],
+                [[4, -6, 6, -4], [4, -6, 6, -4]],
+                [[4, 4, 6, 6], [4, 4, 6, 6]],
+                [[4, 4, 6, 6], [4, 4, 6, 6]],
+                [[4, -6, 6, -4], [4, -6, 6, -4]],
+                [[4, 4, 6, 6], [4, 4, 6, 6]],
+            ],
+            [[0, 1], [0, 1], [0, 1], [2, 3], [2, 3], [2, 3]],
+            [[0, 1], [0, 1], [0, 1], [4, 5], [4, 5], [4, 5]],
+            {0: 1, 1: 1, 4: 1, 5: 1},
+            {0: 1, 1: 1, 4: 1, 5: 1},
+        ),
+    ],
+)
+def test_line_zone_tracker_id_reuse_with_different_classes(
+    xyxy_sequence: list[list[list[float]]],
+    tracker_id_sequence: list[list[int]],
+    class_id_sequence: list[list[int]],
+    expected_in_count_per_class: dict[int, int],
+    expected_out_count_per_class: dict[int, int],
+) -> None:
     line_zone = LineZone(start=Point(0, 0), end=Point(10, 0))
 
-    # First object with class 0 crosses the line
-    detections = mock_detections(
-        xyxy=[[4, 4, 6, 6]],
-        tracker_id=[0],
-        class_id=[0],
-    )
-    line_zone.trigger(detections)
+    for xyxy, tracker_id, class_id in zip(
+        xyxy_sequence, tracker_id_sequence, class_id_sequence
+    ):
+        detections = _create_detections(
+            xyxy=xyxy, tracker_id=tracker_id, class_id=class_id
+        )
+        line_zone.trigger(detections)
 
-    detections = mock_detections(
-        xyxy=[[4, -6, 6, -4]],
-        tracker_id=[0],
-        class_id=[0],
-    )
-    line_zone.trigger(detections)
-
-    detections = mock_detections(
-        xyxy=[[4, 4, 6, 6]],
-        tracker_id=[0],
-        class_id=[0],
-    )
-    line_zone.trigger(detections)
-
-    # Second object reuses tracker id with a different class
-    detections = mock_detections(
-        xyxy=[[4, 4, 6, 6]],
-        tracker_id=[0],
-        class_id=[1],
-    )
-    line_zone.trigger(detections)
-
-    detections = mock_detections(
-        xyxy=[[4, -6, 6, -4]],
-        tracker_id=[0],
-        class_id=[1],
-    )
-    line_zone.trigger(detections)
-
-    detections = mock_detections(
-        xyxy=[[4, 4, 6, 6]],
-        tracker_id=[0],
-        class_id=[1],
-    )
-    line_zone.trigger(detections)
-
-    assert line_zone.in_count_per_class == {0: 1, 1: 1}
-    assert line_zone.out_count_per_class == {0: 1, 1: 1}
+    assert line_zone.in_count_per_class == expected_in_count_per_class
+    assert line_zone.out_count_per_class == expected_out_count_per_class
