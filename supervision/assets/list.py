@@ -5,9 +5,13 @@ BASE_IMAGE_URL = "https://media.roboflow.com/supervision/image-examples/"
 
 
 class Assets(Enum):
-    def __init__(self, filename: str, hash: str):
+    def __init__(self, filename: str, md5_hash: str):
         self.filename = filename
-        self.hash = hash
+        self.md5_hash = md5_hash
+
+    @classmethod
+    def list(cls) -> list[str]:
+        return [asset.filename for asset in cls]
 
 
 class VideoAssets(Assets):
@@ -60,7 +64,7 @@ class ImageAssets(Assets):
     SOCCER = ("soccer.jpg", "0f5a4b98abf3e3973faf9e9260a7d876")
 
 
-ASSETS: Dict[str, Tuple[str, str]] = {
+MEDIA_ASSETS: dict[str, tuple[str, str]] = {
     **{
         asset.value[0]: (f"{BASE_VIDEO_URL}{asset.value[0]}", asset.value[1])
         for asset in VideoAssets

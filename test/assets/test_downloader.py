@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, mock_open, patch
 import pytest
 
 from supervision.assets.downloader import download_assets, is_md5_hash_matching
-from supervision.assets.list import VideoAssets
+from supervision.assets.list import ImageAssets, VideoAssets
 
 
 class TestMD5HashMatching:
@@ -51,13 +51,13 @@ class TestDownloadAssets:
     @patch("supervision.assets.downloader.is_md5_hash_matching", return_value=False)
     @patch("pathlib.Path.exists", return_value=True)
     def test_already_exists_but_corrupted(
-        self, mock_exists, mock_md5, mock_remove, mock_recursive
+        self, mock_exists, mock_md5, mock_remove, mock_download
     ):
         """Test download_assets when file exists but is corrupted (re-downloads)."""
         filename = "vehicles.mp4"
         result = download_assets(filename)
         assert result == filename
-        mock_recursive.assert_called_with(filename)
+        mock_download.assert_called_with(filename)
 
     @patch("builtins.print")
     @patch("pathlib.Path.open", new_callable=mock_open)
@@ -115,7 +115,7 @@ class TestDownloadAssets:
     @patch("supervision.assets.downloader.tqdm")
     @patch("supervision.assets.downloader.get")
     @patch("pathlib.Path.exists", return_value=False)
-    def test_with_enum(
+    def test_with_video_enum(
         self,
         mock_exists,
         mock_get,
@@ -138,4 +138,36 @@ class TestDownloadAssets:
         mock_tqdm.wrapattr.return_value.__exit__ = MagicMock()
 
         result = download_assets(asset)
-        assert result == asset.value
+        assert result == asset.filename
+
+    @patch("builtins.print")
+    @patch("pathlib.Path.open", new_callable=mock_open)
+    @patch("pathlib.Path.mkdir")
+    @patch("supervision.assets.downloader.copyfileobj")
+    @patch("supervision.assets.downloader.tqdm")
+    @patch("supervision.assets.downloader.get")
+    @patch("pathlib.Path.exists", return_value=False)
+    def test_with_image_enum(
+        self,
+        mock_exists,
+        mock_get,
+        mock_tqdm,
+        mock_copyfileobj,
+        mock_mkdir,
+        mock_open_file,
+        mock_print,
+    ):
+        """Test download_assets with ImageAssets enum."""
+        asset = ImageAssets.SOCCER
+
+        mock_response = MagicMock()
+        mock_response.headers = {"Content-Length": "100"}
+        mock_response.raw = MagicMock()
+        mock_response.raise_for_status = MagicMock()
+        mock_get.return_value = mock_response
+
+        mock_tqdm.wrapattr.return_value.__enter__ = MagicMock()
+        mock_tqdm.wrapattr.return_value.__exit__ = MagicMock()
+
+        result = download_assets(asset)
+        assert result == asset.filename

@@ -8,7 +8,7 @@ from shutil import copyfileobj
 from requests import get
 from tqdm.auto import tqdm
 
-from supervision.assets.list import ASSETS, Assets, ImageAssets, VideoAssets
+from supervision.assets.list import MEDIA_ASSETS, Assets, ImageAssets, VideoAssets
 
 
 def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:
@@ -35,7 +35,7 @@ def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:
     return computed_md5_hash.hexdigest() == original_md5_hash
 
 
-def download_assets(asset_name: ImageAssets|VideoAssets | str) -> str:
+def download_assets(asset_name: ImageAssets | VideoAssets | str) -> str:
     """
     Download a specified asset if it doesn't already exist or is corrupted.
 
@@ -57,9 +57,11 @@ def download_assets(asset_name: ImageAssets|VideoAssets | str) -> str:
 
     filename = asset_name.filename if isinstance(asset_name, Assets) else asset_name
 
-    if not Path(filename).exists() and filename in ASSETS:
+    if not Path(filename).exists() and filename in MEDIA_ASSETS:
         print(f"Downloading {filename} assets \n")
-        response = get(ASSETS[filename][0], stream=True, allow_redirects=True, timeout=30)
+        response = get(
+            MEDIA_ASSETS[filename][0], stream=True, allow_redirects=True, timeout=30
+        )
         response.raise_for_status()
 
         file_size = int(response.headers.get("Content-Length", 0))
@@ -73,7 +75,7 @@ def download_assets(asset_name: ImageAssets|VideoAssets | str) -> str:
                 copyfileobj(raw_resp, file)
 
     elif Path(filename).exists():
-        if not is_md5_hash_matching(filename, ASSETS[filename][1]):
+        if not is_md5_hash_matching(filename, MEDIA_ASSETS[filename][1]):
             print("File corrupted. Re-downloading... \n")
             os.remove(filename)
             return download_assets(filename)
@@ -81,7 +83,7 @@ def download_assets(asset_name: ImageAssets|VideoAssets | str) -> str:
         print(f"{filename} asset download complete. \n")
 
     else:
-        valid_assets = ", ".join(filename for filename in ASSETS.keys())
+        valid_assets = ", ".join(filename for filename in MEDIA_ASSETS.keys())
         raise ValueError(
             f"Invalid asset. It should be one of the following: {valid_assets}."
         )
