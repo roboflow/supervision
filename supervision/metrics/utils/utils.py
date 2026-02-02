@@ -1,4 +1,4 @@
-def ensure_pandas_installed():
+def ensure_pandas_installed() -> None:
     try:
         import pandas  # noqa
     except ImportError:

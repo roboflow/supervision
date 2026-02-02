@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -166,7 +166,7 @@ class Precision(Metric):
         self, predictions_list: list[Detections], targets_list: list[Detections]
     ) -> PrecisionResult:
         iou_thresholds = np.linspace(0.5, 0.95, 10)
-        stats = []
+        stats: list[Any] = []
 
         for predictions, targets in zip(predictions_list, targets_list):
             prediction_contents = self._detections_content(predictions)
@@ -198,7 +198,14 @@ class Precision(Metric):
                         )
 
                     matches = self._match_detection_batch(
-                        predictions.class_id, targets.class_id, iou, iou_thresholds
+                        predictions.class_id
+                        if predictions.class_id is not None
+                        else np.array([]),
+                        targets.class_id
+                        if targets.class_id is not None
+                        else np.array([]),
+                        iou,
+                        iou_thresholds,
                     )
                     stats.append(
                         (
@@ -301,8 +308,8 @@ class Precision(Metric):
                     matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
 
                 correct[matches[:, 1].astype(int), i] = True
-
-        return correct
+        result: np.ndarray = correct
+        return result
 
     @staticmethod
     def _compute_confusion_matrix(
@@ -356,8 +363,8 @@ class Precision(Metric):
             confusion_matrix[class_idx] = np.stack(
                 [true_positives, false_positives, false_negatives], axis=1
             )
-
-        return confusion_matrix
+        result_matrix: np.ndarray = confusion_matrix
+        return result_matrix
 
     @staticmethod
     def _compute_precision(confusion_matrix: np.ndarray) -> np.ndarray:
@@ -382,7 +389,8 @@ class Precision(Metric):
         denominator = true_positives + false_positives
         precision = np.where(denominator == 0, 0, true_positives / denominator)
 
-        return precision
+        result_precision: np.ndarray = precision
+        return result_precision
 
     def _detections_content(self, detections: Detections) -> np.ndarray:
         """Return boxes, masks or oriented bounding boxes from detections."""
@@ -397,17 +405,24 @@ class Precision(Metric):
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             obb = detections.data.get(ORIENTED_BOX_COORDINATES)
             if obb is not None and len(obb) > 0:
-                return np.array(obb, dtype=np.float32)
+                result_obb: np.ndarray = np.array(obb, dtype=np.float32)
+                return result_obb
             return self._make_empty_content()
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
     def _make_empty_content(self) -> np.ndarray:
         if self._metric_target == MetricTarget.BOXES:
-            return np.empty((0, 4), dtype=np.float32)
+            empty_boxes: np.ndarray = np.empty((0, 4), dtype=np.float32)
+            return empty_boxes
+
         if self._metric_target == MetricTarget.MASKS:
-            return np.empty((0, 0, 0), dtype=bool)
+            empty_masks: np.ndarray = np.empty((0, 0, 0), dtype=bool)
+            return empty_masks
+
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-            return np.empty((0, 4, 2), dtype=np.float32)
+            empty_obb: np.ndarray = np.empty((0, 4, 2), dtype=np.float32)
+            return empty_obb
+
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
     def _filter_detections_by_size(
@@ -491,11 +506,11 @@ class PrecisionResult:
 
     @property
     def precision_at_50(self) -> float:
-        return self.precision_scores[0]
+        return float(self.precision_scores[0])
 
     @property
     def precision_at_75(self) -> float:
-        return self.precision_scores[5]
+        return float(self.precision_scores[5])
 
     precision_scores: np.ndarray
     precision_per_class: np.ndarray

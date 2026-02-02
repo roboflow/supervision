@@ -40,10 +40,13 @@ def detections_to_tensor(
             )
         arrays_to_concat.append(np.expand_dims(detections.confidence, 1))
 
-    return np.concatenate(arrays_to_concat, axis=1)
+    result: np.ndarray = np.concatenate(arrays_to_concat, axis=1)
+    return result
 
 
-def validate_input_tensors(predictions: list[np.ndarray], targets: list[np.ndarray]):
+def validate_input_tensors(
+    predictions: list[np.ndarray], targets: list[np.ndarray]
+) -> None:
     """
     Checks for shape consistency of input tensors.
     """
@@ -326,8 +329,8 @@ class ConfusionMatrix:
         for i, detection_class_value in enumerate(detection_classes):
             if not any(matched_detection_idx == i):
                 result_matrix[num_classes, detection_class_value] += 1  # FP
-
-        return result_matrix
+        final_result_matrix: np.ndarray = result_matrix
+        return final_result_matrix
 
     @staticmethod
     def _drop_extra_matches(matches: np.ndarray) -> np.ndarray:
@@ -728,7 +731,7 @@ class MeanAveragePrecision:
             map50_95 = average_precisions.mean()
         else:
             map50, map75, map50_95 = 0, 0, 0
-            average_precisions = []
+            average_precisions = np.array([])
 
         return cls(
             map50_95=map50_95,
@@ -766,11 +769,11 @@ class MeanAveragePrecision:
                 interpolated_precision, interpolated_recall_levels
             )
         else:
-            average_precision = np.trapz(
+            average_precision = np.trapz(  # type: ignore[attr-defined]
                 interpolated_precision, interpolated_recall_levels
             )
 
-        return average_precision
+        return float(average_precision)
 
     @staticmethod
     def _match_detection_batch(
@@ -812,8 +815,8 @@ class MeanAveragePrecision:
                     matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
 
                 correct[matches[:, 1].astype(int), i] = True
-
-        return correct
+        result: np.ndarray = correct
+        return result
 
     @staticmethod
     def _average_precisions_per_class(
@@ -866,4 +869,5 @@ class MeanAveragePrecision:
                     )
                 )
 
-        return average_precisions
+        result: np.ndarray = average_precisions
+        return result
