@@ -672,4 +672,3 @@ class MeanAverageRecall(Metric):
                 self._filter_detections_by_size(targets, size_category)
             )
         return new_predictions_list, new_targets_list
-
