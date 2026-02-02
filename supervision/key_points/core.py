@@ -758,11 +758,10 @@ class KeyPoints:
             An empty `sv.KeyPoints` object.
 
         Examples:
-            ```python
-            import supervision as sv
-
-            key_points = sv.KeyPoints.empty()
-            ```
+            >>> import supervision as sv
+            >>> key_points = sv.KeyPoints.empty()
+            >>> len(key_points)
+            0
         """
         return cls(xy=np.empty((0, 0, 2), dtype=np.float32))
 
@@ -792,10 +791,14 @@ class KeyPoints:
             detections (Detections): The converted detections object.
 
         Examples:
-            ```python
-            key_points = sv.KeyPoints.from_inference(...)
-            detections = key_points.as_detections()
-            ```
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array([[[10, 20], [30, 40]]], dtype=np.float32)
+            ... )
+            >>> detections = key_points.as_detections()
+            >>> detections.xyxy
+            array([[10., 20., 30., 40.]], dtype=float32)
         """
         if self.is_empty():
             return Detections.empty()

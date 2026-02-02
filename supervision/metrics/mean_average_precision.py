@@ -1139,38 +1139,30 @@ class MeanAveragePrecision(Metric):
     Mean Average Precision (mAP) is a metric used to evaluate object detection models.
     It is the average of the precision-recall curves at different IoU thresholds.
 
-    Example:
-        ```python
-        import supervision as sv
-        from supervision.metrics import MeanAveragePrecision
-
-        predictions = sv.Detections(...)
-        targets = sv.Detections(...)
-
-        map_metric = MeanAveragePrecision()
-        map_result = map_metric.update(predictions, targets).compute()
-
-        print(map_result.map50_95)
-        # 0.4674
-
-        print(map_result)
-        # MeanAveragePrecisionResult:
-        # Metric target: MetricTarget.BOXES
-        # Class agnostic: False
-        # mAP @ 50:95: 0.4674
-        # mAP @ 50:    0.5048
-        # mAP @ 75:    0.4796
-        # mAP scores: [0.50485  0.50377  0.50377  ...]
-        # IoU thresh: [0.5  0.55  0.6  ...]
-        # AP per class:
-        # 0: [0.67699  0.67699  0.67699  ...]
-        # ...
-        # Small objects: ...
-        # Medium objects: ...
-        # Large objects: ...
-
-        map_result.plot()
-        ```
+    Examples:
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> from supervision.metrics import MeanAveragePrecision
+        >>> predictions = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]]),
+        ...     class_id=np.array([0]),
+        ...     confidence=np.array([0.9])
+        ... )
+        >>> targets = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]]),
+        ...     class_id=np.array([0])
+        ... )
+        >>> map_metric = MeanAveragePrecision()
+        >>> map_result = map_metric.update(predictions, targets).compute()
+        >>> round(float(map_result.map50), 2)
+        1.0
+        >>> print(map_result)
+        Average Precision (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 1.000
+        Average Precision (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 1.000
+        Average Precision (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 1.000
+        Average Precision (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 1.000
+        Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = -1.000
+        Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = -1.000
 
     ![example_plot](\
         https://media.roboflow.com/supervision-docs/metrics/mAP_plot_example.png\
