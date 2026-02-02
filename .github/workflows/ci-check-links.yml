@@ -29,6 +29,7 @@ jobs:
           lycheeVersion: v0.22.0
           args: |
             --config .github/lychee.toml
+            --header "x-ratelimit-bypass: ${{ secrets.UNIVERSE_RATELIMIT_BYPASS_KEY }}"
             './**/*.md'
           # TODO: enable also following file types
           # './**/*.toml'

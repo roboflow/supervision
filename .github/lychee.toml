@@ -9,6 +9,3 @@ exclude = [
     "http://127.0.0.1:8000",  # hint for local docs server
     "https://sam2.metademolab.com/",  # returns 403 Forbidden
 ]
-
-[header]
-x-ratelimit-bypass = "$UNIVERSE_RATELIMIT_BYPASS_KEY"
