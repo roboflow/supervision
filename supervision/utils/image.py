@@ -35,33 +35,23 @@ def crop_image(
             type.
 
     Examples:
-        ```python
-        import cv2
-        import supervision as sv
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> image = np.zeros((1080, 1920, 3), dtype=np.uint8)
+        >>> image.shape
+        (1080, 1920, 3)
+        >>> xyxy = (400, 400, 800, 800)
+        >>> cropped_image = sv.crop_image(image=image, xyxy=xyxy)
+        >>> cropped_image.shape
+        (400, 400, 3)
 
-        image = cv2.imread("source.png")
-        image.shape
-        # (1080, 1920, 3)
-
-        xyxy = (400, 400, 800, 800)
-        cropped_image = sv.crop_image(image=image, xyxy=xyxy)
-        cropped_image.shape
-        # (400, 400, 3)
-        ```
-
-        ```python
-        from PIL import Image
-        import supervision as sv
-
-        image = Image.open("source.png")
-        image.size
-        # (1920, 1080)
-
-        xyxy = (400, 400, 800, 800)
-        cropped_image = sv.crop_image(image=image, xyxy=xyxy)
-        cropped_image.size
-        # (400, 400)
-        ```
+        >>> image = np.zeros((1920, 1080), dtype=np.uint8)
+        >>> image.shape
+        (1920, 1080)
+        >>> xyxy = (400, 400, 800, 800)
+        >>> cropped_image = sv.crop_image(image=image, xyxy=xyxy)
+        >>> cropped_image.shape
+        (400, 400)
 
     ![crop-image](https://media.roboflow.com/supervision-docs/supervision-docs-crop-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
@@ -99,31 +89,21 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
         ValueError: If scale factor is non-positive.
 
     Examples:
-        ```python
-        import cv2
-        import supervision as sv
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> image = np.zeros((1080, 1920, 3), dtype=np.uint8)
+        >>> image.shape
+        (1080, 1920, 3)
+        >>> scaled_image = sv.scale_image(image=image, scale_factor=0.5)
+        >>> scaled_image.shape
+        (540, 960, 3)
 
-        image = cv2.imread("source.png")
-        image.shape
-        # (1080, 1920, 3)
-
-        scaled_image = sv.scale_image(image=image, scale_factor=0.5)
-        scaled_image.shape
-        # (540, 960, 3)
-        ```
-
-        ```python
-        from PIL import Image
-        import supervision as sv
-
-        image = Image.open("source.png")
-        image.size
-        # (1920, 1080)
-
-        scaled_image = sv.scale_image(image=image, scale_factor=0.5)
-        scaled_image.size
-        # (960, 540)
-        ```
+        >>> image = np.zeros((1920, 1080), dtype=np.uint8)
+        >>> image.shape
+        (1920, 1080)
+        >>> scaled_image = sv.scale_image(image=image, scale_factor=0.5)
+        >>> scaled_image.shape
+        (960, 540)
 
     ![scale-image](https://media.roboflow.com/supervision-docs/supervision-docs-scale-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
@@ -156,35 +136,25 @@ def resize_image(
             type.
 
     Examples:
-        ```python
-        import cv2
-        import supervision as sv
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> image = np.zeros((1080, 1920, 3), dtype=np.uint8)
+        >>> image.shape
+        (1080, 1920, 3)
+        >>> resized_image = sv.resize_image(
+        ...     image=image, resolution_wh=(1000, 1000), keep_aspect_ratio=True
+        ... )
+        >>> resized_image.shape
+        (562, 1000, 3)
 
-        image = cv2.imread("source.png")
-        image.shape
-        # (1080, 1920, 3)
-
-        resized_image = sv.resize_image(
-            image=image, resolution_wh=(1000, 1000), keep_aspect_ratio=True
-        )
-        resized_image.shape
-        # (562, 1000, 3)
-        ```
-
-        ```python
-        from PIL import Image
-        import supervision as sv
-
-        image = Image.open("source.png")
-        image.size
-        # (1920, 1080)
-
-        resized_image = sv.resize_image(
-            image=image, resolution_wh=(1000, 1000), keep_aspect_ratio=True
-        )
-        resized_image.size
-        # (1000, 562)
-        ```
+        >>> image = np.zeros((1920, 1080), dtype=np.uint8)
+        >>> image.shape
+        (1920, 1080)
+        >>> resized_image = sv.resize_image(
+        ...     image=image, resolution_wh=(1000, 1000), keep_aspect_ratio=True
+        ... )
+        >>> resized_image.shape
+        (1000, 562)
 
     ![resize-image](https://media.roboflow.com/supervision-docs/supervision-docs-resize-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
@@ -224,35 +194,16 @@ def letterbox_image(
             type.
 
     Examples:
-        ```python
-        import cv2
-        import supervision as sv
-
-        image = cv2.imread("source.png")
-        image.shape
-        # (1080, 1920, 3)
-
-        letterboxed_image = sv.letterbox_image(
-            image=image, resolution_wh=(1000, 1000)
-        )
-        letterboxed_image.shape
-        # (1000, 1000, 3)
-        ```
-
-        ```python
-        from PIL import Image
-        import supervision as sv
-
-        image = Image.open("source.png")
-        image.size
-        # (1920, 1080)
-
-        letterboxed_image = sv.letterbox_image(
-            image=image, resolution_wh=(1000, 1000)
-        )
-        letterboxed_image.size
-        # (1000, 1000)
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> image = np.zeros((1080, 1920, 3), dtype=np.uint8)
+        >>> image.shape
+        (1080, 1920, 3)
+        >>> letterboxed_image = sv.letterbox_image(
+        ...     image=image, resolution_wh=(1000, 1000)
+        ... )
+        >>> letterboxed_image.shape
+        (1000, 1000, 3)
 
     ![letterbox-image](https://media.roboflow.com/supervision-docs/supervision-docs-letterbox-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
@@ -309,34 +260,16 @@ def overlay_image(
         Scene with overlay applied, shape `(height, width, 3)`.
 
     Examples:
-        ```
-        import cv2
-        import numpy as np
-        import supervision as sv
-
-        image = cv2.imread("source.png")
-        overlay = np.zeros((400, 400, 3), dtype=np.uint8)
-        overlay[:] = (0, 255, 0)  # Green overlay
-
-        result_image = sv.overlay_image(
-            image=image, overlay=overlay, anchor=(200, 400)
-        )
-        cv2.imwrite("target.png", result_image)
-        ```
-
-        ```
-        import cv2
-        import numpy as np
-        import supervision as sv
-
-        image = cv2.imread("source.png")
-        overlay = cv2.imread("overlay.png", cv2.IMREAD_UNCHANGED)
-
-        result_image = sv.overlay_image(
-            image=image, overlay=overlay, anchor=(100, 100)
-        )
-        cv2.imwrite("target.png", result_image)
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> image = np.zeros((1000, 1000, 3), dtype=np.uint8)
+        >>> overlay = np.zeros((400, 400, 3), dtype=np.uint8)
+        >>> overlay[:] = (0, 255, 0)  # Green overlay
+        >>> result_image = sv.overlay_image(
+        ...     image=image, overlay=overlay, anchor=(200, 400)
+        ... )
+        >>> result_image.shape
+        (1000, 1000, 3)
     """
     scene_height, scene_width = image.shape[:2]
     image_height, image_width = overlay.shape[:2]
@@ -399,27 +332,14 @@ def tint_image(
         ValueError: If opacity is outside range [0.0, 1.0].
 
     Examples:
-        ```python
-        import cv2
-        import supervision as sv
-
-        image = cv2.imread("source.png")
-        tinted_image = sv.tint_image(
-            image=image, color=sv.Color.ROBOFLOW, opacity=0.5
-        )
-        cv2.imwrite("target.png", tinted_image)
-        ```
-
-        ```python
-        from PIL import Image
-        import supervision as sv
-
-        image = Image.open("source.png")
-        tinted_image = sv.tint_image(
-            image=image, color=sv.Color.ROBOFLOW, opacity=0.5
-        )
-        tinted_image.save("target.png")
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> tinted_image = sv.tint_image(
+        ...     image=image, color=sv.Color.ROBOFLOW, opacity=0.5
+        ... )
+        >>> tinted_image.shape
+        (100, 100, 3)
 
     ![tint-image](https://media.roboflow.com/supervision-docs/supervision-docs-tint-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
@@ -448,23 +368,12 @@ def grayscale_image(image: ImageType) -> ImageType:
             matching input type.
 
     Examples:
-        ```python
-        import cv2
-        import supervision as sv
-
-        image = cv2.imread("source.png")
-        grayscale_image = sv.grayscale_image(image=image)
-        cv2.imwrite("target.png", grayscale_image)
-        ```
-
-        ```python
-        from PIL import Image
-        import supervision as sv
-
-        image = Image.open("source.png")
-        grayscale_image = sv.grayscale_image(image=image)
-        grayscale_image.save("target.png")
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> image = np.ones((100, 100, 3), dtype=np.uint8) * 128
+        >>> grayscale_image = sv.grayscale_image(image=image)
+        >>> grayscale_image.shape
+        (100, 100, 3)
 
     ![grayscale-image](https://media.roboflow.com/supervision-docs/supervision-docs-grayscale-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
@@ -491,23 +400,11 @@ def get_image_resolution_wh(image: ImageType) -> tuple[int, int]:
             `PIL.Image.Image`).
 
     Examples:
-        ```python
-        import cv2
-        import supervision as sv
-
-        image = cv2.imread("example.png")
-        sv.get_image_resolution_wh(image)
-        # (1920, 1080)
-        ```
-
-        ```python
-        from PIL import Image
-        import supervision as sv
-
-        image = Image.open("example.png")
-        sv.get_image_resolution_wh(image)
-        # (1920, 1080)
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> image = np.zeros((1080, 1920, 3), dtype=np.uint8)
+        >>> sv.get_image_resolution_wh(image)
+        (1920, 1080)
     """
     if isinstance(image, np.ndarray):
         if image.ndim < 2:
@@ -547,52 +444,18 @@ class ImageSink:
                 Defaults to `"image_{:05d}.png"`.
 
         Examples:
-            ```python
-            import supervision as sv
-
-            frames_generator = sv.get_video_frames_generator(
-                "source.mp4", stride=2
-            )
-
-            with sv.ImageSink(target_dir_path="output_frames") as sink:
-                for image in frames_generator:
-                    sink.save_image(image=image)
-
-            # Directory structure:
-            # output_frames/
-            # ├── image_00000.png
-            # ├── image_00001.png
-            # ├── image_00002.png
-            # └── image_00003.png
-            ```
-
-            ```python
-            import cv2
-            import supervision as sv
-
-            image = cv2.imread("source.png")
-            crop_boxes = [
-                (  0,   0, 400, 400),
-                (400,   0, 800, 400),
-                (  0, 400, 400, 800),
-                (400, 400, 800, 800)
-            ]
-
-            with sv.ImageSink(
-                target_dir_path="image_crops",
-                overwrite=True
-            ) as sink:
-                for i, xyxy in enumerate(crop_boxes):
-                    crop = sv.crop_image(image=image, xyxy=xyxy)
-                    sink.save_image(image=crop, image_name=f"crop_{i}.png")
-
-            # Directory structure:
-            # image_crops/
-            # ├── crop_0.png
-            # ├── crop_1.png
-            # ├── crop_2.png
-            # └── crop_3.png
-            ```
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> import tempfile
+            >>> import os
+            >>> with tempfile.TemporaryDirectory() as tmpdir:
+            ...     image = np.zeros((100, 100, 3), dtype=np.uint8)
+            ...     with sv.ImageSink(target_dir_path=tmpdir, overwrite=True) as sink:
+            ...         sink.save_image(image=image)
+            ...         sink.save_image(image=image)
+            ...     files = sorted(os.listdir(tmpdir))
+            ...     len(files)
+            2
         """
         self.target_dir_path = target_dir_path
         self.overwrite = overwrite
