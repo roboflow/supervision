@@ -16,7 +16,7 @@ keywords = [
   "Roboflow",
   "vision",
 ]
-license = { text = "MIT" }
+license = "MIT"
 maintainers = [
   { name = "Piotr Skalski", email = "piotr@roboflow.com" },
 ]
@@ -29,7 +29,6 @@ classifiers = [
   "Intended Audience :: Developers",
   "Intended Audience :: Education",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: MIT License",
   "Operating System :: MacOS",
   "Operating System :: Microsoft :: Windows",
   "Operating System :: POSIX :: Linux",
