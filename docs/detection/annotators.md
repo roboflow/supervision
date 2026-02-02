@@ -254,8 +254,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     <div class="result" markdown>
 
-    ![polygon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    polygon-annotator-example-purple.png){ align=center width="800" }
+    ![polygon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/polygon-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 

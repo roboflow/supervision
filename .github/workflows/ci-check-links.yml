@@ -28,11 +28,11 @@ jobs:
           args: |
             --verbose
             --no-progress
-            './**/*.md'
-            './**/*.py'
-            './**/*.yml'
-            './**/*.toml'
             --include-verbatim
             --exclude https://github.com/YOUR_USERNAME/supervision.git
             --exclude http://127.0.0.1:8000
+            './**/*.md'
+          #'./**/*.py'
+          #'./**/*.yml'
+          #'./**/*.toml'
           fail: true
