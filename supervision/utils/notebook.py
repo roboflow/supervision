@@ -21,15 +21,14 @@ def plot_image(
         cmap: the colormap to use for single channel images.
 
     Examples:
-        ```python
-        import cv2
-        import supervision as sv
-
-        image = cv2.imread("path/to/image.jpg")
-
-        %matplotlib inline
-        sv.plot_image(image=image, size=(16, 16))
-        ```
+        >>> import cv2
+        >>> import numpy as np
+        >>> import matplotlib
+        >>> matplotlib.use('Agg')  # Prevents the GUI window from popping up
+        >>> import supervision as sv
+        >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> sv.plot_image(image=image, size=(16, 16))
+        ...
     """
     if isinstance(image, Image.Image):
         image = pillow_to_cv2(image)
@@ -70,21 +69,19 @@ def plot_images_grid(
        ValueError: If the number of images exceeds the grid size.
 
     Examples:
-        ```python
-        import cv2
-        import supervision as sv
-        from PIL import Image
-
-        image1 = cv2.imread("path/to/image1.jpg")
-        image2 = Image.open("path/to/image2.jpg")
-        image3 = cv2.imread("path/to/image3.jpg")
-
-        images = [image1, image2, image3]
-        titles = ["Image 1", "Image 2", "Image 3"]
-
-        %matplotlib inline
-        plot_images_grid(images, grid_size=(2, 2), titles=titles, size=(16, 16))
-        ```
+        >>> import cv2
+        >>> import numpy as np
+        >>> import matplotlib
+        >>> matplotlib.use('Agg')  # Prevents the GUI window from popping up
+        >>> import supervision as sv
+        >>> from PIL import Image
+        >>> image1 = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> image2 = Image.new('RGB', (100, 100))
+        >>> image3 = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> images = [image1, image2, image3]
+        >>> titles = ["Image 1", "Image 2", "Image 3"]
+        >>> sv.plot_images_grid(images, grid_size=(2, 2), titles=titles, size=(16, 16))
+        ...
     """
     nrows, ncols = grid_size
 
