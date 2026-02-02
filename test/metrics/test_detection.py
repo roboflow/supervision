@@ -535,7 +535,7 @@ class TestDetectionMetrics:
                 ),
                 DoesNotRaise(),
             ),
-            # Test 4: IoU threshold boundary cases (IoU = 0.5625, slightly above threshold)
+            # Test 4: IoU threshold boundary (IoU = 0.5625, slightly above threshold)
             (
                 [
                     _create_detections(
