@@ -334,9 +334,11 @@ class ConfusionMatrix:
             det_match_classes = detection_classes[det_indices]
             class_matches = gt_match_classes == det_match_classes
 
-            # Sort matches by class match first (True before False), then by IoU descending.
+            # Sort matches by class match first (True before False), 
+            # then by IoU descending.
             # np.lexsort sorts by the last key first, in ascending order.
-            # We use ~class_matches so that True becomes 0 and False becomes 1 (True first),
+            # We use ~class_matches so that True becomes 0 
+            # and False becomes 1 (True first),
             # and -ious so that larger IoUs come first.
             sort_indices = np.lexsort((-ious, ~class_matches))
 
