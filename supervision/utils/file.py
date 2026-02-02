@@ -35,16 +35,25 @@ def list_files_with_extensions(
         A list of Path objects for the matching files.
 
     Examples:
-        ```python
-        import supervision as sv
-
-        # List all files in the directory
-        files = sv.list_files_with_extensions(directory='my_directory')
-
-        # List only files with '.txt' and '.md' extensions
-        files = sv.list_files_with_extensions(
-            directory='my_directory', extensions=['txt', 'md'])
-        ```
+        >>> import supervision as sv
+        >>> from pathlib import Path
+        >>> import tempfile
+        >>> # Keep a reference to the directory object
+        >>> tmp_dir_obj = tempfile.TemporaryDirectory()
+        >>> tmpdir = tmp_dir_obj.name
+        >>> # Create test files
+        >>> (Path(tmpdir) / "test1.txt").touch()
+        >>> (Path(tmpdir) / "test2.md").touch()
+        >>> (Path(tmpdir) / "test3.py").touch()
+        >>> # List all files in the directory
+        >>> files = sv.list_files_with_extensions(directory=tmpdir)
+        >>> len(files)
+        3
+        >>> # List only files with '.txt' and '.md' extensions
+        >>> files = sv.list_files_with_extensions(
+        ...     directory=tmpdir, extensions=['txt', 'md'])
+        >>> len(files)
+        2
     """
 
     directory = Path(directory)

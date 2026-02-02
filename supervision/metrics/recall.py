@@ -39,38 +39,23 @@ class Recall(Metric):
     Here, `TP` is the number of true positives (correct detections), and `FN` is the
     number of false negatives (missed detections).
 
-    Example:
-        ```python
-        import supervision as sv
-        from supervision.metrics import Recall
-
-        predictions = sv.Detections(...)
-        targets = sv.Detections(...)
-
-        recall_metric = Recall()
-        recall_result = recall_metric.update(predictions, targets).compute()
-
-        print(recall_result.recall_at_50)
-        # 0.7615
-
-        print(recall_result)
-        # RecallResult:
-        # Metric target:    MetricTarget.BOXES
-        # Averaging method: AveragingMethod.WEIGHTED
-        # R @ 50:     0.7615
-        # R @ 75:     0.7462
-        # R @ thresh: [0.76151  0.76011  0.76011  0.75732  ...]
-        # IoU thresh: [0.5  0.55  0.6  ...]
-        # Recall per class:
-        # 0: [0.78571  0.78571  0.78571  ...]
-        # ...
-        # Small objects: ...
-        # Medium objects: ...
-        # Large objects: ...
-
-        recall_result.plot()
-
-        ```
+    Examples:
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> from supervision.metrics import Recall
+        >>> predictions = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]]),
+        ...     class_id=np.array([0]),
+        ...     confidence=np.array([0.9])
+        ... )
+        >>> targets = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]]),
+        ...     class_id=np.array([0])
+        ... )
+        >>> recall_metric = Recall()
+        >>> recall_result = recall_metric.update(predictions, targets).compute()
+        >>> round(float(recall_result.recall_at_50), 2)
+        1.0
 
     ![example_plot](\
         https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png\

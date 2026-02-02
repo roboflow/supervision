@@ -1,9 +1,10 @@
 from typing import TypeVar
 
 import numpy as np
+import numpy.typing as npt
 from PIL import Image
 
-ImageType = TypeVar("ImageType", np.ndarray, Image.Image)
+ImageType = TypeVar("ImageType", npt.NDArray[np.uint8], Image.Image)
 """
 An image of type `np.ndarray` or `PIL.Image.Image`.
 

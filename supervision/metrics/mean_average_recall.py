@@ -38,37 +38,23 @@ class MeanAverageRecall(Metric):
     detections for each class. mAR @ 1 considers only the highest
     confidence detection for each class.
 
-    Example:
-        ```python
-        import supervision as sv
-        from supervision.metrics import MeanAverageRecall
-
-        predictions = sv.Detections(...)
-        targets = sv.Detections(...)
-
-        map_metric = MeanAverageRecall()
-        map_result = map_metric.update(predictions, targets).compute()
-
-        print(mar_results.mar_at_100)
-        # 0.5241
-
-        print(mar_results)
-        # MeanAverageRecallResult:
-        # Metric target:    MetricTarget.BOXES
-        # mAR @ 1:    0.1362
-        # mAR @ 10:   0.4239
-        # mAR @ 100:  0.5241
-        # max detections: [1  10 100]
-        # IoU thresh:     [0.5  0.55  0.6  ...]
-        # mAR per class:
-        # 0: [0.78571  0.78571  0.78571  ...]
-        # ...
-        # Small objects: ...
-        # Medium objects: ...
-        # Large objects: ...
-
-        mar_results.plot()
-        ```
+    Examples:
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> from supervision.metrics import MeanAverageRecall
+        >>> predictions = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]]),
+        ...     class_id=np.array([0]),
+        ...     confidence=np.array([0.9])
+        ... )
+        >>> targets = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]]),
+        ...     class_id=np.array([0])
+        ... )
+        >>> mar_metric = MeanAverageRecall()
+        >>> mar_result = mar_metric.update(predictions, targets).compute()
+        >>> round(float(mar_result.mAR_at_100), 2)
+        1.0
 
     ![example_plot](\
         https://media.roboflow.com/supervision-docs/metrics/mAR_plot_example.png\
