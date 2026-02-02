@@ -805,7 +805,13 @@ def test_line_zone_long_horizon_disappearing_detections(
 
 
 @pytest.mark.parametrize(
-    "xyxy_sequence, tracker_id_sequence, class_id_sequence, expected_in_count_per_class, expected_out_count_per_class",
+    (
+        "xyxy_sequence",
+        "tracker_id_sequence",
+        "class_id_sequence",
+        "expected_in_count_per_class",
+        "expected_out_count_per_class",
+    ),
     [
         (
             [
