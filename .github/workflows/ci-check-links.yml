@@ -30,8 +30,9 @@ jobs:
             --verbose
             --no-progress
             --include-verbatim
-            --exclude https://github.com/YOUR_USERNAME/supervision.git
-            --exclude http://127.0.0.1:8000
+            --exclude https://github.com/YOUR_USERNAME/supervision.git # hint for forked contributors
+            --exclude http://127.0.0.1:8000  # hint for local docs build
+            --exclude https://sam2.metademolab.com/  # exists but return 403 Forbidden
             --retry-wait-time 3
             --max-concurrency 10
             --header "x-ratelimit-bypass: ${{ secrets.UNIVERSE_RATELIMIT_BYPASS_KEY }}"
