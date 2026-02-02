@@ -9,7 +9,7 @@ from supervision.detection.utils.polygons import filter_polygons_by_area
 
 
 @pytest.mark.parametrize(
-    "polygons, min_area, max_area, expected_result, exception",
+    ("polygons", "min_area", "max_area", "expected_result", "exception"),
     [
         (
             [np.array([[0, 0], [0, 10], [10, 10], [10, 0]])],

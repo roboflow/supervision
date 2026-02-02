@@ -4,7 +4,7 @@ from supervision.geometry.core import Point, Vector
 
 
 @pytest.mark.parametrize(
-    "vector, point, expected_result",
+    ("vector", "point", "expected_result"),
     [
         (Vector(start=Point(x=0, y=0), end=Point(x=5, y=5)), Point(x=-1, y=1), 10.0),
         (Vector(start=Point(x=0, y=0), end=Point(x=5, y=5)), Point(x=6, y=6), 0.0),
@@ -34,7 +34,7 @@ def test_vector_cross_product(
 
 
 @pytest.mark.parametrize(
-    "vector, expected_result",
+    ("vector", "expected_result"),
     [
         (Vector(start=Point(x=0, y=0), end=Point(x=0, y=0)), 0.0),
         (Vector(start=Point(x=1, y=0), end=Point(x=0, y=0)), 1.0),

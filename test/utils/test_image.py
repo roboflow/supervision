@@ -103,7 +103,7 @@ def test_letterbox_image_for_pillow_image() -> None:
 
 
 @pytest.mark.parametrize(
-    "image, xyxy, expected_size",
+    ("image", "xyxy", "expected_size"),
     [
         # NumPy RGB
         (
@@ -143,7 +143,7 @@ def test_crop_image(image, xyxy, expected_size):
 
 
 @pytest.mark.parametrize(
-    "image, expected",
+    ("image", "expected"),
     [
         # NumPy RGB
         (np.zeros((4, 6, 3), dtype=np.uint8), (6, 4)),

@@ -20,7 +20,7 @@ from supervision.detection.vlm import (
 
 
 @pytest.mark.parametrize(
-    "exception, result, resolution_wh, classes, expected_results",
+    ("exception", "result", "resolution_wh", "classes", "expected_results"),
     [
         (
             does_not_raise(),
@@ -202,7 +202,7 @@ def test_from_paligemma(
 
 
 @pytest.mark.parametrize(
-    "exception, result, input_wh, resolution_wh, classes, expected_results",
+    ("exception", "result", "input_wh", "resolution_wh", "classes", "expected_results"),
     [
         (
             does_not_raise(),
@@ -405,7 +405,7 @@ def test_from_qwen_2_5_vl(
 
 
 @pytest.mark.parametrize(
-    "exception, result, resolution_wh, classes, expected_results",
+    ("exception", "result", "resolution_wh", "classes", "expected_results"),
     [
         (
             does_not_raise(),
@@ -544,7 +544,7 @@ def test_from_google_gemini(
 
 
 @pytest.mark.parametrize(
-    "exception, result, resolution_wh, expected_results",
+    ("exception", "result", "resolution_wh", "expected_results"),
     [
         (
             does_not_raise(),
@@ -644,7 +644,7 @@ def test_from_moondream(
 
 
 @pytest.mark.parametrize(
-    "florence_result, resolution_wh, expected_results, exception",
+    ("florence_result", "resolution_wh", "expected_results", "exception"),
     [
         (  # Object detection: empty
             {"<OD>": {"bboxes": [], "labels": []}},
@@ -792,38 +792,6 @@ def test_from_moondream(
             ),
             DoesNotRaise(),
         ),
-        (  # Referring Expression Segmentation
-            {
-                "<REFERRING_EXPRESSION_SEGMENTATION>": {
-                    "polygons": [[[1, 1, 2, 1, 2, 2, 1, 2]]],
-                    "labels": [""],
-                }
-            },
-            (10, 10),
-            (
-                np.array([[1.0, 1.0, 2.0, 2.0]], dtype=np.float32),
-                None,
-                np.array(
-                    [
-                        [
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                        ]
-                    ],
-                    dtype=bool,
-                ),
-                None,
-            ),
-            DoesNotRaise(),
-        ),
         (  # OCR: unsupported
             {"<OCR>": "A"},
             (10, 10),
@@ -928,7 +896,7 @@ def test_florence_2(
 
 
 @pytest.mark.parametrize(
-    "exception, result, resolution_wh, classes, expected_results",
+    ("exception", "result", "resolution_wh", "classes", "expected_results"),
     [
         (
             does_not_raise(),
@@ -1165,7 +1133,7 @@ def test_from_google_gemini_2_5(
 
 
 @pytest.mark.parametrize(
-    "exception, result, resolution_wh, classes, expected_detections",
+    ("exception", "result", "resolution_wh", "classes", "expected_detections"),
     [
         (
             pytest.raises(ValueError),

@@ -288,4 +288,4 @@ uv run pytest --cov=supervision
 
 ## 📄 License
 
-By contributing, you agree that your contributions will be licensed under an [MIT license](https://github.com/roboflow/supervision/blob/develop/LICENSE.md).
+By contributing, you agree that your contributions will be licensed under an [MIT license](./LICENSE.md).

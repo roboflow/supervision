@@ -61,24 +61,22 @@ class VertexAnnotator(BaseKeyPointAnnotator):
                 or `PIL.Image.Image`)
 
         Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            key_points = sv.KeyPoints(...)
-
-            vertex_annotator = sv.VertexAnnotator(
-                color=sv.Color.GREEN,
-                radius=10
-            )
-            annotated_frame = vertex_annotator.annotate(
-                scene=image.copy(),
-                key_points=key_points
-            )
-            ```
-
-        ![vertex-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/vertex-annotator-example.png)
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array([[[50, 50], [60, 60]]], dtype=np.float32)
+            ... )
+            >>> vertex_annotator = sv.VertexAnnotator(
+            ...     color=sv.Color.GREEN,
+            ...     radius=10
+            ... )
+            >>> annotated_frame = vertex_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     key_points=key_points
+            ... )
+            >>> annotated_frame.shape
+            (100, 100, 3)
         """
         assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
@@ -139,24 +137,22 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
                     or `PIL.Image.Image`)
 
         Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            key_points = sv.KeyPoints(...)
-
-            edge_annotator = sv.EdgeAnnotator(
-                color=sv.Color.GREEN,
-                thickness=5
-            )
-            annotated_frame = edge_annotator.annotate(
-                scene=image.copy(),
-                key_points=key_points
-            )
-            ```
-
-        ![edge-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/edge-annotator-example.png)
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array([[[50, 50], [60, 60]]], dtype=np.float32)
+            ... )
+            >>> edge_annotator = sv.EdgeAnnotator(
+            ...     color=sv.Color.GREEN,
+            ...     thickness=5
+            ... )
+            >>> annotated_frame = edge_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     key_points=key_points
+            ... )
+            >>> annotated_frame.shape
+            (100, 100, 3)
         """
         assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
@@ -252,25 +248,25 @@ class VertexLabelAnnotator:
                 or `PIL.Image.Image`)
 
         Example:
-            ```python
-            import supervision as sv
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array([[[50, 50], [60, 60]]], dtype=np.float32)
+            ... )
+            >>> vertex_label_annotator = sv.VertexLabelAnnotator(
+            ...     color=sv.Color.GREEN,
+            ...     text_color=sv.Color.BLACK,
+            ...     border_radius=5
+            ... )
+            >>> annotated_frame = vertex_label_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     key_points=key_points
+            ... )
+            >>> annotated_frame.shape
+            (100, 100, 3)
 
-            image = ...
-            key_points = sv.KeyPoints(...)
-
-            vertex_label_annotator = sv.VertexLabelAnnotator(
-                color=sv.Color.GREEN,
-                text_color=sv.Color.BLACK,
-                border_radius=5
-            )
-            annotated_frame = vertex_label_annotator.annotate(
-                scene=image.copy(),
-                key_points=key_points
-            )
-            ```
-
-        ![vertex-label-annotator-example](https://media.roboflow.com/
-        supervision-annotator-examples/vertex-label-annotator-example.png)
+        ![vertex-label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/vertex-label-annotator-example.png)
 
         !!! tip
 
@@ -278,42 +274,45 @@ class VertexLabelAnnotator:
             values.
 
         Example:
-            ```python
-            import supervision as sv
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array([[[50, 50], [60, 60], [70, 70], [80, 80],
+            ...                   [90, 90], [40, 40], [30, 30], [20, 20],
+            ...                   [10, 10], [5, 5], [15, 15], [25, 25],
+            ...                   [35, 35], [45, 45], [55, 55], [65, 65],
+            ...                   [75, 75]]], dtype=np.float32)
+            ... )
+            >>> LABELS = [
+            ...     "nose", "left eye", "right eye", "left ear",
+            ...     "right ear", "left shoulder", "right shoulder", "left elbow",
+            ...     "right elbow", "left wrist", "right wrist", "left hip",
+            ...     "right hip", "left knee", "right knee", "left ankle",
+            ...     "right ankle"
+            ... ]
+            >>> COLORS = [
+            ...     "#FF6347", "#FF6347", "#FF6347", "#FF6347",
+            ...     "#FF6347", "#FF1493", "#00FF00", "#FF1493",
+            ...     "#00FF00", "#FF1493", "#00FF00", "#FFD700",
+            ...     "#00BFFF", "#FFD700", "#00BFFF", "#FFD700",
+            ...     "#00BFFF"
+            ... ]
+            >>> COLORS = [sv.Color.from_hex(color_hex=c) for c in COLORS]
+            >>> vertex_label_annotator = sv.VertexLabelAnnotator(
+            ...     color=COLORS,
+            ...     text_color=sv.Color.BLACK,
+            ...     border_radius=5
+            ... )
+            >>> annotated_frame = vertex_label_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     key_points=key_points,
+            ...     labels=LABELS
+            ... )
+            >>> annotated_frame.shape
+            (100, 100, 3)
 
-            image = ...
-            key_points = sv.KeyPoints(...)
-
-            LABELS = [
-                "nose", "left eye", "right eye", "left ear",
-                "right ear", "left shoulder", "right shoulder", "left elbow",
-                "right elbow", "left wrist", "right wrist", "left hip",
-                "right hip", "left knee", "right knee", "left ankle",
-                "right ankle"
-            ]
-
-            COLORS = [
-                "#FF6347", "#FF6347", "#FF6347", "#FF6347",
-                "#FF6347", "#FF1493", "#00FF00", "#FF1493",
-                "#00FF00", "#FF1493", "#00FF00", "#FFD700",
-                "#00BFFF", "#FFD700", "#00BFFF", "#FFD700",
-                "#00BFFF"
-            ]
-            COLORS = [sv.Color.from_hex(color_hex=c) for c in COLORS]
-
-            vertex_label_annotator = sv.VertexLabelAnnotator(
-                color=COLORS,
-                text_color=sv.Color.BLACK,
-                border_radius=5
-            )
-            annotated_frame = vertex_label_annotator.annotate(
-                scene=image.copy(),
-                key_points=key_points,
-                labels=labels
-            )
-            ```
-        ![vertex-label-annotator-custom-example](https://media.roboflow.com/
-        supervision-annotator-examples/vertex-label-annotator-custom-example.png)
+        ![vertex-label-annotator-custom-example](https://media.roboflow.com/supervision-annotator-examples/vertex-label-annotator-custom-example.png)
         """
         assert isinstance(scene, np.ndarray)
         font = cv2.FONT_HERSHEY_SIMPLEX

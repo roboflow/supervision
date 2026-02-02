@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -39,42 +39,27 @@ class Recall(Metric):
     Here, `TP` is the number of true positives (correct detections), and `FN` is the
     number of false negatives (missed detections).
 
-    Example:
-        ```python
-        import supervision as sv
-        from supervision.metrics import Recall
+    Examples:
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> from supervision.metrics import Recall
+        >>> predictions = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]]),
+        ...     class_id=np.array([0]),
+        ...     confidence=np.array([0.9])
+        ... )
+        >>> targets = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]]),
+        ...     class_id=np.array([0])
+        ... )
+        >>> recall_metric = Recall()
+        >>> recall_result = recall_metric.update(predictions, targets).compute()
+        >>> round(float(recall_result.recall_at_50), 2)
+        1.0
 
-        predictions = sv.Detections(...)
-        targets = sv.Detections(...)
-
-        recall_metric = Recall()
-        recall_result = recall_metric.update(predictions, targets).compute()
-
-        print(recall_result.recall_at_50)
-        # 0.7615
-
-        print(recall_result)
-        # RecallResult:
-        # Metric target:    MetricTarget.BOXES
-        # Averaging method: AveragingMethod.WEIGHTED
-        # R @ 50:     0.7615
-        # R @ 75:     0.7462
-        # R @ thresh: [0.76151  0.76011  0.76011  0.75732  ...]
-        # IoU thresh: [0.5  0.55  0.6  ...]
-        # Recall per class:
-        # 0: [0.78571  0.78571  0.78571  ...]
-        # ...
-        # Small objects: ...
-        # Medium objects: ...
-        # Large objects: ...
-
-        recall_result.plot()
-
-        ```
-
-    ![example_plot](\
-        https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png\
-        ){ align=center width="800" }
+    ![example_plot](
+        https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png
+    ){ align=center width="800" }
     """
 
     def __init__(
@@ -86,8 +71,8 @@ class Recall(Metric):
         Initialize the Recall metric.
 
         Args:
-            metric_target (MetricTarget): The type of detection data to use.
-            averaging_method (AveragingMethod): The averaging method used to compute the
+            metric_target: The type of detection data to use.
+            averaging_method: The averaging method used to compute the
                 recall. Determines how the recall is aggregated across classes.
         """
         self._metric_target = metric_target
@@ -112,11 +97,11 @@ class Recall(Metric):
         Add new predictions and targets to the metric, but do not compute the result.
 
         Args:
-            predictions (Union[Detections, List[Detections]]): The predicted detections.
-            targets (Union[Detections, List[Detections]]): The target detections.
+            predictions: The predicted detections.
+            targets: The target detections.
 
         Returns:
-            (Recall): The updated metric instance.
+            The updated metric instance.
         """
         if not isinstance(predictions, list):
             predictions = [predictions]
@@ -140,7 +125,7 @@ class Recall(Metric):
         data, at different IoU thresholds.
 
         Returns:
-            (RecallResult): The recall metric result.
+            The recall metric result.
         """
         result = self._compute(self._predictions_list, self._targets_list)
 
@@ -167,7 +152,7 @@ class Recall(Metric):
         self, predictions_list: list[Detections], targets_list: list[Detections]
     ) -> RecallResult:
         iou_thresholds = np.linspace(0.5, 0.95, 10)
-        stats = []
+        stats: list[Any] = []
 
         for predictions, targets in zip(predictions_list, targets_list):
             prediction_contents = self._detections_content(predictions)
@@ -199,7 +184,14 @@ class Recall(Metric):
                         )
 
                     matches = self._match_detection_batch(
-                        predictions.class_id, targets.class_id, iou, iou_thresholds
+                        predictions.class_id
+                        if predictions.class_id is not None
+                        else np.array([]),
+                        targets.class_id
+                        if targets.class_id is not None
+                        else np.array([]),
+                        iou,
+                        iou_thresholds,
                     )
                     stats.append(
                         (
@@ -300,8 +292,8 @@ class Recall(Metric):
                     matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
 
                 correct[matches[:, 1].astype(int), i] = True
-
-        return correct
+        result: np.ndarray = correct
+        return result
 
     @staticmethod
     def _compute_confusion_matrix(
@@ -316,18 +308,18 @@ class Recall(Metric):
         Assumes the matches and prediction_class_ids are sorted by confidence
         in descending order.
 
-        Arguments:
-            sorted_matches: np.ndarray, bool, shape (P, Th), that is True
+        Args:
+            sorted_matches: shape (P, Th), that is True
                 if the prediction is a true positive at the given IoU threshold.
-            sorted_prediction_class_ids: np.ndarray, int, shape (P,), containing
+            sorted_prediction_class_ids: shape (P,), containing
                 the class id for each prediction.
-            unique_classes: np.ndarray, int, shape (C,), containing the unique
+            unique_classes: shape (C,), containing the unique
                 class ids.
-            class_counts: np.ndarray, int, shape (C,), containing the number
+            class_counts: shape (C,), containing the number
                 of true instances for each class.
 
         Returns:
-            np.ndarray, shape (C, Th, 3), containing the true positives, false
+            shape (C, Th, 3), containing the true positives, false
                 positives, and false negatives for each class and IoU threshold.
         """
 
@@ -355,8 +347,8 @@ class Recall(Metric):
             confusion_matrix[class_idx] = np.stack(
                 [true_positives, false_positives, false_negatives], axis=1
             )
-
-        return confusion_matrix
+        result: np.ndarray = confusion_matrix
+        return result
 
     @staticmethod
     def _compute_recall(confusion_matrix: np.ndarray) -> np.ndarray:
@@ -364,11 +356,11 @@ class Recall(Metric):
         Broadcastable function, computing the recall from the confusion matrix.
 
         Arguments:
-            confusion_matrix: np.ndarray, shape (N, ..., 3), where the last dimension
+            confusion_matrix: shape (N, ..., 3), where the last dimension
                 contains the true positives, false positives, and false negatives.
 
         Returns:
-            np.ndarray, shape (N, ...), containing the recall for each element.
+            shape (N, ...), containing the recall for each element.
         """
         if not confusion_matrix.shape[-1] == 3:
             raise ValueError(
@@ -381,7 +373,8 @@ class Recall(Metric):
         denominator = true_positives + false_negatives
         recall = np.where(denominator == 0, 0, true_positives / denominator)
 
-        return recall
+        result: np.ndarray = recall
+        return result
 
     def _detections_content(self, detections: Detections) -> np.ndarray:
         """Return boxes, masks or oriented bounding boxes from detections."""
@@ -396,17 +389,24 @@ class Recall(Metric):
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             obb = detections.data.get(ORIENTED_BOX_COORDINATES)
             if obb is not None and len(obb) > 0:
-                return np.array(obb, dtype=np.float32)
+                result: np.ndarray = np.array(obb, dtype=np.float32)
+                return result
             return self._make_empty_content()
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
     def _make_empty_content(self) -> np.ndarray:
         if self._metric_target == MetricTarget.BOXES:
-            return np.empty((0, 4), dtype=np.float32)
+            empty_boxes: np.ndarray = np.empty((0, 4), dtype=np.float32)
+            return empty_boxes
+
         if self._metric_target == MetricTarget.MASKS:
-            return np.empty((0, 0, 0), dtype=bool)
+            empty_masks: np.ndarray = np.empty((0, 0, 0), dtype=bool)
+            return empty_masks
+
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-            return np.empty((0, 4, 2), dtype=np.float32)
+            empty_obb: np.ndarray = np.empty((0, 4, 2), dtype=np.float32)
+            return empty_obb
+
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
     def _filter_detections_by_size(
@@ -464,24 +464,24 @@ class RecallResult:
     Defaults to `0` if no detections or targets were provided.
 
     Attributes:
-        metric_target (MetricTarget): the type of data used for the metric -
+        metric_target: the type of data used for the metric -
             boxes, masks or oriented bounding boxes.
-        averaging_method (AveragingMethod): the averaging method used to compute the
+        averaging_method: the averaging method used to compute the
             recall. Determines how the recall is aggregated across classes.
-        recall_at_50 (float): the recall at IoU threshold of `0.5`.
-        recall_at_75 (float): the recall at IoU threshold of `0.75`.
-        recall_scores (np.ndarray): the recall scores at each IoU threshold.
+        recall_at_50: the recall at IoU threshold of `0.5`.
+        recall_at_75: the recall at IoU threshold of `0.75`.
+        recall_scores: the recall scores at each IoU threshold.
             Shape: `(num_iou_thresholds,)`
-        recall_per_class (np.ndarray): the recall scores per class and IoU threshold.
+        recall_per_class: the recall scores per class and IoU threshold.
             Shape: `(num_target_classes, num_iou_thresholds)`
-        iou_thresholds (np.ndarray): the IoU thresholds used in the calculations.
-        matched_classes (np.ndarray): the class IDs of all matched classes.
+        iou_thresholds: the IoU thresholds used in the calculations.
+        matched_classes: the class IDs of all matched classes.
             Corresponds to the rows of `recall_per_class`.
-        small_objects (Optional[RecallResult]): the Recall metric results
+        small_objects: the Recall metric results
             for small objects (area < 32²).
-        medium_objects (Optional[RecallResult]): the Recall metric results
+        medium_objects: the Recall metric results
             for medium objects (32² ≤ area < 96²).
-        large_objects (Optional[RecallResult]): the Recall metric results
+        large_objects: the Recall metric results
             for large objects (area ≥ 96²).
     """
 
@@ -490,11 +490,11 @@ class RecallResult:
 
     @property
     def recall_at_50(self) -> float:
-        return self.recall_scores[0]
+        return float(self.recall_scores[0])
 
     @property
     def recall_at_75(self) -> float:
-        return self.recall_scores[5]
+        return float(self.recall_scores[5])
 
     recall_scores: np.ndarray
     recall_per_class: np.ndarray
@@ -562,7 +562,7 @@ class RecallResult:
         Convert the result to a pandas DataFrame.
 
         Returns:
-            (pd.DataFrame): The result as a DataFrame.
+            The result as a DataFrame.
         """
         ensure_pandas_installed()
         import pandas as pd
@@ -587,13 +587,13 @@ class RecallResult:
 
         return pd.DataFrame(pandas_data, index=[0])
 
-    def plot(self):
+    def plot(self) -> None:
         """
         Plot the recall results.
 
-        ![example_plot](\
-            https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png\
-            ){ align=center width="800" }
+        ![example_plot](
+            https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png
+        ){ align=center width="800" }
         """
 
         labels = ["Recall@50", "Recall@75"]

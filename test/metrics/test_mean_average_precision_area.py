@@ -11,7 +11,7 @@ class TestMeanAveragePrecisionArea:
     """Test area calculation in MeanAveragePrecision."""
 
     @pytest.mark.parametrize(
-        "xyxy, expected_areas, expected_size_maps",
+        ("xyxy", "expected_areas", "expected_size_maps"),
         [
             (
                 np.array(

@@ -233,8 +233,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     <div class="result" markdown>
 
-    ![mask-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    mask-annotator-example-purple.png){ align=center width="800" }
+    ![mask-annotator-example](https://media.roboflow.com/supervision-annotator-examples/mask-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -255,8 +254,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     <div class="result" markdown>
 
-    ![polygon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    polygon-annotator-example-purple.png){ align=center width="800" }
+    ![polygon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/polygon-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -284,8 +282,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     <div class="result" markdown>
 
-    ![label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    label-annotator-example-purple.png){ align=center width="800" }
+    ![label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/label-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -316,8 +313,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     <div class="result" markdown>
 
-    ![label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    label-annotator-example-purple.png){ align=center width="800" }
+    ![label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/label-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -344,8 +340,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     <div class="result" markdown>
 
-    ![icon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    icon-annotator-example.png){ align=center width="800" }
+    ![icon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/icon-annotator-example.png){ align=center width="800" }
 
     </div>
 
@@ -365,8 +360,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
         ```
         <div class="result" markdown>
 
-        ![crop-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-        crop-annotator-example.png){ align=center width="800" }
+        ![crop-annotator-example](https://media.roboflow.com/supervision-annotator-examples/crop-annotator-example.png){ align=center width="800" }
 
         </div>
     -->
@@ -388,8 +382,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     <div class="result" markdown>
 
-    ![blur-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    blur-annotator-example-purple.png){ align=center width="800" }
+    ![blur-annotator-example](https://media.roboflow.com/supervision-annotator-examples/blur-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -410,8 +403,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     <div class="result" markdown>
 
-    ![pixelate-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    pixelate-annotator-example-10.png){ align=center width="800" }
+    ![pixelate-annotator-example](https://media.roboflow.com/supervision-annotator-examples/pixelate-annotator-example-10.png){ align=center width="800" }
 
     </div>
 
@@ -442,8 +434,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     <div class="result" markdown>
 
-    ![trace-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    trace-annotator-example-purple.png){ align=center width="800" }
+    ![trace-annotator-example](https://media.roboflow.com/supervision-annotator-examples/trace-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -472,8 +463,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     <div class="result" markdown>
 
-    ![heat-map-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    heat-map-annotator-example-purple.png){ align=center width="800" }
+    ![heat-map-annotator-example](https://media.roboflow.com/supervision-annotator-examples/heat-map-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -517,8 +507,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     <div class="result" markdown>
 
-    ![comparison-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    comparison-annotator-example.png){ align=center width="800" }
+    ![comparison-annotator-example](https://media.roboflow.com/supervision-annotator-examples/comparison-annotator-example.png){ align=center width="800" }
 
     </div>
 

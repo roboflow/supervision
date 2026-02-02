@@ -39,7 +39,7 @@ def mock_coco_annotation(
 
 
 @pytest.mark.parametrize(
-    "coco_categories, expected_result, exception",
+    ("coco_categories", "expected_result", "exception"),
     [
         ([], [], DoesNotRaise()),  # empty coco categories
         (
@@ -87,7 +87,7 @@ def test_coco_categories_to_classes(
 
 
 @pytest.mark.parametrize(
-    "classes, exception",
+    ("classes", "exception"),
     [
         ([], DoesNotRaise()),  # empty classes
         (["baseball cap"], DoesNotRaise()),  # single class
@@ -104,7 +104,7 @@ def test_classes_to_coco_categories_and_back_to_classes(
 
 
 @pytest.mark.parametrize(
-    "coco_annotations, expected_result, exception",
+    ("coco_annotations", "expected_result", "exception"),
     [
         ([], {}, DoesNotRaise()),  # empty coco annotations
         (
@@ -163,8 +163,14 @@ def test_group_coco_annotations_by_image_id(
 
 
 @pytest.mark.parametrize(
-    "image_annotations, resolution_wh, with_masks, use_iscrowd, "
-    "expected_result, exception",
+    (
+        "image_annotations",
+        "resolution_wh",
+        "with_masks",
+        "use_iscrowd",
+        "expected_result",
+        "exception",
+    ),
     [
         (
             [],
@@ -601,7 +607,7 @@ def test_coco_annotations_to_detections(
 
 
 @pytest.mark.parametrize(
-    "coco_categories, target_classes, expected_result, exception",
+    ("coco_categories", "target_classes", "expected_result", "exception"),
     [
         ([], [], {}, DoesNotRaise()),  # empty coco categories
         (
@@ -660,7 +666,7 @@ def test_build_coco_class_index_mapping(
 
 
 @pytest.mark.parametrize(
-    "detections, image_id, annotation_id, expected_result, exception",
+    ("detections", "image_id", "annotation_id", "expected_result", "exception"),
     [
         (
             Detections(
