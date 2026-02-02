@@ -1,8 +1,8 @@
 from supervision.assets.list import (
     BASE_IMAGE_URL,
     BASE_VIDEO_URL,
-    ImageAssets,
     MEDIA_ASSETS,
+    ImageAssets,
     VideoAssets,
 )
 
