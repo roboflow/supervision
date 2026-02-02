@@ -111,18 +111,13 @@ def box_iou(
         ValueError: If `overlap_metric` is not IOU or IOS.
 
     Examples:
-        ```
-        import supervision as sv
-
-        box_true = [100, 100, 200, 200]
-        box_detection = [150, 150, 250, 250]
-
-        sv.box_iou(box_true, box_detection, overlap_metric=sv.OverlapMetric.IOU)
-        # 0.14285714285714285
-
-        sv.box_iou(box_true, box_detection, overlap_metric=sv.OverlapMetric.IOS)
-        # 0.25
-        ```
+        >>> import supervision as sv
+        >>> box_true = [100, 100, 200, 200]
+        >>> box_detection = [150, 150, 250, 250]
+        >>> sv.box_iou(box_true, box_detection, overlap_metric=sv.OverlapMetric.IOU)
+        0.142857...
+        >>> sv.box_iou(box_true, box_detection, overlap_metric=sv.OverlapMetric.IOS)
+        0.25
     """
     overlap_metric = OverlapMetric.from_value(overlap_metric)
     x_min_true, y_min_true, x_max_true, y_max_true = np.array(box_true)
@@ -189,27 +184,22 @@ def box_iou_batch(
         ValueError: If `overlap_metric` is not IOU or IOS.
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
-
-        boxes_true = np.array([
-            [100, 100, 200, 200],
-            [300, 300, 400, 400]
-        ])
-        boxes_detection = np.array([
-            [150, 150, 250, 250],
-            [320, 320, 420, 420]
-        ])
-
-        sv.box_iou_batch(boxes_true, boxes_detection, overlap_metric=OverlapMetric.IOU)
-        # array([[0.14285715, 0.        ],
-        #        [0.        , 0.47058824]])
-
-        sv.box_iou_batch(boxes_true, boxes_detection, overlap_metric=OverlapMetric.IOS)
-        # array([[0.25, 0.  ],
-        #        [0.  , 0.64]])
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> boxes_true = np.array([
+        ...     [100, 100, 200, 200],
+        ...     [300, 300, 400, 400]
+        ... ])
+        >>> boxes_detection = np.array([
+        ...     [150, 150, 250, 250],
+        ...     [320, 320, 420, 420]
+        ... ])
+        >>> sv.box_iou_batch(boxes_true, boxes_detection, overlap_metric=sv.OverlapMetric.IOU)
+        array([[0.14285..., 0.        ],
+               [0.        , 0.47058...]], dtype=float32)
+        >>> sv.box_iou_batch(boxes_true, boxes_detection, overlap_metric=sv.OverlapMetric.IOS)
+        array([[0.25, 0.  ],
+               [0.  , 0.64]], dtype=float32)
     """
     overlap_metric = OverlapMetric.from_value(overlap_metric)
     x_min_true, y_min_true, x_max_true, y_max_true = boxes_true.T
@@ -317,30 +307,25 @@ def box_iou_batch_with_jaccard(
         np.ndarray: Array of IoU values of shape (len(dt), len(gt)).
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
-
-        boxes_true = [
-            [10, 20, 30, 40],  # x, y, w, h
-            [15, 25, 35, 45]
-        ]
-        boxes_detection = [
-            [12, 22, 28, 38],
-            [16, 26, 36, 46]
-        ]
-        is_crowd = [False, False]
-
-        ious = sv.box_iou_batch_with_jaccard(
-            boxes_true=boxes_true,
-            boxes_detection=boxes_detection,
-            is_crowd=is_crowd
-        )
-        # array([
-        #     [0.8866..., 0.4960...],
-        #     [0.4000..., 0.8622...]
-        # ])
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> boxes_true = [
+        ...     [10, 20, 30, 40],  # x, y, w, h
+        ...     [15, 25, 35, 45]
+        ... ]
+        >>> boxes_detection = [
+        ...     [12, 22, 28, 38],
+        ...     [16, 26, 36, 46]
+        ... ]
+        >>> is_crowd = [False, False]
+        >>> ious = sv.box_iou_batch_with_jaccard(
+        ...     boxes_true=boxes_true,
+        ...     boxes_detection=boxes_detection,
+        ...     is_crowd=is_crowd
+        ... )
+        >>> ious  # doctest: +ELLIPSIS
+        array([[0.886..., 0.496...],
+               [0.4  ..., 0.862...]])
     """
     assert len(is_crowd) == len(boxes_true), (
         "`is_crowd` must have the same length as `boxes_true`"
