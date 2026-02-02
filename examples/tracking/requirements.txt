@@ -1,0 +1,4 @@
+inference
+supervision
+tqdm
+ultralytics

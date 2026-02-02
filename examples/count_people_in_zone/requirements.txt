@@ -1,0 +1,5 @@
+gdown
+inference
+supervision
+tqdm
+ultralytics

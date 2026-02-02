@@ -1,16 +1,17 @@
-import xml.etree.ElementTree as ET
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from test.utils import mock_detections
-from typing import List, Optional
 
 import numpy as np
 import pytest
+from defusedxml import ElementTree
 
 from supervision.dataset.formats.pascal_voc import (
     detections_from_xml_obj,
     object_to_pascal_voc,
     parse_polygon_points,
 )
+from test.helpers import _create_detections
 
 
 def are_xml_elements_equal(elem1, elem2):
@@ -30,13 +31,13 @@ def are_xml_elements_equal(elem1, elem2):
 
 
 @pytest.mark.parametrize(
-    "xyxy, name, polygon, expected_result, exception",
+    ("xyxy", "name", "polygon", "expected_result", "exception"),
     [
         (
             np.array([0, 0, 10, 10]),
             "test",
             None,
-            ET.fromstring(
+            ElementTree.fromstring(
                 """<object><name>test</name><bndbox><xmin>1</xmin><ymin>1</ymin>
                 <xmax>11</xmax><ymax>11</ymax></bndbox></object>"""
             ),
@@ -46,7 +47,7 @@ def are_xml_elements_equal(elem1, elem2):
             np.array([0, 0, 10, 10]),
             "test",
             np.array([[0, 0], [10, 0], [10, 10], [0, 10]]),
-            ET.fromstring(
+            ElementTree.fromstring(
                 """<object><name>test</name><bndbox><xmin>1</xmin><ymin>1</ymin>
                 <xmax>11</xmax><ymax>11</ymax>
                 </bndbox><polygon><x1>1</x1><y1>1</y1><x2>11</x2>
@@ -60,7 +61,7 @@ def are_xml_elements_equal(elem1, elem2):
 def test_object_to_pascal_voc(
     xyxy: np.ndarray,
     name: str,
-    polygon: Optional[np.ndarray],
+    polygon: np.ndarray | None,
     expected_result,
     exception: Exception,
 ):
@@ -70,10 +71,10 @@ def test_object_to_pascal_voc(
 
 
 @pytest.mark.parametrize(
-    "polygon_element, expected_result, exception",
+    ("polygon_element", "expected_result", "exception"),
     [
         (
-            ET.fromstring(
+            ElementTree.fromstring(
                 """<polygon><x1>0</x1><y1>0</y1><x2>10</x2><y2>0</y2><x3>10</x3>
                     <y3>10</y3><x4>0</x4><y4>10</y4></polygon>"""
             ),
@@ -84,7 +85,7 @@ def test_object_to_pascal_voc(
 )
 def test_parse_polygon_points(
     polygon_element,
-    expected_result: List[list],
+    expected_result: list[list],
     exception,
 ):
     with exception:
@@ -115,14 +116,21 @@ NO_DETECTIONS = """<annotation></annotation>"""
 
 
 @pytest.mark.parametrize(
-    "xml_string, classes, resolution_wh, force_masks, expected_result, exception",
+    (
+        "xml_string",
+        "classes",
+        "resolution_wh",
+        "force_masks",
+        "expected_result",
+        "exception",
+    ),
     [
         (
             ONE_CLASS_ONE_BBOX,
             ["test"],
             (100, 100),
             False,
-            mock_detections(np.array([[0, 0, 10, 10]]), None, [0]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
             DoesNotRaise(),
         ),
         (
@@ -130,7 +138,9 @@ NO_DETECTIONS = """<annotation></annotation>"""
             ["test"],
             (100, 100),
             False,
-            mock_detections(np.array([[0, 0, 10, 10], [10, 10, 20, 20]]), None, [0, 0]),
+            _create_detections(
+                xyxy=np.array([[0, 0, 10, 10], [10, 10, 20, 20]]), class_id=[0, 0]
+            ),
             DoesNotRaise(),
         ),
         (
@@ -138,10 +148,9 @@ NO_DETECTIONS = """<annotation></annotation>"""
             ["test", "test2"],
             (100, 100),
             False,
-            mock_detections(
-                np.array([[0, 0, 10, 10], [20, 30, 30, 40], [10, 10, 20, 20]]),
-                None,
-                [0, 0, 1],
+            _create_detections(
+                xyxy=np.array([[0, 0, 10, 10], [20, 30, 30, 40], [10, 10, 20, 20]]),
+                class_id=[0, 0, 1],
             ),
             DoesNotRaise(),
         ),
@@ -150,7 +159,7 @@ NO_DETECTIONS = """<annotation></annotation>"""
             [],
             (100, 100),
             False,
-            mock_detections(np.empty((0, 4)), None, []),
+            _create_detections(xyxy=np.empty((0, 4)), class_id=[]),
             DoesNotRaise(),
         ),
     ],
@@ -159,6 +168,6 @@ def test_detections_from_xml_obj(
     xml_string, classes, resolution_wh, force_masks, expected_result, exception
 ):
     with exception:
-        root = ET.fromstring(xml_string)
+        root = ElementTree.fromstring(xml_string)
         result, _ = detections_from_xml_obj(root, classes, resolution_wh, force_masks)
         assert result == expected_result
