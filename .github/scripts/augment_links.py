@@ -20,8 +20,8 @@ def augment_links_in_file(file_path: str, branch: str = "main") -> None:
     Augment relative links in a markdown file to GitHub URLs.
 
     Args:
-        file_path (str): Path to the markdown file.
-        branch (str): Branch name, default "main".
+        file_path: Path to the markdown file.
+        branch: Branch name, default "main".
     """
     repo_root = get_repo_root()
 
