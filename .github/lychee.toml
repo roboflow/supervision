@@ -1,4 +1,4 @@
-verbose = true
+verbose = "info"
 no_progress = true
 include_verbatim = true
 retry_wait_time = 3
@@ -10,4 +10,5 @@ exclude = [
     "https://sam2.metademolab.com/",  # returns 403 Forbidden
 ]
 
-header = ["x-ratelimit-bypass=$UNIVERSE_RATELIMIT_BYPASS_KEY"]
+[header]
+x-ratelimit-bypass = "$UNIVERSE_RATELIMIT_BYPASS_KEY"
