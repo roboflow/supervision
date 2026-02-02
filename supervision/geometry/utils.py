@@ -1,9 +1,10 @@
 import numpy as np
+import numpy.typing as npt
 
 from supervision.geometry.core import Point
 
 
-def get_polygon_center(polygon: np.ndarray) -> Point:
+def get_polygon_center(polygon: npt.NDArray[np.float64]) -> Point:
     """
     Calculate the center of a polygon. The center is calculated as the center
     of the solid figure formed by the points of the polygon

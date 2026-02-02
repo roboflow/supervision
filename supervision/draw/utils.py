@@ -5,18 +5,19 @@ from typing import cast
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 
 from supervision.draw.color import Color
 from supervision.geometry.core import Point, Rect
 
 
 def draw_line(
-    scene: np.ndarray,
+    scene: npt.NDArray[np.uint8],
     start: Point,
     end: Point,
     color: Color = Color.ROBOFLOW,
     thickness: int = 2,
-) -> np.ndarray:
+) -> npt.NDArray[np.uint8]:
     """
     Draws a line on a given scene.
 
@@ -41,8 +42,11 @@ def draw_line(
 
 
 def draw_rectangle(
-    scene: np.ndarray, rect: Rect, color: Color = Color.ROBOFLOW, thickness: int = 2
-) -> np.ndarray:
+    scene: npt.NDArray[np.uint8],
+    rect: Rect,
+    color: Color = Color.ROBOFLOW,
+    thickness: int = 2,
+) -> npt.NDArray[np.uint8]:
     """
     Draws a rectangle on an image.
 
@@ -66,8 +70,11 @@ def draw_rectangle(
 
 
 def draw_filled_rectangle(
-    scene: np.ndarray, rect: Rect, color: Color = Color.ROBOFLOW, opacity: float = 1
-) -> np.ndarray:
+    scene: npt.NDArray[np.uint8],
+    rect: Rect,
+    color: Color = Color.ROBOFLOW,
+    opacity: float = 1,
+) -> npt.NDArray[np.uint8]:
     """
     Draws a filled rectangle on an image.
 
@@ -105,11 +112,11 @@ def draw_filled_rectangle(
 
 
 def draw_rounded_rectangle(
-    scene: np.ndarray,
+    scene: npt.NDArray[np.uint8],
     rect: Rect,
     color: Color,
     border_radius: int,
-) -> np.ndarray:
+) -> npt.NDArray[np.uint8]:
     """
     Draws a rounded rectangle on an image.
 
@@ -157,11 +164,11 @@ def draw_rounded_rectangle(
 
 
 def draw_polygon(
-    scene: np.ndarray,
-    polygon: np.ndarray,
+    scene: npt.NDArray[np.uint8],
+    polygon: npt.NDArray[np.int_],
     color: Color = Color.ROBOFLOW,
     thickness: int = 2,
-) -> np.ndarray:
+) -> npt.NDArray[np.uint8]:
     """Draw a polygon on a scene.
 
     Parameters:
@@ -180,11 +187,11 @@ def draw_polygon(
 
 
 def draw_filled_polygon(
-    scene: np.ndarray,
-    polygon: np.ndarray,
+    scene: npt.NDArray[np.uint8],
+    polygon: npt.NDArray[np.int_],
     color: Color = Color.ROBOFLOW,
     opacity: float = 1,
-) -> np.ndarray:
+) -> npt.NDArray[np.uint8]:
     """Draw a filled polygon on a scene.
 
     Parameters:
@@ -209,7 +216,7 @@ def draw_filled_polygon(
 
 
 def draw_text(
-    scene: np.ndarray,
+    scene: npt.NDArray[np.uint8],
     text: str,
     text_anchor: Point,
     text_color: Color = Color.BLACK,
@@ -218,7 +225,7 @@ def draw_text(
     text_padding: int = 10,
     text_font: int = cv2.FONT_HERSHEY_SIMPLEX,
     background_color: Color | None = None,
-) -> np.ndarray:
+) -> npt.NDArray[np.uint8]:
     """
     Draw text with background on a scene.
 
@@ -246,7 +253,9 @@ def draw_text(
         >>> from supervision.draw.utils import draw_text
         >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
         >>> text_anchor = Point(x=50, y=50)
-        >>> scene = draw_text(scene=scene, text="Hello, world!", text_anchor=text_anchor)
+        >>> scene = draw_text(
+        ...     scene=scene, text="Hello, world!", text_anchor=text_anchor
+        ... )
         >>> scene.shape
         (100, 100, 3)
     """
@@ -285,8 +294,11 @@ def draw_text(
 
 
 def draw_image(
-    scene: np.ndarray, image: str | np.ndarray, opacity: float, rect: Rect
-) -> np.ndarray:
+    scene: npt.NDArray[np.uint8],
+    image: str | npt.NDArray[np.uint8],
+    opacity: float,
+    rect: Rect,
+) -> npt.NDArray[np.uint8]:
     """
     Draws an image onto a given scene with specified opacity and dimensions.
 
@@ -329,7 +341,7 @@ def draw_image(
 
     # Resize and isolate alpha channel
     image = cv2.resize(image, (rect_width, rect_height))
-    image = cast(np.ndarray, image)
+    image = cast(npt.NDArray[np.uint8], image)
     alpha_channel = (
         image[:, :, 3]
         if image.shape[2] == 4

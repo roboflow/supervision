@@ -45,7 +45,9 @@ class CSVSink:
         ...     class_id=np.array([0, 1])
         ... )
         >>> # Use temporary file
-        >>> temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False)
+        >>> temp_file = tempfile.NamedTemporaryFile(
+        ...     mode='w', suffix='.csv', delete=False
+        ... )
         >>> temp_file.close()
         >>> csv_sink = sv.CSVSink(temp_file.name)
         >>> with csv_sink as sink:

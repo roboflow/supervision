@@ -194,10 +194,14 @@ def box_iou_batch(
         ...     [150, 150, 250, 250],
         ...     [320, 320, 420, 420]
         ... ])
-        >>> sv.box_iou_batch(boxes_true, boxes_detection, overlap_metric=sv.OverlapMetric.IOU)
+        >>> sv.box_iou_batch(
+        ...     boxes_true, boxes_detection, overlap_metric=sv.OverlapMetric.IOU
+        ... )
         array([[0.14285..., 0.        ],
                [0.        , 0.47058...]], dtype=float32)
-        >>> sv.box_iou_batch(boxes_true, boxes_detection, overlap_metric=sv.OverlapMetric.IOS)
+        >>> sv.box_iou_batch(
+        ...     boxes_true, boxes_detection, overlap_metric=sv.OverlapMetric.IOS
+        ... )
         array([[0.25, 0.  ],
                [0.  , 0.64]], dtype=float32)
     """

@@ -113,7 +113,7 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     width_old, height_old = image.shape[1], image.shape[0]
     width_new = int(width_old * scale_factor)
     height_new = int(height_old * scale_factor)
-    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)  # type: ignore
+    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
 
 
 @ensure_cv2_image_for_standalone_function
@@ -170,7 +170,7 @@ def resize_image(
     else:
         width_new, height_new = resolution_wh
 
-    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)  # type: ignore
+    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
 
 
 @ensure_cv2_image_for_standalone_function
@@ -233,7 +233,7 @@ def letterbox_image(
         image[:, :padding_left, 3] = 0
         image[:, width_new - padding_right :, 3] = 0
 
-    return image_with_borders  # type: ignore
+    return image_with_borders
 
 
 @deprecated(
@@ -378,7 +378,7 @@ def grayscale_image(image: ImageType) -> ImageType:
     ![grayscale-image](https://media.roboflow.com/supervision-docs/supervision-docs-grayscale-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
     grayscaled = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    return cv2.cvtColor(grayscaled, cv2.COLOR_GRAY2BGR)  # type: ignore
+    return cv2.cvtColor(grayscaled, cv2.COLOR_GRAY2BGR)
 
 
 def get_image_resolution_wh(image: ImageType) -> tuple[int, int]:

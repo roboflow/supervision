@@ -307,7 +307,8 @@ class ColorPalette:
 
         Example:
             >>> import supervision as sv
-            >>> sv.ColorPalette.from_hex(['#ff0000', '#00ff00', '#0000ff'])  # doctest: +ELLIPSIS
+            >>> colors = ['#ff0000', '#00ff00', '#0000ff']
+            >>> sv.ColorPalette.from_hex(colors)  # doctest: +ELLIPSIS
             ColorPalette(colors=[Color(r=255, g=0, b=0), Color(r=0, g=255, b=0), ...])
         """
         colors = [Color.from_hex(color_hex) for color_hex in color_hex_list]
@@ -356,7 +357,8 @@ class ColorPalette:
 
         Example:
             >>> import supervision as sv
-            >>> color_palette = sv.ColorPalette.from_hex(['#ff0000', '#00ff00', '#0000ff'])
+            >>> colors = ['#ff0000', '#00ff00', '#0000ff']
+            >>> color_palette = sv.ColorPalette.from_hex(colors)
             >>> color_palette.by_idx(1)
             Color(r=0, g=255, b=0)
         """
