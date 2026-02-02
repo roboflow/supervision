@@ -2618,7 +2618,7 @@ model.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="2:3"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Inference</label><label for="__tabbed_2_2">Ultralytics</label><label for="__tabbed_2_3">Transformers</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
-<p>We can do so using the <a href="/latest/detection/core/#supervision.detection.core.Detections.from_inference"><code>sv.Detections.from_inference</code></a> method, which accepts model results from both detection and segmentation models.</p>
+<p>We can do so using the <a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_inference"><code>sv.Detections.from_inference</code></a> method, which accepts model results from both detection and segmentation models.</p>
 <div class="language-py highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="hll"><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span></span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">inference</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_model</span>
@@ -2630,7 +2630,7 @@ model.</p>
 </span></span></code></pre></div>
 </div>
 <div class="tabbed-block">
-<p>We can do so using the <a href="/latest/detection/core/#supervision.detection.core.Detections.from_ultralytics"><code>sv.Detections.from_ultralytics</code></a> method, which accepts model results from both detection and segmentation models.</p>
+<p>We can do so using the <a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_ultralytics"><code>sv.Detections.from_ultralytics</code></a> method, which accepts model results from both detection and segmentation models.</p>
 <div class="language-py highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="hll"><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span></span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
@@ -2642,7 +2642,7 @@ model.</p>
 </span></span></code></pre></div>
 </div>
 <div class="tabbed-block">
-<p>We can do so using the <a href="/latest/detection/core/#supervision.detection.core.Detections.from_transformers"><code>sv.Detections.from_transformers</code></a> method, which accepts model results from both detection and segmentation models.</p>
+<p>We can do so using the <a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_transformers"><code>sv.Detections.from_transformers</code></a> method, which accepts model results from both detection and segmentation models.</p>
 <div class="language-py highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="hll"><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span></span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
@@ -2670,14 +2670,14 @@ model.</p>
 </div>
 <p>You can load predictions from other computer vision frameworks and libraries using:</p>
 <ul>
-<li><a href="/latest/detection/core/#supervision.detection.core.Detections.from_deepsparse"><code>from_deepsparse</code></a> (<a href="https://github.com/neuralmagic/deepsparse">Deepsparse</a>)</li>
-<li><a href="/latest/detection/core/#supervision.detection.core.Detections.from_detectron2"><code>from_detectron2</code></a> (<a href="https://github.com/facebookresearch/detectron2">Detectron2</a>)</li>
-<li><a href="/latest/detection/core/#supervision.detection.core.Detections.from_mmdetection"><code>from_mmdetection</code></a> (<a href="https://github.com/open-mmlab/mmdetection">MMDetection</a>)</li>
-<li><a href="/latest/detection/core/#supervision.detection.core.Detections.from_sam"><code>from_sam</code></a> (<a href="https://github.com/facebookresearch/segment-anything">Segment Anything Model</a>)</li>
-<li><a href="/latest/detection/core/#supervision.detection.core.Detections.from_yolo_nas"><code>from_yolo_nas</code></a> (<a href="https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md">YOLO-NAS</a>)</li>
+<li><a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_deepsparse"><code>from_deepsparse</code></a> (<a href="https://github.com/neuralmagic/deepsparse">Deepsparse</a>)</li>
+<li><a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_detectron2"><code>from_detectron2</code></a> (<a href="https://github.com/facebookresearch/detectron2">Detectron2</a>)</li>
+<li><a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_mmdetection"><code>from_mmdetection</code></a> (<a href="https://github.com/open-mmlab/mmdetection">MMDetection</a>)</li>
+<li><a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_sam"><code>from_sam</code></a> (<a href="https://github.com/facebookresearch/segment-anything">Segment Anything Model</a>)</li>
+<li><a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_yolo_nas"><code>from_yolo_nas</code></a> (<a href="https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md">YOLO-NAS</a>)</li>
 </ul>
 <h2 id="annotate-image-with-detections">Annotate Image with Detections<a class="headerlink" href="#annotate-image-with-detections" title="Permanent link">&para;</a></h2>
-<p>Finally, we can annotate the image with the predictions. Since we are working with an object detection model, we will use the <a href="/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator"><code>sv.BoxAnnotator</code></a> and <a href="/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator"><code>sv.LabelAnnotator</code></a> classes.</p>
+<p>Finally, we can annotate the image with the predictions. Since we are working with an object detection model, we will use the <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator"><code>sv.BoxAnnotator</code></a> and <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator"><code>sv.LabelAnnotator</code></a> classes.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="3:3"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><input id="__tabbed_3_3" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">Inference</label><label for="__tabbed_3_2">Ultralytics</label><label for="__tabbed_3_3">Transformers</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -2754,7 +2754,7 @@ model.</p>
 </div>
 <p><img alt="basic-annotation" src="https://media.roboflow.com/supervision_detect_and_annotate_example_1.png" /></p>
 <h2 id="display-custom-labels">Display Custom Labels<a class="headerlink" href="#display-custom-labels" title="Permanent link">&para;</a></h2>
-<p>By default, <a href="/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator"><code>sv.LabelAnnotator</code></a>
+<p>By default, <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator"><code>sv.LabelAnnotator</code></a>
 will label each detection with its <code>class_name</code> (if possible) or <code>class_id</code>. You can
 override this behavior by passing a list of custom <code>labels</code> to the <code>annotate</code> method.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="4:3"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><input id="__tabbed_4_3" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">Inference</label><label for="__tabbed_4_2">Ultralytics</label><label for="__tabbed_4_3">Transformers</label></div>
@@ -2852,9 +2852,9 @@ override this behavior by passing a list of custom <code>labels</code> to the <c
 <p><img alt="custom-label-annotation" src="https://media.roboflow.com/supervision_detect_and_annotate_example_2.png" /></p>
 <h2 id="annotate-image-with-segmentations">Annotate Image with Segmentations<a class="headerlink" href="#annotate-image-with-segmentations" title="Permanent link">&para;</a></h2>
 <p>If you are running the segmentation model
-<a href="/latest/detection/annotators/#supervision.annotators.core.MaskAnnotator"><code>sv.MaskAnnotator</code></a>
+<a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.MaskAnnotator"><code>sv.MaskAnnotator</code></a>
 is a drop-in replacement for
-<a href="/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator"><code>sv.BoxAnnotator</code></a>
+<a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator"><code>sv.BoxAnnotator</code></a>
 that will allow you to draw masks instead of boxes.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="5:3"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><input id="__tabbed_5_2" name="__tabbed_5" type="radio" /><input id="__tabbed_5_3" name="__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="__tabbed_5_1">Inference</label><label for="__tabbed_5_2">Ultralytics</label><label for="__tabbed_5_3">Transformers</label></div>
 <div class="tabbed-content">
@@ -2959,7 +2959,7 @@ that will allow you to draw masks instead of boxes.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 27, 2024 11:17:34 UTC">September 27, 2024</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 2, 2026 16:01:19 UTC">February 2, 2026</span>
   </span>
 
     
@@ -2987,6 +2987,16 @@ that will allow you to draw masks instead of boxes.</p>
     
     <nav>
       
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+          
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+        </a>
+      
+        <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
+          
+          <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
+        </a>
+      
         <a href="https://github.com/onuralpszr" class="md-author" title="@onuralpszr">
           
           <img src="https://avatars.githubusercontent.com/u/1688848?v=4&size=72" alt="onuralpszr">
@@ -2997,21 +3007,11 @@ that will allow you to draw masks instead of boxes.</p>
           <img src="https://avatars.githubusercontent.com/u/6500785?v=4&size=72" alt="LinasKo">
         </a>
       
-        <a href="https://github.com/SkalskiP" class="md-author" title="@SkalskiP">
-          
-          <img src="https://avatars.githubusercontent.com/u/26109316?v=4&size=72" alt="SkalskiP">
-        </a>
-      
-        <a href="https://github.com/apps/pre-commit-ci" class="md-author" title="@pre-commit-ci[bot]">
-          
-          <img src="https://avatars.githubusercontent.com/in/68672?v=4&size=72" alt="pre-commit-ci[bot]">
-        </a>
-      
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/how_to/detect_and_annotate.md" class="md-author md-author--more">
-            +2
+            +6
           </a>
         
       
