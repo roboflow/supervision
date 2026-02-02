@@ -338,7 +338,7 @@ class ConfusionMatrix:
             # np.lexsort sorts by the last key first, in ascending order.
             # We use ~class_matches so that True becomes 0 and False becomes 1 (True first),
             # and -ious so that larger IoUs come first.
-            sort_indices = np.lexsort(( -ious, ~class_matches ))
+            sort_indices = np.lexsort((-ious, ~class_matches))
 
             # Build list of matches in the same format as before:
             # (gt_idx, det_idx, iou, class_match)
