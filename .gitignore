@@ -153,3 +153,6 @@ Desktop.ini
 *~
 .directory
 .Trash-*
+
+# local data
+data/

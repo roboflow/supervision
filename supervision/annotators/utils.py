@@ -273,30 +273,27 @@ def snap_boxes(
         A numpy array of shape `(N, 4)` with boxes shifted into frame.
 
     Examples:
-    ```python
-    import numpy as np
+        >>> import numpy as np
+        >>> from supervision.annotators.utils import snap_boxes
 
-    # Example boxes:
-    xyxy = np.array([
-        [-10, 10, 30, 50],     # Off left edge
-        [310, 200, 350, 250],  # Off right edge
-        [100, -20, 150, 30],   # Off top edge
-        [200, 220, 250, 270],  # Off bottom edge
-        [-20, 10, 350, 50],    # Wider than frame (370 vs 320)
-        [10, -20, 30, 260]     # Taller than frame (280 vs 240)
-    ])
-
-    resolution_wh = (320, 240)
-    snapped_boxes = snap_boxes(xyxy=xyxy, resolution_wh=resolution_wh)
-
-    # Results:
-    # [[  0  10  40  50]  # Left edge shifted right
-    #  [280 200 320 250]  # Right edge shifted left
-    #  [100   0 150  50]  # Top edge shifted down
-    #  [200 190 250 240]  # Bottom edge shifted up
-    #  [  0  10 370  50]  # Wide box aligned to left edge
-    #  [ 10   0  30 280]] # Tall box aligned to top edge
-    ```
+        Example boxes:
+        >>> xyxy = np.array([
+        ...     [-10, 10, 30, 50],     # Off left edge
+        ...     [310, 200, 350, 250],  # Off right edge
+        ...     [100, -20, 150, 30],   # Off top edge
+        ...     [200, 220, 250, 270],  # Off bottom edge
+        ...     [-20, 10, 350, 50],    # Wider than frame (370 vs 320)
+        ...     [10, -20, 30, 260]     # Taller than frame (280 vs 240)
+        ... ])
+        >>> resolution_wh = (320, 240)
+        >>> snapped_boxes = snap_boxes(xyxy=xyxy, resolution_wh=resolution_wh)
+        >>> snapped_boxes
+        array([[  0.,  10.,  40.,  50.],
+               [280., 190., 320., 240.],
+               [100.,   0., 150.,  50.],
+               [200., 190., 250., 240.],
+               [  0.,  10., 370.,  50.],
+               [ 10.,   0.,  30., 280.]], dtype=float32)
     """
     result = np.copy(xyxy)
     width, height = resolution_wh

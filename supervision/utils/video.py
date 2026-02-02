@@ -5,7 +5,7 @@ import time
 from collections import deque
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
-from queue import Queue
+from queue import Empty, Full, Queue
 from typing import Any
 
 import cv2
@@ -265,7 +265,7 @@ def process_video(
         process_video(
             source_path="source.mp4",
             target_path="target.mp4",
-            callback=frame_callback,
+            callback=callback,
         )
         ```
     """
@@ -316,22 +316,52 @@ def process_video(
             desc=progress_message,
         )
 
+        exception_in_worker: Exception | None = None
+        read_finished = False
+
         try:
             while True:
                 read_item = frame_read_queue.get()
                 if read_item is None:
+                    read_finished = True
                     break
 
                 frame_index, frame = read_item
-                processed_frame = callback(frame, frame_index)
-
-                frame_write_queue.put(processed_frame)
-                progress_bar.update(1)
+                try:
+                    processed_frame = callback(frame, frame_index)
+                    frame_write_queue.put(processed_frame)
+                    progress_bar.update(1)
+                except Exception as exc:
+                    exception_in_worker = exc
+                    break
         finally:
-            frame_write_queue.put(None)
-            reader_worker.join()
-            writer_worker.join()
+            try:
+                frame_write_queue.put(None, timeout=1)
+            except Full:
+                # Queue is full; this is a best-effort attempt to enqueue the sentinel.
+                # If we cannot enqueue it, the writer thread will still complete based
+                # on previously queued frames or other shutdown conditions.
+                pass
+            if not read_finished:
+                while True:
+                    # Use timeout to prevent indefinite blocking if reader thread fails
+                    try:
+                        read_item = frame_read_queue.get(timeout=1)
+                        if read_item is None:
+                            break
+                    # If we timeout waiting for a frame, only assume failure if reader
+                    # thread is no longer alive. Otherwise, keep waiting as the reader
+                    # may simply be slow (for example, due to a slow source).
+                    except Empty:
+                        if not reader_worker.is_alive():
+                            break
+                        # Reader is still alive; continue waiting for frames.
+                        continue
+            reader_worker.join(timeout=10)
+            writer_worker.join(timeout=10)
             progress_bar.close()
+            if exception_in_worker is not None:
+                raise exception_in_worker
 
 
 class FPSMonitor:

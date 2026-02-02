@@ -23,23 +23,17 @@ def clip_boxes(xyxy: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
             within the frame resolution.
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
-
-        xyxy = np.array([
-            [10, 20, 300, 200],
-            [15, 25, 350, 450],
-            [-10, -20, 30, 40]
-        ])
-
-        sv.clip_boxes(xyxy=xyxy, resolution_wh=(320, 240))
-        # array([
-        #     [ 10,  20, 300, 200],
-        #     [ 15,  25, 320, 240],
-        #     [  0,   0,  30,  40]
-        # ])
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> xyxy = np.array([
+        ...     [10, 20, 300, 200],
+        ...     [15, 25, 350, 450],
+        ...     [-10, -20, 30, 40]
+        ... ])
+        >>> sv.clip_boxes(xyxy=xyxy, resolution_wh=(320, 240))
+        array([[ 10,  20, 300, 200],
+               [ 15,  25, 320, 240],
+               [  0,   0,  30,  40]])
     """
     result = np.copy(xyxy)
     width, height = resolution_wh
@@ -68,21 +62,15 @@ def pad_boxes(xyxy: np.ndarray, px: int, py: int | None = None) -> np.ndarray:
             values.
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
-
-        xyxy = np.array([
-            [10, 20, 30, 40],
-            [15, 25, 35, 45]
-        ])
-
-        sv.pad_boxes(xyxy=xyxy, px=5, py=10)
-        # array([
-        #     [ 5, 10, 35, 50],
-        #     [10, 15, 40, 55]
-        # ])
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> xyxy = np.array([
+        ...     [10, 20, 30, 40],
+        ...     [15, 25, 35, 45]
+        ... ])
+        >>> sv.pad_boxes(xyxy=xyxy, px=5, py=10)
+        array([[ 5, 10, 35, 50],
+               [10, 15, 40, 55]])
     """
     if py is None:
         py = px
@@ -119,37 +107,23 @@ def denormalize_boxes(
             `(x_min, y_min, x_max, y_max)` format.
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> xyxy = np.array([
+        ...     [0.1, 0.2, 0.5, 0.6],
+        ...     [0.3, 0.4, 0.7, 0.8],
+        ...     [0.2, 0.1, 0.6, 0.5]
+        ... ])
+        >>> sv.denormalize_boxes(xyxy, (1280, 720))
+        array([[128., 144., 640., 432.],
+               [384., 288., 896., 576.],
+               [256.,  72., 768., 360.]])
 
-        xyxy = np.array([
-            [0.1, 0.2, 0.5, 0.6],
-            [0.3, 0.4, 0.7, 0.8],
-            [0.2, 0.1, 0.6, 0.5]
-        ])
-
-        sv.denormalize_boxes(xyxy, (1280, 720))
-        # array([
-        #     [128., 144., 640., 432.],
-        #     [384., 288., 896., 576.],
-        #     [256.,  72., 768., 360.]
-        # ])
-        ```
-
-        ```
-        import numpy as np
-        import supervision as sv
-
-        xyxy = np.array([
-            [256., 128., 768., 640.]
-        ])
-
-        sv.denormalize_boxes(xyxy, (1280, 720), normalization_factor=1024.0)
-        # array([
-        #     [320.,  90., 960., 450.]
-        # ])
-        ```
+        >>> xyxy = np.array([
+        ...     [256., 128., 768., 640.]
+        ... ])
+        >>> sv.denormalize_boxes(xyxy, (1280, 720), normalization_factor=1024.0)
+        array([[320.,  90., 960., 450.]])
     """
     width, height = resolution_wh
     result = xyxy.copy()
@@ -174,22 +148,16 @@ def move_boxes(
         npt.NDArray[np.float64]: Repositioned bounding boxes.
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
-
-        xyxy = np.array([
-            [10, 10, 20, 20],
-            [30, 30, 40, 40]
-        ])
-        offset = np.array([5, 5])
-
-        sv.move_boxes(xyxy=xyxy, offset=offset)
-        # array([
-        #    [15, 15, 25, 25],
-        #    [35, 35, 45, 45]
-        # ])
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> xyxy = np.array([
+        ...     [10, 10, 20, 20],
+        ...     [30, 30, 40, 40]
+        ... ])
+        >>> offset = np.array([5, 5])
+        >>> sv.move_boxes(xyxy=xyxy, offset=offset)
+        array([[15, 15, 25, 25],
+               [35, 35, 45, 45]])
     """
     return xyxy + np.hstack([offset, offset])
 
@@ -209,42 +177,33 @@ def move_oriented_boxes(
     npt.NDArray[np.float64]: Repositioned bounding boxes.
 
     Examples:
-    ```python
-    import numpy as np
-    import supervision as sv
-
-    xyxyxyxy = np.array([
-        [
-            [20, 10],
-            [10, 20],
-            [20, 30],
-            [30, 20]
-        ],
-        [
-            [30 ,30],
-            [20, 40],
-            [30, 50],
-            [40, 40]
-        ]
-    ])
-    offset = np.array([5, 5])
-
-    sv.move_oriented_boxes(xyxy=xyxy, offset=offset)
-    # array([
-    #     [
-    #         [25, 15],
-    #         [15, 25],
-    #         [25, 35],
-    #         [35, 25]
-    #     ],
-    #     [
-    #         [35, 35],
-    #         [25, 45],
-    #         [35, 55],
-    #         [45, 45]
-    #     ]
-    # ])
-    ```
+        >>> import numpy as np
+        >>> from supervision.detection.utils.boxes import move_oriented_boxes
+        >>> xyxyxyxy = np.array([
+        ...     [
+        ...         [20, 10],
+        ...         [10, 20],
+        ...         [20, 30],
+        ...         [30, 20]
+        ...     ],
+        ...     [
+        ...         [30, 30],
+        ...         [20, 40],
+        ...         [30, 50],
+        ...         [40, 40]
+        ...     ]
+        ... ])
+        >>> offset = np.array([5, 5])
+        >>> move_oriented_boxes(xyxyxyxy=xyxyxyxy, offset=offset)
+        array([[[25, 15],
+                [15, 25],
+                [25, 35],
+                [35, 25]],
+        <BLANKLINE>
+               [[35, 35],
+                [25, 45],
+                [35, 55],
+                [45, 45]]])
     """
     return xyxyxyxy + offset
 
@@ -266,21 +225,15 @@ def scale_boxes(
         npt.NDArray[np.float64]: Scaled bounding boxes.
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
-
-        xyxy = np.array([
-            [10, 10, 20, 20],
-            [30, 30, 40, 40]
-        ])
-
-        sv.scale_boxes(xyxy=xyxy, factor=1.5)
-        # array([
-        #    [ 7.5,  7.5, 22.5, 22.5],
-        #    [27.5, 27.5, 42.5, 42.5]
-        # ])
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> xyxy = np.array([
+        ...     [10, 10, 20, 20],
+        ...     [30, 30, 40, 40]
+        ... ])
+        >>> sv.scale_boxes(xyxy=xyxy, factor=1.5)
+        array([[ 7.5,  7.5, 22.5, 22.5],
+               [27.5, 27.5, 42.5, 42.5]])
     """
     centers = (xyxy[:, :2] + xyxy[:, 2:]) / 2
     new_sizes = (xyxy[:, 2:] - xyxy[:, :2]) * factor

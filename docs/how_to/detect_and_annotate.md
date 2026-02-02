@@ -65,7 +65,7 @@ model.
 Now that we have predictions from a model, we can load them into Supervision.
 
 === "Inference"
-    We can do so using the [`sv.Detections.from_inference`](/latest/detection/core/#supervision.detection.core.Detections.from_inference) method, which accepts model results from both detection and segmentation models.
+    We can do so using the [`sv.Detections.from_inference`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_inference) method, which accepts model results from both detection and segmentation models.
 
     ```{ .py hl_lines="2 8" }
     import cv2
@@ -79,7 +79,7 @@ Now that we have predictions from a model, we can load them into Supervision.
     ```
 
 === "Ultralytics"
-    We can do so using the [`sv.Detections.from_ultralytics`](/latest/detection/core/#supervision.detection.core.Detections.from_ultralytics) method, which accepts model results from both detection and segmentation models.
+    We can do so using the [`sv.Detections.from_ultralytics`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_ultralytics) method, which accepts model results from both detection and segmentation models.
 
     ```{ .py hl_lines="2 8" }
     import cv2
@@ -93,7 +93,7 @@ Now that we have predictions from a model, we can load them into Supervision.
     ```
 
 === "Transformers"
-    We can do so using the [`sv.Detections.from_transformers`](/latest/detection/core/#supervision.detection.core.Detections.from_transformers) method, which accepts model results from both detection and segmentation models.
+    We can do so using the [`sv.Detections.from_transformers`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_transformers) method, which accepts model results from both detection and segmentation models.
 
     ```{ .py hl_lines="2 19-21" }
     import torch
@@ -121,15 +121,15 @@ Now that we have predictions from a model, we can load them into Supervision.
 
 You can load predictions from other computer vision frameworks and libraries using:
 
-- [`from_deepsparse`](/latest/detection/core/#supervision.detection.core.Detections.from_deepsparse) ([Deepsparse](https://github.com/neuralmagic/deepsparse))
-- [`from_detectron2`](/latest/detection/core/#supervision.detection.core.Detections.from_detectron2) ([Detectron2](https://github.com/facebookresearch/detectron2))
-- [`from_mmdetection`](/latest/detection/core/#supervision.detection.core.Detections.from_mmdetection) ([MMDetection](https://github.com/open-mmlab/mmdetection))
-- [`from_sam`](/latest/detection/core/#supervision.detection.core.Detections.from_sam) ([Segment Anything Model](https://github.com/facebookresearch/segment-anything))
-- [`from_yolo_nas`](/latest/detection/core/#supervision.detection.core.Detections.from_yolo_nas) ([YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md))
+- [`from_deepsparse`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_deepsparse) ([Deepsparse](https://github.com/neuralmagic/deepsparse))
+- [`from_detectron2`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_detectron2) ([Detectron2](https://github.com/facebookresearch/detectron2))
+- [`from_mmdetection`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_mmdetection) ([MMDetection](https://github.com/open-mmlab/mmdetection))
+- [`from_sam`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_sam) ([Segment Anything Model](https://github.com/facebookresearch/segment-anything))
+- [`from_yolo_nas`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_yolo_nas) ([YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md))
 
 ## Annotate Image with Detections
 
-Finally, we can annotate the image with the predictions. Since we are working with an object detection model, we will use the [`sv.BoxAnnotator`](/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator) and [`sv.LabelAnnotator`](/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator) classes.
+Finally, we can annotate the image with the predictions. Since we are working with an object detection model, we will use the [`sv.BoxAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator) and [`sv.LabelAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator) classes.
 
 === "Inference"
     ```{ .py hl_lines="10-16" }
@@ -208,7 +208,7 @@ Finally, we can annotate the image with the predictions. Since we are working wi
 
 ## Display Custom Labels
 
-By default, [`sv.LabelAnnotator`](/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator)
+By default, [`sv.LabelAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator)
 will label each detection with its `class_name` (if possible) or `class_id`. You can
 override this behavior by passing a list of custom `labels` to the `annotate` method.
 
@@ -308,9 +308,9 @@ override this behavior by passing a list of custom `labels` to the `annotate` me
 ## Annotate Image with Segmentations
 
 If you are running the segmentation model
-[`sv.MaskAnnotator`](/latest/detection/annotators/#supervision.annotators.core.MaskAnnotator)
+[`sv.MaskAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.MaskAnnotator)
 is a drop-in replacement for
-[`sv.BoxAnnotator`](/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator)
+[`sv.BoxAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator)
 that will allow you to draw masks instead of boxes.
 
 === "Inference"

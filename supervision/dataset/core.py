@@ -165,14 +165,22 @@ class DetectionDataset(BaseDataset):
                 the training and testing datasets.
 
         Examples:
-            ```python
-            import supervision as sv
-
-            ds = sv.DetectionDataset(...)
-            train_ds, test_ds = ds.split(split_ratio=0.7, random_state=42, shuffle=True)
-            len(train_ds), len(test_ds)
-            # (700, 300)
-            ```
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> ds = sv.DetectionDataset(
+            ...     classes=['dog', 'person'],
+            ...     images={
+            ...         'img1.jpg': np.zeros((100, 100, 3), dtype=np.uint8),
+            ...         'img2.jpg': np.zeros((100, 100, 3), dtype=np.uint8),
+            ...     },
+            ...     annotations={
+            ...         'img1.jpg': sv.Detections(xyxy=np.array([[10, 10, 20, 20]])),
+            ...         'img2.jpg': sv.Detections(xyxy=np.array([[30, 30, 40, 40]])),
+            ...     }
+            ... )
+            >>> train_ds, test_ds = ds.split(split_ratio=0.5, random_state=42)
+            >>> len(train_ds), len(test_ds)
+            (1, 1)
         """
 
         train_paths, test_paths = train_test_split(
@@ -224,27 +232,31 @@ class DetectionDataset(BaseDataset):
             the merged data from the input list.
 
         Examples:
-            ```python
-            import supervision as sv
-
-            ds_1 = sv.DetectionDataset(...)
-            len(ds_1)
-            # 100
-            ds_1.classes
-            # ['dog', 'person']
-
-            ds_2 = sv.DetectionDataset(...)
-            len(ds_2)
-            # 200
-            ds_2.classes
-            # ['cat']
-
-            ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
-            len(ds_merged)
-            # 300
-            ds_merged.classes
-            # ['cat', 'dog', 'person']
-            ```
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> ds_1 = sv.DetectionDataset(
+            ...     classes=['dog', 'person'],
+            ...     images={'img1.jpg': np.zeros((100, 100, 3), dtype=np.uint8)},
+            ...     annotations={'img1.jpg': sv.Detections.empty()}
+            ... )
+            >>> len(ds_1)
+            1
+            >>> ds_1.classes
+            ['dog', 'person']
+            >>> ds_2 = sv.DetectionDataset(
+            ...     classes=['cat'],
+            ...     images={'img2.jpg': np.zeros((100, 100, 3), dtype=np.uint8)},
+            ...     annotations={'img2.jpg': sv.Detections.empty()}
+            ... )
+            >>> len(ds_2)
+            1
+            >>> ds_2.classes
+            ['cat']
+            >>> ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
+            >>> len(ds_merged)
+            2
+            >>> ds_merged.classes
+            ['cat', 'dog', 'person']
         """
 
         def is_in_memory(dataset: DetectionDataset) -> bool:
@@ -748,14 +760,22 @@ class ClassificationDataset(BaseDataset):
             the training and testing datasets.
 
         Examples:
-            ```python
-            import supervision as sv
-
-            cd = sv.ClassificationDataset(...)
-            train_cd,test_cd = cd.split(split_ratio=0.7, random_state=42,shuffle=True)
-            len(train_cd), len(test_cd)
-            # (700, 300)
-            ```
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> cd = sv.ClassificationDataset(
+            ...     classes=['cat', 'dog'],
+            ...     images={
+            ...         'img1.jpg': np.zeros((100, 100, 3), dtype=np.uint8),
+            ...         'img2.jpg': np.zeros((100, 100, 3), dtype=np.uint8),
+            ...     },
+            ...     annotations={
+            ...         'img1.jpg': sv.Classifications(class_id=np.array([0])),
+            ...         'img2.jpg': sv.Classifications(class_id=np.array([1])),
+            ...     }
+            ... )
+            >>> train_cd, test_cd = cd.split(split_ratio=0.5, random_state=42)
+            >>> len(train_cd), len(test_cd)
+            (1, 1)
         """
         train_paths, test_paths = train_test_split(
             data=self.image_paths,
