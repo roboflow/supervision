@@ -494,9 +494,9 @@ def test_compute_average_precision(
             ],
             [_create_detections(xyxy=[[0, 0, 2, 2]], class_id=[0])],  # GT bboxes
             [0, 1, 2],  # Class ids
-            0.5,        # Confidence Threshold
-            0.5,        # IOU Threshold
-            np.array(   # Expected confusion matrix
+            0.5,  # Confidence Threshold
+            0.5,  # IOU Threshold
+            np.array(  # Expected confusion matrix
                 [
                     [1.0, 0.0, 0.0, 0.0],  # 1 TP
                     [0.0, 0.0, 0.0, 0.0],  # none
