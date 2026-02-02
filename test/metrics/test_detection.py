@@ -486,17 +486,17 @@ def test_compute_average_precision(
         # Test 1: Class priority over IoU - correct class with lower IoU should win
         (
             [
-                _create_detections(
+                _create_detections(  # Predicted bboxes
                     xyxy=[[0.1, 0.1, 2.1, 2.1], [0.0, 0.0, 2.0, 2.0]],
                     class_id=[0, 1],
                     confidence=[0.9, 0.95],
                 )
             ],
-            [_create_detections(xyxy=[[0, 0, 2, 2]], class_id=[0])],
-            [0, 1, 2],
-            0.5,
-            0.5,
-            np.array(
+            [_create_detections(xyxy=[[0, 0, 2, 2]], class_id=[0])],  # GT bboxes
+            [0, 1, 2],  # Class ids
+            0.5,        # Confidence Threshold
+            0.5,        # IOU Threshold
+            np.array(   # Expected confusion matrix
                 [
                     [1.0, 0.0, 0.0, 0.0],  # 1 TP
                     [0.0, 0.0, 0.0, 0.0],  # none
@@ -557,11 +557,11 @@ def test_compute_average_precision(
             ),
             DoesNotRaise(),
         ),
-        # Test 4: IoU threshold boundary cases (IoU = 0.5 exactly)
+        # Test 4: IoU threshold boundary cases (IoU = 0.5625, slightly above threshold)
         (
             [
                 _create_detections(
-                    xyxy=[[0, 0, 1.5, 1.5], [4, 4, 5.5, 5.5]],  # IoU = 0.5 for both
+                    xyxy=[[0, 0, 1.5, 1.5], [4, 4, 5.5, 5.5]],  # IoU = 0.5625 for both
                     class_id=[0, 1],
                     confidence=[0.9, 0.8],
                 )
@@ -572,8 +572,8 @@ def test_compute_average_precision(
             0.5,
             np.array(
                 [
-                    [1.0, 0.0, 0.0, 0.0],  # 1 TP (IoU = 0.5 meets threshold)
-                    [0.0, 1.0, 0.0, 0.0],  # 1 TP (IoU = 0.5 meets threshold)
+                    [1.0, 0.0, 0.0, 0.0],  # 1 TP (IoU exceeds threshold)
+                    [0.0, 1.0, 0.0, 0.0],  # 1 TP (IoU exceeds threshold)
                     [0.0, 0.0, 0.0, 0.0],  # none
                     [0.0, 0.0, 0.0, 0.0],  # none
                 ]
