@@ -321,20 +321,36 @@ class ConfusionMatrix:
         )
 
         # Find all valid matches (IoU > threshold, regardless of class)
-        valid_matches = []
-        for gt_idx in range(len(true_classes)):
-            for det_idx in range(len(detection_classes)):
-                iou = iou_batch[gt_idx, det_idx]
-                if iou > iou_threshold:
-                    gt_class = true_classes[gt_idx]
-                    det_class = detection_classes[det_idx]
-                    class_match = gt_class == det_class
-                    valid_matches.append((gt_idx, det_idx, iou, class_match))
+        # Use vectorized operations to avoid nested Python loops
+        iou_mask = iou_batch > iou_threshold
+        gt_indices, det_indices = np.nonzero(iou_mask)
 
-        # Sort matches by class match first (True before False), then by IoU descending
-        # This prioritizes correct class predictions over higher IoU with wrong class
-        valid_matches.sort(key=lambda x: (x[3], x[2]), reverse=True)
+        # If no pairs exceed the IoU threshold, skip matching
+        if gt_indices.size == 0:
+            valid_matches = []
+        else:
+            ious = iou_batch[gt_indices, det_indices]
+            gt_match_classes = true_classes[gt_indices]
+            det_match_classes = detection_classes[det_indices]
+            class_matches = gt_match_classes == det_match_classes
 
+            # Sort matches by class match first (True before False), then by IoU descending.
+            # np.lexsort sorts by the last key first, in ascending order.
+            # We use ~class_matches so that True becomes 0 and False becomes 1 (True first),
+            # and -ious so that larger IoUs come first.
+            sort_indices = np.lexsort(( -ious, ~class_matches ))
+
+            # Build list of matches in the same format as before:
+            # (gt_idx, det_idx, iou, class_match)
+            valid_matches = [
+                (
+                    int(gt_indices[idx]),
+                    int(det_indices[idx]),
+                    float(ious[idx]),
+                    bool(class_matches[idx]),
+                )
+                for idx in sort_indices
+            ]
         # Greedily assign matches, ensuring each GT
         # and detection is matched at most once
         matched_gt_idx = set()
