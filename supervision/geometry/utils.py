@@ -1,9 +1,10 @@
 import numpy as np
+import numpy.typing as npt
 
 from supervision.geometry.core import Point
 
 
-def get_polygon_center(polygon: np.ndarray) -> Point:
+def get_polygon_center(polygon: npt.NDArray[np.float64]) -> Point:
     """
     Calculate the center of a polygon. The center is calculated as the center
     of the solid figure formed by the points of the polygon
@@ -20,14 +21,14 @@ def get_polygon_center(polygon: np.ndarray) -> Point:
         ValueError: If the polygon has no vertices.
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
-
-        polygon = np.array([[0, 0], [0, 2], [2, 2], [2, 0]])
-        sv.get_polygon_center(polygon=polygon)
-        # Point(x=1, y=1)
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> polygon = np.array([[0, 0], [0, 2], [2, 2], [2, 0]])
+        >>> center = sv.get_polygon_center(polygon=polygon)
+        >>> float(center.x)
+        1.0
+        >>> float(center.y)
+        1.0
     """
 
     # This is one of the 3 candidate algorithms considered for centroid calculation.

@@ -238,3 +238,72 @@ def assert_image_mostly_same(
 
     # Check that the image is not completely identical
     assert not np.array_equal(original, annotated), "Images are completely identical"
+
+
+class _FakeTensor:
+    """Minimal tensor wrapper for cpu().numpy() and int()."""
+
+    def __init__(self, arr: np.ndarray):
+        self._arr = np.asarray(arr)
+
+    def cpu(self) -> _FakeTensor:
+        return self
+
+    def numpy(self) -> np.ndarray:
+        return self._arr
+
+    def int(self) -> _FakeTensor:
+        return _FakeTensor(self._arr.astype(int))
+
+
+class _FakeYOLOv5Results:
+    """YOLOv5-like results exposing pred list."""
+
+    def __init__(self, pred0: np.ndarray):
+        self.pred = [_FakeTensor(pred0)]
+
+
+class _FakeUltralyticsBoxes:
+    """Ultralytics-like Boxes exposing xyxy/conf/cls and optional id."""
+
+    def __init__(
+        self,
+        xyxy: np.ndarray,
+        conf: np.ndarray,
+        cls: np.ndarray,
+        id_: np.ndarray | None = None,
+    ):
+        self.xyxy = _FakeTensor(xyxy)
+        self.conf = _FakeTensor(conf)
+        self.cls = _FakeTensor(cls)
+        self.id = _FakeTensor(id_) if id_ is not None else None
+
+
+class _FakeUltralyticsResults:
+    """Ultralytics-like results container used by from_ultralytics."""
+
+    def __init__(self, boxes, names: dict[int, str], length: int = 0):
+        self.boxes = boxes
+        self.names = names
+        self.obb = None
+        self.masks = None
+        self._length = length
+
+    def __len__(self) -> int:
+        return self._length
+
+
+class _FakeYoloNasPrediction:
+    """YOLO-NAS-like prediction struct."""
+
+    def __init__(self, bboxes_xyxy, confidence, labels):
+        self.bboxes_xyxy = bboxes_xyxy
+        self.confidence = confidence
+        self.labels = labels
+
+
+class _FakeYoloNasResults:
+    """YOLO-NAS-like results exposing prediction."""
+
+    def __init__(self, prediction: _FakeYoloNasPrediction):
+        self.prediction = prediction

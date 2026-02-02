@@ -78,17 +78,22 @@ def deprecated_parameter(
             parameter as deprecated.
 
     Examples:
-        ```python
-        @deprecated_parameter(
-            old_parameter=<OLD_PARAMETER_NAME>,
-            new_parameter=<NEW_PARAMETER_NAME>
-        )
-        def example_function(<NEW_PARAMETER_NAME>):
-            pass
-
-        # call function using deprecated parameter
-        example_function(<OLD_PARAMETER_NAME>=<OLD_PARAMETER_VALUE>)
-        ```
+        >>> from supervision.utils.internal import deprecated_parameter
+        >>> import warnings
+        >>> @deprecated_parameter(
+        ...     old_parameter='old_name',
+        ...     new_parameter='new_name'
+        ... )
+        ... def example_function(new_name=None):
+        ...     return new_name
+        >>> # Calling with new parameter works normally
+        >>> example_function(new_name='value')
+        'value'
+        >>> # Calling with old parameter triggers warning but still works
+        >>> with warnings.catch_warnings(record=True):
+        ...     result = example_function(old_name='deprecated_value')
+        ...     print(result)
+        deprecated_value
     """
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -191,11 +196,15 @@ def get_instance_variables(instance: Any, include_properties: bool = False) -> s
         include_properties: Whether to include properties in the result
 
     Usage:
-        ```python
-        detections = Detections(xyxy=np.array([1,2,3,4]))
-        variables = get_class_variables(detections)
-        # ["xyxy", "mask", "confidence", ..., "data"]
-        ```
+        >>> from supervision.utils.internal import get_instance_variables
+        >>> import numpy as np
+        >>> from supervision import Detections
+        >>> detections = Detections(xyxy=np.array([[1, 2, 3, 4]]))
+        >>> variables = get_instance_variables(detections)
+        >>> 'xyxy' in variables
+        True
+        >>> 'data' in variables
+        True
     """
     if isinstance(instance, type):
         raise ValueError("Only class instances are supported, not classes.")
