@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from typing import Dict, List, Optional, Tuple, TypeVar
+from typing import TypeVar
 
 import numpy as np
 import numpy.typing as npt
@@ -14,13 +16,13 @@ from supervision.dataset.utils import (
     rle_to_mask,
     train_test_split,
 )
-from test.test_utils import mock_detections
+from test.helpers import _create_detections
 
 T = TypeVar("T")
 
 
 @pytest.mark.parametrize(
-    "data, train_ratio, random_state, shuffle, expected_result, exception",
+    ("data", "train_ratio", "random_state", "shuffle", "expected_result", "exception"),
     [
         ([], 0.5, None, False, ([], []), DoesNotRaise()),  # empty data
         (
@@ -74,11 +76,11 @@ T = TypeVar("T")
     ],
 )
 def test_train_test_split(
-    data: List[T],
+    data: list[T],
     train_ratio: float,
     random_state: int,
     shuffle: bool,
-    expected_result: Optional[Tuple[List[T], List[T]]],
+    expected_result: tuple[list[T], list[T]] | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -92,7 +94,7 @@ def test_train_test_split(
 
 
 @pytest.mark.parametrize(
-    "class_lists, expected_result, exception",
+    ("class_lists", "expected_result", "exception"),
     [
         ([], [], DoesNotRaise()),  # empty class lists
         (
@@ -118,7 +120,7 @@ def test_train_test_split(
     ],
 )
 def test_merge_class_maps(
-    class_lists: List[List[str]], expected_result: List[str], exception: Exception
+    class_lists: list[list[str]], expected_result: list[str], exception: Exception
 ) -> None:
     with exception:
         result = merge_class_lists(class_lists=class_lists)
@@ -126,7 +128,7 @@ def test_merge_class_maps(
 
 
 @pytest.mark.parametrize(
-    "source_classes, target_classes, expected_result, exception",
+    ("source_classes", "target_classes", "expected_result", "exception"),
     [
         ([], [], {}, DoesNotRaise()),  # empty class lists
         ([], ["dog", "person"], {}, DoesNotRaise()),  # empty source class list
@@ -163,9 +165,9 @@ def test_merge_class_maps(
     ],
 )
 def test_build_class_index_mapping(
-    source_classes: List[str],
-    target_classes: List[str],
-    expected_result: Optional[Dict[int, int]],
+    source_classes: list[str],
+    target_classes: list[str],
+    expected_result: dict[int, int] | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -176,18 +178,18 @@ def test_build_class_index_mapping(
 
 
 @pytest.mark.parametrize(
-    "source_to_target_mapping, detections, expected_result, exception",
+    ("source_to_target_mapping", "detections", "expected_result", "exception"),
     [
         (
             {},
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
             None,
             pytest.raises(ValueError),
         ),  # empty mapping
         (
             {0: 1},
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
             DoesNotRaise(),
         ),  # single mapping
         (
@@ -198,34 +200,34 @@ def test_build_class_index_mapping(
         ),  # empty detections
         (
             {0: 1, 1: 2},
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
             DoesNotRaise(),
         ),  # multiple mappings
         (
             {0: 1, 1: 2},
-            mock_detections(xyxy=[[0, 0, 10, 10], [0, 0, 10, 10]], class_id=[0, 1]),
-            mock_detections(xyxy=[[0, 0, 10, 10], [0, 0, 10, 10]], class_id=[1, 2]),
+            _create_detections(xyxy=[[0, 0, 10, 10], [0, 0, 10, 10]], class_id=[0, 1]),
+            _create_detections(xyxy=[[0, 0, 10, 10], [0, 0, 10, 10]], class_id=[1, 2]),
             DoesNotRaise(),
         ),  # multiple mappings
         (
             {0: 1, 1: 2},
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[2]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[2]),
             None,
             pytest.raises(ValueError),
         ),  # class_id not in mapping
         (
             {0: 1, 1: 2},
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0], confidence=[0.5]),
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[1], confidence=[0.5]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0], confidence=[0.5]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[1], confidence=[0.5]),
             DoesNotRaise(),
         ),  # confidence is not None
     ],
 )
 def test_map_detections_class_id(
-    source_to_target_mapping: Dict[int, int],
+    source_to_target_mapping: dict[int, int],
     detections: Detections,
-    expected_result: Optional[Detections],
+    expected_result: Detections | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -236,7 +238,7 @@ def test_map_detections_class_id(
 
 
 @pytest.mark.parametrize(
-    "mask, expected_rle, exception",
+    ("mask", "expected_rle", "exception"),
     [
         (
             np.zeros((3, 3)).astype(bool),
@@ -287,7 +289,7 @@ def test_map_detections_class_id(
     ],
 )
 def test_mask_to_rle(
-    mask: npt.NDArray[np.bool_], expected_rle: List[int], exception: Exception
+    mask: npt.NDArray[np.bool_], expected_rle: list[int], exception: Exception
 ) -> None:
     with exception:
         result = mask_to_rle(mask=mask)
@@ -295,7 +297,7 @@ def test_mask_to_rle(
 
 
 @pytest.mark.parametrize(
-    "rle, resolution_wh, expected_mask, exception",
+    ("rle", "resolution_wh", "expected_mask", "exception"),
     [
         (
             np.array([9]),
@@ -354,7 +356,7 @@ def test_mask_to_rle(
 )
 def test_rle_to_mask(
     rle: npt.NDArray[np.int_],
-    resolution_wh: Tuple[int, int],
+    resolution_wh: tuple[int, int],
     expected_mask: npt.NDArray[np.bool_],
     exception: Exception,
 ) -> None:

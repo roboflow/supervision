@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from functools import reduce
+from typing import Any
 
 import numpy as np
 
@@ -10,35 +12,42 @@ from supervision.config import (
     CLASS_NAME_DATA_FIELD,
     ORIENTED_BOX_COORDINATES,
 )
-from supervision.detection.overlap_filter import (
-    box_non_max_merge,
-    box_non_max_suppression,
-    mask_non_max_suppression,
-)
 from supervision.detection.tools.transformers import (
     process_transformers_detection_result,
     process_transformers_v4_segmentation_result,
     process_transformers_v5_segmentation_result,
 )
-from supervision.detection.utils import (
-    box_iou_batch,
-    calculate_masks_centroids,
+from supervision.detection.utils.converters import mask_to_xyxy, xywh_to_xyxy
+from supervision.detection.utils.internal import (
     extract_ultralytics_masks,
     get_data_item,
     is_data_equal,
     is_metadata_equal,
-    mask_to_xyxy,
     merge_data,
     merge_metadata,
     process_roboflow_result,
-    xywh_to_xyxy,
 )
+from supervision.detection.utils.iou_and_nms import (
+    OverlapMetric,
+    box_iou_batch,
+    box_non_max_merge,
+    box_non_max_suppression,
+    mask_iou_batch,
+    mask_non_max_merge,
+    mask_non_max_suppression,
+)
+from supervision.detection.utils.masks import calculate_masks_centroids
 from supervision.detection.vlm import (
     LMM,
     VLM,
+    from_deepseek_vl_2,
     from_florence_2,
+    from_google_gemini_2_0,
+    from_google_gemini_2_5,
+    from_moondream,
     from_paligemma,
     from_qwen_2_5_vl,
+    from_qwen_3_vl,
     validate_vlm_parameters,
 )
 from supervision.geometry.core import Position
@@ -135,12 +144,12 @@ class Detections:
     """  # noqa: E501 // docs
 
     xyxy: np.ndarray
-    mask: Optional[np.ndarray] = None
-    confidence: Optional[np.ndarray] = None
-    class_id: Optional[np.ndarray] = None
-    tracker_id: Optional[np.ndarray] = None
-    data: Dict[str, Union[np.ndarray, List]] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    mask: np.ndarray | None = None
+    confidence: np.ndarray | None = None
+    class_id: np.ndarray | None = None
+    tracker_id: np.ndarray | None = None
+    data: dict[str, np.ndarray | list] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
         validate_detections_fields(
@@ -161,13 +170,13 @@ class Detections:
     def __iter__(
         self,
     ) -> Iterator[
-        Tuple[
+        tuple[
             np.ndarray,
-            Optional[np.ndarray],
-            Optional[float],
-            Optional[int],
-            Optional[int],
-            Dict[str, Union[np.ndarray, List]],
+            np.ndarray | None,
+            float | None,
+            int | None,
+            int | None,
+            dict[str, np.ndarray | list],
         ]
     ]:
         """
@@ -288,18 +297,24 @@ class Detections:
                 class_id=np.arange(len(ultralytics_results)),
             )
 
-        class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
-        class_names = np.array([ultralytics_results.names[i] for i in class_id])
-        return cls(
-            xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
-            confidence=ultralytics_results.boxes.conf.cpu().numpy(),
-            class_id=class_id,
-            mask=extract_ultralytics_masks(ultralytics_results),
-            tracker_id=ultralytics_results.boxes.id.int().cpu().numpy()
-            if ultralytics_results.boxes.id is not None
-            else None,
-            data={CLASS_NAME_DATA_FIELD: class_names},
-        )
+        if (
+            hasattr(ultralytics_results, "boxes")
+            and ultralytics_results.boxes is not None
+        ):
+            class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
+            class_names = np.array([ultralytics_results.names[i] for i in class_id])
+            return cls(
+                xyxy=ultralytics_results.boxes.xyxy.cpu().numpy(),
+                confidence=ultralytics_results.boxes.conf.cpu().numpy(),
+                class_id=class_id,
+                mask=extract_ultralytics_masks(ultralytics_results),
+                tracker_id=ultralytics_results.boxes.id.int().cpu().numpy()
+                if ultralytics_results.boxes.id is not None
+                else None,
+                data={CLASS_NAME_DATA_FIELD: class_names},
+            )
+
+        return cls.empty()
 
     @classmethod
     def from_yolo_nas(cls, yolo_nas_results) -> Detections:
@@ -456,7 +471,7 @@ class Detections:
 
     @classmethod
     def from_transformers(
-        cls, transformers_results: dict, id2label: Optional[Dict[int, str]] = None
+        cls, transformers_results: dict, id2label: dict[int, str] | None = None
     ) -> Detections:
         """
         Creates a Detections instance from object detection or panoptic, semantic
@@ -579,7 +594,7 @@ class Detections:
         )
 
     @classmethod
-    def from_inference(cls, roboflow_result: Union[dict, Any]) -> Detections:
+    def from_inference(cls, roboflow_result: dict | Any) -> Detections:
         """
         Create a `sv.Detections` object from the [Roboflow](https://roboflow.com/)
         API inference result or the [Inference](https://inference.roboflow.com/)
@@ -631,7 +646,7 @@ class Detections:
         )
 
     @classmethod
-    def from_sam(cls, sam_result: List[dict]) -> Detections:
+    def from_sam(cls, sam_result: list[dict]) -> Detections:
         """
         Creates a Detections instance from
         [Segment Anything Model](https://github.com/facebookresearch/segment-anything)
@@ -674,7 +689,7 @@ class Detections:
 
     @classmethod
     def from_azure_analyze_image(
-        cls, azure_result: dict, class_map: Optional[Dict[int, str]] = None
+        cls, azure_result: dict, class_map: dict[int, str] | None = None
     ) -> Detections:
         """
         Creates a Detections instance from [Azure Image Analysis 4.0](
@@ -806,12 +821,24 @@ class Detections:
         "`Detections.from_lmm` property is deprecated and will be removed in "
         "`supervision-0.31.0`. Use Detections.from_vlm instead."
     )
-    def from_lmm(
-        cls, lmm: Union[LMM, str], result: Union[str, dict], **kwargs: Any
-    ) -> Detections:
+    def from_lmm(cls, lmm: LMM | str, result: str | dict, **kwargs: Any) -> Detections:
         """
+        !!! deprecated "Deprecated"
+            `Detections.from_lmm` is **deprecated** and will be removed in `supervision-0.31.0`.
+            Please use `Detections.from_vlm` instead.
+
         Creates a Detections object from the given result string based on the specified
         Large Multimodal Model (LMM).
+
+        | Name                | Enum (sv.LMM)        | Tasks                   | Required parameters         | Optional parameters |
+        |---------------------|----------------------|-------------------------|-----------------------------|---------------------|
+        | PaliGemma           | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
+        | PaliGemma 2         | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
+        | Qwen2.5-VL          | `QWEN_2_5_VL`        | detection               | `resolution_wh`, `input_wh` | `classes`           |
+        | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
+        | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
+        | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
+        | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
 
         Args:
             lmm (Union[LMM, str]): The type of LMM (Large Multimodal Model) to use.
@@ -826,8 +853,9 @@ class Detections:
                 disallowed arguments are provided.
             ValueError: If the specified LMM is not supported.
 
-        Examples:
+        !!! example "PaliGemma"
             ```python
+
             import supervision as sv
 
             paligemma_result = "<loc0256><loc0256><loc0768><loc0768> cat"
@@ -842,13 +870,343 @@ class Detections:
 
             detections.class_id
             # array([0])
+
+            detections.data
+            # {'class_name': array(['cat'], dtype='<U10')}
             ```
-        """
+
+        !!! example "Qwen2.5-VL"
+
+            ??? tip "Prompt engineering"
+
+                To get the best results from Qwen2.5-VL, use clear and descriptive prompts
+                that specify exactly what you want to detect.
+
+                **For general object detection, use this comprehensive prompt:**
+
+                ```
+                Detect all objects in the image and return their locations and labels.
+                ```
+
+                **For specific object detection with detailed descriptions:**
+
+                ```
+                Detect the red object that is leading in this image and return its location and label.
+                ```
+
+                **For simple, targeted detection:**
+
+                ```
+                leading blue truck
+                ```
+
+                **Additional effective prompts:**
+
+                ```
+                Find all people and vehicles in this scene
+                ```
+
+                ```
+                Locate all animals in the image
+                ```
+
+                ```
+                Identify traffic signs and their positions
+                ```
+
+                **Tips for better results:**
+
+                - Use descriptive language that clearly specifies what to look for
+                - Include color, size, or position descriptors when targeting specific objects
+                - Be specific about the type of objects you want to detect
+                - The model responds well to both detailed instructions and concise phrases
+                - Results are returned in JSON format with `bbox_2d` coordinates and `label` fields
+
+
+            ```python
+            import supervision as sv
+
+            qwen_2_5_vl_result = \"\"\"```json
+            [
+                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+            ]
+            ```\"\"\"
+            detections = sv.Detections.from_lmm(
+                sv.LMM.QWEN_2_5_VL,
+                qwen_2_5_vl_result,
+                input_wh=(1000, 1000),
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+            detections.xyxy
+            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
+
+            detections.class_id
+            # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
+        !!! example "Qwen3-VL"
+
+            ```python
+            import supervision as sv
+
+            qwen_3_vl_result = \"\"\"```json
+            [
+                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+            ]
+            ```\"\"\"
+            detections = sv.Detections.from_lmm(
+                sv.LMM.QWEN_3_VL,
+                qwen_3_vl_result,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+            detections.xyxy
+            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
+
+            detections.class_id
+            # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
+        !!! example "Gemini 2.0"
+            ```python
+            import supervision as sv
+
+            gemini_response_text = \"\"\"```json
+                [
+                    {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
+                    {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
+                ]
+            ```\"\"\"
+
+            detections = sv.Detections.from_lmm(
+                sv.LMM.GOOGLE_GEMINI_2_0,
+                gemini_response_text,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+
+            detections.xyxy
+            # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
+        !!! example "Gemini 2.5"
+
+            ??? tip "Prompt engineering"
+
+                To get the best results from Google Gemini 2.5, use the following prompt.
+
+                This prompt is designed to detect all visible objects in the image,
+                including small, distant, or partially visible ones, and to return
+                tight bounding boxes.
+
+                ```
+                Carefully examine this image and detect ALL visible objects, including
+                small, distant, or partially visible ones.
+
+                IMPORTANT: Focus on finding as many objects as possible, even if you are
+                only moderately confident.
+
+                Make sure each bounding box is as tight as possible.
+
+                Valid object classes: {class_list}
+
+                For each detected object, provide:
+                - "label": the exact class name from the list above
+                - "confidence": your certainty (between 0.0 and 1.0)
+                - "box_2d": the bounding box [ymin, xmin, ymax, xmax] normalized to 0-1000
+                - "mask": the binary mask of the object as a base64-encoded string
+
+                Detect everything that matches the valid classes. Do not be
+                conservative; include objects even with moderate confidence.
+
+                Return a JSON array, for example:
+                [
+                    {
+                        "label": "person",
+                        "confidence": 0.95,
+                        "box_2d": [100, 200, 300, 400],
+                        "mask": "..."
+                    },
+                    {
+                        "label": "kite",
+                        "confidence": 0.80,
+                        "box_2d": [50, 150, 250, 350],
+                        "mask": "..."
+                    }
+                ]
+                ```
+
+                When using the google-genai library, it is recommended to set
+                thinking_budget=0 in thinking_config for more direct and faster responses.
+
+                ```python
+                from google.generativeai import types
+
+                model.generate_content(
+                    ...,
+                    generation_config=generation_config,
+                    safety_settings=safety_settings,
+                    thinking_config=types.ThinkingConfig(
+                        thinking_budget=0
+                    )
+                )
+                ```
+
+                For a shorter prompt focused only on segmentation masks, you can use:
+
+                ```
+                Return a JSON list of segmentation masks. Each entry should include the
+                2D bounding box in the "box_2d" key, the segmentation mask in the "mask"
+                key, and the text label in the "label" key. Use descriptive labels.
+                ```
+
+            ```python
+            import supervision as sv
+
+            gemini_response_text = \"\"\"```json
+                [
+                    {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
+                    {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
+                ]
+            ```\"\"\"
+
+            detections = sv.Detections.from_lmm(
+                sv.LMM.GOOGLE_GEMINI_2_5,
+                gemini_response_text,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+
+            detections.xyxy
+            # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
+        !!! example "Moondream"
+
+
+            ??? tip "Prompt engineering"
+
+                To get the best results from Moondream, use optimized prompts that leverage
+                its object detection capabilities effectively.
+
+                **For general object detection, use this simple prompt:**
+
+                ```
+                objects
+                ```
+
+                This single-word prompt instructs Moondream to detect all visible objects
+                and return them in the proper JSON format with normalized coordinates.
+
+
+            ```python
+            import supervision as sv
+
+            moondream_result = {
+                'objects': [
+                    {
+                        'x_min': 0.5704046934843063,
+                        'y_min': 0.20069346576929092,
+                        'x_max': 0.7049859315156937,
+                        'y_max': 0.3012596592307091
+                    },
+                    {
+                        'x_min': 0.6210969910025597,
+                        'y_min': 0.3300672620534897,
+                        'x_max': 0.8417936339974403,
+                        'y_max': 0.4961046129465103
+                    }
+                ]
+            }
+
+            detections = sv.Detections.from_lmm(
+                sv.LMM.MOONDREAM,
+                moondream_result,
+                resolution_wh=(1000, 1000),
+            )
+
+            detections.xyxy
+            # array([[1752.28,  818.82, 2165.72, 1229.14],
+            #        [1908.01, 1346.67, 2585.99, 2024.11]])
+            ```
+
+        !!! example "DeepSeek-VL2"
+
+
+            ??? tip "Prompt engineering"
+
+                To get the best results from DeepSeek-VL2, use optimized prompts that leverage
+                its object detection and visual grounding capabilities effectively.
+
+                **For general object detection, use the following user prompt:**
+
+                ```
+                <image>\\n<|ref|>The giraffe at the front<|/ref|>
+                ```
+
+                **For visual grounding, use the following user prompt:**
+
+                ```
+                <image>\\n<|grounding|>Detect the giraffes
+                ```
+
+            ```python
+            from PIL import Image
+            import supervision as sv
+
+            deepseek_vl2_result = "<|ref|>The giraffe at the back<|/ref|><|det|>[[580, 270, 999, 904]]<|/det|><|ref|>The giraffe at the front<|/ref|><|det|>[[26, 31, 632, 998]]<|/det|><|end▁of▁sentence|>"
+
+            detections = sv.Detections.from_vlm(
+                vlm=sv.VLM.DEEPSEEK_VL_2, result=deepseek_vl2_result, resolution_wh=image.size
+            )
+
+            detections.xyxy
+            # array([[ 420,  293,  724,  982],
+            #        [  18,   33,  458, 1084]])
+
+            detections.class_id
+            # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['The giraffe at the back', 'The giraffe at the front'], dtype='<U24')}
+            ```
+        """  # noqa: E501
+
         # filler logic mapping old from_lmm to new from_vlm
         lmm_to_vlm = {
             LMM.PALIGEMMA: VLM.PALIGEMMA,
             LMM.FLORENCE_2: VLM.FLORENCE_2,
             LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL,
+            LMM.DEEPSEEK_VL_2: VLM.DEEPSEEK_VL_2,
+            LMM.GOOGLE_GEMINI_2_0: VLM.GOOGLE_GEMINI_2_0,
+            LMM.GOOGLE_GEMINI_2_5: VLM.GOOGLE_GEMINI_2_5,
         }
 
         # (this works even if the LMM enum is wrapped by @deprecated)
@@ -873,9 +1231,383 @@ class Detections:
         return cls.from_vlm(vlm=vlm, result=result, **kwargs)
 
     @classmethod
-    def from_vlm(
-        cls, vlm: Union[VLM, str], result: Union[str, dict], **kwargs: Any
-    ) -> Detections:
+    def from_vlm(cls, vlm: VLM | str, result: str | dict, **kwargs: Any) -> Detections:
+        """
+
+        Creates a Detections object from the given result string based on the specified
+        Vision Language Model (VLM).
+
+        | Name                | Enum (sv.VLM)        | Tasks                   | Required parameters         | Optional parameters |
+        |---------------------|----------------------|-------------------------|-----------------------------|---------------------|
+        | PaliGemma           | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
+        | PaliGemma 2         | `PALIGEMMA`          | detection               | `resolution_wh`             | `classes`           |
+        | Qwen2.5-VL          | `QWEN_2_5_VL`        | detection               | `resolution_wh`, `input_wh` | `classes`           |
+        | Qwen3-VL            | `QWEN_3_VL`          | detection               | `resolution_wh`,            | `classes`           |
+        | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
+        | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
+        | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
+        | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
+
+        Args:
+            vlm (Union[VLM, str]): The type of VLM (Vision Language Model) to use.
+            result (str): The result string containing the detection data.
+            **kwargs (Any): Additional keyword arguments required by the specified VLM.
+
+        Returns:
+            Detections: A new Detections object.
+
+        Raises:
+            ValueError: If the VLM is invalid, required arguments are missing, or
+                disallowed arguments are provided.
+            ValueError: If the specified VLM is not supported.
+
+        !!! example "PaliGemma"
+            ```python
+
+            import supervision as sv
+
+            paligemma_result = "<loc0256><loc0256><loc0768><loc0768> cat"
+            detections = sv.Detections.from_vlm(
+                sv.VLM.PALIGEMMA,
+                paligemma_result,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog']
+            )
+            detections.xyxy
+            # array([[250., 250., 750., 750.]])
+
+            detections.class_id
+            # array([0])
+
+            detections.data
+            # {'class_name': array(['cat'], dtype='<U10')}
+            ```
+
+        !!! example "Qwen2.5-VL"
+
+            ??? tip "Prompt engineering"
+
+                To get the best results from Qwen2.5-VL, use clear and descriptive prompts
+                that specify exactly what you want to detect.
+
+                **For general object detection, use this comprehensive prompt:**
+
+                ```
+                Detect all objects in the image and return their locations and labels.
+                ```
+
+                **For specific object detection with detailed descriptions:**
+
+                ```
+                Detect the red object that is leading in this image and return its location and label.
+                ```
+
+                **For simple, targeted detection:**
+
+                ```
+                leading blue truck
+                ```
+
+                **Additional effective prompts:**
+
+                ```
+                Find all people and vehicles in this scene
+                ```
+
+                ```
+                Locate all animals in the image
+                ```
+
+                ```
+                Identify traffic signs and their positions
+                ```
+
+                **Tips for better results:**
+
+                - Use descriptive language that clearly specifies what to look for
+                - Include color, size, or position descriptors when targeting specific objects
+                - Be specific about the type of objects you want to detect
+                - The model responds well to both detailed instructions and concise phrases
+                - Results are returned in JSON format with `bbox_2d` coordinates and `label` fields
+
+
+            ```python
+            import supervision as sv
+
+            qwen_2_5_vl_result = \"\"\"```json
+            [
+                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+            ]
+            ```\"\"\"
+            detections = sv.Detections.from_vlm(
+                sv.VLM.QWEN_2_5_VL,
+                qwen_2_5_vl_result,
+                input_wh=(1000, 1000),
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+            detections.xyxy
+            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
+
+            detections.class_id
+            # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
+        !!! example "Qwen3-VL"
+
+            ```python
+            import supervision as sv
+
+            qwen_3_vl_result = \"\"\"```json
+            [
+                {"bbox_2d": [139, 768, 315, 954], "label": "cat"},
+                {"bbox_2d": [366, 679, 536, 849], "label": "dog"}
+            ]
+            ```\"\"\"
+            detections = sv.Detections.from_vlm(
+                sv.VLM.QWEN_3_VL,
+                qwen_3_vl_result,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+            detections.xyxy
+            # array([[139., 768., 315., 954.], [366., 679., 536., 849.]])
+
+            detections.class_id
+            # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U10')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
+        !!! example "Gemini 2.0"
+            ```python
+            import supervision as sv
+
+            gemini_response_text = \"\"\"```json
+                [
+                    {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
+                    {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
+                ]
+            ```\"\"\"
+
+            detections = sv.Detections.from_vlm(
+                sv.VLM.GOOGLE_GEMINI_2_0,
+                gemini_response_text,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+
+            detections.xyxy
+            # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
+        !!! example "Gemini 2.5"
+
+            ??? tip "Prompt engineering"
+
+                To get the best results from Google Gemini 2.5, use the following prompt.
+
+                This prompt is designed to detect all visible objects in the image,
+                including small, distant, or partially visible ones, and to return
+                tight bounding boxes.
+
+                ```
+                Carefully examine this image and detect ALL visible objects, including
+                small, distant, or partially visible ones.
+
+                IMPORTANT: Focus on finding as many objects as possible, even if you are
+                only moderately confident.
+
+                Make sure each bounding box is as tight as possible.
+
+                Valid object classes: {class_list}
+
+                For each detected object, provide:
+                - "label": the exact class name from the list above
+                - "confidence": your certainty (between 0.0 and 1.0)
+                - "box_2d": the bounding box [ymin, xmin, ymax, xmax] normalized to 0-1000
+                - "mask": the binary mask of the object as a base64-encoded string
+
+                Detect everything that matches the valid classes. Do not be
+                conservative; include objects even with moderate confidence.
+
+                Return a JSON array, for example:
+                [
+                    {
+                        "label": "person",
+                        "confidence": 0.95,
+                        "box_2d": [100, 200, 300, 400],
+                        "mask": "..."
+                    },
+                    {
+                        "label": "kite",
+                        "confidence": 0.80,
+                        "box_2d": [50, 150, 250, 350],
+                        "mask": "..."
+                    }
+                ]
+                ```
+
+                When using the google-genai library, it is recommended to set
+                thinking_budget=0 in thinking_config for more direct and faster responses.
+
+                ```python
+                from google.generativeai import types
+
+                model.generate_content(
+                    ...,
+                    generation_config=generation_config,
+                    safety_settings=safety_settings,
+                    thinking_config=types.ThinkingConfig(
+                        thinking_budget=0
+                    )
+                )
+                ```
+
+                For a shorter prompt focused only on segmentation masks, you can use:
+
+                ```
+                Return a JSON list of segmentation masks. Each entry should include the
+                2D bounding box in the "box_2d" key, the segmentation mask in the "mask"
+                key, and the text label in the "label" key. Use descriptive labels.
+                ```
+
+            ```python
+            import supervision as sv
+
+            gemini_response_text = \"\"\"```json
+                [
+                    {"box_2d": [543, 40, 728, 200], "label": "cat", "id": 1},
+                    {"box_2d": [653, 352, 820, 522], "label": "dog", "id": 2}
+                ]
+            ```\"\"\"
+
+            detections = sv.Detections.from_vlm(
+                sv.VLM.GOOGLE_GEMINI_2_5,
+                gemini_response_text,
+                resolution_wh=(1000, 1000),
+                classes=['cat', 'dog'],
+            )
+
+            detections.xyxy
+            # array([[543., 40., 728., 200.], [653., 352., 820., 522.]])
+
+            detections.data
+            # {'class_name': array(['cat', 'dog'], dtype='<U26')}
+
+            detections.class_id
+            # array([0, 1])
+            ```
+
+        !!! example "Moondream"
+
+
+            ??? tip "Prompt engineering"
+
+                To get the best results from Moondream, use optimized prompts that leverage
+                its object detection capabilities effectively.
+
+                **For general object detection, use this simple prompt:**
+
+                ```
+                objects
+                ```
+
+                This single-word prompt instructs Moondream to detect all visible objects
+                and return them in the proper JSON format with normalized coordinates.
+
+
+            ```python
+            import supervision as sv
+
+            moondream_result = {
+                'objects': [
+                    {
+                        'x_min': 0.5704046934843063,
+                        'y_min': 0.20069346576929092,
+                        'x_max': 0.7049859315156937,
+                        'y_max': 0.3012596592307091
+                    },
+                    {
+                        'x_min': 0.6210969910025597,
+                        'y_min': 0.3300672620534897,
+                        'x_max': 0.8417936339974403,
+                        'y_max': 0.4961046129465103
+                    }
+                ]
+            }
+
+            detections = sv.Detections.from_vlm(
+                sv.VLM.MOONDREAM,
+                moondream_result,
+                resolution_wh=(1000, 1000),
+            )
+
+            detections.xyxy
+            # array([[1752.28,  818.82, 2165.72, 1229.14],
+            #        [1908.01, 1346.67, 2585.99, 2024.11]])
+            ```
+
+        !!! example "DeepSeek-VL2"
+
+
+            ??? tip "Prompt engineering"
+
+                To get the best results from DeepSeek-VL2, use optimized prompts that leverage
+                its object detection and visual grounding capabilities effectively.
+
+                **For general object detection, use the following user prompt:**
+
+                ```
+                <image>\\n<|ref|>The giraffe at the front<|/ref|>
+                ```
+
+                **For visual grounding, use the following user prompt:**
+
+                ```
+                <image>\\n<|grounding|>Detect the giraffes
+                ```
+
+            ```python
+            from PIL import Image
+            import supervision as sv
+
+            deepseek_vl2_result = "<|ref|>The giraffe at the back<|/ref|><|det|>[[580, 270, 999, 904]]<|/det|><|ref|>The giraffe at the front<|/ref|><|det|>[[26, 31, 632, 998]]<|/det|><|end▁of▁sentence|>"
+
+            detections = sv.Detections.from_vlm(
+                vlm=sv.VLM.DEEPSEEK_VL_2, result=deepseek_vl2_result, resolution_wh=image.size
+            )
+
+            detections.xyxy
+            # array([[ 420,  293,  724,  982],
+            #        [  18,   33,  458, 1084]])
+
+            detections.class_id
+            # array([0, 1])
+
+            detections.data
+            # {'class_name': array(['The giraffe at the back', 'The giraffe at the front'], dtype='<U24')}
+            ```
+
+        """  # noqa: E501
+
         vlm = validate_vlm_parameters(vlm, result, kwargs)
 
         if vlm == VLM.PALIGEMMA:
@@ -885,6 +1617,18 @@ class Detections:
 
         if vlm == VLM.QWEN_2_5_VL:
             xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            confidence = np.ones(len(xyxy), dtype=float)
+            return cls(xyxy=xyxy, class_id=class_id, confidence=confidence, data=data)
+
+        if vlm == VLM.QWEN_3_VL:
+            xyxy, class_id, class_name = from_qwen_3_vl(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            confidence = np.ones(len(xyxy), dtype=float)
+            return cls(xyxy=xyxy, class_id=class_id, confidence=confidence, data=data)
+
+        if vlm == VLM.DEEPSEEK_VL_2:
+            xyxy, class_id, class_name = from_deepseek_vl_2(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
@@ -900,6 +1644,30 @@ class Detections:
                 data[ORIENTED_BOX_COORDINATES] = xyxyxyxy
 
             return cls(xyxy=xyxy, mask=mask, data=data)
+
+        if vlm == VLM.GOOGLE_GEMINI_2_0:
+            xyxy, class_id, class_name = from_google_gemini_2_0(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            return cls(xyxy=xyxy, class_id=class_id, data=data)
+
+        if vlm == VLM.MOONDREAM:
+            xyxy = from_moondream(result, **kwargs)
+            return cls(xyxy=xyxy)
+
+        if vlm == VLM.GOOGLE_GEMINI_2_5:
+            xyxy, class_id, class_name, confidence, mask = from_google_gemini_2_5(
+                result, **kwargs
+            )
+            data = {CLASS_NAME_DATA_FIELD: class_name}
+            return cls(
+                xyxy=xyxy,
+                class_id=class_id,
+                mask=mask,
+                confidence=confidence,
+                data=data,
+            )
+
+        return cls.empty()
 
     @classmethod
     def from_easyocr(cls, easyocr_results: list) -> Detections:
@@ -1037,7 +1805,7 @@ class Detections:
         return self == empty_detections
 
     @classmethod
-    def merge(cls, detections_list: List[Detections]) -> Detections:
+    def merge(cls, detections_list: list[Detections]) -> Detections:
         """
         Merge a list of Detections objects into a single Detections object.
 
@@ -1053,11 +1821,10 @@ class Detections:
             When merging, empty `Detections` objects are ignored.
 
         Args:
-            detections_list (List[Detections]): A list of Detections objects to merge.
+            detections_list: A list of Detections objects to merge.
 
         Returns:
-            (Detections): A single Detections object containing
-                the merged data from the input list.
+            A single Detections object containing the merged data from the input list.
 
         Example:
             ```python
@@ -1207,8 +1974,8 @@ class Detections:
         raise ValueError(f"{anchor} is not supported.")
 
     def __getitem__(
-        self, index: Union[int, slice, List[int], np.ndarray, str]
-    ) -> Union[Detections, List, np.ndarray, None]:
+        self, index: int | slice | list[int] | np.ndarray | str
+    ) -> Detections | list | np.ndarray | None:
         """
         Get a subset of the Detections object or access an item from its data field.
 
@@ -1256,7 +2023,7 @@ class Detections:
             metadata=self.metadata,
         )
 
-    def __setitem__(self, key: str, value: Union[np.ndarray, List]):
+    def __setitem__(self, key: str, value: np.ndarray | list):
         """
         Set a value in the data dictionary of the Detections object.
 
@@ -1320,8 +2087,48 @@ class Detections:
         """
         return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
 
+    @property
+    def box_aspect_ratio(self) -> np.ndarray:
+        """
+        Compute the aspect ratio (width divided by height) for each bounding box.
+
+        Returns:
+            np.ndarray: Array of shape `(N,)` containing aspect ratios, where `N` is the
+            number of boxes (width / height for each box).
+
+        Examples:
+            ```python
+            import numpy as np
+            import supervision as sv
+
+            xyxy = np.array([
+                [10, 10, 50, 50],
+                [60, 10, 180, 50],
+                [10, 60, 50, 180],
+            ])
+
+            detections = sv.Detections(xyxy=xyxy)
+
+            detections.box_aspect_ratio
+            # array([1.0, 3.0, 0.33333333])
+
+            ar = detections.box_aspect_ratio
+            detections[(ar < 2.0) & (ar > 0.5)].xyxy
+            # array([[10., 10., 50., 50.]])
+            ```
+        """
+        widths = self.xyxy[:, 2] - self.xyxy[:, 0]
+        heights = self.xyxy[:, 3] - self.xyxy[:, 1]
+
+        aspect_ratios = np.full_like(widths, np.nan, dtype=np.float64)
+        np.divide(widths, heights, out=aspect_ratios, where=heights != 0)
+        return aspect_ratios
+
     def with_nms(
-        self, threshold: float = 0.5, class_agnostic: bool = False
+        self,
+        threshold: float = 0.5,
+        class_agnostic: bool = False,
+        overlap_metric: OverlapMetric = OverlapMetric.IOU,
     ) -> Detections:
         """
         Performs non-max suppression on detection set. If the detections result
@@ -1334,6 +2141,8 @@ class Detections:
             class_agnostic (bool): Whether to perform class-agnostic
                 non-maximum suppression. If True, the class_id of each detection
                 will be ignored. Defaults to False.
+            overlap_metric (OverlapMetric): Metric used to compute the degree of
+                overlap between pairs of masks or boxes (e.g., IoU, IoS).
 
         Returns:
             Detections: A new Detections object containing the subset of detections
@@ -1367,17 +2176,25 @@ class Detections:
 
         if self.mask is not None:
             indices = mask_non_max_suppression(
-                predictions=predictions, masks=self.mask, iou_threshold=threshold
+                predictions=predictions,
+                masks=self.mask,
+                iou_threshold=threshold,
+                overlap_metric=overlap_metric,
             )
         else:
             indices = box_non_max_suppression(
-                predictions=predictions, iou_threshold=threshold
+                predictions=predictions,
+                iou_threshold=threshold,
+                overlap_metric=overlap_metric,
             )
 
         return self[indices]
 
     def with_nmm(
-        self, threshold: float = 0.5, class_agnostic: bool = False
+        self,
+        threshold: float = 0.5,
+        class_agnostic: bool = False,
+        overlap_metric: OverlapMetric = OverlapMetric.IOU,
     ) -> Detections:
         """
         Perform non-maximum merging on the current set of object detections.
@@ -1388,6 +2205,8 @@ class Detections:
             class_agnostic (bool): Whether to perform class-agnostic
                 non-maximum merging. If True, the class_id of each detection
                 will be ignored. Defaults to False.
+            overlap_metric (OverlapMetric): Metric used to compute the degree of
+                overlap between pairs of masks or boxes (e.g., IoU, IoS).
 
         Returns:
             Detections: A new Detections object containing the subset of detections
@@ -1421,15 +2240,25 @@ class Detections:
                 )
             )
 
-        merge_groups = box_non_max_merge(
-            predictions=predictions, iou_threshold=threshold
-        )
+        if self.mask is not None:
+            merge_groups = mask_non_max_merge(
+                predictions=predictions,
+                masks=self.mask,
+                iou_threshold=threshold,
+                overlap_metric=overlap_metric,
+            )
+        else:
+            merge_groups = box_non_max_merge(
+                predictions=predictions,
+                iou_threshold=threshold,
+                overlap_metric=overlap_metric,
+            )
 
         result = []
         for merge_group in merge_groups:
             unmerged_detections = [self[i] for i in merge_group]
-            merged_detections = merge_inner_detections_objects(
-                unmerged_detections, threshold
+            merged_detections = merge_inner_detections_objects_without_iou(
+                unmerged_detections
             )
             result.append(merged_detections)
 
@@ -1529,7 +2358,9 @@ def merge_inner_detection_object_pair(
 
 
 def merge_inner_detections_objects(
-    detections: List[Detections], threshold=0.5
+    detections: list[Detections],
+    threshold=0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> Detections:
     """
     Given N detections each of length 1 (exactly one object inside), combine them into a
@@ -1541,11 +2372,30 @@ def merge_inner_detections_objects(
     """
     detections_1 = detections[0]
     for detections_2 in detections[1:]:
-        box_iou = box_iou_batch(detections_1.xyxy, detections_2.xyxy)[0]
-        if box_iou < threshold:
+        if detections_1.mask is not None and detections_2.mask is not None:
+            iou = mask_iou_batch(detections_1.mask, detections_2.mask, overlap_metric)[
+                0
+            ]
+        else:
+            iou = box_iou_batch(detections_1.xyxy, detections_2.xyxy, overlap_metric)[0]
+        if iou < threshold:
             break
         detections_1 = merge_inner_detection_object_pair(detections_1, detections_2)
     return detections_1
+
+
+def merge_inner_detections_objects_without_iou(
+    detections: list[Detections],
+) -> Detections:
+    """
+    Given N detections each of length 1 (exactly one object inside), combine them into a
+    single detection object of length 1. The contained inner object will be the merged
+    result of all the input detections.
+
+    For example, this lets you merge N boxes into one big box, N masks into one mask,
+    etc.
+    """
+    return reduce(merge_inner_detection_object_pair, detections)
 
 
 def validate_fields_both_defined_or_none(

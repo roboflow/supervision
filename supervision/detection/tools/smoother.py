@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import warnings
 from collections import defaultdict, deque
 from copy import deepcopy
-from typing import Optional
 
 import numpy as np
 
@@ -95,7 +96,7 @@ class DetectionsSmoother:
 
         return self.get_smoothed_detections()
 
-    def get_track(self, track_id: int) -> Optional[Detections]:
+    def get_track(self, track_id: int) -> Detections | None:
         track = self.tracks.get(track_id, None)
         if track is None:
             return None

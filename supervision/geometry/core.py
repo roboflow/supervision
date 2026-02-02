@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 from math import sqrt
-from typing import Tuple
 
 
 class Position(Enum):
@@ -23,7 +22,7 @@ class Position(Enum):
     CENTER_OF_MASS = "CENTER_OF_MASS"
 
     @classmethod
-    def list(cls):
+    def list(cls) -> list[str]:
         return list(map(lambda c: c.value, cls))
 
 
@@ -32,10 +31,10 @@ class Point:
     x: float
     y: float
 
-    def as_xy_int_tuple(self) -> Tuple[int, int]:
+    def as_xy_int_tuple(self) -> tuple[int, int]:
         return int(self.x), int(self.y)
 
-    def as_xy_float_tuple(self) -> Tuple[float, float]:
+    def as_xy_float_tuple(self) -> tuple[float, float]:
         return self.x, self.y
 
 
@@ -99,7 +98,7 @@ class Rect:
     height: float
 
     @classmethod
-    def from_xyxy(cls, xyxy: Tuple[float, float, float, float]) -> Rect:
+    def from_xyxy(cls, xyxy: tuple[float, float, float, float]) -> Rect:
         x1, y1, x2, y2 = xyxy
         return cls(x=x1, y=y1, width=x2 - x1, height=y2 - y1)
 
@@ -111,7 +110,7 @@ class Rect:
     def bottom_right(self) -> Point:
         return Point(x=self.x + self.width, y=self.y + self.height)
 
-    def pad(self, padding) -> Rect:
+    def pad(self, padding: int) -> Rect:
         return Rect(
             x=self.x - padding,
             y=self.y - padding,
@@ -119,7 +118,7 @@ class Rect:
             height=self.height + 2 * padding,
         )
 
-    def as_xyxy_int_tuple(self) -> Tuple[int, int, int, int]:
+    def as_xyxy_int_tuple(self) -> tuple[int, int, int, int]:
         return (
             int(self.x),
             int(self.y),

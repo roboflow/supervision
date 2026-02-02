@@ -1,5 +1,5 @@
 gdown
-inference==0.9.17
-supervision>=0.20.0
+inference
+supervision
 tqdm
-ultralytics<=8.3.40
+ultralytics

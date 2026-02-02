@@ -3,7 +3,7 @@ from PIL import Image, ImageChops
 
 from supervision.utils.conversion import (
     cv2_to_pillow,
-    ensure_cv2_image_for_processing,
+    ensure_cv2_image_for_standalone_function,
     images_to_cv2,
     pillow_to_cv2,
 )
@@ -16,7 +16,7 @@ def test_ensure_cv2_image_for_processing_when_pillow_image_submitted(
     param_a_value = 3
     param_b_value = "some"
 
-    @ensure_cv2_image_for_processing
+    @ensure_cv2_image_for_standalone_function
     def my_custom_processing_function(
         image: np.ndarray,
         param_a: int,
@@ -55,7 +55,7 @@ def test_ensure_cv2_image_for_processing_when_cv2_image_submitted(
     param_a_value = 3
     param_b_value = "some"
 
-    @ensure_cv2_image_for_processing
+    @ensure_cv2_image_for_standalone_function
     def my_custom_processing_function(
         image: np.ndarray,
         param_a: int,

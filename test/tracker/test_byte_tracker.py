@@ -1,5 +1,3 @@
-from typing import List
-
 import numpy as np
 import pytest
 
@@ -7,7 +5,7 @@ import supervision as sv
 
 
 @pytest.mark.parametrize(
-    "detections, expected_results",
+    ("detections", "expected_results"),
     [
         (
             [
@@ -32,7 +30,7 @@ import supervision as sv
     ],
 )
 def test_byte_tracker(
-    detections: List[sv.Detections],
+    detections: list[sv.Detections],
     expected_results: sv.Detections,
 ) -> None:
     byte_tracker = sv.ByteTrack()

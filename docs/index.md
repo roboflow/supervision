@@ -10,12 +10,18 @@ hide:
   <h1></h1>
 </div>
 
-<div align="center" id="logo">
+<div align="center" id="logo" style="padding-top: 1rem;">
   <a align="center" href="" target="_blank">
       <img width="850"
           src="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png?updatedAt=1678995927529">
   </a>
 </div>
+
+<style>
+    #hello {
+        margin: 0;
+    }
+</style>
 
 ## 👋 Hello
 
@@ -31,7 +37,7 @@ We write your reusable computer vision tools. Whether you need to load your data
 ## 💻 Install
 
 You can install `supervision` in a
-[**Python>=3.8**](https://www.python.org/) environment.
+[**Python>=3.9**](https://www.python.org/) environment.
 
 !!! example "Installation"
 

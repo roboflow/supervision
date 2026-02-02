@@ -1,15 +1,16 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from typing import List, Optional, Tuple
 
 import pytest
 
 from supervision import LineZone
 from supervision.geometry.core import Point, Position, Vector
-from test.test_utils import mock_detections
+from test.helpers import _create_detections
 
 
 @pytest.mark.parametrize(
-    "vector, expected_result, exception",
+    ("vector", "expected_result", "exception"),
     [
         (
             Vector(start=Point(x=0.0, y=0.0), end=Point(x=0.0, y=0.0)),
@@ -65,7 +66,7 @@ from test.test_utils import mock_detections
 )
 def test_calculate_region_of_interest_limits(
     vector: Vector,
-    expected_result: Optional[Tuple[Vector, Vector]],
+    expected_result: tuple[Vector, Vector] | None,
     exception: Exception,
 ) -> None:
     with exception:
@@ -74,7 +75,7 @@ def test_calculate_region_of_interest_limits(
 
 
 @pytest.mark.parametrize(
-    "vector, xyxy_sequence, expected_crossed_in, expected_crossed_out",
+    ("vector", "xyxy_sequence", "expected_crossed_in", "expected_crossed_out"),
     [
         (  # Vertical line, simple crossing
             Vector(Point(0, 0), Point(0, 10)),
@@ -233,16 +234,16 @@ def test_calculate_region_of_interest_limits(
 )
 def test_line_zone_one_detection_default_anchors(
     vector: Vector,
-    xyxy_sequence: List[List[float]],
-    expected_crossed_in: List[bool],
-    expected_crossed_out: List[bool],
+    xyxy_sequence: list[list[float]],
+    expected_crossed_in: list[bool],
+    expected_crossed_out: list[bool],
 ) -> None:
     line_zone = LineZone(start=vector.start, end=vector.end)
 
     crossed_in_list = []
     crossed_out_list = []
     for i, bbox in enumerate(xyxy_sequence):
-        detections = mock_detections(
+        detections = _create_detections(
             xyxy=[bbox],
             tracker_id=[0],
         )
@@ -259,8 +260,13 @@ def test_line_zone_one_detection_default_anchors(
 
 
 @pytest.mark.parametrize(
-    "vector, xyxy_sequence, triggering_anchors, expected_crossed_in, "
-    "expected_crossed_out",
+    (
+        "vector",
+        "xyxy_sequence",
+        "triggering_anchors",
+        "expected_crossed_in",
+        "expected_crossed_out",
+    ),
     [
         (  # Scrape line, left side, corner anchors
             Vector(Point(0, 0), Point(10, 0)),
@@ -395,10 +401,10 @@ def test_line_zone_one_detection_default_anchors(
 )
 def test_line_zone_one_detection(
     vector: Vector,
-    xyxy_sequence: List[List[float]],
-    triggering_anchors: List[Position],
-    expected_crossed_in: List[bool],
-    expected_crossed_out: List[bool],
+    xyxy_sequence: list[list[float]],
+    triggering_anchors: list[Position],
+    expected_crossed_in: list[bool],
+    expected_crossed_out: list[bool],
 ) -> None:
     line_zone = LineZone(
         start=vector.start, end=vector.end, triggering_anchors=triggering_anchors
@@ -407,7 +413,7 @@ def test_line_zone_one_detection(
     crossed_in_list = []
     crossed_out_list = []
     for i, bbox in enumerate(xyxy_sequence):
-        detections = mock_detections(
+        detections = _create_detections(
             xyxy=[bbox],
             tracker_id=[0],
         )
@@ -424,8 +430,14 @@ def test_line_zone_one_detection(
 
 
 @pytest.mark.parametrize(
-    "vector, xyxy_sequence, anchors, expected_crossed_in, "
-    "expected_crossed_out, exception",
+    (
+        "vector",
+        "xyxy_sequence",
+        "anchors",
+        "expected_crossed_in",
+        "expected_crossed_out",
+        "exception",
+    ),
     [
         (  # One stays, one crosses
             Vector(Point(0, 0), Point(10, 0)),
@@ -467,10 +479,10 @@ def test_line_zone_one_detection(
 )
 def test_line_zone_multiple_detections(
     vector: Vector,
-    xyxy_sequence: List[List[List[float]]],
-    anchors: List[Position],
-    expected_crossed_in: List[List[bool]],
-    expected_crossed_out: List[List[bool]],
+    xyxy_sequence: list[list[list[float]]],
+    anchors: list[Position],
+    expected_crossed_in: list[list[bool]],
+    expected_crossed_out: list[list[bool]],
     exception: Exception,
 ) -> None:
     with exception:
@@ -480,7 +492,7 @@ def test_line_zone_multiple_detections(
         crossed_in_list = []
         crossed_out_list = []
         for bboxes in xyxy_sequence:
-            detections = mock_detections(
+            detections = _create_detections(
                 xyxy=bboxes,
                 tracker_id=[i for i in range(0, len(bboxes))],
             )
@@ -493,8 +505,14 @@ def test_line_zone_multiple_detections(
 
 
 @pytest.mark.parametrize(
-    "vector, xyxy_sequence, triggering_anchors, minimum_crossing_threshold, "
-    "expected_crossed_in, expected_crossed_out",
+    (
+        "vector",
+        "xyxy_sequence",
+        "triggering_anchors",
+        "minimum_crossing_threshold",
+        "expected_crossed_in",
+        "expected_crossed_out",
+    ),
     [
         (  # Detection lingers around line, all crosses counted
             Vector(Point(0, 0), Point(10, 0)),
@@ -576,11 +594,11 @@ def test_line_zone_multiple_detections(
 )
 def test_line_zone_one_detection_long_horizon(
     vector: Vector,
-    xyxy_sequence: List[List[float]],
-    triggering_anchors: List[Position],
+    xyxy_sequence: list[list[float]],
+    triggering_anchors: list[Position],
     minimum_crossing_threshold: int,
-    expected_crossed_in: List[bool],
-    expected_crossed_out: List[bool],
+    expected_crossed_in: list[bool],
+    expected_crossed_out: list[bool],
 ) -> None:
     line_zone = LineZone(
         start=vector.start,
@@ -592,7 +610,7 @@ def test_line_zone_one_detection_long_horizon(
     crossed_in_list = []
     crossed_out_list = []
     for i, bbox in enumerate(xyxy_sequence):
-        detections = mock_detections(
+        detections = _create_detections(
             xyxy=[bbox],
             tracker_id=[0],
         )
@@ -609,9 +627,17 @@ def test_line_zone_one_detection_long_horizon(
 
 
 @pytest.mark.parametrize(
-    "vector, xyxy_sequence, anchors, minimum_crossing_threshold, "
-    "expected_crossed_in, expected_crossed_out, expected_count_in, "
-    "expected_count_out, exception",
+    (
+        "vector",
+        "xyxy_sequence",
+        "anchors",
+        "minimum_crossing_threshold",
+        "expected_crossed_in",
+        "expected_crossed_out",
+        "expected_count_in",
+        "expected_count_out",
+        "exception",
+    ),
     [
         (  # One stays, one crosses, one disappears before crossing
             Vector(Point(0, 0), Point(10, 0)),
@@ -741,13 +767,13 @@ def test_line_zone_one_detection_long_horizon(
 )
 def test_line_zone_long_horizon_disappearing_detections(
     vector: Vector,
-    xyxy_sequence: List[List[Optional[List[float]]]],
-    anchors: List[Position],
+    xyxy_sequence: list[list[list[float] | None]],
+    anchors: list[Position],
     minimum_crossing_threshold: int,
-    expected_crossed_in: List[List[bool]],
-    expected_crossed_out: List[List[bool]],
-    expected_count_in: List[int],
-    expected_count_out: List[int],
+    expected_crossed_in: list[list[bool]],
+    expected_crossed_out: list[list[bool]],
+    expected_count_in: list[int],
+    expected_count_out: list[int],
     exception: Exception,
 ) -> None:
     with exception:
@@ -762,7 +788,7 @@ def test_line_zone_long_horizon_disappearing_detections(
         count_in_list = []
         count_out_list = []
         for bboxes in xyxy_sequence:
-            detections = mock_detections(
+            detections = _create_detections(
                 xyxy=bboxes,
                 tracker_id=[i for i in range(0, len(bboxes))],
             )

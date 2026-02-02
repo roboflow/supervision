@@ -1,20 +1,23 @@
+from __future__ import annotations
+
 import os
-from typing import Optional, Tuple, Union
+from typing import cast
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 
 from supervision.draw.color import Color
 from supervision.geometry.core import Point, Rect
 
 
 def draw_line(
-    scene: np.ndarray,
+    scene: npt.NDArray[np.uint8],
     start: Point,
     end: Point,
     color: Color = Color.ROBOFLOW,
     thickness: int = 2,
-) -> np.ndarray:
+) -> npt.NDArray[np.uint8]:
     """
     Draws a line on a given scene.
 
@@ -39,8 +42,11 @@ def draw_line(
 
 
 def draw_rectangle(
-    scene: np.ndarray, rect: Rect, color: Color = Color.ROBOFLOW, thickness: int = 2
-) -> np.ndarray:
+    scene: npt.NDArray[np.uint8],
+    rect: Rect,
+    color: Color = Color.ROBOFLOW,
+    thickness: int = 2,
+) -> npt.NDArray[np.uint8]:
     """
     Draws a rectangle on an image.
 
@@ -64,8 +70,11 @@ def draw_rectangle(
 
 
 def draw_filled_rectangle(
-    scene: np.ndarray, rect: Rect, color: Color = Color.ROBOFLOW, opacity: float = 1
-) -> np.ndarray:
+    scene: npt.NDArray[np.uint8],
+    rect: Rect,
+    color: Color = Color.ROBOFLOW,
+    opacity: float = 1,
+) -> npt.NDArray[np.uint8]:
     """
     Draws a filled rectangle on an image.
 
@@ -103,11 +112,11 @@ def draw_filled_rectangle(
 
 
 def draw_rounded_rectangle(
-    scene: np.ndarray,
+    scene: npt.NDArray[np.uint8],
     rect: Rect,
     color: Color,
     border_radius: int,
-) -> np.ndarray:
+) -> npt.NDArray[np.uint8]:
     """
     Draws a rounded rectangle on an image.
 
@@ -155,11 +164,11 @@ def draw_rounded_rectangle(
 
 
 def draw_polygon(
-    scene: np.ndarray,
-    polygon: np.ndarray,
+    scene: npt.NDArray[np.uint8],
+    polygon: npt.NDArray[np.int_],
     color: Color = Color.ROBOFLOW,
     thickness: int = 2,
-) -> np.ndarray:
+) -> npt.NDArray[np.uint8]:
     """Draw a polygon on a scene.
 
     Parameters:
@@ -178,11 +187,11 @@ def draw_polygon(
 
 
 def draw_filled_polygon(
-    scene: np.ndarray,
-    polygon: np.ndarray,
+    scene: npt.NDArray[np.uint8],
+    polygon: npt.NDArray[np.int_],
     color: Color = Color.ROBOFLOW,
     opacity: float = 1,
-) -> np.ndarray:
+) -> npt.NDArray[np.uint8]:
     """Draw a filled polygon on a scene.
 
     Parameters:
@@ -207,7 +216,7 @@ def draw_filled_polygon(
 
 
 def draw_text(
-    scene: np.ndarray,
+    scene: npt.NDArray[np.uint8],
     text: str,
     text_anchor: Point,
     text_color: Color = Color.BLACK,
@@ -215,8 +224,8 @@ def draw_text(
     text_thickness: int = 1,
     text_padding: int = 10,
     text_font: int = cv2.FONT_HERSHEY_SIMPLEX,
-    background_color: Optional[Color] = None,
-) -> np.ndarray:
+    background_color: Color | None = None,
+) -> npt.NDArray[np.uint8]:
     """
     Draw text with background on a scene.
 
@@ -239,13 +248,16 @@ def draw_text(
         np.ndarray: The input scene with the text drawn on it.
 
     Examples:
-        ```python
-        import numpy as np
-
-        scene = np.zeros((100, 100, 3), dtype=np.uint8)
-        text_anchor = Point(x=50, y=50)
-        scene = draw_text(scene=scene, text="Hello, world!",text_anchor=text_anchor)
-        ```
+        >>> import numpy as np
+        >>> from supervision.geometry.core import Point
+        >>> from supervision.draw.utils import draw_text
+        >>> scene = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> text_anchor = Point(x=50, y=50)
+        >>> scene = draw_text(
+        ...     scene=scene, text="Hello, world!", text_anchor=text_anchor
+        ... )
+        >>> scene.shape
+        (100, 100, 3)
     """
     text_width, text_height = cv2.getTextSize(
         text=text,
@@ -282,8 +294,11 @@ def draw_text(
 
 
 def draw_image(
-    scene: np.ndarray, image: Union[str, np.ndarray], opacity: float, rect: Rect
-) -> np.ndarray:
+    scene: npt.NDArray[np.uint8],
+    image: str | npt.NDArray[np.uint8],
+    opacity: float,
+    rect: Rect,
+) -> npt.NDArray[np.uint8]:
     """
     Draws an image onto a given scene with specified opacity and dimensions.
 
@@ -311,26 +326,31 @@ def draw_image(
     if not 0.0 <= opacity <= 1.0:
         raise ValueError("Opacity must be between 0.0 and 1.0.")
 
+    rect_x = int(rect.x)
+    rect_y = int(rect.y)
+    rect_width = int(rect.width)
+    rect_height = int(rect.height)
     # Validate rectangle dimensions
     if (
-        rect.x < 0
-        or rect.y < 0
-        or rect.x + rect.width > scene.shape[1]
-        or rect.y + rect.height > scene.shape[0]
+        rect_x < 0
+        or rect_y < 0
+        or rect_x + rect_width > scene.shape[1]
+        or rect_y + rect_height > scene.shape[0]
     ):
         raise ValueError("Invalid rectangle dimensions.")
 
     # Resize and isolate alpha channel
-    image = cv2.resize(image, (rect.width, rect.height))
+    image = cv2.resize(image, (rect_width, rect_height))
+    image = cast(npt.NDArray[np.uint8], image)
     alpha_channel = (
         image[:, :, 3]
         if image.shape[2] == 4
-        else np.ones((rect.height, rect.width), dtype=image.dtype) * 255
+        else np.ones((rect_height, rect_width), dtype=image.dtype) * 255
     )
     alpha_scaled = cv2.convertScaleAbs(alpha_channel * opacity)
 
     # Perform blending
-    scene_roi = scene[rect.y : rect.y + rect.height, rect.x : rect.x + rect.width]
+    scene_roi = scene[rect_y : rect_y + rect_height, rect_x : rect_x + rect_width]
     alpha_float = alpha_scaled.astype(np.float32) / 255.0
     blended_roi = cv2.convertScaleAbs(
         (1 - alpha_float[..., np.newaxis]) * scene_roi
@@ -338,35 +358,51 @@ def draw_image(
     )
 
     # Update the scene
-    scene[rect.y : rect.y + rect.height, rect.x : rect.x + rect.width] = blended_roi
+    scene[rect_y : rect_y + rect_height, rect_x : rect_x + rect_width] = blended_roi
 
     return scene
 
 
-def calculate_optimal_text_scale(resolution_wh: Tuple[int, int]) -> float:
+def calculate_optimal_text_scale(resolution_wh: tuple[int, int]) -> float:
     """
-    Calculate font scale based on the resolution of an image.
+    Calculate optimal font scale based on image resolution. Adjusts font scale
+    proportionally to the smallest dimension of the given image resolution for
+    consistent readability.
 
-    Parameters:
-        resolution_wh (Tuple[int, int]): A tuple representing the width and height
-            of the image.
+    Args:
+        resolution_wh (tuple[int, int]): (width, height) of the image in pixels
 
     Returns:
-         float: The calculated font scale factor.
+        float: recommended font scale factor
+
+    Examples:
+        >>> import supervision as sv
+        >>> sv.calculate_optimal_text_scale((1920, 1080))
+        1.08
+        >>> sv.calculate_optimal_text_scale((640, 480))
+        0.48
     """
     return min(resolution_wh) * 1e-3
 
 
-def calculate_optimal_line_thickness(resolution_wh: Tuple[int, int]) -> int:
+def calculate_optimal_line_thickness(resolution_wh: tuple[int, int]) -> int:
     """
-    Calculate line thickness based on the resolution of an image.
+    Calculate optimal line thickness based on image resolution. Adjusts the line
+    thickness for readability depending on the smallest dimension of the provided
+    image resolution.
 
-    Parameters:
-        resolution_wh (Tuple[int, int]): A tuple representing the width and height
-            of the image.
+    Args:
+        resolution_wh (tuple[int, int]): (width, height) of the image in pixels
 
     Returns:
-        int: The calculated line thickness in pixels.
+        int: recommended line thickness in pixels
+
+    Examples:
+        >>> import supervision as sv
+        >>> sv.calculate_optimal_line_thickness((1920, 1080))
+        4
+        >>> sv.calculate_optimal_line_thickness((640, 480))
+        2
     """
     if min(resolution_wh) < 1080:
         return 2

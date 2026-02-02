@@ -1,5 +1,4 @@
 import argparse
-from typing import List
 
 import cv2
 import numpy as np
@@ -22,7 +21,7 @@ def main(
     model_id: str,
     confidence: float,
     iou: float,
-    classes: List[int],
+    classes: list[int],
 ) -> None:
     model = get_model(model_id=model_id)
     tracker = sv.ByteTrack(minimum_matching_threshold=0.5)

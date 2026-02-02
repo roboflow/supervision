@@ -1,19 +1,21 @@
+from __future__ import annotations
+
 import copy
 import os
 import random
 import shutil
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, TypeVar, Union
+from typing import TYPE_CHECKING, TypeVar
 
 import cv2
 import numpy as np
 import numpy.typing as npt
 
 from supervision.detection.core import Detections
-from supervision.detection.utils import (
+from supervision.detection.utils.converters import mask_to_polygons
+from supervision.detection.utils.polygons import (
     approximate_polygon,
     filter_polygons_by_area,
-    mask_to_polygons,
 )
 
 if TYPE_CHECKING:
@@ -27,7 +29,7 @@ def approximate_mask_with_polygons(
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
-) -> List[np.ndarray]:
+) -> list[np.ndarray]:
     height, width = mask.shape
     image_area = height * width
     minimum_detection_area = min_image_area_percentage * image_area
@@ -50,7 +52,7 @@ def approximate_mask_with_polygons(
     ]
 
 
-def merge_class_lists(class_lists: List[List[str]]) -> List[str]:
+def merge_class_lists(class_lists: list[list[str]]) -> list[str]:
     unique_classes = set()
 
     for class_list in class_lists:
@@ -61,8 +63,8 @@ def merge_class_lists(class_lists: List[List[str]]) -> List[str]:
 
 
 def build_class_index_mapping(
-    source_classes: List[str], target_classes: List[str]
-) -> Dict[int, int]:
+    source_classes: list[str], target_classes: list[str]
+) -> dict[int, int]:
     """Returns the index map of source classes -> target classes."""
     index_mapping = {}
 
@@ -79,7 +81,7 @@ def build_class_index_mapping(
 
 
 def map_detections_class_id(
-    source_to_target_mapping: Dict[int, int], detections: Detections
+    source_to_target_mapping: dict[int, int], detections: Detections
 ) -> Detections:
     if detections.class_id is None:
         raise ValueError("Detections must have class_id attribute.")
@@ -98,9 +100,7 @@ def map_detections_class_id(
     return detections_copy
 
 
-def save_dataset_images(
-    dataset: "DetectionDataset", images_directory_path: str
-) -> None:
+def save_dataset_images(dataset: DetectionDataset, images_directory_path: str) -> None:
     Path(images_directory_path).mkdir(parents=True, exist_ok=True)
     for image_path in dataset.image_paths:
         final_path = os.path.join(images_directory_path, Path(image_path).name)
@@ -112,11 +112,11 @@ def save_dataset_images(
 
 
 def train_test_split(
-    data: List[T],
+    data: list[T],
     train_ratio: float = 0.8,
-    random_state: Optional[int] = None,
+    random_state: int | None = None,
     shuffle: bool = True,
-) -> Tuple[List[T], List[T]]:
+) -> tuple[list[T], list[T]]:
     """
     Splits the data into two parts using the provided train_ratio.
 
@@ -140,7 +140,7 @@ def train_test_split(
 
 
 def rle_to_mask(
-    rle: Union[npt.NDArray[np.int_], List[int]], resolution_wh: Tuple[int, int]
+    rle: npt.NDArray[np.int_] | list[int], resolution_wh: tuple[int, int]
 ) -> npt.NDArray[np.bool_]:
     """
     Converts run-length encoding (RLE) to a binary mask.
@@ -163,17 +163,14 @@ def rle_to_mask(
             number of pixels in the expected mask (computed based on resolution_wh).
 
     Examples:
-        ```python
-        import supervision as sv
-
-        sv.rle_to_mask([5, 2, 2, 2, 5], (4, 4))
-        # array([
-        #     [False, False, False, False],
-        #     [False, True,  True,  False],
-        #     [False, True,  True,  False],
-        #     [False, False, False, False],
-        # ])
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> mask = sv.rle_to_mask([5, 2, 2, 2, 5], (4, 4))
+        >>> mask  # doctest: +NORMALIZE_WHITESPACE
+        array([[0, 0, 0, 0],
+               [0, 1, 1, 0],
+               [0, 1, 1, 0],
+               [0, 0, 0, 0]], dtype=uint8)
     """
     if isinstance(rle, list):
         rle = np.array(rle, dtype=int)
@@ -195,7 +192,7 @@ def rle_to_mask(
     return decoded_rle.reshape((height, width), order="F")
 
 
-def mask_to_rle(mask: npt.NDArray[np.bool_]) -> List[int]:
+def mask_to_rle(mask: npt.NDArray[np.bool_]) -> list[int]:
     """
     Converts a binary mask into a run-length encoding (RLE).
 
@@ -213,31 +210,33 @@ def mask_to_rle(mask: npt.NDArray[np.bool_]) -> List[int]:
         AssertionError: If input mask is not 2D or is empty.
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> mask = np.array([
+        ...     [True, True, True, True],
+        ...     [True, True, True, True],
+        ...     [True, True, True, True],
+        ...     [True, True, True, True],
+        ... ])
+        >>> rle = sv.mask_to_rle(mask)
+        >>> [int(x) for x in rle]
+        [0, 16]
 
-        mask = np.array([
-            [True, True, True, True],
-            [True, True, True, True],
-            [True, True, True, True],
-            [True, True, True, True],
-        ])
-        sv.mask_to_rle(mask)
-        # [0, 16]
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> mask = np.array([
+        ...     [False, False, False, False],
+        ...     [False, True,  True,  False],
+        ...     [False, True,  True,  False],
+        ...     [False, False, False, False],
+        ... ])
+        >>> rle = sv.mask_to_rle(mask)
+        >>> [int(x) for x in rle]
+        [5, 2, 2, 2, 5]
 
-        mask = np.array([
-            [False, False, False, False],
-            [False, True,  True,  False],
-            [False, True,  True,  False],
-            [False, False, False, False],
-        ])
-        sv.mask_to_rle(mask)
-        # [5, 2, 2, 2, 5]
-        ```
-
-    ![mask_to_rle](https://media.roboflow.com/supervision-docs/mask-to-rle.png){ align=center width="800" }
-    """  # noqa E501 // docs
+    ![mask_to_rle](https://media.roboflow.com/supervision-docs/
+    mask-to-rle.png){ align=center width="800" }
+    """
     assert mask.ndim == 2, "Input mask must be 2D"
     assert mask.size != 0, "Input mask cannot be empty"
 

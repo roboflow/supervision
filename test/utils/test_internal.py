@@ -1,6 +1,6 @@
 from contextlib import ExitStack as DoesNotRaise
 from dataclasses import dataclass, field
-from typing import Any, Set
+from typing import Any
 
 import numpy as np
 import pytest
@@ -74,7 +74,7 @@ class MockDataclass:
 
 
 @pytest.mark.parametrize(
-    "input_instance, include_properties, expected, exception",
+    ("input_instance", "include_properties", "expected", "exception"),
     [
         (
             MockClass,
@@ -145,6 +145,7 @@ class MockDataclass:
                 "metadata",
                 "area",
                 "box_area",
+                "box_aspect_ratio",
             },
             DoesNotRaise(),
         ),
@@ -183,26 +184,12 @@ class MockDataclass:
             },
             DoesNotRaise(),
         ),
-        (
-            Detections.empty(),
-            False,
-            {
-                "xyxy",
-                "class_id",
-                "confidence",
-                "mask",
-                "tracker_id",
-                "data",
-                "metadata",
-            },
-            DoesNotRaise(),
-        ),
     ],
 )
 def test_get_instance_variables(
     input_instance: Any,
     include_properties: bool,
-    expected: Set[str],
+    expected: set[str],
     exception: Exception,
 ) -> None:
     with exception:

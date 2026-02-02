@@ -1,20 +1,25 @@
 import csv
 import os
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
 import supervision as sv
-from test.test_utils import mock_detections
+from test.helpers import _create_detections
 
 
 @pytest.mark.parametrize(
-    "detections, custom_data, "
-    "second_detections, second_custom_data, "
-    "file_name, expected_result",
+    (
+        "detections",
+        "custom_data",
+        "second_detections",
+        "second_custom_data",
+        "file_name",
+        "expected_result",
+    ),
     [
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[10, 20, 30, 40], [50, 60, 70, 80]],
                 confidence=[0.7, 0.8],
                 class_id=[0, 0],
@@ -22,7 +27,7 @@ from test.test_utils import mock_detections
                 data={"class_name": ["person", "person"]},
             ),
             {"frame_number": 42},
-            mock_detections(
+            _create_detections(
                 xyxy=[[15, 25, 35, 45], [55, 65, 75, 85]],
                 confidence=[0.6, 0.9],
                 class_id=[1, 1],
@@ -50,13 +55,13 @@ from test.test_utils import mock_detections
             ],
         ),  # multiple detections
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[60, 70, 80, 90], [100, 110, 120, 130]],
                 tracker_id=[4, 5],
                 data={"class_name": ["bike", "dog"]},
             ),
             {"frame_number": 44},
-            mock_detections(
+            _create_detections(
                 xyxy=[[65, 75, 85, 95], [105, 115, 125, 135]],
                 confidence=[0.5, 0.4],
                 data={"class_name": ["tree", "cat"]},
@@ -82,13 +87,13 @@ from test.test_utils import mock_detections
             ],
         ),  # missing fields
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[10, 11, 12, 13]],
                 confidence=[0.95],
                 data={"class_name": "unknown", "is_detected": True, "score": 1},
             ),
             {"frame_number": 46},
-            mock_detections(
+            _create_detections(
                 xyxy=[[14, 15, 16, 17]],
                 data={"class_name": "artifact", "is_detected": False, "score": 0.85},
             ),
@@ -137,14 +142,14 @@ from test.test_utils import mock_detections
             ],
         ),  # Inconsistent Data Types
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[20, 21, 22, 23]],
             ),
             {
                 "metadata": {"sensor_id": 101, "location": "north"},
                 "tags": ["urgent", "review"],
             },
-            mock_detections(
+            _create_detections(
                 xyxy=[[14, 15, 16, 17]],
             ),
             {
@@ -191,12 +196,12 @@ from test.test_utils import mock_detections
     ],
 )
 def test_csv_sink(
-    detections: mock_detections,
-    custom_data: Dict[str, Any],
-    second_detections: mock_detections,
-    second_custom_data: Dict[str, Any],
+    detections: sv.Detections,
+    custom_data: dict[str, Any],
+    second_detections: sv.Detections,
+    second_custom_data: dict[str, Any],
     file_name: str,
-    expected_result: List[List[Any]],
+    expected_result: list[list[Any]],
 ) -> None:
     with sv.CSVSink(file_name) as sink:
         sink.append(detections, custom_data)
@@ -206,12 +211,17 @@ def test_csv_sink(
 
 
 @pytest.mark.parametrize(
-    "detections, custom_data, "
-    "second_detections, second_custom_data, "
-    "file_name, expected_result",
+    (
+        "detections",
+        "custom_data",
+        "second_detections",
+        "second_custom_data",
+        "file_name",
+        "expected_result",
+    ),
     [
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[10, 20, 30, 40], [50, 60, 70, 80]],
                 confidence=[0.7, 0.8],
                 class_id=[0, 0],
@@ -219,7 +229,7 @@ def test_csv_sink(
                 data={"class_name": ["person", "person"]},
             ),
             {"frame_number": 42},
-            mock_detections(
+            _create_detections(
                 xyxy=[[15, 25, 35, 45], [55, 65, 75, 85]],
                 confidence=[0.6, 0.9],
                 class_id=[1, 1],
@@ -247,13 +257,13 @@ def test_csv_sink(
             ],
         ),  # multiple detections
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[60, 70, 80, 90], [100, 110, 120, 130]],
                 tracker_id=[4, 5],
                 data={"class_name": ["bike", "dog"]},
             ),
             {"frame_number": 44},
-            mock_detections(
+            _create_detections(
                 xyxy=[[65, 75, 85, 95], [105, 115, 125, 135]],
                 confidence=[0.5, 0.4],
                 data={"class_name": ["tree", "cat"]},
@@ -279,13 +289,13 @@ def test_csv_sink(
             ],
         ),  # missing fields
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[10, 11, 12, 13]],
                 confidence=[0.95],
                 data={"class_name": "unknown", "is_detected": True, "score": 1},
             ),
             {"frame_number": 46},
-            mock_detections(
+            _create_detections(
                 xyxy=[[14, 15, 16, 17]],
                 data={"class_name": "artifact", "is_detected": False, "score": 0.85},
             ),
@@ -334,14 +344,14 @@ def test_csv_sink(
             ],
         ),  # Inconsistent Data Types
         (
-            mock_detections(
+            _create_detections(
                 xyxy=[[20, 21, 22, 23]],
             ),
             {
                 "metadata": {"sensor_id": 101, "location": "north"},
                 "tags": ["urgent", "review"],
             },
-            mock_detections(
+            _create_detections(
                 xyxy=[[14, 15, 16, 17]],
             ),
             {
@@ -388,12 +398,12 @@ def test_csv_sink(
     ],
 )
 def test_csv_sink_manual(
-    detections: mock_detections,
-    custom_data: Dict[str, Any],
-    second_detections: mock_detections,
-    second_custom_data: Dict[str, Any],
+    detections: sv.Detections,
+    custom_data: dict[str, Any],
+    second_detections: sv.Detections,
+    second_custom_data: dict[str, Any],
     file_name: str,
-    expected_result: List[List[Any]],
+    expected_result: list[list[Any]],
 ) -> None:
     sink = sv.CSVSink(file_name)
     sink.open()
@@ -405,7 +415,7 @@ def test_csv_sink_manual(
 
 
 def assert_csv_equal(file_name, expected_rows):
-    with open(file_name, mode="r", newline="") as file:
+    with open(file_name, newline="") as file:
         reader = csv.reader(file)
         for i, row in enumerate(reader):
             assert [str(item) for item in expected_rows[i]] == row, (

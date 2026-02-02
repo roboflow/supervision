@@ -1,6 +1,5 @@
 ---
 comments: true
-status: new
 ---
 
 # Track Objects
@@ -177,9 +176,9 @@ offering a clear visual representation of each object's class and unique identif
         detections = tracker.update_with_detections(detections)
 
         labels = [
-            f"#{tracker_id} {results.names[class_id]}"
-            for class_id, tracker_id
-            in zip(detections.class_id, detections.tracker_id)
+            f"#{tracker_id} {class_name}"
+            for class_name, tracker_id
+            in zip(detections.data["class_name"], detections.tracker_id)
         ]
 
         annotated_frame = box_annotator.annotate(
@@ -212,9 +211,9 @@ offering a clear visual representation of each object's class and unique identif
         detections = tracker.update_with_detections(detections)
 
         labels = [
-            f"#{tracker_id} {results.names[class_id]}"
-            for class_id, tracker_id
-            in zip(detections.class_id, detections.tracker_id)
+            f"#{tracker_id} {class_name}"
+            for class_name, tracker_id
+            in zip(detections.data["class_name"], detections.tracker_id)
         ]
 
         annotated_frame = box_annotator.annotate(
@@ -260,9 +259,9 @@ movement patterns and interactions between objects in the video.
         detections = tracker.update_with_detections(detections)
 
         labels = [
-            f"#{tracker_id} {results.names[class_id]}"
-            for class_id, tracker_id
-            in zip(detections.class_id, detections.tracker_id)
+            f"#{tracker_id} {class_name}"
+            for class_name, tracker_id
+            in zip(detections.data["class_name"], detections.tracker_id)
         ]
 
         annotated_frame = box_annotator.annotate(
@@ -298,9 +297,9 @@ movement patterns and interactions between objects in the video.
         detections = tracker.update_with_detections(detections)
 
         labels = [
-            f"#{tracker_id} {results.names[class_id]}"
-            for class_id, tracker_id
-            in zip(detections.class_id, detections.tracker_id)
+            f"#{tracker_id} {class_name}"
+            for class_name, tracker_id
+            in zip(detections.data["class_name"], detections.tracker_id)
         ]
 
         annotated_frame = box_annotator.annotate(
@@ -345,7 +344,7 @@ Supervision is versatile and compatible with various models. Check this [link](/
 
 We will define a `callback` function, which will process each frame of the video by obtaining model predictions and then annotating the frame based on these predictions.
 
-Let's immediately visualize the results with our [`EdgeAnnotator`](/latest/keypoint/annotators/#supervision.keypoint.annotators.EdgeAnnotator) and [`VertexAnnotator`](https://supervision.roboflow.com/latest/keypoint/annotators/#supervision.keypoint.annotators.VertexAnnotator).
+Let's immediately visualize the results with our [`EdgeAnnotator`](/latest/keypoint/annotators/#supervision.key_points.annotators.EdgeAnnotator) and [`VertexAnnotator`](https://supervision.roboflow.com/latest/keypoint/annotators/#supervision.key_points.annotators.VertexAnnotator).
 
 === "Ultralytics"
 
@@ -408,7 +407,7 @@ Let's immediately visualize the results with our [`EdgeAnnotator`](/latest/keypo
 
 ### Convert to Detections
 
-Keypoint tracking is currently supported via the conversion of `KeyPoints` to `Detections`. This is achieved with the [`KeyPoints.as_detections()`](/latest/keypoint/core/#supervision.keypoint.core.KeyPoints.as_detections) function.
+Keypoint tracking is currently supported via the conversion of `KeyPoints` to `Detections`. This is achieved with the [`KeyPoints.as_detections()`](/latest/keypoint/core/#supervision.key_points.core.KeyPoints.as_detections) function.
 
 Let's convert to detections and visualize the results with our [`BoxAnnotator`](/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator).
 

@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING
 
 import numpy as np
 from matplotlib import pyplot as plt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
-from supervision.detection.utils import (
+from supervision.detection.utils.iou_and_nms import (
     box_iou_batch,
     mask_iou_batch,
     oriented_box_iou_batch,
@@ -36,37 +36,23 @@ class F1Score(Metric):
 
     `F1 = 2 * (precision * recall) / (precision + recall)`
 
-    Example:
-        ```python
-        import supervision as sv
-        from supervision.metrics import F1Score
-
-        predictions = sv.Detections(...)
-        targets = sv.Detections(...)
-
-        f1_metric = F1Score()
-        f1_result = f1_metric.update(predictions, targets).compute()
-
-        print(f1_result.f1_50)
-        # 0.7618
-
-        print(f1_result)
-        # F1ScoreResult:
-        # Metric target: MetricTarget.BOXES
-        # Averaging method: AveragingMethod.WEIGHTED
-        # F1 @ 50:     0.7618
-        # F1 @ 75:     0.7487
-        # F1 @ thresh: [0.76175  0.76068  0.76068]
-        # IoU thresh:  [0.5  0.55  0.6  ...]
-        # F1 per class:
-        # 0: [0.70968  0.70968  0.70968  ...]
-        # ...
-        # Small objects: ...
-        # Medium objects: ...
-        # Large objects: ...
-
-        f1_result.plot()
-        ```
+    Examples:
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> from supervision.metrics import F1Score
+        >>> predictions = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]]),
+        ...     class_id=np.array([0]),
+        ...     confidence=np.array([0.9])
+        ... )
+        >>> targets = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]]),
+        ...     class_id=np.array([0])
+        ... )
+        >>> f1_metric = F1Score()
+        >>> f1_result = f1_metric.update(predictions, targets).compute()
+        >>> round(float(f1_result.f1_50), 2)
+        1.0
 
     ![example_plot](\
         https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png\
@@ -89,8 +75,8 @@ class F1Score(Metric):
         self._metric_target = metric_target
         self.averaging_method = averaging_method
 
-        self._predictions_list: List[Detections] = []
-        self._targets_list: List[Detections] = []
+        self._predictions_list: list[Detections] = []
+        self._targets_list: list[Detections] = []
 
     def reset(self) -> None:
         """
@@ -101,8 +87,8 @@ class F1Score(Metric):
 
     def update(
         self,
-        predictions: Union[Detections, List[Detections]],
-        targets: Union[Detections, List[Detections]],
+        predictions: Detections | list[Detections],
+        targets: Detections | list[Detections],
     ) -> F1Score:
         """
         Add new predictions and targets to the metric, but do not compute the result.
@@ -160,7 +146,7 @@ class F1Score(Metric):
         return result
 
     def _compute(
-        self, predictions_list: List[Detections], targets_list: List[Detections]
+        self, predictions_list: list[Detections], targets_list: list[Detections]
     ) -> F1ScoreResult:
         iou_thresholds = np.linspace(0.5, 0.95, 10)
         stats = []
@@ -242,7 +228,7 @@ class F1Score(Metric):
         prediction_confidence: np.ndarray,
         prediction_class_ids: np.ndarray,
         true_class_ids: np.ndarray,
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         sorted_indices = np.argsort(-prediction_confidence)
         matches = matches[sorted_indices]
         prediction_class_ids = prediction_class_ids[sorted_indices]
@@ -435,10 +421,10 @@ class F1Score(Metric):
 
     def _filter_predictions_and_targets_by_size(
         self,
-        predictions_list: List[Detections],
-        targets_list: List[Detections],
+        predictions_list: list[Detections],
+        targets_list: list[Detections],
         size_category: ObjectSizeCategory,
-    ) -> Tuple[List[Detections], List[Detections]]:
+    ) -> tuple[list[Detections], list[Detections]]:
         """
         Filter predictions and targets by object size category.
         """
@@ -499,9 +485,9 @@ class F1ScoreResult:
     iou_thresholds: np.ndarray
     matched_classes: np.ndarray
 
-    small_objects: Optional[F1ScoreResult]
-    medium_objects: Optional[F1ScoreResult]
-    large_objects: Optional[F1ScoreResult]
+    small_objects: F1ScoreResult | None
+    medium_objects: F1ScoreResult | None
+    large_objects: F1ScoreResult | None
 
     def __str__(self) -> str:
         """
@@ -553,7 +539,7 @@ class F1ScoreResult:
 
         return out_str
 
-    def to_pandas(self) -> "pd.DataFrame":
+    def to_pandas(self) -> pd.DataFrame:
         """
         Convert the result to a pandas DataFrame.
 

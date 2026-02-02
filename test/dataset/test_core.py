@@ -1,14 +1,15 @@
+from __future__ import annotations
+
 from contextlib import ExitStack as DoesNotRaise
-from typing import List, Optional
 
 import pytest
 
 from supervision import DetectionDataset
-from test.test_utils import mock_detections
+from test.helpers import _create_detections
 
 
 @pytest.mark.parametrize(
-    "dataset_list, expected_result, exception",
+    ("dataset_list", "expected_result", "exception"),
     [
         (
             [],
@@ -44,10 +45,10 @@ from test.test_utils import mock_detections
                     classes=["dog", "person"],
                     images=["image-1.png", "image-2.png"],
                     annotations={
-                        "image-1.png": mock_detections(
+                        "image-1.png": _create_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[0]
                         ),
-                        "image-2.png": mock_detections(
+                        "image-2.png": _create_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[1]
                         ),
                     },
@@ -58,8 +59,12 @@ from test.test_utils import mock_detections
                 classes=["dog", "person"],
                 images=["image-1.png", "image-2.png"],
                 annotations={
-                    "image-1.png": mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
-                    "image-2.png": mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
+                    "image-1.png": _create_detections(
+                        xyxy=[[0, 0, 10, 10]], class_id=[0]
+                    ),
+                    "image-2.png": _create_detections(
+                        xyxy=[[0, 0, 10, 10]], class_id=[1]
+                    ),
                 },
             ),
             DoesNotRaise(),
@@ -70,10 +75,10 @@ from test.test_utils import mock_detections
                     classes=["dog", "person"],
                     images=["image-1.png", "image-2.png"],
                     annotations={
-                        "image-1.png": mock_detections(
+                        "image-1.png": _create_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[0]
                         ),
-                        "image-2.png": mock_detections(
+                        "image-2.png": _create_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[1]
                         ),
                     },
@@ -84,8 +89,12 @@ from test.test_utils import mock_detections
                 classes=["cat", "dog", "person"],
                 images=["image-1.png", "image-2.png"],
                 annotations={
-                    "image-1.png": mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
-                    "image-2.png": mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[2]),
+                    "image-1.png": _create_detections(
+                        xyxy=[[0, 0, 10, 10]], class_id=[1]
+                    ),
+                    "image-2.png": _create_detections(
+                        xyxy=[[0, 0, 10, 10]], class_id=[2]
+                    ),
                 },
             ),
             DoesNotRaise(),
@@ -96,10 +105,10 @@ from test.test_utils import mock_detections
                     classes=["dog", "person"],
                     images=["image-1.png", "image-2.png"],
                     annotations={
-                        "image-1.png": mock_detections(
+                        "image-1.png": _create_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[0]
                         ),
-                        "image-2.png": mock_detections(
+                        "image-2.png": _create_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[1]
                         ),
                     },
@@ -108,7 +117,7 @@ from test.test_utils import mock_detections
                     classes=["cat"],
                     images=["image-3.png"],
                     annotations={
-                        "image-3.png": mock_detections(
+                        "image-3.png": _create_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[0]
                         ),
                     },
@@ -118,9 +127,15 @@ from test.test_utils import mock_detections
                 classes=["cat", "dog", "person"],
                 images=["image-1.png", "image-2.png", "image-3.png"],
                 annotations={
-                    "image-1.png": mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
-                    "image-2.png": mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[2]),
-                    "image-3.png": mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
+                    "image-1.png": _create_detections(
+                        xyxy=[[0, 0, 10, 10]], class_id=[1]
+                    ),
+                    "image-2.png": _create_detections(
+                        xyxy=[[0, 0, 10, 10]], class_id=[2]
+                    ),
+                    "image-3.png": _create_detections(
+                        xyxy=[[0, 0, 10, 10]], class_id=[0]
+                    ),
                 },
             ),
             DoesNotRaise(),
@@ -131,10 +146,10 @@ from test.test_utils import mock_detections
                     classes=["dog", "person"],
                     images=["image-1.png", "image-2.png"],
                     annotations={
-                        "image-1.png": mock_detections(
+                        "image-1.png": _create_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[0]
                         ),
-                        "image-2.png": mock_detections(
+                        "image-2.png": _create_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[1]
                         ),
                     },
@@ -143,10 +158,10 @@ from test.test_utils import mock_detections
                     classes=["dog", "person"],
                     images=["image-2.png", "image-3.png"],
                     annotations={
-                        "image-2.png": mock_detections(
+                        "image-2.png": _create_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[0]
                         ),
-                        "image-3.png": mock_detections(
+                        "image-3.png": _create_detections(
                             xyxy=[[0, 0, 10, 10]], class_id=[1]
                         ),
                     },
@@ -158,8 +173,8 @@ from test.test_utils import mock_detections
     ],
 )
 def test_dataset_merge(
-    dataset_list: List[DetectionDataset],
-    expected_result: Optional[DetectionDataset],
+    dataset_list: list[DetectionDataset],
+    expected_result: DetectionDataset | None,
     exception: Exception,
 ) -> None:
     with exception:

@@ -11,7 +11,7 @@ supervision package for multiple tasks such as tracking, annotations, etc.
 
 https://github.com/roboflow/supervision/assets/26109316/d50118c1-2ae4-458d-915a-5d860fd36f71
 
-> \[!IMPORTANT\]
+> [!IMPORTANT]
 > Adjust the [`SOURCE`](https://github.com/roboflow/supervision/blob/e32b05a636dab2ea1f39299e529c4b22b8baa8da/examples/speed_estimation/ultralytics_example.py#L10)
 > and [`TARGET`](https://github.com/roboflow/supervision/blob/e32b05a636dab2ea1f39299e529c4b22b8baa8da/examples/speed_estimation/ultralytics_example.py#L15)
 > configuration if you plan to run a speed estimation script on your video file. Those must be adjusted separately for each camera view. You can learn more
@@ -26,7 +26,7 @@ https://github.com/roboflow/supervision/assets/26109316/d50118c1-2ae4-458d-915a-
     cd supervision/examples/speed_estimation
     ```
 
-- setup python environment and activate it \[optional\]
+- setup python environment and activate it [optional]
 
     ```bash
     python3.10 -m venv venv
@@ -90,7 +90,7 @@ https://github.com/roboflow/supervision/assets/26109316/d50118c1-2ae4-458d-915a-
 
     ```bash
     python inference_example.py \
-        --roboflow_api_key <ROBOFLOW API KEY> \
+        --roboflow_api_key "ROBOFLOW_API_KEY" \
         --source_video_path data/vehicles.mp4 \
         --target_video_path data/vehicles-result.mp4 \
         --confidence_threshold 0.3 \

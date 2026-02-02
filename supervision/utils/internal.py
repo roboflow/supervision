@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import functools
 import inspect
 import os
 import warnings
-from typing import Any, Callable, Generic, Optional, Set, TypeVar
+from collections.abc import Callable
+from typing import Any, Generic, TypeVar
 
 
 class SupervisionWarnings(Warning):
@@ -15,12 +18,18 @@ class SupervisionWarnings(Warning):
     pass
 
 
-def format_warning(msg, category, filename, lineno, line=None):
+def format_warning(
+    message: Warning | str,
+    category: type[Warning],
+    filename: str,
+    lineno: int,
+    line: str | None = None,
+) -> str:
     """
     Format a warning the same way as the default formatter, but also include the
     category name in the output.
     """
-    return f"{category.__name__}: {msg}\n"
+    return f"{category.__name__}: {message}\n"
 
 
 warnings.formatwarning = format_warning
@@ -31,12 +40,12 @@ else:
     warnings.simplefilter("always", SupervisionWarnings)
 
 
-def warn_deprecated(message: str):
+def warn_deprecated(message: str) -> None:
     """
     Issue a warning that a function is deprecated.
 
     Args:
-        message (str): The message to display when the function is called.
+        message: The message to display when the function is called.
     """
     warnings.warn(message, category=SupervisionWarnings, stacklevel=2)
 
@@ -44,47 +53,52 @@ def warn_deprecated(message: str):
 def deprecated_parameter(
     old_parameter: str,
     new_parameter: str,
-    map_function: Callable = lambda x: x,
+    map_function: Callable[[Any], Any] = lambda x: x,
     warning_message: str = "Warning: '{old_parameter}' in '{function_name}' is "
     "deprecated: use '{new_parameter}' instead.",
-    **message_kwargs,
-):
+    **message_kwargs: Any,
+) -> Callable[[Any], Any]:
     """
     A decorator to mark a function's parameter as deprecated and issue a warning when
     used.
 
     Parameters:
-        old_parameter (str): The name of the deprecated parameter.
-        new_parameter (str): The name of the parameter that should be used instead.
-        map_function (Callable): A function used to map the value of the old
+        old_parameter: The name of the deprecated parameter.
+        new_parameter: The name of the parameter that should be used instead.
+        map_function: A function used to map the value of the old
             parameter to the new parameter. Defaults to the identity function.
-        warning_message (str): The warning message to be displayed when the
+        warning_message: The warning message to be displayed when the
             deprecated parameter is used. Defaults to a generic warning message with
             placeholders for the old parameter, new parameter, and function name.
         **message_kwargs: Additional keyword arguments that can be used to customize
             the warning message.
 
     Returns:
-        Callable: A decorator function that can be applied to mark a function's
+        A decorator function that can be applied to mark a function's
             parameter as deprecated.
 
     Examples:
-        ```python
-        @deprecated_parameter(
-            old_parameter=<OLD_PARAMETER_NAME>,
-            new_parameter=<NEW_PARAMETER_NAME>
-        )
-        def example_function(<NEW_PARAMETER_NAME>):
-            pass
-
-        # call function using deprecated parameter
-        example_function(<OLD_PARAMETER_NAME>=<OLD_PARAMETER_VALUE>)
-        ```
+        >>> from supervision.utils.internal import deprecated_parameter
+        >>> import warnings
+        >>> @deprecated_parameter(
+        ...     old_parameter='old_name',
+        ...     new_parameter='new_name'
+        ... )
+        ... def example_function(new_name=None):
+        ...     return new_name
+        >>> # Calling with new parameter works normally
+        >>> example_function(new_name='value')
+        'value'
+        >>> # Calling with old parameter triggers warning but still works
+        >>> with warnings.catch_warnings(record=True):
+        ...     result = example_function(old_name='deprecated_value')
+        ...     print(result)
+        deprecated_value
     """
 
-    def decorator(func):
+    def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             if old_parameter in kwargs:
                 if args and hasattr(args[0], "__class__"):
                     class_name = args[0].__class__.__name__
@@ -110,14 +124,26 @@ def deprecated_parameter(
     return decorator
 
 
-def deprecated(reason: str):
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            warn_deprecated(f"{func.__name__} is deprecated: {reason}")
-            return func(*args, **kwargs)
+def deprecated(reason: str) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    def decorator(cls_or_func: Callable[..., Any]) -> Callable[..., Any]:
+        if inspect.isclass(cls_or_func):
+            original_init: Callable[..., None] = cls_or_func.__init__
 
-        return wrapper
+            @functools.wraps(original_init)
+            def new_init(self: Any, *args: Any, **kwargs: Any) -> None:
+                warn_deprecated(f"{cls_or_func.__name__} is deprecated: {reason}")
+                original_init(self, *args, **kwargs)
+
+            cls_or_func.__init__ = new_init
+            return cls_or_func
+        else:
+
+            @functools.wraps(cls_or_func)
+            def wrapper(*args: Any, **kwargs: Any) -> Any:
+                warn_deprecated(f"{cls_or_func.__name__} is deprecated: {reason}")
+                return cls_or_func(*args, **kwargs)
+
+            return wrapper
 
     return decorator
 
@@ -144,7 +170,7 @@ class classproperty(Generic[T]):
         """
         self.fget = fget
 
-    def __get__(self, owner_self: Any, owner_cls: Optional[type] = None) -> T:
+    def __get__(self, owner_self: Any, owner_cls: type | None = None) -> T:
         """
         Override the __get__ method to return the result of the function call.
 
@@ -161,40 +187,40 @@ class classproperty(Generic[T]):
         return self.fget(owner_cls)
 
 
-def get_instance_variables(instance: Any, include_properties=False) -> Set[str]:
+def get_instance_variables(instance: Any, include_properties: bool = False) -> set[str]:
     """
     Get the public variables of a class instance.
 
     Args:
-        instance (Any): The instance of a class
-        include_properties (bool): Whether to include properties in the result
+        instance: The instance of a class
+        include_properties: Whether to include properties in the result
 
     Usage:
-        ```python
-        detections = Detections(xyxy=np.array([1,2,3,4]))
-        variables = get_class_variables(detections)
-        # ["xyxy", "mask", "confidence", ..., "data"]
-        ```
+        >>> from supervision.utils.internal import get_instance_variables
+        >>> import numpy as np
+        >>> from supervision import Detections
+        >>> detections = Detections(xyxy=np.array([[1, 2, 3, 4]]))
+        >>> variables = get_instance_variables(detections)
+        >>> 'xyxy' in variables
+        True
+        >>> 'data' in variables
+        True
     """
     if isinstance(instance, type):
         raise ValueError("Only class instances are supported, not classes.")
 
-    fields = set(
-        (
-            name
-            for name, val in inspect.getmembers(instance)
-            if not callable(val) and not name.startswith("_")
-        )
-    )
+    fields = {
+        name
+        for name, val in inspect.getmembers(instance)
+        if not callable(val) and not name.startswith("_")
+    }
 
     if not include_properties:
-        properties = set(
-            (
-                name
-                for name, val in inspect.getmembers(instance.__class__)
-                if isinstance(val, property)
-            )
-        )
+        properties = {
+            name
+            for name, val in inspect.getmembers(instance.__class__)
+            if isinstance(val, property)
+        }
         fields -= properties
 
     return fields
