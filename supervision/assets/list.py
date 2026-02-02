@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Dict, Tuple
 
 BASE_VIDEO_URL = "https://media.roboflow.com/supervision/video-examples/"
 BASE_IMAGE_URL = "https://media.roboflow.com/supervision/image-examples/"
@@ -25,6 +24,9 @@ class VideoAssets(Assets):
     | `SUBWAY`               | `subway.mp4`               | [Link](https://media.roboflow.com/supervision/video-examples/subway.mp4)              |
     | `MARKET_SQUARE`        | `market-square.mp4`        | [Link](https://media.roboflow.com/supervision/video-examples/market-square.mp4)       |
     | `PEOPLE_WALKING`       | `people-walking.mp4`       | [Link](https://media.roboflow.com/supervision/video-examples/people-walking.mp4)      |
+    | `BEACH`                | `beach-1.mp4`              | [Link](https://media.roboflow.com/supervision/video-examples/beach-1.mp4)             |
+    | `BASKETBALL`           | `basketball-1.mp4`         | [Link](https://media.roboflow.com/supervision/video-examples/basketball-1.mp4)        |
+    | `SKIING`               | `skiing.mp4`               | [Link](https://media.roboflow.com/supervision/video-examples/skiing.mp4)              |
     """  # noqa: E501 // docs
 
     VEHICLES = ("vehicles.mp4", "8155ff4e4de08cfa25f39de96483f918")
@@ -37,6 +39,9 @@ class VideoAssets(Assets):
     SUBWAY = ("subway.mp4", "453475750691fb23c56a0cffef089194")
     MARKET_SQUARE = ("market-square.mp4", "859179bf4a21f80a8baabfdb2ed716dc")
     PEOPLE_WALKING = ("people-walking.mp4", "0574c053c8686c3f1dc0aa3743e45cb9")
+    BEACH = ("beach-1.mp4", "4175d42fec4d450ed081523fd39e0cf8")
+    BASKETBALL = ("basketball-1.mp4", "60d94a3c7c47d16f09d342b088012ecc")
+    SKIING = ("skiing.mp4", "d30987cbab1bbc5934199cdd1b293119")
 
 
 class ImageAssets(Assets):

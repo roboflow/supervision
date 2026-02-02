@@ -1,32 +1,38 @@
-from typing import List, Optional, Tuple
+from __future__ import annotations
 
 import cv2
 import matplotlib.pyplot as plt
-import numpy as np
+from PIL import Image
+
+from supervision.draw.base import ImageType
+from supervision.utils.conversion import pillow_to_cv2
 
 
 def plot_image(
-    image: np.ndarray, size: Tuple[int, int] = (12, 12), cmap: Optional[str] = "gray"
+    image: ImageType, size: tuple[int, int] = (12, 12), cmap: str | None = "gray"
 ) -> None:
     """
     Plots image using matplotlib.
 
     Args:
-        image (np.ndarray): The frame to be displayed.
-        size (Tuple[int, int]): The size of the plot.
-        cmap (str): the colormap to use for single channel images.
+        image: The frame to be displayed ImageType
+             is a flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
+        size: The size of the plot in inches.
+        cmap: the colormap to use for single channel images.
 
     Examples:
-        ```python
-        import cv2
-        import supervision as sv
-
-        image = cv2.imread("path/to/image.jpg")
-
-        %matplotlib inline
-        sv.plot_image(image=image, size=(16, 16))
-        ```
+        >>> import cv2
+        >>> import numpy as np
+        >>> import matplotlib
+        >>> matplotlib.use('Agg')  # Prevents the GUI window from popping up
+        >>> import supervision as sv
+        >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> sv.plot_image(image=image, size=(16, 16))
+        ...
     """
+    if isinstance(image, Image.Image):
+        image = pillow_to_cv2(image)
+
     plt.figure(figsize=size)
 
     if image.ndim == 2:
@@ -39,45 +45,49 @@ def plot_image(
 
 
 def plot_images_grid(
-    images: List[np.ndarray],
-    grid_size: Tuple[int, int],
-    titles: Optional[List[str]] = None,
-    size: Tuple[int, int] = (12, 12),
-    cmap: Optional[str] = "gray",
+    images: list[ImageType],
+    grid_size: tuple[int, int],
+    titles: list[str] | None = None,
+    size: tuple[int, int] = (12, 12),
+    cmap: str | None = "gray",
 ) -> None:
     """
     Plots images in a grid using matplotlib.
 
     Args:
-       images (List[np.ndarray]): A list of images as numpy arrays.
-       grid_size (Tuple[int, int]): A tuple specifying the number
+       images: A list of images as ImageType
+             is a flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
+       grid_size: A tuple specifying the number
             of rows and columns for the grid.
-       titles (Optional[List[str]]): A list of titles for each image.
+       titles: A list of titles for each image.
             Defaults to None.
-       size (Tuple[int, int]): A tuple specifying the width and
+       size: A tuple specifying the width and
             height of the entire plot in inches.
-       cmap (str): the colormap to use for single channel images.
+       cmap: the colormap to use for single channel images.
 
     Raises:
        ValueError: If the number of images exceeds the grid size.
 
     Examples:
-        ```python
-        import cv2
-        import supervision as sv
-
-        image1 = cv2.imread("path/to/image1.jpg")
-        image2 = cv2.imread("path/to/image2.jpg")
-        image3 = cv2.imread("path/to/image3.jpg")
-
-        images = [image1, image2, image3]
-        titles = ["Image 1", "Image 2", "Image 3"]
-
-        %matplotlib inline
-        plot_images_grid(images, grid_size=(2, 2), titles=titles, size=(16, 16))
-        ```
+        >>> import cv2
+        >>> import numpy as np
+        >>> import matplotlib
+        >>> matplotlib.use('Agg')  # Prevents the GUI window from popping up
+        >>> import supervision as sv
+        >>> from PIL import Image
+        >>> image1 = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> image2 = Image.new('RGB', (100, 100))
+        >>> image3 = np.zeros((100, 100, 3), dtype=np.uint8)
+        >>> images = [image1, image2, image3]
+        >>> titles = ["Image 1", "Image 2", "Image 3"]
+        >>> sv.plot_images_grid(images, grid_size=(2, 2), titles=titles, size=(16, 16))
+        ...
     """
     nrows, ncols = grid_size
+
+    for idx, img in enumerate(images):
+        if isinstance(img, Image.Image):
+            images[idx] = pillow_to_cv2(img)
 
     if len(images) > nrows * ncols:
         raise ValueError(
@@ -85,7 +95,7 @@ def plot_images_grid(
             " or reduce the number of images."
         )
 
-    fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=size)
+    _fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=size)
 
     for idx, ax in enumerate(axes.flat):
         if idx < len(images):

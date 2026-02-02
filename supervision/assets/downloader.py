@@ -1,74 +1,65 @@
+from __future__ import annotations
+
 import os
-from hashlib import new as hash_new
+from hashlib import md5
 from pathlib import Path
 from shutil import copyfileobj
-from typing import Union
+
+from requests import get
+from tqdm.auto import tqdm
 
 from supervision.assets.list import ASSETS, Assets, ImageAssets, VideoAssets
-
-try:
-    from requests import get
-    from tqdm.auto import tqdm
-except ImportError:
-    raise ValueError(
-        "\n"
-        "Please install requests and tqdm to download assets \n"
-        "or install supervision with assets \n"
-        "pip install supervision[assets] \n"
-        "\n"
-    )
 
 
 def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:
     """
     Check if the MD5 hash of a file matches the original hash.
 
+    Note: MD5 is used here for file integrity checking (detecting corruption),
+    not for cryptographic security purposes.
+
     Parameters:
-        filename (str): The path to the file to be checked as a string.
-        original_md5_hash (str): The original MD5 hash to compare against.
+        filename: The path to the file to be checked as a string.
+        original_md5_hash: The original MD5 hash to compare against.
 
     Returns:
-        bool: True if the hashes match, False otherwise.
+        True if the hashes match, False otherwise.
     """
     if not os.path.exists(filename):
         return False
 
     with open(filename, "rb") as file:
         file_contents = file.read()
-        computed_md5_hash = hash_new(name="MD5")
-        computed_md5_hash.update(file_contents)
+        computed_md5_hash = md5(file_contents, usedforsecurity=False)
 
     return computed_md5_hash.hexdigest() == original_md5_hash
 
 
-def download_assets(asset_name: Union[VideoAssets, ImageAssets, str]) -> str:
+def download_assets(asset_name: ImageAssets|VideoAssets | str) -> str:
     """
     Download a specified asset if it doesn't already exist or is corrupted.
 
     Parameters:
-        asset_name (Union[VideoAssets, ImageAssets, str]): The name or type of the asset to be
+        asset_name: The name or type of the asset to be
             downloaded.
 
     Returns:
-        str: The filename of the downloaded asset.
+        The filename of the downloaded asset.
 
     Example:
-        ```python
-        from supervision.assets import download_assets, VideoAssets, ImageAssets
+        >>> from supervision.assets import download_assets, ImageAssets, VideoAssets
+        >>> download_assets(VideoAssets.VEHICLES)  # doctest: +SKIP
+        'vehicles.mp4'
 
-        download_assets(VideoAssets.VEHICLES)
-        "vehicles.mp4"
-
-        download_assets(ImageAssets.PEOPLE_WALKING)
+        download_assets(ImageAssets.PEOPLE_WALKING)  # doctest: +SKIP
         "people-walking.jpg"
-        ```
     """
 
     filename = asset_name.filename if isinstance(asset_name, Assets) else asset_name
 
     if not Path(filename).exists() and filename in ASSETS:
         print(f"Downloading {filename} assets \n")
-        response = get(ASSETS[filename][0], stream=True, allow_redirects=True)
+        response = get(ASSETS[filename][0], stream=True, allow_redirects=True, timeout=30)
         response.raise_for_status()
 
         file_size = int(response.headers.get("Content-Length", 0))

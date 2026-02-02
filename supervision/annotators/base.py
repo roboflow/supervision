@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
 
-import numpy as np
-
 from supervision.detection.core import Detections
+from supervision.draw.base import ImageType
 
 
 class BaseAnnotator(ABC):
     @abstractmethod
-    def annotate(self, scene: np.ndarray, detections: Detections) -> np.ndarray:
+    def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
         pass

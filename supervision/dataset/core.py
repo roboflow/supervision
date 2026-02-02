@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import os
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from dataclasses import dataclass
+from itertools import chain
 from pathlib import Path
-from typing import Dict, Iterator, List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -31,9 +32,10 @@ from supervision.dataset.utils import (
     train_test_split,
 )
 from supervision.detection.core import Detections
+from supervision.utils.internal import warn_deprecated
+from supervision.utils.iterables import find_duplicates
 
 
-@dataclass
 class BaseDataset(ABC):
     @abstractmethod
     def __len__(self) -> int:
@@ -41,117 +43,277 @@ class BaseDataset(ABC):
 
     @abstractmethod
     def split(
-        self, split_ratio=0.8, random_state=None, shuffle: bool = True
-    ) -> Tuple[BaseDataset, BaseDataset]:
+        self,
+        split_ratio: float = 0.8,
+        random_state: int | None = None,
+        shuffle: bool = True,
+    ) -> tuple[BaseDataset, BaseDataset]:
         pass
 
 
-@dataclass
 class DetectionDataset(BaseDataset):
     """
-    Dataclass containing information about object detection dataset.
+    Contains information about a detection dataset. Handles lazy image loading
+    and annotation retrieval, dataset splitting, conversions into multiple
+    formats.
 
     Attributes:
         classes (List[str]): List containing dataset class names.
-        images (Dict[str, np.ndarray]): Dictionary mapping image name to image.
+        images (Union[List[str], Dict[str, np.ndarray]]):
+            Accepts a list of image paths, or dictionaries of loaded cv2 images
+            with paths as keys. If you pass a list of paths, the dataset will
+            lazily load images on demand, which is much more memory-efficient.
         annotations (Dict[str, Detections]): Dictionary mapping
-            image name to annotations.
+            image path to annotations. The dictionary keys match
+            match the keys in `images` or entries in the list of
+            image paths.
     """
 
-    classes: List[str]
-    images: Dict[str, np.ndarray]
-    annotations: Dict[str, Detections]
+    def __init__(
+        self,
+        classes: list[str],
+        images: list[str] | dict[str, np.ndarray],
+        annotations: dict[str, Detections],
+    ) -> None:
+        self.classes = classes
+
+        if set(images) != set(annotations):
+            raise ValueError(
+                "The keys of the images and annotations dictionaries must match."
+            )
+        self.annotations = annotations
+
+        # Eliminate duplicates while preserving order
+        self.image_paths = list(dict.fromkeys(images))
+
+        self._images_in_memory: dict[str, np.ndarray] = {}
+
+    def _get_image(self, image_path: str) -> np.ndarray:
+        """Assumes that image is in dataset"""
+        if self._images_in_memory:
+            return self._images_in_memory[image_path]
+        return cv2.imread(image_path)
 
     def __len__(self) -> int:
-        """
-        Return the number of images in the dataset.
+        return len(self._images_in_memory) or len(self.image_paths)
 
+    def __getitem__(self, i: int) -> tuple[str, np.ndarray, Detections]:
+        """
         Returns:
-            int: The number of images.
+            Tuple[str, np.ndarray, Detections]: The image path, image data,
+                and its corresponding annotation at index i.
         """
-        return len(self.images)
+        image_path = self.image_paths[i]
+        image = self._get_image(image_path)
+        annotation = self.annotations[image_path]
+        return image_path, image, annotation
 
-    def __iter__(self) -> Iterator[Tuple[str, np.ndarray, Detections]]:
+    def __iter__(self) -> Iterator[tuple[str, np.ndarray, Detections]]:
         """
         Iterate over the images and annotations in the dataset.
 
         Yields:
             Iterator[Tuple[str, np.ndarray, Detections]]:
-                An iterator that yields tuples containing the image name,
+                An iterator that yields tuples containing the image path,
                 the image data, and its corresponding annotation.
         """
-        for image_name, image in self.images.items():
-            yield image_name, image, self.annotations.get(image_name, None)
+        for i in range(len(self)):
+            image_path, image, annotation = self[i]
+            yield image_path, image, annotation
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if not isinstance(other, DetectionDataset):
             return False
 
         if set(self.classes) != set(other.classes):
             return False
 
-        for key in self.images:
-            if not np.array_equal(self.images[key], other.images[key]):
+        if self.image_paths != other.image_paths:
+            return False
+
+        if self._images_in_memory or other._images_in_memory:
+            if not np.array_equal(
+                list(self._images_in_memory.values()),
+                list(other._images_in_memory.values()),
+            ):
                 return False
-            if not self.annotations[key] == other.annotations[key]:
-                return False
+
+        if self.annotations != other.annotations:
+            return False
 
         return True
 
     def split(
-        self, split_ratio=0.8, random_state=None, shuffle: bool = True
-    ) -> Tuple[DetectionDataset, DetectionDataset]:
+        self,
+        split_ratio: float = 0.8,
+        random_state: int | None = None,
+        shuffle: bool = True,
+    ) -> tuple[DetectionDataset, DetectionDataset]:
         """
         Splits the dataset into two parts (training and testing)
             using the provided split_ratio.
 
         Args:
-            split_ratio (float, optional): The ratio of the training
+            split_ratio (float): The ratio of the training
                 set to the entire dataset.
-            random_state (int, optional): The seed for the random number generator.
+            random_state (Optional[int]): The seed for the random number generator.
                 This is used for reproducibility.
-            shuffle (bool, optional): Whether to shuffle the data before splitting.
+            shuffle (bool): Whether to shuffle the data before splitting.
 
         Returns:
             Tuple[DetectionDataset, DetectionDataset]: A tuple containing
                 the training and testing datasets.
 
-        Example:
-            ```python
-            import supervision as sv
-
-            ds = sv.DetectionDataset(...)
-            train_ds, test_ds = ds.split(split_ratio=0.7,
-                                         random_state=42, shuffle=True)
-            len(train_ds), len(test_ds)
-            # (700, 300)
-            ```
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> ds = sv.DetectionDataset(
+            ...     classes=['dog', 'person'],
+            ...     images={
+            ...         'img1.jpg': np.zeros((100, 100, 3), dtype=np.uint8),
+            ...         'img2.jpg': np.zeros((100, 100, 3), dtype=np.uint8),
+            ...     },
+            ...     annotations={
+            ...         'img1.jpg': sv.Detections(xyxy=np.array([[10, 10, 20, 20]])),
+            ...         'img2.jpg': sv.Detections(xyxy=np.array([[30, 30, 40, 40]])),
+            ...     }
+            ... )
+            >>> train_ds, test_ds = ds.split(split_ratio=0.5, random_state=42)
+            >>> len(train_ds), len(test_ds)
+            (1, 1)
         """
 
-        image_names = list(self.images.keys())
-        train_names, test_names = train_test_split(
-            data=image_names,
+        train_paths, test_paths = train_test_split(
+            data=self.image_paths,
             train_ratio=split_ratio,
             random_state=random_state,
             shuffle=shuffle,
         )
 
+        train_input: list[str] | dict[str, np.ndarray]
+        test_input: list[str] | dict[str, np.ndarray]
+        if self._images_in_memory:
+            train_input = {path: self._images_in_memory[path] for path in train_paths}
+            test_input = {path: self._images_in_memory[path] for path in test_paths}
+        else:
+            train_input = train_paths
+            test_input = test_paths
+        train_annotations = {path: self.annotations[path] for path in train_paths}
+        test_annotations = {path: self.annotations[path] for path in test_paths}
+
         train_dataset = DetectionDataset(
             classes=self.classes,
-            images={name: self.images[name] for name in train_names},
-            annotations={name: self.annotations[name] for name in train_names},
+            images=train_input,
+            annotations=train_annotations,
         )
         test_dataset = DetectionDataset(
             classes=self.classes,
-            images={name: self.images[name] for name in test_names},
-            annotations={name: self.annotations[name] for name in test_names},
+            images=test_input,
+            annotations=test_annotations,
         )
         return train_dataset, test_dataset
 
+    @classmethod
+    def merge(cls, dataset_list: list[DetectionDataset]) -> DetectionDataset:
+        """
+        Merge a list of `DetectionDataset` objects into a single
+            `DetectionDataset` object.
+
+        This method takes a list of `DetectionDataset` objects and combines
+        their respective fields (`classes`, `images`,
+        `annotations`) into a single `DetectionDataset` object.
+
+        Args:
+            dataset_list (List[DetectionDataset]): A list of `DetectionDataset`
+                objects to merge.
+
+        Returns:
+            (DetectionDataset): A single `DetectionDataset` object containing
+            the merged data from the input list.
+
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> ds_1 = sv.DetectionDataset(
+            ...     classes=['dog', 'person'],
+            ...     images={'img1.jpg': np.zeros((100, 100, 3), dtype=np.uint8)},
+            ...     annotations={'img1.jpg': sv.Detections.empty()}
+            ... )
+            >>> len(ds_1)
+            1
+            >>> ds_1.classes
+            ['dog', 'person']
+            >>> ds_2 = sv.DetectionDataset(
+            ...     classes=['cat'],
+            ...     images={'img2.jpg': np.zeros((100, 100, 3), dtype=np.uint8)},
+            ...     annotations={'img2.jpg': sv.Detections.empty()}
+            ... )
+            >>> len(ds_2)
+            1
+            >>> ds_2.classes
+            ['cat']
+            >>> ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
+            >>> len(ds_merged)
+            2
+            >>> ds_merged.classes
+            ['cat', 'dog', 'person']
+        """
+
+        def is_in_memory(dataset: DetectionDataset) -> bool:
+            return len(dataset._images_in_memory) > 0 or len(dataset.image_paths) == 0
+
+        def is_lazy(dataset: DetectionDataset) -> bool:
+            return len(dataset._images_in_memory) == 0
+
+        all_in_memory = all([is_in_memory(dataset) for dataset in dataset_list])
+        all_lazy = all([is_lazy(dataset) for dataset in dataset_list])
+        if not all_in_memory and not all_lazy:
+            raise ValueError(
+                "Merging lazy and in-memory DetectionDatasets is not supported."
+            )
+
+        images_in_memory = {}
+        for dataset in dataset_list:
+            images_in_memory.update(dataset._images_in_memory)
+
+        image_paths = list(
+            chain.from_iterable(dataset.image_paths for dataset in dataset_list)
+        )
+        image_paths_unique = list(dict.fromkeys(image_paths))
+        if len(image_paths) != len(image_paths_unique):
+            duplicates = find_duplicates(image_paths)
+            raise ValueError(
+                f"Image paths {duplicates} are not unique across datasets."
+            )
+        image_paths = image_paths_unique
+
+        classes = merge_class_lists(
+            class_lists=[dataset.classes for dataset in dataset_list]
+        )
+
+        annotations = {}
+        for dataset in dataset_list:
+            annotations.update(dataset.annotations)
+        for dataset in dataset_list:
+            class_index_mapping = build_class_index_mapping(
+                source_classes=dataset.classes, target_classes=classes
+            )
+            for image_path in dataset.image_paths:
+                annotations[image_path] = map_detections_class_id(
+                    source_to_target_mapping=class_index_mapping,
+                    detections=annotations[image_path],
+                )
+
+        return cls(
+            classes=classes,
+            images=images_in_memory or image_paths,
+            annotations=annotations,
+        )
+
     def as_pascal_voc(
         self,
-        images_directory_path: Optional[str] = None,
-        annotations_directory_path: Optional[str] = None,
+        images_directory_path: str | None = None,
+        annotations_directory_path: str | None = None,
         min_image_area_percentage: float = 0.0,
         max_image_area_percentage: float = 1.0,
         approximation_percentage: float = 0.0,
@@ -181,25 +343,22 @@ class DetectionDataset(BaseDataset):
         """
         if images_directory_path:
             save_dataset_images(
-                images_directory_path=images_directory_path, images=self.images
+                dataset=self,
+                images_directory_path=images_directory_path,
             )
         if annotations_directory_path:
             Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
-
-        for image_path, image in self.images.items():
-            detections = self.annotations[image_path]
-
-            if annotations_directory_path:
+            for image_path, image, annotations in self:
                 annotation_name = Path(image_path).stem
                 annotations_path = os.path.join(
                     annotations_directory_path, f"{annotation_name}.xml"
                 )
                 image_name = Path(image_path).name
                 pascal_voc_xml = detections_to_pascal_voc(
-                    detections=detections,
+                    detections=annotations,
                     classes=self.classes,
                     filename=image_name,
-                    image_shape=image.shape,
+                    image_shape=image.shape,  # type: ignore
                     min_image_area_percentage=min_image_area_percentage,
                     max_image_area_percentage=max_image_area_percentage,
                     approximation_percentage=approximation_percentage,
@@ -222,14 +381,14 @@ class DetectionDataset(BaseDataset):
             images_directory_path (str): Path to the directory containing the images.
             annotations_directory_path (str): Path to the directory
                 containing the PASCAL VOC XML annotations.
-            force_masks (bool, optional): If True, forces masks to
+            force_masks (bool): If True, forces masks to
                 be loaded for all annotations, regardless of whether they are present.
 
         Returns:
             DetectionDataset: A DetectionDataset instance containing
                 the loaded images and annotations.
 
-        Example:
+        Examples:
             ```python
             import roboflow
             from roboflow import Roboflow
@@ -252,13 +411,15 @@ class DetectionDataset(BaseDataset):
             ```
         """
 
-        classes, images, annotations = load_pascal_voc_annotations(
+        classes, image_paths, annotations = load_pascal_voc_annotations(
             images_directory_path=images_directory_path,
             annotations_directory_path=annotations_directory_path,
             force_masks=force_masks,
         )
 
-        return DetectionDataset(classes=classes, images=images, annotations=annotations)
+        return DetectionDataset(
+            classes=classes, images=image_paths, annotations=annotations
+        )
 
     @classmethod
     def from_yolo(
@@ -267,6 +428,7 @@ class DetectionDataset(BaseDataset):
         annotations_directory_path: str,
         data_yaml_path: str,
         force_masks: bool = False,
+        is_obb: bool = False,
     ) -> DetectionDataset:
         """
         Creates a Dataset instance from YOLO formatted data.
@@ -278,15 +440,18 @@ class DetectionDataset(BaseDataset):
                 containing the YOLO annotation files.
             data_yaml_path (str): The path to the data
                 YAML file containing class information.
-            force_masks (bool, optional): If True, forces
+            force_masks (bool): If True, forces
                 masks to be loaded for all annotations,
                 regardless of whether they are present.
+            is_obb (bool): If True, loads the annotations in OBB format.
+                OBB annotations are defined as `[class_id, x, y, x, y, x, y, x, y]`,
+                where pairs of [x, y] are box corners.
 
         Returns:
             DetectionDataset: A DetectionDataset instance
                 containing the loaded images and annotations.
 
-        Example:
+        Examples:
             ```python
             import roboflow
             from roboflow import Roboflow
@@ -308,19 +473,22 @@ class DetectionDataset(BaseDataset):
             # ['dog', 'person']
             ```
         """
-        classes, images, annotations = load_yolo_annotations(
+        classes, image_paths, annotations = load_yolo_annotations(
             images_directory_path=images_directory_path,
             annotations_directory_path=annotations_directory_path,
             data_yaml_path=data_yaml_path,
             force_masks=force_masks,
+            is_obb=is_obb,
         )
-        return DetectionDataset(classes=classes, images=images, annotations=annotations)
+        return DetectionDataset(
+            classes=classes, images=image_paths, annotations=annotations
+        )
 
     def as_yolo(
         self,
-        images_directory_path: Optional[str] = None,
-        annotations_directory_path: Optional[str] = None,
-        data_yaml_path: Optional[str] = None,
+        images_directory_path: str | None = None,
+        annotations_directory_path: str | None = None,
+        data_yaml_path: str | None = None,
         min_image_area_percentage: float = 0.0,
         max_image_area_percentage: float = 1.0,
         approximation_percentage: float = 0.0,
@@ -355,13 +523,12 @@ class DetectionDataset(BaseDataset):
         """
         if images_directory_path is not None:
             save_dataset_images(
-                images_directory_path=images_directory_path, images=self.images
+                dataset=self, images_directory_path=images_directory_path
             )
         if annotations_directory_path is not None:
             save_yolo_annotations(
+                dataset=self,
                 annotations_directory_path=annotations_directory_path,
-                images=self.images,
-                annotations=self.annotations,
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
@@ -383,15 +550,14 @@ class DetectionDataset(BaseDataset):
             images_directory_path (str): The path to the
                 directory containing the images.
             annotations_path (str): The path to the json annotation files.
-            force_masks (bool, optional): If True,
+            force_masks (bool): If True,
                 forces masks to be loaded for all annotations,
                 regardless of whether they are present.
-
         Returns:
             DetectionDataset: A DetectionDataset instance containing
                 the loaded images and annotations.
 
-        Example:
+        Examples:
             ```python
             import roboflow
             from roboflow import Roboflow
@@ -421,8 +587,8 @@ class DetectionDataset(BaseDataset):
 
     def as_coco(
         self,
-        images_directory_path: Optional[str] = None,
-        annotations_path: Optional[str] = None,
+        images_directory_path: str | None = None,
+        annotations_path: str | None = None,
         min_image_area_percentage: float = 0.0,
         max_image_area_percentage: float = 1.0,
         approximation_percentage: float = 0.0,
@@ -430,6 +596,20 @@ class DetectionDataset(BaseDataset):
         """
         Exports the dataset to COCO format. This method saves the
         images and their corresponding annotations in COCO format.
+
+        !!! tip
+
+            The format of the mask is determined automatically based on its structure:
+
+            - If a mask contains multiple disconnected components or holes, it will be
+            saved using the Run-Length Encoding (RLE) format for efficient storage and
+            processing.
+            - If a mask consists of a single, contiguous region without any holes, it
+            will be encoded as a polygon, preserving the outline of the object.
+
+            This automatic selection ensures that the masks are stored in the most
+            appropriate and space-efficient format, complying with COCO dataset
+            standards.
 
         Args:
             images_directory_path (Optional[str]): The path to the directory
@@ -451,151 +631,181 @@ class DetectionDataset(BaseDataset):
         """
         if images_directory_path is not None:
             save_dataset_images(
-                images_directory_path=images_directory_path, images=self.images
+                dataset=self, images_directory_path=images_directory_path
             )
         if annotations_path is not None:
             save_coco_annotations(
+                dataset=self,
                 annotation_path=annotations_path,
-                images=self.images,
-                annotations=self.annotations,
-                classes=self.classes,
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
             )
 
-    @classmethod
-    def merge(cls, dataset_list: List[DetectionDataset]) -> DetectionDataset:
-        """
-        Merge a list of `DetectionDataset` objects into a single
-            `DetectionDataset` object.
-
-        This method takes a list of `DetectionDataset` objects and combines
-        their respective fields (`classes`, `images`,
-        `annotations`) into a single `DetectionDataset` object.
-
-        Args:
-            dataset_list (List[DetectionDataset]): A list of `DetectionDataset`
-                objects to merge.
-
-        Returns:
-            (DetectionDataset): A single `DetectionDataset` object containing
-            the merged data from the input list.
-
-        Example:
-            ```python
-            import supervision as sv
-
-            ds_1 = sv.DetectionDataset(...)
-            len(ds_1)
-            # 100
-            ds_1.classes
-            # ['dog', 'person']
-
-            ds_2 = sv.DetectionDataset(...)
-            len(ds_2)
-            # 200
-            ds_2.classes
-            # ['cat']
-
-            ds_merged = sv.DetectionDataset.merge([ds_1, ds_2])
-            len(ds_merged)
-            # 300
-            ds_merged.classes
-            # ['cat', 'dog', 'person']
-            ```
-        """
-        merged_images, merged_annotations = {}, {}
-        class_lists = [dataset.classes for dataset in dataset_list]
-        merged_classes = merge_class_lists(class_lists=class_lists)
-
-        for dataset in dataset_list:
-            class_index_mapping = build_class_index_mapping(
-                source_classes=dataset.classes, target_classes=merged_classes
-            )
-            for image_name, image, detections in dataset:
-                if image_name in merged_annotations:
-                    raise ValueError(
-                        f"Image name {image_name} is not unique across datasets."
-                    )
-
-                merged_images[image_name] = image
-                merged_annotations[image_name] = map_detections_class_id(
-                    source_to_target_mapping=class_index_mapping,
-                    detections=detections,
-                )
-
-        return cls(
-            classes=merged_classes, images=merged_images, annotations=merged_annotations
-        )
-
 
 @dataclass
 class ClassificationDataset(BaseDataset):
     """
-    Dataclass containing information about a classification dataset.
+    Contains information about a classification dataset, handles lazy image
+    loading, dataset splitting.
 
     Attributes:
         classes (List[str]): List containing dataset class names.
-        images (Dict[str, np.ndarray]): Dictionary mapping image name to image.
-        annotations (Dict[str, Detections]): Dictionary mapping
+        images (Union[List[str], Dict[str, np.ndarray]]):
+            List of image paths or dictionary mapping image name to image data.
+        annotations (Dict[str, Classifications]): Dictionary mapping
             image name to annotations.
     """
 
-    classes: List[str]
-    images: Dict[str, np.ndarray]
-    annotations: Dict[str, Classifications]
+    def __init__(
+        self,
+        classes: list[str],
+        images: list[str] | dict[str, np.ndarray],
+        annotations: dict[str, Classifications],
+    ) -> None:
+        self.classes = classes
+
+        if set(images) != set(annotations):
+            raise ValueError(
+                "The keys of the images and annotations dictionaries must match."
+            )
+        self.annotations = annotations
+
+        # Eliminate duplicates while preserving order
+        self.image_paths = list(dict.fromkeys(images))
+
+        self._images_in_memory: dict[str, np.ndarray] = {}
+        if isinstance(images, dict):
+            self._images_in_memory = images
+            warn_deprecated(
+                "Passing a `Dict[str, np.ndarray]` into `ClassificationDataset` is "
+                "deprecated and will be removed in a future release. Use "
+                "a list of paths `List[str]` instead."
+            )
+
+    def _get_image(self, image_path: str) -> np.ndarray:
+        """Assumes that image is in dataset"""
+        if self._images_in_memory:
+            return self._images_in_memory[image_path]
+        return cv2.imread(image_path)
 
     def __len__(self) -> int:
-        return len(self.images)
+        return len(self._images_in_memory) or len(self.image_paths)
+
+    def __getitem__(self, i: int) -> tuple[str, np.ndarray, Classifications]:
+        """
+        Returns:
+            Tuple[str, np.ndarray, Classifications]: The image path, image data,
+                and its corresponding annotation at index i.
+        """
+        image_path = self.image_paths[i]
+        image = self._get_image(image_path)
+        annotation = self.annotations[image_path]
+        return image_path, image, annotation
+
+    def __iter__(self) -> Iterator[tuple[str, np.ndarray, Classifications]]:
+        """
+        Iterate over the images and annotations in the dataset.
+
+        Yields:
+            Iterator[Tuple[str, np.ndarray, Detections]]:
+                An iterator that yields tuples containing the image path,
+                the image data, and its corresponding annotation.
+        """
+        for i in range(len(self)):
+            image_path, image, annotation = self[i]
+            yield image_path, image, annotation
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, ClassificationDataset):
+            return False
+
+        if set(self.classes) != set(other.classes):
+            return False
+
+        if self.image_paths != other.image_paths:
+            return False
+
+        if self._images_in_memory or other._images_in_memory:
+            if not np.array_equal(
+                list(self._images_in_memory.values()),
+                list(other._images_in_memory.values()),
+            ):
+                return False
+
+        if self.annotations != other.annotations:
+            return False
+
+        return True
 
     def split(
-        self, split_ratio=0.8, random_state=None, shuffle: bool = True
-    ) -> Tuple[ClassificationDataset, ClassificationDataset]:
+        self,
+        split_ratio: float = 0.8,
+        random_state: int | None = None,
+        shuffle: bool = True,
+    ) -> tuple[ClassificationDataset, ClassificationDataset]:
         """
         Splits the dataset into two parts (training and testing)
             using the provided split_ratio.
 
         Args:
-            split_ratio (float, optional): The ratio of the training
+            split_ratio (float): The ratio of the training
                 set to the entire dataset.
-            random_state (int, optional): The seed for the
+            random_state (Optional[int]): The seed for the
                 random number generator. This is used for reproducibility.
-            shuffle (bool, optional): Whether to shuffle the data before splitting.
+            shuffle (bool): Whether to shuffle the data before splitting.
 
         Returns:
             Tuple[ClassificationDataset, ClassificationDataset]: A tuple containing
             the training and testing datasets.
 
-        Example:
-            ```python
-            import supervision as sv
-
-            cd = sv.ClassificationDataset(...)
-            train_cd,test_cd = cd.split(split_ratio=0.7,
-                                        random_state=42,shuffle=True)
-            len(train_cd), len(test_cd)
-            # (700, 300)
-            ```
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> cd = sv.ClassificationDataset(
+            ...     classes=['cat', 'dog'],
+            ...     images={
+            ...         'img1.jpg': np.zeros((100, 100, 3), dtype=np.uint8),
+            ...         'img2.jpg': np.zeros((100, 100, 3), dtype=np.uint8),
+            ...     },
+            ...     annotations={
+            ...         'img1.jpg': sv.Classifications(class_id=np.array([0])),
+            ...         'img2.jpg': sv.Classifications(class_id=np.array([1])),
+            ...     }
+            ... )
+            >>> train_cd, test_cd = cd.split(split_ratio=0.5, random_state=42)
+            >>> len(train_cd), len(test_cd)
+            (1, 1)
         """
-        image_names = list(self.images.keys())
-        train_names, test_names = train_test_split(
-            data=image_names,
+        train_paths, test_paths = train_test_split(
+            data=self.image_paths,
             train_ratio=split_ratio,
             random_state=random_state,
             shuffle=shuffle,
         )
 
+        train_input: list[str] | dict[str, np.ndarray]
+        test_input: list[str] | dict[str, np.ndarray]
+        if self._images_in_memory:
+            train_input = {path: self._images_in_memory[path] for path in train_paths}
+            test_input = {path: self._images_in_memory[path] for path in test_paths}
+        else:
+            train_input = train_paths
+            test_input = test_paths
+        train_annotations = {path: self.annotations[path] for path in train_paths}
+        test_annotations = {path: self.annotations[path] for path in test_paths}
+
         train_dataset = ClassificationDataset(
             classes=self.classes,
-            images={name: self.images[name] for name in train_names},
-            annotations={name: self.annotations[name] for name in train_names},
+            images=train_input,
+            annotations=train_annotations,
         )
         test_dataset = ClassificationDataset(
             classes=self.classes,
-            images={name: self.images[name] for name in test_names},
-            annotations={name: self.annotations[name] for name in test_names},
+            images=test_input,
+            annotations=test_annotations,
         )
+
         return train_dataset, test_dataset
 
     def as_folder_structure(self, root_directory_path: str) -> None:
@@ -611,18 +821,16 @@ class ClassificationDataset(BaseDataset):
         for class_name in self.classes:
             os.makedirs(os.path.join(root_directory_path, class_name), exist_ok=True)
 
-        for image_path in self.images:
-            classification = self.annotations[image_path]
-            image = self.images[image_path]
-            image_name = Path(image_path).name
+        for image_save_path, image, annotation in self:
+            image_name = Path(image_save_path).name
             class_id = (
-                classification.class_id[0]
-                if classification.confidence is None
-                else classification.get_top_k(1)[0][0]
+                annotation.class_id[0]
+                if annotation.confidence is None
+                else annotation.get_top_k(1)[0][0]
             )
             class_name = self.classes[class_id]
-            image_path = os.path.join(root_directory_path, class_name, image_name)
-            cv2.imwrite(image_path, image)
+            image_save_path = os.path.join(root_directory_path, class_name, image_name)
+            cv2.imwrite(image_save_path, image)
 
     @classmethod
     def from_folder_structure(cls, root_directory_path: str) -> ClassificationDataset:
@@ -635,7 +843,7 @@ class ClassificationDataset(BaseDataset):
         Returns:
             ClassificationDataset: The dataset.
 
-        Example:
+        Examples:
             ```python
             import roboflow
             from roboflow import Roboflow
@@ -655,7 +863,7 @@ class ClassificationDataset(BaseDataset):
         classes = os.listdir(root_directory_path)
         classes = sorted(set(classes))
 
-        images = {}
+        image_paths = []
         annotations = {}
 
         for class_name in classes:
@@ -663,13 +871,13 @@ class ClassificationDataset(BaseDataset):
 
             for image in os.listdir(os.path.join(root_directory_path, class_name)):
                 image_path = str(os.path.join(root_directory_path, class_name, image))
-                images[image_path] = cv2.imread(image_path)
+                image_paths.append(image_path)
                 annotations[image_path] = Classifications(
                     class_id=np.array([class_id]),
                 )
 
         return cls(
             classes=classes,
-            images=images,
+            images=image_paths,
             annotations=annotations,
         )
