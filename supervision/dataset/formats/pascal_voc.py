@@ -224,7 +224,9 @@ def detections_from_xml_obj(
     xyxy = []
     class_names = []
     masks = []
-    with_masks = force_masks or any(_with_poly_mask(obj) for obj in root.findall("object"))
+    with_masks = force_masks or any(
+        _with_poly_mask(obj) for obj in root.findall("object")
+    )
     extended_classes = classes[:]
     for obj in root.findall("object"):
         class_name = obj.find("name").text
