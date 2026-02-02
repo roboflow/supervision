@@ -30,29 +30,24 @@ def move_masks(
             shape.
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
-
-        mask = np.array([[[False, False, False, False],
-                         [False, True,  True,  False],
-                         [False, True,  True,  False],
-                         [False, False, False, False]]], dtype=bool)
-
-        offset = np.array([1, 1])
-        sv.move_masks(mask, offset, resolution_wh=(4, 4))
-        # array([[[False, False, False, False],
-        #         [False, False, False, False],
-        #         [False, False,  True,  True],
-        #         [False, False,  True,  True]]], dtype=bool)
-
-        offset = np.array([-2, 2])
-        sv.move_masks(mask, offset, resolution_wh=(4, 4))
-        # array([[[False, False, False, False],
-        #         [False, False, False, False],
-        #         [False, False, False, False],
-        #         [True,  False, False, False]]], dtype=bool)
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> mask = np.array([[[False, False, False, False],
+        ...                   [False, True,  True,  False],
+        ...                   [False, True,  True,  False],
+        ...                   [False, False, False, False]]], dtype=bool)
+        >>> offset = np.array([1, 1])
+        >>> sv.move_masks(mask, offset, resolution_wh=(4, 4))
+        array([[[False, False, False, False],
+                [False, False, False, False],
+                [False, False,  True,  True],
+                [False, False,  True,  True]]])
+        >>> offset = np.array([-2, 2])
+        >>> sv.move_masks(mask, offset, resolution_wh=(4, 4))
+        array([[[False, False, False, False],
+                [False, False, False, False],
+                [False, False, False, False],
+                [ True, False, False, False]]])
     """
     mask_array = np.full((masks.shape[0], resolution_wh[1], resolution_wh[0]), False)
 
@@ -131,32 +126,26 @@ def contains_holes(mask: npt.NDArray[np.bool_]) -> bool:
         True if holes are detected, False otherwise.
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
-
-        mask = np.array([
-            [0, 0, 0, 0, 0],
-            [0, 1, 1, 1, 0],
-            [0, 1, 0, 1, 0],
-            [0, 1, 1, 1, 0],
-            [0, 0, 0, 0, 0]
-        ]).astype(bool)
-
-        sv.contains_holes(mask=mask)
-        # True
-
-        mask = np.array([
-            [0, 0, 0, 0, 0],
-            [0, 1, 1, 1, 0],
-            [0, 1, 1, 1, 0],
-            [0, 1, 1, 1, 0],
-            [0, 0, 0, 0, 0]
-        ]).astype(bool)
-
-        sv.contains_holes(mask=mask)
-        # False
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> mask = np.array([
+        ...     [0, 0, 0, 0, 0],
+        ...     [0, 1, 1, 1, 0],
+        ...     [0, 1, 0, 1, 0],
+        ...     [0, 1, 1, 1, 0],
+        ...     [0, 0, 0, 0, 0]
+        ... ]).astype(bool)
+        >>> sv.contains_holes(mask=mask)
+        True
+        >>> mask = np.array([
+        ...     [0, 0, 0, 0, 0],
+        ...     [0, 1, 1, 1, 0],
+        ...     [0, 1, 1, 1, 0],
+        ...     [0, 1, 1, 1, 0],
+        ...     [0, 0, 0, 0, 0]
+        ... ]).astype(bool)
+        >>> sv.contains_holes(mask=mask)
+        False
 
     ![contains_holes](https://media.roboflow.com/supervision-docs/contains-holes.png){ align=center width="800" }
     """  # noqa E501 // docs
@@ -193,34 +182,28 @@ def contains_multiple_segments(
         ValueError: If connectivity(int) parameter value is not 4 or 8.
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
-
-        mask = np.array([
-            [0, 0, 0, 0, 0, 0],
-            [0, 1, 1, 0, 1, 1],
-            [0, 1, 1, 0, 1, 1],
-            [0, 0, 0, 0, 0, 0],
-            [0, 1, 1, 1, 0, 0],
-            [0, 1, 1, 1, 0, 0]
-        ]).astype(bool)
-
-        sv.contains_multiple_segments(mask=mask, connectivity=4)
-        # True
-
-        mask = np.array([
-            [0, 0, 0, 0, 0, 0],
-            [0, 1, 1, 1, 1, 1],
-            [0, 1, 1, 1, 1, 1],
-            [0, 1, 1, 1, 1, 1],
-            [0, 1, 1, 1, 1, 1],
-            [0, 0, 0, 0, 0, 0]
-        ]).astype(bool)
-
-        sv.contains_multiple_segments(mask=mask, connectivity=4)
-        # False
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> mask = np.array([
+        ...     [0, 0, 0, 0, 0, 0],
+        ...     [0, 1, 1, 0, 1, 1],
+        ...     [0, 1, 1, 0, 1, 1],
+        ...     [0, 0, 0, 0, 0, 0],
+        ...     [0, 1, 1, 1, 0, 0],
+        ...     [0, 1, 1, 1, 0, 0]
+        ... ]).astype(bool)
+        >>> sv.contains_multiple_segments(mask=mask, connectivity=4)
+        True
+        >>> mask = np.array([
+        ...     [0, 0, 0, 0, 0, 0],
+        ...     [0, 1, 1, 1, 1, 1],
+        ...     [0, 1, 1, 1, 1, 1],
+        ...     [0, 1, 1, 1, 1, 1],
+        ...     [0, 1, 1, 1, 1, 1],
+        ...     [0, 0, 0, 0, 0, 0]
+        ... ]).astype(bool)
+        >>> sv.contains_multiple_segments(mask=mask, connectivity=4)
+        False
 
     ![contains_multiple_segments](https://media.roboflow.com/supervision-docs/contains-multiple-segments.png){ align=center width="800" }
     """  # noqa E501 // docs
@@ -304,50 +287,43 @@ def filter_segments_by_distance(
         Boolean mask after filtering.
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> mask = np.array([
+        ...     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ...     [0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+        ...     [0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+        ...     [0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0],
+        ...     [0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+        ...     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ...     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ...     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ...     [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+        ...     [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+        ...     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ...     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ... ], dtype=bool)
+        >>> sv.filter_segments_by_distance(
+        ...     mask,
+        ...     absolute_distance=3,
+        ...     mode="edge",
+        ...     connectivity=8
+        ... ).astype(int)
+        array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
 
-        mask = np.array([
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        ], dtype=bool)
-
-        sv.filter_segments_by_distance(
-            mask,
-            absolute_distance=2,
-            mode="edge",
-            connectivity=8
-        ).astype(int)
-
-        # np.array([
-        #     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        #     [0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-        #     [0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-        #     [0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0],
-        #     [0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
-        #     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        #     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        #     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        #     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        #     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        #     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        #     [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        # ], dtype=bool)
-
-        # The nearby 2×2 block at columns 6–7 is kept because its edge distance
-        # is within 2 pixels. The distant block at columns 9-10 is removed.
-        ```
+        The nearby 2×2 block at columns 6–7 is kept because its edge distance
+        is within 3 pixels. The distant block at columns 9-10 is removed.
     """  # noqa E501 // docs
     if mask.dtype != bool:
         raise TypeError("mask must be boolean")
