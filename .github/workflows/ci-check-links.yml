@@ -34,6 +34,7 @@ jobs:
             --exclude http://127.0.0.1:8000
             --retry-wait-time 3
             --host-concurrency 5
+            --header "x-ratelimit-bypass=${{ secrets.UNIVERSE_RATELIMIT_BYPASS_KEY }}"
             './**/*.md'
           #'./**/*.py'
           #'./**/*.yml'
