@@ -1,0 +1,16 @@
+verbose = true
+no_progress = true
+include_verbatim = true
+retry_wait_time = 3
+max_concurrency = 10
+
+exclude = [
+    "https://github.com/YOUR_USERNAME/supervision.git",
+    "http://127.0.0.1:8000",
+    "https://sam2.metademolab.com/"
+]
+
+[[headers]]
+pattern = "https://universe.roboflow.com"
+[headers.values]
+x-ratelimit-bypass = "$UNIVERSE_RATELIMIT_BYPASS_KEY"

@@ -23,21 +23,9 @@ jobs:
 
       - name: Link Checker
         uses: lycheeverse/lychee-action@v2
+        env:
+          UNIVERSE_RATELIMIT_BYPASS_KEY: ${{ secrets.UNIVERSE_RATELIMIT_BYPASS_KEY }}
         with:
           lycheeVersion: v0.22.0
-          # default args: "--verbose --no-progress './**/*.md' './**/*.html' './**/*.rst'"
-          args: |
-            --verbose
-            --no-progress
-            --include-verbatim
-            --exclude https://github.com/YOUR_USERNAME/supervision.git # hint for forked contributors
-            --exclude http://127.0.0.1:8000  # hint for local docs build
-            --exclude https://sam2.metademolab.com/  # exists but return 403 Forbidden
-            --retry-wait-time 3
-            --max-concurrency 10
-            --header "x-ratelimit-bypass: ${{ secrets.UNIVERSE_RATELIMIT_BYPASS_KEY }}"
-            './**/*.md'
-          #'./**/*.py'
-          #'./**/*.yml'
-          #'./**/*.toml'
+          args: --config .github/lychee.toml './**/*.md'
           fail: true
