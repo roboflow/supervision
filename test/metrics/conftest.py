@@ -114,11 +114,11 @@ def predictions_confidence_ranking():
         xyxy=np.array(
             [
                 [10, 10, 50, 50],
-                [10, 10, 50, 50],
+                [11, 11, 49, 49],
             ],
             dtype=np.float32,
         ),
-        confidence=np.array([0.9, 0.8]),
+        confidence=np.array([0.6, 0.9]),
         class_id=np.array([0, 0]),
     )
 
