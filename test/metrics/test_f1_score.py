@@ -291,9 +291,7 @@ class TestF1Score:
         assert result.f1_50 == 1.0
         assert result.f1_75 == 0.0
 
-    def test_confidence_ranking(
-        self, predictions_confidence_ranking, targets_50_50
-    ):
+    def test_confidence_ranking(self, predictions_confidence_ranking, targets_50_50):
         """Test that F1 score respects confidence ranking"""
         metric = F1Score()
         result = metric.update(predictions_confidence_ranking, targets_50_50).compute()
@@ -330,9 +328,7 @@ class TestF1Score:
         "averaging_method",
         [AveragingMethod.MACRO, AveragingMethod.MICRO, AveragingMethod.WEIGHTED],
     )
-    def test_averaging_methods(
-        self, averaging_method, detections_50_50, targets_50_50
-    ):
+    def test_averaging_methods(self, averaging_method, detections_50_50, targets_50_50):
         """Test different averaging methods"""
         metric = F1Score(averaging_method=averaging_method)
         result = metric.update(detections_50_50, targets_50_50).compute()

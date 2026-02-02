@@ -8,7 +8,6 @@ import pytest
 from supervision.detection.core import Detections
 from supervision.metrics.core import AveragingMethod, MetricTarget
 from supervision.metrics.precision import Precision
-from test.helpers import assert_almost_equal
 
 
 @pytest.fixture
@@ -253,9 +252,7 @@ class TestPrecision:
         assert result.precision_at_50 == 1.0  # TP=1, FP=0
         assert result.precision_at_75 == 0.0  # TP=0, FP=1
 
-    def test_confidence_ranking(
-        self, predictions_confidence_ranking, targets_50_50
-    ):
+    def test_confidence_ranking(self, predictions_confidence_ranking, targets_50_50):
         """Test that predictions are ranked by confidence"""
         metric = Precision()
         result = metric.update(predictions_confidence_ranking, targets_50_50).compute()

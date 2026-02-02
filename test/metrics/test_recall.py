@@ -266,9 +266,7 @@ class TestRecall:
         assert result.recall_at_50 == 1.0  # TP=1, FN=0
         assert result.recall_at_75 == 0.0  # TP=0, FN=1
 
-    def test_confidence_ranking(
-        self, predictions_confidence_ranking, targets_50_50
-    ):
+    def test_confidence_ranking(self, predictions_confidence_ranking, targets_50_50):
         """Test that higher confidence predictions are preferred for matching"""
         metric = Recall()
         result = metric.update(predictions_confidence_ranking, targets_50_50).compute()
