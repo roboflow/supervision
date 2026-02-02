@@ -163,17 +163,14 @@ def rle_to_mask(
             number of pixels in the expected mask (computed based on resolution_wh).
 
     Examples:
-        ```python
-        import supervision as sv
-
-        sv.rle_to_mask([5, 2, 2, 2, 5], (4, 4))
-        # array([
-        #     [False, False, False, False],
-        #     [False, True,  True,  False],
-        #     [False, True,  True,  False],
-        #     [False, False, False, False],
-        # ])
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> mask = sv.rle_to_mask([5, 2, 2, 2, 5], (4, 4))
+        >>> mask  # doctest: +NORMALIZE_WHITESPACE
+        array([[0, 0, 0, 0],
+               [0, 1, 1, 0],
+               [0, 1, 1, 0],
+               [0, 0, 0, 0]], dtype=uint8)
     """
     if isinstance(rle, list):
         rle = np.array(rle, dtype=int)
@@ -213,31 +210,32 @@ def mask_to_rle(mask: npt.NDArray[np.bool_]) -> list[int]:
         AssertionError: If input mask is not 2D or is empty.
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> mask = np.array([
+        ...     [True, True, True, True],
+        ...     [True, True, True, True],
+        ...     [True, True, True, True],
+        ...     [True, True, True, True],
+        ... ])
+        >>> rle = sv.mask_to_rle(mask)
+        >>> [int(x) for x in rle]
+        [0, 16]
 
-        mask = np.array([
-            [True, True, True, True],
-            [True, True, True, True],
-            [True, True, True, True],
-            [True, True, True, True],
-        ])
-        sv.mask_to_rle(mask)
-        # [0, 16]
-
-        mask = np.array([
-            [False, False, False, False],
-            [False, True,  True,  False],
-            [False, True,  True,  False],
-            [False, False, False, False],
-        ])
-        sv.mask_to_rle(mask)
-        # [5, 2, 2, 2, 5]
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> mask = np.array([
+        ...     [False, False, False, False],
+        ...     [False, True,  True,  False],
+        ...     [False, True,  True,  False],
+        ...     [False, False, False, False],
+        ... ])
+        >>> rle = sv.mask_to_rle(mask)
+        >>> [int(x) for x in rle]
+        [5, 2, 2, 2, 5]
 
     ![mask_to_rle](https://media.roboflow.com/supervision-docs/mask-to-rle.png){ align=center width="800" }
-    """  # noqa E501 // docs
+    """
     assert mask.ndim == 2, "Input mask must be 2D"
     assert mask.size != 0, "Input mask cannot be empty"
 
