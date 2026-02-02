@@ -813,33 +813,49 @@ def test_line_zone_long_horizon_disappearing_detections(
         "expected_out_count_per_class",
     ),
     [
-        (
+        pytest.param(
             [
-                [[4, 4, 6, 6]],
-                [[4, -6, 6, -4]],
-                [[4, 4, 6, 6]],
-                [[4, 4, 6, 6]],
-                [[4, -6, 6, -4]],
-                [[4, 4, 6, 6]],
+                [[4, 4, 6, 6]],  # frame 0: object 0, class 0, position 4,4,6,6
+                [[4, -6, 6, -4]],  # frame 1: object 0, class 0, position 4,-6,6,-4
+                [[4, 4, 6, 6]],  # frame 2: object 0, class 0, position 4,4,6,6
+                [[4, 4, 6, 6]],  # frame 3: object 0, class 1, position 4,4,6,6
+                [[4, -6, 6, -4]],  # frame 4: object 0, class 1, position 4,-6,6,-4
+                [[4, 4, 6, 6]],  # frame 5: object 0, class 1, position 4,4,6,6
             ],
+            # tracker_id_sequence
             [[0], [0], [0], [0], [0], [0]],
+            # class_id_sequence
             [[0], [0], [0], [1], [1], [1]],
+            # expected_in_count_per_class
             {0: 1, 1: 1},
+            # expected_out_count_per_class
             {0: 1, 1: 1},
+            id="single_object_tracker_id_reuse_with_different_classes",
         ),
-        (  # Multiple objects, some with class ID reuse, some not
+        pytest.param(
             [
+                # frame 0: objects 0&1 cross IN
                 [[4, 4, 6, 6], [4, 4, 6, 6]],
+                # frame 1
                 [[4, -6, 6, -4], [4, -6, 6, -4]],
+                # frame 2: objects 0&1 cross OUT
                 [[4, 4, 6, 6], [4, 4, 6, 6]],
+                # frame 3: objects 2&3 cross IN
                 [[4, 4, 6, 6], [4, 4, 6, 6]],
+                # frame 4
                 [[4, -6, 6, -4], [4, -6, 6, -4]],
+                # frame 5: objects 2&3 cross OUT
                 [[4, 4, 6, 6], [4, 4, 6, 6]],
             ],
+            # tracker_id_sequence
             [[0, 1], [0, 1], [0, 1], [2, 3], [2, 3], [2, 3]],
+            # class_id_sequence
             [[0, 1], [0, 1], [0, 1], [4, 5], [4, 5], [4, 5]],
+            # expected_in_count_per_class
             {0: 1, 1: 1, 4: 1, 5: 1},
+            # expected_out_count_per_class
             {0: 1, 1: 1, 4: 1, 5: 1},
+            id="multiple_objects_tracker_id_reuse_with_different_classes",
         ),
     ],
 )
