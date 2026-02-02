@@ -36,14 +36,11 @@ def augment_links_in_file(file_path: str, branch: str = "main") -> None:
         text = match.group(2)
         url = match.group(3)
         if not url.startswith("http"):
-            # Resolve relative to absolute path
+            # Resolve relative to an absolute path
             abs_path = os.path.normpath(os.path.join(os.path.dirname(file_path), url))
             if os.path.exists(abs_path):
                 # Use 'tree' for directories and 'blob' for files
-                if os.path.isdir(abs_path):
-                    ref = "tree"
-                else:
-                    ref = "blob"
+                ref = "tree" if os.path.isdir(abs_path) else "blob"
                 rel_to_root = os.path.relpath(abs_path, repo_root)
                 new_url = f"https://github.com/roboflow/supervision/{ref}/{branch}/{rel_to_root}"
                 if full_match.startswith("!"):
