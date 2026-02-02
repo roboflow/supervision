@@ -27,7 +27,7 @@ jobs:
       - name: 🎨 Augment paths in README
         run: |
           uv run python .github/scripts/augment_links.py README.md
-          cat README.md]
+          cat README.md
 
       - name: Link Checker
         uses: lycheeverse/lychee-action@v2
