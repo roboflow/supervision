@@ -31,11 +31,13 @@ jobs:
 
       - name: 🔗 Link Checker
         uses: lycheeverse/lychee-action@v2
+        env:
+          BYPASS_KEY: ${{ secrets.UNIVERSE_RATELIMIT_BYPASS_KEY }}
         with:
           lycheeVersion: v0.22.0
           args: |
             --config .github/lychee.toml
-            --header "x-ratelimit-bypass: ${{ secrets.UNIVERSE_RATELIMIT_BYPASS_KEY }}"
+            ${{ env.BYPASS_KEY != '' && format('--header "x-ratelimit-bypass: {0}"', env.BYPASS_KEY) || '--exclude "https://universe.roboflow.com/.*"' }}
             README.md
           fail: true
 
