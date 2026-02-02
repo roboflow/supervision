@@ -239,7 +239,9 @@ def load_coco_annotations(
         image_annotations = coco_annotations_groups.get(coco_image["id"], [])
         image_path = os.path.join(images_directory_path, image_name)
 
-        with_masks = force_masks or _with_mask(image_annotations[0])
+        with_masks = force_masks or any(
+            _with_seg_mask(annotation) for annotation in image_annotations
+        )
         annotation = coco_annotations_to_detections(
             image_annotations=image_annotations,
             resolution_wh=(image_width, image_height),
@@ -258,7 +260,7 @@ def load_coco_annotations(
     return classes, images, annotations
 
 
-def _with_mask(annotation: dict) -> bool:
+def _with_seg_mask(annotation: dict) -> bool:
     return "segmentation" in annotation
 
 

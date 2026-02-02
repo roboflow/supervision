@@ -58,7 +58,7 @@ def _polygons_to_masks(
     )
 
 
-def _with_mask(lines: list[str]) -> bool:
+def _with_seg_mask(lines: list[str]) -> bool:
     return any([len(line.split()) > 5 for line in lines])
 
 
@@ -192,8 +192,7 @@ def load_yolo_annotations(
                 but {image_path} mode is '{image.mode}'."
             )
 
-        with_masks = _with_mask(lines=lines)
-        with_masks = force_masks if force_masks else with_masks
+        with_masks = force_masks or _with_seg_mask(lines=lines)
         annotation = yolo_annotations_to_detections(
             lines=lines,
             resolution_wh=resolution_wh,

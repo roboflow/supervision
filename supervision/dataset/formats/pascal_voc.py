@@ -224,7 +224,7 @@ def detections_from_xml_obj(
     xyxy = []
     class_names = []
     masks = []
-    with_masks = False
+    with_masks = force_masks or any(_with_poly_mask(obj) for obj in root.findall("object"))
     extended_classes = classes[:]
     for obj in root.findall("object"):
         class_name = obj.find("name").text
@@ -237,9 +237,6 @@ def detections_from_xml_obj(
         y2 = int(bbox.find("ymax").text)
 
         xyxy.append([x1, y1, x2, y2])
-
-        with_masks = force_masks or _with_mask(obj)
-
         for polygon in obj.findall("polygon"):
             polygon = parse_polygon_points(polygon)
             # https://github.com/roboflow/supervision/issues/144
@@ -272,7 +269,7 @@ def detections_from_xml_obj(
     return annotation, extended_classes
 
 
-def _with_mask(obj: Element):
+def _with_poly_mask(obj: Element):
     return obj.find("polygon") is not None
 
 

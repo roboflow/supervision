@@ -33,7 +33,7 @@ def are_xml_elements_equal(elem1, elem2):
 @pytest.mark.parametrize(
     ("xyxy", "name", "polygon", "expected_result", "exception"),
     [
-        (
+        pytest.param(
             np.array([0, 0, 10, 10]),
             "test",
             None,
@@ -42,8 +42,9 @@ def are_xml_elements_equal(elem1, elem2):
                 <xmax>11</xmax><ymax>11</ymax></bndbox></object>"""
             ),
             DoesNotRaise(),
+            id="bbox_only",
         ),
-        (
+        pytest.param(
             np.array([0, 0, 10, 10]),
             "test",
             np.array([[0, 0], [10, 0], [10, 10], [0, 10]]),
@@ -55,6 +56,7 @@ def are_xml_elements_equal(elem1, elem2):
                 </polygon></object>"""
             ),
             DoesNotRaise(),
+            id="bbox_and_polygon",
         ),
     ],
 )
@@ -73,13 +75,14 @@ def test_object_to_pascal_voc(
 @pytest.mark.parametrize(
     ("polygon_element", "expected_result", "exception"),
     [
-        (
+        pytest.param(
             ElementTree.fromstring(
                 """<polygon><x1>0</x1><y1>0</y1><x2>10</x2><y2>0</y2><x3>10</x3>
                     <y3>10</y3><x4>0</x4><y4>10</y4></polygon>"""
             ),
             np.array([[0, 0], [10, 0], [10, 10], [0, 10]]),
             DoesNotRaise(),
+            id="standard_polygon",
         )
     ],
 )
@@ -125,15 +128,16 @@ NO_DETECTIONS = """<annotation></annotation>"""
         "exception",
     ),
     [
-        (
+        pytest.param(
             ONE_CLASS_ONE_BBOX,
             ["test"],
             (100, 100),
             False,
             _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
             DoesNotRaise(),
+            id="one_class_one_bbox",
         ),
-        (
+        pytest.param(
             ONE_CLASS_N_BBOX,
             ["test"],
             (100, 100),
@@ -142,8 +146,9 @@ NO_DETECTIONS = """<annotation></annotation>"""
                 xyxy=np.array([[0, 0, 10, 10], [10, 10, 20, 20]]), class_id=[0, 0]
             ),
             DoesNotRaise(),
+            id="one_class_n_bbox",
         ),
-        (
+        pytest.param(
             N_CLASS_N_BBOX,
             ["test", "test2"],
             (100, 100),
@@ -153,14 +158,16 @@ NO_DETECTIONS = """<annotation></annotation>"""
                 class_id=[0, 0, 1],
             ),
             DoesNotRaise(),
+            id="n_class_n_bbox",
         ),
-        (
+        pytest.param(
             NO_DETECTIONS,
             [],
             (100, 100),
             False,
             _create_detections(xyxy=np.empty((0, 4)), class_id=[]),
             DoesNotRaise(),
+            id="no_detections",
         ),
     ],
 )
