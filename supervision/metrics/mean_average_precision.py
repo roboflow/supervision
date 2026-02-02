@@ -666,7 +666,11 @@ class COCOEvaluator:
         img_id: int,
         cat_id: int,
         area_range: list[int] | tuple[int, int],
+<<<<<<< HEAD
         max_det: int,
+=======
+        max_det: int
+>>>>>>> cd93a9d4 (style: fix linting errors and line lengths)
     ) -> dict[str, Any] | None:
         """
         Perform evaluation for single category and image.

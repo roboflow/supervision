@@ -355,7 +355,8 @@ class ConfusionMatrix:
 
         Args:
             dataset: Object detection dataset used for evaluation.
-            callback: Function that takes an image as input and returns Detections object.
+            callback: Function that takes an image as input and returns a
+                Detections object.
             conf_threshold: Detection confidence threshold between `0` and `1`.
                 Detections with lower confidence will be excluded.
             iou_threshold: Detection IoU threshold between `0` and `1`.
