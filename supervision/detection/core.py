@@ -1821,11 +1821,10 @@ class Detections:
             When merging, empty `Detections` objects are ignored.
 
         Args:
-            detections_list (List[Detections]): A list of Detections objects to merge.
+            detections_list: A list of Detections objects to merge.
 
         Returns:
-            (Detections): A single Detections object containing
-                the merged data from the input list.
+            A single Detections object containing the merged data from the input list.
 
         Example:
             ```python
