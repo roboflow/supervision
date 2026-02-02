@@ -200,19 +200,19 @@ class BoxAnnotator(BaseAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
-        Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            detections = sv.Detections(...)
-
-            box_annotator = sv.BoxAnnotator()
-            annotated_frame = box_annotator.annotate(
-                scene=image.copy(),
-                detections=detections
-            )
-            ```
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     class_id=np.array([0])
+            ... )
+            >>> box_annotator = sv.BoxAnnotator()
+            >>> annotated_frame = box_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
 
         ![bounding-box-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/bounding-box-annotator-example-purple.png)
@@ -375,19 +375,20 @@ class MaskAnnotator(BaseAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
-        Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            detections = sv.Detections(...)
-
-            mask_annotator = sv.MaskAnnotator()
-            annotated_frame = mask_annotator.annotate(
-                scene=image.copy(),
-                detections=detections
-            )
-            ```
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     mask=np.zeros((1, 100, 100), dtype=bool),
+            ...     class_id=np.array([0])
+            ... )
+            >>> mask_annotator = sv.MaskAnnotator()
+            >>> annotated_frame = mask_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
 
         ![mask-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/mask-annotator-example-purple.png)
@@ -466,19 +467,19 @@ class PolygonAnnotator(BaseAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
-        Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            detections = sv.Detections(...)
-
-            polygon_annotator = sv.PolygonAnnotator()
-            annotated_frame = polygon_annotator.annotate(
-                scene=image.copy(),
-                detections=detections
-            )
-            ```
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     class_id=np.array([0])
+            ... )
+            >>> polygon_annotator = sv.PolygonAnnotator()
+            >>> annotated_frame = polygon_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
 
         ![polygon-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/polygon-annotator-example-purple.png)
@@ -554,19 +555,19 @@ class ColorAnnotator(BaseAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
-        Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            detections = sv.Detections(...)
-
-            color_annotator = sv.ColorAnnotator()
-            annotated_frame = color_annotator.annotate(
-                scene=image.copy(),
-                detections=detections
-            )
-            ```
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     class_id=np.array([0])
+            ... )
+            >>> color_annotator = sv.ColorAnnotator()
+            >>> annotated_frame = color_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
 
         ![box-mask-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/box-mask-annotator-example-purple.png)
@@ -651,19 +652,19 @@ class HaloAnnotator(BaseAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
-        Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            detections = sv.Detections(...)
-
-            halo_annotator = sv.HaloAnnotator()
-            annotated_frame = halo_annotator.annotate(
-                scene=image.copy(),
-                detections=detections
-            )
-            ```
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     class_id=np.array([0])
+            ... )
+            >>> halo_annotator = sv.HaloAnnotator()
+            >>> annotated_frame = halo_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
 
         ![halo-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/halo-annotator-example-purple.png)
@@ -752,19 +753,19 @@ class EllipseAnnotator(BaseAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
-        Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            detections = sv.Detections(...)
-
-            ellipse_annotator = sv.EllipseAnnotator()
-            annotated_frame = ellipse_annotator.annotate(
-                scene=image.copy(),
-                detections=detections
-            )
-            ```
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     class_id=np.array([0])
+            ... )
+            >>> ellipse_annotator = sv.EllipseAnnotator()
+            >>> annotated_frame = ellipse_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
 
         ![ellipse-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/ellipse-annotator-example-purple.png)
@@ -845,19 +846,19 @@ class BoxCornerAnnotator(BaseAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
-        Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            detections = sv.Detections(...)
-
-            corner_annotator = sv.BoxCornerAnnotator()
-            annotated_frame = corner_annotator.annotate(
-                scene=image.copy(),
-                detections=detections
-            )
-            ```
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     class_id=np.array([0])
+            ... )
+            >>> corner_annotator = sv.BoxCornerAnnotator()
+            >>> annotated_frame = corner_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
 
         ![box-corner-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/box-corner-annotator-example-purple.png)
@@ -935,19 +936,19 @@ class CircleAnnotator(BaseAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
-        Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            detections = sv.Detections(...)
-
-            circle_annotator = sv.CircleAnnotator()
-            annotated_frame = circle_annotator.annotate(
-                scene=image.copy(),
-                detections=detections
-            )
-            ```
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     class_id=np.array([0])
+            ... )
+            >>> circle_annotator = sv.CircleAnnotator()
+            >>> annotated_frame = circle_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
 
 
         ![circle-annotator-example](https://media.roboflow.com/
@@ -1035,19 +1036,19 @@ class DotAnnotator(BaseAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
-        Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            detections = sv.Detections(...)
-
-            dot_annotator = sv.DotAnnotator()
-            annotated_frame = dot_annotator.annotate(
-                scene=image.copy(),
-                detections=detections
-            )
-            ```
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     class_id=np.array([0])
+            ... )
+            >>> dot_annotator = sv.DotAnnotator()
+            >>> annotated_frame = dot_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
 
         ![dot-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/dot-annotator-example-purple.png)
@@ -1164,26 +1165,27 @@ class LabelAnnotator(_BaseLabelAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
-        Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            detections = sv.Detections(...)
-
-            labels = [
-                f"{class_name} {confidence:.2f}"
-                for class_name, confidence
-                in zip(detections['class_name'], detections.confidence)
-            ]
-
-            label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
-            annotated_frame = label_annotator.annotate(
-                scene=image.copy(),
-                detections=detections,
-                labels=labels
-            )
-            ```
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     confidence=np.array([0.9]),
+            ...     class_id=np.array([0]),
+            ...     data={'class_name': np.array(['person'])}
+            ... )
+            >>> labels = [
+            ...     f"{class_name} {confidence:.2f}"
+            ...     for class_name, confidence
+            ...     in zip(detections['class_name'], detections.confidence)
+            ... ]
+            >>> label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
+            >>> annotated_frame = label_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections,
+            ...     labels=labels
+            ... )
 
         ![label-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/label-annotator-example-purple.png)
@@ -1478,26 +1480,28 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
-        Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            detections = sv.Detections(...)
-
-            labels = [
-                f"{class_name} {confidence:.2f}"
-                for class_name, confidence
-                in zip(detections['class_name'], detections.confidence)
-            ]
-
-            rich_label_annotator = sv.RichLabelAnnotator(font_path="path/to/font.ttf")
-            annotated_frame = label_annotator.annotate(
-                scene=image.copy(),
-                detections=detections,
-                labels=labels
-            )
-            ```
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> from PIL import Image
+            >>> image = Image.fromarray(np.zeros((100, 100, 3), dtype=np.uint8))
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     confidence=np.array([0.9]),
+            ...     class_id=np.array([0]),
+            ...     data={'class_name': np.array(['person'])}
+            ... )
+            >>> labels = [
+            ...     f"{class_name} {confidence:.2f}"
+            ...     for class_name, confidence
+            ...     in zip(detections['class_name'], detections.confidence)
+            ... ]
+            >>> rich_label_annotator = sv.RichLabelAnnotator()
+            >>> annotated_frame = rich_label_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections,
+            ...     labels=labels
+            ... )
         """
         assert isinstance(scene, Image.Image)
         validate_labels(labels, detections)
@@ -1800,19 +1804,19 @@ class BlurAnnotator(BaseAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
-        Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            detections = sv.Detections(...)
-
-            blur_annotator = sv.BlurAnnotator()
-            annotated_frame = circle_annotator.annotate(
-                scene=image.copy(),
-                detections=detections
-            )
-            ```
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     class_id=np.array([0])
+            ... )
+            >>> blur_annotator = sv.BlurAnnotator()
+            >>> annotated_frame = blur_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
 
         ![blur-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/blur-annotator-example-purple.png)
@@ -2202,19 +2206,19 @@ class TriangleAnnotator(BaseAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
-        Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            detections = sv.Detections(...)
-
-            triangle_annotator = sv.TriangleAnnotator()
-            annotated_frame = triangle_annotator.annotate(
-                scene=image.copy(),
-                detections=detections
-            )
-            ```
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     class_id=np.array([0])
+            ... )
+            >>> triangle_annotator = sv.TriangleAnnotator()
+            >>> annotated_frame = triangle_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
 
         ![triangle-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/triangle-annotator-example.png)
@@ -2316,19 +2320,19 @@ class RoundBoxAnnotator(BaseAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
-        Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            detections = sv.Detections(...)
-
-            round_box_annotator = sv.RoundBoxAnnotator()
-            annotated_frame = round_box_annotator.annotate(
-                scene=image.copy(),
-                detections=detections
-            )
-            ```
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     class_id=np.array([0])
+            ... )
+            >>> round_box_annotator = sv.RoundBoxAnnotator()
+            >>> annotated_frame = round_box_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
 
         ![round-box-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/round-box-annotator-example-purple.png)
@@ -2464,19 +2468,20 @@ class PercentageBarAnnotator(BaseAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
-        Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            detections = sv.Detections(...)
-
-            percentage_bar_annotator = sv.PercentageBarAnnotator()
-            annotated_frame = percentage_bar_annotator.annotate(
-                scene=image.copy(),
-                detections=detections
-            )
-            ```
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     confidence=np.array([0.9]),
+            ...     class_id=np.array([0])
+            ... )
+            >>> percentage_bar_annotator = sv.PercentageBarAnnotator()
+            >>> annotated_frame = percentage_bar_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
 
         ![percentage-bar-example](https://media.roboflow.com/
         supervision-annotator-examples/percentage-bar-annotator-example-purple.png)
@@ -2642,19 +2647,19 @@ class CropAnnotator(BaseAnnotator):
         Returns:
             The annotated image.
 
-        Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            detections = sv.Detections(...)
-
-            crop_annotator = sv.CropAnnotator()
-            annotated_frame = crop_annotator.annotate(
-                scene=image.copy(),
-                detections=detections
-            )
-            ```
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     class_id=np.array([0])
+            ... )
+            >>> crop_annotator = sv.CropAnnotator()
+            >>> annotated_frame = crop_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
 
         ![crop-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/crop-annotator-example.png)
@@ -2784,19 +2789,19 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
-        Example:
-            ```python
-            import supervision as sv
-
-            image = ...
-            detections = sv.Detections(...)
-
-            background_overlay_annotator = sv.BackgroundOverlayAnnotator()
-            annotated_frame = background_overlay_annotator.annotate(
-                scene=image.copy(),
-                detections=detections
-            )
-            ```
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     class_id=np.array([0])
+            ... )
+            >>> background_overlay_annotator = sv.BackgroundOverlayAnnotator()
+            >>> annotated_frame = background_overlay_annotator.annotate(
+            ...     scene=image.copy(),
+            ...     detections=detections
+            ... )
 
         ![background-overlay-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/background-color-annotator-example-purple.png)
