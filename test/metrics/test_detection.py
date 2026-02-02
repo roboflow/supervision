@@ -442,7 +442,6 @@ class TestDetectionMetrics:
             )
             assert_almost_equal(result, expected_result, tolerance=0.01)
 
-
     @pytest.mark.parametrize(
         (
             "predictions",
@@ -491,7 +490,11 @@ class TestDetectionMetrics:
                         confidence=[0.9, 0.8, 0.7, 0.85],
                     )
                 ],
-                [_create_detections(xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1])],
+                [
+                    _create_detections(
+                        xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1]
+                    )
+                ],
                 [0, 1, 2],
                 0.5,
                 0.5,
@@ -514,7 +517,11 @@ class TestDetectionMetrics:
                         confidence=[0.6, 0.4, 0.8],  # middle one below threshold
                     )
                 ],
-                [_create_detections(xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1])],
+                [
+                    _create_detections(
+                        xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1]
+                    )
+                ],
                 [0, 1, 2],
                 0.5,
                 0.5,
@@ -532,12 +539,19 @@ class TestDetectionMetrics:
             (
                 [
                     _create_detections(
-                        xyxy=[[0, 0, 1.5, 1.5], [4, 4, 5.5, 5.5]],  # IoU = 0.5625 for both
+                        xyxy=[
+                            [0, 0, 1.5, 1.5],
+                            [4, 4, 5.5, 5.5],
+                        ],  # IoU = 0.5625 for both
                         class_id=[0, 1],
                         confidence=[0.9, 0.8],
                     )
                 ],
-                [_create_detections(xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1])],
+                [
+                    _create_detections(
+                        xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1]
+                    )
+                ],
                 [0, 1, 2],
                 0.5,
                 0.5,
@@ -562,7 +576,8 @@ class TestDetectionMetrics:
                 ],
                 [
                     _create_detections(
-                        xyxy=[[0, 0, 2, 2], [1, 1, 3, 3], [2, 2, 4, 4]], class_id=[0, 1, 2]
+                        xyxy=[[0, 0, 2, 2], [1, 1, 3, 3], [2, 2, 4, 4]],
+                        class_id=[0, 1, 2],
                     )
                 ],
                 [0, 1, 2],
@@ -670,7 +685,12 @@ class TestDetectionMetrics:
                 ],
                 [
                     _create_detections(
-                        xyxy=[[0, 0, 2, 2], [4, 4, 6, 6], [8, 8, 10, 10], [12, 12, 14, 14]],
+                        xyxy=[
+                            [0, 0, 2, 2],
+                            [4, 4, 6, 6],
+                            [8, 8, 10, 10],
+                            [12, 12, 14, 14],
+                        ],
                         class_id=[0, 1, 2, 0],
                     )
                 ],
@@ -705,7 +725,12 @@ class TestDetectionMetrics:
                 ],
                 [
                     _create_detections(
-                        xyxy=[[0, 0, 2, 2], [4, 4, 6, 6], [8, 8, 10, 10], [12, 12, 14, 14]],
+                        xyxy=[
+                            [0, 0, 2, 2],
+                            [4, 4, 6, 6],
+                            [8, 8, 10, 10],
+                            [12, 12, 14, 14],
+                        ],
                         class_id=[0, 1, 2, 0],
                     )
                 ],
@@ -836,7 +861,11 @@ class TestDetectionMetrics:
             # Test 14: Empty Detections
             (
                 [Detections.empty()],
-                [_create_detections(xyxy=[[0, 0, 2, 2], [0, 4, 2, 6]], class_id=[0, 0])],
+                [
+                    _create_detections(
+                        xyxy=[[0, 0, 2, 2], [0, 4, 2, 6]], class_id=[0, 0]
+                    )
+                ],
                 [0, 1, 2],  # Class ids
                 0.5,  # Confidence threshold
                 0.5,  # IOU threshold
