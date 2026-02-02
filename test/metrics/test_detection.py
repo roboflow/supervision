@@ -332,8 +332,8 @@ class TestDetectionMetrics:
                 iou_threshold=iou_threshold,
             )
 
-            assert result.matrix.diagonal().sum() == expected_result.diagonal().sum()
-            assert np.array_equal(result.matrix, expected_result)
+        assert result.matrix.diagonal().sum() == expected_result.diagonal().sum()
+        assert np.array_equal(result.matrix, expected_result)
 
     @pytest.mark.parametrize(
         (
@@ -376,8 +376,8 @@ class TestDetectionMetrics:
                 iou_threshold=iou_threshold,
             )
 
-            assert result.diagonal().sum() == result.sum()
-            assert np.array_equal(result, expected_result)
+        assert result.diagonal().sum() == result.sum()
+        assert np.array_equal(result, expected_result)
 
     @pytest.mark.parametrize(
         ("matches", "expected_result", "exception"),
@@ -899,6 +899,7 @@ class TestDetectionMetrics:
         ],
     )
     def test_confusion_matrix(
+        self,
         predictions,
         targets,
         classes,
