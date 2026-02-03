@@ -75,7 +75,7 @@ class ByteTrack:
             import supervision as sv
             from ultralytics import YOLO
 
-            model = YOLO(<MODEL_PATH>)
+            model = YOLO("<MODEL_PATH>")
             tracker = sv.ByteTrack()
 
             box_annotator = sv.BoxAnnotator()
@@ -95,8 +95,8 @@ class ByteTrack:
                 return annotated_frame
 
             sv.process_video(
-                source_path=<SOURCE_VIDEO_PATH>,
-                target_path=<TARGET_VIDEO_PATH>,
+                source_path="<SOURCE_VIDEO_PATH>",
+                target_path="<TARGET_VIDEO_PATH>",
                 callback=callback
             )
             ```
@@ -247,7 +247,7 @@ class ByteTrack:
             if strack_pool[i].state == TrackState.Tracked
         ]
         dists = matching.iou_distance(r_tracked_stracks, detections_second)
-        matches, u_track, u_detection_second = matching.linear_assignment(
+        matches, u_track, _u_detection_second = matching.linear_assignment(
             dists, thresh=0.5
         )
         for itracked, idet in matches:

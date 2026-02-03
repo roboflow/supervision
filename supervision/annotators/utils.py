@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import textwrap
 from enum import Enum
+from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
@@ -29,14 +31,14 @@ class ColorLookup(Enum):
     TRACK = "track"
 
     @classmethod
-    def list(cls):
+    def list(cls) -> list[str]:
         return list(map(lambda c: c.value, cls))
 
 
 def resolve_color_idx(
     detections: Detections,
     detection_idx: int,
-    color_lookup: ColorLookup | np.ndarray = ColorLookup.CLASS,
+    color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
 ) -> int:
     if detection_idx >= len(detections):
         raise ValueError(
@@ -50,7 +52,7 @@ def resolve_color_idx(
                 f"Length of color lookup {len(color_lookup)} "
                 f"does not match length of detections {len(detections)}"
             )
-        return color_lookup[detection_idx]
+        return int(color_lookup[detection_idx])
     elif color_lookup == ColorLookup.INDEX:
         return detection_idx
     elif color_lookup == ColorLookup.CLASS:
@@ -61,7 +63,7 @@ def resolve_color_idx(
                 "try setting color_lookup to sv.ColorLookup.INDEX or "
                 "sv.ColorLookup.TRACK."
             )
-        return detections.class_id[detection_idx]
+        return int(detections.class_id[detection_idx])
     elif color_lookup == ColorLookup.TRACK:
         if detections.tracker_id is None:
             raise ValueError(
@@ -69,7 +71,8 @@ def resolve_color_idx(
                 "Detections do not have tracker_id. Did you call "
                 "tracker.update_with_detections(...) before annotating?"
             )
-        return detections.tracker_id[detection_idx]
+        return int(detections.tracker_id[detection_idx])
+    raise ValueError(f"Unsupported color lookup strategy: {color_lookup}")
 
 
 def resolve_text_background_xyxy(
@@ -135,7 +138,7 @@ def resolve_color(
     color: Color | ColorPalette,
     detections: Detections,
     detection_idx: int,
-    color_lookup: ColorLookup | np.ndarray = ColorLookup.CLASS,
+    color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
 ) -> Color:
     idx = resolve_color_idx(
         detections=detections,
@@ -151,30 +154,36 @@ def resolve_color(
     return get_color_by_index(color=color, idx=idx)
 
 
-def wrap_text(text: str, max_line_length=None) -> list[str]:
+def wrap_text(text: Any, max_line_length: int | None = None) -> list[str]:
     """
-    Wraps text to the specified maximum line length, respecting existing newlines.
-    Uses the textwrap library for robust text wrapping.
+    Wrap `text` to the specified maximum line length, respecting existing
+    newlines. Falls back to str() if `text` is not already a string.
 
     Args:
-        text (str): The text to wrap.
+        text: The text (or object) to wrap.
+        max_line_length: Maximum width for each wrapped line.
 
     Returns:
-        List[str]: A list of text lines after wrapping.
+        Wrapped lines.
     """
 
     if not text:
         return [""]
 
+    if not isinstance(text, str):
+        text = str(text)
+
     if max_line_length is None:
         return text.splitlines() or [""]
 
+    if max_line_length <= 0:
+        raise ValueError("max_line_length must be a positive integer")
+
     paragraphs = text.split("\n")
-    all_lines = []
+    all_lines: list[str] = []
 
     for paragraph in paragraphs:
-        if not paragraph:
-            # Keep empty lines
+        if paragraph == "":
             all_lines.append("")
             continue
 
@@ -186,26 +195,23 @@ def wrap_text(text: str, max_line_length=None) -> list[str]:
             drop_whitespace=True,
         )
 
-        if wrapped:
-            all_lines.extend(wrapped)
-        else:
-            all_lines.append("")
+        all_lines.extend(wrapped or [""])
 
-    return all_lines if all_lines else [""]
+    return all_lines or [""]
 
 
-def validate_labels(labels: list[str] | None, detections: Detections):
+def validate_labels(labels: list[str] | None, detections: Detections) -> None:
     """
     Validates that the number of provided labels matches the number of detections.
 
     Args:
-        labels (Optional[List[str]]): A list of labels, one for each detection. Can
-                                        be None.
-        detections (Detections): The detections to be labeled.
+        labels: A list of labels, one for each detection. Can
+            be None.
+        detections: The detections to be labeled.
 
     Raises:
         ValueError: If `labels` is not None and its length does not match the number
-        of detections.
+            of detections.
     """
     if labels is not None and len(labels) != len(detections):
         raise ValueError(
@@ -226,11 +232,11 @@ def get_labels_text(
     then the `class_id`, and finally using the detection index as a string.
 
     Args:
-        detections (Detections): The detections to get labels for.
-        custom_labels (Optional[List[str]]): An optional list of custom labels.
+        detections: The detections to get labels for.
+        custom_labels: An optional list of custom labels.
 
     Returns:
-        List[str]: A list of text labels for each detection.
+        A list of text labels for each detection.
     """
     if custom_labels is not None:
         return custom_labels
@@ -238,7 +244,7 @@ def get_labels_text(
     labels = []
     for idx in range(len(detections)):
         if CLASS_NAME_DATA_FIELD in detections.data:
-            labels.append(detections.data[CLASS_NAME_DATA_FIELD][idx])
+            labels.append(str(detections.data[CLASS_NAME_DATA_FIELD][idx]))
         elif detections.class_id is not None:
             labels.append(str(detections.class_id[idx]))
         else:
@@ -246,7 +252,10 @@ def get_labels_text(
     return labels
 
 
-def snap_boxes(xyxy: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
+def snap_boxes(
+    xyxy: np.ndarray[Any, np.dtype[np.float32]],
+    resolution_wh: tuple[int, int],
+) -> np.ndarray[Any, np.dtype[np.float32]]:
     """
     Shifts `label` bounding boxes into the frame so that they are fully contained
     within the given resolution, prioritizing the top/left edge.
@@ -254,40 +263,37 @@ def snap_boxes(xyxy: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
     It moves them entirely if they exceed the frame boundaries.
 
     Args:
-        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
+        xyxy: A numpy array of shape `(N, 4)` where each
             row corresponds to a bounding box in the format
             `(x_min, y_min, x_max, y_max)`.
-        resolution_wh (Tuple[int, int]): A tuple `(width, height)`
+        resolution_wh: A tuple `(width, height)`
             representing the resolution of the frame.
 
     Returns:
-        np.ndarray: A numpy array of shape `(N, 4)` with boxes shifted into frame.
+        A numpy array of shape `(N, 4)` with boxes shifted into frame.
 
     Examples:
-    ```python
-    import numpy as np
+        >>> import numpy as np
+        >>> from supervision.annotators.utils import snap_boxes
 
-    # Example boxes:
-    xyxy = np.array([
-        [-10, 10, 30, 50],     # Off left edge
-        [310, 200, 350, 250],  # Off right edge
-        [100, -20, 150, 30],   # Off top edge
-        [200, 220, 250, 270],  # Off bottom edge
-        [-20, 10, 350, 50],    # Wider than frame (370 vs 320)
-        [10, -20, 30, 260]     # Taller than frame (280 vs 240)
-    ])
-
-    resolution_wh = (320, 240)
-    snapped_boxes = snap_boxes(xyxy=xyxy, resolution_wh=resolution_wh)
-
-    # Results:
-    # [[  0  10  40  50]  # Left edge shifted right
-    #  [280 200 320 250]  # Right edge shifted left
-    #  [100   0 150  50]  # Top edge shifted down
-    #  [200 190 250 240]  # Bottom edge shifted up
-    #  [  0  10 370  50]  # Wide box aligned to left edge
-    #  [ 10   0  30 280]] # Tall box aligned to top edge
-    ```
+        Example boxes:
+        >>> xyxy = np.array([
+        ...     [-10, 10, 30, 50],     # Off left edge
+        ...     [310, 200, 350, 250],  # Off right edge
+        ...     [100, -20, 150, 30],   # Off top edge
+        ...     [200, 220, 250, 270],  # Off bottom edge
+        ...     [-20, 10, 350, 50],    # Wider than frame (370 vs 320)
+        ...     [10, -20, 30, 260]     # Taller than frame (280 vs 240)
+        ... ])
+        >>> resolution_wh = (320, 240)
+        >>> snapped_boxes = snap_boxes(xyxy=xyxy, resolution_wh=resolution_wh)
+        >>> snapped_boxes
+        array([[  0.,  10.,  40.,  50.],
+               [280., 190., 320., 240.],
+               [100.,   0., 150.,  50.],
+               [200., 190., 250., 240.],
+               [  0.,  10., 370.,  50.],
+               [ 10.,   0.,  30., 280.]], dtype=float32)
     """
     result = np.copy(xyxy)
     width, height = resolution_wh
@@ -308,7 +314,7 @@ def snap_boxes(xyxy: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
     bottom_shift = height - result[bottom_overflow, 3]
     result[bottom_overflow, 1:4:2] += bottom_shift[:, np.newaxis]
 
-    return result
+    return result.astype(np.float32)  # type: ignore
 
 
 class Trace:
@@ -327,7 +333,9 @@ class Trace:
         self.tracker_id = np.array([], dtype=int)
 
     def put(self, detections: Detections) -> None:
-        frame_id = np.full(len(detections), self.current_frame_id, dtype=int)
+        frame_id: npt.NDArray[np.int_] = np.full(
+            len(detections), self.current_frame_id, dtype=int
+        )
         self.frame_id = np.concatenate([self.frame_id, frame_id])
         self.xy = np.concatenate(
             [
@@ -335,11 +343,17 @@ class Trace:
                 detections.get_anchors_coordinates(self.anchor),
             ]
         )
+        if detections.tracker_id is None:
+            raise ValueError(
+                "Could not put detections into Trace because "
+                "Detections do not have tracker_id."
+            )
+
         self.tracker_id = np.concatenate([self.tracker_id, detections.tracker_id])
 
         unique_frame_id = np.unique(self.frame_id)
 
-        if 0 < self.max_size < len(unique_frame_id):
+        if self.max_size is not None and 0 < self.max_size < len(unique_frame_id):
             max_allowed_frame_id = self.current_frame_id - self.max_size + 1
             filtering_mask = self.frame_id >= max_allowed_frame_id
             self.frame_id = self.frame_id[filtering_mask]
@@ -348,5 +362,8 @@ class Trace:
 
         self.current_frame_id += 1
 
-    def get(self, tracker_id: int) -> np.ndarray:
-        return self.xy[self.tracker_id == tracker_id]
+    def get(self, tracker_id: int) -> np.ndarray[Any, np.dtype[np.float32]]:
+        result: np.ndarray[Any, np.dtype[np.float32]] = self.xy[
+            self.tracker_id == tracker_id
+        ].copy()
+        return result

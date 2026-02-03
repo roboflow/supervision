@@ -16,13 +16,13 @@ from supervision.dataset.utils import (
     rle_to_mask,
     train_test_split,
 )
-from test.test_utils import mock_detections
+from test.helpers import _create_detections
 
 T = TypeVar("T")
 
 
 @pytest.mark.parametrize(
-    "data, train_ratio, random_state, shuffle, expected_result, exception",
+    ("data", "train_ratio", "random_state", "shuffle", "expected_result", "exception"),
     [
         ([], 0.5, None, False, ([], []), DoesNotRaise()),  # empty data
         (
@@ -94,7 +94,7 @@ def test_train_test_split(
 
 
 @pytest.mark.parametrize(
-    "class_lists, expected_result, exception",
+    ("class_lists", "expected_result", "exception"),
     [
         ([], [], DoesNotRaise()),  # empty class lists
         (
@@ -128,7 +128,7 @@ def test_merge_class_maps(
 
 
 @pytest.mark.parametrize(
-    "source_classes, target_classes, expected_result, exception",
+    ("source_classes", "target_classes", "expected_result", "exception"),
     [
         ([], [], {}, DoesNotRaise()),  # empty class lists
         ([], ["dog", "person"], {}, DoesNotRaise()),  # empty source class list
@@ -178,18 +178,18 @@ def test_build_class_index_mapping(
 
 
 @pytest.mark.parametrize(
-    "source_to_target_mapping, detections, expected_result, exception",
+    ("source_to_target_mapping", "detections", "expected_result", "exception"),
     [
         (
             {},
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
             None,
             pytest.raises(ValueError),
         ),  # empty mapping
         (
             {0: 1},
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
             DoesNotRaise(),
         ),  # single mapping
         (
@@ -200,26 +200,26 @@ def test_build_class_index_mapping(
         ),  # empty detections
         (
             {0: 1, 1: 2},
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[1]),
             DoesNotRaise(),
         ),  # multiple mappings
         (
             {0: 1, 1: 2},
-            mock_detections(xyxy=[[0, 0, 10, 10], [0, 0, 10, 10]], class_id=[0, 1]),
-            mock_detections(xyxy=[[0, 0, 10, 10], [0, 0, 10, 10]], class_id=[1, 2]),
+            _create_detections(xyxy=[[0, 0, 10, 10], [0, 0, 10, 10]], class_id=[0, 1]),
+            _create_detections(xyxy=[[0, 0, 10, 10], [0, 0, 10, 10]], class_id=[1, 2]),
             DoesNotRaise(),
         ),  # multiple mappings
         (
             {0: 1, 1: 2},
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[2]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[2]),
             None,
             pytest.raises(ValueError),
         ),  # class_id not in mapping
         (
             {0: 1, 1: 2},
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[0], confidence=[0.5]),
-            mock_detections(xyxy=[[0, 0, 10, 10]], class_id=[1], confidence=[0.5]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0], confidence=[0.5]),
+            _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[1], confidence=[0.5]),
             DoesNotRaise(),
         ),  # confidence is not None
     ],
@@ -238,7 +238,7 @@ def test_map_detections_class_id(
 
 
 @pytest.mark.parametrize(
-    "mask, expected_rle, exception",
+    ("mask", "expected_rle", "exception"),
     [
         (
             np.zeros((3, 3)).astype(bool),
@@ -297,7 +297,7 @@ def test_mask_to_rle(
 
 
 @pytest.mark.parametrize(
-    "rle, resolution_wh, expected_mask, exception",
+    ("rle", "resolution_wh", "expected_mask", "exception"),
     [
         (
             np.array([9]),

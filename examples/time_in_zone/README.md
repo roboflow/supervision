@@ -20,17 +20,17 @@ https://github.com/roboflow/supervision/assets/26109316/d051cc8a-dd15-41d4-aa36-
     cd supervision/examples/time_in_zone
     ```
 
-- setup python environment and activate it \[optional\]
+- setup python environment and activate it [optional]
 
     ```bash
-    python3 -m venv venv
-    source venv/bin/activate
+    uv venv
+    source .venv/bin/activate
     ```
 
 - install required dependencies
 
     ```bash
-    pip install -r requirements.txt
+    uv pip install -r requirements.txt
     ```
 
 ## 🛠 scripts
@@ -124,9 +124,10 @@ python inference_file_example.py \
     --zone_configuration_path "data/checkout/config.json" \
     --source_video_path "data/checkout/video.mp4" \
     --model_id "rfdetr-medium" \
-    --classes 1 \
+    --classes "[0]" \
     --confidence_threshold 0.3 \
-    --iou_threshold 0.7
+    --iou_threshold 0.7 \
+    --roboflow_api_key "ROBOFLOWS_API_KEY"
 ```
 
 https://github.com/roboflow/supervision/assets/26109316/d051cc8a-dd15-41d4-aa36-d38b86334c39
@@ -136,9 +137,10 @@ python inference_file_example.py \
     --zone_configuration_path "data/traffic/config.json" \
     --source_video_path "data/traffic/video.mp4" \
     --model_id "rfdetr-medium" \
-    --classes 3 6 7 8 \
+    --classes "[2, 5, 6, 7]" \
     --confidence_threshold 0.3 \
-    --iou_threshold 0.7
+    --iou_threshold 0.7 \
+    --roboflow_api_key "ROBOFLOWS_API_KEY"
 ```
 
 https://github.com/roboflow/supervision/assets/26109316/5ec896d7-4b39-4426-8979-11e71666878b
@@ -159,7 +161,7 @@ python inference_stream_example.py \
     --zone_configuration_path "data/checkout/config.json" \
     --rtsp_url "rtsp://localhost:8554/live0.stream" \
     --model_id "rfdetr-medium" \
-    --classes 1 \
+    --classes "[0]" \
     --confidence_threshold 0.3 \
     --iou_threshold 0.7
 ```
@@ -169,7 +171,7 @@ python inference_stream_example.py \
     --zone_configuration_path "data/traffic/config.json" \
     --rtsp_url "rtsp://localhost:8554/live0.stream" \
     --model_id "rfdetr-medium" \
-    --classes 3 6 7 8 \
+    --classes "[2, 5, 6, 7]" \
     --confidence_threshold 0.3 \
     --iou_threshold 0.7
 ```
@@ -266,7 +268,7 @@ python ultralytics_file_example.py \
     --source_video_path "data/checkout/video.mp4" \
     --weights "yolov8x.pt" \
     --device "cpu" \
-    --classes 0 \
+    --classes "[0]" \
     --confidence_threshold 0.3 \
     --iou_threshold 0.7
 ```
@@ -277,7 +279,7 @@ python ultralytics_file_example.py \
     --source_video_path "data/traffic/video.mp4" \
     --weights "yolov8x.pt" \
     --device "cpu" \
-    --classes 2 5 6 7 \
+    --classes "[2, 5, 6, 7]" \
     --confidence_threshold 0.3 \
     --iou_threshold 0.7
 ```
@@ -300,7 +302,7 @@ python ultralytics_stream_example.py \
     --rtsp_url "rtsp://localhost:8554/live0.stream" \
     --weights "yolov8x.pt" \
     --device "cpu" \
-    --classes 0 \
+    --classes "[0]" \
     --confidence_threshold 0.3 \
     --iou_threshold 0.7
 ```

@@ -271,7 +271,6 @@ def merge_metadata(metadata_list: list[dict[str, Any]]) -> dict[str, Any]:
                     "{type(value)}, {type(other_value)}."
                 )
             else:
-                print("hm")
                 if merged_metadata[key] != value:
                     raise ValueError(f"Conflicting metadata for key: '{key}'.")
 

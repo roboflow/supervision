@@ -55,9 +55,9 @@ class LineZone:
         import supervision as sv
         from ultralytics import YOLO
 
-        model = YOLO(<SOURCE_MODEL_PATH>)
+        model = YOLO("<SOURCE_MODEL_PATH>")
         tracker = sv.ByteTrack()
-        frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
+        frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
         start, end = sv.Point(x=0, y=1080), sv.Point(x=3840, y=1080)
         line_zone = sv.LineZone(start=start, end=end)
 
@@ -102,7 +102,7 @@ class LineZone:
         self.vector = Vector(start=start, end=end)
         self.limits = self._calculate_region_of_interest_limits(vector=self.vector)
         self.crossing_history_length = max(2, minimum_crossing_threshold + 1)
-        self.crossing_state_history: dict[int, deque[bool]] = defaultdict(
+        self.crossing_state_history: dict[tuple[int, int], deque[bool]] = defaultdict(
             lambda: deque(maxlen=self.crossing_history_length)
         )
         self._in_count_per_class: Counter = Counter()
@@ -179,15 +179,11 @@ class LineZone:
                 continue
 
             tracker_state: bool = has_any_left_trigger[i]
-            crossing_history = self.crossing_state_history[tracker_id]
+            crossing_history = self.crossing_state_history[(tracker_id, class_id)]
             crossing_history.append(tracker_state)
 
             if len(crossing_history) < self.crossing_history_length:
                 continue
-
-            # TODO: Account for incorrect class_id.
-            #   Most likely this would involve indexing self.crossing_state_history
-            #   with (tracker_id, class_id).
 
             oldest_state = crossing_history[0]
             if crossing_history.count(oldest_state) > 1:

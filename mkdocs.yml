@@ -26,7 +26,7 @@ extra:
 
 extra_css:
   - stylesheets/extra.css
-  - stylesheets/cookbooks-card.css
+  - stylesheets/cookbooks_card.css
 
 nav:
   - Home: index.md
@@ -38,6 +38,7 @@ nav:
       - Track Objects on Video: how_to/track_objects.md
       - Process Datasets: how_to/process_datasets.md
       - Benchmark a Model: how_to/benchmark_a_model.md
+      - Count in Zone: how_to/count_in_zone.md
   - Reference:
       - Detection and Segmentation:
           - Core: detection/core.md
@@ -143,6 +144,7 @@ plugins:
             show_root_heading: True
             show_symbol_type_toc: true
             show_category_heading: true
+            show_signature_annotations: true
           inventories:
           - url: https://docs.python-requests.org/en/master/objects.inv
             domains: [std, py]

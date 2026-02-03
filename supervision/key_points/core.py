@@ -32,7 +32,7 @@ class KeyPoints:
         import supervision as sv
         from ultralytics import YOLO
 
-        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        image = cv2.imread("<SOURCE_IMAGE_PATH>")
         model = YOLO('yolo11s-pose.pt')
 
         result = model(image)[0]
@@ -49,8 +49,8 @@ class KeyPoints:
         import supervision as sv
         from inference import get_model
 
-        image = cv2.imread(<SOURCE_IMAGE_PATH>)
-        model = get_model(model_id=<POSE_MODEL_ID>, api_key=<ROBOFLOW_API_KEY>)
+        image = cv2.imread("<SOURCE_IMAGE_PATH>")
+        model = get_model(model_id="<POSE_MODEL_ID>", api_key="<ROBOFLOW_API_KEY>")
 
         result = model.infer(image)[0]
         key_points = sv.KeyPoints.from_inference(result)
@@ -68,7 +68,7 @@ class KeyPoints:
         import mediapipe as mp
         import supervision as sv
 
-        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        image = cv2.imread("<SOURCE_IMAGE_PATH>")
         image_height, image_width, _ = image.shape
         mediapipe_image = mp.Image(
             image_format=mp.ImageFormat.SRGB,
@@ -106,7 +106,7 @@ class KeyPoints:
         )
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        image = Image.open(<SOURCE_IMAGE_PATH>)
+        image = Image.open("<SOURCE_IMAGE_PATH>")
 
         DETECTION_MODEL_ID = "PekingU/rtdetr_r50vd_coco_o365"
 
@@ -157,7 +157,7 @@ class KeyPoints:
     xy: npt.NDArray[np.float32]
     class_id: npt.NDArray[np.int_] | None = None
     confidence: npt.NDArray[np.float32] | None = None
-    data: dict[str, npt.NDArray[Any] | list] = field(default_factory=dict)
+    data: dict[str, npt.NDArray[np.generic] | list] = field(default_factory=dict)
 
     def __post_init__(self):
         validate_key_points_fields(
@@ -228,8 +228,8 @@ class KeyPoints:
             import supervision as sv
             from inference import get_model
 
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
-            model = get_model(model_id=<POSE_MODEL_ID>, api_key=<ROBOFLOW_API_KEY>)
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
+            model = get_model(model_id="<POSE_MODEL_ID>", api_key="<ROBOFLOW_API_KEY>")
 
             result = model.infer(image)[0]
             key_points = sv.KeyPoints.from_inference(result)
@@ -240,13 +240,13 @@ class KeyPoints:
             import supervision as sv
             from inference_sdk import InferenceHTTPClient
 
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
             client = InferenceHTTPClient(
                 api_url="https://detect.roboflow.com",
-                api_key=<ROBOFLOW_API_KEY>
+                api_key="<ROBOFLOW_API_KEY>"
             )
 
-            result = client.infer(image, model_id=<POSE_MODEL_ID>)
+            result = client.infer(image, model_id="<POSE_MODEL_ID>")
             key_points = sv.KeyPoints.from_inference(result)
             ```
         """
@@ -320,7 +320,7 @@ class KeyPoints:
             import mediapipe as mp
             import supervision as sv
 
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
             image_height, image_width, _ = image.shape
             mediapipe_image = mp.Image(
                 image_format=mp.ImageFormat.SRGB,
@@ -346,7 +346,7 @@ class KeyPoints:
             import mediapipe as mp
             import supervision as sv
 
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
             image_height, image_width, _ = image.shape
             mediapipe_image = mp.Image(
                 image_format=mp.ImageFormat.SRGB,
@@ -436,7 +436,7 @@ class KeyPoints:
             import supervision as sv
             from ultralytics import YOLO
 
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
             model = YOLO('yolov8s-pose.pt')
 
             result = model(image)[0]
@@ -475,7 +475,7 @@ class KeyPoints:
             import supervision as sv
             import super_gradients
 
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
 
             device = "cuda" if torch.cuda.is_available() else "cpu"
             model = super_gradients.training.models.get(
@@ -535,10 +535,10 @@ class KeyPoints:
             from detectron2.config import get_cfg
 
 
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
             cfg = get_cfg()
-            cfg.merge_from_file(<CONFIG_PATH>)
-            cfg.MODEL.WEIGHTS = <WEIGHTS_PATH>
+            cfg.merge_from_file("<CONFIG_PATH>")
+            cfg.MODEL.WEIGHTS = "<WEIGHTS_PATH>"
             predictor = DefaultPredictor(cfg)
 
             result = predictor(image)
@@ -591,7 +591,7 @@ class KeyPoints:
             )
 
             device = "cuda" if torch.cuda.is_available() else "cpu"
-            image = Image.open(<SOURCE_IMAGE_PATH>)
+            image = Image.open("<SOURCE_IMAGE_PATH>")
 
             DETECTION_MODEL_ID = "PekingU/rtdetr_r50vd_coco_o365"
 
@@ -728,7 +728,7 @@ class KeyPoints:
             import supervision as sv
             from ultralytics import YOLO
 
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
             model = YOLO('yolov8s.pt')
 
             result = model(image)[0]
@@ -758,11 +758,10 @@ class KeyPoints:
             An empty `sv.KeyPoints` object.
 
         Examples:
-            ```python
-            import supervision as sv
-
-            key_points = sv.KeyPoints.empty()
-            ```
+            >>> import supervision as sv
+            >>> key_points = sv.KeyPoints.empty()
+            >>> len(key_points)
+            0
         """
         return cls(xy=np.empty((0, 0, 2), dtype=np.float32))
 
@@ -792,10 +791,14 @@ class KeyPoints:
             detections (Detections): The converted detections object.
 
         Examples:
-            ```python
-            key_points = sv.KeyPoints.from_inference(...)
-            detections = key_points.as_detections()
-            ```
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array([[[10, 20], [30, 40]]], dtype=np.float32)
+            ... )
+            >>> detections = key_points.as_detections()
+            >>> detections.xyxy
+            array([[10., 20., 30., 40.]], dtype=float32)
         """
         if self.is_empty():
             return Detections.empty()
