@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 
 from supervision.detection.core import Detections
@@ -17,19 +19,19 @@ class ByteTrack:
     </video>
 
     Parameters:
-        track_activation_threshold (float): Detection confidence threshold
+        track_activation_threshold: Detection confidence threshold
             for track activation. Increasing track_activation_threshold improves accuracy
             and stability but might miss true detections. Decreasing it increases
             completeness but risks introducing noise and instability.
-        lost_track_buffer (int): Number of frames to buffer when a track is lost.
+        lost_track_buffer: Number of frames to buffer when a track is lost.
             Increasing lost_track_buffer enhances occlusion handling, significantly
             reducing the likelihood of track fragmentation or disappearance caused
             by brief detection gaps.
-        minimum_matching_threshold (float): Threshold for matching tracks with detections.
+        minimum_matching_threshold: Threshold for matching tracks with detections.
             Increasing minimum_matching_threshold improves accuracy but risks fragmentation.
             Decreasing it improves completeness but risks false positives and drift.
-        frame_rate (int): The frame rate of the video.
-        minimum_consecutive_frames (int): Number of consecutive frames that an object must
+        frame_rate: The frame rate of the video.
+        minimum_consecutive_frames: Number of consecutive frames that an object must
             be tracked before it is considered a 'valid' track.
             Increasing minimum_consecutive_frames prevents the creation of accidental tracks from
             false detection or double detection, but risks missing shorter tracks.
@@ -68,7 +70,7 @@ class ByteTrack:
         detection results.
 
         Args:
-            detections (Detections): The detections to pass through the tracker.
+            detections: The detections to pass through the tracker.
 
         Example:
             ```python
@@ -156,7 +158,7 @@ class ByteTrack:
             tensors: The new tensors to update with.
 
         Returns:
-            List[STrack]: Updated tracks.
+            Updated tracks.
         """
         self.frame_id += 1
         activated_starcks = []
@@ -320,8 +322,8 @@ def joint_tracks(
     contain tracks with duplicate internal_track_id values.
 
     Parameters:
-        track_list_a: First list of tracks (with internal_track_id attribute).
-        track_list_b: Second list of tracks (with internal_track_id attribute).
+        track_list_a: First list of tracks.
+        track_list_b: Second list of tracks.
 
     Returns:
         Combined list of tracks from track_list_a and track_list_b
@@ -338,15 +340,14 @@ def joint_tracks(
     return result
 
 
-def sub_tracks(track_list_a: list[STrack], track_list_b: list[STrack]) -> list[int]:
+def sub_tracks(track_list_a: list[STrack], track_list_b: list[STrack]) -> list[STrack]:
     """
     Returns a list of tracks from track_list_a after removing any tracks
     that share the same internal_track_id with tracks in track_list_b.
 
     Parameters:
-        track_list_a: List of tracks (with internal_track_id attribute).
-        track_list_b: List of tracks (with internal_track_id attribute) to
-            be subtracted from track_list_a.
+        track_list_a: List of tracks.
+        track_list_b: List of tracks to be subtracted from track_list_a.
     Returns:
         List of remaining tracks from track_list_a after subtraction.
     """
