@@ -102,6 +102,7 @@ supervision = [ "py.typed" ]
 [tool.setuptools.packages.find]
 where = [ "src" ]
 include = [ "supervision*" ]
+
 #exclude = [ "docs*", "tests*", "examples*" ]
 
 [tool.ruff]
