@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import argparse
 from enum import Enum
 
 import cv2
@@ -136,19 +135,32 @@ class CustomSink:
 def main(
     rtsp_url: str,
     zone_configuration_path: str,
-    model_size: str,
-    device: str,
-    confidence: float,
-    iou: float,
-    classes: list[int],
     resolution: int,
+    model_size: str = "small",
+    device: str = "cpu",
+    confidence_threshold: float = 0.3,
+    iou_threshold: float = 0.7,
+    classes: list[int] = [],
 ) -> None:
+    """
+    Calculating detections dwell time in zones using an RTSP stream.
+
+    Args:
+        rtsp_url: Complete RTSP URL for the video stream
+        zone_configuration_path: Path to the zone configuration JSON file
+        resolution: Input resolution for the model
+        model_size: RF-DETR model size ('nano', 'small', 'medium', 'base' or 'large')
+        device: Computation device ('cpu', 'mps' or 'cuda')
+        confidence_threshold: Confidence level for detections (0 to 1)
+        iou_threshold: IOU threshold for non-max suppression
+        classes: List of class IDs to track. If empty, all classes are tracked
+    """
     resolution = adjust_resolution(checkpoint=model_size, resolution=resolution)
     model = load_model(checkpoint=model_size, device=device, resolution=resolution)
 
     def inference_callback(frames: list[VideoFrame]) -> list[sv.Detections]:
-        dets = model.predict(frames[0].image, threshold=confidence)
-        return [dets.with_nms(threshold=iou)]
+        dets = model.predict(frames[0].image, threshold=confidence_threshold)
+        return [dets.with_nms(threshold=iou_threshold)]
 
     sink = CustomSink(zone_configuration_path=zone_configuration_path, classes=classes)
     pipeline = InferencePipeline.init_with_custom_logic(
@@ -164,25 +176,7 @@ def main(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Calculating detections dwell time in zones using an RTSP stream."
-    )
-    parser.add_argument("--zone_configuration_path", required=True, type=str)
-    parser.add_argument("--rtsp_url", required=True, type=str)
-    parser.add_argument("--model_size", default="small", type=str)
-    parser.add_argument("--device", default="cpu", type=str)
-    parser.add_argument("--confidence_threshold", default=0.3, type=float)
-    parser.add_argument("--iou_threshold", default=0.7, type=float)
-    parser.add_argument("--classes", nargs="*", default=[], type=int)
-    parser.add_argument("--resolution", required=True, type=int)
-    args = parser.parse_args()
-    main(
-        rtsp_url=args.rtsp_url,
-        zone_configuration_path=args.zone_configuration_path,
-        model_size=args.model_size,
-        device=args.device,
-        confidence=args.confidence_threshold,
-        iou=args.iou_threshold,
-        classes=args.classes,
-        resolution=args.resolution,
-    )
+    from jsonargparse import auto_cli, set_parsing_settings
+
+    set_parsing_settings(parse_optionals_as_positionals=True)
+    auto_cli(main, as_positional=False)

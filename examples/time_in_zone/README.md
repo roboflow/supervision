@@ -195,7 +195,7 @@ python rfdetr_file_example.py \
     --source_video_path "data/checkout/video.mp4" \
     --model_size "medium" \
     --device="cpu" \
-    --classes 1 \
+    --classes "[1]" \
     --confidence_threshold 0.3 \
     --iou_threshold 0.7 \
     --resolution 640
@@ -207,7 +207,7 @@ python rfdetr_file_example.py \
     --source_video_path "data/traffic/video.mp4" \
     --model_size "medium" \
     --device="cpu" \
-    --classes 3 6 7 8 \
+    --classes "[3, 6, 7, 8]" \
     --confidence_threshold 0.3 \
     --iou_threshold 0.7 \
     --resolution 640
@@ -232,7 +232,7 @@ python rfdetr_stream_example.py \
     --rtsp_url "rtsp://localhost:8554/live0.stream" \
     --model_size "medium" \
     --device "cpu" \
-    --classes 1 \
+    --classes "[1]" \
     --confidence_threshold 0.3 \
     --iou_threshold 0.7 \
     --resolution 640
@@ -244,7 +244,7 @@ python rfdetr_stream_example.py \
     --rtsp_url "rtsp://localhost:8554/live0.stream" \
     --model_size "medium" \
     --device "cpu" \
-    --classes 3 6 7 8 \
+    --classes "[3, 6, 7, 8]" \
     --confidence_threshold 0.3 \
     --iou_threshold 0.7 \
     --resolution 640
@@ -313,7 +313,7 @@ python ultralytics_stream_example.py \
     --rtsp_url "rtsp://localhost:8554/live0.stream" \
     --weights "yolov8x.pt" \
     --device "cpu" \
-    --classes 2 5 6 7 \
+    --classes "[2, 5, 6, 7]" \
     --confidence_threshold 0.3 \
     --iou_threshold 0.7
 ```

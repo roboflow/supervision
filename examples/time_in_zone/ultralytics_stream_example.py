@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import argparse
-
 import cv2
 import numpy as np
 from inference import InferencePipeline
@@ -102,10 +100,12 @@ def main(
     model = YOLO(weights)
 
     def inference_callback(frames: list[VideoFrame]) -> list[sv.Detections]:
-        results = model(frames[0].image, verbose=False, conf=confidence_threshold, device=device)[
-            0
+        results = model(
+            frames[0].image, verbose=False, conf=confidence_threshold, device=device
+        )[0]
+        return [
+            sv.Detections.from_ultralytics(results).with_nms(threshold=iou_threshold)
         ]
-        return [sv.Detections.from_ultralytics(results).with_nms(threshold=iou_threshold)]
 
     sink = CustomSink(zone_configuration_path=zone_configuration_path, classes=classes)
 
