@@ -104,11 +104,11 @@ class STrack:
 
     def update(self, new_track: STrack, frame_id: int) -> None:
         """
-        Update a matched track
-        :type new_track: STrack
-        :type frame_id: int
-        :type update_feature: bool
-        :return:
+        Update a matched track.
+
+        Args:
+            new_track: The new track data.
+            frame_id: The current frame ID.
         """
         self.frame_id = frame_id
         self.tracklet_len += 1
@@ -147,7 +147,7 @@ class STrack:
         return ret
 
     @staticmethod
-    def tlwh_to_xyah(tlwh) -> npt.NDArray[np.float32]:
+    def tlwh_to_xyah(tlwh: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         """Convert bounding box to format `(center x, center y, aspect ratio,
         height)`, where the aspect ratio is `width / height`.
         """
@@ -160,13 +160,13 @@ class STrack:
         return self.tlwh_to_xyah(self.tlwh)
 
     @staticmethod
-    def tlbr_to_tlwh(tlbr) -> npt.NDArray[np.float32]:
+    def tlbr_to_tlwh(tlbr: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         ret = np.asarray(tlbr).copy()
         ret[2:] -= ret[:2]
         return ret
 
     @staticmethod
-    def tlwh_to_tlbr(tlwh) -> npt.NDArray[np.float32]:
+    def tlwh_to_tlbr(tlwh: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         ret = np.asarray(tlwh).copy()
         ret[2:] += ret[:2]
         return ret
