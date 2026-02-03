@@ -26,7 +26,7 @@ jobs:
 
       - name: 🎨 Augment paths in README
         run: |
-          uv run python .github/scripts/augment_links.py README.md
+          uv run python .github/scripts/augment_links.py README.md --branch ${{ github.head_ref || github.ref_name }}
           cat README.md
 
       - name: 🔗 Link Checker
@@ -35,7 +35,6 @@ jobs:
           lycheeVersion: v0.22.0
           args: |
             --config .github/lychee.toml
-            --header "x-ratelimit-bypass: ${{ secrets.UNIVERSE_RATELIMIT_BYPASS_KEY }}"
             README.md
           fail: true
 

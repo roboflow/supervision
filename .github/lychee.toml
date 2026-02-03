@@ -3,10 +3,11 @@ no_progress = true
 include_verbatim = true
 retry_wait_time = 3
 max_concurrency = 10
+cache = false
 
 exclude = [
     "https://github.com/YOUR_USERNAME/supervision.git",  # hint for forking contributors
     "http://127.0.0.1:8000",  # hint for local docs server
     "https://sam2.metademolab.com/",  # returns 403 Forbidden
-    "https://snyk.io/advisor/python/supervision/badge.svg",
+    "https://snyk.io/advisor/python/supervision/badge.svg",  # badge URL
 ]
