@@ -30,6 +30,7 @@ jobs:
           cat README.md
 
       - name: 🔗 Link Checker
+        if: github.repository == 'roboflow/supervision'
         uses: lycheeverse/lychee-action@v2
         with:
           lycheeVersion: v0.22.0

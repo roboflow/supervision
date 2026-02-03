@@ -27,7 +27,6 @@ jobs:
           lycheeVersion: v0.22.0
           args: |
             --config .github/lychee.toml
-            ${{ secrets.UNIVERSE_RATELIMIT_BYPASS_KEY != '' && format('--header "x-ratelimit-bypass: {0}"', secrets.UNIVERSE_RATELIMIT_BYPASS_KEY) || '--exclude "https://universe.roboflow.com/.*"' }}
             './**/*.md'
           # TODO: enable also following file types
           # './**/*.toml'
