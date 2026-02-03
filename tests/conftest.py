@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import supervision as sv
-from test.helpers import _create_key_points
+from tests.helpers import _create_key_points
 
 
 @pytest.fixture

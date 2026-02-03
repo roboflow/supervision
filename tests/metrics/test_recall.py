@@ -4,7 +4,7 @@ import pytest
 from supervision.detection.core import Detections
 from supervision.metrics.core import AveragingMethod, MetricTarget
 from supervision.metrics.recall import Recall
-from test.helpers import assert_almost_equal
+from tests.helpers import assert_almost_equal
 
 
 class TestRecall:
