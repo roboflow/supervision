@@ -8,7 +8,7 @@ from supervision.draw.color import Color
 
 
 @pytest.mark.parametrize(
-    "color_hex, expected_result, exception",
+    ("color_hex", "expected_result", "exception"),
     [
         ("fff", Color.WHITE, DoesNotRaise()),
         ("#fff", Color.WHITE, DoesNotRaise()),
@@ -34,7 +34,7 @@ def test_color_from_hex(
 
 
 @pytest.mark.parametrize(
-    "color, expected_result, exception",
+    ("color", "expected_result", "exception"),
     [
         (Color.WHITE, "#ffffff", DoesNotRaise()),
         (Color.BLACK, "#000000", DoesNotRaise()),

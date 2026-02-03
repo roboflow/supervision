@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
+import numpy.typing as npt
 from matplotlib import pyplot as plt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
@@ -36,41 +37,27 @@ class F1Score(Metric):
 
     `F1 = 2 * (precision * recall) / (precision + recall)`
 
-    Example:
-        ```python
-        import supervision as sv
-        from supervision.metrics import F1Score
+    Examples:
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> from supervision.metrics import F1Score
+        >>> predictions = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]]),
+        ...     class_id=np.array([0]),
+        ...     confidence=np.array([0.9])
+        ... )
+        >>> targets = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]]),
+        ...     class_id=np.array([0])
+        ... )
+        >>> f1_metric = F1Score()
+        >>> f1_result = f1_metric.update(predictions, targets).compute()
+        >>> round(float(f1_result.f1_50), 2)
+        1.0
 
-        predictions = sv.Detections(...)
-        targets = sv.Detections(...)
-
-        f1_metric = F1Score()
-        f1_result = f1_metric.update(predictions, targets).compute()
-
-        print(f1_result.f1_50)
-        # 0.7618
-
-        print(f1_result)
-        # F1ScoreResult:
-        # Metric target: MetricTarget.BOXES
-        # Averaging method: AveragingMethod.WEIGHTED
-        # F1 @ 50:     0.7618
-        # F1 @ 75:     0.7487
-        # F1 @ thresh: [0.76175  0.76068  0.76068]
-        # IoU thresh:  [0.5  0.55  0.6  ...]
-        # F1 per class:
-        # 0: [0.70968  0.70968  0.70968  ...]
-        # ...
-        # Small objects: ...
-        # Medium objects: ...
-        # Large objects: ...
-
-        f1_result.plot()
-        ```
-
-    ![example_plot](\
-        https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png\
-        ){ align=center width="800" }
+    ![example_plot](
+        https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png
+    ){ align=center width="800" }
     """
 
     def __init__(
@@ -82,8 +69,8 @@ class F1Score(Metric):
         Initialize the F1Score metric.
 
         Args:
-            metric_target (MetricTarget): The type of detection data to use.
-            averaging_method (AveragingMethod): The averaging method used to compute the
+            metric_target: The type of detection data to use.
+            averaging_method: The averaging method used to compute the
                 F1 scores. Determines how the F1 scores are aggregated across classes.
         """
         self._metric_target = metric_target
@@ -108,11 +95,11 @@ class F1Score(Metric):
         Add new predictions and targets to the metric, but do not compute the result.
 
         Args:
-            predictions (Union[Detections, List[Detections]]): The predicted detections.
-            targets (Union[Detections, List[Detections]]): The target detections.
+            predictions: The predicted detections.
+            targets: The target detections.
 
         Returns:
-            (F1Score): The updated metric instance.
+            The updated metric instance.
         """
         if not isinstance(predictions, list):
             predictions = [predictions]
@@ -136,7 +123,7 @@ class F1Score(Metric):
         data, at different IoU thresholds.
 
         Returns:
-            (F1ScoreResult): The F1 score metric result.
+            The F1 score metric result.
         """
         result = self._compute(self._predictions_list, self._targets_list)
 
@@ -163,7 +150,7 @@ class F1Score(Metric):
         self, predictions_list: list[Detections], targets_list: list[Detections]
     ) -> F1ScoreResult:
         iou_thresholds = np.linspace(0.5, 0.95, 10)
-        stats = []
+        stats: list[Any] = []
 
         for predictions, targets in zip(predictions_list, targets_list):
             prediction_contents = self._detections_content(predictions)
@@ -195,7 +182,14 @@ class F1Score(Metric):
                         )
 
                     matches = self._match_detection_batch(
-                        predictions.class_id, targets.class_id, iou, iou_thresholds
+                        predictions.class_id
+                        if predictions.class_id is not None
+                        else np.array([]),
+                        targets.class_id
+                        if targets.class_id is not None
+                        else np.array([]),
+                        iou,
+                        iou_thresholds,
                     )
                     stats.append(
                         (
@@ -238,11 +232,15 @@ class F1Score(Metric):
 
     def _compute_f1_for_classes(
         self,
-        matches: np.ndarray,
-        prediction_confidence: np.ndarray,
-        prediction_class_ids: np.ndarray,
-        true_class_ids: np.ndarray,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        matches: npt.NDArray[np.bool_],
+        prediction_confidence: npt.NDArray[np.float32],
+        prediction_class_ids: npt.NDArray[np.int32],
+        true_class_ids: npt.NDArray[np.int32],
+    ) -> tuple[
+        npt.NDArray[np.float64],
+        npt.NDArray[np.float64],
+        npt.NDArray[np.int32],
+    ]:
         sorted_indices = np.argsort(-prediction_confidence)
         matches = matches[sorted_indices]
         prediction_class_ids = prediction_class_ids[sorted_indices]
@@ -270,11 +268,11 @@ class F1Score(Metric):
 
     @staticmethod
     def _match_detection_batch(
-        predictions_classes: np.ndarray,
-        target_classes: np.ndarray,
-        iou: np.ndarray,
-        iou_thresholds: np.ndarray,
-    ) -> np.ndarray:
+        predictions_classes: npt.NDArray[np.int32],
+        target_classes: npt.NDArray[np.int32],
+        iou: npt.NDArray[np.float32],
+        iou_thresholds: npt.NDArray[np.float32],
+    ) -> npt.NDArray[np.bool_]:
         num_predictions, num_iou_levels = (
             predictions_classes.shape[0],
             iou_thresholds.shape[0],
@@ -297,40 +295,43 @@ class F1Score(Metric):
 
                 correct[matches[:, 1].astype(int), i] = True
 
-        return correct
+        result_correct: npt.NDArray[np.bool_] = correct
+        return result_correct
 
     @staticmethod
     def _compute_confusion_matrix(
-        sorted_matches: np.ndarray,
-        sorted_prediction_class_ids: np.ndarray,
-        unique_classes: np.ndarray,
-        class_counts: np.ndarray,
-    ) -> np.ndarray:
+        sorted_matches: npt.NDArray[np.bool_],
+        sorted_prediction_class_ids: npt.NDArray[np.int32],
+        unique_classes: npt.NDArray[np.int32],
+        class_counts: npt.NDArray[np.int32],
+    ) -> npt.NDArray[np.float64]:
         """
         Compute the confusion matrix for each class and IoU threshold.
 
         Assumes the matches and prediction_class_ids are sorted by confidence
         in descending order.
 
-        Arguments:
-            sorted_matches: np.ndarray, bool, shape (P, Th), that is True
+        Args:
+            sorted_matches: shape (P, Th), that is True
                 if the prediction is a true positive at the given IoU threshold.
-            sorted_prediction_class_ids: np.ndarray, int, shape (P,), containing
+            sorted_prediction_class_ids: shape (P,), containing
                 the class id for each prediction.
-            unique_classes: np.ndarray, int, shape (C,), containing the unique
+            unique_classes: shape (C,), containing the unique
                 class ids.
-            class_counts: np.ndarray, int, shape (C,), containing the number
+            class_counts: shape (C,), containing the number
                 of true instances for each class.
 
         Returns:
-            np.ndarray, shape (C, Th, 3), containing the true positives, false
+            shape (C, Th, 3), containing the true positives, false
                 positives, and false negatives for each class and IoU threshold.
         """
 
         num_thresholds = sorted_matches.shape[1]
         num_classes = unique_classes.shape[0]
 
-        confusion_matrix = np.zeros((num_classes, num_thresholds, 3))
+        confusion_matrix: npt.NDArray[np.float64] = np.zeros(
+            (num_classes, num_thresholds, 3), dtype=np.float64
+        )
         for class_idx, class_id in enumerate(unique_classes):
             is_class = sorted_prediction_class_ids == class_id
             num_true = class_counts[class_idx]
@@ -352,19 +353,22 @@ class F1Score(Metric):
                 [true_positives, false_positives, false_negatives], axis=1
             )
 
-        return confusion_matrix
+        result_confusion_matrix: npt.NDArray[np.float64] = confusion_matrix
+        return result_confusion_matrix
 
     @staticmethod
-    def _compute_f1(confusion_matrix: np.ndarray) -> np.ndarray:
+    def _compute_f1(
+        confusion_matrix: npt.NDArray[np.float64],
+    ) -> npt.NDArray[np.float64]:
         """
         Broadcastable function, computing the F1 score from the confusion matrix.
 
         Arguments:
-            confusion_matrix: np.ndarray, shape (N, ..., 3), where the last dimension
+            confusion_matrix: shape (N, ..., 3), where the last dimension
                 contains the true positives, false positives, and false negatives.
 
         Returns:
-            np.ndarray, shape (N, ...), containing the F1 score for each element.
+            shape (N, ...), containing the F1 score for each element.
         """
         if not confusion_matrix.shape[-1] == 3:
             raise ValueError(
@@ -379,32 +383,37 @@ class F1Score(Metric):
         denominator = 2 * true_positives + false_positives + false_negatives
         f1_score = np.where(denominator == 0, 0, 2 * true_positives / denominator)
 
-        return f1_score
+        result_f1_score: npt.NDArray[np.float64] = f1_score
+        return result_f1_score
 
-    def _detections_content(self, detections: Detections) -> np.ndarray:
+    def _detections_content(self, detections: Detections) -> npt.NDArray[Any]:
         """Return boxes, masks or oriented bounding boxes from detections."""
         if self._metric_target == MetricTarget.BOXES:
-            return detections.xyxy
+            result_boxes: npt.NDArray[np.float32] = detections.xyxy
+            return result_boxes
         if self._metric_target == MetricTarget.MASKS:
-            return (
-                detections.mask
-                if detections.mask is not None
-                else self._make_empty_content()
-            )
+            if detections.mask is not None:
+                result_masks: npt.NDArray[np.bool_] = detections.mask
+                return result_masks
+            return self._make_empty_content()
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             obb = detections.data.get(ORIENTED_BOX_COORDINATES)
             if obb is not None and len(obb) > 0:
-                return np.array(obb, dtype=np.float32)
+                result_obb: npt.NDArray[np.float32] = np.array(obb, dtype=np.float32)
+                return result_obb
             return self._make_empty_content()
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
-    def _make_empty_content(self) -> np.ndarray:
+    def _make_empty_content(self) -> npt.NDArray[Any]:
         if self._metric_target == MetricTarget.BOXES:
-            return np.empty((0, 4), dtype=np.float32)
+            empty_boxes: npt.NDArray[np.float32] = np.empty((0, 4), dtype=np.float32)
+            return empty_boxes
         if self._metric_target == MetricTarget.MASKS:
-            return np.empty((0, 0, 0), dtype=bool)
+            empty_masks: npt.NDArray[np.bool_] = np.empty((0, 0, 0), dtype=bool)
+            return empty_masks
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-            return np.empty((0, 4, 2), dtype=np.float32)
+            empty_obb: npt.NDArray[np.float32] = np.empty((0, 4, 2), dtype=np.float32)
+            return empty_obb
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
     def _filter_detections_by_size(
@@ -462,24 +471,24 @@ class F1ScoreResult:
     Defaults to `0` if no detections or targets were provided.
 
     Attributes:
-        metric_target (MetricTarget): the type of data used for the metric -
+        metric_target: the type of data used for the metric -
             boxes, masks or oriented bounding boxes.
-        averaging_method (AveragingMethod): the averaging method used to compute the
+        averaging_method: the averaging method used to compute the
             F1 scores. Determines how the F1 scores are aggregated across classes.
-        f1_50 (float): the F1 score at IoU threshold of `0.5`.
-        f1_75 (float): the F1 score at IoU threshold of `0.75`.
-        f1_scores (np.ndarray): the F1 scores at each IoU threshold.
+        f1_50: the F1 score at IoU threshold of `0.5`.
+        f1_75: the F1 score at IoU threshold of `0.75`.
+        f1_scores: the F1 scores at each IoU threshold.
             Shape: `(num_iou_thresholds,)`
-        f1_per_class (np.ndarray): the F1 scores per class and IoU threshold.
+        f1_per_class: the F1 scores per class and IoU threshold.
             Shape: `(num_target_classes, num_iou_thresholds)`
-        iou_thresholds (np.ndarray): the IoU thresholds used in the calculations.
-        matched_classes (np.ndarray): the class IDs of all matched classes.
+        iou_thresholds: the IoU thresholds used in the calculations.
+        matched_classes: the class IDs of all matched classes.
             Corresponds to the rows of `f1_per_class`.
-        small_objects (Optional[F1ScoreResult]): the F1 metric results
+        small_objects: the F1 metric results
             for small objects (area < 32²).
-        medium_objects (Optional[F1ScoreResult]): the F1 metric results
+        medium_objects: the F1 metric results
             for medium objects (32² ≤ area < 96²).
-        large_objects (Optional[F1ScoreResult]): the F1 metric results
+        large_objects: the F1 metric results
             for large objects (area ≥ 96²).
     """
 
@@ -488,16 +497,16 @@ class F1ScoreResult:
 
     @property
     def f1_50(self) -> float:
-        return self.f1_scores[0]
+        return float(self.f1_scores[0])
 
     @property
     def f1_75(self) -> float:
-        return self.f1_scores[5]
+        return float(self.f1_scores[5])
 
-    f1_scores: np.ndarray
-    f1_per_class: np.ndarray
-    iou_thresholds: np.ndarray
-    matched_classes: np.ndarray
+    f1_scores: npt.NDArray[np.float64]
+    f1_per_class: npt.NDArray[np.float64]
+    iou_thresholds: npt.NDArray[np.float32]
+    matched_classes: npt.NDArray[np.int32]
 
     small_objects: F1ScoreResult | None
     medium_objects: F1ScoreResult | None
@@ -558,7 +567,7 @@ class F1ScoreResult:
         Convert the result to a pandas DataFrame.
 
         Returns:
-            (pd.DataFrame): The result as a DataFrame.
+            The result as a DataFrame.
         """
         ensure_pandas_installed()
         import pandas as pd
@@ -583,13 +592,13 @@ class F1ScoreResult:
 
         return pd.DataFrame(pandas_data, index=[0])
 
-    def plot(self):
+    def plot(self) -> None:
         """
         Plot the F1 results.
 
-        ![example_plot](\
-            https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png\
-            ){ align=center width="800" }
+        ![example_plot](
+            https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png
+        ){ align=center width="800" }
         """
 
         labels = ["F1@50", "F1@75"]

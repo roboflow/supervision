@@ -5,7 +5,7 @@ comments: true
 # Track Objects
 
 Leverage Supervision's advanced capabilities for enhancing your video analysis by
-seamlessly [tracking](/latest/trackers/) objects recognized by
+seamlessly [tracking](https://supervision.roboflow.com/latest/trackers/) objects recognized by
 a multitude of object detection, segmentation and keypoint models. This comprehensive guide will
 take you through the steps to perform inference using the YOLOv8 model via either the
 [Inference](https://github.com/roboflow/inference) or
@@ -17,7 +17,7 @@ for a deeper analysis.
 
 To make it easier for you to follow our tutorial download the video we will use as an
 example. You can do this using
-[`supervision[assets]`](/latest/assets/) extension.
+[`supervision[assets]`](https://supervision.roboflow.com/latest/assets/) extension.
 
 ```python
 from supervision.assets import download_assets, VideoAssets
@@ -34,7 +34,7 @@ download_assets(VideoAssets.PEOPLE_WALKING)
 First, you'll need to obtain predictions from your object detection or segmentation
 model. In this tutorial, we are using the YOLOv8 model as an example. However,
 Supervision is versatile and compatible with various models. Check this
-[link](/latest/how_to/detect_and_annotate/#load-predictions-into-supervision)
+[link](https://supervision.roboflow.com/latest/how_to/detect_and_annotate/#load-predictions-into-supervision)
 for guidance on how to plug in other models.
 
 We will define a `callback` function, which will process each frame of the video
@@ -98,7 +98,7 @@ it will be modified to include tracking, labeling, and trace annotations.
 
 After running inference and obtaining predictions, the next step is to track the
 detected objects throughout the video. Utilizing Supervision’s
-[`sv.ByteTrack`](/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack)
+[`sv.ByteTrack`](https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack)
 functionality, each detected object is assigned a unique tracker ID,
 enabling the continuous following of the object's motion path across different frames.
 
@@ -154,7 +154,7 @@ enabling the continuous following of the object's motion path across different f
 
 Annotating the video with tracking IDs helps in distinguishing and following each object
 distinctly. With the
-[`sv.LabelAnnotator`](/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator)
+[`sv.LabelAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator)
 in Supervision, we can overlay the tracker IDs and class labels on the detected objects,
 offering a clear visual representation of each object's class and unique identifier.
 
@@ -236,7 +236,7 @@ offering a clear visual representation of each object's class and unique identif
 
 Adding traces to the video involves overlaying the historical paths of the detected
 objects. This feature, powered by the
-[`sv.TraceAnnotator`](/latest/detection/annotators/#supervision.annotators.core.TraceAnnotator),
+[`sv.TraceAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.TraceAnnotator),
 allows for visualizing the trajectories of objects, helping in understanding the
 movement patterns and interactions between objects in the video.
 
@@ -325,7 +325,7 @@ movement patterns and interactions between objects in the video.
 Models aren't limited to object detection and segmentation. Keypoint detection allows for detailed analysis of body joints and connections, especially valuable for applications like human pose estimation. This section introduces keypoint tracking. We'll walk through the steps of annotating keypoints, converting them into bounding box detections compatible with `ByteTrack`, and applying detection smoothing for enhanced stability.
 
 To make it easier for you to follow our tutorial, let's download the video we will use as an
-example. You can do this using [`supervision[assets]`](/latest/assets/) extension.
+example. You can do this using [`supervision[assets]`](https://supervision.roboflow.com/latest/assets/) extension.
 
 ```python
 from supervision.assets import download_assets, VideoAssets
@@ -340,11 +340,11 @@ download_assets(VideoAssets.SKIING)
 ### Keypoint Detection
 
 First, you'll need to obtain predictions from your keypoint detection model. In this tutorial, we are using the YOLOv8 model as an example. However,
-Supervision is versatile and compatible with various models. Check this [link](/latest/keypoint/core/) for guidance on how to plug in other models.
+Supervision is versatile and compatible with various models. Check this [link](https://supervision.roboflow.com/latest/keypoint/core/) for guidance on how to plug in other models.
 
 We will define a `callback` function, which will process each frame of the video by obtaining model predictions and then annotating the frame based on these predictions.
 
-Let's immediately visualize the results with our [`EdgeAnnotator`](/latest/keypoint/annotators/#supervision.key_points.annotators.EdgeAnnotator) and [`VertexAnnotator`](https://supervision.roboflow.com/latest/keypoint/annotators/#supervision.key_points.annotators.VertexAnnotator).
+Let's immediately visualize the results with our [`EdgeAnnotator`](https://supervision.roboflow.com/latest/keypoint/annotators/#supervision.key_points.annotators.EdgeAnnotator) and [`VertexAnnotator`](https://supervision.roboflow.com/latest/keypoint/annotators/#supervision.key_points.annotators.VertexAnnotator).
 
 === "Ultralytics"
 
@@ -407,9 +407,9 @@ Let's immediately visualize the results with our [`EdgeAnnotator`](/latest/keypo
 
 ### Convert to Detections
 
-Keypoint tracking is currently supported via the conversion of `KeyPoints` to `Detections`. This is achieved with the [`KeyPoints.as_detections()`](/latest/keypoint/core/#supervision.key_points.core.KeyPoints.as_detections) function.
+Keypoint tracking is currently supported via the conversion of `KeyPoints` to `Detections`. This is achieved with the [`KeyPoints.as_detections()`](https://supervision.roboflow.com/latest/keypoint/core/#supervision.key_points.core.KeyPoints.as_detections) function.
 
-Let's convert to detections and visualize the results with our [`BoxAnnotator`](/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator).
+Let's convert to detections and visualize the results with our [`BoxAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator).
 
 !!! tip
 
@@ -484,7 +484,7 @@ Let's convert to detections and visualize the results with our [`BoxAnnotator`](
 
 ### Keypoint Tracking
 
-Now that we have a `Detections` object, we can track it throughout the video. Utilizing Supervision’s [`sv.ByteTrack`](/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) functionality, each detected object is assigned a unique tracker ID, enabling the continuous following of the object's motion path across different frames. We shall visualize the result with `TraceAnnotator`.
+Now that we have a `Detections` object, we can track it throughout the video. Utilizing Supervision's [`sv.ByteTrack`](https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) functionality, each detected object is assigned a unique tracker ID, enabling the continuous following of the object's motion path across different frames. We shall visualize the result with `TraceAnnotator`.
 
 === "Ultralytics"
 
@@ -567,7 +567,7 @@ Now that we have a `Detections` object, we can track it throughout the video. Ut
 
 ### Bonus: Smoothing
 
-We could stop here as we have successfully tracked the object detected by the keypoint model. However, we can further enhance the stability of the boxes by applying [`DetectionsSmoother`](/latest/detection/tools/smoother/). This tool helps in stabilizing the boxes by smoothing the bounding box coordinates across frames. It is very simple to use:
+We could stop here as we have successfully tracked the object detected by the keypoint model. However, we can further enhance the stability of the boxes by applying [`DetectionsSmoother`](https://supervision.roboflow.com/latest/detection/tools/smoother/). This tool helps in stabilizing the boxes by smoothing the bounding box coordinates across frames. It is very simple to use:
 
 === "Ultralytics"
 

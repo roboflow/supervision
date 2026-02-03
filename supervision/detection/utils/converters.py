@@ -55,21 +55,15 @@ def xywh_to_xyxy(xywh: np.ndarray) -> np.ndarray:
             to a bounding box in the format `(x_min, y_min, x_max, y_max)`.
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
-
-        xywh = np.array([
-            [10, 20, 30, 40],
-            [15, 25, 35, 45]
-        ])
-
-        sv.xywh_to_xyxy(xywh=xywh)
-        # array([
-        #     [10, 20, 40, 60],
-        #     [15, 25, 50, 70]
-        # ])
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> xywh = np.array([
+        ...     [10, 20, 30, 40],
+        ...     [15, 25, 35, 45]
+        ... ])
+        >>> sv.xywh_to_xyxy(xywh=xywh)
+        array([[10, 20, 40, 60],
+               [15, 25, 50, 70]])
     """
     xyxy = xywh.copy()
     xyxy[:, 2] = xywh[:, 0] + xywh[:, 2]
@@ -92,21 +86,15 @@ def xyxy_to_xywh(xyxy: np.ndarray) -> np.ndarray:
             to a bounding box in the format `(x, y, width, height)`.
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
-
-        xyxy = np.array([
-            [10, 20, 40, 60],
-            [15, 25, 50, 70]
-        ])
-
-        sv.xyxy_to_xywh(xyxy=xyxy)
-        # array([
-        #     [10, 20, 30, 40],
-        #     [15, 25, 35, 45]
-        # ])
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> xyxy = np.array([
+        ...     [10, 20, 40, 60],
+        ...     [15, 25, 50, 70]
+        ... ])
+        >>> sv.xyxy_to_xywh(xyxy=xyxy)
+        array([[10, 20, 30, 40],
+               [15, 25, 35, 45]])
     """
     xywh = xyxy.copy()
     xywh[:, 2] = xyxy[:, 2] - xyxy[:, 0]
@@ -129,21 +117,15 @@ def xcycwh_to_xyxy(xcycwh: np.ndarray) -> np.ndarray:
             to a bounding box in the format `(x_min, y_min, x_max, y_max)`.
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
-
-        xcycwh = np.array([
-            [50, 50, 20, 30],
-            [30, 40, 10, 15]
-        ])
-
-        sv.xcycwh_to_xyxy(xcycwh=xcycwh)
-        # array([
-        #     [40, 35, 60, 65],
-        #     [25, 32.5, 35, 47.5]
-        # ])
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> xcycwh = np.array([
+        ...     [50.0, 50.0, 20.0, 30.0],
+        ...     [30.0, 40.0, 10.0, 15.0]
+        ... ])
+        >>> sv.xcycwh_to_xyxy(xcycwh=xcycwh)
+        array([[40. , 35. , 60. , 65. ],
+               [25. , 32.5, 35. , 47.5]])
     """
     xyxy = xcycwh.copy()
     xyxy[:, 0] = xcycwh[:, 0] - xcycwh[:, 2] / 2
@@ -167,21 +149,15 @@ def xyxy_to_xcycarh(xyxy: np.ndarray) -> np.ndarray:
             `(center x, center y, aspect ratio, height)`. Shape `(N, 4)`.
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
-
-        xyxy = np.array([
-            [10, 20, 40, 60],
-            [15, 25, 50, 70]
-        ])
-
-        sv.xyxy_to_xcycarh(xyxy=xyxy)
-        # array([
-        #     [25.  , 40.  ,  0.75, 40.  ],
-        #     [32.5 , 47.5 ,  0.77777778, 45.  ]
-        # ])
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> xyxy = np.array([
+        ...     [10, 20, 40, 60],
+        ...     [15, 25, 50, 70]
+        ... ])
+        >>> sv.xyxy_to_xcycarh(xyxy=xyxy)  # doctest: +ELLIPSIS
+        array([[25.        , 40.        ,  0.75      , 40.        ],
+               [32.5       , 47.5       ,  0.77..., 45.        ]])
 
     """
     if xyxy.size == 0:
@@ -244,38 +220,28 @@ def xyxy_to_mask(boxes: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarra
             containing 2D bool masks for each bounding box
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
-
-        boxes = np.array([[0, 0, 2, 2]])
-
-        sv.xyxy_to_mask(boxes, (5, 5))
-        # array([
-        #     [[ True,  True,  True, False, False],
-        #      [ True,  True,  True, False, False],
-        #      [ True,  True,  True, False, False],
-        #      [False, False, False, False, False],
-        #      [False, False, False, False, False]]
-        # ])
-
-        boxes = np.array([[0, 0, 1, 1], [3, 3, 4, 4]])
-
-        sv.xyxy_to_mask(boxes, (5, 5))
-        # array([
-        #     [[ True,  True, False, False, False],
-        #      [ True,  True, False, False, False],
-        #      [False, False, False, False, False],
-        #      [False, False, False, False, False],
-        #      [False, False, False, False, False]],
-        #
-        #     [[False, False, False, False, False],
-        #      [False, False, False, False, False],
-        #      [False, False, False, False, False],
-        #      [False, False, False,  True,  True],
-        #      [False, False, False,  True,  True]]
-        # ])
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> boxes = np.array([[0, 0, 2, 2]])
+        >>> sv.xyxy_to_mask(boxes, (5, 5))
+        array([[[ True,  True,  True, False, False],
+                [ True,  True,  True, False, False],
+                [ True,  True,  True, False, False],
+                [False, False, False, False, False],
+                [False, False, False, False, False]]])
+        >>> boxes = np.array([[0, 0, 1, 1], [3, 3, 4, 4]])
+        >>> sv.xyxy_to_mask(boxes, (5, 5))
+        array([[[ True,  True, False, False, False],
+                [ True,  True, False, False, False],
+                [False, False, False, False, False],
+                [False, False, False, False, False],
+                [False, False, False, False, False]],
+        <BLANKLINE>
+               [[False, False, False, False, False],
+                [False, False, False, False, False],
+                [False, False, False, False, False],
+                [False, False, False,  True,  True],
+                [False, False, False,  True,  True]]])
     """
     width, height = resolution_wh
     n = boxes.shape[0]

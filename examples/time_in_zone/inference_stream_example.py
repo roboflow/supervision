@@ -1,5 +1,3 @@
-import argparse
-
 import cv2
 import numpy as np
 from inference import InferencePipeline
@@ -77,21 +75,35 @@ class CustomSink:
 
 
 def main(
-    rtsp_url: str,
     zone_configuration_path: str,
-    model_id: str,
-    confidence: float,
-    iou: float,
-    classes: list[int],
+    rtsp_url: str,
+    model_id: str = "yolov8s-640",
+    confidence_threshold: float = 0.3,
+    iou_threshold: float = 0.7,
+    classes: list[int] = [],
+    roboflow_api_key: str = "",
 ) -> None:
+    """
+    Calculating detections dwell time in zones, using RTSP stream.
+
+    Args:
+        zone_configuration_path: Path to the zone configuration JSON file
+        rtsp_url: Complete RTSP URL for the video stream
+        model_id: Roboflow model ID
+        confidence_threshold: Confidence level for detections (0 to 1)
+        iou_threshold: IOU threshold for non-max suppression
+        classes: List of class IDs to track. If empty, all classes are tracked
+        roboflow_api_key: Roboflow API key for accessing private models
+    """
     sink = CustomSink(zone_configuration_path=zone_configuration_path, classes=classes)
 
     pipeline = InferencePipeline.init(
         model_id=model_id,
         video_reference=rtsp_url,
         on_prediction=sink.on_prediction,
-        confidence=confidence,
-        iou_threshold=iou,
+        confidence=confidence_threshold,
+        iou_threshold=iou_threshold,
+        api_key=roboflow_api_key,
     )
 
     pipeline.start()
@@ -103,50 +115,7 @@ def main(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Calculating detections dwell time in zones, using RTSP stream."
-    )
-    parser.add_argument(
-        "--zone_configuration_path",
-        type=str,
-        required=True,
-        help="Path to the zone configuration JSON file.",
-    )
-    parser.add_argument(
-        "--rtsp_url",
-        type=str,
-        required=True,
-        help="Complete RTSP URL for the video stream.",
-    )
-    parser.add_argument(
-        "--model_id", type=str, default="yolov8s-640", help="Roboflow model ID."
-    )
-    parser.add_argument(
-        "--confidence_threshold",
-        type=float,
-        default=0.3,
-        help="Confidence level for detections (0 to 1). Default is 0.3.",
-    )
-    parser.add_argument(
-        "--iou_threshold",
-        default=0.7,
-        type=float,
-        help="IOU threshold for non-max suppression. Default is 0.7.",
-    )
-    parser.add_argument(
-        "--classes",
-        nargs="*",
-        type=int,
-        default=[],
-        help="List of class IDs to track. If empty, all classes are tracked.",
-    )
-    args = parser.parse_args()
+    from jsonargparse import auto_cli, set_parsing_settings
 
-    main(
-        rtsp_url=args.rtsp_url,
-        zone_configuration_path=args.zone_configuration_path,
-        model_id=args.model_id,
-        confidence=args.confidence_threshold,
-        iou=args.iou_threshold,
-        classes=args.classes,
-    )
+    set_parsing_settings(parse_optionals_as_positionals=True)
+    auto_cli(main, as_positional=False)

@@ -1,6 +1,7 @@
 supervision
 ultralytics
-inference
+inference[gaze,transformers,sam]
 # https://github.com/pytube/pytube/issues/2044
 # pytube
 pytubefix
+jsonargparse[signatures]

@@ -9,14 +9,14 @@ processing. This guide demonstrates how to perform video inference using the
 [Inference](https://github.com/roboflow/inference),
 [Ultralytics](https://github.com/ultralytics/ultralytics) or
 [Transformers](https://github.com/huggingface/transformers) packages and save their results with
-[`sv.CSVSink`](/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink) and
-[`sv.JSONSink`](/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.JSONSink).
+[`sv.CSVSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink) and
+[`sv.JSONSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.JSONSink).
 
 ## Run Detection
 
 First, you'll need to obtain predictions from your object detection or segmentation
 model. You can learn more on this topic in our
-[How to Detect and Annotate](/latest/how_to/detect_and_annotate.md) guide.
+[How to Detect and Annotate](https://supervision.roboflow.com/latest/how_to/detect_and_annotate/) guide.
 
 === "Inference"
     ```python
@@ -74,9 +74,9 @@ model. You can learn more on this topic in our
 ## Save Detections as CSV
 
 To save detections to a `.CSV` file, open our
-[`sv.CSVSink`](/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink)
+[`sv.CSVSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink)
 and then pass the
-[`sv.Detections`](/latest/detection/core/#supervision.detection.core.Detections)
+[`sv.Detections`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections)
 object resulting from the inference to it. Its fields are parsed and saved on disk.
 
 === "Inference"
@@ -147,8 +147,8 @@ object resulting from the inference to it. Its fields are parsed and saved on di
 ## Custom Fields
 
 Besides regular fields in
-[`sv.Detections`](/latest/detection/core/#supervision.detection.core.Detections),
-[`sv.CSVSink`](/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink)
+[`sv.Detections`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections),
+[`sv.CSVSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink)
 also allows you to add custom information to each row, which can be passed via the
 `custom_data` dictionary. Let's utilize this feature to save information about the
 frame index from which the detections originate.
@@ -222,9 +222,9 @@ frame index from which the detections originate.
 
 If you prefer to save the result in a `.JSON` file instead of a `.CSV` file, all you
 need to do is replace
-[`sv.CSVSink`](/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink)
+[`sv.CSVSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink)
 with
-[`sv.JSONSink`](/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.JSONSink).
+[`sv.JSONSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.JSONSink).
 
 === "Inference"
     ```{ .py hl_lines="7" }

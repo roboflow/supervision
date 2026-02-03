@@ -11,7 +11,7 @@ class Metric(ABC):
     """
 
     @abstractmethod
-    def update(self, *args, **kwargs) -> Metric:
+    def update(self, *args: Any, **kwargs: Any) -> Metric:
         """
         Add data to the metric, without computing the result.
         Return the metric itself to allow method chaining.
@@ -26,7 +26,7 @@ class Metric(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def compute(self, *args, **kwargs) -> Any:
+    def compute(self, *args: Any, **kwargs: Any) -> Any:
         """
         Compute the metric from the internal state and return the result.
         """
