@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://supervision.roboflow.com/develop/detection/core/">
       
       
-        <link rel="prev" href="../../how_to/benchmark_a_model/">
+        <link rel="prev" href="../../how_to/count_in_zone/">
       
       
         <link rel="next" href="../annotators/">
@@ -736,6 +736,34 @@
     
   
     Benchmark a Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how_to/count_in_zone/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Count in Zone
   
 
     
@@ -4219,7 +4247,7 @@ method, which accepts model results from both detection and segmentation models.
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">inference</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_model</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">model</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span><span class="n">model_id</span><span class="o">=</span><span class="s2">&quot;yolov8n-640&quot;</span><span class="p">)</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s2">&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;</span><span class="p">)</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">results</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">infer</span><span class="p">(</span><span class="n">image</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_inference</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 </span></code></pre></div>
@@ -4232,7 +4260,7 @@ method, which accepts model results from both detection and segmentation models.
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="s2">&quot;yolov8n.pt&quot;</span><span class="p">)</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s2">&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;</span><span class="p">)</span>
 </span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">results</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">image</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 </span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 </span></code></pre></div>
@@ -4248,7 +4276,7 @@ method, which accepts model results from both detection and segmentation models.
 </span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">processor</span> <span class="o">=</span> <span class="n">DetrImageProcessor</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s2">&quot;facebook/detr-resnet-50&quot;</span><span class="p">)</span>
 </span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="n">model</span> <span class="o">=</span> <span class="n">DetrForObjectDetection</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s2">&quot;facebook/detr-resnet-50&quot;</span><span class="p">)</span>
 </span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;</span><span class="p">)</span>
 </span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="n">inputs</span> <span class="o">=</span> <span class="n">processor</span><span class="p">(</span><span class="n">images</span><span class="o">=</span><span class="n">image</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&quot;pt&quot;</span><span class="p">)</span>
 </span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>
 </span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
@@ -6601,7 +6629,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-74"><a id="__codelineno-0-74" name="__codelineno-0-74"></a><span class="sd">        from inference import get_model</span>
 </span><span id="__span-0-75"><a id="__codelineno-0-75" name="__codelineno-0-75"></a>
 </span><span id="__span-0-76"><a id="__codelineno-0-76" name="__codelineno-0-76"></a><span class="sd">        model = get_model(model_id=&quot;yolov8n-640&quot;)</span>
-</span><span id="__span-0-77"><a id="__codelineno-0-77" name="__codelineno-0-77"></a><span class="sd">        image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+</span><span id="__span-0-77"><a id="__codelineno-0-77" name="__codelineno-0-77"></a><span class="sd">        image = cv2.imread(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-78"><a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="sd">        results = model.infer(image)[0]</span>
 </span><span id="__span-0-79"><a id="__codelineno-0-79" name="__codelineno-0-79"></a><span class="sd">        detections = sv.Detections.from_inference(results)</span>
 </span><span id="__span-0-80"><a id="__codelineno-0-80" name="__codelineno-0-80"></a><span class="sd">        ```</span>
@@ -6617,7 +6645,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-90"><a id="__codelineno-0-90" name="__codelineno-0-90"></a><span class="sd">        from ultralytics import YOLO</span>
 </span><span id="__span-0-91"><a id="__codelineno-0-91" name="__codelineno-0-91"></a>
 </span><span id="__span-0-92"><a id="__codelineno-0-92" name="__codelineno-0-92"></a><span class="sd">        model = YOLO(&quot;yolov8n.pt&quot;)</span>
-</span><span id="__span-0-93"><a id="__codelineno-0-93" name="__codelineno-0-93"></a><span class="sd">        image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+</span><span id="__span-0-93"><a id="__codelineno-0-93" name="__codelineno-0-93"></a><span class="sd">        image = cv2.imread(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-94"><a id="__codelineno-0-94" name="__codelineno-0-94"></a><span class="sd">        results = model(image)[0]</span>
 </span><span id="__span-0-95"><a id="__codelineno-0-95" name="__codelineno-0-95"></a><span class="sd">        detections = sv.Detections.from_ultralytics(results)</span>
 </span><span id="__span-0-96"><a id="__codelineno-0-96" name="__codelineno-0-96"></a><span class="sd">        ```</span>
@@ -6636,7 +6664,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-109"><a id="__codelineno-0-109" name="__codelineno-0-109"></a><span class="sd">        processor = DetrImageProcessor.from_pretrained(&quot;facebook/detr-resnet-50&quot;)</span>
 </span><span id="__span-0-110"><a id="__codelineno-0-110" name="__codelineno-0-110"></a><span class="sd">        model = DetrForObjectDetection.from_pretrained(&quot;facebook/detr-resnet-50&quot;)</span>
 </span><span id="__span-0-111"><a id="__codelineno-0-111" name="__codelineno-0-111"></a>
-</span><span id="__span-0-112"><a id="__codelineno-0-112" name="__codelineno-0-112"></a><span class="sd">        image = Image.open(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+</span><span id="__span-0-112"><a id="__codelineno-0-112" name="__codelineno-0-112"></a><span class="sd">        image = Image.open(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-113"><a id="__codelineno-0-113" name="__codelineno-0-113"></a><span class="sd">        inputs = processor(images=image, return_tensors=&quot;pt&quot;)</span>
 </span><span id="__span-0-114"><a id="__codelineno-0-114" name="__codelineno-0-114"></a>
 </span><span id="__span-0-115"><a id="__codelineno-0-115" name="__codelineno-0-115"></a><span class="sd">        with torch.no_grad():</span>
@@ -6752,7 +6780,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-225"><a id="__codelineno-0-225" name="__codelineno-0-225"></a><span class="sd">            import torch</span>
 </span><span id="__span-0-226"><a id="__codelineno-0-226" name="__codelineno-0-226"></a><span class="sd">            import supervision as sv</span>
 </span><span id="__span-0-227"><a id="__codelineno-0-227" name="__codelineno-0-227"></a>
-</span><span id="__span-0-228"><a id="__codelineno-0-228" name="__codelineno-0-228"></a><span class="sd">            image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+</span><span id="__span-0-228"><a id="__codelineno-0-228" name="__codelineno-0-228"></a><span class="sd">            image = cv2.imread(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-229"><a id="__codelineno-0-229" name="__codelineno-0-229"></a><span class="sd">            model = torch.hub.load(&#39;ultralytics/yolov5&#39;, &#39;yolov5s&#39;)</span>
 </span><span id="__span-0-230"><a id="__codelineno-0-230" name="__codelineno-0-230"></a><span class="sd">            result = model(image)</span>
 </span><span id="__span-0-231"><a id="__codelineno-0-231" name="__codelineno-0-231"></a><span class="sd">            detections = sv.Detections.from_yolov5(result)</span>
@@ -6792,7 +6820,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-265"><a id="__codelineno-0-265" name="__codelineno-0-265"></a><span class="sd">            import supervision as sv</span>
 </span><span id="__span-0-266"><a id="__codelineno-0-266" name="__codelineno-0-266"></a><span class="sd">            from ultralytics import YOLO</span>
 </span><span id="__span-0-267"><a id="__codelineno-0-267" name="__codelineno-0-267"></a>
-</span><span id="__span-0-268"><a id="__codelineno-0-268" name="__codelineno-0-268"></a><span class="sd">            image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+</span><span id="__span-0-268"><a id="__codelineno-0-268" name="__codelineno-0-268"></a><span class="sd">            image = cv2.imread(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-269"><a id="__codelineno-0-269" name="__codelineno-0-269"></a><span class="sd">            model = YOLO(&#39;yolov8s.pt&#39;)</span>
 </span><span id="__span-0-270"><a id="__codelineno-0-270" name="__codelineno-0-270"></a><span class="sd">            results = model(image)[0]</span>
 </span><span id="__span-0-271"><a id="__codelineno-0-271" name="__codelineno-0-271"></a><span class="sd">            detections = sv.Detections.from_ultralytics(results)</span>
@@ -6865,7 +6893,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-338"><a id="__codelineno-0-338" name="__codelineno-0-338"></a><span class="sd">            from super_gradients.training import models</span>
 </span><span id="__span-0-339"><a id="__codelineno-0-339" name="__codelineno-0-339"></a><span class="sd">            import supervision as sv</span>
 </span><span id="__span-0-340"><a id="__codelineno-0-340" name="__codelineno-0-340"></a>
-</span><span id="__span-0-341"><a id="__codelineno-0-341" name="__codelineno-0-341"></a><span class="sd">            image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+</span><span id="__span-0-341"><a id="__codelineno-0-341" name="__codelineno-0-341"></a><span class="sd">            image = cv2.imread(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-342"><a id="__codelineno-0-342" name="__codelineno-0-342"></a><span class="sd">            model = models.get(&#39;yolo_nas_l&#39;, pretrained_weights=&quot;coco&quot;)</span>
 </span><span id="__span-0-343"><a id="__codelineno-0-343" name="__codelineno-0-343"></a>
 </span><span id="__span-0-344"><a id="__codelineno-0-344" name="__codelineno-0-344"></a><span class="sd">            result = list(model.predict(image, conf=0.35))[0]</span>
@@ -6979,8 +7007,8 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-452"><a id="__codelineno-0-452" name="__codelineno-0-452"></a><span class="sd">            import supervision as sv</span>
 </span><span id="__span-0-453"><a id="__codelineno-0-453" name="__codelineno-0-453"></a><span class="sd">            from mmdet.apis import init_detector, inference_detector</span>
 </span><span id="__span-0-454"><a id="__codelineno-0-454" name="__codelineno-0-454"></a>
-</span><span id="__span-0-455"><a id="__codelineno-0-455" name="__codelineno-0-455"></a><span class="sd">            image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
-</span><span id="__span-0-456"><a id="__codelineno-0-456" name="__codelineno-0-456"></a><span class="sd">            model = init_detector(&lt;CONFIG_PATH&gt;, &lt;WEIGHTS_PATH&gt;, device=&lt;DEVICE&gt;)</span>
+</span><span id="__span-0-455"><a id="__codelineno-0-455" name="__codelineno-0-455"></a><span class="sd">            image = cv2.imread(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
+</span><span id="__span-0-456"><a id="__codelineno-0-456" name="__codelineno-0-456"></a><span class="sd">            model = init_detector(&quot;&lt;CONFIG_PATH&gt;&quot;, &quot;&lt;WEIGHTS_PATH&gt;&quot;, device=&quot;&lt;DEVICE&gt;&quot;)</span>
 </span><span id="__span-0-457"><a id="__codelineno-0-457" name="__codelineno-0-457"></a>
 </span><span id="__span-0-458"><a id="__codelineno-0-458" name="__codelineno-0-458"></a><span class="sd">            result = inference_detector(model, image)</span>
 </span><span id="__span-0-459"><a id="__codelineno-0-459" name="__codelineno-0-459"></a><span class="sd">            detections = sv.Detections.from_mmdetection(result)</span>
@@ -7028,7 +7056,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-501"><a id="__codelineno-0-501" name="__codelineno-0-501"></a><span class="sd">            processor = DetrImageProcessor.from_pretrained(&quot;facebook/detr-resnet-50&quot;)</span>
 </span><span id="__span-0-502"><a id="__codelineno-0-502" name="__codelineno-0-502"></a><span class="sd">            model = DetrForObjectDetection.from_pretrained(&quot;facebook/detr-resnet-50&quot;)</span>
 </span><span id="__span-0-503"><a id="__codelineno-0-503" name="__codelineno-0-503"></a>
-</span><span id="__span-0-504"><a id="__codelineno-0-504" name="__codelineno-0-504"></a><span class="sd">            image = Image.open(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+</span><span id="__span-0-504"><a id="__codelineno-0-504" name="__codelineno-0-504"></a><span class="sd">            image = Image.open(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-505"><a id="__codelineno-0-505" name="__codelineno-0-505"></a><span class="sd">            inputs = processor(images=image, return_tensors=&quot;pt&quot;)</span>
 </span><span id="__span-0-506"><a id="__codelineno-0-506" name="__codelineno-0-506"></a>
 </span><span id="__span-0-507"><a id="__codelineno-0-507" name="__codelineno-0-507"></a><span class="sd">            with torch.no_grad():</span>
@@ -7097,10 +7125,10 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-570"><a id="__codelineno-0-570" name="__codelineno-0-570"></a><span class="sd">            from detectron2.config import get_cfg</span>
 </span><span id="__span-0-571"><a id="__codelineno-0-571" name="__codelineno-0-571"></a>
 </span><span id="__span-0-572"><a id="__codelineno-0-572" name="__codelineno-0-572"></a>
-</span><span id="__span-0-573"><a id="__codelineno-0-573" name="__codelineno-0-573"></a><span class="sd">            image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+</span><span id="__span-0-573"><a id="__codelineno-0-573" name="__codelineno-0-573"></a><span class="sd">            image = cv2.imread(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-574"><a id="__codelineno-0-574" name="__codelineno-0-574"></a><span class="sd">            cfg = get_cfg()</span>
-</span><span id="__span-0-575"><a id="__codelineno-0-575" name="__codelineno-0-575"></a><span class="sd">            cfg.merge_from_file(&lt;CONFIG_PATH&gt;)</span>
-</span><span id="__span-0-576"><a id="__codelineno-0-576" name="__codelineno-0-576"></a><span class="sd">            cfg.MODEL.WEIGHTS = &lt;WEIGHTS_PATH&gt;</span>
+</span><span id="__span-0-575"><a id="__codelineno-0-575" name="__codelineno-0-575"></a><span class="sd">            cfg.merge_from_file(&quot;&lt;CONFIG_PATH&gt;&quot;)</span>
+</span><span id="__span-0-576"><a id="__codelineno-0-576" name="__codelineno-0-576"></a><span class="sd">            cfg.MODEL.WEIGHTS = &quot;&lt;WEIGHTS_PATH&gt;&quot;</span>
 </span><span id="__span-0-577"><a id="__codelineno-0-577" name="__codelineno-0-577"></a><span class="sd">            predictor = DefaultPredictor(cfg)</span>
 </span><span id="__span-0-578"><a id="__codelineno-0-578" name="__codelineno-0-578"></a>
 </span><span id="__span-0-579"><a id="__codelineno-0-579" name="__codelineno-0-579"></a><span class="sd">            result = predictor(image)</span>
@@ -7143,7 +7171,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-616"><a id="__codelineno-0-616" name="__codelineno-0-616"></a><span class="sd">            import supervision as sv</span>
 </span><span id="__span-0-617"><a id="__codelineno-0-617" name="__codelineno-0-617"></a><span class="sd">            from inference import get_model</span>
 </span><span id="__span-0-618"><a id="__codelineno-0-618" name="__codelineno-0-618"></a>
-</span><span id="__span-0-619"><a id="__codelineno-0-619" name="__codelineno-0-619"></a><span class="sd">            image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+</span><span id="__span-0-619"><a id="__codelineno-0-619" name="__codelineno-0-619"></a><span class="sd">            image = cv2.imread(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-620"><a id="__codelineno-0-620" name="__codelineno-0-620"></a><span class="sd">            model = get_model(model_id=&quot;yolov8s-640&quot;)</span>
 </span><span id="__span-0-621"><a id="__codelineno-0-621" name="__codelineno-0-621"></a>
 </span><span id="__span-0-622"><a id="__codelineno-0-622" name="__codelineno-0-622"></a><span class="sd">            result = model.infer(image)[0]</span>
@@ -8216,7 +8244,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-1689"><a id="__codelineno-0-1689" name="__codelineno-0-1689"></a><span class="sd">            import easyocr</span>
 </span><span id="__span-0-1690"><a id="__codelineno-0-1690" name="__codelineno-0-1690"></a>
 </span><span id="__span-0-1691"><a id="__codelineno-0-1691" name="__codelineno-0-1691"></a><span class="sd">            reader = easyocr.Reader([&#39;en&#39;])</span>
-</span><span id="__span-0-1692"><a id="__codelineno-0-1692" name="__codelineno-0-1692"></a><span class="sd">            results = reader.readtext(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+</span><span id="__span-0-1692"><a id="__codelineno-0-1692" name="__codelineno-0-1692"></a><span class="sd">            results = reader.readtext(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-1693"><a id="__codelineno-0-1693" name="__codelineno-0-1693"></a><span class="sd">            detections = sv.Detections.from_easyocr(results)</span>
 </span><span id="__span-0-1694"><a id="__codelineno-0-1694" name="__codelineno-0-1694"></a><span class="sd">            detected_text = detections[&quot;class_name&quot;]</span>
 </span><span id="__span-0-1695"><a id="__codelineno-0-1695" name="__codelineno-0-1695"></a><span class="sd">            ```</span>
@@ -8261,7 +8289,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-1734"><a id="__codelineno-0-1734" name="__codelineno-0-1734"></a><span class="sd">            from ncnn.model_zoo import get_model</span>
 </span><span id="__span-0-1735"><a id="__codelineno-0-1735" name="__codelineno-0-1735"></a><span class="sd">            import supervision as sv</span>
 </span><span id="__span-0-1736"><a id="__codelineno-0-1736" name="__codelineno-0-1736"></a>
-</span><span id="__span-0-1737"><a id="__codelineno-0-1737" name="__codelineno-0-1737"></a><span class="sd">            image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+</span><span id="__span-0-1737"><a id="__codelineno-0-1737" name="__codelineno-0-1737"></a><span class="sd">            image = cv2.imread(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-1738"><a id="__codelineno-0-1738" name="__codelineno-0-1738"></a><span class="sd">            model = get_model(</span>
 </span><span id="__span-0-1739"><a id="__codelineno-0-1739" name="__codelineno-0-1739"></a><span class="sd">                &quot;yolov8s&quot;,</span>
 </span><span id="__span-0-1740"><a id="__codelineno-0-1740" name="__codelineno-0-1740"></a><span class="sd">                target_size=640</span>
@@ -8564,7 +8592,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-2037"><a id="__codelineno-0-2037" name="__codelineno-0-2037"></a><span class="sd">            import supervision as sv</span>
 </span><span id="__span-0-2038"><a id="__codelineno-0-2038" name="__codelineno-0-2038"></a><span class="sd">            from ultralytics import YOLO</span>
 </span><span id="__span-0-2039"><a id="__codelineno-0-2039" name="__codelineno-0-2039"></a>
-</span><span id="__span-0-2040"><a id="__codelineno-0-2040" name="__codelineno-0-2040"></a><span class="sd">            image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+</span><span id="__span-0-2040"><a id="__codelineno-0-2040" name="__codelineno-0-2040"></a><span class="sd">            image = cv2.imread(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-2041"><a id="__codelineno-0-2041" name="__codelineno-0-2041"></a><span class="sd">            model = YOLO(&#39;yolov8s.pt&#39;)</span>
 </span><span id="__span-0-2042"><a id="__codelineno-0-2042" name="__codelineno-0-2042"></a>
 </span><span id="__span-0-2043"><a id="__codelineno-0-2043" name="__codelineno-0-2043"></a><span class="sd">            result = model(image)[0]</span>
@@ -9348,7 +9376,7 @@ the data field.</p>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s2">&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;</span><span class="p">)</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="s1">&#39;yolov8s.pt&#39;</span><span class="p">)</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">image</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
@@ -9411,7 +9439,7 @@ the data field.</p>
 </span><span id="__span-0-2037"><a id="__codelineno-0-2037" name="__codelineno-0-2037"></a><span class="sd">        import supervision as sv</span>
 </span><span id="__span-0-2038"><a id="__codelineno-0-2038" name="__codelineno-0-2038"></a><span class="sd">        from ultralytics import YOLO</span>
 </span><span id="__span-0-2039"><a id="__codelineno-0-2039" name="__codelineno-0-2039"></a>
-</span><span id="__span-0-2040"><a id="__codelineno-0-2040" name="__codelineno-0-2040"></a><span class="sd">        image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+</span><span id="__span-0-2040"><a id="__codelineno-0-2040" name="__codelineno-0-2040"></a><span class="sd">        image = cv2.imread(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-2041"><a id="__codelineno-0-2041" name="__codelineno-0-2041"></a><span class="sd">        model = YOLO(&#39;yolov8s.pt&#39;)</span>
 </span><span id="__span-0-2042"><a id="__codelineno-0-2042" name="__codelineno-0-2042"></a>
 </span><span id="__span-0-2043"><a id="__codelineno-0-2043" name="__codelineno-0-2043"></a><span class="sd">        result = model(image)[0]</span>
@@ -10100,10 +10128,10 @@ class IDs, and confidences of the predictions.</p>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">detectron2.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_cfg</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s2">&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;</span><span class="p">)</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">cfg</span> <span class="o">=</span> <span class="n">get_cfg</span><span class="p">()</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">cfg</span><span class="o">.</span><span class="n">merge_from_file</span><span class="p">(</span><span class="o">&lt;</span><span class="n">CONFIG_PATH</span><span class="o">&gt;</span><span class="p">)</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">cfg</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">WEIGHTS</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">WEIGHTS_PATH</span><span class="o">&gt;</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">cfg</span><span class="o">.</span><span class="n">merge_from_file</span><span class="p">(</span><span class="s2">&quot;&lt;CONFIG_PATH&gt;&quot;</span><span class="p">)</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">cfg</span><span class="o">.</span><span class="n">MODEL</span><span class="o">.</span><span class="n">WEIGHTS</span> <span class="o">=</span> <span class="s2">&quot;&lt;WEIGHTS_PATH&gt;&quot;</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="n">predictor</span> <span class="o">=</span> <span class="n">DefaultPredictor</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">result</span> <span class="o">=</span> <span class="n">predictor</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
@@ -10178,10 +10206,10 @@ class IDs, and confidences of the predictions.</p>
 </span><span id="__span-0-570"><a id="__codelineno-0-570" name="__codelineno-0-570"></a><span class="sd">        from detectron2.config import get_cfg</span>
 </span><span id="__span-0-571"><a id="__codelineno-0-571" name="__codelineno-0-571"></a>
 </span><span id="__span-0-572"><a id="__codelineno-0-572" name="__codelineno-0-572"></a>
-</span><span id="__span-0-573"><a id="__codelineno-0-573" name="__codelineno-0-573"></a><span class="sd">        image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+</span><span id="__span-0-573"><a id="__codelineno-0-573" name="__codelineno-0-573"></a><span class="sd">        image = cv2.imread(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-574"><a id="__codelineno-0-574" name="__codelineno-0-574"></a><span class="sd">        cfg = get_cfg()</span>
-</span><span id="__span-0-575"><a id="__codelineno-0-575" name="__codelineno-0-575"></a><span class="sd">        cfg.merge_from_file(&lt;CONFIG_PATH&gt;)</span>
-</span><span id="__span-0-576"><a id="__codelineno-0-576" name="__codelineno-0-576"></a><span class="sd">        cfg.MODEL.WEIGHTS = &lt;WEIGHTS_PATH&gt;</span>
+</span><span id="__span-0-575"><a id="__codelineno-0-575" name="__codelineno-0-575"></a><span class="sd">        cfg.merge_from_file(&quot;&lt;CONFIG_PATH&gt;&quot;)</span>
+</span><span id="__span-0-576"><a id="__codelineno-0-576" name="__codelineno-0-576"></a><span class="sd">        cfg.MODEL.WEIGHTS = &quot;&lt;WEIGHTS_PATH&gt;&quot;</span>
 </span><span id="__span-0-577"><a id="__codelineno-0-577" name="__codelineno-0-577"></a><span class="sd">        predictor = DefaultPredictor(cfg)</span>
 </span><span id="__span-0-578"><a id="__codelineno-0-578" name="__codelineno-0-578"></a>
 </span><span id="__span-0-579"><a id="__codelineno-0-579" name="__codelineno-0-579"></a><span class="sd">        result = predictor(image)</span>
@@ -10291,7 +10319,7 @@ class IDs, and confidences of the predictions.</p>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">easyocr</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">reader</span> <span class="o">=</span> <span class="n">easyocr</span><span class="o">.</span><span class="n">Reader</span><span class="p">([</span><span class="s1">&#39;en&#39;</span><span class="p">])</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">results</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">readtext</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">results</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">readtext</span><span class="p">(</span><span class="s2">&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;</span><span class="p">)</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_easyocr</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">detected_text</span> <span class="o">=</span> <span class="n">detections</span><span class="p">[</span><span class="s2">&quot;class_name&quot;</span><span class="p">]</span>
 </span></code></pre></div>
@@ -10363,7 +10391,7 @@ class IDs, and confidences of the predictions.</p>
 </span><span id="__span-0-1689"><a id="__codelineno-0-1689" name="__codelineno-0-1689"></a><span class="sd">        import easyocr</span>
 </span><span id="__span-0-1690"><a id="__codelineno-0-1690" name="__codelineno-0-1690"></a>
 </span><span id="__span-0-1691"><a id="__codelineno-0-1691" name="__codelineno-0-1691"></a><span class="sd">        reader = easyocr.Reader([&#39;en&#39;])</span>
-</span><span id="__span-0-1692"><a id="__codelineno-0-1692" name="__codelineno-0-1692"></a><span class="sd">        results = reader.readtext(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+</span><span id="__span-0-1692"><a id="__codelineno-0-1692" name="__codelineno-0-1692"></a><span class="sd">        results = reader.readtext(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-1693"><a id="__codelineno-0-1693" name="__codelineno-0-1693"></a><span class="sd">        detections = sv.Detections.from_easyocr(results)</span>
 </span><span id="__span-0-1694"><a id="__codelineno-0-1694" name="__codelineno-0-1694"></a><span class="sd">        detected_text = detections[&quot;class_name&quot;]</span>
 </span><span id="__span-0-1695"><a id="__codelineno-0-1695" name="__codelineno-0-1695"></a><span class="sd">        ```</span>
@@ -10483,7 +10511,7 @@ and confidences of the predictions.</p>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">inference</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_model</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s2">&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;</span><span class="p">)</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span><span class="n">model_id</span><span class="o">=</span><span class="s2">&quot;yolov8s-640&quot;</span><span class="p">)</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">infer</span><span class="p">(</span><span class="n">image</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
@@ -10566,7 +10594,7 @@ and confidences of the predictions.</p>
 </span><span id="__span-0-616"><a id="__codelineno-0-616" name="__codelineno-0-616"></a><span class="sd">        import supervision as sv</span>
 </span><span id="__span-0-617"><a id="__codelineno-0-617" name="__codelineno-0-617"></a><span class="sd">        from inference import get_model</span>
 </span><span id="__span-0-618"><a id="__codelineno-0-618" name="__codelineno-0-618"></a>
-</span><span id="__span-0-619"><a id="__codelineno-0-619" name="__codelineno-0-619"></a><span class="sd">        image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+</span><span id="__span-0-619"><a id="__codelineno-0-619" name="__codelineno-0-619"></a><span class="sd">        image = cv2.imread(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-620"><a id="__codelineno-0-620" name="__codelineno-0-620"></a><span class="sd">        model = get_model(model_id=&quot;yolov8s-640&quot;)</span>
 </span><span id="__span-0-621"><a id="__codelineno-0-621" name="__codelineno-0-621"></a>
 </span><span id="__span-0-622"><a id="__codelineno-0-622" name="__codelineno-0-622"></a><span class="sd">        result = model.infer(image)[0]</span>
@@ -12029,8 +12057,8 @@ its object detection and visual grounding capabilities effectively.</p>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">mmdet.apis</span><span class="w"> </span><span class="kn">import</span> <span class="n">init_detector</span><span class="p">,</span> <span class="n">inference_detector</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">init_detector</span><span class="p">(</span><span class="o">&lt;</span><span class="n">CONFIG_PATH</span><span class="o">&gt;</span><span class="p">,</span> <span class="o">&lt;</span><span class="n">WEIGHTS_PATH</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">device</span><span class="o">=&lt;</span><span class="n">DEVICE</span><span class="o">&gt;</span><span class="p">)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s2">&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;</span><span class="p">)</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">init_detector</span><span class="p">(</span><span class="s2">&quot;&lt;CONFIG_PATH&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;WEIGHTS_PATH&gt;&quot;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;&lt;DEVICE&gt;&quot;</span><span class="p">)</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">result</span> <span class="o">=</span> <span class="n">inference_detector</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_mmdetection</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
@@ -12094,8 +12122,8 @@ its object detection and visual grounding capabilities effectively.</p>
 </span><span id="__span-0-452"><a id="__codelineno-0-452" name="__codelineno-0-452"></a><span class="sd">        import supervision as sv</span>
 </span><span id="__span-0-453"><a id="__codelineno-0-453" name="__codelineno-0-453"></a><span class="sd">        from mmdet.apis import init_detector, inference_detector</span>
 </span><span id="__span-0-454"><a id="__codelineno-0-454" name="__codelineno-0-454"></a>
-</span><span id="__span-0-455"><a id="__codelineno-0-455" name="__codelineno-0-455"></a><span class="sd">        image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
-</span><span id="__span-0-456"><a id="__codelineno-0-456" name="__codelineno-0-456"></a><span class="sd">        model = init_detector(&lt;CONFIG_PATH&gt;, &lt;WEIGHTS_PATH&gt;, device=&lt;DEVICE&gt;)</span>
+</span><span id="__span-0-455"><a id="__codelineno-0-455" name="__codelineno-0-455"></a><span class="sd">        image = cv2.imread(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
+</span><span id="__span-0-456"><a id="__codelineno-0-456" name="__codelineno-0-456"></a><span class="sd">        model = init_detector(&quot;&lt;CONFIG_PATH&gt;&quot;, &quot;&lt;WEIGHTS_PATH&gt;&quot;, device=&quot;&lt;DEVICE&gt;&quot;)</span>
 </span><span id="__span-0-457"><a id="__codelineno-0-457" name="__codelineno-0-457"></a>
 </span><span id="__span-0-458"><a id="__codelineno-0-458" name="__codelineno-0-458"></a><span class="sd">        result = inference_detector(model, image)</span>
 </span><span id="__span-0-459"><a id="__codelineno-0-459" name="__codelineno-0-459"></a><span class="sd">        detections = sv.Detections.from_mmdetection(result)</span>
@@ -12201,7 +12229,7 @@ Supports object detection models.</p>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ncnn.model_zoo</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_model</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s2">&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;</span><span class="p">)</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">get_model</span><span class="p">(</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="s2">&quot;yolov8s&quot;</span><span class="p">,</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">target_size</span><span class="o">=</span><span class="mi">640</span>
@@ -12292,7 +12320,7 @@ Supports object detection models.</p>
 </span><span id="__span-0-1734"><a id="__codelineno-0-1734" name="__codelineno-0-1734"></a><span class="sd">        from ncnn.model_zoo import get_model</span>
 </span><span id="__span-0-1735"><a id="__codelineno-0-1735" name="__codelineno-0-1735"></a><span class="sd">        import supervision as sv</span>
 </span><span id="__span-0-1736"><a id="__codelineno-0-1736" name="__codelineno-0-1736"></a>
-</span><span id="__span-0-1737"><a id="__codelineno-0-1737" name="__codelineno-0-1737"></a><span class="sd">        image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+</span><span id="__span-0-1737"><a id="__codelineno-0-1737" name="__codelineno-0-1737"></a><span class="sd">        image = cv2.imread(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-1738"><a id="__codelineno-0-1738" name="__codelineno-0-1738"></a><span class="sd">        model = get_model(</span>
 </span><span id="__span-0-1739"><a id="__codelineno-0-1739" name="__codelineno-0-1739"></a><span class="sd">            &quot;yolov8s&quot;,</span>
 </span><span id="__span-0-1740"><a id="__codelineno-0-1740" name="__codelineno-0-1740"></a><span class="sd">            target_size=640</span>
@@ -13000,7 +13028,7 @@ provided, the resulting dictionary will include class names.</p>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">processor</span> <span class="o">=</span> <span class="n">DetrImageProcessor</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s2">&quot;facebook/detr-resnet-50&quot;</span><span class="p">)</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">model</span> <span class="o">=</span> <span class="n">DetrForObjectDetection</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="s2">&quot;facebook/detr-resnet-50&quot;</span><span class="p">)</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">image</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;</span><span class="p">)</span>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">inputs</span> <span class="o">=</span> <span class="n">processor</span><span class="p">(</span><span class="n">images</span><span class="o">=</span><span class="n">image</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&quot;pt&quot;</span><span class="p">)</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
@@ -13129,7 +13157,7 @@ provided, the resulting dictionary will include class names.</p>
 </span><span id="__span-0-501"><a id="__codelineno-0-501" name="__codelineno-0-501"></a><span class="sd">        processor = DetrImageProcessor.from_pretrained(&quot;facebook/detr-resnet-50&quot;)</span>
 </span><span id="__span-0-502"><a id="__codelineno-0-502" name="__codelineno-0-502"></a><span class="sd">        model = DetrForObjectDetection.from_pretrained(&quot;facebook/detr-resnet-50&quot;)</span>
 </span><span id="__span-0-503"><a id="__codelineno-0-503" name="__codelineno-0-503"></a>
-</span><span id="__span-0-504"><a id="__codelineno-0-504" name="__codelineno-0-504"></a><span class="sd">        image = Image.open(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+</span><span id="__span-0-504"><a id="__codelineno-0-504" name="__codelineno-0-504"></a><span class="sd">        image = Image.open(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-505"><a id="__codelineno-0-505" name="__codelineno-0-505"></a><span class="sd">        inputs = processor(images=image, return_tensors=&quot;pt&quot;)</span>
 </span><span id="__span-0-506"><a id="__codelineno-0-506" name="__codelineno-0-506"></a>
 </span><span id="__span-0-507"><a id="__codelineno-0-507" name="__codelineno-0-507"></a><span class="sd">        with torch.no_grad():</span>
@@ -13272,7 +13300,7 @@ provided, the resulting dictionary will include class names.</p>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ultralytics</span><span class="w"> </span><span class="kn">import</span> <span class="n">YOLO</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s2">&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;</span><span class="p">)</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">YOLO</span><span class="p">(</span><span class="s1">&#39;yolov8s.pt&#39;</span><span class="p">)</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">results</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">image</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_ultralytics</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
@@ -13382,7 +13410,7 @@ provided, the resulting dictionary will include class names.</p>
 </span><span id="__span-0-265"><a id="__codelineno-0-265" name="__codelineno-0-265"></a><span class="sd">        import supervision as sv</span>
 </span><span id="__span-0-266"><a id="__codelineno-0-266" name="__codelineno-0-266"></a><span class="sd">        from ultralytics import YOLO</span>
 </span><span id="__span-0-267"><a id="__codelineno-0-267" name="__codelineno-0-267"></a>
-</span><span id="__span-0-268"><a id="__codelineno-0-268" name="__codelineno-0-268"></a><span class="sd">        image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+</span><span id="__span-0-268"><a id="__codelineno-0-268" name="__codelineno-0-268"></a><span class="sd">        image = cv2.imread(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-269"><a id="__codelineno-0-269" name="__codelineno-0-269"></a><span class="sd">        model = YOLO(&#39;yolov8s.pt&#39;)</span>
 </span><span id="__span-0-270"><a id="__codelineno-0-270" name="__codelineno-0-270"></a><span class="sd">        results = model(image)[0]</span>
 </span><span id="__span-0-271"><a id="__codelineno-0-271" name="__codelineno-0-271"></a><span class="sd">        detections = sv.Detections.from_ultralytics(results)</span>
@@ -14921,7 +14949,7 @@ ImageDetectionPrediction is coming from
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">super_gradients.training</span><span class="w"> </span><span class="kn">import</span> <span class="n">models</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s2">&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;</span><span class="p">)</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;yolo_nas_l&#39;</span><span class="p">,</span> <span class="n">pretrained_weights</span><span class="o">=</span><span class="s2">&quot;coco&quot;</span><span class="p">)</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">result</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">conf</span><span class="o">=</span><span class="mf">0.35</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
@@ -14989,7 +15017,7 @@ ImageDetectionPrediction is coming from
 </span><span id="__span-0-338"><a id="__codelineno-0-338" name="__codelineno-0-338"></a><span class="sd">        from super_gradients.training import models</span>
 </span><span id="__span-0-339"><a id="__codelineno-0-339" name="__codelineno-0-339"></a><span class="sd">        import supervision as sv</span>
 </span><span id="__span-0-340"><a id="__codelineno-0-340" name="__codelineno-0-340"></a>
-</span><span id="__span-0-341"><a id="__codelineno-0-341" name="__codelineno-0-341"></a><span class="sd">        image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+</span><span id="__span-0-341"><a id="__codelineno-0-341" name="__codelineno-0-341"></a><span class="sd">        image = cv2.imread(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-342"><a id="__codelineno-0-342" name="__codelineno-0-342"></a><span class="sd">        model = models.get(&#39;yolo_nas_l&#39;, pretrained_weights=&quot;coco&quot;)</span>
 </span><span id="__span-0-343"><a id="__codelineno-0-343" name="__codelineno-0-343"></a>
 </span><span id="__span-0-344"><a id="__codelineno-0-344" name="__codelineno-0-344"></a><span class="sd">        result = list(model.predict(image, conf=0.35))[0]</span>
@@ -15094,7 +15122,7 @@ ImageDetectionPrediction is coming from
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="o">&lt;</span><span class="n">SOURCE_IMAGE_PATH</span><span class="o">&gt;</span><span class="p">)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">image</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">imread</span><span class="p">(</span><span class="s2">&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;</span><span class="p">)</span>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">model</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">hub</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;ultralytics/yolov5&#39;</span><span class="p">,</span> <span class="s1">&#39;yolov5s&#39;</span><span class="p">)</span>
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">result</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">detections</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="o">.</span><span class="n">from_yolov5</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
@@ -15153,7 +15181,7 @@ ImageDetectionPrediction is coming from
 </span><span id="__span-0-225"><a id="__codelineno-0-225" name="__codelineno-0-225"></a><span class="sd">        import torch</span>
 </span><span id="__span-0-226"><a id="__codelineno-0-226" name="__codelineno-0-226"></a><span class="sd">        import supervision as sv</span>
 </span><span id="__span-0-227"><a id="__codelineno-0-227" name="__codelineno-0-227"></a>
-</span><span id="__span-0-228"><a id="__codelineno-0-228" name="__codelineno-0-228"></a><span class="sd">        image = cv2.imread(&lt;SOURCE_IMAGE_PATH&gt;)</span>
+</span><span id="__span-0-228"><a id="__codelineno-0-228" name="__codelineno-0-228"></a><span class="sd">        image = cv2.imread(&quot;&lt;SOURCE_IMAGE_PATH&gt;&quot;)</span>
 </span><span id="__span-0-229"><a id="__codelineno-0-229" name="__codelineno-0-229"></a><span class="sd">        model = torch.hub.load(&#39;ultralytics/yolov5&#39;, &#39;yolov5s&#39;)</span>
 </span><span id="__span-0-230"><a id="__codelineno-0-230" name="__codelineno-0-230"></a><span class="sd">        result = model(image)</span>
 </span><span id="__span-0-231"><a id="__codelineno-0-231" name="__codelineno-0-231"></a><span class="sd">        detections = sv.Detections.from_yolov5(result)</span>
