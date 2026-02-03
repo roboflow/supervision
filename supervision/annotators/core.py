@@ -291,7 +291,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
             import supervision as sv
             from ultralytics import YOLO
 
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
             model = YOLO("yolov8n-obb.pt")
 
             result = model(image)[0]

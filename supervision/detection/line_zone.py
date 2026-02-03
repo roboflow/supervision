@@ -55,9 +55,9 @@ class LineZone:
         import supervision as sv
         from ultralytics import YOLO
 
-        model = YOLO(<SOURCE_MODEL_PATH>)
+        model = YOLO("<SOURCE_MODEL_PATH>")
         tracker = sv.ByteTrack()
-        frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
+        frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
         start, end = sv.Point(x=0, y=1080), sv.Point(x=3840, y=1080)
         line_zone = sv.LineZone(start=start, end=end)
 

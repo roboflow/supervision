@@ -19,34 +19,35 @@ model. You can learn more on this topic in our
 [How to Detect and Annotate](https://supervision.roboflow.com/latest/how_to/detect_and_annotate/) guide.
 
 === "Inference"
+
     ```python
     import supervision as sv
     from inference import get_model
 
     model = get_model(model_id="yolov8n-640")
-    frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
+    frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
 
     for frame in frames_generator:
-
         results = model.infer(image)[0]
         detections = sv.Detections.from_inference(results)
     ```
 
 === "Ultralytics"
+
     ```python
     import supervision as sv
     from ultralytics import YOLO
 
     model = YOLO("yolov8n.pt")
-    frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
+    frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
 
     for frame in frames_generator:
-
         results = model(frame)[0]
         detections = sv.Detections.from_ultralytics(results)
     ```
 
 === "Transformers"
+
     ```python
     import torch
     import supervision as sv
@@ -54,10 +55,9 @@ model. You can learn more on this topic in our
 
     processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
     model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
-    frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
+    frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
 
     for frame in frames_generator:
-
         frame = sv.cv2_to_pillow(frame)
         inputs = processor(images=frame, return_tensors="pt")
 
@@ -67,7 +67,8 @@ model. You can learn more on this topic in our
         width, height = frame.size
         target_size = torch.tensor([[height, width]])
         results = processor.post_process_object_detection(
-            outputs=outputs, target_sizes=target_size)[0]
+            outputs=outputs, target_sizes=target_size
+        )[0]
         detections = sv.Detections.from_transformers(results)
     ```
 
@@ -80,14 +81,15 @@ and then pass the
 object resulting from the inference to it. Its fields are parsed and saved on disk.
 
 === "Inference"
+
     ```{ .py hl_lines="7 12" }
     import supervision as sv
     from inference import get_model
 
     model = get_model(model_id="yolov8n-640")
-    frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
+    frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
 
-    with sv.CSVSink(<TARGET_CSV_PATH>) as sink:
+    with sv.CSVSink("<TARGET_CSV_PATH>") as sink:
         for frame in frames_generator:
 
             results = model.infer(image)[0]
@@ -96,14 +98,15 @@ object resulting from the inference to it. Its fields are parsed and saved on di
     ```
 
 === "Ultralytics"
+
     ```{ .py hl_lines="7 12" }
     import supervision as sv
     from ultralytics import YOLO
 
     model = YOLO("yolov8n.pt")
-    frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
+    frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
 
-    with sv.CSVSink(<TARGET_CSV_PATH>) as sink:
+    with sv.CSVSink("<TARGET_CSV_PATH>") as sink:
         for frame in frames_generator:
 
             results = model(frame)[0]
@@ -112,6 +115,7 @@ object resulting from the inference to it. Its fields are parsed and saved on di
     ```
 
 === "Transformers"
+
     ```{ .py hl_lines="9 23" }
     import torch
     import supervision as sv
@@ -119,9 +123,9 @@ object resulting from the inference to it. Its fields are parsed and saved on di
 
     processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
     model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
-    frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
+    frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
 
-    with sv.CSVSink(<TARGET_CSV_PATH>) as sink:
+    with sv.CSVSink("<TARGET_CSV_PATH>") as sink:
         for frame in frames_generator:
 
             frame = sv.cv2_to_pillow(frame)
@@ -154,14 +158,15 @@ also allows you to add custom information to each row, which can be passed via t
 frame index from which the detections originate.
 
 === "Inference"
+
     ```{ .py hl_lines="8 12" }
     import supervision as sv
     from inference import get_model
 
     model = get_model(model_id="yolov8n-640")
-    frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
+    frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
 
-    with sv.CSVSink(<TARGET_CSV_PATH>) as sink:
+    with sv.CSVSink("<TARGET_CSV_PATH>") as sink:
         for frame_index, frame in enumerate(frames_generator):
 
             results = model.infer(image)[0]
@@ -170,14 +175,15 @@ frame index from which the detections originate.
     ```
 
 === "Ultralytics"
+
     ```{ .py hl_lines="8 12" }
     import supervision as sv
     from ultralytics import YOLO
 
     model = YOLO("yolov8n.pt")
-    frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
+    frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
 
-    with sv.CSVSink(<TARGET_CSV_PATH>) as sink:
+    with sv.CSVSink("<TARGET_CSV_PATH>") as sink:
         for frame_index, frame in enumerate(frames_generator):
 
             results = model(frame)[0]
@@ -186,6 +192,7 @@ frame index from which the detections originate.
     ```
 
 === "Transformers"
+
     ```{ .py hl_lines="10 23" }
     import torch
     import supervision as sv
@@ -193,9 +200,9 @@ frame index from which the detections originate.
 
     processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
     model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
-    frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
+    frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
 
-    with sv.CSVSink(<TARGET_CSV_PATH>) as sink:
+    with sv.CSVSink("<TARGET_CSV_PATH>") as sink:
         for frame_index, frame in enumerate(frames_generator):
 
             frame = sv.cv2_to_pillow(frame)
@@ -227,14 +234,15 @@ with
 [`sv.JSONSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.JSONSink).
 
 === "Inference"
+
     ```{ .py hl_lines="7" }
     import supervision as sv
     from inference import get_model
 
     model = get_model(model_id="yolov8n-640")
-    frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
+    frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
 
-    with sv.JSONSink(<TARGET_JSON_PATH>) as sink:
+    with sv.JSONSink("<TARGET_JSON_PATH>") as sink:
         for frame_index, frame in enumerate(frames_generator):
 
             results = model.infer(image)[0]
@@ -243,14 +251,15 @@ with
     ```
 
 === "Ultralytics"
+
     ```{ .py hl_lines="7" }
     import supervision as sv
     from ultralytics import YOLO
 
     model = YOLO("yolov8n.pt")
-    frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
+    frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
 
-    with sv.JSONSink(<TARGET_JSON_PATH>) as sink:
+    with sv.JSONSink("<TARGET_JSON_PATH>") as sink:
         for frame_index, frame in enumerate(frames_generator):
 
             results = model(frame)[0]
@@ -259,6 +268,7 @@ with
     ```
 
 === "Transformers"
+
     ```{ .py hl_lines="9" }
     import torch
     import supervision as sv
@@ -266,9 +276,9 @@ with
 
     processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
     model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
-    frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
+    frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
 
-    with sv.JSONSink(<TARGET_JSON_PATH>) as sink:
+    with sv.JSONSink("<TARGET_JSON_PATH>") as sink:
         for frame_index, frame in enumerate(frames_generator):
 
             frame = sv.cv2_to_pillow(frame)

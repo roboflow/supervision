@@ -75,7 +75,7 @@ it will be modified to include tracking, labeling, and trace annotations.
     import supervision as sv
     from inference.models.utils import get_roboflow_model
 
-    model = get_roboflow_model(model_id="yolov8n-640", api_key=<ROBOFLOW API KEY>)
+    model = get_roboflow_model(model_id="yolov8n-640", api_key="<ROBOFLOW_API_KEY>")
     box_annotator = sv.BoxAnnotator()
 
     def callback(frame: np.ndarray, _: int) -> np.ndarray:
@@ -133,7 +133,7 @@ enabling the continuous following of the object's motion path across different f
     import supervision as sv
     from inference.models.utils import get_roboflow_model
 
-    model = get_roboflow_model(model_id="yolov8n-640", api_key=<ROBOFLOW API KEY>)
+    model = get_roboflow_model(model_id="yolov8n-640", api_key="<ROBOFLOW_API_KEY>")
     tracker = sv.ByteTrack()
     box_annotator = sv.BoxAnnotator()
 
@@ -200,7 +200,7 @@ offering a clear visual representation of each object's class and unique identif
     import supervision as sv
     from inference.models.utils import get_roboflow_model
 
-    model = get_roboflow_model(model_id="yolov8n-640", api_key=<ROBOFLOW API KEY>)
+    model = get_roboflow_model(model_id="yolov8n-640", api_key="<ROBOFLOW_API_KEY>")
     tracker = sv.ByteTrack()
     box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
@@ -285,7 +285,7 @@ movement patterns and interactions between objects in the video.
     import supervision as sv
     from inference.models.utils import get_roboflow_model
 
-    model = get_roboflow_model(model_id="yolov8n-640", api_key=<ROBOFLOW API KEY>)
+    model = get_roboflow_model(model_id="yolov8n-640", api_key="<ROBOFLOW_API_KEY>")
     tracker = sv.ByteTrack()
     box_annotator = sv.BoxAnnotator()
     label_annotator = sv.LabelAnnotator()
@@ -381,7 +381,7 @@ Let's immediately visualize the results with our [`EdgeAnnotator`](https://super
     from inference.models.utils import get_roboflow_model
 
     model = get_roboflow_model(
-        model_id="yolov8m-pose-640", api_key=<ROBOFLOW API KEY>)
+        model_id="yolov8m-pose-640", api_key="<ROBOFLOW_API_KEY>")
     edge_annotator = sv.EdgeAnnotator()
     vertex_annotator = sv.VertexAnnotator()
 
@@ -454,7 +454,7 @@ Let's convert to detections and visualize the results with our [`BoxAnnotator`](
     from inference.models.utils import get_roboflow_model
 
     model = get_roboflow_model(
-        model_id="yolov8m-pose-640", api_key=<ROBOFLOW API KEY>)
+        model_id="yolov8m-pose-640", api_key="<ROBOFLOW_API_KEY>")
     edge_annotator = sv.EdgeAnnotator()
     vertex_annotator = sv.VertexAnnotator()
     box_annotator = sv.BoxAnnotator()
@@ -531,7 +531,7 @@ Now that we have a `Detections` object, we can track it throughout the video. Ut
     from inference.models.utils import get_roboflow_model
 
     model = get_roboflow_model(
-        model_id="yolov8m-pose-640", api_key=<ROBOFLOW API KEY>)
+        model_id="yolov8m-pose-640", api_key="<ROBOFLOW_API_KEY>")
     edge_annotator = sv.EdgeAnnotator()
     vertex_annotator = sv.VertexAnnotator()
     box_annotator = sv.BoxAnnotator()
@@ -616,7 +616,7 @@ We could stop here as we have successfully tracked the object detected by the ke
     from inference.models.utils import get_roboflow_model
 
     model = get_roboflow_model(
-        model_id="yolov8m-pose-640", api_key=<ROBOFLOW API KEY>)
+        model_id="yolov8m-pose-640", api_key="<ROBOFLOW_API_KEY>")
     edge_annotator = sv.EdgeAnnotator()
     vertex_annotator = sv.VertexAnnotator()
     box_annotator = sv.BoxAnnotator()

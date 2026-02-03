@@ -31,7 +31,7 @@ class VideoInfo:
         ```python
         import supervision as sv
 
-        video_info = sv.VideoInfo.from_video_path(video_path=<SOURCE_VIDEO_FILE>)
+        video_info = sv.VideoInfo.from_video_path(video_path="<SOURCE_VIDEO_FILE>")
 
         video_info
         # VideoInfo(width=3840, height=2160, fps=25, total_frames=538)
@@ -78,10 +78,10 @@ class VideoSink:
         ```python
         import supervision as sv
 
-        video_info = sv.VideoInfo.from_video_path(<SOURCE_VIDEO_PATH>)
-        frames_generator = sv.get_video_frames_generator(<SOURCE_VIDEO_PATH>)
+        video_info = sv.VideoInfo.from_video_path("<SOURCE_VIDEO_PATH>")
+        frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
 
-        with sv.VideoSink(target_path=<TARGET_VIDEO_PATH>, video_info=video_info) as sink:
+        with sv.VideoSink(target_path="<TARGET_VIDEO_PATH>", video_info=video_info) as sink:
             for frame in frames_generator:
                 sink.write_frame(frame=frame)
         ```
@@ -182,7 +182,7 @@ def get_video_frames_generator(
         ```python
         import supervision as sv
 
-        for frame in sv.get_video_frames_generator(source_path=<SOURCE_VIDEO_PATH>):
+        for frame in sv.get_video_frames_generator(source_path="<SOURCE_VIDEO_PATH>"):
             ...
         ```
     """
@@ -379,7 +379,8 @@ class FPSMonitor:
             ```python
             import supervision as sv
 
-            frames_generator = sv.get_video_frames_generator(source_path=<SOURCE_FILE_PATH>)
+            frames_generator = sv.get_video_frames_generator(
+                source_path="<SOURCE_FILE_PATH>")
             fps_monitor = sv.FPSMonitor()
 
             for frame in frames_generator:
@@ -387,7 +388,7 @@ class FPSMonitor:
                 fps_monitor.tick()
                 fps = fps_monitor.fps
             ```
-        """  # noqa: E501 // docs
+        """
         self.all_timestamps: deque[float] = deque(maxlen=sample_size)
 
     @property

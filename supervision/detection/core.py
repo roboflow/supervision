@@ -74,7 +74,7 @@ class Detections:
         from inference import get_model
 
         model = get_model(model_id="yolov8n-640")
-        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        image = cv2.imread("<SOURCE_IMAGE_PATH>")
         results = model.infer(image)[0]
         detections = sv.Detections.from_inference(results)
         ```
@@ -90,7 +90,7 @@ class Detections:
         from ultralytics import YOLO
 
         model = YOLO("yolov8n.pt")
-        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        image = cv2.imread("<SOURCE_IMAGE_PATH>")
         results = model(image)[0]
         detections = sv.Detections.from_ultralytics(results)
         ```
@@ -109,7 +109,7 @@ class Detections:
         processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
         model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
 
-        image = Image.open(<SOURCE_IMAGE_PATH>)
+        image = Image.open("<SOURCE_IMAGE_PATH>")
         inputs = processor(images=image, return_tensors="pt")
 
         with torch.no_grad():
@@ -225,7 +225,7 @@ class Detections:
             import torch
             import supervision as sv
 
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
             model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
             result = model(image)
             detections = sv.Detections.from_yolov5(result)
@@ -265,7 +265,7 @@ class Detections:
             import supervision as sv
             from ultralytics import YOLO
 
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
             model = YOLO('yolov8s.pt')
             results = model(image)[0]
             detections = sv.Detections.from_ultralytics(results)
@@ -338,7 +338,7 @@ class Detections:
             from super_gradients.training import models
             import supervision as sv
 
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
             model = models.get('yolo_nas_l', pretrained_weights="coco")
 
             result = list(model.predict(image, conf=0.35))[0]
@@ -452,8 +452,8 @@ class Detections:
             import supervision as sv
             from mmdet.apis import init_detector, inference_detector
 
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
-            model = init_detector(<CONFIG_PATH>, <WEIGHTS_PATH>, device=<DEVICE>)
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
+            model = init_detector("<CONFIG_PATH>", "<WEIGHTS_PATH>", device="<DEVICE>")
 
             result = inference_detector(model, image)
             detections = sv.Detections.from_mmdetection(result)
@@ -501,7 +501,7 @@ class Detections:
             processor = DetrImageProcessor.from_pretrained("facebook/detr-resnet-50")
             model = DetrForObjectDetection.from_pretrained("facebook/detr-resnet-50")
 
-            image = Image.open(<SOURCE_IMAGE_PATH>)
+            image = Image.open("<SOURCE_IMAGE_PATH>")
             inputs = processor(images=image, return_tensors="pt")
 
             with torch.no_grad():
@@ -570,10 +570,10 @@ class Detections:
             from detectron2.config import get_cfg
 
 
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
             cfg = get_cfg()
-            cfg.merge_from_file(<CONFIG_PATH>)
-            cfg.MODEL.WEIGHTS = <WEIGHTS_PATH>
+            cfg.merge_from_file("<CONFIG_PATH>")
+            cfg.MODEL.WEIGHTS = "<WEIGHTS_PATH>"
             predictor = DefaultPredictor(cfg)
 
             result = predictor(image)
@@ -616,7 +616,7 @@ class Detections:
             import supervision as sv
             from inference import get_model
 
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
             model = get_model(model_id="yolov8s-640")
 
             result = model.infer(image)[0]
@@ -1689,7 +1689,7 @@ class Detections:
             import easyocr
 
             reader = easyocr.Reader(['en'])
-            results = reader.readtext(<SOURCE_IMAGE_PATH>)
+            results = reader.readtext("<SOURCE_IMAGE_PATH>")
             detections = sv.Detections.from_easyocr(results)
             detected_text = detections["class_name"]
             ```
@@ -1734,7 +1734,7 @@ class Detections:
             from ncnn.model_zoo import get_model
             import supervision as sv
 
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
             model = get_model(
                 "yolov8s",
                 target_size=640
@@ -2037,7 +2037,7 @@ class Detections:
             import supervision as sv
             from ultralytics import YOLO
 
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
             model = YOLO('yolov8s.pt')
 
             result = model(image)[0]
@@ -2300,7 +2300,7 @@ def merge_inner_detection_object_pair(
         import supervision as sv
         from inference import get_model
 
-        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        image = cv2.imread("<SOURCE_IMAGE_PATH>")
         model = get_model(model_id="yolov8s-640")
 
         result = model.infer(image)[0]

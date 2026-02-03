@@ -43,7 +43,7 @@ class PolygonZone:
         import numpy as np
         import cv2
 
-        image = cv2.imread(<SOURCE_IMAGE_PATH>)
+        image = cv2.imread("<SOURCE_IMAGE_PATH>")
         model = YOLO("yolo11s")
         tracker = sv.ByteTrack()
 
