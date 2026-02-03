@@ -60,12 +60,16 @@ def gradient_image() -> np.ndarray:
 
 class TestBoxAnnotator:
     """
+    Verify that BoxAnnotator correctly draws bounding boxes on an image.
+
     Ensures that `BoxAnnotator` correctly draws bounding boxes on an image, which is
     essential for users to visualize detection results.
     """
 
     def test_annotate_with_no_detections(self, test_image: np.ndarray) -> None:
         """
+        Verify that annotation with no detections does not change the image.
+
         Scenario: Annotating an image with an empty set of detections.
         Expected: The scene remains unchanged, ensuring no ghost boxes are drawn.
         """
@@ -76,6 +80,8 @@ class TestBoxAnnotator:
 
     def test_annotate_with_single_detection(self, test_image: np.ndarray) -> None:
         """
+        Verify that annotation with a single detection draws a bounding box.
+
         Scenario: Annotating an image with a single bounding box.
         Expected: The scene is modified by drawing a box, allowing users to identify
         a single detected object.
@@ -89,6 +95,8 @@ class TestBoxAnnotator:
 
     def test_annotate_with_multiple_detections(self, test_image: np.ndarray) -> None:
         """
+        Verify that annotation with multiple detections draws all bounding boxes.
+
         Scenario: Annotating an image with multiple bounding boxes of different classes.
         Expected: All boxes are drawn, enabling visualization of complex scenes with
         multiple objects.
@@ -105,6 +113,8 @@ class TestBoxAnnotator:
 
     def test_annotate_with_numpy_color_lookup(self, test_image: np.ndarray) -> None:
         """
+        Verify that annotation respects custom NumPy color lookup array.
+
         Scenario: Providing a custom NumPy array for color lookup instead of class IDs.
         Expected: Annotator respects the custom mapping, giving users flexible control
         over box colors (e.g., coloring by tracking ID or custom criteria).

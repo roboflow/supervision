@@ -17,6 +17,8 @@ from tests.helpers import _create_detections, assert_almost_equal
 
 class TestDetectionMetrics:
     """
+    Verify that detection metrics are computed accurately.
+
     Ensures that detection metrics (mAP, Conf. Matrix, etc.) are computed accurately.
     These metrics are the primary way users evaluate the performance of their models
     within the `supervision` ecosystem.
@@ -196,6 +198,8 @@ class TestDetectionMetrics:
         exception: Exception,
     ) -> None:
         """
+        Verify that Detections objects are correctly converted to NumPy tensors.
+
         Scenario: Converting Detections objects to NumPy tensors.
         Expected: Tensors are correctly formatted for consumption by metric functions,
         preserving coordinates, class IDs, and optionally confidence scores.
@@ -448,6 +452,8 @@ class TestDetectionMetrics:
         exception: Exception,
     ) -> None:
         """
+        Verify that Average Precision is correctly calculated from PR curve points.
+
         Scenario: Computing Average Precision (AP) from PR curve points.
         Expected: AP is correctly calculated using the area under the curve, which is
         the standard for evaluating detection models (mAP components).

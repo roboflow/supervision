@@ -29,6 +29,8 @@ def test_color_from_hex(
     color_hex, expected_result: Color | None, exception: Exception
 ) -> None:
     """
+    Verify that Color.from_hex correctly parses various hex string formats.
+
     Scenario: Creating a `Color` object from various hex string formats (3-digit,
     6-digit, with/without # prefix).
     Expected: Correct RGB values are parsed, and invalid hex strings raise `ValueError`.
@@ -54,6 +56,8 @@ def test_color_as_hex(
     color: Color, expected_result: str | None, exception: Exception
 ) -> None:
     """
+    Verify that Color.as_hex correctly converts Color objects to hex strings.
+
     Scenario: Converting a `Color` object back to a hex string.
     Expected: Correct 6-digit hex string with # prefix is returned, ensuring
     round-trip consistency for color definitions.
