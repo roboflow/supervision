@@ -79,8 +79,8 @@ def main(
     rtsp_url: str,
     weights: str = "yolov8s.pt",
     device: str = "cpu",
-    confidence: float = 0.3,
-    iou: float = 0.7,
+    confidence_threshold: float = 0.3,
+    iou_threshold: float = 0.7,
     classes: list[int] = [],
 ) -> None:
     """
@@ -91,15 +91,19 @@ def main(
         rtsp_url: Complete RTSP URL for the video stream
         weights: Path to the model weights file
         device: Computation device ('cpu', 'mps' or 'cuda')
-        confidence: Confidence level for detections (0 to 1)
-        iou: IOU threshold for non-max suppression
+        confidence_threshold: Confidence level for detections (0 to 1)
+        iou_threshold: IOU threshold for non-max suppression
         classes: List of class IDs to track. If empty, all classes are tracked
     """
     model = YOLO(weights)
 
     def inference_callback(frame: VideoFrame) -> sv.Detections:
         results = model(
-            frame.image, verbose=False, conf=confidence, iou=iou, device=device
+            frame.image,
+            verbose=False,
+            conf=confidence_threshold,
+            iou=iou_threshold,
+            device=device,
         )[0]
         return sv.Detections.from_ultralytics(results)
 

@@ -1,12 +1,25 @@
 from __future__ import annotations
 
-import argparse
 import os
+import ssl
 
+from jsonargparse import auto_cli
 from pytubefix import YouTube
 
 
-def main(url: str, output_path: str | None, file_name: str | None) -> None:
+def main(
+    url: str, output_path: str = "data/source", file_name: str = "video.mp4"
+) -> None:
+    """
+    Download a specific YouTube video by providing its URL.
+
+    Args:
+        url: The full URL of the YouTube video you wish to download.
+        output_path: Specifies the directory where the video will be saved.
+        file_name: Sets the name of the saved video file.
+    """
+    ssl._create_default_https_context = ssl._create_unverified_context
+
     yt = YouTube(url)
     stream = yt.streams.get_highest_resolution()
 
@@ -20,28 +33,7 @@ def main(url: str, output_path: str | None, file_name: str | None) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Download a specific YouTube video by providing its URL."
-    )
-    parser.add_argument(
-        "--url",
-        type=str,
-        required=True,
-        help="The full URL of the YouTube video you wish to download.",
-    )
-    parser.add_argument(
-        "--output_path",
-        type=str,
-        default="data/source",
-        required=False,
-        help="Optional. Specifies the directory where the video will be saved.",
-    )
-    parser.add_argument(
-        "--file_name",
-        type=str,
-        default="video.mp4",
-        required=False,
-        help="Optional. Sets the name of the saved video file.",
-    )
-    args = parser.parse_args()
-    main(url=args.url, output_path=args.output_path, file_name=args.file_name)
+    from jsonargparse import auto_cli, set_parsing_settings
+
+    set_parsing_settings(parse_optionals_as_positionals=True)
+    auto_cli(main, as_positional=False)

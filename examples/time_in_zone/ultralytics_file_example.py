@@ -18,8 +18,8 @@ def main(
     source_video_path: str,
     weights: str = "yolov8s.pt",
     device: str = "cpu",
-    confidence: float = 0.3,
-    iou: float = 0.7,
+    confidence_threshold: float = 0.3,
+    iou_threshold: float = 0.7,
     classes: list[int] = [],
 ) -> None:
     """
@@ -30,8 +30,8 @@ def main(
         source_video_path: Path to the source video file
         weights: Path to the model weights file
         device: Computation device ('cpu', 'mps' or 'cuda')
-        confidence: Confidence level for detections (0 to 1)
-        iou: IOU threshold for non-max suppression
+        confidence_threshold: Confidence level for detections (0 to 1)
+        iou_threshold: IOU threshold for non-max suppression
         classes: List of class IDs to track. If empty, all classes are tracked
     """
     model = YOLO(weights)
@@ -50,9 +50,13 @@ def main(
     timers = [FPSBasedTimer(video_info.fps) for _ in zones]
 
     for frame in frames_generator:
-        results = model(frame, verbose=False, device=device, conf=confidence, iou=iou)[
-            0
-        ]
+        results = model(
+            frame,
+            verbose=False,
+            device=device,
+            conf=confidence_threshold,
+            iou=iou_threshold,
+        )[0]
         detections = sv.Detections.from_ultralytics(results)
         detections = detections[find_in_list(detections.class_id, classes)]
         detections = tracker.update_with_detections(detections)

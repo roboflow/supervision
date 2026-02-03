@@ -17,9 +17,10 @@ def main(
     zone_configuration_path: str,
     source_video_path: str,
     model_id: str = "yolov8s-640",
-    confidence: float = 0.3,
-    iou: float = 0.7,
+    confidence_threshold: float = 0.3,
+    iou_threshold: float = 0.7,
     classes: list[int] = [],
+    roboflow_api_key: str = "",
 ) -> None:
     """
     Calculating detections dwell time in zones, using video file.
@@ -28,11 +29,12 @@ def main(
         zone_configuration_path: Path to the zone configuration JSON file
         source_video_path: Path to the source video file
         model_id: Roboflow model ID
-        confidence: Confidence level for detections (0 to 1)
-        iou: IOU threshold for non-max suppression
+        confidence_threshold: Confidence level for detections (0 to 1)
+        iou_threshold: IOU threshold for non-max suppression
         classes: List of class IDs to track. If empty, all classes are tracked
+        roboflow_api_key: Roboflow API key for accessing private models
     """
-    model = get_model(model_id=model_id)
+    model = get_model(model_id=model_id, api_key=roboflow_api_key)
     tracker = sv.ByteTrack(minimum_matching_threshold=0.5)
     video_info = sv.VideoInfo.from_video_path(video_path=source_video_path)
     frames_generator = sv.get_video_frames_generator(source_video_path)
@@ -48,7 +50,9 @@ def main(
     timers = [FPSBasedTimer(video_info.fps) for _ in zones]
 
     for frame in frames_generator:
-        results = model.infer(frame, confidence=confidence, iou_threshold=iou)[0]
+        results = model.infer(
+            frame, confidence=confidence_threshold, iou_threshold=iou_threshold
+        )[0]
         detections = sv.Detections.from_inference(results)
         detections = detections[find_in_list(detections.class_id, classes)]
         detections = tracker.update_with_detections(detections)
