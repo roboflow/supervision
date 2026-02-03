@@ -2,7 +2,7 @@ With supervision, you can count the number of objects in a zone in an image or v
 
 [View the notebook that accompanies this tutorial](https://github.com/roboflow/notebooks/blob/main/notebooks/how-to-use-polygonzone-annotate-and-supervision.ipynb).
 
-To make it easier for you to follow our tutorial download the video we will use as an example. You can do this using supervision[assets] extension.
+To make it easier for you to follow our tutorial download the video we will use as an example. You can do this using the `supervision.assets` module:
 
 ```python
 from supervision.assets import download_assets, VideoAssets
@@ -94,7 +94,7 @@ box_annotators = [
         color=colors.by_idx(index),
         thickness=4,
         text_thickness=4,
-        text_scale=2
+        text_scale=2,
         )
     for index
     in range(len(polygons))
