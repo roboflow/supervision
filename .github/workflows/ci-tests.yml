@@ -15,7 +15,11 @@ concurrency:
 
 jobs:
   build-pkg:
+    name: Build this Package
     uses: ./.github/workflows/build-package.yml
+    with:
+      # only run link check on PRs from the same repo
+      link-check: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
 
   run-tests:
     name: Import Test and Pytest Run

@@ -10,6 +10,10 @@ on:
         required: false
         type: string
         default: "3.10"
+      link-check:
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   build:
@@ -30,7 +34,7 @@ jobs:
           cat README.md
 
       - name: 🔗 Link Checker
-        if: github.repository == 'roboflow/supervision'
+        if: inputs.link-check
         uses: lycheeverse/lychee-action@v2
         with:
           lycheeVersion: v0.22.0
