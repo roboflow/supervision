@@ -1,3 +1,6 @@
+default_language_version:
+  python: python3.10
+
 ci:
   autofix_prs: true
   autoupdate_schedule: weekly
@@ -23,7 +26,7 @@ repos:
       - id: mixed-line-ending
 
   -   repo: https://github.com/tox-dev/pyproject-fmt
-      rev: v2.11.1
+      rev: v2.12.1
       hooks:
         - id: pyproject-fmt
 
@@ -50,11 +53,11 @@ repos:
         exclude: ^docs/
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.13.0
+    rev: v1.19.1
     hooks:
       - id: mypy
         additional_dependencies:
-          - "numpy"
+          - "numpy>=2.0"
           - "types-PyYAML"
           - "types-requests"
 
@@ -63,4 +66,4 @@ repos:
     hooks:
       - id: codespell
         additional_dependencies:
-          - tomli
+          - "tomli>=2.0.1"
