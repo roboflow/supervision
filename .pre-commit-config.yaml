@@ -54,13 +54,13 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies:
-          - "numpy"
-          - "types-PyYAML"
-          - "types-requests"
+          - "numpy>=2.0"
+          - "types-PyYAML>=6.0.12"
+          - "types-requests>=2.31.0"
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.1
     hooks:
       - id: codespell
         additional_dependencies:
-          - tomli
+          - "tomli>=2.0.1"

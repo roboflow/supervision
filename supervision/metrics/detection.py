@@ -740,7 +740,7 @@ class MeanAveragePrecision:
                 interpolated_precision, interpolated_recall_levels
             )
         else:
-            average_precision = np.trapz(
+            average_precision = getattr(np, "trapz")(
                 interpolated_precision, interpolated_recall_levels
             )
 
