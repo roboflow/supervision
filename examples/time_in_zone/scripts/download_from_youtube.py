@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import os
-from jsonargparse import auto_cli
 import sys
 from typing import Any
 
 import yt_dlp
+from jsonargparse import auto_cli
 from yt_dlp.utils import DownloadError
 
 
@@ -41,7 +41,7 @@ def main(
         output_path: Specifies the directory where the video will be saved.
         file_name: Sets the name of the saved video file.
     """
-    #ssl._create_default_https_context = ssl._create_unverified_context
+    # ssl._create_default_https_context = ssl._create_unverified_context
     ydl_opts = _build_ydl_opts(output_path, file_name)
 
     try:
