@@ -92,6 +92,9 @@ build = [
   "twine>=5.1.1,<7",
   "wheel>=0.40,<0.47",
 ]
+video = [
+    "av>=15.0.0"
+]
 
 [tool.setuptools]
 include-package-data = false

@@ -13,6 +13,8 @@ import numpy as np
 import numpy.typing as npt
 from tqdm.auto import tqdm
 
+from supervision.utils.internal import deprecated
+
 
 @dataclass
 class VideoInfo:
@@ -64,6 +66,10 @@ class VideoInfo:
         return self.width, self.height
 
 
+@deprecated(
+    "VideoSink is deprated and will be removed in a future version. "
+    "Use `sv.Video(path).save(...)` instead."
+)
 class VideoSink:
     """
     Context manager that saves video frames to a file using OpenCV.
@@ -152,6 +158,10 @@ def _validate_and_setup_video(
     return video, start, end
 
 
+@deprecated(
+    "get_video_frames_generator is deprated and will be removed in a future version. "
+    "Use `sv.Video(source).frames(...)` instead."
+)
 def get_video_frames_generator(
     source_path: str,
     stride: int = 1,
@@ -204,6 +214,10 @@ def get_video_frames_generator(
     video.release()
 
 
+@deprecated(
+    "get_video_frames_generator is deprated and will be removed in a future version."
+    "Use `sv.Video(source).save(target, callback=...)` instead."
+)
 def process_video(
     source_path: str,
     target_path: str,
