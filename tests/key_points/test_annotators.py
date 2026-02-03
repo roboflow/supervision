@@ -69,7 +69,7 @@ class TestEdgeAnnotator:
 
     def test_annotate_with_default_parameters(self, scene, sample_key_points):
         """
-        Verify that EdgeAnnotator correctly draws skeleton edges with default parameters.
+        Verify correctly draw skeleton edges with default parameters.
 
         Scenario: Annotating a scene with default skeleton (e.g., COCO).
         Expected: Skeleton edges are drawn between corresponding keypoints.
@@ -114,7 +114,7 @@ class TestEdgeAnnotator:
 
     def test_annotate_no_edges_found(self, scene):
         """
-        Verify that EdgeAnnotator returns unmodified scene when no known skeleton matches.
+        Verify returning unmodified scene when no known skeleton matches.
 
         Scenario: Key points provided don't match any known or provided skeleton.
         Expected: No edges are drawn, and the original scene is returned, avoiding
