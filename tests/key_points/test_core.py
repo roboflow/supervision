@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from supervision.key_points.core import KeyPoints
-from test.helpers import _create_key_points
+from tests.helpers import _create_key_points
 
 KEY_POINTS = _create_key_points(
     xy=[

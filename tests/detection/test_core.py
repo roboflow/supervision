@@ -7,7 +7,7 @@ import pytest
 
 from supervision.detection.core import Detections, merge_inner_detection_object_pair
 from supervision.geometry.core import Position
-from test.helpers import _create_detections
+from tests.helpers import _create_detections
 
 PREDICTIONS = np.array(
     [

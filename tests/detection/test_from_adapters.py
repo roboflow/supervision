@@ -6,7 +6,7 @@ import pytest
 import supervision.detection.core as detection_core
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
-from test.helpers import (
+from tests.helpers import (
     _FakeUltralyticsBoxes,
     _FakeUltralyticsResults,
     _FakeYoloNasPrediction,

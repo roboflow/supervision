@@ -45,7 +45,6 @@ def _create_detections(
 
     Examples:
         >>> import numpy as np
-        >>> from test.helpers import _create_detections
         >>> detections = _create_detections(
         ...     xyxy=[[0, 0, 10, 10], [20, 20, 30, 30]],
         ...     confidence=[0.5, 0.8],
@@ -102,7 +101,6 @@ def _create_key_points(
 
     Examples:
         >>> import numpy as np
-        >>> from test.helpers import _create_key_points
         >>> key_points = _create_key_points(
         ...     xy=[[[0, 0], [10, 10]], [[20, 20], [30, 30]]],
         ...     confidence=[[0.5, 0.8], [0.9, 0.1]],
@@ -159,7 +157,6 @@ def _generate_random_boxes(
             `(x_min, y_min, x_max, y_max)`.
 
     Examples:
-        >>> from test.helpers import _generate_random_boxes
         >>> boxes = _generate_random_boxes(
         ...     count=2, image_size=(1000, 1000),
         ...     min_box_size=10, max_box_size=20, seed=42)
@@ -199,7 +196,6 @@ def assert_almost_equal(actual, expected, tolerance=1e-5):
             and `expected`.
 
     Examples:
-        >>> from test.helpers import assert_almost_equal
         >>> assert_almost_equal(0.500001, 0.5)
         >>> assert_almost_equal(0.6, 0.5, tolerance=0.2)
         >>> assert_almost_equal(0.6, 0.5)

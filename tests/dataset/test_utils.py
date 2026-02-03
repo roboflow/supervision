@@ -16,7 +16,7 @@ from supervision.dataset.utils import (
     rle_to_mask,
     train_test_split,
 )
-from test.helpers import _create_detections
+from tests.helpers import _create_detections
 
 T = TypeVar("T")
 

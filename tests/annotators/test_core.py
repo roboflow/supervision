@@ -31,7 +31,7 @@ from supervision.annotators.utils import ColorLookup
 from supervision.detection.core import Detections
 from supervision.draw.color import Color
 from supervision.geometry.core import Position
-from test.helpers import _create_detections, assert_image_mostly_same
+from tests.helpers import _create_detections, assert_image_mostly_same
 
 
 @pytest.fixture
