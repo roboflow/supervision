@@ -17,14 +17,14 @@ detection and Supervision for tracking and annotation.
 - setup python environment and activate it [optional]
 
     ```bash
-    python3 -m venv venv
-    source venv/bin/activate
+    uv venv
+    source .venv/bin/activate
     ```
 
 - install required dependencies
 
     ```bash
-    pip install -r requirements.txt
+    uv pip install -r requirements.txt
     ```
 
 ## 🛠️ script arguments
