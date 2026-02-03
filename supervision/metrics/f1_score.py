@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
+import numpy.typing as npt
 from matplotlib import pyplot as plt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
@@ -231,11 +232,15 @@ class F1Score(Metric):
 
     def _compute_f1_for_classes(
         self,
-        matches: np.ndarray,
-        prediction_confidence: np.ndarray,
-        prediction_class_ids: np.ndarray,
-        true_class_ids: np.ndarray,
-    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        matches: npt.NDArray[np.bool_],
+        prediction_confidence: npt.NDArray[np.float32],
+        prediction_class_ids: npt.NDArray[np.int32],
+        true_class_ids: npt.NDArray[np.int32],
+    ) -> tuple[
+        npt.NDArray[np.float64],
+        npt.NDArray[np.float64],
+        npt.NDArray[np.int32],
+    ]:
         sorted_indices = np.argsort(-prediction_confidence)
         matches = matches[sorted_indices]
         prediction_class_ids = prediction_class_ids[sorted_indices]
@@ -263,11 +268,11 @@ class F1Score(Metric):
 
     @staticmethod
     def _match_detection_batch(
-        predictions_classes: np.ndarray,
-        target_classes: np.ndarray,
-        iou: np.ndarray,
-        iou_thresholds: np.ndarray,
-    ) -> np.ndarray:
+        predictions_classes: npt.NDArray[np.int32],
+        target_classes: npt.NDArray[np.int32],
+        iou: npt.NDArray[np.float32],
+        iou_thresholds: npt.NDArray[np.float32],
+    ) -> npt.NDArray[np.bool_]:
         num_predictions, num_iou_levels = (
             predictions_classes.shape[0],
             iou_thresholds.shape[0],
@@ -290,16 +295,16 @@ class F1Score(Metric):
 
                 correct[matches[:, 1].astype(int), i] = True
 
-        result_correct: np.ndarray = correct
+        result_correct: npt.NDArray[np.bool_] = correct
         return result_correct
 
     @staticmethod
     def _compute_confusion_matrix(
-        sorted_matches: np.ndarray,
-        sorted_prediction_class_ids: np.ndarray,
-        unique_classes: np.ndarray,
-        class_counts: np.ndarray,
-    ) -> np.ndarray:
+        sorted_matches: npt.NDArray[np.bool_],
+        sorted_prediction_class_ids: npt.NDArray[np.int32],
+        unique_classes: npt.NDArray[np.int32],
+        class_counts: npt.NDArray[np.int32],
+    ) -> npt.NDArray[np.float64]:
         """
         Compute the confusion matrix for each class and IoU threshold.
 
@@ -324,7 +329,9 @@ class F1Score(Metric):
         num_thresholds = sorted_matches.shape[1]
         num_classes = unique_classes.shape[0]
 
-        confusion_matrix = np.zeros((num_classes, num_thresholds, 3))
+        confusion_matrix: npt.NDArray[np.float64] = np.zeros(
+            (num_classes, num_thresholds, 3), dtype=np.float64
+        )
         for class_idx, class_id in enumerate(unique_classes):
             is_class = sorted_prediction_class_ids == class_id
             num_true = class_counts[class_idx]
@@ -346,11 +353,13 @@ class F1Score(Metric):
                 [true_positives, false_positives, false_negatives], axis=1
             )
 
-        result_confusion_matrix: np.ndarray = confusion_matrix
+        result_confusion_matrix: npt.NDArray[np.float64] = confusion_matrix
         return result_confusion_matrix
 
     @staticmethod
-    def _compute_f1(confusion_matrix: np.ndarray) -> np.ndarray:
+    def _compute_f1(
+        confusion_matrix: npt.NDArray[np.float64],
+    ) -> npt.NDArray[np.float64]:
         """
         Broadcastable function, computing the F1 score from the confusion matrix.
 
@@ -374,36 +383,36 @@ class F1Score(Metric):
         denominator = 2 * true_positives + false_positives + false_negatives
         f1_score = np.where(denominator == 0, 0, 2 * true_positives / denominator)
 
-        result_f1_score: np.ndarray = f1_score
+        result_f1_score: npt.NDArray[np.float64] = f1_score
         return result_f1_score
 
-    def _detections_content(self, detections: Detections) -> np.ndarray:
+    def _detections_content(self, detections: Detections) -> npt.NDArray[Any]:
         """Return boxes, masks or oriented bounding boxes from detections."""
         if self._metric_target == MetricTarget.BOXES:
-            return detections.xyxy
+            result_boxes: npt.NDArray[np.float32] = detections.xyxy
+            return result_boxes
         if self._metric_target == MetricTarget.MASKS:
-            return (
-                detections.mask
-                if detections.mask is not None
-                else self._make_empty_content()
-            )
+            if detections.mask is not None:
+                result_masks: npt.NDArray[np.bool_] = detections.mask
+                return result_masks
+            return self._make_empty_content()
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             obb = detections.data.get(ORIENTED_BOX_COORDINATES)
             if obb is not None and len(obb) > 0:
-                result_obb: np.ndarray = np.array(obb, dtype=np.float32)
+                result_obb: npt.NDArray[np.float32] = np.array(obb, dtype=np.float32)
                 return result_obb
             return self._make_empty_content()
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
-    def _make_empty_content(self) -> np.ndarray:
+    def _make_empty_content(self) -> npt.NDArray[Any]:
         if self._metric_target == MetricTarget.BOXES:
-            empty_boxes: np.ndarray = np.empty((0, 4), dtype=np.float32)
+            empty_boxes: npt.NDArray[np.float32] = np.empty((0, 4), dtype=np.float32)
             return empty_boxes
         if self._metric_target == MetricTarget.MASKS:
-            empty_masks: np.ndarray = np.empty((0, 0, 0), dtype=bool)
+            empty_masks: npt.NDArray[np.bool_] = np.empty((0, 0, 0), dtype=bool)
             return empty_masks
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-            empty_obb: np.ndarray = np.empty((0, 4, 2), dtype=np.float32)
+            empty_obb: npt.NDArray[np.float32] = np.empty((0, 4, 2), dtype=np.float32)
             return empty_obb
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
@@ -494,10 +503,10 @@ class F1ScoreResult:
     def f1_75(self) -> float:
         return float(self.f1_scores[5])
 
-    f1_scores: np.ndarray
-    f1_per_class: np.ndarray
-    iou_thresholds: np.ndarray
-    matched_classes: np.ndarray
+    f1_scores: npt.NDArray[np.float64]
+    f1_per_class: npt.NDArray[np.float64]
+    iou_thresholds: npt.NDArray[np.float32]
+    matched_classes: npt.NDArray[np.int32]
 
     small_objects: F1ScoreResult | None
     medium_objects: F1ScoreResult | None

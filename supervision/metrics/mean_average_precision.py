@@ -10,6 +10,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
+import numpy.typing as npt
 from matplotlib import pyplot as plt
 
 from supervision.detection.core import Detections
@@ -71,10 +72,10 @@ class MeanAveragePrecisionResult:
         """the mAP score at IoU threshold of `0.75`."""
         return float(self.mAP_scores[5])
 
-    mAP_scores: np.ndarray
-    ap_per_class: np.ndarray
-    iou_thresholds: np.ndarray
-    matched_classes: np.ndarray
+    mAP_scores: npt.NDArray[np.float64]
+    ap_per_class: npt.NDArray[np.float64]
+    iou_thresholds: npt.NDArray[np.float64]
+    matched_classes: npt.NDArray[np.int32]
     small_objects: MeanAveragePrecisionResult | None = None
     medium_objects: MeanAveragePrecisionResult | None = None
     large_objects: MeanAveragePrecisionResult | None = None
@@ -630,7 +631,7 @@ class COCOEvaluator:
         self.eval_imgs = defaultdict(list)
         self.results = {}
 
-    def _compute_iou(self, img_id: int, cat_id: int) -> np.ndarray:
+    def _compute_iou(self, img_id: int, cat_id: int) -> npt.NDArray[np.float64]:
         """
         Compute the IoU between the targets and predictions for a given image and
         category.
@@ -648,7 +649,7 @@ class COCOEvaluator:
 
         # If there is nothing to evaluate
         if len(gt) == 0 and len(dt) == 0:
-            empty_result: np.ndarray = np.array([], dtype=np.float64)
+            empty_result: npt.NDArray[np.float64] = np.array([], dtype=np.float64)
             return empty_result
 
         # Sort predictions by highest score first
@@ -938,14 +939,18 @@ class COCOEvaluator:
                             if pr[i] > pr[i - 1]:
                                 pr[i - 1] = pr[i]
 
-                        inds = np.searchsorted(rc, self.params.rec_thrs, side="left")
-                        for ri, pos_idx in enumerate(inds):
+                        recall_inds: npt.NDArray[np.int_] = np.searchsorted(
+                            rc, self.params.rec_thrs, side="left"
+                        )
+                        recall_inds_list: list[int] = recall_inds.tolist()
+                        for ri, pos_idx_value in enumerate(recall_inds_list):
                             # Ensure pi is within the range of both arrays
-                            if 0 <= pos_idx < len(pr) and 0 <= pos_idx < len(
+                            pos_idx_int: int = int(pos_idx_value)
+                            if 0 <= pos_idx_int < len(pr) and 0 <= pos_idx_int < len(
                                 dt_scores_sorted
                             ):
-                                precision_at_recall[ri] = pr[pos_idx]
-                                score_at_recall[ri] = dt_scores_sorted[pos_idx]
+                                precision_at_recall[ri] = pr[pos_idx_int]
+                                score_at_recall[ri] = dt_scores_sorted[pos_idx_int]
 
                         # Convert precision to numpy array
                         precision[iou_thresh_idx, :, cat_idx, area_idx, max_det_idx] = (
@@ -973,18 +978,18 @@ class COCOEvaluator:
 
         # Helper function to compute average precision while handling -1 sentinel values
         def compute_average_precision(
-            precision_slice: np.ndarray,
-        ) -> tuple[np.ndarray, np.ndarray]:
+            precision_slice: npt.NDArray[np.float64],
+        ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
             """Compute average precision while handling -1 sentinel values."""
-            masked = np.ma.masked_equal(precision_slice, -1)
+            masked = np.ma.masked_equal(precision_slice, -1)  # type: ignore
             if masked.count() == 0:
                 # All values are -1 (no data)
-                return np.full(num_iou_thresholds, -1), np.full(
-                    (num_categories, num_iou_thresholds), -1
+                return np.full(num_iou_thresholds, -1, dtype=np.float64), np.full(
+                    (num_categories, num_iou_thresholds), -1, dtype=np.float64
                 )
             else:
-                mAP_scores = np.ma.filled(masked.mean(axis=(1, 2)), -1)
-                ap_per_class = np.ma.filled(masked.mean(axis=1), -1).transpose(1, 0)
+                mAP_scores = np.ma.filled(masked.mean(axis=(1, 2)), -1)  # type: ignore
+                ap_per_class = np.ma.filled(masked.mean(axis=1), -1).transpose(1, 0)  # type: ignore
                 return mAP_scores, ap_per_class
 
         # Average precision over all sizes, 100 max detections
@@ -1096,8 +1101,8 @@ class COCOEvaluator:
             print(iStr.format(titleStr, typeStr, iou_str, area_range, max_dets, mean_s))
             return mean_s
 
-        def _summarize_predictions() -> np.ndarray:
-            stats: np.ndarray = np.zeros((12,))
+        def _summarize_predictions() -> npt.NDArray[np.float64]:
+            stats: npt.NDArray[np.float64] = np.zeros((12,), dtype=np.float64)
             stats[0] = _summarize(use_ap=True)
             stats[1] = _summarize(
                 use_ap=True, iou_thr=0.5, max_dets=self.params.max_dets[2]
