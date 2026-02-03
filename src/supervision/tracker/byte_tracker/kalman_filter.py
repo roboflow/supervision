@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import numpy as np
+import numpy.typing as npt
 import scipy.linalg
 
 
@@ -6,12 +9,9 @@ class KalmanFilter:
     """
     A simple Kalman filter for tracking bounding boxes in image space.
 
-    The 8-dimensional state space
-
-        x, y, a, h, vx, vy, va, vh
-
-    contains the bounding box center position (x, y), aspect ratio a, height h,
-    and their respective velocities.
+    The 8-dimensional state space is (x, y, a, h, vx, vy, va, vh), where
+    (x, y) is the bounding box center, a is the aspect ratio (w/h), h is
+    the height, and their respective velocities.
 
     Object motion follows a constant velocity model. The bounding box location
     (x, y, a, h) is taken as direct observation of the state space (linear
@@ -25,21 +25,22 @@ class KalmanFilter:
         for i in range(ndim):
             self._motion_mat[i, ndim + i] = dt
         self._update_mat = np.eye(ndim, 2 * ndim)
+
         self._std_weight_position = 1.0 / 20
         self._std_weight_velocity = 1.0 / 160
 
-    def initiate(self, measurement: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    def initiate(
+        self, measurement: npt.NDArray[np.float32]
+    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
         """
-        Create track from an unassociated measurement.
+        Create track from unassociated measurement.
 
         Args:
-            measurement (ndarray): Bounding box coordinates (x, y, a, h) with
-                center position (x, y), aspect ratio a, and height h.
+            measurement: The (x, y, a, h) mean vector of the initial measurement.
 
         Returns:
-            Tuple[ndarray, ndarray]: Returns the mean vector (8 dimensional) and
-                covariance matrix (8x8 dimensional) of the new track.
-                Unobserved velocities are initialized to 0 mean.
+            The mean vector (8 dimensional) and covariance matrix (8x8 dimensional)
+                of the new track.
         """
         mean_pos = measurement
         mean_vel = np.zeros_like(mean_pos)
@@ -59,21 +60,19 @@ class KalmanFilter:
         return mean, covariance
 
     def predict(
-        self, mean: np.ndarray, covariance: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
+        self, mean: npt.NDArray[np.float32], covariance: npt.NDArray[np.float32]
+    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
         """
         Run Kalman filter prediction step.
 
         Args:
-            mean (ndarray): The 8 dimensional mean vector of the object
-                state at the previous time step.
-            covariance (ndarray): The 8x8 dimensional covariance matrix of
-                the object state at the previous time step.
+            mean: The 8 dimensional mean vector of the object state at the previous
+                time step.
+            covariance: The 8x8 dimensional covariance matrix of the object state
+                at the previous time step.
 
         Returns:
-            Tuple[ndarray, ndarray]: Returns the mean vector and
-                covariance matrix of the predicted state.
-                Unobserved velocities are initialized to 0 mean.
+            The mean vector and covariance matrix of the predicted state.
         """
         std_pos = [
             self._std_weight_position * mean[3],
@@ -98,18 +97,17 @@ class KalmanFilter:
         return mean, covariance
 
     def project(
-        self, mean: np.ndarray, covariance: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
+        self, mean: npt.NDArray[np.float32], covariance: npt.NDArray[np.float32]
+    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
         """
         Project state distribution to measurement space.
 
         Args:
-            mean (ndarray): The state's mean vector (8 dimensional array).
-            covariance (ndarray): The state's covariance matrix (8x8 dimensional).
+            mean: The state's mean vector (8 dimensional).
+            covariance: The state's covariance matrix (8x8 dimensional).
 
         Returns:
-            Tuple[ndarray, ndarray]: Returns the projected mean and
-                covariance matrix of the given state estimate.
+            The projected mean and covariance matrix of the given state estimate.
         """
         std = [
             self._std_weight_position * mean[3],
@@ -126,21 +124,17 @@ class KalmanFilter:
         return mean, covariance + innovation_cov
 
     def multi_predict(
-        self, mean: np.ndarray, covariance: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
+        self, mean: npt.NDArray[np.float32], covariance: npt.NDArray[np.float32]
+    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
         """
         Run Kalman filter prediction step (Vectorized version).
-
         Args:
-            mean (ndarray): The Nx8 dimensional mean matrix
-                of the object states at the previous time step.
-            covariance (ndarray): The Nx8x8 dimensional covariance matrices
-                of the object states at the previous time step.
-
+            mean: The Nx8 dimensional mean matrix of the object states at the previous
+                time step.
+            covariance: The Nx8x8 dimensional covariance matrices of the object states
+                at the previous time step.
         Returns:
-            Tuple[ndarray, ndarray]: Returns the mean vector and
-                covariance matrix of the predicted state.
-                Unobserved velocities are initialized to 0 mean.
+            The mean vector and covariance matrix of the predicted state.
         """
         std_pos = [
             self._std_weight_position * mean[:, 3],
@@ -168,21 +162,23 @@ class KalmanFilter:
         return mean, covariance
 
     def update(
-        self, mean: np.ndarray, covariance: np.ndarray, measurement: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
+        self,
+        mean: npt.NDArray[np.float32],
+        covariance: npt.NDArray[np.float32],
+        measurement: npt.NDArray[np.float32],
+    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
         """
         Run Kalman filter correction step.
 
         Args:
-            mean (ndarray): The predicted state's mean vector (8 dimensional).
-            covariance (ndarray): The state's covariance matrix (8x8 dimensional).
-            measurement (ndarray): The 4-dimensional measurement vector (x, y, a, h),
-                where (x, y) is the center position, a the aspect ratio,
-                and h the height of the bounding box.
+            mean: The predicted state's mean vector (8 dimensional).
+            covariance: The state's covariance matrix (8x8 dimensional).
+            measurement: The 4 dimensional measurement vector (x, y, a, h), where
+                (x, y) is the center position, a the aspect ratio, and h the height of
+                the bounding box.
 
         Returns:
-            Tuple[ndarray, ndarray]: Returns the measurement-corrected
-                state distribution.
+            The measurement-corrected state distribution.
         """
         projected_mean, projected_cov = self.project(mean, covariance)
 
