@@ -23,14 +23,14 @@ https://github.com/roboflow/supervision/assets/26109316/d051cc8a-dd15-41d4-aa36-
 - setup python environment and activate it [optional]
 
     ```bash
-    python3 -m venv venv
-    source venv/bin/activate
+    uv venv
+    source .venv/bin/activate
     ```
 
 - install required dependencies
 
     ```bash
-    pip install -r requirements.txt
+    uv pip install -r requirements.txt
     ```
 
 ## 🛠 scripts
