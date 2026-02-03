@@ -21,6 +21,7 @@ class TestDetectionMetrics:
     These metrics are the primary way users evaluate the performance of their models
     within the `supervision` ecosystem.
     """
+
     CLASSES = np.arange(80)
     NUM_CLASSES = len(CLASSES)
 
