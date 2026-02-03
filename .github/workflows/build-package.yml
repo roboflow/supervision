@@ -24,6 +24,21 @@ jobs:
           python-version: ${{ inputs.python-version }}
           activate-environment: true
 
+      - name: 🎨 Augment paths in README
+        run: |
+          uv run python .github/scripts/augment_links.py README.md
+          cat README.md
+
+      - name: 🔗 Link Checker
+        uses: lycheeverse/lychee-action@v2
+        with:
+          lycheeVersion: v0.22.0
+          args: |
+            --config .github/lychee.toml
+            --header "x-ratelimit-bypass: ${{ secrets.UNIVERSE_RATELIMIT_BYPASS_KEY }}"
+            README.md
+          fail: true
+
       - name: 🏗️ Build source and wheel distributions
         run: |
           uv pip install -r pyproject.toml --group build
