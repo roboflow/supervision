@@ -23,7 +23,7 @@ from ultralytics import YOLO
 
 model = YOLO('yolov8s.pt')
 
-VIDEO = "video.mp4"
+VIDEO = str(VideoAssets.VEHICLES_2)
 
 colors = sv.ColorPalette.default()
 video_info = sv.VideoInfo.from_video_path(VIDEO)
