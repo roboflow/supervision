@@ -1,10 +1,13 @@
+from __future__ import annotations
+
+import warnings
 from collections import defaultdict, deque
 from copy import deepcopy
-from typing import Optional
 
 import numpy as np
 
 from supervision.detection.core import Detections
+from supervision.utils.internal import SupervisionWarnings
 
 
 class DetectionsSmoother:
@@ -32,26 +35,27 @@ class DetectionsSmoother:
 
         from ultralytics import YOLO
 
-        video_info = sv.VideoInfo.from_video_path(video_path=<SOURCE_FILE_PATH>)
-        frame_generator = sv.get_video_frames_generator(source_path=<SOURCE_FILE_PATH>)
+        video_info = sv.VideoInfo.from_video_path(video_path="<SOURCE_FILE_PATH>")
+        frame_generator = sv.get_video_frames_generator(
+            source_path="<SOURCE_FILE_PATH>")
 
-        model = YOLO(<MODEL_PATH>)
+        model = YOLO("<MODEL_PATH>")
         tracker = sv.ByteTrack(frame_rate=video_info.fps)
         smoother = sv.DetectionsSmoother()
 
-        annotator = sv.BoundingBoxAnnotator()
+        box_annotator = sv.BoxAnnotator()
 
-        with sv.VideoSink(<TARGET_FILE_PATH>, video_info=video_info) as sink:
+        with sv.VideoSink("<TARGET_FILE_PATH>", video_info=video_info) as sink:
             for frame in frame_generator:
                 result = model(frame)[0]
                 detections = sv.Detections.from_ultralytics(result)
                 detections = tracker.update_with_detections(detections)
                 detections = smoother.update_with_detections(detections)
 
-                annotated_frame = bounding_box_annotator.annotate(frame.copy(), detections)
+                annotated_frame = box_annotator.annotate(frame.copy(), detections)
                 sink.write_frame(annotated_frame)
         ```
-    """  # noqa: E501 // docs
+    """
 
     def __init__(self, length: int = 5) -> None:
         """
@@ -70,16 +74,16 @@ class DetectionsSmoother:
         """
 
         if detections.tracker_id is None:
-            print(
+            warnings.warn(
                 "Smoothing skipped. DetectionsSmoother requires tracker_id. Refer to "
-                "https://supervision.roboflow.com/latest/trackers for more information."
+                "https://supervision.roboflow.com/latest/trackers for more "
+                "information.",
+                category=SupervisionWarnings,
             )
             return detections
 
         for detection_idx in range(len(detections)):
             tracker_id = detections.tracker_id[detection_idx]
-            if tracker_id is None:
-                continue
 
             self.tracks[tracker_id].append(detections[detection_idx])
 
@@ -93,7 +97,7 @@ class DetectionsSmoother:
 
         return self.get_smoothed_detections()
 
-    def get_track(self, track_id: int) -> Optional[Detections]:
+    def get_track(self, track_id: int) -> Detections | None:
         track = self.tracks.get(track_id, None)
         if track is None:
             return None
@@ -115,4 +119,8 @@ class DetectionsSmoother:
             if track is not None:
                 tracked_detections.append(track)
 
-        return Detections.merge(tracked_detections)
+        detections = Detections.merge(tracked_detections)
+        if len(detections) == 0:
+            detections.tracker_id = np.array([], dtype=int)
+
+        return detections

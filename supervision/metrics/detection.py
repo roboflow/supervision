@@ -1,28 +1,31 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, List, Optional, Tuple
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.typing as npt
 
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
-from supervision.detection.utils import box_iou_batch
+from supervision.detection.utils.iou_and_nms import box_iou_batch
+from supervision.utils.internal import deprecated
 
 
 def detections_to_tensor(
     detections: Detections, with_confidence: bool = False
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     """
     Convert Supervision Detections to numpy tensors for further computation
+
     Args:
-        detections (sv.Detections): Detections/Targets in the format of sv.Detections
-        with_confidence (bool): Whether to include confidence in the tensor
+        detections: Detections/Targets in the format of sv.Detections
+        with_confidence: Whether to include confidence in the tensor
+
     Returns:
-        (np.ndarray): Detections as numpy tensors as in (xyxy, class_id,
-            confidence) order
+        Detections as numpy tensors as in (xyxy, class_id, confidence) order
     """
     if detections.class_id is None:
         raise ValueError(
@@ -38,10 +41,14 @@ def detections_to_tensor(
             )
         arrays_to_concat.append(np.expand_dims(detections.confidence, 1))
 
-    return np.concatenate(arrays_to_concat, axis=1)
+    result: npt.NDArray[np.float32] = np.concatenate(arrays_to_concat, axis=1)
+    return result
 
 
-def validate_input_tensors(predictions: List[np.ndarray], targets: List[np.ndarray]):
+def validate_input_tensors(
+    predictions: list[npt.NDArray[np.float32]],
+    targets: list[npt.NDArray[np.float32]],
+) -> None:
     """
     Checks for shape consistency of input tensors.
     """
@@ -75,27 +82,26 @@ class ConfusionMatrix:
     Confusion matrix for object detection tasks.
 
     Attributes:
-        matrix (np.ndarray): An 2D `np.ndarray` of shape
-            `(len(classes) + 1, len(classes) + 1)`
+        matrix: An 2D `np.ndarray` of shape `(len(classes) + 1, len(classes) + 1)`
             containing the number of `TP`, `FP`, `FN` and `TN` for each class.
-        classes (List[str]): Model class names.
-        conf_threshold (float): Detection confidence threshold between `0` and `1`.
+        classes: Model class names.
+        conf_threshold: Detection confidence threshold between `0` and `1`.
             Detections with lower confidence will be excluded from the matrix.
-        iou_threshold (float): Detection IoU threshold between `0` and `1`.
+        iou_threshold: Detection IoU threshold between `0` and `1`.
             Detections with lower IoU will be classified as `FP`.
     """
 
-    matrix: np.ndarray
-    classes: List[str]
+    matrix: npt.NDArray[np.int32]
+    classes: list[str]
     conf_threshold: float
     iou_threshold: float
 
     @classmethod
     def from_detections(
         cls,
-        predictions: List[Detections],
-        targets: List[Detections],
-        classes: List[str],
+        predictions: list[Detections],
+        targets: list[Detections],
+        classes: list[str],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
     ) -> ConfusionMatrix:
@@ -103,45 +109,41 @@ class ConfusionMatrix:
         Calculate confusion matrix based on predicted and ground-truth detections.
 
         Args:
-            targets (List[Detections]): Detections objects from ground-truth.
-            predictions (List[Detections]): Detections objects predicted by the model.
-            classes (List[str]): Model class names.
-            conf_threshold (float): Detection confidence threshold between `0` and `1`.
+            targets: Detections objects from ground-truth.
+            predictions: Detections objects predicted by the model.
+            classes: Model class names.
+            conf_threshold: Detection confidence threshold between `0` and `1`.
                 Detections with lower confidence will be excluded.
-            iou_threshold (float): Detection IoU threshold between `0` and `1`.
+            iou_threshold: Detection IoU threshold between `0` and `1`.
                 Detections with lower IoU will be classified as `FP`.
 
         Returns:
-            ConfusionMatrix: New instance of ConfusionMatrix.
+            New instance of ConfusionMatrix.
 
-        Example:
-            ```python
-            import supervision as sv
-
-            targets = [
-                sv.Detections(...),
-                sv.Detections(...)
-            ]
-
-            predictions = [
-                sv.Detections(...),
-                sv.Detections(...)
-            ]
-
-            confusion_matrix = sv.ConfusionMatrix.from_detections(
-                predictions=predictions,
-                targets=target,
-                classes=['person', ...]
-            )
-
-            print(confusion_matrix.matrix)
-            # np.array([
-            #    [0., 0., 0., 0.],
-            #    [0., 1., 0., 1.],
-            #    [0., 1., 1., 0.],
-            #    [1., 1., 0., 0.]
-            # ])
-            ```
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> targets = [
+            ...     sv.Detections(
+            ...         xyxy=np.array([[0, 0, 10, 10]]),
+            ...         class_id=np.array([0])
+            ...     )
+            ... ]
+            >>> predictions = [
+            ...     sv.Detections(
+            ...         xyxy=np.array([[0, 0, 10, 10]]),
+            ...         class_id=np.array([0]),
+            ...         confidence=np.array([0.9])
+            ...     )
+            ... ]
+            >>> confusion_matrix = sv.ConfusionMatrix.from_detections(
+            ...     predictions=predictions,
+            ...     targets=targets,
+            ...     classes=['person']
+            ... )
+            >>> confusion_matrix.matrix
+            array([[1., 0.],
+                   [0., 0.]])
         """
 
         prediction_tensors = []
@@ -162,9 +164,9 @@ class ConfusionMatrix:
     @classmethod
     def from_tensors(
         cls,
-        predictions: List[np.ndarray],
-        targets: List[np.ndarray],
-        classes: List[str],
+        predictions: list[npt.NDArray[np.float32]],
+        targets: list[npt.NDArray[np.float32]],
+        classes: list[str],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
     ) -> ConfusionMatrix:
@@ -172,67 +174,49 @@ class ConfusionMatrix:
         Calculate confusion matrix based on predicted and ground-truth detections.
 
         Args:
-            predictions (List[np.ndarray]): Each element of the list describes a single
+            predictions: Each element of the list describes a single
                 image and has `shape = (M, 6)` where `M` is the number of detected
                 objects. Each row is expected to be in
                 `(x_min, y_min, x_max, y_max, class, conf)` format.
-            targets (List[np.ndarray]): Each element of the list describes a single
+            targets: Each element of the list describes a single
                 image and has `shape = (N, 5)` where `N` is the number of
                 ground-truth objects. Each row is expected to be in
                 `(x_min, y_min, x_max, y_max, class)` format.
-            classes (List[str]): Model class names.
-            conf_threshold (float): Detection confidence threshold between `0` and `1`.
+            classes: Model class names.
+            conf_threshold: Detection confidence threshold between `0` and `1`.
                 Detections with lower confidence will be excluded.
-            iou_threshold (float): Detection iou  threshold between `0` and `1`.
+            iou_threshold: Detection iou  threshold between `0` and `1`.
                 Detections with lower iou will be classified as `FP`.
 
         Returns:
-            ConfusionMatrix: New instance of ConfusionMatrix.
+            New instance of ConfusionMatrix.
 
-        Example:
-            ```python
-            import supervision as sv
-            import numpy as np
-
-            targets = (
-                [
-                    np.array(
-                        [
-                            [0.0, 0.0, 3.0, 3.0, 1],
-                            [2.0, 2.0, 5.0, 5.0, 1],
-                            [6.0, 1.0, 8.0, 3.0, 2],
-                        ]
-                    ),
-                    np.array([1.0, 1.0, 2.0, 2.0, 2]),
-                ]
-            )
-
-            predictions = [
-                np.array(
-                    [
-                        [0.0, 0.0, 3.0, 3.0, 1, 0.9],
-                        [0.1, 0.1, 3.0, 3.0, 0, 0.9],
-                        [6.0, 1.0, 8.0, 3.0, 1, 0.8],
-                        [1.0, 6.0, 2.0, 7.0, 1, 0.8],
-                    ]
-                ),
-                np.array([[1.0, 1.0, 2.0, 2.0, 2, 0.8]])
-            ]
-
-            confusion_matrix = sv.ConfusionMatrix.from_tensors(
-                predictions=predictions,
-                targets=targets,
-                classes=['person', ...]
-            )
-
-            print(confusion_matrix.matrix)
-            # np.array([
-            #     [0., 0., 0., 0.],
-            #     [0., 1., 0., 1.],
-            #     [0., 1., 1., 0.],
-            #     [1., 1., 0., 0.]
-            # ])
-            ```
+        Examples:
+            >>> import supervision as sv
+            >>> import numpy as np
+            >>> targets = [
+            ...     np.array([
+            ...         [0.0, 0.0, 3.0, 3.0, 0],
+            ...         [2.0, 2.0, 5.0, 5.0, 0],
+            ...         [6.0, 1.0, 8.0, 3.0, 1],
+            ...     ])
+            ... ]
+            >>> predictions = [
+            ...     np.array([
+            ...         [0.0, 0.0, 3.0, 3.0, 0, 0.9],
+            ...         [0.1, 0.1, 3.0, 3.0, 0, 0.9],
+            ...         [6.0, 1.0, 8.0, 3.0, 1, 0.8],
+            ...     ])
+            ... ]
+            >>> confusion_matrix = sv.ConfusionMatrix.from_tensors(
+            ...     predictions=predictions,
+            ...     targets=targets,
+            ...     classes=['person', 'dog']
+            ... )
+            >>> confusion_matrix.matrix
+            array([[1., 0., 1.],
+                   [0., 1., 0.],
+                   [1., 0., 0.]])
         """
         validate_input_tensors(predictions, targets)
 
@@ -255,32 +239,32 @@ class ConfusionMatrix:
 
     @staticmethod
     def evaluate_detection_batch(
-        predictions: np.ndarray,
-        targets: np.ndarray,
+        predictions: npt.NDArray[np.float32],
+        targets: npt.NDArray[np.float32],
         num_classes: int,
         conf_threshold: float,
         iou_threshold: float,
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.int32]:
         """
         Calculate confusion matrix for a batch of detections for a single image.
 
         Args:
-            predictions (np.ndarray): Batch prediction. Describes a single image and
+            predictions: Batch prediction. Describes a single image and
                 has `shape = (M, 6)` where `M` is the number of detected objects.
                 Each row is expected to be in
                 `(x_min, y_min, x_max, y_max, class, conf)` format.
-            targets (np.ndarray): Batch target labels. Describes a single image and
+            targets: Batch target labels. Describes a single image and
                 has `shape = (N, 5)` where `N` is the number of ground-truth objects.
                 Each row is expected to be in
                 `(x_min, y_min, x_max, y_max, class)` format.
-            num_classes (int): Number of classes.
-            conf_threshold (float): Detection confidence threshold between `0` and `1`.
+            num_classes: Number of classes.
+            conf_threshold: Detection confidence threshold between `0` and `1`.
                 Detections with lower confidence will be excluded.
-            iou_threshold (float): Detection iou  threshold between `0` and `1`.
+            iou_threshold: Detection iou  threshold between `0` and `1`.
                 Detections with lower iou will be classified as `FP`.
 
         Returns:
-            np.ndarray: Confusion matrix based on a single image.
+            Confusion matrix based on a single image.
         """
         result_matrix = np.zeros((num_classes + 1, num_classes + 1))
 
@@ -325,11 +309,13 @@ class ConfusionMatrix:
         for i, detection_class_value in enumerate(detection_classes):
             if not any(matched_detection_idx == i):
                 result_matrix[num_classes, detection_class_value] += 1  # FP
-
-        return result_matrix
+        final_result_matrix: npt.NDArray[np.int32] = result_matrix
+        return final_result_matrix
 
     @staticmethod
-    def _drop_extra_matches(matches: np.ndarray) -> np.ndarray:
+    def _drop_extra_matches(
+        matches: npt.NDArray[np.float32],
+    ) -> npt.NDArray[np.float32]:
         """
         Deduplicate matches. If there are multiple matches for the same true or
         predicted box, only the one with the highest IoU is kept.
@@ -339,13 +325,14 @@ class ConfusionMatrix:
             matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
             matches = matches[matches[:, 2].argsort()[::-1]]
             matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
-        return matches
+        result: npt.NDArray[np.float32] = matches
+        return result
 
     @classmethod
     def benchmark(
         cls,
         dataset: DetectionDataset,
-        callback: Callable[[np.ndarray], Detections],
+        callback: Callable[[npt.NDArray[np.uint8]], Detections],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
     ) -> ConfusionMatrix:
@@ -353,16 +340,16 @@ class ConfusionMatrix:
         Calculate confusion matrix from dataset and callback function.
 
         Args:
-            dataset (DetectionDataset): Object detection dataset used for evaluation.
-            callback (Callable[[np.ndarray], Detections]): Function that takes an image
-                as input and returns Detections object.
-            conf_threshold (float): Detection confidence threshold between `0` and `1`.
+            dataset: Object detection dataset used for evaluation.
+            callback: Function that takes an image as input and returns a
+                Detections object.
+            conf_threshold: Detection confidence threshold between `0` and `1`.
                 Detections with lower confidence will be excluded.
-            iou_threshold (float): Detection IoU threshold between `0` and `1`.
+            iou_threshold: Detection IoU threshold between `0` and `1`.
                 Detections with lower IoU will be classified as `FP`.
 
         Returns:
-            ConfusionMatrix: New instance of ConfusionMatrix.
+            New instance of ConfusionMatrix.
 
         Example:
             ```python
@@ -391,11 +378,10 @@ class ConfusionMatrix:
             ```
         """
         predictions, targets = [], []
-        for img_name, img in dataset.images.items():
-            predictions_batch = callback(img)
+        for _, image, annotation in dataset:
+            predictions_batch = callback(image)
             predictions.append(predictions_batch)
-            targets_batch = dataset.annotations[img_name]
-            targets.append(targets_batch)
+            targets.append(annotation)
         return cls.from_detections(
             predictions=predictions,
             targets=targets,
@@ -406,26 +392,26 @@ class ConfusionMatrix:
 
     def plot(
         self,
-        save_path: Optional[str] = None,
-        title: Optional[str] = None,
-        classes: Optional[List[str]] = None,
+        save_path: str | None = None,
+        title: str | None = None,
+        classes: list[str] | None = None,
         normalize: bool = False,
-        fig_size: Tuple[int, int] = (12, 10),
+        fig_size: tuple[int, int] = (12, 10),
     ) -> matplotlib.figure.Figure:
         """
         Create confusion matrix plot and save it at selected location.
 
         Args:
-            save_path (Optional[str]): Path to save the plot. If not provided,
+            save_path: Path to save the plot. If not provided,
                 plot will be displayed.
-            title (Optional[str]): Title of the plot.
-            classes (Optional[List[str]]): List of classes to be displayed on the plot.
+            title: Title of the plot.
+            classes: List of classes to be displayed on the plot.
                 If not provided, all classes will be displayed.
-            normalize (bool): If True, normalize the confusion matrix.
-            fig_size (Tuple[int, int]): Size of the plot.
+            normalize: If True, normalize the confusion matrix.
+            fig_size: Size of the plot.
 
         Returns:
-            matplotlib.figure.Figure: Confusion matrix plot.
+            Confusion matrix plot.
         """
 
         array = self.matrix.copy()
@@ -441,8 +427,8 @@ class ConfusionMatrix:
         class_names = classes if classes is not None else self.classes
         use_labels_for_ticks = class_names is not None and (0 < len(class_names) < 99)
         if use_labels_for_ticks:
-            x_tick_labels = class_names + ["FN"]
-            y_tick_labels = class_names + ["FP"]
+            x_tick_labels = [*class_names, "FN"]
+            y_tick_labels = [*class_names, "FP"]
             num_ticks = len(x_tick_labels)
         else:
             x_tick_labels = None
@@ -494,19 +480,34 @@ class ConfusionMatrix:
         return fig
 
 
+@deprecated(
+    "`MeanAveragePrecision` is deprecated and will be removed in "
+    "`supervision-0.31.0`. Use "
+    "`supervision.metrics.mean_average_precision.MeanAveragePrecision` instead. The "
+    "deprecated implementation provides results that are inconsistent with pycocotools."
+)
 @dataclass(frozen=True)
 class MeanAveragePrecision:
     """
+    !!! deprecated "Deprecated"
+        `MeanAveragePrecision` is **deprecated** and will be removed in
+        `supervision-0.31.0`.
+
+        The deprecated implementation provides results that are inconsistent with
+        `pycocotools`. Please use
+        `supervision.metrics.mean_average_precision.MeanAveragePrecision` instead,
+        which matches the results of `pycocotools` and is now the recommended approach.
+
     Mean Average Precision for object detection tasks.
 
     Attributes:
-        map50_95 (float): Mean Average Precision (mAP) calculated over IoU thresholds
+        map50_95: Mean Average Precision (mAP) calculated over IoU thresholds
             ranging from `0.50` to `0.95` with a step size of `0.05`.
-        map50 (float): Mean Average Precision (mAP) calculated specifically at
+        map50: Mean Average Precision (mAP) calculated specifically at
             an IoU threshold of `0.50`.
-        map75 (float): Mean Average Precision (mAP) calculated specifically at
+        map75: Mean Average Precision (mAP) calculated specifically at
             an IoU threshold of `0.75`.
-        per_class_ap50_95 (np.ndarray): Average Precision (AP) values calculated over
+        per_class_ap50_95: Average Precision (AP) values calculated over
             IoU thresholds ranging from `0.50` to `0.95` with a step size of `0.05`,
             provided for each individual class.
     """
@@ -514,45 +515,45 @@ class MeanAveragePrecision:
     map50_95: float
     map50: float
     map75: float
-    per_class_ap50_95: np.ndarray
+    per_class_ap50_95: npt.NDArray[np.float64]
 
     @classmethod
     def from_detections(
         cls,
-        predictions: List[Detections],
-        targets: List[Detections],
+        predictions: list[Detections],
+        targets: list[Detections],
     ) -> MeanAveragePrecision:
         """
         Calculate mean average precision based on predicted and ground-truth detections.
 
         Args:
-            targets (List[Detections]): Detections objects from ground-truth.
-            predictions (List[Detections]): Detections objects predicted by the model.
+            targets: Detections objects from ground-truth.
+            predictions: Detections objects predicted by the model.
         Returns:
-            MeanAveragePrecision: New instance of ConfusionMatrix.
+            New instance of ConfusionMatrix.
 
-        Example:
-            ```python
-            import supervision as sv
-
-            targets = [
-                sv.Detections(...),
-                sv.Detections(...)
-            ]
-
-            predictions = [
-                sv.Detections(...),
-                sv.Detections(...)
-            ]
-
-            mean_average_precision = sv.MeanAveragePrecision.from_detections(
-                predictions=predictions,
-                targets=target,
-            )
-
-            print(mean_average_precison.map50_95)
-            # 0.2899
-            ```
+        Examples:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> targets = [
+            ...     sv.Detections(
+            ...         xyxy=np.array([[0, 0, 10, 10]]),
+            ...         class_id=np.array([0])
+            ...     )
+            ... ]
+            >>> predictions = [
+            ...     sv.Detections(
+            ...         xyxy=np.array([[0, 0, 10, 10]]),
+            ...         class_id=np.array([0]),
+            ...         confidence=np.array([0.9])
+            ...     )
+            ... ]
+            >>> mAP = sv.MeanAveragePrecision.from_detections(
+            ...     predictions=predictions,
+            ...     targets=targets,
+            ... )
+            >>> round(float(mAP.map50), 2)
+            0.99
         """
         prediction_tensors = []
         target_tensors = []
@@ -570,17 +571,17 @@ class MeanAveragePrecision:
     def benchmark(
         cls,
         dataset: DetectionDataset,
-        callback: Callable[[np.ndarray], Detections],
+        callback: Callable[[npt.NDArray[np.uint8]], Detections],
     ) -> MeanAveragePrecision:
         """
         Calculate mean average precision from dataset and callback function.
 
         Args:
-            dataset (DetectionDataset): Object detection dataset used for evaluation.
-            callback (Callable[[np.ndarray], Detections]): Function that takes
+            dataset: Object detection dataset used for evaluation.
+            callback: Function that takes
                 an image as input and returns Detections object.
         Returns:
-            MeanAveragePrecision: New instance of MeanAveragePrecision.
+            New instance of MeanAveragePrecision.
 
         Example:
             ```python
@@ -604,11 +605,10 @@ class MeanAveragePrecision:
             ```
         """
         predictions, targets = [], []
-        for img_name, img in dataset.images.items():
-            predictions_batch = callback(img)
+        for _, image, annotation in dataset:
+            predictions_batch = callback(image)
             predictions.append(predictions_batch)
-            targets_batch = dataset.annotations[img_name]
-            targets.append(targets_batch)
+            targets.append(annotation)
         return cls.from_detections(
             predictions=predictions,
             targets=targets,
@@ -617,63 +617,48 @@ class MeanAveragePrecision:
     @classmethod
     def from_tensors(
         cls,
-        predictions: List[np.ndarray],
-        targets: List[np.ndarray],
+        predictions: list[npt.NDArray[np.float32]],
+        targets: list[npt.NDArray[np.float32]],
     ) -> MeanAveragePrecision:
         """
         Calculate Mean Average Precision based on predicted and ground-truth
             detections at different threshold.
 
         Args:
-            predictions (List[np.ndarray]): Each element of the list describes
+            predictions: Each element of the list describes
                 a single image and has `shape = (M, 6)` where `M` is
                 the number of detected objects. Each row is expected to be
                 in `(x_min, y_min, x_max, y_max, class, conf)` format.
-            targets (List[np.ndarray]): Each element of the list describes a single
+            targets: Each element of the list describes a single
                 image and has `shape = (N, 5)` where `N` is the
                 number of ground-truth objects. Each row is expected to be in
                 `(x_min, y_min, x_max, y_max, class)` format.
         Returns:
-            MeanAveragePrecision: New instance of MeanAveragePrecision.
+            New instance of MeanAveragePrecision.
 
-        Example:
-            ```python
-            import supervision as sv
-            import numpy as np
-
-            targets = (
-                [
-                    np.array(
-                        [
-                            [0.0, 0.0, 3.0, 3.0, 1],
-                            [2.0, 2.0, 5.0, 5.0, 1],
-                            [6.0, 1.0, 8.0, 3.0, 2],
-                        ]
-                    ),
-                    np.array([[1.0, 1.0, 2.0, 2.0, 2]]),
-                ]
-            )
-
-            predictions = [
-                np.array(
-                    [
-                        [0.0, 0.0, 3.0, 3.0, 1, 0.9],
-                        [0.1, 0.1, 3.0, 3.0, 0, 0.9],
-                        [6.0, 1.0, 8.0, 3.0, 1, 0.8],
-                        [1.0, 6.0, 2.0, 7.0, 1, 0.8],
-                    ]
-                ),
-                np.array([[1.0, 1.0, 2.0, 2.0, 2, 0.8]])
-            ]
-
-            mean_average_precison = sv.MeanAveragePrecision.from_tensors(
-                predictions=predictions,
-                targets=targets,
-            )
-
-            print(mean_average_precison.map50_95)
-            # 0.6649
-            ```
+        Examples:
+            >>> import supervision as sv
+            >>> import numpy as np
+            >>> targets = [
+            ...     np.array([
+            ...         [0.0, 0.0, 3.0, 3.0, 0],
+            ...         [2.0, 2.0, 5.0, 5.0, 0],
+            ...         [6.0, 1.0, 8.0, 3.0, 1],
+            ...     ])
+            ... ]
+            >>> predictions = [
+            ...     np.array([
+            ...         [0.0, 0.0, 3.0, 3.0, 0, 0.9],
+            ...         [0.1, 0.1, 3.0, 3.0, 0, 0.9],
+            ...         [6.0, 1.0, 8.0, 3.0, 1, 0.8],
+            ...     ])
+            ... ]
+            >>> mAP = sv.MeanAveragePrecision.from_tensors(
+            ...     predictions=predictions,
+            ...     targets=targets,
+            ... )
+            >>> round(float(mAP.map50), 2)
+            0.81
         """
         validate_input_tensors(predictions, targets)
         iou_thresholds = np.linspace(0.5, 0.95, 10)
@@ -714,7 +699,7 @@ class MeanAveragePrecision:
             map50_95 = average_precisions.mean()
         else:
             map50, map75, map50_95 = 0, 0, 0
-            average_precisions = []
+            average_precisions = np.array([])
 
         return cls(
             map50_95=map50_95,
@@ -724,17 +709,20 @@ class MeanAveragePrecision:
         )
 
     @staticmethod
-    def compute_average_precision(recall: np.ndarray, precision: np.ndarray) -> float:
+    def compute_average_precision(
+        recall: npt.NDArray[np.float64],
+        precision: npt.NDArray[np.float64],
+    ) -> float:
         """
         Compute the average precision using 101-point interpolation (COCO), given
             the recall and precision curves.
 
         Args:
-            recall (np.ndarray): The recall curve.
-            precision (np.ndarray): The precision curve.
+            recall: The recall curve.
+            precision: The precision curve.
 
         Returns:
-            float: Average precision.
+            Average precision.
         """
         extended_recall = np.concatenate(([0.0], recall, [1.0]))
         extended_precision = np.concatenate(([1.0], precision, [0.0]))
@@ -745,29 +733,41 @@ class MeanAveragePrecision:
         interpolated_precision = np.interp(
             interpolated_recall_levels, extended_recall, max_accumulated_precision
         )
-        average_precision = np.trapz(interpolated_precision, interpolated_recall_levels)
-        return average_precision
+
+        # Check if we are running on NumPy 2.0+ or older
+        if hasattr(np, "trapezoid"):
+            average_precision = np.trapezoid(
+                interpolated_precision, interpolated_recall_levels
+            )
+        else:
+            average_precision = getattr(np, "trapz")(
+                interpolated_precision, interpolated_recall_levels
+            )
+
+        return float(average_precision)
 
     @staticmethod
     def _match_detection_batch(
-        predictions: np.ndarray, targets: np.ndarray, iou_thresholds: np.ndarray
-    ) -> np.ndarray:
+        predictions: npt.NDArray[np.float32],
+        targets: npt.NDArray[np.float32],
+        iou_thresholds: npt.NDArray[np.float32],
+    ) -> npt.NDArray[np.bool_]:
         """
         Match predictions with target labels based on IoU levels.
 
         Args:
-            predictions (np.ndarray): Batch prediction. Describes a single image and
+            predictions: Batch prediction. Describes a single image and
                 has `shape = (M, 6)` where `M` is the number of detected objects.
                 Each row is expected to be in
                 `(x_min, y_min, x_max, y_max, class, conf)` format.
-            targets (np.ndarray): Batch target labels. Describes a single image and
+            targets: Batch target labels. Describes a single image and
                 has `shape = (N, 5)` where `N` is the number of ground-truth objects.
                 Each row is expected to be in
                 `(x_min, y_min, x_max, y_max, class)` format.
-            iou_thresholds (np.ndarray): Array contains different IoU thresholds.
+            iou_thresholds: Array contains different IoU thresholds.
 
         Returns:
-            np.ndarray: Matched prediction with target labels result.
+            Matched prediction with target labels result.
         """
         num_predictions, num_iou_levels = predictions.shape[0], iou_thresholds.shape[0]
         correct = np.zeros((num_predictions, num_iou_levels), dtype=bool)
@@ -788,30 +788,30 @@ class MeanAveragePrecision:
                     matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
 
                 correct[matches[:, 1].astype(int), i] = True
-
-        return correct
+        result: npt.NDArray[np.bool_] = correct
+        return result
 
     @staticmethod
     def _average_precisions_per_class(
-        matches: np.ndarray,
-        prediction_confidence: np.ndarray,
-        prediction_class_ids: np.ndarray,
-        true_class_ids: np.ndarray,
+        matches: npt.NDArray[np.bool_],
+        prediction_confidence: npt.NDArray[np.float32],
+        prediction_class_ids: npt.NDArray[np.int32],
+        true_class_ids: npt.NDArray[np.int32],
         eps: float = 1e-16,
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.float64]:
         """
         Compute the average precision, given the recall and precision curves.
         Source: https://github.com/rafaelpadilla/Object-Detection-Metrics.
 
         Args:
-            matches (np.ndarray): True positives.
-            prediction_confidence (np.ndarray): Objectness value from 0-1.
-            prediction_class_ids (np.ndarray): Predicted object classes.
-            true_class_ids (np.ndarray): True object classes.
-            eps (float, optional): Small value to prevent division by zero.
+            matches: True positives.
+            prediction_confidence: Objectness value from 0-1.
+            prediction_class_ids: Predicted object classes.
+            true_class_ids: True object classes.
+            eps: Small value to prevent division by zero.
 
         Returns:
-            np.ndarray: Average precision for different IoU levels.
+            Average precision for different IoU levels.
         """
         sorted_indices = np.argsort(-prediction_confidence)
         matches = matches[sorted_indices]
@@ -820,7 +820,9 @@ class MeanAveragePrecision:
         unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
         num_classes = unique_classes.shape[0]
 
-        average_precisions = np.zeros((num_classes, matches.shape[1]))
+        average_precisions: npt.NDArray[np.float64] = np.zeros(
+            (num_classes, matches.shape[1]), dtype=np.float64
+        )
 
         for class_idx, class_id in enumerate(unique_classes):
             is_class = prediction_class_ids == class_id
@@ -836,10 +838,11 @@ class MeanAveragePrecision:
             precision = true_positives / (true_positives + false_positives)
 
             for iou_level_idx in range(matches.shape[1]):
-                average_precisions[
-                    class_idx, iou_level_idx
-                ] = MeanAveragePrecision.compute_average_precision(
-                    recall[:, iou_level_idx], precision[:, iou_level_idx]
+                average_precisions[class_idx, iou_level_idx] = (
+                    MeanAveragePrecision.compute_average_precision(
+                        recall[:, iou_level_idx], precision[:, iou_level_idx]
+                    )
                 )
 
-        return average_precisions
+        result: npt.NDArray[np.float64] = average_precisions
+        return result
