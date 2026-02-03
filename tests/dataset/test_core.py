@@ -178,7 +178,7 @@ def test_dataset_merge(
     exception: Exception,
 ) -> None:
     """
-    Ensures that multiple `DetectionDataset` objects can be merged into a single dataset.
+    Ensures that multiple `DetectionDataset` objects can be merged into single dataset.
     This is vital for users who need to combine data from different sources or
     augment their datasets with additional labeled examples.
     """

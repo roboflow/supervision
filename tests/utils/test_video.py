@@ -62,7 +62,7 @@ def test_process_video_success(dummy_video_path, tmp_path):
 def test_process_video_exception_with_small_buffer(dummy_video_path, tmp_path):
     """
     Scenario: Processing a video with minimal buffering where an exception occurs.
-    Expected: The exception is still correctly propagated even with low memory/buffer settings.
+    Expected: The exception is still correctly propagated even with low memory settings.
     """
     target_path = str(tmp_path / "target_exception_small_buffer.mp4")
 
@@ -157,7 +157,7 @@ def test_get_video_frames_generator(dummy_video_path):
 
 def test_get_video_frames_generator_with_stride(dummy_video_path):
     """
-    Scenario: Iterating over video frames with a specified stride (e.g., every 2nd frame).
+    Scenario: Iterating over video frames with specified stride (e.g., every 2nd frame).
     Expected: The generator correctly skips frames according to the stride, allowing
     for faster processing of high-FPS videos.
     """

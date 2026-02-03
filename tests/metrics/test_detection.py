@@ -17,7 +17,7 @@ from tests.helpers import _create_detections, assert_almost_equal
 
 class TestDetectionMetrics:
     """
-    Ensures that detection metrics (mAP, Confusion Matrix, etc.) are computed accurately.
+    Ensures that detection metrics (mAP, Conf. Matrix, etc.) are computed accurately.
     These metrics are the primary way users evaluate the performance of their models
     within the `supervision` ecosystem.
     """
