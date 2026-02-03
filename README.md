@@ -255,7 +255,7 @@ Visit our [documentation](https://roboflow.github.io/supervision) page to learn 
 
 ## 🏆 contribution
 
-We love your input! Please see our [contributing guide](CONTRIBUTING.md) to get started. Thank you 🙏 to all our contributors!
+We love your input! Please see our [contributing guide](.github/CONTRIBUTING.md) to get started. Thank you 🙏 to all our contributors!
 
 <p align="center">
     <a href="https://github.com/roboflow/supervision/graphs/contributors">
