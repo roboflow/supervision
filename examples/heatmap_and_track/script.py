@@ -12,8 +12,8 @@ def download_video() -> str:
 
 def main(
     source_weights_path: str,
-    source_video_path: str,
-    target_video_path: str,
+    source_video_path: str = None,
+    target_video_path: str = "output.mp4",
     confidence_threshold: float = 0.35,
     iou_threshold: float = 0.5,
     heatmap_alpha: float = 0.5,
@@ -28,7 +28,7 @@ def main(
     Args:
         source_weights_path: Path to the source weights file
         source_video_path: Path to the source video file
-        target_video_path: Path to the target video file (output)
+        target_video_path: Path to the target video file
         confidence_threshold: Confidence threshold for the model
         iou_threshold: IOU threshold for the model
         heatmap_alpha: Opacity of the overlay mask, between 0 and 1
@@ -39,6 +39,7 @@ def main(
     """
     ### instantiate model
     model = YOLO(source_weights_path)
+    source_video_path = source_video_path or download_video()
 
     ### heatmap config
     heat_map_annotator = sv.HeatMapAnnotator(
