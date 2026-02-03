@@ -96,12 +96,12 @@ build = [
 [tool.setuptools]
 include-package-data = false
 
+[tool.setuptools.package-data]
+supervision = [ "py.typed" ]
+
 [tool.setuptools.packages.find]
 include = [ "supervision*" ]
 exclude = [ "docs*", "test*", "examples*" ]
-
-[tool.setuptools.package-data]
-supervision = [ "py.typed" ]
 
 [tool.ruff]
 target-version = "py39"

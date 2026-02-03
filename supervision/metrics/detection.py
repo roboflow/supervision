@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import numpy.typing as npt
 
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
@@ -15,7 +16,7 @@ from supervision.utils.internal import deprecated
 
 def detections_to_tensor(
     detections: Detections, with_confidence: bool = False
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     """
     Convert Supervision Detections to numpy tensors for further computation
 
@@ -40,12 +41,13 @@ def detections_to_tensor(
             )
         arrays_to_concat.append(np.expand_dims(detections.confidence, 1))
 
-    result: np.ndarray = np.concatenate(arrays_to_concat, axis=1)
+    result: npt.NDArray[np.float32] = np.concatenate(arrays_to_concat, axis=1)
     return result
 
 
 def validate_input_tensors(
-    predictions: list[np.ndarray], targets: list[np.ndarray]
+    predictions: list[npt.NDArray[np.float32]],
+    targets: list[npt.NDArray[np.float32]],
 ) -> None:
     """
     Checks for shape consistency of input tensors.
@@ -89,7 +91,7 @@ class ConfusionMatrix:
             Detections with lower IoU will be classified as `FP`.
     """
 
-    matrix: np.ndarray
+    matrix: npt.NDArray[np.int32]
     classes: list[str]
     conf_threshold: float
     iou_threshold: float
@@ -162,8 +164,8 @@ class ConfusionMatrix:
     @classmethod
     def from_tensors(
         cls,
-        predictions: list[np.ndarray],
-        targets: list[np.ndarray],
+        predictions: list[npt.NDArray[np.float32]],
+        targets: list[npt.NDArray[np.float32]],
         classes: list[str],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
@@ -237,12 +239,12 @@ class ConfusionMatrix:
 
     @staticmethod
     def evaluate_detection_batch(
-        predictions: np.ndarray,
-        targets: np.ndarray,
+        predictions: npt.NDArray[np.float32],
+        targets: npt.NDArray[np.float32],
         num_classes: int,
         conf_threshold: float,
         iou_threshold: float,
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.int32]:
         """
         Calculate confusion matrix for a batch of detections for a single image.
 
@@ -307,11 +309,13 @@ class ConfusionMatrix:
         for i, detection_class_value in enumerate(detection_classes):
             if not any(matched_detection_idx == i):
                 result_matrix[num_classes, detection_class_value] += 1  # FP
-        final_result_matrix: np.ndarray = result_matrix
+        final_result_matrix: npt.NDArray[np.int32] = result_matrix
         return final_result_matrix
 
     @staticmethod
-    def _drop_extra_matches(matches: np.ndarray) -> np.ndarray:
+    def _drop_extra_matches(
+        matches: npt.NDArray[np.float32],
+    ) -> npt.NDArray[np.float32]:
         """
         Deduplicate matches. If there are multiple matches for the same true or
         predicted box, only the one with the highest IoU is kept.
@@ -321,13 +325,14 @@ class ConfusionMatrix:
             matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
             matches = matches[matches[:, 2].argsort()[::-1]]
             matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
-        return matches
+        result: npt.NDArray[np.float32] = matches
+        return result
 
     @classmethod
     def benchmark(
         cls,
         dataset: DetectionDataset,
-        callback: Callable[[np.ndarray], Detections],
+        callback: Callable[[npt.NDArray[np.uint8]], Detections],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
     ) -> ConfusionMatrix:
@@ -510,7 +515,7 @@ class MeanAveragePrecision:
     map50_95: float
     map50: float
     map75: float
-    per_class_ap50_95: np.ndarray
+    per_class_ap50_95: npt.NDArray[np.float64]
 
     @classmethod
     def from_detections(
@@ -566,7 +571,7 @@ class MeanAveragePrecision:
     def benchmark(
         cls,
         dataset: DetectionDataset,
-        callback: Callable[[np.ndarray], Detections],
+        callback: Callable[[npt.NDArray[np.uint8]], Detections],
     ) -> MeanAveragePrecision:
         """
         Calculate mean average precision from dataset and callback function.
@@ -612,8 +617,8 @@ class MeanAveragePrecision:
     @classmethod
     def from_tensors(
         cls,
-        predictions: list[np.ndarray],
-        targets: list[np.ndarray],
+        predictions: list[npt.NDArray[np.float32]],
+        targets: list[npt.NDArray[np.float32]],
     ) -> MeanAveragePrecision:
         """
         Calculate Mean Average Precision based on predicted and ground-truth
@@ -704,7 +709,10 @@ class MeanAveragePrecision:
         )
 
     @staticmethod
-    def compute_average_precision(recall: np.ndarray, precision: np.ndarray) -> float:
+    def compute_average_precision(
+        recall: npt.NDArray[np.float64],
+        precision: npt.NDArray[np.float64],
+    ) -> float:
         """
         Compute the average precision using 101-point interpolation (COCO), given
             the recall and precision curves.
@@ -732,7 +740,7 @@ class MeanAveragePrecision:
                 interpolated_precision, interpolated_recall_levels
             )
         else:
-            average_precision = np.trapz(  # type: ignore[attr-defined]
+            average_precision = getattr(np, "trapz")(
                 interpolated_precision, interpolated_recall_levels
             )
 
@@ -740,8 +748,10 @@ class MeanAveragePrecision:
 
     @staticmethod
     def _match_detection_batch(
-        predictions: np.ndarray, targets: np.ndarray, iou_thresholds: np.ndarray
-    ) -> np.ndarray:
+        predictions: npt.NDArray[np.float32],
+        targets: npt.NDArray[np.float32],
+        iou_thresholds: npt.NDArray[np.float32],
+    ) -> npt.NDArray[np.bool_]:
         """
         Match predictions with target labels based on IoU levels.
 
@@ -778,17 +788,17 @@ class MeanAveragePrecision:
                     matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
 
                 correct[matches[:, 1].astype(int), i] = True
-        result: np.ndarray = correct
+        result: npt.NDArray[np.bool_] = correct
         return result
 
     @staticmethod
     def _average_precisions_per_class(
-        matches: np.ndarray,
-        prediction_confidence: np.ndarray,
-        prediction_class_ids: np.ndarray,
-        true_class_ids: np.ndarray,
+        matches: npt.NDArray[np.bool_],
+        prediction_confidence: npt.NDArray[np.float32],
+        prediction_class_ids: npt.NDArray[np.int32],
+        true_class_ids: npt.NDArray[np.int32],
         eps: float = 1e-16,
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.float64]:
         """
         Compute the average precision, given the recall and precision curves.
         Source: https://github.com/rafaelpadilla/Object-Detection-Metrics.
@@ -810,7 +820,9 @@ class MeanAveragePrecision:
         unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
         num_classes = unique_classes.shape[0]
 
-        average_precisions = np.zeros((num_classes, matches.shape[1]))
+        average_precisions: npt.NDArray[np.float64] = np.zeros(
+            (num_classes, matches.shape[1]), dtype=np.float64
+        )
 
         for class_idx, class_id in enumerate(unique_classes):
             is_class = prediction_class_ids == class_id
@@ -832,5 +844,5 @@ class MeanAveragePrecision:
                     )
                 )
 
-        result: np.ndarray = average_precisions
+        result: npt.NDArray[np.float64] = average_precisions
         return result
