@@ -1,7 +1,7 @@
 import numpy as np
 
 import supervision as sv
-from test.helpers import assert_image_mostly_same
+from tests.helpers import assert_image_mostly_same
 
 
 class TestVertexAnnotator:

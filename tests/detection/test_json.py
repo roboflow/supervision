@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 
 import supervision as sv
-from test.helpers import _create_detections
+from tests.helpers import _create_detections
 
 
 @pytest.mark.parametrize(

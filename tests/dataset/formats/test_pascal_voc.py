@@ -11,7 +11,7 @@ from supervision.dataset.formats.pascal_voc import (
     object_to_pascal_voc,
     parse_polygon_points,
 )
-from test.helpers import _create_detections
+from tests.helpers import _create_detections
 
 
 def are_xml_elements_equal(elem1, elem2):

@@ -12,7 +12,7 @@ from supervision.metrics.detection import (
     MeanAveragePrecision,
     detections_to_tensor,
 )
-from test.helpers import _create_detections, assert_almost_equal
+from tests.helpers import _create_detections, assert_almost_equal
 
 
 class TestDetectionMetrics:

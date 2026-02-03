@@ -4,7 +4,7 @@ import pytest
 from supervision.detection.core import Detections
 from supervision.metrics.core import AveragingMethod, MetricTarget
 from supervision.metrics.f1_score import F1Score
-from test.helpers import assert_almost_equal
+from tests.helpers import assert_almost_equal
 
 
 class TestF1Score:
