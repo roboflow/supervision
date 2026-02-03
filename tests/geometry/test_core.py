@@ -29,6 +29,11 @@ from supervision.geometry.core import Point, Vector
 def test_vector_cross_product(
     vector: Vector, point: Point, expected_result: float
 ) -> None:
+    """
+    Scenario: Computing the cross product between a vector and a point.
+    Expected: Correct scalar value is returned, which is used to determine which side
+    of a line a point lies on (essential for line crossing counting).
+    """
     result = vector.cross_product(point=point)
     assert result == expected_result
 
@@ -55,5 +60,10 @@ def test_vector_cross_product(
     ],
 )
 def test_vector_magnitude(vector: Vector, expected_result: float) -> None:
+    """
+    Scenario: Calculating the magnitude (length) of a vector.
+    Expected: Correct Euclidean distance between start and end points is returned,
+    fundamental for various spatial calculations.
+    """
     result = vector.magnitude
     assert result == expected_result

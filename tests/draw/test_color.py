@@ -28,6 +28,12 @@ from supervision.draw.color import Color
 def test_color_from_hex(
     color_hex, expected_result: Color | None, exception: Exception
 ) -> None:
+    """
+    Scenario: Creating a `Color` object from various hex string formats (3-digit,
+    6-digit, with/without # prefix).
+    Expected: Correct RGB values are parsed, and invalid hex strings raise `ValueError`.
+    This allows users to define colors using familiar web formats.
+    """
     with exception:
         result = Color.from_hex(color_hex=color_hex)
         assert result == expected_result
@@ -47,6 +53,11 @@ def test_color_from_hex(
 def test_color_as_hex(
     color: Color, expected_result: str | None, exception: Exception
 ) -> None:
+    """
+    Scenario: Converting a `Color` object back to a hex string.
+    Expected: Correct 6-digit hex string with # prefix is returned, ensuring
+    round-trip consistency for color definitions.
+    """
     with exception:
         result = color.as_hex()
         assert result == expected_result

@@ -20,6 +20,11 @@ def dummy_video_path(tmp_path):
 
 
 def test_process_video_exception_handling(dummy_video_path, tmp_path):
+    """
+    Scenario: Processing a video where the callback raises an exception.
+    Expected: `process_video` should propagate the exception, allowing users to
+    handle errors during video processing.
+    """
     target_path = str(tmp_path / "target.mp4")
 
     def callback_with_exception(frame, index):
@@ -36,6 +41,11 @@ def test_process_video_exception_handling(dummy_video_path, tmp_path):
 
 
 def test_process_video_success(dummy_video_path, tmp_path):
+    """
+    Scenario: Successfully processing a video with a simple pass-through callback.
+    Expected: The video is processed without error and the target file is created,
+    verifying the core functionality of `process_video`.
+    """
     target_path = str(tmp_path / "target_success.mp4")
 
     def callback_success(frame, index):
@@ -50,6 +60,10 @@ def test_process_video_success(dummy_video_path, tmp_path):
 
 
 def test_process_video_exception_with_small_buffer(dummy_video_path, tmp_path):
+    """
+    Scenario: Processing a video with minimal buffering where an exception occurs.
+    Expected: The exception is still correctly propagated even with low memory/buffer settings.
+    """
     target_path = str(tmp_path / "target_exception_small_buffer.mp4")
 
     def callback_with_exception(frame, index):
@@ -68,6 +82,11 @@ def test_process_video_exception_with_small_buffer(dummy_video_path, tmp_path):
 
 
 def test_process_video_max_frames(dummy_video_path, tmp_path):
+    """
+    Scenario: Processing only a limited number of frames using `max_frames`.
+    Expected: Only the specified number of frames are processed, which is useful for
+    quick testing or sampling.
+    """
     target_path = str(tmp_path / "target_max_frames.mp4")
     processed_indices = []
 
@@ -87,6 +106,11 @@ def test_process_video_max_frames(dummy_video_path, tmp_path):
 
 
 def test_process_video_custom_params(dummy_video_path, tmp_path):
+    """
+    Scenario: Processing video with custom prefetch and buffer parameters.
+    Expected: Video is processed successfully, showing that these performance-tuning
+    parameters are correctly handled.
+    """
     target_path = str(tmp_path / "target_custom_params.mp4")
 
     def callback(frame, index):
@@ -105,6 +129,11 @@ def test_process_video_custom_params(dummy_video_path, tmp_path):
 
 
 def test_video_info(dummy_video_path):
+    """
+    Scenario: Retrieving metadata from a video file using `VideoInfo`.
+    Expected: Correct width, height, fps, and frame count are returned, which is
+    essential for initializing annotators or calculating statistics.
+    """
     video_info = VideoInfo.from_video_path(dummy_video_path)
     assert video_info.width == 640
     assert video_info.height == 480
@@ -114,6 +143,11 @@ def test_video_info(dummy_video_path):
 
 
 def test_get_video_frames_generator(dummy_video_path):
+    """
+    Scenario: Iterating over video frames using a generator.
+    Expected: All frames are yielded in order as NumPy arrays with correct shapes,
+    enabling frame-by-frame processing loops.
+    """
     generator = get_video_frames_generator(dummy_video_path)
     frames = list(generator)
     assert len(frames) == 10
@@ -122,12 +156,22 @@ def test_get_video_frames_generator(dummy_video_path):
 
 
 def test_get_video_frames_generator_with_stride(dummy_video_path):
+    """
+    Scenario: Iterating over video frames with a specified stride (e.g., every 2nd frame).
+    Expected: The generator correctly skips frames according to the stride, allowing
+    for faster processing of high-FPS videos.
+    """
     generator = get_video_frames_generator(dummy_video_path, stride=2)
     frames = list(generator)
     assert len(frames) == 5
 
 
 def test_get_video_frames_generator_with_start_end(dummy_video_path):
+    """
+    Scenario: Iterating over a specific range of video frames using `start` and `end`.
+    Expected: Only frames within the specified range are yielded, enabling targeted
+    analysis of video segments.
+    """
     generator = get_video_frames_generator(dummy_video_path, start=2, end=5)
     frames = list(generator)
     assert len(frames) == 3

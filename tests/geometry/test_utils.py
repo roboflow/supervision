@@ -48,5 +48,11 @@ def generate_test_polygon(n: int) -> np.ndarray:
     ],
 )
 def test_get_polygon_center(polygon: np.ndarray, expected_result: Point) -> None:
+    """
+    Scenario: Calculating the center point (centroid) of various polygons.
+    Expected: The returned `Point` correctly represents the average position of all
+    polygon vertices, which is used for placing labels or markers at the center
+    of detected objects.
+    """
     result = get_polygon_center(polygon)
     assert result == expected_result
