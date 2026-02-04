@@ -2592,12 +2592,12 @@ of the solid figure formed by the points of the polygon</p>
 <h3 id="supervision.geometry.utils.get_polygon_center(polygon)" class="doc doc-heading doc-heading-parameter">                  <code>polygon</code>
 <a href="#supervision.geometry.utils.get_polygon_center(polygon)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code><span title="numpy.ndarray">ndarray</span></code>
+                  <code><span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.float64">float64</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>A 2-dimensional numpy ndarray representing the
-vertices of the polygon.</p>
+                <p>A 2-dimensional numpy ndarray representing the vertices of the
+polygon.</p>
               </div>
             </td>
             <td>
@@ -2612,19 +2612,19 @@ vertices of the polygon.</p>
     <table>
       <thead>
         <tr>
-<th>Name</th>          <th>Type</th>
+          <th>Type</th>
           <th>Description</th>
         </tr>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-<td><code>Point</code></td>            <td>
+            <td>
                   <code><span title="supervision.geometry.core.Point">Point</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>The center of the polygon, represented as a
-Point object with x and y attributes.</p>
+                <p>The center of the polygon, represented as a Point object with x and y
+attributes.</p>
               </div>
             </td>
           </tr>
@@ -2715,13 +2715,13 @@ Point object with x and y attributes.</p>
 </span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9"></a><span class="sd">    Calculate the center of a polygon. The center is calculated as the center</span>
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10"></a><span class="sd">    of the solid figure formed by the points of the polygon</span>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11"></a>
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="sd">    Parameters:</span>
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13"></a><span class="sd">        polygon (np.ndarray): A 2-dimensional numpy ndarray representing the</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="sd">            vertices of the polygon.</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13"></a><span class="sd">        polygon: A 2-dimensional numpy ndarray representing the vertices of the</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="sd">            polygon.</span>
 </span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a>
 </span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="sd">        Point: The center of the polygon, represented as a</span>
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">            Point object with x and y attributes.</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="sd">        The center of the polygon, represented as a Point object with x and y</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">            attributes.</span>
 </span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a>
 </span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="sd">    Raises:</span>
 </span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="sd">        ValueError: If the polygon has no vertices.</span>

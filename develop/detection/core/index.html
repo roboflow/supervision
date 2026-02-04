@@ -8277,11 +8277,11 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-1722"><a id="__codelineno-0-1722" name="__codelineno-0-1722"></a><span class="sd">        [ncnn](https://github.com/Tencent/ncnn) inference result.</span>
 </span><span id="__span-0-1723"><a id="__codelineno-0-1723" name="__codelineno-0-1723"></a><span class="sd">        Supports object detection models.</span>
 </span><span id="__span-0-1724"><a id="__codelineno-0-1724" name="__codelineno-0-1724"></a>
-</span><span id="__span-0-1725"><a id="__codelineno-0-1725" name="__codelineno-0-1725"></a><span class="sd">        Arguments:</span>
-</span><span id="__span-0-1726"><a id="__codelineno-0-1726" name="__codelineno-0-1726"></a><span class="sd">            ncnn_results (dict): The output Results instance from ncnn.</span>
+</span><span id="__span-0-1725"><a id="__codelineno-0-1725" name="__codelineno-0-1725"></a><span class="sd">        Args:</span>
+</span><span id="__span-0-1726"><a id="__codelineno-0-1726" name="__codelineno-0-1726"></a><span class="sd">            ncnn_results: The output Results instance from ncnn.</span>
 </span><span id="__span-0-1727"><a id="__codelineno-0-1727" name="__codelineno-0-1727"></a>
 </span><span id="__span-0-1728"><a id="__codelineno-0-1728" name="__codelineno-0-1728"></a><span class="sd">        Returns:</span>
-</span><span id="__span-0-1729"><a id="__codelineno-0-1729" name="__codelineno-0-1729"></a><span class="sd">            Detections: A new Detections object.</span>
+</span><span id="__span-0-1729"><a id="__codelineno-0-1729" name="__codelineno-0-1729"></a><span class="sd">            A new Detections object.</span>
 </span><span id="__span-0-1730"><a id="__codelineno-0-1730" name="__codelineno-0-1730"></a>
 </span><span id="__span-0-1731"><a id="__codelineno-0-1731" name="__codelineno-0-1731"></a><span class="sd">        Example:</span>
 </span><span id="__span-0-1732"><a id="__codelineno-0-1732" name="__codelineno-0-1732"></a><span class="sd">            ```python</span>
@@ -12180,7 +12180,6 @@ Supports object detection models.</p>
 <h5 id="supervision.detection.core.Detections.from_ncnn(ncnn_results)" class="doc doc-heading doc-heading-parameter">                  <code>ncnn_results</code>
 <a href="#supervision.detection.core.Detections.from_ncnn(ncnn_results)" class="headerlink" title="Permanent link">&para;</a></h5>            </td>
             <td>
-                  <code><span title="dict">dict</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -12199,13 +12198,13 @@ Supports object detection models.</p>
     <table>
       <thead>
         <tr>
-<th>Name</th>          <th>Type</th>
+          <th>Type</th>
           <th>Description</th>
         </tr>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-<td><code>Detections</code></td>            <td>
+            <td>
                   <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;supervision.detection.core.Detections&lt;/code&gt;
 
 
@@ -12308,11 +12307,11 @@ Supports object detection models.</p>
 </span><span id="__span-0-1722"><a id="__codelineno-0-1722" name="__codelineno-0-1722"></a><span class="sd">    [ncnn](https://github.com/Tencent/ncnn) inference result.</span>
 </span><span id="__span-0-1723"><a id="__codelineno-0-1723" name="__codelineno-0-1723"></a><span class="sd">    Supports object detection models.</span>
 </span><span id="__span-0-1724"><a id="__codelineno-0-1724" name="__codelineno-0-1724"></a>
-</span><span id="__span-0-1725"><a id="__codelineno-0-1725" name="__codelineno-0-1725"></a><span class="sd">    Arguments:</span>
-</span><span id="__span-0-1726"><a id="__codelineno-0-1726" name="__codelineno-0-1726"></a><span class="sd">        ncnn_results (dict): The output Results instance from ncnn.</span>
+</span><span id="__span-0-1725"><a id="__codelineno-0-1725" name="__codelineno-0-1725"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-1726"><a id="__codelineno-0-1726" name="__codelineno-0-1726"></a><span class="sd">        ncnn_results: The output Results instance from ncnn.</span>
 </span><span id="__span-0-1727"><a id="__codelineno-0-1727" name="__codelineno-0-1727"></a>
 </span><span id="__span-0-1728"><a id="__codelineno-0-1728" name="__codelineno-0-1728"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-1729"><a id="__codelineno-0-1729" name="__codelineno-0-1729"></a><span class="sd">        Detections: A new Detections object.</span>
+</span><span id="__span-0-1729"><a id="__codelineno-0-1729" name="__codelineno-0-1729"></a><span class="sd">        A new Detections object.</span>
 </span><span id="__span-0-1730"><a id="__codelineno-0-1730" name="__codelineno-0-1730"></a>
 </span><span id="__span-0-1731"><a id="__codelineno-0-1731" name="__codelineno-0-1731"></a><span class="sd">    Example:</span>
 </span><span id="__span-0-1732"><a id="__codelineno-0-1732" name="__codelineno-0-1732"></a><span class="sd">        ```python</span>
