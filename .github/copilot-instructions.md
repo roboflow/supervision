@@ -105,8 +105,8 @@ Provide **specific feedback using inline comments** on the changed code. Use **n
 
 ```markdown
 See inline comments in `detection/core.py` for:
-- [Null safety issue in mask processing](#issuecomment-12345)
-- [Performance concern with nested loops](#issuecomment-12346)
+- Null safety issue in mask processing (see inline comment on mask handling)
+- Performance concern with nested loops (see inline comment on nested loops)
 ```
 
 ### 3.2 Testing Quality
@@ -199,7 +199,7 @@ Use **n/5** scoring for documentation completeness:
 
 2. **Performance Impact**
 
-    - Inefficient algorithms (O(n²) where O(n) possible)
+    - Inefficient algorithms ($O(n^2)$ where $O(n)$ possible)
     - Memory-intensive operations on large arrays
     - Potential bottlenecks in hot paths
 
