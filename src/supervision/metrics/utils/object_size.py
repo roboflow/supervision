@@ -32,6 +32,7 @@ class ObjectSizeCategory(Enum):
         >>> ObjectSizeCategory.LARGE.value
         3
     """
+
     ANY = -1
     SMALL = 1
     MEDIUM = 2
