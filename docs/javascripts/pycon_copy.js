@@ -112,9 +112,9 @@ function primeClipboardButton(copyButton, strippedText) {
 }
 
 function shouldStripPrompts(codeBlock, rawText) {
+  const hasReplPrompts = /(^|\n)[ \t]*(>>>|\.\.\.)/.test(rawText);
   return (
-    rawText.includes(">>>") ||
-    rawText.includes("...") ||
+    hasReplPrompts ||
     codeBlock.classList.contains("language-pycon") ||
     codeBlock.closest("pre")?.classList.contains("pycon") ||
     codeBlock.closest(".pycon") !== null ||
