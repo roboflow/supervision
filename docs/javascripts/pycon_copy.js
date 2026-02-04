@@ -101,9 +101,9 @@ document.addEventListener("DOMContentLoaded", function () {
   document.addEventListener("click", handleCopyButtonClick, true);
   document.addEventListener("pointerdown", handleCopyButtonPointerDown, true);
   document.addEventListener("copy", handleSelectionCopy, true);
+  bindCopyButtons(document);
+  observeDynamicCopyButtons();
 });
-
-function primeClipboardButton(copyButton, strippedText) {
 
 function primeClipboardButton(copyButton, strippedText) {
   copyButton.setAttribute("data-clipboard-text", strippedText);
