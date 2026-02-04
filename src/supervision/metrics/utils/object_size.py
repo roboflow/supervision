@@ -24,6 +24,7 @@ class ObjectSizeCategory(Enum):
     Large: area >= 96^2
 
     Example:
+        ```pycon
         >>> from supervision.metrics.utils.object_size import ObjectSizeCategory
         >>> ObjectSizeCategory.SMALL.value
         1
@@ -31,6 +32,8 @@ class ObjectSizeCategory(Enum):
         2
         >>> ObjectSizeCategory.LARGE.value
         3
+
+        ```
     """
 
     ANY = -1
@@ -55,6 +58,7 @@ def get_object_size_category(
         the enum values of ObjectSizeCategory. Shaped (N,).
 
     Example:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.metrics.core import MetricTarget
         >>> from supervision.metrics.utils.object_size import get_object_size_category
@@ -65,6 +69,8 @@ def get_object_size_category(
         ... ])
         >>> get_object_size_category(xyxy, MetricTarget.BOXES)
         array([1, 2, 3])
+
+        ```
     """
     if metric_target == MetricTarget.BOXES:
         return get_bbox_size_category(data)
@@ -87,6 +93,7 @@ def get_bbox_size_category(xyxy: npt.NDArray[np.float32]) -> npt.NDArray[np.int_
         the enum values of ObjectSizeCategory. Shaped (N,).
 
     Example:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.metrics.utils.object_size import get_bbox_size_category
         >>> xyxy = np.array([
@@ -97,6 +104,8 @@ def get_bbox_size_category(xyxy: npt.NDArray[np.float32]) -> npt.NDArray[np.int_
         ... ])
         >>> get_bbox_size_category(xyxy)
         array([1, 2, 2, 3])
+
+        ```
     """
     if len(xyxy.shape) != 2 or xyxy.shape[1] != 4:
         raise ValueError("Bounding boxes must be shaped (N, 4)")
@@ -125,6 +134,7 @@ def get_mask_size_category(mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.int_]:
         the enum values of ObjectSizeCategory. Shaped (N,).
 
     Example:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.metrics.utils.object_size import get_mask_size_category
         >>> mask = np.zeros((3, 100, 100), dtype=bool)
@@ -133,6 +143,8 @@ def get_mask_size_category(mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.int_]:
         >>> mask[2, 0:100, 0:100] = True # 10000 (Large)
         >>> get_mask_size_category(mask)
         array([1, 2, 3])
+
+        ```
     """
     if len(mask.shape) != 3:
         raise ValueError("Masks must be shaped (N, H, W)")
@@ -159,6 +171,7 @@ def get_obb_size_category(xyxyxyxy: npt.NDArray[np.float32]) -> npt.NDArray[np.i
         the enum values of ObjectSizeCategory. Shaped (N,).
 
     Example:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.metrics.utils.object_size import get_obb_size_category
         >>> obb = np.array([
@@ -168,6 +181,8 @@ def get_obb_size_category(xyxyxyxy: npt.NDArray[np.float32]) -> npt.NDArray[np.i
         ... ])
         >>> get_obb_size_category(obb)
         array([1, 2, 3])
+
+        ```
     """
     if len(xyxyxyxy.shape) != 3 or xyxyxyxy.shape[1] != 4 or xyxyxyxy.shape[2] != 2:
         raise ValueError("Oriented bounding boxes must be shaped (N, 4, 2)")

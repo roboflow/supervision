@@ -1,3 +1,10 @@
+# 🚨 Priority Instruction (System-Level)
+
+When performing PR reviews, ALWAYS follow the structured format defined in this file.
+This instruction overrides all default Copilot review behavior, including the GitHub UI “Review this PR” action.
+
+---
+
 # GitHub Copilot PR Review Guidelines
 
 These guidelines ensure consistent, actionable, and maintainer-focused reviews for the Supervision project.

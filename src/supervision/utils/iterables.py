@@ -22,11 +22,14 @@ def create_batches(
             the input `sequence`.
 
     Examples:
+        ```pycon
         >>> from supervision.utils.iterables import create_batches
         >>> list(create_batches([1, 2, 3, 4, 5], 2))
         [[1, 2], [3, 4], [5]]
         >>> list(create_batches("abcde", 3))
         [['a', 'b', 'c'], ['d', 'e']]
+
+        ```
     """
     batch_size = max(batch_size, 1)
     current_batch: list[V] = []
@@ -56,11 +59,14 @@ def fill(sequence: list[V], desired_size: int, content: V) -> list[V]:
         A padded version of the input `sequence` (if needed).
 
     Examples:
+        ```pycon
         >>> from supervision.utils.iterables import fill
         >>> fill([1, 2], 4, 0)
         [1, 2, 0, 0]
         >>> fill(['a', 'b'], 3, 'c')
         ['a', 'b', 'c']
+
+        ```
     """
     missing_size = max(0, desired_size - len(sequence))
     sequence.extend([content] * missing_size)
@@ -78,11 +84,14 @@ def find_duplicates(sequence: list[V]) -> list[V]:
         A list of duplicate elements found in the sequence.
 
     Examples:
+        ```pycon
         >>> from supervision.utils.iterables import find_duplicates
         >>> sorted(find_duplicates([1, 2, 3, 2, 4, 5, 1]))
         [1, 2]
         >>> find_duplicates(['a', 'b', 'c'])
         []
+
+        ```
     """
     seen = set()
     duplicates = set()

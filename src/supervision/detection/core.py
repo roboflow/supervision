@@ -983,6 +983,53 @@ class Detections:
             ```
 
         !!! example "Gemini 2.0"
+
+            ??? tip "Prompt engineering"
+
+                From Gemini 2.0 onwards, models are further trained to detect objects in
+                an image and get their bounding box coordinates. The coordinates,
+                relative to image dimensions, scale to [0, 1000]. You need to convert
+                these normalized coordinates back to pixel coordinates using your
+                original image size.
+
+                According to the Gemini API documentation on image prompts (see
+                https://ai.google.dev/gemini-api/docs/vision#image-input), when using a
+                single image with text, the recommended approach is to place the text
+                prompt after the image part in the contents array. This ordering has
+                been shown to produce significantly better results in practice.
+
+                For example, when calling the Gemini API directly, you can structure
+                the request like this, with the image part first and the text prompt
+                second in the `parts` list:
+
+                ```json
+                {
+                  "model": "models/gemini-2.0-flash",
+                  "contents": [
+                    {
+                      "role": "user",
+                      "parts": [
+                        {
+                          "inline_data": {
+                            "mime_type": "image/png",
+                            "data": "<BASE64_IMAGE_BYTES>"
+                          }
+                        },
+                        {
+                          "text": "Detect all the cats and dogs in the image..."
+                        }
+                      ]
+                    }
+                  ]
+                }
+                ```
+                To get the best results from Google Gemini 2.0, use the following prompt.
+
+                ```
+                Detect all the cats and dogs in the image. The box_2d should be
+                [ymin, xmin, ymax, xmax] normalized to 0-1000.
+                ```
+
             ```python
             import supervision as sv
 
@@ -1019,6 +1066,31 @@ class Detections:
                 This prompt is designed to detect all visible objects in the image,
                 including small, distant, or partially visible ones, and to return
                 tight bounding boxes.
+
+                According to the Gemini API documentation on image prompts, when using
+                a single image with text, the recommended approach is to place the text
+                prompt after the image part in the `contents` array. See the official
+                Gemini vision docs for details:
+                https://ai.google.dev/gemini-api/docs/vision#multi-part-input
+
+                For example, using the `google-generativeai` client:
+
+                ```python
+                from google.generativeai import types
+
+                response = model.generate_content(
+                    contents=[
+                        types.Part.from_image(image_bytes),
+                        "Carefully examine this image and detect ALL visible objects, including "
+                        "small, distant, or partially visible ones.",
+                    ],
+                    generation_config=generation_config,
+                    safety_settings=safety_settings,
+                )
+                ```
+
+                This ordering (image first, then text) has been shown to produce
+                significantly better results in practice.
 
                 ```
                 Carefully examine this image and detect ALL visible objects, including
@@ -1391,6 +1463,28 @@ class Detections:
             ```
 
         !!! example "Gemini 2.0"
+
+            ??? tip "Prompt engineering"
+
+                From Gemini 2.0 onwards, models are further trained to detect objects in
+                an image and get their bounding box coordinates. The coordinates,
+                relative to image dimensions, scale to [0, 1000]. You need to convert
+                these normalized coordinates back to pixel coordinates based on your
+                original image size.
+                According to the [Gemini API documentation on image prompts](
+                https://ai.google.dev/gemini-api/docs/vision?lang=python#image_prompts), when using
+                a single image with text, the recommended approach is to place the text
+                prompt after the image part in the `contents` array (for example,
+                `contents=[image_part, text_part]`). This ordering has been shown to
+                produce significantly better results in practice.
+
+                To get the best results from Google Gemini 2.0, use the following prompt.
+
+                ```
+                Detect all the cats and dogs in the image. The box_2d should be
+                [ymin, xmin, ymax, xmax] normalized to 0-1000.
+                ```
+
             ```python
             import supervision as sv
 
@@ -1427,6 +1521,27 @@ class Detections:
                 This prompt is designed to detect all visible objects in the image,
                 including small, distant, or partially visible ones, and to return
                 tight bounding boxes.
+
+                According to the [Gemini API documentation on image prompts](
+                https://ai.google.dev/gemini-api/docs/vision?hl=en),
+                when using a single image with text, place the text prompt after the image
+                part in the `contents` array. For example, with the `google-genai` client:
+
+                ```python
+                response = model.generate_content(
+                    [
+                        {
+                            "role": "user",
+                            "parts": [
+                                types.Part.from_bytes(image_bytes, mime_type="image/png"),
+                                types.Part.from_text(prompt),
+                            ],
+                        }
+                    ]
+                )
+                ```
+
+                This ordering has been shown to produce significantly better results in practice.
 
                 ```
                 Carefully examine this image and detect ALL visible objects, including

@@ -175,12 +175,15 @@ class KeyPoints:
             int: The number of objects.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> xy = np.array([[[10, 20], [30, 40]]], dtype=np.float32)
             >>> key_points = sv.KeyPoints(xy=xy)
             >>> len(key_points)
             1
+
+            ```
         """
         return len(self.xy)
 
@@ -769,10 +772,13 @@ class KeyPoints:
             An empty `sv.KeyPoints` object.
 
         Examples:
+            ```pycon
             >>> import supervision as sv
             >>> key_points = sv.KeyPoints.empty()
             >>> len(key_points)
             0
+
+            ```
         """
         return cls(xy=np.empty((0, 0, 2), dtype=np.float32))
 
@@ -784,10 +790,13 @@ class KeyPoints:
             bool: `True` if the object is empty, `False` otherwise.
 
         Example:
+            ```pycon
             >>> import supervision as sv
             >>> key_points = sv.KeyPoints.empty()
             >>> key_points.is_empty()
             True
+
+            ```
         """
         empty_key_points = KeyPoints.empty()
         empty_key_points.data = self.data
@@ -811,6 +820,7 @@ class KeyPoints:
             detections: The converted detections object.
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> key_points = sv.KeyPoints(
@@ -819,6 +829,8 @@ class KeyPoints:
             >>> detections = key_points.as_detections()
             >>> detections.xyxy
             array([[10., 20., 30., 40.]], dtype=float32)
+
+            ```
         """
         if self.is_empty():
             return Detections.empty()

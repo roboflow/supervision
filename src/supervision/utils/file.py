@@ -35,6 +35,7 @@ def list_files_with_extensions(
         A list of Path objects for the matching files.
 
     Examples:
+        ```pycon
         >>> import supervision as sv
         >>> from pathlib import Path
         >>> import tempfile
@@ -54,6 +55,8 @@ def list_files_with_extensions(
         ...     directory=tmpdir, extensions=['txt', 'md'])
         >>> len(files)
         2
+
+        ```
     """
 
     directory = Path(directory)
@@ -82,6 +85,7 @@ def read_txt_file(file_path: str | Path, skip_empty: bool = False) -> list[str]:
         A list of strings representing the lines in the text file.
 
     Examples:
+        ```pycon
         >>> import tempfile
         >>> from pathlib import Path
         >>> from supervision.utils.file import read_txt_file, save_text_file
@@ -92,6 +96,8 @@ def read_txt_file(file_path: str | Path, skip_empty: bool = False) -> list[str]:
         ...     print(read_txt_file(file_path, skip_empty=True))
         ['line1', ' ', 'line3']
         ['line1', 'line3']
+
+        ```
     """
     with open(str(file_path)) as file:
         if skip_empty:
@@ -126,6 +132,7 @@ def read_json_file(file_path: str | Path) -> dict[str, Any]:
         A dict of annotations information
 
     Examples:
+        ```pycon
         >>> import tempfile
         >>> from pathlib import Path
         >>> from supervision.utils.file import read_json_file, save_json_file
@@ -135,6 +142,8 @@ def read_json_file(file_path: str | Path) -> dict[str, Any]:
         ...     save_json_file(data, file_path)
         ...     print(read_json_file(file_path))
         {'key': 'value', 'list': [1, 2, 3]}
+
+        ```
     """
     with open(str(file_path)) as file:
         data = json.load(file)

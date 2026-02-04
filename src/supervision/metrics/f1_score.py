@@ -38,6 +38,7 @@ class F1Score(Metric):
     `F1 = 2 * (precision * recall) / (precision + recall)`
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> from supervision.metrics import F1Score
@@ -54,6 +55,8 @@ class F1Score(Metric):
         >>> f1_result = f1_metric.update(predictions, targets).compute()
         >>> round(float(f1_result.f1_50), 2)
         1.0
+
+        ```
 
     ![example_plot](
         https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png

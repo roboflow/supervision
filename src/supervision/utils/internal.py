@@ -78,6 +78,7 @@ def deprecated_parameter(
             parameter as deprecated.
 
     Examples:
+        ```pycon
         >>> from supervision.utils.internal import deprecated_parameter
         >>> import warnings
         >>> @deprecated_parameter(
@@ -94,6 +95,8 @@ def deprecated_parameter(
         ...     result = example_function(old_name='deprecated_value')
         ...     print(result)
         deprecated_value
+
+        ```
     """
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -196,6 +199,7 @@ def get_instance_variables(instance: Any, include_properties: bool = False) -> s
         include_properties: Whether to include properties in the result
 
     Usage:
+        ```pycon
         >>> from supervision.utils.internal import get_instance_variables
         >>> import numpy as np
         >>> from supervision import Detections
@@ -205,6 +209,8 @@ def get_instance_variables(instance: Any, include_properties: bool = False) -> s
         True
         >>> 'data' in variables
         True
+
+        ```
     """
     if isinstance(instance, type):
         raise ValueError("Only class instances are supported, not classes.")

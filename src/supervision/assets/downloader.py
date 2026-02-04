@@ -46,9 +46,12 @@ def download_assets(asset_name: VideoAssets | str) -> str:
         The filename of the downloaded asset.
 
     Example:
+        ```pycon
         >>> from supervision.assets import download_assets, VideoAssets
         >>> download_assets(VideoAssets.VEHICLES)  # doctest: +SKIP
         'vehicles.mp4'
+
+        ```
     """
 
     filename = asset_name.value if isinstance(asset_name, VideoAssets) else asset_name

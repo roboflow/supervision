@@ -1188,6 +1188,7 @@ class MeanAveragePrecision(Metric):
     It is the average of the precision-recall curves at different IoU thresholds.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> from supervision.metrics import MeanAveragePrecision
@@ -1211,6 +1212,8 @@ class MeanAveragePrecision(Metric):
         Average Precision (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 1.000
         Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = -1.000
         Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = -1.000
+
+        ```
 
     ![example_plot](
         https://media.roboflow.com/supervision-docs/metrics/mAP_plot_example.png

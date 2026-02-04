@@ -165,6 +165,7 @@ class DetectionDataset(BaseDataset):
                 the training and testing datasets.
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> ds = sv.DetectionDataset(
@@ -181,6 +182,8 @@ class DetectionDataset(BaseDataset):
             >>> train_ds, test_ds = ds.split(split_ratio=0.5, random_state=42)
             >>> len(train_ds), len(test_ds)
             (1, 1)
+
+            ```
         """
 
         train_paths, test_paths = train_test_split(
@@ -232,6 +235,7 @@ class DetectionDataset(BaseDataset):
             the merged data from the input list.
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> ds_1 = sv.DetectionDataset(
@@ -257,6 +261,8 @@ class DetectionDataset(BaseDataset):
             2
             >>> ds_merged.classes
             ['cat', 'dog', 'person']
+
+            ```
         """
 
         def is_in_memory(dataset: DetectionDataset) -> bool:
@@ -760,6 +766,7 @@ class ClassificationDataset(BaseDataset):
             the training and testing datasets.
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> cd = sv.ClassificationDataset(
@@ -776,6 +783,8 @@ class ClassificationDataset(BaseDataset):
             >>> train_cd, test_cd = cd.split(split_ratio=0.5, random_state=42)
             >>> len(train_cd), len(test_cd)
             (1, 1)
+
+            ```
         """
         train_paths, test_paths = train_test_split(
             data=self.image_paths,

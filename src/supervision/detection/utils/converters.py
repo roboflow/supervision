@@ -55,6 +55,7 @@ def xywh_to_xyxy(xywh: np.ndarray) -> np.ndarray:
             to a bounding box in the format `(x_min, y_min, x_max, y_max)`.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> xywh = np.array([
@@ -64,6 +65,8 @@ def xywh_to_xyxy(xywh: np.ndarray) -> np.ndarray:
         >>> sv.xywh_to_xyxy(xywh=xywh)
         array([[10, 20, 40, 60],
                [15, 25, 50, 70]])
+
+        ```
     """
     xyxy = xywh.copy()
     xyxy[:, 2] = xywh[:, 0] + xywh[:, 2]
@@ -86,6 +89,7 @@ def xyxy_to_xywh(xyxy: np.ndarray) -> np.ndarray:
             to a bounding box in the format `(x, y, width, height)`.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> xyxy = np.array([
@@ -95,6 +99,8 @@ def xyxy_to_xywh(xyxy: np.ndarray) -> np.ndarray:
         >>> sv.xyxy_to_xywh(xyxy=xyxy)
         array([[10, 20, 30, 40],
                [15, 25, 35, 45]])
+
+        ```
     """
     xywh = xyxy.copy()
     xywh[:, 2] = xyxy[:, 2] - xyxy[:, 0]
@@ -117,6 +123,7 @@ def xcycwh_to_xyxy(xcycwh: np.ndarray) -> np.ndarray:
             to a bounding box in the format `(x_min, y_min, x_max, y_max)`.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> xcycwh = np.array([
@@ -126,6 +133,8 @@ def xcycwh_to_xyxy(xcycwh: np.ndarray) -> np.ndarray:
         >>> sv.xcycwh_to_xyxy(xcycwh=xcycwh)
         array([[40. , 35. , 60. , 65. ],
                [25. , 32.5, 35. , 47.5]])
+
+        ```
     """
     xyxy = xcycwh.copy()
     xyxy[:, 0] = xcycwh[:, 0] - xcycwh[:, 2] / 2
@@ -149,6 +158,7 @@ def xyxy_to_xcycarh(xyxy: np.ndarray) -> np.ndarray:
             `(center x, center y, aspect ratio, height)`. Shape `(N, 4)`.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> xyxy = np.array([
@@ -158,6 +168,8 @@ def xyxy_to_xcycarh(xyxy: np.ndarray) -> np.ndarray:
         >>> sv.xyxy_to_xcycarh(xyxy=xyxy)  # doctest: +ELLIPSIS
         array([[25.        , 40.        ,  0.75      , 40.        ],
                [32.5       , 47.5       ,  0.77..., 45.        ]])
+
+        ```
 
     """
     if xyxy.size == 0:
@@ -219,6 +231,7 @@ def xyxy_to_mask(boxes: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarra
             for each bounding box.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> boxes = np.array([[0, 0, 2, 2]])
@@ -241,6 +254,8 @@ def xyxy_to_mask(boxes: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarra
                 [False, False, False, False, False],
                 [False, False, False,  True,  True],
                 [False, False, False,  True,  True]]])
+
+        ```
     """
     width, height = resolution_wh
     n = boxes.shape[0]
