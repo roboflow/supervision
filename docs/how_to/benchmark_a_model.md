@@ -51,7 +51,7 @@ from roboflow import Roboflow
 
 rf = Roboflow(api_key="<YOUR_API_KEY>")
 project = rf.workspace("<WORKSPACE_NAME>").project("<PROJECT_NAME>")
-dataset = project.version(<DATASET_VERSION_NUMBER>).download("<FORMAT>")
+dataset = project.version("<DATASET_VERSION_NUMBER>").download("<FORMAT>")
 ```
 
 If your dataset is from Universe, go to `Dataset` > `Download Dataset` > select the format (e.g. `YOLOv11`) > `Show download code`.
@@ -148,7 +148,7 @@ We'll use `supervision` to create a dataset iterator, and then run the model on 
     test_set = sv.DetectionDataset.from_yolo(
         images_directory_path=f"{dataset.location}/test/images",
         annotations_directory_path=f"{dataset.location}/test/labels",
-        data_yaml_path=f"{dataset.location}/data.yaml"
+        data_yaml_path=f"{dataset.location}/data.yaml",
     )
 
     image_paths = []
@@ -172,7 +172,7 @@ We'll use `supervision` to create a dataset iterator, and then run the model on 
     test_set = sv.DetectionDataset.from_yolo(
         images_directory_path=f"{dataset.location}/test/images",
         annotations_directory_path=f"{dataset.location}/test/labels",
-        data_yaml_path=f"{dataset.location}/data.yaml"
+        data_yaml_path=f"{dataset.location}/data.yaml",
     )
 
     image_paths = []
@@ -199,14 +199,16 @@ We need to remap them to match the dataset classes. Here's how to do it:
 def remap_classes(
     detections: sv.Detections,
     class_ids_from_to: dict[int, int],
-    class_names_from_to: dict[str, str]
+    class_names_from_to: dict[str, str],
 ) -> None:
     new_class_ids = [
-        class_ids_from_to.get(class_id, class_id) for class_id in detections.class_id]
+        class_ids_from_to.get(class_id, class_id) for class_id in detections.class_id
+    ]
     detections.class_id = np.array(new_class_ids)
 
     new_class_names = [
-        class_names_from_to.get(name, name) for name in detections["class_name"]]
+        class_names_from_to.get(name, name) for name in detections["class_name"]
+    ]
     predictions["class_name"] = np.array(new_class_names)
 ```
 
@@ -222,7 +224,7 @@ Let's also remove the predictions that are not in the dataset classes.
     test_set = sv.DetectionDataset.from_yolo(
         images_directory_path=f"{dataset.location}/test/images",
         annotations_directory_path=f"{dataset.location}/test/labels",
-        data_yaml_path=f"{dataset.location}/data.yaml"
+        data_yaml_path=f"{dataset.location}/data.yaml",
     )
 
     image_paths = []
@@ -236,11 +238,9 @@ Let's also remove the predictions that are not in the dataset classes.
         remap_classes(
             detections=predictions,
             class_ids_from_to={16: 0},
-            class_names_from_to={"dog": "Corgi"}
+            class_names_from_to={"dog": "Corgi"},
         )
-        predictions = predictions[
-            np.isin(predictions["class_name"], test_set.classes)
-        ]
+        predictions = predictions[np.isin(predictions["class_name"], test_set.classes),]
 
         image_paths.append(image_path)
         predictions_list.append(predictions)
@@ -260,7 +260,7 @@ Let's also remove the predictions that are not in the dataset classes.
     test_set = sv.DetectionDataset.from_yolo(
         images_directory_path=f"{dataset.location}/test/images",
         annotations_directory_path=f"{dataset.location}/test/labels",
-        data_yaml_path=f"{dataset.location}/data.yaml"
+        data_yaml_path=f"{dataset.location}/data.yaml",
     )
 
     image_paths = []
@@ -274,11 +274,9 @@ Let's also remove the predictions that are not in the dataset classes.
         remap_classes(
             detections=predictions,
             class_ids_from_to={16: 0},
-            class_names_from_to={"dog": "Corgi"}
+            class_names_from_to={"dog": "Corgi"},
         )
-        predictions = predictions[
-            np.isin(predictions["class_name"], test_set.classes)
-        ]
+        predictions = predictions[np.isin(predictions["class_name"], test_set.classes),]
 
         image_paths.append(image_path)
         predictions_list.append(predictions)
@@ -297,16 +295,22 @@ N = 9
 GRID_SIZE = (3, 3)
 
 target_annotator = sv.PolygonAnnotator(color=sv.Color.from_hex("#8315f9"), thickness=8)
-prediction_annotator = sv.PolygonAnnotator(color=sv.Color.from_hex("#00cfc6"), thickness=6)
+prediction_annotator = sv.PolygonAnnotator(
+    color=sv.Color.from_hex("#00cfc6"), thickness=6
+)
 
 
 annotated_images = []
 for image_path, predictions, targets in zip(
-  image_paths[:N], predictions_list[:N], targets_list[:N]
+    image_paths[:N], predictions_list[:N], targets_list[:N]
 ):
     annotated_image = cv2.imread(image_path)
-    annotated_image = target_annotator.annotate(scene=annotated_image, detections=targets)
-    annotated_image = prediction_annotator.annotate(scene=annotated_image, detections=prediction)
+    annotated_image = target_annotator.annotate(
+        scene=annotated_image, detections=targets
+    )
+    annotated_image = prediction_annotator.annotate(
+        scene=annotated_image, detections=prediction
+    )
     annotated_images.append(annotated_image)
 
 sv.plot_images_grid(images=annotated_images, grid_size=GRID_SIZE)
