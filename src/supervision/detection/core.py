@@ -1471,7 +1471,8 @@ class Detections:
                 relative to image dimensions, scale to [0, 1000]. You need to convert
                 these normalized coordinates back to pixel coordinates based on your
                 original image size.
-                According to the [Gemini API documentation on image prompts](https://ai.google.dev/gemini-api/docs/vision?lang=python#image_prompts), when using
+                According to the [Gemini API documentation on image prompts](
+                https://ai.google.dev/gemini-api/docs/vision?lang=python#image_prompts), when using
                 a single image with text, the recommended approach is to place the text
                 prompt after the image part in the `contents` array (for example,
                 `contents=[image_part, text_part]`). This ordering has been shown to
@@ -1521,7 +1522,8 @@ class Detections:
                 including small, distant, or partially visible ones, and to return
                 tight bounding boxes.
 
-                According to the [Gemini API documentation on image prompts](https://ai.google.dev/gemini-api/docs/vision?hl=en),
+                According to the [Gemini API documentation on image prompts](
+                https://ai.google.dev/gemini-api/docs/vision?hl=en),
                 when using a single image with text, place the text prompt after the image
                 part in the `contents` array. For example, with the `google-genai` client:
 
