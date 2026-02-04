@@ -198,8 +198,10 @@ markdown_extensions:
 extra_javascript:
   - "javascripts/init_kapa_widget.js"
   - "javascripts/cookbooks-card.js"
+  - "javascripts/pycon_copy.js"
   - "javascripts/segment.js"
   - "javascripts/mathjax.js"
+  - "javascripts/pycon_copy.js"
   - "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"
   - "https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"
 
