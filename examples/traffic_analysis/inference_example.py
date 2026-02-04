@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import argparse
 import os
 from collections.abc import Iterable
 
@@ -180,62 +179,47 @@ class VideoProcessor:
         return self.annotate_frame(frame, detections)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Traffic Flow Analysis with Inference and ByteTrack"
-    )
+def main(
+    source_video_path: str,
+    target_video_path: str,
+    roboflow_api_key: str,
+    model_id: str = "vehicle-count-in-drone-video/6",
+    confidence_threshold: float = 0.3,
+    iou_threshold: float = 0.7,
+) -> None:
+    """
+    Traffic Flow Analysis with Inference and ByteTrack.
 
-    parser.add_argument(
-        "--model_id",
-        default="vehicle-count-in-drone-video/6",
-        help="Roboflow model ID",
-        type=str,
-    )
-    parser.add_argument(
-        "--roboflow_api_key",
-        default=None,
-        help="Roboflow API KEY",
-        type=str,
-    )
-    parser.add_argument(
-        "--source_video_path",
-        required=True,
-        help="Path to the source video file",
-        type=str,
-    )
-    parser.add_argument(
-        "--target_video_path",
-        default=None,
-        help="Path to the target video file (output)",
-        type=str,
-    )
-    parser.add_argument(
-        "--confidence_threshold",
-        default=0.3,
-        help="Confidence threshold for the model",
-        type=float,
-    )
-    parser.add_argument(
-        "--iou_threshold", default=0.7, help="IOU threshold for the model", type=float
-    )
-
-    args = parser.parse_args()
-
-    api_key = args.roboflow_api_key
+    Args:
+        source_video_path: Path to the source video file
+        target_video_path: Path to the target video file (output)
+        roboflow_api_key: Roboflow API key
+        model_id: Roboflow model ID
+        confidence_threshold: Confidence threshold for the model
+        iou_threshold: IOU threshold for the model
+    """
+    api_key = roboflow_api_key
     api_key = os.environ.get("ROBOFLOW_API_KEY", api_key)
     if api_key is None:
         raise ValueError(
             "Roboflow API KEY is missing. Please provide it as an argument or set the "
             "ROBOFLOW_API_KEY environment variable."
         )
-    args.roboflow_api_key = api_key
+    roboflow_api_key = api_key
 
     processor = VideoProcessor(
-        roboflow_api_key=args.roboflow_api_key,
-        model_id=args.model_id,
-        source_video_path=args.source_video_path,
-        target_video_path=args.target_video_path,
-        confidence_threshold=args.confidence_threshold,
-        iou_threshold=args.iou_threshold,
+        roboflow_api_key=roboflow_api_key,
+        model_id=model_id,
+        source_video_path=source_video_path,
+        target_video_path=target_video_path,
+        confidence_threshold=confidence_threshold,
+        iou_threshold=iou_threshold,
     )
     processor.process_video()
+
+
+if __name__ == "__main__":
+    from jsonargparse import auto_cli, set_parsing_settings
+
+    set_parsing_settings(parse_optionals_as_positionals=True)
+    auto_cli(main, as_positional=False)

@@ -38,6 +38,7 @@ nav:
       - Track Objects on Video: how_to/track_objects.md
       - Process Datasets: how_to/process_datasets.md
       - Benchmark a Model: how_to/benchmark_a_model.md
+      - Count in Zone: how_to/count_in_zone.md
   - Reference:
       - Detection and Segmentation:
           - Core: detection/core.md
