@@ -1,5 +1,6 @@
-import argparse
-from typing import Dict, Iterable, List, Set
+from __future__ import annotations
+
+from collections.abc import Iterable
 
 import cv2
 import numpy as np
@@ -27,14 +28,14 @@ ZONE_OUT_POLYGONS = [
 
 class DetectionsManager:
     def __init__(self) -> None:
-        self.tracker_id_to_zone_id: Dict[int, int] = {}
-        self.counts: Dict[int, Dict[int, Set[int]]] = {}
+        self.tracker_id_to_zone_id: dict[int, int] = {}
+        self.counts: dict[int, dict[int, set[int]]] = {}
 
     def update(
         self,
         detections_all: sv.Detections,
-        detections_in_zones: List[sv.Detections],
-        detections_out_zones: List[sv.Detections],
+        detections_in_zones: list[sv.Detections],
+        detections_out_zones: list[sv.Detections],
     ) -> sv.Detections:
         for zone_in_id, detections_in_zone in enumerate(detections_in_zones):
             for tracker_id in detections_in_zone.tracker_id:
@@ -57,9 +58,9 @@ class DetectionsManager:
 
 
 def initiate_polygon_zones(
-    polygons: List[np.ndarray],
+    polygons: list[np.ndarray],
     triggering_anchors: Iterable[sv.Position] = [sv.Position.CENTER],
-) -> List[sv.PolygonZone]:
+) -> list[sv.PolygonZone]:
     return [
         sv.PolygonZone(
             polygon=polygon,
@@ -74,7 +75,7 @@ class VideoProcessor:
         self,
         source_weights_path: str,
         source_video_path: str,
-        target_video_path: str = None,
+        target_video_path: str | None = None,
         confidence_threshold: float = 0.3,
         iou_threshold: float = 0.7,
     ) -> None:
@@ -175,45 +176,35 @@ class VideoProcessor:
         return self.annotate_frame(frame, detections)
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Traffic Flow Analysis with YOLO and ByteTrack"
-    )
+def main(
+    source_weights_path: str,
+    source_video_path: str,
+    target_video_path: str,
+    confidence_threshold: float = 0.3,
+    iou_threshold: float = 0.7,
+) -> None:
+    """
+    Traffic Flow Analysis with YOLO and ByteTrack.
 
-    parser.add_argument(
-        "--source_weights_path",
-        required=True,
-        help="Path to the source weights file",
-        type=str,
-    )
-    parser.add_argument(
-        "--source_video_path",
-        required=True,
-        help="Path to the source video file",
-        type=str,
-    )
-    parser.add_argument(
-        "--target_video_path",
-        default=None,
-        help="Path to the target video file (output)",
-        type=str,
-    )
-    parser.add_argument(
-        "--confidence_threshold",
-        default=0.3,
-        help="Confidence threshold for the model",
-        type=float,
-    )
-    parser.add_argument(
-        "--iou_threshold", default=0.7, help="IOU threshold for the model", type=float
-    )
-
-    args = parser.parse_args()
+    Args:
+        source_weights_path: Path to the source weights file
+        source_video_path: Path to the source video file
+        target_video_path: Path to the target video file (output)
+        confidence_threshold: Confidence threshold for the model
+        iou_threshold: IOU threshold for the model
+    """
     processor = VideoProcessor(
-        source_weights_path=args.source_weights_path,
-        source_video_path=args.source_video_path,
-        target_video_path=args.target_video_path,
-        confidence_threshold=args.confidence_threshold,
-        iou_threshold=args.iou_threshold,
+        source_weights_path=source_weights_path,
+        source_video_path=source_video_path,
+        target_video_path=target_video_path,
+        confidence_threshold=confidence_threshold,
+        iou_threshold=iou_threshold,
     )
     processor.process_video()
+
+
+if __name__ == "__main__":
+    from jsonargparse import auto_cli, set_parsing_settings
+
+    set_parsing_settings(parse_optionals_as_positionals=True)
+    auto_cli(main, as_positional=False)

@@ -1,5 +1,9 @@
-opencv-python
-supervision>=0.20.0
+supervision
 ultralytics
-inference==0.9.17
-pytube
+inference[gaze,transformers,sam]
+# https://github.com/pytube/pytube/issues/2044
+# pytube
+pytubefix
+jsonargparse[signatures]
+rfdetr
+yt_dlp

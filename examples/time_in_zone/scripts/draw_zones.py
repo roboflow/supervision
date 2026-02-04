@@ -1,10 +1,12 @@
-import argparse
+from __future__ import annotations
+
 import json
 import os
-from typing import Any, Optional, Tuple
+from typing import Any
 
 import cv2
 import numpy as np
+from jsonargparse import auto_cli
 
 import supervision as sv
 
@@ -19,10 +21,10 @@ COLORS = sv.ColorPalette.DEFAULT
 WINDOW_NAME = "Draw Zones"
 POLYGONS = [[]]
 
-current_mouse_position: Optional[Tuple[int, int]] = None
+current_mouse_position: tuple[int, int] | None = None
 
 
-def resolve_source(source_path: str) -> Optional[np.ndarray]:
+def resolve_source(source_path: str) -> np.ndarray | None:
     if not os.path.exists(source_path):
         return None
 
@@ -124,6 +126,13 @@ def save_polygons_to_json(polygons, target_path):
 
 
 def main(source_path: str, zone_configuration_path: str) -> None:
+    """
+    Interactively draw polygons on images or video frames and save the annotations.
+
+    Args:
+        source_path: Path to the source image or video file for drawing polygons.
+        zone_configuration_path: Path where the polygon annotations saved as JSON file.
+    """
     global current_mouse_position
     original_image = resolve_source(source_path=source_path)
     if original_image is None:
@@ -153,24 +162,7 @@ def main(source_path: str, zone_configuration_path: str) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Interactively draw polygons on images or video frames and save "
-        "the annotations."
-    )
-    parser.add_argument(
-        "--source_path",
-        type=str,
-        required=True,
-        help="Path to the source image or video file for drawing polygons.",
-    )
-    parser.add_argument(
-        "--zone_configuration_path",
-        type=str,
-        required=True,
-        help="Path where the polygon annotations will be saved as a JSON file.",
-    )
-    arguments = parser.parse_args()
-    main(
-        source_path=arguments.source_path,
-        zone_configuration_path=arguments.zone_configuration_path,
-    )
+    from jsonargparse import auto_cli, set_parsing_settings
+
+    set_parsing_settings(parse_optionals_as_positionals=True)
+    auto_cli(main, as_positional=False)
