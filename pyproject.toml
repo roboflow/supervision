@@ -16,7 +16,7 @@ keywords = [
   "Roboflow",
   "vision",
 ]
-license = { text = "MIT" }
+license = "MIT"
 maintainers = [
   { name = "Piotr Skalski", email = "piotr@roboflow.com" },
 ]
@@ -29,7 +29,6 @@ classifiers = [
   "Intended Audience :: Developers",
   "Intended Audience :: Education",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: MIT License",
   "Operating System :: MacOS",
   "Operating System :: Microsoft :: Windows",
   "Operating System :: POSIX :: Linux",
@@ -97,12 +96,14 @@ build = [
 [tool.setuptools]
 include-package-data = false
 
-[tool.setuptools.packages.find]
-include = [ "supervision*" ]
-exclude = [ "docs*", "test*", "examples*" ]
-
 [tool.setuptools.package-data]
 supervision = [ "py.typed" ]
+
+[tool.setuptools.packages.find]
+where = [ "src" ]
+include = [ "supervision*" ]
+
+#exclude = [ "docs*", "tests*", "examples*" ]
 
 [tool.ruff]
 target-version = "py39"
@@ -161,10 +162,10 @@ lint.select = [
 ]
 lint.ignore = [  ]
 lint.per-file-ignores."__init__.py" = [ "E402", "F401" ]
-lint.per-file-ignores."supervision/**" = [
+lint.per-file-ignores."src/**" = [
   "S101", # TODO: Replace asserts with proper error handling
 ]
-lint.per-file-ignores."test/**" = [
+lint.per-file-ignores."tests/**" = [
   "PT011", # TODO: `pytest.raises(Exception)` is too broad, set the `match` parameter or use a more specific exception
   "S101",  # Use of `assert` detected
 ]
@@ -199,16 +200,17 @@ python_version = "3.9"
 ignore_missing_imports = false
 explicit_package_bases = true
 strict = true
-exclude = [
-  "docs",
-  "test",
-  "examples",
-  "setup.py",
-]
+mypy_path = "src"
+#exclude = [
+#  "docs",
+#  "test",
+#  "examples",
+#  "setup.py",
+#]
 
 [[tool.mypy.overrides]]
 module = [
-  "test.*",
+  "tests.*",
   "examples.*",
   # TODO: fix type errors in the following modules
   "supervision.classification.core",
@@ -235,13 +237,6 @@ module = [
   "supervision.key_points.annotators",
   "supervision.key_points.core",
   "supervision.key_points.skeletons",
-  "supervision.metrics.core",
-  "supervision.metrics.detection",
-  "supervision.metrics.f1_score",
-  "supervision.metrics.mean_average_precision",
-  "supervision.metrics.mean_average_recall",
-  "supervision.metrics.precision",
-  "supervision.metrics.recall",
   "supervision.metrics.utils.utils",
   "supervision.tracker.byte_tracker.core",
   "supervision.tracker.byte_tracker.kalman_filter",

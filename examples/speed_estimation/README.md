@@ -29,20 +29,20 @@ https://github.com/roboflow/supervision/assets/26109316/d50118c1-2ae4-458d-915a-
 - setup python environment and activate it [optional]
 
     ```bash
-    python3.10 -m venv venv
-    source venv/bin/activate
+    uv venv
+    source .venv/bin/activate
     ```
 
 - install required dependencies
 
     ```bash
-    pip install -r requirements.txt
+    uv pip install -r requirements.txt
     ```
 
 - download `vehicles.mp4` file
 
     ```bash
-    python3.10 video_downloader.py
+    python video_downloader.py
     ```
 
 ## 🛠️ script arguments

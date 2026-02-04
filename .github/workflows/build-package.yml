@@ -10,6 +10,10 @@ on:
         required: false
         type: string
         default: "3.10"
+      link-check:
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   build:
@@ -23,6 +27,21 @@ jobs:
         with:
           python-version: ${{ inputs.python-version }}
           activate-environment: true
+
+      - name: 🎨 Augment paths in README
+        run: |
+          uv run python .github/scripts/augment_links.py README.md --branch ${{ github.head_ref || github.ref_name }}
+          cat README.md
+
+      - name: 🔗 Link Checker
+        if: inputs.link-check
+        uses: lycheeverse/lychee-action@v2
+        with:
+          lycheeVersion: v0.22.0
+          args: |
+            --config .github/lychee.toml
+            README.md
+          fail: true
 
       - name: 🏗️ Build source and wheel distributions
         run: |
