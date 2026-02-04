@@ -1,4 +1,3 @@
-import argparse
 import os
 import subprocess
 import tempfile
@@ -6,12 +5,20 @@ from glob import glob
 from threading import Thread
 
 import yaml
+from jsonargparse import auto_cli
 
 SERVER_CONFIG = {"protocols": ["tcp"], "paths": {"all": {"source": "publisher"}}}
 BASE_STREAM_URL = "rtsp://localhost:8554/live"
 
 
-def main(video_directory: str, number_of_streams: int) -> None:
+def main(video_directory: str, number_of_streams: int = 6) -> None:
+    """
+    Script to stream videos using RTSP protocol.
+
+    Args:
+        video_directory: Directory containing video files to stream.
+        number_of_streams: Number of video files to stream.
+    """
     video_files = find_video_files_in_directory(video_directory, number_of_streams)
     try:
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -82,23 +89,7 @@ def run_command(command: list) -> int:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Script to stream videos using RTSP protocol."
-    )
-    parser.add_argument(
-        "--video_directory",
-        type=str,
-        required=True,
-        help="Directory containing video files to stream.",
-    )
-    parser.add_argument(
-        "--number_of_streams",
-        type=int,
-        default=6,
-        help="Number of video files to stream.",
-    )
-    arguments = parser.parse_args()
-    main(
-        video_directory=arguments.video_directory,
-        number_of_streams=arguments.number_of_streams,
-    )
+    from jsonargparse import auto_cli, set_parsing_settings
+
+    set_parsing_settings(parse_optionals_as_positionals=True)
+    auto_cli(main, as_positional=False)

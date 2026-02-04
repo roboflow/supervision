@@ -1,4 +1,4 @@
-import argparse
+from typing import Optional
 
 import cv2
 from ultralytics import YOLO
@@ -12,10 +12,10 @@ def download_video() -> str:
     return VideoAssets.PEOPLE_WALKING.value
 
 
-def heatmap_and_track(
+def main(
     source_weights_path: str,
-    source_video_path: str,
-    target_video_path: str,
+    source_video_path: Optional[str] = None,
+    target_video_path: str = "output.mp4",
     confidence_threshold: float = 0.35,
     iou_threshold: float = 0.5,
     heatmap_alpha: float = 0.5,
@@ -24,8 +24,24 @@ def heatmap_and_track(
     track_seconds: int = 5,
     minimum_matching_threshold: float = 0.99,
 ) -> None:
+    """
+    Heatmap and Tracking with Supervision.
+
+    Args:
+        source_weights_path: Path to the source weights file
+        source_video_path: Path to the source video file
+        target_video_path: Path to the target video file
+        confidence_threshold: Confidence threshold for the model
+        iou_threshold: IOU threshold for the model
+        heatmap_alpha: Opacity of the overlay mask, between 0 and 1
+        radius: Radius of the heat circle
+        track_activation_threshold: Detection confidence threshold for track activation
+        track_seconds: Number of seconds to buffer when a track is lost
+        minimum_matching_threshold: Threshold for matching tracks with detections
+    """
     ### instantiate model
     model = YOLO(source_weights_path)
+    source_video_path = source_video_path or download_video()
 
     ### heatmap config
     heat_map_annotator = sv.HeatMapAnnotator(
@@ -101,81 +117,7 @@ def heatmap_and_track(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Heatmap and Tracking with Supervision"
-    )
-    parser.add_argument(
-        "--source_weights_path",
-        required=True,
-        help="Path to the source weights file",
-        type=str,
-    )
-    parser.add_argument(
-        "--source_video_path",
-        default=download_video(),
-        help="Path to the source video file",
-        type=str,
-    )
-    parser.add_argument(
-        "--target_video_path",
-        default="output.mp4",
-        help="Path to the target video file (output)",
-        type=str,
-    )
-    parser.add_argument(
-        "--confidence_threshold",
-        default=0.35,
-        help="Confidence threshold for the model",
-        type=float,
-    )
-    parser.add_argument(
-        "--iou_threshold",
-        default=0.5,
-        help="IOU threshold for the model",
-        type=float,
-    )
-    parser.add_argument(
-        "--heatmap_alpha",
-        default=0.5,
-        help="Opacity of the overlay mask, between 0 and 1",
-        type=float,
-    )
-    parser.add_argument(
-        "--radius",
-        default=25,
-        help="Radius of the heat circle",
-        type=float,
-    )
-    parser.add_argument(
-        "--track_threshold",
-        default=0.35,
-        help="Detection confidence threshold for track activation",
-        type=float,
-    )
-    parser.add_argument(
-        "--track_seconds",
-        default=5,
-        help="Number of seconds to buffer when a track is lost",
-        type=int,
-    )
-    parser.add_argument(
-        "--match_threshold",
-        default=0.99,
-        help="Threshold for matching tracks with detections",
-        type=float,
-    )
+    from jsonargparse import auto_cli, set_parsing_settings
 
-    args = parser.parse_args()
-
-    heatmap_and_track(
-        source_weights_path=args.source_weights_path,
-        source_video_path=args.source_video_path,
-        target_video_path=args.target_video_path,
-        confidence_threshold=args.confidence_threshold,
-        iou_threshold=args.iou_threshold,
-        heatmap_alpha=args.heatmap_alpha,
-        radius=args.radius,
-        track_activation_threshold=args.track_threshold,
-        track_seconds=args.track_seconds,
-        minimum_matching_threshold=args.match_threshold,
-    )
+    set_parsing_settings(parse_optionals_as_positionals=True)
+    auto_cli(main, as_positional=False)
