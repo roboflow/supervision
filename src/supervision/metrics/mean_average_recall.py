@@ -425,6 +425,7 @@ class MeanAverageRecall(Metric):
                 large_objects=None,
             )
 
+        # To-do #1966
         concatenated_stats = [np.concatenate(items, 0) for items in zip(*stats)]
         recall_scores_per_k, recall_per_class, unique_classes = (
             self._compute_average_recall_for_classes(*concatenated_stats)
