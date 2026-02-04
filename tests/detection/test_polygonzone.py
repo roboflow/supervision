@@ -122,12 +122,12 @@ def test_polygon_zone_initialization(polygon, triggering_anchors, exception):
         sv.PolygonZone(polygon, triggering_anchors=triggering_anchors)
 
 
-# Test that a detection box that overlaps two polygon zones
-# triggers only one of the zones.
-# https://github.com/roboflow/supervision/issues/1987
-
-
 def test_polygon_zone_det_overlap():
+    """
+    Test that a detection box that overlaps two polygon zones
+    triggers only one of the zones.
+    https://github.com/roboflow/supervision/issues/1987
+    """
     polygon_zone1 = sv.PolygonZone(
         POLYGON,
         triggering_anchors=([sv.Position.CENTER]),
