@@ -28,18 +28,64 @@ class Position(Enum):
 
 @dataclass
 class Point:
+    """
+    Represents a point in 2D space.
+
+    Attributes:
+        x: The x-coordinate of the point.
+        y: The y-coordinate of the point.
+
+    Example:
+        >>> from supervision.geometry.core import Point
+        >>> point = Point(x=10.0, y=20.0)
+        >>> point.as_xy_int_tuple()
+        (10, 20)
+        >>> point.as_xy_float_tuple()
+        (10.0, 20.0)
+    """
+
     x: float
     y: float
 
     def as_xy_int_tuple(self) -> tuple[int, int]:
+        """
+        Returns the point as a tuple of integers.
+
+        Returns:
+            The point as (x, y) integers.
+        """
         return int(self.x), int(self.y)
 
     def as_xy_float_tuple(self) -> tuple[float, float]:
+        """
+        Returns the point as a tuple of floats.
+
+        Returns:
+            The point as (x, y) floats.
+        """
         return self.x, self.y
 
 
 @dataclass
 class Vector:
+    """
+    Represents a vector in 2D space, defined by a start and an end point.
+
+    Attributes:
+        start: The starting point of the vector.
+        end: The end point of the vector.
+
+    Example:
+        >>> from supervision.geometry.core import Point, Vector
+        >>> start_point = Point(x=0.0, y=0.0)
+        >>> end_point = Point(x=3.0, y=4.0)
+        >>> vector = Vector(start=start_point, end=end_point)
+        >>> vector.magnitude
+        5.0
+        >>> vector.center
+        Point(x=1.5, y=2.0)
+    """
+
     start: Point
     end: Point
 
@@ -49,7 +95,7 @@ class Vector:
         Calculate the magnitude (length) of the vector.
 
         Returns:
-            float: The magnitude of the vector.
+            The magnitude of the vector.
         """
         dx = self.end.x - self.start.x
         dy = self.end.y - self.start.y
@@ -61,7 +107,7 @@ class Vector:
         Calculate the center point of the vector.
 
         Returns:
-            Point: The center point of the vector.
+            The center point of the vector.
         """
         return Point(
             x=(self.start.x + self.end.x) / 2,
@@ -74,11 +120,11 @@ class Vector:
         product) of the vector and a point, treated as vectors in 2D space.
 
         Args:
-            point (Point): The point to be evaluated, treated as the endpoint of a
+            point: The point to be evaluated, treated as the endpoint of a
                 vector originating from the 'start' of the main vector.
 
         Returns:
-            float: The scalar value of the cross product. It is positive if 'point'
+            The scalar value of the cross product. It is positive if 'point'
                 lies to the left of the vector (when moving from 'start' to 'end'),
                 negative if it lies to the right, and 0 if it is collinear with the
                 vector.
@@ -92,6 +138,26 @@ class Vector:
 
 @dataclass
 class Rect:
+    """
+    Represents a rectangle in 2D space.
+
+    Attributes:
+        x: The x-coordinate of the top-left corner of the rectangle.
+        y: The y-coordinate of the top-left corner of the rectangle.
+        width: The width of the rectangle.
+        height: The height of the rectangle.
+
+    Example:
+        >>> from supervision.geometry.core import Rect
+        >>> rect = Rect(x=10.0, y=20.0, width=30.0, height=40.0)
+        >>> rect.top_left
+        Point(x=10.0, y=20.0)
+        >>> rect.bottom_right
+        Point(x=40.0, y=60.0)
+        >>> rect.as_xyxy_int_tuple()
+        (10, 20, 40, 60)
+    """
+
     x: float
     y: float
     width: float

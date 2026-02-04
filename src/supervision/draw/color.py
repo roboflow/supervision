@@ -382,11 +382,18 @@ def unify_to_bgr(color: tuple[int, int, int] | Color) -> tuple[int, int, int]:
     Converts a color input in multiple formats to a standardized BGR format.
 
     Args:
-        color (Union[Tuple[int, int, int], Color]): The color input to be converted,
+        color: The color input to be converted,
             which can be either a tuple of RGB values or an instance of a Color class.
 
     Returns:
-        Tuple[int, int, int]: The color in BGR format as a tuple of three integers.
+        The color in BGR format as a tuple of three integers.
+
+    Example:
+        >>> from supervision.draw.color import unify_to_bgr, Color
+        >>> unify_to_bgr(Color.WHITE)
+        (255, 255, 255)
+        >>> unify_to_bgr((0, 255, 255))
+        (0, 255, 255)
     """
     if issubclass(type(color), Color):
         color = cast(Color, color)

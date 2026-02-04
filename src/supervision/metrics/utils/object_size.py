@@ -16,6 +16,22 @@ SIZE_THRESHOLDS = (32**2, 96**2)
 
 
 class ObjectSizeCategory(Enum):
+    """
+    Enum for object size categories based on area in pixels.
+
+    Small: area < 32^2
+    Medium: 32^2 <= area < 96^2
+    Large: area >= 96^2
+
+    Example:
+        >>> from supervision.metrics.utils.object_size import ObjectSizeCategory
+        >>> ObjectSizeCategory.SMALL.value
+        1
+        >>> ObjectSizeCategory.MEDIUM.value
+        2
+        >>> ObjectSizeCategory.LARGE.value
+        3
+    """
     ANY = -1
     SMALL = 1
     MEDIUM = 2
@@ -29,13 +45,25 @@ def get_object_size_category(
     Get the size category of an object. Distinguish based on the metric target.
 
     Args:
-        data (np.ndarray): The object data, shaped (N, ...).
-        metric_target (MetricTarget): Determines whether boxes, masks or
+        data: The object data, shaped (N, ...).
+        metric_target: Determines whether boxes, masks or
             oriented bounding boxes are used.
 
     Returns:
-        (np.ndarray) The size category of each object, matching
+        The size category of each object, matching
         the enum values of ObjectSizeCategory. Shaped (N,).
+
+    Example:
+        >>> import numpy as np
+        >>> from supervision.metrics.core import MetricTarget
+        >>> from supervision.metrics.utils.object_size import get_object_size_category
+        >>> xyxy = np.array([
+        ...     [0, 0, 10, 10],    # 100 (Small)
+        ...     [0, 0, 50, 50],    # 2500 (Medium)
+        ...     [0, 0, 100, 100]   # 10000 (Large)
+        ... ])
+        >>> get_object_size_category(xyxy, MetricTarget.BOXES)
+        array([1, 2, 3])
     """
     if metric_target == MetricTarget.BOXES:
         return get_bbox_size_category(data)
@@ -51,11 +79,23 @@ def get_bbox_size_category(xyxy: npt.NDArray[np.float32]) -> npt.NDArray[np.int_
     Get the size category of a bounding boxes array.
 
     Args:
-        xyxy (np.ndarray): The bounding boxes array shaped (N, 4).
+        xyxy: The bounding boxes array shaped (N, 4).
 
     Returns:
-        (np.ndarray) The size category of each bounding box, matching
+        The size category of each bounding box, matching
         the enum values of ObjectSizeCategory. Shaped (N,).
+
+    Example:
+        >>> import numpy as np
+        >>> from supervision.metrics.utils.object_size import get_bbox_size_category
+        >>> xyxy = np.array([
+        ...     [0, 0, 31, 31],    # 961 (Small)
+        ...     [0, 0, 32, 32],    # 1024 (Medium)
+        ...     [0, 0, 95, 95],    # 9025 (Medium)
+        ...     [0, 0, 96, 96]     # 9216 (Large)
+        ... ])
+        >>> get_bbox_size_category(xyxy)
+        array([1, 2, 2, 3])
     """
     if len(xyxy.shape) != 2 or xyxy.shape[1] != 4:
         raise ValueError("Bounding boxes must be shaped (N, 4)")
@@ -77,11 +117,21 @@ def get_mask_size_category(mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.int_]:
     Get the size category of detection masks.
 
     Args:
-        mask (np.ndarray): The mask array shaped (N, H, W).
+        mask: The mask array shaped (N, H, W).
 
     Returns:
-        (np.ndarray) The size category of each mask, matching
+        The size category of each mask, matching
         the enum values of ObjectSizeCategory. Shaped (N,).
+
+    Example:
+        >>> import numpy as np
+        >>> from supervision.metrics.utils.object_size import get_mask_size_category
+        >>> mask = np.zeros((3, 100, 100), dtype=bool)
+        >>> mask[0, 0:10, 0:10] = True   # 100 (Small)
+        >>> mask[1, 0:50, 0:50] = True   # 2500 (Medium)
+        >>> mask[2, 0:100, 0:100] = True # 10000 (Large)
+        >>> get_mask_size_category(mask)
+        array([1, 2, 3])
     """
     if len(mask.shape) != 3:
         raise ValueError("Masks must be shaped (N, H, W)")
@@ -101,11 +151,22 @@ def get_obb_size_category(xyxyxyxy: npt.NDArray[np.float32]) -> npt.NDArray[np.i
     Get the size category of a oriented bounding boxes array.
 
     Args:
-        xyxyxyxy (np.ndarray): The bounding boxes array shaped (N, 4, 2).
+        xyxyxyxy: The bounding boxes array shaped (N, 4, 2).
 
     Returns:
-        (np.ndarray) The size category of each bounding box, matching
+        The size category of each bounding box, matching
         the enum values of ObjectSizeCategory. Shaped (N,).
+
+    Example:
+        >>> import numpy as np
+        >>> from supervision.metrics.utils.object_size import get_obb_size_category
+        >>> obb = np.array([
+        ...     [[0, 0], [10, 0], [10, 10], [0, 10]],   # 100 (Small)
+        ...     [[0, 0], [50, 0], [50, 50], [0, 50]],   # 2500 (Medium)
+        ...     [[0, 0], [100, 0], [100, 100], [0, 100]] # 10000 (Large)
+        ... ])
+        >>> get_obb_size_category(obb)
+        array([1, 2, 3])
     """
     if len(xyxyxyxy.shape) != 3 or xyxyxyxy.shape[1] != 4 or xyxyxyxy.shape[2] != 2:
         raise ValueError("Oriented bounding boxes must be shaped (N, 4, 2)")
@@ -135,12 +196,12 @@ def get_detection_size_category(
     Get the size category of a detections object.
 
     Args:
-        xyxyxyxy (np.ndarray): The bounding boxes array shaped (N, 8).
-        metric_target (MetricTarget): Determines whether boxes, masks or
+        detections: The detections object.
+        metric_target: Determines whether boxes, masks or
             oriented bounding boxes are used.
 
     Returns:
-        (np.ndarray) The size category of each bounding box, matching
+        The size category of each bounding box, matching
         the enum values of ObjectSizeCategory. Shaped (N,).
     """
     if metric_target == MetricTarget.BOXES:

@@ -30,6 +30,29 @@ class DetectionsSmoother:
         - This class is not compatible with segmentation models.
 
     Example:
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> smoother = sv.DetectionsSmoother(length=3)
+        >>> detections_1 = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]]),
+        ...     confidence=np.array([0.5]),
+        ...     tracker_id=np.array([1])
+        ... )
+        >>> detections_2 = sv.Detections(
+        ...     xyxy=np.array([[2, 2, 12, 12]]),
+        ...     confidence=np.array([0.7]),
+        ...     tracker_id=np.array([1])
+        ... )
+        >>> smoothed = smoother.update_with_detections(detections_1)
+        >>> smoothed.xyxy
+        array([[ 0.,  0., 10., 10.]])
+        >>> smoothed = smoother.update_with_detections(detections_2)
+        >>> smoothed.xyxy
+        array([[ 1.,  1., 11., 11.]])
+        >>> smoothed.confidence
+        array([0.6])
+
+
         ```python
         import supervision as sv
 
@@ -60,7 +83,7 @@ class DetectionsSmoother:
     def __init__(self, length: int = 5) -> None:
         """
         Args:
-            length (int): The maximum number of frames to consider for smoothing
+            length: The maximum number of frames to consider for smoothing
                 detections. Defaults to 5.
         """
         self.tracks = defaultdict(lambda: deque(maxlen=length))
@@ -70,7 +93,7 @@ class DetectionsSmoother:
         Updates the smoother with a new set of detections from a frame.
 
         Args:
-            detections (Detections): The detections to add to the smoother.
+            detections: The detections to add to the smoother.
         """
 
         if detections.tracker_id is None:

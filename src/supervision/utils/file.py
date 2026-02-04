@@ -80,6 +80,18 @@ def read_txt_file(file_path: str | Path, skip_empty: bool = False) -> list[str]:
 
     Returns:
         A list of strings representing the lines in the text file.
+
+    Examples:
+        >>> import tempfile
+        >>> from pathlib import Path
+        >>> from supervision.utils.file import read_txt_file, save_text_file
+        >>> with tempfile.TemporaryDirectory() as tmpdir:
+        ...     file_path = Path(tmpdir) / "test.txt"
+        ...     save_text_file(["line1", " ", "line3"], file_path)
+        ...     print(read_txt_file(file_path))
+        ...     print(read_txt_file(file_path, skip_empty=True))
+        ['line1', ' ', 'line3']
+        ['line1', 'line3']
     """
     with open(str(file_path)) as file:
         if skip_empty:
@@ -112,6 +124,17 @@ def read_json_file(file_path: str | Path) -> dict[str, Any]:
 
     Returns:
         A dict of annotations information
+
+    Examples:
+        >>> import tempfile
+        >>> from pathlib import Path
+        >>> from supervision.utils.file import read_json_file, save_json_file
+        >>> data = {"key": "value", "list": [1, 2, 3]}
+        >>> with tempfile.TemporaryDirectory() as tmpdir:
+        ...     file_path = Path(tmpdir) / "test.json"
+        ...     save_json_file(data, file_path)
+        ...     print(read_json_file(file_path))
+        {'key': 'value', 'list': [1, 2, 3]}
     """
     with open(str(file_path)) as file:
         data = json.load(file)

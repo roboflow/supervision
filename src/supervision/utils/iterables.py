@@ -70,6 +70,19 @@ def fill(sequence: list[V], desired_size: int, content: V) -> list[V]:
 def find_duplicates(sequence: list[V]) -> list[V]:
     """
     Find all duplicate elements in the input sequence.
+
+    Args:
+        sequence: The input sequence.
+
+    Returns:
+        A list of duplicate elements found in the sequence.
+
+    Examples:
+        >>> from supervision.utils.iterables import find_duplicates
+        >>> sorted(find_duplicates([1, 2, 3, 2, 4, 5, 1]))
+        [1, 2]
+        >>> find_duplicates(['a', 'b', 'c'])
+        []
     """
     seen = set()
     duplicates = set()

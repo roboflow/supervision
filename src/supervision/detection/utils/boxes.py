@@ -11,14 +11,14 @@ def clip_boxes(xyxy: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
     Clips bounding boxes coordinates to fit within the frame resolution.
 
     Args:
-        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
+        xyxy: A numpy array of shape `(N, 4)` where each
             row corresponds to a bounding box in
             the format `(x_min, y_min, x_max, y_max)`.
-        resolution_wh (Tuple[int, int]): A tuple of the form
+        resolution_wh: A tuple of the form
             `(width, height)` representing the resolution of the frame.
 
     Returns:
-        np.ndarray: A numpy array of shape `(N, 4)` where each row
+        A numpy array of shape `(N, 4)` where each row
             corresponds to a bounding box with coordinates clipped to fit
             within the frame resolution.
 
@@ -47,17 +47,17 @@ def pad_boxes(xyxy: np.ndarray, px: int, py: int | None = None) -> np.ndarray:
     Pads bounding boxes coordinates with a constant padding.
 
     Args:
-        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each
+        xyxy: A numpy array of shape `(N, 4)` where each
             row corresponds to a bounding box in the format
             `(x_min, y_min, x_max, y_max)`.
-        px (int): The padding value to be added to both the left and right sides of
+        px: The padding value to be added to both the left and right sides of
             each bounding box.
-        py (Optional[int]): The padding value to be added to both the top and bottom
+        py: The padding value to be added to both the top and bottom
             sides of each bounding box. If not provided, `px` will be used for both
             dimensions.
 
     Returns:
-        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds to a
+        A numpy array of shape `(N, 4)` where each row corresponds to a
             bounding box with coordinates padded according to the provided padding
             values.
 
@@ -95,15 +95,15 @@ def denormalize_boxes(
     to absolute pixel values for a given resolution.
 
     Args:
-        xyxy (`numpy.ndarray`): Normalized bounding boxes of shape `(N, 4)`,
+        xyxy: Normalized bounding boxes of shape `(N, 4)`,
             where each row is `(x_min, y_min, x_max, y_max)`, values in
             `[0, normalization_factor]`.
-        resolution_wh (`tuple[int, int]`): Target image resolution as `(width, height)`.
-        normalization_factor (`float`): Maximum value of input coordinate range.
+        resolution_wh: Target image resolution as `(width, height)`.
+        normalization_factor: Maximum value of input coordinate range.
             Defaults to `1.0`.
 
     Returns:
-        (`numpy.ndarray`): Array of shape `(N, 4)` with absolute coordinates in
+        Array of shape `(N, 4)` with absolute coordinates in
             `(x_min, y_min, x_max, y_max)` format.
 
     Examples:
@@ -139,13 +139,13 @@ def move_boxes(
 ) -> npt.NDArray[np.float64]:
     """
     Parameters:
-        xyxy (npt.NDArray[np.float64]): An array of shape `(n, 4)` containing the
+        xyxy: An array of shape `(n, 4)` containing the
             bounding boxes coordinates in format `[x1, y1, x2, y2]`
-        offset (np.array): An array of shape `(2,)` containing offset values in format
+        offset: An array of shape `(2,)` containing offset values in format
             is `[dx, dy]`.
 
     Returns:
-        npt.NDArray[np.float64]: Repositioned bounding boxes.
+        Repositioned bounding boxes.
 
     Examples:
         >>> import numpy as np
@@ -167,14 +167,14 @@ def move_oriented_boxes(
 ) -> npt.NDArray[np.float64]:
     """
     Parameters:
-    xyxyxyxy (npt.NDArray[np.float64]): An array of shape `(n, 4, 2)` containing the
-    oriented bounding boxes coordinates in format
-    `[[x1, y1], [x2, y2], [x3, y3], [x3, y3]]`
-    offset (np.array): An array of shape `(2,)` containing offset values in format
-        is `[dx, dy]`.
+        xyxyxyxy: An array of shape `(n, 4, 2)` containing the
+        oriented bounding boxes coordinates in format
+        `[[x1, y1], [x2, y2], [x3, y3], [x3, y3]]`
+        offset: An array of shape `(2,)` containing offset values in format
+            is `[dx, dy]`.
 
     Returns:
-    npt.NDArray[np.float64]: Repositioned bounding boxes.
+        Repositioned bounding boxes.
 
     Examples:
         >>> import numpy as np
@@ -215,14 +215,14 @@ def scale_boxes(
     Scale the dimensions of bounding boxes.
 
     Parameters:
-        xyxy (npt.NDArray[np.float64]): An array of shape `(n, 4)` containing the
+        xyxy: An array of shape `(n, 4)` containing the
             bounding boxes coordinates in format `[x1, y1, x2, y2]`
-        factor (float): A float value representing the factor by which the box
+        factor: A float value representing the factor by which the box
             dimensions are scaled. A factor greater than 1 enlarges the boxes, while a
             factor less than 1 shrinks them.
 
     Returns:
-        npt.NDArray[np.float64]: Scaled bounding boxes.
+        Scaled bounding boxes.
 
     Examples:
         >>> import numpy as np
@@ -250,6 +250,20 @@ def spread_out_boxes(
     Args:
         xyxy: Numpy array of shape (N, 4) where N is the number of boxes.
         max_iterations: Maximum number of iterations to run the algorithm for.
+
+    Example:
+        >>> import numpy as np
+        >>> from supervision.detection.utils.boxes import spread_out_boxes
+        >>> xyxy = np.array([
+        ...     [10, 10, 20, 20],
+        ...     [12, 12, 22, 22]
+        ... ])
+        >>> spread_out = spread_out_boxes(xyxy=xyxy, max_iterations=10)
+        >>> # The boxes should be moved apart
+        >>> bool(spread_out[0, 0] < 10 and spread_out[0, 1] < 10)
+        True
+        >>> bool(spread_out[1, 0] > 12 and spread_out[1, 1] > 12)
+        True
     """
     if len(xyxy) == 0:
         return xyxy
