@@ -2968,7 +2968,7 @@ bounding boxes coordinates in format <code>[x1, y1, x2, y2]</code></p>
 <h3 id="supervision.detection.utils.boxes.move_boxes(offset)" class="doc doc-heading doc-heading-parameter">                  <code>offset</code>
 <a href="#supervision.detection.utils.boxes.move_boxes(offset)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code><span title="numpy.array">array</span></code>
+                  <code><span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.int32">int32</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2999,7 +2999,7 @@ is <code>[dx, dy]</code>.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>npt.NDArray[np.float64]: Repositioned bounding boxes.</p>
+                <p>Repositioned bounding boxes.</p>
               </div>
             </td>
           </tr>
@@ -3053,13 +3053,13 @@ is <code>[dx, dy]</code>.</p>
 </span><span id="__span-0-139"><a id="__codelineno-0-139" name="__codelineno-0-139"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
 </span><span id="__span-0-140"><a id="__codelineno-0-140" name="__codelineno-0-140"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="__span-0-141"><a id="__codelineno-0-141" name="__codelineno-0-141"></a><span class="sd">    Parameters:</span>
-</span><span id="__span-0-142"><a id="__codelineno-0-142" name="__codelineno-0-142"></a><span class="sd">        xyxy (npt.NDArray[np.float64]): An array of shape `(n, 4)` containing the</span>
+</span><span id="__span-0-142"><a id="__codelineno-0-142" name="__codelineno-0-142"></a><span class="sd">        xyxy: An array of shape `(n, 4)` containing the</span>
 </span><span id="__span-0-143"><a id="__codelineno-0-143" name="__codelineno-0-143"></a><span class="sd">            bounding boxes coordinates in format `[x1, y1, x2, y2]`</span>
-</span><span id="__span-0-144"><a id="__codelineno-0-144" name="__codelineno-0-144"></a><span class="sd">        offset (np.array): An array of shape `(2,)` containing offset values in format</span>
+</span><span id="__span-0-144"><a id="__codelineno-0-144" name="__codelineno-0-144"></a><span class="sd">        offset: An array of shape `(2,)` containing offset values in format</span>
 </span><span id="__span-0-145"><a id="__codelineno-0-145" name="__codelineno-0-145"></a><span class="sd">            is `[dx, dy]`.</span>
 </span><span id="__span-0-146"><a id="__codelineno-0-146" name="__codelineno-0-146"></a>
 </span><span id="__span-0-147"><a id="__codelineno-0-147" name="__codelineno-0-147"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-148"><a id="__codelineno-0-148" name="__codelineno-0-148"></a><span class="sd">        npt.NDArray[np.float64]: Repositioned bounding boxes.</span>
+</span><span id="__span-0-148"><a id="__codelineno-0-148" name="__codelineno-0-148"></a><span class="sd">        Repositioned bounding boxes.</span>
 </span><span id="__span-0-149"><a id="__codelineno-0-149" name="__codelineno-0-149"></a>
 </span><span id="__span-0-150"><a id="__codelineno-0-150" name="__codelineno-0-150"></a><span class="sd">    Examples:</span>
 </span><span id="__span-0-151"><a id="__codelineno-0-151" name="__codelineno-0-151"></a><span class="sd">        &gt;&gt;&gt; import numpy as np</span>
@@ -3163,7 +3163,7 @@ factor less than 1 shrinks them.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>npt.NDArray[np.float64]: Scaled bounding boxes.</p>
+                <p>Scaled bounding boxes.</p>
               </div>
             </td>
           </tr>
@@ -3222,14 +3222,14 @@ factor less than 1 shrinks them.</p>
 </span><span id="__span-0-215"><a id="__codelineno-0-215" name="__codelineno-0-215"></a><span class="sd">    Scale the dimensions of bounding boxes.</span>
 </span><span id="__span-0-216"><a id="__codelineno-0-216" name="__codelineno-0-216"></a>
 </span><span id="__span-0-217"><a id="__codelineno-0-217" name="__codelineno-0-217"></a><span class="sd">    Parameters:</span>
-</span><span id="__span-0-218"><a id="__codelineno-0-218" name="__codelineno-0-218"></a><span class="sd">        xyxy (npt.NDArray[np.float64]): An array of shape `(n, 4)` containing the</span>
+</span><span id="__span-0-218"><a id="__codelineno-0-218" name="__codelineno-0-218"></a><span class="sd">        xyxy: An array of shape `(n, 4)` containing the</span>
 </span><span id="__span-0-219"><a id="__codelineno-0-219" name="__codelineno-0-219"></a><span class="sd">            bounding boxes coordinates in format `[x1, y1, x2, y2]`</span>
-</span><span id="__span-0-220"><a id="__codelineno-0-220" name="__codelineno-0-220"></a><span class="sd">        factor (float): A float value representing the factor by which the box</span>
+</span><span id="__span-0-220"><a id="__codelineno-0-220" name="__codelineno-0-220"></a><span class="sd">        factor: A float value representing the factor by which the box</span>
 </span><span id="__span-0-221"><a id="__codelineno-0-221" name="__codelineno-0-221"></a><span class="sd">            dimensions are scaled. A factor greater than 1 enlarges the boxes, while a</span>
 </span><span id="__span-0-222"><a id="__codelineno-0-222" name="__codelineno-0-222"></a><span class="sd">            factor less than 1 shrinks them.</span>
 </span><span id="__span-0-223"><a id="__codelineno-0-223" name="__codelineno-0-223"></a>
 </span><span id="__span-0-224"><a id="__codelineno-0-224" name="__codelineno-0-224"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-225"><a id="__codelineno-0-225" name="__codelineno-0-225"></a><span class="sd">        npt.NDArray[np.float64]: Scaled bounding boxes.</span>
+</span><span id="__span-0-225"><a id="__codelineno-0-225" name="__codelineno-0-225"></a><span class="sd">        Scaled bounding boxes.</span>
 </span><span id="__span-0-226"><a id="__codelineno-0-226" name="__codelineno-0-226"></a>
 </span><span id="__span-0-227"><a id="__codelineno-0-227" name="__codelineno-0-227"></a><span class="sd">    Examples:</span>
 </span><span id="__span-0-228"><a id="__codelineno-0-228" name="__codelineno-0-228"></a><span class="sd">        &gt;&gt;&gt; import numpy as np</span>
@@ -3303,7 +3303,7 @@ the format <code>(x_min, y_min, x_max, y_max)</code>.</p>
 <h3 id="supervision.detection.utils.boxes.clip_boxes(resolution_wh)" class="doc doc-heading doc-heading-parameter">                  <code>resolution_wh</code>
 <a href="#supervision.detection.utils.boxes.clip_boxes(resolution_wh)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code><span title="Tuple">Tuple</span>[<span title="int">int</span>, <span title="int">int</span>]</code>
+                  <code><span title="tuple">tuple</span>[<span title="int">int</span>, <span title="int">int</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3334,7 +3334,7 @@ the format <code>(x_min, y_min, x_max, y_max)</code>.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>np.ndarray: A numpy array of shape <code>(N, 4)</code> where each row
+                <p>A numpy array of shape <code>(N, 4)</code> where each row
 corresponds to a bounding box with coordinates clipped to fit
 within the frame resolution.</p>
               </div>
@@ -3399,14 +3399,14 @@ within the frame resolution.</p>
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11"></a><span class="sd">    Clips bounding boxes coordinates to fit within the frame resolution.</span>
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12"></a>
 </span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="sd">        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="sd">        xyxy: A numpy array of shape `(N, 4)` where each</span>
 </span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="sd">            row corresponds to a bounding box in</span>
 </span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="sd">            the format `(x_min, y_min, x_max, y_max)`.</span>
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="sd">        resolution_wh (Tuple[int, int]): A tuple of the form</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="sd">        resolution_wh: A tuple of the form</span>
 </span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18"></a><span class="sd">            `(width, height)` representing the resolution of the frame.</span>
 </span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19"></a>
 </span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="sd">        np.ndarray: A numpy array of shape `(N, 4)` where each row</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="sd">        A numpy array of shape `(N, 4)` where each row</span>
 </span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="sd">            corresponds to a bounding box with coordinates clipped to fit</span>
 </span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="sd">            within the frame resolution.</span>
 </span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a>
@@ -3503,7 +3503,7 @@ each bounding box.</p>
 <h3 id="supervision.detection.utils.boxes.pad_boxes(py)" class="doc doc-heading doc-heading-parameter">                  <code>py</code>
 <a href="#supervision.detection.utils.boxes.pad_boxes(py)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code><span title="Optional">Optional</span>[<span title="int">int</span>]</code>
+                  <code><span title="int">int</span> | None</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3535,7 +3535,7 @@ dimensions.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>np.ndarray: A numpy array of shape <code>(N, 4)</code> where each row corresponds to a
+                <p>A numpy array of shape <code>(N, 4)</code> where each row corresponds to a
 bounding box with coordinates padded according to the provided padding
 values.</p>
               </div>
@@ -3602,17 +3602,17 @@ values.</p>
 </span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="sd">    Pads bounding boxes coordinates with a constant padding.</span>
 </span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48"></a>
 </span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50"></a><span class="sd">        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each</span>
+</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50"></a><span class="sd">        xyxy: A numpy array of shape `(N, 4)` where each</span>
 </span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51"></a><span class="sd">            row corresponds to a bounding box in the format</span>
 </span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52"></a><span class="sd">            `(x_min, y_min, x_max, y_max)`.</span>
-</span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53"></a><span class="sd">        px (int): The padding value to be added to both the left and right sides of</span>
+</span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53"></a><span class="sd">        px: The padding value to be added to both the left and right sides of</span>
 </span><span id="__span-0-54"><a id="__codelineno-0-54" name="__codelineno-0-54"></a><span class="sd">            each bounding box.</span>
-</span><span id="__span-0-55"><a id="__codelineno-0-55" name="__codelineno-0-55"></a><span class="sd">        py (Optional[int]): The padding value to be added to both the top and bottom</span>
+</span><span id="__span-0-55"><a id="__codelineno-0-55" name="__codelineno-0-55"></a><span class="sd">        py: The padding value to be added to both the top and bottom</span>
 </span><span id="__span-0-56"><a id="__codelineno-0-56" name="__codelineno-0-56"></a><span class="sd">            sides of each bounding box. If not provided, `px` will be used for both</span>
 </span><span id="__span-0-57"><a id="__codelineno-0-57" name="__codelineno-0-57"></a><span class="sd">            dimensions.</span>
 </span><span id="__span-0-58"><a id="__codelineno-0-58" name="__codelineno-0-58"></a>
 </span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60"></a><span class="sd">        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds to a</span>
+</span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60"></a><span class="sd">        A numpy array of shape `(N, 4)` where each row corresponds to a</span>
 </span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a><span class="sd">            bounding box with coordinates padded according to the provided padding</span>
 </span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62"></a><span class="sd">            values.</span>
 </span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63"></a>
@@ -3678,7 +3678,7 @@ to absolute pixel values for a given resolution.</p>
 <h3 id="supervision.detection.utils.boxes.denormalize_boxes(xyxy)" class="doc doc-heading doc-heading-parameter">                  <code>xyxy</code>
 <a href="#supervision.detection.utils.boxes.denormalize_boxes(xyxy)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code>`numpy.ndarray`</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3696,7 +3696,7 @@ where each row is <code>(x_min, y_min, x_max, y_max)</code>, values in
 <h3 id="supervision.detection.utils.boxes.denormalize_boxes(resolution_wh)" class="doc doc-heading doc-heading-parameter">                  <code>resolution_wh</code>
 <a href="#supervision.detection.utils.boxes.denormalize_boxes(resolution_wh)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code>`tuple[int, int]`</code>
+                  <code><span title="tuple">tuple</span>[<span title="int">int</span>, <span title="int">int</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3712,7 +3712,7 @@ where each row is <code>(x_min, y_min, x_max, y_max)</code>, values in
 <h3 id="supervision.detection.utils.boxes.denormalize_boxes(normalization_factor)" class="doc doc-heading doc-heading-parameter">                  <code>normalization_factor</code>
 <a href="#supervision.detection.utils.boxes.denormalize_boxes(normalization_factor)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code>`float`</code>
+                  <code><span title="float">float</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3739,7 +3739,7 @@ Defaults to <code>1.0</code>.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>`numpy.ndarray`</code>
+                  <code><span title="numpy.ndarray">ndarray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3837,15 +3837,15 @@ Defaults to <code>1.0</code>.</p>
 </span><span id="__span-0-95"><a id="__codelineno-0-95" name="__codelineno-0-95"></a><span class="sd">    to absolute pixel values for a given resolution.</span>
 </span><span id="__span-0-96"><a id="__codelineno-0-96" name="__codelineno-0-96"></a>
 </span><span id="__span-0-97"><a id="__codelineno-0-97" name="__codelineno-0-97"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-98"><a id="__codelineno-0-98" name="__codelineno-0-98"></a><span class="sd">        xyxy (`numpy.ndarray`): Normalized bounding boxes of shape `(N, 4)`,</span>
+</span><span id="__span-0-98"><a id="__codelineno-0-98" name="__codelineno-0-98"></a><span class="sd">        xyxy: Normalized bounding boxes of shape `(N, 4)`,</span>
 </span><span id="__span-0-99"><a id="__codelineno-0-99" name="__codelineno-0-99"></a><span class="sd">            where each row is `(x_min, y_min, x_max, y_max)`, values in</span>
 </span><span id="__span-0-100"><a id="__codelineno-0-100" name="__codelineno-0-100"></a><span class="sd">            `[0, normalization_factor]`.</span>
-</span><span id="__span-0-101"><a id="__codelineno-0-101" name="__codelineno-0-101"></a><span class="sd">        resolution_wh (`tuple[int, int]`): Target image resolution as `(width, height)`.</span>
-</span><span id="__span-0-102"><a id="__codelineno-0-102" name="__codelineno-0-102"></a><span class="sd">        normalization_factor (`float`): Maximum value of input coordinate range.</span>
+</span><span id="__span-0-101"><a id="__codelineno-0-101" name="__codelineno-0-101"></a><span class="sd">        resolution_wh: Target image resolution as `(width, height)`.</span>
+</span><span id="__span-0-102"><a id="__codelineno-0-102" name="__codelineno-0-102"></a><span class="sd">        normalization_factor: Maximum value of input coordinate range.</span>
 </span><span id="__span-0-103"><a id="__codelineno-0-103" name="__codelineno-0-103"></a><span class="sd">            Defaults to `1.0`.</span>
 </span><span id="__span-0-104"><a id="__codelineno-0-104" name="__codelineno-0-104"></a>
 </span><span id="__span-0-105"><a id="__codelineno-0-105" name="__codelineno-0-105"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-106"><a id="__codelineno-0-106" name="__codelineno-0-106"></a><span class="sd">        (`numpy.ndarray`): Array of shape `(N, 4)` with absolute coordinates in</span>
+</span><span id="__span-0-106"><a id="__codelineno-0-106" name="__codelineno-0-106"></a><span class="sd">        Array of shape `(N, 4)` with absolute coordinates in</span>
 </span><span id="__span-0-107"><a id="__codelineno-0-107" name="__codelineno-0-107"></a><span class="sd">            `(x_min, y_min, x_max, y_max)` format.</span>
 </span><span id="__span-0-108"><a id="__codelineno-0-108" name="__codelineno-0-108"></a>
 </span><span id="__span-0-109"><a id="__codelineno-0-109" name="__codelineno-0-109"></a><span class="sd">    Examples:</span>
