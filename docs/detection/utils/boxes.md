@@ -1,6 +1,5 @@
 ---
 comments: true
-status: new
 ---
 
 # Boxes Utils
@@ -18,7 +17,7 @@ status: new
 :::supervision.detection.utils.boxes.scale_boxes
 
 <div class="md-typeset">
-  <h2><a href="#supervision.detection.boxes.utils.clip_boxes">clip_boxes</a></h2>
+  <h2><a href="#supervision.detection.utils.boxes.clip_boxes">clip_boxes</a></h2>
 </div>
 
 :::supervision.detection.utils.boxes.clip_boxes

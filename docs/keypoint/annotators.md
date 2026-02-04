@@ -14,11 +14,11 @@ comments: true
 
     vertex_annotator = sv.VertexAnnotator(
         color=sv.Color.GREEN,
-        radius=10
+        radius=10,
     )
     annotated_frame = vertex_annotator.annotate(
         scene=image.copy(),
-        key_points=key_points
+        key_points=key_points,
     )
     ```
 
@@ -38,11 +38,11 @@ comments: true
 
     edge_annotator = sv.EdgeAnnotator(
         color=sv.Color.GREEN,
-        thickness=5
+        thickness=5,
     )
     annotated_frame = edge_annotator.annotate(
         scene=image.copy(),
-        key_points=key_points
+        key_points=key_points,
     )
     ```
 
@@ -63,11 +63,11 @@ comments: true
     vertex_label_annotator = sv.VertexLabelAnnotator(
         color=sv.Color.GREEN,
         text_color=sv.Color.BLACK,
-        border_radius=5
+        border_radius=5,
     )
     annotated_frame = vertex_label_annotator.annotate(
         scene=image.copy(),
-        key_points=key_points
+        key_points=key_points,
     )
     ```
 
