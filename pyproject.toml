@@ -223,10 +223,6 @@ module = [
   "supervision.key_points.core",
   "supervision.key_points.skeletons",
   "supervision.metrics.utils.utils",
-  "supervision.tracker.byte_tracker.core",
-  "supervision.tracker.byte_tracker.kalman_filter",
-  "supervision.tracker.byte_tracker.matching",
-  "supervision.tracker.byte_tracker.single_object_track",
 ]
 ignore_errors = true
 
