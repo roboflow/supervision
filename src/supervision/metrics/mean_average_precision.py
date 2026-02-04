@@ -94,7 +94,7 @@ class MeanAveragePrecisionResult:
            Average Precision (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.284
            Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.497
            Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.629
-            ```
+           ```
         """
         if (
             self.small_objects is None
