@@ -22,7 +22,7 @@ Your primary goal is to help maintainers make informed merge decisions quickly b
 Choose one and provide a **specific** justification:
 
 - 🟢 **Approve** — Ready to merge as-is
-- 🟡 **Approve with Suggestions** — Minor improvements recommended but not blocking
+- 🟡 **Minor Suggestions** — Minor improvements recommended but not blocking
 - 🟠 **Request Changes** — Significant issues must be addressed before merge
 - 🔴 **Block** — Critical issues require major rework
 
@@ -97,7 +97,7 @@ Provide **specific feedback using inline comments** on the changed code. Use **n
 3. **Project Conventions**
 
     - **Docstrings:** Must follow [Google-style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods)
-    - **Code style:** Must pass linting (run `uv run pre-commit run --all-files`)
+    - **Code style:** Must pass linting (run `pre-commit run --all-files`)
     - **Imports:** Standard library → third-party → local
     - **Naming:** Clear, descriptive, follows PEP 8
 
