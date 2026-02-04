@@ -29,7 +29,7 @@ def validate_mask(mask: Any, n: int) -> None:
     )
     if not is_valid_shape:
         raise ValueError(
-            "Mask must be a 3D np.ndarray with shape "
+            "mask must be a 3D np.ndarray with shape "
             + f"{expected_shape}, but got shape {actual_shape}"
         )
     if not np.issubdtype(actual_dtype, bool):
