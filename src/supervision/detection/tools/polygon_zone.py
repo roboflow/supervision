@@ -112,21 +112,21 @@ class PolygonZone:
         # Mask all anchor points that exceed the ROI bounds in question
         max_mask = np.all(anchor_pts <= self.max_coords, axis=-1)
         min_mask = np.all(anchor_pts >= self.min_coords, axis=-1)
-        # Find which boxes meet both criteria
-        mask = np.logical_and(max_mask, min_mask)
-        all_mask = np.all(mask, axis=0)
-        in_zone = np.flatnonzero(all_mask)
+        # Find which boxes meet both criteria (within ROI bounds)
+        within_bounds_mask = np.logical_and(max_mask, min_mask)
+        all_within_bounds_mask = np.all(within_bounds_mask, axis=0)
+        in_zone = np.flatnonzero(all_within_bounds_mask)
         # Select only those anchor points that won't exceed our mask
         masked_anchors = anchor_pts[:, in_zone, :]
-        is_in_zone: npt.NDArray[np.bool_] = self.mask[
+        polygon_check_mask: npt.NDArray[np.bool_] = self.mask[
             masked_anchors[:, :, 1], masked_anchors[:, :, 0]
         ].astype(bool)
-        # Updated original array with new boolean values based on complex geo
-        mask[:, in_zone] = is_in_zone
+        # Update bounds mask with boolean values based on polygon geometry
+        within_bounds_mask[:, in_zone] = polygon_check_mask
         # Collapse into 1d array requiring ALL points to be within the zone
-        all_mask = np.all(mask, axis=0)
-        self.current_count = int(np.sum(all_mask))
-        return all_mask
+        final_mask = np.all(within_bounds_mask, axis=0)
+        self.current_count = int(np.sum(final_mask))
+        return final_mask
 
 
 class PolygonZoneAnnotator:
