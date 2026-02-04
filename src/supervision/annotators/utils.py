@@ -273,10 +273,9 @@ def snap_boxes(
         A numpy array of shape `(N, 4)` with boxes shifted into frame.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.annotators.utils import snap_boxes
-
-        Example boxes:
         >>> xyxy = np.array([
         ...     [-10, 10, 30, 50],     # Off left edge
         ...     [310, 200, 350, 250],  # Off right edge
@@ -294,6 +293,8 @@ def snap_boxes(
                [200., 190., 250., 240.],
                [  0.,  10., 370.,  50.],
                [ 10.,   0.,  30., 280.]], dtype=float32)
+
+        ```
     """
     result = np.copy(xyxy)
     width, height = resolution_wh

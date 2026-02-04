@@ -111,6 +111,7 @@ def box_iou(
         ValueError: If `overlap_metric` is not IOU or IOS.
 
     Examples:
+        ```pycon
         >>> import supervision as sv
         >>> box_true = [100, 100, 200, 200]
         >>> box_detection = [150, 150, 250, 250]
@@ -118,6 +119,8 @@ def box_iou(
         0.142857...
         >>> sv.box_iou(box_true, box_detection, overlap_metric=sv.OverlapMetric.IOS)
         0.25
+
+        ```
     """
     overlap_metric = OverlapMetric.from_value(overlap_metric)
     x_min_true, y_min_true, x_max_true, y_max_true = np.array(box_true)
@@ -184,6 +187,7 @@ def box_iou_batch(
         ValueError: If `overlap_metric` is not IOU or IOS.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> boxes_true = np.array([
@@ -204,6 +208,8 @@ def box_iou_batch(
         ... )
         array([[0.25, 0.  ],
                [0.  , 0.64]], dtype=float32)
+
+        ```
     """
     overlap_metric = OverlapMetric.from_value(overlap_metric)
     x_min_true, y_min_true, x_max_true, y_max_true = boxes_true.T
@@ -311,6 +317,7 @@ def box_iou_batch_with_jaccard(
         np.ndarray: Array of IoU values of shape (len(dt), len(gt)).
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> boxes_true = [
@@ -330,6 +337,8 @@ def box_iou_batch_with_jaccard(
         >>> ious  # doctest: +ELLIPSIS
         array([[0.886..., 0.496...],
                [0.4  ..., 0.862...]])
+
+        ```
     """
     assert len(is_crowd) == len(boxes_true), (
         "`is_crowd` must have the same length as `boxes_true`"

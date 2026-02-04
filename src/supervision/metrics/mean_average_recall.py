@@ -252,6 +252,7 @@ class MeanAverageRecall(Metric):
     confidence detection for each class.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> from supervision.metrics import MeanAverageRecall
@@ -268,6 +269,8 @@ class MeanAverageRecall(Metric):
         >>> mar_result = mar_metric.update(predictions, targets).compute()
         >>> round(float(mar_result.mAR_at_100), 2)
         1.0
+
+        ```
 
     ![example_plot](
         https://media.roboflow.com/supervision-docs/metrics/mAR_plot_example.png

@@ -76,9 +76,12 @@ class Color:
         b (int): Blue channel value (0-255).
 
     Example:
+        ```pycon
         >>> import supervision as sv
         >>> sv.Color.WHITE
         Color(r=255, g=255, b=255)
+
+        ```
 
     | Constant   | Hex Code   | RGB               |
     |------------|------------|-------------------|
@@ -111,11 +114,14 @@ class Color:
             Color: An instance representing the color.
 
         Example:
+            ```pycon
             >>> import supervision as sv
             >>> sv.Color.from_hex('#ff00ff')
             Color(r=255, g=0, b=255)
             >>> sv.Color.from_hex('#f0f')
             Color(r=255, g=0, b=255)
+
+            ```
         """
         _validate_color_hex(color_hex)
         color_hex = color_hex.lstrip("#")
@@ -137,9 +143,12 @@ class Color:
             Color: An instance representing the color.
 
         Example:
+            ```pycon
             >>> import supervision as sv
             >>> sv.Color.from_rgb_tuple((255, 255, 0))
             Color(r=255, g=255, b=0)
+
+            ```
         """
         r, g, b = color_tuple
         return cls(r=r, g=g, b=b)
@@ -157,9 +166,12 @@ class Color:
             Color: An instance representing the color.
 
         Example:
+            ```pycon
             >>> import supervision as sv
             >>> sv.Color.from_bgr_tuple((0, 255, 255))
             Color(r=255, g=255, b=0)
+
+            ```
         """
         b, g, r = color_tuple
         return cls(r=r, g=g, b=b)
@@ -172,9 +184,12 @@ class Color:
             str: The hexadecimal color string.
 
         Example:
+            ```pycon
             >>> import supervision as sv
             >>> sv.Color(r=255, g=255, b=0).as_hex()
             '#ffff00'
+
+            ```
         """
         return f"#{self.r:02x}{self.g:02x}{self.b:02x}"
 
@@ -186,9 +201,12 @@ class Color:
             Tuple[int, int, int]: RGB tuple.
 
         Example:
+            ```pycon
             >>> import supervision as sv
             >>> sv.Color(r=255, g=255, b=0).as_rgb()
             (255, 255, 0)
+
+            ```
         """
         return self.r, self.g, self.b
 
@@ -200,9 +218,12 @@ class Color:
             Tuple[int, int, int]: BGR tuple.
 
         Example:
+            ```pycon
             >>> import supervision as sv
             >>> sv.Color(r=255, g=255, b=0).as_bgr()
             (0, 255, 255)
+
+            ```
         """
         return self.b, self.g, self.r
 
@@ -263,9 +284,12 @@ class ColorPalette:
             ColorPalette: A ColorPalette instance with default colors.
 
         Example:
+            ```pycon
             >>> import supervision as sv
             >>> sv.ColorPalette.DEFAULT  # doctest: +ELLIPSIS
             ColorPalette(colors=[Color(r=163, g=81, b=251), Color(r=255, g=64, b=64), ...])
+
+            ```
 
         ![default-color-palette](https://media.roboflow.com/
         supervision-annotator-examples/default-color-palette.png)
@@ -281,9 +305,12 @@ class ColorPalette:
             ColorPalette: A ColorPalette instance with Roboflow colors.
 
         Example:
+            ```pycon
             >>> import supervision as sv
             >>> sv.ColorPalette.ROBOFLOW  # doctest: +ELLIPSIS
             ColorPalette(colors=[Color(r=194, g=141, b=252), Color(r=163, g=81, b=251), ...])
+
+            ```
 
         ![roboflow-color-palette](https://media.roboflow.com/
         supervision-annotator-examples/roboflow-color-palette.png)
@@ -306,10 +333,13 @@ class ColorPalette:
             ColorPalette: A ColorPalette instance.
 
         Example:
+            ```pycon
             >>> import supervision as sv
             >>> colors = ['#ff0000', '#00ff00', '#0000ff']
             >>> sv.ColorPalette.from_hex(colors)  # doctest: +ELLIPSIS
             ColorPalette(colors=[Color(r=255, g=0, b=0), Color(r=0, g=255, b=0), ...])
+
+            ```
         """
         colors = [Color.from_hex(color_hex) for color_hex in color_hex_list]
         return cls(colors)
@@ -327,9 +357,12 @@ class ColorPalette:
             ColorPalette: A ColorPalette instance.
 
         Example:
+            ```pycon
             >>> import supervision as sv
             >>> sv.ColorPalette.from_matplotlib('viridis', 5)  # doctest: +ELLIPSIS
             ColorPalette(colors=[Color(r=68, g=1, b=84), Color(r=58, g=82, b=139), ...])
+
+            ```
 
         ![visualized_color_palette](https://media.roboflow.com/
         supervision-annotator-examples/visualized_color_palette.png)
@@ -356,11 +389,14 @@ class ColorPalette:
             Color: Color at the given index.
 
         Example:
+            ```pycon
             >>> import supervision as sv
             >>> colors = ['#ff0000', '#00ff00', '#0000ff']
             >>> color_palette = sv.ColorPalette.from_hex(colors)
             >>> color_palette.by_idx(1)
             Color(r=0, g=255, b=0)
+
+            ```
         """
         if idx < 0:
             raise ValueError("idx argument should not be negative")
@@ -389,11 +425,14 @@ def unify_to_bgr(color: tuple[int, int, int] | Color) -> tuple[int, int, int]:
         The color in BGR format as a tuple of three integers.
 
     Example:
+        ```pycon
         >>> from supervision.draw.color import unify_to_bgr, Color
         >>> unify_to_bgr(Color.WHITE)
         (255, 255, 255)
         >>> unify_to_bgr((0, 255, 255))
         (0, 255, 255)
+
+        ```
     """
     if issubclass(type(color), Color):
         color = cast(Color, color)

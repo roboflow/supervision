@@ -201,6 +201,7 @@ class BoxAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -213,6 +214,8 @@ class BoxAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![bounding-box-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/bounding-box-annotator-example-purple.png)
@@ -376,6 +379,7 @@ class MaskAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -389,6 +393,8 @@ class MaskAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![mask-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/mask-annotator-example-purple.png)
@@ -468,6 +474,7 @@ class PolygonAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -480,6 +487,8 @@ class PolygonAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![polygon-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/polygon-annotator-example-purple.png)
@@ -556,6 +565,7 @@ class ColorAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -568,6 +578,8 @@ class ColorAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![box-mask-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/box-mask-annotator-example-purple.png)
@@ -653,6 +665,7 @@ class HaloAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -665,6 +678,8 @@ class HaloAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![halo-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/halo-annotator-example-purple.png)
@@ -754,6 +769,7 @@ class EllipseAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -766,6 +782,8 @@ class EllipseAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![ellipse-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/ellipse-annotator-example-purple.png)
@@ -847,6 +865,7 @@ class BoxCornerAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -859,6 +878,8 @@ class BoxCornerAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![box-corner-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/box-corner-annotator-example-purple.png)
@@ -937,6 +958,7 @@ class CircleAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -949,6 +971,8 @@ class CircleAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
 
         ![circle-annotator-example](https://media.roboflow.com/
@@ -1037,6 +1061,7 @@ class DotAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -1049,6 +1074,8 @@ class DotAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![dot-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/dot-annotator-example-purple.png)
@@ -1166,6 +1193,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -1186,6 +1214,8 @@ class LabelAnnotator(_BaseLabelAnnotator):
             ...     detections=detections,
             ...     labels=labels
             ... )
+
+            ```
 
         ![label-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/label-annotator-example-purple.png)
@@ -1481,6 +1511,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> from PIL import Image
@@ -1502,6 +1533,8 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             ...     detections=detections,
             ...     labels=labels
             ... )
+
+            ```
         """
         assert isinstance(scene, Image.Image)
         validate_labels(labels, detections)
@@ -1805,6 +1838,7 @@ class BlurAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -1817,6 +1851,8 @@ class BlurAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![blur-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/blur-annotator-example-purple.png)
@@ -2207,6 +2243,7 @@ class TriangleAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -2219,6 +2256,8 @@ class TriangleAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![triangle-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/triangle-annotator-example.png)
@@ -2321,6 +2360,7 @@ class RoundBoxAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -2333,6 +2373,8 @@ class RoundBoxAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![round-box-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/round-box-annotator-example-purple.png)
@@ -2469,6 +2511,7 @@ class PercentageBarAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -2482,6 +2525,8 @@ class PercentageBarAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![percentage-bar-example](https://media.roboflow.com/
         supervision-annotator-examples/percentage-bar-annotator-example-purple.png)
@@ -2648,6 +2693,7 @@ class CropAnnotator(BaseAnnotator):
             The annotated image.
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -2660,6 +2706,8 @@ class CropAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![crop-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/crop-annotator-example.png)
@@ -2790,6 +2838,7 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -2802,6 +2851,8 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![background-overlay-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/background-color-annotator-example-purple.png)

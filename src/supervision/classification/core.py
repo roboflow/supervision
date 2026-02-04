@@ -167,6 +167,7 @@ class Classifications:
                 the top k class IDs and confidences.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> classifications = sv.Classifications(
@@ -175,6 +176,8 @@ class Classifications:
             ... )
             >>> classifications.get_top_k(1)
             (array([1]), array([0.9]))
+
+            ```
         """
         if self.confidence is None:
             raise ValueError("top_k could not be calculated, confidence is None")

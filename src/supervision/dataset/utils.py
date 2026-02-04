@@ -163,6 +163,7 @@ def rle_to_mask(
             number of pixels in the expected mask (computed based on resolution_wh).
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> mask = sv.rle_to_mask([5, 2, 2, 2, 5], (4, 4))
@@ -171,6 +172,8 @@ def rle_to_mask(
                [0, 1, 1, 0],
                [0, 1, 1, 0],
                [0, 0, 0, 0]], dtype=uint8)
+
+        ```
     """
     if isinstance(rle, list):
         rle = np.array(rle, dtype=int)
@@ -210,6 +213,7 @@ def mask_to_rle(mask: npt.NDArray[np.bool_]) -> list[int]:
         AssertionError: If input mask is not 2D or is empty.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> mask = np.array([
@@ -222,6 +226,9 @@ def mask_to_rle(mask: npt.NDArray[np.bool_]) -> list[int]:
         >>> [int(x) for x in rle]
         [0, 16]
 
+        ```
+
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> mask = np.array([
@@ -233,6 +240,8 @@ def mask_to_rle(mask: npt.NDArray[np.bool_]) -> list[int]:
         >>> rle = sv.mask_to_rle(mask)
         >>> [int(x) for x in rle]
         [5, 2, 2, 2, 5]
+
+        ```
 
     ![mask_to_rle](https://media.roboflow.com/supervision-docs/
     mask-to-rle.png){ align=center width="800" }

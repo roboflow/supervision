@@ -21,6 +21,7 @@ def get_polygon_center(polygon: npt.NDArray[np.float64]) -> Point:
         ValueError: If the polygon has no vertices.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> polygon = np.array([[0, 0], [0, 2], [2, 2], [2, 0]])
@@ -29,6 +30,8 @@ def get_polygon_center(polygon: npt.NDArray[np.float64]) -> Point:
         1.0
         >>> float(center.y)
         1.0
+
+        ```
     """
 
     # This is one of the 3 candidate algorithms considered for centroid calculation.

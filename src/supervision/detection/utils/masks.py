@@ -30,6 +30,7 @@ def move_masks(
             shape.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> mask = np.array([[[False, False, False, False],
@@ -48,6 +49,8 @@ def move_masks(
                 [False, False, False, False],
                 [False, False, False, False],
                 [ True, False, False, False]]])
+
+        ```
     """
     mask_array = np.full((masks.shape[0], resolution_wh[1], resolution_wh[0]), False)
 
@@ -126,6 +129,7 @@ def contains_holes(mask: npt.NDArray[np.bool_]) -> bool:
         True if holes are detected, False otherwise.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> mask = np.array([
@@ -146,6 +150,8 @@ def contains_holes(mask: npt.NDArray[np.bool_]) -> bool:
         ... ]).astype(bool)
         >>> sv.contains_holes(mask=mask)
         False
+
+        ```
 
     ![contains_holes](https://media.roboflow.com/supervision-docs/contains-holes.png){ align=center width="800" }
     """  # noqa E501 // docs
@@ -182,6 +188,7 @@ def contains_multiple_segments(
         ValueError: If connectivity(int) parameter value is not 4 or 8.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> mask = np.array([
@@ -204,6 +211,8 @@ def contains_multiple_segments(
         ... ]).astype(bool)
         >>> sv.contains_multiple_segments(mask=mask, connectivity=4)
         False
+
+        ```
 
     ![contains_multiple_segments](https://media.roboflow.com/supervision-docs/contains-multiple-segments.png){ align=center width="800" }
     """  # noqa E501 // docs
@@ -287,6 +296,7 @@ def filter_segments_by_distance(
         Boolean mask after filtering.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> mask = np.array([
@@ -321,6 +331,8 @@ def filter_segments_by_distance(
                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
+
+        ```
 
         The nearby 2×2 block at columns 6–7 is kept because its edge distance
         is within 3 pixels. The distant block at columns 9-10 is removed.
