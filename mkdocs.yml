@@ -103,14 +103,11 @@ theme:
     - navigation.tabs.sticky
 
   palette:
-    # Palette for light mode
     - scheme: default
       primary: "custom"
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
-
-    # Palette toggle for dark mode
     - scheme: slate
       primary: "custom"
       toggle:
@@ -145,9 +142,10 @@ plugins:
             show_symbol_type_toc: true
             show_category_heading: true
             show_signature_annotations: true
+            show_docstring_examples: true
           inventories:
-          - url: https://docs.python-requests.org/en/master/objects.inv
-            domains: [std, py]
+            - url: https://docs.python-requests.org/en/master/objects.inv
+              domains: [std, py]
   - git-committers:
       repository: roboflow/supervision
       branch: develop
@@ -158,7 +156,16 @@ plugins:
 markdown_extensions:
   - admonition
   - pymdownx.details
-  - pymdownx.superfences
+
+  # uses Pygments + prompt stripping
+  - pymdownx.superfences:
+      custom_fences:
+        - name: pycon
+          class: pycon
+          lexer: pycon
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+  - pymdownx.inlinehilite
   - attr_list
   - md_in_html
   - pymdownx.tabbed:
@@ -170,10 +177,21 @@ markdown_extensions:
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.snippets:
       check_paths: true
+
+  # Pygments pycon lexer with prompt stripping enabled
   - pymdownx.highlight:
-      anchor_linenums: true
       line_spans: __span
+      anchor_linenums: true
       pygments_lang_class: true
+      linenums: false
+      auto_title: false
+      extend_pygments_lang:
+        - name: pycon
+          lang: pycon
+          options:
+            strip_prompt: true
+            strip_continuation_prompt: true
+
   - pymdownx.arithmatex:
       generic: true
 
@@ -185,9 +203,6 @@ extra_javascript:
   - "https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.8/purify.min.js"
   - "https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"
 
-# Messages shown during document build
-# Reference: https://www.mkdocs.org/user-guide/configuration/#validation
-# Values: [warn, info, ignore]
 validation:
   nav:
     absolute_links: ignore
