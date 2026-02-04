@@ -33,8 +33,6 @@ class PolygonZone:
             in the zone to be considered occupants.
             (default: (sv.Position.BOTTOM_CENTER,)).
         current_count (int): The current count of detected objects within the zone
-        min_coords (np.ndarray): The X and Y min values to contain the given polygon.
-        max_coords (np.ndarray): The X and Y max values to contain the given polygon.
         mask (np.ndarray): The 2D bool mask for the polygon zone
 
     Example:
