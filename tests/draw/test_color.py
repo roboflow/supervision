@@ -68,7 +68,7 @@ def test_color_as_hex(
 
 
 @pytest.mark.parametrize(
-    "color_tuple, expected_result, exception",
+    ("color_tuple", "expected_result", "exception"),
     [
         ((255, 255, 255), Color.WHITE, DoesNotRaise()),
         ((0, 0, 0), Color.BLACK, DoesNotRaise()),
@@ -93,7 +93,7 @@ def test_color_from_rgb_tuple(
 
 
 @pytest.mark.parametrize(
-    "color_tuple, expected_result, exception",
+    ("color_tuple", "expected_result", "exception"),
     [
         ((255, 255, 255), Color.WHITE, DoesNotRaise()),
         ((0, 0, 0), Color.BLACK, DoesNotRaise()),
