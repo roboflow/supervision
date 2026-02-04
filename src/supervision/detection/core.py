@@ -1722,11 +1722,11 @@ class Detections:
         [ncnn](https://github.com/Tencent/ncnn) inference result.
         Supports object detection models.
 
-        Arguments:
-            ncnn_results (dict): The output Results instance from ncnn.
+        Args:
+            ncnn_results: The output Results instance from ncnn.
 
         Returns:
-            Detections: A new Detections object.
+            A new Detections object.
 
         Example:
             ```python

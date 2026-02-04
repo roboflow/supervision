@@ -183,13 +183,12 @@ def mask_to_xyxy(masks: np.ndarray) -> np.ndarray:
     """
     Converts a 3D `np.array` of 2D bool masks into a 2D `np.array` of bounding boxes.
 
-    Parameters:
-        masks (np.ndarray): A 3D `np.array` of shape `(N, W, H)`
-            containing 2D bool masks
+    Args:
+        masks: A 3D `np.array` of shape `(N, W, H)` containing 2D bool masks.
 
     Returns:
-        np.ndarray: A 2D `np.array` of shape `(N, 4)` containing the bounding boxes
-            `(x_min, y_min, x_max, y_max)` for each mask
+        A 2D `np.array` of shape `(N, 4)` containing the bounding boxes
+            `(x_min, y_min, x_max, y_max)` for each mask.
     """
     n = masks.shape[0]
     xyxy = np.zeros((n, 4), dtype=int)
@@ -209,15 +208,15 @@ def xyxy_to_mask(boxes: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarra
     """
     Converts a 2D `np.ndarray` of bounding boxes into a 3D `np.ndarray` of bool masks.
 
-    Parameters:
-        boxes (np.ndarray): A 2D `np.ndarray` of shape `(N, 4)`
-            containing bounding boxes `(x_min, y_min, x_max, y_max)`
-        resolution_wh (Tuple[int, int]): A tuple `(width, height)` specifying
-            the resolution of the output masks
+    Args:
+        boxes: A 2D `np.ndarray` of shape `(N, 4)` containing bounding boxes
+            `(x_min, y_min, x_max, y_max)`.
+        resolution_wh: A tuple `(width, height)` specifying the resolution of
+            the output masks.
 
     Returns:
-        np.ndarray: A 3D `np.ndarray` of shape `(N, height, width)`
-            containing 2D bool masks for each bounding box
+        A 3D `np.ndarray` of shape `(N, height, width)` containing 2D bool masks
+            for each bounding box.
 
     Examples:
         >>> import numpy as np
@@ -263,15 +262,14 @@ def mask_to_polygons(mask: np.ndarray) -> list[np.ndarray]:
     """
     Converts a binary mask to a list of polygons.
 
-    Parameters:
-        mask (np.ndarray): A binary mask represented as a 2D NumPy array of
-            shape `(H, W)`, where H and W are the height and width of
-            the mask, respectively.
+    Args:
+        mask: A binary mask represented as a 2D NumPy array of shape `(H, W)`,
+            where H and W are the height and width of the mask, respectively.
 
     Returns:
-        List[np.ndarray]: A list of polygons, where each polygon is represented by a
-            NumPy array of shape `(N, 2)`, containing the `x`, `y` coordinates
-            of the points. Polygons with fewer points than `MIN_POLYGON_POINT_COUNT = 3`
+        A list of polygons, where each polygon is represented by a NumPy array
+            of shape `(N, 2)`, containing the `x`, `y` coordinates of the
+            points. Polygons with fewer points than `MIN_POLYGON_POINT_COUNT = 3`
             are excluded from the output.
     """
 
@@ -289,12 +287,12 @@ def polygon_to_xyxy(polygon: np.ndarray) -> np.ndarray:
     """
     Converts a polygon represented by a NumPy array into a bounding box.
 
-    Parameters:
-        polygon (np.ndarray): A polygon represented by a NumPy array of shape `(N, 2)`,
+    Args:
+        polygon: A polygon represented by a NumPy array of shape `(N, 2)`,
             containing the `x`, `y` coordinates of the points.
 
     Returns:
-        np.ndarray: A 1D NumPy array containing the bounding box
+        A 1D NumPy array containing the bounding box
             `(x_min, y_min, x_max, y_max)` of the input polygon.
     """
     x_min, y_min = np.min(polygon, axis=0)

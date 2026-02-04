@@ -18,8 +18,8 @@ def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:
     Note: MD5 is used here for file integrity checking (detecting corruption),
     not for cryptographic security purposes.
 
-    Parameters:
-        filename: The path to the file to be checked as a string.
+    Args:
+        filename: The path to the file to be checked.
         original_md5_hash: The original MD5 hash to compare against.
 
     Returns:
@@ -39,9 +39,8 @@ def download_assets(asset_name: VideoAssets | str) -> str:
     """
     Download a specified asset if it doesn't already exist or is corrupted.
 
-    Parameters:
-        asset_name: The name or type of the asset to be
-            downloaded.
+    Args:
+        asset_name: The name or type of the asset to be downloaded.
 
     Returns:
         The filename of the downloaded asset.
