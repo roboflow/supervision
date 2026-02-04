@@ -3,7 +3,7 @@
  * Strips >>> and ... prompts when copying code examples.
  */
 document.addEventListener("DOMContentLoaded", function () {
-  const COPY_BUTTON_SELECTOR = ".md-clipboard";
+  const COPY_BUTTON_SELECTOR = ".md-clipboard, .md-code__button";
 
   function handleCopyButtonClick(event) {
     const copyButton = event.target.closest(COPY_BUTTON_SELECTOR);
@@ -16,8 +16,21 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!shouldStripPrompts(codeBlock, rawText)) return;
 
     const strippedText = stripPythonPrompts(rawText);
-    copyButton.setAttribute("data-clipboard-text", strippedText);
-    copyButton.removeAttribute("data-clipboard-target");
+    primeClipboardButton(copyButton, strippedText);
+  }
+
+  function handleCopyButtonPointerDown(event) {
+    const copyButton = event.target.closest(COPY_BUTTON_SELECTOR);
+    if (!copyButton) return;
+
+    const codeBlock = findCodeBlockForCopyButton(copyButton);
+    if (!codeBlock) return;
+
+    const rawText = codeBlock.textContent || "";
+    if (!shouldStripPrompts(codeBlock, rawText)) return;
+
+    const strippedText = stripPythonPrompts(rawText);
+    primeClipboardButton(copyButton, strippedText);
   }
 
   function handleSelectionCopy(event) {
@@ -49,6 +62,16 @@ document.addEventListener("DOMContentLoaded", function () {
       .forEach((button) => {
         button.removeEventListener("click", handleCopyButtonClick, true);
         button.addEventListener("click", handleCopyButtonClick, true);
+        button.removeEventListener(
+          "pointerdown",
+          handleCopyButtonPointerDown,
+          true
+        );
+        button.addEventListener(
+          "pointerdown",
+          handleCopyButtonPointerDown,
+          true
+        );
       });
   }
 
@@ -76,10 +99,17 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   document.addEventListener("click", handleCopyButtonClick, true);
+  document.addEventListener("pointerdown", handleCopyButtonPointerDown, true);
   document.addEventListener("copy", handleSelectionCopy, true);
   bindCopyButtons(document);
   observeDynamicCopyButtons();
 });
+
+function primeClipboardButton(copyButton, strippedText) {
+  copyButton.setAttribute("data-clipboard-text", strippedText);
+  copyButton.removeAttribute("data-clipboard-target");
+  copyButton.setAttribute("data-md-clipboard", "true");
+}
 
 function shouldStripPrompts(codeBlock, rawText) {
   return (
@@ -93,6 +123,14 @@ function shouldStripPrompts(codeBlock, rawText) {
 }
 
 function findCodeBlockForCopyButton(copyButton) {
+  const targetSelector = copyButton.getAttribute("data-clipboard-target");
+  if (targetSelector) {
+    const target = document.querySelector(targetSelector);
+    const targetCode = target?.querySelector?.("code") || target;
+    if (targetCode?.tagName?.toLowerCase() === "code") {
+      return targetCode;
+    }
+  }
   return (
     copyButton.closest("pre")?.querySelector("code") ||
     copyButton.parentElement?.querySelector("pre code") ||
@@ -155,13 +193,4 @@ function copyText(text, copyButton) {
   document.execCommand("copy");
   document.body.removeChild(textarea);
   showCopySuccess(copyButton);
-}
-
-function showCopySuccess(copyButton) {
-  const originalIcon = copyButton.innerHTML;
-  copyButton.innerHTML =
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"></path></svg>';
-  setTimeout(function () {
-    copyButton.innerHTML = originalIcon;
-  }, 1500);
 }
