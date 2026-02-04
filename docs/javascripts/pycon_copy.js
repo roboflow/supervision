@@ -146,20 +146,37 @@ function findCodeBlockForCopyButton(copyButton) {
 /**
  * Strips Python REPL prompts (>>> and ...) from code text.
  * Also removes output lines (lines that don't start with >>> or ...).
+ *
+ * NOTE: This is a best-effort parser. It preserves unprompted lines inside
+ * triple-quoted strings, but it does not fully model Python's tokenizer.
  */
 function stripPythonPrompts(text) {
   const lines = text.split("\n");
   const codeLines = [];
+  let inTripleQuotedString = false;
+
+  function toggleTripleQuoteState(sourceLine) {
+    const tripleQuotePattern = /("""|''')/g;
+    const matches = sourceLine.match(tripleQuotePattern);
+    if (!matches) return;
+    if (matches.length % 2 === 1) {
+      inTripleQuotedString = !inTripleQuotedString;
+    }
+  }
 
   for (const line of lines) {
     const trimmedLine = line.trimEnd();
     // Primary prompt: ">>> "
     if (trimmedLine.startsWith(">>> ")) {
-      codeLines.push(trimmedLine.slice(4));
+      const stripped = trimmedLine.slice(4);
+      codeLines.push(stripped);
+      toggleTripleQuoteState(stripped);
     }
     // Continuation prompt: "... "
     else if (trimmedLine.startsWith("... ")) {
-      codeLines.push(trimmedLine.slice(4));
+      const stripped = trimmedLine.slice(4);
+      codeLines.push(stripped);
+      toggleTripleQuoteState(stripped);
     }
     // Handle prompts without space after (edge case)
     else if (trimmedLine === ">>>") {
@@ -167,6 +184,10 @@ function stripPythonPrompts(text) {
     }
     else if (trimmedLine === "...") {
       codeLines.push("");
+    }
+    else if (inTripleQuotedString) {
+      codeLines.push(trimmedLine);
+      toggleTripleQuoteState(trimmedLine);
     }
     // Skip output lines (lines that don't start with prompts)
     // This intentionally excludes output like "1.0" from the copied text
