@@ -407,12 +407,16 @@ class MeanAverageRecall(Metric):
                         iou_thresholds,
                     )
 
-                    sorted_indices = np.argsort(-cast(npt.NDArray[np.float32], predictions.confidence))
+                    sorted_indices = np.argsort(
+                        -cast(npt.NDArray[np.float32], predictions.confidence)
+                    )
                     stats.append(
                         (
                             matches[sorted_indices],
                             np.arange(len(predictions)),
-                            cast(npt.NDArray[np.int32], predictions.class_id)[sorted_indices],
+                            cast(npt.NDArray[np.int32], predictions.class_id)[
+                                sorted_indices
+                            ],
                             cast(npt.NDArray[np.int32], targets.class_id),
                         )
                     )
