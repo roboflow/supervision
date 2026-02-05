@@ -10,7 +10,7 @@ class IdCounter:
             start_id: The starting integer for the counter.
 
         Raises:
-            ValueError: If start_id is less than or equal to NO_ID.
+            ValueError: If start_id is less than or equal to -1.
         """
         self.start_id = start_id
         if self.start_id <= self.NO_ID:
