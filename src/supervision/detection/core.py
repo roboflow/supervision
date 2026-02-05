@@ -964,8 +964,8 @@ class Detections:
     @classmethod
     @deprecated(
         target=None,
-        deprecated_in="0.27.0",
-        remove_in="0.31.0",
+        deprecated_in="0.26.0",
+        remove_in="0.30.0",
     )
     def from_lmm(
         cls, lmm: LMM | str, result: str | dict[str, Any], **kwargs: Any
