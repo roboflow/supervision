@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -407,13 +407,13 @@ class MeanAverageRecall(Metric):
                         iou_thresholds,
                     )
 
-                    sorted_indices = np.argsort(-predictions.confidence)
+                    sorted_indices = np.argsort(-cast(npt.NDArray[np.float32], predictions.confidence))
                     stats.append(
                         (
                             matches[sorted_indices],
                             np.arange(len(predictions)),
-                            predictions.class_id[sorted_indices],
-                            targets.class_id,
+                            cast(npt.NDArray[np.int32], predictions.class_id)[sorted_indices],
+                            cast(npt.NDArray[np.int32], targets.class_id),
                         )
                     )
 
