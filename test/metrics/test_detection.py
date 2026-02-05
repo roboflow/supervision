@@ -417,31 +417,27 @@ def test_drop_extra_matches(
 
 
 @pytest.mark.parametrize(
-    "recall, precision, expected_result, exception",
+    "recall, precision, expected_result",
     [
         (
             np.array([1.0]),
             np.array([1.0]),
             1.0,
-            DoesNotRaise(),
         ),  # perfect recall and precision
         (
             np.array([0.0]),
             np.array([0.0]),
             0.0,
-            DoesNotRaise(),
         ),  # no recall and precision
         (
             np.array([0.0, 0.2, 0.2, 0.8, 0.8, 1.0]),
             np.array([0.7, 0.8, 0.4, 0.5, 0.1, 0.2]),
             0.5,
-            DoesNotRaise(),
         ),
         (
             np.array([0.0, 0.5, 0.5, 1.0]),
             np.array([0.75, 0.75, 0.75, 0.75]),
             0.75,
-            DoesNotRaise(),
         ),
     ],
 )
@@ -449,10 +445,10 @@ def test_compute_average_precision(
     recall: np.ndarray,
     precision: np.ndarray,
     expected_result: float,
-    exception: Exception,
 ) -> None:
-    with exception:
-        result = MeanAveragePrecision.compute_average_precision(
+    with DoesNotRaise():
+        # FIX: Use .__func__ to support Python 3.9
+        result = MeanAveragePrecision.compute_average_precision.__func__(
             recall=recall, precision=precision
         )
-        assert_almost_equal(result, expected_result, tolerance=0.01)
+    assert_almost_equal(result, expected_result, tolerance=0.01)
