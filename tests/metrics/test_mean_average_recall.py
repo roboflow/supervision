@@ -304,6 +304,4 @@ class TestMeanAverageRecall:
         # Expected mAR at K = 1, 10, 100
         EXPECTED_RESULT = np.array([0.2874613, 0.63622291, 0.63622291])
 
-        np.testing.assert_almost_equal(
-            result.recall_scores, EXPECTED_RESULT, decimal=6
-        )
+        np.testing.assert_almost_equal(result.recall_scores, EXPECTED_RESULT, decimal=6)
