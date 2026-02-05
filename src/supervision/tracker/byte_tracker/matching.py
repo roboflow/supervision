@@ -42,7 +42,8 @@ def linear_assignment(
 
 
 def iou_distance(
-    atracks: list[STrack] | list[npt.NDArray], btracks: list[STrack] | list[npt.NDArray]
+    atracks: list[STrack] | list[npt.NDArray[np.float32]],
+    btracks: list[STrack] | list[npt.NDArray[np.float32]],
 ) -> npt.NDArray[np.float32]:
     if (len(atracks) > 0 and isinstance(atracks[0], np.ndarray)) or (
         len(btracks) > 0 and isinstance(btracks[0], np.ndarray)
