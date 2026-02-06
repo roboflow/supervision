@@ -20,7 +20,7 @@ that you can use in your demos.
 :::supervision.assets.list.VideoAssets
 
 <div class="md-typeset">
-  <h2>ImageAssets</h2>
+    <h2><a href="#supervision.assets.list.ImageAssets">ImageAssets</a></h2>
 </div>
 
 :::supervision.assets.list.ImageAssets
