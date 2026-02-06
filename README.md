@@ -41,6 +41,19 @@ Pip install the supervision package in a
 [**Python>=3.9**](https://www.python.org/) environment.
 
 ```bash
+pip install supervision[headless]
+```
+
+Supervision requires OpenCV. We don't enforce a specific version to avoid conflicts with other packages. Choose the OpenCV variant that best fits your needs:
+
+- `supervision[headless]` - Install with `opencv-python-headless` (recommended for servers)
+- `supervision[desktop]` - Install with `opencv-python` (includes GUI support)
+- `supervision[desktop-contrib]` - Install with `opencv-contrib-python` (extra modules + GUI)
+- `supervision[headless-contrib]` - Install with `opencv-contrib-python-headless` (extra modules, no GUI)
+
+If you have OpenCV already installed, you can install supervision without any extras:
+
+```bash
 pip install supervision
 ```
 

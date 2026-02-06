@@ -48,6 +48,30 @@ You can install `supervision` in a
         [![license](https://img.shields.io/pypi/l/supervision)](../LICENSE.md)
         [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 
+        Supervision requires OpenCV. Choose the variant that best fits your needs:
+
+        ```bash
+        # Recommended for servers (no GUI)
+        pip install supervision[headless]
+        ```
+
+        ```bash
+        # For desktop applications (includes GUI support)
+        pip install supervision[desktop]
+        ```
+
+        ```bash
+        # For desktop with extra modules (e.g., CSRT tracker)
+        pip install supervision[desktop-contrib]
+        ```
+
+        ```bash
+        # For servers with extra modules (no GUI)
+        pip install supervision[headless-contrib]
+        ```
+
+        If you already have OpenCV installed:
+
         ```bash
         pip install supervision
         ```
@@ -60,7 +84,13 @@ You can install `supervision` in a
         [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 
         ```bash
-        poetry add supervision
+        # With headless OpenCV (recommended for servers)
+        poetry add supervision[headless]
+        ```
+
+        ```bash
+        # With desktop OpenCV (includes GUI)
+        poetry add supervision[desktop]
         ```
 
     === "uv"
@@ -71,13 +101,14 @@ You can install `supervision` in a
         [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 
         ```bash
-        uv pip install supervision
+        # With headless OpenCV (recommended for servers)
+        uv pip install supervision[headless]
         ```
 
         For uv projects:
 
         ```bash
-        uv add supervision
+        uv add supervision --extra headless
         ```
 
     === "rye"
@@ -88,7 +119,7 @@ You can install `supervision` in a
         [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 
         ```bash
-        rye add supervision
+        rye add supervision --features headless
         ```
 
 !!! example "conda/mamba install"
