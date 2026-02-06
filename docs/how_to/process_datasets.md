@@ -32,8 +32,8 @@ your workspace ID, project ID, and version number.
     roboflow.login()
 
     rf = roboflow.Roboflow()
-    project = rf.workspace('<WORKSPACE_ID>').project('<PROJECT_ID>')
-    dataset = project.version('<PROJECT_VERSION>').download("coco")
+    project = rf.workspace("<WORKSPACE_ID>").project("<PROJECT_ID>")
+    dataset = project.version("<PROJECT_VERSION>").download("coco")
     ```
 
 === "YOLO"
@@ -44,8 +44,8 @@ your workspace ID, project ID, and version number.
     roboflow.login()
 
     rf = roboflow.Roboflow()
-    project = rf.workspace('<WORKSPACE_ID>').project('<PROJECT_ID>')
-    dataset = project.version('<PROJECT_VERSION>').download("yolov8")
+    project = rf.workspace("<WORKSPACE_ID>").project("<PROJECT_ID>")
+    dataset = project.version("<PROJECT_VERSION>").download("yolov8")
     ```
 
 === "Pascal VOC"
@@ -56,8 +56,8 @@ your workspace ID, project ID, and version number.
     roboflow.login()
 
     rf = roboflow.Roboflow()
-    project = rf.workspace('<WORKSPACE_ID>').project('<PROJECT_ID>')
-    dataset = project.version('<PROJECT_VERSION>').download("voc")
+    project = rf.workspace("<WORKSPACE_ID>").project("<PROJECT_ID>")
+    dataset = project.version("<PROJECT_VERSION>").download("voc")
     ```
 
 ## Load Dataset
@@ -75,16 +75,16 @@ instances.
     import supervision as sv
 
     ds_train = sv.DetectionDataset.from_coco(
-        images_directory_path=f'{dataset.location}/train',
-        annotations_path=f'{dataset.location}/train/_annotations.coco.json',
+        images_directory_path=f"{dataset.location}/train",
+        annotations_path=f"{dataset.location}/train/_annotations.coco.json",
     )
     ds_valid = sv.DetectionDataset.from_coco(
-        images_directory_path=f'{dataset.location}/valid',
-        annotations_path=f'{dataset.location}/valid/_annotations.coco.json',
+        images_directory_path=f"{dataset.location}/valid",
+        annotations_path=f"{dataset.location}/valid/_annotations.coco.json",
     )
     ds_test = sv.DetectionDataset.from_coco(
-        images_directory_path=f'{dataset.location}/test',
-        annotations_path=f'{dataset.location}/test/_annotations.coco.json',
+        images_directory_path=f"{dataset.location}/test",
+        annotations_path=f"{dataset.location}/test/_annotations.coco.json",
     )
 
     ds_train.classes
@@ -102,19 +102,19 @@ instances.
     import supervision as sv
 
     ds_train = sv.DetectionDataset.from_yolo(
-        images_directory_path=f'{dataset.location}/train/images',
-        annotations_directory_path=f'{dataset.location}/train/labels',
-        data_yaml_path=f'{dataset.location}/data.yaml'
+        images_directory_path=f"{dataset.location}/train/images",
+        annotations_directory_path=f"{dataset.location}/train/labels",
+        data_yaml_path=f"{dataset.location}/data.yaml",
     )
     ds_valid = sv.DetectionDataset.from_yolo(
-        images_directory_path=f'{dataset.location}/valid/images',
-        annotations_directory_path=f'{dataset.location}/valid/labels',
-        data_yaml_path=f'{dataset.location}/data.yaml'
+        images_directory_path=f"{dataset.location}/valid/images",
+        annotations_directory_path=f"{dataset.location}/valid/labels",
+        data_yaml_path=f"{dataset.location}/data.yaml",
     )
     ds_test = sv.DetectionDataset.from_yolo(
-        images_directory_path=f'{dataset.location}/test/images',
-        annotations_directory_path=f'{dataset.location}/test/labels',
-        data_yaml_path=f'{dataset.location}/data.yaml'
+        images_directory_path=f"{dataset.location}/test/images",
+        annotations_directory_path=f"{dataset.location}/test/labels",
+        data_yaml_path=f"{dataset.location}/data.yaml",
     )
 
     ds_train.classes
@@ -132,16 +132,16 @@ instances.
     import supervision as sv
 
     ds_train = sv.DetectionDataset.from_pascal_voc(
-        images_directory_path=f'{dataset.location}/train/images',
-        annotations_directory_path=f'{dataset.location}/train/labels'
+        images_directory_path=f"{dataset.location}/train/images",
+        annotations_directory_path=f"{dataset.location}/train/labels",
     )
     ds_valid = sv.DetectionDataset.from_pascal_voc(
-        images_directory_path=f'{dataset.location}/valid/images',
-        annotations_directory_path=f'{dataset.location}/valid/labels'
+        images_directory_path=f"{dataset.location}/valid/images",
+        annotations_directory_path=f"{dataset.location}/valid/labels",
     )
     ds_test = sv.DetectionDataset.from_pascal_voc(
-        images_directory_path=f'{dataset.location}/test/images',
-        annotations_directory_path=f'{dataset.location}/test/labels'
+        images_directory_path=f"{dataset.location}/test/images",
+        annotations_directory_path=f"{dataset.location}/test/labels",
     )
 
     ds_train.classes
@@ -294,12 +294,12 @@ ds = sv.DetectionDataset(...)
 
 # Option 1
 for image_path, image, annotations in ds:
-    ... # Process each image and its annotations
+    ...  # Process each image and its annotations
 
 # Option 2
 for idx in range(len(ds)):
     image_path, image, annotations = ds[idx]
-    ... # Process the image and annotations at index `idx`
+    ...  # Process the image and annotations at index `idx`
 ```
 
 ## Visualize Dataset
@@ -351,8 +351,8 @@ sv.plot_images_grid(
     ds = sv.DetectionDataset(...)
 
     ds.as_coco(
-        images_directory_path='<IMAGE_DIRECTORY_PATH>',
-        annotations_path='<ANNOTATIONS_PATH>'
+        images_directory_path="<IMAGE_DIRECTORY_PATH>",
+        annotations_path="<ANNOTATIONS_PATH>",
     )
     ```
 
@@ -366,9 +366,9 @@ sv.plot_images_grid(
     ds = sv.DetectionDataset(...)
 
     ds.as_yolo(
-        images_directory_path='<IMAGE_DIRECTORY_PATH>',
-        annotations_directory_path='<ANNOTATIONS_DIRECTORY_PATH>',
-        data_yaml_path='<DATA_YAML_PATH>'
+        images_directory_path="<IMAGE_DIRECTORY_PATH>",
+        annotations_directory_path="<ANNOTATIONS_DIRECTORY_PATH>",
+        data_yaml_path="<DATA_YAML_PATH>",
     )
     ```
 
@@ -382,8 +382,8 @@ sv.plot_images_grid(
     ds = sv.DetectionDataset(...)
 
     ds.as_pascal_voc(
-        images_directory_path='<IMAGE_DIRECTORY_PATH>',
-        annotations_directory_path='<ANNOTATIONS_DIRECTORY_PATH>'
+        images_directory_path="<IMAGE_DIRECTORY_PATH>",
+        annotations_directory_path="<ANNOTATIONS_DIRECTORY_PATH>",
     )
     ```
 
@@ -413,11 +413,11 @@ augmentation = A.Compose(
     transforms=[
         A.Perspective(p=0.1),
         A.HorizontalFlip(p=0.5),
-        A.RandomBrightnessContrast(p=0.5)
+        A.RandomBrightnessContrast(p=0.5),
     ],
     bbox_params=A.BboxParams(
-        format='pascal_voc',
-        label_fields=['category']
+        format="pascal_voc",
+        label_fields=["category"],
     ),
 )
 ```
@@ -437,14 +437,14 @@ _, original_image, original_annotations = ds[0]
 output = augmentation(
     image=original_image,
     bboxes=original_annotations.xyxy,
-    category=original_annotations.class_id
+    category=original_annotations.class_id,
 )
 
-augmented_image = output['image']
+augmented_image = output["image"]
 augmented_annotations = replace(
     original_annotations,
-    xyxy=np.array(output['bboxes']),
-    class_id=np.array(output['category'])
+    xyxy=np.array(output["bboxes"]),
+    class_id=np.array(output["category"]),
 )
 ```
 

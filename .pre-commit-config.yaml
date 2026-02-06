@@ -49,8 +49,9 @@ repos:
       - id: mdformat
         additional_dependencies:
           - "mdformat-mkdocs[recommended]>=2.1.0"
+          - "mdformat-ruff"
         args: ["--number"]
-        exclude: ^docs/
+        exclude: ^(docs/changelog\.md|docs/deprecated\.md)$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.19.1

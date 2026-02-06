@@ -1,5 +1,3 @@
-import argparse
-
 import cv2
 import numpy as np
 from ultralytics import YOLO
@@ -16,14 +14,26 @@ LABEL_ANNOTATOR = sv.LabelAnnotator(
 
 
 def main(
-    rtsp_url: str,
     zone_configuration_path: str,
-    weights: str,
-    device: str,
-    confidence: float,
-    iou: float,
-    classes: list[int],
+    rtsp_url: str,
+    weights: str = "yolov8s.pt",
+    device: str = "cpu",
+    confidence_threshold: float = 0.3,
+    iou_threshold: float = 0.7,
+    classes: list[int] = [],
 ) -> None:
+    """
+    Calculating detections dwell time in zones, using RTSP stream.
+
+    Args:
+        zone_configuration_path: Path to the zone configuration JSON file
+        rtsp_url: Complete RTSP URL for the video stream
+        weights: Path to the model weights file
+        device: Computation device ('cpu', 'mps' or 'cuda')
+        confidence_threshold: Confidence level for detections (0 to 1)
+        iou_threshold: IOU threshold for non-max suppression
+        classes: List of class IDs to track. If empty, all classes are tracked
+    """
     model = YOLO(weights)
     tracker = sv.ByteTrack(minimum_matching_threshold=0.5)
     frames_generator = get_stream_frames_generator(rtsp_url=rtsp_url)
@@ -43,10 +53,15 @@ def main(
         fps_monitor.tick()
         fps = fps_monitor.fps
 
-        results = model(frame, verbose=False, device=device, conf=confidence)[0]
+        results = model(
+            frame,
+            verbose=False,
+            device=device,
+            conf=confidence_threshold,
+            iou=iou_threshold,
+        )[0]
         detections = sv.Detections.from_ultralytics(results)
         detections = detections[find_in_list(detections.class_id, classes)]
-        detections = detections.with_nms(threshold=iou)
         detections = tracker.update_with_detections(detections)
 
         annotated_frame = frame.copy()
@@ -90,60 +105,7 @@ def main(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Calculating detections dwell time in zones, using RTSP stream."
-    )
-    parser.add_argument(
-        "--zone_configuration_path",
-        type=str,
-        required=True,
-        help="Path to the zone configuration JSON file.",
-    )
-    parser.add_argument(
-        "--rtsp_url",
-        type=str,
-        required=True,
-        help="Complete RTSP URL for the video stream.",
-    )
-    parser.add_argument(
-        "--weights",
-        type=str,
-        default="yolov8s.pt",
-        help="Path to the model weights file. Default is 'yolov8s.pt'.",
-    )
-    parser.add_argument(
-        "--device",
-        type=str,
-        default="cpu",
-        help="Computation device ('cpu', 'mps' or 'cuda'). Default is 'cpu'.",
-    )
-    parser.add_argument(
-        "--confidence_threshold",
-        type=float,
-        default=0.3,
-        help="Confidence level for detections (0 to 1). Default is 0.3.",
-    )
-    parser.add_argument(
-        "--iou_threshold",
-        default=0.7,
-        type=float,
-        help="IOU threshold for non-max suppression. Default is 0.7.",
-    )
-    parser.add_argument(
-        "--classes",
-        nargs="*",
-        type=int,
-        default=[],
-        help="List of class IDs to track. If empty, all classes are tracked.",
-    )
-    args = parser.parse_args()
+    from jsonargparse import auto_cli, set_parsing_settings
 
-    main(
-        rtsp_url=args.rtsp_url,
-        zone_configuration_path=args.zone_configuration_path,
-        weights=args.weights,
-        device=args.device,
-        confidence=args.confidence_threshold,
-        iou=args.iou_threshold,
-        classes=args.classes,
-    )
+    set_parsing_settings(parse_optionals_as_positionals=True)
+    auto_cli(main, as_positional=False)
