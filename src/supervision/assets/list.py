@@ -39,7 +39,7 @@ class VideoAssets(Assets):
         "9e8fb6e883f842a38b3d34267290bdc7",
     )
     VEHICLES_2 = ("vehicles-2.mp4", "830af6fba21ffbf14867a7fea595937b")
-    GROCERY_STORE = ("grocery-store.mp4", "453475750691fb23c56a0cffef089194")
+    GROCERY_STORE = ("grocery-store.mp4", "48608fb4a8981f1c2469fa492adeec9c")
     SUBWAY = ("subway.mp4", "453475750691fb23c56a0cffef089194")
     MARKET_SQUARE = ("market-square.mp4", "859179bf4a21f80a8baabfdb2ed716dc")
     PEOPLE_WALKING = ("people-walking.mp4", "0574c053c8686c3f1dc0aa3743e45cb9")
