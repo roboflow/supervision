@@ -1,5 +1,19 @@
 # Changelog
 
+### 0.28.0rc0 <small>Unreleased</small>
+
+!!! breaking "Breaking Change"
+    **OpenCV is now an optional dependency.** To ensure compatibility with different OpenCV variants (standard, contrib, headless), `opencv-python` has been removed from the core dependencies. Users must now explicitly choose their preferred OpenCV package:
+
+    - `pip install supervision[headless]` - Installs `opencv-python-headless` (recommended for servers)
+    - `pip install supervision[desktop]` - Installs `opencv-python` (includes GUI support)
+    - `pip install supervision[desktop-contrib]` - Installs `opencv-contrib-python` (extra modules + GUI)
+    - `pip install supervision[headless-contrib]` - Installs `opencv-contrib-python-headless` (extra modules, no GUI)
+
+    If you already have OpenCV installed, you can install supervision without extras: `pip install supervision`
+
+    This change resolves conflicts where `opencv-python` would override `opencv-contrib-python`, preventing access to extra modules like CSRT tracker.
+
 ### 0.27.0 <small>Nov 16, 2025</small>
 
 - Added [#2008](https://github.com/roboflow/supervision/pull/2008): [`sv.filter_segments_by_distance`](https://supervision.roboflow.com/0.27.0/detection/utils/masks/#supervision.detection.utils.masks.filter_segments_by_distance) to keep the largest connected component and nearby components within an absolute or relative distance threshold. Useful for cleaning segmentation predictions from models such as SAM, SAM2, YOLO segmentation, and RF-DETR segmentation.
