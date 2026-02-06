@@ -5,11 +5,11 @@ import base64
 import io
 import json
 import re
+import warnings
 from enum import Enum
 from typing import Any
 
 import numpy as np
-from deprecate import deprecated
 from PIL import Image
 
 from supervision.detection.utils.boxes import denormalize_boxes
@@ -17,14 +17,13 @@ from supervision.detection.utils.converters import polygon_to_mask, polygon_to_x
 from supervision.validators import validate_resolution
 
 
-@deprecated(
-    target=None,
-    deprecated_in="0.27.0",
-    remove_in="0.31.0",
-)
 class LMM(Enum):
     """
     Enum specifying supported Large Multimodal Models (LMMs).
+
+    .. deprecated:: 0.27.0
+        `LMM` is deprecated and will be removed in `supervision-0.31.0`.
+        Use `VLM` instead.
 
     Attributes:
         PALIGEMMA: Google's PaliGemma vision-language model.
@@ -51,6 +50,12 @@ class LMM(Enum):
 
     @classmethod
     def from_value(cls, value: LMM | str) -> LMM:
+        warnings.warn(
+            "`LMM` is deprecated since `supervision-0.27.0` and will be removed in "
+            "`supervision-0.31.0`. Use `VLM` instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
         if isinstance(value, cls):
             return value
         if isinstance(value, str):

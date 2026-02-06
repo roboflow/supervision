@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from dataclasses import dataclass, field
-from enum import Enum
+import warnings
 from functools import reduce
 from typing import Any
 
 import numpy as np
-from deprecate import deprecated
 
 from supervision.config import (
     CLASS_NAME_DATA_FIELD,
@@ -818,11 +817,6 @@ class Detections:
         )
 
     @classmethod
-    @deprecated(
-        target=None,
-        deprecated_in="0.26.0",
-        remove_in="0.30.0",
-    )
     def from_lmm(cls, lmm: LMM | str, result: str | dict, **kwargs: Any) -> Detections:
         """
         !!! deprecated "Deprecated"
@@ -1201,6 +1195,14 @@ class Detections:
             ```
         """  # noqa: E501
 
+        warnings.warn(
+            "`Detections.from_lmm` is deprecated since `supervision-0.26.0` "
+            "and will be removed in `supervision-0.30.0`. "
+            "Use `Detections.from_vlm` instead.",
+            FutureWarning,
+            stacklevel=2,
+        )
+
         # filler logic mapping old from_lmm to new from_vlm
         lmm_to_vlm = {
             LMM.PALIGEMMA: VLM.PALIGEMMA,
@@ -1211,8 +1213,7 @@ class Detections:
             LMM.GOOGLE_GEMINI_2_5: VLM.GOOGLE_GEMINI_2_5,
         }
 
-        # (this works even if the LMM enum is wrapped by @deprecated)
-        if isinstance(lmm, Enum) and lmm.__class__.__name__ == "LMM":
+        if isinstance(lmm, LMM):
             vlm = lmm_to_vlm[lmm]
 
         elif isinstance(lmm, str):
