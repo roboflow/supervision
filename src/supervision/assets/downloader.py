@@ -51,8 +51,8 @@ def download_assets(asset_name: ImageAssets | VideoAssets | str) -> str:
         >>> download_assets(VideoAssets.VEHICLES)  # doctest: +SKIP
         'vehicles.mp4'
 
-        download_assets(ImageAssets.PEOPLE_WALKING)  # doctest: +SKIP
-        "people-walking.jpg"
+        >>> download_assets(ImageAssets.PEOPLE_WALKING)  # doctest: +SKIP
+        'people-walking.jpg'
 
         ```
     """
