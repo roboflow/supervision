@@ -49,7 +49,19 @@ from supervision.utils.image import (
     scale_image,
 )
 
-CV2_FONT = cv2.FONT_HERSHEY_SIMPLEX
+# Lazy initialization for cv2 constants to avoid import errors
+CV2_FONT = None
+
+
+def _get_cv2_font() -> int:
+    """Get cv2.FONT_HERSHEY_SIMPLEX constant, ensuring cv2 is installed."""
+    global CV2_FONT
+    if CV2_FONT is None:
+        from supervision.utils.internal import ensure_cv2_installed
+
+        ensure_cv2_installed()
+        CV2_FONT = cv2.FONT_HERSHEY_SIMPLEX
+    return CV2_FONT
 
 
 class _BaseLabelAnnotator(BaseAnnotator):
@@ -1277,7 +1289,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
             for line in wrapped_lines:
                 (text_w, text_h) = cv2.getTextSize(
                     text=line,
-                    fontFace=CV2_FONT,
+                    fontFace=_get_cv2_font(),
                     fontScale=self.text_scale,
                     thickness=self.text_thickness,
                 )[0]
@@ -1360,7 +1372,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
                     # Use a character with ascenders and descenders as height reference
                     (_, text_h) = cv2.getTextSize(
                         text="Tg",
-                        fontFace=CV2_FONT,
+                        fontFace=_get_cv2_font(),
                         fontScale=self.text_scale,
                         thickness=self.text_thickness,
                     )[0]
@@ -1369,7 +1381,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
 
                 (_, text_h) = cv2.getTextSize(
                     text=line,
-                    fontFace=CV2_FONT,
+                    fontFace=_get_cv2_font(),
                     fontScale=self.text_scale,
                     thickness=self.text_thickness,
                 )[0]
@@ -1381,7 +1393,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
                     img=scene,
                     text=line,
                     org=(text_x, text_y),
-                    fontFace=CV2_FONT,
+                    fontFace=_get_cv2_font(),
                     fontScale=self.text_scale,
                     color=text_color.as_bgr(),
                     thickness=self.text_thickness,
@@ -3106,7 +3118,7 @@ class ComparisonAnnotator:
 
             (text_w, _) = cv2.getTextSize(
                 text=text,
-                fontFace=CV2_FONT,
+                fontFace=_get_cv2_font(),
                 fontScale=self.label_scale,
                 thickness=self.text_thickness,
             )[0]

@@ -234,7 +234,7 @@ def draw_text(
     text_scale: float = 0.5,
     text_thickness: int = 1,
     text_padding: int = 10,
-    text_font: int = cv2.FONT_HERSHEY_SIMPLEX,
+    text_font: int | None = None,
     background_color: Color | None = None,
 ) -> npt.NDArray[np.uint8]:
     """
@@ -274,6 +274,8 @@ def draw_text(
         ```
     """
     ensure_cv2_installed()
+    if text_font is None:
+        text_font = cv2.FONT_HERSHEY_SIMPLEX
     text_width, text_height = cv2.getTextSize(
         text=text,
         fontFace=text_font,
