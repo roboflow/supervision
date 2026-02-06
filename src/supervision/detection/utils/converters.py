@@ -1,5 +1,11 @@
-import cv2
 import numpy as np
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None  # type: ignore
+
+from supervision.utils.internal import ensure_cv2_installed
 
 MIN_POLYGON_POINT_COUNT = 3
 
@@ -35,6 +41,7 @@ def polygon_to_mask(polygon: np.ndarray, resolution_wh: tuple[int, int]) -> np.n
         np.ndarray: The generated 2D mask, where the polygon is marked with
             `1`'s and the rest is filled with `0`'s.
     """
+    ensure_cv2_installed()
     width, height = map(int, resolution_wh)
     mask = np.zeros((height, width), dtype=np.uint8)
     cv2.fillPoly(mask, [polygon.astype(np.int32)], color=1)
@@ -287,6 +294,7 @@ def mask_to_polygons(mask: np.ndarray) -> list[np.ndarray]:
             points. Polygons with fewer points than `MIN_POLYGON_POINT_COUNT = 3`
             are excluded from the output.
     """
+    ensure_cv2_installed()
 
     contours, _ = cv2.findContours(
         mask.astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE

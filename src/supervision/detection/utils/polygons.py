@@ -1,7 +1,13 @@
 from __future__ import annotations
 
-import cv2
 import numpy as np
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None  # type: ignore
+
+from supervision.utils.internal import ensure_cv2_installed
 
 
 def filter_polygons_by_area(
@@ -65,6 +71,7 @@ def approximate_polygon(
             the `x`, `y` coordinates of the
             approximated polygon's points.
     """
+    ensure_cv2_installed()
 
     if percentage < 0 or percentage >= 1:
         raise ValueError("Percentage must be in the range [0, 1).")

@@ -3,9 +3,13 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import replace
 
-import cv2
 import numpy as np
 import numpy.typing as npt
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None  # type: ignore
 
 from supervision import Detections
 from supervision.detection.utils.boxes import clip_boxes
@@ -14,6 +18,7 @@ from supervision.draw.color import Color
 from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
 from supervision.geometry.core import Position
 from supervision.geometry.utils import get_polygon_center
+from supervision.utils.internal import ensure_cv2_installed
 
 
 class PolygonZone:
@@ -144,6 +149,7 @@ class PolygonZoneAnnotator:
         display_in_zone_count: bool = True,
         opacity: float = 0,
     ):
+        ensure_cv2_installed()
         self.zone = zone
         self.color = color
         self.thickness = thickness
@@ -168,6 +174,7 @@ class PolygonZoneAnnotator:
         Returns:
             np.ndarray: The image with the polygon zone and count of detected objects
         """
+        ensure_cv2_installed()
         if self.opacity == 0:
             annotated_frame = draw_polygon(
                 scene=scene,

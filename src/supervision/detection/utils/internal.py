@@ -3,16 +3,22 @@ from __future__ import annotations
 from itertools import chain
 from typing import Any
 
-import cv2
 import numpy as np
 import numpy.typing as npt
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None  # type: ignore
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.utils.converters import polygon_to_mask
 from supervision.geometry.core import Vector
+from supervision.utils.internal import ensure_cv2_installed
 
 
 def extract_ultralytics_masks(yolov8_results) -> np.ndarray | None:
+    ensure_cv2_installed()
     if not yolov8_results.masks:
         return None
 

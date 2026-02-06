@@ -7,9 +7,13 @@ import shutil
 from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar
 
-import cv2
 import numpy as np
 import numpy.typing as npt
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None  # type: ignore
 
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import mask_to_polygons
@@ -17,6 +21,7 @@ from supervision.detection.utils.polygons import (
     approximate_polygon,
     filter_polygons_by_area,
 )
+from supervision.utils.internal import ensure_cv2_installed
 
 if TYPE_CHECKING:
     from supervision.dataset.core import DetectionDataset
@@ -101,6 +106,7 @@ def map_detections_class_id(
 
 
 def save_dataset_images(dataset: DetectionDataset, images_directory_path: str) -> None:
+    ensure_cv2_installed()
     Path(images_directory_path).mkdir(parents=True, exist_ok=True)
     for image_path in dataset.image_paths:
         final_path = os.path.join(images_directory_path, Path(image_path).name)

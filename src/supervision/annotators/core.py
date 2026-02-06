@@ -4,11 +4,15 @@ from functools import lru_cache
 from math import sqrt
 from typing import Any
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 from PIL import Image, ImageDraw, ImageFont
 from scipy.interpolate import splev, splprep
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None  # type: ignore
 
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import (

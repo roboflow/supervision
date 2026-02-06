@@ -4,15 +4,20 @@ import os
 from pathlib import Path
 from xml.etree.ElementTree import Element, SubElement
 
-import cv2
 import numpy as np
 from defusedxml.ElementTree import parse, tostring
 from defusedxml.minidom import parseString
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None  # type: ignore
 
 from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
 from supervision.utils.file import list_files_with_extensions
+from supervision.utils.internal import ensure_cv2_installed
 
 
 def object_to_pascal_voc(
@@ -156,6 +161,7 @@ def load_pascal_voc_annotations(
             of class names, a list of paths to images, and a dictionary with image
             paths as keys and corresponding Detections instances as values.
     """
+    ensure_cv2_installed()
 
     image_paths = [
         str(path)

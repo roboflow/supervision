@@ -7,9 +7,13 @@ from collections.abc import Iterable
 from functools import lru_cache
 from typing import Any, Literal
 
-import cv2
 import numpy as np
 import numpy.typing as npt
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None  # type: ignore
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
@@ -18,7 +22,7 @@ from supervision.draw.color import Color
 from supervision.draw.utils import draw_rectangle, draw_text
 from supervision.geometry.core import Point, Position, Rect, Vector
 from supervision.utils.image import overlay_image
-from supervision.utils.internal import SupervisionWarnings
+from supervision.utils.internal import SupervisionWarnings, ensure_cv2_installed
 
 TEXT_MARGIN = 10
 
@@ -354,6 +358,7 @@ class LineZoneAnnotator:
                 when the label overlaps something important.
 
         """
+        ensure_cv2_installed()
         self.thickness: int = thickness
         self.color: Color = color
         self.text_thickness: int = text_thickness
@@ -382,6 +387,7 @@ class LineZoneAnnotator:
             (np.ndarray): The image with the line drawn on it.
 
         """
+        ensure_cv2_installed()
         line_start = line_counter.vector.start.as_xy_int_tuple()
         line_end = line_counter.vector.end.as_xy_int_tuple()
         cv2.line(
@@ -742,6 +748,7 @@ class LineZoneAnnotatorMulticlass:
                 " TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT."
             )
 
+        ensure_cv2_installed()
         self.table_position = table_position
         self.table_color = table_color
         self.table_margin = table_margin
@@ -771,6 +778,7 @@ class LineZoneAnnotatorMulticlass:
             (np.ndarray): The image with the table drawn on it.
 
         """
+        ensure_cv2_installed()
         if line_zone_labels is None:
             line_zone_labels = [f"Line {i + 1}:" for i in range(len(line_zones))]
         if len(line_zones) != len(line_zone_labels):

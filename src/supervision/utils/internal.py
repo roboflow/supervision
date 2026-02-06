@@ -190,6 +190,38 @@ class classproperty(Generic[T]):
         return self.fget(owner_cls)
 
 
+def ensure_cv2_installed() -> None:
+    """
+    Check if OpenCV (cv2) is installed and raise an ImportError with installation
+    instructions if it is not available.
+
+    Raises:
+        ImportError: If OpenCV is not installed, with instructions on how to install it.
+
+    Usage:
+        ```pycon
+        >>> from supervision.utils.internal import ensure_cv2_installed
+        >>> ensure_cv2_installed()  # Will raise ImportError if cv2 is not installed
+
+        ```
+    """
+    try:
+        import cv2  # noqa: F401
+    except ImportError:
+        raise ImportError(
+            "OpenCV is required but not installed. "
+            "Install supervision with one of the following options:\n"
+            "  pip install supervision[headless]           # For servers (no GUI)\n"
+            "  pip install supervision[desktop]            # For desktop (with GUI)\n"
+            "  pip install supervision[desktop-contrib]    # For desktop with extra modules\n"
+            "  pip install supervision[headless-contrib]   # For servers with extra modules\n"
+            "Or install OpenCV separately:\n"
+            "  pip install opencv-python-headless  # Recommended for servers\n"
+            "  pip install opencv-python           # For desktop applications\n"
+            "  pip install opencv-contrib-python   # For extra modules"
+        )
+
+
 def get_instance_variables(instance: Any, include_properties: bool = False) -> set[str]:
     """
     Get the public variables of a class instance.

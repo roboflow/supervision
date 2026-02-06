@@ -1,12 +1,16 @@
 from functools import wraps
 from typing import Any, Callable
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 from PIL import Image
 
 from supervision.draw.base import ImageType
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None  # type: ignore
 
 
 def ensure_cv2_image_for_class_method(
@@ -119,6 +123,9 @@ def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
     Returns:
         Input image converted to OpenCV format.
     """
+    from supervision.utils.internal import ensure_cv2_installed
+
+    ensure_cv2_installed()
     scene = np.array(image)
     scene = cv2.cvtColor(scene, cv2.COLOR_RGB2BGR)
     return scene.astype(np.uint8)
@@ -135,5 +142,8 @@ def cv2_to_pillow(image: npt.NDArray[np.uint8]) -> Image.Image:
     Returns:
         Input image converted to Pillow format.
     """
+    from supervision.utils.internal import ensure_cv2_installed
+
+    ensure_cv2_installed()
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return Image.fromarray(image)

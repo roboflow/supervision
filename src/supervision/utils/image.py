@@ -4,10 +4,14 @@ import os
 import shutil
 from typing import Any
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 from PIL import Image
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None  # type: ignore
 
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color, unify_to_bgr
@@ -521,6 +525,9 @@ class ImageSink:
                 `None`, generates name using `image_name_pattern`. Defaults to
                 `None`.
         """
+        from supervision.utils.internal import ensure_cv2_installed
+
+        ensure_cv2_installed()
         if image_name is None:
             image_name = self.image_name_pattern.format(self.image_count)
 

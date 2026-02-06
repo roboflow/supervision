@@ -7,8 +7,12 @@ from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
 
-import cv2
 import numpy as np
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None  # type: ignore
 
 from supervision.classification.core import Classifications
 from supervision.dataset.formats.coco import (
@@ -32,7 +36,7 @@ from supervision.dataset.utils import (
     train_test_split,
 )
 from supervision.detection.core import Detections
-from supervision.utils.internal import warn_deprecated
+from supervision.utils.internal import warn_deprecated, ensure_cv2_installed
 from supervision.utils.iterables import find_duplicates
 
 
@@ -90,6 +94,7 @@ class DetectionDataset(BaseDataset):
 
     def _get_image(self, image_path: str) -> np.ndarray:
         """Assumes that image is in dataset"""
+        ensure_cv2_installed()
         if self._images_in_memory:
             return self._images_in_memory[image_path]
         return cv2.imread(image_path)
@@ -691,6 +696,7 @@ class ClassificationDataset(BaseDataset):
 
     def _get_image(self, image_path: str) -> np.ndarray:
         """Assumes that image is in dataset"""
+        ensure_cv2_installed()
         if self._images_in_memory:
             return self._images_in_memory[image_path]
         return cv2.imread(image_path)
@@ -825,6 +831,7 @@ class ClassificationDataset(BaseDataset):
             root_directory_path (str): The path to the directory
                 where the dataset will be saved.
         """
+        ensure_cv2_installed()
         os.makedirs(root_directory_path, exist_ok=True)
 
         for class_name in self.classes:

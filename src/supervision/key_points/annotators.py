@@ -3,8 +3,12 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from logging import warn
 
-import cv2
 import numpy as np
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None  # type: ignore
 
 from supervision.detection.utils.boxes import pad_boxes, spread_out_boxes
 from supervision.draw.base import ImageType
@@ -14,6 +18,7 @@ from supervision.geometry.core import Rect
 from supervision.key_points.core import KeyPoints
 from supervision.key_points.skeletons import SKELETONS_BY_VERTEX_COUNT
 from supervision.utils.conversion import ensure_cv2_image_for_class_method
+from supervision.utils.internal import ensure_cv2_installed
 
 
 class BaseKeyPointAnnotator(ABC):
@@ -40,6 +45,7 @@ class VertexAnnotator(BaseKeyPointAnnotator):
             radius (int): The radius of the circles used to represent the key
                 points.
         """
+        ensure_cv2_installed()
         self.color = color
         self.radius = radius
 
@@ -117,6 +123,7 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
             edges (Optional[List[Tuple[int, int]]]): The edges to draw.
                 If set to `None`, will attempt to select automatically.
         """
+        ensure_cv2_installed()
         self.color = color
         self.thickness = thickness
         self.edges = edges
@@ -222,6 +229,7 @@ class VertexLabelAnnotator:
                 boxes. Set to a high value to produce circles.
             smart_position (bool): Spread out the labels to avoid overlap.
         """
+        ensure_cv2_installed()
         self.border_radius: int = border_radius
         self.color: Color | list[Color] = color
         self.text_color: Color | list[Color] = text_color

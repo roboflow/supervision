@@ -2,9 +2,15 @@ from __future__ import annotations
 
 from typing import Literal
 
-import cv2
 import numpy as np
 import numpy.typing as npt
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None  # type: ignore
+
+from supervision.utils.internal import ensure_cv2_installed
 
 
 def move_masks(
@@ -155,6 +161,7 @@ def contains_holes(mask: npt.NDArray[np.bool_]) -> bool:
 
     ![contains_holes](https://media.roboflow.com/supervision-docs/contains-holes.png){ align=center width="800" }
     """  # noqa E501 // docs
+    ensure_cv2_installed()
     mask_uint8 = mask.astype(np.uint8)
     _, hierarchy = cv2.findContours(mask_uint8, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -216,6 +223,7 @@ def contains_multiple_segments(
 
     ![contains_multiple_segments](https://media.roboflow.com/supervision-docs/contains-multiple-segments.png){ align=center width="800" }
     """  # noqa E501 // docs
+    ensure_cv2_installed()
     if connectivity != 4 and connectivity != 8:
         raise ValueError(
             "Incorrect connectivity value. Possible connectivity values: 4 or 8."
@@ -337,6 +345,7 @@ def filter_segments_by_distance(
         The nearby 2×2 block at columns 6–7 is kept because its edge distance
         is within 3 pixels. The distant block at columns 9-10 is removed.
     """  # noqa E501 // docs
+    ensure_cv2_installed()
     if mask.dtype != bool:
         raise TypeError("mask must be boolean")
 

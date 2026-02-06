@@ -8,10 +8,14 @@ from dataclasses import dataclass
 from queue import Empty, Full, Queue
 from typing import Any
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 from tqdm.auto import tqdm
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None  # type: ignore
 
 
 @dataclass
@@ -48,6 +52,9 @@ class VideoInfo:
 
     @classmethod
     def from_video_path(cls, video_path: str) -> VideoInfo:
+        from supervision.utils.internal import ensure_cv2_installed
+
+        ensure_cv2_installed()
         video = cv2.VideoCapture(video_path)
         if not video.isOpened():
             raise Exception(f"Could not open video at {video_path}")

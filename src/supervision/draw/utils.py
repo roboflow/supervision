@@ -3,12 +3,17 @@ from __future__ import annotations
 import os
 from typing import cast
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 
+try:
+    import cv2
+except ImportError:
+    cv2 = None  # type: ignore
+
 from supervision.draw.color import Color
 from supervision.geometry.core import Point, Rect
+from supervision.utils.internal import ensure_cv2_installed
 
 
 def draw_line(
@@ -31,6 +36,7 @@ def draw_line(
     Returns:
         The scene with the line drawn on it
     """
+    ensure_cv2_installed()
     cv2.line(
         scene,
         start.as_xy_int_tuple(),
@@ -59,6 +65,7 @@ def draw_rectangle(
     Returns:
         The scene with the rectangle drawn on it
     """
+    ensure_cv2_installed()
     cv2.rectangle(
         scene,
         rect.top_left.as_xy_int_tuple(),
@@ -87,6 +94,7 @@ def draw_filled_rectangle(
     Returns:
         The scene with the rectangle drawn on it
     """
+    ensure_cv2_installed()
     if opacity == 1:
         cv2.rectangle(
             scene,
@@ -129,6 +137,7 @@ def draw_rounded_rectangle(
     Returns:
         The image with the rounded rectangle drawn on it.
     """
+    ensure_cv2_installed()
     x1, y1, x2, y2 = rect.as_xyxy_int_tuple()
     width, height = x2 - x1, y2 - y1
     border_radius = min(border_radius, min(width, height) // 2)
@@ -180,6 +189,7 @@ def draw_polygon(
     Returns:
         The scene with the polygon drawn on it.
     """
+    ensure_cv2_installed()
     cv2.polylines(
         scene, [polygon], isClosed=True, color=color.as_bgr(), thickness=thickness
     )
@@ -203,6 +213,7 @@ def draw_filled_polygon(
     Returns:
         The scene with the polygon drawn on it.
     """
+    ensure_cv2_installed()
     if opacity == 1:
         cv2.fillPoly(scene, [polygon], color=color.as_bgr())
     else:
@@ -262,6 +273,7 @@ def draw_text(
 
         ```
     """
+    ensure_cv2_installed()
     text_width, text_height = cv2.getTextSize(
         text=text,
         fontFace=text_font,
@@ -318,6 +330,7 @@ def draw_image(
         FileNotFoundError: If the image path does not exist.
         ValueError: For invalid opacity or rectangle dimensions.
     """
+    ensure_cv2_installed()
 
     # Validate and load image
     if isinstance(image, str):

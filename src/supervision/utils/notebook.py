@@ -1,11 +1,16 @@
 from __future__ import annotations
 
-import cv2
 import matplotlib.pyplot as plt
 from PIL import Image
 
+try:
+    import cv2
+except ImportError:
+    cv2 = None  # type: ignore
+
 from supervision.draw.base import ImageType
 from supervision.utils.conversion import pillow_to_cv2
+from supervision.utils.internal import ensure_cv2_installed
 
 
 def plot_image(
@@ -33,6 +38,7 @@ def plot_image(
 
         ```
     """
+    ensure_cv2_installed()
     if isinstance(image, Image.Image):
         image = pillow_to_cv2(image)
 
@@ -89,6 +95,7 @@ def plot_images_grid(
 
         ```
     """
+    ensure_cv2_installed()
     nrows, ncols = grid_size
 
     for idx, img in enumerate(images):
