@@ -66,11 +66,11 @@ class ImageAssets(Assets):
 
 MEDIA_ASSETS: dict[str, tuple[str, str]] = {
     **{
-        asset.value[0]: (f"{BASE_VIDEO_URL}{asset.value[0]}", asset.value[1])
+        asset.filename: (f"{BASE_VIDEO_URL}{asset.filename}", asset.md5_hash)
         for asset in VideoAssets
     },
     **{
-        asset.value[0]: (f"{BASE_IMAGE_URL}{asset.value[0]}", asset.value[1])
+        asset.filename: (f"{BASE_IMAGE_URL}{asset.filename}", asset.md5_hash)
         for asset in ImageAssets
     },
 }
