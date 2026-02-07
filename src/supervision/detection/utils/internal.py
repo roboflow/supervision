@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from itertools import chain
-from typing import Any
+from typing import Any, cast
 
 import cv2
 import numpy as np
@@ -12,7 +12,7 @@ from supervision.detection.utils.converters import polygon_to_mask
 from supervision.geometry.core import Vector
 
 
-def extract_ultralytics_masks(yolov8_results) -> np.ndarray | None:
+def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | None:
     if not yolov8_results.masks:
         return None
 
@@ -45,34 +45,34 @@ def extract_ultralytics_masks(yolov8_results) -> np.ndarray | None:
 
         mask_maps.append(mask)
 
-    return np.asarray(mask_maps, dtype=bool)
+    return cast(npt.NDArray[np.bool_], np.asarray(mask_maps, dtype=bool))
 
 
 def process_roboflow_result(
-    roboflow_result: dict,
+    roboflow_result: dict[str, Any],
 ) -> tuple[
-    np.ndarray,
-    np.ndarray,
-    np.ndarray,
-    np.ndarray | None,
-    np.ndarray | None,
-    dict[str, list[np.ndarray] | np.ndarray],
+    npt.NDArray[np.floating],
+    npt.NDArray[np.floating],
+    npt.NDArray[np.integer],
+    npt.NDArray[np.bool_] | None,
+    npt.NDArray[np.integer] | None,
+    dict[str, npt.NDArray[np.generic]],
 ]:
     if not roboflow_result["predictions"]:
         return (
-            np.empty((0, 4)),
-            np.empty(0),
-            np.empty(0),
+            np.empty((0, 4), dtype=np.float64),
+            np.empty(0, dtype=np.float64),
+            np.empty(0, dtype=np.int64),
             None,
             None,
-            {CLASS_NAME_DATA_FIELD: np.empty(0)},
+            {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)},
         )
 
     xyxy: list[list[float]] = []
     confidence: list[float] = []
     class_id: list[int] = []
     class_name: list[str] = []
-    masks: list[np.ndarray] = []
+    masks: list[npt.NDArray[np.uint8]] = []
     tracker_ids: list[int] = []
 
     image_width = int(roboflow_result["image"]["width"])
@@ -108,13 +108,27 @@ def process_roboflow_result(
             if "tracker_id" in prediction:
                 tracker_ids.append(prediction["tracker_id"])
 
-    xyxy_arr = np.array(xyxy) if len(xyxy) > 0 else np.empty((0, 4))
-    confidence_arr = np.array(confidence) if len(confidence) > 0 else np.empty(0)
-    class_id_arr = np.array(class_id).astype(int) if len(class_id) > 0 else np.empty(0)
-    class_name_arr = np.array(class_name) if len(class_name) > 0 else np.empty(0)
-    masks_arr = np.array(masks, dtype=bool) if len(masks) > 0 else None
-    tracker_id_arr = np.array(tracker_ids).astype(int) if len(tracker_ids) > 0 else None
-    data: dict[str, np.ndarray] = {CLASS_NAME_DATA_FIELD: class_name_arr}
+    xyxy_arr: npt.NDArray[np.floating] = (
+        np.array(xyxy, dtype=np.float64) if len(xyxy) > 0 else np.empty((0, 4))
+    )
+    confidence_arr: npt.NDArray[np.floating] = (
+        np.array(confidence, dtype=np.float64) if len(confidence) > 0 else np.empty(0)
+    )
+    class_id_arr: npt.NDArray[np.integer] = (
+        np.array(class_id, dtype=np.int64)
+        if len(class_id) > 0
+        else np.empty(0, dtype=np.int64)
+    )
+    class_name_arr: npt.NDArray[np.str_] = (
+        np.array(class_name) if len(class_name) > 0 else np.empty(0, dtype=str)
+    )
+    masks_arr: npt.NDArray[np.bool_] | None = (
+        np.array(masks, dtype=bool) if len(masks) > 0 else None
+    )
+    tracker_id_arr: npt.NDArray[np.integer] | None = (
+        np.array(tracker_ids, dtype=np.int64) if len(tracker_ids) > 0 else None
+    )
+    data: dict[str, npt.NDArray[np.generic]] = {CLASS_NAME_DATA_FIELD: class_name_arr}
 
     return (
         xyxy_arr,
@@ -126,7 +140,10 @@ def process_roboflow_result(
     )
 
 
-def is_data_equal(data_a: dict[str, np.ndarray], data_b: dict[str, np.ndarray]) -> bool:
+def is_data_equal(
+    data_a: dict[str, npt.NDArray[np.generic]],
+    data_b: dict[str, npt.NDArray[np.generic]],
+) -> bool:
     """
     Compares the data payloads of two Detections instances.
 
@@ -163,8 +180,8 @@ def is_metadata_equal(metadata_a: dict[str, Any], metadata_b: dict[str, Any]) ->
 
 
 def merge_data(
-    data_list: list[dict[str, npt.NDArray[np.generic] | list]],
-) -> dict[str, npt.NDArray[np.generic] | list]:
+    data_list: list[dict[str, npt.NDArray[np.generic] | list[Any]]],
+) -> dict[str, npt.NDArray[np.generic] | list[Any]]:
     """
     Merges the data payloads of a list of Detections instances.
 
@@ -198,7 +215,7 @@ def merge_data(
                 "All data values within a single object must have equal length."
             )
 
-    merged_data = {key: [] for key in all_keys_sets[0]}
+    merged_data: dict[str, list[Any]] = {key: [] for key in all_keys_sets[0]}
     for data in data_list:
         for key in data:
             merged_data[key].append(data[key])
@@ -278,9 +295,9 @@ def merge_metadata(metadata_list: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def get_data_item(
-    data: dict[str, np.ndarray | list],
-    index: int | slice | list[int] | np.ndarray,
-) -> dict[str, np.ndarray | list]:
+    data: dict[str, npt.NDArray[np.generic] | list[Any]],
+    index: int | slice | list[int] | npt.NDArray[np.integer | np.bool_],
+) -> dict[str, npt.NDArray[np.generic] | list[Any]]:
     """
     Retrieve a subset of the data dictionary based on the given index.
 
@@ -291,7 +308,7 @@ def get_data_item(
     Returns:
         A subset of the data dictionary corresponding to the specified index.
     """
-    subset_data: dict[str, np.ndarray | list] = {}
+    subset_data: dict[str, npt.NDArray[np.generic] | list[Any]] = {}
     for key, value in data.items():
         if isinstance(value, np.ndarray):
             subset_data[key] = value[index]
@@ -317,7 +334,9 @@ def get_data_item(
     return subset_data
 
 
-def cross_product(anchors: np.ndarray, vector: Vector) -> np.ndarray:
+def cross_product(
+    anchors: npt.NDArray[np.number], vector: Vector
+) -> npt.NDArray[np.number]:
     """
     Get array of cross products of each anchor with a vector.
     Args:
@@ -334,4 +353,6 @@ def cross_product(anchors: np.ndarray, vector: Vector) -> np.ndarray:
         ]
     )
     vector_start = np.array([vector.start.x, vector.start.y])
-    return np.cross(vector_at_zero, anchors - vector_start)
+    return cast(
+        npt.NDArray[np.number], np.cross(vector_at_zero, anchors - vector_start)
+    )
