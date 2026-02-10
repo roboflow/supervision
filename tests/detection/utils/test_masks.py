@@ -488,7 +488,7 @@ def test_contains_holes(
             ),
             5,
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Incorrect connectivity value"),
         ),  # Incorrect connectivity parameter value, raises ValueError
     ],
 )
