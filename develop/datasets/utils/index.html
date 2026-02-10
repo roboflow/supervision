@@ -2653,7 +2653,7 @@
 <h3 id="supervision.dataset.utils.rle_to_mask(rle)" class="doc doc-heading doc-heading-parameter">                  <code>rle</code>
 <a href="#supervision.dataset.utils.rle_to_mask(rle)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code><span title="Union">Union</span>[<span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.int_">int_</span>], <span title="List">List</span>[<span title="int">int</span>]]</code>
+                  <code><span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.int_">int_</span>] | <span title="list">list</span>[<span title="int">int</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2673,7 +2673,7 @@ assigned as foreground object).</p>
 <h3 id="supervision.dataset.utils.rle_to_mask(resolution_wh)" class="doc doc-heading doc-heading-parameter">                  <code>resolution_wh</code>
 <a href="#supervision.dataset.utils.rle_to_mask(resolution_wh)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code><span title="Tuple">Tuple</span>[<span title="int">int</span>, <span title="int">int</span>]</code>
+                  <code><span title="tuple">tuple</span>[<span title="int">int</span>, <span title="int">int</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2811,12 +2811,12 @@ array([[0, 0, 0, 0],
 </span><span id="__span-0-146"><a id="__codelineno-0-146" name="__codelineno-0-146"></a><span class="sd">    Converts run-length encoding (RLE) to a binary mask.</span>
 </span><span id="__span-0-147"><a id="__codelineno-0-147" name="__codelineno-0-147"></a>
 </span><span id="__span-0-148"><a id="__codelineno-0-148" name="__codelineno-0-148"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-149"><a id="__codelineno-0-149" name="__codelineno-0-149"></a><span class="sd">        rle (Union[npt.NDArray[np.int_], List[int]]): The 1D RLE array, the format</span>
+</span><span id="__span-0-149"><a id="__codelineno-0-149" name="__codelineno-0-149"></a><span class="sd">        rle: The 1D RLE array, the format</span>
 </span><span id="__span-0-150"><a id="__codelineno-0-150" name="__codelineno-0-150"></a><span class="sd">            used in the COCO dataset (column-wise encoding, values of an array with</span>
 </span><span id="__span-0-151"><a id="__codelineno-0-151" name="__codelineno-0-151"></a><span class="sd">            even indices represent the number of pixels assigned as background,</span>
 </span><span id="__span-0-152"><a id="__codelineno-0-152" name="__codelineno-0-152"></a><span class="sd">            values of an array with odd indices represent the number of pixels</span>
 </span><span id="__span-0-153"><a id="__codelineno-0-153" name="__codelineno-0-153"></a><span class="sd">            assigned as foreground object).</span>
-</span><span id="__span-0-154"><a id="__codelineno-0-154" name="__codelineno-0-154"></a><span class="sd">        resolution_wh (Tuple[int, int]): The width (w) and height (h)</span>
+</span><span id="__span-0-154"><a id="__codelineno-0-154" name="__codelineno-0-154"></a><span class="sd">        resolution_wh: The width (w) and height (h)</span>
 </span><span id="__span-0-155"><a id="__codelineno-0-155" name="__codelineno-0-155"></a><span class="sd">            of the desired binary mask.</span>
 </span><span id="__span-0-156"><a id="__codelineno-0-156" name="__codelineno-0-156"></a>
 </span><span id="__span-0-157"><a id="__codelineno-0-157" name="__codelineno-0-157"></a><span class="sd">    Returns:</span>
@@ -3068,7 +3068,7 @@ mask-to-rle.png" width="800" /></p>
 </span><span id="__span-0-200"><a id="__codelineno-0-200" name="__codelineno-0-200"></a><span class="sd">    Converts a binary mask into a run-length encoding (RLE).</span>
 </span><span id="__span-0-201"><a id="__codelineno-0-201" name="__codelineno-0-201"></a>
 </span><span id="__span-0-202"><a id="__codelineno-0-202" name="__codelineno-0-202"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-203"><a id="__codelineno-0-203" name="__codelineno-0-203"></a><span class="sd">        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground</span>
+</span><span id="__span-0-203"><a id="__codelineno-0-203" name="__codelineno-0-203"></a><span class="sd">        mask: 2D binary mask where `True` indicates foreground</span>
 </span><span id="__span-0-204"><a id="__codelineno-0-204" name="__codelineno-0-204"></a><span class="sd">            object and `False` indicates background.</span>
 </span><span id="__span-0-205"><a id="__codelineno-0-205" name="__codelineno-0-205"></a>
 </span><span id="__span-0-206"><a id="__codelineno-0-206" name="__codelineno-0-206"></a><span class="sd">    Returns:</span>
