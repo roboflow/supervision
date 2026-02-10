@@ -1,198 +1,96 @@
-# GitHub Copilot Task & Issue Execution Guidelines
+# Agent Guidelines for `supervision`
 
-These instructions define how GitHub Copilot should behave when assigned an issue, task, or multi‑step problem in this repository.
-Focus on correctness, clarity, reproducibility, and alignment with the library’s design philosophy.
+These instructions define how AI agents (GitHub Copilot, Claude, etc.) should behave when
+assigned an issue, task, or multi-step problem in this repository.
 
----
-
-# 🔧 1. General Behavior
-
-When assigned a task or issue, Copilot should:
-
-- Understand the task fully before acting
-- Ask for clarification if essential details are missing
-- Break work into clear, sequential steps
-- Propose alternatives when multiple solutions exist
-- Validate its own output
-- Produce final deliverables in a clean, structured format
-
-Tone: concise, technical, and constructive.
+Behave like a senior contributor: precise, efficient, aligned with the project's
+philosophy, and focused on maintainability and clarity.
 
 ---
 
-# 🧠 2. Task Understanding & Planning
+## 1. Before You Code
 
-Before writing code or proposing changes, Copilot should:
-
-1. Summarize the task in its own words
-2. Identify missing information
-3. Outline a step‑by‑step plan
-4. Highlight risks, assumptions, and dependencies
-5. Confirm alignment with the repository’s architecture
-
-If the task is ambiguous, Copilot must ask **one targeted clarification question**.
+- Read the task/issue thoroughly before acting.
+- Identify missing information; ask **one targeted clarification question** if needed.
+- Outline a step-by-step plan before making changes.
+- Check whether the feature or fix already exists under a different name.
+- Confirm alignment with the repository's architecture (`src/supervision/`).
 
 ---
 
-# 🧩 3. Repository‑Specific Principles
+## 2. Repository Conventions
 
-All work must follow the conventions of the `supervision` library:
+All work must follow the conventions of the `supervision` library
+(see [CONTRIBUTING.md](.github/CONTRIBUTING.md) for full details).
 
-### ✔️ API Consistency
+### Branching & Commits
 
-- Follow existing naming patterns
-- Maintain backward compatibility unless explicitly allowed
-- Prefer functional utilities over complex classes unless justified
+- Branch from `develop` using prefixes: `feat/`, `fix/`, `docs/`, `refactor/`, `test/`, `chore/`.
+- Use **conventional commits**: `feat:`, `fix:`, `docs:`, `refactor:`, `perf:`, `test:`, `chore:`.
+- PRs must target the `develop` branch.
 
-### ✔️ Performance Awareness
+### Code Style
 
-- Avoid unnecessary copies of NumPy arrays
-- Prefer vectorized operations
-- Use OpenCV operations efficiently
-- Avoid Python loops in hot paths
+- **Formatting, linting, and type checking** are all enforced by **pre-commit**.
+  The hook chain includes: ruff-check, ruff-format, mypy (strict), codespell, mdformat,
+  prettier, pyproject-fmt, and standard pre-commit-hooks (trailing whitespace, YAML, TOML, etc.).
+- **Type hints**: required on all new code.
+- **Docstrings**: Google Python docstring style. Required for all new functions and classes.
+  Docstrings should include usage examples demonstrating the function with primitive values
+  so they serve as runnable documentation.
 
-### ✔️ Code Style
+### API Consistency
 
-- Match the project’s formatting (black, isort, ruff)
-- Use type hints consistently
-- Keep functions small and composable
+- Follow existing naming patterns.
+- Maintain backward compatibility unless explicitly allowed.
+- Prefer functional utilities over complex classes unless justified.
 
-### ✔️ Documentation
+### Performance
 
-- Update docstrings
-- Provide usage examples when adding new features
-- Ensure consistency with existing docs
-
-### ✔️ Testing
-
-- Add or update tests for all new features
-- Add regression tests for bug fixes
-- Use pytest conventions already present in the repo
+- Avoid unnecessary copies of NumPy arrays.
+- Prefer vectorized operations over Python loops in hot paths.
+- Use OpenCV operations efficiently.
 
 ---
 
-# 🧪 4. When Implementing Features
+## 3. Implementing Features
 
-Copilot should:
-
-- Provide a minimal, clean implementation
-- Include type hints
-- Add tests covering edge cases
-- Add or update documentation
-- Ensure compatibility with:
-    - NumPy
-    - OpenCV
-    - PyTorch / ONNX (if relevant)
-    - Ultralytics YOLO models
-    - Roboflow datasets
-
-Copilot must also check whether the feature already exists under a different name.
+- Provide a minimal, clean implementation.
+- Include type hints and Google-style docstrings with usage examples.
+- All new functionality must be covered with tests, including edge cases.
+- Add or update documentation (docstrings + mkdocs entries if applicable).
+- Ensure compatibility with core dependencies: NumPy, OpenCV, SciPy.
 
 ---
 
-# 🐞 5. When Fixing Bugs
+## 4. Fixing Bugs
 
-Copilot should:
-
-1. Reproduce the issue (conceptually or via reasoning)
-2. Identify the root cause
-3. Propose at least two possible fixes
-4. Choose the safest fix
-5. Add a regression test
-6. Validate that no other components break
-
-Bug fixes must be minimal and targeted.
+1. Reproduce and understand the root cause.
+2. Write a test that reproduces the bug (it should fail before the fix).
+3. Apply a minimal, targeted fix.
+4. Verify the test passes and no other components break.
 
 ---
 
-# 🧹 6. When Refactoring
+## 5. Refactoring
 
-Refactors must:
-
-- Preserve behavior
-- Improve readability or performance
-- Reduce duplication
-- Maintain API stability
-- Include before/after reasoning
-
-Copilot should avoid large, sweeping refactors unless explicitly requested.
+- Preserve behavior and API stability.
+- Improve readability or performance.
+- Reduce duplication.
+- Avoid large, sweeping refactors unless explicitly requested.
 
 ---
 
-# 📦 7. Deliverable Format
+## 6. Before You Commit
 
-Every task Copilot completes should end with:
+Always run these before committing:
 
-### **A. Summary**
+```bash
+uv run pytest --cov=supervision
+uv run pre-commit run --all-files
+```
 
-- What was done
-- Why it was done
-- Impact on the library
-
-### **B. Code Changes**
-
-- Clean, minimal code blocks
-- Only the necessary parts
-- No speculative changes
-
-### **C. Tests**
-
-- New or updated tests
-- Clear explanation of coverage
-
-### **D. Validation**
-
-- How Copilot verified correctness
-- Potential edge cases to consider
-
-### **E. Next Steps (Optional)**
-
-- Additional improvements
-- Follow‑up tasks
-
----
-
-# ⚠️ 8. Risk & Impact Assessment
-
-For every task, Copilot should evaluate:
-
-- API breakage risk
-- Performance impact
-- Backward compatibility
-- Dependency implications
-- User‑facing behavior changes
-
-Use the scoring format:
-
-**`n/5 — word‑assessment`**
-
-Examples:
-
-- `1/5 — Minimal risk`
-- `4/5 — High risk`
-
----
-
-# 🔍 9. When Unsure
-
-If Copilot is uncertain about:
-
-- expected behavior
-- design direction
-- performance constraints
-- API compatibility
-
-It must ask **one concise clarification question** before proceeding.
-
----
-
-# 🏁 10. Final Goal
-
-Copilot should behave like a senior contributor to the `supervision` library:
-
-- precise
-- efficient
-- aligned with the project’s philosophy
-- focused on maintainability and clarity
-
-All output should help maintain a high‑quality, production‑ready computer vision toolkit.
+- All pre-commit hooks must pass (formatting, linting, type checking, spell check, etc.).
+- All tests must pass before opening a PR. Note: some existing tests in the repo may
+  already be failing — your changes must not introduce new failures.
+- Fix any issues reported and re-run until clean.
