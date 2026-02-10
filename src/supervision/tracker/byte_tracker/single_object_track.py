@@ -20,7 +20,7 @@ class STrack:
     def __init__(
         self,
         tlwh: npt.NDArray[np.float32],
-        score: npt.NDArray[np.float32],
+        score: float,
         minimum_consecutive_frames: int,
         shared_kalman: KalmanFilter,
         internal_id_counter: IdCounter,
@@ -32,12 +32,13 @@ class STrack:
         self.frame_id = 0
 
         self._tlwh = np.asarray(tlwh, dtype=np.float32)
-        self.kalman_filter = None
+        self.kalman_filter: KalmanFilter | None = None
         self.shared_kalman = shared_kalman
-        self.mean, self.covariance = None, None
+        self.mean: npt.NDArray[np.float32] | None = None
+        self.covariance: npt.NDArray[np.float32] | None = None
         self.is_activated = False
 
-        self.score = score
+        self.score: float = score
         self.tracklet_len = 0
 
         self.minimum_consecutive_frames = minimum_consecutive_frames
@@ -48,6 +49,9 @@ class STrack:
         self.external_track_id = self.external_id_counter.NO_ID
 
     def predict(self) -> None:
+        assert self.mean is not None
+        assert self.covariance is not None
+        assert self.kalman_filter is not None
         mean_state = self.mean.copy()
         if self.state != TrackState.Tracked:
             mean_state[7] = 0
@@ -61,6 +65,8 @@ class STrack:
             multi_mean = []
             multi_covariance = []
             for i, st in enumerate(stracks):
+                assert st.mean is not None
+                assert st.covariance is not None
                 multi_mean.append(st.mean.copy())
                 multi_covariance.append(st.covariance)
                 if st.state != TrackState.Tracked:
@@ -93,6 +99,9 @@ class STrack:
         self.start_frame = frame_id
 
     def re_activate(self, new_track: STrack, frame_id: int) -> None:
+        assert self.kalman_filter is not None
+        assert self.mean is not None
+        assert self.covariance is not None
         self.mean, self.covariance = self.kalman_filter.update(
             self.mean, self.covariance, self.tlwh_to_xyah(new_track.tlwh)
         )
@@ -104,12 +113,15 @@ class STrack:
 
     def update(self, new_track: STrack, frame_id: int) -> None:
         """
-        Update a matched track
-        :type new_track: STrack
-        :type frame_id: int
-        :type update_feature: bool
-        :return:
+        Update a matched track.
+
+        Args:
+            new_track: The new track data.
+            frame_id: The current frame ID.
         """
+        assert self.kalman_filter is not None
+        assert self.mean is not None
+        assert self.covariance is not None
         self.frame_id = frame_id
         self.tracklet_len += 1
 
@@ -147,7 +159,7 @@ class STrack:
         return ret
 
     @staticmethod
-    def tlwh_to_xyah(tlwh) -> npt.NDArray[np.float32]:
+    def tlwh_to_xyah(tlwh: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         """Convert bounding box to format `(center x, center y, aspect ratio,
         height)`, where the aspect ratio is `width / height`.
         """
@@ -160,13 +172,13 @@ class STrack:
         return self.tlwh_to_xyah(self.tlwh)
 
     @staticmethod
-    def tlbr_to_tlwh(tlbr) -> npt.NDArray[np.float32]:
+    def tlbr_to_tlwh(tlbr: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         ret = np.asarray(tlbr).copy()
         ret[2:] -= ret[:2]
         return ret
 
     @staticmethod
-    def tlwh_to_tlbr(tlwh) -> npt.NDArray[np.float32]:
+    def tlwh_to_tlbr(tlwh: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         ret = np.asarray(tlwh).copy()
         ret[2:] += ret[:2]
         return ret
