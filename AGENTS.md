@@ -31,10 +31,12 @@ All work must follow the conventions of the `supervision` library
 
 ### Code Style
 
-- **Formatting, linting, and type checking** are all enforced by **pre-commit**.
-    The hook chain includes: ruff-check, ruff-format, mypy (strict), codespell, mdformat,
+- **Formatting and linting** are enforced by **pre-commit**.
+    The hook chain typically includes: ruff-check, ruff-format, codespell, mdformat,
     prettier, pyproject-fmt, and standard pre-commit-hooks (trailing whitespace, YAML, TOML, etc.).
-- **Type hints**: required on all new code.
+- **Type hints**: required on all new code. Type checking with mypy is encouraged but not
+    currently enforced systematically by pre-commit; see [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md)
+    for the latest type-checking expectations.
 - **Docstrings**: Google Python docstring style. Required for all new functions and classes.
     Docstrings should include usage examples demonstrating the function with primitive values
     so they serve as runnable documentation.
