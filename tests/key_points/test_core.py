@@ -285,7 +285,7 @@ def test_key_points_setitem():
     assert "custom_data" in key_points.data
     assert np.array_equal(key_points.data["custom_data"], np.array(["value1"]))
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=r"Value must be a np\.ndarray or a list"):
         key_points["invalid_data"] = 123
 
 
