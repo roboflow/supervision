@@ -29,7 +29,7 @@ repos:
     rev: v3.8.1 # using tag; previously pinned SHA when tags were not persistent
     hooks:
       - id: prettier
-        files: \.(html|yml|yaml|toml)
+        files: \.(html|ya?ml|toml)$
         # https://prettier.io/docs/en/options.html#print-width
         args: ["--print-width=120"]
 
