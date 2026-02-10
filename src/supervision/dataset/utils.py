@@ -25,11 +25,11 @@ T = TypeVar("T")
 
 
 def approximate_mask_with_polygons(
-    mask: np.ndarray,
+    mask: npt.NDArray[np.bool_],
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
-) -> list[np.ndarray]:
+) -> list[npt.NDArray[np.number]]:
     height, width = mask.shape
     image_area = height * width
     minimum_detection_area = min_image_area_percentage * image_area
@@ -121,13 +121,13 @@ def train_test_split(
     Splits the data into two parts using the provided train_ratio.
 
     Args:
-        data (List[T]): The data to split.
-        train_ratio (float): The ratio of the training set to the entire dataset.
-        random_state (Optional[int]): The seed for the random number generator.
-        shuffle (bool): Whether to shuffle the data before splitting.
+        data: The data to split.
+        train_ratio: The ratio of the training set to the entire dataset.
+        random_state: The seed for the random number generator.
+        shuffle: Whether to shuffle the data before splitting.
 
     Returns:
-        Tuple[List[T], List[T]]: The split data.
+        The split data.
     """
     if random_state is not None:
         random.seed(random_state)
@@ -146,12 +146,12 @@ def rle_to_mask(
     Converts run-length encoding (RLE) to a binary mask.
 
     Args:
-        rle (Union[npt.NDArray[np.int_], List[int]]): The 1D RLE array, the format
+        rle: The 1D RLE array, the format
             used in the COCO dataset (column-wise encoding, values of an array with
             even indices represent the number of pixels assigned as background,
             values of an array with odd indices represent the number of pixels
             assigned as foreground object).
-        resolution_wh (Tuple[int, int]): The width (w) and height (h)
+        resolution_wh: The width (w) and height (h)
             of the desired binary mask.
 
     Returns:
@@ -200,7 +200,7 @@ def mask_to_rle(mask: npt.NDArray[np.bool_]) -> list[int]:
     Converts a binary mask into a run-length encoding (RLE).
 
     Args:
-        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground
+        mask: 2D binary mask where `True` indicates foreground
             object and `False` indicates background.
 
     Returns:

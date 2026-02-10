@@ -205,11 +205,6 @@ module = [
   "examples.*",
   # TODO: fix type errors in the following modules
   "supervision.classification.core",
-  "supervision.dataset.core",
-  "supervision.dataset.formats.coco",
-  "supervision.dataset.formats.pascal_voc",
-  "supervision.dataset.formats.yolo",
-  "supervision.dataset.utils",
   "supervision.detection.core",
   "supervision.detection.line_zone",
   "supervision.detection.tools.csv_sink",
