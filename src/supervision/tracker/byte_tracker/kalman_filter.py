@@ -18,16 +18,16 @@ class KalmanFilter:
     observation model).
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         ndim, dt = 4, 1.0
 
-        self._motion_mat = np.eye(2 * ndim, 2 * ndim)
+        self._motion_mat: npt.NDArray[np.float64] = np.eye(2 * ndim, 2 * ndim)
         for i in range(ndim):
             self._motion_mat[i, ndim + i] = dt
-        self._update_mat = np.eye(ndim, 2 * ndim)
+        self._update_mat: npt.NDArray[np.float64] = np.eye(ndim, 2 * ndim)
 
-        self._std_weight_position = 1.0 / 20
-        self._std_weight_velocity = 1.0 / 160
+        self._std_weight_position: float = 1.0 / 20
+        self._std_weight_velocity: float = 1.0 / 160
 
     def initiate(
         self, measurement: npt.NDArray[np.float32]
@@ -36,11 +36,10 @@ class KalmanFilter:
         Create track from unassociated measurement.
 
         Args:
-            measurement: The (x, y, a, h) mean vector of the initial measurement.
+            measurement: The initial measurement vector.
 
         Returns:
-            The mean vector (8 dimensional) and covariance matrix (8x8 dimensional)
-                of the new track.
+            The mean vector and covariance matrix of the new track.
         """
         mean_pos = measurement
         mean_vel = np.zeros_like(mean_pos)
@@ -66,10 +65,8 @@ class KalmanFilter:
         Run Kalman filter prediction step.
 
         Args:
-            mean: The 8 dimensional mean vector of the object state at the previous
-                time step.
-            covariance: The 8x8 dimensional covariance matrix of the object state
-                at the previous time step.
+            mean: The object state mean at the previous time step.
+            covariance: The object state covariance at the previous time step.
 
         Returns:
             The mean vector and covariance matrix of the predicted state.
@@ -103,8 +100,8 @@ class KalmanFilter:
         Project state distribution to measurement space.
 
         Args:
-            mean: The state's mean vector (8 dimensional).
-            covariance: The state's covariance matrix (8x8 dimensional).
+            mean: The state's mean vector.
+            covariance: The state's covariance matrix.
 
         Returns:
             The projected mean and covariance matrix of the given state estimate.
@@ -129,10 +126,9 @@ class KalmanFilter:
         """
         Run Kalman filter prediction step (Vectorized version).
         Args:
-            mean: The Nx8 dimensional mean matrix of the object states at the previous
-                time step.
-            covariance: The Nx8x8 dimensional covariance matrices of the object states
-                at the previous time step.
+            mean: The object state means at the previous time step.
+            covariance: The object state covariances at the previous time step.
+
         Returns:
             The mean vector and covariance matrix of the predicted state.
         """
@@ -171,11 +167,9 @@ class KalmanFilter:
         Run Kalman filter correction step.
 
         Args:
-            mean: The predicted state's mean vector (8 dimensional).
-            covariance: The state's covariance matrix (8x8 dimensional).
-            measurement: The 4 dimensional measurement vector (x, y, a, h), where
-                (x, y) is the center position, a the aspect ratio, and h the height of
-                the bounding box.
+            mean: The predicted state's mean vector.
+            covariance: The state's covariance matrix.
+            measurement: The measurement vector.
 
         Returns:
             The measurement-corrected state distribution.

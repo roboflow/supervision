@@ -9,7 +9,7 @@ from scipy.optimize import linear_sum_assignment
 from supervision.detection.utils.iou_and_nms import box_iou_batch
 
 if TYPE_CHECKING:
-    from supervision.tracker.byte_tracker.core import STrack
+    from supervision.tracker.byte_tracker.single_object_track import STrack
 
 
 def indices_to_matches(

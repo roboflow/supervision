@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from typing import cast
+
 import numpy as np
+import numpy.typing as npt
 
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import box_iou_batch
@@ -103,6 +106,9 @@ class ByteTrack:
             )
             ```
         """
+        if detections.confidence is None:
+            raise ValueError("Detections confidence must be provided for tracking.")
+
         tensors = np.hstack(
             (
                 detections.xyxy,
@@ -117,7 +123,7 @@ class ByteTrack:
 
             ious = box_iou_batch(detection_bounding_boxes, track_bounding_boxes)
 
-            iou_costs = 1 - ious
+            iou_costs: npt.NDArray[np.float32] = 1 - ious
 
             matches, _, _ = matching.linear_assignment(iou_costs, 0.5)
             detections.tracker_id = np.full(len(detections), -1, dtype=int)
@@ -126,7 +132,8 @@ class ByteTrack:
                     tracks[i_track].external_track_id
                 )
 
-            return detections[detections.tracker_id != -1]
+            filtered = detections[detections.tracker_id != -1]
+            return cast(Detections, filtered)
 
         else:
             detections = Detections.empty()
@@ -150,7 +157,7 @@ class ByteTrack:
         self.lost_tracks = []
         self.removed_tracks = []
 
-    def update_with_tensors(self, tensors: np.ndarray) -> list[STrack]:
+    def update_with_tensors(self, tensors: npt.NDArray[np.float32]) -> list[STrack]:
         """
         Updates the tracker with the provided tensors and returns the updated tracks.
 
@@ -197,7 +204,7 @@ class ByteTrack:
 
         """ Add newly detected tracklets to tracked_stracks"""
         unconfirmed = []
-        tracked_stracks = []  # type: list[STrack]
+        tracked_stracks: list[STrack] = []
 
         for track in self.tracked_tracks:
             if not track.is_activated:
