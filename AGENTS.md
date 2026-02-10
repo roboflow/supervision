@@ -32,12 +32,12 @@ All work must follow the conventions of the `supervision` library
 ### Code Style
 
 - **Formatting, linting, and type checking** are all enforced by **pre-commit**.
-  The hook chain includes: ruff-check, ruff-format, mypy (strict), codespell, mdformat,
-  prettier, pyproject-fmt, and standard pre-commit-hooks (trailing whitespace, YAML, TOML, etc.).
+    The hook chain includes: ruff-check, ruff-format, mypy (strict), codespell, mdformat,
+    prettier, pyproject-fmt, and standard pre-commit-hooks (trailing whitespace, YAML, TOML, etc.).
 - **Type hints**: required on all new code.
 - **Docstrings**: Google Python docstring style. Required for all new functions and classes.
-  Docstrings should include usage examples demonstrating the function with primitive values
-  so they serve as runnable documentation.
+    Docstrings should include usage examples demonstrating the function with primitive values
+    so they serve as runnable documentation.
 
 ### API Consistency
 
@@ -92,5 +92,5 @@ uv run pre-commit run --all-files
 
 - All pre-commit hooks must pass (formatting, linting, type checking, spell check, etc.).
 - All tests must pass before opening a PR. Note: some existing tests in the repo may
-  already be failing — your changes must not introduce new failures.
+    already be failing — your changes must not introduce new failures.
 - Fix any issues reported and re-run until clean.
