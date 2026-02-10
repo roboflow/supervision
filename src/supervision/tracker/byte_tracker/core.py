@@ -21,7 +21,7 @@ class ByteTrack:
         <source src="https://media.roboflow.com/supervision/video-examples/how-to/track-objects/annotate-video-with-traces.mp4" type="video/mp4">
     </video>
 
-    Parameters:
+    Args:
         track_activation_threshold: Detection confidence threshold
             for track activation. Increasing track_activation_threshold improves accuracy
             and stability but might miss true detections. Decreasing it increases
@@ -161,7 +161,7 @@ class ByteTrack:
         """
         Updates the tracker with the provided tensors and returns the updated tracks.
 
-        Parameters:
+        Args:
             tensors: The new tensors to update with.
 
         Returns:
@@ -328,7 +328,7 @@ def joint_tracks(
     Joins two lists of tracks, ensuring that the resulting list does not
     contain tracks with duplicate internal_track_id values.
 
-    Parameters:
+    Args:
         track_list_a: First list of tracks.
         track_list_b: Second list of tracks.
 
@@ -352,7 +352,7 @@ def sub_tracks(track_list_a: list[STrack], track_list_b: list[STrack]) -> list[S
     Returns a list of tracks from track_list_a after removing any tracks
     that share the same internal_track_id with tracks in track_list_b.
 
-    Parameters:
+    Args:
         track_list_a: List of tracks.
         track_list_b: List of tracks to be subtracted from track_list_a.
     Returns:
