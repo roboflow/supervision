@@ -66,13 +66,19 @@ def _with_mask(lines: list[str]) -> bool:
 def _extract_class_names(file_path: str) -> list[str]:
     data: dict[str, Any] = read_yaml_file(file_path=file_path)
     if not isinstance(data, dict):
-        raise ValueError("Expected mapping in data.yaml")
+        raise ValueError(
+            f"Expected mapping in data.yaml at '{file_path}',"
+            f" got {type(data).__name__}."
+        )
     names = data.get("names")
     if isinstance(names, dict):
         return [str(names[key]) for key in sorted(names.keys())]
     if isinstance(names, list):
         return [str(name) for name in names]
-    raise ValueError("Expected 'names' to be a list or dict in data.yaml")
+    raise ValueError(
+        "Expected 'names' to be a list or dict in data.yaml at "
+        f"'{file_path}', got {type(names).__name__}."
+    )
 
 
 def _image_name_to_annotation_name(image_name: str) -> str:
