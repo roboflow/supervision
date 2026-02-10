@@ -166,8 +166,7 @@ lint.per-file-ignores."src/**" = [
   "S101", # TODO: Replace asserts with proper error handling
 ]
 lint.per-file-ignores."tests/**" = [
-  "PT011", # TODO: `pytest.raises(Exception)` is too broad, set the `match` parameter or use a more specific exception
-  "S101",  # Use of `assert` detected
+  "S101", # Use of `assert` detected
 ]
 lint.unfixable = [  ]
 # Allow unused variables when underscore-prefixed.

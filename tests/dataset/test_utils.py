@@ -136,7 +136,7 @@ def test_merge_class_maps(
             ["dog", "person"],
             [],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Class dog not found"),
         ),  # empty target class list
         (
             ["dog", "person"],
@@ -160,7 +160,7 @@ def test_merge_class_maps(
             ["dog", "person"],
             ["cat", "dog"],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Class person not found"),
         ),  # source class list is not a subset of target class list
     ],
 )
@@ -184,7 +184,7 @@ def test_build_class_index_mapping(
             {},
             _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0]),
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="subset of source_to_target_mapping"),
         ),  # empty mapping
         (
             {0: 1},
@@ -214,7 +214,7 @@ def test_build_class_index_mapping(
             {0: 1, 1: 2},
             _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[2]),
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="source_to_target_mapping keys"),
         ),  # class_id not in mapping
         (
             {0: 1, 1: 2},
@@ -279,12 +279,12 @@ def test_map_detections_class_id(
         (
             np.array([[[]]]).astype(bool),
             None,
-            pytest.raises(AssertionError),
+            pytest.raises(AssertionError, match="Input mask must be 2D"),
         ),  # raises AssertionError because mask dimensionality is not 2D
         (
             np.array([[]]).astype(bool),
             None,
-            pytest.raises(AssertionError),
+            pytest.raises(AssertionError, match="Input mask cannot be empty"),
         ),  # raises AssertionError because mask is empty
     ],
 )
@@ -349,7 +349,9 @@ def test_mask_to_rle(
             np.array([0, 5, 5, 5, 5, 5]),
             [2, 2],
             None,
-            pytest.raises(AssertionError),
+            pytest.raises(
+                AssertionError, match="sum of the number of pixels in the RLE"
+            ),
         ),  # raises AssertionError because number of pixels in RLE does not match
         # number of pixels in expected mask (width x height).
     ],

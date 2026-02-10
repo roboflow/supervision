@@ -336,7 +336,7 @@ def test_process_roboflow_result(
                 {"test_2": [3, 2, 1]},
             ],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="same keys to merge"),
         ),  # two data dicts with different field names
         (
             [
@@ -382,7 +382,7 @@ def test_process_roboflow_result(
                 {"test_1": np.array([[3, 2, 1]])},
             ],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="same number of dimensions"),
         ),  # two data dicts with the same field name and 1D and 2D arrays values
         (
             [
@@ -390,12 +390,12 @@ def test_process_roboflow_result(
                 {"test_1": np.array([3, 2, 1]), "test_2": np.array(["c", "b", "a"])},
             ],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="equal length"),
         ),  # two data dicts with the same field name and different length arrays values
         (
             [{}, {"test_1": [1, 2, 3]}],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="same keys to merge"),
         ),  # two data dicts; one empty and one non-empty dict
         (
             [{"test_1": [], "test_2": []}, {"test_1": [1, 2, 3], "test_2": [1, 2, 3]}],
@@ -405,7 +405,7 @@ def test_process_roboflow_result(
         (
             [{"test_1": []}, {"test_1": [1, 2, 3], "test_2": [4, 5, 6]}],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="same keys to merge"),
         ),  # two data dicts; one empty and one non-empty dict; different keys
         (
             [
@@ -417,7 +417,7 @@ def test_process_roboflow_result(
                 {"test_1": [1, 2, 3], "test_2": [4, 5, 6]},
             ],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="same keys to merge"),
         ),  # two data dicts; one with three keys, one with two keys
         (
             [
@@ -425,7 +425,7 @@ def test_process_roboflow_result(
                 {"test_1": [1, 2, 3], "test_2": [1, 2, 3]},
             ],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="same keys to merge"),
         ),  # some keys missing in one dict
         (
             [
@@ -433,7 +433,7 @@ def test_process_roboflow_result(
                 {"test_1": [4, 5], "test_2": ["c", "d", "e"]},
             ],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="equal length"),
         ),  # different value lengths for the same key
     ],
 )
@@ -646,9 +646,17 @@ def test_get_data_item(
             DoesNotRaise(),
         ),
         # Conflicting values for the same key
-        ([{"key1": "value1"}, {"key1": "value2"}], None, pytest.raises(ValueError)),
+        (
+            [{"key1": "value1"}, {"key1": "value2"}],
+            None,
+            pytest.raises(ValueError, match="Conflicting metadata for key: 'key1'\\."),
+        ),
         # Different sets of keys across dictionaries
-        ([{"key1": "value1"}, {"key2": "value2"}], None, pytest.raises(ValueError)),
+        (
+            [{"key1": "value1"}, {"key2": "value2"}],
+            None,
+            pytest.raises(ValueError, match="same keys to merge"),
+        ),
         # Empty metadata list
         ([], {}, DoesNotRaise()),
         # Empty metadata dictionaries
@@ -705,21 +713,29 @@ def test_get_data_item(
             DoesNotRaise(),
         ),
         # Conflicting lists for the same key
-        ([{"key1": [1, 2, 3]}, {"key1": [4, 5, 6]}], None, pytest.raises(ValueError)),
+        (
+            [{"key1": [1, 2, 3]}, {"key1": [4, 5, 6]}],
+            None,
+            pytest.raises(ValueError, match="Conflicting metadata for key: 'key1'\\."),
+        ),
         # Conflicting numpy arrays for the same key
         (
             [{"key1": np.array([1, 2, 3])}, {"key1": np.array([4, 5, 6])}],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Conflicting metadata for key: 'key1':"),
         ),
         # Mixed data types: list and numpy array for the same key
         (
             [{"key1": [1, 2, 3]}, {"key1": np.array([1, 2, 3])}],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="type\\(value\\)"),
         ),
         # Empty lists and numpy arrays for the same key
-        ([{"key1": []}, {"key1": np.array([])}], None, pytest.raises(ValueError)),
+        (
+            [{"key1": []}, {"key1": np.array([])}],
+            None,
+            pytest.raises(ValueError, match="type\\(other_value\\)"),
+        ),
         # Identical multi-dimensional lists across metadata dictionaries
         (
             [{"key1": [[1, 2], [3, 4]]}, {"key1": [[1, 2], [3, 4]]}],
@@ -739,7 +755,7 @@ def test_get_data_item(
         (
             [{"key1": [[1, 2], [3, 4]]}, {"key1": [[5, 6], [7, 8]]}],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Conflicting metadata for key: 'key1'\\."),
         ),
         # Conflicting multi-dimensional numpy arrays for the same key
         (
@@ -748,13 +764,13 @@ def test_get_data_item(
                 {"key1": np.arange(4, 8).reshape(2, 2)},
             ],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Conflicting metadata for key: 'key1':"),
         ),
         # Mixed types with multi-dimensional list and array for the same key
         (
             [{"key1": [[1, 2], [3, 4]]}, {"key1": np.arange(4).reshape(2, 2)}],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="type\\(value\\)"),
         ),
         # Identical higher-dimensional (3D) numpy arrays across
         # metadata dictionaries
@@ -774,7 +790,7 @@ def test_get_data_item(
                 {"key1": np.arange(8).reshape(4, 1, 2)},
             ],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Conflicting metadata for key: 'key1':"),
         ),
     ],
 )
