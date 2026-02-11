@@ -176,5 +176,7 @@ def test_from_sam3(
 
 def test_from_sam3_invalid_resolution() -> None:
     sam3_result = {"prompt_results": []}
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match=r"Both dimensions in resolution must be positive\."
+    ):
         Detections.from_sam3(sam3_result=sam3_result, resolution_wh=(-100, 100))
