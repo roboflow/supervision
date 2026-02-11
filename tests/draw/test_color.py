@@ -18,11 +18,15 @@ from supervision.draw.color import Color
         ("0f0", Color.GREEN, DoesNotRaise()),
         ("00f", Color.BLUE, DoesNotRaise()),
         ("#808000", Color(r=128, g=128, b=0), DoesNotRaise()),
-        ("", None, pytest.raises(ValueError)),
-        ("00", None, pytest.raises(ValueError)),
-        ("0000", None, pytest.raises(ValueError)),
-        ("0000000", None, pytest.raises(ValueError)),
-        ("ffg", None, pytest.raises(ValueError)),
+        ("", None, pytest.raises(ValueError, match="Invalid length of color hash")),
+        ("00", None, pytest.raises(ValueError, match="Invalid length of color hash")),
+        ("0000", None, pytest.raises(ValueError, match="Invalid length of color hash")),
+        (
+            "0000000",
+            None,
+            pytest.raises(ValueError, match="Invalid length of color hash"),
+        ),
+        ("ffg", None, pytest.raises(ValueError, match="Invalid characters in color")),
     ],
 )
 def test_color_from_hex(
@@ -76,10 +80,28 @@ def test_color_as_hex(
         ((0, 255, 0), Color.GREEN, DoesNotRaise()),
         ((0, 0, 255), Color.BLUE, DoesNotRaise()),
         ((128, 128, 0), Color(r=128, g=128, b=0), DoesNotRaise()),
-        ((300, 0, 0), None, pytest.raises(ValueError)),  # R out of range
-        ((0, -10, 0), None, pytest.raises(ValueError)),  # G out of range
-        ((0, 0, 500), None, pytest.raises(ValueError)),  # B out of range
-        ((300, -10, 500), None, pytest.raises(ValueError)),  # All out of range
+        (
+            (300, 0, 0),
+            None,
+            pytest.raises(ValueError, match=r"RGB values must be in range.*300, 0, 0"),
+        ),  # R out of range
+        (
+            (0, -10, 0),
+            None,
+            pytest.raises(ValueError, match=r"RGB values must be in range.*0, -10, 0"),
+        ),  # G out of range
+        (
+            (0, 0, 500),
+            None,
+            pytest.raises(ValueError, match=r"RGB values must be in range.*0, 0, 500"),
+        ),  # B out of range
+        (
+            (300, -10, 500),
+            None,
+            pytest.raises(
+                ValueError, match=r"RGB values must be in range.*300, -10, 500"
+            ),
+        ),  # All out of range
     ],
 )
 def test_color_from_rgb_tuple(
@@ -101,10 +123,28 @@ def test_color_from_rgb_tuple(
         ((0, 255, 0), Color.GREEN, DoesNotRaise()),  # BGR format
         ((255, 0, 0), Color.BLUE, DoesNotRaise()),  # BGR format
         ((0, 128, 128), Color(r=128, g=128, b=0), DoesNotRaise()),  # BGR format
-        ((300, 0, 0), None, pytest.raises(ValueError)),  # B out of range
-        ((0, -10, 0), None, pytest.raises(ValueError)),  # G out of range
-        ((0, 0, 500), None, pytest.raises(ValueError)),  # R out of range
-        ((300, -10, 500), None, pytest.raises(ValueError)),  # All out of range
+        (
+            (300, 0, 0),
+            None,
+            pytest.raises(ValueError, match=r"BGR values must be in range.*300, 0, 0"),
+        ),  # B out of range
+        (
+            (0, -10, 0),
+            None,
+            pytest.raises(ValueError, match=r"BGR values must be in range.*0, -10, 0"),
+        ),  # G out of range
+        (
+            (0, 0, 500),
+            None,
+            pytest.raises(ValueError, match=r"BGR values must be in range.*0, 0, 500"),
+        ),  # R out of range
+        (
+            (300, -10, 500),
+            None,
+            pytest.raises(
+                ValueError, match=r"BGR values must be in range.*300, -10, 500"
+            ),
+        ),  # All out of range
     ],
 )
 def test_color_from_bgr_tuple(

@@ -9,6 +9,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 
 from supervision.classification.core import Classifications
 from supervision.dataset.formats.coco import (
@@ -58,12 +59,12 @@ class DetectionDataset(BaseDataset):
     formats.
 
     Attributes:
-        classes (List[str]): List containing dataset class names.
-        images (Union[List[str], Dict[str, np.ndarray]]):
+        classes: List containing dataset class names.
+        images:
             Accepts a list of image paths, or dictionaries of loaded cv2 images
             with paths as keys. If you pass a list of paths, the dataset will
             lazily load images on demand, which is much more memory-efficient.
-        annotations (Dict[str, Detections]): Dictionary mapping
+        annotations: Dictionary mapping
             image path to annotations. The dictionary keys match
             match the keys in `images` or entries in the list of
             image paths.
@@ -72,7 +73,7 @@ class DetectionDataset(BaseDataset):
     def __init__(
         self,
         classes: list[str],
-        images: list[str] | dict[str, np.ndarray],
+        images: list[str] | dict[str, npt.NDArray[np.uint8]],
         annotations: dict[str, Detections],
     ) -> None:
         self.classes = classes
@@ -86,21 +87,24 @@ class DetectionDataset(BaseDataset):
         # Eliminate duplicates while preserving order
         self.image_paths = list(dict.fromkeys(images))
 
-        self._images_in_memory: dict[str, np.ndarray] = {}
+        self._images_in_memory: dict[str, npt.NDArray[np.uint8]] = {}
 
-    def _get_image(self, image_path: str) -> np.ndarray:
-        """Assumes that image is in dataset"""
+    def _get_image(self, image_path: str) -> npt.NDArray[np.uint8]:
+        """Assumes that image is in dataset."""
         if self._images_in_memory:
             return self._images_in_memory[image_path]
-        return cv2.imread(image_path)
+        image = cv2.imread(image_path)
+        if image is None:
+            raise ValueError(f"Could not read image from path: {image_path}")
+        return image
 
     def __len__(self) -> int:
         return len(self._images_in_memory) or len(self.image_paths)
 
-    def __getitem__(self, i: int) -> tuple[str, np.ndarray, Detections]:
+    def __getitem__(self, i: int) -> tuple[str, npt.NDArray[np.uint8], Detections]:
         """
         Returns:
-            Tuple[str, np.ndarray, Detections]: The image path, image data,
+            The image path, image data,
                 and its corresponding annotation at index i.
         """
         image_path = self.image_paths[i]
@@ -108,20 +112,18 @@ class DetectionDataset(BaseDataset):
         annotation = self.annotations[image_path]
         return image_path, image, annotation
 
-    def __iter__(self) -> Iterator[tuple[str, np.ndarray, Detections]]:
+    def __iter__(self) -> Iterator[tuple[str, npt.NDArray[np.uint8], Detections]]:
         """
         Iterate over the images and annotations in the dataset.
 
         Yields:
-            Iterator[Tuple[str, np.ndarray, Detections]]:
-                An iterator that yields tuples containing the image path,
-                the image data, and its corresponding annotation.
+            Tuples containing the image path, image data, and its annotation.
         """
         for i in range(len(self)):
             image_path, image, annotation = self[i]
             yield image_path, image, annotation
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, DetectionDataset):
             return False
 
@@ -154,14 +156,14 @@ class DetectionDataset(BaseDataset):
             using the provided split_ratio.
 
         Args:
-            split_ratio (float): The ratio of the training
+            split_ratio: The ratio of the training
                 set to the entire dataset.
-            random_state (Optional[int]): The seed for the random number generator.
+            random_state: The seed for the random number generator.
                 This is used for reproducibility.
-            shuffle (bool): Whether to shuffle the data before splitting.
+            shuffle: Whether to shuffle the data before splitting.
 
         Returns:
-            Tuple[DetectionDataset, DetectionDataset]: A tuple containing
+            A tuple containing
                 the training and testing datasets.
 
         Examples:
@@ -193,8 +195,8 @@ class DetectionDataset(BaseDataset):
             shuffle=shuffle,
         )
 
-        train_input: list[str] | dict[str, np.ndarray]
-        test_input: list[str] | dict[str, np.ndarray]
+        train_input: list[str] | dict[str, npt.NDArray[np.uint8]]
+        test_input: list[str] | dict[str, npt.NDArray[np.uint8]]
         if self._images_in_memory:
             train_input = {path: self._images_in_memory[path] for path in train_paths}
             test_input = {path: self._images_in_memory[path] for path in test_paths}
@@ -227,11 +229,11 @@ class DetectionDataset(BaseDataset):
         `annotations`) into a single `DetectionDataset` object.
 
         Args:
-            dataset_list (List[DetectionDataset]): A list of `DetectionDataset`
+            dataset_list: A list of `DetectionDataset`
                 objects to merge.
 
         Returns:
-            (DetectionDataset): A single `DetectionDataset` object containing
+            A single `DetectionDataset` object containing
             the merged data from the input list.
 
         Examples:
@@ -329,21 +331,21 @@ class DetectionDataset(BaseDataset):
         and their corresponding annotations in PASCAL VOC format.
 
         Args:
-            images_directory_path (Optional[str]): The path to the directory
+            images_directory_path: The path to the directory
                 where the images should be saved.
                 If not provided, images will not be saved.
-            annotations_directory_path (Optional[str]): The path to
+            annotations_directory_path: The path to
                 the directory where the annotations in PASCAL VOC format should be
                 saved. If not provided, annotations will not be saved.
-            min_image_area_percentage (float): The minimum percentage of
+            min_image_area_percentage: The minimum percentage of
                 detection area relative to
                 the image area for a detection to be included.
                 Argument is used only for segmentation datasets.
-            max_image_area_percentage (float): The maximum percentage
+            max_image_area_percentage: The maximum percentage
                 of detection area relative to
                 the image area for a detection to be included.
                 Argument is used only for segmentation datasets.
-            approximation_percentage (float): The percentage of
+            approximation_percentage: The percentage of
                 polygon points to be removed from the input polygon,
                 in the range [0, 1). Argument is used only for segmentation datasets.
         """
@@ -364,7 +366,7 @@ class DetectionDataset(BaseDataset):
                     detections=annotations,
                     classes=self.classes,
                     filename=image_name,
-                    image_shape=image.shape,  # type: ignore
+                    image_shape=image.shape,
                     min_image_area_percentage=min_image_area_percentage,
                     max_image_area_percentage=max_image_area_percentage,
                     approximation_percentage=approximation_percentage,
@@ -384,14 +386,14 @@ class DetectionDataset(BaseDataset):
         Creates a Dataset instance from PASCAL VOC formatted data.
 
         Args:
-            images_directory_path (str): Path to the directory containing the images.
-            annotations_directory_path (str): Path to the directory
+            images_directory_path: Path to the directory containing the images.
+            annotations_directory_path: Path to the directory
                 containing the PASCAL VOC XML annotations.
-            force_masks (bool): If True, forces masks to
+            force_masks: If True, forces masks to
                 be loaded for all annotations, regardless of whether they are present.
 
         Returns:
-            DetectionDataset: A DetectionDataset instance containing
+            A DetectionDataset instance containing
                 the loaded images and annotations.
 
         Examples:
@@ -440,21 +442,21 @@ class DetectionDataset(BaseDataset):
         Creates a Dataset instance from YOLO formatted data.
 
         Args:
-            images_directory_path (str): The path to the
+            images_directory_path: The path to the
                 directory containing the images.
-            annotations_directory_path (str): The path to the directory
+            annotations_directory_path: The path to the directory
                 containing the YOLO annotation files.
-            data_yaml_path (str): The path to the data
+            data_yaml_path: The path to the data
                 YAML file containing class information.
-            force_masks (bool): If True, forces
+            force_masks: If True, forces
                 masks to be loaded for all annotations,
                 regardless of whether they are present.
-            is_obb (bool): If True, loads the annotations in OBB format.
+            is_obb: If True, loads the annotations in OBB format.
                 OBB annotations are defined as `[class_id, x, y, x, y, x, y, x, y]`,
                 where pairs of [x, y] are box corners.
 
         Returns:
-            DetectionDataset: A DetectionDataset instance
+            A DetectionDataset instance
                 containing the loaded images and annotations.
 
         Examples:
@@ -504,25 +506,25 @@ class DetectionDataset(BaseDataset):
         images and their corresponding annotations in YOLO format.
 
         Args:
-            images_directory_path (Optional[str]): The path to the
+            images_directory_path: The path to the
                 directory where the images should be saved.
                 If not provided, images will not be saved.
-            annotations_directory_path (Optional[str]): The path to the
+            annotations_directory_path: The path to the
                 directory where the annotations in
                 YOLO format should be saved. If not provided,
                 annotations will not be saved.
-            data_yaml_path (Optional[str]): The path where the data.yaml
+            data_yaml_path: The path where the data.yaml
                 file should be saved.
                 If not provided, the file will not be saved.
-            min_image_area_percentage (float): The minimum percentage of
+            min_image_area_percentage: The minimum percentage of
                 detection area relative to
                 the image area for a detection to be included.
                 Argument is used only for segmentation datasets.
-            max_image_area_percentage (float): The maximum percentage
+            max_image_area_percentage: The maximum percentage
                 of detection area relative to
                 the image area for a detection to be included.
                 Argument is used only for segmentation datasets.
-            approximation_percentage (float): The percentage of polygon points to
+            approximation_percentage: The percentage of polygon points to
                 be removed from the input polygon, in the range [0, 1).
                 This is useful for simplifying the annotations.
                 Argument is used only for segmentation datasets.
@@ -553,14 +555,14 @@ class DetectionDataset(BaseDataset):
         Creates a Dataset instance from COCO formatted data.
 
         Args:
-            images_directory_path (str): The path to the
+            images_directory_path: The path to the
                 directory containing the images.
-            annotations_path (str): The path to the json annotation files.
-            force_masks (bool): If True,
+            annotations_path: The path to the json annotation files.
+            force_masks: If True,
                 forces masks to be loaded for all annotations,
                 regardless of whether they are present.
         Returns:
-            DetectionDataset: A DetectionDataset instance containing
+            A DetectionDataset instance containing
                 the loaded images and annotations.
 
         Examples:
@@ -618,19 +620,19 @@ class DetectionDataset(BaseDataset):
             standards.
 
         Args:
-            images_directory_path (Optional[str]): The path to the directory
+            images_directory_path: The path to the directory
                 where the images should be saved.
                 If not provided, images will not be saved.
-            annotations_path (Optional[str]): The path to COCO annotation file.
-            min_image_area_percentage (float): The minimum percentage of
+            annotations_path: The path to COCO annotation file.
+            min_image_area_percentage: The minimum percentage of
                 detection area relative to
                 the image area for a detection to be included.
                 Argument is used only for segmentation datasets.
-            max_image_area_percentage (float): The maximum percentage of
+            max_image_area_percentage: The maximum percentage of
                 detection area relative to
                 the image area for a detection to be included.
                 Argument is used only for segmentation datasets.
-            approximation_percentage (float): The percentage of polygon points
+            approximation_percentage: The percentage of polygon points
                 to be removed from the input polygon,
                 in the range [0, 1). This is useful for simplifying the annotations.
                 Argument is used only for segmentation datasets.
@@ -656,17 +658,17 @@ class ClassificationDataset(BaseDataset):
     loading, dataset splitting.
 
     Attributes:
-        classes (List[str]): List containing dataset class names.
-        images (Union[List[str], Dict[str, np.ndarray]]):
+        classes: List containing dataset class names.
+        images:
             List of image paths or dictionary mapping image name to image data.
-        annotations (Dict[str, Classifications]): Dictionary mapping
+        annotations: Dictionary mapping
             image name to annotations.
     """
 
     def __init__(
         self,
         classes: list[str],
-        images: list[str] | dict[str, np.ndarray],
+        images: list[str] | dict[str, npt.NDArray[np.uint8]],
         annotations: dict[str, Classifications],
     ) -> None:
         self.classes = classes
@@ -680,7 +682,7 @@ class ClassificationDataset(BaseDataset):
         # Eliminate duplicates while preserving order
         self.image_paths = list(dict.fromkeys(images))
 
-        self._images_in_memory: dict[str, np.ndarray] = {}
+        self._images_in_memory: dict[str, npt.NDArray[np.uint8]] = {}
         if isinstance(images, dict):
             self._images_in_memory = images
             warn_deprecated(
@@ -689,19 +691,22 @@ class ClassificationDataset(BaseDataset):
                 "a list of paths `List[str]` instead."
             )
 
-    def _get_image(self, image_path: str) -> np.ndarray:
-        """Assumes that image is in dataset"""
+    def _get_image(self, image_path: str) -> npt.NDArray[np.uint8]:
+        """Assumes that image is in dataset."""
         if self._images_in_memory:
             return self._images_in_memory[image_path]
-        return cv2.imread(image_path)
+        image = cv2.imread(image_path)
+        if image is None:
+            raise ValueError(f"Could not read image from path: {image_path}")
+        return image
 
     def __len__(self) -> int:
         return len(self._images_in_memory) or len(self.image_paths)
 
-    def __getitem__(self, i: int) -> tuple[str, np.ndarray, Classifications]:
+    def __getitem__(self, i: int) -> tuple[str, npt.NDArray[np.uint8], Classifications]:
         """
         Returns:
-            Tuple[str, np.ndarray, Classifications]: The image path, image data,
+            The image path, image data,
                 and its corresponding annotation at index i.
         """
         image_path = self.image_paths[i]
@@ -709,20 +714,20 @@ class ClassificationDataset(BaseDataset):
         annotation = self.annotations[image_path]
         return image_path, image, annotation
 
-    def __iter__(self) -> Iterator[tuple[str, np.ndarray, Classifications]]:
+    def __iter__(
+        self,
+    ) -> Iterator[tuple[str, npt.NDArray[np.uint8], Classifications]]:
         """
         Iterate over the images and annotations in the dataset.
 
         Yields:
-            Iterator[Tuple[str, np.ndarray, Detections]]:
-                An iterator that yields tuples containing the image path,
-                the image data, and its corresponding annotation.
+            Tuples containing the image path, image data, and its annotation.
         """
         for i in range(len(self)):
             image_path, image, annotation = self[i]
             yield image_path, image, annotation
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, ClassificationDataset):
             return False
 
@@ -755,14 +760,14 @@ class ClassificationDataset(BaseDataset):
             using the provided split_ratio.
 
         Args:
-            split_ratio (float): The ratio of the training
+            split_ratio: The ratio of the training
                 set to the entire dataset.
-            random_state (Optional[int]): The seed for the
+            random_state: The seed for the
                 random number generator. This is used for reproducibility.
-            shuffle (bool): Whether to shuffle the data before splitting.
+            shuffle: Whether to shuffle the data before splitting.
 
         Returns:
-            Tuple[ClassificationDataset, ClassificationDataset]: A tuple containing
+            A tuple containing
             the training and testing datasets.
 
         Examples:
@@ -793,8 +798,8 @@ class ClassificationDataset(BaseDataset):
             shuffle=shuffle,
         )
 
-        train_input: list[str] | dict[str, np.ndarray]
-        test_input: list[str] | dict[str, np.ndarray]
+        train_input: list[str] | dict[str, npt.NDArray[np.uint8]]
+        test_input: list[str] | dict[str, npt.NDArray[np.uint8]]
         if self._images_in_memory:
             train_input = {path: self._images_in_memory[path] for path in train_paths}
             test_input = {path: self._images_in_memory[path] for path in test_paths}
@@ -822,7 +827,7 @@ class ClassificationDataset(BaseDataset):
         Saves the dataset as a multi-class folder structure.
 
         Args:
-            root_directory_path (str): The path to the directory
+            root_directory_path: The path to the directory
                 where the dataset will be saved.
         """
         os.makedirs(root_directory_path, exist_ok=True)
@@ -847,10 +852,10 @@ class ClassificationDataset(BaseDataset):
         Load data from a multiclass folder structure into a ClassificationDataset.
 
         Args:
-            root_directory_path (str): The path to the dataset directory.
+            root_directory_path: The path to the dataset directory.
 
         Returns:
-            ClassificationDataset: The dataset.
+            The dataset.
 
         Examples:
             ```python
