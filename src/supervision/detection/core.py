@@ -56,7 +56,7 @@ from supervision.detection.vlm import (
 )
 from supervision.geometry.core import Position
 from supervision.utils.internal import deprecated, get_instance_variables
-from supervision.validators import validate_detections_fields
+from supervision.validators import validate_detections_fields, validate_resolution
 
 
 @dataclass
@@ -708,6 +708,7 @@ class Detections:
 
         Returns:
             Detections: A new Detections object.
+                The `class_id` field contains the prompt index for each polygon.
 
         Example:
             ```python
@@ -738,10 +739,11 @@ class Detections:
             )
             ```
         """
+        width, height = validate_resolution(resolution_wh)
+
         masks = []
         confidences = []
         class_ids = []
-        polygons_data = []
 
         if isinstance(sam3_result, dict):
             prompt_results = sam3_result.get("prompt_results", [])
@@ -770,19 +772,21 @@ class Detections:
                     pred_masks = getattr(prediction, "masks", [])
                     confidence = getattr(prediction, "confidence", 1.0)
 
+                if not pred_masks:
+                    continue
+
+                full_mask = np.zeros((height, width), dtype=bool)
                 for poly in pred_masks:
                     polygon = np.array(poly, dtype=np.int32)
-                    polygons_data.append((polygon, confidence, prompt_index))
+                    mask = polygon_to_mask(polygon=polygon, resolution_wh=(width, height))
+                    full_mask = np.logical_or(full_mask, mask)
+                
+                masks.append(full_mask)
+                confidences.append(confidence)
+                class_ids.append(prompt_index)
 
-        if not polygons_data:
+        if not masks:
             return cls.empty()
-
-        width, height = resolution_wh
-        for polygon, confidence, class_id in polygons_data:
-            mask = polygon_to_mask(polygon=polygon, resolution_wh=(width, height))
-            masks.append(mask.astype(bool))
-            confidences.append(confidence)
-            class_ids.append(class_id)
 
         masks_np = np.stack(masks, axis=0)
         xyxy = mask_to_xyxy(masks_np)
