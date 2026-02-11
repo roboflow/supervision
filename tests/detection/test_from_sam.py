@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import numpy as np
@@ -6,8 +5,65 @@ import pytest
 
 from supervision.detection.core import Detections
 
-SERVERLESS_SAM3_DICT = {"prompt_results":[{"prompt_index":0,"echo":{"prompt_index":0,"type":"text","text":"person","num_boxes":0},"predictions":[{"masks":[[[295,675],[294,676]],[[496,617],[495,618]]],"confidence":0.94921875,"format":"polygon"}]},{"prompt_index":1,"echo":{"prompt_index":1,"type":"text","text":"dog","num_boxes":0},"predictions":[{"masks":[[[316,561],[316,562]],[[345,251],[344,252]]],"confidence":0.89453125,"format":"polygon"}]}],"time":0.14756996370851994}
-HOSTED_SAM3_DICT = {"prompt_results":[{"prompt_index":0,"echo":{"prompt_index":0,"type":"text","text":"bottle","num_boxes":0},"predictions":[{"masks":[[[1364,200],[1365,201]]],"confidence":0.8984375,"format":"polygon"},{"masks":[[[1140,171],[1139,170]]],"confidence":0.94140625,"format":"polygon"}]}],"time":0.7277156260097399}
+SERVERLESS_SAM3_DICT = {
+    "prompt_results": [
+        {
+            "prompt_index": 0,
+            "echo": {
+                "prompt_index": 0,
+                "type": "text",
+                "text": "person",
+                "num_boxes": 0,
+            },
+            "predictions": [
+                {
+                    "masks": [[[295, 675], [294, 676]], [[496, 617], [495, 618]]],
+                    "confidence": 0.94921875,
+                    "format": "polygon",
+                }
+            ],
+        },
+        {
+            "prompt_index": 1,
+            "echo": {"prompt_index": 1, "type": "text", "text": "dog", "num_boxes": 0},
+            "predictions": [
+                {
+                    "masks": [[[316, 561], [316, 562]], [[345, 251], [344, 252]]],
+                    "confidence": 0.89453125,
+                    "format": "polygon",
+                }
+            ],
+        },
+    ],
+    "time": 0.14756996370851994,
+}
+HOSTED_SAM3_DICT = {
+    "prompt_results": [
+        {
+            "prompt_index": 0,
+            "echo": {
+                "prompt_index": 0,
+                "type": "text",
+                "text": "bottle",
+                "num_boxes": 0,
+            },
+            "predictions": [
+                {
+                    "masks": [[[1364, 200], [1365, 201]]],
+                    "confidence": 0.8984375,
+                    "format": "polygon",
+                },
+                {
+                    "masks": [[[1140, 171], [1139, 170]]],
+                    "confidence": 0.94140625,
+                    "format": "polygon",
+                },
+            ],
+        }
+    ],
+    "time": 0.7277156260097399,
+}
+
 
 @pytest.mark.parametrize(
     ("sam_result", "expected_xyxy", "expected_mask_shape"),
@@ -44,9 +100,14 @@ def test_from_sam(
         assert detections.mask is None
 
 
-
 @pytest.mark.parametrize(
-    ("sam3_result", "resolution_wh", "expected_xyxy", "expected_confidence", "expected_class_id"),
+    (
+        "sam3_result",
+        "resolution_wh",
+        "expected_xyxy",
+        "expected_confidence",
+        "expected_class_id",
+    ),
     [
         (
             {
@@ -69,9 +130,7 @@ def test_from_sam(
             np.array([0], dtype=int),
         ),
         (
-            {
-                "prompt_results": []
-            },
+            {"prompt_results": []},
             (100, 100),
             np.empty((0, 4), dtype=np.float32),
             np.empty((0,), dtype=np.float32),
@@ -80,17 +139,23 @@ def test_from_sam(
         (
             SERVERLESS_SAM3_DICT,
             (1000, 1000),
-            np.array([[294., 617., 496., 676.], [316., 251., 345., 562.]], dtype=np.float32),
+            np.array(
+                [[294.0, 617.0, 496.0, 676.0], [316.0, 251.0, 345.0, 562.0]],
+                dtype=np.float32,
+            ),
             np.array([0.94921875, 0.89453125], dtype=np.float32),
             np.array([0, 1], dtype=int),
         ),
         (
             HOSTED_SAM3_DICT,
             (2000, 2000),
-            np.array([[1364., 200., 1365., 201.], [1139., 170., 1140., 171.]], dtype=np.float32),
+            np.array(
+                [[1364.0, 200.0, 1365.0, 201.0], [1139.0, 170.0, 1140.0, 171.0]],
+                dtype=np.float32,
+            ),
             np.array([0.898438, 0.941406], dtype=np.float32),
             np.array([0, 0], dtype=int),
-        )
+        ),
     ],
 )
 def test_from_sam3(

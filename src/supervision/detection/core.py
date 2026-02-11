@@ -778,9 +778,11 @@ class Detections:
                 full_mask = np.zeros((height, width), dtype=bool)
                 for poly in pred_masks:
                     polygon = np.array(poly, dtype=np.int32)
-                    mask = polygon_to_mask(polygon=polygon, resolution_wh=(width, height))
+                    mask = polygon_to_mask(
+                        polygon=polygon, resolution_wh=(width, height)
+                    )
                     full_mask = np.logical_or(full_mask, mask)
-                
+
                 masks.append(full_mask)
                 confidences.append(confidence)
                 class_ids.append(prompt_index)
