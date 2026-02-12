@@ -725,10 +725,10 @@ class Detections:
             from inference.models.sam3 import SegmentAnything3
             from inference.core.entities.requests.sam3 import Sam3Prompt
 
-            image = cv2.imread(<SOURCE_IMAGE_PATH>)
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
             model = SegmentAnything3(
                 model_id="sam3/sam3_final",
-                api_key=<ROBOFLOW_API_KEY>
+                api_key="<ROBOFLOW_API_KEY>"
             )
 
             prompts = [
@@ -792,7 +792,8 @@ class Detections:
                     mask = polygon_to_mask(
                         polygon=polygon, resolution_wh=(width, height)
                     )
-                    full_mask = np.logical_or(full_mask, mask)
+                    mask = mask.astype(bool, copy=False)
+                    np.logical_or(full_mask, mask, out=full_mask)
 
                 masks.append(full_mask)
                 confidences.append(confidence)
@@ -805,9 +806,9 @@ class Detections:
         xyxy = mask_to_xyxy(masks_np)
 
         return cls(
-            xyxy=xyxy.astype(float),
+            xyxy=xyxy.astype(np.float32),
             mask=masks_np,
-            confidence=np.array(confidences, dtype=float),
+            confidence=np.array(confidences, dtype=np.float32),
             class_id=np.array(class_ids, dtype=int),
         )
 
