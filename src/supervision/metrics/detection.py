@@ -121,6 +121,7 @@ class ConfusionMatrix:
             New instance of ConfusionMatrix.
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> targets = [
@@ -144,6 +145,8 @@ class ConfusionMatrix:
             >>> confusion_matrix.matrix
             array([[1., 0.],
                    [0., 0.]])
+
+            ```
         """
         prediction_tensors = []
         target_tensors = []
@@ -191,6 +194,7 @@ class ConfusionMatrix:
             New instance of ConfusionMatrix.
 
         Examples:
+            ```pycon
             >>> import supervision as sv
             >>> import numpy as np
             >>> targets = [
@@ -216,6 +220,8 @@ class ConfusionMatrix:
             array([[1., 0., 1.],
                    [0., 1., 0.],
                    [1., 0., 0.]])
+
+            ```
         """
         validate_input_tensors(predictions, targets)
 
@@ -585,6 +591,7 @@ class MeanAveragePrecision:
             New instance of ConfusionMatrix.
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> targets = [
@@ -606,6 +613,8 @@ class MeanAveragePrecision:
             ... )
             >>> round(float(mAP.map50), 2)
             0.99
+
+            ```
         """
         prediction_tensors = []
         target_tensors = []
@@ -689,6 +698,7 @@ class MeanAveragePrecision:
             New instance of MeanAveragePrecision.
 
         Examples:
+            ```pycon
             >>> import supervision as sv
             >>> import numpy as np
             >>> targets = [
@@ -711,6 +721,8 @@ class MeanAveragePrecision:
             ... )
             >>> round(float(mAP.map50), 2)
             0.81
+
+            ```
         """
         validate_input_tensors(predictions, targets)
         iou_thresholds = np.linspace(0.5, 0.95, 10)

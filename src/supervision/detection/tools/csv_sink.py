@@ -34,6 +34,7 @@ class CSVSink:
             Defaults to 'output.csv'.
 
     Example:
+        ```pycon
         >>> import supervision as sv
         >>> import numpy as np
         >>> import tempfile
@@ -53,6 +54,8 @@ class CSVSink:
         >>> with csv_sink as sink:
         ...     sink.append(detections, custom_data={'frame': 0})
         >>> os.unlink(temp_file.name)  # Clean up
+
+        ```
     """
 
     def __init__(self, file_name: str = "output.csv") -> None:

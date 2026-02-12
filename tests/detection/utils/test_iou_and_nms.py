@@ -1056,7 +1056,7 @@ def test_box_iou(
             np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
             "invalid",
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Invalid value: INVALID"),
         ),
     ],
 )

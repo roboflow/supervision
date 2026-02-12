@@ -30,6 +30,7 @@ class DetectionsSmoother:
         - This class is not compatible with segmentation models.
 
     Example:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> smoother = sv.DetectionsSmoother(length=3)
@@ -51,6 +52,8 @@ class DetectionsSmoother:
         array([[ 1.,  1., 11., 11.]])
         >>> smoothed.confidence
         array([0.6])
+
+        ```
 
 
         ```python

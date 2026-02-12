@@ -36,12 +36,15 @@ class Point:
         y: The y-coordinate of the point.
 
     Example:
+        ```pycon
         >>> from supervision.geometry.core import Point
         >>> point = Point(x=10.0, y=20.0)
         >>> point.as_xy_int_tuple()
         (10, 20)
         >>> point.as_xy_float_tuple()
         (10.0, 20.0)
+
+        ```
     """
 
     x: float
@@ -76,6 +79,7 @@ class Vector:
         end: The end point of the vector.
 
     Example:
+        ```pycon
         >>> from supervision.geometry.core import Point, Vector
         >>> start_point = Point(x=0.0, y=0.0)
         >>> end_point = Point(x=3.0, y=4.0)
@@ -84,6 +88,8 @@ class Vector:
         5.0
         >>> vector.center
         Point(x=1.5, y=2.0)
+
+        ```
     """
 
     start: Point
@@ -148,6 +154,7 @@ class Rect:
         height: The height of the rectangle.
 
     Example:
+        ```pycon
         >>> from supervision.geometry.core import Rect
         >>> rect = Rect(x=10.0, y=20.0, width=30.0, height=40.0)
         >>> rect.top_left
@@ -156,6 +163,8 @@ class Rect:
         Point(x=40.0, y=60.0)
         >>> rect.as_xyxy_int_tuple()
         (10, 20, 40, 60)
+
+        ```
     """
 
     x: float

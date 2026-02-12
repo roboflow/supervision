@@ -15,12 +15,12 @@ from tests.helpers import _create_detections
         (
             Vector(start=Point(x=0.0, y=0.0), end=Point(x=0.0, y=0.0)),
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="magnitude of the vector"),
         ),
         (
             Vector(start=Point(x=1.0, y=1.0), end=Point(x=1.0, y=1.0)),
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="cannot be zero"),
         ),
         (
             Vector(start=Point(x=0.0, y=0.0), end=Point(x=0.0, y=4.0)),
