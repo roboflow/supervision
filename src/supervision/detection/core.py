@@ -17,7 +17,11 @@ from supervision.detection.tools.transformers import (
     process_transformers_v4_segmentation_result,
     process_transformers_v5_segmentation_result,
 )
-from supervision.detection.utils.converters import mask_to_xyxy, xywh_to_xyxy
+from supervision.detection.utils.converters import (
+    mask_to_xyxy,
+    polygon_to_mask,
+    xywh_to_xyxy,
+)
 from supervision.detection.utils.internal import (
     extract_ultralytics_masks,
     get_data_item,
@@ -52,7 +56,7 @@ from supervision.detection.vlm import (
 )
 from supervision.geometry.core import Position
 from supervision.utils.internal import deprecated, get_instance_variables
-from supervision.validators import validate_detections_fields
+from supervision.validators import validate_detections_fields, validate_resolution
 
 
 @dataclass
@@ -280,9 +284,11 @@ class Detections:
                 xyxy=ultralytics_results.obb.xyxy.cpu().numpy(),
                 confidence=ultralytics_results.obb.conf.cpu().numpy(),
                 class_id=class_id,
-                tracker_id=ultralytics_results.obb.id.int().cpu().numpy()
-                if ultralytics_results.obb.id is not None
-                else None,
+                tracker_id=(
+                    ultralytics_results.obb.id.int().cpu().numpy()
+                    if ultralytics_results.obb.id is not None
+                    else None
+                ),
                 data={
                     ORIENTED_BOX_COORDINATES: oriented_box_coordinates,
                     CLASS_NAME_DATA_FIELD: class_names,
@@ -308,9 +314,11 @@ class Detections:
                 confidence=ultralytics_results.boxes.conf.cpu().numpy(),
                 class_id=class_id,
                 mask=extract_ultralytics_masks(ultralytics_results),
-                tracker_id=ultralytics_results.boxes.id.int().cpu().numpy()
-                if ultralytics_results.boxes.id is not None
-                else None,
+                tracker_id=(
+                    ultralytics_results.boxes.id.int().cpu().numpy()
+                    if ultralytics_results.boxes.id is not None
+                    else None
+                ),
                 data={CLASS_NAME_DATA_FIELD: class_names},
             )
 
@@ -464,9 +472,11 @@ class Detections:
             xyxy=mmdet_results.pred_instances.bboxes.cpu().numpy(),
             confidence=mmdet_results.pred_instances.scores.cpu().numpy(),
             class_id=mmdet_results.pred_instances.labels.cpu().numpy().astype(int),
-            mask=mmdet_results.pred_instances.masks.cpu().numpy()
-            if "masks" in mmdet_results.pred_instances
-            else None,
+            mask=(
+                mmdet_results.pred_instances.masks.cpu().numpy()
+                if "masks" in mmdet_results.pred_instances
+                else None
+            ),
         )
 
     @classmethod
@@ -584,9 +594,11 @@ class Detections:
         return cls(
             xyxy=detectron2_results["instances"].pred_boxes.tensor.cpu().numpy(),
             confidence=detectron2_results["instances"].scores.cpu().numpy(),
-            mask=detectron2_results["instances"].pred_masks.cpu().numpy()
-            if hasattr(detectron2_results["instances"], "pred_masks")
-            else None,
+            mask=(
+                detectron2_results["instances"].pred_masks.cpu().numpy()
+                if hasattr(detectron2_results["instances"], "pred_masks")
+                else None
+            ),
             class_id=detectron2_results["instances"]
             .pred_classes.cpu()
             .numpy()
@@ -686,6 +698,119 @@ class Detections:
 
         xyxy = xywh_to_xyxy(xywh=xywh)
         return cls(xyxy=xyxy, mask=mask)
+
+    @classmethod
+    def from_sam3(
+        cls, sam3_result: dict | Any, resolution_wh: tuple[int, int]
+    ) -> Detections:
+        """
+        Creates a Detections instance from
+        [SAM 3](https://github.com/facebookresearch/sam3) inference result.
+
+        Args:
+            sam3_result (dict | Any): The output result from SAM 3 inference,
+                either Sam3PromptResult from inference package or dict containing
+                prompt_results with polygon predictions.
+            resolution_wh (Tuple[int, int]): The width and height of the image
+                used for mask generation.
+
+        Returns:
+            Detections: A new Detections object.
+                The `class_id` field contains the prompt index for each polygon.
+
+        Example:
+            ```python
+            import cv2
+            import supervision as sv
+            from inference.models.sam3 import SegmentAnything3
+            from inference.core.entities.requests.sam3 import Sam3Prompt
+
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
+            model = SegmentAnything3(
+                model_id="sam3/sam3_final",
+                api_key="<ROBOFLOW_API_KEY>"
+            )
+
+            prompts = [
+                Sam3Prompt(type="text", text="car"),
+                Sam3Prompt(type="text", text="tire"),
+            ]
+
+            result = model.segment_image(
+                image=image,
+                prompts=prompts,
+                output_prob_thresh=0.5,
+                format="polygon"
+            )
+
+            height, width = image.shape[:2]
+            detections = sv.Detections.from_sam3(
+                sam3_result=result,
+                resolution_wh=(width, height)
+            )
+            ```
+        """
+        width, height = validate_resolution(resolution_wh)
+
+        masks = []
+        confidences = []
+        class_ids = []
+
+        if isinstance(sam3_result, dict):
+            prompt_results = sam3_result.get("prompt_results", [])
+        else:
+            prompt_results = getattr(sam3_result, "prompt_results", [])
+
+        for i, prompt_result in enumerate(prompt_results):
+            if isinstance(prompt_result, dict):
+                predictions = prompt_result.get("predictions", [])
+                prompt_index = prompt_result.get("prompt_index", i)
+            else:
+                predictions = getattr(prompt_result, "predictions", [])
+                prompt_index = getattr(prompt_result, "prompt_index", i)
+
+            for prediction in predictions:
+                if isinstance(prediction, dict):
+                    prediction_format = prediction.get("format")
+                    if prediction_format and prediction_format != "polygon":
+                        continue
+                    pred_masks = prediction.get("masks", [])
+                    confidence = prediction.get("confidence", 1.0)
+                else:
+                    prediction_format = getattr(prediction, "format", None)
+                    if prediction_format and prediction_format != "polygon":
+                        continue
+                    pred_masks = getattr(prediction, "masks", [])
+                    confidence = getattr(prediction, "confidence", 1.0)
+
+                if not pred_masks:
+                    continue
+
+                full_mask = np.zeros((height, width), dtype=bool)
+                for poly in pred_masks:
+                    polygon = np.array(poly, dtype=np.int32)
+                    mask = polygon_to_mask(
+                        polygon=polygon, resolution_wh=(width, height)
+                    )
+                    mask = mask.astype(bool, copy=False)
+                    np.logical_or(full_mask, mask, out=full_mask)
+
+                masks.append(full_mask)
+                confidences.append(confidence)
+                class_ids.append(prompt_index)
+
+        if not masks:
+            return cls.empty()
+
+        masks_np = np.stack(masks, axis=0)
+        xyxy = mask_to_xyxy(masks_np)
+
+        return cls(
+            xyxy=xyxy.astype(np.float32),
+            mask=masks_np,
+            confidence=np.array(confidences, dtype=np.float32),
+            class_id=np.array(class_ids, dtype=int),
+        )
 
     @classmethod
     def from_azure_analyze_image(
