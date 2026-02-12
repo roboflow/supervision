@@ -316,27 +316,27 @@ def create_yolo_dataset(
     """
     Create a synthetic YOLO-format dataset on disk.
 
-    Generates dummy images with YOLO-format annotations, data.yaml file,
+    Generates dummy images with YOLO-format annotations, `data.yaml` file,
     and directory structure suitable for testing dataset loading.
 
     Args:
         dataset_dir: Root directory path for the dataset.
         num_images: Number of images to generate.
-        image_size: Image dimensions as (width, height, channels).
-        classes: List of class names. Defaults to ["class_0", "class_1"].
-        objects_per_image_range: Range of objects per image as (min, max).
+        image_size: Image dimensions as `(width, height, channels)`.
+        classes: List of class names. Defaults to `["class_0", "class_1"]`.
+        objects_per_image_range: Range of objects per image as `(min, max)`.
             Actual count will cycle through this range.
         seed: Random seed for reproducibility.
 
     Returns:
         Dictionary containing:
-            - tmpdir: Root dataset directory path
-            - images_dir: Images directory path
-            - labels_dir: Labels directory path
-            - data_yaml_path: data.yaml file path
-            - num_images: Number of images created
-            - image_size: Image dimensions
-            - image_annotations: List of annotations per image
+            - `tmpdir`: Root dataset directory path
+            - `images_dir`: Images directory path
+            - `labels_dir`: Labels directory path
+            - `data_yaml_path`: `data.yaml` file path
+            - `num_images`: Number of images created
+            - `image_size`: Image dimensions
+            - `image_annotations`: List of annotations per image
 
     Examples:
         >>> from pathlib import Path

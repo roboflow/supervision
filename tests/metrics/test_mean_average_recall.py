@@ -285,15 +285,15 @@ def complex_scenario_predictions():
 @pytest.fixture
 def two_class_two_image_detections():
     """
-    Scenario: 2 images with 2 classes with varying confidence levels.
+    Scenario: 2 images × 2 classes with varying confidence levels.
 
-    Tests that mAR@K limits per image (not per class) by creating a case where
+    Tests that `mAR@K` limits per image (not per class) by creating a case where
     the highest confidence detection differs between images.
 
     Returns:
-        tuple: (predictions, targets)
-            - Image 1: class_0 (conf=0.9) > class_1 (conf=0.8)
-            - Image 2: class_1 (conf=0.95) > class_0 (conf=0.7)
+        tuple: `(predictions, targets)`
+            - Image 1: `class_0` (conf=0.9) > `class_1` (conf=0.8)
+            - Image 2: `class_1` (conf=0.95) > `class_0` (conf=0.7)
     """
     targets = [
         Detections(
@@ -325,15 +325,15 @@ def two_class_two_image_detections():
 @pytest.fixture
 def three_class_single_image_detections():
     """
-    Scenario: 1 image with 3 classes - explicit bug reproduction.
+    Scenario: 1 image × 3 classes - explicit bug reproduction.
 
-    Demonstrates the $N x K$ vs K issue: with 3 classes, the bug would allow
-    3 detections for mAR@1 (one per class) instead of just 1.
+    Demonstrates the N×K vs K issue: with 3 classes, the bug would allow
+    3 detections for `mAR@1` (one per class) instead of just 1.
 
     Returns:
-        tuple: (predictions, targets)
+        tuple: `(predictions, targets)`
             - Single image with 3 perfect detections
-            - Confidences: [0.9, 0.8, 0.7] for classes [0, 1, 2]
+            - Confidences: `[0.9, 0.8, 0.7]` for classes `[0, 1, 2]`
     """
     targets = [
         Detections(
@@ -364,9 +364,9 @@ def dataset_split_yolo_structure(tmp_path):
     """
     Synthetic YOLO-format dataset for testing dataset loading.
 
-    Uses create_yolo_dataset() helper with default parameters:
+    Uses `create_yolo_dataset()` helper with default parameters:
     - 15 images
-    - 640 x 640 resolution
+    - 640×640 resolution
     - 2 classes
     - 2-4 objects per image
 
@@ -431,32 +431,32 @@ def test_complex_integration_scenario(
 
 def test_mar_at_k_limits_per_image_not_per_class(two_class_two_image_detections):
     """
-    Test that mAR@K limits detections per image, not per class.
+    Test that `mAR@K` limits detections per image, not per class.
 
     BUG SCENARIO (what was wrong):
     The previous implementation would limit detections per CLASS per image,
-    meaning mAR@1 would take the top-1 prediction for EACH class in each image.
-    With 2 classes and mAR@1, this incorrectly allowed 2 detections per image.
+    meaning `mAR@1` would take the top-1 prediction for EACH class in each image.
+    With 2 classes and `mAR@1`, this incorrectly allowed 2 detections per image.
 
     This test uses a scenario where the bug would produce different results:
     - 2 images, each with 2 GT objects (one of each class)
     - Predictions perfectly match GT with varying confidences
-    - Image 1: class_0 (conf=0.9) > class_1 (conf=0.8)
-    - Image 2: class_1 (conf=0.95) > class_0 (conf=0.7)
+    - Image 1: `class_0` (conf=0.9) > `class_1` (conf=0.8)
+    - Image 2: `class_1` (conf=0.95) > `class_0` (conf=0.7)
 
     BUGGY BEHAVIOR (if bug were present):
-    - mAR@1 would take top-1 per class → both detections per image count
-    - Recall for class_0: 2/2 = 1.0
-    - Recall for class_1: 2/2 = 1.0
-    - mAR@1 would incorrectly = 1.0 (same as mAR@10)
+    - `mAR@1` would take top-1 per class → both detections per image count
+    - Recall for `class_0`: 2/2 = 1.0
+    - Recall for `class_1`: 2/2 = 1.0
+    - `mAR@1` would incorrectly = 1.0 (same as `mAR@10`)
 
     CORRECT BEHAVIOR (with fix):
-    - mAR@1 takes top-1 per image → only highest confidence per image counts
-    - Image 1: only class_0 counts (conf=0.9)
-    - Image 2: only class_1 counts (conf=0.95)
-    - Recall for class_0: 1/2 = 0.5
-    - Recall for class_1: 1/2 = 0.5
-    - mAR@1 = 0.5 (correctly < mAR@10 = 1.0)
+    - `mAR@1` takes top-1 per image → only highest confidence per image counts
+    - Image 1: only `class_0` counts (conf=0.9)
+    - Image 2: only `class_1` counts (conf=0.95)
+    - Recall for `class_0`: 1/2 = 0.5
+    - Recall for `class_1`: 1/2 = 0.5
+    - `mAR@1` = 0.5 (correctly < `mAR@10` = 1.0)
     """
     predictions, targets = two_class_two_image_detections
 
@@ -468,17 +468,17 @@ def test_mar_at_k_limits_per_image_not_per_class(two_class_two_image_detections)
     expected_mar_at_1 = 0.5  # Only top detection per image
     expected_mar_at_10 = 1.0  # All detections count
     expected_mar_at_100 = 1.0
-    # Note: Bug would produce mAR@1 = 1.0
+    # Note: Bug would produce mAR @ 1 = 1.0
 
     # Test correct behavior (this would fail with the bug)
     np.testing.assert_almost_equal(result.mAR_at_1, expected_mar_at_1, decimal=6)
     np.testing.assert_almost_equal(result.mAR_at_10, expected_mar_at_10, decimal=6)
     np.testing.assert_almost_equal(result.mAR_at_100, expected_mar_at_100, decimal=6)
 
-    # Critical assertion: mAR@1 must be less than mAR@10
+    # Critical assertion: mAR @ 1 must be less than mAR @ 10
     # With the bug, both would equal 1.0
     assert result.mAR_at_1 < result.mAR_at_10, (
-        f"Bug detected: mAR@1 ({result.mAR_at_1}) should be < mAR@10 "
+        f"Bug detected: mAR @ 1 ({result.mAR_at_1}) should be < mAR @ 10 "
         f"({result.mAR_at_10}) when images have multiple objects. "
         "If they're equal, K is being applied per-class instead of per-image."
     )
@@ -486,27 +486,27 @@ def test_mar_at_k_limits_per_image_not_per_class(two_class_two_image_detections)
 
 def test_three_class_single_image_scenario(three_class_single_image_detections):
     """
-    Test with 3 classes on single image - explicit $N x K$ bug reproduction.
+    Test with 3 classes on single image - explicit N×K bug reproduction.
 
     THE BUG:
-    mAR@K was limiting detections per class per image, not per image globally.
-    This meant with N classes, up to $N x K$ detections could count per image
+    mAR @ K was limiting detections per class per image, not per image globally.
+    This meant with N classes, up to N×K detections could count per image
     instead of just K detections.
 
     REPRODUCTION SCENARIO:
-    Image with 3 GT objects: [class_0, class_1, class_2]
-    Model predicts all 3 correctly with confidences: [0.9, 0.8, 0.7]
+    Image with 3 GT objects: `[class_0, class_1, class_2]`
+    Model predicts all 3 correctly with confidences: `[0.9, 0.8, 0.7]`
 
-    With mAR@1 (max 1 detection per image):
+    With mAR @ 1 (max 1 detection per image):
 
     BUGGY: Would take top-1 per class → all 3 detections count
-    → Recall per class: [1/1, 1/1, 1/1] → mAR@1 = 1.0
+    → Recall per class: `[1/1, 1/1, 1/1]` → mAR @ 1 = 1.0
 
-    CORRECT: Takes top-1 globally → only class_0 (conf=0.9) counts
-    → Recall per class: [1/1, 0/1, 0/1] → mAR@1 = 0.33
+    CORRECT: Takes top-1 globally → only `class_0` (conf=0.9) counts
+    → Recall per class: `[1/1, 0/1, 0/1]` → mAR @ 1 = 0.33
 
-    This test would PASS with the bug (incorrectly) if mAR@1 ≈ 1.0
-    and PASS with the fix (correctly) if mAR@1 ≈ 0.33
+    This test would PASS with the bug (incorrectly) if mAR @ 1 ≈ 1.0
+    and PASS with the fix (correctly) if mAR @ 1 ≈ 0.33
     """
     predictions, targets = three_class_single_image_detections
 
@@ -517,17 +517,17 @@ def test_three_class_single_image_scenario(three_class_single_image_detections):
     # Expected results with correct behavior
     expected_mar_at_1 = 1.0 / 3.0  # Only highest confidence (class_0) counts
     expected_mar_at_10 = 1.0  # All detections count
-    # Note: Bug would produce mAR@1 = 1.0 (all 3 counted, one per class)
+    # Note: Bug would produce mAR @ 1 = 1.0 (all 3 counted, one per class)
 
     # Test correct behavior
     np.testing.assert_almost_equal(result.mAR_at_1, expected_mar_at_1, decimal=6)
     np.testing.assert_almost_equal(result.mAR_at_10, expected_mar_at_10, decimal=6)
 
     # Sanity check: if this fails, the bug is present
-    # Bug would produce mAR@1 ≈ 1.0, correct is ≈ 0.333
+    # Bug would produce mAR @ 1 ≈ 1.0, correct is ≈ 0.333
     assert result.mAR_at_1 < 0.5, (
-        f"Bug detected: mAR@1 = {result.mAR_at_1:.4f}, expected ≈ 0.333. "
-        "The bug would produce mAR@1 ≈ 1.0 by counting all detections."
+        f"Bug detected: mAR @ 1 = {result.mAR_at_1:.4f}, expected ≈ 0.333. "
+        "The bug would produce mAR @ 1 ≈ 1.0 by counting all detections."
     )
 
 
