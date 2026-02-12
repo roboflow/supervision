@@ -57,15 +57,14 @@ dependencies = [
   "scipy>=1.10",
   "tqdm>=4.62.3",
 ]
-
-optional-dependencies.headless = [
-  "opencv-python-headless>=4.5.5.64",
-]
 optional-dependencies.desktop = [
   "opencv-python>=4.5.5.64",
 ]
 optional-dependencies.desktop-contrib = [
   "opencv-contrib-python>=4.5.5.64",
+]
+optional-dependencies.headless = [
+  "opencv-python-headless>=4.5.5.64",
 ]
 optional-dependencies.headless-contrib = [
   "opencv-contrib-python-headless>=4.5.5.64",
