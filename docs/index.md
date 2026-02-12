@@ -93,6 +93,15 @@ You can install `supervision` in a
         poetry add supervision[desktop]
         ```
 
+        ```bash
+        # For desktop with extra modules (e.g., CSRT tracker)
+        poetry add supervision[desktop-contrib]
+        ```
+
+        ```bash
+        # For servers with extra modules (no GUI)
+        poetry add supervision[headless-contrib]
+        ```
     === "uv"
 
         [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
