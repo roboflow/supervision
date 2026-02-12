@@ -79,11 +79,7 @@ HOSTED_SAM3_DICT = {
             np.array([[0, 0, 10, 10]], dtype=np.float32),
             (1, 10, 10),
         ),
-        (
-            [],
-            np.empty((0, 4), dtype=np.float32),
-            None
-        ),
+        ([], np.empty((0, 4), dtype=np.float32), None),
     ],
 )
 def test_from_sam(
