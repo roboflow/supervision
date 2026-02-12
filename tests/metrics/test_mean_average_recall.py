@@ -285,7 +285,7 @@ def complex_scenario_predictions():
 @pytest.fixture
 def two_class_two_image_detections():
     """
-    Scenario: 2 images × 2 classes with varying confidence levels.
+    Scenario: 2 images with 2 classes with varying confidence levels.
 
     Tests that mAR@K limits per image (not per class) by creating a case where
     the highest confidence detection differs between images.
@@ -325,9 +325,9 @@ def two_class_two_image_detections():
 @pytest.fixture
 def three_class_single_image_detections():
     """
-    Scenario: 1 image × 3 classes - explicit bug reproduction.
+    Scenario: 1 image with 3 classes - explicit bug reproduction.
 
-    Demonstrates the N×K vs K issue: with 3 classes, the bug would allow
+    Demonstrates the $N x K$ vs K issue: with 3 classes, the bug would allow
     3 detections for mAR@1 (one per class) instead of just 1.
 
     Returns:
@@ -366,7 +366,7 @@ def dataset_split_yolo_structure(tmp_path):
 
     Uses create_yolo_dataset() helper with default parameters:
     - 15 images
-    - 640×640 resolution
+    - 640 x 640 resolution
     - 2 classes
     - 2-4 objects per image
 
@@ -486,11 +486,11 @@ def test_mar_at_k_limits_per_image_not_per_class(two_class_two_image_detections)
 
 def test_three_class_single_image_scenario(three_class_single_image_detections):
     """
-    Test with 3 classes on single image - explicit N×K bug reproduction.
+    Test with 3 classes on single image - explicit $N x K$ bug reproduction.
 
     THE BUG:
     mAR@K was limiting detections per class per image, not per image globally.
-    This meant with N classes, up to N×K detections could count per image
+    This meant with N classes, up to $N x K$ detections could count per image
     instead of just K detections.
 
     REPRODUCTION SCENARIO:
