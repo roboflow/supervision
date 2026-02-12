@@ -102,7 +102,7 @@ class TestDownloadAssets:
         """Test download_assets with invalid asset name."""
         invalid_filename = "invalid.mp4"
 
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValueError, match="Invalid asset") as exc_info:
             download_assets(invalid_filename)
 
         assert "Invalid asset" in str(exc_info.value)

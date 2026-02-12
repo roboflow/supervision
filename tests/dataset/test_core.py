@@ -168,7 +168,7 @@ from tests.helpers import _create_detections
                 ),
             ],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="not unique across datasets"),
         ),
     ],
 )

@@ -148,7 +148,6 @@ class ConfusionMatrix:
 
             ```
         """
-
         prediction_tensors = []
         target_tensors = []
         for prediction, target in zip(predictions, targets):
@@ -274,9 +273,28 @@ class ConfusionMatrix:
         """
         result_matrix = np.zeros((num_classes + 1, num_classes + 1))
 
+        # Filter predictions by confidence threshold
         conf_idx = 5
         confidence = predictions[:, conf_idx]
-        detection_batch_filtered = predictions[confidence > conf_threshold]
+        detection_batch_filtered = predictions[confidence >= conf_threshold]
+
+        if len(detection_batch_filtered) == 0:
+            # No detections pass confidence threshold - all GT are FN
+            class_id_idx = 4
+            true_classes = np.array(targets[:, class_id_idx], dtype=np.int16)
+            for gt_class in true_classes:
+                result_matrix[gt_class, num_classes] += 1
+            return result_matrix
+
+        if len(targets) == 0:
+            # No ground truth - all detections are FP
+            class_id_idx = 4
+            detection_classes = np.array(
+                detection_batch_filtered[:, class_id_idx], dtype=np.int16
+            )
+            for det_class in detection_classes:
+                result_matrix[num_classes, det_class] += 1
+            return result_matrix
 
         class_id_idx = 4
         true_classes = np.array(targets[:, class_id_idx], dtype=np.int16)
@@ -286,37 +304,71 @@ class ConfusionMatrix:
         true_boxes = targets[:, :class_id_idx]
         detection_boxes = detection_batch_filtered[:, :class_id_idx]
 
+        # Calculate IoU matrix
         iou_batch = box_iou_batch(
             boxes_true=true_boxes, boxes_detection=detection_boxes
         )
-        matched_idx = np.asarray(iou_batch > iou_threshold).nonzero()
 
-        if matched_idx[0].shape[0]:
-            matches = np.stack(
-                (matched_idx[0], matched_idx[1], iou_batch[matched_idx]), axis=1
-            )
-            matches = ConfusionMatrix._drop_extra_matches(matches=matches)
+        # Find all valid matches (IoU > threshold, regardless of class)
+        # Use vectorized operations to avoid nested Python loops
+        iou_mask = iou_batch > iou_threshold
+        gt_indices, det_indices = np.nonzero(iou_mask)
+
+        # If no pairs exceed the IoU threshold, skip matching
+        if gt_indices.size == 0:
+            valid_matches = []
         else:
-            matches = np.zeros((0, 3))
+            ious = iou_batch[gt_indices, det_indices]
+            gt_match_classes = true_classes[gt_indices]
+            det_match_classes = detection_classes[det_indices]
+            class_matches = gt_match_classes == det_match_classes
 
-        matched_true_idx, matched_detection_idx, _ = matches.transpose().astype(
-            np.int16
-        )
+            # Sort matches by class match first (True before False),
+            # then by IoU descending.
+            # np.lexsort sorts by the last key first, in ascending order.
+            # We use ~class_matches so that True becomes 0
+            # and False becomes 1 (True first),
+            # and -ious so that larger IoUs come first.
+            sort_indices = np.lexsort((-ious, ~class_matches))
 
-        for i, true_class_value in enumerate(true_classes):
-            j = matched_true_idx == i
-            if matches.shape[0] > 0 and sum(j) == 1:
-                result_matrix[
-                    true_class_value, detection_classes[matched_detection_idx[j]]
-                ] += 1  # TP
-            else:
-                result_matrix[true_class_value, num_classes] += 1  # FN
+            # Build list of matches in the same format as before:
+            # (gt_idx, det_idx, iou, class_match)
+            valid_matches = [
+                (
+                    int(gt_indices[idx]),
+                    int(det_indices[idx]),
+                    float(ious[idx]),
+                    bool(class_matches[idx]),
+                )
+                for idx in sort_indices
+            ]
+        # Greedily assign matches, ensuring each GT
+        # and detection is matched at most once
+        matched_gt_idx = set()
+        matched_det_idx = set()
 
-        for i, detection_class_value in enumerate(detection_classes):
-            if not any(matched_detection_idx == i):
-                result_matrix[num_classes, detection_class_value] += 1  # FP
-        final_result_matrix: npt.NDArray[np.int32] = result_matrix
-        return final_result_matrix
+        for gt_idx, det_idx, iou, class_match in valid_matches:
+            if gt_idx not in matched_gt_idx and det_idx not in matched_det_idx:
+                # Valid spatial match - record the class prediction
+                gt_class = true_classes[gt_idx]
+                det_class = detection_classes[det_idx]
+
+                # This handles both correct classification (TP) and misclassification
+                result_matrix[gt_class, det_class] += 1
+                matched_gt_idx.add(gt_idx)
+                matched_det_idx.add(det_idx)
+
+        # Count unmatched ground truth as FN
+        for gt_idx, gt_class in enumerate(true_classes):
+            if gt_idx not in matched_gt_idx:
+                result_matrix[gt_class, num_classes] += 1
+
+        # Count unmatched detections as FP
+        for det_idx, det_class in enumerate(detection_classes):
+            if det_idx not in matched_det_idx:
+                result_matrix[num_classes, det_class] += 1
+
+        return result_matrix
 
     @staticmethod
     def _drop_extra_matches(

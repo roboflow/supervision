@@ -37,14 +37,14 @@ from supervision.classification.core import Classifications
             np.array([]),
             5,
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match=r"confidence must be 1d np\.ndarray"),
         ),  # class_id with 5 numbers and 0 confidences
         (
             [0, 1, 2, 3, 4],
             [0.1, 0.2, 0.3, 0.4],
             5,
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="\\(n, \\) shape"),
         ),  # class_id with 5 numbers and 4 confidences
     ],
 )
