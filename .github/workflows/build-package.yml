@@ -28,9 +28,6 @@ jobs:
           python-version: ${{ inputs.python-version }}
           activate-environment: true
 
-      - name: 🚀 Install dependencies for scripts
-        run: uv sync --frozen
-
       - name: 🎨 Augment paths in README
         run: |
           python .github/scripts/augment_links.py README.md --branch ${{ github.head_ref || github.ref_name }}
