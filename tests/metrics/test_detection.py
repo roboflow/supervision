@@ -1016,38 +1016,26 @@ class TestDetectionMetrics:
         )
 
         # Verify confusion matrix structure and basic properties
-        # Matrix should be (num_classes+1) x (num_classes+1)
-        assert confusion_matrix.matrix.shape == (len(classes) + 1, len(classes) + 1), (
-            f"Confusion matrix should have shape ({len(classes) + 1}, {len(classes) + 1}) "
-            f"but got {confusion_matrix.matrix.shape}. "
-            f"Matrix structure is incorrect."
+        n = len(classes) + 1
+        assert confusion_matrix.matrix.shape == (n, n), (
+            f"Expected shape ({n}, {n}), got {confusion_matrix.matrix.shape}"
         )
 
-        # Diagonal should have True Positives (predictions with correct class match)
-        # With the fix, wrong-class predictions should NOT match even with high IoU
+        # Count TPs (diagonal) and total ground truths
         total_gt = sum(len(t) for t in targets if len(t) > 0)
         total_tp = sum(confusion_matrix.matrix[i, i] for i in range(len(classes)))
 
-        # We should have TPs (exact count depends on the data, but should be > 0)
         assert total_tp > 0, (
-            f"No true positives found (total_tp={total_tp}, total_gt={total_gt}). "
-            f"Either predictions are all wrong or matching is completely broken."
+            f"No TPs found (TP={total_tp}, GT={total_gt}), matching is broken"
         )
 
-        # The last column represents FPs (predicted but no matching GT)
-        # With pattern 2, we add wrong-class predictions that should become FPs
+        # Count FPs (last column) - should include wrong-class predictions
         total_fp = confusion_matrix.matrix[: len(classes), -1].sum()
-        assert total_fp >= 0, (
-            f"FP count should be non-negative but got {total_fp}. "
-            f"Confusion matrix computation has a bug."
-        )
+        assert total_fp >= 0, f"FP count negative ({total_fp}), computation bug"
 
-        # Verify the fix is working: check that we have some FPs from wrong-class preds
-        # In pattern 1 (i%3==1), we add wrong-class predictions that should NOT match
-        # These should show up as FPs in the last column
+        # Verify IoU+class fix: wrong-class preds should become FPs, not match GTs
         assert total_fp > 0 or total_tp == total_gt, (
-            f"Expected some false positives from wrong-class predictions (got {total_fp}), "
-            f"or all GTs should be matched (TP={total_tp}, GT={total_gt}). "
-            f"This suggests the IoU+class fix may not be working correctly: "
-            f"predictions with wrong class but high IoU may be incorrectly matching GTs."
+            f"Expected FPs from wrong-class preds (got {total_fp}) or all GTs "
+            f"matched (TP={total_tp}, GT={total_gt}). IoU+class fix may be broken: "
+            f"wrong-class preds with high IoU might incorrectly match GTs."
         )
