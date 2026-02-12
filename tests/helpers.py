@@ -348,8 +348,9 @@ def create_yolo_dataset(
         >>> len(list(Path(dataset_info["images_dir"]).glob("*.jpg")))
         5
     """
-    import cv2
     from pathlib import Path
+
+    import cv2
 
     if classes is None:
         classes = ["class_0", "class_1"]
@@ -390,8 +391,7 @@ def create_yolo_dataset(
             y_center = np.clip(y_center, height / 2, 1 - height / 2)
 
             yolo_lines.append(
-                f"{class_id} {x_center:.6f} {y_center:.6f} "
-                f"{width:.6f} {height:.6f}\n"
+                f"{class_id} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}\n"
             )
             objects.append((class_id, x_center, y_center, width, height))
 
