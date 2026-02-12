@@ -50,6 +50,8 @@ You can install `supervision` in a
 
         Supervision requires OpenCV. Choose the variant that best fits your needs:
 
+        ⚠️ **Important**: Only install one OpenCV variant at a time. The different `opencv-python` packages (standard, contrib, headless, etc.) are mutually exclusive and cannot coexist in the same environment.
+
         ```bash
         # Recommended for servers (no GUI)
         pip install supervision[headless]
@@ -115,6 +117,27 @@ You can install `supervision` in a
         uv pip install supervision[headless]
         ```
 
+        ```bash
+        # For desktop applications (includes GUI support)
+        uv pip install supervision[desktop]
+        ```
+
+        ```bash
+        # For desktop with extra modules (e.g., CSRT tracker)
+        uv pip install supervision[desktop-contrib]
+        ```
+
+        ```bash
+        # For servers with extra modules (no GUI)
+        uv pip install supervision[headless-contrib]
+        ```
+
+        If you already have OpenCV installed:
+
+        ```bash
+        uv pip install supervision
+        ```
+
         For uv projects:
 
         ```bash
@@ -129,7 +152,23 @@ You can install `supervision` in a
         [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 
         ```bash
+        # With headless OpenCV (recommended for servers)
         rye add supervision --features headless
+        ```
+
+        ```bash
+        # For desktop applications (includes GUI support)
+        rye add supervision --features desktop
+        ```
+
+        ```bash
+        # For desktop with extra modules (e.g., CSRT tracker)
+        rye add supervision --features desktop-contrib
+        ```
+
+        ```bash
+        # For servers with extra modules (no GUI)
+        rye add supervision --features headless-contrib
         ```
 
 !!! example "conda/mamba install"

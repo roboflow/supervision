@@ -3,16 +3,21 @@
 ### 0.28.0rc0 <small>Unreleased</small>
 
 !!! breaking "Breaking Change"
-    **OpenCV is now an optional dependency.** To ensure compatibility with different OpenCV variants (standard, contrib, headless), `opencv-python` has been removed from the core dependencies. Users must now explicitly choose their preferred OpenCV package:
+    **OpenCV is required at runtime but is now an optional install-time dependency.** To ensure compatibility with different OpenCV variants (standard, contrib, headless), `opencv-python` has been removed from the core dependencies. Users must now have OpenCV installed either by:
+    
+    - Explicitly choosing an OpenCV extra when installing supervision (recommended)
+    - Having a compatible OpenCV package already installed
+
+    Installation options:
 
     - `pip install supervision[headless]` - Installs `opencv-python-headless` (recommended for servers)
     - `pip install supervision[desktop]` - Installs `opencv-python` (includes GUI support)
     - `pip install supervision[desktop-contrib]` - Installs `opencv-contrib-python` (extra modules + GUI)
     - `pip install supervision[headless-contrib]` - Installs `opencv-contrib-python-headless` (extra modules, no GUI)
 
-    If you already have OpenCV installed, you can install supervision without extras: `pip install supervision`
+    If you already have OpenCV installed: `pip install supervision`
 
-    This change resolves conflicts where `opencv-python` would override `opencv-contrib-python`, preventing access to extra modules like CSRT tracker.
+    **Note**: Without OpenCV installed, functions that require OpenCV will raise an `ImportError` with instructions on how to install it. This change resolves conflicts where `opencv-python` would override `opencv-contrib-python`, preventing access to extra modules like CSRT tracker.
 
 ### 0.27.0 <small>Nov 16, 2025</small>
 
