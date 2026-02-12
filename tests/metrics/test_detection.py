@@ -1026,9 +1026,7 @@ class TestDetectionMetrics:
         # Diagonal should have True Positives (predictions with correct class match)
         # With the fix, wrong-class predictions should NOT match even with high IoU
         total_gt = sum(len(t) for t in targets if len(t) > 0)
-        total_tp = sum(
-            confusion_matrix.matrix[i, i] for i in range(len(classes))
-        )
+        total_tp = sum(confusion_matrix.matrix[i, i] for i in range(len(classes)))
 
         # We should have TPs (exact count depends on the data, but should be > 0)
         assert total_tp > 0, (
@@ -1038,7 +1036,7 @@ class TestDetectionMetrics:
 
         # The last column represents FPs (predicted but no matching GT)
         # With pattern 2, we add wrong-class predictions that should become FPs
-        total_fp = confusion_matrix.matrix[:len(classes), -1].sum()
+        total_fp = confusion_matrix.matrix[: len(classes), -1].sum()
         assert total_fp >= 0, (
             f"FP count should be non-negative but got {total_fp}. "
             f"Confusion matrix computation has a bug."
