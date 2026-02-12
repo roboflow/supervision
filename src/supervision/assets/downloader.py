@@ -8,7 +8,7 @@ from shutil import copyfileobj
 from requests import get
 from tqdm.auto import tqdm
 
-from supervision.assets.list import MEDIA_ASSETS, Assets, ImageAssets, VideoAssets
+from supervision.assets.list import MEDIA_ASSETS, Assets
 
 
 def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:
@@ -35,7 +35,7 @@ def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:
     return computed_md5_hash.hexdigest() == original_md5_hash
 
 
-def download_assets(asset_name: ImageAssets | VideoAssets | str) -> str:
+def download_assets(asset_name: Assets | str) -> str:
     """
     Download a specified asset if it doesn't already exist or is corrupted.
 

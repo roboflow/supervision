@@ -5,6 +5,9 @@ BASE_IMAGE_URL = "https://media.roboflow.com/supervision/image-examples/"
 
 
 class Assets(Enum):
+    filename: str
+    md5_hash: str
+
     def __new__(cls, filename: str, md5_hash: str) -> "Assets":
         obj = object.__new__(cls)
         obj._value_ = filename
