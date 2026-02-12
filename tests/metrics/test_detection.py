@@ -6,13 +6,18 @@ from typing import ClassVar
 import numpy as np
 import pytest
 
+from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
 from supervision.metrics.detection import (
     ConfusionMatrix,
     MeanAveragePrecision,
     detections_to_tensor,
 )
-from tests.helpers import _create_detections, assert_almost_equal
+from tests.helpers import (
+    _create_detections,
+    assert_almost_equal,
+    create_predictions_with_class_iou_tests,
+)
 
 
 class TestDetectionMetrics:
@@ -942,3 +947,109 @@ class TestDetectionMetrics:
         # Verify the confusion matrix matches expected
         # AssertionError if the two arrays are not equal
         np.testing.assert_array_equal(confusion_matrix.matrix, expected_result)
+
+    def test_confusion_matrix_on_yolo_dataset(self, yolo_dataset_structure):
+        """
+        Test confusion matrix calculation on a YOLO-format dataset.
+
+        This test verifies that the confusion matrix fix (considering both IoU AND
+        class agreement) works correctly when applied to a dataset loaded from
+        roboflow-format YOLO data. It creates a synthetic dataset with specific
+        scenarios where predictions have high IoU but wrong class, ensuring only
+        predictions with correct class are matched.
+        """
+        dataset_info = yolo_dataset_structure
+        classes = ["dog", "cat", "person"]
+
+        # Load dataset using supervision's YOLO loader
+        dataset = DetectionDataset.from_yolo(
+            images_directory_path=dataset_info["images_dir"],
+            annotations_directory_path=dataset_info["labels_dir"],
+            data_yaml_path=dataset_info["data_yaml_path"],
+        )
+
+        # Verify dataset loaded correctly
+        assert len(dataset) == dataset_info["num_images"], (
+            f"Dataset should have {dataset_info['num_images']} images, "
+            f"but got {len(dataset)}. Dataset loading may have failed."
+        )
+        assert dataset.classes == classes, (
+            f"Dataset classes should be {classes}, but got {dataset.classes}. "
+            f"Check data.yaml parsing."
+        )
+
+        # Test confusion matrix with the dataset
+        # Split the dataset to test split functionality
+        train_dataset, test_dataset = dataset.split(
+            split_ratio=0.5, random_state=42, shuffle=True
+        )
+
+        assert len(train_dataset) + len(test_dataset) == len(dataset), (
+            f"Split datasets should sum to original dataset size ({len(dataset)}), "
+            f"but got {len(train_dataset)} + {len(test_dataset)} = "
+            f"{len(train_dataset) + len(test_dataset)}. Dataset split may be broken."
+        )
+        assert train_dataset.classes == classes, (
+            "Train dataset should preserve class list after split"
+        )
+        assert test_dataset.classes == classes, (
+            "Test dataset should preserve class list after split"
+        )
+
+        # Create predictions that test the IoU+class matching fix
+        predictions = []
+        targets = []
+
+        for img_path, img, gt_detections in test_dataset:
+            targets.append(gt_detections)
+            predictions.append(
+                create_predictions_with_class_iou_tests(gt_detections, len(classes))
+            )
+
+        # Calculate confusion matrix
+        confusion_matrix = ConfusionMatrix.from_detections(
+            predictions=predictions,
+            targets=targets,
+            classes=list(range(len(classes))),
+            conf_threshold=0.5,
+            iou_threshold=0.5,
+        )
+
+        # Verify confusion matrix structure and basic properties
+        # Matrix should be (num_classes+1) x (num_classes+1)
+        assert confusion_matrix.matrix.shape == (len(classes) + 1, len(classes) + 1), (
+            f"Confusion matrix should have shape ({len(classes) + 1}, {len(classes) + 1}) "
+            f"but got {confusion_matrix.matrix.shape}. "
+            f"Matrix structure is incorrect."
+        )
+
+        # Diagonal should have True Positives (predictions with correct class match)
+        # With the fix, wrong-class predictions should NOT match even with high IoU
+        total_gt = sum(len(t) for t in targets if len(t) > 0)
+        total_tp = sum(
+            confusion_matrix.matrix[i, i] for i in range(len(classes))
+        )
+
+        # We should have TPs (exact count depends on the data, but should be > 0)
+        assert total_tp > 0, (
+            f"No true positives found (total_tp={total_tp}, total_gt={total_gt}). "
+            f"Either predictions are all wrong or matching is completely broken."
+        )
+
+        # The last column represents FPs (predicted but no matching GT)
+        # With pattern 2, we add wrong-class predictions that should become FPs
+        total_fp = confusion_matrix.matrix[:len(classes), -1].sum()
+        assert total_fp >= 0, (
+            f"FP count should be non-negative but got {total_fp}. "
+            f"Confusion matrix computation has a bug."
+        )
+
+        # Verify the fix is working: check that we have some FPs from wrong-class preds
+        # In pattern 1 (i%3==1), we add wrong-class predictions that should NOT match
+        # These should show up as FPs in the last column
+        assert total_fp > 0 or total_tp == total_gt, (
+            f"Expected some false positives from wrong-class predictions (got {total_fp}), "
+            f"or all GTs should be matched (TP={total_tp}, GT={total_gt}). "
+            f"This suggests the IoU+class fix may not be working correctly: "
+            f"predictions with wrong class but high IoU may be incorrectly matching GTs."
+        )

@@ -359,32 +359,6 @@ def three_class_single_image_detections():
     return predictions, targets
 
 
-@pytest.fixture
-def dataset_split_yolo_structure(tmp_path):
-    """
-    Synthetic YOLO-format dataset for testing dataset loading.
-
-    Uses `create_yolo_dataset()` helper with default parameters:
-    - 15 images
-    - 640x640 resolution
-    - 2 classes
-    - 2-4 objects per image
-
-    Returns:
-        dict with dataset paths and metadata
-    """
-    from tests.helpers import create_yolo_dataset
-
-    return create_yolo_dataset(
-        dataset_dir=str(tmp_path),
-        num_images=15,
-        image_size=(640, 640, 3),
-        classes=["class_0", "class_1"],
-        objects_per_image_range=(2, 4),
-        seed=42,
-    )
-
-
 def test_single_perfect_detection():
     """Test that a single perfect detection yields 1.0 recall."""
     detections = Detections(
@@ -531,7 +505,7 @@ def test_three_class_single_image_scenario(three_class_single_image_detections):
     )
 
 
-def test_dataset_split_integration(dataset_split_yolo_structure):
+def test_dataset_split_integration(yolo_dataset_two_classes):
     """
     Test mAR with a roboflow-format dataset loaded from disk.
 
@@ -547,7 +521,7 @@ def test_dataset_split_integration(dataset_split_yolo_structure):
     """
     from supervision import DetectionDataset
 
-    dataset_info = dataset_split_yolo_structure
+    dataset_info = yolo_dataset_two_classes
     np.random.seed(42)  # Match fixture seed for offset generation
 
     # Load dataset from YOLO format

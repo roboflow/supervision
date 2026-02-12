@@ -414,3 +414,67 @@ def create_yolo_dataset(
         "image_size": image_size,
         "image_annotations": image_annotations,
     }
+
+
+def create_predictions_with_class_iou_tests(
+    gt_detections: Detections, num_classes: int
+) -> Detections:
+    """
+    Create predictions that test IoU+class matching behavior.
+
+    For each ground truth detection, creates predictions with different patterns:
+    - Pattern 0 (i%3==0): Correct match (same bbox, correct class)
+    - Pattern 1 (i%3==1): Wrong class with perfect IoU + correct class with offset
+    - Pattern 2 (i%3==2): Correct class with slight offset
+
+    This tests that predictions with wrong class don't match even with high IoU,
+    which is the key fix in the confusion matrix calculation.
+
+    Args:
+        gt_detections: Ground truth detections to create predictions for
+        num_classes: Total number of classes in the dataset
+
+    Returns:
+        Detections object with predictions designed to test IoU+class matching
+    """
+    if len(gt_detections) == 0:
+        # No ground truth, return a single false positive
+        return _create_detections(
+            xyxy=[[10, 10, 50, 50]], class_id=[0], confidence=[0.9]
+        )
+
+    pred_boxes = []
+    pred_classes = []
+    pred_confs = []
+
+    for i, (box, cls) in enumerate(zip(gt_detections.xyxy, gt_detections.class_id)):
+        if i % 3 == 0:
+            # Pattern 1: Correct match
+            pred_boxes.append(box)
+            pred_classes.append(cls)
+            pred_confs.append(0.95)
+
+        elif i % 3 == 1:
+            # Pattern 2: Test the fix - add wrong class prediction with perfect IoU,
+            # then correct class with slightly offset bbox
+            wrong_cls = (cls + 1) % num_classes
+            pred_boxes.append(box)  # Perfect IoU
+            pred_classes.append(wrong_cls)  # Wrong class
+            pred_confs.append(0.90)
+
+            # Add correct class with slight offset
+            offset_box = box + np.array([2, 2, 2, 2], dtype=np.float32)
+            pred_boxes.append(offset_box)
+            pred_classes.append(cls)  # Correct class
+            pred_confs.append(0.85)
+
+        else:
+            # Pattern 3: Correct match with slight offset
+            offset_box = box + np.array([1, 1, 1, 1], dtype=np.float32)
+            pred_boxes.append(offset_box)
+            pred_classes.append(cls)
+            pred_confs.append(0.92)
+
+    return _create_detections(
+        xyxy=pred_boxes, class_id=pred_classes, confidence=pred_confs
+    )
