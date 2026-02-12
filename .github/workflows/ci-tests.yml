@@ -42,13 +42,13 @@ jobs:
           activate-environment: true
 
       - name: 🚀 Install Packages
-        run: uv pip install -r pyproject.toml --group dev --group docs --extra metrics
+        run: uv sync --frozen --group dev --group docs --extra metrics
 
       - name: 📦 Run the Import test
-        run: uv run python -c "import supervision; from supervision import assets; from supervision import metrics; print(supervision.__version__)"
+        run: python -c "import supervision; from supervision import assets; from supervision import metrics; print(supervision.__version__)"
 
       - name: 🧪 Run the Test
-        run: uv run pytest src/ tests/ --cov=supervision --cov-report=xml
+        run: pytest src/ tests/ --cov=supervision --cov-report=xml
 
       - name: Generate Coverage Report
         run: |

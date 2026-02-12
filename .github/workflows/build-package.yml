@@ -30,7 +30,7 @@ jobs:
 
       - name: 🎨 Augment paths in README
         run: |
-          uv run python .github/scripts/augment_links.py README.md --branch ${{ github.head_ref || github.ref_name }}
+          python .github/scripts/augment_links.py README.md --branch ${{ github.head_ref || github.ref_name }}
           cat README.md
 
       - name: 🔗 Link Checker
@@ -45,9 +45,9 @@ jobs:
 
       - name: 🏗️ Build source and wheel distributions
         run: |
-          uv pip install -r pyproject.toml --group build
+          uv sync --frozen --group build
           uv build
-          uv run twine check --strict dist/*
+          twine check --strict dist/*
 
       - name: 📤 Upload distribution artifacts
         uses: actions/upload-artifact@v6

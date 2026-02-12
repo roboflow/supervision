@@ -37,7 +37,7 @@ jobs:
           activate-environment: true
 
       - name: 🏗️ Install dependencies
-        run: uv pip install -r pyproject.toml --group docs
+        run: uv sync --frozen --group docs
 
       - name: ⚙️ Configure git for github-actions
         run: |
@@ -49,7 +49,7 @@ jobs:
         env:
           MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          uv run mike deploy --push develop
+          mike deploy --push develop
 
       - name: 🚀 Deploy Release Docs
         if: github.event_name == 'release' && github.event.action == 'published'
@@ -57,4 +57,4 @@ jobs:
           MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
         run: |
           latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
-          uv run mike deploy --push --update-aliases $latest_tag latest
+          mike deploy --push --update-aliases $latest_tag latest
