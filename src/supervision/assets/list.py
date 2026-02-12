@@ -5,9 +5,12 @@ BASE_IMAGE_URL = "https://media.roboflow.com/supervision/image-examples/"
 
 
 class Assets(Enum):
-    def __init__(self, filename: str, md5_hash: str):
-        self.filename = filename
-        self.md5_hash = md5_hash
+    def __new__(cls, filename: str, md5_hash: str) -> "Assets":
+        obj = object.__new__(cls)
+        obj._value_ = filename
+        obj.filename = filename
+        obj.md5_hash = md5_hash
+        return obj
 
     @classmethod
     def list(cls) -> list[str]:

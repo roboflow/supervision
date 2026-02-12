@@ -108,6 +108,17 @@ class TestDownloadAssets:
         assert "Invalid asset" in str(exc_info.value)
         assert "vehicles.mp4" in str(exc_info.value)
 
+    @patch("pathlib.Path.exists", return_value=True)
+    def test_invalid_asset_when_file_exists(self, mock_exists):
+        """Test download_assets with invalid asset name that already exists."""
+        invalid_filename = "invalid.mp4"
+
+        with pytest.raises(ValueError, match="Invalid asset") as exc_info:
+            download_assets(invalid_filename)
+
+        assert "Invalid asset" in str(exc_info.value)
+        assert "vehicles.mp4" in str(exc_info.value)
+
     @patch("builtins.print")
     @patch("pathlib.Path.open", new_callable=mock_open)
     @patch("pathlib.Path.mkdir")

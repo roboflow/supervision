@@ -37,12 +37,14 @@ def test_video_assets_values():
     """Test that VideoAssets enum members have correct attributes."""
     assert VideoAssets.VEHICLES.filename == "vehicles.mp4"
     assert VideoAssets.VEHICLES.md5_hash == "8155ff4e4de08cfa25f39de96483f918"
+    assert VideoAssets.VEHICLES.value == "vehicles.mp4"
 
 
 def test_image_assets_values():
     """Test that ImageAssets enum members have correct attributes."""
     assert ImageAssets.SOCCER.filename == "soccer.jpg"
     assert ImageAssets.SOCCER.md5_hash == "0f5a4b98abf3e3973faf9e9260a7d876"
+    assert ImageAssets.SOCCER.value == "soccer.jpg"
 
 
 def test_media_assets_dict_keys():
