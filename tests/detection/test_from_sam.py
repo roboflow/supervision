@@ -82,7 +82,7 @@ HOSTED_SAM3_DICT = {
         (
             [],
             np.empty((0, 4), dtype=np.float32),
-            None,
+            None
         ),
     ],
 )
