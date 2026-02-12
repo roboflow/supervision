@@ -51,6 +51,7 @@ Supervision requires OpenCV. We don't enforce a specific version to avoid confli
 - `supervision[desktop-contrib]` - Install with `opencv-contrib-python` (extra modules + GUI)
 - `supervision[headless-contrib]` - Install with `opencv-contrib-python-headless` (extra modules, no GUI)
 
+⚠️ **Important**: Only choose one variant — the different `opencv-python` packages cannot coexist in the same environment.
 If you have OpenCV already installed, you can install supervision without any extras:
 
 ```bash
