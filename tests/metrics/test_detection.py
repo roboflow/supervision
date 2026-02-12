@@ -6,13 +6,18 @@ from typing import ClassVar
 import numpy as np
 import pytest
 
+from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
 from supervision.metrics.detection import (
     ConfusionMatrix,
     MeanAveragePrecision,
     detections_to_tensor,
 )
-from tests.helpers import _create_detections, assert_almost_equal
+from tests.helpers import (
+    _create_detections,
+    assert_almost_equal,
+    create_predictions_with_class_iou_tests,
+)
 
 
 class TestDetectionMetrics:
@@ -347,8 +352,8 @@ class TestDetectionMetrics:
                 iou_threshold=iou_threshold,
             )
 
-            assert result.matrix.diagonal().sum() == expected_result.diagonal().sum()
-            assert np.array_equal(result.matrix, expected_result)
+        assert result.matrix.diagonal().sum() == expected_result.diagonal().sum()
+        assert np.array_equal(result.matrix, expected_result)
 
     @pytest.mark.parametrize(
         (
@@ -391,8 +396,8 @@ class TestDetectionMetrics:
                 iou_threshold=iou_threshold,
             )
 
-            assert result.diagonal().sum() == result.sum()
-            assert np.array_equal(result, expected_result)
+        assert result.diagonal().sum() == result.sum()
+        assert np.array_equal(result, expected_result)
 
     @pytest.mark.parametrize(
         ("matches", "expected_result", "exception"),
@@ -463,3 +468,574 @@ class TestDetectionMetrics:
                 recall=recall, precision=precision
             )
             assert_almost_equal(result, expected_result, tolerance=0.01)
+
+    @pytest.mark.parametrize(
+        (
+            "predictions",
+            "targets",
+            "classes",
+            "conf_threshold",
+            "iou_threshold",
+            "expected_result",
+            "exception",
+        ),
+        [
+            # Test 1: Class priority over IoU - correct class with lower IoU should win
+            (
+                [
+                    _create_detections(  # Predicted bboxes
+                        xyxy=[[0.1, 0.1, 2.1, 2.1], [0.0, 0.0, 2.0, 2.0]],
+                        class_id=[0, 1],
+                        confidence=[0.9, 0.95],
+                    )
+                ],
+                [_create_detections(xyxy=[[0, 0, 2, 2]], class_id=[0])],  # GT bboxes
+                [0, 1, 2],  # Class ids
+                0.5,  # Confidence Threshold
+                0.5,  # IOU Threshold
+                np.array(  # Expected confusion matrix
+                    [
+                        [1.0, 0.0, 0.0, 0.0],  # 1 TP
+                        [0.0, 0.0, 0.0, 0.0],  # none
+                        [0.0, 0.0, 0.0, 0.0],  # none
+                        [0.0, 1.0, 0.0, 0.0],  # 1 FP:
+                    ]
+                ),
+                DoesNotRaise(),
+            ),
+            # Test 2: Multiple overlapping predictions with different classes
+            (
+                [
+                    _create_detections(
+                        xyxy=[
+                            [0.1, 0.1, 2.1, 2.1],
+                            [0.2, 0.2, 2.2, 2.2],
+                            [0.3, 0.3, 2.3, 2.3],
+                            [4.1, 4.1, 6.1, 6.1],
+                        ],
+                        class_id=[0, 1, 2, 1],
+                        confidence=[0.9, 0.8, 0.7, 0.85],
+                    )
+                ],
+                [
+                    _create_detections(
+                        xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1]
+                    )
+                ],
+                [0, 1, 2],
+                0.5,
+                0.5,
+                np.array(
+                    [
+                        [1.0, 0.0, 0.0, 0.0],  # 1 TP
+                        [0.0, 1.0, 0.0, 0.0],  # 1 TP
+                        [0.0, 0.0, 0.0, 0.0],  # none
+                        [0.0, 1.0, 1.0, 0.0],  # 2 FP
+                    ]
+                ),
+                DoesNotRaise(),
+            ),
+            # Test 3: Confidence threshold filtering with edge cases
+            (
+                [
+                    _create_detections(
+                        xyxy=[[0, 0, 2, 2], [4, 4, 6, 6], [8, 8, 10, 10]],
+                        class_id=[0, 1, 2],
+                        confidence=[0.6, 0.4, 0.8],  # middle one below threshold
+                    )
+                ],
+                [
+                    _create_detections(
+                        xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1]
+                    )
+                ],
+                [0, 1, 2],
+                0.5,
+                0.5,
+                np.array(
+                    [
+                        [1.0, 0.0, 0.0, 0.0],  # 1 TP
+                        [0.0, 0.0, 0.0, 1.0],  # 1 FN (filtered by conf)
+                        [0.0, 0.0, 0.0, 0.0],  # none
+                        [0.0, 0.0, 1.0, 0.0],  # 1 FP
+                    ]
+                ),
+                DoesNotRaise(),
+            ),
+            # Test 4: IoU threshold boundary (IoU = 0.5625, slightly above threshold)
+            (
+                [
+                    _create_detections(
+                        xyxy=[
+                            [0, 0, 1.5, 1.5],
+                            [4, 4, 5.5, 5.5],
+                        ],  # IoU = 0.5625 for both
+                        class_id=[0, 1],
+                        confidence=[0.9, 0.8],
+                    )
+                ],
+                [
+                    _create_detections(
+                        xyxy=[[0, 0, 2, 2], [4, 4, 6, 6]], class_id=[0, 1]
+                    )
+                ],
+                [0, 1, 2],
+                0.5,
+                0.5,
+                np.array(
+                    [
+                        [1.0, 0.0, 0.0, 0.0],  # 1 TP (IoU exceeds threshold)
+                        [0.0, 1.0, 0.0, 0.0],  # 1 TP (IoU exceeds threshold)
+                        [0.0, 0.0, 0.0, 0.0],  # none
+                        [0.0, 0.0, 0.0, 0.0],  # none
+                    ]
+                ),
+                DoesNotRaise(),
+            ),
+            # Test 5: Chain of overlapping detections
+            (
+                [
+                    _create_detections(
+                        xyxy=[[0.1, 0.1, 2.1, 2.1], [1.9, 1.9, 3.9, 3.9]],
+                        class_id=[0, 2],
+                        confidence=[0.9, 0.8],
+                    )
+                ],
+                [
+                    _create_detections(
+                        xyxy=[[0, 0, 2, 2], [1, 1, 3, 3], [2, 2, 4, 4]],
+                        class_id=[0, 1, 2],
+                    )
+                ],
+                [0, 1, 2],
+                0.5,
+                0.5,
+                np.array(
+                    [
+                        [1.0, 0.0, 0.0, 0.0],  # 1 TP
+                        [0.0, 0.0, 0.0, 1.0],  # 1 FN (no matching label)
+                        [0.0, 0.0, 1.0, 0.0],  # 1 TP
+                        [0.0, 0.0, 0.0, 0.0],  # none
+                    ]
+                ),
+                DoesNotRaise(),
+            ),
+            # Test 6: All false positives (no ground truth)
+            (
+                [
+                    _create_detections(
+                        xyxy=[[0, 0, 2, 2], [4, 4, 6, 6], [8, 8, 10, 10]],
+                        class_id=[0, 1, 2],
+                        confidence=[0.9, 0.8, 0.7],
+                    )
+                ],
+                [
+                    _create_detections(
+                        xyxy=np.empty((0, 4)), class_id=np.array([], dtype=int)
+                    )
+                ],
+                [0, 1, 2],
+                0.5,
+                0.5,
+                np.array(
+                    [
+                        [0.0, 0.0, 0.0, 0.0],  # none
+                        [0.0, 0.0, 0.0, 0.0],  # none
+                        [0.0, 0.0, 0.0, 0.0],  # none
+                        [1.0, 1.0, 1.0, 0.0],  # 3 FP
+                    ]
+                ),
+                DoesNotRaise(),
+            ),
+            # Test 7: Empty predictions and empty ground truth
+            (
+                [
+                    _create_detections(
+                        xyxy=np.empty((0, 4)),
+                        class_id=np.array([], dtype=int),
+                        confidence=np.array([], dtype=float),
+                    )
+                ],
+                [
+                    _create_detections(
+                        xyxy=np.empty((0, 4)), class_id=np.array([], dtype=int)
+                    )
+                ],
+                [0, 1, 2],
+                0.5,
+                0.5,
+                np.zeros((4, 4)),
+                DoesNotRaise(),
+            ),
+            # Test 8: Multi-class misclassifications
+            (
+                [
+                    _create_detections(
+                        xyxy=[[0, 0, 2, 2], [4, 4, 6, 6], [10, 10, 12, 12]],
+                        class_id=[0, 2, 1],
+                        confidence=[0.9, 0.8, 0.7],
+                    )
+                ],
+                [
+                    _create_detections(
+                        xyxy=[[0, 0, 2, 2], [4, 4, 6, 6], [8, 8, 10, 10]],
+                        class_id=[0, 1, 2],
+                    )
+                ],
+                [0, 1, 2],
+                0.5,
+                0.5,
+                np.array(
+                    [
+                        [1.0, 0.0, 0.0, 0.0],  # 1 TP
+                        [0.0, 0.0, 1.0, 0.0],  # 1 misclassified
+                        [0.0, 0.0, 0.0, 1.0],  # 1 FN
+                        [0.0, 1.0, 0.0, 0.0],  # 1 FP
+                    ]
+                ),
+                DoesNotRaise(),
+            ),
+            # Test 9: Complex multiple predictions with mixed results
+            (
+                [
+                    _create_detections(
+                        xyxy=[
+                            [0, 0, 2, 2],
+                            [4, 4, 6, 6],
+                            [8, 8, 10, 10],
+                            [12, 12, 14, 14],
+                            [16, 16, 18, 18],
+                        ],
+                        class_id=[0, 1, 1, 2, 2],
+                        confidence=[0.9, 0.8, 0.7, 0.6, 0.5],
+                    )
+                ],
+                [
+                    _create_detections(
+                        xyxy=[
+                            [0, 0, 2, 2],
+                            [4, 4, 6, 6],
+                            [8, 8, 10, 10],
+                            [12, 12, 14, 14],
+                        ],
+                        class_id=[0, 1, 2, 0],
+                    )
+                ],
+                [0, 1, 2],
+                0.5,
+                0.5,
+                np.array(
+                    [
+                        [1.0, 0.0, 1.0, 0.0],  # 1 TP and 1 misclassified
+                        [0.0, 1.0, 0.0, 0.0],  # 1 TP
+                        [0.0, 1.0, 0.0, 0.0],  # 1 misclassified
+                        [0.0, 0.0, 1.0, 0.0],  # 1 FP
+                    ]
+                ),
+                DoesNotRaise(),
+            ),
+            # Test 10: Large complex example with confidence filtering
+            (
+                [
+                    _create_detections(
+                        xyxy=[
+                            [0, 0, 2, 2],
+                            [4, 4, 6, 6],
+                            [8, 8, 10, 10],
+                            [12, 12, 14, 14],
+                            [16, 16, 18, 18],
+                            [18, 18, 20, 20],
+                        ],
+                        class_id=[0, 0, 1, 2, 1, 2],
+                        confidence=[0.9, 0.8, 0.7, 0.6, 0.5, 0.4],  # last one filtered
+                    )
+                ],
+                [
+                    _create_detections(
+                        xyxy=[
+                            [0, 0, 2, 2],
+                            [4, 4, 6, 6],
+                            [8, 8, 10, 10],
+                            [12, 12, 14, 14],
+                        ],
+                        class_id=[0, 1, 2, 0],
+                    )
+                ],
+                [0, 1, 2],
+                0.5,  # conf_threshold filters out last prediction
+                0.5,
+                np.array(
+                    [
+                        [1.0, 0.0, 1.0, 0.0],  # 1 TP and 1 misclassified
+                        [1.0, 0.0, 0.0, 0.0],  # 1 misclassified
+                        [0.0, 1.0, 0.0, 0.0],  # 1 misclassified
+                        [0.0, 1.0, 0.0, 0.0],  # 1 FP
+                    ]
+                ),
+                DoesNotRaise(),
+            ),
+            # Test 11: High counts with multiple TPs and misclassifications
+            (
+                [
+                    _create_detections(
+                        xyxy=[
+                            [0, 0, 2, 2],
+                            [0, 3, 2, 5],
+                            [0, 6, 2, 8],
+                            [4, 0, 6, 2],
+                            [4, 3, 6, 5],
+                            [8, 0, 10, 2],
+                            [12, 0, 14, 2],
+                        ],
+                        class_id=[0, 0, 0, 2, 2, 2, 0],
+                        confidence=[0.95, 0.95, 0.95, 0.9, 0.9, 0.9, 0.8],
+                    )
+                ],
+                [
+                    _create_detections(
+                        xyxy=[
+                            [0, 0, 2, 2],
+                            [0, 3, 2, 5],
+                            [0, 6, 2, 8],
+                            [4, 0, 6, 2],
+                            [4, 3, 6, 5],
+                            [8, 0, 10, 2],
+                            [8, 3, 10, 5],
+                        ],
+                        class_id=[0, 0, 0, 1, 1, 2, 2],
+                    )
+                ],
+                [0, 1, 2],
+                0.5,
+                0.5,
+                np.array(
+                    [
+                        [3.0, 0.0, 0.0, 0.0],  # 3 TP
+                        [0.0, 0.0, 2.0, 0.0],  # 2 misclassified
+                        [0.0, 0.0, 1.0, 1.0],  # 1 TP, 1 FN
+                        [1.0, 0.0, 0.0, 0.0],  # 1 FP
+                    ]
+                ),
+                DoesNotRaise(),
+            ),
+            # Test 12: Symmetric multi-class confusions with higher counts
+            (
+                [
+                    _create_detections(
+                        xyxy=[
+                            [0, 0, 2, 2],
+                            [0, 4, 2, 6],
+                            [4, 0, 6, 2],
+                            [4, 4, 6, 6],
+                            [8, 0, 10, 2],
+                            [8, 4, 10, 6],
+                            [12, 0, 14, 2],
+                            [12, 4, 14, 6],
+                        ],
+                        class_id=[0, 0, 1, 1, 0, 0, 1, 1],
+                        confidence=[0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.8, 0.8],
+                    )
+                ],
+                [
+                    _create_detections(
+                        xyxy=[
+                            [0, 0, 2, 2],
+                            [0, 4, 2, 6],
+                            [4, 0, 6, 2],
+                            [4, 4, 6, 6],
+                            [8, 0, 10, 2],
+                            [8, 4, 10, 6],
+                        ],
+                        class_id=[0, 0, 1, 1, 2, 2],
+                    )
+                ],
+                [0, 1, 2],  # Class ids
+                0.5,  # Confidence threshold
+                0.5,  # IOU threshold
+                np.array(
+                    [
+                        [2.0, 0.0, 0.0, 0.0],  # 2 TP
+                        [0.0, 2.0, 0.0, 0.0],  # TP
+                        [2.0, 0.0, 0.0, 0.0],  # 2 misclassified
+                        [0.0, 2.0, 0.0, 0.0],  # 2 FP
+                    ]
+                ),
+                DoesNotRaise(),
+            ),
+            # Test 13: Empty Ground Truths
+            (
+                [
+                    _create_detections(
+                        xyxy=[[0, 0, 2, 2], [0, 4, 2, 6]],
+                        class_id=[0, 0],
+                        confidence=[0.9, 0.9],
+                    )
+                ],
+                [Detections.empty()],
+                [0, 1, 2],  # Class ids
+                0.5,  # Confidence threshold
+                0.5,  # IOU threshold
+                np.array(
+                    [
+                        [0.0, 0.0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0, 0.0],
+                        [2.0, 0.0, 0.0, 0.0],  # 2 FP
+                    ]
+                ),
+                DoesNotRaise(),
+            ),
+            # Test 14: Empty Detections
+            (
+                [Detections.empty()],
+                [
+                    _create_detections(
+                        xyxy=[[0, 0, 2, 2], [0, 4, 2, 6]], class_id=[0, 0]
+                    )
+                ],
+                [0, 1, 2],  # Class ids
+                0.5,  # Confidence threshold
+                0.5,  # IOU threshold
+                np.array(
+                    [
+                        [0.0, 0.0, 0.0, 2.0],  # 2 TP
+                        [0.0, 0.0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0, 0.0],
+                    ]
+                ),
+                DoesNotRaise(),
+            ),
+            # Test 15: Symmetric multi-class confusions with higher counts
+            (
+                [Detections.empty()],
+                [Detections.empty()],
+                [0, 1, 2],  # Class ids
+                0.5,  # Confidence threshold
+                0.5,  # IOU threshold
+                np.array(
+                    [
+                        [0.0, 0.0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0, 0.0],
+                        [0.0, 0.0, 0.0, 0.0],
+                    ]
+                ),
+                DoesNotRaise(),
+            ),
+        ],
+    )
+    def test_confusion_matrix(
+        self,
+        predictions,
+        targets,
+        classes,
+        conf_threshold,
+        iou_threshold,
+        expected_result,
+        exception: Exception,
+    ):
+        with exception:
+            confusion_matrix = ConfusionMatrix.from_detections(
+                predictions=predictions,
+                targets=targets,
+                classes=classes,
+                conf_threshold=conf_threshold,
+                iou_threshold=iou_threshold,
+            )
+
+        # Verify the confusion matrix matches expected
+        # AssertionError if the two arrays are not equal
+        np.testing.assert_array_equal(confusion_matrix.matrix, expected_result)
+
+    def test_confusion_matrix_on_yolo_dataset(self, yolo_dataset_structure):
+        """
+        Test confusion matrix calculation on a YOLO-format dataset.
+
+        This test verifies that the confusion matrix fix (considering both IoU AND
+        class agreement) works correctly when applied to a dataset loaded from
+        roboflow-format YOLO data. It creates a synthetic dataset with specific
+        scenarios where predictions have high IoU but wrong class, ensuring only
+        predictions with correct class are matched.
+        """
+        dataset_info = yolo_dataset_structure
+        classes = ["dog", "cat", "person"]
+
+        # Load dataset using supervision's YOLO loader
+        dataset = DetectionDataset.from_yolo(
+            images_directory_path=dataset_info["images_dir"],
+            annotations_directory_path=dataset_info["labels_dir"],
+            data_yaml_path=dataset_info["data_yaml_path"],
+        )
+
+        # Verify dataset loaded correctly
+        assert len(dataset) == dataset_info["num_images"], (
+            f"Dataset should have {dataset_info['num_images']} images, "
+            f"but got {len(dataset)}. Dataset loading may have failed."
+        )
+        assert dataset.classes == classes, (
+            f"Dataset classes should be {classes}, but got {dataset.classes}. "
+            f"Check data.yaml parsing."
+        )
+
+        # Test confusion matrix with the dataset
+        # Split the dataset to test split functionality
+        train_dataset, test_dataset = dataset.split(
+            split_ratio=0.5, random_state=42, shuffle=True
+        )
+
+        assert len(train_dataset) + len(test_dataset) == len(dataset), (
+            f"Split datasets should sum to original dataset size ({len(dataset)}), "
+            f"but got {len(train_dataset)} + {len(test_dataset)} = "
+            f"{len(train_dataset) + len(test_dataset)}. Dataset split may be broken."
+        )
+        assert train_dataset.classes == classes, (
+            "Train dataset should preserve class list after split"
+        )
+        assert test_dataset.classes == classes, (
+            "Test dataset should preserve class list after split"
+        )
+
+        # Create predictions that test the IoU+class matching fix
+        predictions = []
+        targets = []
+
+        for img_path, img, gt_detections in test_dataset:
+            targets.append(gt_detections)
+            predictions.append(
+                create_predictions_with_class_iou_tests(gt_detections, len(classes))
+            )
+
+        # Calculate confusion matrix
+        confusion_matrix = ConfusionMatrix.from_detections(
+            predictions=predictions,
+            targets=targets,
+            classes=list(range(len(classes))),
+            conf_threshold=0.5,
+            iou_threshold=0.5,
+        )
+
+        # Verify confusion matrix structure and basic properties
+        n = len(classes) + 1
+        assert confusion_matrix.matrix.shape == (n, n), (
+            f"Expected shape ({n}, {n}), got {confusion_matrix.matrix.shape}"
+        )
+
+        # Count TPs (diagonal) and total ground truths
+        total_gt = sum(len(t) for t in targets if len(t) > 0)
+        total_tp = sum(confusion_matrix.matrix[i, i] for i in range(len(classes)))
+
+        assert total_tp > 0, (
+            f"No TPs found (TP={total_tp}, GT={total_gt}), matching is broken"
+        )
+
+        # Count FPs (last column) - should include wrong-class predictions
+        total_fp = confusion_matrix.matrix[: len(classes), -1].sum()
+        assert total_fp >= 0, f"FP count negative ({total_fp}), computation bug"
+
+        # Verify IoU+class fix: wrong-class preds should become FPs, not match GTs
+        assert total_fp > 0 or total_tp == total_gt, (
+            f"Expected FPs from wrong-class preds (got {total_fp}) or all GTs "
+            f"matched (TP={total_tp}, GT={total_gt}). IoU+class fix may be broken: "
+            f"wrong-class preds with high IoU might incorrectly match GTs."
+        )

@@ -7,8 +7,8 @@ on:
   pull_request:
     branches: [main, develop]
     paths:
-      - '.github/workflows/build-package.yml'
-      - '.github/workflows/publish-release.yml'
+      - ".github/workflows/build-package.yml"
+      - ".github/workflows/publish-release.yml"
 
 permissions: {} # Explicitly remove all permissions by default
 
@@ -42,7 +42,7 @@ jobs:
         if: github.event_name == 'release'
         uses: AButler/upload-release-assets@v3.0
         with:
-          files: 'dist/*'
+          files: "dist/*"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🚀 Publish to PyPi

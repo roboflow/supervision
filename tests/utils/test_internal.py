@@ -80,7 +80,7 @@ class MockDataclass:
             MockClass,
             False,
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Only class instances are supported"),
         ),
         (
             MockClass(),
@@ -110,13 +110,13 @@ class MockDataclass:
             Detections,
             False,
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Only class instances are supported"),
         ),
         (
             Detections,
             True,
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Only class instances are supported"),
         ),
         (
             Detections.empty(),

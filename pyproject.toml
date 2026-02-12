@@ -106,22 +106,16 @@ build = [
 
 [tool.setuptools]
 include-package-data = false
+package-data.supervision = [ "py.typed" ]
+packages.find.where = [ "src" ]
+packages.find.include = [ "supervision*" ]
 
-[tool.setuptools.package-data]
-supervision = [ "py.typed" ]
-
-[tool.setuptools.packages.find]
-where = [ "src" ]
-include = [ "supervision*" ]
-
-#exclude = [ "docs*", "tests*", "examples*" ]
+# exclude = [ "docs*", "tests*", "examples*" ]
 
 [tool.ruff]
 target-version = "py39"
-
 line-length = 88
 indent-width = 4
-
 # Exclude a variety of commonly ignored directories.
 exclude = [
   ".bzr",
@@ -149,7 +143,6 @@ exclude = [
   "yarn-error.log",
   "yarn.lock",
 ]
-
 # Like Black, indent with spaces, rather than tabs.
 format.indent-style = "space"
 # Like Black, use double quotes for strings.
@@ -171,16 +164,15 @@ lint.select = [
   "UP",  # pyupgrade - https://docs.astral.sh/ruff/rules/#pyupgrade-up
   "W",   # pycodestyle warnings - https://docs.astral.sh/ruff/rules/#pycodestyle-w
 ]
-lint.ignore = [  ]
+lint.ignore = []
 lint.per-file-ignores."__init__.py" = [ "E402", "F401" ]
 lint.per-file-ignores."src/**" = [
   "S101", # TODO: Replace asserts with proper error handling
 ]
 lint.per-file-ignores."tests/**" = [
-  "PT011", # TODO: `pytest.raises(Exception)` is too broad, set the `match` parameter or use a more specific exception
-  "S101",  # Use of `assert` detected
+  "S101", # Use of `assert` detected
 ]
-lint.unfixable = [  ]
+lint.unfixable = []
 # Allow unused variables when underscore-prefixed.
 lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 lint.flake8-quotes.docstring-quotes = "double"
@@ -199,12 +191,12 @@ count = true
 quiet-level = 3
 ignore-words-list = "STrack,sTrack,strack"
 
-[tool.pytest.ini_options]
-addopts = [
+[tool.pytest]
+ini_options.addopts = [
   "--doctest-modules",
   "--color=yes",
 ]
-doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE"
+ini_options.doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE"
 
 [tool.mypy]
 python_version = "3.9"
@@ -212,12 +204,12 @@ ignore_missing_imports = false
 explicit_package_bases = true
 strict = true
 mypy_path = "src"
-#exclude = [
+# exclude = [
 #  "docs",
 #  "test",
 #  "examples",
 #  "setup.py",
-#]
+# ]
 
 [[tool.mypy.overrides]]
 module = [
@@ -225,11 +217,6 @@ module = [
   "examples.*",
   # TODO: fix type errors in the following modules
   "supervision.classification.core",
-  "supervision.dataset.core",
-  "supervision.dataset.formats.coco",
-  "supervision.dataset.formats.pascal_voc",
-  "supervision.dataset.formats.yolo",
-  "supervision.dataset.utils",
   "supervision.detection.core",
   "supervision.detection.line_zone",
   "supervision.detection.tools.csv_sink",
@@ -238,21 +225,11 @@ module = [
   "supervision.detection.tools.polygon_zone",
   "supervision.detection.tools.smoother",
   "supervision.detection.tools.transformers",
-  "supervision.detection.utils.boxes",
-  "supervision.detection.utils.converters",
-  "supervision.detection.utils.internal",
-  "supervision.detection.utils.iou_and_nms",
-  "supervision.detection.utils.masks",
-  "supervision.detection.utils.polygons",
   "supervision.detection.vlm",
   "supervision.key_points.annotators",
   "supervision.key_points.core",
   "supervision.key_points.skeletons",
   "supervision.metrics.utils.utils",
-  "supervision.tracker.byte_tracker.core",
-  "supervision.tracker.byte_tracker.kalman_filter",
-  "supervision.tracker.byte_tracker.matching",
-  "supervision.tracker.byte_tracker.single_object_track",
 ]
 ignore_errors = true
 
