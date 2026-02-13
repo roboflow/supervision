@@ -34,6 +34,7 @@ supervision/
 ## 🔧 Development Commands
 
 **Setup:**
+
 ```bash
 # Install dependencies
 uv pip install -r pyproject.toml --group dev --group docs --extra metrics
@@ -43,6 +44,7 @@ uv run pre-commit install
 ```
 
 **Quality Checks:**
+
 ```bash
 # Run all pre-commit hooks (formatting, linting, type checking)
 uv run pre-commit run --all-files
@@ -52,6 +54,7 @@ uv run pytest --cov=supervision
 ```
 
 **Documentation:**
+
 ```bash
 # Serve docs locally at http://127.0.0.1:8000
 uv run mkdocs serve
@@ -73,8 +76,8 @@ uv run mkdocs serve
 - **Linting**: Enforced by `ruff-check` (pre-commit)
 - **Type Hints**: Required on all new code
 - **Docstrings**: Required using [Google Python style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods)
-  - Must include usage examples with primitive values
-  - Serve as runnable documentation
+    - Must include usage examples with primitive values
+    - Serve as runnable documentation
 
 ### Performance
 
@@ -117,6 +120,7 @@ For new public functions/classes:
 **When reviewing PRs, follow the comprehensive [PR Review Guidelines](CONTRIBUTING.md#pr-review-guidelines).**
 
 Quick checklist:
+
 - Tests included and passing
 - Docstrings follow Google style with examples
 - Pre-commit hooks pass

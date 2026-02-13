@@ -309,6 +309,7 @@ Start your review with a clear, actionable recommendation:
 - 🔴 **Block** — Critical issues require major rework
 
 **Example:**
+
 ```
 🟠 Request Changes — Missing unit tests for new `PolygonMerger` class and no documentation entry added for autogeneration.
 ```
@@ -359,21 +360,24 @@ Provide **specific feedback using inline comments** on the changed code. Use **n
 **Check for:**
 
 1. **Correctness**
-   - Logic errors or edge cases not handled
-   - Potential bugs (None checks, array bounds, division by zero)
-   - Incorrect assumptions
+
+    - Logic errors or edge cases not handled
+    - Potential bugs (None checks, array bounds, division by zero)
+    - Incorrect assumptions
 
 2. **Python Best Practices**
-   - Non-idiomatic patterns
-   - Improper exception handling
-   - Inefficient implementations
-   - Missing or incorrect type hints
+
+    - Non-idiomatic patterns
+    - Improper exception handling
+    - Inefficient implementations
+    - Missing or incorrect type hints
 
 3. **Project Conventions**
-   - **Docstrings:** Must follow [Google-style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods)
-   - **Code style:** Must pass linting (`uv run pre-commit run --all-files`)
-   - **Imports:** Standard library → third-party → local
-   - **Naming:** Clear, descriptive, follows PEP 8
+
+    - **Docstrings:** Must follow [Google-style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods)
+    - **Code style:** Must pass linting (`uv run pre-commit run --all-files`)
+    - **Imports:** Standard library → third-party → local
+    - **Naming:** Clear, descriptive, follows PEP 8
 
 **Place inline comments directly on problematic code**, then reference them in your summary.
 
@@ -392,14 +396,16 @@ Use **n/5** scoring for test coverage and quality:
 **For New Features or Bug Fixes:**
 
 1. **Coverage Requirements**
-   - [ ] Unit tests added for new functions/classes
-   - [ ] Edge cases covered (empty inputs, None, large arrays, boundary conditions)
-   - [ ] Regression tests for bug fixes
+
+    - [ ] Unit tests added for new functions/classes
+    - [ ] Edge cases covered (empty inputs, None, large arrays, boundary conditions)
+    - [ ] Regression tests for bug fixes
 
 2. **Test Quality**
-   - [ ] Assertions are specific (not just "no exception raised")
-   - [ ] Tests use realistic scenarios
-   - [ ] Test names clearly describe what they validate
+
+    - [ ] Assertions are specific (not just "no exception raised")
+    - [ ] Tests use realistic scenarios
+    - [ ] Test names clearly describe what they validate
 
 #### 3.3 Documentation Quality
 
@@ -416,21 +422,23 @@ Use **n/5** scoring for documentation completeness:
 **For New Features:**
 
 1. **Docstring Requirements**
-   - [ ] Docstrings for all public functions/classes
-   - [ ] Parameters, return values, and exceptions documented
-   - [ ] Usage examples in docstrings
+
+    - [ ] Docstrings for all public functions/classes
+    - [ ] Parameters, return values, and exceptions documented
+    - [ ] Usage examples in docstrings
 
 2. **Documentation Integration**
-   - [ ] Entry added to appropriate docs page (e.g., `docs/detection/tools/*.md`)
-   - [ ] Added to mkdocs navigation (`mkdocs.yml`)
-   - [ ] Changelog entry (`docs/changelog.md`) for user-facing changes
+
+    - [ ] Entry added to appropriate docs page (e.g., `docs/detection/tools/*.md`)
+    - [ ] Added to mkdocs navigation (`mkdocs.yml`)
+    - [ ] Changelog entry (`docs/changelog.md`) for user-facing changes
 
 **For Changes to Existing Features:**
 
 1. **Update Requirements**
-   - [ ] Docstrings updated to reflect changes
-   - [ ] Deprecated features marked with warnings
-   - [ ] Migration guide for breaking changes
+    - [ ] Docstrings updated to reflect changes
+    - [ ] Deprecated features marked with warnings
+    - [ ] Migration guide for breaking changes
 
 ### 4. Risk Assessment
 
@@ -445,27 +453,32 @@ Use **n/5** scoring for documentation completeness:
 **Risk Categories:**
 
 1. **Breaking Changes**
-   - Changes to public APIs (function signatures, return types)
-   - Removal of deprecated features
-   - Changed behavior in existing functionality
-   - **If breaking:** Must include migration instructions
+
+    - Changes to public APIs (function signatures, return types)
+    - Removal of deprecated features
+    - Changed behavior in existing functionality
+    - **If breaking:** Must include migration instructions
 
 2. **Performance Impact**
-   - Inefficient algorithms (O(n²) where O(n) possible)
-   - Memory-intensive operations on large arrays
-   - Potential bottlenecks in hot paths
+
+    - Inefficient algorithms (O(n²) where O(n) possible)
+    - Memory-intensive operations on large arrays
+    - Potential bottlenecks in hot paths
 
 3. **Compatibility Issues**
-   - New Python version requirements
-   - New dependencies
-   - Platform-specific code
+
+    - New Python version requirements
+    - New dependencies
+    - Platform-specific code
 
 4. **Security Concerns**
-   - Unvalidated user input
-   - Potential code execution risks
-   - Sensitive data exposure
+
+    - Unvalidated user input
+    - Potential code execution risks
+    - Sensitive data exposure
 
 **Example:**
+
 ```
 Risk Level: 4/5 🟠 High Performance Risk
 
@@ -487,19 +500,22 @@ return process(detections.mask)
 **Suggestion Categories:**
 
 1. **Code Improvements**
-   - Logic simplifications
-   - Better error handling
-   - More readable implementations
+
+    - Logic simplifications
+    - Better error handling
+    - More readable implementations
 
 2. **Performance Optimizations**
-   - NumPy vectorization opportunities
-   - Caching expensive computations
-   - Batch processing
+
+    - NumPy vectorization opportunities
+    - Caching expensive computations
+    - Batch processing
 
 3. **Architecture Improvements**
-   - Code reuse opportunities
-   - Better abstractions
-   - More maintainable designs
+
+    - Code reuse opportunities
+    - Better abstractions
+    - More maintainable designs
 
 ### 6. Review Summary Template
 
