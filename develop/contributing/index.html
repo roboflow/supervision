@@ -2549,6 +2549,89 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#pr-review-guidelines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        🔍 PR Review Guidelines
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="🔍 PR Review Guidelines">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#overall-recommendation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overall Recommendation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pr-completeness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PR Completeness
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quality-scores" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quality Scores
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#risk-assessment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Risk Assessment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#review-summary-template" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Review Summary Template
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#review-best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Review Best Practices
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#license" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2804,6 +2887,83 @@ submit a PR with your example. Here are some guidelines for submitting a new exa
 <p>To run tests with coverage:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>--cov<span class="o">=</span>supervision
 </span></code></pre></div>
+<h2 id="pr-review-guidelines">🔍 PR Review Guidelines<a class="headerlink" href="#pr-review-guidelines" title="Permanent link">&para;</a></h2>
+<p>These guidelines help reviewers provide consistent, actionable feedback efficiently. Your goals: validate completeness, identify risks, provide actionable feedback, and highlight quality gaps.</p>
+<h3 id="overall-recommendation">Overall Recommendation<a class="headerlink" href="#overall-recommendation" title="Permanent link">&para;</a></h3>
+<p>Start with a clear recommendation using these levels:</p>
+<ul>
+<li>🟢 <strong>Approve</strong> — Ready to merge</li>
+<li>🟡 <strong>Minor Suggestions</strong> — Improvements recommended but not blocking</li>
+<li>🟠 <strong>Request Changes</strong> — Must address issues before merge</li>
+<li>🔴 <strong>Block</strong> — Critical issues require major rework</li>
+</ul>
+<p>Example: <code>🟠 Request Changes — Missing unit tests for PolygonMerger and no mkdocs entry.</code></p>
+<h3 id="pr-completeness">PR Completeness<a class="headerlink" href="#pr-completeness" title="Permanent link">&para;</a></h3>
+<p>Verify requirements are met (✅ Complete / ⚠️ Incomplete / ❌ Missing / 🔵 N/A):</p>
+<ul>
+<li>[ ] Clear description of what changed and why</li>
+<li>[ ] Tests added/updated for new functionality or bug fixes</li>
+<li>[ ] Docstrings follow <a href="https://google.github.io/styleguide/pyguide.html#383-functions-and-methods">Google-style</a></li>
+<li>[ ] Docs entry added to mkdocs (new functions/classes only)</li>
+<li>[ ] Google Colab provided (if demonstrating feature/fix)</li>
+<li>[ ] Screenshots/videos included (visual changes only)</li>
+</ul>
+<p>Call out missing items explicitly in your review.</p>
+<h3 id="quality-scores">Quality Scores<a class="headerlink" href="#quality-scores" title="Permanent link">&para;</a></h3>
+<p>Use <strong>n/5 scoring</strong> with inline code comments for specifics:</p>
+<p><strong>Code Quality (n/5):</strong></p>
+<ul>
+<li>5/5 🟢 Excellent — 4/5 🟢 Good — 3/5 🟡 Acceptable — 2/5 🟠 Needs Work — 1/5 🔴 Poor</li>
+<li>Check: correctness (edge cases, None checks, bounds), Python best practices (idiomatic patterns, error handling, type hints), project conventions (docstrings, linting, import order, PEP 8 naming)</li>
+</ul>
+<p><strong>Testing (n/5):</strong></p>
+<ul>
+<li>5/5 🟢 Comprehensive — 4/5 🟢 Good — 3/5 🟡 Adequate — 2/5 🟠 Insufficient — 1/5 🔴 Missing</li>
+<li>Verify: unit tests for new code, edge cases covered, specific assertions, realistic scenarios, clear test names</li>
+</ul>
+<p><strong>Documentation (n/5):</strong></p>
+<ul>
+<li>5/5 🟢 Excellent — 4/5 🟢 Good — 3/5 🟡 Adequate — 2/5 🟠 Insufficient — 1/5 🔴 Missing</li>
+<li>Confirm: docstrings for public functions/classes, parameters/returns/exceptions documented, usage examples, mkdocs integration, changelog entry for user-facing changes</li>
+</ul>
+<h3 id="risk-assessment">Risk Assessment<a class="headerlink" href="#risk-assessment" title="Permanent link">&para;</a></h3>
+<p>Flag risks with severity (5/5 🔴 Critical — 4/5 🟠 High — 3/5 🟡 Medium — 2/5 🟢 Low — 1/5 🟢 Negligible):</p>
+<p><strong>Common risk categories:</strong></p>
+<ol>
+<li><strong>Breaking changes</strong> — API changes, removed features, behavior modifications (must include migration guide)</li>
+<li><strong>Performance</strong> — Inefficient algorithms, memory-intensive operations, bottlenecks</li>
+<li><strong>Compatibility</strong> — New Python/dependency requirements, platform-specific code</li>
+<li><strong>Security</strong> — Unvalidated input, code execution risks, data exposure</li>
+</ol>
+<h3 id="review-summary-template">Review Summary Template<a class="headerlink" href="#review-summary-template" title="Permanent link">&para;</a></h3>
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="gu">## Review Summary</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="gs">**Recommendation:**</span> [emoji] [Status] — [justification]
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="gs">**PR Completeness:**</span>
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="k">-</span><span class="w"> </span>✅ Complete: [items]
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="k">-</span><span class="w"> </span>❌ Missing: [gaps]
+</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>
+</span><span id="__span-18-9"><a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a><span class="gs">**Quality Scores:**</span>
+</span><span id="__span-18-10"><a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a><span class="k">-</span><span class="w"> </span>Code: n/5 [emoji] — [reason]
+</span><span id="__span-18-11"><a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a><span class="k">-</span><span class="w"> </span>Testing: n/5 [emoji] — [reason]
+</span><span id="__span-18-12"><a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a><span class="k">-</span><span class="w"> </span>Documentation: n/5 [emoji] — [reason]
+</span><span id="__span-18-13"><a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a>
+</span><span id="__span-18-14"><a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a><span class="gs">**Risk Level:**</span> n/5 [emoji] — [description]
+</span><span id="__span-18-15"><a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a>
+</span><span id="__span-18-16"><a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a><span class="gs">**Critical Issues (Must Fix):**</span>
+</span><span id="__span-18-17"><a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a><span class="k">1.</span> [Issue] — See comment on <span class="sb">`file.py`</span>
+</span><span id="__span-18-18"><a id="__codelineno-18-18" name="__codelineno-18-18" href="#__codelineno-18-18"></a>
+</span><span id="__span-18-19"><a id="__codelineno-18-19" name="__codelineno-18-19" href="#__codelineno-18-19"></a><span class="gs">**Suggestions (Optional):**</span>
+</span><span id="__span-18-20"><a id="__codelineno-18-20" name="__codelineno-18-20" href="#__codelineno-18-20"></a><span class="k">1.</span> [Improvement] — See suggestion on <span class="sb">`file.py`</span>
+</span><span id="__span-18-21"><a id="__codelineno-18-21" name="__codelineno-18-21" href="#__codelineno-18-21"></a>
+</span><span id="__span-18-22"><a id="__codelineno-18-22" name="__codelineno-18-22" href="#__codelineno-18-22"></a><span class="gs">**Next Steps:**</span>
+</span><span id="__span-18-23"><a id="__codelineno-18-23" name="__codelineno-18-23" href="#__codelineno-18-23"></a><span class="k">1.</span> [Action item]
+</span></code></pre></div>
+<h3 id="review-best-practices">Review Best Practices<a class="headerlink" href="#review-best-practices" title="Permanent link">&para;</a></h3>
+<p><strong>DO:</strong> Use inline GitHub comments with suggestions, explain <em>why</em> (not just <em>what</em>), distinguish blocking vs. nice-to-have, acknowledge good work, run linter if needed (<code>uv run pre-commit run --all-files</code>)</p>
+<p><strong>DON'T:</strong> Mention line numbers in summary (use inline comments), give vague feedback, nitpick style (defer to tools), assume knowledge of conventions, block on minor issues</p>
+<p><strong>Tone:</strong> Be respectful, specific, pragmatic, and consistent. Focus on actionable feedback that moves PRs toward merge.</p>
 <h2 id="license">📄 License<a class="headerlink" href="#license" title="Permanent link">&para;</a></h2>
 <p>By contributing, you agree that your contributions will be licensed under an <a href="../LICENSE.md">MIT license</a>.</p>
 
