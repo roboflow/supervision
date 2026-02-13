@@ -319,14 +319,17 @@ Call out missing items explicitly in your review.
 Use **n/5 scoring** with inline code comments for specifics:
 
 **Code Quality (n/5):**
+
 - 5/5 🟢 Excellent — 4/5 🟢 Good — 3/5 🟡 Acceptable — 2/5 🟠 Needs Work — 1/5 🔴 Poor
 - Check: correctness (edge cases, None checks, bounds), Python best practices (idiomatic patterns, error handling, type hints), project conventions (docstrings, linting, import order, PEP 8 naming)
 
 **Testing (n/5):**
+
 - 5/5 🟢 Comprehensive — 4/5 🟢 Good — 3/5 🟡 Adequate — 2/5 🟠 Insufficient — 1/5 🔴 Missing
 - Verify: unit tests for new code, edge cases covered, specific assertions, realistic scenarios, clear test names
 
 **Documentation (n/5):**
+
 - 5/5 🟢 Excellent — 4/5 🟢 Good — 3/5 🟡 Adequate — 2/5 🟠 Insufficient — 1/5 🔴 Missing
 - Confirm: docstrings for public functions/classes, parameters/returns/exceptions documented, usage examples, mkdocs integration, changelog entry for user-facing changes
 
@@ -335,6 +338,7 @@ Use **n/5 scoring** with inline code comments for specifics:
 Flag risks with severity (5/5 🔴 Critical — 4/5 🟠 High — 3/5 🟡 Medium — 2/5 🟢 Low — 1/5 🟢 Negligible):
 
 **Common risk categories:**
+
 1. **Breaking changes** — API changes, removed features, behavior modifications (must include migration guide)
 2. **Performance** — Inefficient algorithms, memory-intensive operations, bottlenecks
 3. **Compatibility** — New Python/dependency requirements, platform-specific code
