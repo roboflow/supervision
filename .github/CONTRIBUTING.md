@@ -288,308 +288,93 @@ uv run pytest --cov=supervision
 
 ## 🔍 PR Review Guidelines
 
-These guidelines help reviewers provide consistent, actionable feedback and help maintainers make informed merge decisions efficiently.
+These guidelines help reviewers provide consistent, actionable feedback efficiently. Your goals: validate completeness, identify risks, provide actionable feedback, and highlight quality gaps.
 
-### Review Objectives
+### Overall Recommendation
 
-Your primary goal as a reviewer is to:
+Start with a clear recommendation using these levels:
 
-1. **Validate PR completeness** against project requirements
-2. **Identify risks** that could impact users or maintainability
-3. **Provide actionable feedback** the author can immediately act upon
-4. **Highlight quality gaps** in code, tests, or documentation
-
-### 1. Overall Recommendation
-
-Start your review with a clear, actionable recommendation:
-
-- 🟢 **Approve** — Ready to merge as-is
-- 🟡 **Minor Suggestions** — Minor improvements recommended but not blocking
-- 🟠 **Request Changes** — Significant issues must be addressed before merge
+- 🟢 **Approve** — Ready to merge
+- 🟡 **Minor Suggestions** — Improvements recommended but not blocking
+- 🟠 **Request Changes** — Must address issues before merge
 - 🔴 **Block** — Critical issues require major rework
 
-**Example:**
+Example: `🟠 Request Changes — Missing unit tests for PolygonMerger and no mkdocs entry.`
 
-```
-🟠 Request Changes — Missing unit tests for new `PolygonMerger` class and no documentation entry added for autogeneration.
-```
+### PR Completeness
 
-### 2. PR Completeness Checklist
+Verify requirements are met (✅ Complete / ⚠️ Incomplete / ❌ Missing / 🔵 N/A):
 
-Verify the PR meets project requirements. Mark each item:
+- [ ] Clear description of what changed and why
+- [ ] Tests added/updated for new functionality or bug fixes
+- [ ] Docstrings follow [Google-style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods)
+- [ ] Docs entry added to mkdocs (new functions/classes only)
+- [ ] Google Colab provided (if demonstrating feature/fix)
+- [ ] Screenshots/videos included (visual changes only)
 
-- ✅ **Complete** — Properly addressed
-- ⚠️ **Incomplete** — Partially done, needs improvement
-- ❌ **Missing** — Not provided
-- 🔵 **N/A** — Not applicable to this PR
+Call out missing items explicitly in your review.
 
-#### Required Items
+### Quality Scores
 
-- [ ] **Clear description** — What changed and why
-- [ ] **Type of change** — Bug fix, feature, docs, etc.
-- [ ] **Motivation/context** — Problem being solved (links to issue if relevant)
-- [ ] **Changes list** — Summary of modifications
-- [ ] **Tests** — Unit tests added/updated
-- [ ] **Documentation** — Docstrings follow [Google-style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods)
-- [ ] **Docs entry** — Added to mkdocs for autogeneration (new functions/classes only)
-- [ ] **Google Colab** — Provided for demonstrating feature/fix (if applicable)
-- [ ] **Screenshots/videos** — Included for visual changes (if applicable)
+Use **n/5 scoring** with inline code comments for specifics:
 
-**Call out missing items explicitly:**
+**Code Quality (n/5):**
+- 5/5 🟢 Excellent — 4/5 🟢 Good — 3/5 🟡 Acceptable — 2/5 🟠 Needs Work — 1/5 🔴 Poor
+- Check: correctness (edge cases, None checks, bounds), Python best practices (idiomatic patterns, error handling, type hints), project conventions (docstrings, linting, import order, PEP 8 naming)
 
-```
-❌ Missing:
-- Documentation entry not added to mkdocs navigation
-- No unit tests provided for `merge_polygons()` function
-```
+**Testing (n/5):**
+- 5/5 🟢 Comprehensive — 4/5 🟢 Good — 3/5 🟡 Adequate — 2/5 🟠 Insufficient — 1/5 🔴 Missing
+- Verify: unit tests for new code, edge cases covered, specific assertions, realistic scenarios, clear test names
 
-### 3. Quality Assessment
+**Documentation (n/5):**
+- 5/5 🟢 Excellent — 4/5 🟢 Good — 3/5 🟡 Adequate — 2/5 🟠 Insufficient — 1/5 🔴 Missing
+- Confirm: docstrings for public functions/classes, parameters/returns/exceptions documented, usage examples, mkdocs integration, changelog entry for user-facing changes
 
-#### 3.1 Code Quality
+### Risk Assessment
 
-Provide **specific feedback using inline comments** on the changed code. Use **n/5** scoring:
+Flag risks with severity (5/5 🔴 Critical — 4/5 🟠 High — 3/5 🟡 Medium — 2/5 🟢 Low — 1/5 🟢 Negligible):
 
-- **5/5** 🟢 Excellent — Well-structured, idiomatic, no issues
-- **4/5** 🟢 Good — Minor improvements possible
-- **3/5** 🟡 Acceptable — Some issues to address
-- **2/5** 🟠 Needs Work — Multiple problems
-- **1/5** 🔴 Poor — Significant refactoring required
+**Common risk categories:**
+1. **Breaking changes** — API changes, removed features, behavior modifications (must include migration guide)
+2. **Performance** — Inefficient algorithms, memory-intensive operations, bottlenecks
+3. **Compatibility** — New Python/dependency requirements, platform-specific code
+4. **Security** — Unvalidated input, code execution risks, data exposure
 
-**Score: n/5** — [Brief justification]
-
-**Check for:**
-
-1. **Correctness**
-
-    - Logic errors or edge cases not handled
-    - Potential bugs (None checks, array bounds, division by zero)
-    - Incorrect assumptions
-
-2. **Python Best Practices**
-
-    - Non-idiomatic patterns
-    - Improper exception handling
-    - Inefficient implementations
-    - Missing or incorrect type hints
-
-3. **Project Conventions**
-
-    - **Docstrings:** Must follow [Google-style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods)
-    - **Code style:** Must pass linting (`uv run pre-commit run --all-files`)
-    - **Imports:** Standard library → third-party → local
-    - **Naming:** Clear, descriptive, follows PEP 8
-
-**Place inline comments directly on problematic code**, then reference them in your summary.
-
-#### 3.2 Testing Quality
-
-Use **n/5** scoring for test coverage and quality:
-
-- **5/5** 🟢 Comprehensive — All cases covered, high-quality assertions
-- **4/5** 🟢 Good — Most cases covered
-- **3/5** 🟡 Adequate — Basic coverage, some gaps
-- **2/5** 🟠 Insufficient — Major gaps
-- **1/5** 🔴 Missing — No tests or tests don't validate functionality
-
-**Score: n/5** — [Brief justification]
-
-**For New Features or Bug Fixes:**
-
-1. **Coverage Requirements**
-
-    - [ ] Unit tests added for new functions/classes
-    - [ ] Edge cases covered (empty inputs, None, large arrays, boundary conditions)
-    - [ ] Regression tests for bug fixes
-
-2. **Test Quality**
-
-    - [ ] Assertions are specific (not just "no exception raised")
-    - [ ] Tests use realistic scenarios
-    - [ ] Test names clearly describe what they validate
-
-#### 3.3 Documentation Quality
-
-Use **n/5** scoring for documentation completeness:
-
-- **5/5** 🟢 Excellent — Complete, clear, with good examples
-- **4/5** 🟢 Good — Minor improvements possible
-- **3/5** 🟡 Adequate — Basic docs present
-- **2/5** 🟠 Insufficient — Incomplete or unclear
-- **1/5** 🔴 Missing — No documentation
-
-**Score: n/5** — [Brief justification]
-
-**For New Features:**
-
-1. **Docstring Requirements**
-
-    - [ ] Docstrings for all public functions/classes
-    - [ ] Parameters, return values, and exceptions documented
-    - [ ] Usage examples in docstrings
-
-2. **Documentation Integration**
-
-    - [ ] Entry added to appropriate docs page (e.g., `docs/detection/tools/*.md`)
-    - [ ] Added to mkdocs navigation (`mkdocs.yml`)
-    - [ ] Changelog entry (`docs/changelog.md`) for user-facing changes
-
-**For Changes to Existing Features:**
-
-1. **Update Requirements**
-    - [ ] Docstrings updated to reflect changes
-    - [ ] Deprecated features marked with warnings
-    - [ ] Migration guide for breaking changes
-
-### 4. Risk Assessment
-
-**Explicitly flag any risks with severity:**
-
-- **5/5** 🔴 Critical — Blocks release, must fix
-- **4/5** 🟠 High — Serious concern, should fix
-- **3/5** 🟡 Medium — Notable risk, consider fixing
-- **2/5** 🟢 Low — Minor concern
-- **1/5** 🟢 Negligible — No real risk
-
-**Risk Categories:**
-
-1. **Breaking Changes**
-
-    - Changes to public APIs (function signatures, return types)
-    - Removal of deprecated features
-    - Changed behavior in existing functionality
-    - **If breaking:** Must include migration instructions
-
-2. **Performance Impact**
-
-    - Inefficient algorithms (O(n²) where O(n) possible)
-    - Memory-intensive operations on large arrays
-    - Potential bottlenecks in hot paths
-
-3. **Compatibility Issues**
-
-    - New Python version requirements
-    - New dependencies
-    - Platform-specific code
-
-4. **Security Concerns**
-
-    - Unvalidated user input
-    - Potential code execution risks
-    - Sensitive data exposure
-
-**Example:**
-
-```
-Risk Level: 4/5 🟠 High Performance Risk
-
-Nested loop detected - see inline comment in `zone.py` for vectorization suggestion.
-```
-
-### 5. Providing Constructive Suggestions
-
-**Add inline comments to the code using GitHub's review interface**, then provide **suggested changes** using GitHub suggestion format:
-
-````markdown
-```suggestion
-if detections is None or detections.mask is None:
-    return None
-return process(detections.mask)
-```
-````
-
-**Suggestion Categories:**
-
-1. **Code Improvements**
-
-    - Logic simplifications
-    - Better error handling
-    - More readable implementations
-
-2. **Performance Optimizations**
-
-    - NumPy vectorization opportunities
-    - Caching expensive computations
-    - Batch processing
-
-3. **Architecture Improvements**
-
-    - Code reuse opportunities
-    - Better abstractions
-    - More maintainable designs
-
-### 6. Review Summary Template
-
-Use this structure for your final review comment:
+### Review Summary Template
 
 ```markdown
 ## Review Summary
 
-### Recommendation
-[emoji] [Status] — [One-sentence justification]
+**Recommendation:** [emoji] [Status] — [justification]
 
-### PR Completeness
-- ✅ Complete: [list key items]
-- ❌ Missing: [list critical gaps]
+**PR Completeness:**
+- ✅ Complete: [items]
+- ❌ Missing: [gaps]
 
-### Quality Scores
-- **Code Quality:** n/5 [emoji] — [brief reason]
-- **Testing:** n/5 [emoji] — [brief reason]
-- **Documentation:** n/5 [emoji] — [brief reason]
+**Quality Scores:**
+- Code: n/5 [emoji] — [reason]
+- Testing: n/5 [emoji] — [reason]
+- Documentation: n/5 [emoji] — [reason]
 
-### Risk Level: n/5 [emoji]
-[Brief risk description with reference to inline comments if applicable]
+**Risk Level:** n/5 [emoji] — [description]
 
-### Critical Issues (Must Fix)
-1. [Issue description] — See comment on `file.py`
-2. [Another blocking issue] — See comment on `test_file.py`
+**Critical Issues (Must Fix):**
+1. [Issue] — See comment on `file.py`
 
-### Suggestions (Nice to Have)
-1. [Improvement idea] — See suggestion on `file.py`
-2. [Another optional enhancement]
+**Suggestions (Optional):**
+1. [Improvement] — See suggestion on `file.py`
 
-### Next Steps for Author
-1. [Clear action item]
-2. [Another clear action item]
+**Next Steps:**
+1. [Action item]
 ```
 
-### Best Practices for Effective Reviews
+### Review Best Practices
 
-**DO:**
+**DO:** Use inline GitHub comments with suggestions, explain *why* (not just *what*), distinguish blocking vs. nice-to-have, acknowledge good work, run linter if needed (`uv run pre-commit run --all-files`)
 
-1. ✅ **Use n/5 scoring** for quick assessment of quality dimensions
-2. ✅ **Place comments directly on code** using GitHub's inline comment feature
-3. ✅ **Use GitHub suggestion format** for code changes when possible
-4. ✅ **Reference inline comments** in your summary (e.g., "See comment on `file.py:function()`")
-5. ✅ **Explain *why*** something is a problem, not just *what* is wrong
-6. ✅ **Distinguish** between blocking issues and nice-to-haves
-7. ✅ **Acknowledge** good work and clever solutions
-8. ✅ **Run linter** locally if needed: `uv run pre-commit run --all-files`
+**DON'T:** Mention line numbers in summary (use inline comments), give vague feedback, nitpick style (defer to tools), assume knowledge of conventions, block on minor issues
 
-**DON'T:**
-
-1. ❌ **Don't mention line numbers** in summary — place comments inline instead
-2. ❌ **Don't give vague feedback** like "improve code quality"
-3. ❌ **Don't nitpick** on personal style preferences (defer to automated tools)
-4. ❌ **Don't assume** the author knows project conventions
-5. ❌ **Don't focus only on problems** — recognize what's good
-6. ❌ **Don't let perfect** be the enemy of good (minor issues shouldn't block useful PRs)
-
-### Review Workflow
-
-1. **Review files** in the PR, placing inline comments on specific issues
-2. **Use GitHub suggestions** for concrete code improvements
-3. **Draft your summary** using the template above
-4. **Reference inline comments** instead of mentioning specific line numbers
-5. **Submit review** with clear recommendation and next steps
-
-### Tone and Communication
-
-- **Be respectful and constructive** — Contributors are volunteers
-- **Be specific and technical** — Help them learn
-- **Be pragmatic** — Balance ideal vs. practical
-- **Be consistent** — Follow these guidelines every time
-
-**Remember:** Your goal is to help maintainers efficiently assess PRs and help contributors improve their work. Focus on **actionable feedback** that moves the PR toward merge.
+**Tone:** Be respectful, specific, pragmatic, and consistent. Focus on actionable feedback that moves PRs toward merge.
 
 ## 📄 License
 
