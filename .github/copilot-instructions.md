@@ -8,7 +8,7 @@ This file provides context-aware guidance for GitHub Copilot when working in the
 
 **Supervision** is a Python library providing reusable computer vision utilities for working with object detection models (YOLO, SAM, etc.). It offers tools for detections processing, tracking, annotation, and dataset management.
 
-- **Languages**: Python 3.8+
+- **Languages**: Python 3.9+
 - **Key Dependencies**: NumPy, OpenCV, SciPy
 - **License**: MIT
 
@@ -18,13 +18,14 @@ This file provides context-aware guidance for GitHub Copilot when working in the
 
 ```
 supervision/
-├── supervision/         # Main library code
-│   ├── detection/       # Detection utilities
-│   ├── draw/            # Annotation and visualization
-│   ├── tracker/         # Object tracking
-│   ├── dataset/         # Dataset management
-│   └── utils/           # Shared utilities
-├── test/                # Test suite (mirrors supervision/)
+├── src/
+│   └── supervision/     # Main library code
+│       ├── detection/   # Detection utilities
+│       ├── draw/        # Annotation and visualization
+│       ├── tracker/     # Object tracking
+│       ├── dataset/     # Dataset management
+│       └── utils/       # Shared utilities
+├── tests/               # Test suite (mirrors src/supervision/)
 ├── docs/                # MkDocs documentation
 └── examples/            # Usage examples
 ```
@@ -37,7 +38,7 @@ supervision/
 
 ```bash
 # Install dependencies
-uv pip install -r pyproject.toml --group dev --group docs --extra metrics
+uv sync --group dev --group docs --extra metrics
 
 # Install pre-commit hooks
 uv run pre-commit install
@@ -132,8 +133,8 @@ Quick checklist:
 
 ## 🌿 Branching & Commits
 
-- Branch from `develop` using prefixes: `feat/`, `fix/`, `docs/`, `refactor/`, `test/`, `chore/`
-- Use **conventional commits**: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`
+- Branch from `develop` using prefixes: `feat/`, `fix/`, `docs/`, `refactor/`, `perf/`, `test/`, `chore/`
+- Use **conventional commits**: `feat:`, `fix:`, `docs:`, `refactor:`, `perf:`, `test:`, `chore:`
 - All PRs target `develop` branch
 
 ---
