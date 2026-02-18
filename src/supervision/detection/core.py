@@ -706,6 +706,7 @@ class Detections:
         """
         Creates a Detections instance from
         [SAM 3](https://github.com/facebookresearch/sam3) inference result.
+        Supports both PVS and PCS SAM3 segmentation formats.
 
         Args:
             sam3_result (dict | Any): The output result from SAM 3 inference,
