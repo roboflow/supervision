@@ -6,8 +6,8 @@ max_concurrency = 10
 cache = false
 accept = [
     200, # OK
-    408, # Request Timeout
     401, # Unauthorized
+    408, # Request Timeout
 ]
 
 exclude = [
