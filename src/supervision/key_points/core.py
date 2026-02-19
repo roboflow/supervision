@@ -141,14 +141,14 @@ class KeyPoints:
         ```
 
     Attributes:
-        xy (np.ndarray): An array of shape `(n, m, 2)` containing
+        xy: An array of shape `(n, m, 2)` containing
             `n` detected objects, each composed of `m` equally-sized
             sets of key points, where each point is `[x, y]`.
-        class_id (Optional[np.ndarray]): An array of shape
+        class_id: An array of shape
             `(n,)` containing the class ids of the detected objects.
-        confidence (Optional[np.ndarray]): An array of shape
+        confidence: An array of shape
             `(n, m)` containing the confidence scores of each keypoint.
-        data (Dict[str, Union[np.ndarray, List]]): A dictionary containing additional
+        data: A dictionary containing additional
             data where each key is a string representing the data type, and the value
             is either a NumPy array or a list of corresponding data of length `n`
             (one entry per detected object).
@@ -169,7 +169,21 @@ class KeyPoints:
 
     def __len__(self) -> int:
         """
-        Returns the number of keypoints in the `sv.KeyPoints` object.
+        Returns the number of objects in the `sv.KeyPoints` object.
+
+        Returns:
+            int: The number of objects.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> xy = np.array([[[10, 20], [30, 40]]], dtype=np.float32)
+            >>> key_points = sv.KeyPoints(xy=xy)
+            >>> len(key_points)
+            1
+
+            ```
         """
         return len(self.xy)
 
@@ -758,16 +772,31 @@ class KeyPoints:
             An empty `sv.KeyPoints` object.
 
         Examples:
+            ```pycon
             >>> import supervision as sv
             >>> key_points = sv.KeyPoints.empty()
             >>> len(key_points)
             0
+
+            ```
         """
         return cls(xy=np.empty((0, 0, 2), dtype=np.float32))
 
     def is_empty(self) -> bool:
         """
         Returns `True` if the `KeyPoints` object is considered empty.
+
+        Returns:
+            bool: `True` if the object is empty, `False` otherwise.
+
+        Example:
+            ```pycon
+            >>> import supervision as sv
+            >>> key_points = sv.KeyPoints.empty()
+            >>> key_points.is_empty()
+            True
+
+            ```
         """
         empty_key_points = KeyPoints.empty()
         empty_key_points.data = self.data
@@ -782,15 +811,16 @@ class KeyPoints:
         taking the bounding box that fits all key points.
 
         Arguments:
-            selected_keypoint_indices (Optional[Iterable[int]]): The
+            selected_keypoint_indices: The
                 indices of the key points to include in the bounding box
                 calculation. This helps focus on a subset of key points,
                 e.g. when some are occluded. Captures all key points by default.
 
         Returns:
-            detections (Detections): The converted detections object.
+            detections: The converted detections object.
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> key_points = sv.KeyPoints(
@@ -799,6 +829,8 @@ class KeyPoints:
             >>> detections = key_points.as_detections()
             >>> detections.xyxy
             array([[10., 20., 30., 40.]], dtype=float32)
+
+            ```
         """
         if self.is_empty():
             return Detections.empty()

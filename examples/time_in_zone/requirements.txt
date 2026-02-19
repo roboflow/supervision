@@ -1,6 +1,6 @@
 supervision
 ultralytics
-inference[gaze,transformers,sam]
+inference
 # https://github.com/pytube/pytube/issues/2044
 # pytube
 pytubefix

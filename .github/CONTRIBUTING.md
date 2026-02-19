@@ -286,6 +286,100 @@ To run tests with coverage:
 uv run pytest --cov=supervision
 ```
 
+## 🔍 PR Review Guidelines
+
+These guidelines help reviewers provide consistent, actionable feedback efficiently. Your goals: validate completeness, identify risks, provide actionable feedback, and highlight quality gaps.
+
+### Overall Recommendation
+
+Start with a clear recommendation using these levels:
+
+- 🟢 **Approve** — Ready to merge
+- 🟡 **Minor Suggestions** — Improvements recommended but not blocking
+- 🟠 **Request Changes** — Must address issues before merge
+- 🔴 **Block** — Critical issues require major rework
+
+Example: `🟠 Request Changes — Missing unit tests for PolygonMerger and no mkdocs entry.`
+
+### PR Completeness
+
+Verify requirements are met (✅ Complete / ⚠️ Incomplete / ❌ Missing / 🔵 N/A):
+
+- [ ] Clear description of what changed and why
+- [ ] Tests added/updated for new functionality or bug fixes
+- [ ] Docstrings follow [Google-style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods)
+- [ ] Docs entry added to mkdocs (new functions/classes only)
+- [ ] Google Colab provided (if demonstrating feature/fix)
+- [ ] Screenshots/videos included (visual changes only)
+
+Call out missing items explicitly in your review.
+
+### Quality Scores
+
+Use **n/5 scoring** with inline code comments for specifics:
+
+**Code Quality (n/5):**
+
+- 5/5 🟢 Excellent — 4/5 🟢 Good — 3/5 🟡 Acceptable — 2/5 🟠 Needs Work — 1/5 🔴 Poor
+- Check: correctness (edge cases, None checks, bounds), Python best practices (idiomatic patterns, error handling, type hints), project conventions (docstrings, linting, import order, PEP 8 naming)
+
+**Testing (n/5):**
+
+- 5/5 🟢 Comprehensive — 4/5 🟢 Good — 3/5 🟡 Adequate — 2/5 🟠 Insufficient — 1/5 🔴 Missing
+- Verify: unit tests for new code, edge cases covered, specific assertions, realistic scenarios, clear test names
+
+**Documentation (n/5):**
+
+- 5/5 🟢 Excellent — 4/5 🟢 Good — 3/5 🟡 Adequate — 2/5 🟠 Insufficient — 1/5 🔴 Missing
+- Confirm: docstrings for public functions/classes, parameters/returns/exceptions documented, usage examples, mkdocs integration, changelog entry for user-facing changes
+
+### Risk Assessment
+
+Flag risks with severity (5/5 🔴 Critical — 4/5 🟠 High — 3/5 🟡 Medium — 2/5 🟢 Low — 1/5 🟢 Negligible):
+
+**Common risk categories:**
+
+1. **Breaking changes** — API changes, removed features, behavior modifications (must include migration guide)
+2. **Performance** — Inefficient algorithms, memory-intensive operations, bottlenecks
+3. **Compatibility** — New Python/dependency requirements, platform-specific code
+4. **Security** — Unvalidated input, code execution risks, data exposure
+
+### Review Summary Template
+
+```markdown
+## Review Summary
+
+**Recommendation:** [emoji] [Status] — [justification]
+
+**PR Completeness:**
+- ✅ Complete: [items]
+- ❌ Missing: [gaps]
+
+**Quality Scores:**
+- Code: n/5 [emoji] — [reason]
+- Testing: n/5 [emoji] — [reason]
+- Documentation: n/5 [emoji] — [reason]
+
+**Risk Level:** n/5 [emoji] — [description]
+
+**Critical Issues (Must Fix):**
+1. [Issue] — See comment on `file.py`
+
+**Suggestions (Optional):**
+1. [Improvement] — See suggestion on `file.py`
+
+**Next Steps:**
+1. [Action item]
+```
+
+### Review Best Practices
+
+**DO:** Use inline GitHub comments with suggestions, explain *why* (not just *what*), distinguish blocking vs. nice-to-have, acknowledge good work, run linter if needed (`uv run pre-commit run --all-files`)
+
+**DON'T:** Mention line numbers in summary (use inline comments), give vague feedback, nitpick style (defer to tools), assume knowledge of conventions, block on minor issues
+
+**Tone:** Be respectful, specific, pragmatic, and consistent. Focus on actionable feedback that moves PRs toward merge.
+
 ## 📄 License
 
 By contributing, you agree that your contributions will be licensed under an [MIT license](../LICENSE.md).

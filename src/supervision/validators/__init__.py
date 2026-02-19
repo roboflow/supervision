@@ -6,7 +6,10 @@ import numpy as np
 def validate_xyxy(xyxy: Any) -> None:
     """Validate that xyxy is a 2D np.ndarray with shape (N, 4).
 
+    ```pycon
     >>> validate_xyxy(np.array([[0, 0, 1, 1], [1, 1, 2, 2]]))
+
+    ```
     """
     expected_shape = "(_, 4)"
     actual_shape = str(getattr(xyxy, "shape", None))

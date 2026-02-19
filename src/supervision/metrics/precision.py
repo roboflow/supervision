@@ -41,6 +41,7 @@ class Precision(Metric):
     number of false positive detections (detected, but incorrectly).
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> from supervision.metrics import Precision
@@ -57,6 +58,8 @@ class Precision(Metric):
         >>> precision_result = precision_metric.update(predictions, targets).compute()
         >>> round(float(precision_result.precision_at_50), 2)
         1.0
+
+        ```
 
     ![example_plot](
         https://media.roboflow.com/supervision-docs/metrics/precision_plot_example.png
@@ -382,7 +385,12 @@ class Precision(Metric):
         false_positives = confusion_matrix[..., 1]
 
         denominator = true_positives + false_positives
-        precision = np.where(denominator == 0, 0, true_positives / denominator)
+        precision = np.divide(
+            true_positives,
+            denominator,
+            out=np.zeros_like(true_positives),
+            where=denominator != 0,
+        )
 
         result_precision: npt.NDArray[np.float64] = precision
         return result_precision

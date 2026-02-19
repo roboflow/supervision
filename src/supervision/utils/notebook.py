@@ -21,6 +21,7 @@ def plot_image(
         cmap: the colormap to use for single channel images.
 
     Examples:
+        ```pycon
         >>> import cv2
         >>> import numpy as np
         >>> import matplotlib
@@ -29,6 +30,8 @@ def plot_image(
         >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
         >>> sv.plot_image(image=image, size=(16, 16))
         ...
+
+        ```
     """
     if isinstance(image, Image.Image):
         image = pillow_to_cv2(image)
@@ -69,6 +72,7 @@ def plot_images_grid(
        ValueError: If the number of images exceeds the grid size.
 
     Examples:
+        ```pycon
         >>> import cv2
         >>> import numpy as np
         >>> import matplotlib
@@ -82,6 +86,8 @@ def plot_images_grid(
         >>> titles = ["Image 1", "Image 2", "Image 3"]
         >>> sv.plot_images_grid(images, grid_size=(2, 2), titles=titles, size=(16, 16))
         ...
+
+        ```
     """
     nrows, ncols = grid_size
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -28,7 +29,7 @@ class OverlapFilter(Enum):
     NON_MAX_MERGE = "non_max_merge"
 
     @classmethod
-    def list(cls):
+    def list(cls) -> list[str]:
         return list(map(lambda c: c.value, cls))
 
     @classmethod
@@ -84,8 +85,8 @@ class OverlapMetric(Enum):
 
 
 def box_iou(
-    box_true: list[float] | np.ndarray,
-    box_detection: list[float] | np.ndarray,
+    box_true: list[float] | npt.NDArray[np.floating],
+    box_detection: list[float] | npt.NDArray[np.floating],
     overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
 ) -> float:
     """
@@ -111,6 +112,7 @@ def box_iou(
         ValueError: If `overlap_metric` is not IOU or IOS.
 
     Examples:
+        ```pycon
         >>> import supervision as sv
         >>> box_true = [100, 100, 200, 200]
         >>> box_detection = [150, 150, 250, 250]
@@ -118,6 +120,8 @@ def box_iou(
         0.142857...
         >>> sv.box_iou(box_true, box_detection, overlap_metric=sv.OverlapMetric.IOS)
         0.25
+
+        ```
     """
     overlap_metric = OverlapMetric.from_value(overlap_metric)
     x_min_true, y_min_true, x_max_true, y_max_true = np.array(box_true)
@@ -153,10 +157,10 @@ def box_iou(
 
 
 def box_iou_batch(
-    boxes_true: np.ndarray,
-    boxes_detection: np.ndarray,
+    boxes_true: npt.NDArray[np.number],
+    boxes_detection: npt.NDArray[np.number],
     overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     """
     Compute pairwise overlap scores between batches of bounding boxes.
 
@@ -184,6 +188,7 @@ def box_iou_batch(
         ValueError: If `overlap_metric` is not IOU or IOS.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> boxes_true = np.array([
@@ -204,6 +209,8 @@ def box_iou_batch(
         ... )
         array([[0.25, 0.  ],
                [0.  , 0.64]], dtype=float32)
+
+        ```
     """
     overlap_metric = OverlapMetric.from_value(overlap_metric)
     x_min_true, y_min_true, x_max_true, y_max_true = boxes_true.T
@@ -211,7 +218,9 @@ def box_iou_batch(
     count_true, count_det = boxes_true.shape[0], boxes_detection.shape[0]
 
     if count_true == 0 or count_det == 0:
-        return np.empty((count_true, count_det), dtype=np.float32)
+        return cast(
+            npt.NDArray[np.float32], np.empty((count_true, count_det), dtype=np.float32)
+        )
 
     x_min_inter = np.empty((count_true, count_det), dtype=np.float32)
     x_max_inter = np.empty_like(x_min_inter)
@@ -244,7 +253,7 @@ def box_iou_batch(
             "only 'IOU' and 'IOS' are supported"
         )
 
-    out = np.zeros_like(area_inter, dtype=np.float32)
+    out: npt.NDArray[np.float32] = np.zeros_like(area_inter, dtype=np.float32)
     np.divide(area_inter, area_norm, out=out, where=area_norm > 0)
     return out
 
@@ -284,16 +293,16 @@ def _jaccard(box_a: list[float], box_b: list[float], is_crowd: bool) -> float:
     Ai = max(x2i - xi, 0.0) * max(y2i - yi, 0.0)
 
     if is_crowd:
-        return Ai / (Aa + EPS)
+        return float(Ai / (Aa + EPS))
 
-    return Ai / (Aa + Ab - Ai + EPS)
+    return float(Ai / (Aa + Ab - Ai + EPS))
 
 
 def box_iou_batch_with_jaccard(
     boxes_true: list[list[float]],
     boxes_detection: list[list[float]],
     is_crowd: list[bool],
-) -> np.ndarray:
+) -> npt.NDArray[np.float64]:
     """
     Calculate the intersection over union (IoU) between detection bounding boxes (dt)
     and ground-truth bounding boxes (gt).
@@ -311,6 +320,7 @@ def box_iou_batch_with_jaccard(
         np.ndarray: Array of IoU values of shape (len(dt), len(gt)).
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> boxes_true = [
@@ -330,13 +340,17 @@ def box_iou_batch_with_jaccard(
         >>> ious  # doctest: +ELLIPSIS
         array([[0.886..., 0.496...],
                [0.4  ..., 0.862...]])
+
+        ```
     """
     assert len(is_crowd) == len(boxes_true), (
         "`is_crowd` must have the same length as `boxes_true`"
     )
     if len(boxes_detection) == 0 or len(boxes_true) == 0:
-        return np.array([])
-    ious = np.zeros((len(boxes_detection), len(boxes_true)), dtype=np.float64)
+        return cast(npt.NDArray[np.float64], np.array([]))
+    ious: npt.NDArray[np.float64] = np.zeros(
+        (len(boxes_detection), len(boxes_true)), dtype=np.float64
+    )
     for g_idx, g in enumerate(boxes_true):
         for d_idx, d in enumerate(boxes_detection):
             ious[d_idx, g_idx] = _jaccard(d, g, is_crowd[g_idx])
@@ -344,8 +358,8 @@ def box_iou_batch_with_jaccard(
 
 
 def oriented_box_iou_batch(
-    boxes_true: np.ndarray, boxes_detection: np.ndarray
-) -> np.ndarray:
+    boxes_true: npt.NDArray[np.number], boxes_detection: npt.NDArray[np.number]
+) -> npt.NDArray[np.floating]:
     """
     Compute Intersection over Union (IoU) of two sets of oriented bounding boxes -
     `boxes_true` and `boxes_detection`. Both sets of boxes are expected to be in
@@ -370,11 +384,13 @@ def oriented_box_iou_batch(
     # adding 1 because we are 0-indexed
     max_width = int(max(boxes_true[:, :, 1].max(), boxes_detection[:, :, 1].max()) + 1)
 
-    mask_true = np.zeros((boxes_true.shape[0], max_height, max_width))
+    mask_true = np.zeros((boxes_true.shape[0], max_height, max_width), dtype=np.uint8)
     for i, box_true in enumerate(boxes_true):
         mask_true[i] = polygon_to_mask(box_true, (max_width, max_height))
 
-    mask_detection = np.zeros((boxes_detection.shape[0], max_height, max_width))
+    mask_detection = np.zeros(
+        (boxes_detection.shape[0], max_height, max_width), dtype=np.uint8
+    )
     for i, box_detection in enumerate(boxes_detection):
         mask_detection[i] = polygon_to_mask(box_detection, (max_width, max_height))
 
@@ -383,10 +399,10 @@ def oriented_box_iou_batch(
 
 
 def _mask_iou_batch_split(
-    masks_true: np.ndarray,
-    masks_detection: np.ndarray,
+    masks_true: npt.NDArray[Any],
+    masks_detection: npt.NDArray[Any],
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
-) -> np.ndarray:
+) -> npt.NDArray[np.floating]:
     """
     Internal function.
     Compute Intersection over Union (IoU) of two sets of masks -
@@ -432,15 +448,15 @@ def _mask_iou_batch_split(
         )
 
     ious = np.nan_to_num(ious)
-    return ious
+    return cast(npt.NDArray[np.floating], ious)
 
 
 def mask_iou_batch(
-    masks_true: np.ndarray,
-    masks_detection: np.ndarray,
+    masks_true: npt.NDArray[Any],
+    masks_detection: npt.NDArray[Any],
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
     memory_limit: int = 1024 * 5,
-) -> np.ndarray:
+) -> npt.NDArray[np.floating]:
     """
     Compute Intersection over Union (IoU) of two sets of masks -
         `masks_true` and `masks_detection`.
@@ -485,16 +501,16 @@ def mask_iou_batch(
             )
         )
 
-    return np.vstack(ious)
+    return cast(npt.NDArray[np.floating], np.vstack(ious))
 
 
 def mask_non_max_suppression(
-    predictions: np.ndarray,
-    masks: np.ndarray,
+    predictions: npt.NDArray[np.floating],
+    masks: npt.NDArray[Any],
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
     mask_dimension: int = 640,
-) -> np.ndarray:
+) -> npt.NDArray[np.bool_]:
     """
     Perform Non-Maximum Suppression (NMS) on segmentation predictions.
 
@@ -543,14 +559,14 @@ def mask_non_max_suppression(
             condition = (ious[i] > iou_threshold) & (categories[i] == categories)
             keep[i + 1 :] = np.where(condition[i + 1 :], False, keep[i + 1 :])
 
-    return keep[sort_index.argsort()]
+    return cast(npt.NDArray[np.bool_], keep[sort_index.argsort()])
 
 
 def box_non_max_suppression(
-    predictions: np.ndarray,
+    predictions: npt.NDArray[np.floating],
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
-) -> np.ndarray:
+) -> npt.NDArray[np.bool_]:
     """
     Perform Non-Maximum Suppression (NMS) on object detection predictions.
 
@@ -601,7 +617,7 @@ def box_non_max_suppression(
         condition = (iou > iou_threshold) & (categories == category)
         keep = keep & ~condition
 
-    return keep[sort_index.argsort()]
+    return cast(npt.NDArray[np.bool_], keep[sort_index.argsort()])
 
 
 def _group_overlapping_masks(
@@ -645,7 +661,7 @@ def _group_overlapping_masks(
         candidate_groups = [idx]
         while len(order) > 0:
             ious = mask_iou_batch(masks[order], merge_candidate, overlap_metric)
-            above_threshold: np.ndarray = ious.flatten() >= iou_threshold
+            above_threshold: npt.NDArray[np.bool_] = ious.flatten() >= iou_threshold
             if not above_threshold.any():
                 break
             above_idx = order[above_threshold]
@@ -662,8 +678,8 @@ def _group_overlapping_masks(
 
 
 def mask_non_max_merge(
-    predictions: np.ndarray,
-    masks: np.ndarray,
+    predictions: npt.NDArray[np.floating],
+    masks: npt.NDArray[Any],
     iou_threshold: float = 0.5,
     mask_dimension: int = 640,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,

@@ -61,6 +61,7 @@ class VertexAnnotator(BaseKeyPointAnnotator):
                 or `PIL.Image.Image`)
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -77,6 +78,8 @@ class VertexAnnotator(BaseKeyPointAnnotator):
             ... )
             >>> annotated_frame.shape
             (100, 100, 3)
+
+            ```
         """
         assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
@@ -137,6 +140,7 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
                     or `PIL.Image.Image`)
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -153,6 +157,8 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
             ... )
             >>> annotated_frame.shape
             (100, 100, 3)
+
+            ```
         """
         assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
@@ -248,6 +254,7 @@ class VertexLabelAnnotator:
                 or `PIL.Image.Image`)
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -266,6 +273,8 @@ class VertexLabelAnnotator:
             >>> annotated_frame.shape
             (100, 100, 3)
 
+            ```
+
         ![vertex-label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/vertex-label-annotator-example.png)
 
         !!! tip
@@ -274,6 +283,7 @@ class VertexLabelAnnotator:
             values.
 
         Example:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -311,6 +321,8 @@ class VertexLabelAnnotator:
             ... )
             >>> annotated_frame.shape
             (100, 100, 3)
+
+            ```
 
         ![vertex-label-annotator-custom-example](https://media.roboflow.com/supervision-annotator-examples/vertex-label-annotator-custom-example.png)
         """

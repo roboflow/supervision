@@ -50,7 +50,12 @@ def setup_and_teardown_files():
         ("file_2.txt", False, ["   ", "Line 2", "", "Line 4", ""], DoesNotRaise()),
         ("file_3.txt", True, ["Line 2", "Line 4"], DoesNotRaise()),
         ("file_3.txt", False, ["", "Line 2", "", "Line 4", ""], DoesNotRaise()),
-        ("file_4.txt", True, None, pytest.raises(FileNotFoundError)),
+        (
+            "file_4.txt",
+            True,
+            None,
+            pytest.raises(FileNotFoundError, match=r"file_4\.txt"),
+        ),
     ],
 )
 def test_read_txt_file(

@@ -51,7 +51,7 @@ from tests.helpers import _create_detections
             0,
             ColorLookup.INDEX,
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="out of bounds for detections of length 0"),
         ),  # no detections; index lookup; out of bounds
         (
             _create_detections(
@@ -62,21 +62,21 @@ from tests.helpers import _create_detections
             2,
             ColorLookup.INDEX,
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Detection index 2"),
         ),  # multiple detections; index lookup; out of bounds
         (
             _create_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
             0,
             ColorLookup.CLASS,
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="resolve color by class"),
         ),  # multiple detections; class lookup; no class_id
         (
             _create_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
             0,
             ColorLookup.TRACK,
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="resolve color by track"),
         ),  # multiple detections; class lookup; no track_id
         (
             _create_detections(xyxy=[[10, 10, 20, 20], [20, 20, 30, 30]]),
@@ -90,7 +90,7 @@ from tests.helpers import _create_detections
             0,
             np.array([1]),
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Length of color lookup 1"),
         ),  # multiple detections; custom lookup; wrong length
     ],
 )
@@ -152,13 +152,13 @@ def test_resolve_color_idx(
             "What is dead may never die",
             0,
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="max_line_length must be"),
         ),  # width 0 - invalid
         (
             "A Lannister always pays his debts",
             -1,
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="positive integer"),
         ),  # width -1 - invalid
         (None, 10, [""], DoesNotRaise()),  # text None, width set
     ],

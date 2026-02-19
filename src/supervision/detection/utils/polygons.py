@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+from typing import cast
+
 import cv2
 import numpy as np
+import numpy.typing as npt
 
 
 def filter_polygons_by_area(
-    polygons: list[np.ndarray],
+    polygons: list[npt.NDArray[np.number]],
     min_area: float | None = None,
     max_area: float | None = None,
-) -> list[np.ndarray]:
+) -> list[npt.NDArray[np.number]]:
     """
     Filters a list of polygons based on their area.
 
@@ -41,8 +44,8 @@ def filter_polygons_by_area(
 
 
 def approximate_polygon(
-    polygon: np.ndarray, percentage: float, epsilon_step: float = 0.05
-) -> np.ndarray:
+    polygon: npt.NDArray[np.number], percentage: float, epsilon_step: float = 0.05
+) -> npt.NDArray[np.number]:
     """
     Approximates a given polygon by reducing a certain percentage of points.
 
@@ -74,7 +77,7 @@ def approximate_polygon(
     if len(polygon) <= target_points:
         return polygon
 
-    epsilon = 0
+    epsilon: float = 0
     approximated_points = polygon
     while True:
         epsilon += epsilon_step
@@ -84,4 +87,4 @@ def approximate_polygon(
         else:
             break
 
-    return np.squeeze(approximated_points, axis=1)
+    return cast(npt.NDArray[np.number], np.squeeze(approximated_points, axis=1))
