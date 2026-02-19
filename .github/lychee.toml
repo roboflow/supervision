@@ -16,4 +16,7 @@ exclude = [
     "https://snyk.io/advisor/python/supervision/badge.svg",  # badge URL
     "https://universe.roboflow.com/",
     "https://universe.roboflow.com/model-examples/segmented-animals-basic",
+    # fixme: this page returns 401 Unauthorized when accessed and 404 Not Found when accessed with browser,
+    #  which is weird and should be investigated
+    "https://huggingface.co/spaces/Roboflow/Annotators",
 ]
