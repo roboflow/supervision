@@ -184,4 +184,3 @@ class TestDownloadAssets:
         result = download_assets(asset)
         assert result == asset.filename
         mock_logger.info.assert_called_with("Downloading %s assets", asset.filename)
-

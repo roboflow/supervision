@@ -172,8 +172,7 @@ class CSVSink:
 
         if field_names != self.field_names:
             logger.warning(
-                "Field names do not match the header. "
-                "Expected: %s, given: %s",
+                "Field names do not match the header. Expected: %s, given: %s",
                 self.field_names,
                 field_names,
             )
