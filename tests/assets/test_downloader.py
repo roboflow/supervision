@@ -46,18 +46,22 @@ class TestDownloadAssets:
         assert result == filename
         mock_logger.info.assert_called_with("%s asset download complete.", filename)
 
-    @patch("supervision.assets.downloader.download_assets", return_value="vehicles.mp4")
+    @patch("supervision.assets.downloader.logger")
     @patch("os.remove")
-    @patch("supervision.assets.downloader.is_md5_hash_matching", return_value=False)
+    @patch(
+        "supervision.assets.downloader.is_md5_hash_matching",
+        side_effect=[False, True],
+    )
     @patch("pathlib.Path.exists", return_value=True)
     def test_already_exists_but_corrupted(
-        self, mock_exists, mock_md5, mock_remove, mock_download
+        self, mock_exists, mock_md5, mock_remove, mock_logger
     ):
         """Test download_assets when file exists but is corrupted (re-downloads)."""
         filename = "vehicles.mp4"
         result = download_assets(filename)
         assert result == filename
-        mock_download.assert_called_with(filename)
+        mock_logger.warning.assert_called_once_with("File corrupted. Re-downloading...")
+        mock_remove.assert_called_once_with(filename)
 
     @patch("supervision.assets.downloader.logger")
     @patch("pathlib.Path.open", new_callable=mock_open)

@@ -22,6 +22,15 @@ def _get_logger(name: str = "supervision", level: int | None = None) -> logging.
 
     Returns:
         A configured `logging.Logger` instance.
+
+    Example:
+        ```python
+        from supervision.utils.logger import _get_logger
+
+        logger = _get_logger(__name__)
+        logger.info("Processing started")
+        logger.warning("File not found, using default")
+        ```
     """
     if level is None:
         level = getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO)
