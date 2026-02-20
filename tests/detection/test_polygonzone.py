@@ -96,7 +96,7 @@ def test_polygon_zone_trigger(
         (
             POLYGON,
             [],
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Triggering anchors cannot be empty"),
         ),
     ],
 )

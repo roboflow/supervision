@@ -41,6 +41,7 @@ class Recall(Metric):
     number of false negatives (missed detections).
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> from supervision.metrics import Recall
@@ -57,6 +58,8 @@ class Recall(Metric):
         >>> recall_result = recall_metric.update(predictions, targets).compute()
         >>> round(float(recall_result.recall_at_50), 2)
         1.0
+
+        ```
 
     ![example_plot](
         https://media.roboflow.com/supervision-docs/metrics/recall_plot_example.png
@@ -380,7 +383,12 @@ class Recall(Metric):
         false_negatives = confusion_matrix[..., 2]
 
         denominator = true_positives + false_negatives
-        recall = np.where(denominator == 0, 0, true_positives / denominator)
+        recall = np.divide(
+            true_positives,
+            denominator,
+            out=np.zeros_like(true_positives),
+            where=denominator != 0,
+        )
 
         result_recall: npt.NDArray[np.float64] = recall
         return result_recall

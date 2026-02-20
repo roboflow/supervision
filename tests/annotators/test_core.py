@@ -59,17 +59,33 @@ def gradient_image() -> np.ndarray:
 
 
 class TestBoxAnnotator:
-    """Tests for BoxAnnotator class"""
+    """
+    Verify that BoxAnnotator correctly draws bounding boxes on an image.
 
-    def test_annotate_with_no_detections(self, test_image):
-        """Test that annotate method returns unmodified image when no detections"""
+    Ensures that `BoxAnnotator` correctly draws bounding boxes on an image, which is
+    essential for users to visualize detection results.
+    """
+
+    def test_annotate_with_no_detections(self, test_image: np.ndarray) -> None:
+        """
+        Verify that annotation with no detections does not change the image.
+
+        Scenario: Annotating an image with an empty set of detections.
+        Expected: The scene remains unchanged, ensuring no ghost boxes are drawn.
+        """
         detections = Detections.empty()
         annotator = BoxAnnotator()
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
-    def test_annotate_with_single_detection(self, test_image):
-        """Test that annotate method correctly draws a single bounding box"""
+    def test_annotate_with_single_detection(self, test_image: np.ndarray) -> None:
+        """
+        Verify that annotation with a single detection draws a bounding box.
+
+        Scenario: Annotating an image with a single bounding box.
+        Expected: The scene is modified by drawing a box, allowing users to identify
+        a single detected object.
+        """
         detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
         annotator = BoxAnnotator(
             color=Color.WHITE, thickness=2, color_lookup=ColorLookup.INDEX
@@ -77,8 +93,14 @@ class TestBoxAnnotator:
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert_image_mostly_same(test_image, result, similarity_threshold=0.85)
 
-    def test_annotate_with_multiple_detections(self, test_image):
-        """Test that annotate method correctly draws multiple bounding boxes"""
+    def test_annotate_with_multiple_detections(self, test_image: np.ndarray) -> None:
+        """
+        Verify that annotation with multiple detections draws all bounding boxes.
+
+        Scenario: Annotating an image with multiple bounding boxes of different classes.
+        Expected: All boxes are drawn, enabling visualization of complex scenes with
+        multiple objects.
+        """
         detections = _create_detections(
             xyxy=[[10, 10, 40, 40], [60, 60, 90, 90], [10, 60, 40, 90]],
             class_id=[0, 1, 2],
@@ -89,8 +111,14 @@ class TestBoxAnnotator:
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert_image_mostly_same(test_image, result, similarity_threshold=0.85)
 
-    def test_annotate_with_numpy_color_lookup(self, test_image):
-        """Test that annotate works when color lookup is a NumPy array"""
+    def test_annotate_with_numpy_color_lookup(self, test_image: np.ndarray) -> None:
+        """
+        Verify that annotation respects custom NumPy color lookup array.
+
+        Scenario: Providing a custom NumPy array for color lookup instead of class IDs.
+        Expected: Annotator respects the custom mapping, giving users flexible control
+        over box colors (e.g., coloring by tracking ID or custom criteria).
+        """
         detections = Detections(
             xyxy=np.array([[10, 10, 20, 20], [30, 30, 40, 40]], dtype=np.float32),
             confidence=np.array([0.38, 0.21], dtype=np.float32),

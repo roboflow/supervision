@@ -213,7 +213,7 @@ class TestF1Score:
         metric = F1Score()
 
         # Should raise ValueError for mismatched lengths
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="number of predictions"):
             metric.update([detections_50_50], [targets_50_50, targets_50_50])
 
     @pytest.mark.parametrize(

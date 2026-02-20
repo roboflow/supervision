@@ -35,6 +35,7 @@ def crop_image(
             type.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> image = np.zeros((1080, 1920, 3), dtype=np.uint8)
@@ -45,6 +46,9 @@ def crop_image(
         >>> cropped_image.shape
         (400, 400, 3)
 
+        ```
+
+        ```pycon
         >>> image = np.zeros((1920, 1080), dtype=np.uint8)
         >>> image.shape
         (1920, 1080)
@@ -52,6 +56,8 @@ def crop_image(
         >>> cropped_image = sv.crop_image(image=image, xyxy=xyxy)
         >>> cropped_image.shape
         (400, 400)
+
+        ```
 
     ![crop-image](https://media.roboflow.com/supervision-docs/supervision-docs-crop-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
@@ -89,6 +95,7 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
         ValueError: If scale factor is non-positive.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> image = np.zeros((1080, 1920, 3), dtype=np.uint8)
@@ -98,12 +105,17 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
         >>> scaled_image.shape
         (540, 960, 3)
 
+        ```
+
+        ```pycon
         >>> image = np.zeros((1920, 1080), dtype=np.uint8)
         >>> image.shape
         (1920, 1080)
         >>> scaled_image = sv.scale_image(image=image, scale_factor=0.5)
         >>> scaled_image.shape
         (960, 540)
+
+        ```
 
     ![scale-image](https://media.roboflow.com/supervision-docs/supervision-docs-scale-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
@@ -136,6 +148,7 @@ def resize_image(
             type.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> image = np.zeros((1080, 1920, 3), dtype=np.uint8)
@@ -147,6 +160,9 @@ def resize_image(
         >>> resized_image.shape
         (562, 1000, 3)
 
+        ```
+
+        ```pycon
         >>> image = np.zeros((1920, 1080), dtype=np.uint8)
         >>> image.shape
         (1920, 1080)
@@ -155,6 +171,8 @@ def resize_image(
         ... )
         >>> resized_image.shape
         (1000, 562)
+
+        ```
 
     ![resize-image](https://media.roboflow.com/supervision-docs/supervision-docs-resize-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
@@ -194,6 +212,7 @@ def letterbox_image(
             type.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> image = np.zeros((1080, 1920, 3), dtype=np.uint8)
@@ -204,6 +223,8 @@ def letterbox_image(
         ... )
         >>> letterboxed_image.shape
         (1000, 1000, 3)
+
+        ```
 
     ![letterbox-image](https://media.roboflow.com/supervision-docs/supervision-docs-letterbox-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
@@ -260,6 +281,7 @@ def overlay_image(
         Scene with overlay applied, shape `(height, width, 3)`.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> image = np.zeros((1000, 1000, 3), dtype=np.uint8)
@@ -270,6 +292,8 @@ def overlay_image(
         ... )
         >>> result_image.shape
         (1000, 1000, 3)
+
+        ```
     """
     scene_height, scene_width = image.shape[:2]
     image_height, image_width = overlay.shape[:2]
@@ -332,6 +356,7 @@ def tint_image(
         ValueError: If opacity is outside range [0.0, 1.0].
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -340,6 +365,8 @@ def tint_image(
         ... )
         >>> tinted_image.shape
         (100, 100, 3)
+
+        ```
 
     ![tint-image](https://media.roboflow.com/supervision-docs/supervision-docs-tint-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
@@ -368,12 +395,15 @@ def grayscale_image(image: ImageType) -> ImageType:
             matching input type.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> image = np.ones((100, 100, 3), dtype=np.uint8) * 128
         >>> grayscale_image = sv.grayscale_image(image=image)
         >>> grayscale_image.shape
         (100, 100, 3)
+
+        ```
 
     ![grayscale-image](https://media.roboflow.com/supervision-docs/supervision-docs-grayscale-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
@@ -400,11 +430,14 @@ def get_image_resolution_wh(image: ImageType) -> tuple[int, int]:
             `PIL.Image.Image`).
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> image = np.zeros((1080, 1920, 3), dtype=np.uint8)
         >>> sv.get_image_resolution_wh(image)
         (1920, 1080)
+
+        ```
     """
     if isinstance(image, np.ndarray):
         if image.ndim < 2:
@@ -444,6 +477,7 @@ class ImageSink:
                 Defaults to `"image_{:05d}.png"`.
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> import tempfile
@@ -456,6 +490,8 @@ class ImageSink:
             ...     files = sorted(os.listdir(tmpdir))
             ...     len(files)
             2
+
+            ```
         """
         self.target_dir_path = target_dir_path
         self.overwrite = overwrite

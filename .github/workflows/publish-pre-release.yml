@@ -10,8 +10,8 @@ on:
   pull_request:
     branches: [main, develop]
     paths:
-      - '.github/workflows/build-package.yml'
-      - '.github/workflows/publish-pre-release.yml'
+      - ".github/workflows/build-package.yml"
+      - ".github/workflows/publish-pre-release.yml"
 
 permissions: {} # Explicitly remove all permissions by default
 
