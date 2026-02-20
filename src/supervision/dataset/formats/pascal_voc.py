@@ -292,7 +292,6 @@ def _with_poly_mask(obj: Element):
     return obj.find("polygon") is not None
 
 
-
 def parse_polygon_points(polygon: Element) -> npt.NDArray[np.int_]:
     coordinates: list[int] = []
     for coord in polygon.findall(".//*"):
