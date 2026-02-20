@@ -83,8 +83,7 @@ def coco_annotations_to_masks(
         if image_annotation["iscrowd"]:
             masks.append(
                 rle_to_mask(
-                    rle=np.array(segmentation["counts"]),
-                    resolution_wh=resolution_wh
+                    rle=np.array(segmentation["counts"]), resolution_wh=resolution_wh
                 ).astype(bool)
             )
             continue
@@ -96,7 +95,9 @@ def coco_annotations_to_masks(
 
         object_mask = empty_mask.copy()
         for polygon in polygons:
-            polygon_array = np.reshape(np.asarray(polygon, dtype=np.int32), (-1, 2))
+            polygon_array: npt.NDArray[np.int32] = np.reshape(
+                np.asarray(polygon, dtype=np.int32), (-1, 2)
+            )
             if polygon_array.size == 0:
                 continue
             # COCO polygon segmentation can contain multiple disjoint parts.
