@@ -185,8 +185,11 @@ def test_wrap_text(
     ("hex_color", "expected_rgba"),
     [
         ("#FF00FF", (255, 0, 255, 255)),
+        ("FF00FF", (255, 0, 255, 255)),
         ("#FF00FF80", (255, 0, 255, 128)),
         ("00FF0080", (0, 255, 0, 128)),
+        ("  #ff00ff80  ", (255, 0, 255, 128)),
+        ("abcdef", (171, 205, 239, 255)),
     ],
 )
 def test_hex_to_rgba_valid(
@@ -195,17 +198,19 @@ def test_hex_to_rgba_valid(
     assert hex_to_rgba(hex_color) == expected_rgba
 
 
-@pytest.mark.parametrize("hex_color", ["#FF00F", "#GGHHII"])
+@pytest.mark.parametrize("hex_color", ["#FF00F", "#GGHHII", "#FFF", "1234567"])
 def test_hex_to_rgba_invalid(hex_color: str) -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Invalid hex"):
         hex_to_rgba(hex_color)
 
 
 @pytest.mark.parametrize(
     ("rgba", "expected_hex"),
     [
+        ((0, 0, 0, 0), "#00000000"),
         ((255, 0, 255, 255), "#FF00FFFF"),
         ((0, 255, 0, 128), "#00FF0080"),
+        ((255, 255, 255, 255), "#FFFFFFFF"),
     ],
 )
 def test_rgba_to_hex(
@@ -215,12 +220,30 @@ def test_rgba_to_hex(
 
 
 @pytest.mark.parametrize(
+    "rgba",
+    [
+        (255, 0, 0),
+        (256, 0, 0, 255),
+        (-1, 0, 0, 255),
+        (255, 0, 0, -1),
+    ],
+)
+def test_rgba_to_hex_invalid(rgba: tuple[int, ...]) -> None:
+    with pytest.raises(ValueError, match="RGBA must be a 4-tuple"):
+        rgba_to_hex(rgba)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
     ("hex_color", "expected_result"),
     [
         ("#FF00FF", True),
+        ("ff00ff", True),
         ("00FF0080", True),
+        (" 00ff0080 ", True),
         ("#XYZ123", False),
         ("FF00F", False),
+        ("#FFF", False),
+        ("#1234567", False),
     ],
 )
 def test_is_valid_hex(hex_color: str, expected_result: bool) -> None:

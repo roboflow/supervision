@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import textwrap
 from enum import Enum
 from typing import Any
@@ -363,8 +364,8 @@ class Trace:
 
         self.current_frame_id += 1
 
-    def get(self, tracker_id: int) -> np.ndarray:
-        return self.xy[self.tracker_id == tracker_id]
+    def get(self, tracker_id: int) -> np.ndarray[Any, np.dtype[np.float32]]:
+        return self.xy[self.tracker_id == tracker_id].copy()
 
 
 def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
@@ -375,7 +376,7 @@ def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
         hex_color (str): A hex color string.
 
     Returns:
-        tuple[int, int, int, int]: RGBA values in range 0–255.
+        tuple[int, int, int, int]: RGBA values in range 0-255.
 
     Raises:
         ValueError: If the format is invalid.
@@ -390,24 +391,38 @@ def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
         g = int(hex_color[2:4], 16)
         b = int(hex_color[4:6], 16)
         a = int(hex_color[6:8], 16)
-    except ValueError:
-        raise ValueError(f"Invalid hex digits in {hex_color}")
+    except ValueError as exc:
+        raise ValueError(f"Invalid hex digits in {hex_color}") from exc
     return (r, g, b, a)
 
 
 def rgba_to_hex(rgba: tuple[int, int, int, int]) -> str:
     """
-    Converts an RGBA tuple (0–255 each) to a hex color string.
+    Converts an RGBA tuple (0-255 each) to a hex color string.
+
+    Args:
+        rgba: RGBA values in range 0-255.
+
+    Returns:
+        Hex color string in the format "#RRGGBBAA".
+
+    Raises:
+        ValueError: If `rgba` is not a 4-tuple or contains values outside 0-255.
     """
     if len(rgba) != 4 or not all(0 <= c <= 255 for c in rgba):
-        raise ValueError("RGBA must be a 4-tuple with values between 0–255.")
+        raise ValueError("RGBA must be a 4-tuple with values between 0-255.")
     return "#{:02X}{:02X}{:02X}{:02X}".format(*rgba)
 
 
 def is_valid_hex(hex_color: str) -> bool:
     """
     Checks if a given string is a valid hex color.
-    """
-    import re
 
+    Args:
+        hex_color: A hex color string with an optional leading "#". Supports
+            6-digit (RGB) or 8-digit (RGBA) formats.
+
+    Returns:
+        True if the string is a valid 6- or 8-digit hex color, otherwise False.
+    """
     return bool(re.fullmatch(r"#?[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?", hex_color.strip()))

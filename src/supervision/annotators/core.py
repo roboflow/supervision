@@ -16,6 +16,7 @@ from supervision.annotators.utils import (
     ColorLookup,
     Trace,
     get_labels_text,
+    hex_to_rgba,
     resolve_color,
     resolve_text_background_xyxy,
     snap_boxes,
@@ -45,28 +46,6 @@ from supervision.utils.image import (
     scale_image,
 )
 
-
-def hex_to_rgba(hex_color: str):
-    """
-    Convert a hexadecimal color string (#RRGGBB or #RRGGBBAA) to an RGBA tuple.
-
-    Args:
-        hex_color (str): The hex string (e.g. '#FF00FF' or '#FF00FF80').
-
-    Returns:
-        Tuple[int, int, int, int]: Corresponding (R, G, B, A) tuple.
-    """
-    hex_color = hex_color.lstrip("#")
-    if len(hex_color) == 6:
-        r, g, b = tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
-        a = 255
-    elif len(hex_color) == 8:
-        r, g, b, a = tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4, 6))
-    else:
-        raise ValueError(f"Invalid hex color format: {hex_color}")
-    return (r, g, b, a)
-
-
 CV2_FONT = cv2.FONT_HERSHEY_SIMPLEX
 
 
@@ -92,9 +71,9 @@ class _BaseLabelAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-        text_color: Color | ColorPalette = Color.WHITE,
+        text_color: Color | ColorPalette | str = Color.WHITE,
         text_padding: int = 10,
         text_position: Position = Position.TOP_LEFT,
         text_offset: tuple[int, int] = (0, 0),
@@ -124,8 +103,12 @@ class _BaseLabelAnnotator(BaseAnnotator):
             max_line_length: Maximum number of characters per
                 line before wrapping the text. None means no wrapping.
         """
-        if isinstance(color, str) and color.startswith("#"):
-            color = hex_to_rgba(color)
+        if isinstance(color, str):
+            r, g, b, _ = hex_to_rgba(color)
+            color = Color.from_rgb_tuple((r, g, b))
+        if isinstance(text_color, str):
+            r, g, b, _ = hex_to_rgba(text_color)
+            text_color = Color.from_rgb_tuple((r, g, b))
         self.color: Color | ColorPalette = color
         self.color_lookup: ColorLookup = color_lookup
         self.text_color: Color | ColorPalette = text_color
