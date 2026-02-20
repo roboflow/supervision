@@ -1,4 +1,5 @@
 import os
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Union
@@ -68,24 +69,52 @@ def group_coco_annotations_by_image_id(
 def coco_annotations_to_masks(
     image_annotations: list[CocoDict], resolution_wh: tuple[int, int]
 ) -> npt.NDArray[np.bool_]:
-    return np.array(
-        [
-            rle_to_mask(
-                rle=np.array(image_annotation["segmentation"]["counts"]),
-                resolution_wh=resolution_wh,
+    height, width = resolution_wh[1], resolution_wh[0]
+    empty_mask = np.zeros((height, width), dtype=bool)
+    masks = []
+
+    for image_annotation in image_annotations:
+        segmentation = image_annotation.get("segmentation")
+        if not segmentation:
+            # `force_masks=True` may request masks even for bbox-only annotations.
+            # Keep detection count aligned by emitting an empty mask for that object.
+            masks.append(empty_mask.copy())
+            continue
+
+        if image_annotation.get("iscrowd", 0):
+            masks.append(
+                rle_to_mask(
+                    rle=np.array(segmentation["counts"]), resolution_wh=resolution_wh
+                ).astype(bool)
             )
-            if image_annotation["iscrowd"]
-            else polygon_to_mask(
-                polygon=np.reshape(
-                    np.asarray(image_annotation["segmentation"], dtype=np.int32),
-                    (-1, 2),
-                ),
-                resolution_wh=resolution_wh,
+            continue
+
+        if not isinstance(segmentation, list):
+            masks.append(empty_mask.copy())
+            continue
+        polygons = segmentation if isinstance(segmentation[0], list) else [segmentation]
+
+        object_mask = empty_mask.copy()
+        for polygon in polygons:
+            polygon_array: npt.NDArray[np.int32] = np.reshape(
+                np.asarray(polygon, dtype=np.int32), (-1, 2)
             )
-            for image_annotation in image_annotations
-        ],
-        dtype=bool,
-    )
+            if polygon_array.size == 0:
+                warnings.warn(
+                    "Skipping empty polygon while loading COCO segmentation for "
+                    f"annotation id={image_annotation.get('id')}.",
+                    stacklevel=2,
+                )
+                continue
+            # COCO polygon segmentation can contain multiple disjoint parts.
+            # Merge all parts into a single per-object mask.
+            object_mask |= polygon_to_mask(
+                polygon=polygon_array, resolution_wh=resolution_wh
+            ).astype(bool)
+
+        masks.append(object_mask)
+
+    return np.asarray(masks, dtype=bool)
 
 
 def coco_annotations_to_detections(
@@ -156,7 +185,17 @@ def detections_to_coco_annotations(
                     max_image_area_percentage=max_image_area_percentage,
                     approximation_percentage=approximation_percentage,
                 )
-                segmentation = [list(polygons[0].flatten())]
+                # Small/noisy masks can be filtered out by approximation settings.
+                # Guard against empty output and keep a valid COCO annotation record.
+                if polygons:
+                    segmentation = [list(polygons[0].flatten())]
+                else:
+                    warnings.warn(
+                        "Skipping COCO polygon segmentation for annotation "
+                        f"id={annotation_id} because mask approximation "
+                        "returned no polygons.",
+                        stacklevel=2,
+                    )
         coco_annotation = {
             "id": annotation_id,
             "image_id": image_id,
@@ -278,7 +317,7 @@ def load_coco_annotations(
 
 
 def _with_seg_mask(annotation: dict[str, Any]) -> bool:
-    return "segmentation" in annotation
+    return bool(annotation.get("segmentation"))
 
 
 def save_coco_annotations(
