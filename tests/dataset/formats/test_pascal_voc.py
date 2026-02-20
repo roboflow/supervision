@@ -116,6 +116,12 @@ N_CLASS_N_BBOX = """<annotation><object><name>test</name><bndbox><xmin>1</xmin>
 21</ymax></bndbox></object></annotation>"""
 
 NO_DETECTIONS = """<annotation></annotation>"""
+MIXED_POLYGON_AND_BOX = """<annotation><object><name>test</name><bndbox>
+<xmin>1</xmin><ymin>1</ymin><xmax>11</xmax><ymax>11</ymax></bndbox>
+<polygon><x1>1</x1><y1>1</y1><x2>11</x2><y2>1</y2><x3>11</x3><y3>11</y3>
+<x4>1</x4><y4>11</y4></polygon></object><object><name>test</name><bndbox>
+<xmin>11</xmin><ymin>11</ymin><xmax>21</xmax><ymax>21</ymax></bndbox></object>
+</annotation>"""
 
 
 @pytest.mark.parametrize(
@@ -178,3 +184,21 @@ def test_detections_from_xml_obj(
         root = ElementTree.fromstring(xml_string)
         result, _ = detections_from_xml_obj(root, classes, resolution_wh, force_masks)
         assert result == expected_result
+
+
+@pytest.mark.parametrize("force_masks", [False, True])
+def test_detections_from_xml_obj_mixed_polygon_and_bbox_masks_aligned(
+    force_masks: bool,
+) -> None:
+    root = ElementTree.fromstring(MIXED_POLYGON_AND_BOX)
+    detections, _ = detections_from_xml_obj(
+        root=root,
+        classes=["test"],
+        resolution_wh=(30, 30),
+        force_masks=force_masks,
+    )
+
+    assert detections.mask is not None
+    assert detections.mask.shape == (2, 30, 30)
+    assert detections.mask[0].any()
+    assert not detections.mask[1].any()

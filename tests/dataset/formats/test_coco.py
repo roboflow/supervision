@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from contextlib import ExitStack as DoesNotRaise
 
 import numpy as np
@@ -13,6 +14,7 @@ from supervision.dataset.formats.coco import (
     coco_categories_to_classes,
     detections_to_coco_annotations,
     group_coco_annotations_by_image_id,
+    load_coco_annotations,
 )
 
 
@@ -35,6 +37,83 @@ def mock_coco_annotation(
         "area": area,
         "segmentation": segmentation,
         "iscrowd": int(iscrowd),
+    }
+
+
+@pytest.fixture
+def coco_data_with_and_without_segmentation() -> dict[str, object]:
+    return {
+        "categories": [{"id": 1, "name": "object", "supercategory": "none"}],
+        "images": [
+            {"id": 1, "file_name": "with_segmentation.jpg", "width": 5, "height": 5},
+            {
+                "id": 2,
+                "file_name": "with_polygon_segmentation.jpg",
+                "width": 5,
+                "height": 5,
+            },
+            {"id": 3, "file_name": "without_segmentation.jpg", "width": 5, "height": 5},
+            {"id": 4, "file_name": "without_annotations.jpg", "width": 5, "height": 5},
+        ],
+        "annotations": [
+            {
+                "id": 1,
+                "image_id": 1,
+                "category_id": 1,
+                "bbox": [0, 0, 5, 5],
+                "area": 25,
+                "segmentation": [[0, 0, 2, 0, 2, 2, 4, 2, 4, 4, 0, 4]],
+                "iscrowd": 0,
+            },
+            {
+                "id": 2,
+                "image_id": 1,
+                "category_id": 1,
+                "bbox": [3, 0, 2, 2],
+                "area": 4,
+                "segmentation": {"size": [5, 5], "counts": [15, 2, 3, 2, 3]},
+                "iscrowd": 1,
+            },
+            {
+                "id": 3,
+                "image_id": 2,
+                "category_id": 1,
+                "bbox": [0, 0, 2, 2],
+                "area": 4,
+                "segmentation": [[0, 0, 1, 0, 1, 1, 0, 1]],
+                "iscrowd": 0,
+            },
+            {
+                "id": 4,
+                "image_id": 3,
+                "category_id": 1,
+                "bbox": [0, 0, 2, 2],
+                "area": 4,
+                "iscrowd": 0,
+            },
+        ],
+    }
+
+
+@pytest.fixture
+def coco_data_with_unannotated_image() -> dict[str, object]:
+    return {
+        "categories": [{"id": 1, "name": "object", "supercategory": "none"}],
+        "images": [
+            {"id": 1, "file_name": "has_segmentation.jpg", "width": 5, "height": 5},
+            {"id": 2, "file_name": "no_annotations.jpg", "width": 5, "height": 5},
+        ],
+        "annotations": [
+            {
+                "id": 1,
+                "image_id": 1,
+                "category_id": 1,
+                "bbox": [0, 0, 2, 2],
+                "area": 4,
+                "segmentation": [[0, 0, 1, 0, 1, 1, 0, 1]],
+                "iscrowd": 0,
+            }
+        ],
     }
 
 
@@ -791,3 +870,76 @@ def test_detections_to_coco_annotations(
             annotation_id=annotation_id,
         )
         assert result == expected_result
+
+
+def test_load_coco_annotations_infers_masks_from_segmentation_field(
+    tmp_path, coco_data_with_and_without_segmentation: dict[str, object]
+) -> None:
+    images_directory = tmp_path / "images"
+    images_directory.mkdir()
+    annotations_path = tmp_path / "annotations.json"
+
+    annotations_path.write_text(
+        json.dumps(coco_data_with_and_without_segmentation), encoding="utf-8"
+    )
+
+    classes, images, annotations = load_coco_annotations(
+        images_directory_path=str(images_directory),
+        annotations_path=str(annotations_path),
+        force_masks=False,
+        use_iscrowd=True,
+    )
+
+    assert classes == ["object"]
+    assert len(images) == 4
+
+    with_segmentation_path = str(images_directory / "with_segmentation.jpg")
+    with_segmentation = annotations[with_segmentation_path]
+    assert with_segmentation.mask is not None
+    assert with_segmentation.mask.shape == (2, 5, 5)
+    assert np.array_equal(with_segmentation.data["iscrowd"], np.array([0, 1]))
+
+    with_polygon_segmentation_path = str(
+        images_directory / "with_polygon_segmentation.jpg"
+    )
+    with_polygon_segmentation = annotations[with_polygon_segmentation_path]
+    assert with_polygon_segmentation.mask is not None
+    assert with_polygon_segmentation.mask.shape == (1, 5, 5)
+    assert with_polygon_segmentation.mask[0].any()
+
+    without_segmentation_path = str(images_directory / "without_segmentation.jpg")
+    without_segmentation = annotations[without_segmentation_path]
+    assert without_segmentation.mask is None
+    assert np.array_equal(
+        without_segmentation.xyxy, np.array([[0, 0, 2, 2]], dtype=np.float32)
+    )
+
+    without_annotations_path = str(images_directory / "without_annotations.jpg")
+    assert annotations[without_annotations_path] == Detections.empty()
+
+
+def test_load_coco_annotations_force_masks_with_no_annotations(
+    tmp_path, coco_data_with_unannotated_image: dict[str, object]
+) -> None:
+    images_directory = tmp_path / "images"
+    images_directory.mkdir()
+    annotations_path = tmp_path / "annotations.json"
+
+    annotations_path.write_text(
+        json.dumps(coco_data_with_unannotated_image),
+        encoding="utf-8",
+    )
+
+    _, _, annotations = load_coco_annotations(
+        images_directory_path=str(images_directory),
+        annotations_path=str(annotations_path),
+        force_masks=True,
+    )
+
+    has_segmentation_path = str(images_directory / "has_segmentation.jpg")
+    has_segmentation = annotations[has_segmentation_path]
+    assert has_segmentation.mask is not None
+    assert has_segmentation.mask.shape == (1, 5, 5)
+
+    no_annotations_path = str(images_directory / "no_annotations.jpg")
+    assert annotations[no_annotations_path] == Detections.empty()
