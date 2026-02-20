@@ -43,10 +43,14 @@ def validate_mask(mask: Any, n: int) -> None:
         warn_deprecated(
             f"A `Detections` object was created with a mask of type {actual_dtype}."
             " Masks of type other than `bool` are deprecated and may produce unexpected"
-            " behavior. Stricter type checking will be introduced in"
-            " `supervision-0.28.0`. Please use `mask = np.array(..., dtype=bool)` when"
-            " creating the mask manually. If you did not create the mask manually,"
-            " please report the issue to the `supervision` team."
+            " behavior. Starting from `supervision-0.28.0`, passing a mask with"
+            " `dtype` different from `bool` to `Detections` will raise a `ValueError`"
+            " during validation instead of being accepted with a warning. To migrate,"
+            " please ensure your masks are boolean, for example by using"
+            " `mask = np.array(..., dtype=bool)` or by converting existing masks with"
+            " `mask = mask.astype(bool)` before creating the `Detections` object. If"
+            " you did not create the mask manually, please report the issue to the"
+            " `supervision` team."
         )
 
 

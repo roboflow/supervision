@@ -440,7 +440,7 @@ class MaskAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            mask = detections.mask[detection_idx]
+            mask = np.asarray(detections.mask[detection_idx], dtype=bool)
             colored_mask[mask] = color.as_bgr()
 
         cv2.addWeighted(
@@ -727,7 +727,7 @@ class HaloAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            mask = detections.mask[detection_idx]
+            mask = np.asarray(detections.mask[detection_idx], dtype=bool)
             fmask = np.logical_or(fmask, mask)
             color_bgr = color.as_bgr()
             colored_mask[mask] = color_bgr
@@ -2895,6 +2895,7 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
                 colored_mask[y1:y2, x1:x2] = scene[y1:y2, x1:x2]
         else:
             for mask in detections.mask:
+                mask = np.asarray(mask, dtype=bool)
                 colored_mask[mask] = scene[mask]
 
         np.copyto(scene, colored_mask)
