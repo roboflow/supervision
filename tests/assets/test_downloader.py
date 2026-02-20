@@ -36,15 +36,15 @@ class TestMD5HashMatching:
 
 
 class TestDownloadAssets:
-    @patch("builtins.print")
+    @patch("supervision.assets.downloader.logger")
     @patch("supervision.assets.downloader.is_md5_hash_matching", return_value=True)
     @patch("pathlib.Path.exists", return_value=True)
-    def test_already_exists_and_valid(self, mock_exists, mock_md5, mock_print):
+    def test_already_exists_and_valid(self, mock_exists, mock_md5, mock_logger):
         """Test download_assets when file already exists and is valid."""
         filename = "vehicles.mp4"
         result = download_assets(filename)
         assert result == filename
-        mock_print.assert_called_with(f"{filename} asset download complete. \n")
+        mock_logger.info.assert_called_with("%s asset download complete.", filename)
 
     @patch("supervision.assets.downloader.download_assets", return_value="vehicles.mp4")
     @patch("os.remove")
@@ -59,7 +59,7 @@ class TestDownloadAssets:
         assert result == filename
         mock_download.assert_called_with(filename)
 
-    @patch("builtins.print")
+    @patch("supervision.assets.downloader.logger")
     @patch("pathlib.Path.open", new_callable=mock_open)
     @patch("pathlib.Path.mkdir")
     @patch("pathlib.Path.exists", return_value=False)
@@ -74,7 +74,7 @@ class TestDownloadAssets:
         mock_exists,
         mock_mkdir,
         mock_open_file,
-        mock_print,
+        mock_logger,
     ):
         """Test download_assets downloading a new file."""
         filename = "vehicles.mp4"
@@ -92,7 +92,7 @@ class TestDownloadAssets:
 
         result = download_assets(filename)
         assert result == filename
-        mock_print.assert_called_with(f"Downloading {filename} assets \n")
+        mock_logger.info.assert_called_with("Downloading %s assets", filename)
         mock_get.assert_called_once()
         mock_response.raise_for_status.assert_called_once_with()
         mock_copyfileobj.assert_called_once()
@@ -119,7 +119,7 @@ class TestDownloadAssets:
         assert "Invalid asset" in str(exc_info.value)
         assert "vehicles.mp4" in str(exc_info.value)
 
-    @patch("builtins.print")
+    @patch("supervision.assets.downloader.logger")
     @patch("pathlib.Path.open", new_callable=mock_open)
     @patch("pathlib.Path.mkdir")
     @patch("supervision.assets.downloader.copyfileobj")
@@ -134,7 +134,7 @@ class TestDownloadAssets:
         mock_copyfileobj,
         mock_mkdir,
         mock_open_file,
-        mock_print,
+        mock_logger,
     ):
         """Test download_assets with VideoAssets enum."""
         asset = VideoAssets.VEHICLES
@@ -150,8 +150,9 @@ class TestDownloadAssets:
 
         result = download_assets(asset)
         assert result == asset.filename
+        mock_logger.info.assert_called_with("Downloading %s assets", asset.filename)
 
-    @patch("builtins.print")
+    @patch("supervision.assets.downloader.logger")
     @patch("pathlib.Path.open", new_callable=mock_open)
     @patch("pathlib.Path.mkdir")
     @patch("supervision.assets.downloader.copyfileobj")
@@ -166,7 +167,7 @@ class TestDownloadAssets:
         mock_copyfileobj,
         mock_mkdir,
         mock_open_file,
-        mock_print,
+        mock_logger,
     ):
         """Test download_assets with ImageAssets enum."""
         asset = ImageAssets.SOCCER
@@ -182,3 +183,5 @@ class TestDownloadAssets:
 
         result = download_assets(asset)
         assert result == asset.filename
+        mock_logger.info.assert_called_with("Downloading %s assets", asset.filename)
+

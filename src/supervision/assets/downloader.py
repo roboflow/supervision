@@ -9,6 +9,9 @@ from requests import get
 from tqdm.auto import tqdm
 
 from supervision.assets.list import MEDIA_ASSETS, Assets
+from supervision.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:
@@ -61,7 +64,7 @@ def download_assets(asset_name: Assets | str) -> str:
 
     if filename in MEDIA_ASSETS:
         if not Path(filename).exists():
-            print(f"Downloading {filename} assets \n")
+            logger.info("Downloading %s assets", filename)
             response = get(
                 MEDIA_ASSETS[filename][0], stream=True, allow_redirects=True, timeout=30
             )
@@ -78,11 +81,11 @@ def download_assets(asset_name: Assets | str) -> str:
                     copyfileobj(raw_resp, file)
         else:
             if not is_md5_hash_matching(filename, MEDIA_ASSETS[filename][1]):
-                print("File corrupted. Re-downloading... \n")
+                logger.warning("File corrupted. Re-downloading...")
                 os.remove(filename)
                 return download_assets(filename)
 
-            print(f"{filename} asset download complete. \n")
+            logger.info("%s asset download complete.", filename)
     else:
         valid_assets = ", ".join(filename for filename in MEDIA_ASSETS.keys())
         raise ValueError(

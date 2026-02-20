@@ -5,6 +5,9 @@ import os
 from typing import Any
 
 from supervision.detection.core import Detections
+from supervision.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 BASE_HEADER = [
     "x_min",
@@ -168,9 +171,11 @@ class CSVSink:
             self.header_written = True
 
         if field_names != self.field_names:
-            print(
-                f"Field names do not match the header. "
-                f"Expected: {self.field_names}, given: {field_names}"
+            logger.warning(
+                "Field names do not match the header. "
+                "Expected: %s, given: %s",
+                self.field_names,
+                field_names,
             )
 
         parsed_rows = CSVSink.parse_detection_data(detections, custom_data)

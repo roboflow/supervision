@@ -45,6 +45,9 @@ from supervision.utils.image import (
     overlay_image,
     scale_image,
 )
+from supervision.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @overload
@@ -1724,7 +1727,9 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         try:
             return ImageFont.truetype(font_path, font_size)
         except OSError:
-            print(f"Font path '{font_path}' not found. Using PIL's default font.")
+            logger.warning(
+                "Font path '%s' not found. Using PIL's default font.", font_path
+            )
             return load_default_font(font_size)
 
 

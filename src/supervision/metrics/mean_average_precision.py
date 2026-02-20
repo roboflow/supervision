@@ -18,6 +18,9 @@ from supervision.detection.utils.iou_and_nms import box_iou_batch_with_jaccard
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import Metric, MetricTarget
 from supervision.metrics.utils.utils import ensure_pandas_installed
+from supervision.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -1098,7 +1101,9 @@ class COCOEvaluator:
                 mean_s = -1.0
             else:
                 mean_s = float(np.mean(s[s > -1]))
-            print(iStr.format(titleStr, typeStr, iou_str, area_range, max_dets, mean_s))
+            logger.info(
+                iStr.format(titleStr, typeStr, iou_str, area_range, max_dets, mean_s)
+            )
             return mean_s
 
         def _summarize_predictions() -> npt.NDArray[np.float64]:
