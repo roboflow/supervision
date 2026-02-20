@@ -45,9 +45,9 @@ from supervision.utils.image import (
     overlay_image,
     scale_image,
 )
-from supervision.utils.logger import get_logger
+from supervision.utils.logger import _get_logger
 
-logger = get_logger(__name__)
+logger = _get_logger(__name__)
 
 
 @overload

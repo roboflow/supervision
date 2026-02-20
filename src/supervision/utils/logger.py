@@ -5,7 +5,7 @@ import os
 import sys
 
 
-def get_logger(name: str = "supervision", level: int | None = None) -> logging.Logger:
+def _get_logger(name: str = "supervision", level: int | None = None) -> logging.Logger:
     """Creates and configures a logger with stdout and stderr handlers.
 
     This function creates a logger that sends INFO and DEBUG level logs to stdout,

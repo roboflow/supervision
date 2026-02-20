@@ -9,9 +9,9 @@ from requests import get
 from tqdm.auto import tqdm
 
 from supervision.assets.list import MEDIA_ASSETS, Assets
-from supervision.utils.logger import get_logger
+from supervision.utils.logger import _get_logger
 
-logger = get_logger(__name__)
+logger = _get_logger(__name__)
 
 
 def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:

@@ -5,9 +5,9 @@ import os
 from typing import Any
 
 from supervision.detection.core import Detections
-from supervision.utils.logger import get_logger
+from supervision.utils.logger import _get_logger
 
-logger = get_logger(__name__)
+logger = _get_logger(__name__)
 
 BASE_HEADER = [
     "x_min",

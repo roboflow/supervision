@@ -18,9 +18,9 @@ from supervision.detection.utils.iou_and_nms import box_iou_batch_with_jaccard
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import Metric, MetricTarget
 from supervision.metrics.utils.utils import ensure_pandas_installed
-from supervision.utils.logger import get_logger
+from supervision.utils.logger import _get_logger
 
-logger = get_logger(__name__)
+logger = _get_logger(__name__)
 
 if TYPE_CHECKING:
     import pandas as pd
