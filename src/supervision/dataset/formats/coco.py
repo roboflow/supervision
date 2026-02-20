@@ -1,4 +1,5 @@
 import os
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Union
@@ -99,6 +100,11 @@ def coco_annotations_to_masks(
                 np.asarray(polygon, dtype=np.int32), (-1, 2)
             )
             if polygon_array.size == 0:
+                warnings.warn(
+                    "Skipping empty polygon while loading COCO segmentation for "
+                    f"annotation id={image_annotation.get('id')}.",
+                    stacklevel=2,
+                )
                 continue
             # COCO polygon segmentation can contain multiple disjoint parts.
             # Merge all parts into a single per-object mask.
@@ -183,6 +189,13 @@ def detections_to_coco_annotations(
                 # Guard against empty output and keep a valid COCO annotation record.
                 if polygons:
                     segmentation = [list(polygons[0].flatten())]
+                else:
+                    warnings.warn(
+                        "Skipping COCO polygon segmentation for annotation "
+                        f"id={annotation_id} because mask approximation "
+                        "returned no polygons.",
+                        stacklevel=2,
+                    )
         coco_annotation = {
             "id": annotation_id,
             "image_id": image_id,

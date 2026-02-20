@@ -916,6 +916,40 @@ def test_detections_to_coco_annotations(
         assert result == expected_result
 
 
+def test_detections_to_coco_annotations_handles_empty_approximated_polygons(
+) -> None:
+    detections = Detections(
+        xyxy=np.array([[0, 0, 4, 4]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+        mask=np.array(
+            [
+                [
+                    [1, 1, 1, 1, 0],
+                    [1, 1, 1, 1, 0],
+                    [1, 1, 1, 1, 0],
+                    [1, 1, 1, 1, 0],
+                    [1, 1, 1, 1, 0],
+                ]
+            ],
+            dtype=bool,
+        ),
+    )
+
+    with pytest.warns(
+        Warning, match="mask approximation returned no polygons"
+    ):
+        annotations, _ = detections_to_coco_annotations(
+            detections=detections,
+            image_id=0,
+            annotation_id=0,
+            max_image_area_percentage=0.01,
+        )
+
+    assert len(annotations) == 1
+    assert annotations[0]["segmentation"] == []
+    assert annotations[0]["iscrowd"] == 0
+
+
 def test_load_coco_annotations_infers_masks_from_segmentation_field(
     tmp_path, coco_data_with_and_without_segmentation: dict[str, object]
 ) -> None:
