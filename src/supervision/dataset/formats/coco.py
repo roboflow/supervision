@@ -80,7 +80,7 @@ def coco_annotations_to_masks(
             masks.append(empty_mask.copy())
             continue
 
-        if image_annotation["iscrowd"]:
+        if image_annotation.get("iscrowd", 0):
             masks.append(
                 rle_to_mask(
                     rle=np.array(segmentation["counts"]), resolution_wh=resolution_wh
