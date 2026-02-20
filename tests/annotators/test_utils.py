@@ -208,9 +208,7 @@ def test_hex_to_rgba_invalid(hex_color: str) -> None:
         ((0, 255, 0, 128), "#00FF0080"),
     ],
 )
-def test_rgba_to_hex(
-    rgba: tuple[int, int, int, int], expected_hex: str
-) -> None:
+def test_rgba_to_hex(rgba: tuple[int, int, int, int], expected_hex: str) -> None:
     assert rgba_to_hex(rgba) == expected_hex
 
 
