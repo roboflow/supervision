@@ -213,9 +213,7 @@ def test_hex_to_rgba_invalid(hex_color: str) -> None:
         ((255, 255, 255, 255), "#FFFFFFFF"),
     ],
 )
-def test_rgba_to_hex(
-    rgba: tuple[int, int, int, int], expected_hex: str
-) -> None:
+def test_rgba_to_hex(rgba: tuple[int, int, int, int], expected_hex: str) -> None:
     assert rgba_to_hex(rgba) == expected_hex
 
 
