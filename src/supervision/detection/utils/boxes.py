@@ -6,7 +6,10 @@ import numpy.typing as npt
 from supervision.detection.utils.iou_and_nms import box_iou_batch
 
 
-def clip_boxes(xyxy: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
+def clip_boxes(
+    xyxy: npt.NDArray[np.number],
+    resolution_wh: tuple[int, int],
+) -> npt.NDArray[np.number]:
     """
     Clips bounding boxes coordinates to fit within the frame resolution.
 
@@ -38,14 +41,18 @@ def clip_boxes(xyxy: np.ndarray, resolution_wh: tuple[int, int]) -> np.ndarray:
 
         ```
     """
-    result = np.copy(xyxy)
+    result: npt.NDArray[np.number] = np.copy(xyxy)
     width, height = resolution_wh
     result[:, [0, 2]] = result[:, [0, 2]].clip(0, width)
     result[:, [1, 3]] = result[:, [1, 3]].clip(0, height)
     return result
 
 
-def pad_boxes(xyxy: np.ndarray, px: int, py: int | None = None) -> np.ndarray:
+def pad_boxes(
+    xyxy: npt.NDArray[np.number],
+    px: int,
+    py: int | None = None,
+) -> npt.NDArray[np.number]:
     """
     Pads bounding boxes coordinates with a constant padding.
 
@@ -89,10 +96,10 @@ def pad_boxes(xyxy: np.ndarray, px: int, py: int | None = None) -> np.ndarray:
 
 
 def denormalize_boxes(
-    xyxy: np.ndarray,
+    xyxy: npt.NDArray[np.number],
     resolution_wh: tuple[int, int],
     normalization_factor: float = 1.0,
-) -> np.ndarray:
+) -> npt.NDArray[np.number]:
     """
     Convert normalized bounding box coordinates to absolute pixel coordinates.
 
@@ -262,9 +269,9 @@ def scale_boxes(
 
 
 def spread_out_boxes(
-    xyxy: np.ndarray,
+    xyxy: npt.NDArray[np.number],
     max_iterations: int = 100,
-) -> np.ndarray:
+) -> npt.NDArray[np.number]:
     """
     Spread out boxes that overlap with each other.
 

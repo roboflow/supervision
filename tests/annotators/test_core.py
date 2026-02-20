@@ -25,6 +25,7 @@ from supervision.annotators.core import (
     PolygonAnnotator,
     RichLabelAnnotator,
     RoundBoxAnnotator,
+    TraceAnnotator,
     TriangleAnnotator,
 )
 from supervision.annotators.utils import ColorLookup
@@ -56,6 +57,53 @@ def gradient_image() -> np.ndarray:
         for j in range(100):
             image[i, j] = [i, j, (i + j) // 2]
     return image
+
+
+@pytest.mark.parametrize(
+    ("factory", "expected_colors"),
+    [
+        (lambda: BoxAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: OrientedBoxAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: MaskAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: PolygonAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: ColorAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: HaloAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: EllipseAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: BoxCornerAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: CircleAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (
+            lambda: DotAnnotator(color="#010203", outline_color="#040506"),
+            {"color": (1, 2, 3), "outline_color": (4, 5, 6)},
+        ),
+        (
+            lambda: LabelAnnotator(color="#010203", text_color="#040506"),
+            {"color": (1, 2, 3), "text_color": (4, 5, 6)},
+        ),
+        (
+            lambda: RichLabelAnnotator(color="#010203", text_color="#040506"),
+            {"color": (1, 2, 3), "text_color": (4, 5, 6)},
+        ),
+        (lambda: TraceAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (
+            lambda: TriangleAnnotator(color="#010203", outline_color="#040506"),
+            {"color": (1, 2, 3), "outline_color": (4, 5, 6)},
+        ),
+        (lambda: RoundBoxAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (
+            lambda: PercentageBarAnnotator(color="#010203", border_color="#040506"),
+            {"color": (1, 2, 3), "border_color": (4, 5, 6)},
+        ),
+        (lambda: CropAnnotator(border_color="#010203"), {"border_color": (1, 2, 3)}),
+    ],
+)
+def test_hex_color_support_across_annotators(
+    factory, expected_colors: dict[str, tuple[int, int, int]]
+) -> None:
+    annotator = factory()
+    for attribute_name, expected_rgb in expected_colors.items():
+        color = getattr(annotator, attribute_name)
+        assert isinstance(color, Color)
+        assert color.as_rgb() == expected_rgb
 
 
 class TestBoxAnnotator:

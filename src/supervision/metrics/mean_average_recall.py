@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -376,7 +376,7 @@ class MeanAverageRecall(Metric):
                     stats.append(
                         (
                             np.zeros((0, iou_thresholds.size), dtype=bool),
-                            np.zeros((0,), dtype=np.float32),
+                            np.zeros((0,), dtype=int),
                             np.zeros((0,), dtype=int),
                             targets.class_id,
                         )
@@ -406,12 +406,18 @@ class MeanAverageRecall(Metric):
                         iou,
                         iou_thresholds,
                     )
+
+                    sorted_indices = np.argsort(
+                        -cast(npt.NDArray[np.float32], predictions.confidence)
+                    )
                     stats.append(
                         (
-                            matches,
-                            predictions.confidence,
-                            predictions.class_id,
-                            targets.class_id,
+                            matches[sorted_indices],
+                            np.arange(len(predictions)),
+                            cast(npt.NDArray[np.int32], predictions.class_id)[
+                                sorted_indices
+                            ],
+                            cast(npt.NDArray[np.int32], targets.class_id),
                         )
                     )
 
@@ -448,7 +454,7 @@ class MeanAverageRecall(Metric):
     def _compute_average_recall_for_classes(
         self,
         matches: npt.NDArray[np.bool_],
-        prediction_confidence: npt.NDArray[np.float32],
+        prediction_indices: npt.NDArray[np.int32],
         prediction_class_ids: npt.NDArray[np.int32],
         true_class_ids: npt.NDArray[np.int32],
     ) -> tuple[
@@ -456,20 +462,16 @@ class MeanAverageRecall(Metric):
         npt.NDArray[np.float64],
         npt.NDArray[np.int32],
     ]:
-        sorted_indices = np.argsort(-prediction_confidence)
-        matches = matches[sorted_indices]
-        prediction_class_ids = prediction_class_ids[sorted_indices]
         unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
 
         recalls_at_k = []
         for max_detections in self.max_detections:
             # Shape: PxTh,P,C,C -> CxThx3
             confusion_matrix = self._compute_confusion_matrix(
-                matches,
-                prediction_class_ids,
+                matches[prediction_indices < max_detections],
+                prediction_class_ids[prediction_indices < max_detections],
                 unique_classes,
                 class_counts,
-                max_detections=max_detections,
             )
 
             # Shape: CxThx3 -> CxTh
@@ -522,7 +524,6 @@ class MeanAverageRecall(Metric):
         sorted_prediction_class_ids: npt.NDArray[np.int32],
         unique_classes: npt.NDArray[np.int32],
         class_counts: npt.NDArray[np.int32],
-        max_detections: int | None = None,
     ) -> npt.NDArray[np.float64]:
         """
         Compute the confusion matrix for each class and IoU threshold.
@@ -567,7 +568,7 @@ class MeanAverageRecall(Metric):
                 false_positives = np.full(num_thresholds, num_predictions)
                 false_negatives = np.zeros(num_thresholds)
             else:
-                limited_matches = sorted_matches[is_class][slice(max_detections)]
+                limited_matches = sorted_matches[is_class]
                 true_positives = limited_matches.sum(0)
 
                 false_positives = (1 - limited_matches).sum(0)
@@ -638,8 +639,6 @@ class MeanAverageRecall(Metric):
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             empty_obb: npt.NDArray[np.float32] = np.empty((0, 4, 2), dtype=np.float32)
             return empty_obb
-
-        raise ValueError(f"Invalid metric target: {self._metric_target}")
 
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 

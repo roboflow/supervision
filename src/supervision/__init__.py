@@ -31,7 +31,12 @@ from supervision.annotators.core import (
     TraceAnnotator,
     TriangleAnnotator,
 )
-from supervision.annotators.utils import ColorLookup
+from supervision.annotators.utils import (
+    ColorLookup,
+    hex_to_rgba,
+    is_valid_hex,
+    rgba_to_hex,
+)
 from supervision.classification.core import Classifications
 from supervision.dataset.core import (
     BaseDataset,
@@ -228,6 +233,8 @@ __all__ = [
     "get_polygon_center",
     "get_video_frames_generator",
     "grayscale_image",
+    "hex_to_rgba",
+    "is_valid_hex",
     "letterbox_image",
     "list_files_with_extensions",
     "mask_iou_batch",
@@ -248,6 +255,7 @@ __all__ = [
     "polygon_to_xyxy",
     "process_video",
     "resize_image",
+    "rgba_to_hex",
     "rle_to_mask",
     "scale_boxes",
     "scale_image",
