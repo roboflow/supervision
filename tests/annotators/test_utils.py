@@ -5,7 +5,14 @@ from contextlib import ExitStack as DoesNotRaise
 import numpy as np
 import pytest
 
-from supervision.annotators.utils import ColorLookup, resolve_color_idx, wrap_text
+from supervision.annotators.utils import (
+    ColorLookup,
+    hex_to_rgba,
+    is_valid_hex,
+    resolve_color_idx,
+    rgba_to_hex,
+    wrap_text,
+)
 from supervision.detection.core import Detections
 from tests.helpers import _create_detections
 
@@ -174,33 +181,47 @@ def test_wrap_text(
         assert result == expected_result
 
 
-def test_hex_to_rgba_valid():
-    from supervision.annotators.utils import hex_to_rgba
+@pytest.mark.parametrize(
+    ("hex_color", "expected_rgba"),
+    [
+        ("#FF00FF", (255, 0, 255, 255)),
+        ("#FF00FF80", (255, 0, 255, 128)),
+        ("00FF0080", (0, 255, 0, 128)),
+    ],
+)
+def test_hex_to_rgba_valid(
+    hex_color: str, expected_rgba: tuple[int, int, int, int]
+) -> None:
+    assert hex_to_rgba(hex_color) == expected_rgba
 
-    assert hex_to_rgba("#FF00FF") == (255, 0, 255, 255)
-    assert hex_to_rgba("#FF00FF80") == (255, 0, 255, 128)
-    assert hex_to_rgba("00FF0080") == (0, 255, 0, 128)
 
-
-def test_hex_to_rgba_invalid():
-    import pytest
-
-    from supervision.annotators.utils import hex_to_rgba
-
+@pytest.mark.parametrize("hex_color", ["#FF00F", "#GGHHII"])
+def test_hex_to_rgba_invalid(hex_color: str) -> None:
     with pytest.raises(ValueError):
-        hex_to_rgba("#FF00F")  # wrong length
-
-    with pytest.raises(ValueError):
-        hex_to_rgba("#GGHHII")  # invalid chars
+        hex_to_rgba(hex_color)
 
 
-def test_rgba_to_hex_and_is_valid_hex():
-    from supervision.annotators.utils import is_valid_hex, rgba_to_hex
+@pytest.mark.parametrize(
+    ("rgba", "expected_hex"),
+    [
+        ((255, 0, 255, 255), "#FF00FFFF"),
+        ((0, 255, 0, 128), "#00FF0080"),
+    ],
+)
+def test_rgba_to_hex(
+    rgba: tuple[int, int, int, int], expected_hex: str
+) -> None:
+    assert rgba_to_hex(rgba) == expected_hex
 
-    assert rgba_to_hex((255, 0, 255, 255)) == "#FF00FFFF"
-    assert rgba_to_hex((0, 255, 0, 128)) == "#00FF0080"
 
-    assert is_valid_hex("#FF00FF")
-    assert is_valid_hex("00FF0080")
-    assert not is_valid_hex("#XYZ123")
-    assert not is_valid_hex("FF00F")
+@pytest.mark.parametrize(
+    ("hex_color", "expected_result"),
+    [
+        ("#FF00FF", True),
+        ("00FF0080", True),
+        ("#XYZ123", False),
+        ("FF00F", False),
+    ],
+)
+def test_is_valid_hex(hex_color: str, expected_result: bool) -> None:
+    assert is_valid_hex(hex_color) is expected_result
