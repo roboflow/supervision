@@ -381,6 +381,39 @@ def test_group_coco_annotations_by_image_id(
                     category_id=0,
                     bbox=(0, 0, 5, 5),
                     area=5 * 5,
+                    segmentation=[
+                        [0, 0, 1, 0, 1, 1, 0, 1],
+                        [3, 3, 4, 3, 4, 4, 3, 4],
+                    ],
+                )
+            ],
+            (5, 5),
+            True,
+            False,
+            Detections(
+                xyxy=np.array([[0, 0, 5, 5]], dtype=np.float32),
+                class_id=np.array([0], dtype=int),
+                mask=np.array(
+                    [
+                        [
+                            [1, 1, 0, 0, 0],
+                            [1, 1, 0, 0, 0],
+                            [0, 0, 0, 0, 0],
+                            [0, 0, 0, 1, 1],
+                            [0, 0, 0, 1, 1],
+                        ]
+                    ],
+                    dtype=bool,
+                ),
+            ),
+            DoesNotRaise(),
+        ),  # single image annotation with disjoint polygon segments
+        (
+            [
+                mock_coco_annotation(
+                    category_id=0,
+                    bbox=(0, 0, 5, 5),
+                    area=5 * 5,
                     segmentation=[[0, 0, 2, 0, 2, 2, 4, 2, 4, 4, 0, 4]],
                 )
             ],
@@ -954,3 +987,40 @@ def test_load_coco_annotations_force_masks_with_no_annotations(
 
     no_annotations_path = str(images_directory / "no_annotations.jpg")
     assert annotations[no_annotations_path] == Detections.empty()
+
+
+def test_load_coco_annotations_force_masks_handles_missing_segmentation(
+    tmp_path,
+) -> None:
+    images_directory = tmp_path / "images"
+    images_directory.mkdir()
+    annotations_path = tmp_path / "annotations.json"
+
+    coco_data = {
+        "categories": [{"id": 1, "name": "object", "supercategory": "none"}],
+        "images": [{"id": 1, "file_name": "image.jpg", "width": 5, "height": 5}],
+        "annotations": [
+            {
+                "id": 1,
+                "image_id": 1,
+                "category_id": 1,
+                "bbox": [0, 0, 2, 2],
+                "area": 4,
+                "iscrowd": 0,
+            }
+        ],
+    }
+    annotations_path.write_text(json.dumps(coco_data), encoding="utf-8")
+
+    _, _, annotations = load_coco_annotations(
+        images_directory_path=str(images_directory),
+        annotations_path=str(annotations_path),
+        force_masks=True,
+    )
+
+    image_path = str(images_directory / "image.jpg")
+    image_annotations = annotations[image_path]
+    assert image_annotations.mask is not None
+    assert image_annotations.mask.shape == (1, 5, 5)
+    assert not image_annotations.mask.any()
+    assert np.array_equal(image_annotations.xyxy, np.array([[0, 0, 2, 2]], dtype=float))
