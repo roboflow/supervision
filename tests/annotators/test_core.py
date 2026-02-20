@@ -630,9 +630,7 @@ class TestBackgroundOverlayAnnotator:
         detections_uint8.mask = detections_uint8.mask.astype(np.uint8)
 
         annotator = BackgroundOverlayAnnotator(color=Color.BLACK, opacity=0.5)
-        result_bool = annotator.annotate(
-            scene=image.copy(), detections=detections_bool
-        )
+        result_bool = annotator.annotate(scene=image.copy(), detections=detections_bool)
         result_uint8 = annotator.annotate(
             scene=image.copy(), detections=detections_uint8
         )
