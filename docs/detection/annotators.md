@@ -17,7 +17,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
     box_annotator = sv.BoxAnnotator()
     annotated_frame = box_annotator.annotate(
         scene=image.copy(),
-        detections=detections
+        detections=detections,
     )
     ```
 
@@ -38,7 +38,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
     round_box_annotator = sv.RoundBoxAnnotator()
     annotated_frame = round_box_annotator.annotate(
         scene=image.copy(),
-        detections=detections
+        detections=detections,
     )
     ```
 
@@ -59,7 +59,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
     corner_annotator = sv.BoxCornerAnnotator()
     annotated_frame = corner_annotator.annotate(
         scene=image.copy(),
-        detections=detections
+        detections=detections,
     )
     ```
 
@@ -80,7 +80,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
     color_annotator = sv.ColorAnnotator()
     annotated_frame = color_annotator.annotate(
         scene=image.copy(),
-        detections=detections
+        detections=detections,
     )
     ```
 
@@ -101,7 +101,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
     circle_annotator = sv.CircleAnnotator()
     annotated_frame = circle_annotator.annotate(
         scene=image.copy(),
-        detections=detections
+        detections=detections,
     )
     ```
 
@@ -122,7 +122,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
     dot_annotator = sv.DotAnnotator()
     annotated_frame = dot_annotator.annotate(
         scene=image.copy(),
-        detections=detections
+        detections=detections,
     )
     ```
 
@@ -143,7 +143,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
     triangle_annotator = sv.TriangleAnnotator()
     annotated_frame = triangle_annotator.annotate(
         scene=image.copy(),
-        detections=detections
+        detections=detections,
     )
     ```
 
@@ -164,7 +164,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
     ellipse_annotator = sv.EllipseAnnotator()
     annotated_frame = ellipse_annotator.annotate(
         scene=image.copy(),
-        detections=detections
+        detections=detections,
     )
     ```
 
@@ -185,7 +185,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
     halo_annotator = sv.HaloAnnotator()
     annotated_frame = halo_annotator.annotate(
         scene=image.copy(),
-        detections=detections
+        detections=detections,
     )
     ```
 
@@ -206,7 +206,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
     percentage_bar_annotator = sv.PercentageBarAnnotator()
     annotated_frame = percentage_bar_annotator.annotate(
         scene=image.copy(),
-        detections=detections
+        detections=detections,
     )
     ```
 
@@ -227,14 +227,13 @@ Annotators accept detections and apply box or mask visualizations to the detecti
     mask_annotator = sv.MaskAnnotator()
     annotated_frame = mask_annotator.annotate(
         scene=image.copy(),
-        detections=detections
+        detections=detections,
     )
     ```
 
     <div class="result" markdown>
 
-    ![mask-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    mask-annotator-example-purple.png){ align=center width="800" }
+    ![mask-annotator-example](https://media.roboflow.com/supervision-annotator-examples/mask-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -249,14 +248,13 @@ Annotators accept detections and apply box or mask visualizations to the detecti
     polygon_annotator = sv.PolygonAnnotator()
     annotated_frame = polygon_annotator.annotate(
         scene=image.copy(),
-        detections=detections
+        detections=detections,
     )
     ```
 
     <div class="result" markdown>
 
-    ![polygon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    polygon-annotator-example-purple.png){ align=center width="800" }
+    ![polygon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/polygon-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -270,22 +268,21 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     labels = [
         f"{class_name} {confidence:.2f}"
-        for class_name, confidence
-        in zip(detections['class_name'], detections.confidence)
+        for class_name, confidence in zip(
+            detections["class_name"],
+            detections.confidence,
+        )
     ]
 
     label_annotator = sv.LabelAnnotator(text_position=sv.Position.CENTER)
     annotated_frame = label_annotator.annotate(
-        scene=image.copy(),
-        detections=detections,
-        labels=labels
+        scene=image.copy(), detections=detections, labels=labels
     )
     ```
 
     <div class="result" markdown>
 
-    ![label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    label-annotator-example-purple.png){ align=center width="800" }
+    ![label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/label-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -299,25 +296,26 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
     labels = [
         f"{class_name} {confidence:.2f}"
-        for class_name, confidence
-        in zip(detections['class_name'], detections.confidence)
+        for class_name, confidence in zip(
+            detections["class_name"],
+            detections.confidence,
+        )
     ]
 
     rich_label_annotator = sv.RichLabelAnnotator(
-        font_path="<TTF_FONT_PATH>",
-        text_position=sv.Position.CENTER
+        font_path="TTF_FONT_PATH",
+        text_position=sv.Position.CENTER,
     )
     annotated_frame = rich_label_annotator.annotate(
         scene=image.copy(),
         detections=detections,
-        labels=labels
+        labels=labels,
     )
     ```
 
     <div class="result" markdown>
 
-    ![label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    label-annotator-example-purple.png){ align=center width="800" }
+    ![label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/label-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -329,46 +327,43 @@ Annotators accept detections and apply box or mask visualizations to the detecti
     image = ...
     detections = sv.Detections(...)
 
-    icon_paths = [
-        "<ICON_PATH>"
-        for _ in detections
-    ]
+    icon_paths = ["<ICON_PATH>" for _ in detections]
 
     icon_annotator = sv.IconAnnotator()
     annotated_frame = icon_annotator.annotate(
         scene=image.copy(),
         detections=detections,
-        icon_path=icon_paths
+        icon_path=icon_paths,
     )
     ```
 
     <div class="result" markdown>
 
-    ![icon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    icon-annotator-example.png){ align=center width="800" }
+    ![icon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/icon-annotator-example.png){ align=center width="800" }
 
     </div>
 
     <!-- === "Crop"
 
-        ```python
-        import supervision as sv
+    ```python
+    import supervision as sv
 
-        image = ...
-        detections = sv.Detections(...)
+    image = ...
+    detections = sv.Detections(...)
 
-        crop_annotator = sv.CropAnnotator()
-        annotated_frame = crop_annotator.annotate(
-            scene=image.copy(),
-            detections=detections
-        )
-        ```
-        <div class="result" markdown>
+    crop_annotator = sv.CropAnnotator()
+    annotated_frame = crop_annotator.annotate(
+        scene=image.copy(),
+        detections=detections,
+    )
+    ```
 
-        ![crop-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-        crop-annotator-example.png){ align=center width="800" }
+    <div class="result" markdown>
 
-        </div>
+    ![crop-annotator-example](https://media.roboflow.com/supervision-annotator-examples/crop-annotator-example.png){ align=center width="800" }
+
+    </div>
+
     -->
 
 === "Blur"
@@ -380,16 +375,12 @@ Annotators accept detections and apply box or mask visualizations to the detecti
     detections = sv.Detections(...)
 
     blur_annotator = sv.BlurAnnotator()
-    annotated_frame = blur_annotator.annotate(
-        scene=image.copy(),
-        detections=detections
-    )
+    annotated_frame = (blur_annotator.annotate(scene=image.copy(), detections=detections),)
     ```
 
     <div class="result" markdown>
 
-    ![blur-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    blur-annotator-example-purple.png){ align=center width="800" }
+    ![blur-annotator-example](https://media.roboflow.com/supervision-annotator-examples/blur-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -404,14 +395,13 @@ Annotators accept detections and apply box or mask visualizations to the detecti
     pixelate_annotator = sv.PixelateAnnotator()
     annotated_frame = pixelate_annotator.annotate(
         scene=image.copy(),
-        detections=detections
+        detections=detections,
     )
     ```
 
     <div class="result" markdown>
 
-    ![pixelate-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    pixelate-annotator-example-10.png){ align=center width="800" }
+    ![pixelate-annotator-example](https://media.roboflow.com/supervision-annotator-examples/pixelate-annotator-example-10.png){ align=center width="800" }
 
     </div>
 
@@ -421,29 +411,29 @@ Annotators accept detections and apply box or mask visualizations to the detecti
     import supervision as sv
     from ultralytics import YOLO
 
-    model = YOLO('yolov8x.pt')
+    model = YOLO("yolov8x.pt")
 
     trace_annotator = sv.TraceAnnotator()
 
-    video_info = sv.VideoInfo.from_video_path(video_path='...')
-    frames_generator = sv.get_video_frames_generator(source_path='...')
+    video_info = sv.VideoInfo.from_video_path(video_path="...")
+    frames_generator = sv.get_video_frames_generator(source_path="...")
     tracker = sv.ByteTrack()
 
-    with sv.VideoSink(target_path='...', video_info=video_info) as sink:
+    with sv.VideoSink(target_path="...", video_info=video_info) as sink:
         for frame in frames_generator:
             result = model(frame)[0]
             detections = sv.Detections.from_ultralytics(result)
             detections = tracker.update_with_detections(detections)
             annotated_frame = trace_annotator.annotate(
                 scene=frame.copy(),
-                detections=detections)
+                detections=detections,
+            )
             sink.write_frame(frame=annotated_frame)
     ```
 
     <div class="result" markdown>
 
-    ![trace-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    trace-annotator-example-purple.png){ align=center width="800" }
+    ![trace-annotator-example](https://media.roboflow.com/supervision-annotator-examples/trace-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -453,27 +443,27 @@ Annotators accept detections and apply box or mask visualizations to the detecti
     import supervision as sv
     from ultralytics import YOLO
 
-    model = YOLO('yolov8x.pt')
+    model = YOLO("yolov8x.pt")
 
     heat_map_annotator = sv.HeatMapAnnotator()
 
-    video_info = sv.VideoInfo.from_video_path(video_path='...')
-    frames_generator = sv.get_video_frames_generator(source_path='...')
+    video_info = sv.VideoInfo.from_video_path(video_path="...")
+    frames_generator = sv.get_video_frames_generator(source_path="...")
 
-    with sv.VideoSink(target_path='...', video_info=video_info) as sink:
+    with sv.VideoSink(target_path="...", video_info=video_info) as sink:
         for frame in frames_generator:
             result = model(frame)[0]
             detections = sv.Detections.from_ultralytics(result)
             annotated_frame = heat_map_annotator.annotate(
                 scene=frame.copy(),
-                detections=detections)
+                detections=detections,
+            )
             sink.write_frame(frame=annotated_frame)
     ```
 
     <div class="result" markdown>
 
-    ![heat-map-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    heat-map-annotator-example-purple.png){ align=center width="800" }
+    ![heat-map-annotator-example](https://media.roboflow.com/supervision-annotator-examples/heat-map-annotator-example-purple.png){ align=center width="800" }
 
     </div>
 
@@ -488,7 +478,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
     background_overlay_annotator = sv.BackgroundOverlayAnnotator()
     annotated_frame = background_overlay_annotator.annotate(
         scene=image.copy(),
-        detections=detections
+        detections=detections,
     )
     ```
 
@@ -511,14 +501,13 @@ Annotators accept detections and apply box or mask visualizations to the detecti
     annotated_frame = comparison_annotator.annotate(
         scene=image.copy(),
         detections_1=detections_1,
-        detections_2=detections_2
+        detections_2=detections_2,
     )
     ```
 
     <div class="result" markdown>
 
-    ![comparison-annotator-example](https://media.roboflow.com/supervision-annotator-examples/
-    comparison-annotator-example.png){ align=center width="800" }
+    ![comparison-annotator-example](https://media.roboflow.com/supervision-annotator-examples/comparison-annotator-example.png){ align=center width="800" }
 
     </div>
 
