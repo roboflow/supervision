@@ -1,0 +1,37 @@
+name: Docs/Test Workflow
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: docs-test-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Restrict permissions by default
+permissions:
+  contents: read # Required for checkout
+  checks: write # Required for test reporting
+
+jobs:
+  docs-build:
+    name: Test docs build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 📥 Checkout the repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: 🐍 Install uv and set Python
+        uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b # v7.3.0
+        with:
+          python-version: "3.10"
+          activate-environment: true
+
+      - name: 🏗️ Install dependencies
+        run: uv sync --frozen --group docs
+
+      - name: 🧪 Test Docs Build
+        run: mkdocs build --verbose
