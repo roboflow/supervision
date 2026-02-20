@@ -365,7 +365,10 @@ class Trace:
         self.current_frame_id += 1
 
     def get(self, tracker_id: int) -> np.ndarray[Any, np.dtype[np.float32]]:
-        return self.xy[self.tracker_id == tracker_id].copy()
+        filtered: np.ndarray[Any, np.dtype[np.float32]] = (
+            self.xy[self.tracker_id == tracker_id].copy().astype(np.float32, copy=False)
+        )
+        return filtered
 
 
 def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:

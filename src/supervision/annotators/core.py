@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from math import sqrt
-from typing import Any
+from typing import Any, overload
 
 import cv2
 import numpy as np
@@ -45,6 +45,30 @@ from supervision.utils.image import (
     overlay_image,
     scale_image,
 )
+
+
+@overload
+def _normalize_color_input(color: Color | str) -> Color: ...
+
+
+@overload
+def _normalize_color_input(
+    color: Color | ColorPalette | str,
+) -> Color | ColorPalette: ...
+
+
+def _normalize_color_input(color: Color | ColorPalette | str) -> Color | ColorPalette:
+    """Normalize accepted color inputs to internal color objects.
+
+    Accepts `Color`, `ColorPalette`, or hex string input. Hex strings are parsed via
+    `hex_to_rgba` and converted to `Color` (alpha channel is ignored because annotator
+    drawing uses RGB/BGR colors).
+    """
+    if isinstance(color, str):
+        r, g, b, _ = hex_to_rgba(color)
+        return Color.from_rgb_tuple((r, g, b))
+    return color
+
 
 CV2_FONT = cv2.FONT_HERSHEY_SIMPLEX
 
@@ -103,15 +127,9 @@ class _BaseLabelAnnotator(BaseAnnotator):
             max_line_length: Maximum number of characters per
                 line before wrapping the text. None means no wrapping.
         """
-        if isinstance(color, str):
-            r, g, b, _ = hex_to_rgba(color)
-            color = Color.from_rgb_tuple((r, g, b))
-        if isinstance(text_color, str):
-            r, g, b, _ = hex_to_rgba(text_color)
-            text_color = Color.from_rgb_tuple((r, g, b))
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.color_lookup: ColorLookup = color_lookup
-        self.text_color: Color | ColorPalette = text_color
+        self.text_color: Color | ColorPalette = _normalize_color_input(text_color)
         self.text_padding: int = text_padding
         self.text_anchor: Position = text_position
         self.text_offset: tuple[int, int] = text_offset
@@ -169,7 +187,7 @@ class BoxAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -181,7 +199,7 @@ class BoxAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
@@ -256,7 +274,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -268,7 +286,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
@@ -347,7 +365,7 @@ class MaskAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         opacity: float = 0.5,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -359,7 +377,7 @@ class MaskAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.opacity = opacity
         self.color_lookup: ColorLookup = color_lookup
 
@@ -442,7 +460,7 @@ class PolygonAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -454,7 +472,7 @@ class PolygonAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
@@ -533,7 +551,7 @@ class ColorAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         opacity: float = 0.5,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -545,7 +563,7 @@ class ColorAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.color_lookup: ColorLookup = color_lookup
         self.opacity = opacity
 
@@ -629,7 +647,7 @@ class HaloAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         opacity: float = 0.8,
         kernel_size: int = 40,
         color_lookup: ColorLookup = ColorLookup.CLASS,
@@ -644,7 +662,7 @@ class HaloAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.opacity = opacity
         self.color_lookup: ColorLookup = color_lookup
         self.kernel_size: int = kernel_size
@@ -731,7 +749,7 @@ class EllipseAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         start_angle: int = -45,
         end_angle: int = 235,
@@ -747,7 +765,7 @@ class EllipseAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.start_angle: int = start_angle
         self.end_angle: int = end_angle
@@ -830,7 +848,7 @@ class BoxCornerAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 4,
         corner_length: int = 15,
         color_lookup: ColorLookup = ColorLookup.CLASS,
@@ -844,7 +862,7 @@ class BoxCornerAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.corner_length: int = corner_length
         self.color_lookup: ColorLookup = color_lookup
@@ -925,7 +943,7 @@ class CircleAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -938,7 +956,7 @@ class CircleAnnotator(BaseAnnotator):
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
 
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
@@ -1018,12 +1036,12 @@ class DotAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         radius: int = 4,
         position: Position = Position.CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         outline_thickness: int = 0,
-        outline_color: Color | ColorPalette = Color.BLACK,
+        outline_color: Color | ColorPalette | str = Color.BLACK,
     ):
         """
         Args:
@@ -1038,12 +1056,12 @@ class DotAnnotator(BaseAnnotator):
                 use for outline. It is activated by setting outline_thickness to a value
                 greater than 0.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.radius: int = radius
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
         self.outline_thickness = outline_thickness
-        self.outline_color: Color | ColorPalette = outline_color
+        self.outline_color: Color | ColorPalette = _normalize_color_input(outline_color)
 
     @ensure_cv2_image_for_class_method
     def annotate(
@@ -1128,9 +1146,9 @@ class LabelAnnotator(_BaseLabelAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-        text_color: Color | ColorPalette = Color.WHITE,
+        text_color: Color | ColorPalette | str = Color.WHITE,
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
@@ -1444,9 +1462,9 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-        text_color: Color | ColorPalette = Color.WHITE,
+        text_color: Color | ColorPalette | str = Color.WHITE,
         font_path: str | None = None,
         font_size: int = 10,
         text_padding: int = 10,
@@ -1892,7 +1910,7 @@ class TraceAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         position: Position = Position.CENTER,
         trace_length: int = 30,
         thickness: int = 2,
@@ -1912,7 +1930,7 @@ class TraceAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.trace = Trace(max_size=trace_length, anchor=position)
         self.thickness = thickness
         self.smooth = smooth
@@ -2197,13 +2215,13 @@ class TriangleAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         base: int = 10,
         height: int = 10,
         position: Position = Position.TOP_CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         outline_thickness: int = 0,
-        outline_color: Color | ColorPalette = Color.BLACK,
+        outline_color: Color | ColorPalette | str = Color.BLACK,
     ):
         """
         Args:
@@ -2219,13 +2237,13 @@ class TriangleAnnotator(BaseAnnotator):
                 use for outline. It is activated by setting outline_thickness to a value
                 greater than 0.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.base: int = base
         self.height: int = height
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
         self.outline_thickness: int = outline_thickness
-        self.outline_color: Color | ColorPalette = outline_color
+        self.outline_color: Color | ColorPalette = _normalize_color_input(outline_color)
 
     @ensure_cv2_image_for_class_method
     def annotate(
@@ -2319,7 +2337,7 @@ class RoundBoxAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         roundness: float = 0.6,
@@ -2336,7 +2354,7 @@ class RoundBoxAnnotator(BaseAnnotator):
                 By default roundness percent is calculated based on smaller side
                 length (width or height).
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
         if not 0 < roundness <= 1.0:
@@ -2456,8 +2474,8 @@ class PercentageBarAnnotator(BaseAnnotator):
         self,
         height: int = 16,
         width: int = 80,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
-        border_color: Color = Color.BLACK,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
+        border_color: Color | str = Color.BLACK,
         position: Position = Position.TOP_CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         border_thickness: int | None = None,
@@ -2476,8 +2494,8 @@ class PercentageBarAnnotator(BaseAnnotator):
         """
         self.height: int = height
         self.width: int = width
-        self.color: Color | ColorPalette = color
-        self.border_color: Color = border_color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
+        self.border_color: Color = _normalize_color_input(border_color)
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
 
@@ -2651,7 +2669,7 @@ class CropAnnotator(BaseAnnotator):
         self,
         position: Position = Position.TOP_CENTER,
         scale_factor: float = 2.0,
-        border_color: Color | ColorPalette = ColorPalette.DEFAULT,
+        border_color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         border_thickness: int = 2,
         border_color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -2670,7 +2688,7 @@ class CropAnnotator(BaseAnnotator):
         """
         self.position: Position = position
         self.scale_factor: float = scale_factor
-        self.border_color: Color | ColorPalette = border_color
+        self.border_color: Color | ColorPalette = _normalize_color_input(border_color)
         self.border_thickness: int = border_thickness
         self.border_color_lookup: ColorLookup = border_color_lookup
 
