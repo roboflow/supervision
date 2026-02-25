@@ -265,7 +265,7 @@ class TestClassNamePopulation:
             ann2.data[CLASS_NAME_DATA_FIELD], np.array(["cat"])
         )
 
-    def test_class_name_from_yolo(self, tmp_path: str) -> None:
+    def test_class_name_from_yolo(self, tmp_path: Path) -> None:
         """Integration test: from_yolo should produce class_name data."""
         dataset_info = create_yolo_dataset(
             str(tmp_path), num_images=2, classes=["cat", "dog"]
