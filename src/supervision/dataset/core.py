@@ -12,6 +12,7 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision.classification.core import Classifications
+from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.dataset.formats.coco import (
     load_coco_annotations,
     save_coco_annotations,
@@ -83,6 +84,14 @@ class DetectionDataset(BaseDataset):
                 "The keys of the images and annotations dictionaries must match."
             )
         self.annotations = annotations
+
+        if self.classes:
+            np_classes = np.array(self.classes)
+            for annotation in self.annotations.values():
+                if annotation.class_id is not None:
+                    annotation.data[CLASS_NAME_DATA_FIELD] = np_classes[
+                        annotation.class_id
+                    ]
 
         # Eliminate duplicates while preserving order
         self.image_paths = list(dict.fromkeys(images))
