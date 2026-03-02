@@ -131,6 +131,24 @@ class CompactMask:
     * ``np.asarray(mask)`` → dense ``(N, H, W)`` bool array (numpy interop).
     * ``mask.shape``, ``mask.dtype``, ``mask.area`` — match the dense API.
 
+    :class:`CompactMask` is **not** a drop-in ``np.ndarray`` replacement.
+    When you need to call arbitrary ndarray methods (``astype``, ``reshape``,
+    ``ravel``, ``any``, ``all``, …) call :meth:`to_dense` first:
+    ``cm.to_dense().astype(np.uint8)``.  :meth:`to_dense` is the single
+    explicit materialisation boundary.
+
+    .. note:: **RLE encoding incompatibility with pycocotools / COCO API**
+
+        :class:`CompactMask` uses **row-major (C-order)** run-lengths scoped
+        to each mask's bounding-box crop.  The COCO API (pycocotools) uses
+        **column-major (Fortran-order)** run-lengths scoped to the **full
+        image**.  The two formats are not interchangeable: you cannot pass a
+        :class:`CompactMask` RLE directly to ``maskUtils.iou()`` or
+        ``maskUtils.decode()``, and you cannot load a COCO RLE dict into a
+        :class:`CompactMask` without re-encoding.  Use
+        :meth:`to_dense` to obtain a standard boolean array, then pass it to
+        pycocotools if needed.
+
     Args:
         rles: List of N int32 run-length arrays.
         crop_shapes: Array of shape ``(N, 2)`` — ``(crop_h, crop_w)`` per mask.

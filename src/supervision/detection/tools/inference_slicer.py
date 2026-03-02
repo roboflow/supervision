@@ -82,6 +82,15 @@ class InferenceSlicer:
         overlap_metric (OverlapMetric or str): Metric to compute overlap
             (`IOU` or `IOS`).
         thread_workers (int): Number of threads for concurrent slice inference.
+        compact_masks (bool): If ``True``, dense ``(N, H, W)`` boolean mask
+            arrays returned by the callback are immediately converted to a
+            :class:`~supervision.detection.compact_mask.CompactMask`. This
+            keeps masks in run-length-encoded form for the entire pipeline —
+            merge, NMS, and annotation — avoiding the large ``(N, H, W)``
+            allocations that cause OOM on high-resolution images with many
+            objects. IoU and NMS are computed directly on the RLE crops
+            without ever materialising a full ``(N, H, W)`` array.
+            Defaults to ``False`` for backward compatibility.
 
     Raises:
         ValueError: If `slice_wh` or `overlap_wh` are invalid or inconsistent.
@@ -130,6 +139,7 @@ class InferenceSlicer:
         iou_threshold: float = 0.5,
         overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
         thread_workers: int = 1,
+        compact_masks: bool = False,
     ):
         slice_wh_norm = self._normalize_slice_wh(slice_wh)
         overlap_wh_norm = self._normalize_overlap_wh(overlap_wh)
@@ -143,6 +153,7 @@ class InferenceSlicer:
         self.overlap_filter = OverlapFilter.from_value(overlap_filter)
         self.callback = callback
         self.thread_workers = thread_workers
+        self.compact_masks = compact_masks
 
     def __call__(self, image: ImageType) -> Detections:
         """
@@ -204,8 +215,22 @@ class InferenceSlicer:
         """
         image_slice: ImageType = crop_image(image=image, xyxy=offset)
         detections = self.callback(image_slice)
-        resolution_wh = get_image_resolution_wh(image)
 
+        if (
+            self.compact_masks
+            and detections.mask is not None
+            and isinstance(detections.mask, np.ndarray)
+        ):
+            from supervision.detection.compact_mask import CompactMask
+
+            slice_w, slice_h = get_image_resolution_wh(image_slice)
+            detections.mask = CompactMask.from_dense(
+                detections.mask,
+                detections.xyxy,
+                image_shape=(slice_h, slice_w),
+            )
+
+        resolution_wh = get_image_resolution_wh(image)
         detections = move_detections(
             detections=detections,
             offset=offset[:2],
