@@ -181,8 +181,10 @@ class CompactMask:
     ) -> CompactMask:
         """Create a :class:`CompactMask` from a dense ``(N, H, W)`` bool array.
 
-        Bounding boxes are clipped to the image bounds before encoding.  A
-        zero-area box is replaced by a 1x1 crop to avoid degenerate RLE.
+        Bounding boxes are clipped to image bounds and interpreted in the
+        supervision ``xyxy`` convention (inclusive max coordinates). A
+        box with invalid ordering (``x2 < x1`` or ``y2 < y1``) is replaced by
+        a ``1x1`` all-False crop to avoid degenerate RLE.
 
         Args:
             masks: Dense boolean mask array of shape ``(N, H, W)``.
@@ -223,20 +225,20 @@ class CompactMask:
 
         for i in range(n):
             x1, y1, x2, y2 = xyxy[i]
-            x1c = int(max(0, min(int(x1), w)))
-            y1c = int(max(0, min(int(y1), h)))
-            x2c = int(max(0, min(int(x2), w)))
-            y2c = int(max(0, min(int(y2), h)))
+            x1c = int(max(0, min(int(x1), w - 1)))
+            y1c = int(max(0, min(int(y1), h - 1)))
+            x2c = int(max(0, min(int(x2), w - 1)))
+            y2c = int(max(0, min(int(y2), h - 1)))
 
-            # Avoid degenerate (zero-area) crops.
-            if x2c <= x1c or y2c <= y1c:
+            # supervision xyxy uses inclusive max coords, so slicing must add +1.
+            if x2c < x1c or y2c < y1c:
                 crop = np.zeros((1, 1), dtype=bool)
-                x2c, y2c = x1c + 1, y1c + 1
+                x2c, y2c = x1c, y1c
             else:
-                crop = masks[i, y1c:y2c, x1c:x2c]
+                crop = masks[i, y1c : y2c + 1, x1c : x2c + 1]
 
-            crop_h = y2c - y1c
-            crop_w = x2c - x1c
+            crop_h = y2c - y1c + 1
+            crop_w = x2c - x1c + 1
             rles.append(_rle_encode(crop))
             crop_shapes_list.append((crop_h, crop_w))
             offsets_list.append((x1c, y1c))
@@ -352,6 +354,28 @@ class CompactMask:
         """
         h, w = self._image_shape
         return (len(self), h, w)
+
+    @property
+    def offsets(self) -> npt.NDArray[np.int32]:
+        """Return per-mask crop origins as ``(x1, y1)`` integer offsets.
+
+        Returns:
+            Array of shape ``(N, 2)`` with ``int32`` offsets.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> masks = np.zeros((1, 10, 10), dtype=bool)
+            >>> masks[0, 2:4, 3:5] = True
+            >>> xyxy = np.array([[3, 2, 4, 3]], dtype=np.float32)
+            >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(10, 10))
+            >>> cm.offsets.tolist()
+            [[3, 2]]
+
+            ```
+        """
+        return self._offsets
 
     @property
     def dtype(self) -> np.dtype[Any]:
@@ -632,7 +656,7 @@ class CompactMask:
             >>> xyxy = np.array([[5, 5, 15, 15]], dtype=np.float32)
             >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(20, 20))
             >>> cm2 = cm.with_offset(100, 200, new_image_shape=(400, 400))
-            >>> cm2._offsets[0].tolist()
+            >>> cm2.offsets[0].tolist()
             [105, 205]
 
             ```

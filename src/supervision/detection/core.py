@@ -4,7 +4,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import reduce
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -57,6 +57,9 @@ from supervision.detection.vlm import (
 from supervision.geometry.core import Position
 from supervision.utils.internal import deprecated, get_instance_variables
 from supervision.validators import validate_detections_fields, validate_resolution
+
+if TYPE_CHECKING:
+    from supervision.detection.compact_mask import CompactMask
 
 
 @dataclass
@@ -131,8 +134,9 @@ class Detections:
     Attributes:
         xyxy (np.ndarray): An array of shape `(n, 4)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`
-        mask: (Optional[np.ndarray]): An array of shape
-            `(n, H, W)` containing the segmentation masks (`bool` data type).
+        mask: (Optional[Union[np.ndarray, CompactMask]]): Segmentation masks as a
+            dense array of shape `(n, H, W)` with `bool` data type, or as
+            :class:`~supervision.detection.compact_mask.CompactMask`.
         confidence (Optional[np.ndarray]): An array of shape
             `(n,)` containing the confidence scores of the detections.
         class_id (Optional[np.ndarray]): An array of shape
@@ -148,7 +152,7 @@ class Detections:
     """  # noqa: E501 // docs
 
     xyxy: np.ndarray
-    mask: np.ndarray | None = None  # also accepts CompactMask
+    mask: np.ndarray | CompactMask | None = None
     confidence: np.ndarray | None = None
     class_id: np.ndarray | None = None
     tracker_id: np.ndarray | None = None

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from math import sqrt
-from typing import Any, cast, overload
+from typing import Any, overload
 
 import cv2
 import numpy as np
@@ -437,9 +437,7 @@ class MaskAnnotator(BaseAnnotator):
         from supervision.detection.compact_mask import CompactMask
 
         compact_mask = (
-            cast(CompactMask, detections.mask)
-            if isinstance(detections.mask, CompactMask)
-            else None
+            detections.mask if isinstance(detections.mask, CompactMask) else None
         )
         for detection_idx in np.flip(np.argsort(detections.area)):
             color = resolve_color(
@@ -452,11 +450,10 @@ class MaskAnnotator(BaseAnnotator):
             )
             if compact_mask is not None:
                 # Paint only the bounding-box crop — avoids a full (H, W) alloc.
-                x1 = int(compact_mask._offsets[detection_idx, 0])
-                y1 = int(compact_mask._offsets[detection_idx, 1])
-                crop_h = int(compact_mask._crop_shapes[detection_idx, 0])
-                crop_w = int(compact_mask._crop_shapes[detection_idx, 1])
+                x1 = int(compact_mask.offsets[detection_idx, 0])
+                y1 = int(compact_mask.offsets[detection_idx, 1])
                 crop_m = compact_mask.crop(detection_idx)
+                crop_h, crop_w = crop_m.shape
                 colored_mask[y1 : y1 + crop_h, x1 : x1 + crop_w][crop_m] = (
                     color.as_bgr()
                 )
@@ -2920,7 +2917,7 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
             for x1, y1, x2, y2 in detections.xyxy.astype(int):
                 colored_mask[y1:y2, x1:x2] = scene[y1:y2, x1:x2]
         else:
-            for mask in detections.mask:
+            for mask in np.asarray(detections.mask):
                 mask = np.asarray(mask, dtype=bool)
                 colored_mask[mask] = scene[mask]
 
@@ -3118,7 +3115,7 @@ class ComparisonAnnotator:
             return mask
         assert detections.mask is not None
 
-        for detections_mask in detections.mask:
+        for detections_mask in np.asarray(detections.mask):
             mask |= detections_mask.astype(np.bool_)
         return mask
 

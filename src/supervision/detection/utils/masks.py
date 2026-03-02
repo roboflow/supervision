@@ -111,11 +111,10 @@ def calculate_masks_centroids(
 
         centroids = np.zeros((n, 2), dtype=np.float64)
         for i in range(n):
-            crop_h = int(masks._crop_shapes[i, 0])
-            crop_w = int(masks._crop_shapes[i, 1])
-            x1 = int(masks._offsets[i, 0])
-            y1 = int(masks._offsets[i, 1])
             crop = masks.crop(i)
+            crop_h, crop_w = crop.shape
+            x1 = int(masks.offsets[i, 0])
+            y1 = int(masks.offsets[i, 1])
             total = int(crop.sum())
             if total == 0:
                 total = 1  # avoid division by zero (same as dense path)

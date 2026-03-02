@@ -162,6 +162,7 @@ __all__ = [
     "ColorAnnotator",
     "ColorLookup",
     "ColorPalette",
+    "CompactMask",
     "ComparisonAnnotator",
     "ConfusionMatrix",
     "CropAnnotator",

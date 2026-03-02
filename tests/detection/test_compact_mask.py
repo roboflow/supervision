@@ -13,6 +13,7 @@ from supervision.detection.compact_mask import (
     _rle_decode,
     _rle_encode,
 )
+from supervision.detection.utils.converters import mask_to_xyxy
 
 
 def _make_cm(masks: np.ndarray, image_shape: tuple[int, int]) -> CompactMask:
@@ -101,6 +102,17 @@ class TestFromDenseToDense:
         h, w = image_shape
         masks = rng.integers(0, 2, size=(n, h, w)).astype(bool)
         cm = _make_cm(masks, image_shape)
+        np.testing.assert_array_equal(cm.to_dense(), masks)
+
+    def test_round_trip_with_mask_to_xyxy(self) -> None:
+        """Round-trip must be lossless with inclusive xyxy from mask_to_xyxy."""
+        h, w = 12, 14
+        masks = np.zeros((1, h, w), dtype=bool)
+        masks[0, 3:7, 4:9] = True  # non-full-image object
+
+        xyxy = mask_to_xyxy(masks).astype(np.float32)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+
         np.testing.assert_array_equal(cm.to_dense(), masks)
 
 
@@ -224,7 +236,7 @@ class TestCrop:
         h, w = 50, 60
         masks = np.zeros((1, h, w), dtype=bool)
         masks[0, 10:30, 5:25] = True  # 20 x 20 region
-        xyxy = np.array([[5, 10, 25, 30]], dtype=np.float32)
+        xyxy = np.array([[5, 10, 24, 29]], dtype=np.float32)
         cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
 
         crop = cm.crop(0)
@@ -355,9 +367,9 @@ class TestEdgeCases:
     """
 
     def test_zero_area_mask_clipped_to_1x1(self) -> None:
-        """A zero-area bounding box should not crash from_dense."""
+        """An invalid bounding box should not crash from_dense."""
         masks = np.zeros((1, 10, 10), dtype=bool)
-        xyxy = np.array([[5, 5, 5, 8]], dtype=np.float32)
+        xyxy = np.array([[6, 5, 5, 8]], dtype=np.float32)
         with DoesNotRaise():
             cm = CompactMask.from_dense(masks, xyxy, image_shape=(10, 10))
         assert len(cm) == 1
@@ -366,7 +378,7 @@ class TestEdgeCases:
         h, w = 20, 20
         masks = np.zeros((1, h, w), dtype=bool)
         masks[0, 15:20, 15:20] = True
-        xyxy = np.array([[15, 15, 20, 20]], dtype=np.float32)
+        xyxy = np.array([[15, 15, 19, 19]], dtype=np.float32)
         cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
         np.testing.assert_array_equal(cm.to_dense(), masks)
 
@@ -401,10 +413,10 @@ class TestEdgeCases:
         h, w = 20, 20
         masks = np.zeros((1, h, w), dtype=bool)
         masks[0, 5:10, 5:10] = True
-        xyxy = np.array([[5, 5, 10, 10]], dtype=np.float32)
+        xyxy = np.array([[5, 5, 9, 9]], dtype=np.float32)
         cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
 
         cm2 = cm.with_offset(100, 200, new_image_shape=(400, 400))
-        assert cm2._offsets[0].tolist() == [105, 205]
+        assert cm2.offsets[0].tolist() == [105, 205]
         assert cm2._image_shape == (400, 400)
         np.testing.assert_array_equal(cm2.crop(0), cm.crop(0))
