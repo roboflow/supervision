@@ -95,11 +95,38 @@ def calculate_masks_centroids(
     Parameters:
         masks (np.ndarray): A 3D NumPy array of shape (num_masks, height, width).
             Each 2D array in the tensor represents a binary mask.
+            Also accepts a :class:`~supervision.detection.compact_mask.CompactMask`.
 
     Returns:
         A 2D NumPy array of shape (num_masks, 2), where each row contains the x and y
             coordinates (in that order) of the centroid of the corresponding mask.
     """
+    from supervision.detection.compact_mask import CompactMask
+
+    if isinstance(masks, CompactMask):
+        # Compute centroids per-crop to avoid materialising the full (N, H, W) array.
+        n = len(masks)
+        if n == 0:
+            return cast(npt.NDArray[np.int_], np.empty((0, 2), dtype=int))
+
+        centroids = np.zeros((n, 2), dtype=np.float64)
+        for i in range(n):
+            crop_h = int(masks._crop_shapes[i, 0])
+            crop_w = int(masks._crop_shapes[i, 1])
+            x1 = int(masks._offsets[i, 0])
+            y1 = int(masks._offsets[i, 1])
+            crop = masks.crop(i)
+            total = int(crop.sum())
+            if total == 0:
+                total = 1  # avoid division by zero (same as dense path)
+            # Match the +0.5 offset used by the dense implementation.
+            crop_rows, crop_cols = np.indices((crop_h, crop_w))
+            cx = float(np.sum((crop_cols + 0.5)[crop])) / total + x1
+            cy = float(np.sum((crop_rows + 0.5)[crop])) / total + y1
+            centroids[i] = [cx, cy]
+
+        return cast(npt.NDArray[np.int_], centroids.astype(int))
+
     _num_masks, height, width = masks.shape
     total_pixels = masks.sum(axis=(1, 2))
 

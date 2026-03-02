@@ -148,7 +148,7 @@ class Detections:
     """  # noqa: E501 // docs
 
     xyxy: np.ndarray
-    mask: np.ndarray | None = None
+    mask: np.ndarray | None = None  # also accepts CompactMask
     confidence: np.ndarray | None = None
     class_id: np.ndarray | None = None
     tracker_id: np.ndarray | None = None
@@ -2133,11 +2133,15 @@ class Detections:
                 return None
             if any(d.__getattribute__(name) is None for d in detections_list):
                 raise ValueError(f"All or none of the '{name}' fields must be None")
-            return (
-                np.vstack([d.__getattribute__(name) for d in detections_list])
-                if name == "mask"
-                else np.hstack([d.__getattribute__(name) for d in detections_list])
-            )
+            if name == "mask":
+                from supervision.detection.compact_mask import CompactMask
+
+                masks = [d.__getattribute__(name) for d in detections_list]
+                if all(isinstance(m, CompactMask) for m in masks):
+                    return CompactMask.merge(masks)
+                # Mixed or all-ndarray: __array__ auto-converts any CompactMask.
+                return np.vstack([np.asarray(m) for m in masks])
+            return np.hstack([d.__getattribute__(name) for d in detections_list])
 
         mask = stack_or_none("mask")
         confidence = stack_or_none("confidence")
@@ -2323,6 +2327,10 @@ class Detections:
             where n is the number of detections.
         """
         if self.mask is not None:
+            from supervision.detection.compact_mask import CompactMask
+
+            if isinstance(self.mask, CompactMask):
+                return self.mask.area
             return np.array([np.sum(mask) for mask in self.mask])
         else:
             return self.box_area

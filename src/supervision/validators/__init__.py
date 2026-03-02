@@ -27,6 +27,14 @@ def validate_mask(mask: Any, n: int) -> None:
     if mask is None:
         return
 
+    # Fast path: CompactMask only needs a length check.
+    from supervision.detection.compact_mask import CompactMask
+
+    if isinstance(mask, CompactMask):
+        if len(mask) != n:
+            raise ValueError(f"mask must contain {n} masks, but got {len(mask)}")
+        return
+
     expected_shape = f"({n}, H, W)"
     actual_shape = str(getattr(mask, "shape", None))
     actual_dtype = getattr(mask, "dtype", None)

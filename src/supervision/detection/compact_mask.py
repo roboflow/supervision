@@ -1,0 +1,648 @@
+"""Crop-RLE compact mask storage for memory-efficient instance segmentation.
+
+Dense ``(N, H, W)`` boolean masks use O(N·H·W) memory, which becomes
+prohibitive for aerial imagery (e.g. 1000 objects x 4K image ~ 8.3 GB).
+:class:`CompactMask` stores each mask as a run-length encoding of its
+bounding-box crop, reducing typical usage to tens of MB.
+
+The bounding boxes (``xyxy``) already present in ``Detections`` serve as the
+crop boundaries, so no extra metadata is required from the caller.
+"""
+
+from __future__ import annotations
+
+from typing import Any, cast
+
+import numpy as np
+import numpy.typing as npt
+
+
+def _rle_encode(mask_2d: npt.NDArray[Any]) -> npt.NDArray[np.int32]:
+    """Run-length encode a 2D boolean mask in row-major order.
+
+    The encoding starts with the count of leading ``False`` values (may be 0
+    if the mask begins with ``True``).  Subsequent values alternate between
+    ``True`` and ``False`` run counts.
+
+    Args:
+        mask_2d: 2D boolean array of shape ``(H, W)``.
+
+    Returns:
+        int32 array of run lengths, starting with the False count.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.compact_mask import _rle_encode
+        >>> mask = np.array([[False, True, True], [True, False, False]])
+        >>> _rle_encode(mask).tolist()
+        [1, 3, 2]
+
+        ```
+    """
+    flat = mask_2d.ravel()  # C-order (row-major)
+    if len(flat) == 0:
+        return np.array([0], dtype=np.int32)
+
+    # Locate positions where the boolean value changes.
+    changes = np.diff(flat.view(np.uint8))
+    boundaries = np.where(changes != 0)[0] + 1
+
+    positions = np.concatenate(([0], boundaries, [len(flat)]))
+    run_lengths = np.diff(positions).astype(np.int32)
+
+    # Guarantee the encoding always starts with a False count.
+    if flat[0]:
+        run_lengths = np.concatenate(([np.int32(0)], run_lengths))
+
+    return run_lengths
+
+
+def _rle_decode(
+    rle: npt.NDArray[np.int32], height: int, width: int
+) -> npt.NDArray[np.bool_]:
+    """Decode a run-length encoded mask back to a 2D boolean array.
+
+    Args:
+        rle: int32 array of run lengths as produced by :func:`_rle_encode`.
+        height: Height of the output array.
+        width: Width of the output array.
+
+    Returns:
+        2D boolean array of shape ``(height, width)``.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.compact_mask import _rle_decode
+        >>> rle = np.array([1, 3, 2], dtype=np.int32)
+        >>> _rle_decode(rle, 2, 3)
+        array([[False,  True,  True],
+               [ True, False, False]])
+
+        ```
+    """
+    # Even-indexed entries → False runs; odd-indexed entries → True runs.
+    is_true = np.arange(len(rle)) % 2 == 1
+    flat = np.repeat(is_true, rle)
+    n = height * width
+    if len(flat) < n:
+        # Pad with False if the RLE is shorter than expected (e.g. all-False
+        # tails are often omitted during encoding).
+        flat = np.pad(flat, (0, n - len(flat)))
+    return cast(npt.NDArray[np.bool_], flat[:n].reshape(height, width))
+
+
+def _rle_area(rle: npt.NDArray[np.int32]) -> int:
+    """Return the number of ``True`` pixels in a run-length encoded mask.
+
+    Args:
+        rle: int32 array of run lengths as produced by :func:`_rle_encode`.
+
+    Returns:
+        Total number of ``True`` pixels.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.compact_mask import _rle_area
+        >>> rle = np.array([1, 3, 2], dtype=np.int32)  # 1 F, 3 T, 2 F
+        >>> _rle_area(rle)
+        3
+
+        ```
+    """
+    return int(np.sum(rle[1::2]))
+
+
+class CompactMask:
+    """Memory-efficient crop-RLE mask storage for instance segmentation.
+
+    Instead of storing N full ``(H, W)`` boolean arrays, :class:`CompactMask`
+    encodes each mask as a run-length sequence of its bounding-box crop.  This
+    reduces memory from O(N·H·W) to roughly O(N·bbox_area), which is orders of
+    magnitude smaller for sparse masks on high-resolution images.
+
+    The class exposes a duck-typed interface compatible with ``np.ndarray``
+    masks used elsewhere in ``supervision``:
+
+    * ``mask[int]`` → dense ``(H, W)`` bool array (annotators, converters).
+    * ``mask[slice | list | ndarray]`` → new :class:`CompactMask` (filtering).
+    * ``np.asarray(mask)`` → dense ``(N, H, W)`` bool array (numpy interop).
+    * ``mask.shape``, ``mask.dtype``, ``mask.area`` — match the dense API.
+
+    Args:
+        rles: List of N int32 run-length arrays.
+        crop_shapes: Array of shape ``(N, 2)`` — ``(crop_h, crop_w)`` per mask.
+        offsets: Array of shape ``(N, 2)`` — ``(x1, y1)`` bounding-box origins.
+        image_shape: ``(H, W)`` of the full image.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.compact_mask import CompactMask
+        >>> masks = np.zeros((2, 100, 100), dtype=bool)
+        >>> masks[0, 10:20, 10:20] = True
+        >>> masks[1, 50:70, 50:80] = True
+        >>> xyxy = np.array([[10, 10, 20, 20], [50, 50, 80, 70]], dtype=np.float32)
+        >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(100, 100))
+        >>> len(cm)
+        2
+        >>> cm.shape
+        (2, 100, 100)
+
+        ```
+    """
+
+    __slots__ = ("_crop_shapes", "_image_shape", "_offsets", "_rles")
+
+    def __init__(
+        self,
+        rles: list[npt.NDArray[np.int32]],
+        crop_shapes: npt.NDArray[np.int32],
+        offsets: npt.NDArray[np.int32],
+        image_shape: tuple[int, int],
+    ) -> None:
+        self._rles: list[npt.NDArray[np.int32]] = rles
+        self._crop_shapes: npt.NDArray[np.int32] = crop_shapes  # (N,2): (h,w)
+        self._offsets: npt.NDArray[np.int32] = offsets  # (N,2): (x1,y1)
+        self._image_shape: tuple[int, int] = image_shape  # (H, W)
+
+    # ------------------------------------------------------------------
+    # Construction
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def from_dense(
+        cls,
+        masks: npt.NDArray[np.bool_],
+        xyxy: npt.NDArray[Any],
+        image_shape: tuple[int, int],
+    ) -> CompactMask:
+        """Create a :class:`CompactMask` from a dense ``(N, H, W)`` bool array.
+
+        Bounding boxes are clipped to the image bounds before encoding.  A
+        zero-area box is replaced by a 1x1 crop to avoid degenerate RLE.
+
+        Args:
+            masks: Dense boolean mask array of shape ``(N, H, W)``.
+            xyxy: Bounding boxes of shape ``(N, 4)`` in ``[x1, y1, x2, y2]``
+                format.
+            image_shape: ``(H, W)`` of the full image.
+
+        Returns:
+            A new :class:`CompactMask` instance.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> masks = np.zeros((1, 100, 100), dtype=bool)
+            >>> masks[0, 10:20, 10:20] = True
+            >>> xyxy = np.array([[10, 10, 20, 20]], dtype=np.float32)
+            >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(100, 100))
+            >>> cm.shape
+            (1, 100, 100)
+
+            ```
+        """
+        h, w = image_shape
+        n = len(masks)
+
+        if n == 0:
+            return cls(
+                [],
+                np.empty((0, 2), dtype=np.int32),
+                np.empty((0, 2), dtype=np.int32),
+                image_shape,
+            )
+
+        rles: list[npt.NDArray[np.int32]] = []
+        crop_shapes_list: list[tuple[int, int]] = []
+        offsets_list: list[tuple[int, int]] = []
+
+        for i in range(n):
+            x1, y1, x2, y2 = xyxy[i]
+            x1c = int(max(0, min(int(x1), w)))
+            y1c = int(max(0, min(int(y1), h)))
+            x2c = int(max(0, min(int(x2), w)))
+            y2c = int(max(0, min(int(y2), h)))
+
+            # Avoid degenerate (zero-area) crops.
+            if x2c <= x1c or y2c <= y1c:
+                crop = np.zeros((1, 1), dtype=bool)
+                x2c, y2c = x1c + 1, y1c + 1
+            else:
+                crop = masks[i, y1c:y2c, x1c:x2c]
+
+            crop_h = y2c - y1c
+            crop_w = x2c - x1c
+            rles.append(_rle_encode(crop))
+            crop_shapes_list.append((crop_h, crop_w))
+            offsets_list.append((x1c, y1c))
+
+        crop_shapes = np.array(crop_shapes_list, dtype=np.int32)
+        offsets = np.array(offsets_list, dtype=np.int32)
+        return cls(rles, crop_shapes, offsets, image_shape)
+
+    # ------------------------------------------------------------------
+    # Materialisation
+    # ------------------------------------------------------------------
+
+    def to_dense(self) -> npt.NDArray[np.bool_]:
+        """Materialise all masks as a dense ``(N, H, W)`` boolean array.
+
+        Returns:
+            Boolean array of shape ``(N, H, W)``.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> masks = np.zeros((1, 50, 50), dtype=bool)
+            >>> masks[0, 10:20, 10:30] = True
+            >>> xyxy = np.array([[10, 10, 30, 20]], dtype=np.float32)
+            >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(50, 50))
+            >>> cm.to_dense().shape
+            (1, 50, 50)
+
+            ```
+        """
+        n = len(self._rles)
+        h, w = self._image_shape
+        result = np.zeros((n, h, w), dtype=bool)
+        for i in range(n):
+            crop_h, crop_w = int(self._crop_shapes[i, 0]), int(self._crop_shapes[i, 1])
+            x1, y1 = int(self._offsets[i, 0]), int(self._offsets[i, 1])
+            crop = _rle_decode(self._rles[i], crop_h, crop_w)
+            result[i, y1 : y1 + crop_h, x1 : x1 + crop_w] = crop
+        return result
+
+    def crop(self, index: int) -> npt.NDArray[np.bool_]:
+        """Decode a single mask crop without allocating the full image array.
+
+        This is an O(crop_area) operation — ideal for annotators that only
+        need the cropped region.
+
+        Args:
+            index: Index of the mask to decode.
+
+        Returns:
+            Boolean array of shape ``(crop_h, crop_w)``.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> masks = np.zeros((1, 100, 100), dtype=bool)
+            >>> masks[0, 20:30, 10:40] = True
+            >>> xyxy = np.array([[10, 20, 40, 30]], dtype=np.float32)
+            >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(100, 100))
+            >>> cm.crop(0).shape
+            (10, 30)
+
+            ```
+        """
+        crop_h = int(self._crop_shapes[index, 0])
+        crop_w = int(self._crop_shapes[index, 1])
+        return _rle_decode(self._rles[index], crop_h, crop_w)
+
+    # ------------------------------------------------------------------
+    # Sequence / array protocol
+    # ------------------------------------------------------------------
+
+    def __len__(self) -> int:
+        """Return the number of masks.
+
+        Returns:
+            Number of masks N.
+
+        Examples:
+            ```pycon
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> import numpy as np
+            >>> cm = CompactMask(
+            ...     [], np.empty((0, 2), dtype=np.int32),
+            ...     np.empty((0, 2), dtype=np.int32), (100, 100))
+            >>> len(cm)
+            0
+
+            ```
+        """
+        return len(self._rles)
+
+    @property
+    def shape(self) -> tuple[int, int, int]:
+        """Return ``(N, H, W)`` matching the dense mask convention.
+
+        Returns:
+            Tuple ``(N, H, W)``.
+
+        Examples:
+            ```pycon
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> import numpy as np
+            >>> cm = CompactMask(
+            ...     [], np.empty((0, 2), dtype=np.int32),
+            ...     np.empty((0, 2), dtype=np.int32), (480, 640))
+            >>> cm.shape
+            (0, 480, 640)
+
+            ```
+        """
+        h, w = self._image_shape
+        return (len(self), h, w)
+
+    @property
+    def dtype(self) -> np.dtype[Any]:
+        """Return ``np.dtype(bool)`` — always.
+
+        Returns:
+            ``np.dtype(bool)``.
+
+        Examples:
+            ```pycon
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> import numpy as np
+            >>> cm = CompactMask(
+            ...     [], np.empty((0, 2), dtype=np.int32),
+            ...     np.empty((0, 2), dtype=np.int32), (100, 100))
+            >>> cm.dtype
+            dtype('bool')
+
+            ```
+        """
+        return np.dtype(bool)
+
+    @property
+    def area(self) -> npt.NDArray[np.int64]:
+        """Compute the area (``True`` pixel count) of each mask.
+
+        Returns:
+            int64 array of shape ``(N,)`` with per-mask pixel counts.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> masks = np.zeros((2, 100, 100), dtype=bool)
+            >>> masks[0, 0:10, 0:10] = True  # 100 pixels
+            >>> masks[1, 0:5, 0:5] = True    # 25 pixels
+            >>> xyxy = np.array([[0, 0, 10, 10], [0, 0, 5, 5]], dtype=np.float32)
+            >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(100, 100))
+            >>> cm.area.tolist()
+            [100, 25]
+
+            ```
+        """
+        return np.array([_rle_area(r) for r in self._rles], dtype=np.int64)
+
+    def sum(self, axis: int | tuple[int, ...] | None = None) -> npt.NDArray[Any] | int:
+        """NumPy-compatible sum with a fast path for per-mask area.
+
+        When ``axis=(1, 2)``, returns the per-mask True-pixel count via
+        :attr:`area` without materialising the full dense array.
+
+        Args:
+            axis: Axis or axes to sum over.
+
+        Returns:
+            Sum result matching NumPy semantics.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> masks = np.zeros((1, 10, 10), dtype=bool)
+            >>> masks[0, 0:3, 0:3] = True
+            >>> xyxy = np.array([[0, 0, 3, 3]], dtype=np.float32)
+            >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(10, 10))
+            >>> cm.sum(axis=(1, 2)).tolist()
+            [9]
+
+            ```
+        """
+        if axis == (1, 2):
+            return self.area
+        return self.to_dense().sum(axis=axis)
+
+    def __getitem__(
+        self,
+        index: int | slice | list[Any] | npt.NDArray[Any],
+    ) -> npt.NDArray[np.bool_] | CompactMask:
+        """Index into the mask collection.
+
+        * ``int`` → dense ``(H, W)`` bool array (for annotators, iterators).
+        * ``slice | list | ndarray`` → new :class:`CompactMask` (for filtering).
+
+        Args:
+            index: An integer returns a dense ``(H, W)`` mask.  Any other
+                supported index type returns a new :class:`CompactMask`.
+
+        Returns:
+            Dense ``(H, W)`` ``np.ndarray`` for integer index, or a new
+            :class:`CompactMask` for all other index types.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> masks = np.zeros((3, 20, 20), dtype=bool)
+            >>> xyxy = np.array(
+            ...     [[0,0,5,5],[5,5,10,10],[10,10,15,15]], dtype=np.float32)
+            >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(20, 20))
+            >>> cm[0].shape        # int → dense (H, W)
+            (20, 20)
+            >>> len(cm[[0, 2]])    # list → CompactMask
+            2
+
+            ```
+        """
+        if isinstance(index, (int, np.integer)):
+            idx = int(index)
+            h, w = self._image_shape
+            result: npt.NDArray[np.bool_] = np.zeros((h, w), dtype=bool)
+            crop_h = int(self._crop_shapes[idx, 0])
+            crop_w = int(self._crop_shapes[idx, 1])
+            x1 = int(self._offsets[idx, 0])
+            y1 = int(self._offsets[idx, 1])
+            crop = _rle_decode(self._rles[idx], crop_h, crop_w)
+            result[y1 : y1 + crop_h, x1 : x1 + crop_w] = crop
+            return result
+
+        # Slice, list, or boolean ndarray → return a new CompactMask.
+        if isinstance(index, slice):
+            idx_arr = np.arange(len(self))[index]
+        elif isinstance(index, np.ndarray) and index.dtype == bool:
+            idx_arr = np.where(index)[0]
+        else:
+            idx_arr = np.asarray(list(index), dtype=np.intp)
+
+        new_rles = [self._rles[int(i)] for i in idx_arr]
+        new_crop_shapes: npt.NDArray[np.int32] = self._crop_shapes[idx_arr]
+        new_offsets: npt.NDArray[np.int32] = self._offsets[idx_arr]
+        return CompactMask(new_rles, new_crop_shapes, new_offsets, self._image_shape)
+
+    def __array__(self, dtype: np.dtype[Any] | None = None) -> npt.NDArray[Any]:
+        """NumPy interop: materialise as a dense ``(N, H, W)`` array.
+
+        Called by ``np.asarray(compact_mask)`` and similar NumPy functions.
+
+        Args:
+            dtype: Optional dtype to cast the result to.
+
+        Returns:
+            Dense boolean array of shape ``(N, H, W)``.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> masks = np.zeros((1, 10, 10), dtype=bool)
+            >>> xyxy = np.array([[0, 0, 5, 5]], dtype=np.float32)
+            >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(10, 10))
+            >>> np.asarray(cm).shape
+            (1, 10, 10)
+
+            ```
+        """
+        result = self.to_dense()
+        if dtype is not None:
+            return result.astype(dtype)
+        return result
+
+    def __eq__(self, other: object) -> bool:
+        """Element-wise equality with another :class:`CompactMask` or ndarray.
+
+        Args:
+            other: Another :class:`CompactMask` or ``np.ndarray``.
+
+        Returns:
+            ``True`` if all masks are pixel-identical.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> masks = np.zeros((1, 10, 10), dtype=bool)
+            >>> xyxy = np.array([[0, 0, 5, 5]], dtype=np.float32)
+            >>> cm1 = CompactMask.from_dense(masks, xyxy, image_shape=(10, 10))
+            >>> cm2 = CompactMask.from_dense(masks, xyxy, image_shape=(10, 10))
+            >>> cm1 == cm2
+            True
+
+            ```
+        """
+        if isinstance(other, CompactMask):
+            return bool(np.array_equal(self.to_dense(), other.to_dense()))
+        if isinstance(other, np.ndarray):
+            return bool(np.array_equal(self.to_dense(), other))
+        return NotImplemented
+
+    # ------------------------------------------------------------------
+    # Collection utilities
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def merge(masks_list: list[CompactMask]) -> CompactMask:
+        """Concatenate multiple :class:`CompactMask` objects into one.
+
+        All inputs must have the same ``image_shape``.
+
+        Args:
+            masks_list: Non-empty list of :class:`CompactMask` objects.
+
+        Returns:
+            A new :class:`CompactMask` containing every mask from the inputs,
+            in order.
+
+        Raises:
+            ValueError: If ``masks_list`` is empty or image shapes differ.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> masks1 = np.zeros((2, 50, 50), dtype=bool)
+            >>> masks2 = np.zeros((3, 50, 50), dtype=bool)
+            >>> xyxy1 = np.array([[0,0,10,10],[10,10,20,20]], dtype=np.float32)
+            >>> xyxy2 = np.array(
+            ...     [[0,0,5,5],[5,5,10,10],[10,10,15,15]], dtype=np.float32)
+            >>> cm1 = CompactMask.from_dense(masks1, xyxy1, image_shape=(50, 50))
+            >>> cm2 = CompactMask.from_dense(masks2, xyxy2, image_shape=(50, 50))
+            >>> len(CompactMask.merge([cm1, cm2]))
+            5
+
+            ```
+        """
+        if not masks_list:
+            raise ValueError("Cannot merge an empty list of CompactMask objects.")
+
+        image_shape = masks_list[0]._image_shape
+        for m in masks_list[1:]:
+            if m._image_shape != image_shape:
+                raise ValueError(
+                    f"Cannot merge CompactMask objects with different image shapes: "
+                    f"{image_shape} vs {m._image_shape}"
+                )
+
+        new_rles = [rle for m in masks_list for rle in m._rles]
+        all_crop_shapes = [m._crop_shapes for m in masks_list]
+        all_offsets = [m._offsets for m in masks_list]
+
+        # np.concatenate handles (0, 2) arrays correctly.
+        new_crop_shapes: npt.NDArray[np.int32] = np.concatenate(
+            all_crop_shapes, axis=0
+        ).astype(np.int32)
+        new_offsets: npt.NDArray[np.int32] = np.concatenate(all_offsets, axis=0).astype(
+            np.int32
+        )
+
+        return CompactMask(new_rles, new_crop_shapes, new_offsets, image_shape)
+
+    # ------------------------------------------------------------------
+    # Slicer support
+    # ------------------------------------------------------------------
+
+    def with_offset(
+        self,
+        dx: int,
+        dy: int,
+        new_image_shape: tuple[int, int],
+    ) -> CompactMask:
+        """Return a new :class:`CompactMask` with adjusted offsets and image shape.
+
+        Used by :class:`~supervision.detection.tools.inference_slicer.InferenceSlicer`
+        to relocate tile-local masks into full-image coordinates without
+        materialising the dense ``(N, H, W)`` array.
+
+        Args:
+            dx: Pixels to add to every mask's ``x1`` offset.
+            dy: Pixels to add to every mask's ``y1`` offset.
+            new_image_shape: ``(H, W)`` of the full (destination) image.
+
+        Returns:
+            New :class:`CompactMask` with updated offsets and image shape.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> masks = np.zeros((1, 20, 20), dtype=bool)
+            >>> xyxy = np.array([[5, 5, 15, 15]], dtype=np.float32)
+            >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(20, 20))
+            >>> cm2 = cm.with_offset(100, 200, new_image_shape=(400, 400))
+            >>> cm2._offsets[0].tolist()
+            [105, 205]
+
+            ```
+        """
+        new_offsets = self._offsets.copy()
+        new_offsets[:, 0] += dx
+        new_offsets[:, 1] += dy
+        return CompactMask(
+            list(self._rles),
+            self._crop_shapes.copy(),
+            new_offsets,
+            new_image_shape,
+        )

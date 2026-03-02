@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from math import sqrt
-from typing import Any, overload
+from typing import Any, cast, overload
 
 import cv2
 import numpy as np
@@ -434,6 +434,13 @@ class MaskAnnotator(BaseAnnotator):
 
         colored_mask = np.array(scene, copy=True, dtype=np.uint8)
 
+        from supervision.detection.compact_mask import CompactMask
+
+        compact_mask = (
+            cast(CompactMask, detections.mask)
+            if isinstance(detections.mask, CompactMask)
+            else None
+        )
         for detection_idx in np.flip(np.argsort(detections.area)):
             color = resolve_color(
                 color=self.color,
@@ -443,8 +450,22 @@ class MaskAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            mask = np.asarray(detections.mask[detection_idx], dtype=bool)
-            colored_mask[mask] = color.as_bgr()
+            if compact_mask is not None:
+                # Paint only the bounding-box crop — avoids a full (H, W) alloc.
+                x1 = int(compact_mask._offsets[detection_idx, 0])
+                y1 = int(compact_mask._offsets[detection_idx, 1])
+                crop_h = int(compact_mask._crop_shapes[detection_idx, 0])
+                crop_w = int(compact_mask._crop_shapes[detection_idx, 1])
+                crop_m = compact_mask.crop(detection_idx)
+                colored_mask[y1 : y1 + crop_h, x1 : x1 + crop_w][crop_m] = (
+                    color.as_bgr()
+                )
+            else:
+                mask = np.asarray(
+                    detections.mask[detection_idx],
+                    dtype=bool,
+                )
+                colored_mask[mask] = color.as_bgr()
 
         cv2.addWeighted(
             colored_mask, self.opacity, scene, 1 - self.opacity, 0, dst=scene

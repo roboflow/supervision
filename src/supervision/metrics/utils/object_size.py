@@ -127,7 +127,8 @@ def get_mask_size_category(mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.int_]:
     Get the size category of detection masks.
 
     Args:
-        mask: The mask array shaped (N, H, W).
+        mask: The mask array shaped (N, H, W), or a
+            :class:`~supervision.detection.compact_mask.CompactMask`.
 
     Returns:
         The size category of each mask, matching
@@ -146,10 +147,14 @@ def get_mask_size_category(mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.int_]:
 
         ```
     """
-    if len(mask.shape) != 3:
-        raise ValueError("Masks must be shaped (N, H, W)")
+    from supervision.detection.compact_mask import CompactMask
 
-    areas = np.sum(mask, axis=(1, 2))
+    if isinstance(mask, CompactMask):
+        areas = mask.area
+    else:
+        if len(mask.shape) != 3:
+            raise ValueError("Masks must be shaped (N, H, W)")
+        areas = np.sum(mask, axis=(1, 2))
 
     result = np.full(areas.shape, ObjectSizeCategory.ANY.value)
     SM, LG = SIZE_THRESHOLDS
