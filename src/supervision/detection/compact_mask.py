@@ -144,7 +144,7 @@ class CompactMask:
         >>> masks = np.zeros((2, 100, 100), dtype=bool)
         >>> masks[0, 10:20, 10:20] = True
         >>> masks[1, 50:70, 50:80] = True
-        >>> xyxy = np.array([[10, 10, 20, 20], [50, 50, 80, 70]], dtype=np.float32)
+        >>> xyxy = np.array([[10, 10, 19, 19], [50, 50, 79, 69]], dtype=np.float32)
         >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(100, 100))
         >>> len(cm)
         2
@@ -201,7 +201,7 @@ class CompactMask:
             >>> from supervision.detection.compact_mask import CompactMask
             >>> masks = np.zeros((1, 100, 100), dtype=bool)
             >>> masks[0, 10:20, 10:20] = True
-            >>> xyxy = np.array([[10, 10, 20, 20]], dtype=np.float32)
+            >>> xyxy = np.array([[10, 10, 19, 19]], dtype=np.float32)
             >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(100, 100))
             >>> cm.shape
             (1, 100, 100)
@@ -263,7 +263,7 @@ class CompactMask:
             >>> from supervision.detection.compact_mask import CompactMask
             >>> masks = np.zeros((1, 50, 50), dtype=bool)
             >>> masks[0, 10:20, 10:30] = True
-            >>> xyxy = np.array([[10, 10, 30, 20]], dtype=np.float32)
+            >>> xyxy = np.array([[10, 10, 29, 19]], dtype=np.float32)
             >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(50, 50))
             >>> cm.to_dense().shape
             (1, 50, 50)
@@ -298,7 +298,7 @@ class CompactMask:
             >>> from supervision.detection.compact_mask import CompactMask
             >>> masks = np.zeros((1, 100, 100), dtype=bool)
             >>> masks[0, 20:30, 10:40] = True
-            >>> xyxy = np.array([[10, 20, 40, 30]], dtype=np.float32)
+            >>> xyxy = np.array([[10, 20, 39, 29]], dtype=np.float32)
             >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(100, 100))
             >>> cm.crop(0).shape
             (10, 30)
@@ -412,7 +412,7 @@ class CompactMask:
             >>> masks = np.zeros((2, 100, 100), dtype=bool)
             >>> masks[0, 0:10, 0:10] = True  # 100 pixels
             >>> masks[1, 0:5, 0:5] = True    # 25 pixels
-            >>> xyxy = np.array([[0, 0, 10, 10], [0, 0, 5, 5]], dtype=np.float32)
+            >>> xyxy = np.array([[0, 0, 9, 9], [0, 0, 4, 4]], dtype=np.float32)
             >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(100, 100))
             >>> cm.area.tolist()
             [100, 25]
@@ -439,7 +439,7 @@ class CompactMask:
             >>> from supervision.detection.compact_mask import CompactMask
             >>> masks = np.zeros((1, 10, 10), dtype=bool)
             >>> masks[0, 0:3, 0:3] = True
-            >>> xyxy = np.array([[0, 0, 3, 3]], dtype=np.float32)
+            >>> xyxy = np.array([[0, 0, 2, 2]], dtype=np.float32)
             >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(10, 10))
             >>> cm.sum(axis=(1, 2)).tolist()
             [9]
