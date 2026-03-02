@@ -31,7 +31,7 @@ jobs:
       contents: write # Required for checkout and upload assets
     steps:
       - name: 📥 Download distribution artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
