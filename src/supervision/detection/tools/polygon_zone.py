@@ -27,14 +27,14 @@ class PolygonZone:
         tracking into your inference pipeline.
 
     Attributes:
-        polygon (np.ndarray): A polygon represented by a numpy array of shape
+        polygon: A polygon represented by a numpy array of shape
             `(N, 2)`, containing the `x`, `y` coordinates of the points.
-        triggering_anchors (Iterable[sv.Position]): A list of positions specifying
+        triggering_anchors: A list of positions specifying
             which anchors of the detections bounding box to consider when deciding on
             whether the detection fits within the PolygonZone
             (default: (sv.Position.BOTTOM_CENTER,)).
-        current_count (int): The current count of detected objects within the zone
-        mask (np.ndarray): The 2D bool mask for the polygon zone
+        current_count: The current count of detected objects within the zone
+        mask: The 2D bool mask for the polygon zone
 
     Example:
         ```python
@@ -81,12 +81,12 @@ class PolygonZone:
         """
         Determines if the detections are within the polygon zone.
 
-        Parameters:
-            detections (Detections): The detections
+        Args:
+            detections: The detections
                 to be checked against the polygon zone
 
         Returns:
-            np.ndarray: A boolean numpy array indicating
+            A boolean numpy array indicating
                 if each detection is within the polygon zone
         """
 
@@ -118,17 +118,17 @@ class PolygonZoneAnnotator:
         frame with a count of detected objects.
 
     Attributes:
-        zone (PolygonZone): The polygon zone to be annotated
-        color (Color): The color to draw the polygon lines, default is white
-        thickness (int): The thickness of the polygon lines, default is 2
-        text_color (Color): The color of the text on the polygon, default is black
-        text_scale (float): The scale of the text on the polygon, default is 0.5
-        text_thickness (int): The thickness of the text on the polygon, default is 1
-        text_padding (int): The padding around the text on the polygon, default is 10
-        font (int): The font type for the text on the polygon,
+        zone: The polygon zone to be annotated
+        color: The color to draw the polygon lines, default is white
+        thickness: The thickness of the polygon lines, default is 2
+        text_color: The color of the text on the polygon, default is black
+        text_scale: The scale of the text on the polygon, default is 0.5
+        text_thickness: The thickness of the text on the polygon, default is 1
+        text_padding: The padding around the text on the polygon, default is 10
+        font: The font type for the text on the polygon,
             default is cv2.FONT_HERSHEY_SIMPLEX
-        center (Tuple[int, int]): The center of the polygon for text placement
-        display_in_zone_count (bool): Show the label of the zone or not. Default is True
+        center: The center of the polygon for text placement
+        display_in_zone_count: Show the label of the zone or not. Default is True
         opacity: The opacity of zone filling when drawn on the scene. Default is 0
     """
 
@@ -160,13 +160,13 @@ class PolygonZoneAnnotator:
         """
         Annotates the polygon zone within a frame with a count of detected objects.
 
-        Parameters:
-            scene (np.ndarray): The image on which the polygon zone will be annotated
-            label (Optional[str]): A label for the count of detected objects
+        Args:
+            scene: The image on which the polygon zone will be annotated
+            label: A label for the count of detected objects
                 within the polygon zone (default: None)
 
         Returns:
-            np.ndarray: The image with the polygon zone and count of detected objects
+            The image with the polygon zone and count of detected objects
         """
         if self.opacity == 0:
             annotated_frame = draw_polygon(
