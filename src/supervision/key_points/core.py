@@ -172,7 +172,7 @@ class KeyPoints:
         Returns the number of objects in the `sv.KeyPoints` object.
 
         Returns:
-            int: The number of objects.
+            The number of objects.
 
         Example:
             ```pycon
@@ -229,7 +229,7 @@ class KeyPoints:
         package results.
 
         Args:
-            inference_result (dict, any): The result from the
+            inference_result: The result from the
                 Roboflow API or Inference package containing predictions with keypoints.
 
         Returns:
@@ -305,7 +305,7 @@ class KeyPoints:
 
     @classmethod
     def from_mediapipe(
-        cls, mediapipe_results, resolution_wh: tuple[int, int]
+        cls, mediapipe_results: Any, resolution_wh: tuple[int, int]
     ) -> KeyPoints:
         """
         Creates a `sv.KeyPoints` instance from a
@@ -313,12 +313,11 @@ class KeyPoints:
         pose landmark detection inference result.
 
         Args:
-            mediapipe_results (Union[PoseLandmarkerResult, FaceLandmarkerResult, SolutionOutputs]):
-                The output results from Mediapipe. It support pose and face landmarks
-                from `PoseLandmaker`, `FaceLandmarker` and the legacy ones
-                from `Pose` and `FaceMesh`.
-            resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`
-                representing the resolution of the frame.
+            mediapipe_results: The output results from Mediapipe. It supports pose
+                and face landmarks from `PoseLandmaker`, `FaceLandmarker` and the
+                legacy ones from `Pose` and `FaceMesh`.
+            resolution_wh: A tuple of the form `(width, height)` representing the
+                resolution of the frame.
 
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates and
@@ -382,7 +381,7 @@ class KeyPoints:
                 face_landmarker_result, (image_width, image_height))
             ```
 
-        """  # noqa: E501 // docs
+        """
         if hasattr(mediapipe_results, "pose_landmarks"):
             results = mediapipe_results.pose_landmarks
             if not isinstance(mediapipe_results.pose_landmarks, list):
@@ -431,14 +430,13 @@ class KeyPoints:
         )
 
     @classmethod
-    def from_ultralytics(cls, ultralytics_results) -> KeyPoints:
+    def from_ultralytics(cls, ultralytics_results: Any) -> KeyPoints:
         """
         Creates a `sv.KeyPoints` instance from a
         [YOLOv8](https://github.com/ultralytics/ultralytics) pose inference result.
 
         Args:
-            ultralytics_results (ultralytics.engine.results.Keypoints):
-                The output Results instance from YOLOv8
+            ultralytics_results: The output Results instance from YOLOv8.
 
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
@@ -469,14 +467,13 @@ class KeyPoints:
         return cls(xy, class_id, confidence, data)
 
     @classmethod
-    def from_yolo_nas(cls, yolo_nas_results) -> KeyPoints:
+    def from_yolo_nas(cls, yolo_nas_results: Any) -> KeyPoints:
         """
         Create a `sv.KeyPoints` instance from a [YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS-POSE.md)
         pose inference results.
 
         Args:
-            yolo_nas_results (ImagePoseEstimationPrediction): The output object from
-                YOLO NAS.
+            yolo_nas_results: The output object from YOLO NAS.
 
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
@@ -534,7 +531,7 @@ class KeyPoints:
         [Detectron2](https://github.com/facebookresearch/detectron2) inference result.
 
         Args:
-            detectron2_results (Any): The output of a
+            detectron2_results: The output of a
                 Detectron2 model containing instances with prediction data.
 
         Returns:
@@ -585,7 +582,7 @@ class KeyPoints:
         [Transformers](https://github.com/huggingface/transformers) inference result.
 
         Args:
-            transformers_results (Any): The output of a
+            transformers_results: The output of a
                 Transformers model containing instances with prediction data.
 
         Returns:
@@ -733,8 +730,8 @@ class KeyPoints:
         Set a value in the data dictionary of the `sv.KeyPoints` object.
 
         Args:
-            key (str): The key in the data dictionary to set.
-            value (Union[np.ndarray, List]): The value to set for the key.
+            key: The key in the data dictionary to set.
+            value: The value to set for the key.
 
         Examples:
             ```python
@@ -787,7 +784,7 @@ class KeyPoints:
         Returns `True` if the `KeyPoints` object is considered empty.
 
         Returns:
-            bool: `True` if the object is empty, `False` otherwise.
+            `True` if the object is empty, `False` otherwise.
 
         Example:
             ```pycon
@@ -810,7 +807,7 @@ class KeyPoints:
         approximates the bounding box of the detected object by
         taking the bounding box that fits all key points.
 
-        Arguments:
+        Args:
             selected_keypoint_indices: The
                 indices of the key points to include in the bounding box
                 calculation. This helps focus on a subset of key points,

@@ -36,9 +36,8 @@ class VertexAnnotator(BaseKeyPointAnnotator):
     ) -> None:
         """
         Args:
-            color (Color): The color to use for annotating key points.
-            radius (int): The radius of the circles used to represent the key
-                points.
+            color: The color to use for annotating key points.
+            radius: The radius of the circles used to represent the key points.
         """
         self.color = color
         self.radius = radius
@@ -50,11 +49,10 @@ class VertexAnnotator(BaseKeyPointAnnotator):
         points. It draws circles at each key point location.
 
         Args:
-            scene (ImageType): The image where skeleton vertices will be drawn.
-                `ImageType` is a flexible type, accepting either `numpy.ndarray` or
-                `PIL.Image.Image`.
-            key_points (KeyPoints): A collection of key points where each key point
-                consists of x and y coordinates.
+            scene: The image where skeleton vertices will be drawn. `ImageType` is a
+                flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
+            key_points: A collection of key points where each key point consists of x
+                and y coordinates.
 
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
@@ -112,10 +110,10 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
     ) -> None:
         """
         Args:
-            color (Color): The color to use for the edges.
-            thickness (int): The thickness of the edges.
-            edges (Optional[List[Tuple[int, int]]]): The edges to draw.
-                If set to `None`, will attempt to select automatically.
+            color: The color to use for the edges.
+            thickness: The thickness of the edges.
+            edges: The edges to draw. If set to `None`, will attempt to select
+                automatically.
         """
         self.color = color
         self.thickness = thickness
@@ -128,16 +126,14 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         edges.
 
         Args:
-            scene (ImageType): The image where skeleton edges will be drawn. `ImageType`
-                is a flexible type, accepting either `numpy.ndarray` or
-                `PIL.Image.Image`.
-            key_points (KeyPoints): A collection of key points where each key point
-                consists of x and y coordinates.
+            scene: The image where skeleton edges will be drawn. `ImageType` is a
+                flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
+            key_points: A collection of key points where each key point consists of x
+                and y coordinates.
 
         Returns:
-            Returns:
-                The annotated image, matching the type of `scene` (`numpy.ndarray`
-                    or `PIL.Image.Image`)
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
 
         Example:
             ```pycon
@@ -209,18 +205,16 @@ class VertexLabelAnnotator:
     ):
         """
         Args:
-            color (Union[Color, List[Color]]): The color to use for each
-                keypoint label. If a list is provided, the colors will be used in order
-                for each keypoint.
-            text_color (Union[Color, List[Color]]): The color to use
-                for the labels. If a list is provided, the colors will be used in order
-                for each keypoint.
-            text_scale (float): The scale of the text.
-            text_thickness (int): The thickness of the text.
-            text_padding (int): The padding around the text.
-            border_radius (int): The radius of the rounded corners of the
-                boxes. Set to a high value to produce circles.
-            smart_position (bool): Spread out the labels to avoid overlap.
+            color: The color to use for each keypoint label. If a list is provided,
+                the colors will be used in order for each keypoint.
+            text_color: The color to use for the labels. If a list is provided, the
+                colors will be used in order for each keypoint.
+            text_scale: The scale of the text.
+            text_thickness: The thickness of the text.
+            text_padding: The padding around the text.
+            border_radius: The radius of the rounded corners of the boxes. Set to a
+                high value to produce circles.
+            smart_position: Spread out the labels to avoid overlap.
         """
         self.border_radius: int = border_radius
         self.color: Color | list[Color] = color
@@ -241,13 +235,12 @@ class VertexLabelAnnotator:
             points to determine the locations where the vertices should be drawn.
 
         Args:
-            scene (ImageType): The image where vertex labels will be drawn. `ImageType`
-                is a flexible type, accepting either `numpy.ndarray` or
-                `PIL.Image.Image`.
-            key_points (KeyPoints): A collection of key points where each key point
-                consists of x and y coordinates.
-            labels (Optional[List[str]]): A list of labels to be displayed on the
-                annotated image. If not provided, keypoint indices will be used.
+            scene: The image where vertex labels will be drawn. `ImageType` is a
+                flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
+            key_points: A collection of key points where each key point consists of x
+                and y coordinates.
+            labels: A list of labels to be displayed on the annotated image. If not
+                provided, keypoint indices will be used.
 
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`

@@ -46,16 +46,16 @@ class Classifications:
         return len(self.class_id)
 
     @classmethod
-    def from_clip(cls, clip_results) -> Classifications:
+    def from_clip(cls, clip_results: Any) -> Classifications:
         """
         Creates a Classifications instance from a
         [clip](https://github.com/openai/clip) inference result.
 
         Args:
-            clip_results (np.ndarray): The inference result from clip model.
+            clip_results: The inference result from clip model.
 
         Returns:
-            Classifications: A new Classifications object.
+            A new Classifications object.
 
         Example:
             ```python
@@ -83,17 +83,16 @@ class Classifications:
         return cls(class_id=class_ids, confidence=confidence)
 
     @classmethod
-    def from_ultralytics(cls, ultralytics_results) -> Classifications:
+    def from_ultralytics(cls, ultralytics_results: Any) -> Classifications:
         """
         Creates a Classifications instance from a
         [ultralytics](https://github.com/ultralytics/ultralytics) inference result.
 
         Args:
-            ultralytics_results (ultralytics.engine.results.Results):
-                The inference result from ultralytics model.
+            ultralytics_results: The inference result from ultralytics model.
 
         Returns:
-            Classifications: A new Classifications object.
+            A new Classifications object.
 
         Example:
             ```python
@@ -112,16 +111,16 @@ class Classifications:
         return cls(class_id=np.arange(confidence.shape[0]), confidence=confidence)
 
     @classmethod
-    def from_timm(cls, timm_results) -> Classifications:
+    def from_timm(cls, timm_results: Any) -> Classifications:
         """
         Creates a Classifications instance from a
         [timm](https://huggingface.co/docs/hub/timm) inference result.
 
         Args:
-            timm_results (torch.Tensor): The inference result from timm model.
+            timm_results: The inference result from timm model.
 
         Returns:
-            Classifications: A new Classifications object.
+            A new Classifications object.
 
         Example:
             ```python
@@ -160,11 +159,10 @@ class Classifications:
             ordered in descending order by confidence.
 
         Args:
-            k (int): The number of top class IDs and confidences to retrieve.
+            k: The number of top class IDs and confidences to retrieve.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: A tuple containing
-                the top k class IDs and confidences.
+            A tuple containing the top k class IDs and confidences.
 
         Example:
             ```pycon
