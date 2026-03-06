@@ -16,18 +16,17 @@ def move_masks(
     Offset the masks in an array by the specified (x, y) amount.
 
     Args:
-        masks (npt.NDArray[np.bool_]): A 3D array of binary masks corresponding to the
+        masks: A 3D array of binary masks corresponding to the
             predictions. Shape: `(N, H, W)`, where N is the number of predictions, and
             H, W are the dimensions of each mask.
-        offset (npt.NDArray[np.int32]): An array of shape `(2,)` containing int values
+        offset: An array of shape `(2,)` containing int values
             `[dx, dy]`. Supports both positive and negative values for bidirectional
             movement.
-        resolution_wh (Tuple[int, int]): The width and height of the desired mask
+        resolution_wh: The width and height of the desired mask
             resolution.
 
     Returns:
-        (npt.NDArray[np.bool_]) repositioned masks, optionally padded to the specified
-            shape.
+        Repositioned masks, optionally padded to the specified shape.
 
     Examples:
         ```pycon
@@ -92,8 +91,8 @@ def calculate_masks_centroids(
     """
     Calculate the centroids of binary masks in a tensor.
 
-    Parameters:
-        masks (np.ndarray): A 3D NumPy array of shape (num_masks, height, width).
+    Args:
+        masks: A 3D NumPy array of shape (num_masks, height, width).
             Each 2D array in the tensor represents a binary mask.
 
     Returns:
@@ -128,7 +127,7 @@ def contains_holes(mask: npt.NDArray[np.bool_]) -> bool:
     foreground pixels).
 
     Args:
-        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground
+        mask: 2D binary mask where `True` indicates foreground
             object and `False` indicates background.
 
     Returns:
@@ -179,9 +178,9 @@ def contains_multiple_segments(
     Checks if the binary mask contains multiple unconnected foreground segments.
 
     Args:
-        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground
+        mask: 2D binary mask where `True` indicates foreground
             object and `False` indicates background.
-        connectivity (int) : Default: 4 is 4-way connectivity, which means that
+        connectivity: Default: 4 is 4-way connectivity, which means that
             foreground pixels are the part of the same segment/component
             if their edges touch.
             Alternatively: 8 for 8-way connectivity, when foreground pixels are
@@ -240,11 +239,11 @@ def resize_masks(masks: npt.NDArray[Any], max_dimension: int = 640) -> npt.NDArr
     maintaining aspect ratio.
 
     Args:
-        masks (np.ndarray): 3D array of binary masks with shape (N, H, W).
-        max_dimension (int): The maximum dimension for the resized masks.
+        masks: 3D array of binary masks with shape (N, H, W).
+        max_dimension: The maximum dimension for the resized masks.
 
     Returns:
-        np.ndarray: Array of resized masks.
+        Array of resized masks.
     """
     max_height: int = masks.shape[1]
     max_width: int = masks.shape[2]

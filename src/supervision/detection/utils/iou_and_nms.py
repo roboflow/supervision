@@ -266,12 +266,12 @@ def _jaccard(box_a: list[float], box_b: list[float], is_crowd: bool) -> float:
     iou(gt,dt,iscrowd) = iou(gt',dt) = area(intersect(gt,dt)) / area(dt)
 
     Args:
-        box_a (List[float]): Box coordinates in the format [x, y, width, height].
-        box_b (List[float]): Box coordinates in the format [x, y, width, height].
-        iscrowd (bool): Flag indicating if the second box is a crowd region or not.
+        box_a: Box coordinates in the format [x, y, width, height].
+        box_b: Box coordinates in the format [x, y, width, height].
+        iscrowd: Flag indicating if the second box is a crowd region or not.
 
     Returns:
-        float: Jaccard index between the two bounding boxes.
+        Jaccard index between the two bounding boxes.
     """  # noqa: E501
     # Smallest number to avoid division by zero
     EPS = np.spacing(1)
@@ -309,15 +309,15 @@ def box_iou_batch_with_jaccard(
     Reference: https://github.com/rafaelpadilla/review_object_detection_metrics
 
     Args:
-        boxes_true (List[List[float]]): List of ground-truth bounding boxes in the \
+        boxes_true: List of ground-truth bounding boxes in the
             format [x, y, width, height].
-        boxes_detection (List[List[float]]): List of detection bounding boxes in the \
+        boxes_detection: List of detection bounding boxes in the
             format [x, y, width, height].
-        is_crowd (List[bool]): List indicating if each ground-truth bounding box \
+        is_crowd: List indicating if each ground-truth bounding box
             is a crowd region or not.
 
     Returns:
-        np.ndarray: Array of IoU values of shape (len(dt), len(gt)).
+        Array of IoU values of shape (len(dt), len(gt)).
 
     Examples:
         ```pycon
@@ -366,13 +366,13 @@ def oriented_box_iou_batch(
     `((x1, y1), (x2, y2), (x3, y3), (x4, y4))` format.
 
     Args:
-        boxes_true (np.ndarray): a `np.ndarray` representing ground-truth boxes.
+        boxes_true: A `np.ndarray` representing ground-truth boxes.
             `shape = (N, 4, 2)` where `N` is number of true objects.
-        boxes_detection (np.ndarray): a `np.ndarray` representing detection boxes.
+        boxes_detection: A `np.ndarray` representing detection boxes.
             `shape = (M, 4, 2)` where `M` is number of detected objects.
 
     Returns:
-        np.ndarray: Pairwise IoU of boxes from `boxes_true` and `boxes_detection`.
+        Pairwise IoU of boxes from `boxes_true` and `boxes_detection`.
             `shape = (N, M)` where `N` is number of true objects and
             `M` is number of detected objects.
     """
@@ -409,13 +409,13 @@ def _mask_iou_batch_split(
         `masks_true` and `masks_detection`.
 
     Args:
-        masks_true (np.ndarray): 3D `np.ndarray` representing ground-truth masks.
-        masks_detection (np.ndarray): 3D `np.ndarray` representing detection masks.
-        overlap_metric (OverlapMetric): Metric used to compute the degree of overlap
+        masks_true: 3D `np.ndarray` representing ground-truth masks.
+        masks_detection: 3D `np.ndarray` representing detection masks.
+        overlap_metric: Metric used to compute the degree of overlap
             between pairs of masks (e.g., IoU, IoS).
 
     Returns:
-        np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.
+        Pairwise IoU of masks from `masks_true` and `masks_detection`.
     """
     intersection_area = np.logical_and(masks_true[:, None], masks_detection).sum(
         axis=(2, 3)
@@ -462,14 +462,14 @@ def mask_iou_batch(
         `masks_true` and `masks_detection`.
 
     Args:
-        masks_true (np.ndarray): 3D `np.ndarray` representing ground-truth masks.
-        masks_detection (np.ndarray): 3D `np.ndarray` representing detection masks.
-        overlap_metric (OverlapMetric): Metric used to compute the degree of overlap
+        masks_true: 3D `np.ndarray` representing ground-truth masks.
+        masks_detection: 3D `np.ndarray` representing detection masks.
+        overlap_metric: Metric used to compute the degree of overlap
             between pairs of masks (e.g., IoU, IoS).
-        memory_limit (int): memory limit in MB, default is 1024 * 5 MB (5GB).
+        memory_limit: Memory limit in MB, default is 1024 * 5 MB (5GB).
 
     Returns:
-        np.ndarray: Pairwise IoU of masks from `masks_true` and `masks_detection`.
+        Pairwise IoU of masks from `masks_true` and `masks_detection`.
     """
     memory = (
         masks_true.shape[0]
@@ -515,22 +515,22 @@ def mask_non_max_suppression(
     Perform Non-Maximum Suppression (NMS) on segmentation predictions.
 
     Args:
-        predictions (np.ndarray): A 2D array of object detection predictions in
+        predictions: A 2D array of object detection predictions in
             the format of `(x_min, y_min, x_max, y_max, score)`
             or `(x_min, y_min, x_max, y_max, score, class)`. Shape: `(N, 5)` or
             `(N, 6)`, where N is the number of predictions.
-        masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.
+        masks: A 3D array of binary masks corresponding to the predictions.
             Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the
             dimensions of each mask.
-        iou_threshold (float): The intersection-over-union threshold
+        iou_threshold: The intersection-over-union threshold
             to use for non-maximum suppression.
-        overlap_metric (OverlapMetric): Metric used to compute the degree of overlap
+        overlap_metric: Metric used to compute the degree of overlap
             between pairs of masks (e.g., IoU, IoS).
-        mask_dimension (int): The dimension to which the masks should be
+        mask_dimension: The dimension to which the masks should be
             resized before computing IOU values. Defaults to 640.
 
     Returns:
-        np.ndarray: A boolean array indicating which predictions to keep after
+        A boolean array indicating which predictions to keep after
             non-maximum suppression.
 
     Raises:
@@ -571,17 +571,17 @@ def box_non_max_suppression(
     Perform Non-Maximum Suppression (NMS) on object detection predictions.
 
     Args:
-        predictions (np.ndarray): An array of object detection predictions in
+        predictions: An array of object detection predictions in
             the format of `(x_min, y_min, x_max, y_max, score)`
             or `(x_min, y_min, x_max, y_max, score, class)`.
-        iou_threshold (float): The intersection-over-union threshold
+        iou_threshold: The intersection-over-union threshold
             to use for non-maximum suppression.
-        overlap_metric (OverlapMetric): Metric used to compute the degree of overlap
+        overlap_metric: Metric used to compute the degree of overlap
             between pairs of boxes (e.g., IoU, IoS).
 
     Returns:
-        np.ndarray: A boolean array indicating which predictions to keep after n
-            on-maximum suppression.
+        A boolean array indicating which predictions to keep after
+            non-maximum suppression.
 
     Raises:
         AssertionError: If `iou_threshold` is not within the
@@ -630,18 +630,18 @@ def _group_overlapping_masks(
     Apply greedy version of non-maximum merging to avoid detecting too many
 
     Args:
-        predictions (npt.NDArray[np.float64]): An array of shape `(n, 5)` containing
+        predictions: An array of shape `(n, 5)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`
             and the confidence scores.
-        masks (npt.NDArray[np.float64]): A 3D array of binary masks corresponding to
+        masks: A 3D array of binary masks corresponding to
             the predictions.
-        iou_threshold (float): The intersection-over-union threshold
+        iou_threshold: The intersection-over-union threshold
             to use for non-maximum suppression. Defaults to 0.5.
-        overlap_metric (OverlapMetric): Metric used to compute the degree of overlap
+        overlap_metric: Metric used to compute the degree of overlap
             between pairs of masks (e.g., IoU, IoS).
 
     Returns:
-        list[list[int]]: Groups of prediction indices be merged.
+        Groups of prediction indices be merged.
             Each group may have 1 or more elements.
     """
     merge_groups: list[list[int]] = []
@@ -688,22 +688,22 @@ def mask_non_max_merge(
     Perform Non-Maximum Merging (NMM) on segmentation predictions.
 
     Args:
-        predictions (np.ndarray): A 2D array of object detection predictions in
+        predictions: A 2D array of object detection predictions in
             the format of `(x_min, y_min, x_max, y_max, score)`
             or `(x_min, y_min, x_max, y_max, score, class)`. Shape: `(N, 5)` or
             `(N, 6)`, where N is the number of predictions.
-        masks (np.ndarray): A 3D array of binary masks corresponding to the predictions.
+        masks: A 3D array of binary masks corresponding to the predictions.
             Shape: `(N, H, W)`, where N is the number of predictions, and H, W are the
             dimensions of each mask.
-        iou_threshold (float): The intersection-over-union threshold
+        iou_threshold: The intersection-over-union threshold
             to use for non-maximum suppression.
-        mask_dimension (int): The dimension to which the masks should be
+        mask_dimension: The dimension to which the masks should be
             resized before computing IOU values. Defaults to 640.
-        overlap_metric (OverlapMetric): Metric used to compute the degree of overlap
+        overlap_metric: Metric used to compute the degree of overlap
             between pairs of masks (e.g., IoU, IoS).
 
     Returns:
-        np.ndarray: A boolean array indicating which predictions to keep after
+        A boolean array indicating which predictions to keep after
             non-maximum suppression.
 
     Raises:
@@ -748,16 +748,16 @@ def _group_overlapping_boxes(
     overlapping bounding boxes for a given object.
 
     Args:
-        predictions (npt.NDArray[np.float64]): An array of shape `(n, 5)` containing
+        predictions: An array of shape `(n, 5)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`
             and the confidence scores.
-        iou_threshold (float): The intersection-over-union threshold
+        iou_threshold: The intersection-over-union threshold
             to use for non-maximum suppression. Defaults to 0.5.
-        overlap_metric (OverlapMetric): Metric used to compute the degree of overlap
+        overlap_metric: Metric used to compute the degree of overlap
             between pairs of boxes (e.g., IoU, IoS).
 
     Returns:
-        list[list[int]]: Groups of prediction indices be merged.
+        Groups of prediction indices be merged.
             Each group may have 1 or more elements.
     """
     merge_groups: list[list[int]] = []
@@ -796,13 +796,13 @@ def box_non_max_merge(
     too many overlapping bounding boxes for a given object.
 
     Args:
-        predictions (npt.NDArray[np.float64]): An array of shape `(n, 5)` or `(n, 6)`
+        predictions: An array of shape `(n, 5)` or `(n, 6)`
             containing the bounding boxes coordinates in format `[x1, y1, x2, y2]`,
             the confidence scores and class_ids. Omit class_id column to allow
             detections of different classes to be merged.
-        iou_threshold (float): The intersection-over-union threshold
+        iou_threshold: The intersection-over-union threshold
             to use for non-maximum suppression. Defaults to 0.5.
-        overlap_metric (OverlapMetric): Metric used to compute the degree of overlap
+        overlap_metric: Metric used to compute the degree of overlap
             between pairs of boxes (e.g., IoU, IoS).
 
     Returns:
