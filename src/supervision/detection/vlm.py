@@ -164,7 +164,7 @@ def validate_vlm_parameters(vlm: VLM | str, result: Any, kwargs: dict[str, Any])
         kwargs: Dictionary of arguments to validate against required/allowed lists.
 
     Returns:
-        VLM: The validated VLM enum value.
+        The validated VLM enum value.
 
     Raises:
         ValueError: If the VLM, result type, or arguments are invalid.
@@ -209,13 +209,10 @@ def from_paligemma(
             in this list are filtered out.
 
     Returns:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing
-            the bounding boxes coordinates in format `[x1, y1, x2, y2]`.
-        class_id (Optional[np.ndarray]): An array of shape `(n,)` containing
-            the class indices for each bounding box (or `None` if classes is not
-            provided).
-        class_name (np.ndarray): An array of shape `(n,)` containing
-            the class labels for each bounding box.
+        A tuple of `(xyxy, class_id, class_name)` where `xyxy` is an array of
+            shape `(n, 4)` in format `[x1, y1, x2, y2]`, `class_id` is an
+            optional array of shape `(n,)` with class indices, and `class_name`
+            is an array of shape `(n,)` with class labels.
     """
 
     w, h = validate_resolution(resolution_wh)
@@ -252,7 +249,7 @@ def recover_truncated_qwen_2_5_vl_response(text: str) -> Any | None:
     malformed, cleans trailing commas, and attempts to parse it into a Python object.
 
     Args:
-        text (str): Raw text containing the JSON snippet possibly truncated or
+        text: Raw text containing the JSON snippet possibly truncated or
             incomplete.
 
     Returns:
@@ -306,20 +303,18 @@ def from_qwen_2_5_vl(
       ```
 
     Args:
-        result (str): String containing Qwen-2.5-VL JSON bounding box and label data.
-        input_wh (tuple[int, int]): Width and height of the coordinate space where boxes
+        result: String containing Qwen-2.5-VL JSON bounding box and label data.
+        input_wh: Width and height of the coordinate space where boxes
             are normalized.
-        resolution_wh (tuple[int, int]): Target width and height to scale bounding
-            boxes.
-        classes (list[str] or None): Optional list of valid class names to filter
-            results. If provided, only boxes with labels in this list are returned.
+        resolution_wh: Target width and height to scale bounding boxes.
+        classes: Optional list of valid class names to filter results. If provided,
+            only boxes with labels in this list are returned.
 
     Returns:
-        xyxy (np.ndarray): Array of shape `(N, 4)` with rescaled bounding boxes in
-            `(x_min, y_min, x_max, y_max)` format.
-        class_id (np.ndarray or None): Array of shape `(N,)` with indices of classes,
-            or `None` if no filtering applied.
-        class_name (np.ndarray): Array of shape `(N,)` with class names as strings.
+        A tuple of `(xyxy, class_id, class_name)` where `xyxy` is an array of
+            shape `(N, 4)` in `(x_min, y_min, x_max, y_max)` format, `class_id`
+            is an optional array of shape `(N,)` with class indices, and
+            `class_name` is an array of shape `(N,)` with class names.
     """
 
     in_w, in_h = validate_resolution(input_wh)
@@ -391,18 +386,15 @@ def from_qwen_3_vl(
     Parse and scale bounding boxes from Qwen-3-VL style JSON output.
 
     Args:
-        result (str): String containing the Qwen-3-VL JSON output.
-        resolution_wh (tuple[int, int]): Target resolution `(width, height)` to
-            scale bounding boxes.
-        classes (list[str] or None): Optional list of valid classes to filter
-            results.
+        result: String containing the Qwen-3-VL JSON output.
+        resolution_wh: Target resolution `(width, height)` to scale bounding boxes.
+        classes: Optional list of valid classes to filter results.
 
     Returns:
-        xyxy (np.ndarray): Array of bounding boxes with shape `(N, 4)` in
-            `(x_min, y_min, x_max, y_max)` format scaled to `resolution_wh`.
-        class_id (np.ndarray or None): Array of class indices for each box, or
-            None if no filtering by classes.
-        class_name (np.ndarray): Array of class names as strings.
+        A tuple of `(xyxy, class_id, class_name)` where `xyxy` is an array of
+            shape `(N, 4)` in `(x_min, y_min, x_max, y_max)` format scaled to
+            `resolution_wh`, `class_id` is an optional array of class indices,
+            and `class_name` is an array of class names.
     """
     return from_qwen_2_5_vl(
         result=result,
@@ -435,13 +427,10 @@ def from_deepseek_vl_2(
             in this list are filtered out.
 
     Returns:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing
-            the bounding boxes coordinates in format `[x1, y1, x2, y2]`.
-        class_id (Optional[np.ndarray]): An array of shape `(n,)` containing
-            the class indices for each bounding box (or `None` if classes is not
-            provided).
-        class_name (np.ndarray): An array of shape `(n,)` containing
-            the class labels for each bounding box.
+        A tuple of `(xyxy, class_id, class_name)` where `xyxy` is an array of
+            shape `(n, 4)` in format `[x1, y1, x2, y2]`, `class_id` is an
+            optional array of shape `(n,)` with class indices, and `class_name`
+            is an array of shape `(n,)` with class labels.
     """  # noqa: E501
 
     width, height = resolution_wh
@@ -497,14 +486,12 @@ def from_florence_2(
         resolution_wh: (output_width, output_height) to which we rescale the boxes.
 
     Returns:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing
-            the bounding boxes coordinates in format `[x1, y1, x2, y2]`
-        labels: (Optional[np.ndarray]): An array of shape `(n,)` containing
-            the class labels for each bounding box
-        masks: (Optional[np.ndarray]): An array of shape `(n, h, w)` containing
-            the segmentation masks for each bounding box
-        obb_boxes: (Optional[np.ndarray]): An array of shape `(n, 4, 2)` containing
-            oriented bounding boxes.
+        A tuple of `(xyxy, labels, masks, obb_boxes)` where `xyxy` is an array
+            of shape `(n, 4)` in format `[x1, y1, x2, y2]`, `labels` is an
+            optional array of shape `(n,)` with class labels, `masks` is an
+            optional array of shape `(n, h, w)` with segmentation masks, and
+            `obb_boxes` is an optional array of shape `(n, 4, 2)` with oriented
+            bounding boxes.
     """
     assert len(result) == 1, f"Expected result with a single element. Got: {result}"
     task = next(iter(result.keys()))
@@ -610,13 +597,10 @@ def from_google_gemini_2_0(
             are filtered to only those classes found here.
 
     Returns:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing
-            the bounding boxes coordinates in format `[x1, y1, x2, y2]`
-        class_id (Optional[np.ndarray]): An array of shape `(n,)` containing
-            the class indices for each bounding box (or None if `classes` is not
-            provided)
-        class_name (np.ndarray): An array of shape `(n,)` containing
-            the class labels for each bounding box
+        A tuple of `(xyxy, class_id, class_name)` where `xyxy` is an array of
+            shape `(n, 4)` in format `[x1, y1, x2, y2]`, `class_id` is an
+            optional array of shape `(n,)` with class indices, and `class_name`
+            is an array of shape `(n,)` with class labels.
 
     """
 
@@ -700,17 +684,13 @@ def from_google_gemini_2_5(
             are filtered to only those classes found here.
 
     Returns:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing
-            the bounding boxes coordinates in format `[x1, y1, x2, y2]`
-        class_id (np.ndarray): An array of shape `(n,)` containing
-            the class indices for each bounding box
-        class_name (np.ndarray): An array of shape `(n,)` containing
-            the class labels for each bounding box
-        confidence: Optional[np.ndarray]: An array of shape `(n,)` containing
-            the confidence scores for each bounding box. If not provided,
-            it defaults to 0.0 for each box.
-        masks (Optional[np.ndarray]): An array of shape `(n, h, w)` containing
-            the segmentation masks for each bounding box
+        A tuple of `(xyxy, class_id, class_name, confidence, masks)` where
+            `xyxy` is an array of shape `(n, 4)` in format `[x1, y1, x2, y2]`,
+            `class_id` is an array of shape `(n,)` with class indices,
+            `class_name` is an array of shape `(n,)` with class labels,
+            `confidence` is an optional array of shape `(n,)` with confidence
+            scores, and `masks` is an optional array of shape `(n, h, w)` with
+            segmentation masks.
     """
     w, h = validate_resolution(resolution_wh)
 
@@ -855,8 +835,8 @@ def from_moondream(
         resolution_wh: (output_width, output_height) to which we rescale the boxes.
 
     Returns:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing
-            the bounding boxes coordinates in format `[x1, y1, x2, y2]`
+        An array of shape `(n, 4)` containing the bounding boxes coordinates
+            in format `[x1, y1, x2, y2]`.
     """
 
     w, h = resolution_wh

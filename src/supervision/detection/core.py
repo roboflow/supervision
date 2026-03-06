@@ -129,20 +129,20 @@ class Detections:
         ```
 
     Attributes:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing
+        xyxy: An array of shape `(n, 4)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`
-        mask: (Optional[np.ndarray]): An array of shape
+        mask: An array of shape
             `(n, H, W)` containing the segmentation masks (`bool` data type).
-        confidence (Optional[np.ndarray]): An array of shape
+        confidence: An array of shape
             `(n,)` containing the confidence scores of the detections.
-        class_id (Optional[np.ndarray]): An array of shape
+        class_id: An array of shape
             `(n,)` containing the class ids of the detections.
-        tracker_id (Optional[np.ndarray]): An array of shape
+        tracker_id: An array of shape
             `(n,)` containing the tracker ids of the detections.
-        data (Dict[str, Union[np.ndarray, List]]): A dictionary containing additional
+        data: A dictionary containing additional
             data where each key is a string representing the data type, and the value
             is either a NumPy array or a list of corresponding data.
-        metadata (Dict[str, Any]): A dictionary containing collection-level metadata
+        metadata: A dictionary containing collection-level metadata
             that applies to the entire set of detections. This may include information such
             as the video name, camera parameters, timestamp, or other global metadata.
     """  # noqa: E501 // docs
@@ -211,17 +211,16 @@ class Detections:
         )
 
     @classmethod
-    def from_yolov5(cls, yolov5_results) -> Detections:
+    def from_yolov5(cls, yolov5_results: Any) -> Detections:
         """
         Creates a Detections instance from a
         [YOLOv5](https://github.com/ultralytics/yolov5) inference result.
 
         Args:
-            yolov5_results (yolov5.models.common.Detections):
-                The output Detections instance from YOLOv5
+            yolov5_results: The output Detections instance from YOLOv5.
 
         Returns:
-            Detections: A new Detections object.
+            A new Detections object.
 
         Example:
             ```python
@@ -244,7 +243,7 @@ class Detections:
         )
 
     @classmethod
-    def from_ultralytics(cls, ultralytics_results) -> Detections:
+    def from_ultralytics(cls, ultralytics_results: Any) -> Detections:
         """
         Creates a `sv.Detections` instance from a
         [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
@@ -257,11 +256,10 @@ class Detections:
             [OBB](https://docs.ultralytics.com/tasks/obb/) models.
 
         Args:
-            ultralytics_results (ultralytics.yolo.engine.results.Results):
-                The output Results instance from Ultralytics
+            ultralytics_results: The output Results instance from Ultralytics.
 
         Returns:
-            Detections: A new Detections object.
+            A new Detections object.
 
         Example:
             ```python
@@ -325,20 +323,19 @@ class Detections:
         return cls.empty()
 
     @classmethod
-    def from_yolo_nas(cls, yolo_nas_results) -> Detections:
+    def from_yolo_nas(cls, yolo_nas_results: Any) -> Detections:
         """
         Creates a Detections instance from a
         [YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md)
         inference result.
 
         Args:
-            yolo_nas_results (ImageDetectionPrediction):
-                The output Results instance from YOLO-NAS
+            yolo_nas_results: The output Results instance from YOLO-NAS.
                 ImageDetectionPrediction is coming from
-                'super_gradients.training.models.prediction_results'
+                'super_gradients.training.models.prediction_results'.
 
         Returns:
-            Detections: A new Detections object.
+            A new Detections object.
 
         Example:
             ```python
@@ -372,11 +369,10 @@ class Detections:
         inference result.
 
         Args:
-            tensorflow_results (dict):
-                The output results from Tensorflow Hub.
+            tensorflow_results: The output results from Tensorflow Hub.
 
         Returns:
-            Detections: A new Detections object.
+            A new Detections object.
 
         Example:
             ```python
@@ -404,18 +400,17 @@ class Detections:
         )
 
     @classmethod
-    def from_deepsparse(cls, deepsparse_results) -> Detections:
+    def from_deepsparse(cls, deepsparse_results: Any) -> Detections:
         """
         Creates a Detections instance from a
         [DeepSparse](https://github.com/neuralmagic/deepsparse)
         inference result.
 
         Args:
-            deepsparse_results (deepsparse.yolo.schemas.YOLOOutput):
-                The output Results instance from DeepSparse.
+            deepsparse_results: The output Results instance from DeepSparse.
 
         Returns:
-            Detections: A new Detections object.
+            A new Detections object.
 
         Example:
             ```python
@@ -441,18 +436,17 @@ class Detections:
         )
 
     @classmethod
-    def from_mmdetection(cls, mmdet_results) -> Detections:
+    def from_mmdetection(cls, mmdet_results: Any) -> Detections:
         """
         Creates a Detections instance from a
         [mmdetection](https://github.com/open-mmlab/mmdetection) and
         [mmyolo](https://github.com/open-mmlab/mmyolo) inference result.
 
         Args:
-            mmdet_results (mmdet.structures.DetDataSample):
-                The output Results instance from MMDetection.
+            mmdet_results: The output Results instance from MMDetection.
 
         Returns:
-            Detections: A new Detections object.
+            A new Detections object.
 
         Example:
             ```python
@@ -489,17 +483,17 @@ class Detections:
         [Transformer](https://github.com/huggingface/transformers) inference result.
 
         Args:
-            transformers_results (Union[dict, torch.Tensor]):  Inference results from
-                your Transformers model. This can be either a dictionary containing
-                valuable outputs like `scores`, `labels`, `boxes`, `masks`,
-                `segments_info`, and `segmentation`, or a `torch.Tensor` holding a
-                segmentation map where values represent class IDs.
-            id2label (Optional[Dict[int, str]]): A dictionary mapping class IDs to
-                labels, typically part of the `transformers` model configuration. If
-                provided, the resulting dictionary will include class names.
+            transformers_results: Inference results from your Transformers model.
+                This can be either a dictionary containing valuable outputs like
+                `scores`, `labels`, `boxes`, `masks`, `segments_info`, and
+                `segmentation`, or a `torch.Tensor` holding a segmentation map
+                where values represent class IDs.
+            id2label: A dictionary mapping class IDs to labels, typically part of
+                the `transformers` model configuration. If provided, the resulting
+                dictionary will include class names.
 
         Returns:
-            Detections: A new Detections object.
+            A new Detections object.
 
         Example:
             ```python
@@ -565,11 +559,11 @@ class Detections:
         [Detectron2](https://github.com/facebookresearch/detectron2) inference result.
 
         Args:
-            detectron2_results (Any): The output of a
+            detectron2_results: The output of a
                 Detectron2 model containing instances with prediction data.
 
         Returns:
-            (Detections): A Detections object containing the bounding boxes,
+            A Detections object containing the bounding boxes,
                 class IDs, and confidences of the predictions.
 
         Example:
@@ -615,11 +609,11 @@ class Detections:
         them into a Detections object.
 
         Args:
-            roboflow_result (dict, any): The result from the
+            roboflow_result: The result from the
                 Roboflow API or Inference package containing predictions.
 
         Returns:
-            (Detections): A Detections object containing the bounding boxes, class IDs,
+            A Detections object containing the bounding boxes, class IDs,
                 and confidences of the predictions.
 
         Example:
@@ -665,10 +659,10 @@ class Detections:
         inference result.
 
         Args:
-            sam_result (List[dict]): The output Results instance from SAM
+            sam_result: The output Results instance from SAM.
 
         Returns:
-            Detections: A new Detections object.
+            A new Detections object.
 
         Example:
             ```python
@@ -709,15 +703,15 @@ class Detections:
         Supports both PVS and PCS SAM3 segmentation formats.
 
         Args:
-            sam3_result (dict | Any): The output result from SAM 3 inference,
-                either Sam3PromptResult from inference package or dict containing
+            sam3_result: The output result from SAM 3 inference, either
+                Sam3PromptResult from inference package or dict containing
                 prompt_results with polygon predictions.
-            resolution_wh (Tuple[int, int]): The width and height of the image
-                used for mask generation.
+            resolution_wh: The width and height of the image used for mask
+                generation.
 
         Returns:
-            Detections: A new Detections object.
-                The `class_id` field contains the prompt index for each polygon.
+            A new Detections object. The `class_id` field contains the prompt
+                index for each polygon.
 
         Example:
             ```python
@@ -834,13 +828,13 @@ class Detections:
         concept-object-detection-40).
 
         Args:
-            azure_result (dict): The result from Azure Image Analysis. It should
+            azure_result: The result from Azure Image Analysis. It should
                 contain detected objects and their bounding box coordinates.
-            class_map (Optional[Dict[int, str]]): A mapping ofclass IDs (int) to class
-                names (str). If None, a new mapping is created dynamically.
+            class_map: A mapping of class IDs to class names. If None, a new
+                mapping is created dynamically.
 
         Returns:
-            Detections: A new Detections object.
+            A new Detections object.
 
         Example:
             ```python
@@ -912,17 +906,17 @@ class Detections:
         )
 
     @classmethod
-    def from_paddledet(cls, paddledet_result) -> Detections:
+    def from_paddledet(cls, paddledet_result: Any) -> Detections:
         """
         Creates a Detections instance from
             [PaddleDetection](https://github.com/PaddlePaddle/PaddleDetection)
             inference result.
 
         Args:
-            paddledet_result (List[dict]): The output Results instance from PaddleDet
+            paddledet_result: The output Results instance from PaddleDet.
 
         Returns:
-            Detections: A new Detections object.
+            A new Detections object.
 
         Example:
             ```python
@@ -978,12 +972,12 @@ class Detections:
         | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
 
         Args:
-            lmm (Union[LMM, str]): The type of LMM (Large Multimodal Model) to use.
-            result (str): The result string containing the detection data.
-            **kwargs (Any): Additional keyword arguments required by the specified LMM.
+            lmm: The type of LMM (Large Multimodal Model) to use.
+            result: The result string containing the detection data.
+            **kwargs: Additional keyword arguments required by the specified LMM.
 
         Returns:
-            Detections: A new Detections object.
+            A new Detections object.
 
         Raises:
             ValueError: If the LMM is invalid, required arguments are missing, or
@@ -1458,12 +1452,12 @@ class Detections:
         | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
 
         Args:
-            vlm (Union[VLM, str]): The type of VLM (Vision Language Model) to use.
-            result (str): The result string containing the detection data.
-            **kwargs (Any): Additional keyword arguments required by the specified VLM.
+            vlm: The type of VLM (Vision Language Model) to use.
+            result: The result string containing the detection data.
+            **kwargs: Additional keyword arguments required by the specified VLM.
 
         Returns:
-            Detections: A new Detections object.
+            A new Detections object.
 
         Raises:
             ValueError: If the VLM is invalid, required arguments are missing, or
@@ -1930,10 +1924,10 @@ class Detections:
         Results are placed in the `data` field with the key `"class_name"`.
 
         Args:
-            easyocr_results (List): The output Results instance from EasyOCR
+            easyocr_results: The output Results instance from EasyOCR.
 
         Returns:
-            Detections: A new Detections object.
+            A new Detections object.
 
         Example:
             ```python
@@ -1968,7 +1962,7 @@ class Detections:
         )
 
     @classmethod
-    def from_ncnn(cls, ncnn_results) -> Detections:
+    def from_ncnn(cls, ncnn_results: Any) -> Detections:
         """
         Creates a Detections instance from the
         [ncnn](https://github.com/Tencent/ncnn) inference result.
@@ -2032,7 +2026,7 @@ class Detections:
             confidences, or class IDs.
 
         Returns:
-            (Detections): An empty Detections object.
+            An empty Detections object.
 
         Example:
             ```python
@@ -2167,12 +2161,11 @@ class Detections:
         such as `CENTER`, `CENTER_LEFT`, `BOTTOM_RIGHT`, etc.
 
         Args:
-            anchor (Position): An enum specifying the position of the anchor point
-                within the bounding box. Supported positions are defined in the
-                `Position` enum.
+            anchor: An enum specifying the position of the anchor point within the
+                bounding box. Supported positions are defined in the `Position` enum.
 
         Returns:
-            np.ndarray: An array of shape `(n, 2)`, where `n` is the number of bounding
+            An array of shape `(n, 2)`, where `n` is the number of bounding
                 boxes. Each row contains the `[x, y]` coordinates of the specified
                 anchor point for the corresponding bounding box.
 
@@ -2237,12 +2230,11 @@ class Detections:
         the data dictionary.
 
         Args:
-            index (Union[int, slice, List[int], np.ndarray, str]): The index, indices,
-                or key to access a subset of the Detections or an item from the data.
+            index: The index, indices, or key to access a subset of the Detections
+                or an item from the data.
 
         Returns:
-            Union[Detections, Any]: A subset of the Detections object or an item from
-                the data field.
+            A subset of the Detections object or an item from the data field.
 
         Example:
             ```python
@@ -2280,8 +2272,8 @@ class Detections:
         Set a value in the data dictionary of the Detections object.
 
         Args:
-            key (str): The key in the data dictionary to set.
-            value (Union[np.ndarray, List]): The value to set for the key.
+            key: The key in the data dictionary to set.
+            value: The value to set for the key.
 
         Example:
             ```python
@@ -2318,9 +2310,9 @@ class Detections:
         If only box is given property return area of each box.
 
         Returns:
-          np.ndarray: An array of floats containing the area of each detection
-            in the format of `(area_1, area_2, , area_n)`,
-            where n is the number of detections.
+            An array of floats containing the area of each detection
+                in the format of `(area_1, area_2, , area_n)`,
+                where n is the number of detections.
         """
         if self.mask is not None:
             return np.array([np.sum(mask) for mask in self.mask])
@@ -2333,7 +2325,7 @@ class Detections:
         Calculate the area of each bounding box in the set of object detections.
 
         Returns:
-            np.ndarray: An array of floats containing the area of each bounding
+            An array of floats containing the area of each bounding
                 box in the format of `(area_1, area_2, , area_n)`,
                 where n is the number of detections.
         """
@@ -2345,8 +2337,8 @@ class Detections:
         Compute the aspect ratio (width divided by height) for each bounding box.
 
         Returns:
-            np.ndarray: Array of shape `(N,)` containing aspect ratios, where `N` is the
-            number of boxes (width / height for each box).
+            Array of shape `(N,)` containing aspect ratios, where `N` is the
+                number of boxes (width / height for each box).
 
         Examples:
             ```python
@@ -2387,17 +2379,17 @@ class Detections:
         from a segmentation model, the IoU mask is applied. Otherwise, box IoU is used.
 
         Args:
-            threshold (float): The intersection-over-union threshold
-                to use for non-maximum suppression. I'm the lower the value the more
+            threshold: The intersection-over-union threshold
+                to use for non-maximum suppression. The lower the value the more
                 restrictive the NMS becomes. Defaults to 0.5.
-            class_agnostic (bool): Whether to perform class-agnostic
+            class_agnostic: Whether to perform class-agnostic
                 non-maximum suppression. If True, the class_id of each detection
                 will be ignored. Defaults to False.
-            overlap_metric (OverlapMetric): Metric used to compute the degree of
+            overlap_metric: Metric used to compute the degree of
                 overlap between pairs of masks or boxes (e.g., IoU, IoS).
 
         Returns:
-            Detections: A new Detections object containing the subset of detections
+            A new Detections object containing the subset of detections
                 after non-maximum suppression.
 
         Raises:
@@ -2452,16 +2444,16 @@ class Detections:
         Perform non-maximum merging on the current set of object detections.
 
         Args:
-            threshold (float): The intersection-over-union threshold
+            threshold: The intersection-over-union threshold
                 to use for non-maximum merging. Defaults to 0.5.
-            class_agnostic (bool): Whether to perform class-agnostic
+            class_agnostic: Whether to perform class-agnostic
                 non-maximum merging. If True, the class_id of each detection
                 will be ignored. Defaults to False.
-            overlap_metric (OverlapMetric): Metric used to compute the degree of
+            overlap_metric: Metric used to compute the degree of
                 overlap between pairs of masks or boxes (e.g., IoU, IoS).
 
         Returns:
-            Detections: A new Detections object containing the subset of detections
+            A new Detections object containing the subset of detections
                 after non-maximum merging.
 
         Raises:
@@ -2534,13 +2526,11 @@ def merge_inner_detection_object_pair(
     single bounding box and mask, respectively.
 
     Args:
-        detections_1 (Detections):
-            The first Detections object
-        detections_2 (Detections):
-            The second Detections object
+        detections_1: The first Detections object.
+        detections_2: The second Detections object.
 
     Returns:
-        Detections: A new Detections object, with merged attributes.
+        A new Detections object, with merged attributes.
 
     Raises:
         ValueError: If the input Detections objects do not have exactly 1 detected
