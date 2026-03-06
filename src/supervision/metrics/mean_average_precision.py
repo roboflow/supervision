@@ -984,15 +984,15 @@ class COCOEvaluator:
             precision_slice: npt.NDArray[np.float64],
         ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
             """Compute average precision while handling -1 sentinel values."""
-            masked = np.ma.masked_equal(precision_slice, -1)  # type: ignore
+            masked = np.ma.masked_equal(precision_slice, -1)
             if masked.count() == 0:
                 # All values are -1 (no data)
                 return np.full(num_iou_thresholds, -1, dtype=np.float64), np.full(
                     (num_categories, num_iou_thresholds), -1, dtype=np.float64
                 )
             else:
-                mAP_scores = np.ma.filled(masked.mean(axis=(1, 2)), -1)  # type: ignore
-                ap_per_class = np.ma.filled(masked.mean(axis=1), -1).transpose(1, 0)  # type: ignore
+                mAP_scores = np.ma.filled(masked.mean(axis=(1, 2)), -1)
+                ap_per_class = np.ma.filled(masked.mean(axis=1), -1).transpose(1, 0)
                 return mAP_scores, ap_per_class
 
         # Average precision over all sizes, 100 max detections
