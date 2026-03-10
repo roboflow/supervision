@@ -132,14 +132,14 @@ class Detections:
     Attributes:
         xyxy: An array of shape `(n, 4)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`
-        mask: An array of shape
-            `(n, H, W)` containing the segmentation masks (`bool` data type).
-        confidence: An array of shape
-            `(n,)` containing the confidence scores of the detections.
-        class_id: An array of shape
-            `(n,)` containing the class ids of the detections.
-        tracker_id: An array of shape
-            `(n,)` containing the tracker ids of the detections.
+        mask: An array of shape `(n, H, W)` containing the segmentation masks
+            (`bool` data type), or `None` when masks are not available.
+        confidence: An array of shape `(n,)` containing the confidence scores
+            of the detections, or `None` when confidence values are not available.
+        class_id: An array of shape `(n,)` containing the class ids of the
+            detections, or `None` when class ids are not available.
+        tracker_id: An array of shape `(n,)` containing the tracker ids of the
+            detections, or `None` when tracker ids are not available.
         data: A dictionary containing additional
             data where each key is a string representing the data type, and the value
             is either a NumPy array or a list of corresponding data.
@@ -373,6 +373,9 @@ class Detections:
 
         Args:
             tensorflow_results: The output results from Tensorflow Hub.
+            resolution_wh: The input image resolution as `(width, height)`.
+                Bounding boxes from Tensorflow are normalized and are scaled
+                to absolute coordinates using this resolution.
 
         Returns:
             A new Detections object.
@@ -388,7 +391,9 @@ class Detections:
             model = hub.load(module_handle)
             img = np.array(cv2.imread(SOURCE_IMAGE_PATH))
             result = model(img)
-            detections = sv.Detections.from_tensorflow(result)
+            detections = sv.Detections.from_tensorflow(
+                result, resolution_wh=(img.shape[1], img.shape[0])
+            )
             ```
         """
 
@@ -2334,7 +2339,7 @@ class Detections:
 
         Returns:
             An array of floats containing the area of each detection
-                in the format of `(area_1, area_2, , area_n)`,
+                in the format of `(area_1, area_2, ..., area_n)`,
                 where n is the number of detections.
         """
         if self.mask is not None:
@@ -2349,7 +2354,7 @@ class Detections:
 
         Returns:
             An array of floats containing the area of each bounding
-                box in the format of `(area_1, area_2, , area_n)`,
+                box in the format of `(area_1, area_2, ..., area_n)`,
                 where n is the number of detections.
         """
         return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
@@ -2536,7 +2541,7 @@ def merge_inner_detection_object_pair(
     detections_1: Detections, detections_2: Detections
 ) -> Detections:
     """
-    Merges two Detections object into a single Detections object.
+    Merges two Detections objects into a single Detections object.
     Assumes each Detections contains exactly one object.
 
     A `winning` detection is determined based on the confidence score of the two
@@ -2544,7 +2549,7 @@ def merge_inner_detection_object_pair(
     `class_id`, `tracker_id`, and `data` to include in the merged Detections object.
 
     The resulting `confidence` of the merged object is calculated by the weighted
-    contribution of ea detection to the merged object.
+    contribution of each detection to the merged object.
     The bounding boxes and masks of the two input detections are merged into a
     single bounding box and mask, respectively.
 

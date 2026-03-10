@@ -333,7 +333,7 @@ class LineZoneAnnotator:
         A class for drawing the `LineZone` and its detected object count
         on an image.
 
-        Attributes:
+        Args:
             thickness: Line thickness.
             color: Line color.
             text_thickness: Text thickness.

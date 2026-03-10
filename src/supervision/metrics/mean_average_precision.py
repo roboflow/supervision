@@ -984,15 +984,30 @@ class COCOEvaluator:
             precision_slice: npt.NDArray[np.float64],
         ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
             """Compute average precision while handling -1 sentinel values."""
-            masked = np.ma.masked_equal(precision_slice, -1)
-            if masked.count() == 0:
+            valid_mask = precision_slice != -1
+            if not np.any(valid_mask):
                 # All values are -1 (no data)
                 return np.full(num_iou_thresholds, -1, dtype=np.float64), np.full(
                     (num_categories, num_iou_thresholds), -1, dtype=np.float64
                 )
             else:
-                mAP_scores = np.ma.filled(masked.mean(axis=(1, 2)), -1)
-                ap_per_class = np.ma.filled(masked.mean(axis=1), -1).transpose(1, 0)
+                valid_values = np.where(valid_mask, precision_slice, 0.0)
+
+                threshold_sums = valid_values.sum(axis=(1, 2))
+                threshold_counts = valid_mask.sum(axis=(1, 2))
+                mAP_scores = np.where(
+                    threshold_counts > 0,
+                    threshold_sums / threshold_counts,
+                    -1.0,
+                )
+
+                class_sums = valid_values.sum(axis=1)
+                class_counts = valid_mask.sum(axis=1)
+                ap_per_class = np.where(
+                    class_counts > 0,
+                    class_sums / class_counts,
+                    -1.0,
+                ).transpose(1, 0)
                 return mAP_scores, ap_per_class
 
         # Average precision over all sizes, 100 max detections
@@ -1003,7 +1018,7 @@ class COCOEvaluator:
             :, :, :, area_range_idx, max_100_dets_idx
         ]
         # mAP over thresholds (dimension=num_thresholds)
-        # Use masked array to exclude -1 values when computing mean
+        # Exclude -1 sentinel values when computing mean
         mAP_scores_all_sizes, ap_per_class_all_sizes = compute_average_precision(
             average_precision_all_sizes
         )
