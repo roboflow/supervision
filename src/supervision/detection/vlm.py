@@ -6,9 +6,10 @@ import io
 import json
 import re
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
+import numpy.typing as npt
 from PIL import Image
 
 from supervision.detection.utils.boxes import denormalize_boxes
@@ -45,8 +46,8 @@ class LMM(Enum):
     MOONDREAM = "moondream"
 
     @classmethod
-    def list(cls):
-        return list(map(lambda c: c.value, cls))
+    def list(cls) -> list[str]:
+        return [c.value for c in cls]
 
     @classmethod
     def from_value(cls, value: LMM | str) -> LMM:
@@ -88,8 +89,8 @@ class VLM(Enum):
     MOONDREAM = "moondream"
 
     @classmethod
-    def list(cls):
-        return list(map(lambda c: c.value, cls))
+    def list(cls) -> list[str]:
+        return [c.value for c in cls]
 
     @classmethod
     def from_value(cls, value: VLM | str) -> VLM:
@@ -164,7 +165,7 @@ def validate_vlm_parameters(vlm: VLM | str, result: Any, kwargs: dict[str, Any])
         kwargs: Dictionary of arguments to validate against required/allowed lists.
 
     Returns:
-        VLM: The validated VLM enum value.
+        The validated VLM enum value.
 
     Raises:
         ValueError: If the VLM, result type, or arguments are invalid.
@@ -197,7 +198,7 @@ def validate_vlm_parameters(vlm: VLM | str, result: Any, kwargs: dict[str, Any])
 
 def from_paligemma(
     result: str, resolution_wh: tuple[int, int], classes: list[str] | None = None
-) -> tuple[np.ndarray, np.ndarray | None, np.ndarray]:
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any] | None, npt.NDArray[Any]]:
     """
     Parse bounding boxes from paligemma-formatted text, scale them to the specified
     resolution, and optionally filter by classes.
@@ -209,13 +210,10 @@ def from_paligemma(
             in this list are filtered out.
 
     Returns:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing
-            the bounding boxes coordinates in format `[x1, y1, x2, y2]`.
-        class_id (Optional[np.ndarray]): An array of shape `(n,)` containing
-            the class indices for each bounding box (or `None` if classes is not
-            provided).
-        class_name (np.ndarray): An array of shape `(n,)` containing
-            the class labels for each bounding box.
+        A tuple of `(xyxy, class_id, class_name)` where `xyxy` is an array of
+            shape `(n, 4)` in format `[x1, y1, x2, y2]`, `class_id` is an
+            optional array of shape `(n,)` with class indices, and `class_name`
+            is an array of shape `(n,)` with class labels.
     """
 
     w, h = validate_resolution(resolution_wh)
@@ -252,7 +250,7 @@ def recover_truncated_qwen_2_5_vl_response(text: str) -> Any | None:
     malformed, cleans trailing commas, and attempts to parse it into a Python object.
 
     Args:
-        text (str): Raw text containing the JSON snippet possibly truncated or
+        text: Raw text containing the JSON snippet possibly truncated or
             incomplete.
 
     Returns:
@@ -293,7 +291,7 @@ def from_qwen_2_5_vl(
     input_wh: tuple[int, int],
     resolution_wh: tuple[int, int],
     classes: list[str] | None = None,
-) -> tuple[np.ndarray, np.ndarray | None, np.ndarray]:
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any] | None, npt.NDArray[Any]]:
     """
     Parse and rescale bounding boxes and class labels from Qwen-2.5-VL JSON output.
 
@@ -306,20 +304,18 @@ def from_qwen_2_5_vl(
       ```
 
     Args:
-        result (str): String containing Qwen-2.5-VL JSON bounding box and label data.
-        input_wh (tuple[int, int]): Width and height of the coordinate space where boxes
+        result: String containing Qwen-2.5-VL JSON bounding box and label data.
+        input_wh: Width and height of the coordinate space where boxes
             are normalized.
-        resolution_wh (tuple[int, int]): Target width and height to scale bounding
-            boxes.
-        classes (list[str] or None): Optional list of valid class names to filter
-            results. If provided, only boxes with labels in this list are returned.
+        resolution_wh: Target width and height to scale bounding boxes.
+        classes: Optional list of valid class names to filter results. If provided,
+            only boxes with labels in this list are returned.
 
     Returns:
-        xyxy (np.ndarray): Array of shape `(N, 4)` with rescaled bounding boxes in
-            `(x_min, y_min, x_max, y_max)` format.
-        class_id (np.ndarray or None): Array of shape `(N,)` with indices of classes,
-            or `None` if no filtering applied.
-        class_name (np.ndarray): Array of shape `(N,)` with class names as strings.
+        A tuple of `(xyxy, class_id, class_name)` where `xyxy` is an array of
+            shape `(N, 4)` in `(x_min, y_min, x_max, y_max)` format, `class_id`
+            is an optional array of shape `(N,)` with class indices, and
+            `class_name` is an array of shape `(N,)` with class names.
     """
 
     in_w, in_h = validate_resolution(input_wh)
@@ -386,23 +382,20 @@ def from_qwen_3_vl(
     result: str,
     resolution_wh: tuple[int, int],
     classes: list[str] | None = None,
-) -> tuple[np.ndarray, np.ndarray | None, np.ndarray]:
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any] | None, npt.NDArray[Any]]:
     """
     Parse and scale bounding boxes from Qwen-3-VL style JSON output.
 
     Args:
-        result (str): String containing the Qwen-3-VL JSON output.
-        resolution_wh (tuple[int, int]): Target resolution `(width, height)` to
-            scale bounding boxes.
-        classes (list[str] or None): Optional list of valid classes to filter
-            results.
+        result: String containing the Qwen-3-VL JSON output.
+        resolution_wh: Target resolution `(width, height)` to scale bounding boxes.
+        classes: Optional list of valid classes to filter results.
 
     Returns:
-        xyxy (np.ndarray): Array of bounding boxes with shape `(N, 4)` in
-            `(x_min, y_min, x_max, y_max)` format scaled to `resolution_wh`.
-        class_id (np.ndarray or None): Array of class indices for each box, or
-            None if no filtering by classes.
-        class_name (np.ndarray): Array of class names as strings.
+        A tuple of `(xyxy, class_id, class_name)` where `xyxy` is an array of
+            shape `(N, 4)` in `(x_min, y_min, x_max, y_max)` format scaled to
+            `resolution_wh`, `class_id` is an optional array of class indices,
+            and `class_name` is an array of class names.
     """
     return from_qwen_2_5_vl(
         result=result,
@@ -414,7 +407,7 @@ def from_qwen_3_vl(
 
 def from_deepseek_vl_2(
     result: str, resolution_wh: tuple[int, int], classes: list[str] | None = None
-) -> tuple[np.ndarray, np.ndarray | None, np.ndarray]:
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any] | None, npt.NDArray[Any]]:
     """
     Parse bounding boxes from deepseek-vl2-formatted text, scale them to the specified
     resolution, and optionally filter by classes.
@@ -435,13 +428,10 @@ def from_deepseek_vl_2(
             in this list are filtered out.
 
     Returns:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing
-            the bounding boxes coordinates in format `[x1, y1, x2, y2]`.
-        class_id (Optional[np.ndarray]): An array of shape `(n,)` containing
-            the class indices for each bounding box (or `None` if classes is not
-            provided).
-        class_name (np.ndarray): An array of shape `(n,)` containing
-            the class labels for each bounding box.
+        A tuple of `(xyxy, class_id, class_name)` where `xyxy` is an array of
+            shape `(n, 4)` in format `[x1, y1, x2, y2]`, `class_id` is an
+            optional array of shape `(n,)` with class indices, and `class_name`
+            is an array of shape `(n,)` with class labels.
     """  # noqa: E501
 
     width, height = resolution_wh
@@ -486,8 +476,13 @@ def from_deepseek_vl_2(
 
 
 def from_florence_2(
-    result: dict, resolution_wh: tuple[int, int]
-) -> tuple[np.ndarray, np.ndarray | None, np.ndarray | None, np.ndarray | None]:
+    result: dict[str, Any], resolution_wh: tuple[int, int]
+) -> tuple[
+    npt.NDArray[Any],
+    npt.NDArray[Any] | None,
+    npt.NDArray[Any] | None,
+    npt.NDArray[Any] | None,
+]:
     """
     Parse results from the Florence 2 multi-model model.
     https://huggingface.co/microsoft/Florence-2-large
@@ -497,14 +492,12 @@ def from_florence_2(
         resolution_wh: (output_width, output_height) to which we rescale the boxes.
 
     Returns:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing
-            the bounding boxes coordinates in format `[x1, y1, x2, y2]`
-        labels: (Optional[np.ndarray]): An array of shape `(n,)` containing
-            the class labels for each bounding box
-        masks: (Optional[np.ndarray]): An array of shape `(n, h, w)` containing
-            the segmentation masks for each bounding box
-        obb_boxes: (Optional[np.ndarray]): An array of shape `(n, 4, 2)` containing
-            oriented bounding boxes.
+        A tuple of `(xyxy, labels, masks, obb_boxes)` where `xyxy` is an array
+            of shape `(n, 4)` in format `[x1, y1, x2, y2]`, `labels` is an
+            optional array of shape `(n,)` with class labels, `masks` is an
+            optional array of shape `(n, h, w)` with segmentation masks, and
+            `obb_boxes` is an optional array of shape `(n, 4, 2)` with oriented
+            bounding boxes.
     """
     assert len(result) == 1, f"Expected result with a single element. Got: {result}"
     task = next(iter(result.keys()))
@@ -582,7 +575,7 @@ def from_google_gemini_2_0(
     result: str,
     resolution_wh: tuple[int, int],
     classes: list[str] | None = None,
-) -> tuple[np.ndarray, np.ndarray | None, np.ndarray]:
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any] | None, npt.NDArray[Any]]:
     """
     Parse and scale bounding boxes from Google Gemini style
     [JSON output](https://ai.google.dev/gemini-api/docs/vision?lang=python).
@@ -610,13 +603,10 @@ def from_google_gemini_2_0(
             are filtered to only those classes found here.
 
     Returns:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing
-            the bounding boxes coordinates in format `[x1, y1, x2, y2]`
-        class_id (Optional[np.ndarray]): An array of shape `(n,)` containing
-            the class indices for each bounding box (or None if `classes` is not
-            provided)
-        class_name (np.ndarray): An array of shape `(n,)` containing
-            the class labels for each bounding box
+        A tuple of `(xyxy, class_id, class_name)` where `xyxy` is an array of
+            shape `(n, 4)` in format `[x1, y1, x2, y2]`, `class_id` is an
+            optional array of shape `(n,)` with class indices, and `class_name`
+            is an array of shape `(n,)` with class labels.
 
     """
 
@@ -670,11 +660,11 @@ def from_google_gemini_2_5(
     resolution_wh: tuple[int, int],
     classes: list[str] | None = None,
 ) -> tuple[
-    np.ndarray,
-    np.ndarray | None,
-    np.ndarray,
-    np.ndarray | None,
-    np.ndarray | None,
+    npt.NDArray[Any],
+    npt.NDArray[Any] | None,
+    npt.NDArray[Any],
+    npt.NDArray[Any] | None,
+    npt.NDArray[Any] | None,
 ]:
     """
     Parse and scale bounding boxes and masks from Google Gemini 2.5 style
@@ -700,17 +690,13 @@ def from_google_gemini_2_5(
             are filtered to only those classes found here.
 
     Returns:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing
-            the bounding boxes coordinates in format `[x1, y1, x2, y2]`
-        class_id (np.ndarray): An array of shape `(n,)` containing
-            the class indices for each bounding box
-        class_name (np.ndarray): An array of shape `(n,)` containing
-            the class labels for each bounding box
-        confidence: Optional[np.ndarray]: An array of shape `(n,)` containing
-            the confidence scores for each bounding box. If not provided,
-            it defaults to 0.0 for each box.
-        masks (Optional[np.ndarray]): An array of shape `(n, h, w)` containing
-            the segmentation masks for each bounding box
+        A tuple of `(xyxy, class_id, class_name, confidence, masks)` where
+            `xyxy` is an array of shape `(n, 4)` in format `[x1, y1, x2, y2]`,
+            `class_id` is an array of shape `(n,)` with class indices,
+            `class_name` is an array of shape `(n,)` with class labels,
+            `confidence` is an optional array of shape `(n,)` with confidence
+            scores, and `masks` is an optional array of shape `(n, h, w)` with
+            segmentation masks.
     """
     w, h = validate_resolution(resolution_wh)
 
@@ -732,10 +718,10 @@ def from_google_gemini_2_5(
             None,
         )
 
-    boxes_list: list = []
-    labels_list: list = []
-    confidence_list: list | None = []
-    masks_list: list | None = []
+    boxes_list: list[Any] = []
+    labels_list: list[str] = []
+    confidence_list: list[float] | None = []
+    masks_list: list[npt.NDArray[Any]] | None = []
 
     for item in data:
         if "box_2d" not in item or "label" not in item:
@@ -771,7 +757,7 @@ def from_google_gemini_2_5(
                     mask_img = mask_img.resize(
                         (bbox_width, bbox_height), resample=Image.Resampling.BILINEAR
                     )
-                    np_mask = np.zeros((h, w), dtype=bool)
+                    np_mask: npt.NDArray[np.bool_] = np.zeros((h, w), dtype=bool)
                     np_mask[y_min:y_max, x_min:x_max] = np.array(mask_img) > 0
                     masks_list.append(np_mask)
                 else:
@@ -796,7 +782,7 @@ def from_google_gemini_2_5(
 
     xyxy = np.array(boxes_list, dtype=float)
     class_name = np.array(labels_list)
-    class_id: np.ndarray
+    class_id: npt.NDArray[Any]
 
     if classes is not None:
         mask = np.array([name in classes for name in class_name], dtype=bool)
@@ -828,9 +814,9 @@ def from_google_gemini_2_5(
 
 
 def from_moondream(
-    result: dict,
+    result: dict[str, Any],
     resolution_wh: tuple[int, int],
-) -> np.ndarray:
+) -> npt.NDArray[Any]:
     """
     Parse and scale bounding boxes from moondream JSON output.
 
@@ -855,8 +841,8 @@ def from_moondream(
         resolution_wh: (output_width, output_height) to which we rescale the boxes.
 
     Returns:
-        xyxy (np.ndarray): An array of shape `(n, 4)` containing
-            the bounding boxes coordinates in format `[x1, y1, x2, y2]`
+        An array of shape `(n, 4)` containing the bounding boxes coordinates
+            in format `[x1, y1, x2, y2]`.
     """
 
     w, h = resolution_wh
@@ -882,9 +868,12 @@ def from_moondream(
         xyxy.append([x_min, y_min, x_max, y_max])
 
     if len(xyxy) == 0:
-        return np.empty((0, 4))
+        return cast(npt.NDArray[Any], np.empty((0, 4)))
 
-    return denormalize_boxes(
-        np.array(xyxy).astype(np.float64),
-        resolution_wh=(w, h),
+    return cast(
+        npt.NDArray[Any],
+        denormalize_boxes(
+            np.array(xyxy).astype(np.float64),
+            resolution_wh=(w, h),
+        ),
     )

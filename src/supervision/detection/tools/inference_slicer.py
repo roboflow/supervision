@@ -3,8 +3,10 @@ from __future__ import annotations
 import warnings
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
@@ -18,19 +20,19 @@ from supervision.utils.internal import SupervisionWarnings
 
 def move_detections(
     detections: Detections,
-    offset: np.ndarray,
+    offset: npt.NDArray[Any],
     resolution_wh: tuple[int, int] | None = None,
 ) -> Detections:
     """
     Args:
-        detections (sv.Detections): Detections object to be moved.
-        offset (np.ndarray): An array of shape `(2,)` containing offset values in format
-            is `[dx, dy]`.
-        resolution_wh (Tuple[int, int]): The width and height of the desired mask
+        detections: Detections object to be moved.
+        offset: An array of shape `(2,)` containing offset values in the
+            format `[dx, dy]`.
+        resolution_wh: The width and height of the desired mask
             resolution. Required for segmentation detections.
 
     Returns:
-        (sv.Detections) repositioned Detections object.
+        Repositioned Detections object.
     """
     detections.xyxy = move_boxes(xyxy=detections.xyxy, offset=offset)
     if ORIENTED_BOX_COORDINATES in detections.data:
@@ -61,18 +63,17 @@ class InferenceSlicer:
     parallel slice inference.
 
     Args:
-        callback (Callable[[ImageType], Detections]): Inference function that takes
-            a sliced image and returns a `Detections` object.
-        slice_wh (int or tuple[int, int]): Size of each slice `(width, height)`.
-            If int, both width and height are set to this value.
-        overlap_wh (int or tuple[int, int]): Overlap size `(width, height)` between
-            slices. If int, both width and height are set to this value.
-        overlap_filter (OverlapFilter or str): Strategy to merge overlapping
-            detections (`NON_MAX_SUPPRESSION`, `NON_MAX_MERGE`, or `NONE`).
-        iou_threshold (float): IOU threshold used in merging overlap filtering.
-        overlap_metric (OverlapMetric or str): Metric to compute overlap
-            (`IOU` or `IOS`).
-        thread_workers (int): Number of threads for concurrent slice inference.
+        callback: Inference function that takes a sliced image and returns a
+            `Detections` object.
+        slice_wh: Size of each slice `(width, height)`. If int, both width and
+            height are set to this value.
+        overlap_wh: Overlap size `(width, height)` between slices. If int, both
+            width and height are set to this value.
+        overlap_filter: Strategy to merge overlapping detections
+            (`NON_MAX_SUPPRESSION`, `NON_MAX_MERGE`, or `NONE`).
+        iou_threshold: IOU threshold used in merging overlap filtering.
+        overlap_metric: Metric to compute overlap (`IOU` or `IOS`).
+        thread_workers: Number of threads for concurrent slice inference.
 
     Raises:
         ValueError: If `slice_wh` or `overlap_wh` are invalid or inconsistent.
@@ -132,7 +133,7 @@ class InferenceSlicer:
         self.iou_threshold = iou_threshold
         self.overlap_metric = OverlapMetric.from_value(overlap_metric)
         self.overlap_filter = OverlapFilter.from_value(overlap_filter)
-        self.callback = callback
+        self.callback: Callable[[ImageType], Detections] = callback
         self.thread_workers = thread_workers
 
     def __call__(self, image: ImageType) -> Detections:
@@ -140,10 +141,10 @@ class InferenceSlicer:
         Perform tiled inference on the full image and return merged detections.
 
         Args:
-            image (ImageType): The full image to run inference on.
+            image: The full image to run inference on.
 
         Returns:
-            Detections: Merged detections across all slices.
+            Merged detections across all slices.
         """
         detections_list: list[Detections] = []
         resolution_wh = get_image_resolution_wh(image)
@@ -181,19 +182,19 @@ class InferenceSlicer:
         )
         return merged
 
-    def _run_callback(self, image: ImageType, offset: np.ndarray) -> Detections:
+    def _run_callback(self, image: ImageType, offset: npt.NDArray[Any]) -> Detections:
         """
         Run detection callback on a sliced portion of the image and adjust coordinates.
 
         Args:
-            image (ImageType): The full image.
-            offset (numpy.ndarray): Coordinates `(x_min, y_min, x_max, y_max)` defining
+            image: The full image.
+            offset: Coordinates `(x_min, y_min, x_max, y_max)` defining
                 the slice region.
 
         Returns:
-            Detections: Detections adjusted to the full image coordinate system.
+            Detections adjusted to the full image coordinate system.
         """
-        image_slice: ImageType = crop_image(image=image, xyxy=offset)
+        image_slice = crop_image(image=image, xyxy=offset)
         detections = self.callback(image_slice)
         resolution_wh = get_image_resolution_wh(image)
 
@@ -260,17 +261,17 @@ class InferenceSlicer:
         resolution_wh: tuple[int, int],
         slice_wh: tuple[int, int],
         overlap_wh: tuple[int, int],
-    ) -> np.ndarray:
+    ) -> npt.NDArray[Any]:
         """
         Generate bounding boxes defining the coordinates of image slices with overlap.
 
         Args:
-            resolution_wh (tuple[int, int]): Image resolution `(width, height)`.
-            slice_wh (tuple[int, int]): Size of each slice `(width, height)`.
-            overlap_wh (tuple[int, int]): Overlap size between slices `(width, height)`.
+            resolution_wh: Image resolution `(width, height)`.
+            slice_wh: Size of each slice `(width, height)`.
+            overlap_wh: Overlap size between slices `(width, height)`.
 
         Returns:
-            numpy.ndarray: Array of shape `(num_slices, 4)` with each row as
+            Array of shape `(num_slices, 4)` with each row as
                 `(x_min, y_min, x_max, y_max)` coordinates for a slice.
         """
         slice_width, slice_height = slice_wh
@@ -289,10 +290,10 @@ class InferenceSlicer:
                 return [0]
 
             if stride == slice_size:
-                return np.arange(0, image_size, stride).tolist()
+                return list(np.arange(0, image_size, stride).tolist())
 
             last_start = image_size - slice_size
-            starts = np.arange(0, last_start, stride).tolist()
+            starts: list[int] = list(np.arange(0, last_start, stride).tolist())
             if not starts or starts[-1] != last_start:
                 starts.append(last_start)
             return starts
@@ -312,7 +313,7 @@ class InferenceSlicer:
         x_max = np.clip(x_min + slice_width, 0, image_width)
         y_max = np.clip(y_min + slice_height, 0, image_height)
 
-        offsets = np.stack(
+        offsets: npt.NDArray[Any] = np.stack(
             [x_min, y_min, x_max, y_max],
             axis=-1,
         ).reshape(-1, 4)

@@ -246,6 +246,12 @@ def detections_to_yolo_annotations(
     for xyxy, mask, _, class_id, _, _ in detections:
         if class_id is None:
             raise ValueError("Class ID is required for YOLO annotations.")
+        if not isinstance(class_id, (int, np.integer)):
+            raise ValueError(
+                f"Detections class_id must be an integer for YOLO export, "
+                f"got {type(class_id)!r}."
+            )
+        class_id_int = int(class_id)
 
         if mask is not None:
             polygons = approximate_mask_with_polygons(
@@ -258,14 +264,14 @@ def detections_to_yolo_annotations(
                 xyxy = polygon_to_xyxy(polygon=polygon)
                 next_object = object_to_yolo(
                     xyxy=xyxy,
-                    class_id=class_id,
+                    class_id=class_id_int,
                     image_shape=image_shape,
                     polygon=polygon,
                 )
                 annotation.append(next_object)
         else:
             next_object = object_to_yolo(
-                xyxy=xyxy, class_id=class_id, image_shape=image_shape
+                xyxy=xyxy, class_id=class_id_int, image_shape=image_shape
             )
             annotation.append(next_object)
     return annotation

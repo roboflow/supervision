@@ -8,6 +8,7 @@ import pytest
 from supervision.dataset.formats.yolo import (
     _image_name_to_annotation_name,
     _with_seg_mask,
+    detections_to_yolo_annotations,
     object_to_yolo,
     yolo_annotations_to_detections,
 )
@@ -295,3 +296,15 @@ def test_object_to_yolo(
             xyxy=xyxy, class_id=class_id, image_shape=image_shape, polygon=polygon
         )
         assert result == expected_result
+
+
+def test_detections_to_yolo_annotations_raises_for_non_integer_class_id() -> None:
+    detections = Detections(
+        xyxy=np.array([[100, 100, 200, 200]], dtype=np.float32),
+        class_id=np.array([1.9], dtype=np.float32),
+    )
+
+    with pytest.raises(ValueError, match="must be an integer"):
+        detections_to_yolo_annotations(
+            detections=detections, image_shape=(1000, 1000, 3)
+        )

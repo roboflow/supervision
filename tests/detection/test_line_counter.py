@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from contextlib import ExitStack as DoesNotRaise
 
+import numpy as np
 import pytest
 
-from supervision import LineZone
+from supervision import LineZone, LineZoneAnnotatorMulticlass
 from supervision.geometry.core import Point, Position, Vector
 from tests.helpers import _create_detections
 
@@ -878,3 +879,19 @@ def test_line_zone_tracker_id_reuse_with_different_classes(
 
     assert line_zone.in_count_per_class == expected_in_count_per_class
     assert line_zone.out_count_per_class == expected_out_count_per_class
+
+
+def test_line_zone_annotator_multiclass_supports_none_class_id() -> None:
+    line_zone = LineZone(start=Point(0, 0), end=Point(0, 10))
+    for xyxy in [[4, 4, 6, 6], [-6, 4, -4, 6]]:
+        detections = _create_detections(xyxy=[xyxy], tracker_id=[0])
+        line_zone.trigger(detections)
+
+    assert line_zone.out_count_per_class == {None: 1}
+
+    frame = np.zeros((100, 100, 3), dtype=np.uint8)
+    annotator = LineZoneAnnotatorMulticlass(force_draw_class_ids=False)
+    annotated_frame = annotator.annotate(frame=frame.copy(), line_zones=[line_zone])
+
+    assert annotated_frame.shape == frame.shape
+    assert not np.array_equal(annotated_frame, frame)
