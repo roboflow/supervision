@@ -1,12 +1,14 @@
 verbose = "info"
 no_progress = true
 include_verbatim = true
-retry_wait_time = 3
-max_concurrency = 10
+retry_wait_time = 10
+max_retries = 3
+max_concurrency = 4
 cache = false
 accept = [
     200, # OK
     408, # Request Timeout
+    429, # Too Many Requests (rate-limited; treat as non-fatal)
 ]
 
 exclude = [
