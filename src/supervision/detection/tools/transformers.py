@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import io
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
+import numpy.typing as npt
 from PIL import Image
 
 from supervision.config import CLASS_NAME_DATA_FIELD
@@ -11,8 +12,8 @@ from supervision.detection.utils.converters import mask_to_xyxy
 
 
 def process_transformers_detection_result(
-    detection_result: dict, id2label: dict[int, str] | None
-) -> dict:
+    detection_result: dict[str, Any], id2label: dict[int, str] | None
+) -> dict[str, Any]:
     """
     Process the result of Transformers object detection functions such as
     `post_process` (v4) and `post_process_detection` (v5).
@@ -40,8 +41,8 @@ def process_transformers_detection_result(
 
 
 def process_transformers_v4_segmentation_result(
-    segmentation_result: dict, id2label: dict[int, str] | None
-) -> dict:
+    segmentation_result: dict[str, Any], id2label: dict[int, str] | None
+) -> dict[str, Any]:
     """
     Process the result of Transformers segmentation functions such as
     `post_process_panoptic`, `post_process_segmentation`, and `post_process_instance`
@@ -79,8 +80,8 @@ def process_transformers_v4_segmentation_result(
 
 
 def process_transformers_v5_segmentation_result(
-    segmentation_result: dict, id2label: dict[int, str] | None
-) -> dict:
+    segmentation_result: Any, id2label: dict[int, str] | None
+) -> dict[str, Any]:
     """
     Process the result of Transformers segmentation functions such as
     `post_process_semantic_segmentation`, `post_process_instance_segmentation`, and
@@ -109,8 +110,8 @@ def process_transformers_v5_segmentation_result(
 
 
 def process_transformers_v5_semantic_or_instance_segmentation_result(
-    segmentation_result: dict, id2label: dict[int, str] | None
-) -> dict:
+    segmentation_result: dict[str, Any], id2label: dict[int, str] | None
+) -> dict[str, Any]:
     """
     Process the result of Transformers segmentation functions such as
     `post_process_semantic_segmentation` and `post_process_instance_segmentation` (v5).
@@ -145,8 +146,8 @@ def process_transformers_v5_semantic_or_instance_segmentation_result(
 
 
 def process_transformers_v4_panoptic_segmentation_result(
-    segmentation_result: dict, id2label: dict[int, str] | None
-) -> dict:
+    segmentation_result: dict[str, Any], id2label: dict[int, str] | None
+) -> dict[str, Any]:
     """
     Process the result of the Transformers function `post_process_panoptic` (v4).
 
@@ -179,8 +180,8 @@ def process_transformers_v4_panoptic_segmentation_result(
 
 
 def process_transformers_v5_panoptic_segmentation_result(
-    segmentation_array: np.ndarray, id2label: dict[int, str] | None
-) -> dict:
+    segmentation_array: npt.NDArray[Any], id2label: dict[int, str] | None
+) -> dict[str, Any]:
     """
     Process the result of the Transformers function
     `post_process_panoptic_segmentation` (v5).
@@ -203,7 +204,7 @@ def process_transformers_v5_panoptic_segmentation_result(
     return dict(xyxy=mask_to_xyxy(masks), mask=masks, class_id=class_ids, data=data)
 
 
-def png_string_to_segmentation_array(png_string: bytes) -> np.ndarray:
+def png_string_to_segmentation_array(png_string: bytes) -> npt.NDArray[Any]:
     """
     Convert a PNG byte string to a label mask array.
 
@@ -217,11 +218,11 @@ def png_string_to_segmentation_array(png_string: bytes) -> np.ndarray:
     """
     image = Image.open(io.BytesIO(png_string))
     mask = np.array(image, dtype=np.uint8)
-    return mask[:, :, 0]
+    return cast(npt.NDArray[Any], mask[:, :, 0])
 
 
 def append_class_names_to_data(
-    class_ids: np.ndarray,
+    class_ids: npt.NDArray[Any],
     id2label: dict[int, str] | None,
     data: dict[str, Any] | None = None,
 ) -> dict[str, Any]:

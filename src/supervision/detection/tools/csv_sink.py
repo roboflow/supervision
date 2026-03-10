@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import _csv
 import csv
+import io
 import os
 from typing import Any
+
+import numpy as np
 
 from supervision.detection.core import Detections
 from supervision.utils.logger import _get_logger
@@ -69,10 +73,10 @@ class CSVSink:
             file_name: The name of the CSV file.
         """
         self.file_name = file_name
-        self.file: open | None = None
-        self.writer: csv.writer | None = None
+        self.file: io.TextIOWrapper | None = None
+        self.writer: _csv._writer | None = None
         self.header_written = False
-        self.field_names = []
+        self.field_names: list[str] = []
 
     def __enter__(self) -> CSVSink:
         self.open()
@@ -128,10 +132,12 @@ class CSVSink:
 
             if hasattr(detections, "data"):
                 for key, value in detections.data.items():
-                    if value.ndim == 0:
+                    if isinstance(value, np.ndarray) and value.ndim == 0:
                         row[key] = value
-                    else:
+                    elif isinstance(value, np.ndarray):
                         row[key] = value[i]
+                    else:
+                        row[key] = value[i] if hasattr(value, "__getitem__") else value
 
             if custom_data:
                 row.update(custom_data)
@@ -173,9 +179,10 @@ class CSVSink:
 
     @staticmethod
     def parse_field_names(
-        detections: Detections, custom_data: dict[str, Any]
+        detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> list[str]:
+        custom_keys = set(custom_data.keys()) if custom_data else set()
         dynamic_header = sorted(
-            set(custom_data.keys()) | set(getattr(detections, "data", {}).keys())
+            custom_keys | set(getattr(detections, "data", {}).keys())
         )
         return BASE_HEADER + dynamic_header

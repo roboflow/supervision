@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import io
 import json
 import os
 from typing import Any
+
+import numpy as np
 
 from supervision.detection.core import Detections
 
@@ -48,7 +51,7 @@ class JSONSink:
             file_name: The name of the JSON file.
         """
         self.file_name = file_name
-        self.file: open | None = None
+        self.file: io.TextIOWrapper | None = None
         self.data: list[dict[str, Any]] = []
 
     def __enter__(self) -> JSONSink:
@@ -105,11 +108,14 @@ class JSONSink:
 
             if hasattr(detections, "data"):
                 for key, value in detections.data.items():
-                    row[key] = (
-                        str(value[i])
-                        if hasattr(value, "__getitem__") and value.ndim != 0
-                        else str(value)
-                    )
+                    if isinstance(value, np.ndarray):
+                        row[key] = str(value[i]) if value.ndim != 0 else str(value)
+                    else:
+                        row[key] = (
+                            str(value[i])
+                            if hasattr(value, "__getitem__")
+                            else str(value)
+                        )
 
             if custom_data:
                 row.update(custom_data)

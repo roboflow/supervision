@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import replace
+from typing import Any, cast
 
 import cv2
 import numpy as np
@@ -107,7 +108,7 @@ class PolygonZone:
             .astype(bool)
         )
 
-        is_in_zone: npt.NDArray[np.bool_] = np.all(is_in_zone, axis=1)
+        is_in_zone = np.all(is_in_zone, axis=1)
         self.current_count = int(np.sum(is_in_zone))
         return is_in_zone.astype(bool)
 
@@ -156,7 +157,9 @@ class PolygonZoneAnnotator:
         self.display_in_zone_count = display_in_zone_count
         self.opacity = opacity
 
-    def annotate(self, scene: np.ndarray, label: str | None = None) -> np.ndarray:
+    def annotate(
+        self, scene: npt.NDArray[Any], label: str | None = None
+    ) -> npt.NDArray[Any]:
         """
         Annotates the polygon zone within a frame with a count of detected objects.
 
@@ -202,4 +205,4 @@ class PolygonZoneAnnotator:
                 text_font=self.font,
             )
 
-        return annotated_frame
+        return cast(npt.NDArray[Any], annotated_frame)
