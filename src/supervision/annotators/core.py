@@ -3107,7 +3107,7 @@ class ComparisonAnnotator:
         computed positions.
 
         Args:
-            scene (npt.NDArray[np.uint8]): The image where the labels will be drawn.
+            scene: The image where the labels will be drawn.
         """
         margin = int(50 * self.label_scale)
         gap = int(40 * self.label_scale)
