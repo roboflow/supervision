@@ -50,8 +50,7 @@ def approximate_polygon(
     Approximates a given polygon by reducing a certain percentage of points.
 
     This function uses the Ramer-Douglas-Peucker algorithm to simplify the input
-        polygon by reducing the number of points
-        while preserving the general shape.
+    polygon by reducing the number of points while preserving the general shape.
 
     Args:
         polygon: A 2D NumPy array of shape `(N, 2)` containing
