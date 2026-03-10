@@ -641,7 +641,7 @@ def _group_overlapping_masks(
             between pairs of masks (e.g., IoU, IoS).
 
     Returns:
-        Groups of prediction indices be merged.
+        Groups of prediction indices to be merged.
             Each group may have 1 or more elements.
     """
     merge_groups: list[list[int]] = []
