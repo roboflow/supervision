@@ -351,6 +351,10 @@ def filter_segments_by_distance(
         return mask.copy()
 
     image = mask.astype(np.uint8)
+    num_labels: int
+    labels: npt.NDArray[np.int32]
+    stats: npt.NDArray[np.int32]
+    centroids: npt.NDArray[np.float64]
     num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(
         image, connectivity=connectivity
     )
@@ -369,7 +373,7 @@ def filter_segments_by_distance(
     else:
         raise ValueError("Either absolute_distance or relative_distance must be set.")
 
-    keep_labels = np.zeros(num_labels, dtype=bool)
+    keep_labels: npt.NDArray[np.bool_] = np.zeros(num_labels, dtype=bool)
     keep_labels[main_label] = True
 
     if mode == "centroid":
