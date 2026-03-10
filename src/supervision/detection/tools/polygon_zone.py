@@ -93,6 +93,7 @@ class PolygonZone:
                 if each detection is within the polygon zone
         """
         if len(detections) == 0:
+            self.current_count = 0
             return np.array([], dtype=bool)
 
         all_anchors = np.array(
