@@ -515,7 +515,7 @@ MEDIUM_OBJECT_AREA = 96**2
 MAX_ALL_OBJECT_AREA = 1e5**2
 
 # Smallest number to avoid division by zero
-EPS = np.float32(np.spacing(np.float32(1.0)))
+EPS = np.finfo(np.float32).eps
 
 
 class ObjectSize(Enum):
@@ -1003,14 +1003,15 @@ class COCOEvaluator:
             def mean_with_mask(
                 axis: int | tuple[int, ...],
             ) -> npt.NDArray[np.float32]:
-                sums = valid_precision.sum(axis=axis)
+                sums = valid_precision.sum(axis=axis, dtype=np.float64)
                 counts = valid_mask.sum(axis=axis)
-                return np.divide(
+                means = np.divide(
                     sums,
                     counts,
-                    out=np.full(sums.shape, -1.0, dtype=np.float32),
+                    out=np.full(sums.shape, -1.0, dtype=np.float64),
                     where=counts > 0,
                 )
+                return means.astype(np.float32)
 
             mAP_scores = mean_with_mask((1, 2))
             ap_per_class = mean_with_mask(1).transpose(1, 0)
