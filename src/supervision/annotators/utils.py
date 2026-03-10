@@ -376,10 +376,10 @@ def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
     Converts a hex color string (e.g. "#FF00FF" or "#FF00FF80") to an RGBA tuple.
 
     Args:
-        hex_color (str): A hex color string.
+        hex_color: A hex color string.
 
     Returns:
-        tuple[int, int, int, int]: RGBA values in range 0-255.
+        RGBA values in range 0-255.
 
     Raises:
         ValueError: If the format is invalid.
