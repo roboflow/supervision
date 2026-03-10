@@ -4,8 +4,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import reduce
-from typing import Any, cast
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
