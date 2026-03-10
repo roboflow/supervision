@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
+import numpy.typing as npt
+
+if TYPE_CHECKING:
+    import torch
 
 
 def _validate_class_ids(class_id: Any, n: int) -> None:
@@ -27,8 +31,8 @@ def _validate_confidence(confidence: Any, n: int) -> None:
 
 @dataclass
 class Classifications:
-    class_id: np.ndarray
-    confidence: np.ndarray | None = None
+    class_id: npt.NDArray[np.int_]
+    confidence: npt.NDArray[np.floating] | None = None
 
     def __post_init__(self) -> None:
         """
@@ -46,16 +50,16 @@ class Classifications:
         return len(self.class_id)
 
     @classmethod
-    def from_clip(cls, clip_results) -> Classifications:
+    def from_clip(cls, clip_results: torch.Tensor) -> Classifications:
         """
         Creates a Classifications instance from a
         [clip](https://github.com/openai/clip) inference result.
 
         Args:
-            clip_results (np.ndarray): The inference result from clip model.
+            clip_results: The inference result from clip model.
 
         Returns:
-            Classifications: A new Classifications object.
+            A new Classifications object.
 
         Example:
             ```python
@@ -77,23 +81,25 @@ class Classifications:
         confidence = clip_results.softmax(dim=-1).cpu().detach().numpy()[0]
 
         if len(confidence) == 0:
-            return cls(class_id=np.array([]), confidence=np.array([]))
+            return cls(
+                class_id=np.array([], dtype=np.int_),
+                confidence=np.array([], dtype=np.float32),
+            )
 
         class_ids = np.arange(len(confidence))
         return cls(class_id=class_ids, confidence=confidence)
 
     @classmethod
-    def from_ultralytics(cls, ultralytics_results) -> Classifications:
+    def from_ultralytics(cls, ultralytics_results: Any) -> Classifications:
         """
         Creates a Classifications instance from a
         [ultralytics](https://github.com/ultralytics/ultralytics) inference result.
 
         Args:
-            ultralytics_results (ultralytics.engine.results.Results):
-                The inference result from ultralytics model.
+            ultralytics_results: The inference result from ultralytics model.
 
         Returns:
-            Classifications: A new Classifications object.
+            A new Classifications object.
 
         Example:
             ```python
@@ -112,16 +118,16 @@ class Classifications:
         return cls(class_id=np.arange(confidence.shape[0]), confidence=confidence)
 
     @classmethod
-    def from_timm(cls, timm_results) -> Classifications:
+    def from_timm(cls, timm_results: Any) -> Classifications:
         """
         Creates a Classifications instance from a
         [timm](https://huggingface.co/docs/hub/timm) inference result.
 
         Args:
-            timm_results (torch.Tensor): The inference result from timm model.
+            timm_results: The inference result from timm model.
 
         Returns:
-            Classifications: A new Classifications object.
+            A new Classifications object.
 
         Example:
             ```python
@@ -149,22 +155,26 @@ class Classifications:
         confidence = timm_results.cpu().detach().numpy()[0]
 
         if len(confidence) == 0:
-            return cls(class_id=np.array([]), confidence=np.array([]))
+            return cls(
+                class_id=np.array([], dtype=np.int_),
+                confidence=np.array([], dtype=np.float32),
+            )
 
         class_id = np.arange(len(confidence))
         return cls(class_id=class_id, confidence=confidence)
 
-    def get_top_k(self, k: int) -> tuple[np.ndarray, np.ndarray]:
+    def get_top_k(
+        self, k: int
+    ) -> tuple[npt.NDArray[np.int_], npt.NDArray[np.floating]]:
         """
         Retrieve the top k class IDs and confidences,
             ordered in descending order by confidence.
 
         Args:
-            k (int): The number of top class IDs and confidences to retrieve.
+            k: The number of top class IDs and confidences to retrieve.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: A tuple containing
-                the top k class IDs and confidences.
+            A tuple containing the top k class IDs and confidences.
 
         Example:
             ```pycon

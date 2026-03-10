@@ -229,23 +229,25 @@ def draw_text(
     """
     Draw text with background on a scene.
 
-    Parameters:
-        scene (np.ndarray): A 2-dimensional numpy ndarray representing an image or scene
-        text (str): The text to be drawn.
-        text_anchor (Point): The anchor point for the text, represented as a
+    Args:
+        scene: A numpy ndarray representing the image, typically of shape
+            (H, W, 3) for a color BGR image or (H, W) for grayscale,
+            with dtype uint8.
+        text: The text to be drawn.
+        text_anchor: The anchor point for the text, represented as a
             Point object with x and y attributes.
-        text_color (Color): The color of the text. Defaults to black.
-        text_scale (float): The scale of the text. Defaults to 0.5.
-        text_thickness (int): The thickness of the text. Defaults to 1.
-        text_padding (int): The amount of padding to add around the text
+        text_color: The color of the text. Defaults to black.
+        text_scale: The scale of the text. Defaults to 0.5.
+        text_thickness: The thickness of the text. Defaults to 1.
+        text_padding: The amount of padding to add around the text
             when drawing a rectangle in the background. Defaults to 10.
-        text_font (int): The font to use for the text.
+        text_font: The font to use for the text.
             Defaults to cv2.FONT_HERSHEY_SIMPLEX.
-        background_color (Optional[Color]): The color of the background rectangle,
+        background_color: The color of the background rectangle,
             if one is to be drawn. Defaults to None.
 
     Returns:
-        np.ndarray: The input scene with the text drawn on it.
+        The input scene with the text drawn on it.
 
     Examples:
         ```pycon
@@ -306,13 +308,13 @@ def draw_image(
     Draws an image onto a given scene with specified opacity and dimensions.
 
     Args:
-        scene (np.ndarray): Background image where the new image will be drawn.
-        image (Union[str, np.ndarray]): Image to draw.
-        opacity (float): Opacity of the image to be drawn.
-        rect (Rect): Rectangle specifying where to draw the image.
+        scene: Background image where the new image will be drawn.
+        image: Image to draw, either a file path or an already-loaded image array.
+        opacity: Opacity of the image to be drawn.
+        rect: Rectangle specifying where to draw the image.
 
     Returns:
-        np.ndarray: The updated scene.
+        The updated scene.
 
     Raises:
         FileNotFoundError: If the image path does not exist.
@@ -373,10 +375,10 @@ def calculate_optimal_text_scale(resolution_wh: tuple[int, int]) -> float:
     consistent readability.
 
     Args:
-        resolution_wh (tuple[int, int]): (width, height) of the image in pixels
+        resolution_wh: A tuple of `(width, height)` of the image in pixels.
 
     Returns:
-        float: recommended font scale factor
+        Recommended font scale factor.
 
     Examples:
         ```pycon
@@ -398,10 +400,10 @@ def calculate_optimal_line_thickness(resolution_wh: tuple[int, int]) -> int:
     image resolution.
 
     Args:
-        resolution_wh (tuple[int, int]): (width, height) of the image in pixels
+        resolution_wh: A tuple of `(width, height)` of the image in pixels.
 
     Returns:
-        int: recommended line thickness in pixels
+        Recommended line thickness in pixels.
 
     Examples:
         ```pycon
