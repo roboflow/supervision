@@ -788,11 +788,12 @@ class LineZoneAnnotatorMulticlass:
 
                 text_lines.append(f" {direction}:")
                 for class_id, count in count_per_class.items():
-                    class_name = (
-                        class_id_to_name.get(class_id, str(class_id))  # type: ignore[arg-type]
-                        if not self.force_draw_class_ids
-                        else str(class_id)
-                    )
+                    if self.force_draw_class_ids:
+                        class_name = str(class_id)
+                    elif class_id is None:
+                        class_name = "None"
+                    else:
+                        class_name = class_id_to_name.get(class_id, str(class_id))
                     text_lines.append(f"  {class_name}: {count}")
 
         table_width, table_height = 0, 0
