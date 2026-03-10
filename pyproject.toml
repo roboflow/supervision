@@ -204,7 +204,6 @@ module = [
   "tests.*",
   "examples.*",
   # TODO: fix type errors in the following modules
-  "supervision.classification.core",
   "supervision.detection.core",
   "supervision.detection.line_zone",
   "supervision.detection.tools.csv_sink",
@@ -214,8 +213,6 @@ module = [
   "supervision.detection.tools.smoother",
   "supervision.detection.tools.transformers",
   "supervision.detection.vlm",
-  "supervision.key_points.annotators",
-  "supervision.key_points.core",
   "supervision.key_points.skeletons",
   "supervision.metrics.utils.utils",
 ]
