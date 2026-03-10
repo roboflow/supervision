@@ -115,8 +115,8 @@ class PolygonZone:
 
 class PolygonZoneAnnotator:
     """
-    A class for annotating a polygon-shaped zone within a
-        frame with a count of detected objects.
+    A class for annotating a polygon-shaped zone within a frame with a count of
+    detected objects.
 
     Attributes:
         zone: The polygon zone to be annotated

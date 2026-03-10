@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import io
-from typing import Any, cast
+from typing import Any, Protocol, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -9,6 +9,14 @@ from PIL import Image
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.utils.converters import mask_to_xyxy
+
+
+class TensorLike(Protocol):
+    """Protocol representing the minimal tensor API used in this module."""
+
+    def cpu(self) -> Any: ...
+    def detach(self) -> Any: ...
+    def numpy(self) -> npt.NDArray[Any]: ...
 
 
 def process_transformers_detection_result(
@@ -80,7 +88,7 @@ def process_transformers_v4_segmentation_result(
 
 
 def process_transformers_v5_segmentation_result(
-    segmentation_result: Any, id2label: dict[int, str] | None
+    segmentation_result: dict[str, Any] | TensorLike, id2label: dict[int, str] | None
 ) -> dict[str, Any]:
     """
     Process the result of Transformers segmentation functions such as
@@ -88,8 +96,9 @@ def process_transformers_v5_segmentation_result(
     `post_process_panoptic_segmentation` (v5).
 
     Args:
-        segmentation_result: Either a dictionary containing
-            segmentation results or an ndarray representing a segmentation map.
+        segmentation_result: Either a dictionary containing segmentation results
+            (`segments_info` and `segmentation`) or a tensor-like object
+            representing a panoptic segmentation map.
         id2label: A dictionary mapping class IDs to labels,
             typically part of the `transformers` model configuration. If provided, the
             resulting dictionary will include class names.
