@@ -252,7 +252,9 @@ def detections_from_xml_obj(
 
         xyxy.append([x1, y1, x2, y2])
 
-        object_mask = np.zeros((resolution_wh[1], resolution_wh[0]), dtype=bool)
+        object_mask: npt.NDArray[np.bool_] = np.zeros(
+            (resolution_wh[1], resolution_wh[0]), dtype=bool
+        )
         for polygon_element in obj.findall("polygon"):
             polygon = parse_polygon_points(polygon_element)
             # https://github.com/roboflow/supervision/issues/144

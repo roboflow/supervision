@@ -70,7 +70,7 @@ def coco_annotations_to_masks(
     image_annotations: list[CocoDict], resolution_wh: tuple[int, int]
 ) -> npt.NDArray[np.bool_]:
     height, width = resolution_wh[1], resolution_wh[0]
-    empty_mask = np.zeros((height, width), dtype=bool)
+    empty_mask: npt.NDArray[np.bool_] = np.zeros((height, width), dtype=bool)
     masks = []
 
     for image_annotation in image_annotations:
