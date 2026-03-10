@@ -117,8 +117,12 @@ def detections_to_pascal_voc(
     for xyxy, mask, _, class_id, _, _ in detections:
         if class_id is None:
             raise ValueError("Detections must include class_id for Pascal VOC export.")
-        class_id_int = int(class_id)
-        name = classes[class_id_int]
+        if not isinstance(class_id, (int, np.integer)):
+            raise ValueError(
+                f"Detections class_id must be an integer for Pascal VOC export, "
+                f"got {type(class_id)!r}."
+            )
+        name = classes[class_id]
         if mask is not None:
             polygons = approximate_mask_with_polygons(
                 mask=mask,
