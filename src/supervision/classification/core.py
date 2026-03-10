@@ -5,6 +5,8 @@ from typing import Any
 
 import numpy as np
 import numpy.typing as npt
+
+
 def _validate_class_ids(class_id: Any, n: int) -> None:
     """
     Ensure that class_id is a 1d np.ndarray with (n, ) shape.
@@ -45,7 +47,7 @@ class Classifications:
         return len(self.class_id)
 
     @classmethod
-    def from_clip(cls, clip_results: "torch.Tensor") -> Classifications:
+    def from_clip(cls, clip_results: torch.Tensor) -> Classifications:
         """
         Creates a Classifications instance from a
         [clip](https://github.com/openai/clip) inference result.
