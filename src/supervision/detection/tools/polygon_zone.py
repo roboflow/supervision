@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import replace
 from typing import Any, cast
 
 import cv2
@@ -102,26 +101,12 @@ class PolygonZone:
             ]
         )
 
-        is_in_zone: npt.NDArray[np.bool_] = np.zeros(len(detections), dtype=bool)
-
-        for detection_idx in range(len(detections)):
-            anchors = all_anchors[:, detection_idx, :]
-            all_in_zone = True
-
-            for anchor in anchors:
-                x, y = anchor
-
-                if x < 0 or y < 0 or x >= self.mask.shape[1] or y >= self.mask.shape[0]:
-                    all_in_zone = False
-                    break
-
-                if not self.mask[y, x]:
-                    all_in_zone = False
-                    break
-
-            is_in_zone[detection_idx] = all_in_zone
-
-        is_in_zone = np.all(is_in_zone, axis=1)
+        mask_h, mask_w = self.mask.shape
+        x, y = all_anchors[:, :, 0], all_anchors[:, :, 1]
+        in_bounds = (x >= 0) & (y >= 0) & (x < mask_w) & (y < mask_h)
+        x_safe = np.clip(x, 0, mask_w - 1)
+        y_safe = np.clip(y, 0, mask_h - 1)
+        is_in_zone = np.all(in_bounds & self.mask[y_safe, x_safe], axis=0)
         self.current_count = int(np.sum(is_in_zone))
         return is_in_zone.astype(bool)
 
