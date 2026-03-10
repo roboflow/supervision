@@ -26,8 +26,8 @@ def move_detections(
     """
     Args:
         detections: Detections object to be moved.
-        offset: An array of shape `(2,)` containing offset values in format
-            is `[dx, dy]`.
+        offset: An array of shape `(2,)` containing offset values in the
+            format `[dx, dy]`.
         resolution_wh: The width and height of the desired mask
             resolution. Required for segmentation detections.
 
