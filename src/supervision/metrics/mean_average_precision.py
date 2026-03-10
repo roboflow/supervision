@@ -1025,7 +1025,7 @@ class COCOEvaluator:
             :, :, :, area_range_idx, max_100_dets_idx
         ]
         # mAP over thresholds (dimension=num_thresholds)
-        # Use masked array to exclude -1 values when computing mean
+        # Exclude -1 sentinel values when computing mean
         mAP_scores_all_sizes, ap_per_class_all_sizes = compute_average_precision(
             average_precision_all_sizes
         )
