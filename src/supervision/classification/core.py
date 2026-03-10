@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 
 
 def _validate_class_ids(class_id: Any, n: int) -> None:
@@ -27,8 +28,8 @@ def _validate_confidence(confidence: Any, n: int) -> None:
 
 @dataclass
 class Classifications:
-    class_id: np.ndarray
-    confidence: np.ndarray | None = None
+    class_id: npt.NDArray[np.int_]
+    confidence: npt.NDArray[np.floating] | None = None
 
     def __post_init__(self) -> None:
         """
@@ -153,7 +154,9 @@ class Classifications:
         class_id = np.arange(len(confidence))
         return cls(class_id=class_id, confidence=confidence)
 
-    def get_top_k(self, k: int) -> tuple[np.ndarray, np.ndarray]:
+    def get_top_k(
+        self, k: int
+    ) -> tuple[npt.NDArray[np.int_], npt.NDArray[np.floating]]:
         """
         Retrieve the top k class IDs and confidences,
             ordered in descending order by confidence.

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -157,9 +157,9 @@ class KeyPoints:
     xy: npt.NDArray[np.float32]
     class_id: npt.NDArray[np.int_] | None = None
     confidence: npt.NDArray[np.float32] | None = None
-    data: dict[str, npt.NDArray[np.generic] | list] = field(default_factory=dict)
+    data: dict[str, npt.NDArray[np.generic] | list[Any]] = field(default_factory=dict)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         validate_key_points_fields(
             xy=self.xy,
             confidence=self.confidence,
@@ -191,12 +191,10 @@ class KeyPoints:
         self,
     ) -> Iterator[
         tuple[
-            np.ndarray,
-            np.ndarray | None,
-            float | None,
-            int | None,
-            int | None,
-            dict[str, np.ndarray | list],
+            npt.NDArray[np.float32],
+            npt.NDArray[np.float32] | None,
+            npt.NDArray[np.int_] | None,
+            dict[str, npt.NDArray[np.generic] | list[Any]],
         ]
     ]:
         """
@@ -211,7 +209,9 @@ class KeyPoints:
                 get_data_item(self.data, i),
             )
 
-    def __eq__(self, other: KeyPoints) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, KeyPoints):
+            return NotImplemented
         return all(
             [
                 np.array_equal(self.xy, other.xy),
@@ -222,7 +222,7 @@ class KeyPoints:
         )
 
     @classmethod
-    def from_inference(cls, inference_result: dict | Any) -> KeyPoints:
+    def from_inference(cls, inference_result: dict[str, Any] | Any) -> KeyPoints:
         """
         Create a `sv.KeyPoints` object from the [Roboflow](https://roboflow.com/)
         API inference result or the [Inference](https://inference.roboflow.com/)
@@ -661,8 +661,9 @@ class KeyPoints:
             return cls.empty()
 
     def __getitem__(
-        self, index: int | slice | list[int] | np.ndarray | tuple | str
-    ) -> KeyPoints | np.ndarray | list | None:
+        self,
+        index: int | slice | list[int] | npt.NDArray[np.int_] | tuple[Any, ...] | str,
+    ) -> KeyPoints | npt.NDArray[np.generic] | list[Any] | None:
         if isinstance(index, str):
             return self.data.get(index)
 
@@ -725,7 +726,7 @@ class KeyPoints:
             data=data_selected,
         )
 
-    def __setitem__(self, key: str, value: np.ndarray | list):
+    def __setitem__(self, key: str, value: npt.NDArray[np.generic] | list[Any]) -> None:
         """
         Set a value in the data dictionary of the `sv.KeyPoints` object.
 
@@ -866,6 +867,6 @@ class KeyPoints:
         detections = Detections.merge(detections_list)
         detections.class_id = self.class_id
         detections.data = self.data
-        detections = detections[detections.area > 0]
+        detections = cast(Detections, detections[detections.area > 0])
 
         return detections

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from logging import warn
+from typing import Any
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 
 from supervision.detection.utils.boxes import pad_boxes, spread_out_boxes
 from supervision.draw.base import ImageType
@@ -106,7 +109,7 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         self,
         color: Color = Color.ROBOFLOW,
         thickness: int = 2,
-        edges: list[tuple[int, int]] | None = None,
+        edges: Sequence[tuple[int, int]] | None = None,
     ) -> None:
         """
         Args:
@@ -344,14 +347,14 @@ class VertexLabelAnnotator:
             skeletons_count=skeletons_count,
         )
 
-        labels = self.preprocess_and_validate_labels(
+        processed_labels = self.preprocess_and_validate_labels(
             labels=labels, points_count=points_count, skeletons_count=skeletons_count
         )
 
         anchors = anchors[mask]
         colors = colors[mask]
         text_colors = text_colors[mask]
-        labels = labels[mask]
+        filtered_labels = processed_labels[mask]
 
         xyxy = np.array(
             [
@@ -362,7 +365,7 @@ class VertexLabelAnnotator:
                     text_thickness=self.text_thickness,
                     center_coordinates=tuple(anchor),
                 )
-                for anchor, label in zip(anchors, labels)
+                for anchor, label in zip(anchors, filtered_labels)
             ]
         )
         xyxy_padded = pad_boxes(xyxy=xyxy, px=self.text_padding)
@@ -372,7 +375,7 @@ class VertexLabelAnnotator:
             xyxy = pad_boxes(xyxy=xyxy_padded, px=-self.text_padding)
 
         for text, color, text_color, box, box_padded in zip(
-            labels, colors, text_colors, xyxy, xyxy_padded
+            filtered_labels, colors, text_colors, xyxy, xyxy_padded
         ):
             draw_rounded_rectangle(
                 scene=scene,
@@ -418,7 +421,7 @@ class VertexLabelAnnotator:
     @staticmethod
     def preprocess_and_validate_labels(
         labels: list[str] | None, points_count: int, skeletons_count: int
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.str_]:
         if labels and len(labels) != points_count:
             raise ValueError(
                 f"Number of labels ({len(labels)}) must match number of key points "
@@ -434,7 +437,7 @@ class VertexLabelAnnotator:
         colors: Color | list[Color] | None,
         points_count: int,
         skeletons_count: int,
-    ) -> np.ndarray:
+    ) -> npt.NDArray[Any]:
         if isinstance(colors, list) and len(colors) != points_count:
             raise ValueError(
                 f"Number of colors ({len(colors)}) must match number of key points "
