@@ -20,11 +20,12 @@ class TensorLike(Protocol):
     def numpy(self) -> npt.NDArray[Any]: ...
 
 
-def _is_tensor_like(
-    segmentation_result: dict[str, Any] | TensorLike,
-) -> TypeGuard[TensorLike]:
+def _is_tensor_like(segmentation_result: object) -> TypeGuard[TensorLike]:
     """Check whether segmentation_result is a tensor-like panoptic output."""
-    return segmentation_result.__class__.__name__ == "Tensor"
+    return all(
+        callable(getattr(segmentation_result, attr, None))
+        for attr in ("cpu", "detach", "numpy")
+    )
 
 
 def process_transformers_detection_result(
