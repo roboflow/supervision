@@ -373,7 +373,7 @@ def filter_segments_by_distance(
     else:
         raise ValueError("Either absolute_distance or relative_distance must be set.")
 
-    keep_labels = np.zeros(num_labels, dtype=bool)
+    keep_labels: npt.NDArray[np.bool_] = np.zeros(num_labels, dtype=bool)
     keep_labels[main_label] = True
 
     if mode == "centroid":
