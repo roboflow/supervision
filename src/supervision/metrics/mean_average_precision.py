@@ -75,9 +75,9 @@ class MeanAveragePrecisionResult:
         """the mAP score at IoU threshold of `0.75`."""
         return float(self.mAP_scores[5])
 
-    mAP_scores: npt.NDArray[np.float32]
-    ap_per_class: npt.NDArray[np.float32]
-    iou_thresholds: npt.NDArray[np.float32]
+    mAP_scores: npt.NDArray[np.float64]
+    ap_per_class: npt.NDArray[np.float64]
+    iou_thresholds: npt.NDArray[np.float64]
     matched_classes: npt.NDArray[np.int32]
     small_objects: MeanAveragePrecisionResult | None = None
     medium_objects: MeanAveragePrecisionResult | None = None
