@@ -34,3 +34,4 @@ jobs:
           # './**/*.yaml'
           # './**/*.py'
           fail: true
+          token: ${{ secrets.GITHUB_TOKEN }}
