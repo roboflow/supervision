@@ -1,31 +1,14 @@
 from __future__ import annotations
 
 import io
-from typing import Any, Protocol, cast
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
 from PIL import Image
-from typing_extensions import TypeGuard
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.utils.converters import mask_to_xyxy
-
-
-class TensorLike(Protocol):
-    """Protocol representing the minimal tensor API used in this module."""
-
-    def cpu(self) -> Any: ...
-    def detach(self) -> Any: ...
-    def numpy(self) -> npt.NDArray[Any]: ...
-
-
-def _is_tensor_like(segmentation_result: object) -> TypeGuard[TensorLike]:
-    """Check whether segmentation_result is a tensor-like panoptic output."""
-    return all(
-        callable(getattr(segmentation_result, attr, None))
-        for attr in ("cpu", "detach", "numpy")
-    )
 
 
 def process_transformers_detection_result(
@@ -97,7 +80,7 @@ def process_transformers_v4_segmentation_result(
 
 
 def process_transformers_v5_segmentation_result(
-    segmentation_result: dict[str, Any] | TensorLike, id2label: dict[int, str] | None
+    segmentation_result: Any, id2label: dict[int, str] | None
 ) -> dict[str, Any]:
     """
     Process the result of Transformers segmentation functions such as
@@ -106,7 +89,7 @@ def process_transformers_v5_segmentation_result(
 
     Args:
         segmentation_result: Either a dictionary containing segmentation results
-            (`segments_info` and `segmentation`) or a tensor-like object
+            (`segments_info` and `segmentation`) or a tensor object
             representing a panoptic segmentation map.
         id2label: A dictionary mapping class IDs to labels,
             typically part of the `transformers` model configuration. If provided, the
@@ -116,19 +99,13 @@ def process_transformers_v5_segmentation_result(
         Processed segmentation result including bounding boxes, masks, confidence
             scores, class IDs, and data.
     """
-    if isinstance(segmentation_result, dict):
-        return process_transformers_v5_semantic_or_instance_segmentation_result(
-            segmentation_result, id2label
-        )
-    if _is_tensor_like(segmentation_result):
+    if segmentation_result.__class__.__name__ == "Tensor":
         segmentation_array = segmentation_result.cpu().detach().numpy()
         return process_transformers_v5_panoptic_segmentation_result(
             segmentation_array, id2label
         )
-
-    raise TypeError(
-        "`segmentation_result` must be either a dictionary with "
-        "`segments_info` and `segmentation` or a tensor-like object."
+    return process_transformers_v5_semantic_or_instance_segmentation_result(
+        cast(dict[str, Any], segmentation_result), id2label
     )
 
 

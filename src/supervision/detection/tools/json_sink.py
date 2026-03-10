@@ -19,7 +19,7 @@ class JSONSink:
 
     !!! tip
 
-        JSONsink allow to pass custom data alongside the detection fields, providing
+        JSONSink allows passing custom data alongside detection fields, providing
         flexibility for logging various types of information.
 
     Args:

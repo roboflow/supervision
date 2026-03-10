@@ -37,7 +37,7 @@ class CSVSink:
 
     !!! tip
 
-        CSVSink allow to pass custom data alongside the detection fields, providing
+        CSVSink allows passing custom data alongside detection fields, providing
         flexibility for logging various types of information.
 
     Args:
