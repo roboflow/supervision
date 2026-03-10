@@ -5,7 +5,7 @@ import warnings
 from collections import Counter, defaultdict, deque
 from collections.abc import Iterable
 from functools import lru_cache
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import cv2
 import numpy as np
@@ -100,11 +100,11 @@ class LineZone:
         self.vector = Vector(start=start, end=end)
         self.limits = self._calculate_region_of_interest_limits(vector=self.vector)
         self.crossing_history_length = max(2, minimum_crossing_threshold + 1)
-        self.crossing_state_history: dict[tuple[int, int], deque[bool]] = defaultdict(
-            lambda: deque(maxlen=self.crossing_history_length)
+        self.crossing_state_history: dict[tuple[int, int | None], deque[bool]] = (
+            defaultdict(lambda: deque(maxlen=self.crossing_history_length))
         )
-        self._in_count_per_class: Counter = Counter()
-        self._out_count_per_class: Counter = Counter()
+        self._in_count_per_class: Counter[int | None] = Counter()
+        self._out_count_per_class: Counter[int | None] = Counter()
         self.triggering_anchors = triggering_anchors
         if not list(self.triggering_anchors):
             raise ValueError("Triggering anchors cannot be empty.")
@@ -119,14 +119,16 @@ class LineZone:
         return sum(self._out_count_per_class.values())
 
     @property
-    def in_count_per_class(self) -> dict[int, int]:
+    def in_count_per_class(self) -> dict[int | None, int]:
         return dict(self._in_count_per_class)
 
     @property
-    def out_count_per_class(self) -> dict[int, int]:
+    def out_count_per_class(self) -> dict[int | None, int]:
         return dict(self._out_count_per_class)
 
-    def trigger(self, detections: Detections) -> tuple[np.ndarray, np.ndarray]:
+    def trigger(
+        self, detections: Detections
+    ) -> tuple[npt.NDArray[np.bool_], npt.NDArray[np.bool_]]:
         """
         Update the `in_count` and `out_count` based on the objects that cross the line.
 
@@ -365,7 +367,9 @@ class LineZoneAnnotator:
         self.text_orient_to_line: bool = text_orient_to_line
         self.text_centered: bool = text_centered
 
-    def annotate(self, frame: np.ndarray, line_counter: LineZone) -> np.ndarray:
+    def annotate(
+        self, frame: npt.NDArray[np.uint8], line_counter: LineZone
+    ) -> npt.NDArray[np.uint8]:
         """
         Draws the line on the frame using the line zone provided.
 
@@ -524,11 +528,11 @@ class LineZoneAnnotator:
 
     def _draw_basic_label(
         self,
-        frame: np.ndarray,
+        frame: npt.NDArray[np.uint8],
         line_center: Point,
         text: str,
         is_in_count: bool,
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.uint8]:
         """
         Draw the count label on the frame. For example: "out: 7".
         The label contains horizontal text and is not rotated.
@@ -567,11 +571,11 @@ class LineZoneAnnotator:
 
     def _draw_oriented_label(
         self,
-        frame: np.ndarray,
+        frame: npt.NDArray[np.uint8],
         line_zone: LineZone,
         text: str,
         is_in_count: bool,
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.uint8]:
         """
         Draw the count label on the frame. For example: "out: 7".
         The label is oriented to match the line angle.
@@ -628,7 +632,7 @@ class LineZoneAnnotator:
         text_box_show: bool,
         text_box_color: Color,
         line_angle_degrees: float,
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.uint8]:
         """
         Create the small text box displaying line zone count. E.g. "out: 7".
 
@@ -687,7 +691,7 @@ class LineZoneAnnotator:
         )
         annotation = cv2.warpAffine(annotation, rotation_matrix, annotation_shape)
 
-        return annotation
+        return cast(npt.NDArray[np.uint8], annotation)
 
 
 class LineZoneAnnotatorMulticlass:
@@ -748,10 +752,10 @@ class LineZoneAnnotatorMulticlass:
 
     def annotate(
         self,
-        frame: np.ndarray,
+        frame: npt.NDArray[np.uint8],
         line_zones: list[LineZone],
         line_zone_labels: list[str] | None = None,
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.uint8]:
         """
         Draws a table with the number of objects of each class that crossed each line.
 
@@ -785,7 +789,7 @@ class LineZoneAnnotatorMulticlass:
                 text_lines.append(f" {direction}:")
                 for class_id, count in count_per_class.items():
                     class_name = (
-                        class_id_to_name.get(class_id, str(class_id))
+                        class_id_to_name.get(class_id, str(class_id))  # type: ignore[arg-type]
                         if not self.force_draw_class_ids
                         else str(class_id)
                     )

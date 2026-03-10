@@ -4,9 +4,10 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import reduce
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
+import numpy.typing as npt
 
 from supervision.config import (
     CLASS_NAME_DATA_FIELD,
@@ -147,15 +148,15 @@ class Detections:
             as the video name, camera parameters, timestamp, or other global metadata.
     """  # noqa: E501 // docs
 
-    xyxy: np.ndarray
-    mask: np.ndarray | None = None
-    confidence: np.ndarray | None = None
-    class_id: np.ndarray | None = None
-    tracker_id: np.ndarray | None = None
-    data: dict[str, np.ndarray | list] = field(default_factory=dict)
+    xyxy: npt.NDArray[np.generic]
+    mask: npt.NDArray[np.generic] | None = None
+    confidence: npt.NDArray[np.generic] | None = None
+    class_id: npt.NDArray[np.generic] | None = None
+    tracker_id: npt.NDArray[np.generic] | None = None
+    data: dict[str, npt.NDArray[np.generic] | list[Any]] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         validate_detections_fields(
             xyxy=self.xyxy,
             mask=self.mask,
@@ -165,7 +166,7 @@ class Detections:
             data=self.data,
         )
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         Returns the number of detections in the Detections object.
         """
@@ -175,12 +176,12 @@ class Detections:
         self,
     ) -> Iterator[
         tuple[
-            np.ndarray,
-            np.ndarray | None,
-            float | None,
-            int | None,
-            int | None,
-            dict[str, np.ndarray | list],
+            npt.NDArray[np.generic],
+            npt.NDArray[np.generic] | None,
+            Any,
+            Any,
+            Any,
+            dict[str, npt.NDArray[np.generic] | list[Any]],
         ]
     ]:
         """
@@ -197,7 +198,9 @@ class Detections:
                 get_data_item(self.data, i),
             )
 
-    def __eq__(self, other: Detections):
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Detections):
+            return NotImplemented
         return all(
             [
                 np.array_equal(self.xyxy, other.xyxy),
@@ -361,7 +364,7 @@ class Detections:
 
     @classmethod
     def from_tensorflow(
-        cls, tensorflow_results: dict, resolution_wh: tuple
+        cls, tensorflow_results: dict[str, Any], resolution_wh: tuple[int, int]
     ) -> Detections:
         """
         Creates a Detections instance from a
@@ -475,7 +478,9 @@ class Detections:
 
     @classmethod
     def from_transformers(
-        cls, transformers_results: dict, id2label: dict[int, str] | None = None
+        cls,
+        transformers_results: dict[str, Any],
+        id2label: dict[int, str] | None = None,
     ) -> Detections:
         """
         Creates a Detections instance from object detection or panoptic, semantic
@@ -600,7 +605,7 @@ class Detections:
         )
 
     @classmethod
-    def from_inference(cls, roboflow_result: dict | Any) -> Detections:
+    def from_inference(cls, roboflow_result: dict[str, Any] | Any) -> Detections:
         """
         Create a `sv.Detections` object from the [Roboflow](https://roboflow.com/)
         API inference result or the [Inference](https://inference.roboflow.com/)
@@ -652,7 +657,7 @@ class Detections:
         )
 
     @classmethod
-    def from_sam(cls, sam_result: list[dict]) -> Detections:
+    def from_sam(cls, sam_result: list[dict[str, Any]]) -> Detections:
         """
         Creates a Detections instance from
         [Segment Anything Model](https://github.com/facebookresearch/segment-anything)
@@ -695,7 +700,7 @@ class Detections:
 
     @classmethod
     def from_sam3(
-        cls, sam3_result: dict | Any, resolution_wh: tuple[int, int]
+        cls, sam3_result: dict[str, Any] | Any, resolution_wh: tuple[int, int]
     ) -> Detections:
         """
         Creates a Detections instance from
@@ -820,7 +825,7 @@ class Detections:
 
     @classmethod
     def from_azure_analyze_image(
-        cls, azure_result: dict, class_map: dict[int, str] | None = None
+        cls, azure_result: dict[str, Any], class_map: dict[int, str] | None = None
     ) -> Detections:
         """
         Creates a Detections instance from [Azure Image Analysis 4.0](
@@ -867,10 +872,10 @@ class Detections:
         xyxy, confidences, class_ids = [], [], []
 
         is_dynamic_mapping = class_map is None
-        if is_dynamic_mapping:
+        if class_map is None:
             class_map = {}
 
-        class_map = {value: key for key, value in class_map.items()}
+        inverted_map: dict[str, int] = {value: key for key, value in class_map.items()}
 
         for detection in azure_result["objectsResult"]["values"]:
             bbox = detection["boundingBox"]
@@ -884,17 +889,17 @@ class Detections:
 
             for tag in tags:
                 confidence = tag["confidence"]
-                class_name = tag["name"]
-                class_id = class_map.get(class_name, None)
+                class_name: str = tag["name"]
+                class_id_val: int | None = inverted_map.get(class_name, None)
 
-                if is_dynamic_mapping and class_id is None:
-                    class_id = len(class_map)
-                    class_map[class_name] = class_id
+                if is_dynamic_mapping and class_id_val is None:
+                    class_id_val = len(inverted_map)
+                    inverted_map[class_name] = class_id_val
 
-                if class_id is not None:
+                if class_id_val is not None:
                     xyxy.append([x0, y0, x1, y1])
                     confidences.append(confidence)
-                    class_ids.append(class_id)
+                    class_ids.append(class_id_val)
 
         if len(xyxy) == 0:
             return Detections.empty()
@@ -952,7 +957,9 @@ class Detections:
         "`Detections.from_lmm` property is deprecated and will be removed in "
         "`supervision-0.31.0`. Use Detections.from_vlm instead."
     )
-    def from_lmm(cls, lmm: LMM | str, result: str | dict, **kwargs: Any) -> Detections:
+    def from_lmm(
+        cls, lmm: LMM | str, result: str | dict[str, Any], **kwargs: Any
+    ) -> Detections:
         """
         !!! deprecated "Deprecated"
             `Detections.from_lmm` is **deprecated** and will be removed in `supervision-0.31.0`.
@@ -1434,7 +1441,9 @@ class Detections:
         return cls.from_vlm(vlm=vlm, result=result, **kwargs)
 
     @classmethod
-    def from_vlm(cls, vlm: VLM | str, result: str | dict, **kwargs: Any) -> Detections:
+    def from_vlm(
+        cls, vlm: VLM | str, result: str | dict[str, Any], **kwargs: Any
+    ) -> Detections:
         """
 
         Creates a Detections object from the given result string based on the specified
@@ -1857,28 +1866,35 @@ class Detections:
         vlm = validate_vlm_parameters(vlm, result, kwargs)
 
         if vlm == VLM.PALIGEMMA:
+            assert isinstance(result, str)
             xyxy, class_id, class_name = from_paligemma(result, **kwargs)
-            data = {CLASS_NAME_DATA_FIELD: class_name}
+            data: dict[str, npt.NDArray[np.generic] | list[Any]] = {
+                CLASS_NAME_DATA_FIELD: class_name,
+            }
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
         if vlm == VLM.QWEN_2_5_VL:
+            assert isinstance(result, str)
             xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             confidence = np.ones(len(xyxy), dtype=float)
             return cls(xyxy=xyxy, class_id=class_id, confidence=confidence, data=data)
 
         if vlm == VLM.QWEN_3_VL:
+            assert isinstance(result, str)
             xyxy, class_id, class_name = from_qwen_3_vl(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             confidence = np.ones(len(xyxy), dtype=float)
             return cls(xyxy=xyxy, class_id=class_id, confidence=confidence, data=data)
 
         if vlm == VLM.DEEPSEEK_VL_2:
+            assert isinstance(result, str)
             xyxy, class_id, class_name = from_deepseek_vl_2(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
         if vlm == VLM.FLORENCE_2:
+            assert isinstance(result, dict)
             xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
             if len(xyxy) == 0:
                 return cls.empty()
@@ -1892,15 +1908,18 @@ class Detections:
             return cls(xyxy=xyxy, mask=mask, data=data)
 
         if vlm == VLM.GOOGLE_GEMINI_2_0:
+            assert isinstance(result, str)
             xyxy, class_id, class_name = from_google_gemini_2_0(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
         if vlm == VLM.MOONDREAM:
+            assert isinstance(result, dict)
             xyxy = from_moondream(result, **kwargs)
             return cls(xyxy=xyxy)
 
         if vlm == VLM.GOOGLE_GEMINI_2_5:
+            assert isinstance(result, str)
             xyxy, class_id, class_name, confidence, mask = from_google_gemini_2_5(
                 result, **kwargs
             )
@@ -1916,7 +1935,7 @@ class Detections:
         return cls.empty()
 
     @classmethod
-    def from_easyocr(cls, easyocr_results: list) -> Detections:
+    def from_easyocr(cls, easyocr_results: list[Any]) -> Detections:
         """
         Create a Detections object from the
         [EasyOCR](https://github.com/JaidedAI/EasyOCR) result.
@@ -2048,7 +2067,7 @@ class Detections:
         empty_detections = Detections.empty()
         empty_detections.data = self.data
         empty_detections.metadata = self.metadata
-        return self == empty_detections
+        return bool(self == empty_detections)
 
     @classmethod
     def merge(cls, detections_list: list[Detections]) -> Detections:
@@ -2122,7 +2141,7 @@ class Detections:
 
         xyxy = np.vstack([d.xyxy for d in detections_list])
 
-        def stack_or_none(name: str):
+        def stack_or_none(name: str) -> npt.NDArray[np.generic] | None:
             if all(d.__getattribute__(name) is None for d in detections_list):
                 return None
             if any(d.__getattribute__(name) is None for d in detections_list):
@@ -2153,7 +2172,7 @@ class Detections:
             metadata=metadata,
         )
 
-    def get_anchors_coordinates(self, anchor: Position) -> np.ndarray:
+    def get_anchors_coordinates(self, anchor: Position) -> npt.NDArray[np.generic]:
         """
         Calculates and returns the coordinates of a specific anchor point
         within the bounding boxes defined by the `xyxy` attribute. The anchor
@@ -2219,8 +2238,8 @@ class Detections:
         raise ValueError(f"{anchor} is not supported.")
 
     def __getitem__(
-        self, index: int | slice | list[int] | np.ndarray | str
-    ) -> Detections | list | np.ndarray | None:
+        self, index: int | slice | list[int] | npt.NDArray[np.generic] | str
+    ) -> Detections | list[Any] | npt.NDArray[np.generic] | None:
         """
         Get a subset of the Detections object or access an item from its data field.
 
@@ -2267,7 +2286,7 @@ class Detections:
             metadata=self.metadata,
         )
 
-    def __setitem__(self, key: str, value: np.ndarray | list):
+    def __setitem__(self, key: str, value: npt.NDArray[np.generic] | list[Any]) -> None:
         """
         Set a value in the data dictionary of the Detections object.
 
@@ -2303,7 +2322,7 @@ class Detections:
         self.data[key] = value
 
     @property
-    def area(self) -> np.ndarray:
+    def area(self) -> npt.NDArray[np.generic]:
         """
         Calculate the area of each detection in the set of object detections.
         If masks field is defined property returns are of each mask.
@@ -2320,7 +2339,7 @@ class Detections:
             return self.box_area
 
     @property
-    def box_area(self) -> np.ndarray:
+    def box_area(self) -> npt.NDArray[np.generic]:
         """
         Calculate the area of each bounding box in the set of object detections.
 
@@ -2332,7 +2351,7 @@ class Detections:
         return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
 
     @property
-    def box_aspect_ratio(self) -> np.ndarray:
+    def box_aspect_ratio(self) -> npt.NDArray[np.generic]:
         """
         Compute the aspect ratio (width divided by height) for each bounding box.
 
@@ -2432,7 +2451,7 @@ class Detections:
                 overlap_metric=overlap_metric,
             )
 
-        return self[indices]
+        return cast(Detections, self[indices])
 
     def with_nmm(
         self,
@@ -2498,9 +2517,9 @@ class Detections:
                 overlap_metric=overlap_metric,
             )
 
-        result = []
+        result: list[Detections] = []
         for merge_group in merge_groups:
-            unmerged_detections = [self[i] for i in merge_group]
+            unmerged_detections = [cast(Detections, self[i]) for i in merge_group]
             merged_detections = merge_inner_detections_objects_without_iou(
                 unmerged_detections
             )
@@ -2562,6 +2581,8 @@ def merge_inner_detection_object_pair(
     if detections_1.confidence is None and detections_2.confidence is None:
         merged_confidence = None
     else:
+        assert detections_1.confidence is not None
+        assert detections_2.confidence is not None
         detection_1_area = (xyxy_1[2] - xyxy_1[0]) * (xyxy_1[3] - xyxy_1[1])
         detections_2_area = (xyxy_2[2] - xyxy_2[0]) * (xyxy_2[3] - xyxy_2[1])
         merged_confidence = (
@@ -2579,7 +2600,7 @@ def merge_inner_detection_object_pair(
     else:
         merged_mask = np.logical_or(detections_1.mask, detections_2.mask)
 
-    if detections_1.confidence is None and detections_2.confidence is None:
+    if detections_1.confidence is None or detections_2.confidence is None:
         winning_detection = detections_1
     elif detections_1.confidence[0] >= detections_2.confidence[0]:
         winning_detection = detections_1
@@ -2601,7 +2622,7 @@ def merge_inner_detection_object_pair(
 
 def merge_inner_detections_objects(
     detections: list[Detections],
-    threshold=0.5,
+    threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> Detections:
     """
