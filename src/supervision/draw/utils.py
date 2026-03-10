@@ -230,7 +230,9 @@ def draw_text(
     Draw text with background on a scene.
 
     Args:
-        scene: A 2-dimensional numpy ndarray representing an image or scene.
+        scene: A numpy ndarray representing the image, typically of shape
+            (H, W, 3) for a color BGR image or (H, W) for grayscale,
+            with dtype uint8.
         text: The text to be drawn.
         text_anchor: The anchor point for the text, represented as a
             Point object with x and y attributes.
@@ -307,7 +309,7 @@ def draw_image(
 
     Args:
         scene: Background image where the new image will be drawn.
-        image: Image to draw.
+        image: Image to draw, either a file path or an already-loaded image array.
         opacity: Opacity of the image to be drawn.
         rect: Rectangle specifying where to draw the image.
 

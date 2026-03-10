@@ -314,7 +314,7 @@ class KeyPoints:
 
         Args:
             mediapipe_results: The output results from Mediapipe. It supports pose
-                and face landmarks from `PoseLandmaker`, `FaceLandmarker` and the
+                and face landmarks from `PoseLandmarker`, `FaceLandmarker` and the
                 legacy ones from `Pose` and `FaceMesh`.
             resolution_wh: A tuple of the form `(width, height)` representing the
                 resolution of the frame.
