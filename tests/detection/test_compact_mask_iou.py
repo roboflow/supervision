@@ -21,15 +21,12 @@ from supervision.detection.utils.iou_and_nms import (
     mask_non_max_suppression,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
 
-def _cm_from_masks(
-    masks: np.ndarray, image_shape: tuple[int, int]
-) -> CompactMask:
+def _cm_from_masks(masks: np.ndarray, image_shape: tuple[int, int]) -> CompactMask:
     """Build a CompactMask using full-image bounding boxes (lossless)."""
     n = len(masks)
     h, w = image_shape
@@ -266,9 +263,7 @@ class TestNmsWithCompactMask:
         cm = _cm_from_masks(masks, (h, w))
 
         keep_dense = mask_non_max_suppression(predictions, masks, iou_threshold=0.3)
-        keep_compact = mask_non_max_suppression(
-            predictions, cm, iou_threshold=0.3
-        )
+        keep_compact = mask_non_max_suppression(predictions, cm, iou_threshold=0.3)
 
         np.testing.assert_array_equal(keep_compact, keep_dense)
 

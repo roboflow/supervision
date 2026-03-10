@@ -9,7 +9,6 @@ Verifies that with compact_masks=True:
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 import supervision as sv
 from supervision.detection.compact_mask import CompactMask
@@ -22,9 +21,7 @@ def _fake_seg_callback(tile: np.ndarray) -> Detections:
     masks = np.zeros((2, h, w), dtype=bool)
     masks[0, : h // 3, : w // 3] = True
     masks[1, h // 2 :, w // 2 :] = True
-    xyxy = np.array(
-        [[0, 0, w // 3, h // 3], [w // 2, h // 2, w, h]], dtype=np.float32
-    )
+    xyxy = np.array([[0, 0, w // 3, h // 3], [w // 2, h // 2, w, h]], dtype=np.float32)
     return Detections(
         xyxy=xyxy,
         mask=masks,
@@ -57,8 +54,7 @@ class TestInferenceSlicerCompactMasks:
         )
         result = slicer(image)
         assert isinstance(result.mask, CompactMask), (
-            "compact_masks=True must produce a CompactMask, "
-            f"got {type(result.mask)}"
+            f"compact_masks=True must produce a CompactMask, got {type(result.mask)}"
         )
 
     def test_compact_masks_false_keeps_dense(self) -> None:
