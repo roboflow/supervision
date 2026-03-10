@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from logging import warn
 from typing import Any
 
 import cv2
@@ -17,6 +16,9 @@ from supervision.geometry.core import Rect
 from supervision.key_points.core import KeyPoints
 from supervision.key_points.skeletons import SKELETONS_BY_VERTEX_COUNT
 from supervision.utils.conversion import ensure_cv2_image_for_class_method
+from supervision.utils.logger import _get_logger
+
+logger = _get_logger(__name__)
 
 
 class BaseKeyPointAnnotator(ABC):
@@ -168,7 +170,7 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
             if not edges:
                 edges = SKELETONS_BY_VERTEX_COUNT.get(len(xy))
             if not edges:
-                warn(f"No skeleton found with {len(xy)} vertices")
+                logger.warning(f"No skeleton found with {len(xy)} vertices")
                 return scene
 
             for class_a, class_b in edges:

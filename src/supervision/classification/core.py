@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import numpy.typing as npt
+
+if TYPE_CHECKING:
+    import torch
 
 
 def _validate_class_ids(class_id: Any, n: int) -> None:
@@ -78,7 +81,10 @@ class Classifications:
         confidence = clip_results.softmax(dim=-1).cpu().detach().numpy()[0]
 
         if len(confidence) == 0:
-            return cls(class_id=np.array([]), confidence=np.array([]))
+            return cls(
+                class_id=np.array([], dtype=np.int_),
+                confidence=np.array([], dtype=np.float32),
+            )
 
         class_ids = np.arange(len(confidence))
         return cls(class_id=class_ids, confidence=confidence)
@@ -149,7 +155,10 @@ class Classifications:
         confidence = timm_results.cpu().detach().numpy()[0]
 
         if len(confidence) == 0:
-            return cls(class_id=np.array([]), confidence=np.array([]))
+            return cls(
+                class_id=np.array([], dtype=np.int_),
+                confidence=np.array([], dtype=np.float32),
+            )
 
         class_id = np.arange(len(confidence))
         return cls(class_id=class_id, confidence=confidence)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import Any, Union, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -11,6 +11,16 @@ from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.utils.internal import get_data_item, is_data_equal
 from supervision.validators import validate_key_points_fields
+
+Index1D = Union[
+    int,
+    slice,
+    list[int],
+    list[bool],
+    npt.NDArray[np.int_],
+    npt.NDArray[np.bool_],
+]
+Index2D = tuple[Index1D, Index1D]
 
 
 @dataclass
@@ -222,7 +232,7 @@ class KeyPoints:
         )
 
     @classmethod
-    def from_inference(cls, inference_result: dict[str, Any] | Any) -> KeyPoints:
+    def from_inference(cls, inference_result: Any) -> KeyPoints:
         """
         Create a `sv.KeyPoints` object from the [Roboflow](https://roboflow.com/)
         API inference result or the [Inference](https://inference.roboflow.com/)
@@ -662,7 +672,7 @@ class KeyPoints:
 
     def __getitem__(
         self,
-        index: int | slice | list[int] | npt.NDArray[np.int_] | tuple[Any, ...] | str,
+        index: Index1D | Index2D | str,
     ) -> KeyPoints | npt.NDArray[np.generic] | list[Any] | None:
         if isinstance(index, str):
             return self.data.get(index)
