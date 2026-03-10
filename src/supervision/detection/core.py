@@ -797,7 +797,7 @@ class Detections:
                 if not pred_masks:
                     continue
 
-                full_mask = np.zeros((height, width), dtype=bool)
+                full_mask: npt.NDArray[np.bool_] = np.zeros((height, width), dtype=bool)
                 for poly in pred_masks:
                     polygon = np.array(poly, dtype=np.int32)
                     mask = polygon_to_mask(
@@ -1877,15 +1877,21 @@ class Detections:
             assert isinstance(result, str)
             xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
-            confidence = np.ones(len(xyxy), dtype=float)
-            return cls(xyxy=xyxy, class_id=class_id, confidence=confidence, data=data)
+            confidence_arr: npt.NDArray[np.floating[Any]] = np.ones(
+                len(xyxy), dtype=float
+            )
+            return cls(
+                xyxy=xyxy, class_id=class_id, confidence=confidence_arr, data=data
+            )
 
         if vlm == VLM.QWEN_3_VL:
             assert isinstance(result, str)
             xyxy, class_id, class_name = from_qwen_3_vl(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
-            confidence = np.ones(len(xyxy), dtype=float)
-            return cls(xyxy=xyxy, class_id=class_id, confidence=confidence, data=data)
+            confidence_arr = np.ones(len(xyxy), dtype=float)
+            return cls(
+                xyxy=xyxy, class_id=class_id, confidence=confidence_arr, data=data
+            )
 
         if vlm == VLM.DEEPSEEK_VL_2:
             assert isinstance(result, str)
@@ -1920,15 +1926,13 @@ class Detections:
 
         if vlm == VLM.GOOGLE_GEMINI_2_5:
             assert isinstance(result, str)
-            xyxy, class_id, class_name, confidence, mask = from_google_gemini_2_5(
-                result, **kwargs
-            )
-            data = {CLASS_NAME_DATA_FIELD: class_name}
+            gemini_result = from_google_gemini_2_5(result, **kwargs)
+            data = {CLASS_NAME_DATA_FIELD: gemini_result[2]}
             return cls(
-                xyxy=xyxy,
-                class_id=class_id,
-                mask=mask,
-                confidence=confidence,
+                xyxy=gemini_result[0],
+                class_id=gemini_result[1],
+                mask=gemini_result[4],
+                confidence=gemini_result[3],
                 data=data,
             )
 

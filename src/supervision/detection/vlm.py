@@ -757,7 +757,7 @@ def from_google_gemini_2_5(
                     mask_img = mask_img.resize(
                         (bbox_width, bbox_height), resample=Image.Resampling.BILINEAR
                     )
-                    np_mask = np.zeros((h, w), dtype=bool)
+                    np_mask: npt.NDArray[np.bool_] = np.zeros((h, w), dtype=bool)
                     np_mask[y_min:y_max, x_min:x_max] = np.array(mask_img) > 0
                     masks_list.append(np_mask)
                 else:
