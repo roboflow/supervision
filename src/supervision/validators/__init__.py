@@ -2,6 +2,8 @@ from typing import Any
 
 import numpy as np
 
+from supervision.utils.internal import warn_deprecated
+
 
 def validate_xyxy(xyxy: Any) -> None:
     """Validate that xyxy is a 2D np.ndarray with shape (N, 4).
@@ -22,15 +24,33 @@ def validate_xyxy(xyxy: Any) -> None:
 
 
 def validate_mask(mask: Any, n: int) -> None:
+    if mask is None:
+        return
+
     expected_shape = f"({n}, H, W)"
     actual_shape = str(getattr(mask, "shape", None))
-    is_valid = mask is None or (
+    actual_dtype = getattr(mask, "dtype", None)
+
+    is_valid_shape = (
         isinstance(mask, np.ndarray) and len(mask.shape) == 3 and mask.shape[0] == n
     )
-    if not is_valid:
+    if not is_valid_shape:
         raise ValueError(
-            f"mask must be a 3D np.ndarray with shape {expected_shape}, but got shape "
-            f"{actual_shape}"
+            "mask must be a 3D np.ndarray with shape "
+            + f"{expected_shape}, but got shape {actual_shape}"
+        )
+    if not np.issubdtype(actual_dtype, bool):
+        warn_deprecated(
+            f"A `Detections` object was created with a mask of type {actual_dtype}."
+            " Masks of type other than `bool` are deprecated and may produce unexpected"
+            " behavior. Starting from `supervision-0.28.0`, passing a mask with"
+            " `dtype` different from `bool` to `Detections` will raise a `ValueError`"
+            " during validation instead of being accepted with a warning. To migrate,"
+            " please ensure your masks are boolean, for example by using"
+            " `mask = np.array(..., dtype=bool)` or by converting existing masks with"
+            " `mask = mask.astype(bool)` before creating the `Detections` object. If"
+            " you did not create the mask manually, please report the issue to the"
+            " `supervision` team."
         )
 
 

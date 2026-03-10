@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Union, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -11,6 +11,16 @@ from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.utils.internal import get_data_item, is_data_equal
 from supervision.validators import validate_key_points_fields
+
+Index1D = Union[
+    int,
+    slice,
+    list[int],
+    list[bool],
+    npt.NDArray[np.int_],
+    npt.NDArray[np.bool_],
+]
+Index2D = tuple[Index1D, Index1D]
 
 
 @dataclass
@@ -157,9 +167,9 @@ class KeyPoints:
     xy: npt.NDArray[np.float32]
     class_id: npt.NDArray[np.int_] | None = None
     confidence: npt.NDArray[np.float32] | None = None
-    data: dict[str, npt.NDArray[np.generic] | list] = field(default_factory=dict)
+    data: dict[str, npt.NDArray[np.generic] | list[Any]] = field(default_factory=dict)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         validate_key_points_fields(
             xy=self.xy,
             confidence=self.confidence,
@@ -172,7 +182,7 @@ class KeyPoints:
         Returns the number of objects in the `sv.KeyPoints` object.
 
         Returns:
-            int: The number of objects.
+            The number of objects.
 
         Example:
             ```pycon
@@ -191,12 +201,10 @@ class KeyPoints:
         self,
     ) -> Iterator[
         tuple[
-            np.ndarray,
-            np.ndarray | None,
-            float | None,
-            int | None,
-            int | None,
-            dict[str, np.ndarray | list],
+            npt.NDArray[np.float32],
+            npt.NDArray[np.float32] | None,
+            npt.NDArray[np.int_] | None,
+            dict[str, npt.NDArray[np.generic] | list[Any]],
         ]
     ]:
         """
@@ -211,7 +219,9 @@ class KeyPoints:
                 get_data_item(self.data, i),
             )
 
-    def __eq__(self, other: KeyPoints) -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, KeyPoints):
+            return NotImplemented
         return all(
             [
                 np.array_equal(self.xy, other.xy),
@@ -222,14 +232,14 @@ class KeyPoints:
         )
 
     @classmethod
-    def from_inference(cls, inference_result: dict | Any) -> KeyPoints:
+    def from_inference(cls, inference_result: Any) -> KeyPoints:
         """
         Create a `sv.KeyPoints` object from the [Roboflow](https://roboflow.com/)
         API inference result or the [Inference](https://inference.roboflow.com/)
         package results.
 
         Args:
-            inference_result (dict, any): The result from the
+            inference_result: The result from the
                 Roboflow API or Inference package containing predictions with keypoints.
 
         Returns:
@@ -305,7 +315,7 @@ class KeyPoints:
 
     @classmethod
     def from_mediapipe(
-        cls, mediapipe_results, resolution_wh: tuple[int, int]
+        cls, mediapipe_results: Any, resolution_wh: tuple[int, int]
     ) -> KeyPoints:
         """
         Creates a `sv.KeyPoints` instance from a
@@ -313,12 +323,11 @@ class KeyPoints:
         pose landmark detection inference result.
 
         Args:
-            mediapipe_results (Union[PoseLandmarkerResult, FaceLandmarkerResult, SolutionOutputs]):
-                The output results from Mediapipe. It support pose and face landmarks
-                from `PoseLandmaker`, `FaceLandmarker` and the legacy ones
-                from `Pose` and `FaceMesh`.
-            resolution_wh (Tuple[int, int]): A tuple of the form `(width, height)`
-                representing the resolution of the frame.
+            mediapipe_results: The output results from Mediapipe. It supports pose
+                and face landmarks from `PoseLandmarker`, `FaceLandmarker` and the
+                legacy ones from `Pose` and `FaceMesh`.
+            resolution_wh: A tuple of the form `(width, height)` representing the
+                resolution of the frame.
 
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates and
@@ -382,7 +391,7 @@ class KeyPoints:
                 face_landmarker_result, (image_width, image_height))
             ```
 
-        """  # noqa: E501 // docs
+        """
         if hasattr(mediapipe_results, "pose_landmarks"):
             results = mediapipe_results.pose_landmarks
             if not isinstance(mediapipe_results.pose_landmarks, list):
@@ -431,14 +440,13 @@ class KeyPoints:
         )
 
     @classmethod
-    def from_ultralytics(cls, ultralytics_results) -> KeyPoints:
+    def from_ultralytics(cls, ultralytics_results: Any) -> KeyPoints:
         """
         Creates a `sv.KeyPoints` instance from a
         [YOLOv8](https://github.com/ultralytics/ultralytics) pose inference result.
 
         Args:
-            ultralytics_results (ultralytics.engine.results.Keypoints):
-                The output Results instance from YOLOv8
+            ultralytics_results: The output Results instance from YOLOv8.
 
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
@@ -469,14 +477,13 @@ class KeyPoints:
         return cls(xy, class_id, confidence, data)
 
     @classmethod
-    def from_yolo_nas(cls, yolo_nas_results) -> KeyPoints:
+    def from_yolo_nas(cls, yolo_nas_results: Any) -> KeyPoints:
         """
         Create a `sv.KeyPoints` instance from a [YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS-POSE.md)
         pose inference results.
 
         Args:
-            yolo_nas_results (ImagePoseEstimationPrediction): The output object from
-                YOLO NAS.
+            yolo_nas_results: The output object from YOLO NAS.
 
         Returns:
             A `sv.KeyPoints` object containing the keypoint coordinates, class IDs,
@@ -534,7 +541,7 @@ class KeyPoints:
         [Detectron2](https://github.com/facebookresearch/detectron2) inference result.
 
         Args:
-            detectron2_results (Any): The output of a
+            detectron2_results: The output of a
                 Detectron2 model containing instances with prediction data.
 
         Returns:
@@ -585,7 +592,7 @@ class KeyPoints:
         [Transformers](https://github.com/huggingface/transformers) inference result.
 
         Args:
-            transformers_results (Any): The output of a
+            transformers_results: The output of a
                 Transformers model containing instances with prediction data.
 
         Returns:
@@ -664,8 +671,9 @@ class KeyPoints:
             return cls.empty()
 
     def __getitem__(
-        self, index: int | slice | list[int] | np.ndarray | tuple | str
-    ) -> KeyPoints | np.ndarray | list | None:
+        self,
+        index: Index1D | Index2D | str,
+    ) -> KeyPoints | npt.NDArray[np.generic] | list[Any] | None:
         if isinstance(index, str):
             return self.data.get(index)
 
@@ -728,13 +736,13 @@ class KeyPoints:
             data=data_selected,
         )
 
-    def __setitem__(self, key: str, value: np.ndarray | list):
+    def __setitem__(self, key: str, value: npt.NDArray[np.generic] | list[Any]) -> None:
         """
         Set a value in the data dictionary of the `sv.KeyPoints` object.
 
         Args:
-            key (str): The key in the data dictionary to set.
-            value (Union[np.ndarray, List]): The value to set for the key.
+            key: The key in the data dictionary to set.
+            value: The value to set for the key.
 
         Examples:
             ```python
@@ -787,7 +795,7 @@ class KeyPoints:
         Returns `True` if the `KeyPoints` object is considered empty.
 
         Returns:
-            bool: `True` if the object is empty, `False` otherwise.
+            `True` if the object is empty, `False` otherwise.
 
         Example:
             ```pycon
@@ -810,7 +818,7 @@ class KeyPoints:
         approximates the bounding box of the detected object by
         taking the bounding box that fits all key points.
 
-        Arguments:
+        Args:
             selected_keypoint_indices: The
                 indices of the key points to include in the bounding box
                 calculation. This helps focus on a subset of key points,
@@ -869,6 +877,6 @@ class KeyPoints:
         detections = Detections.merge(detections_list)
         detections.class_id = self.class_id
         detections.data = self.data
-        detections = detections[detections.area > 0]
+        detections = cast(Detections, detections[detections.area > 0])
 
         return detections

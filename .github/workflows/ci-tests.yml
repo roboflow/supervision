@@ -36,19 +36,19 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: 🐍 Install uv and set Python version ${{ matrix.python-version }}
-        uses: astral-sh/setup-uv@803947b9bd8e9f986429fa0c5a41c367cd732b41 # v7.2.1
+        uses: astral-sh/setup-uv@5a095e7a2014a4212f075830d4f7277575a9d098 # v7.3.1
         with:
           python-version: ${{ matrix.python-version }}
           activate-environment: true
 
       - name: 🚀 Install Packages
-        run: uv pip install -r pyproject.toml --group dev --group docs --extra metrics
+        run: uv sync --frozen --group dev --group docs --extra metrics
 
       - name: 📦 Run the Import test
-        run: uv run python -c "import supervision; from supervision import assets; from supervision import metrics; print(supervision.__version__)"
+        run: python -c "import supervision; from supervision import assets; from supervision import metrics; print(supervision.__version__)"
 
       - name: 🧪 Run the Test
-        run: uv run pytest src/ tests/ --cov=supervision --cov-report=xml
+        run: pytest src/ tests/ --cov=supervision --cov-report=xml
 
       - name: Generate Coverage Report
         run: |
@@ -67,7 +67,6 @@ jobs:
 
       - name: Minimize uv cache
         run: uv cache prune --ci
-
 
   testing-guardian:
     runs-on: ubuntu-latest

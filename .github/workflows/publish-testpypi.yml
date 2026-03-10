@@ -5,8 +5,8 @@ on:
   pull_request:
     branches: [main, develop]
     paths:
-      - '.github/workflows/build-package.yml'
-      - '.github/workflows/publish-testpypi.yml'
+      - ".github/workflows/build-package.yml"
+      - ".github/workflows/publish-testpypi.yml"
 
 permissions: {} # Explicitly remove all permissions by default
 
@@ -29,7 +29,7 @@ jobs:
       contents: read # Required for checkout
     steps:
       - name: 📥 Download distribution artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/

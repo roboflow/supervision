@@ -13,6 +13,10 @@ import numpy as np
 import numpy.typing as npt
 from tqdm.auto import tqdm
 
+from supervision.utils.logger import _get_logger
+
+logger = _get_logger(__name__)
+
 
 @dataclass
 class VideoInfo:
@@ -97,7 +101,7 @@ class VideoSink:
         try:
             self.__fourcc = cv2.VideoWriter_fourcc(*self.__codec)
         except TypeError as e:
-            print(str(e) + ". Defaulting to mp4v...")
+            logger.warning("%s. Defaulting to mp4v...", str(e))
             self.__fourcc = cv2.VideoWriter_fourcc(*"mp4v")
         self.__writer = cv2.VideoWriter(
             self.target_path,

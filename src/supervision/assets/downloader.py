@@ -8,7 +8,10 @@ from shutil import copyfileobj
 from requests import get
 from tqdm.auto import tqdm
 
-from supervision.assets.list import VIDEO_ASSETS, VideoAssets
+from supervision.assets.list import MEDIA_ASSETS, Assets
+from supervision.utils.logger import _get_logger
+
+logger = _get_logger(__name__)
 
 
 def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:
@@ -35,7 +38,7 @@ def is_md5_hash_matching(filename: str, original_md5_hash: str) -> bool:
     return computed_md5_hash.hexdigest() == original_md5_hash
 
 
-def download_assets(asset_name: VideoAssets | str) -> str:
+def download_assets(asset_name: Assets | str) -> str:
     """
     Download a specified asset if it doesn't already exist or is corrupted.
 
@@ -47,42 +50,44 @@ def download_assets(asset_name: VideoAssets | str) -> str:
 
     Example:
         ```pycon
-        >>> from supervision.assets import download_assets, VideoAssets
+        >>> from supervision.assets import download_assets, ImageAssets, VideoAssets
         >>> download_assets(VideoAssets.VEHICLES)  # doctest: +SKIP
         'vehicles.mp4'
+
+        >>> download_assets(ImageAssets.PEOPLE_WALKING)  # doctest: +SKIP
+        'people-walking.jpg'
 
         ```
     """
 
-    filename = asset_name.value if isinstance(asset_name, VideoAssets) else asset_name
+    filename = asset_name.filename if isinstance(asset_name, Assets) else asset_name
 
-    if not Path(filename).exists() and filename in VIDEO_ASSETS:
-        print(f"Downloading {filename} assets \n")
-        response = get(
-            VIDEO_ASSETS[filename][0], stream=True, allow_redirects=True, timeout=30
-        )
-        response.raise_for_status()
+    if filename in MEDIA_ASSETS:
+        if not Path(filename).exists():
+            logger.info("Downloading %s assets", filename)
+            response = get(
+                MEDIA_ASSETS[filename][0], stream=True, allow_redirects=True, timeout=30
+            )
+            response.raise_for_status()
 
-        file_size = int(response.headers.get("Content-Length", 0))
-        folder_path = Path(filename).expanduser().resolve()
-        folder_path.parent.mkdir(parents=True, exist_ok=True)
+            file_size = int(response.headers.get("Content-Length", 0))
+            folder_path = Path(filename).expanduser().resolve()
+            folder_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with tqdm.wrapattr(
-            response.raw, "read", total=file_size, desc="", colour="#a351fb"
-        ) as raw_resp:
-            with folder_path.open("wb") as file:
-                copyfileobj(raw_resp, file)
+            with tqdm.wrapattr(
+                response.raw, "read", total=file_size, desc="", colour="#a351fb"
+            ) as raw_resp:
+                with folder_path.open("wb") as file:
+                    copyfileobj(raw_resp, file)
+        else:
+            if not is_md5_hash_matching(filename, MEDIA_ASSETS[filename][1]):
+                logger.warning("File corrupted. Re-downloading...")
+                os.remove(filename)
+                return download_assets(filename)
 
-    elif Path(filename).exists():
-        if not is_md5_hash_matching(filename, VIDEO_ASSETS[filename][1]):
-            print("File corrupted. Re-downloading... \n")
-            os.remove(filename)
-            return download_assets(filename)
-
-        print(f"{filename} asset download complete. \n")
-
+            logger.info("%s asset download complete.", filename)
     else:
-        valid_assets = ", ".join(asset.value for asset in VideoAssets)
+        valid_assets = ", ".join(filename for filename in MEDIA_ASSETS.keys())
         raise ValueError(
             f"Invalid asset. It should be one of the following: {valid_assets}."
         )

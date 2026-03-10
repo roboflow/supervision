@@ -303,3 +303,178 @@ class _FakeYoloNasResults:
 
     def __init__(self, prediction: _FakeYoloNasPrediction):
         self.prediction = prediction
+
+
+def create_yolo_dataset(
+    dataset_dir: str,
+    num_images: int = 15,
+    image_size: tuple[int, int, int] = (640, 640, 3),
+    classes: list[str] | None = None,
+    objects_per_image_range: tuple[int, int] = (2, 4),
+    seed: int = 42,
+) -> dict[str, Any]:
+    """
+    Create a synthetic YOLO-format dataset on disk.
+
+    Generates dummy images with YOLO-format annotations, `data.yaml` file,
+    and directory structure suitable for testing dataset loading.
+
+    Args:
+        dataset_dir: Root directory path for the dataset.
+        num_images: Number of images to generate.
+        image_size: Image dimensions as `(width, height, channels)`.
+        classes: List of class names. Defaults to `["class_0", "class_1"]`.
+        objects_per_image_range: Range of objects per image as `(min, max)`.
+            Actual count will cycle through this range.
+        seed: Random seed for reproducibility.
+
+    Returns:
+        Dictionary containing:
+            - `tmpdir`: Root dataset directory path
+            - `images_dir`: Images directory path
+            - `labels_dir`: Labels directory path
+            - `data_yaml_path`: `data.yaml` file path
+            - `num_images`: Number of images created
+            - `image_size`: Image dimensions
+            - `image_annotations`: List of annotations per image
+
+    Examples:
+        >>> from pathlib import Path
+        >>> import tempfile
+        >>> tmpdir = Path(tempfile.mkdtemp())
+        >>> dataset_info = create_yolo_dataset(str(tmpdir), num_images=5)
+        >>> dataset_info["num_images"]
+        5
+        >>> len(list(Path(dataset_info["images_dir"]).glob("*.jpg")))
+        5
+    """
+    from pathlib import Path
+
+    import cv2
+
+    if classes is None:
+        classes = ["class_0", "class_1"]
+
+    np.random.seed(seed)
+
+    dataset_path = Path(dataset_dir)
+    images_dir = dataset_path / "images"
+    labels_dir = dataset_path / "labels"
+    images_dir.mkdir(parents=True, exist_ok=True)
+    labels_dir.mkdir(parents=True, exist_ok=True)
+
+    min_objects, max_objects = objects_per_image_range
+    num_classes = len(classes)
+    image_annotations = []
+
+    for i in range(num_images):
+        # Create dummy image
+        img_path = images_dir / f"image_{i:03d}.jpg"
+        img = np.zeros(image_size, dtype=np.uint8)
+        cv2.imwrite(str(img_path), img)
+
+        # Determine number of objects for this image
+        num_objects = min_objects + (i % (max_objects - min_objects + 1))
+        yolo_lines = []
+        objects = []
+
+        for j in range(num_objects):
+            class_id = j % num_classes
+            # Random positions with spacing to avoid overlap
+            x_center = 0.15 + (j * 0.25) + np.random.uniform(-0.05, 0.05)
+            y_center = 0.15 + (j * 0.2) + np.random.uniform(-0.05, 0.05)
+            width = 0.12
+            height = 0.12
+
+            # Clip to valid range [0, 1]
+            x_center = np.clip(x_center, width / 2, 1 - width / 2)
+            y_center = np.clip(y_center, height / 2, 1 - height / 2)
+
+            yolo_lines.append(
+                f"{class_id} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}\n"
+            )
+            objects.append((class_id, x_center, y_center, width, height))
+
+        # Write YOLO annotation file
+        label_path = labels_dir / f"image_{i:03d}.txt"
+        label_path.write_text("".join(yolo_lines))
+        image_annotations.append(objects)
+
+    # Create data.yaml
+    data_yaml_path = dataset_path / "data.yaml"
+    yaml_content = "names:\n" + "\n".join(f"- {cls}" for cls in classes) + "\n"
+    data_yaml_path.write_text(yaml_content)
+
+    return {
+        "tmpdir": dataset_path,
+        "images_dir": str(images_dir),
+        "labels_dir": str(labels_dir),
+        "data_yaml_path": str(data_yaml_path),
+        "num_images": num_images,
+        "image_size": image_size,
+        "image_annotations": image_annotations,
+    }
+
+
+def create_predictions_with_class_iou_tests(
+    gt_detections: Detections, num_classes: int
+) -> Detections:
+    """
+    Create predictions that test IoU+class matching behavior.
+
+    For each ground truth detection, creates predictions with different patterns:
+    - Pattern 0 (i%3==0): Correct match (same bbox, correct class)
+    - Pattern 1 (i%3==1): Wrong class with perfect IoU + correct class with offset
+    - Pattern 2 (i%3==2): Correct class with slight offset
+
+    This tests that predictions with wrong class don't match even with high IoU,
+    which is the key fix in the confusion matrix calculation.
+
+    Args:
+        gt_detections: Ground truth detections to create predictions for
+        num_classes: Total number of classes in the dataset
+
+    Returns:
+        Detections object with predictions designed to test IoU+class matching
+    """
+    if len(gt_detections) == 0:
+        # No ground truth, return a single false positive
+        return _create_detections(
+            xyxy=[[10, 10, 50, 50]], class_id=[0], confidence=[0.9]
+        )
+
+    pred_boxes = []
+    pred_classes = []
+    pred_confs = []
+
+    for i, (box, cls) in enumerate(zip(gt_detections.xyxy, gt_detections.class_id)):
+        if i % 3 == 0:
+            # Pattern 1: Correct match
+            pred_boxes.append(box)
+            pred_classes.append(cls)
+            pred_confs.append(0.95)
+
+        elif i % 3 == 1:
+            # Pattern 2: Test the fix - add wrong class prediction with perfect IoU,
+            # then correct class with slightly offset bbox
+            wrong_cls = (cls + 1) % num_classes
+            pred_boxes.append(box)  # Perfect IoU
+            pred_classes.append(wrong_cls)  # Wrong class
+            pred_confs.append(0.90)
+
+            # Add correct class with slight offset
+            offset_box = box + np.array([2, 2, 2, 2], dtype=np.float32)
+            pred_boxes.append(offset_box)
+            pred_classes.append(cls)  # Correct class
+            pred_confs.append(0.85)
+
+        else:
+            # Pattern 3: Correct match with slight offset
+            offset_box = box + np.array([1, 1, 1, 1], dtype=np.float32)
+            pred_boxes.append(offset_box)
+            pred_classes.append(cls)
+            pred_confs.append(0.92)
+
+    return _create_detections(
+        xyxy=pred_boxes, class_id=pred_classes, confidence=pred_confs
+    )

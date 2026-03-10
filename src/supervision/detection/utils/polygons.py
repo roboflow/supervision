@@ -1,32 +1,35 @@
 from __future__ import annotations
 
+from typing import cast
+
 import cv2
 import numpy as np
+import numpy.typing as npt
 
 
 def filter_polygons_by_area(
-    polygons: list[np.ndarray],
+    polygons: list[npt.NDArray[np.number]],
     min_area: float | None = None,
     max_area: float | None = None,
-) -> list[np.ndarray]:
+) -> list[npt.NDArray[np.number]]:
     """
     Filters a list of polygons based on their area.
 
-    Parameters:
-        polygons (List[np.ndarray]): A list of polygons, where each polygon is
+    Args:
+        polygons: A list of polygons, where each polygon is
             represented by a NumPy array of shape `(N, 2)`,
             containing the `x`, `y` coordinates of the points.
-        min_area (Optional[float]): The minimum area threshold.
+        min_area: The minimum area threshold.
             Only polygons with an area greater than or equal to this value
             will be included in the output. If set to None,
             no minimum area constraint will be applied.
-        max_area (Optional[float]): The maximum area threshold.
+        max_area: The maximum area threshold.
             Only polygons with an area less than or equal to this value
             will be included in the output. If set to None,
             no maximum area constraint will be applied.
 
     Returns:
-        List[np.ndarray]: A new list of polygons containing only those with
+        A new list of polygons containing only those with
             areas within the specified thresholds.
     """
     if min_area is None and max_area is None:
@@ -41,26 +44,25 @@ def filter_polygons_by_area(
 
 
 def approximate_polygon(
-    polygon: np.ndarray, percentage: float, epsilon_step: float = 0.05
-) -> np.ndarray:
+    polygon: npt.NDArray[np.number], percentage: float, epsilon_step: float = 0.05
+) -> npt.NDArray[np.number]:
     """
     Approximates a given polygon by reducing a certain percentage of points.
 
     This function uses the Ramer-Douglas-Peucker algorithm to simplify the input
-        polygon by reducing the number of points
-        while preserving the general shape.
+    polygon by reducing the number of points while preserving the general shape.
 
-    Parameters:
-        polygon (np.ndarray): A 2D NumPy array of shape `(N, 2)` containing
+    Args:
+        polygon: A 2D NumPy array of shape `(N, 2)` containing
             the `x`, `y` coordinates of the input polygon's points.
-        percentage (float): The percentage of points to be removed from the
+        percentage: The percentage of points to be removed from the
             input polygon, in the range `[0, 1)`.
-        epsilon_step (float): Approximation accuracy step.
+        epsilon_step: Approximation accuracy step.
             Epsilon is the maximum distance between the original curve
             and its approximation.
 
     Returns:
-        np.ndarray: A new 2D NumPy array of shape `(M, 2)`,
+        A new 2D NumPy array of shape `(M, 2)`,
             where `M <= N * (1 - percentage)`, containing
             the `x`, `y` coordinates of the
             approximated polygon's points.
@@ -74,7 +76,7 @@ def approximate_polygon(
     if len(polygon) <= target_points:
         return polygon
 
-    epsilon = 0
+    epsilon: float = 0
     approximated_points = polygon
     while True:
         epsilon += epsilon_step
@@ -84,4 +86,4 @@ def approximate_polygon(
         else:
             break
 
-    return np.squeeze(approximated_points, axis=1)
+    return cast(npt.NDArray[np.number], np.squeeze(approximated_points, axis=1))

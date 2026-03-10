@@ -385,7 +385,12 @@ class Precision(Metric):
         false_positives = confusion_matrix[..., 1]
 
         denominator = true_positives + false_positives
-        precision = np.where(denominator == 0, 0, true_positives / denominator)
+        precision = np.divide(
+            true_positives,
+            denominator,
+            out=np.zeros_like(true_positives),
+            where=denominator != 0,
+        )
 
         result_precision: npt.NDArray[np.float64] = precision
         return result_precision

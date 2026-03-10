@@ -6,6 +6,7 @@ from xml.etree.ElementTree import Element, SubElement
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 from defusedxml.ElementTree import parse, tostring
 from defusedxml.minidom import parseString
 
@@ -16,7 +17,9 @@ from supervision.utils.file import list_files_with_extensions
 
 
 def object_to_pascal_voc(
-    xyxy: np.ndarray, name: str, polygon: np.ndarray | None = None
+    xyxy: npt.NDArray[np.number],
+    name: str,
+    polygon: npt.NDArray[np.number] | None = None,
 ) -> Element:
     root = Element("object")
 
@@ -63,21 +66,21 @@ def detections_to_pascal_voc(
     Converts Detections object to Pascal VOC XML format.
 
     Args:
-        detections (Detections): A Detections object containing bounding boxes,
+        detections: A Detections object containing bounding boxes,
             class ids, and other relevant information.
-        classes (List[str]): A list of class names corresponding to the
+        classes: A list of class names corresponding to the
             class ids in the Detections object.
-        filename (str): The name of the image file associated with the detections.
-        image_shape (Tuple[int, int, int]): The shape of the image
+        filename: The name of the image file associated with the detections.
+        image_shape: The shape of the image
             file associated with the detections.
-        min_image_area_percentage (float): Minimum detection area
+        min_image_area_percentage: Minimum detection area
             relative to area of image associated with it.
-        max_image_area_percentage (float): Maximum detection area
+        max_image_area_percentage: Maximum detection area
             relative to area of image associated with it.
-        approximation_percentage (float): The percentage of
+        approximation_percentage: The percentage of
             polygon points to be removed from the input polygon, in the range [0, 1).
     Returns:
-        str: An XML string in Pascal VOC format representing the detections.
+        An XML string in Pascal VOC format representing the detections.
     """
     height, width, depth = image_shape
 
@@ -112,6 +115,13 @@ def detections_to_pascal_voc(
 
     # Add object elements
     for xyxy, mask, _, class_id, _, _ in detections:
+        if class_id is None:
+            raise ValueError("Detections must include class_id for Pascal VOC export.")
+        if not isinstance(class_id, (int, np.integer)):
+            raise ValueError(
+                f"Detections class_id must be an integer for Pascal VOC export, "
+                f"got {type(class_id)!r}."
+            )
         name = classes[class_id]
         if mask is not None:
             polygons = approximate_mask_with_polygons(
@@ -131,7 +141,7 @@ def detections_to_pascal_voc(
             annotation.append(next_object)
 
     # Generate XML string
-    xml_string = parseString(tostring(annotation)).toprettyxml(indent="  ")
+    xml_string = str(parseString(tostring(annotation)).toprettyxml(indent="  "))
     return xml_string
 
 
@@ -145,14 +155,14 @@ def load_pascal_voc_annotations(
         a Detections instance, and a list of class names.
 
     Args:
-        images_directory_path (str): The path to the directory containing the images.
-        annotations_directory_path (str): The path to the directory containing the
+        images_directory_path: The path to the directory containing the images.
+        annotations_directory_path: The path to the directory containing the
             PASCAL VOC annotation files.
-        force_masks (bool): If True, forces masks to be loaded for all
+        force_masks: If True, forces masks to be loaded for all
             annotations, regardless of whether they are present.
 
     Returns:
-        Tuple[List[str], List[str], Dict[str, Detections]]: A tuple with a list
+        A tuple with a list
             of class names, a list of paths to images, and a dictionary with image
             paths as keys and corresponding Detections instances as values.
     """
@@ -178,6 +188,8 @@ def load_pascal_voc_annotations(
         root = tree.getroot()
 
         image = cv2.imread(image_path)
+        if image is None:
+            raise ValueError(f"Could not read image from path: {image_path}")
         resolution_wh = (image.shape[1], image.shape[0])
         annotation, classes = detections_from_xml_obj(
             root, classes, resolution_wh, force_masks
@@ -188,7 +200,10 @@ def load_pascal_voc_annotations(
 
 
 def detections_from_xml_obj(
-    root: Element, classes: list[str], resolution_wh, force_masks: bool = False
+    root: Element,
+    classes: list[str],
+    resolution_wh: tuple[int, int],
+    force_masks: bool = False,
 ) -> tuple[Detections, list[str]]:
     """
     Converts an XML object in Pascal VOC format to a Detections object.
@@ -217,32 +232,36 @@ def detections_from_xml_obj(
     </annotation>
 
     Returns:
-        Tuple[Detections, List[str]]: A tuple containing a Detections object and an
+        A tuple containing a Detections object and an
             updated list of class names, extended with the class names
             from the XML object.
     """
-    xyxy = []
-    class_names = []
-    masks = []
-    with_masks = False
+    xyxy: list[list[int]] = []
+    class_names: list[str] = []
+    masks: list[npt.NDArray[np.bool_]] = []
+    with_masks = force_masks or any(
+        _with_poly_mask(obj) for obj in root.findall("object")
+    )
     extended_classes = classes[:]
     for obj in root.findall("object"):
-        class_name = obj.find("name").text
+        class_name = _get_required_text(obj, "name")
         class_names.append(class_name)
 
         bbox = obj.find("bndbox")
-        x1 = int(bbox.find("xmin").text)
-        y1 = int(bbox.find("ymin").text)
-        x2 = int(bbox.find("xmax").text)
-        y2 = int(bbox.find("ymax").text)
+        if bbox is None:
+            raise ValueError("Missing bndbox in Pascal VOC annotation.")
+        x1 = int(_get_required_text(bbox, "xmin"))
+        y1 = int(_get_required_text(bbox, "ymin"))
+        x2 = int(_get_required_text(bbox, "xmax"))
+        y2 = int(_get_required_text(bbox, "ymax"))
 
         xyxy.append([x1, y1, x2, y2])
 
-        with_masks = obj.find("polygon") is not None
-        with_masks = force_masks if force_masks else with_masks
-
-        for polygon in obj.findall("polygon"):
-            polygon = parse_polygon_points(polygon)
+        object_mask: npt.NDArray[np.bool_] = np.zeros(
+            (resolution_wh[1], resolution_wh[0]), dtype=bool
+        )
+        for polygon_element in obj.findall("polygon"):
+            polygon = parse_polygon_points(polygon_element)
             # https://github.com/roboflow/supervision/issues/144
             polygon -= 1
 
@@ -250,12 +269,19 @@ def detections_from_xml_obj(
                 polygon=polygon,
                 resolution_wh=resolution_wh,
             )
-            masks.append(mask_from_polygon)
+            object_mask |= mask_from_polygon.astype(bool)
 
-    xyxy = np.array(xyxy) if len(xyxy) > 0 else np.empty((0, 4))
+        if with_masks:
+            masks.append(object_mask)
+
+    xyxy_arr: npt.NDArray[np.float32]
+    if xyxy:
+        xyxy_arr = np.array(xyxy, dtype=np.float32)
+    else:
+        xyxy_arr = np.empty((0, 4), dtype=np.float32)
 
     # https://github.com/roboflow/supervision/issues/144
-    xyxy -= 1
+    xyxy_arr -= 1
 
     for k in set(class_names):
         if k not in extended_classes:
@@ -265,16 +291,32 @@ def detections_from_xml_obj(
     )
 
     annotation = Detections(
-        xyxy=xyxy.astype(np.float32),
-        mask=np.array(masks).astype(bool) if with_masks else None,
+        xyxy=xyxy_arr,
+        mask=np.array(masks, dtype=bool) if with_masks else None,
         class_id=class_id,
     )
 
     return annotation, extended_classes
 
 
-def parse_polygon_points(polygon: Element) -> np.ndarray:
-    coordinates = [int(coord.text) for coord in polygon.findall(".//*")]
+def _with_poly_mask(obj: Element) -> bool:
+    return obj.find("polygon") is not None
+
+
+def parse_polygon_points(polygon: Element) -> npt.NDArray[np.int_]:
+    coordinates: list[int] = []
+    for coord in polygon.findall(".//*"):
+        if coord.text is None:
+            raise ValueError("Missing polygon coordinate value in Pascal VOC.")
+        coordinates.append(int(coord.text))
     return np.array(
-        [(coordinates[i], coordinates[i + 1]) for i in range(0, len(coordinates), 2)]
+        [(coordinates[i], coordinates[i + 1]) for i in range(0, len(coordinates), 2)],
+        dtype=int,
     )
+
+
+def _get_required_text(element: Element, tag: str) -> str:
+    child = element.find(tag)
+    if child is None or child.text is None:
+        raise ValueError(f"Missing '{tag}' in Pascal VOC annotation.")
+    return child.text

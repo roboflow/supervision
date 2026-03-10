@@ -80,7 +80,7 @@ class MockDataclass:
             MockClass,
             False,
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Only class instances are supported"),
         ),
         (
             MockClass(),
@@ -110,13 +110,13 @@ class MockDataclass:
             Detections,
             False,
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Only class instances are supported"),
         ),
         (
             Detections,
             True,
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Only class instances are supported"),
         ),
         (
             Detections.empty(),
@@ -168,7 +168,7 @@ class MockDataclass:
                 xyxy=np.array([[1, 2, 3, 4], [5, 6, 7, 8]]),
                 class_id=np.array([1, 2]),
                 confidence=np.array([0.1, 0.2]),
-                mask=np.array([[[1]], [[2]]]),
+                mask=np.array([[[1]], [[2]]], dtype=bool),
                 tracker_id=np.array([1, 2]),
                 data={"key_1": [1, 2], "key_2": [3, 4]},
             ),

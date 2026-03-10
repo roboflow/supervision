@@ -8,6 +8,23 @@ import pytest
 from supervision.classification.core import Classifications
 
 
+class _MockTensor:
+    def __init__(self, value: np.ndarray) -> None:
+        self.value = value
+
+    def softmax(self, dim: int) -> _MockTensor:
+        return self
+
+    def cpu(self) -> _MockTensor:
+        return self
+
+    def detach(self) -> _MockTensor:
+        return self
+
+    def numpy(self) -> np.ndarray:
+        return self.value
+
+
 @pytest.mark.parametrize(
     ("class_id", "confidence", "k", "expected_result", "exception"),
     [
@@ -37,14 +54,14 @@ from supervision.classification.core import Classifications
             np.array([]),
             5,
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match=r"confidence must be 1d np\.ndarray"),
         ),  # class_id with 5 numbers and 0 confidences
         (
             [0, 1, 2, 3, 4],
             [0.1, 0.2, 0.3, 0.4],
             5,
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="\\(n, \\) shape"),
         ),  # class_id with 5 numbers and 4 confidences
     ],
 )
@@ -62,3 +79,19 @@ def test_top_k(
 
         assert np.array_equal(result[0], expected_result[0])
         assert np.array_equal(result[1], expected_result[1])
+
+
+def test_from_clip_empty_output_dtypes() -> None:
+    result = Classifications.from_clip(_MockTensor(np.empty((1, 0), dtype=np.float32)))
+
+    assert result.class_id.dtype == np.int_
+    assert result.confidence is not None
+    assert result.confidence.dtype == np.float32
+
+
+def test_from_timm_empty_output_dtypes() -> None:
+    result = Classifications.from_timm(_MockTensor(np.empty((1, 0), dtype=np.float32)))
+
+    assert result.class_id.dtype == np.int_
+    assert result.confidence is not None
+    assert result.confidence.dtype == np.float32

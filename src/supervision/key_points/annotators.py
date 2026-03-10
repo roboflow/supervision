@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from logging import warn
+from collections.abc import Sequence
+from typing import Any
 
 import cv2
 import numpy as np
+import numpy.typing as npt
 
 from supervision.detection.utils.boxes import pad_boxes, spread_out_boxes
 from supervision.draw.base import ImageType
@@ -14,6 +16,9 @@ from supervision.geometry.core import Rect
 from supervision.key_points.core import KeyPoints
 from supervision.key_points.skeletons import SKELETONS_BY_VERTEX_COUNT
 from supervision.utils.conversion import ensure_cv2_image_for_class_method
+from supervision.utils.logger import _get_logger
+
+logger = _get_logger(__name__)
 
 
 class BaseKeyPointAnnotator(ABC):
@@ -36,9 +41,8 @@ class VertexAnnotator(BaseKeyPointAnnotator):
     ) -> None:
         """
         Args:
-            color (Color): The color to use for annotating key points.
-            radius (int): The radius of the circles used to represent the key
-                points.
+            color: The color to use for annotating key points.
+            radius: The radius of the circles used to represent the key points.
         """
         self.color = color
         self.radius = radius
@@ -50,11 +54,10 @@ class VertexAnnotator(BaseKeyPointAnnotator):
         points. It draws circles at each key point location.
 
         Args:
-            scene (ImageType): The image where skeleton vertices will be drawn.
-                `ImageType` is a flexible type, accepting either `numpy.ndarray` or
-                `PIL.Image.Image`.
-            key_points (KeyPoints): A collection of key points where each key point
-                consists of x and y coordinates.
+            scene: The image where skeleton vertices will be drawn. `ImageType` is a
+                flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
+            key_points: A collection of key points where each key point consists of x
+                and y coordinates.
 
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
@@ -108,14 +111,14 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         self,
         color: Color = Color.ROBOFLOW,
         thickness: int = 2,
-        edges: list[tuple[int, int]] | None = None,
+        edges: Sequence[tuple[int, int]] | None = None,
     ) -> None:
         """
         Args:
-            color (Color): The color to use for the edges.
-            thickness (int): The thickness of the edges.
-            edges (Optional[List[Tuple[int, int]]]): The edges to draw.
-                If set to `None`, will attempt to select automatically.
+            color: The color to use for the edges.
+            thickness: The thickness of the edges.
+            edges: The edges to draw. If set to `None`, will attempt to select
+                automatically.
         """
         self.color = color
         self.thickness = thickness
@@ -128,16 +131,14 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         edges.
 
         Args:
-            scene (ImageType): The image where skeleton edges will be drawn. `ImageType`
-                is a flexible type, accepting either `numpy.ndarray` or
-                `PIL.Image.Image`.
-            key_points (KeyPoints): A collection of key points where each key point
-                consists of x and y coordinates.
+            scene: The image where skeleton edges will be drawn. `ImageType` is a
+                flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
+            key_points: A collection of key points where each key point consists of x
+                and y coordinates.
 
         Returns:
-            Returns:
-                The annotated image, matching the type of `scene` (`numpy.ndarray`
-                    or `PIL.Image.Image`)
+            The annotated image, matching the type of `scene` (`numpy.ndarray`
+                or `PIL.Image.Image`)
 
         Example:
             ```pycon
@@ -169,7 +170,7 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
             if not edges:
                 edges = SKELETONS_BY_VERTEX_COUNT.get(len(xy))
             if not edges:
-                warn(f"No skeleton found with {len(xy)} vertices")
+                logger.warning("No skeleton found with %d vertices", len(xy))
                 return scene
 
             for class_a, class_b in edges:
@@ -209,18 +210,16 @@ class VertexLabelAnnotator:
     ):
         """
         Args:
-            color (Union[Color, List[Color]]): The color to use for each
-                keypoint label. If a list is provided, the colors will be used in order
-                for each keypoint.
-            text_color (Union[Color, List[Color]]): The color to use
-                for the labels. If a list is provided, the colors will be used in order
-                for each keypoint.
-            text_scale (float): The scale of the text.
-            text_thickness (int): The thickness of the text.
-            text_padding (int): The padding around the text.
-            border_radius (int): The radius of the rounded corners of the
-                boxes. Set to a high value to produce circles.
-            smart_position (bool): Spread out the labels to avoid overlap.
+            color: The color to use for each keypoint label. If a list is provided,
+                the colors will be used in order for each keypoint.
+            text_color: The color to use for the labels. If a list is provided, the
+                colors will be used in order for each keypoint.
+            text_scale: The scale of the text.
+            text_thickness: The thickness of the text.
+            text_padding: The padding around the text.
+            border_radius: The radius of the rounded corners of the boxes. Set to a
+                high value to produce circles.
+            smart_position: Spread out the labels to avoid overlap.
         """
         self.border_radius: int = border_radius
         self.color: Color | list[Color] = color
@@ -241,13 +240,12 @@ class VertexLabelAnnotator:
             points to determine the locations where the vertices should be drawn.
 
         Args:
-            scene (ImageType): The image where vertex labels will be drawn. `ImageType`
-                is a flexible type, accepting either `numpy.ndarray` or
-                `PIL.Image.Image`.
-            key_points (KeyPoints): A collection of key points where each key point
-                consists of x and y coordinates.
-            labels (Optional[List[str]]): A list of labels to be displayed on the
-                annotated image. If not provided, keypoint indices will be used.
+            scene: The image where vertex labels will be drawn. `ImageType` is a
+                flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
+            key_points: A collection of key points where each key point consists of x
+                and y coordinates.
+            labels: A list of labels to be displayed on the annotated image. If not
+                provided, keypoint indices will be used.
 
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
@@ -351,14 +349,14 @@ class VertexLabelAnnotator:
             skeletons_count=skeletons_count,
         )
 
-        labels = self.preprocess_and_validate_labels(
+        processed_labels = self.preprocess_and_validate_labels(
             labels=labels, points_count=points_count, skeletons_count=skeletons_count
         )
 
         anchors = anchors[mask]
         colors = colors[mask]
         text_colors = text_colors[mask]
-        labels = labels[mask]
+        filtered_labels = processed_labels[mask]
 
         xyxy = np.array(
             [
@@ -369,7 +367,7 @@ class VertexLabelAnnotator:
                     text_thickness=self.text_thickness,
                     center_coordinates=tuple(anchor),
                 )
-                for anchor, label in zip(anchors, labels)
+                for anchor, label in zip(anchors, filtered_labels)
             ]
         )
         xyxy_padded = pad_boxes(xyxy=xyxy, px=self.text_padding)
@@ -379,7 +377,7 @@ class VertexLabelAnnotator:
             xyxy = pad_boxes(xyxy=xyxy_padded, px=-self.text_padding)
 
         for text, color, text_color, box, box_padded in zip(
-            labels, colors, text_colors, xyxy, xyxy_padded
+            filtered_labels, colors, text_colors, xyxy, xyxy_padded
         ):
             draw_rounded_rectangle(
                 scene=scene,
@@ -425,7 +423,7 @@ class VertexLabelAnnotator:
     @staticmethod
     def preprocess_and_validate_labels(
         labels: list[str] | None, points_count: int, skeletons_count: int
-    ) -> np.ndarray:
+    ) -> npt.NDArray[np.str_]:
         if labels and len(labels) != points_count:
             raise ValueError(
                 f"Number of labels ({len(labels)}) must match number of key points "
@@ -441,7 +439,7 @@ class VertexLabelAnnotator:
         colors: Color | list[Color] | None,
         points_count: int,
         skeletons_count: int,
-    ) -> np.ndarray:
+    ) -> npt.NDArray[Any]:
         if isinstance(colors, list) and len(colors) != points_count:
             raise ValueError(
                 f"Number of colors ({len(colors)}) must match number of key points "

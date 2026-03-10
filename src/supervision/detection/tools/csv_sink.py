@@ -1,10 +1,17 @@
 from __future__ import annotations
 
 import csv
+import io
 import os
-from typing import Any
+from collections.abc import Iterable
+from typing import Any, Protocol
+
+import numpy as np
 
 from supervision.detection.core import Detections
+from supervision.utils.logger import _get_logger
+
+logger = _get_logger(__name__)
 
 BASE_HEADER = [
     "x_min",
@@ -17,6 +24,10 @@ BASE_HEADER = [
 ]
 
 
+class WriterProtocol(Protocol):
+    def writerow(self, row: Iterable[Any]) -> Any: ...
+
+
 class CSVSink:
     """
     A utility class for saving detection data to a CSV file. This class is designed to
@@ -26,11 +37,11 @@ class CSVSink:
 
     !!! tip
 
-        CSVSink allow to pass custom data alongside the detection fields, providing
+        CSVSink allows passing custom data alongside detection fields, providing
         flexibility for logging various types of information.
 
     Args:
-        file_name (str): The name of the CSV file where the detections will be stored.
+        file_name: The name of the CSV file where the detections will be stored.
             Defaults to 'output.csv'.
 
     Example:
@@ -63,16 +74,13 @@ class CSVSink:
         Initialize the CSVSink instance.
 
         Args:
-            file_name (str): The name of the CSV file.
-
-        Returns:
-            None
+            file_name: The name of the CSV file.
         """
         self.file_name = file_name
-        self.file: open | None = None
-        self.writer: csv.writer | None = None
+        self.file: io.TextIOWrapper | None = None
+        self.writer: WriterProtocol | None = None
         self.header_written = False
-        self.field_names = []
+        self.field_names: list[str] = []
 
     def __enter__(self) -> CSVSink:
         self.open()
@@ -89,9 +97,6 @@ class CSVSink:
     def open(self) -> None:
         """
         Open the CSV file for writing.
-
-        Returns:
-            None
         """
         parent_directory = os.path.dirname(self.file_name)
         if parent_directory and not os.path.exists(parent_directory):
@@ -103,9 +108,6 @@ class CSVSink:
     def close(self) -> None:
         """
         Close the CSV file.
-
-        Returns:
-            None
         """
         if self.file:
             self.file.close()
@@ -134,10 +136,12 @@ class CSVSink:
 
             if hasattr(detections, "data"):
                 for key, value in detections.data.items():
-                    if value.ndim == 0:
+                    if isinstance(value, np.ndarray) and value.ndim == 0:
                         row[key] = value
-                    else:
+                    elif isinstance(value, np.ndarray):
                         row[key] = value[i]
+                    else:
+                        row[key] = value[i] if hasattr(value, "__getitem__") else value
 
             if custom_data:
                 row.update(custom_data)
@@ -151,11 +155,8 @@ class CSVSink:
         Append detection data to the CSV file.
 
         Args:
-            detections (Detections): The detection data.
-            custom_data (Dict[str, Any]): Custom data to include.
-
-        Returns:
-            None
+            detections: The detection data.
+            custom_data: Custom data to include.
         """
         if not self.writer:
             raise Exception(
@@ -168,9 +169,10 @@ class CSVSink:
             self.header_written = True
 
         if field_names != self.field_names:
-            print(
-                f"Field names do not match the header. "
-                f"Expected: {self.field_names}, given: {field_names}"
+            logger.warning(
+                "Field names do not match the header. Expected: %s, given: %s",
+                self.field_names,
+                field_names,
             )
 
         parsed_rows = CSVSink.parse_detection_data(detections, custom_data)
@@ -181,9 +183,10 @@ class CSVSink:
 
     @staticmethod
     def parse_field_names(
-        detections: Detections, custom_data: dict[str, Any]
+        detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> list[str]:
+        custom_keys = set(custom_data.keys()) if custom_data else set()
         dynamic_header = sorted(
-            set(custom_data.keys()) | set(getattr(detections, "data", {}).keys())
+            custom_keys | set(getattr(detections, "data", {}).keys())
         )
         return BASE_HEADER + dynamic_header

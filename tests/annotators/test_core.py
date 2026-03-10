@@ -25,6 +25,7 @@ from supervision.annotators.core import (
     PolygonAnnotator,
     RichLabelAnnotator,
     RoundBoxAnnotator,
+    TraceAnnotator,
     TriangleAnnotator,
 )
 from supervision.annotators.utils import ColorLookup
@@ -56,6 +57,53 @@ def gradient_image() -> np.ndarray:
         for j in range(100):
             image[i, j] = [i, j, (i + j) // 2]
     return image
+
+
+@pytest.mark.parametrize(
+    ("factory", "expected_colors"),
+    [
+        (lambda: BoxAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: OrientedBoxAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: MaskAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: PolygonAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: ColorAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: HaloAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: EllipseAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: BoxCornerAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: CircleAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (
+            lambda: DotAnnotator(color="#010203", outline_color="#040506"),
+            {"color": (1, 2, 3), "outline_color": (4, 5, 6)},
+        ),
+        (
+            lambda: LabelAnnotator(color="#010203", text_color="#040506"),
+            {"color": (1, 2, 3), "text_color": (4, 5, 6)},
+        ),
+        (
+            lambda: RichLabelAnnotator(color="#010203", text_color="#040506"),
+            {"color": (1, 2, 3), "text_color": (4, 5, 6)},
+        ),
+        (lambda: TraceAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (
+            lambda: TriangleAnnotator(color="#010203", outline_color="#040506"),
+            {"color": (1, 2, 3), "outline_color": (4, 5, 6)},
+        ),
+        (lambda: RoundBoxAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (
+            lambda: PercentageBarAnnotator(color="#010203", border_color="#040506"),
+            {"color": (1, 2, 3), "border_color": (4, 5, 6)},
+        ),
+        (lambda: CropAnnotator(border_color="#010203"), {"border_color": (1, 2, 3)}),
+    ],
+)
+def test_hex_color_support_across_annotators(
+    factory, expected_colors: dict[str, tuple[int, int, int]]
+) -> None:
+    annotator = factory()
+    for attribute_name, expected_rgb in expected_colors.items():
+        color = getattr(annotator, attribute_name)
+        assert isinstance(color, Color)
+        assert color.as_rgb() == expected_rgb
 
 
 class TestBoxAnnotator:
@@ -186,6 +234,27 @@ class TestMaskAnnotator:
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert_image_mostly_same(test_image, result, similarity_threshold=0.6)
 
+    def test_annotate_uint8_mask_matches_bool_mask(self, test_image, test_mask):
+        """Test that uint8 and bool masks produce identical overlays."""
+        detections_bool = _create_detections(
+            xyxy=[[10, 10, 90, 90]], mask=[test_mask], class_id=[0]
+        )
+        detections_uint8 = _create_detections(
+            xyxy=[[10, 10, 90, 90]], mask=[test_mask], class_id=[0]
+        )
+        detections_uint8.mask = detections_uint8.mask.astype(np.uint8)
+
+        annotator = MaskAnnotator(
+            color=Color.RED, opacity=1.0, color_lookup=ColorLookup.INDEX
+        )
+        result_bool = annotator.annotate(
+            scene=test_image.copy(), detections=detections_bool
+        )
+        result_uint8 = annotator.annotate(
+            scene=test_image.copy(), detections=detections_uint8
+        )
+        assert np.array_equal(result_bool, result_uint8)
+
 
 class TestPolygonAnnotator:
     """Tests for PolygonAnnotator class"""
@@ -266,6 +335,30 @@ class TestHaloAnnotator:
         )
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert_image_mostly_same(test_image, result, similarity_threshold=0.85)
+
+    def test_annotate_uint8_mask_matches_bool_mask(self, test_image, test_mask):
+        """Test that uint8 and bool masks produce identical halos."""
+        detections_bool = _create_detections(
+            xyxy=[[10, 10, 90, 90]], mask=[test_mask], class_id=[0]
+        )
+        detections_uint8 = _create_detections(
+            xyxy=[[10, 10, 90, 90]], mask=[test_mask], class_id=[0]
+        )
+        detections_uint8.mask = detections_uint8.mask.astype(np.uint8)
+
+        annotator = HaloAnnotator(
+            color=Color.BLUE,
+            opacity=0.8,
+            kernel_size=10,
+            color_lookup=ColorLookup.INDEX,
+        )
+        result_bool = annotator.annotate(
+            scene=test_image.copy(), detections=detections_bool
+        )
+        result_uint8 = annotator.annotate(
+            scene=test_image.copy(), detections=detections_uint8
+        )
+        assert np.array_equal(result_bool, result_uint8)
 
 
 class TestEllipseAnnotator:
@@ -525,6 +618,23 @@ class TestBackgroundOverlayAnnotator:
         annotator = BackgroundOverlayAnnotator(color=Color.BLACK, opacity=0.5)
         result = annotator.annotate(scene=image.copy(), detections=detections)
         assert not np.array_equal(image, result)
+
+    def test_annotate_uint8_mask_matches_bool_mask(self):
+        """Test that uint8 and bool masks produce identical overlays."""
+        image = np.ones((100, 100, 3), dtype=np.uint8) * 255
+        mask = np.zeros((100, 100), dtype=bool)
+        mask[10:90, 10:90] = True
+
+        detections_bool = _create_detections(xyxy=[[10, 10, 90, 90]], mask=[mask])
+        detections_uint8 = _create_detections(xyxy=[[10, 10, 90, 90]], mask=[mask])
+        detections_uint8.mask = detections_uint8.mask.astype(np.uint8)
+
+        annotator = BackgroundOverlayAnnotator(color=Color.BLACK, opacity=0.5)
+        result_bool = annotator.annotate(scene=image.copy(), detections=detections_bool)
+        result_uint8 = annotator.annotate(
+            scene=image.copy(), detections=detections_uint8
+        )
+        assert np.array_equal(result_bool, result_uint8)
 
 
 class TestComparisonAnnotator:
