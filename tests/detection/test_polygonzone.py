@@ -105,6 +105,7 @@ class TestPolygonZoneTrigger:
         with exception:
             in_zone = polygon_zone.trigger(detections)
             assert np.all(in_zone == expected_results)
+            assert polygon_zone.current_count == int(np.sum(expected_results))
 
     def test_straddling_detection_assigned_to_one_zone(self) -> None:
         """Detection straddling two adjacent zones is counted in exactly one zone.
