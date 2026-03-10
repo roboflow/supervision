@@ -80,9 +80,10 @@ class PolygonZone:
         Determines if the detections are within the polygon zone.
 
         Anchor points are calculated from original (unclipped) detection boxes to
-        ensure a single object can only appear in one zone. This prevents
-        detections spanning multiple non-overlapping ROIs from being counted
-        in multiple zones simultaneously.
+        avoid per-zone clipping shifting anchor positions. This prevents a single
+        detection from being counted in multiple non-overlapping zones due to
+        clipping artifacts, although overlapping zones may still legitimately
+        contain the same detection.
 
         Args:
             detections: The detections to be checked against the polygon zone
