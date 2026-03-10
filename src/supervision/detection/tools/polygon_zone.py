@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import replace
 from typing import Any, cast
 
 import cv2
