@@ -178,9 +178,9 @@ class Detections:
         tuple[
             npt.NDArray[np.generic],
             npt.NDArray[np.generic] | None,
-            Any,
-            Any,
-            Any,
+            np.generic | None,
+            np.generic | None,
+            np.generic | None,
             dict[str, npt.NDArray[np.generic] | list[Any]],
         ]
     ]:

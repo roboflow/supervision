@@ -133,7 +133,7 @@ class LineZone:
         Update the `in_count` and `out_count` based on the objects that cross the line.
 
         Args:
-            detections: A list of detections for which to update the counts.
+            detections: A Detections object for which to update the counts.
 
         Returns:
             A tuple of two boolean NumPy arrays. The first array indicates which
