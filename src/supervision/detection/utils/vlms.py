@@ -80,7 +80,7 @@ def fuzzy_match_index(
 
     Returns:
         Index of the first matching string in candidates,
-            or None if no match is found.
+        or None if no match is found.
 
     Examples:
         ```pycon
