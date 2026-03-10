@@ -11,11 +11,11 @@ def xyxy_to_polygons(box: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
     Retains the input datatype.
 
     Args:
-        box (np.ndarray): An array of boxes (N, 4), where each box is represented as a
+        box: An array of boxes (N, 4), where each box is represented as a
             list of four coordinates in the format `(x_min, y_min, x_max, y_max)`.
 
     Returns:
-        np.ndarray: An array of polygons (N, 4, 2), where each polygon is
+        An array of polygons (N, 4, 2), where each polygon is
             represented as a list of four coordinates in the format `(x, y)`.
     """
     polygon = np.zeros((box.shape[0], 4, 2), dtype=box.dtype)
@@ -31,13 +31,13 @@ def polygon_to_mask(
     """Generate a mask from a polygon.
 
     Args:
-        polygon (np.ndarray): The polygon for which the mask should be generated,
+        polygon: The polygon for which the mask should be generated,
             given as a list of vertices.
-        resolution_wh (Tuple[int, int]): The width and height of the desired resolution.
+        resolution_wh: The width and height of the desired resolution.
 
     Returns:
-        np.ndarray: The generated 2D mask, where the polygon is marked with
-            `1`'s and the rest is filled with `0`'s.
+        The generated 2D mask, where the polygon is marked with
+            `1`s and the rest is filled with `0`s.
     """
     width, height = map(int, resolution_wh)
     mask = np.zeros((height, width), dtype=np.uint8)
@@ -51,11 +51,11 @@ def xywh_to_xyxy(xywh: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
     format to `(x_min, y_min, x_max, y_max)` format.
 
     Args:
-        xywh (np.ndarray): A numpy array of shape `(N, 4)` where each row
+        xywh: A numpy array of shape `(N, 4)` where each row
             corresponds to a bounding box in the format `(x, y, width, height)`.
 
     Returns:
-        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds
+        A numpy array of shape `(N, 4)` where each row corresponds
             to a bounding box in the format `(x_min, y_min, x_max, y_max)`.
 
     Examples:
@@ -84,12 +84,12 @@ def xyxy_to_xywh(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
     format to `(x, y, width, height)` format.
 
     Args:
-        xyxy (np.ndarray): A numpy array of shape `(N, 4)` where each row
+        xyxy: A numpy array of shape `(N, 4)` where each row
             corresponds to a bounding box in the format `(x_min, y_min, x_max,
             y_max)`.
 
     Returns:
-        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds
+        A numpy array of shape `(N, 4)` where each row corresponds
             to a bounding box in the format `(x, y, width, height)`.
 
     Examples:
@@ -118,12 +118,12 @@ def xcycwh_to_xyxy(xcycwh: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
     format to `(x_min, y_min, x_max, y_max)` format.
 
     Args:
-        xcycwh (np.ndarray): A numpy array of shape `(N, 4)` where each row
+        xcycwh: A numpy array of shape `(N, 4)` where each row
             corresponds to a bounding box in the format `(center_x, center_y, width,
             height)`.
 
     Returns:
-        np.ndarray: A numpy array of shape `(N, 4)` where each row corresponds
+        A numpy array of shape `(N, 4)` where each row corresponds
             to a bounding box in the format `(x_min, y_min, x_max, y_max)`.
 
     Examples:
@@ -155,10 +155,10 @@ def xyxy_to_xcycarh(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.floating]:
     where the aspect ratio is `width / height`.
 
     Args:
-        xyxy (np.ndarray): Bounding box in format `(x1, y1, x2, y2)`.
+        xyxy: Bounding box in format `(x1, y1, x2, y2)`.
             Expected shape is `(N, 4)`.
     Returns:
-        np.ndarray: Bounding box in format
+        Bounding box in format
             `(center x, center y, aspect ratio, height)`. Shape `(N, 4)`.
 
     Examples:

@@ -251,10 +251,10 @@ def merge_metadata(metadata_list: list[dict[str, Any]]) -> dict[str, Any]:
     this function.
 
     Args:
-        metadata_list (List[Dict[str, Any]]): A list of metadata dictionaries to merge.
+        metadata_list: A list of metadata dictionaries to merge.
 
     Returns:
-        Dict[str, Any]: A single merged metadata dictionary.
+        A single merged metadata dictionary.
 
     Raises:
         ValueError: If there are conflicting values for the same key or if

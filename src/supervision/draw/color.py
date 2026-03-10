@@ -71,9 +71,9 @@ class Color:
     codes, converting colors to hex strings, RGB tuples, and BGR tuples.
 
     Attributes:
-        r (int): Red channel value (0-255).
-        g (int): Green channel value (0-255).
-        b (int): Blue channel value (0-255).
+        r: Red channel value (0-255).
+        g: Green channel value (0-255).
+        b: Blue channel value (0-255).
 
     Example:
         ```pycon
@@ -105,13 +105,13 @@ class Color:
         Create a Color instance from a hex string.
 
         Args:
-            color_hex (str): The hex string representing the color. This string can
+            color_hex: The hex string representing the color. This string can
                 start with '#' followed by either 3 or 6 hexadecimal characters. In
                 case of 3 characters, each character is repeated to form the full
                 6-character hex code.
 
         Returns:
-            Color: An instance representing the color.
+            An instance representing the color.
 
         Example:
             ```pycon
@@ -136,11 +136,11 @@ class Color:
         Create a Color instance from an RGB tuple.
 
         Args:
-            color_tuple (Tuple[int, int, int]): A tuple representing the color in RGB
-                format, where each element is an integer in the range 0-255.
+            color_tuple: A tuple representing the color in RGB format, where each
+                element is an integer in the range 0-255.
 
         Returns:
-            Color: An instance representing the color.
+            An instance representing the color.
 
         Raises:
             ValueError: If any RGB value is outside the range 0-255.
@@ -164,11 +164,11 @@ class Color:
         Create a Color instance from a BGR tuple.
 
         Args:
-            color_tuple (Tuple[int, int, int]): A tuple representing the color in BGR
-                format, where each element is an integer in the range 0-255.
+            color_tuple: A tuple representing the color in BGR format, where each
+                element is an integer in the range 0-255.
 
         Returns:
-            Color: An instance representing the color.
+            An instance representing the color.
 
         Raises:
             ValueError: If any BGR value is outside the range 0-255.
@@ -191,7 +191,7 @@ class Color:
         Converts the Color instance to a hex string.
 
         Returns:
-            str: The hexadecimal color string.
+            The hexadecimal color string.
 
         Example:
             ```pycon
@@ -208,7 +208,7 @@ class Color:
         Returns the color as an RGB tuple.
 
         Returns:
-            Tuple[int, int, int]: RGB tuple.
+            RGB tuple.
 
         Example:
             ```pycon
@@ -225,7 +225,7 @@ class Color:
         Returns the color as a BGR tuple.
 
         Returns:
-            Tuple[int, int, int]: BGR tuple.
+            BGR tuple.
 
         Example:
             ```pycon
@@ -291,7 +291,7 @@ class ColorPalette:
         Returns a default color palette.
 
         Returns:
-            ColorPalette: A ColorPalette instance with default colors.
+            A ColorPalette instance with default colors.
 
         Example:
             ```pycon
@@ -312,7 +312,7 @@ class ColorPalette:
         Returns a Roboflow color palette.
 
         Returns:
-            ColorPalette: A ColorPalette instance with Roboflow colors.
+            A ColorPalette instance with Roboflow colors.
 
         Example:
             ```pycon
@@ -337,10 +337,10 @@ class ColorPalette:
         Create a ColorPalette instance from a list of hex strings.
 
         Args:
-            color_hex_list (List[str]): List of color hex strings.
+            color_hex_list: List of color hex strings.
 
         Returns:
-            ColorPalette: A ColorPalette instance.
+            A ColorPalette instance.
 
         Example:
             ```pycon
@@ -360,11 +360,11 @@ class ColorPalette:
         Create a ColorPalette instance from a Matplotlib color palette.
 
         Args:
-            palette_name (str): Name of the Matplotlib palette.
-            color_count (int): Number of colors to sample from the palette.
+            palette_name: Name of the Matplotlib palette.
+            color_count: Number of colors to sample from the palette.
 
         Returns:
-            ColorPalette: A ColorPalette instance.
+            A ColorPalette instance.
 
         Example:
             ```pycon
@@ -393,10 +393,10 @@ class ColorPalette:
         Return the color at a given index in the palette.
 
         Args:
-            idx (int): Index of the color in the palette.
+            idx: Index of the color in the palette.
 
         Returns:
-            Color: Color at the given index.
+            Color at the given index.
 
         Example:
             ```pycon
@@ -418,7 +418,7 @@ class ColorPalette:
         Returns the number of colors in the palette.
 
         Returns:
-            int: The number of colors.
+            The number of colors.
         """
         return len(self.colors)
 
