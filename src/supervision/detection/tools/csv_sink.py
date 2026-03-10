@@ -25,8 +25,7 @@ BASE_HEADER = [
 
 
 class WriterProtocol(Protocol):
-    def writerow(self, row: Iterable[Any]) -> Any:
-        ...
+    def writerow(self, row: Iterable[Any]) -> Any: ...
 
 
 class CSVSink:
