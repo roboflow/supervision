@@ -6,6 +6,7 @@ from typing import Any, Protocol, cast
 import numpy as np
 import numpy.typing as npt
 from PIL import Image
+from typing_extensions import TypeGuard
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.utils.converters import mask_to_xyxy
@@ -17,6 +18,13 @@ class TensorLike(Protocol):
     def cpu(self) -> Any: ...
     def detach(self) -> Any: ...
     def numpy(self) -> npt.NDArray[Any]: ...
+
+
+def _is_tensor_like(
+    segmentation_result: dict[str, Any] | TensorLike,
+) -> TypeGuard[TensorLike]:
+    """Check whether segmentation_result is a tensor-like panoptic output."""
+    return segmentation_result.__class__.__name__ == "Tensor"
 
 
 def process_transformers_detection_result(
@@ -107,14 +115,19 @@ def process_transformers_v5_segmentation_result(
         Processed segmentation result including bounding boxes, masks, confidence
             scores, class IDs, and data.
     """
-    if segmentation_result.__class__.__name__ == "Tensor":
+    if isinstance(segmentation_result, dict):
+        return process_transformers_v5_semantic_or_instance_segmentation_result(
+            segmentation_result, id2label
+        )
+    if _is_tensor_like(segmentation_result):
         segmentation_array = segmentation_result.cpu().detach().numpy()
         return process_transformers_v5_panoptic_segmentation_result(
             segmentation_array, id2label
         )
 
-    return process_transformers_v5_semantic_or_instance_segmentation_result(
-        segmentation_result, id2label
+    raise TypeError(
+        "`segmentation_result` must be either a dictionary with "
+        "`segments_info` and `segmentation` or a tensor-like object."
     )
 
 
