@@ -47,7 +47,7 @@ class Classifications:
         return len(self.class_id)
 
     @classmethod
-    def from_clip(cls, clip_results: Any) -> Classifications:
+    def from_clip(cls, clip_results: npt.NDArray) -> Classifications:
         """
         Creates a Classifications instance from a
         [clip](https://github.com/openai/clip) inference result.
@@ -112,7 +112,7 @@ class Classifications:
         return cls(class_id=np.arange(confidence.shape[0]), confidence=confidence)
 
     @classmethod
-    def from_timm(cls, timm_results: Any) -> Classifications:
+    def from_timm(cls, timm_results: torch.Tensor) -> Classifications:
         """
         Creates a Classifications instance from a
         [timm](https://huggingface.co/docs/hub/timm) inference result.
