@@ -1,12 +1,17 @@
 verbose = "info"
 no_progress = true
 include_verbatim = true
-retry_wait_time = 3
-max_concurrency = 10
+retry_wait_time = 10
+max_retries = 3
+max_concurrency = 8
 cache = false
 accept = [
     200, # OK
     408, # Request Timeout
+    # 429 means the server received the request and is actively rate-limiting — the URL is
+    # reachable. Real dead links return 404, 410, 5xx, or fail to connect; none of those
+    # produce a 429, so accepting it here does not hide broken links.
+    429, # Too Many Requests (rate-limited but reachable; does not mask dead links)
 ]
 
 exclude = [
