@@ -103,3 +103,24 @@ def test_polygon_zone_trigger(
 def test_polygon_zone_initialization(polygon, triggering_anchors, exception):
     with exception:
         sv.PolygonZone(polygon, triggering_anchors=triggering_anchors)
+
+
+def test_polygon_zone_trigger_issue_1987_regression() -> None:
+    polygons = [
+        np.array([[0, 167], [422, 79], [457, 427], [102, 547]], dtype=np.int32),
+        np.array([[458, 67], [1011, 75], [997, 309], [515, 609]], dtype=np.int32),
+        np.array([[0, 683], [457, 474], [474, 639], [219, 720]], dtype=np.int32),
+    ]
+    detections = _create_detections(
+        xyxy=[[441.50900269, 258.48202515, 718.4284668, 712.74450684]],
+        confidence=[0.89746094],
+        class_id=[0],
+        tracker_id=[3],
+        data={"class_name": ["person"]},
+    )
+
+    results = np.array(
+        [zone.trigger(detections)[0] for zone in [sv.PolygonZone(p) for p in polygons]],
+        dtype=bool,
+    )
+    assert np.sum(results) <= 1
