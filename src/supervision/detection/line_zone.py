@@ -46,9 +46,11 @@ class LineZone:
         out_count: The number of objects that have crossed the line from inside
             to outside.
         in_count_per_class: Number of objects of each class that have
-            crossed the line from outside to inside.
+            crossed the line from outside to inside, keyed by `class_id`
+            (`int` for classified detections, `None` for unclassified ones).
         out_count_per_class: Number of objects of each class that have
-            crossed the line from inside to outside.
+            crossed the line from inside to outside, keyed by `class_id`
+            (`int` for classified detections, `None` for unclassified ones).
 
     Example:
         ```python

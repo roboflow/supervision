@@ -246,6 +246,11 @@ def detections_to_yolo_annotations(
     for xyxy, mask, _, class_id, _, _ in detections:
         if class_id is None:
             raise ValueError("Class ID is required for YOLO annotations.")
+        if not isinstance(class_id, (int, np.integer)):
+            raise ValueError(
+                f"Detections class_id must be an integer for YOLO export, "
+                f"got {type(class_id)!r}."
+            )
         class_id_int = int(class_id)
 
         if mask is not None:
