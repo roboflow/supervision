@@ -1,15 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
-
-if TYPE_CHECKING:
-    import torch
-
-
 def _validate_class_ids(class_id: Any, n: int) -> None:
     """
     Ensure that class_id is a 1d np.ndarray with (n, ) shape.
@@ -50,7 +45,7 @@ class Classifications:
         return len(self.class_id)
 
     @classmethod
-    def from_clip(cls, clip_results: npt.NDArray) -> Classifications:
+    def from_clip(cls, clip_results: "torch.Tensor") -> Classifications:
         """
         Creates a Classifications instance from a
         [clip](https://github.com/openai/clip) inference result.
@@ -118,7 +113,7 @@ class Classifications:
         return cls(class_id=np.arange(confidence.shape[0]), confidence=confidence)
 
     @classmethod
-    def from_timm(cls, timm_results: torch.Tensor) -> Classifications:
+    def from_timm(cls, timm_results: Any) -> Classifications:
         """
         Creates a Classifications instance from a
         [timm](https://huggingface.co/docs/hub/timm) inference result.

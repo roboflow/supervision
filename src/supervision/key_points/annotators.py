@@ -170,7 +170,7 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
             if not edges:
                 edges = SKELETONS_BY_VERTEX_COUNT.get(len(xy))
             if not edges:
-                logger.warning(f"No skeleton found with {len(xy)} vertices")
+                logger.warning("No skeleton found with %d vertices", len(xy))
                 return scene
 
             for class_a, class_b in edges:
