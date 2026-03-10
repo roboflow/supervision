@@ -8,7 +8,6 @@ cache = false
 accept = [
     200, # OK
     408, # Request Timeout
-    429, # Too Many Requests (rate-limited; treat as non-fatal)
 ]
 
 exclude = [
