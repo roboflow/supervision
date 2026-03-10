@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import _csv
 import csv
 import io
 import os
-from typing import Any
+from collections.abc import Iterable
+from typing import Any, Protocol
 
 import numpy as np
 
@@ -22,6 +22,11 @@ BASE_HEADER = [
     "confidence",
     "tracker_id",
 ]
+
+
+class WriterProtocol(Protocol):
+    def writerow(self, row: Iterable[Any]) -> Any:
+        ...
 
 
 class CSVSink:
@@ -74,7 +79,7 @@ class CSVSink:
         """
         self.file_name = file_name
         self.file: io.TextIOWrapper | None = None
-        self.writer: _csv._writer | None = None
+        self.writer: WriterProtocol | None = None
         self.header_written = False
         self.field_names: list[str] = []
 
