@@ -546,7 +546,7 @@ class COCOEvaluatorParameters:
             0.95,
             int(np.round((0.95 - 0.5) / 0.05)) + 1,
             endpoint=True,
-            dtype=np.float32,
+            dtype=np.float32
         )
         # 101 recall thresholds [0.0, 0.01, 0.02, ..., 1.00]
         self.rec_thrs = np.linspace(
@@ -554,7 +554,7 @@ class COCOEvaluatorParameters:
             1.00,
             int(np.round((1.00 - 0.0) / 0.01)) + 1,
             endpoint=True,
-            dtype=np.float32,
+            dtype=np.float32
         )
         # 3 maximum detection thresholds [1, 10, 100]
         self.max_dets = [1, 10, 100]
