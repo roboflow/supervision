@@ -703,8 +703,10 @@ def mask_non_max_merge(
             between pairs of masks (e.g., IoU, IoS).
 
     Returns:
-        A boolean array indicating which predictions to keep after
-            non-maximum suppression.
+        A list of groups of prediction indices. Each inner list contains
+            the indices of predictions whose masks overlap above `iou_threshold`
+            according to the chosen `overlap_metric`, and should be merged or
+            kept together as a single detection by non-maximum merging.
 
     Raises:
         AssertionError: If `iou_threshold` is not within the closed
@@ -757,7 +759,7 @@ def _group_overlapping_boxes(
             between pairs of boxes (e.g., IoU, IoS).
 
     Returns:
-        Groups of prediction indices be merged.
+        Groups of prediction indices to be merged.
             Each group may have 1 or more elements.
     """
     merge_groups: list[list[int]] = []

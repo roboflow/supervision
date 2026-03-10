@@ -37,7 +37,7 @@ def polygon_to_mask(
 
     Returns:
         The generated 2D mask, where the polygon is marked with
-            `1`'s and the rest is filled with `0`'s.
+            `1`s and the rest is filled with `0`s.
     """
     width, height = map(int, resolution_wh)
     mask = np.zeros((height, width), dtype=np.uint8)
