@@ -15,7 +15,7 @@ def edit_distance(string_1: str, string_2: str, case_sensitive: bool = True) -> 
 
     Returns:
         The minimum number of edits required to convert `string_1`
-            into `string_2`.
+        into `string_2`.
 
     Examples:
         ```pycon
