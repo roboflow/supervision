@@ -356,3 +356,121 @@ class TestNmmWithCompactMask:
         groups = mask_non_max_merge(predictions, cm, iou_threshold=0.5)
         assert len(groups) == 1, "Identical masks must collapse to one group"
         assert len(groups[0]) == 3
+
+
+# ---------------------------------------------------------------------------
+# Random scenario helpers
+# ---------------------------------------------------------------------------
+
+# Small (N, h, w) configs to keep IoU tests fast.
+_IOU_RANDOM_CONFIGS = [
+    (5, 30, 30),
+    (8, 40, 40),
+    (10, 25, 25),
+    (6, 50, 50),
+    (12, 30, 40),
+    (5, 60, 60),
+    (15, 20, 20),
+    (7, 35, 35),
+    (10, 40, 50),
+    (8, 45, 45),
+]
+
+
+def _random_masks(
+    rng: np.random.Generator,
+    n: int,
+    h: int,
+    w: int,
+    fill_prob: float = 0.25,
+) -> np.ndarray:
+    """Generate *n* random boolean masks with at least one True pixel each."""
+    masks = np.zeros((n, h, w), dtype=bool)
+    for i in range(n):
+        y1 = rng.integers(0, h)
+        y2 = rng.integers(y1, h)
+        x1 = rng.integers(0, w)
+        x2 = rng.integers(x1, w)
+        region = rng.random((y2 - y1 + 1, x2 - x1 + 1)) < fill_prob
+        if not region.any():
+            region[0, 0] = True
+        masks[i, y1 : y2 + 1, x1 : x2 + 1] = region
+    return masks
+
+
+class TestCompactMaskIouRandom:
+    """compact_mask_iou_batch matches dense mask_iou_batch across 10 random seeds.
+
+    Uses small mask counts (5-15) and image sizes (20x20 to 60x60) to keep
+    individual test runs under 1 second.
+    """
+
+    @pytest.mark.parametrize("seed", list(range(10)))
+    def test_parity_seed(self, seed: int) -> None:
+        rng = np.random.default_rng(seed)
+        n_a, h, w = _IOU_RANDOM_CONFIGS[seed]
+        n_b = max(3, n_a - 2)
+
+        masks_a = _random_masks(rng, n_a, h, w)
+        masks_b = _random_masks(rng, n_b, h, w)
+
+        cm_a = _cm_from_masks(masks_a, (h, w))
+        cm_b = _cm_from_masks(masks_b, (h, w))
+
+        compact_result = compact_mask_iou_batch(cm_a, cm_b)
+        dense_result = _dense_iou(masks_a, masks_b)
+
+        assert compact_result.shape == (n_a, n_b), (
+            f"Shape mismatch: {compact_result.shape} vs ({n_a}, {n_b})"
+        )
+        np.testing.assert_allclose(
+            compact_result,
+            dense_result,
+            atol=1e-9,
+            err_msg=f"IoU mismatch for seed={seed}, N_a={n_a}, N_b={n_b}",
+        )
+
+    @pytest.mark.parametrize("seed", list(range(10)))
+    def test_self_iou_diagonal(self, seed: int) -> None:
+        """Self-IoU diagonal must be 1.0 for masks with at least one True pixel."""
+        rng = np.random.default_rng(seed + 50)
+        n, h, w = _IOU_RANDOM_CONFIGS[seed]
+        masks = _random_masks(rng, n, h, w)
+
+        cm = _cm_from_masks(masks, (h, w))
+        result = compact_mask_iou_batch(cm, cm)
+
+        np.testing.assert_allclose(
+            np.diag(result),
+            1.0,
+            atol=1e-9,
+            err_msg=f"Diagonal not 1.0 for seed={seed}",
+        )
+
+    @pytest.mark.parametrize("seed", list(range(10)))
+    def test_tight_bbox_parity(self, seed: int) -> None:
+        """Tight bounding boxes (mask_to_xyxy) must still produce identical IoU."""
+        from supervision.detection.utils.converters import mask_to_xyxy
+
+        rng = np.random.default_rng(seed + 200)
+        n, h, w = _IOU_RANDOM_CONFIGS[seed]
+        n_b = max(3, n - 2)
+
+        masks_a = _random_masks(rng, n, h, w)
+        masks_b = _random_masks(rng, n_b, h, w)
+
+        xyxy_a = mask_to_xyxy(masks_a).astype(np.float32)
+        xyxy_b = mask_to_xyxy(masks_b).astype(np.float32)
+
+        cm_a = CompactMask.from_dense(masks_a, xyxy_a, image_shape=(h, w))
+        cm_b = CompactMask.from_dense(masks_b, xyxy_b, image_shape=(h, w))
+
+        compact_result = compact_mask_iou_batch(cm_a, cm_b)
+        dense_result = _dense_iou(masks_a, masks_b)
+
+        np.testing.assert_allclose(
+            compact_result,
+            dense_result,
+            atol=1e-9,
+            err_msg=f"Tight bbox IoU mismatch for seed={seed}",
+        )

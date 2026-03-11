@@ -696,3 +696,230 @@ class TestContainsMultipleSegmentsCompact:
         result = contains_multiple_segments(decoded, connectivity=connectivity)
         assert result == expected
         assert result == contains_multiple_segments(mask_2d, connectivity=connectivity)
+
+
+# ---------------------------------------------------------------------------
+# Random scenario helpers
+# ---------------------------------------------------------------------------
+
+# Varying (N, image_h, image_w) combinations for random tests.
+_RANDOM_CONFIGS = [
+    (1, 50, 50),
+    (5, 50, 50),
+    (5, 200, 300),
+    (20, 100, 150),
+    (20, 200, 300),
+    (50, 50, 50),
+    (5, 1080, 1920),
+    (1, 1080, 1920),
+    (20, 480, 640),
+    (50, 100, 100),
+]
+
+
+def _random_masks_and_xyxy(
+    rng: np.random.Generator,
+    n: int,
+    h: int,
+    w: int,
+    fill_prob: float = 0.3,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Generate *n* random boolean masks with matching tight xyxy boxes.
+
+    Each mask is built by filling a random sub-rectangle with Bernoulli noise at
+    ``fill_prob``, then computing tight bounding boxes via ``mask_to_xyxy``.
+    This guarantees every mask has at least one True pixel (for non-degenerate
+    bounding boxes).
+    """
+    masks = np.zeros((n, h, w), dtype=bool)
+    for i in range(n):
+        y1 = rng.integers(0, h)
+        y2 = rng.integers(y1, h)
+        x1 = rng.integers(0, w)
+        x2 = rng.integers(x1, w)
+        region = rng.random((y2 - y1 + 1, x2 - x1 + 1)) < fill_prob
+        # Ensure at least one True pixel.
+        if not region.any():
+            region[0, 0] = True
+        masks[i, y1 : y2 + 1, x1 : x2 + 1] = region
+
+    xyxy = mask_to_xyxy(masks).astype(np.float32)
+    return masks, xyxy
+
+
+class TestCompactMaskRoundtripRandom:
+    """from_dense -> to_dense pixel equality across 10 random seeds.
+
+    Uses tight bounding boxes so the round-trip must be lossless (all True
+    pixels lie strictly within the crop).
+    """
+
+    @pytest.mark.parametrize("seed", list(range(10)))
+    def test_parity_seed(self, seed: int) -> None:
+        rng = np.random.default_rng(seed)
+        n, h, w = _RANDOM_CONFIGS[seed]
+        masks, xyxy = _random_masks_and_xyxy(rng, n, h, w)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        np.testing.assert_array_equal(
+            cm.to_dense(),
+            masks,
+            err_msg=f"Round-trip failed for seed={seed}, N={n}, shape=({h},{w})",
+        )
+
+    @pytest.mark.parametrize("seed", list(range(10)))
+    def test_shape_and_len(self, seed: int) -> None:
+        """len() and .shape must agree with the dense array."""
+        rng = np.random.default_rng(seed)
+        n, h, w = _RANDOM_CONFIGS[seed]
+        masks, xyxy = _random_masks_and_xyxy(rng, n, h, w)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        assert len(cm) == n
+        assert cm.shape == (n, h, w)
+
+    @pytest.mark.parametrize("seed", list(range(10)))
+    def test_individual_mask_access(self, seed: int) -> None:
+        """cm[i] must equal masks[i] for every index."""
+        rng = np.random.default_rng(seed)
+        n, h, w = _RANDOM_CONFIGS[seed]
+        masks, xyxy = _random_masks_and_xyxy(rng, n, h, w)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        for i in range(n):
+            np.testing.assert_array_equal(
+                cm[i],
+                masks[i],
+                err_msg=f"cm[{i}] mismatch for seed={seed}",
+            )
+
+
+class TestCompactMaskAreaRandom:
+    """area from CompactMask equals dense .sum(axis=(1,2)) across 10 seeds."""
+
+    @pytest.mark.parametrize("seed", list(range(10)))
+    def test_parity_seed(self, seed: int) -> None:
+        rng = np.random.default_rng(seed)
+        n, h, w = _RANDOM_CONFIGS[seed]
+        masks, xyxy = _random_masks_and_xyxy(rng, n, h, w)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+
+        expected_area = masks.sum(axis=(1, 2))
+        np.testing.assert_array_equal(
+            cm.area,
+            expected_area,
+            err_msg=f"Area mismatch for seed={seed}, N={n}, shape=({h},{w})",
+        )
+
+    @pytest.mark.parametrize("seed", list(range(10)))
+    def test_sum_axis_matches_area(self, seed: int) -> None:
+        """cm.sum(axis=(1,2)) must equal cm.area (the fast path)."""
+        rng = np.random.default_rng(seed)
+        n, h, w = _RANDOM_CONFIGS[seed]
+        masks, xyxy = _random_masks_and_xyxy(rng, n, h, w)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        np.testing.assert_array_equal(cm.sum(axis=(1, 2)), cm.area)
+
+
+class TestCompactMaskFilterRandom:
+    """Boolean filter on CompactMask matches dense fancy indexing across 10 seeds."""
+
+    @pytest.mark.parametrize("seed", list(range(10)))
+    def test_parity_seed(self, seed: int) -> None:
+        rng = np.random.default_rng(seed)
+        n, h, w = _RANDOM_CONFIGS[seed]
+        masks, xyxy = _random_masks_and_xyxy(rng, n, h, w)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+
+        selector = rng.random(n) > 0.5
+        # Guarantee at least one True in the selector so we test non-empty subsets.
+        if not selector.any():
+            selector[0] = True
+
+        subset_cm = cm[selector]
+        subset_dense = masks[selector]
+
+        assert isinstance(subset_cm, CompactMask)
+        assert len(subset_cm) == int(selector.sum())
+        np.testing.assert_array_equal(
+            subset_cm.to_dense(),
+            subset_dense,
+            err_msg=f"Boolean filter mismatch for seed={seed}",
+        )
+
+    @pytest.mark.parametrize("seed", list(range(10)))
+    def test_list_index(self, seed: int) -> None:
+        """Integer list indexing must match dense fancy indexing."""
+        rng = np.random.default_rng(seed)
+        n, h, w = _RANDOM_CONFIGS[seed]
+        masks, xyxy = _random_masks_and_xyxy(rng, n, h, w)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+
+        k = min(n, max(1, rng.integers(1, n + 1)))
+        indices = sorted(rng.choice(n, size=k, replace=False).tolist())
+
+        subset_cm = cm[indices]
+        subset_dense = masks[indices]
+        np.testing.assert_array_equal(
+            subset_cm.to_dense(),
+            subset_dense,
+            err_msg=f"List index mismatch for seed={seed}, indices={indices}",
+        )
+
+
+class TestCompactMaskWithOffsetRandom:
+    """with_offset roundtrip matches move_masks across 10 random seeds."""
+
+    @pytest.mark.parametrize("seed", list(range(10)))
+    def test_parity_seed(self, seed: int) -> None:
+        rng = np.random.default_rng(seed)
+        # Use smaller images to keep move_masks fast.
+        n = rng.integers(1, 10)
+        h, w = int(rng.integers(30, 80)), int(rng.integers(30, 80))
+        masks, xyxy = _random_masks_and_xyxy(rng, n, h, w)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+
+        # Random offset that may push some masks partially or fully off-frame.
+        dx = int(rng.integers(-w, w))
+        dy = int(rng.integers(-h, h))
+
+        cm_shifted = cm.with_offset(dx=dx, dy=dy, new_image_shape=(h, w))
+        expected = move_masks(
+            masks=masks,
+            offset=np.array([dx, dy], dtype=np.int32),
+            resolution_wh=(w, h),
+        )
+
+        np.testing.assert_array_equal(
+            cm_shifted.to_dense(),
+            expected,
+            err_msg=(
+                f"with_offset mismatch for seed={seed}, "
+                f"dx={dx}, dy={dy}, shape=({h},{w})"
+            ),
+        )
+
+    @pytest.mark.parametrize("seed", list(range(10)))
+    def test_offset_into_larger_canvas(self, seed: int) -> None:
+        """Offset into a larger destination image must preserve pixels."""
+        rng = np.random.default_rng(seed + 100)
+        n = rng.integers(1, 8)
+        h, w = int(rng.integers(20, 50)), int(rng.integers(20, 50))
+        masks, xyxy = _random_masks_and_xyxy(rng, n, h, w)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+
+        new_h, new_w = h * 2, w * 2
+        dx = int(rng.integers(0, w))
+        dy = int(rng.integers(0, h))
+
+        cm_shifted = cm.with_offset(dx=dx, dy=dy, new_image_shape=(new_h, new_w))
+        dense_shifted = cm_shifted.to_dense()
+
+        assert dense_shifted.shape == (n, new_h, new_w)
+        # Manually place each original mask into the larger canvas.
+        expected = np.zeros((n, new_h, new_w), dtype=bool)
+        for i in range(n):
+            expected[i, dy : dy + h, dx : dx + w] |= masks[i]
+
+        np.testing.assert_array_equal(
+            dense_shifted,
+            expected,
+            err_msg=f"Larger canvas offset mismatch for seed={seed}",
+        )
