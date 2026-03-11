@@ -407,28 +407,28 @@ mask_array = np.full((masks.shape[0], resolution_wh[1], resolution_wh[0]), False
 mask_array[:, dst_y1:dst_y2, dst_x1:dst_x2] = masks[:, src_y1:src_y2, src_x1:src_x2]
 ```
 
-Compact `with_offset(dx, dy)`: adjusts each crop origin by `(dx, dy)` and clips to the new image bounds. Each mask is decoded to its crop region, sliced to the clipped bounds, and re-encoded — O(crop_area) per mask, not O(H x W):
+Compact `with_offset(dx, dy)`: vectorised bounds check first. All new bounding-box positions are computed in a single numpy op. When none overflow the new canvas — the common case in `InferenceSlicer` — the RLE data is not touched at all:
 
 ```python
-# detection/compact_mask.py — CompactMask.with_offset
-x1 = int(self._offsets[i, 0]) + dx
-y1 = int(self._offsets[i, 1]) + dy
-# ...
-crop = self.crop(i)
-clipped_crop = crop[iy1 - y1 : iy2 - y1 + 1, ix1 - x1 : ix2 - x1 + 1]
-new_rles.append(_rle_encode(clipped_crop))
+# detection/compact_mask.py — CompactMask.with_offset (fast path)
+new_offsets = self._offsets + np.array([dx, dy], dtype=np.int32)  # O(N) numpy
+needs_clip = (x1s < 0) | (y1s < 0) | (x2s >= new_w) | (y2s >= new_h)
+if not needs_clip.any():
+    return CompactMask(
+        list(self._rles), self._crop_shapes.copy(), new_offsets, new_image_shape
+    )
 ```
 
-The key savings are (a) each crop decode + re-encode operates on at most ~450 x 450 = 200 K pixels, not 8.3 M, and (b) no `(N, new_H, new_W)` output array is ever allocated. Masks that fall fully outside bounds are replaced by a 1 x 1 all-False stub without any decoding.
+When a crop does overflow (e.g. object at a tile edge), only that crop is decoded, sliced, and re-encoded. Masks fully outside bounds get a 1x1 all-False stub without any decoding.
 
-|                   | Dense                                  | Compact                                    |
-| ----------------- | -------------------------------------- | ------------------------------------------ |
-| Work per mask     | allocate `(new_H, new_W)` + copy H x W | decode + re-encode crop (~200 K px)        |
-| N=500 at 4K       | 500 x 8.3 MB = **4.1 GB** alloc + copy | 500 x 200 K px = **~100 MB** touched       |
-| Output allocation | new `(N, new_H, new_W)` = 4.1 GB       | N lightweight RLE arrays                   |
-| **Speedup**       |                                        | **~40x less data touched, no giant alloc** |
+|                   | Dense                                  | Compact (no-clip fast path)          |
+| ----------------- | -------------------------------------- | ------------------------------------ |
+| Work per mask     | allocate `(new_H, new_W)` + copy H x W | add scalar to offset row — O(1)      |
+| N=500 at 4K       | 500 x 8.3 MB = **4.1 GB** alloc + copy | two numpy ops on `(N, 2)` int32      |
+| Output allocation | new `(N, new_H, new_W)` = 4.1 GB       | shared RLE list + new `(N, 2)` array |
+| **Speedup**       |                                        | **effectively free (>1 000x)**       |
 
-In the `InferenceSlicer` pipeline, dense masks must allocate the full-resolution output array for every tile. Compact masks avoid that allocation entirely and operate only within each crop's bounding box.
+In the `InferenceSlicer` pipeline the canvas is always expanded by the tile offset, so no crop ever overflows — the fast path is always taken. Clipping only activates for objects that genuinely straddle the image boundary.
 
 ---
 
@@ -480,7 +480,7 @@ Estimated speedups at the **4K-500-5 %** operating point. Dense baseline = 1x.
 | `mask_iou_batch`  | N² x H x W (chunked)         | bbox pre-filter + sub-crop  | ~1 100x          |
 | NMS               | resize to 640² + N² IoU      | direct crop IoU             | ~1 100x          |
 | `merge` (2 x 250) | 4.1 GB vstack                | list.extend + concat (N, 2) | effectively free |
-| `with_offset`     | N x H x W copy + giant alloc | N x crop decode/re-encode   | ~40x             |
+| `with_offset`     | N x H x W copy + giant alloc | O(N) offset arithmetic      | >1 000x          |
 | `centroids`       | N x H x W tensordot          | N x crop_area indices       | ~40x             |
 
 All speedups diminish as fill fraction grows: at 20 % fill, crops are larger, more bbox pairs overlap, and RLEs contain more runs. The IoU speedup drops from ~1 100x to ~130x. Memory savings drop from ~600x to ~200x.

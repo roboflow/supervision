@@ -819,17 +819,58 @@ class CompactMask:
         if new_h <= 0 or new_w <= 0:
             raise ValueError("new_image_shape must contain positive dimensions")
 
-        new_rles: list[npt.NDArray[np.int32]] = []
-        new_crop_shapes_list: list[tuple[int, int]] = []
-        new_offsets_list: list[tuple[int, int]] = []
+        n = len(self)
+        if n == 0:
+            return CompactMask(
+                [],
+                np.empty((0, 2), dtype=np.int32),
+                np.empty((0, 2), dtype=np.int32),
+                new_image_shape,
+            )
 
-        for i in range(len(self)):
-            crop_h = int(self._crop_shapes[i, 0])
-            crop_w = int(self._crop_shapes[i, 1])
-            x1 = int(self._offsets[i, 0]) + dx
-            y1 = int(self._offsets[i, 1]) + dy
-            x2 = x1 + crop_w - 1
-            y2 = y1 + crop_h - 1
+        # Vectorised bounds check: compute every new [x1,y1,x2,y2] at once.
+        # For the common case (InferenceSlicer tiles that fit fully inside the
+        # new canvas) this catches the "no clipping needed" path in O(N) numpy
+        # without touching any RLE data.
+        new_offsets: npt.NDArray[np.int32] = self._offsets + np.array(
+            [dx, dy], dtype=np.int32
+        )
+        x1s = new_offsets[:, 0]
+        y1s = new_offsets[:, 1]
+        x2s = x1s + self._crop_shapes[:, 1] - 1
+        y2s = y1s + self._crop_shapes[:, 0] - 1
+
+        needs_clip: npt.NDArray[np.bool_] = (
+            (x1s < 0) | (y1s < 0) | (x2s >= new_w) | (y2s >= new_h)
+        )
+
+        if not needs_clip.any():
+            # Fast path: pure offset arithmetic, no decode/re-encode needed.
+            return CompactMask(
+                list(self._rles),
+                self._crop_shapes.copy(),
+                new_offsets,
+                new_image_shape,
+            )
+
+        # Slow path: only decode+clip+re-encode the masks that actually overflow.
+        out_rles: list[npt.NDArray[np.int32]] = []
+        out_crop_shapes: list[tuple[int, int]] = []
+        out_offsets_list: list[tuple[int, int]] = []
+
+        for i in range(n):
+            x1 = int(x1s[i])
+            y1 = int(y1s[i])
+            x2 = int(x2s[i])
+            y2 = int(y2s[i])
+
+            if not needs_clip[i]:
+                out_rles.append(self._rles[i])
+                out_crop_shapes.append(
+                    (int(self._crop_shapes[i, 0]), int(self._crop_shapes[i, 1]))
+                )
+                out_offsets_list.append((x1, y1))
+                continue
 
             ix1 = max(0, x1)
             iy1 = max(0, y1)
@@ -839,20 +880,20 @@ class CompactMask:
             if ix1 > ix2 or iy1 > iy2:
                 anchor_x = min(max(x1, 0), new_w - 1)
                 anchor_y = min(max(y1, 0), new_h - 1)
-                new_rles.append(_rle_encode(np.zeros((1, 1), dtype=bool)))
-                new_crop_shapes_list.append((1, 1))
-                new_offsets_list.append((anchor_x, anchor_y))
+                out_rles.append(_rle_encode(np.zeros((1, 1), dtype=bool)))
+                out_crop_shapes.append((1, 1))
+                out_offsets_list.append((anchor_x, anchor_y))
                 continue
 
             crop = self.crop(i)
-            clipped_crop = crop[iy1 - y1 : iy2 - y1 + 1, ix1 - x1 : ix2 - x1 + 1]
-            new_rles.append(_rle_encode(clipped_crop))
-            new_crop_shapes_list.append((iy2 - iy1 + 1, ix2 - ix1 + 1))
-            new_offsets_list.append((ix1, iy1))
+            clipped = crop[iy1 - y1 : iy2 - y1 + 1, ix1 - x1 : ix2 - x1 + 1]
+            out_rles.append(_rle_encode(clipped))
+            out_crop_shapes.append((iy2 - iy1 + 1, ix2 - ix1 + 1))
+            out_offsets_list.append((ix1, iy1))
 
         return CompactMask(
-            new_rles,
-            np.array(new_crop_shapes_list, dtype=np.int32),
-            np.array(new_offsets_list, dtype=np.int32),
+            out_rles,
+            np.array(out_crop_shapes, dtype=np.int32),
+            np.array(out_offsets_list, dtype=np.int32),
             new_image_shape,
         )
