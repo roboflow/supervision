@@ -438,17 +438,19 @@ def compact_mask_iou_batch(
     areas_a: npt.NDArray[np.int64] = masks_true.area
     areas_b: npt.NDArray[np.int64] = masks_detection.area
 
-    # Inclusive per-mask bounding boxes from stored offsets + crop shapes.
-    # offsets: (N, 2) → (x1, y1);  crop_shapes: (N, 2) → (h, w)
-    x1a: npt.NDArray[np.int32] = masks_true._offsets[:, 0]
-    y1a: npt.NDArray[np.int32] = masks_true._offsets[:, 1]
-    x2a: npt.NDArray[np.int32] = x1a + masks_true._crop_shapes[:, 1] - 1
-    y2a: npt.NDArray[np.int32] = y1a + masks_true._crop_shapes[:, 0] - 1
+    # Inclusive per-mask bounding boxes obtained from public accessors.
+    # bbox_xyxy: (N, 4) → (x1, y1, x2, y2)
+    bboxes_a: npt.NDArray[np.int32] = masks_true.bbox_xyxy.astype(np.int32)
+    x1a: npt.NDArray[np.int32] = bboxes_a[:, 0]
+    y1a: npt.NDArray[np.int32] = bboxes_a[:, 1]
+    x2a: npt.NDArray[np.int32] = bboxes_a[:, 2]
+    y2a: npt.NDArray[np.int32] = bboxes_a[:, 3]
 
-    x1b: npt.NDArray[np.int32] = masks_detection._offsets[:, 0]
-    y1b: npt.NDArray[np.int32] = masks_detection._offsets[:, 1]
-    x2b: npt.NDArray[np.int32] = x1b + masks_detection._crop_shapes[:, 1] - 1
-    y2b: npt.NDArray[np.int32] = y1b + masks_detection._crop_shapes[:, 0] - 1
+    bboxes_b: npt.NDArray[np.int32] = masks_detection.bbox_xyxy.astype(np.int32)
+    x1b: npt.NDArray[np.int32] = bboxes_b[:, 0]
+    y1b: npt.NDArray[np.int32] = bboxes_b[:, 1]
+    x2b: npt.NDArray[np.int32] = bboxes_b[:, 2]
+    y2b: npt.NDArray[np.int32] = bboxes_b[:, 3]
 
     # Pairwise intersection bounding box — shape (N1, N2).
     ix1: npt.NDArray[np.int32] = np.maximum(x1a[:, None], x1b[None, :])
@@ -841,8 +843,12 @@ def mask_non_max_merge(
     from supervision.detection.compact_mask import CompactMask
 
     if isinstance(masks, CompactMask):
-        # _group_overlapping_masks needs dense arrays for logical_or union merging;
-        # materialise to a downscaled dense array to keep memory reasonable.
+        # _group_overlapping_masks needs dense arrays for logical_or union merging.
+        # Note: np.asarray(masks) first materialises a full-resolution (N, H, W)
+        # dense array before downscaling with resize_masks. This reduces the size
+        # of the array used for overlap computation but does not avoid the initial
+        # full-frame materialisation, which may still be memory-intensive for very
+        # large images or object counts.
         masks = resize_masks(np.asarray(masks), mask_dimension)
     else:
         masks = resize_masks(masks, mask_dimension)
