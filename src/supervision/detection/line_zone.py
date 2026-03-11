@@ -54,22 +54,22 @@ class LineZone:
 
     Example:
         ```python
-        import supervision as sv
-        from ultralytics import YOLO
-
-        model = YOLO("<SOURCE_MODEL_PATH>")
-        tracker = sv.ByteTrack()
-        frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
-        start, end = sv.Point(x=0, y=1080), sv.Point(x=3840, y=1080)
-        line_zone = sv.LineZone(start=start, end=end)
-
-        for frame in frames_generator:
-            result = model(frame)[0]
-            detections = sv.Detections.from_ultralytics(result)
-            detections = tracker.update_with_detections(detections)
-            crossed_in, crossed_out = line_zone.trigger(detections)
-
-        line_zone.in_count, line_zone.out_count
+        >>> import supervision as sv
+        >>> from ultralytics import YOLO
+        >>>
+        >>> model = YOLO("<SOURCE_MODEL_PATH>")
+        >>> tracker = sv.ByteTrack()
+        >>> frames_generator = sv.get_video_frames_generator("<SOURCE_VIDEO_PATH>")
+        >>> start, end = sv.Point(x=0, y=1080), sv.Point(x=3840, y=1080)
+        >>> line_zone = sv.LineZone(start=start, end=end)
+        >>>
+        >>> for frame in frames_generator:
+        ...     result = model(frame)[0]
+        ...     detections = sv.Detections.from_ultralytics(result)
+        ...     detections = tracker.update_with_detections(detections)
+        ...     crossed_in, crossed_out = line_zone.trigger(detections)
+        >>>
+        >>> line_zone.in_count, line_zone.out_count
         # 7, 2
         ```
     """

@@ -411,22 +411,22 @@ class ConfusionMatrix:
 
         Example:
             ```python
-            import supervision as sv
-            from ultralytics import YOLO
-
-            dataset = sv.DetectionDataset.from_yolo(...)
-
-            model = YOLO(...)
-            def callback(image: np.ndarray) -> sv.Detections:
-                result = model(image)[0]
-                return sv.Detections.from_ultralytics(result)
-
-            confusion_matrix = sv.ConfusionMatrix.benchmark(
-                dataset = dataset,
-                callback = callback
-            )
-
-            print(confusion_matrix.matrix)
+            >>> import supervision as sv
+            >>> from ultralytics import YOLO
+            >>>
+            >>> dataset = sv.DetectionDataset.from_yolo(...)
+            >>>
+            >>> model = YOLO(...)
+            >>> def callback(image: np.ndarray) -> sv.Detections:
+            ...     result = model(image)[0]
+            ...     return sv.Detections.from_ultralytics(result)
+            >>>
+            >>> confusion_matrix = sv.ConfusionMatrix.benchmark(
+            ...     dataset = dataset,
+            ...     callback = callback
+            ... )
+            >>>
+            >>> print(confusion_matrix.matrix)
             # np.array([
             #     [0., 0., 0., 0.],
             #     [0., 1., 0., 1.],
@@ -646,22 +646,22 @@ class MeanAveragePrecision:
 
         Example:
             ```python
-            import supervision as sv
-            from ultralytics import YOLO
-
-            dataset = sv.DetectionDataset.from_yolo(...)
-
-            model = YOLO(...)
-            def callback(image: np.ndarray) -> sv.Detections:
-                result = model(image)[0]
-                return sv.Detections.from_ultralytics(result)
-
-            mean_average_precision = sv.MeanAveragePrecision.benchmark(
-                dataset = dataset,
-                callback = callback
-            )
-
-            print(mean_average_precision.map50_95)
+            >>> import supervision as sv
+            >>> from ultralytics import YOLO
+            >>>
+            >>> dataset = sv.DetectionDataset.from_yolo(...)
+            >>>
+            >>> model = YOLO(...)
+            >>> def callback(image: np.ndarray) -> sv.Detections:
+            ...     result = model(image)[0]
+            ...     return sv.Detections.from_ultralytics(result)
+            >>>
+            >>> mean_average_precision = sv.MeanAveragePrecision.benchmark(
+            ...     dataset = dataset,
+            ...     callback = callback
+            ... )
+            >>>
+            >>> print(mean_average_precision.map50_95)
             # 0.433
             ```
         """

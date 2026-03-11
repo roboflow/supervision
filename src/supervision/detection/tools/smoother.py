@@ -57,29 +57,29 @@ class DetectionsSmoother:
 
 
         ```python
-        import supervision as sv
-
-        from ultralytics import YOLO
-
-        video_info = sv.VideoInfo.from_video_path(video_path="<SOURCE_FILE_PATH>")
-        frame_generator = sv.get_video_frames_generator(
-            source_path="<SOURCE_FILE_PATH>")
-
-        model = YOLO("<MODEL_PATH>")
-        tracker = sv.ByteTrack(frame_rate=video_info.fps)
-        smoother = sv.DetectionsSmoother()
-
-        box_annotator = sv.BoxAnnotator()
-
-        with sv.VideoSink("<TARGET_FILE_PATH>", video_info=video_info) as sink:
-            for frame in frame_generator:
-                result = model(frame)[0]
-                detections = sv.Detections.from_ultralytics(result)
-                detections = tracker.update_with_detections(detections)
-                detections = smoother.update_with_detections(detections)
-
-                annotated_frame = box_annotator.annotate(frame.copy(), detections)
-                sink.write_frame(annotated_frame)
+        >>> import supervision as sv
+        >>>
+        >>> from ultralytics import YOLO
+        >>>
+        >>> video_info = sv.VideoInfo.from_video_path(video_path="<SOURCE_FILE_PATH>")
+        >>> frame_generator = sv.get_video_frames_generator(
+        ...     source_path="<SOURCE_FILE_PATH>")
+        >>>
+        >>> model = YOLO("<MODEL_PATH>")
+        >>> tracker = sv.ByteTrack(frame_rate=video_info.fps)
+        >>> smoother = sv.DetectionsSmoother()
+        >>>
+        >>> box_annotator = sv.BoxAnnotator()
+        >>>
+        >>> with sv.VideoSink("<TARGET_FILE_PATH>", video_info=video_info) as sink:
+        ...     for frame in frame_generator:
+        ...         result = model(frame)[0]
+        ...         detections = sv.Detections.from_ultralytics(result)
+        ...         detections = tracker.update_with_detections(detections)
+        ...         detections = smoother.update_with_detections(detections)
+        ...
+        ...         annotated_frame = box_annotator.annotate(frame.copy(), detections)
+        ...         sink.write_frame(annotated_frame)
         ```
     """
 

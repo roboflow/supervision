@@ -37,24 +37,24 @@ class PolygonZone:
 
     Example:
         ```python
-        import supervision as sv
-        from ultralytics import YOLO
-        import numpy as np
-        import cv2
-
-        image = cv2.imread("<SOURCE_IMAGE_PATH>")
-        model = YOLO("yolo11s")
-        tracker = sv.ByteTrack()
-
-        polygon = np.array([[100, 200], [200, 100], [300, 200], [200, 300]])
-        polygon_zone = sv.PolygonZone(polygon=polygon)
-
-        result = model.infer(image)[0]
-        detections = sv.Detections.from_ultralytics(result)
-        detections = tracker.update_with_detections(detections)
-
-        is_detections_in_zone = polygon_zone.trigger(detections)
-        print(polygon_zone.current_count)
+        >>> import supervision as sv
+        >>> from ultralytics import YOLO
+        >>> import numpy as np
+        >>> import cv2
+        >>>
+        >>> image = cv2.imread("<SOURCE_IMAGE_PATH>")
+        >>> model = YOLO("yolo11s")
+        >>> tracker = sv.ByteTrack()
+        >>>
+        >>> polygon = np.array([[100, 200], [200, 100], [300, 200], [200, 300]])
+        >>> polygon_zone = sv.PolygonZone(polygon=polygon)
+        >>>
+        >>> result = model.infer(image)[0]
+        >>> detections = sv.Detections.from_ultralytics(result)
+        >>> detections = tracker.update_with_detections(detections)
+        >>>
+        >>> is_detections_in_zone = polygon_zone.trigger(detections)
+        >>> print(polygon_zone.current_count)
         ```
     """
 
