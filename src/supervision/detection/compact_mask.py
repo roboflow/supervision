@@ -11,6 +11,7 @@ crop boundaries, so no extra metadata is required from the caller.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Any, cast
 
 import numpy as np
@@ -351,6 +352,11 @@ class CompactMask:
             ```
         """
         return len(self._rles)
+
+    def __iter__(self) -> Iterator[npt.NDArray[np.bool_]]:
+        """Iterate over masks as dense ``(H, W)`` boolean arrays."""
+        for i in range(len(self)):
+            yield self[i]
 
     @property
     def shape(self) -> tuple[int, int, int]:
@@ -793,6 +799,8 @@ class CompactMask:
 
         Returns:
             New :class:`CompactMask` with updated offsets and image shape.
+            Crops are clipped to stay inside ``new_image_shape``; masks fully
+            outside are represented as ``1x1`` all-False crops.
 
         Examples:
             ```pycon
@@ -807,12 +815,44 @@ class CompactMask:
 
             ```
         """
-        new_offsets = self._offsets.copy()
-        new_offsets[:, 0] += dx
-        new_offsets[:, 1] += dy
+        new_h, new_w = new_image_shape
+        if new_h <= 0 or new_w <= 0:
+            raise ValueError("new_image_shape must contain positive dimensions")
+
+        new_rles: list[npt.NDArray[np.int32]] = []
+        new_crop_shapes_list: list[tuple[int, int]] = []
+        new_offsets_list: list[tuple[int, int]] = []
+
+        for i in range(len(self)):
+            crop_h = int(self._crop_shapes[i, 0])
+            crop_w = int(self._crop_shapes[i, 1])
+            x1 = int(self._offsets[i, 0]) + dx
+            y1 = int(self._offsets[i, 1]) + dy
+            x2 = x1 + crop_w - 1
+            y2 = y1 + crop_h - 1
+
+            ix1 = max(0, x1)
+            iy1 = max(0, y1)
+            ix2 = min(new_w - 1, x2)
+            iy2 = min(new_h - 1, y2)
+
+            if ix1 > ix2 or iy1 > iy2:
+                anchor_x = min(max(x1, 0), new_w - 1)
+                anchor_y = min(max(y1, 0), new_h - 1)
+                new_rles.append(_rle_encode(np.zeros((1, 1), dtype=bool)))
+                new_crop_shapes_list.append((1, 1))
+                new_offsets_list.append((anchor_x, anchor_y))
+                continue
+
+            crop = self.crop(i)
+            clipped_crop = crop[iy1 - y1 : iy2 - y1 + 1, ix1 - x1 : ix2 - x1 + 1]
+            new_rles.append(_rle_encode(clipped_crop))
+            new_crop_shapes_list.append((iy2 - iy1 + 1, ix2 - ix1 + 1))
+            new_offsets_list.append((ix1, iy1))
+
         return CompactMask(
-            list(self._rles),
-            self._crop_shapes.copy(),
-            new_offsets,
+            new_rles,
+            np.array(new_crop_shapes_list, dtype=np.int32),
+            np.array(new_offsets_list, dtype=np.int32),
             new_image_shape,
         )

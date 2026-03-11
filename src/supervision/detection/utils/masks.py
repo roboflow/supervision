@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import cv2
 import numpy as np
 import numpy.typing as npt
+
+if TYPE_CHECKING:
+    from supervision.detection.compact_mask import CompactMask
 
 
 def move_masks(
@@ -86,7 +89,7 @@ def move_masks(
 
 
 def calculate_masks_centroids(
-    masks: npt.NDArray[Any],
+    masks: npt.NDArray[Any] | CompactMask,
 ) -> npt.NDArray[np.int_]:
     """
     Calculate the centroids of binary masks in a tensor.

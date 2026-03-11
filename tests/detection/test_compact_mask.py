@@ -18,6 +18,7 @@ from supervision.detection.utils.masks import (
     calculate_masks_centroids,
     contains_holes,
     contains_multiple_segments,
+    move_masks,
 )
 
 
@@ -438,6 +439,42 @@ class TestEdgeCases:
         assert cm2.offsets[0].tolist() == [105, 205]
         assert cm2._image_shape == (400, 400)
         np.testing.assert_array_equal(cm2.crop(0), cm.crop(0))
+
+    def test_with_offset_clips_partial_overlap_like_move_masks(self) -> None:
+        """with_offset must clip partial out-of-frame translations like move_masks."""
+        h, w = 10, 10
+        masks = np.zeros((1, h, w), dtype=bool)
+        masks[0, 2:6, 3:8] = True
+        xyxy = np.array([[3, 2, 7, 5]], dtype=np.float32)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+
+        dx, dy = -4, 3
+        cm_shifted = cm.with_offset(dx=dx, dy=dy, new_image_shape=(h, w))
+        expected = move_masks(
+            masks=masks,
+            offset=np.array([dx, dy], dtype=np.int32),
+            resolution_wh=(w, h),
+        )
+
+        np.testing.assert_array_equal(cm_shifted.to_dense(), expected)
+
+    def test_with_offset_clips_full_outside_like_move_masks(self) -> None:
+        """Masks shifted fully outside should remain valid and decode to all-False."""
+        h, w = 10, 10
+        masks = np.zeros((1, h, w), dtype=bool)
+        masks[0, 2:6, 2:6] = True
+        xyxy = np.array([[2, 2, 5, 5]], dtype=np.float32)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+
+        dx, dy = 100, 100
+        cm_shifted = cm.with_offset(dx=dx, dy=dy, new_image_shape=(h, w))
+        expected = move_masks(
+            masks=masks,
+            offset=np.array([dx, dy], dtype=np.int32),
+            resolution_wh=(w, h),
+        )
+
+        np.testing.assert_array_equal(cm_shifted.to_dense(), expected)
 
     def test_repack_tightens_loose_bbox(self) -> None:
         """repack() shrinks the crop to the minimal True-pixel rectangle."""

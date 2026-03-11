@@ -45,9 +45,19 @@ def move_detections(
                 "Resolution width and height are required for moving segmentation "
                 "detections. This should be the same as (width, height) of image shape."
             )
-        detections.mask = move_masks(
-            masks=detections.mask, offset=offset, resolution_wh=resolution_wh
-        )
+        from supervision.detection.compact_mask import CompactMask
+
+        if isinstance(detections.mask, CompactMask):
+            # Preserve move_masks clipping semantics without dense materialisation.
+            detections.mask = detections.mask.with_offset(
+                dx=int(offset[0]),
+                dy=int(offset[1]),
+                new_image_shape=(resolution_wh[1], resolution_wh[0]),
+            )
+        else:
+            detections.mask = move_masks(
+                masks=detections.mask, offset=offset, resolution_wh=resolution_wh
+            )
     return detections
 
 
