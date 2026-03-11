@@ -198,7 +198,7 @@ reported as theoretical `NxHxW` bytes.
 - **Compact actual** — `tracemalloc` peak during `CompactMask.from_dense()`, including Python object overhead (~2x theoretical for small object counts)
 - **Mem x** — dense / compact theoretical ratio
 - **Area x** — `.area` speedup; RLE sums True-pixel counts with no materialisation
-- **Annot x** — `MaskAnnotator` speedup; crop-paint avoids full-frame allocation
+- **Annot ×** — `MaskAnnotator` speedup; crop-paint avoids full-frame allocation
 - **N/A** — dense timing skipped (array > 12 GB)
 
 All non-skipped scenarios pass: pixel-perfect annotation, exact area,
