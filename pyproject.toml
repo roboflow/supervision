@@ -203,10 +203,6 @@ mypy_path = "src"
 module = [
   "tests.*",
   "examples.*",
-  # TODO: fix type errors in the following modules
-  "supervision.detection.tools.smoother",
-  "supervision.key_points.skeletons",
-  "supervision.metrics.utils.utils",
 ]
 ignore_errors = true
 
