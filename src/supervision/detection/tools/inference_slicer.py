@@ -80,36 +80,36 @@ class InferenceSlicer:
 
     Example:
         ```python
-        >>> import cv2
-        >>> import supervision as sv
-        >>> from rfdetr import RFDETRMedium
-        >>>
-        >>> model = RFDETRMedium()
-        >>>
-        >>> def callback(tile):
-        ...     return model.predict(tile)
-        >>>
-        >>> slicer = sv.InferenceSlicer(callback, slice_wh=640, overlap_wh=100)
-        >>>
-        >>> image = cv2.imread("example.png")
-        >>> detections = slicer(image)
+        import cv2
+        import supervision as sv
+        from rfdetr import RFDETRMedium
+
+        model = RFDETRMedium()
+
+        def callback(tile):
+            return model.predict(tile)
+
+        slicer = sv.InferenceSlicer(callback, slice_wh=640, overlap_wh=100)
+
+        image = cv2.imread("example.png")
+        detections = slicer(image)
         ```
 
         ```python
-        >>> import supervision as sv
-        >>> from PIL import Image
-        >>> from ultralytics import YOLO
-        >>>
-        >>> model = YOLO("yolo11m.pt")
-        >>>
-        >>> def callback(tile):
-        ...     results = model(tile)[0]
-        ...     return sv.Detections.from_ultralytics(results)
-        >>>
-        >>> slicer = sv.InferenceSlicer(callback, slice_wh=640, overlap_wh=100)
-        >>>
-        >>> image = Image.open("example.png")
-        >>> detections = slicer(image)
+        import supervision as sv
+        from PIL import Image
+        from ultralytics import YOLO
+
+        model = YOLO("yolo11m.pt")
+
+        def callback(tile):
+            results = model(tile)[0]
+            return sv.Detections.from_ultralytics(results)
+
+        slicer = sv.InferenceSlicer(callback, slice_wh=640, overlap_wh=100)
+
+        image = Image.open("example.png")
+        detections = slicer(image)
         ```
     """
 

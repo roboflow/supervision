@@ -77,33 +77,33 @@ class ByteTrack:
 
         Example:
             ```python
-            >>> import supervision as sv
-            >>> from ultralytics import YOLO
-            >>>
-            >>> model = YOLO("<MODEL_PATH>")
-            >>> tracker = sv.ByteTrack()
-            >>>
-            >>> box_annotator = sv.BoxAnnotator()
-            >>> label_annotator = sv.LabelAnnotator()
-            >>>
-            >>> def callback(frame: np.ndarray, index: int) -> np.ndarray:
-            ...     results = model(frame)[0]
-            ...     detections = sv.Detections.from_ultralytics(results)
-            ...     detections = tracker.update_with_detections(detections)
-            ...
-            ...     labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
-            ...
-            ...     annotated_frame = box_annotator.annotate(
-            ...         scene=frame.copy(), detections=detections)
-            ...     annotated_frame = label_annotator.annotate(
-            ...         scene=annotated_frame, detections=detections, labels=labels)
-            ...     return annotated_frame
-            >>>
-            >>> sv.process_video(
-            ...     source_path="<SOURCE_VIDEO_PATH>",
-            ...     target_path="<TARGET_VIDEO_PATH>",
-            ...     callback=callback
-            ... )
+            import supervision as sv
+            from ultralytics import YOLO
+
+            model = YOLO("<MODEL_PATH>")
+            tracker = sv.ByteTrack()
+
+            box_annotator = sv.BoxAnnotator()
+            label_annotator = sv.LabelAnnotator()
+
+            def callback(frame: np.ndarray, index: int) -> np.ndarray:
+                results = model(frame)[0]
+                detections = sv.Detections.from_ultralytics(results)
+                detections = tracker.update_with_detections(detections)
+
+                labels = [f"#{tracker_id}" for tracker_id in detections.tracker_id]
+
+                annotated_frame = box_annotator.annotate(
+                    scene=frame.copy(), detections=detections)
+                annotated_frame = label_annotator.annotate(
+                    scene=annotated_frame, detections=detections, labels=labels)
+                return annotated_frame
+
+            sv.process_video(
+                source_path="<SOURCE_VIDEO_PATH>",
+                target_path="<TARGET_VIDEO_PATH>",
+                callback=callback
+            )
             ```
         """
         if detections.confidence is None:
