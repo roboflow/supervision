@@ -635,16 +635,102 @@ class CompactMask:
                     f"{image_shape} vs {m._image_shape}"
                 )
 
-        new_rles = [rle for m in masks_list for rle in m._rles]
-        all_crop_shapes = [m._crop_shapes for m in masks_list]
-        all_offsets = [m._offsets for m in masks_list]
+        # list.extend is a C-level call and avoids the per-element Python
+        # bytecode overhead of a flat list comprehension.  This matters under
+        # GIL contention when multiple threads call merge concurrently.
+        new_rles: list[npt.NDArray[np.int32]] = []
+        for m in masks_list:
+            new_rles.extend(m._rles)
 
         # np.concatenate handles (0, 2) arrays correctly.
         # No .astype() needed — _crop_shapes and _offsets are already int32.
-        new_crop_shapes: npt.NDArray[np.int32] = np.concatenate(all_crop_shapes, axis=0)
-        new_offsets: npt.NDArray[np.int32] = np.concatenate(all_offsets, axis=0)
+        new_crop_shapes: npt.NDArray[np.int32] = np.concatenate(
+            [m._crop_shapes for m in masks_list], axis=0
+        )
+        new_offsets: npt.NDArray[np.int32] = np.concatenate(
+            [m._offsets for m in masks_list], axis=0
+        )
 
         return CompactMask(new_rles, new_crop_shapes, new_offsets, image_shape)
+
+    def repack(self) -> CompactMask:
+        """Re-encode all masks using tight bounding boxes.
+
+        When the original ``xyxy`` boxes are padded or loose — common with
+        object-detector outputs and full-image boxes used in tests — each RLE
+        crop encodes more background (``False``) pixels than necessary.  This
+        method decodes every crop, trims it to the minimal rectangle that
+        contains all ``True`` pixels, and re-encodes.  All-``False`` masks are
+        normalised to a ``1x1`` all-``False`` crop.
+
+        The call is O(sum of crop areas) — suitable as a one-time cleanup
+        after accumulating many merges (e.g. after
+        :class:`~supervision.detection.tools.inference_slicer.InferenceSlicer`
+        tiles are merged).
+
+        Returns:
+            A new :class:`CompactMask` with minimal-area crops and updated
+            offsets.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> masks = np.zeros((1, 10, 10), dtype=bool)
+            >>> masks[0, 3:7, 3:7] = True
+            >>> # Deliberately loose bbox: covers the full image.
+            >>> xyxy = np.array([[0, 0, 9, 9]], dtype=np.float32)
+            >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(10, 10))
+            >>> repacked = cm.repack()
+            >>> repacked.offsets.tolist()  # tight origin: x1=3, y1=3
+            [[3, 3]]
+
+            ```
+        """
+        n = len(self._rles)
+        if n == 0:
+            return CompactMask(
+                [],
+                np.empty((0, 2), dtype=np.int32),
+                np.empty((0, 2), dtype=np.int32),
+                self._image_shape,
+            )
+
+        new_rles: list[npt.NDArray[np.int32]] = []
+        new_crop_shapes_list: list[tuple[int, int]] = []
+        new_offsets_list: list[tuple[int, int]] = []
+
+        for i in range(n):
+            crop = self.crop(i)
+            x1_off = int(self._offsets[i, 0])
+            y1_off = int(self._offsets[i, 1])
+
+            rows_any = np.any(crop, axis=1)
+            cols_any = np.any(crop, axis=0)
+
+            if not rows_any.any():
+                # All-False: normalise to 1x1 to avoid zero-sized arrays.
+                new_rles.append(_rle_encode(np.zeros((1, 1), dtype=bool)))
+                new_crop_shapes_list.append((1, 1))
+                new_offsets_list.append((x1_off, y1_off))
+                continue
+
+            y_indices = np.where(rows_any)[0]
+            x_indices = np.where(cols_any)[0]
+            y_min, y_max = int(y_indices[0]), int(y_indices[-1])
+            x_min, x_max = int(x_indices[0]), int(x_indices[-1])
+
+            tight = crop[y_min : y_max + 1, x_min : x_max + 1]
+            new_rles.append(_rle_encode(tight))
+            new_crop_shapes_list.append((y_max - y_min + 1, x_max - x_min + 1))
+            new_offsets_list.append((x1_off + x_min, y1_off + y_min))
+
+        return CompactMask(
+            new_rles,
+            np.array(new_crop_shapes_list, dtype=np.int32),
+            np.array(new_offsets_list, dtype=np.int32),
+            self._image_shape,
+        )
 
     # ------------------------------------------------------------------
     # Slicer support

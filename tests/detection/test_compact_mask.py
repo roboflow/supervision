@@ -426,6 +426,68 @@ class TestEdgeCases:
         assert cm2._image_shape == (400, 400)
         np.testing.assert_array_equal(cm2.crop(0), cm.crop(0))
 
+    def test_repack_tightens_loose_bbox(self) -> None:
+        """repack() shrinks the crop to the minimal True-pixel rectangle."""
+        h, w = 20, 20
+        masks = np.zeros((1, h, w), dtype=bool)
+        masks[0, 5:10, 6:12] = True  # True block at (5,6)–(9,11)
+
+        # Deliberately loose bbox covers full image.
+        xyxy = np.array([[0, 0, w - 1, h - 1]], dtype=np.float32)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+
+        # Before repack: crop is the full 20×20 image.
+        assert cm._crop_shapes[0].tolist() == [20, 20]
+
+        repacked = cm.repack()
+
+        # After repack: crop is exactly the True block.
+        assert repacked.offsets[0].tolist() == [6, 5]  # (x1, y1)
+        assert repacked._crop_shapes[0].tolist() == [5, 6]  # (h, w)
+        # Pixel content must be identical to the original.
+        np.testing.assert_array_equal(repacked.to_dense(), masks)
+
+    def test_repack_preserves_all_false_mask(self) -> None:
+        """repack() normalises an all-False mask to a 1×1 crop."""
+        h, w = 10, 10
+        masks = np.zeros((2, h, w), dtype=bool)
+        masks[1, 3:6, 3:6] = True  # only mask 1 is non-empty
+
+        xyxy = np.array([[0, 0, 9, 9], [0, 0, 9, 9]], dtype=np.float32)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        repacked = cm.repack()
+
+        assert repacked._crop_shapes[0].tolist() == [1, 1]  # normalised
+        assert repacked._crop_shapes[1].tolist() == [3, 3]  # tight True block
+        np.testing.assert_array_equal(repacked.to_dense(), masks)
+
+    def test_repack_empty_collection(self) -> None:
+        """repack() on an empty CompactMask returns another empty CompactMask."""
+        cm = CompactMask(
+            [],
+            np.empty((0, 2), dtype=np.int32),
+            np.empty((0, 2), dtype=np.int32),
+            (10, 10),
+        )
+        repacked = cm.repack()
+        assert len(repacked) == 0
+        assert repacked._image_shape == (10, 10)
+
+    def test_repack_already_tight(self) -> None:
+        """repack() is a no-op when bboxes are already tight."""
+        h, w = 15, 15
+        masks = np.zeros((1, h, w), dtype=bool)
+        masks[0, 4:9, 3:8] = True
+
+        # Tight bbox.
+        xyxy = np.array([[3, 4, 7, 8]], dtype=np.float32)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        repacked = cm.repack()
+
+        np.testing.assert_array_equal(repacked.offsets, cm.offsets)
+        np.testing.assert_array_equal(repacked._crop_shapes, cm._crop_shapes)
+        np.testing.assert_array_equal(repacked.to_dense(), masks)
+
 
 class TestCalculateMasksCentroidsCompact:
     """Verify calculate_masks_centroids gives identical results for CompactMask.

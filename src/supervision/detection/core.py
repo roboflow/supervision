@@ -2077,6 +2077,11 @@ class Detections:
         """
         Returns `True` if the `Detections` object is considered empty.
         """
+        # Fast path: avoids __eq__ which calls np.array_equal(to_dense(), ...)
+        # and would materialise the entire (N, H, W) CompactMask to a dense
+        # array just to check emptiness — O(N·H·W) for an O(1) check.
+        if len(self.xyxy) > 0:
+            return False
         empty_detections = Detections.empty()
         empty_detections.data = self.data
         empty_detections.metadata = self.metadata

@@ -50,7 +50,7 @@ REPETITIONS = 6
 # independently; results are averaged. Numpy releases the GIL for its C-level
 # work so threads can truly run in parallel on multi-core machines.
 # Set to 1 to disable parallelism and revert to a sequential timing loop.
-PARALLEL = 3
+PARALLEL = 6
 # Dense timing is skipped when the dense (N,H,W) array would exceed this
 # threshold — avoids OOM / swap thrashing on large satellite scenarios while
 # still reporting the theoretical memory footprint.
@@ -475,20 +475,24 @@ def stage_merge(
 ) -> tuple[float, float, bool | None]:
     """Time Detections.merge on two half-splits.
 
-    Dense: np.vstack; compact: RLE concat."""
+    Dense: np.vstack; compact: RLE concat.
+    Splits are pre-computed so the timed lambda measures only the merge.
+    """
     half = len(det_compact) // 2
+    compact_a, compact_b = det_compact[:half], det_compact[half:]
 
     compact_merge_s = time_reps(
-        lambda: sv.Detections.merge([det_compact[:half], det_compact[half:]])
+        lambda: sv.Detections.merge([compact_a, compact_b])
     )
     if dense_skipped or det_dense is None:
         return math.nan, compact_merge_s, None
 
-    merged_d = sv.Detections.merge([det_dense[:half], det_dense[half:]])
-    merged_c = sv.Detections.merge([det_compact[:half], det_compact[half:]])
+    dense_a, dense_b = det_dense[:half], det_dense[half:]
+    merged_d = sv.Detections.merge([dense_a, dense_b])
+    merged_c = sv.Detections.merge([compact_a, compact_b])
     merge_ok = bool(np.allclose(merged_d.area, merged_c.area))
     dense_merge_s = time_reps(
-        lambda: sv.Detections.merge([det_dense[:half], det_dense[half:]])
+        lambda: sv.Detections.merge([dense_a, dense_b])
     )
     return dense_merge_s, compact_merge_s, merge_ok
 
@@ -597,7 +601,7 @@ def run_scenario(
         malloc_ratio_str = _fmt_ratio(malloc_ratio)
         dense_actual_str = f"{dense_actual / 1e6:.1f} MB"
     console.print(
-        f"\tmemory\n"
+        f"\tmemory >>\n"
         f"\t\ttheory :: dense={dense_bytes / 1e6:.1f} MB "
         f"| compact={compact_theoretical / 1e3:.0f} KB "
         f"\t{_fmt_ratio(theory_ratio)}\n"
@@ -701,7 +705,7 @@ def run_scenario(
         if any(v is False for v in checks.values())
         else "[dim]—[/dim]"
     )
-    console.print("  correctness -> " + " | ".join(parts) + f" | {overall}")
+    console.print("  correctness >> " + " | ".join(parts) + f" | {overall}")
 
     return ScenarioResult(
         name=name,
