@@ -481,9 +481,7 @@ def stage_merge(
     half = len(det_compact) // 2
     compact_a, compact_b = det_compact[:half], det_compact[half:]
 
-    compact_merge_s = time_reps(
-        lambda: sv.Detections.merge([compact_a, compact_b])
-    )
+    compact_merge_s = time_reps(lambda: sv.Detections.merge([compact_a, compact_b]))
     if dense_skipped or det_dense is None:
         return math.nan, compact_merge_s, None
 
@@ -491,9 +489,7 @@ def stage_merge(
     merged_d = sv.Detections.merge([dense_a, dense_b])
     merged_c = sv.Detections.merge([compact_a, compact_b])
     merge_ok = bool(np.allclose(merged_d.area, merged_c.area))
-    dense_merge_s = time_reps(
-        lambda: sv.Detections.merge([dense_a, dense_b])
-    )
+    dense_merge_s = time_reps(lambda: sv.Detections.merge([dense_a, dense_b]))
     return dense_merge_s, compact_merge_s, merge_ok
 
 

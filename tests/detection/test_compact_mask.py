@@ -430,13 +430,13 @@ class TestEdgeCases:
         """repack() shrinks the crop to the minimal True-pixel rectangle."""
         h, w = 20, 20
         masks = np.zeros((1, h, w), dtype=bool)
-        masks[0, 5:10, 6:12] = True  # True block at (5,6)–(9,11)
+        masks[0, 5:10, 6:12] = True  # True block at (5,6)-(9,11)
 
         # Deliberately loose bbox covers full image.
         xyxy = np.array([[0, 0, w - 1, h - 1]], dtype=np.float32)
         cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
 
-        # Before repack: crop is the full 20×20 image.
+        # Before repack: crop is the full 20x20 image.
         assert cm._crop_shapes[0].tolist() == [20, 20]
 
         repacked = cm.repack()
@@ -448,7 +448,7 @@ class TestEdgeCases:
         np.testing.assert_array_equal(repacked.to_dense(), masks)
 
     def test_repack_preserves_all_false_mask(self) -> None:
-        """repack() normalises an all-False mask to a 1×1 crop."""
+        """repack() normalises an all-False mask to a 1x1 crop."""
         h, w = 10, 10
         masks = np.zeros((2, h, w), dtype=bool)
         masks[1, 3:6, 3:6] = True  # only mask 1 is non-empty

@@ -365,7 +365,7 @@ def filter_segments_by_distance(
 
         ```
 
-        The nearby 2×2 block at columns 6–7 is kept because its edge distance
+        The nearby 2x2 block at columns 6-7 is kept because its edge distance
         is within 3 pixels. The distant block at columns 9-10 is removed.
     """  # noqa E501 // docs
     if mask.dtype != bool:
