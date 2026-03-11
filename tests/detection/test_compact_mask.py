@@ -14,6 +14,11 @@ from supervision.detection.compact_mask import (
     _rle_encode,
 )
 from supervision.detection.utils.converters import mask_to_xyxy
+from supervision.detection.utils.masks import (
+    calculate_masks_centroids,
+    contains_holes,
+    contains_multiple_segments,
+)
 
 
 def _make_cm(masks: np.ndarray, image_shape: tuple[int, int]) -> CompactMask:
@@ -420,3 +425,150 @@ class TestEdgeCases:
         assert cm2.offsets[0].tolist() == [105, 205]
         assert cm2._image_shape == (400, 400)
         np.testing.assert_array_equal(cm2.crop(0), cm.crop(0))
+
+
+class TestCalculateMasksCentroidsCompact:
+    """Verify calculate_masks_centroids gives identical results for CompactMask.
+
+    The function has a dedicated CompactMask branch that computes centroids
+    per-crop.  Results must match the dense path to within integer rounding.
+    """
+
+    def test_centroids_compact_matches_dense(self) -> None:
+        """Centroid coordinates must be numerically identical for dense and compact."""
+        rng = np.random.default_rng(42)
+        h, w = 30, 30
+        masks = rng.integers(0, 2, size=(5, h, w)).astype(bool)
+        # Ensure each mask has at least one True pixel.
+        for i in range(5):
+            masks[i, i * 5, i * 5] = True
+
+        cm = _make_cm(masks, (h, w))
+
+        centroids_dense = calculate_masks_centroids(masks)
+        centroids_compact = calculate_masks_centroids(cm)
+
+        np.testing.assert_array_equal(centroids_compact, centroids_dense)
+
+    def test_centroids_empty_mask(self) -> None:
+        """All-zero masks should return centroid (0, 0) — same as dense."""
+        h, w = 10, 10
+        masks = np.zeros((3, h, w), dtype=bool)
+        cm = _make_cm(masks, (h, w))
+
+        centroids_dense = calculate_masks_centroids(masks)
+        centroids_compact = calculate_masks_centroids(cm)
+
+        np.testing.assert_array_equal(centroids_compact, centroids_dense)
+
+    def test_centroids_zero_masks_returns_empty(self) -> None:
+        """Empty CompactMask (0 objects) must return shape (0, 2)."""
+        empty_cm = CompactMask(
+            [],
+            np.empty((0, 2), dtype=np.int32),
+            np.empty((0, 2), dtype=np.int32),
+            (10, 10),
+        )
+        result = calculate_masks_centroids(empty_cm)
+        assert result.shape == (0, 2)
+
+
+class TestContainsHolesCompact:
+    """Verify contains_holes result is unchanged after CompactMask roundtrip.
+
+    contains_holes works on a 2D boolean mask.  Encoding then decoding via
+    CompactMask must preserve pixel topology so that the function returns
+    the same result as on the original array.
+    """
+
+    @pytest.mark.parametrize(
+        ("mask_2d", "expected"),
+        [
+            # simple foreground blob — no holes
+            (
+                np.array(
+                    [[0, 1, 1, 0], [1, 1, 1, 1], [1, 1, 1, 1], [0, 1, 1, 0]],
+                    dtype=bool,
+                ),
+                False,
+            ),
+            # ring shape — has one hole
+            (
+                np.array(
+                    [[1, 1, 1, 0], [1, 0, 1, 0], [1, 1, 1, 0], [0, 0, 0, 0]],
+                    dtype=bool,
+                ),
+                True,
+            ),
+            # all-False — no holes
+            (np.zeros((6, 6), dtype=bool), False),
+            # all-True — no holes
+            (np.ones((6, 6), dtype=bool), False),
+        ],
+    )
+    def test_contains_holes_compact_roundtrip(
+        self, mask_2d: np.ndarray, expected: bool
+    ) -> None:
+        """contains_holes must agree after CompactMask encode→decode."""
+        h, w = mask_2d.shape
+        masks = mask_2d[np.newaxis]  # (1, H, W)
+        cm = _make_cm(masks, (h, w))
+
+        decoded = cm.to_dense()[0]
+        assert contains_holes(decoded) == expected
+        assert contains_holes(decoded) == contains_holes(mask_2d)
+
+
+class TestContainsMultipleSegmentsCompact:
+    """Verify contains_multiple_segments result survives CompactMask roundtrip.
+
+    Encoding and decoding must preserve connected-component topology so
+    that the multi-segment predicate returns the same value.
+    """
+
+    @pytest.mark.parametrize(
+        ("mask_2d", "connectivity", "expected"),
+        [
+            # single contiguous blob — not multi-segment
+            (
+                np.array(
+                    [[0, 1, 1, 0], [1, 1, 1, 1], [1, 1, 1, 1], [0, 1, 1, 0]],
+                    dtype=bool,
+                ),
+                4,
+                False,
+            ),
+            # two separate blobs — multi-segment
+            (
+                np.array(
+                    [[1, 1, 0, 0], [1, 1, 0, 0], [0, 0, 1, 1], [0, 0, 1, 1]],
+                    dtype=bool,
+                ),
+                4,
+                True,
+            ),
+            # diagonal touch — single segment under 8-connectivity
+            (
+                np.array(
+                    [[1, 1, 0, 0], [1, 1, 0, 1], [1, 0, 1, 1], [0, 0, 1, 1]],
+                    dtype=bool,
+                ),
+                8,
+                False,
+            ),
+            # all-False — not multi-segment
+            (np.zeros((6, 6), dtype=bool), 4, False),
+        ],
+    )
+    def test_contains_multiple_segments_compact_roundtrip(
+        self, mask_2d: np.ndarray, connectivity: int, expected: bool
+    ) -> None:
+        """contains_multiple_segments must agree after CompactMask encode→decode."""
+        h, w = mask_2d.shape
+        masks = mask_2d[np.newaxis]  # (1, H, W)
+        cm = _make_cm(masks, (h, w))
+
+        decoded = cm.to_dense()[0]
+        result = contains_multiple_segments(decoded, connectivity=connectivity)
+        assert result == expected
+        assert result == contains_multiple_segments(mask_2d, connectivity=connectivity)

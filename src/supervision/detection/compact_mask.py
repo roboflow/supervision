@@ -512,10 +512,17 @@ class CompactMask:
             result[y1 : y1 + crop_h, x1 : x1 + crop_w] = crop
             return result
 
-        # Slice, list, or boolean ndarray → return a new CompactMask.
+        # Slice: use direct Python list slice and numpy view — O(k), no arange.
         if isinstance(index, slice):
-            idx_arr = np.arange(len(self))[index]
-        elif isinstance(index, np.ndarray) and index.dtype == bool:
+            return CompactMask(
+                self._rles[index],
+                self._crop_shapes[index],
+                self._offsets[index],
+                self._image_shape,
+            )
+
+        # Boolean ndarray or fancy index → convert to integer positions first.
+        if isinstance(index, np.ndarray) and index.dtype == bool:
             idx_arr = np.where(index)[0]
         else:
             idx_arr = np.asarray(list(index), dtype=np.intp)
@@ -633,12 +640,9 @@ class CompactMask:
         all_offsets = [m._offsets for m in masks_list]
 
         # np.concatenate handles (0, 2) arrays correctly.
-        new_crop_shapes: npt.NDArray[np.int32] = np.concatenate(
-            all_crop_shapes, axis=0
-        ).astype(np.int32)
-        new_offsets: npt.NDArray[np.int32] = np.concatenate(all_offsets, axis=0).astype(
-            np.int32
-        )
+        # No .astype() needed — _crop_shapes and _offsets are already int32.
+        new_crop_shapes: npt.NDArray[np.int32] = np.concatenate(all_crop_shapes, axis=0)
+        new_offsets: npt.NDArray[np.int32] = np.concatenate(all_offsets, axis=0)
 
         return CompactMask(new_rles, new_crop_shapes, new_offsets, image_shape)
 

@@ -18,6 +18,7 @@ from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
     compact_mask_iou_batch,
     mask_iou_batch,
+    mask_non_max_merge,
     mask_non_max_suppression,
 )
 
@@ -296,3 +297,62 @@ class TestNmsWithCompactMask:
         keep = mask_non_max_suppression(predictions, cm, iou_threshold=0.5)
         assert keep.sum() == 1
         assert keep[0], "Highest-confidence mask should survive"
+
+
+class TestNmmWithCompactMask:
+    """Verify mask_non_max_merge produces the same groups for CompactMask and dense.
+
+    NMM materialises CompactMask to a downscaled dense array internally, so
+    results must be numerically identical to the dense path.
+    """
+
+    def test_nmm_compact_matches_dense(self) -> None:
+        """Merge groups must match between CompactMask and dense inputs."""
+        h, w = 40, 40
+        masks = np.zeros((3, h, w), dtype=bool)
+        masks[0, 0:20, 0:20] = True  # top-left
+        masks[1, 0:18, 0:18] = True  # heavily overlaps mask 0
+        masks[2, 20:40, 20:40] = True  # bottom-right, no overlap
+
+        scores = np.array([0.9, 0.8, 0.7])
+        predictions = np.column_stack([np.zeros((3, 4)), scores])
+        cm = _cm_from_masks(masks, (h, w))
+
+        groups_dense = mask_non_max_merge(predictions, masks, iou_threshold=0.3)
+        groups_compact = mask_non_max_merge(predictions, cm, iou_threshold=0.3)
+
+        def normalise(gs: list[list[int]]) -> list[list[int]]:
+            return sorted(sorted(g) for g in gs)
+
+        assert normalise(groups_compact) == normalise(groups_dense)
+
+    def test_nmm_no_merge(self) -> None:
+        """Non-overlapping masks: every mask should be its own group."""
+        h, w = 20, 20
+        masks = np.zeros((3, h, w), dtype=bool)
+        masks[0, 0:5, 0:5] = True
+        masks[1, 7:12, 7:12] = True
+        masks[2, 14:19, 14:19] = True
+
+        scores = np.array([0.9, 0.8, 0.7])
+        predictions = np.column_stack([np.zeros((3, 4)), scores])
+        cm = _cm_from_masks(masks, (h, w))
+
+        groups = mask_non_max_merge(predictions, cm, iou_threshold=0.5)
+        assert len(groups) == 3, "Each non-overlapping mask gets its own group"
+        assert all(len(g) == 1 for g in groups)
+
+    def test_nmm_full_merge(self) -> None:
+        """Identical masks: all predictions should merge into one group."""
+        h, w = 20, 20
+        single = np.zeros((1, h, w), dtype=bool)
+        single[0, 5:15, 5:15] = True
+        masks = np.repeat(single, 3, axis=0)
+
+        scores = np.array([0.9, 0.8, 0.7])
+        predictions = np.column_stack([np.zeros((3, 4)), scores])
+        cm = _cm_from_masks(masks, (h, w))
+
+        groups = mask_non_max_merge(predictions, cm, iou_threshold=0.5)
+        assert len(groups) == 1, "Identical masks must collapse to one group"
+        assert len(groups[0]) == 3
