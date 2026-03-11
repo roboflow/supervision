@@ -108,7 +108,7 @@ def calculate_masks_centroids(
         if n == 0:
             return cast(npt.NDArray[np.int_], np.empty((0, 2), dtype=int))
 
-        centroids = np.zeros((n, 2), dtype=np.float64)
+        centroids: npt.NDArray[np.float64] = np.zeros((n, 2), dtype=np.float64)
         for i in range(n):
             crop = masks.crop(i)
             crop_h, crop_w = crop.shape

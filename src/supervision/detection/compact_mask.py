@@ -84,7 +84,7 @@ def _rle_decode(
     """
     # Even-indexed entries → False runs; odd-indexed entries → True runs.
     is_true = np.arange(len(rle)) % 2 == 1
-    flat = np.repeat(is_true, rle)
+    flat: npt.NDArray[np.bool_] = np.repeat(is_true, rle)
     n = height * width
     if len(flat) < n:
         # Pad with False if the RLE is shorter than expected (e.g. all-False
@@ -247,6 +247,7 @@ class CompactMask:
             y1c = int(max(0, min(int(y1), h - 1)))
             x2c = int(max(0, min(int(x2), w - 1)))
             y2c = int(max(0, min(int(y2), h - 1)))
+            crop: npt.NDArray[np.bool_]
 
             # supervision xyxy uses inclusive max coords, so slicing must add +1.
             if x2c < x1c or y2c < y1c:
@@ -290,7 +291,7 @@ class CompactMask:
         """
         n = len(self._rles)
         h, w = self._image_shape
-        result = np.zeros((n, h, w), dtype=bool)
+        result: npt.NDArray[np.bool_] = np.zeros((n, h, w), dtype=bool)
         for i in range(n):
             crop_h, crop_w = int(self._crop_shapes[i, 0]), int(self._crop_shapes[i, 1])
             x1, y1 = int(self._offsets[i, 0]), int(self._offsets[i, 1])
@@ -394,6 +395,39 @@ class CompactMask:
             ```
         """
         return self._offsets
+
+    @property
+    def bbox_xyxy(self) -> npt.NDArray[np.int32]:
+        """Return per-mask inclusive bounding boxes in ``xyxy`` format.
+
+        Boxes are derived from crop metadata:
+        ``x2 = x1 + crop_w - 1``, ``y2 = y1 + crop_h - 1``.
+
+        Returns:
+            Array of shape ``(N, 4)`` with ``int32`` boxes
+            ``[x1, y1, x2, y2]``.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> masks = np.zeros((1, 10, 10), dtype=bool)
+            >>> masks[0, 2:5, 3:7] = True
+            >>> xyxy = np.array([[3, 2, 6, 4]], dtype=np.float32)
+            >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(10, 10))
+            >>> cm.bbox_xyxy.tolist()
+            [[3, 2, 6, 4]]
+
+            ```
+        """
+        if len(self) == 0:
+            return np.empty((0, 4), dtype=np.int32)
+
+        x1: npt.NDArray[np.int32] = self._offsets[:, 0]
+        y1: npt.NDArray[np.int32] = self._offsets[:, 1]
+        x2: npt.NDArray[np.int32] = x1 + self._crop_shapes[:, 1] - 1
+        y2: npt.NDArray[np.int32] = y1 + self._crop_shapes[:, 0] - 1
+        return np.column_stack((x1, y1, x2, y2)).astype(np.int32, copy=False)
 
     @property
     def dtype(self) -> np.dtype[Any]:
