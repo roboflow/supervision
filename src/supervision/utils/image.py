@@ -469,11 +469,11 @@ class ImageSink:
         Initialize context manager for saving images to directory.
 
         Args:
-            target_dir_path (`str`): Target directory path where images will be
+            target_dir_path: Target directory path where images will be
                 saved.
-            overwrite (`bool`): Whether to overwrite existing directory.
+            overwrite: Whether to overwrite existing directory.
                 Defaults to `False`.
-            image_name_pattern (`str`): File name pattern for saved images.
+            image_name_pattern: File name pattern for saved images.
                 Defaults to `"image_{:05d}.png"`.
 
         Examples:

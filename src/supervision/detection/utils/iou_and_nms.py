@@ -97,16 +97,16 @@ def box_iou(
     `[0, 1]`.
 
     Args:
-        box_true (`list[float]` or `numpy.array`): Ground truth box in format
+        box_true: Ground truth box in format
           `(x_min, y_min, x_max, y_max)`.
-        box_detection (`list[float]` or `numpy.array`): Detected box in format
+        box_detection: Detected box in format
           `(x_min, y_min, x_max, y_max)`.
-        overlap_metric (`OverlapMetric` or `str`): Overlap type.
+        overlap_metric: Overlap type.
           Use `OverlapMetric.IOU` for IOU or
           `OverlapMetric.IOS` for IOS. Defaults to `OverlapMetric.IOU`.
 
     Returns:
-        (`float`): Overlap value between boxes in `[0, 1]`.
+        Overlap value between boxes in `[0, 1]`.
 
     Raises:
         ValueError: If `overlap_metric` is not IOU or IOS.
@@ -170,17 +170,17 @@ def box_iou_batch(
     `[0, 1]`, matching each box from the first batch to each from the second.
 
     Args:
-        boxes_true (`numpy.array`): Array of reference boxes in
+        boxes_true: Array of reference boxes in
             shape `(N, 4)` as `(x_min, y_min, x_max, y_max)`.
-        boxes_detection (`numpy.array`): Array of detected boxes in
+        boxes_detection: Array of detected boxes in
             shape `(M, 4)` as `(x_min, y_min, x_max, y_max)`.
-        overlap_metric (`OverlapMetric` or `str`): Overlap type.
+        overlap_metric: Overlap type.
             Use `OverlapMetric.IOU` for intersection-over-union,
             `OverlapMetric.IOS` for intersection-over-smaller-area.
             Defaults to `OverlapMetric.IOU`.
 
     Returns:
-        (`numpy.array`): Overlap matrix of shape `(N, M)`, where entry
+        Overlap matrix of shape `(N, M)`, where entry
             `[i, j]` is the overlap between `boxes_true[i]` and
             `boxes_detection[j]`.
 
