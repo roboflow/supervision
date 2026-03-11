@@ -86,12 +86,12 @@ def _rle_decode(
     # Even-indexed entries → False runs; odd-indexed entries → True runs.
     is_true = np.arange(len(rle)) % 2 == 1
     flat: npt.NDArray[np.bool_] = np.repeat(is_true, rle)
-    n = height * width
-    if len(flat) < n:
+    num_pixels = height * width
+    if len(flat) < num_pixels:
         # Pad with False if the RLE is shorter than expected (e.g. all-False
         # tails are often omitted during encoding).
-        flat = np.pad(flat, (0, n - len(flat)))
-    return cast(npt.NDArray[np.bool_], flat[:n].reshape(height, width))
+        flat = np.pad(flat, (0, num_pixels - len(flat)))
+    return cast(npt.NDArray[np.bool_], flat[:num_pixels].reshape(height, width))
 
 
 def _rle_area(rle: npt.NDArray[np.int32]) -> int:
@@ -227,10 +227,10 @@ class CompactMask:
 
             ```
         """
-        h, w = image_shape
-        n = len(masks)
+        img_h, img_w = image_shape
+        num_masks = len(masks)
 
-        if n == 0:
+        if num_masks == 0:
             return cls(
                 [],
                 np.empty((0, 2), dtype=np.int32),
@@ -242,12 +242,12 @@ class CompactMask:
         crop_shapes_list: list[tuple[int, int]] = []
         offsets_list: list[tuple[int, int]] = []
 
-        for i in range(n):
-            x1, y1, x2, y2 = xyxy[i]
-            x1c = int(max(0, min(int(x1), w - 1)))
-            y1c = int(max(0, min(int(y1), h - 1)))
-            x2c = int(max(0, min(int(x2), w - 1)))
-            y2c = int(max(0, min(int(y2), h - 1)))
+        for mask_idx in range(num_masks):
+            x1, y1, x2, y2 = xyxy[mask_idx]
+            x1c = int(max(0, min(int(x1), img_w - 1)))
+            y1c = int(max(0, min(int(y1), img_h - 1)))
+            x2c = int(max(0, min(int(x2), img_w - 1)))
+            y2c = int(max(0, min(int(y2), img_h - 1)))
             crop: npt.NDArray[np.bool_]
 
             # supervision xyxy uses inclusive max coords, so slicing must add +1.
@@ -255,7 +255,7 @@ class CompactMask:
                 crop = np.zeros((1, 1), dtype=bool)
                 x2c, y2c = x1c, y1c
             else:
-                crop = masks[i, y1c : y2c + 1, x1c : x2c + 1]
+                crop = masks[mask_idx, y1c : y2c + 1, x1c : x2c + 1]
 
             crop_h = y2c - y1c + 1
             crop_w = x2c - x1c + 1
@@ -290,14 +290,17 @@ class CompactMask:
 
             ```
         """
-        n = len(self._rles)
-        h, w = self._image_shape
-        result: npt.NDArray[np.bool_] = np.zeros((n, h, w), dtype=bool)
-        for i in range(n):
-            crop_h, crop_w = int(self._crop_shapes[i, 0]), int(self._crop_shapes[i, 1])
-            x1, y1 = int(self._offsets[i, 0]), int(self._offsets[i, 1])
-            crop = _rle_decode(self._rles[i], crop_h, crop_w)
-            result[i, y1 : y1 + crop_h, x1 : x1 + crop_w] = crop
+        num_masks = len(self._rles)
+        img_h, img_w = self._image_shape
+        result: npt.NDArray[np.bool_] = np.zeros((num_masks, img_h, img_w), dtype=bool)
+        for mask_idx in range(num_masks):
+            crop_h, crop_w = (
+                int(self._crop_shapes[mask_idx, 0]),
+                int(self._crop_shapes[mask_idx, 1]),
+            )
+            x1, y1 = int(self._offsets[mask_idx, 0]), int(self._offsets[mask_idx, 1])
+            crop = _rle_decode(self._rles[mask_idx], crop_h, crop_w)
+            result[mask_idx, y1 : y1 + crop_h, x1 : x1 + crop_w] = crop
         return result
 
     def crop(self, index: int) -> npt.NDArray[np.bool_]:
@@ -355,8 +358,8 @@ class CompactMask:
 
     def __iter__(self) -> Iterator[npt.NDArray[np.bool_]]:
         """Iterate over masks as dense ``(H, W)`` boolean arrays."""
-        for i in range(len(self)):
-            yield self[i]
+        for mask_idx in range(len(self)):
+            yield self[mask_idx]
 
     @property
     def shape(self) -> tuple[int, int, int]:
@@ -377,8 +380,8 @@ class CompactMask:
 
             ```
         """
-        h, w = self._image_shape
-        return (len(self), h, w)
+        img_h, img_w = self._image_shape
+        return (len(self), img_h, img_w)
 
     @property
     def offsets(self) -> npt.NDArray[np.int32]:
@@ -477,7 +480,7 @@ class CompactMask:
 
             ```
         """
-        return np.array([_rle_area(r) for r in self._rles], dtype=np.int64)
+        return np.array([_rle_area(rle) for rle in self._rles], dtype=np.int64)
 
     def sum(self, axis: int | tuple[int, ...] | None = None) -> npt.NDArray[Any] | int:
         """NumPy-compatible sum with a fast path for per-mask area.
@@ -542,8 +545,8 @@ class CompactMask:
         """
         if isinstance(index, (int, np.integer)):
             idx = int(index)
-            h, w = self._image_shape
-            result: npt.NDArray[np.bool_] = np.zeros((h, w), dtype=bool)
+            img_h, img_w = self._image_shape
+            result: npt.NDArray[np.bool_] = np.zeros((img_h, img_w), dtype=bool)
             crop_h = int(self._crop_shapes[idx, 0])
             crop_w = int(self._crop_shapes[idx, 1])
             x1 = int(self._offsets[idx, 0])
@@ -571,7 +574,7 @@ class CompactMask:
         else:
             idx_arr = np.asarray(list(index), dtype=np.intp)
 
-        new_rles = [self._rles[int(i)] for i in idx_arr]
+        new_rles = [self._rles[int(mask_idx)] for mask_idx in idx_arr]
         new_crop_shapes: npt.NDArray[np.int32] = self._crop_shapes[idx_arr]
         new_offsets: npt.NDArray[np.int32] = self._offsets[idx_arr]
         return CompactMask(new_rles, new_crop_shapes, new_offsets, self._image_shape)
@@ -672,27 +675,27 @@ class CompactMask:
             raise ValueError("Cannot merge an empty list of CompactMask objects.")
 
         image_shape = masks_list[0]._image_shape
-        for m in masks_list[1:]:
-            if m._image_shape != image_shape:
+        for cm in masks_list[1:]:
+            if cm._image_shape != image_shape:
                 raise ValueError(
                     f"Cannot merge CompactMask objects with different image shapes: "
-                    f"{image_shape} vs {m._image_shape}"
+                    f"{image_shape} vs {cm._image_shape}"
                 )
 
         # list.extend is a C-level call and avoids the per-element Python
         # bytecode overhead of a flat list comprehension.  This matters under
         # GIL contention when multiple threads call merge concurrently.
         new_rles: list[npt.NDArray[np.int32]] = []
-        for m in masks_list:
-            new_rles.extend(m._rles)
+        for cm in masks_list:
+            new_rles.extend(cm._rles)
 
         # np.concatenate handles (0, 2) arrays correctly.
         # No .astype() needed — _crop_shapes and _offsets are already int32.
         new_crop_shapes: npt.NDArray[np.int32] = np.concatenate(
-            [m._crop_shapes for m in masks_list], axis=0
+            [cm._crop_shapes for cm in masks_list], axis=0
         )
         new_offsets: npt.NDArray[np.int32] = np.concatenate(
-            [m._offsets for m in masks_list], axis=0
+            [cm._offsets for cm in masks_list], axis=0
         )
 
         return CompactMask(new_rles, new_crop_shapes, new_offsets, image_shape)
@@ -731,8 +734,8 @@ class CompactMask:
 
             ```
         """
-        n = len(self._rles)
-        if n == 0:
+        num_masks = len(self._rles)
+        if num_masks == 0:
             return CompactMask(
                 [],
                 np.empty((0, 2), dtype=np.int32),
@@ -744,10 +747,10 @@ class CompactMask:
         new_crop_shapes_list: list[tuple[int, int]] = []
         new_offsets_list: list[tuple[int, int]] = []
 
-        for i in range(n):
-            crop = self.crop(i)
-            x1_off = int(self._offsets[i, 0])
-            y1_off = int(self._offsets[i, 1])
+        for mask_idx in range(num_masks):
+            crop = self.crop(mask_idx)
+            x1_off = int(self._offsets[mask_idx, 0])
+            y1_off = int(self._offsets[mask_idx, 1])
 
             rows_any = np.any(crop, axis=1)
             cols_any = np.any(crop, axis=0)
@@ -819,8 +822,8 @@ class CompactMask:
         if new_h <= 0 or new_w <= 0:
             raise ValueError("new_image_shape must contain positive dimensions")
 
-        n = len(self)
-        if n == 0:
+        num_masks = len(self)
+        if num_masks == 0:
             return CompactMask(
                 [],
                 np.empty((0, 2), dtype=np.int32),
@@ -858,16 +861,19 @@ class CompactMask:
         out_crop_shapes: list[tuple[int, int]] = []
         out_offsets_list: list[tuple[int, int]] = []
 
-        for i in range(n):
-            x1 = int(x1s[i])
-            y1 = int(y1s[i])
-            x2 = int(x2s[i])
-            y2 = int(y2s[i])
+        for mask_idx in range(num_masks):
+            x1 = int(x1s[mask_idx])
+            y1 = int(y1s[mask_idx])
+            x2 = int(x2s[mask_idx])
+            y2 = int(y2s[mask_idx])
 
-            if not needs_clip[i]:
-                out_rles.append(self._rles[i])
+            if not needs_clip[mask_idx]:
+                out_rles.append(self._rles[mask_idx])
                 out_crop_shapes.append(
-                    (int(self._crop_shapes[i, 0]), int(self._crop_shapes[i, 1]))
+                    (
+                        int(self._crop_shapes[mask_idx, 0]),
+                        int(self._crop_shapes[mask_idx, 1]),
+                    )
                 )
                 out_offsets_list.append((x1, y1))
                 continue
@@ -885,7 +891,7 @@ class CompactMask:
                 out_offsets_list.append((anchor_x, anchor_y))
                 continue
 
-            crop = self.crop(i)
+            crop = self.crop(mask_idx)
             clipped = crop[iy1 - y1 : iy2 - y1 + 1, ix1 - x1 : ix2 - x1 + 1]
             out_rles.append(_rle_encode(clipped))
             out_crop_shapes.append((iy2 - iy1 + 1, ix2 - ix1 + 1))

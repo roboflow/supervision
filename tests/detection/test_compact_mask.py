@@ -24,9 +24,9 @@ from supervision.detection.utils.masks import (
 
 def _make_cm(masks: np.ndarray, image_shape: tuple[int, int]) -> CompactMask:
     """Build a CompactMask whose crops equal the full bounding-box extents."""
-    n = len(masks)
-    h, w = image_shape
-    xyxy = np.tile(np.array([0, 0, w, h], dtype=np.float32), (n, 1))
+    num_masks = len(masks)
+    img_h, img_w = image_shape
+    xyxy = np.tile(np.array([0, 0, img_w, img_h], dtype=np.float32), (num_masks, 1))
     return CompactMask.from_dense(masks, xyxy, image_shape=image_shape)
 
 
@@ -96,28 +96,28 @@ class TestFromDenseToDense:
     """
 
     @pytest.mark.parametrize(
-        ("n", "image_shape"),
+        ("num_masks", "image_shape"),
         [
             (0, (50, 50)),
             (1, (50, 50)),
             (5, (50, 50)),
         ],
     )
-    def test_round_trip(self, n: int, image_shape: tuple[int, int]) -> None:
+    def test_round_trip(self, num_masks: int, image_shape: tuple[int, int]) -> None:
         rng = np.random.default_rng(42)
-        h, w = image_shape
-        masks = rng.integers(0, 2, size=(n, h, w)).astype(bool)
+        img_h, img_w = image_shape
+        masks = rng.integers(0, 2, size=(num_masks, img_h, img_w)).astype(bool)
         cm = _make_cm(masks, image_shape)
         np.testing.assert_array_equal(cm.to_dense(), masks)
 
     def test_round_trip_with_mask_to_xyxy(self) -> None:
         """Round-trip must be lossless with inclusive xyxy from mask_to_xyxy."""
-        h, w = 12, 14
-        masks = np.zeros((1, h, w), dtype=bool)
+        img_h, img_w = 12, 14
+        masks = np.zeros((1, img_h, img_w), dtype=bool)
         masks[0, 3:7, 4:9] = True  # non-full-image object
 
         xyxy = mask_to_xyxy(masks).astype(np.float32)
-        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
 
         np.testing.assert_array_equal(cm.to_dense(), masks)
 
@@ -133,23 +133,27 @@ class TestGetItem:
     """
 
     def test_int_returns_2d_dense(self) -> None:
-        h, w = 30, 40
+        img_h, img_w = 30, 40
         rng = np.random.default_rng(0)
-        masks = rng.integers(0, 2, size=(3, h, w)).astype(bool)
-        cm = _make_cm(masks, (h, w))
+        masks = rng.integers(0, 2, size=(3, img_h, img_w)).astype(bool)
+        cm = _make_cm(masks, (img_h, img_w))
 
         result = cm[1]
         assert isinstance(result, np.ndarray)
-        assert result.shape == (h, w)
+        assert result.shape == (img_h, img_w)
         assert result.dtype == bool
         np.testing.assert_array_equal(result, masks[1])
 
     def test_list_returns_compact_mask(self) -> None:
-        h, w = 20, 20
-        masks = np.zeros((4, h, w), dtype=bool)
-        for i in range(4):
-            masks[i, i * 2 : i * 2 + 2, i * 2 : i * 2 + 2] = True
-        cm = _make_cm(masks, (h, w))
+        img_h, img_w = 20, 20
+        masks = np.zeros((4, img_h, img_w), dtype=bool)
+        for mask_idx in range(4):
+            masks[
+                mask_idx,
+                mask_idx * 2 : mask_idx * 2 + 2,
+                mask_idx * 2 : mask_idx * 2 + 2,
+            ] = True
+        cm = _make_cm(masks, (img_h, img_w))
 
         subset = cm[[0, 2]]
         assert isinstance(subset, CompactMask)
@@ -158,19 +162,19 @@ class TestGetItem:
         np.testing.assert_array_equal(subset[1], masks[2])
 
     def test_slice_returns_compact_mask(self) -> None:
-        h, w = 20, 20
-        masks = np.zeros((5, h, w), dtype=bool)
-        cm = _make_cm(masks, (h, w))
+        img_h, img_w = 20, 20
+        masks = np.zeros((5, img_h, img_w), dtype=bool)
+        cm = _make_cm(masks, (img_h, img_w))
 
         subset = cm[1:4]
         assert isinstance(subset, CompactMask)
         assert len(subset) == 3
 
     def test_bool_ndarray(self) -> None:
-        h, w = 15, 15
+        img_h, img_w = 15, 15
         rng = np.random.default_rng(7)
-        masks = rng.integers(0, 2, size=(4, h, w)).astype(bool)
-        cm = _make_cm(masks, (h, w))
+        masks = rng.integers(0, 2, size=(4, img_h, img_w)).astype(bool)
+        cm = _make_cm(masks, (img_h, img_w))
 
         selector = np.array([True, False, True, False])
         subset = cm[selector]
@@ -181,10 +185,10 @@ class TestGetItem:
 
     def test_bool_list(self) -> None:
         """Python list[bool] should behave like boolean masking."""
-        h, w = 15, 15
+        img_h, img_w = 15, 15
         rng = np.random.default_rng(8)
-        masks = rng.integers(0, 2, size=(4, h, w)).astype(bool)
-        cm = _make_cm(masks, (h, w))
+        masks = rng.integers(0, 2, size=(4, img_h, img_w)).astype(bool)
+        cm = _make_cm(masks, (img_h, img_w))
 
         subset = cm[[True, False, True, False]]
         assert isinstance(subset, CompactMask)
@@ -225,12 +229,12 @@ class TestProperties:
         assert cm.dtype == np.dtype(bool)
 
     def test_area_matches_dense(self) -> None:
-        h, w = 20, 20
+        img_h, img_w = 20, 20
         rng = np.random.default_rng(3)
-        masks = rng.integers(0, 2, size=(4, h, w)).astype(bool)
-        cm = _make_cm(masks, (h, w))
+        masks = rng.integers(0, 2, size=(4, img_h, img_w)).astype(bool)
+        cm = _make_cm(masks, (img_h, img_w))
 
-        expected = np.array([m.sum() for m in masks])
+        expected = np.array([mask.sum() for mask in masks])
         np.testing.assert_array_equal(cm.area, expected)
 
     def test_area_empty(self) -> None:
@@ -252,11 +256,11 @@ class TestCrop:
     """
 
     def test_returns_crop_shape(self) -> None:
-        h, w = 50, 60
-        masks = np.zeros((1, h, w), dtype=bool)
+        img_h, img_w = 50, 60
+        masks = np.zeros((1, img_h, img_w), dtype=bool)
         masks[0, 10:30, 5:25] = True  # 20 x 20 region
         xyxy = np.array([[5, 10, 24, 29]], dtype=np.float32)
-        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
 
         crop = cm.crop(0)
         assert crop.shape == (20, 20)
@@ -271,13 +275,13 @@ class TestArrayProtocol:
     """
 
     def test_array_protocol(self) -> None:
-        h, w = 10, 10
+        img_h, img_w = 10, 10
         rng = np.random.default_rng(9)
-        masks = rng.integers(0, 2, size=(2, h, w)).astype(bool)
-        cm = _make_cm(masks, (h, w))
+        masks = rng.integers(0, 2, size=(2, img_h, img_w)).astype(bool)
+        cm = _make_cm(masks, (img_h, img_w))
 
         arr = np.asarray(cm)
-        assert arr.shape == (2, h, w)
+        assert arr.shape == (2, img_h, img_w)
         np.testing.assert_array_equal(arr, masks)
 
     def test_dtype_cast(self) -> None:
@@ -298,29 +302,29 @@ class TestMerge:
     """
 
     def test_merge(self) -> None:
-        h, w = 20, 20
-        masks1 = np.zeros((2, h, w), dtype=bool)
-        masks2 = np.zeros((3, h, w), dtype=bool)
-        cm1 = _make_cm(masks1, (h, w))
-        cm2 = _make_cm(masks2, (h, w))
+        img_h, img_w = 20, 20
+        masks1 = np.zeros((2, img_h, img_w), dtype=bool)
+        masks2 = np.zeros((3, img_h, img_w), dtype=bool)
+        cm1 = _make_cm(masks1, (img_h, img_w))
+        cm2 = _make_cm(masks2, (img_h, img_w))
 
         merged = CompactMask.merge([cm1, cm2])
         assert len(merged) == 5
-        assert merged.shape == (5, h, w)
+        assert merged.shape == (5, img_h, img_w)
         np.testing.assert_array_equal(
             merged.to_dense(), np.concatenate([masks1, masks2], axis=0)
         )
 
     def test_merge_with_empty(self) -> None:
-        h, w = 10, 10
+        img_h, img_w = 10, 10
         empty_cm = CompactMask(
             [],
             np.empty((0, 2), dtype=np.int32),
             np.empty((0, 2), dtype=np.int32),
-            (h, w),
+            (img_h, img_w),
         )
-        masks = np.zeros((2, h, w), dtype=bool)
-        cm = _make_cm(masks, (h, w))
+        masks = np.zeros((2, img_h, img_w), dtype=bool)
+        cm = _make_cm(masks, (img_h, img_w))
 
         merged = CompactMask.merge([empty_cm, cm])
         assert len(merged) == 2
@@ -394,21 +398,21 @@ class TestEdgeCases:
         assert len(cm) == 1
 
     def test_mask_at_image_boundary(self) -> None:
-        h, w = 20, 20
-        masks = np.zeros((1, h, w), dtype=bool)
+        img_h, img_w = 20, 20
+        masks = np.zeros((1, img_h, img_w), dtype=bool)
         masks[0, 15:20, 15:20] = True
         xyxy = np.array([[15, 15, 19, 19]], dtype=np.float32)
-        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
         np.testing.assert_array_equal(cm.to_dense(), masks)
 
     def test_xyxy_beyond_image_clipped(self) -> None:
         """xyxy values beyond the image boundary should be clipped silently."""
-        h, w = 10, 10
-        masks = np.zeros((1, h, w), dtype=bool)
+        img_h, img_w = 10, 10
+        masks = np.zeros((1, img_h, img_w), dtype=bool)
         masks[0, 5:10, 5:10] = True
         xyxy = np.array([[5, 5, 999, 999]], dtype=np.float32)
         with DoesNotRaise():
-            cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+            cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
         np.testing.assert_array_equal(cm.to_dense(), masks)
 
     def test_empty_compact_mask_to_dense(self) -> None:
@@ -429,11 +433,11 @@ class TestEdgeCases:
         np.testing.assert_array_equal(cm.sum(axis=(1, 2)), cm.area)
 
     def test_with_offset(self) -> None:
-        h, w = 20, 20
-        masks = np.zeros((1, h, w), dtype=bool)
+        img_h, img_w = 20, 20
+        masks = np.zeros((1, img_h, img_w), dtype=bool)
         masks[0, 5:10, 5:10] = True
         xyxy = np.array([[5, 5, 9, 9]], dtype=np.float32)
-        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
 
         cm2 = cm.with_offset(100, 200, new_image_shape=(400, 400))
         assert cm2.offsets[0].tolist() == [105, 205]
@@ -442,49 +446,49 @@ class TestEdgeCases:
 
     def test_with_offset_clips_partial_overlap_like_move_masks(self) -> None:
         """with_offset must clip partial out-of-frame translations like move_masks."""
-        h, w = 10, 10
-        masks = np.zeros((1, h, w), dtype=bool)
+        img_h, img_w = 10, 10
+        masks = np.zeros((1, img_h, img_w), dtype=bool)
         masks[0, 2:6, 3:8] = True
         xyxy = np.array([[3, 2, 7, 5]], dtype=np.float32)
-        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
 
         dx, dy = -4, 3
-        cm_shifted = cm.with_offset(dx=dx, dy=dy, new_image_shape=(h, w))
+        cm_shifted = cm.with_offset(dx=dx, dy=dy, new_image_shape=(img_h, img_w))
         expected = move_masks(
             masks=masks,
             offset=np.array([dx, dy], dtype=np.int32),
-            resolution_wh=(w, h),
+            resolution_wh=(img_w, img_h),
         )
 
         np.testing.assert_array_equal(cm_shifted.to_dense(), expected)
 
     def test_with_offset_clips_full_outside_like_move_masks(self) -> None:
         """Masks shifted fully outside should remain valid and decode to all-False."""
-        h, w = 10, 10
-        masks = np.zeros((1, h, w), dtype=bool)
+        img_h, img_w = 10, 10
+        masks = np.zeros((1, img_h, img_w), dtype=bool)
         masks[0, 2:6, 2:6] = True
         xyxy = np.array([[2, 2, 5, 5]], dtype=np.float32)
-        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
 
         dx, dy = 100, 100
-        cm_shifted = cm.with_offset(dx=dx, dy=dy, new_image_shape=(h, w))
+        cm_shifted = cm.with_offset(dx=dx, dy=dy, new_image_shape=(img_h, img_w))
         expected = move_masks(
             masks=masks,
             offset=np.array([dx, dy], dtype=np.int32),
-            resolution_wh=(w, h),
+            resolution_wh=(img_w, img_h),
         )
 
         np.testing.assert_array_equal(cm_shifted.to_dense(), expected)
 
     def test_repack_tightens_loose_bbox(self) -> None:
         """repack() shrinks the crop to the minimal True-pixel rectangle."""
-        h, w = 20, 20
-        masks = np.zeros((1, h, w), dtype=bool)
+        img_h, img_w = 20, 20
+        masks = np.zeros((1, img_h, img_w), dtype=bool)
         masks[0, 5:10, 6:12] = True  # True block at (5,6)-(9,11)
 
         # Deliberately loose bbox covers full image.
-        xyxy = np.array([[0, 0, w - 1, h - 1]], dtype=np.float32)
-        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        xyxy = np.array([[0, 0, img_w - 1, img_h - 1]], dtype=np.float32)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
 
         # Before repack: crop is the full 20x20 image.
         assert cm._crop_shapes[0].tolist() == [20, 20]
@@ -499,12 +503,12 @@ class TestEdgeCases:
 
     def test_repack_preserves_all_false_mask(self) -> None:
         """repack() normalises an all-False mask to a 1x1 crop."""
-        h, w = 10, 10
-        masks = np.zeros((2, h, w), dtype=bool)
+        img_h, img_w = 10, 10
+        masks = np.zeros((2, img_h, img_w), dtype=bool)
         masks[1, 3:6, 3:6] = True  # only mask 1 is non-empty
 
         xyxy = np.array([[0, 0, 9, 9], [0, 0, 9, 9]], dtype=np.float32)
-        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
         repacked = cm.repack()
 
         assert repacked._crop_shapes[0].tolist() == [1, 1]  # normalised
@@ -525,13 +529,13 @@ class TestEdgeCases:
 
     def test_repack_already_tight(self) -> None:
         """repack() is a no-op when bboxes are already tight."""
-        h, w = 15, 15
-        masks = np.zeros((1, h, w), dtype=bool)
+        img_h, img_w = 15, 15
+        masks = np.zeros((1, img_h, img_w), dtype=bool)
         masks[0, 4:9, 3:8] = True
 
         # Tight bbox.
         xyxy = np.array([[3, 4, 7, 8]], dtype=np.float32)
-        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
         repacked = cm.repack()
 
         np.testing.assert_array_equal(repacked.offsets, cm.offsets)
@@ -549,13 +553,13 @@ class TestCalculateMasksCentroidsCompact:
     def test_centroids_compact_matches_dense(self) -> None:
         """Centroid coordinates must be numerically identical for dense and compact."""
         rng = np.random.default_rng(42)
-        h, w = 30, 30
-        masks = rng.integers(0, 2, size=(5, h, w)).astype(bool)
+        img_h, img_w = 30, 30
+        masks = rng.integers(0, 2, size=(5, img_h, img_w)).astype(bool)
         # Ensure each mask has at least one True pixel.
-        for i in range(5):
-            masks[i, i * 5, i * 5] = True
+        for mask_idx in range(5):
+            masks[mask_idx, mask_idx * 5, mask_idx * 5] = True
 
-        cm = _make_cm(masks, (h, w))
+        cm = _make_cm(masks, (img_h, img_w))
 
         centroids_dense = calculate_masks_centroids(masks)
         centroids_compact = calculate_masks_centroids(cm)
@@ -564,9 +568,9 @@ class TestCalculateMasksCentroidsCompact:
 
     def test_centroids_empty_mask(self) -> None:
         """All-zero masks should return centroid (0, 0) — same as dense."""
-        h, w = 10, 10
-        masks = np.zeros((3, h, w), dtype=bool)
-        cm = _make_cm(masks, (h, w))
+        img_h, img_w = 10, 10
+        masks = np.zeros((3, img_h, img_w), dtype=bool)
+        cm = _make_cm(masks, (img_h, img_w))
 
         centroids_dense = calculate_masks_centroids(masks)
         centroids_compact = calculate_masks_centroids(cm)
@@ -575,10 +579,10 @@ class TestCalculateMasksCentroidsCompact:
 
     def test_centroids_empty_mask_with_tight_bbox(self) -> None:
         """All-zero tight crops must still return centroid (0, 0)."""
-        h, w = 10, 10
-        masks = np.zeros((1, h, w), dtype=bool)
+        img_h, img_w = 10, 10
+        masks = np.zeros((1, img_h, img_w), dtype=bool)
         xyxy = np.array([[3, 4, 7, 8]], dtype=np.float32)
-        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
 
         centroids_dense = calculate_masks_centroids(masks)
         centroids_compact = calculate_masks_centroids(cm)
@@ -634,9 +638,9 @@ class TestContainsHolesCompact:
         self, mask_2d: np.ndarray, expected: bool
     ) -> None:
         """contains_holes must agree after CompactMask encode→decode."""
-        h, w = mask_2d.shape
+        img_h, img_w = mask_2d.shape
         masks = mask_2d[np.newaxis]  # (1, H, W)
-        cm = _make_cm(masks, (h, w))
+        cm = _make_cm(masks, (img_h, img_w))
 
         decoded = cm.to_dense()[0]
         assert contains_holes(decoded) == expected
@@ -688,9 +692,9 @@ class TestContainsMultipleSegmentsCompact:
         self, mask_2d: np.ndarray, connectivity: int, expected: bool
     ) -> None:
         """contains_multiple_segments must agree after CompactMask encode→decode."""
-        h, w = mask_2d.shape
+        img_h, img_w = mask_2d.shape
         masks = mask_2d[np.newaxis]  # (1, H, W)
-        cm = _make_cm(masks, (h, w))
+        cm = _make_cm(masks, (img_h, img_w))
 
         decoded = cm.to_dense()[0]
         result = contains_multiple_segments(decoded, connectivity=connectivity)
@@ -719,29 +723,29 @@ _RANDOM_CONFIGS = [
 
 def _random_masks_and_xyxy(
     rng: np.random.Generator,
-    n: int,
-    h: int,
-    w: int,
+    num_masks: int,
+    img_h: int,
+    img_w: int,
     fill_prob: float = 0.3,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Generate *n* random boolean masks with matching tight xyxy boxes.
+    """Generate *num_masks* random boolean masks with matching tight xyxy boxes.
 
     Each mask is built by filling a random sub-rectangle with Bernoulli noise at
     ``fill_prob``, then computing tight bounding boxes via ``mask_to_xyxy``.
     This guarantees every mask has at least one True pixel (for non-degenerate
     bounding boxes).
     """
-    masks = np.zeros((n, h, w), dtype=bool)
-    for i in range(n):
-        y1 = rng.integers(0, h)
-        y2 = rng.integers(y1, h)
-        x1 = rng.integers(0, w)
-        x2 = rng.integers(x1, w)
+    masks = np.zeros((num_masks, img_h, img_w), dtype=bool)
+    for mask_idx in range(num_masks):
+        y1 = rng.integers(0, img_h)
+        y2 = rng.integers(y1, img_h)
+        x1 = rng.integers(0, img_w)
+        x2 = rng.integers(x1, img_w)
         region = rng.random((y2 - y1 + 1, x2 - x1 + 1)) < fill_prob
         # Ensure at least one True pixel.
         if not region.any():
             region[0, 0] = True
-        masks[i, y1 : y2 + 1, x1 : x2 + 1] = region
+        masks[mask_idx, y1 : y2 + 1, x1 : x2 + 1] = region
 
     xyxy = mask_to_xyxy(masks).astype(np.float32)
     return masks, xyxy
@@ -757,37 +761,40 @@ class TestCompactMaskRoundtripRandom:
     @pytest.mark.parametrize("seed", list(range(10)))
     def test_parity_seed(self, seed: int) -> None:
         rng = np.random.default_rng(seed)
-        n, h, w = _RANDOM_CONFIGS[seed]
-        masks, xyxy = _random_masks_and_xyxy(rng, n, h, w)
-        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        num_masks, img_h, img_w = _RANDOM_CONFIGS[seed]
+        masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
         np.testing.assert_array_equal(
             cm.to_dense(),
             masks,
-            err_msg=f"Round-trip failed for seed={seed}, N={n}, shape=({h},{w})",
+            err_msg=(
+                f"Round-trip failed for seed={seed}, "
+                f"N={num_masks}, shape=({img_h},{img_w})"
+            ),
         )
 
     @pytest.mark.parametrize("seed", list(range(10)))
     def test_shape_and_len(self, seed: int) -> None:
         """len() and .shape must agree with the dense array."""
         rng = np.random.default_rng(seed)
-        n, h, w = _RANDOM_CONFIGS[seed]
-        masks, xyxy = _random_masks_and_xyxy(rng, n, h, w)
-        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
-        assert len(cm) == n
-        assert cm.shape == (n, h, w)
+        num_masks, img_h, img_w = _RANDOM_CONFIGS[seed]
+        masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
+        assert len(cm) == num_masks
+        assert cm.shape == (num_masks, img_h, img_w)
 
     @pytest.mark.parametrize("seed", list(range(10)))
     def test_individual_mask_access(self, seed: int) -> None:
         """cm[i] must equal masks[i] for every index."""
         rng = np.random.default_rng(seed)
-        n, h, w = _RANDOM_CONFIGS[seed]
-        masks, xyxy = _random_masks_and_xyxy(rng, n, h, w)
-        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
-        for i in range(n):
+        num_masks, img_h, img_w = _RANDOM_CONFIGS[seed]
+        masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
+        for mask_idx in range(num_masks):
             np.testing.assert_array_equal(
-                cm[i],
-                masks[i],
-                err_msg=f"cm[{i}] mismatch for seed={seed}",
+                cm[mask_idx],
+                masks[mask_idx],
+                err_msg=f"cm[{mask_idx}] mismatch for seed={seed}",
             )
 
 
@@ -797,24 +804,26 @@ class TestCompactMaskAreaRandom:
     @pytest.mark.parametrize("seed", list(range(10)))
     def test_parity_seed(self, seed: int) -> None:
         rng = np.random.default_rng(seed)
-        n, h, w = _RANDOM_CONFIGS[seed]
-        masks, xyxy = _random_masks_and_xyxy(rng, n, h, w)
-        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        num_masks, img_h, img_w = _RANDOM_CONFIGS[seed]
+        masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
 
         expected_area = masks.sum(axis=(1, 2))
         np.testing.assert_array_equal(
             cm.area,
             expected_area,
-            err_msg=f"Area mismatch for seed={seed}, N={n}, shape=({h},{w})",
+            err_msg=(
+                f"Area mismatch for seed={seed}, N={num_masks}, shape=({img_h},{img_w})"
+            ),
         )
 
     @pytest.mark.parametrize("seed", list(range(10)))
     def test_sum_axis_matches_area(self, seed: int) -> None:
         """cm.sum(axis=(1,2)) must equal cm.area (the fast path)."""
         rng = np.random.default_rng(seed)
-        n, h, w = _RANDOM_CONFIGS[seed]
-        masks, xyxy = _random_masks_and_xyxy(rng, n, h, w)
-        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        num_masks, img_h, img_w = _RANDOM_CONFIGS[seed]
+        masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
         np.testing.assert_array_equal(cm.sum(axis=(1, 2)), cm.area)
 
 
@@ -824,11 +833,11 @@ class TestCompactMaskFilterRandom:
     @pytest.mark.parametrize("seed", list(range(10)))
     def test_parity_seed(self, seed: int) -> None:
         rng = np.random.default_rng(seed)
-        n, h, w = _RANDOM_CONFIGS[seed]
-        masks, xyxy = _random_masks_and_xyxy(rng, n, h, w)
-        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        num_masks, img_h, img_w = _RANDOM_CONFIGS[seed]
+        masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
 
-        selector = rng.random(n) > 0.5
+        selector = rng.random(num_masks) > 0.5
         # Guarantee at least one True in the selector so we test non-empty subsets.
         if not selector.any():
             selector[0] = True
@@ -848,12 +857,14 @@ class TestCompactMaskFilterRandom:
     def test_list_index(self, seed: int) -> None:
         """Integer list indexing must match dense fancy indexing."""
         rng = np.random.default_rng(seed)
-        n, h, w = _RANDOM_CONFIGS[seed]
-        masks, xyxy = _random_masks_and_xyxy(rng, n, h, w)
-        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        num_masks, img_h, img_w = _RANDOM_CONFIGS[seed]
+        masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
 
-        k = min(n, max(1, rng.integers(1, n + 1)))
-        indices = sorted(rng.choice(n, size=k, replace=False).tolist())
+        num_selected = min(num_masks, max(1, rng.integers(1, num_masks + 1)))
+        indices = sorted(
+            rng.choice(num_masks, size=num_selected, replace=False).tolist()
+        )
 
         subset_cm = cm[indices]
         subset_dense = masks[indices]
@@ -871,20 +882,20 @@ class TestCompactMaskWithOffsetRandom:
     def test_parity_seed(self, seed: int) -> None:
         rng = np.random.default_rng(seed)
         # Use smaller images to keep move_masks fast.
-        n = rng.integers(1, 10)
-        h, w = int(rng.integers(30, 80)), int(rng.integers(30, 80))
-        masks, xyxy = _random_masks_and_xyxy(rng, n, h, w)
-        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        num_masks = rng.integers(1, 10)
+        img_h, img_w = int(rng.integers(30, 80)), int(rng.integers(30, 80))
+        masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
 
         # Random offset that may push some masks partially or fully off-frame.
-        dx = int(rng.integers(-w, w))
-        dy = int(rng.integers(-h, h))
+        dx = int(rng.integers(-img_w, img_w))
+        dy = int(rng.integers(-img_h, img_h))
 
-        cm_shifted = cm.with_offset(dx=dx, dy=dy, new_image_shape=(h, w))
+        cm_shifted = cm.with_offset(dx=dx, dy=dy, new_image_shape=(img_h, img_w))
         expected = move_masks(
             masks=masks,
             offset=np.array([dx, dy], dtype=np.int32),
-            resolution_wh=(w, h),
+            resolution_wh=(img_w, img_h),
         )
 
         np.testing.assert_array_equal(
@@ -892,7 +903,7 @@ class TestCompactMaskWithOffsetRandom:
             expected,
             err_msg=(
                 f"with_offset mismatch for seed={seed}, "
-                f"dx={dx}, dy={dy}, shape=({h},{w})"
+                f"dx={dx}, dy={dy}, shape=({img_h},{img_w})"
             ),
         )
 
@@ -900,23 +911,23 @@ class TestCompactMaskWithOffsetRandom:
     def test_offset_into_larger_canvas(self, seed: int) -> None:
         """Offset into a larger destination image must preserve pixels."""
         rng = np.random.default_rng(seed + 100)
-        n = rng.integers(1, 8)
-        h, w = int(rng.integers(20, 50)), int(rng.integers(20, 50))
-        masks, xyxy = _random_masks_and_xyxy(rng, n, h, w)
-        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
+        num_masks = rng.integers(1, 8)
+        img_h, img_w = int(rng.integers(20, 50)), int(rng.integers(20, 50))
+        masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
 
-        new_h, new_w = h * 2, w * 2
-        dx = int(rng.integers(0, w))
-        dy = int(rng.integers(0, h))
+        new_h, new_w = img_h * 2, img_w * 2
+        dx = int(rng.integers(0, img_w))
+        dy = int(rng.integers(0, img_h))
 
         cm_shifted = cm.with_offset(dx=dx, dy=dy, new_image_shape=(new_h, new_w))
         dense_shifted = cm_shifted.to_dense()
 
-        assert dense_shifted.shape == (n, new_h, new_w)
+        assert dense_shifted.shape == (num_masks, new_h, new_w)
         # Manually place each original mask into the larger canvas.
-        expected = np.zeros((n, new_h, new_w), dtype=bool)
-        for i in range(n):
-            expected[i, dy : dy + h, dx : dx + w] |= masks[i]
+        expected = np.zeros((num_masks, new_h, new_w), dtype=bool)
+        for mask_idx in range(num_masks):
+            expected[mask_idx, dy : dy + img_h, dx : dx + img_w] |= masks[mask_idx]
 
         np.testing.assert_array_equal(
             dense_shifted,

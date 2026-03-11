@@ -107,7 +107,9 @@ class ScenarioResult:
     roundtrip_ok: bool | None
     iou_ok: bool | None
     nms_ok: bool | None
-    nms_mismatch_count: int  # detections with different NMS decisions (0 when dense_skipped)
+    nms_mismatch_count: (
+        int  # detections with different NMS decisions (0 when dense_skipped)
+    )
     merge_ok: bool | None
     offset_ok: bool | None
     centroids_ok: bool | None

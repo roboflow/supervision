@@ -29,9 +29,11 @@ from supervision.detection.utils.iou_and_nms import (
 
 def _cm_from_masks(masks: np.ndarray, image_shape: tuple[int, int]) -> CompactMask:
     """Build a CompactMask using full-image bounding boxes (lossless)."""
-    n = len(masks)
-    h, w = image_shape
-    xyxy = np.tile(np.array([0, 0, w - 1, h - 1], dtype=np.float32), (n, 1))
+    num_masks = len(masks)
+    img_h, img_w = image_shape
+    xyxy = np.tile(
+        np.array([0, 0, img_w - 1, img_h - 1], dtype=np.float32), (num_masks, 1)
+    )
     return CompactMask.from_dense(masks, xyxy, image_shape=image_shape)
 
 
@@ -44,12 +46,12 @@ def _cm_tight(masks: np.ndarray, image_shape: tuple[int, int]) -> CompactMask:
 
 
 def _dense_iou(
-    a: np.ndarray,
-    b: np.ndarray,
+    masks_a: np.ndarray,
+    masks_b: np.ndarray,
     metric: OverlapMetric = OverlapMetric.IOU,
 ) -> np.ndarray:
     """Reference pairwise IoU using the existing dense implementation."""
-    return mask_iou_batch(a, b, overlap_metric=metric)
+    return mask_iou_batch(masks_a, masks_b, overlap_metric=metric)
 
 
 class TestCompactMaskIouBatch:
@@ -62,15 +64,15 @@ class TestCompactMaskIouBatch:
 
     def test_no_overlap_gives_zero(self) -> None:
         """Non-overlapping masks should always produce IoU = 0."""
-        h, w = 20, 20
-        a = np.zeros((1, h, w), dtype=bool)
-        a[0, 0:5, 0:5] = True  # top-left
+        img_h, img_w = 20, 20
+        masks_a = np.zeros((1, img_h, img_w), dtype=bool)
+        masks_a[0, 0:5, 0:5] = True  # top-left
 
-        b = np.zeros((1, h, w), dtype=bool)
-        b[0, 10:15, 10:15] = True  # bottom-right
+        masks_b = np.zeros((1, img_h, img_w), dtype=bool)
+        masks_b[0, 10:15, 10:15] = True  # bottom-right
 
-        cm_a = _cm_from_masks(a, (h, w))
-        cm_b = _cm_from_masks(b, (h, w))
+        cm_a = _cm_from_masks(masks_a, (img_h, img_w))
+        cm_b = _cm_from_masks(masks_b, (img_h, img_w))
 
         result = compact_mask_iou_batch(cm_a, cm_b)
         assert result.shape == (1, 1)
@@ -78,12 +80,12 @@ class TestCompactMaskIouBatch:
 
     def test_identical_masks_give_one(self) -> None:
         """IoU of a mask with itself must be 1.0."""
-        h, w = 20, 20
-        masks = np.zeros((2, h, w), dtype=bool)
+        img_h, img_w = 20, 20
+        masks = np.zeros((2, img_h, img_w), dtype=bool)
         masks[0, 2:8, 2:8] = True
         masks[1, 10:18, 10:18] = True
 
-        cm = _cm_from_masks(masks, (h, w))
+        cm = _cm_from_masks(masks, (img_h, img_w))
         result = compact_mask_iou_batch(cm, cm)
 
         assert result.shape == (2, 2)
@@ -92,15 +94,15 @@ class TestCompactMaskIouBatch:
     def test_matches_dense_random(self) -> None:
         """compact_mask_iou_batch must be numerically identical to dense IoU."""
         rng = np.random.default_rng(0)
-        h, w = 30, 30
-        a = rng.integers(0, 2, size=(5, h, w)).astype(bool)
-        b = rng.integers(0, 2, size=(4, h, w)).astype(bool)
+        img_h, img_w = 30, 30
+        masks_a = rng.integers(0, 2, size=(5, img_h, img_w)).astype(bool)
+        masks_b = rng.integers(0, 2, size=(4, img_h, img_w)).astype(bool)
 
-        cm_a = _cm_from_masks(a, (h, w))
-        cm_b = _cm_from_masks(b, (h, w))
+        cm_a = _cm_from_masks(masks_a, (img_h, img_w))
+        cm_b = _cm_from_masks(masks_b, (img_h, img_w))
 
         compact_result = compact_mask_iou_batch(cm_a, cm_b)
-        dense_result = _dense_iou(a, b)
+        dense_result = _dense_iou(masks_a, masks_b)
 
         assert compact_result.shape == (5, 4)
         np.testing.assert_allclose(compact_result, dense_result, atol=1e-9)
@@ -108,60 +110,60 @@ class TestCompactMaskIouBatch:
     def test_matches_dense_with_tight_bboxes(self) -> None:
         """Using tight bounding boxes (mask_to_xyxy) must still be accurate."""
         rng = np.random.default_rng(1)
-        h, w = 40, 40
-        a = rng.integers(0, 2, size=(4, h, w)).astype(bool)
-        b = rng.integers(0, 2, size=(3, h, w)).astype(bool)
+        img_h, img_w = 40, 40
+        masks_a = rng.integers(0, 2, size=(4, img_h, img_w)).astype(bool)
+        masks_b = rng.integers(0, 2, size=(3, img_h, img_w)).astype(bool)
 
-        cm_a = _cm_tight(a, (h, w))
-        cm_b = _cm_tight(b, (h, w))
+        cm_a = _cm_tight(masks_a, (img_h, img_w))
+        cm_b = _cm_tight(masks_b, (img_h, img_w))
 
         compact_result = compact_mask_iou_batch(cm_a, cm_b)
-        dense_result = _dense_iou(a, b)
+        dense_result = _dense_iou(masks_a, masks_b)
 
         np.testing.assert_allclose(compact_result, dense_result, atol=1e-9)
 
     def test_partial_overlap(self) -> None:
         """Partially overlapping masks: IoU should match the analytic value."""
-        h, w = 10, 10
+        img_h, img_w = 10, 10
         # Mask A: columns 0-4 (5 wide), Mask B: columns 3-7 (5 wide).
         # Overlap: columns 3-4 (2 wide) x full height (10 rows) = 20 px.
-        a = np.zeros((1, h, w), dtype=bool)
-        a[0, :, 0:5] = True  # area = 50
+        masks_a = np.zeros((1, img_h, img_w), dtype=bool)
+        masks_a[0, :, 0:5] = True  # area = 50
 
-        b = np.zeros((1, h, w), dtype=bool)
-        b[0, :, 3:8] = True  # area = 50
+        masks_b = np.zeros((1, img_h, img_w), dtype=bool)
+        masks_b[0, :, 3:8] = True  # area = 50
 
-        cm_a = _cm_from_masks(a, (h, w))
-        cm_b = _cm_from_masks(b, (h, w))
+        cm_a = _cm_from_masks(masks_a, (img_h, img_w))
+        cm_b = _cm_from_masks(masks_b, (img_h, img_w))
 
         result = compact_mask_iou_batch(cm_a, cm_b)
         # inter=20, union=50+50-20=80 → IoU=0.25
         assert result[0, 0] == pytest.approx(0.25, abs=1e-9)
-        np.testing.assert_allclose(result, _dense_iou(a, b), atol=1e-9)
+        np.testing.assert_allclose(result, _dense_iou(masks_a, masks_b), atol=1e-9)
 
     def test_ios_metric(self) -> None:
         """IOS = intersection / min(area_a, area_b) must match dense reference."""
         rng = np.random.default_rng(2)
-        h, w = 25, 25
-        a = rng.integers(0, 2, size=(3, h, w)).astype(bool)
-        b = rng.integers(0, 2, size=(3, h, w)).astype(bool)
+        img_h, img_w = 25, 25
+        masks_a = rng.integers(0, 2, size=(3, img_h, img_w)).astype(bool)
+        masks_b = rng.integers(0, 2, size=(3, img_h, img_w)).astype(bool)
 
-        cm_a = _cm_from_masks(a, (h, w))
-        cm_b = _cm_from_masks(b, (h, w))
+        cm_a = _cm_from_masks(masks_a, (img_h, img_w))
+        cm_b = _cm_from_masks(masks_b, (img_h, img_w))
 
         compact_result = compact_mask_iou_batch(cm_a, cm_b, OverlapMetric.IOS)
-        dense_result = _dense_iou(a, b, OverlapMetric.IOS)
+        dense_result = _dense_iou(masks_a, masks_b, OverlapMetric.IOS)
 
         np.testing.assert_allclose(compact_result, dense_result, atol=1e-9)
 
     def test_all_false_masks(self) -> None:
         """Zero-area masks should produce IoU = 0, not NaN."""
-        h, w = 10, 10
-        a = np.zeros((2, h, w), dtype=bool)
-        b = np.zeros((2, h, w), dtype=bool)
+        img_h, img_w = 10, 10
+        masks_a = np.zeros((2, img_h, img_w), dtype=bool)
+        masks_b = np.zeros((2, img_h, img_w), dtype=bool)
 
-        cm_a = _cm_from_masks(a, (h, w))
-        cm_b = _cm_from_masks(b, (h, w))
+        cm_a = _cm_from_masks(masks_a, (img_h, img_w))
+        cm_b = _cm_from_masks(masks_b, (img_h, img_w))
 
         result = compact_mask_iou_batch(cm_a, cm_b)
         assert not np.any(np.isnan(result))
@@ -169,15 +171,15 @@ class TestCompactMaskIouBatch:
 
     def test_empty_inputs(self) -> None:
         """Empty CompactMask collections should return a zero-shaped matrix."""
-        h, w = 10, 10
+        img_h, img_w = 10, 10
         empty = CompactMask(
             [],
             np.empty((0, 2), dtype=np.int32),
             np.empty((0, 2), dtype=np.int32),
-            (h, w),
+            (img_h, img_w),
         )
-        masks = np.zeros((3, h, w), dtype=bool)
-        cm = _cm_from_masks(masks, (h, w))
+        masks = np.zeros((3, img_h, img_w), dtype=bool)
+        cm = _cm_from_masks(masks, (img_h, img_w))
 
         result_a = compact_mask_iou_batch(empty, cm)
         assert result_a.shape == (0, 3)
@@ -187,14 +189,14 @@ class TestCompactMaskIouBatch:
 
     def test_n_by_n_pairwise(self) -> None:
         """N x N pairwise IoU: diagonal must be 1.0 for non-zero-area masks."""
-        h, w = 50, 50
+        img_h, img_w = 50, 50
         rng = np.random.default_rng(3)
-        masks = rng.integers(0, 2, size=(8, h, w)).astype(bool)
+        masks = rng.integers(0, 2, size=(8, img_h, img_w)).astype(bool)
         # Ensure no all-false mask (diagonal would be undefined).
-        for i in range(8):
-            masks[i, i * 5, i * 5] = True
+        for mask_idx in range(8):
+            masks[mask_idx, mask_idx * 5, mask_idx * 5] = True
 
-        cm = _cm_from_masks(masks, (h, w))
+        cm = _cm_from_masks(masks, (img_h, img_w))
         result = compact_mask_iou_batch(cm, cm)
 
         assert result.shape == (8, 8)
@@ -212,30 +214,30 @@ class TestMaskIouBatchDispatch:
     """
 
     def test_both_compact_dispatches_to_rle(self) -> None:
-        h, w = 20, 20
+        img_h, img_w = 20, 20
         rng = np.random.default_rng(10)
-        a = rng.integers(0, 2, size=(3, h, w)).astype(bool)
-        b = rng.integers(0, 2, size=(2, h, w)).astype(bool)
+        masks_a = rng.integers(0, 2, size=(3, img_h, img_w)).astype(bool)
+        masks_b = rng.integers(0, 2, size=(2, img_h, img_w)).astype(bool)
 
-        cm_a = _cm_from_masks(a, (h, w))
-        cm_b = _cm_from_masks(b, (h, w))
+        cm_a = _cm_from_masks(masks_a, (img_h, img_w))
+        cm_b = _cm_from_masks(masks_b, (img_h, img_w))
 
         result_compact = mask_iou_batch(cm_a, cm_b)
-        result_dense = mask_iou_batch(a, b)
+        result_dense = mask_iou_batch(masks_a, masks_b)
 
         np.testing.assert_allclose(result_compact, result_dense, atol=1e-9)
 
     def test_mixed_compact_and_dense(self) -> None:
         """One CompactMask + one dense array must still work correctly."""
-        h, w = 20, 20
+        img_h, img_w = 20, 20
         rng = np.random.default_rng(11)
-        a = rng.integers(0, 2, size=(3, h, w)).astype(bool)
-        b = rng.integers(0, 2, size=(2, h, w)).astype(bool)
+        masks_a = rng.integers(0, 2, size=(3, img_h, img_w)).astype(bool)
+        masks_b = rng.integers(0, 2, size=(2, img_h, img_w)).astype(bool)
 
-        cm_a = _cm_from_masks(a, (h, w))
+        cm_a = _cm_from_masks(masks_a, (img_h, img_w))
 
-        result = mask_iou_batch(cm_a, b)
-        expected = mask_iou_batch(a, b)
+        result = mask_iou_batch(cm_a, masks_b)
+        expected = mask_iou_batch(masks_a, masks_b)
         np.testing.assert_allclose(result, expected, atol=1e-9)
 
 
@@ -249,9 +251,9 @@ class TestNmsWithCompactMask:
 
     def test_nms_compact_matches_dense(self) -> None:
         """NMS keep-set is identical for CompactMask and the equivalent dense array."""
-        h, w = 40, 40
+        img_h, img_w = 40, 40
         # Two non-overlapping high-confidence masks and one that overlaps mask 0.
-        masks = np.zeros((3, h, w), dtype=bool)
+        masks = np.zeros((3, img_h, img_w), dtype=bool)
         masks[0, 0:20, 0:20] = True  # top-left
         masks[1, 0:18, 0:18] = True  # heavily overlaps mask 0
         masks[2, 20:40, 20:40] = True  # bottom-right, no overlap
@@ -261,7 +263,7 @@ class TestNmsWithCompactMask:
             [np.zeros((3, 4)), scores]  # dummy xyxy, real scores
         )
 
-        cm = _cm_from_masks(masks, (h, w))
+        cm = _cm_from_masks(masks, (img_h, img_w))
 
         keep_dense = mask_non_max_suppression(predictions, masks, iou_threshold=0.3)
         keep_compact = mask_non_max_suppression(predictions, cm, iou_threshold=0.3)
@@ -270,29 +272,29 @@ class TestNmsWithCompactMask:
 
     def test_nms_compact_no_suppression(self) -> None:
         """Non-overlapping masks: all should be kept."""
-        h, w = 20, 20
-        masks = np.zeros((3, h, w), dtype=bool)
+        img_h, img_w = 20, 20
+        masks = np.zeros((3, img_h, img_w), dtype=bool)
         masks[0, 0:5, 0:5] = True
         masks[1, 7:12, 7:12] = True
         masks[2, 14:19, 14:19] = True
 
         scores = np.array([0.9, 0.8, 0.7])
         predictions = np.column_stack([np.zeros((3, 4)), scores])
-        cm = _cm_from_masks(masks, (h, w))
+        cm = _cm_from_masks(masks, (img_h, img_w))
 
         keep = mask_non_max_suppression(predictions, cm, iou_threshold=0.5)
         assert keep.all(), "All non-overlapping masks should be kept"
 
     def test_nms_compact_full_suppression(self) -> None:
         """Identical masks: only the highest-confidence one should survive."""
-        h, w = 20, 20
-        mask = np.zeros((1, h, w), dtype=bool)
+        img_h, img_w = 20, 20
+        mask = np.zeros((1, img_h, img_w), dtype=bool)
         mask[0, 5:15, 5:15] = True
 
         masks = np.repeat(mask, 3, axis=0)
         scores = np.array([0.9, 0.8, 0.7])
         predictions = np.column_stack([np.zeros((3, 4)), scores])
-        cm = _cm_from_masks(masks, (h, w))
+        cm = _cm_from_masks(masks, (img_h, img_w))
 
         keep = mask_non_max_suppression(predictions, cm, iou_threshold=0.5)
         assert keep.sum() == 1
@@ -308,50 +310,50 @@ class TestNmmWithCompactMask:
 
     def test_nmm_compact_matches_dense(self) -> None:
         """Merge groups must match between CompactMask and dense inputs."""
-        h, w = 40, 40
-        masks = np.zeros((3, h, w), dtype=bool)
+        img_h, img_w = 40, 40
+        masks = np.zeros((3, img_h, img_w), dtype=bool)
         masks[0, 0:20, 0:20] = True  # top-left
         masks[1, 0:18, 0:18] = True  # heavily overlaps mask 0
         masks[2, 20:40, 20:40] = True  # bottom-right, no overlap
 
         scores = np.array([0.9, 0.8, 0.7])
         predictions = np.column_stack([np.zeros((3, 4)), scores])
-        cm = _cm_from_masks(masks, (h, w))
+        cm = _cm_from_masks(masks, (img_h, img_w))
 
         groups_dense = mask_non_max_merge(predictions, masks, iou_threshold=0.3)
         groups_compact = mask_non_max_merge(predictions, cm, iou_threshold=0.3)
 
-        def normalise(gs: list[list[int]]) -> list[list[int]]:
-            return sorted(sorted(g) for g in gs)
+        def normalise(groups: list[list[int]]) -> list[list[int]]:
+            return sorted(sorted(group) for group in groups)
 
         assert normalise(groups_compact) == normalise(groups_dense)
 
     def test_nmm_no_merge(self) -> None:
         """Non-overlapping masks: every mask should be its own group."""
-        h, w = 20, 20
-        masks = np.zeros((3, h, w), dtype=bool)
+        img_h, img_w = 20, 20
+        masks = np.zeros((3, img_h, img_w), dtype=bool)
         masks[0, 0:5, 0:5] = True
         masks[1, 7:12, 7:12] = True
         masks[2, 14:19, 14:19] = True
 
         scores = np.array([0.9, 0.8, 0.7])
         predictions = np.column_stack([np.zeros((3, 4)), scores])
-        cm = _cm_from_masks(masks, (h, w))
+        cm = _cm_from_masks(masks, (img_h, img_w))
 
         groups = mask_non_max_merge(predictions, cm, iou_threshold=0.5)
         assert len(groups) == 3, "Each non-overlapping mask gets its own group"
-        assert all(len(g) == 1 for g in groups)
+        assert all(len(group) == 1 for group in groups)
 
     def test_nmm_full_merge(self) -> None:
         """Identical masks: all predictions should merge into one group."""
-        h, w = 20, 20
-        single = np.zeros((1, h, w), dtype=bool)
+        img_h, img_w = 20, 20
+        single = np.zeros((1, img_h, img_w), dtype=bool)
         single[0, 5:15, 5:15] = True
         masks = np.repeat(single, 3, axis=0)
 
         scores = np.array([0.9, 0.8, 0.7])
         predictions = np.column_stack([np.zeros((3, 4)), scores])
-        cm = _cm_from_masks(masks, (h, w))
+        cm = _cm_from_masks(masks, (img_h, img_w))
 
         groups = mask_non_max_merge(predictions, cm, iou_threshold=0.5)
         assert len(groups) == 1, "Identical masks must collapse to one group"
@@ -379,22 +381,22 @@ _IOU_RANDOM_CONFIGS = [
 
 def _random_masks(
     rng: np.random.Generator,
-    n: int,
-    h: int,
-    w: int,
+    num_masks: int,
+    img_h: int,
+    img_w: int,
     fill_prob: float = 0.25,
 ) -> np.ndarray:
-    """Generate *n* random boolean masks with at least one True pixel each."""
-    masks = np.zeros((n, h, w), dtype=bool)
-    for i in range(n):
-        y1 = rng.integers(0, h)
-        y2 = rng.integers(y1, h)
-        x1 = rng.integers(0, w)
-        x2 = rng.integers(x1, w)
+    """Generate *num_masks* random boolean masks with at least one True pixel each."""
+    masks = np.zeros((num_masks, img_h, img_w), dtype=bool)
+    for mask_idx in range(num_masks):
+        y1 = rng.integers(0, img_h)
+        y2 = rng.integers(y1, img_h)
+        x1 = rng.integers(0, img_w)
+        x2 = rng.integers(x1, img_w)
         region = rng.random((y2 - y1 + 1, x2 - x1 + 1)) < fill_prob
         if not region.any():
             region[0, 0] = True
-        masks[i, y1 : y2 + 1, x1 : x2 + 1] = region
+        masks[mask_idx, y1 : y2 + 1, x1 : x2 + 1] = region
     return masks
 
 
@@ -408,36 +410,36 @@ class TestCompactMaskIouRandom:
     @pytest.mark.parametrize("seed", list(range(10)))
     def test_parity_seed(self, seed: int) -> None:
         rng = np.random.default_rng(seed)
-        n_a, h, w = _IOU_RANDOM_CONFIGS[seed]
-        n_b = max(3, n_a - 2)
+        num_masks_a, img_h, img_w = _IOU_RANDOM_CONFIGS[seed]
+        num_masks_b = max(3, num_masks_a - 2)
 
-        masks_a = _random_masks(rng, n_a, h, w)
-        masks_b = _random_masks(rng, n_b, h, w)
+        masks_a = _random_masks(rng, num_masks_a, img_h, img_w)
+        masks_b = _random_masks(rng, num_masks_b, img_h, img_w)
 
-        cm_a = _cm_from_masks(masks_a, (h, w))
-        cm_b = _cm_from_masks(masks_b, (h, w))
+        cm_a = _cm_from_masks(masks_a, (img_h, img_w))
+        cm_b = _cm_from_masks(masks_b, (img_h, img_w))
 
         compact_result = compact_mask_iou_batch(cm_a, cm_b)
         dense_result = _dense_iou(masks_a, masks_b)
 
-        assert compact_result.shape == (n_a, n_b), (
-            f"Shape mismatch: {compact_result.shape} vs ({n_a}, {n_b})"
+        assert compact_result.shape == (num_masks_a, num_masks_b), (
+            f"Shape mismatch: {compact_result.shape} vs ({num_masks_a}, {num_masks_b})"
         )
         np.testing.assert_allclose(
             compact_result,
             dense_result,
             atol=1e-9,
-            err_msg=f"IoU mismatch for seed={seed}, N_a={n_a}, N_b={n_b}",
+            err_msg=f"IoU mismatch: seed={seed}, N_a={num_masks_a}, N_b={num_masks_b}",
         )
 
     @pytest.mark.parametrize("seed", list(range(10)))
     def test_self_iou_diagonal(self, seed: int) -> None:
         """Self-IoU diagonal must be 1.0 for masks with at least one True pixel."""
         rng = np.random.default_rng(seed + 50)
-        n, h, w = _IOU_RANDOM_CONFIGS[seed]
-        masks = _random_masks(rng, n, h, w)
+        num_masks, img_h, img_w = _IOU_RANDOM_CONFIGS[seed]
+        masks = _random_masks(rng, num_masks, img_h, img_w)
 
-        cm = _cm_from_masks(masks, (h, w))
+        cm = _cm_from_masks(masks, (img_h, img_w))
         result = compact_mask_iou_batch(cm, cm)
 
         np.testing.assert_allclose(
@@ -453,17 +455,17 @@ class TestCompactMaskIouRandom:
         from supervision.detection.utils.converters import mask_to_xyxy
 
         rng = np.random.default_rng(seed + 200)
-        n, h, w = _IOU_RANDOM_CONFIGS[seed]
-        n_b = max(3, n - 2)
+        num_masks, img_h, img_w = _IOU_RANDOM_CONFIGS[seed]
+        num_masks_b = max(3, num_masks - 2)
 
-        masks_a = _random_masks(rng, n, h, w)
-        masks_b = _random_masks(rng, n_b, h, w)
+        masks_a = _random_masks(rng, num_masks, img_h, img_w)
+        masks_b = _random_masks(rng, num_masks_b, img_h, img_w)
 
         xyxy_a = mask_to_xyxy(masks_a).astype(np.float32)
         xyxy_b = mask_to_xyxy(masks_b).astype(np.float32)
 
-        cm_a = CompactMask.from_dense(masks_a, xyxy_a, image_shape=(h, w))
-        cm_b = CompactMask.from_dense(masks_b, xyxy_b, image_shape=(h, w))
+        cm_a = CompactMask.from_dense(masks_a, xyxy_a, image_shape=(img_h, img_w))
+        cm_b = CompactMask.from_dense(masks_b, xyxy_b, image_shape=(img_h, img_w))
 
         compact_result = compact_mask_iou_batch(cm_a, cm_b)
         dense_result = _dense_iou(masks_a, masks_b)
