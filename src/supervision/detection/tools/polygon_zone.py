@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import replace
 from typing import Any, cast
 
 import cv2
@@ -9,7 +8,6 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision import Detections
-from supervision.detection.utils.boxes import clip_boxes
 from supervision.detection.utils.converters import polygon_to_mask
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
@@ -73,7 +71,6 @@ class PolygonZone:
         self.current_count = 0
 
         x_max, y_max = np.max(polygon, axis=0)
-        self.frame_resolution_wh = (x_max + 1, y_max + 1)
         self.mask = polygon_to_mask(
             polygon=polygon, resolution_wh=(x_max + 2, y_max + 2)
         )
@@ -82,33 +79,36 @@ class PolygonZone:
         """
         Determines if the detections are within the polygon zone.
 
+        Anchor points are calculated from original (unclipped) detection boxes to
+        avoid per-zone clipping shifting anchor positions. This prevents a single
+        detection from being counted in multiple non-overlapping zones due to
+        clipping artifacts, although overlapping zones may still legitimately
+        contain the same detection.
+
         Args:
-            detections: The detections
-                to be checked against the polygon zone
+            detections: The detections to be checked against the polygon zone
 
         Returns:
             A boolean numpy array indicating
                 if each detection is within the polygon zone
         """
+        if len(detections) == 0:
+            self.current_count = 0
+            return np.array([], dtype=bool)
 
-        clipped_xyxy = clip_boxes(
-            xyxy=detections.xyxy, resolution_wh=self.frame_resolution_wh
-        )
-        clipped_detections = replace(detections, xyxy=clipped_xyxy)
-        all_clipped_anchors = np.array(
+        all_anchors = np.array(
             [
-                np.ceil(clipped_detections.get_anchors_coordinates(anchor)).astype(int)
-                for anchor in self.triggering_anchors
+                np.ceil(detections.get_anchors_coordinates(anchors)).astype(int)
+                for anchors in self.triggering_anchors
             ]
         )
 
-        is_in_zone: npt.NDArray[np.bool_] = (
-            self.mask[all_clipped_anchors[:, :, 1], all_clipped_anchors[:, :, 0]]
-            .transpose()
-            .astype(bool)
-        )
-
-        is_in_zone = np.all(is_in_zone, axis=1)
+        mask_h, mask_w = self.mask.shape
+        x, y = all_anchors[:, :, 0], all_anchors[:, :, 1]
+        in_bounds = (x >= 0) & (y >= 0) & (x < mask_w) & (y < mask_h)
+        x_safe = np.clip(x, 0, mask_w - 1)
+        y_safe = np.clip(y, 0, mask_h - 1)
+        is_in_zone = np.all(in_bounds & self.mask[y_safe, x_safe], axis=0)
         self.current_count = int(np.sum(is_in_zone))
         return is_in_zone.astype(bool)
 
