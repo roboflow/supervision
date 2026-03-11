@@ -123,7 +123,7 @@ class TestCompactMaskIouBatch:
         """Partially overlapping masks: IoU should match the analytic value."""
         h, w = 10, 10
         # Mask A: columns 0-4 (5 wide), Mask B: columns 3-7 (5 wide).
-        # Overlap: columns 3-4 (2 wide) × full height (10 rows) = 20 px.
+        # Overlap: columns 3-4 (2 wide) x full height (10 rows) = 20 px.
         a = np.zeros((1, h, w), dtype=bool)
         a[0, :, 0:5] = True  # area = 50
 

@@ -2289,7 +2289,7 @@ class Detections:
         """
         if isinstance(index, str):
             return self.data.get(index)
-        if self.is_empty():
+        if len(self) == 0:
             return self
         if isinstance(index, int):
             index = [index]
