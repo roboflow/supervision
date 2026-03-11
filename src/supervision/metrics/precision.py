@@ -531,21 +531,25 @@ class PrecisionResult:
         Format as a pretty string.
 
         Example:
-            ```python
-            print(precision_result)
-            # PrecisionResult:
-            # Metric target:  MetricTarget.BOXES
-            # Averaging method: AveragingMethod.WEIGHTED
-            # P @ 50:     0.8099
-            # P @ 75:     0.7969
-            # P @ thresh: [0.80992  0.80905  0.80905  ...]
-            # IoU thresh: [0.5  0.55  0.6  ...]
-            # Precision per class:
-            # 0: [0.64706  0.64706  0.64706   ...]
-            # ...
-            # Small objects: ...
-            # Medium objects: ...
-            # Large objects: ...
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> from supervision.metrics import Precision
+            >>> predictions = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 10, 10]]),
+            ...     class_id=np.array([0]),
+            ...     confidence=np.array([0.9])
+            ... )
+            >>> targets = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 10, 10]]),
+            ...     class_id=np.array([0])
+            ... )
+            >>> precision_metric = Precision()
+            >>> precision_result = precision_metric.update(
+            ...     predictions, targets
+            ... ).compute()
+            >>> print(precision_result)  # doctest: +SKIP
+
             ```
         """
         out_str = (
