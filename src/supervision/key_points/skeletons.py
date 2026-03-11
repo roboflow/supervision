@@ -4,7 +4,7 @@ Edges = tuple[tuple[int, int], ...]
 
 
 class Skeleton(Enum):
-    COCO: Edges = (
+    COCO = (
         (1, 2),
         (1, 3),
         (2, 3),
@@ -24,7 +24,7 @@ class Skeleton(Enum):
         (17, 15),
     )
 
-    GHUM: Edges = (
+    GHUM = (
         (1, 2),
         (1, 5),
         (2, 3),
@@ -62,7 +62,7 @@ class Skeleton(Enum):
         (31, 33),
     )
 
-    FACEMESH_TESSELATION_NO_IRIS: Edges = (
+    FACEMESH_TESSELATION_NO_IRIS = (
         (128, 35),
         (35, 140),
         (140, 128),
@@ -2621,7 +2621,7 @@ class Skeleton(Enum):
         (256, 340),
     )
 
-    FACEMESH_TESSELATION: Edges = (
+    FACEMESH_TESSELATION = (
         (474, 474),
         (475, 476),
         (476, 477),
