@@ -178,6 +178,19 @@ class TestGetItem:
         np.testing.assert_array_equal(subset[0], masks[0])
         np.testing.assert_array_equal(subset[1], masks[2])
 
+    def test_bool_list(self) -> None:
+        """Python list[bool] should behave like boolean masking."""
+        h, w = 15, 15
+        rng = np.random.default_rng(8)
+        masks = rng.integers(0, 2, size=(4, h, w)).astype(bool)
+        cm = _make_cm(masks, (h, w))
+
+        subset = cm[[True, False, True, False]]
+        assert isinstance(subset, CompactMask)
+        assert len(subset) == 2
+        np.testing.assert_array_equal(subset[0], masks[0])
+        np.testing.assert_array_equal(subset[1], masks[2])
+
 
 class TestProperties:
     """Tests for len, shape, dtype, and area properties.
@@ -517,6 +530,18 @@ class TestCalculateMasksCentroidsCompact:
         h, w = 10, 10
         masks = np.zeros((3, h, w), dtype=bool)
         cm = _make_cm(masks, (h, w))
+
+        centroids_dense = calculate_masks_centroids(masks)
+        centroids_compact = calculate_masks_centroids(cm)
+
+        np.testing.assert_array_equal(centroids_compact, centroids_dense)
+
+    def test_centroids_empty_mask_with_tight_bbox(self) -> None:
+        """All-zero tight crops must still return centroid (0, 0)."""
+        h, w = 10, 10
+        masks = np.zeros((1, h, w), dtype=bool)
+        xyxy = np.array([[3, 4, 7, 8]], dtype=np.float32)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(h, w))
 
         centroids_dense = calculate_masks_centroids(masks)
         centroids_compact = calculate_masks_centroids(cm)

@@ -2159,7 +2159,9 @@ class Detections:
 
         xyxy = np.vstack([d.xyxy for d in detections_list])
 
-        def stack_or_none(name: str) -> npt.NDArray[np.generic] | None:
+        def stack_or_none(
+            name: str,
+        ) -> npt.NDArray[np.generic] | CompactMask | None:
             if all(d.__getattribute__(name) is None for d in detections_list):
                 return None
             if any(d.__getattribute__(name) is None for d in detections_list):

@@ -521,9 +521,13 @@ class CompactMask:
                 self._image_shape,
             )
 
-        # Boolean ndarray or fancy index → convert to integer positions first.
+        # Boolean selectors and fancy index → convert to integer positions first.
         if isinstance(index, np.ndarray) and index.dtype == bool:
             idx_arr = np.where(index)[0]
+        elif isinstance(index, list) and all(
+            isinstance(item, (bool, np.bool_)) for item in index
+        ):
+            idx_arr = np.flatnonzero(np.asarray(index, dtype=bool))
         else:
             idx_arr = np.asarray(list(index), dtype=np.intp)
 

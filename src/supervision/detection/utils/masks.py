@@ -116,7 +116,8 @@ def calculate_masks_centroids(
             y1 = int(masks.offsets[i, 1])
             total = int(crop.sum())
             if total == 0:
-                total = 1  # avoid division by zero (same as dense path)
+                centroids[i] = [0.0, 0.0]
+                continue
             # Match the +0.5 offset used by the dense implementation.
             crop_rows, crop_cols = np.indices((crop_h, crop_w))
             cx = float(np.sum((crop_cols + 0.5)[crop])) / total + x1
