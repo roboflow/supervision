@@ -2917,9 +2917,9 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
             for x1, y1, x2, y2 in detections.xyxy.astype(int):
                 colored_mask[y1:y2, x1:x2] = scene[y1:y2, x1:x2]
         else:
-            for mask in np.asarray(detections.mask):
-                mask = np.asarray(mask, dtype=bool)
-                colored_mask[mask] = scene[mask]
+            for mask in detections.mask:
+                mask_bool = np.asarray(mask, dtype=bool)
+                colored_mask[mask_bool] = scene[mask_bool]
 
         np.copyto(scene, colored_mask)
         return scene
@@ -3115,7 +3115,7 @@ class ComparisonAnnotator:
             return mask
         assert detections.mask is not None
 
-        for detections_mask in np.asarray(detections.mask):
+        for detections_mask in detections.mask:
             mask |= detections_mask.astype(np.bool_)
         return mask
 
