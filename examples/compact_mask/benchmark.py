@@ -684,7 +684,10 @@ def run_scenario(
     def _timing_line(label: str, dense_s: float, compact_s: float) -> str:
         compact_ms = f"{compact_s * 1e3:.2f} ms"
         if math.isnan(dense_s):
-            return f"  {label} - compact={compact_ms}"
+            return (
+                f"\t{label}\t -> dense=[dim]—[/dim]"
+                f"\t\t | compact={compact_ms}\t | speedup=[dim]—[/dim]"
+            )
         dense_ms = f"{dense_s * 1e3:.2f} ms"
         speedup = _fmt_ratio(dense_s / max(compact_s, 1e-9))
         return (
