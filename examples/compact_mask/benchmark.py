@@ -28,6 +28,7 @@ from typing import Callable
 
 import cv2
 import numpy as np
+import pandas as pd
 from rich import box
 from rich.console import Console
 from rich.progress import (
@@ -43,7 +44,7 @@ from rich.table import Table
 import supervision as sv
 from supervision.detection.compact_mask import CompactMask
 
-console = Console(width=140, force_terminal=True)
+console = Console(width=240, force_terminal=True)
 
 REPETITIONS = 4
 # How many reps to run concurrently in time_reps. Each thread times itself
@@ -802,6 +803,35 @@ def _time_compact_annotate(scene: np.ndarray, det_compact: sv.Detections) -> flo
 # Rich summary table
 # ══════════════════════════════════════════════════════════════════════════════
 
+_OPS = ("area", "filter", "annot", "iou", "nms", "merge", "offset", "centroids")
+
+
+def _build_summary_df(results: list[ScenarioResult]) -> pd.DataFrame:
+    """Compute derived summary columns from scenario results.
+
+    Returns a DataFrame with all ScenarioResult fields plus derived columns
+    (ratios, speedups, ok) as raw floats.  Consumers apply their own formatting.
+    """
+    df = pd.DataFrame([dataclasses.asdict(r) for r in results])
+    df["ratio_theory"] = df["dense_bytes"] / df["compact_bytes_theoretical"].clip(lower=1)
+    df["ratio_malloc"] = df["dense_bytes_actual"] / df["compact_bytes_actual"].clip(lower=1)
+    # dense_bytes_actual == 0 (not measured) when dense_skipped — clear those cells
+    df.loc[df["dense_skipped"], "ratio_malloc"] = None
+    for op in _OPS:
+        df[f"{op}_speedup"] = df[f"dense_{op}_s"] / df[f"compact_{op}_s"].clip(lower=1e-9)
+
+    check_cols = [
+        "pixel_perfect", "areas_match", "roundtrip_ok", "iou_ok",
+        "nms_ok", "merge_ok", "offset_ok", "centroids_ok",
+    ]
+    df["ok"] = df.apply(
+        lambda row: False if any(row[c] is False for c in check_cols)
+        else True if any(row[c] is True for c in check_cols)
+        else None,
+        axis=1,
+    )
+    return df
+
 
 def _fmt_ratio(ratio: float) -> str:
     """Format a speedup/compression ratio with colour coding.
@@ -831,81 +861,68 @@ def print_summary(results: list[ScenarioResult]) -> None:
         box=box.ROUNDED,
         show_lines=True,
         header_style="bold cyan",
-        min_width=100,
+        min_width=console.width,
     )
-    table.add_column("Scenario", style="bold", min_width=13)
+    table.add_column("Scenario", style="bold", min_width=25)
     table.add_column("Objects", justify="right", min_width=7)
     table.add_column("Resolution", min_width=12, no_wrap=True)
     table.add_column("Fill", justify="right", min_width=5, no_wrap=True)
     table.add_column("Vertices", justify="right", min_width=8, no_wrap=True)
     table.add_column("Dense\ntheory", justify="right", min_width=10)
     table.add_column("Compact\ntheory", justify="right", style="green", min_width=9)
-    table.add_column("Ratio\n(theory)", justify="right", min_width=9)
-    table.add_column("Dense\nmalloc", justify="right", style="cyan", min_width=10)
+    table.add_column("Ratio\ntheory", justify="right", min_width=7)
+    table.add_column("Dense\nmalloc", justify="right", style="cyan", min_width=9)
     table.add_column("Compact\nmalloc", justify="right", style="cyan", min_width=9)
-    table.add_column("Ratio\n(malloc)", justify="right", min_width=8)
-    table.add_column("Encode\n(ms/mask)", justify="right", style="yellow", min_width=11)
-    table.add_column("Decode\n(ms/mask)", justify="right", style="yellow", min_width=11)
-    table.add_column("Area\natt. (x)", justify="right", min_width=9)
-    table.add_column("Filter\nop. (x)", justify="right", min_width=9)
-    table.add_column("Annot\nop. (x)", justify="right", min_width=9)
-    table.add_column("IoU\nop. (x)", justify="right", min_width=8)
-    table.add_column("NMS\nop. (x)", justify="right", min_width=8)
-    table.add_column("Merge\nop. (x)", justify="right", min_width=9)
-    table.add_column("Offset\nop. (x)", justify="right", min_width=9)
-    table.add_column("Centroids\nop. (x)", justify="right", min_width=11)
+    table.add_column("Ratio\nmalloc", justify="right", min_width=7)
+    table.add_column("Encode\n(ms/mask)", justify="right", style="yellow", min_width=7)
+    table.add_column("Decode\n(ms/mask)", justify="right", style="yellow", min_width=7)
+    table.add_column("Area\natt.", justify="right", min_width=6)
+    table.add_column("Filter\nop.", justify="right", min_width=6)
+    table.add_column("Annot\nop.", justify="right", min_width=6)
+    table.add_column("IoU\nop.", justify="right", min_width=6)
+    table.add_column("NMS\nop.", justify="right", min_width=6)
+    table.add_column("Merge\nop.", justify="right", min_width=6)
+    table.add_column("Offset\nop.", justify="right", min_width=6)
+    table.add_column("Centroids\nop.", justify="right", min_width=6)
     table.add_column("OK?", justify="center", min_width=4)
 
-    for result in results:
-        theory_ratio = result.dense_bytes / max(result.compact_bytes_theoretical, 1)
-        all_checks = [
-            result.pixel_perfect,
-            result.areas_match,
-            result.roundtrip_ok,
-            result.iou_ok,
-            result.nms_ok,
-            result.merge_ok,
-            result.offset_ok,
-            result.centroids_ok,
-        ]
-        checked = [v for v in all_checks if v is not None]
-        if any(v is False for v in all_checks):
-            ok_cell = "[red]✗[/red]"
-        elif checked:
-            ok_cell = "[green]✓[/green]"
-        else:
-            ok_cell = "[dim]—[/dim]"
-        if result.dense_skipped:
-            dense_malloc_cell = "[dim]—[/dim]"
-            malloc_ratio_cell = "[dim]—[/dim]"
-        else:
-            dense_malloc_cell = f"{result.dense_bytes_actual / 1e6:.1f} MB"
-            malloc_ratio = result.dense_bytes_actual / max(
-                result.compact_bytes_actual, 1
-            )
-            malloc_ratio_cell = _fmt_ratio(malloc_ratio)
+    for _, row in _build_summary_df(results).iterrows():
+        ok = row["ok"]
+        ok_cell = (
+            "[red]✗[/red]" if ok is False
+            else "[green]✓[/green]" if ok is True
+            else "[dim]—[/dim]"
+        )
+        dense_malloc_cell = (
+            "[dim]—[/dim]" if row["dense_skipped"]
+            else f"{row['dense_bytes_actual'] / 1e6:.1f} MB"
+        )
+        malloc_ratio_cell = (
+            "[dim]—[/dim]" if row["dense_skipped"]
+            else _fmt_ratio(row["ratio_malloc"])
+        )
         table.add_row(
-            result.name,
-            str(result.num_objects),
-            result.resolution,
-            result.fill_name,
-            str(result.num_vertices),
-            f"{result.dense_bytes / 1e6:.1f} MB",
-            f"{result.compact_bytes_theoretical / 1e3:.0f} KB",
-            _fmt_ratio(theory_ratio),
+            row["name"],
+            str(row["num_objects"]),
+            row["resolution"],
+            row["fill_name"],
+            str(row["num_vertices"]),
+            f"{row['dense_bytes'] / 1e6:.1f} MB",
+            f"{row['compact_bytes_theoretical'] / 1e3:.0f} KB",
+            _fmt_ratio(row["ratio_theory"]),
             dense_malloc_cell,
-            f"{result.compact_bytes_actual / 1e3:.0f} KB",
+            f"{row['compact_bytes_actual'] / 1e3:.0f} KB",
             malloc_ratio_cell,
-            f"{result.encode_s * 1e3:.1f}",
-            f"{result.decode_s * 1e3:.1f}",
-            _fmt_speedup(result.dense_area_s, result.compact_area_s),
-            _fmt_speedup(result.dense_filter_s, result.compact_filter_s),
-            _fmt_speedup(result.dense_annot_s, result.compact_annot_s),
-            _fmt_speedup(result.dense_iou_s, result.compact_iou_s),
-            _fmt_speedup(result.dense_nms_s, result.compact_nms_s),
-            _fmt_speedup(result.dense_merge_s, result.compact_merge_s),
-            _fmt_speedup(result.dense_offset_s, result.compact_offset_s),
-            _fmt_speedup(result.dense_centroids_s, result.compact_centroids_s),
+            f"{row['encode_s'] * 1e3:.1f}",
+            f"{row['decode_s'] * 1e3:.1f}",
+            _fmt_speedup(row["dense_area_s"], row["compact_area_s"]),
+            _fmt_speedup(row["dense_filter_s"], row["compact_filter_s"]),
+            _fmt_speedup(row["dense_annot_s"], row["compact_annot_s"]),
+            _fmt_speedup(row["dense_iou_s"], row["compact_iou_s"]),
+            _fmt_speedup(row["dense_nms_s"], row["compact_nms_s"]),
+            _fmt_speedup(row["dense_merge_s"], row["compact_merge_s"]),
+            _fmt_speedup(row["dense_offset_s"], row["compact_offset_s"]),
+            _fmt_speedup(row["dense_centroids_s"], row["compact_centroids_s"]),
             ok_cell,
         )
 
@@ -957,6 +974,33 @@ def _append_result(result: ScenarioResult, path: Path) -> None:
     }
     with path.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(row) + "\n")
+
+
+def save_results_csv(results: list[ScenarioResult], path: Path) -> None:
+    """Write the summary table to *path* as a CSV file.
+
+    Each row mirrors the Rich summary table: scenario metadata, memory ratios,
+    encode/decode overhead, and per-operation speedups. Columns whose dense
+    timing was skipped are written as empty cells.
+    """
+    df = _build_summary_df(results)
+    pd.DataFrame({
+        "scenario": df["name"],
+        "objects": df["num_objects"],
+        "resolution": df["resolution"],
+        "fill": df["fill_name"],
+        "vertices": df["num_vertices"],
+        "dense_theory_mb": (df["dense_bytes"] / 1e6).round(1),
+        "compact_theory_kb": (df["compact_bytes_theoretical"] / 1e3).round(1),
+        "ratio_theory": df["ratio_theory"].round(0),
+        "dense_malloc_mb": (df["dense_bytes_actual"] / 1e6).where(~df["dense_skipped"]).round(1),
+        "compact_malloc_kb": (df["compact_bytes_actual"] / 1e3).round(1),
+        "ratio_malloc": df["ratio_malloc"].round(0),
+        "encode_ms_per_mask": (df["encode_s"] * 1e3).round(4),
+        "decode_ms_per_mask": (df["decode_s"] * 1e3).round(4),
+        **{f"{op}_speedup": df[f"{op}_speedup"].round(2) for op in _OPS},
+        "ok": df["ok"],
+    }).to_csv(path, index=False)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1021,6 +1065,10 @@ def main() -> None:
             progress.advance(task)
 
     print_summary(results)
+
+    csv_path = results_path.with_suffix(".csv")
+    save_results_csv(results, csv_path)
+    console.print(f"[dim]results saved → {results_path.name}  ·  {csv_path.name}[/dim]")
 
 
 if __name__ == "__main__":
