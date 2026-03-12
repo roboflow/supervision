@@ -813,21 +813,37 @@ def _build_summary_df(results: list[ScenarioResult]) -> pd.DataFrame:
     (ratios, speedups, ok) as raw floats.  Consumers apply their own formatting.
     """
     df = pd.DataFrame([dataclasses.asdict(r) for r in results])
-    df["ratio_theory"] = df["dense_bytes"] / df["compact_bytes_theoretical"].clip(lower=1)
-    df["ratio_malloc"] = df["dense_bytes_actual"] / df["compact_bytes_actual"].clip(lower=1)
+    df["ratio_theory"] = df["dense_bytes"] / df["compact_bytes_theoretical"].clip(
+        lower=1
+    )
+    df["ratio_malloc"] = df["dense_bytes_actual"] / df["compact_bytes_actual"].clip(
+        lower=1
+    )
     # dense_bytes_actual == 0 (not measured) when dense_skipped — clear those cells
     df.loc[df["dense_skipped"], "ratio_malloc"] = None
     for op in _OPS:
-        df[f"{op}_speedup"] = df[f"dense_{op}_s"] / df[f"compact_{op}_s"].clip(lower=1e-9)
+        df[f"{op}_speedup"] = df[f"dense_{op}_s"] / df[f"compact_{op}_s"].clip(
+            lower=1e-9
+        )
 
     check_cols = [
-        "pixel_perfect", "areas_match", "roundtrip_ok", "iou_ok",
-        "nms_ok", "merge_ok", "offset_ok", "centroids_ok",
+        "pixel_perfect",
+        "areas_match",
+        "roundtrip_ok",
+        "iou_ok",
+        "nms_ok",
+        "merge_ok",
+        "offset_ok",
+        "centroids_ok",
     ]
     df["ok"] = df.apply(
-        lambda row: False if any(row[c] is False for c in check_cols)
-        else True if any(row[c] is True for c in check_cols)
-        else None,
+        lambda row: (
+            False
+            if any(row[c] is False for c in check_cols)
+            else True
+            if any(row[c] is True for c in check_cols)
+            else None
+        ),
         axis=1,
     )
     return df
@@ -889,17 +905,19 @@ def print_summary(results: list[ScenarioResult]) -> None:
     for _, row in _build_summary_df(results).iterrows():
         ok = row["ok"]
         ok_cell = (
-            "[red]✗[/red]" if ok is False
-            else "[green]✓[/green]" if ok is True
+            "[red]✗[/red]"
+            if ok is False
+            else "[green]✓[/green]"
+            if ok is True
             else "[dim]—[/dim]"
         )
         dense_malloc_cell = (
-            "[dim]—[/dim]" if row["dense_skipped"]
+            "[dim]—[/dim]"
+            if row["dense_skipped"]
             else f"{row['dense_bytes_actual'] / 1e6:.1f} MB"
         )
         malloc_ratio_cell = (
-            "[dim]—[/dim]" if row["dense_skipped"]
-            else _fmt_ratio(row["ratio_malloc"])
+            "[dim]—[/dim]" if row["dense_skipped"] else _fmt_ratio(row["ratio_malloc"])
         )
         table.add_row(
             row["name"],
@@ -984,23 +1002,27 @@ def save_results_csv(results: list[ScenarioResult], path: Path) -> None:
     timing was skipped are written as empty cells.
     """
     df = _build_summary_df(results)
-    pd.DataFrame({
-        "scenario": df["name"],
-        "objects": df["num_objects"],
-        "resolution": df["resolution"],
-        "fill": df["fill_name"],
-        "vertices": df["num_vertices"],
-        "dense_theory_mb": (df["dense_bytes"] / 1e6).round(1),
-        "compact_theory_kb": (df["compact_bytes_theoretical"] / 1e3).round(1),
-        "ratio_theory": df["ratio_theory"].round(0),
-        "dense_malloc_mb": (df["dense_bytes_actual"] / 1e6).where(~df["dense_skipped"]).round(1),
-        "compact_malloc_kb": (df["compact_bytes_actual"] / 1e3).round(1),
-        "ratio_malloc": df["ratio_malloc"].round(0),
-        "encode_ms_per_mask": (df["encode_s"] * 1e3).round(4),
-        "decode_ms_per_mask": (df["decode_s"] * 1e3).round(4),
-        **{f"{op}_speedup": df[f"{op}_speedup"].round(2) for op in _OPS},
-        "ok": df["ok"],
-    }).to_csv(path, index=False)
+    pd.DataFrame(
+        {
+            "scenario": df["name"],
+            "objects": df["num_objects"],
+            "resolution": df["resolution"],
+            "fill": df["fill_name"],
+            "vertices": df["num_vertices"],
+            "dense_theory_mb": (df["dense_bytes"] / 1e6).round(1),
+            "compact_theory_kb": (df["compact_bytes_theoretical"] / 1e3).round(1),
+            "ratio_theory": df["ratio_theory"].round(0),
+            "dense_malloc_mb": (df["dense_bytes_actual"] / 1e6)
+            .where(~df["dense_skipped"])
+            .round(1),
+            "compact_malloc_kb": (df["compact_bytes_actual"] / 1e3).round(1),
+            "ratio_malloc": df["ratio_malloc"].round(0),
+            "encode_ms_per_mask": (df["encode_s"] * 1e3).round(4),
+            "decode_ms_per_mask": (df["decode_s"] * 1e3).round(4),
+            **{f"{op}_speedup": df[f"{op}_speedup"].round(2) for op in _OPS},
+            "ok": df["ok"],
+        }
+    ).to_csv(path, index=False)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
