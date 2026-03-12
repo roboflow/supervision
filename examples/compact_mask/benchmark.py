@@ -45,21 +45,22 @@ from supervision.detection.compact_mask import CompactMask
 
 console = Console(width=140, force_terminal=True)
 
-REPETITIONS = 6
+REPETITIONS = 4
 # How many reps to run concurrently in time_reps. Each thread times itself
 # independently; results are averaged. Numpy releases the GIL for its C-level
 # work so threads can truly run in parallel on multi-core machines.
 # Set to 1 to disable parallelism and revert to a sequential timing loop.
 PARALLEL = 3
 # Dense timing is skipped when the dense (N,H,W) array would exceed this
-# threshold — avoids OOM / swap thrashing on large satellite scenarios while
-# still reporting the theoretical memory footprint.
+# threshold — avoids OOM / swap thrashing on extreme scenarios while still
+# reporting the theoretical memory footprint.
 DENSE_SKIP_GB = 16.0
-# Dense IoU timing is skipped above this threshold: pairwise (N,H,W) AND is
-# extremely expensive even with the 5 GB memory-split in mask_iou_batch.
-IOU_DENSE_SKIP_GB = 12.0
-# Only 1 rep for dense IoU — a single pass already takes several seconds.
-IOU_NMS_REPS = 3
+# Dense IoU *and NMS* timing are skipped above this threshold: pairwise
+# (N,H,W) AND is extremely expensive — NMS calls IoU internally so both are
+# gated by the same threshold.
+IOU_DENSE_SKIP_GB = 1.0
+# Reps for dense IoU/NMS — a single pass already takes several seconds.
+IOU_NMS_REPS = 2
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -447,6 +448,7 @@ def stage_nms(
     masks_dense: np.ndarray,
     compact_mask: CompactMask,
     dense_skipped: bool,
+    iou_dense_skipped: bool,
 ) -> tuple[float, float, bool | None, int]:
     """Time mask NMS. Dense resizes to 640 before IoU; compact uses exact crop IoU.
 
@@ -456,9 +458,10 @@ def stage_nms(
     the resize step in the dense path can flip a keep/suppress decision.
 
     ``n_diff`` counts detections whose decision differs between the two paths.
-    ``nms_ok`` is True when ``n_diff`` is within the expected borderline tolerance
-    (≤ max(3, 3 % of N)) — these are rounding artefacts of the dense resize, not
-    bugs in the compact path.
+    ``nms_ok`` is True when ``n_diff == 0``.
+
+    Dense NMS is skipped when ``dense_skipped`` *or* ``iou_dense_skipped`` is True:
+    NMS calls mask_iou_batch internally so the cost is the same as IoU.
 
     Returns:
         Tuple of ``(dense_nms_s, compact_nms_s, nms_ok, n_diff)``.
@@ -468,7 +471,7 @@ def stage_nms(
     compact_nms_s = time_reps(
         lambda: sv.mask_non_max_suppression(predictions, compact_mask)
     )
-    if dense_skipped:
+    if dense_skipped or iou_dense_skipped:
         return math.nan, compact_nms_s, None, 0
 
     keep_dense = sv.mask_non_max_suppression(predictions, masks_dense)
@@ -660,7 +663,13 @@ def run_scenario(
         masks_dense, compact_mask, iou_dense_skipped
     )
     dense_nms_s, compact_nms_s, nms_ok, nms_diff = stage_nms(
-        xyxy, confidence, class_ids, masks_dense, compact_mask, dense_skipped
+        xyxy,
+        confidence,
+        class_ids,
+        masks_dense,
+        compact_mask,
+        dense_skipped,
+        iou_dense_skipped,
     )
     dense_merge_s, compact_merge_s, merge_ok = stage_merge(
         det_dense, det_compact, dense_skipped
@@ -705,7 +714,6 @@ def run_scenario(
     parts = []
     for k, v in checks.items():
         if k == "nms" and v is False:
-            # Show mismatch count: compact uses exact-crop IoU vs dense resize-640.
             parts.append(f"nms=[red]✗({nms_diff})[/red]")
         else:
             parts.append(
@@ -957,13 +965,15 @@ def main() -> None:
     # ── parameter matrix ──────────────────────────────────────────────────────
     # (tier_label, (image_width, image_height), num_objects)
     TIERS: list[tuple[str, tuple[int, int], int]] = [
-        ("FHD", (1920, 1080), 100),
-        ("4K", (3840, 2160), 500),
-        ("4K", (3840, 2160), 1000),
-        ("SAT", (8192, 8192), 200),
+        ("FHD", (1920, 1080), 100),  # full comparison  (0.21 GB < 1 GB IoU thr.)
+        ("FHD", (1920, 1080), 200),  # full comparison  (0.41 GB < 1 GB IoU thr.)
+        ("FHD", (1920, 1080), 400),  # full comparison  (0.83 GB < 1 GB IoU thr.)
+        ("4K", (3840, 2160), 100),  # full comparison  (0.83 GB < 1 GB IoU thr.)
+        ("4K", (3840, 2160), 200),  # dense excl. IoU/NMS  (1.66 GB > 1 GB thr.)
+        ("SAT", (8192, 8192), 200),  # dense excl. IoU/NMS  (13.4 GB > 1 GB thr.)
     ]
-    FILL_FRACTIONS = [0.05, 0.10, 0.20, 0.50]
-    VERTEX_COUNTS = [8, 64, 128, 320, 600]  # low / realistic / YOLOv8-seg default
+    FILL_FRACTIONS = [0.05, 0.20, 0.50]  # sparse / moderate / SAM-everything
+    VERTEX_COUNTS = [8, 128, 600]  # low / realistic / YOLOv8-seg default
 
     scenarios = [
         {

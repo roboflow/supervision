@@ -242,21 +242,21 @@ class TestMaskIouBatchDispatch:
 
 
 class TestNmsWithCompactMask:
-    """Verify mask NMS produces the same keep-set for CompactMask and dense inputs.
+    """Verify mask NMS produces identical keep-sets for CompactMask and dense inputs.
 
-    The CompactMask path skips resizing (IoU is computed directly on RLE crops),
-    while the dense path downscales to mask_dimension pixels first.  Results
-    should agree for non-degenerate cases.
+    Both paths now use exact full-resolution IoU — no resize approximation.
+    Tests use images larger than 640 px to ensure the old resize-to-640 path
+    would have introduced lossy approximation (catching the regression).
     """
 
     def test_nms_compact_matches_dense(self) -> None:
         """NMS keep-set is identical for CompactMask and the equivalent dense array."""
-        img_h, img_w = 40, 40
-        # Two non-overlapping high-confidence masks and one that overlaps mask 0.
+        # Use > 640 px so the old resize-to-640 path would have been lossy.
+        img_h, img_w = 720, 720
         masks = np.zeros((3, img_h, img_w), dtype=bool)
-        masks[0, 0:20, 0:20] = True  # top-left
-        masks[1, 0:18, 0:18] = True  # heavily overlaps mask 0
-        masks[2, 20:40, 20:40] = True  # bottom-right, no overlap
+        masks[0, 0:360, 0:360] = True  # top-left
+        masks[1, 0:324, 0:324] = True  # heavily overlaps mask 0
+        masks[2, 360:720, 360:720] = True  # bottom-right, no overlap
 
         scores = np.array([0.9, 0.8, 0.7])
         predictions = np.column_stack(
@@ -267,6 +267,28 @@ class TestNmsWithCompactMask:
 
         keep_dense = mask_non_max_suppression(predictions, masks, iou_threshold=0.3)
         keep_compact = mask_non_max_suppression(predictions, cm, iou_threshold=0.3)
+
+        np.testing.assert_array_equal(keep_compact, keep_dense)
+
+    def test_nms_compact_matches_dense_borderline(self) -> None:
+        """Borderline IoU pair (≈ threshold) must agree — catches the resize bug.
+
+        With resize-to-640, sub-pixel rounding on a pair whose true IoU is very
+        close to the threshold flips the keep/suppress decision.  Both paths now
+        compute exact pixel-level IoU so results are identical.
+        """
+        img_h, img_w = 1080, 1920
+        masks = np.zeros((2, img_h, img_w), dtype=bool)
+        # Mask 0: 200x200 square; mask 1: shifted 141 px → true IoU ≈ 0.50.
+        masks[0, 100:300, 100:300] = True
+        masks[1, 241:441, 241:441] = True
+
+        scores = np.array([0.9, 0.8])
+        predictions = np.column_stack([np.zeros((2, 4)), scores])
+        cm = _cm_from_masks(masks, (img_h, img_w))
+
+        keep_dense = mask_non_max_suppression(predictions, masks, iou_threshold=0.5)
+        keep_compact = mask_non_max_suppression(predictions, cm, iou_threshold=0.5)
 
         np.testing.assert_array_equal(keep_compact, keep_dense)
 

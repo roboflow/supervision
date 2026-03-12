@@ -639,6 +639,11 @@ def mask_non_max_suppression(
     """
     Perform Non-Maximum Suppression (NMS) on segmentation predictions.
 
+    IoU is computed exactly on the full-resolution masks for both dense and
+    :class:`~supervision.detection.compact_mask.CompactMask` inputs.  The
+    ``mask_dimension`` parameter is kept for backward compatibility but is no
+    longer used — dense masks are **not** resized before IoU computation.
+
     Args:
         predictions: A 2D array of object detection predictions in
             the format of `(x_min, y_min, x_max, y_max, score)`
@@ -651,8 +656,8 @@ def mask_non_max_suppression(
             to use for non-maximum suppression.
         overlap_metric: Metric used to compute the degree of overlap
             between pairs of masks (e.g., IoU, IoS).
-        mask_dimension: The dimension to which the masks should be
-            resized before computing IOU values. Defaults to 640.
+        mask_dimension: Deprecated, no longer used. Kept for backward
+            compatibility.
 
     Returns:
         A boolean array indicating which predictions to keep after
@@ -671,18 +676,11 @@ def mask_non_max_suppression(
     if columns == 5:
         predictions = np.c_[predictions, np.zeros(rows)]
 
-    from supervision.detection.compact_mask import CompactMask
-
     sort_index = predictions[:, 4].argsort()[::-1]
     predictions = predictions[sort_index]
     masks = masks[sort_index]
 
-    if isinstance(masks, CompactMask):
-        # CompactMask IoU is computed directly on RLE crops — no resize needed.
-        ious = compact_mask_iou_batch(masks, masks, overlap_metric)
-    else:
-        masks_resized = resize_masks(masks, mask_dimension)
-        ious = mask_iou_batch(masks_resized, masks_resized, overlap_metric)
+    ious = mask_iou_batch(masks, masks, overlap_metric)
     categories = predictions[:, 5]
 
     keep = np.ones(rows, dtype=bool)
