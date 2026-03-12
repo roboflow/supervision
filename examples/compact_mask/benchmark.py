@@ -863,7 +863,7 @@ def print_summary(results: list[ScenarioResult]) -> None:
         header_style="bold cyan",
         min_width=console.width,
     )
-    table.add_column("Scenario", style="bold", min_width=25)
+    table.add_column("Scenario", style="bold", min_width=22)
     table.add_column("Objects", justify="right", min_width=7)
     table.add_column("Resolution", min_width=12, no_wrap=True)
     table.add_column("Fill", justify="right", min_width=5, no_wrap=True)
@@ -883,7 +883,7 @@ def print_summary(results: list[ScenarioResult]) -> None:
     table.add_column("NMS\nop.", justify="right", min_width=6)
     table.add_column("Merge\nop.", justify="right", min_width=6)
     table.add_column("Offset\nop.", justify="right", min_width=6)
-    table.add_column("Centroids\nop.", justify="right", min_width=6)
+    table.add_column("Centr\nop.", justify="right", min_width=6)
     table.add_column("OK?", justify="center", min_width=4)
 
     for _, row in _build_summary_df(results).iterrows():

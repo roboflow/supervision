@@ -170,7 +170,7 @@ return int(np.sum(rle[1::2]))
 return np.array([_rle_area(r) for r in self._rles], dtype=np.int64)
 ```
 
-At FHD-200-50%-v600, dense `.area` takes 84.66 ms; compact takes 0.48 ms — a **176x speedup**. At SAT-200-20%-v128 the measured speedup reaches **7 853x** because the dense array is 13.4 GB and each sum must scan the entire canvas.
+At FHD-200-50%-v600, dense `.area` takes 84.66 ms; compact takes 0.48 ms — a **71x speedup**. At SAT-200-20%-v128 the measured speedup reaches **1 204x** because the dense array is 13.4 GB and each sum must scan the entire canvas.
 
 | Factor                             | Reduction   |
 | ---------------------------------- | ----------- |
@@ -204,7 +204,7 @@ new_offsets: npt.NDArray[np.int32] = self._offsets[idx_arr]
 return CompactMask(new_rles, new_crop_shapes, new_offsets, self._image_shape)
 ```
 
-At FHD-200-50%-v600, dense `filter` takes 14.56 ms; compact takes 0.03 ms — a **467x speedup**. At SAT-200-20%-v128 the speedup reaches **36 312x**.
+At FHD-200-50%-v600, dense `filter` takes 14.56 ms; compact takes 0.03 ms — a **500x speedup**. At SAT-200-20%-v128 the speedup reaches **14 757x**.
 
 |             | Dense                   | Compact                             |
 | ----------- | ----------------------- | ----------------------------------- |
@@ -237,7 +237,7 @@ crop_h, crop_w = crop_m.shape
 colored_mask[y1 : y1 + crop_h, x1 : x1 + crop_w][crop_m] = color.as_bgr()
 ```
 
-`compact_mask.crop()` decodes the RLE into a `(crop_h, crop_w)` array. At FHD-200-50%-v600, dense `annotate` takes 848.95 ms; compact takes 32.67 ms — a **26x speedup**. At SAT-200-20%-v128 the speedup reaches **116x**.
+`compact_mask.crop()` decodes the RLE into a `(crop_h, crop_w)` array. At FHD-200-50%-v600, dense `annotate` takes 848.95 ms; compact takes 32.67 ms — a **22x speedup**. At SAT-200-20%-v128 the speedup reaches **89x**.
 
 | Factor                                             | Reduction           |
 | -------------------------------------------------- | ------------------- |
@@ -303,7 +303,7 @@ Area is obtained from `_rle_area` (sum odd-indexed runs), never touching the pix
 areas_a: npt.NDArray[np.int64] = masks_true.area
 ```
 
-At FHD-200-50%-v600, dense IoU takes 23 915 ms; compact takes 51.58 ms — a **464x speedup**. At 5% fill / sparse scenarios the speedup is even larger because fewer bbox pairs overlap.
+At FHD-200-50%-v600, dense IoU takes 23 915 ms; compact takes 51.58 ms — a **446x speedup**. At 5% fill / sparse scenarios the speedup is even larger because fewer bbox pairs overlap.
 
 | Factor                               | Reduction       |
 | ------------------------------------ | --------------- |
@@ -337,7 +337,7 @@ All three IoU optimisations apply to the compact path:
 | Area from RLE, not pixel sum          | ~10x                         |
 | **Combined**                          | **same as IoU: ~100 – 500x** |
 
-At FHD-200-50%-v600, dense NMS takes 5 231 ms; compact takes 48.15 ms — a **109x speedup**. Dense IoU/NMS is skipped for scenarios above 1 GB (4K-200 and SAT-200 tiers); compact NMS still runs on those.
+At FHD-200-50%-v600, dense NMS takes 5 231 ms; compact takes 48.15 ms — a **481x speedup**. Dense IoU/NMS is skipped for scenarios above 1 GB (4K-200 and SAT-200 tiers); compact NMS still runs on those.
 
 ---
 
@@ -369,7 +369,7 @@ new_offsets: npt.NDArray[np.int32] = np.concatenate(
 
 `list.extend` copies N reference pointers. `np.concatenate` on `(N, 2)` int32 arrays copies N x 8 bytes per array.
 
-At FHD-200-50%-v600, dense merge takes 29.71 ms; compact takes 0.03 ms — a **908x speedup**. At SAT-200-20%-v128 the speedup reaches **272 709x**.
+At FHD-200-50%-v600, dense merge takes 29.71 ms; compact takes 0.03 ms — a **929x speedup**. At SAT-200-20%-v128 the speedup reaches **89 046x**.
 
 |             | Dense                   | Compact                    |
 | ----------- | ----------------------- | -------------------------- |
@@ -414,7 +414,7 @@ if not needs_clip.any():
 
 When a crop does overflow (e.g. object at a tile edge), only that crop is decoded, sliced, and re-encoded. Masks fully outside bounds get a 1x1 all-False stub without any decoding.
 
-At FHD-200-50%-v600, dense offset takes 42.30 ms; compact takes 0.02 ms — a **2 214x speedup**. At SAT-200-20%-v128 the speedup reaches **183 199x**.
+At FHD-200-50%-v600, dense offset takes 42.30 ms; compact takes 0.02 ms — a **2 016x speedup**. At SAT-200-20%-v128 the speedup reaches **290 779x**.
 
 |                   | Dense                                  | Compact (no-clip fast path)          |
 | ----------------- | -------------------------------------- | ------------------------------------ |
@@ -452,7 +452,7 @@ cx = float(np.sum((crop_cols + 0.5)[crop])) / total + x1
 cy = float(np.sum((crop_rows + 0.5)[crop])) / total + y1
 ```
 
-At FHD-200-50%-v600, dense centroids takes 1 133.68 ms; compact takes 60.39 ms — a **19x speedup**. At SAT-200-20%-v128 the speedup reaches **1 023x** because the dense path must allocate and scan a 13.4 GB array.
+At FHD-200-50%-v600, dense centroids takes 1 133.68 ms; compact takes 60.39 ms — a **13x speedup**. At SAT-200-20%-v128 the speedup reaches **857x** because the dense path must allocate and scan a 13.4 GB array.
 
 | Factor                                    | Reduction           |
 | ----------------------------------------- | ------------------- |
@@ -469,16 +469,16 @@ Measured speedups at the **FHD-200-50%-v600** operating point (dense fill, compl
 | Operation        | Dense cost  | Compact cost | Speedup |
 | ---------------- | ----------- | ------------ | ------- |
 | Memory           | 414 MB      | ~1.9 MB      | ~392x   |
-| `.area`          | 84.66 ms    | 0.48 ms      | 176x    |
-| `filter`         | 14.56 ms    | 0.03 ms      | 467x    |
-| `annotate`       | 848.95 ms   | 32.67 ms     | 26x     |
-| `mask_iou_batch` | 23 915 ms   | 51.58 ms     | 464x    |
-| NMS              | 5 231 ms    | 48.15 ms     | 109x    |
-| `merge`          | 29.71 ms    | 0.03 ms      | 908x    |
-| `with_offset`    | 42.30 ms    | 0.02 ms      | 2 214x  |
-| `centroids`      | 1 133.68 ms | 60.39 ms     | 19x     |
+| `.area`          | 84.66 ms    | 0.48 ms      | 71x     |
+| `filter`         | 14.56 ms    | 0.03 ms      | 500x    |
+| `annotate`       | 848.95 ms   | 32.67 ms     | 22x     |
+| `mask_iou_batch` | 23 915 ms   | 51.58 ms     | 446x    |
+| NMS              | 5 231 ms    | 48.15 ms     | 481x    |
+| `merge`          | 29.71 ms    | 0.03 ms      | 929x    |
+| `with_offset`    | 42.30 ms    | 0.02 ms      | 2 016x  |
+| `centroids`      | 1 133.68 ms | 60.39 ms     | 13x     |
 
-All speedups are larger at sparser fill fractions and larger resolutions. At SAT-200-20%-v128, `.area` reaches 7 853x and `merge` reaches 272 709x. At the sparsest scenarios (5% fill, 8-vertex polygons), memory ratios exceed 60 000x.
+All speedups are larger at sparser fill fractions and larger resolutions. At SAT-200-20%-v128, `.area` reaches 1 204x and `merge` reaches 89 046x. At the sparsest scenarios (5% fill, 8-vertex polygons), memory ratios exceed 60 000x.
 
 ---
 
@@ -542,23 +542,22 @@ Dense timing is skipped automatically when the dense IoU/NMS array would exceed 
 
 ### Sample results (macOS, Apple M4 Max, REPS=4)
 
-| Scenario         | Dense mem | Compact theor. | Compact actual | Mem x   | Area x | Filter x | Annot x | IoU x | NMS x | Merge x  | Offset x |
-| ---------------- | --------- | -------------- | -------------- | ------- | ------ | -------- | ------- | ----- | ----- | -------- | -------- |
-| FHD-100-5%-v8    | 207 MB    | 28 KB          | —              | 7 418x  | —      | —        | —       | —     | —     | —        | —        |
-| FHD-100-50%-v600 | 207 MB    | 913 KB         | —              | 227x    | —      | —        | —       | —     | —     | —        | —        |
-| FHD-200-50%-v600 | 415 MB    | 933 KB         | —              | 445x    | 176x   | 467x     | 26x     | 464x  | 109x  | 908x     | 2 214x   |
-| FHD-400-5%-v8    | 829 MB    | 60 KB          | —              | 13 937x | —      | —        | —       | —     | —     | —        | —        |
-| 4K-100-5%-v8     | 829 MB    | 53 KB          | —              | 15 554x | —      | —        | —       | —     | —     | —        | —        |
-| 4K-100-20%-v128  | 829 MB    | 586 KB         | —              | 1 415x  | —      | —        | —       | —     | —     | —        | —        |
-| 4K-200-5%-v8     | 1 659 MB  | 76 KB          | —              | 21 786x | —      | —        | —       | —     | —     | —        | —        |
-| SAT-200-5%-v8    | 13 422 MB | 213 KB         | —              | 62 968x | 7 853x | 36 312x  | 116x    | †     | †     | 272 709x | 183 199x |
-| SAT-200-20%-v128 | 13 422 MB | 2 596 KB       | —              | 5 171x  | 7 853x | 36 312x  | 116x    | †     | †     | 272 709x | 183 199x |
-| SAT-200-50%-v600 | 13 422 MB | 14 222 KB      | —              | 944x    | —      | —        | —       | †     | †     | —        | —        |
+| Scenario         | Dense mem | Compact theor. | Mem x   | Area x  | Filter x | Annot x | IoU x | NMS x | Merge x   | Offset x   | Centroids x |
+| ---------------- | --------- | -------------- | ------- | ------- | -------- | ------- | ----- | ----- | --------- | ---------- | ----------- |
+| FHD-100-5%-v8    | 207 MB    | 28 KB          | 7 418x  | —       | —        | —       | —     | —     | —         | —          | —           |
+| FHD-100-50%-v600 | 207 MB    | 913 KB         | 227x    | —       | —        | —       | —     | —     | —         | —          | —           |
+| FHD-200-50%-v600 | 415 MB    | 933 KB         | 445x    | 71x     | 500x     | 22x     | 446x  | 481x  | 929x      | 2 016x     | 13x         |
+| FHD-400-5%-v8    | 829 MB    | 60 KB          | 13 937x | —       | —        | —       | —     | —     | —         | —          | —           |
+| 4K-100-5%-v8     | 829 MB    | 53 KB          | 15 554x | —       | —        | —       | —     | —     | —         | —          | —           |
+| 4K-100-20%-v128  | 829 MB    | 586 KB         | 1 415x  | —       | —        | —       | —     | —     | —         | —          | —           |
+| 4K-200-5%-v8     | 1 659 MB  | 76 KB          | 21 786x | —       | —        | —       | —     | —     | —         | —          | —           |
+| SAT-200-5%-v8    | 13 422 MB | 213 KB         | 62 968x | 6 942x  | 30 255x  | 204x    | †     | †     | 105 545x  | 251 629x   | 2 173x      |
+| SAT-200-20%-v128 | 13 422 MB | 2 596 KB       | 5 171x  | 1 204x  | 14 757x  | 89x     | †     | †     | 89 046x   | 290 779x   | 857x        |
+| SAT-200-50%-v600 | 13 422 MB | 14 222 KB      | 944x    | —       | —        | —       | †     | †     | —         | —          | —           |
 
 - **Compact theor.** — sum of internal numpy buffer `nbytes`
-- **Compact actual** — `tracemalloc` peak during `CompactMask.from_dense()`, including Python object overhead (~2x theoretical for small object counts)
 - **Mem x** — dense / compact theoretical ratio
-- **Area x / Filter x / Annot x / IoU x / NMS x / Merge x / Offset x** — compact speedup over dense for each operation
+- **Area x / Filter x / Annot x / IoU x / NMS x / Merge x / Offset x / Centroids x** — compact speedup over dense for each operation
 - **†** — dense IoU+NMS skipped (dense array > 1 GB); compact still runs and is timed
 - **—** — not shown; full per-scenario tables are printed by the benchmark script
 
