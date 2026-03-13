@@ -62,7 +62,7 @@ def deprecated_parameter(
     A decorator to mark a function's parameter as deprecated and issue a warning when
     used.
 
-    Parameters:
+    Args:
         old_parameter: The name of the deprecated parameter.
         new_parameter: The name of the parameter that should be used instead.
         map_function: A function used to map the value of the old

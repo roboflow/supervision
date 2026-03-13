@@ -366,7 +366,7 @@ class F1Score(Metric):
         """
         Broadcastable function, computing the F1 score from the confusion matrix.
 
-        Arguments:
+        Args:
             confusion_matrix: shape (N, ..., 3), where the last dimension
                 contains the true positives, false positives, and false negatives.
 

@@ -192,23 +192,18 @@ ignore_missing_imports = false
 explicit_package_bases = true
 strict = true
 mypy_path = "src"
-# exclude = [
-#  "docs",
-#  "test",
-#  "examples",
-#  "setup.py",
-# ]
-
-[[tool.mypy.overrides]]
-module = [
-  "tests.*",
-  "examples.*",
-  # TODO: fix type errors in the following modules
-  "supervision.detection.tools.smoother",
-  "supervision.key_points.skeletons",
-  "supervision.metrics.utils.utils",
+overrides = [
+  # exclude = [
+  #  "docs",
+  #  "test",
+  #  "examples",
+  #  "setup.py",
+  # ]
+  { module = [
+    "tests.*",
+    "examples.*",
+  ], ignore_errors = true },
 ]
-ignore_errors = true
 
 [tool.autoflake]
 check = true
