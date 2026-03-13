@@ -535,7 +535,7 @@ class F1ScoreResult:
             ... )
             >>> f1_metric = F1Score()
             >>> f1_result = f1_metric.update(predictions, targets).compute()
-            >>> "F1Score:" in str(f1_result)
+            >>> "F1ScoreResult:" in str(f1_result)
             True
 
             ```

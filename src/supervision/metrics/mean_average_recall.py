@@ -102,8 +102,8 @@ class MeanAverageRecallResult:
             ... )
             >>> mar_metric = MeanAverageRecall()
             >>> mar_result = mar_metric.update(predictions, targets).compute()
-            >>> str(mar_result)
-            'MeanAverageRecallResult:\\nMetric target:  ...'  # doctest: +ELLIPSIS
+            >>> str(mar_result)  # doctest: +ELLIPSIS
+            'MeanAverageRecallResult:\\nMetric target:  ...'
 
             ```
         """
