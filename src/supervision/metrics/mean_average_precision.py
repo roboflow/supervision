@@ -88,15 +88,29 @@ class MeanAveragePrecisionResult:
         Formats the evaluation output metrics to match the structure used by pycocotools
 
         Example:
-           ```python
-           print(map_result)
-           # MeanAveragePrecisionResult:
-           Average Precision (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.464
-           Average Precision (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.637
-           Average Precision (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.203
-           Average Precision (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.284
-           Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.497
-           Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.629
+           ```pycon
+           >>> import numpy as np
+           >>> import supervision as sv
+           >>> from supervision.metrics import MeanAveragePrecision
+           >>> predictions = sv.Detections(
+           ...     xyxy=np.array([[0, 0, 10, 10]]),
+           ...     class_id=np.array([0]),
+           ...     confidence=np.array([0.9])
+           ... )
+           >>> targets = sv.Detections(
+           ...     xyxy=np.array([[0, 0, 10, 10]]),
+           ...     class_id=np.array([0])
+           ... )
+           >>> map_metric = MeanAveragePrecision()
+           >>> map_result = map_metric.update(predictions, targets).compute()
+           >>> print(map_result)  # doctest: +ELLIPSIS
+           Average Precision (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = ...
+           Average Precision (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = ...
+           Average Precision (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = ...
+           Average Precision (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = ...
+           Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = ...
+           Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = ...
+
            ```
         """
         if (

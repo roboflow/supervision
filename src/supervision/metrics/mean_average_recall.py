@@ -87,21 +87,38 @@ class MeanAverageRecallResult:
         Format as a pretty string.
 
         Example:
-            ```python
-            print(mar_results)
-            # MeanAverageRecallResult:
-            # Metric target:    MetricTarget.BOXES
-            # mAR @ 1:    0.1362
-            # mAR @ 10:   0.4239
-            # mAR @ 100:  0.5241
-            # max detections: [1  10 100]
-            # IoU thresh:     [0.5  0.55  0.6  ...]
-            # mAR per class:
-            # 0: [0.78571  0.78571  0.78571  ...]
-            # ...
-            # Small objects: ...
-            # Medium objects: ...
-            # Large objects: ...
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> from supervision.metrics import MeanAverageRecall
+            >>> predictions = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 10, 10]]),
+            ...     class_id=np.array([0]),
+            ...     confidence=np.array([0.9])
+            ... )
+            >>> targets = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 10, 10]]),
+            ...     class_id=np.array([0])
+            ... )
+            >>> mar_metric = MeanAverageRecall()
+            >>> mar_result = mar_metric.update(predictions, targets).compute()
+            >>> print(mar_result)  # doctest: +ELLIPSIS
+            MeanAverageRecallResult:
+            Metric target:  MetricTarget.BOXES
+            mAR @ 1:    1.0000
+            mAR @ 10:   1.0000
+            mAR @ 100:  1.0000
+            max detections: [  1  10 100]
+            IoU thresh:     [0.5  0.55 ... 0.95]
+            mAR per class:
+              0: [1. ... 1.]
+            ...
+            Medium objects:
+              MeanAverageRecallResult:
+              Metric target:  MetricTarget.BOXES
+              mAR @ 1:    0.0000
+              ...
+
             ```
         """
         out_str = (
@@ -588,7 +605,7 @@ class MeanAverageRecall(Metric):
         """
         Broadcastable function, computing the recall from the confusion matrix.
 
-        Arguments:
+        Args:
             confusion_matrix: shape (N, ..., 3), where the last dimension
                 contains the true positives, false positives, and false negatives.
 

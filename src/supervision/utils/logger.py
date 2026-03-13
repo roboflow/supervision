@@ -24,12 +24,15 @@ def _get_logger(name: str = "supervision", level: int | None = None) -> logging.
         A configured `logging.Logger` instance.
 
     Example:
-        ```python
-        from supervision.utils.logger import _get_logger
+        ```pycon
+        >>> from supervision.utils.logger import _get_logger
+        >>> import logging
+        >>> logger = _get_logger("test_logger", level=logging.INFO)
+        >>> logger.name
+        'test_logger'
+        >>> logger.level == logging.INFO
+        True
 
-        logger = _get_logger(__name__)
-        logger.info("Processing started")
-        logger.warning("File not found, using default")
         ```
     """
     if level is None:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import warnings
 from collections import defaultdict, deque
 from copy import deepcopy
+from typing import cast
 
 import numpy as np
 
@@ -89,7 +90,9 @@ class DetectionsSmoother:
             length: The maximum number of frames to consider for smoothing
                 detections. Defaults to 5.
         """
-        self.tracks = defaultdict(lambda: deque(maxlen=length))
+        self.tracks: defaultdict[int, deque[Detections | None]] = defaultdict(
+            lambda: deque(maxlen=length)
+        )
 
     def update_with_detections(self, detections: Detections) -> Detections:
         """
@@ -109,9 +112,10 @@ class DetectionsSmoother:
             return detections
 
         for detection_idx in range(len(detections)):
-            tracker_id = detections.tracker_id[detection_idx]
+            tracker_id_value = detections.tracker_id[detection_idx]
+            tracker_id = int(tracker_id_value)
 
-            self.tracks[tracker_id].append(detections[detection_idx])
+            self.tracks[tracker_id].append(cast(Detections, detections[detection_idx]))
 
         for track_id in self.tracks.keys():
             if track_id not in detections.tracker_id:
@@ -128,13 +132,13 @@ class DetectionsSmoother:
         if track is None:
             return None
 
-        track = [d for d in track if d is not None]
-        if len(track) == 0:
+        valid: list[Detections] = [d for d in track if d is not None]
+        if len(valid) == 0:
             return None
 
-        ret = deepcopy(track[0])
-        ret.xyxy = np.mean([d.xyxy for d in track], axis=0)
-        ret.confidence = np.mean([d.confidence for d in track], axis=0)
+        ret = deepcopy(valid[0])
+        ret.xyxy = np.mean([d.xyxy for d in valid], axis=0)
+        ret.confidence = np.mean([d.confidence for d in valid], axis=0)
 
         return ret
 
