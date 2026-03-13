@@ -112,7 +112,8 @@ class DetectionsSmoother:
             return detections
 
         for detection_idx in range(len(detections)):
-            tracker_id = detections.tracker_id[detection_idx]
+            tracker_id_value = detections.tracker_id[detection_idx]
+            tracker_id = int(tracker_id_value)
 
             self.tracks[tracker_id].append(cast(Detections, detections[detection_idx]))
 

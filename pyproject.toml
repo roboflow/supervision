@@ -192,18 +192,19 @@ ignore_missing_imports = false
 explicit_package_bases = true
 strict = true
 mypy_path = "src"
-overrides = [
-  # exclude = [
-  #  "docs",
-  #  "test",
-  #  "examples",
-  #  "setup.py",
-  # ]
-  { module = [
-    "tests.*",
-    "examples.*",
-  ], ignore_errors = true },
+# exclude = [
+#  "docs",
+#  "test",
+#  "examples",
+#  "setup.py",
+# ]
+
+[[tool.mypy.overrides]]
+module = [
+  "tests.*",
+  "examples.*",
 ]
+ignore_errors = true
 
 [tool.autoflake]
 check = true
