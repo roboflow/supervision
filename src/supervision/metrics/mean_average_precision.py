@@ -103,7 +103,10 @@ class MeanAveragePrecisionResult:
            ... )
            >>> map_metric = MeanAveragePrecision()
            >>> map_result = map_metric.update(predictions, targets).compute()
-           >>> print(map_result)  # doctest: +SKIP
+           >>> print(map_result)  # doctest: +ELLIPSIS
+           Average Precision (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = ...
+           Average Precision (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = ...
+           Average Precision (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = ...
 
            ```
         """

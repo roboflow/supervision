@@ -26,10 +26,10 @@ def _get_logger(name: str = "supervision", level: int | None = None) -> logging.
     Example:
         ```pycon
         >>> from supervision.utils.logger import _get_logger
-        >>> logger = _get_logger("test_logger")
+        >>> import logging
+        >>> logger = _get_logger("test_logger", level=logging.INFO)
         >>> logger.name
         'test_logger'
-        >>> import logging
         >>> logger.level == logging.INFO
         True
 

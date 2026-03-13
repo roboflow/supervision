@@ -548,7 +548,8 @@ class PrecisionResult:
             >>> precision_result = precision_metric.update(
             ...     predictions, targets
             ... ).compute()
-            >>> print(precision_result)  # doctest: +SKIP
+            >>> "PrecisionResult" in str(precision_result)
+            True
 
             ```
         """

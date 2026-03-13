@@ -544,7 +544,8 @@ class RecallResult:
             ... )
             >>> recall_metric = Recall()
             >>> recall_result = recall_metric.update(predictions, targets).compute()
-            >>> print(recall_result)  # doctest: +SKIP
+            >>> "RecallResult" in str(recall_result)
+            True
 
             ```
         """
