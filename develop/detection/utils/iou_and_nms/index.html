@@ -3884,7 +3884,7 @@ shared area with the smaller of the two shapes.</p>
 <h3 id="supervision.detection.utils.iou_and_nms.box_iou(box_true)" class="doc doc-heading doc-heading-parameter">                  <code>box_true</code>
 <a href="#supervision.detection.utils.iou_and_nms.box_iou(box_true)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code>`list[float]` or `numpy.array`</code>
+                  <code><span title="list">list</span>[<span title="float">float</span>] | <span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.floating">floating</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3901,7 +3901,7 @@ shared area with the smaller of the two shapes.</p>
 <h3 id="supervision.detection.utils.iou_and_nms.box_iou(box_detection)" class="doc doc-heading doc-heading-parameter">                  <code>box_detection</code>
 <a href="#supervision.detection.utils.iou_and_nms.box_iou(box_detection)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code>`list[float]` or `numpy.array`</code>
+                  <code><span title="list">list</span>[<span title="float">float</span>] | <span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.floating">floating</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3918,7 +3918,7 @@ shared area with the smaller of the two shapes.</p>
 <h3 id="supervision.detection.utils.iou_and_nms.box_iou(overlap_metric)" class="doc doc-heading doc-heading-parameter">                  <code>overlap_metric</code>
 <a href="#supervision.detection.utils.iou_and_nms.box_iou(overlap_metric)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code>`OverlapMetric` or `str`</code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;supervision.detection.utils.iou_and_nms.OverlapMetric&lt;/code&gt;" href="#supervision.detection.utils.iou_and_nms.OverlapMetric">OverlapMetric</a> | <span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3946,7 +3946,7 @@ Use <code>OverlapMetric.IOU</code> for IOU or
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>`float`</code>
+                  <code><span title="float">float</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4076,16 +4076,16 @@ Use <code>OverlapMetric.IOU</code> for IOU or
 </span><span id="__span-0-97"><a id="__codelineno-0-97" name="__codelineno-0-97"></a><span class="sd">    `[0, 1]`.</span>
 </span><span id="__span-0-98"><a id="__codelineno-0-98" name="__codelineno-0-98"></a>
 </span><span id="__span-0-99"><a id="__codelineno-0-99" name="__codelineno-0-99"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-100"><a id="__codelineno-0-100" name="__codelineno-0-100"></a><span class="sd">        box_true (`list[float]` or `numpy.array`): Ground truth box in format</span>
+</span><span id="__span-0-100"><a id="__codelineno-0-100" name="__codelineno-0-100"></a><span class="sd">        box_true: Ground truth box in format</span>
 </span><span id="__span-0-101"><a id="__codelineno-0-101" name="__codelineno-0-101"></a><span class="sd">          `(x_min, y_min, x_max, y_max)`.</span>
-</span><span id="__span-0-102"><a id="__codelineno-0-102" name="__codelineno-0-102"></a><span class="sd">        box_detection (`list[float]` or `numpy.array`): Detected box in format</span>
+</span><span id="__span-0-102"><a id="__codelineno-0-102" name="__codelineno-0-102"></a><span class="sd">        box_detection: Detected box in format</span>
 </span><span id="__span-0-103"><a id="__codelineno-0-103" name="__codelineno-0-103"></a><span class="sd">          `(x_min, y_min, x_max, y_max)`.</span>
-</span><span id="__span-0-104"><a id="__codelineno-0-104" name="__codelineno-0-104"></a><span class="sd">        overlap_metric (`OverlapMetric` or `str`): Overlap type.</span>
+</span><span id="__span-0-104"><a id="__codelineno-0-104" name="__codelineno-0-104"></a><span class="sd">        overlap_metric: Overlap type.</span>
 </span><span id="__span-0-105"><a id="__codelineno-0-105" name="__codelineno-0-105"></a><span class="sd">          Use `OverlapMetric.IOU` for IOU or</span>
 </span><span id="__span-0-106"><a id="__codelineno-0-106" name="__codelineno-0-106"></a><span class="sd">          `OverlapMetric.IOS` for IOS. Defaults to `OverlapMetric.IOU`.</span>
 </span><span id="__span-0-107"><a id="__codelineno-0-107" name="__codelineno-0-107"></a>
 </span><span id="__span-0-108"><a id="__codelineno-0-108" name="__codelineno-0-108"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-109"><a id="__codelineno-0-109" name="__codelineno-0-109"></a><span class="sd">        (`float`): Overlap value between boxes in `[0, 1]`.</span>
+</span><span id="__span-0-109"><a id="__codelineno-0-109" name="__codelineno-0-109"></a><span class="sd">        Overlap value between boxes in `[0, 1]`.</span>
 </span><span id="__span-0-110"><a id="__codelineno-0-110" name="__codelineno-0-110"></a>
 </span><span id="__span-0-111"><a id="__codelineno-0-111" name="__codelineno-0-111"></a><span class="sd">    Raises:</span>
 </span><span id="__span-0-112"><a id="__codelineno-0-112" name="__codelineno-0-112"></a><span class="sd">        ValueError: If `overlap_metric` is not IOU or IOS.</span>
@@ -4177,7 +4177,7 @@ Use <code>OverlapMetric.IOU</code> for IOU or
 <h3 id="supervision.detection.utils.iou_and_nms.box_iou_batch(boxes_true)" class="doc doc-heading doc-heading-parameter">                  <code>boxes_true</code>
 <a href="#supervision.detection.utils.iou_and_nms.box_iou_batch(boxes_true)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code>`numpy.array`</code>
+                  <code><span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.number">number</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4194,7 +4194,7 @@ shape <code>(N, 4)</code> as <code>(x_min, y_min, x_max, y_max)</code>.</p>
 <h3 id="supervision.detection.utils.iou_and_nms.box_iou_batch(boxes_detection)" class="doc doc-heading doc-heading-parameter">                  <code>boxes_detection</code>
 <a href="#supervision.detection.utils.iou_and_nms.box_iou_batch(boxes_detection)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code>`numpy.array`</code>
+                  <code><span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.number">number</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4211,7 +4211,7 @@ shape <code>(M, 4)</code> as <code>(x_min, y_min, x_max, y_max)</code>.</p>
 <h3 id="supervision.detection.utils.iou_and_nms.box_iou_batch(overlap_metric)" class="doc doc-heading doc-heading-parameter">                  <code>overlap_metric</code>
 <a href="#supervision.detection.utils.iou_and_nms.box_iou_batch(overlap_metric)" class="headerlink" title="Permanent link">&para;</a></h3>            </td>
             <td>
-                  <code>`OverlapMetric` or `str`</code>
+                  <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;code&gt;supervision.detection.utils.iou_and_nms.OverlapMetric&lt;/code&gt;" href="#supervision.detection.utils.iou_and_nms.OverlapMetric">OverlapMetric</a> | <span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4240,7 +4240,7 @@ Defaults to <code>OverlapMetric.IOU</code>.</p>
       <tbody>
           <tr class="doc-section-item">
             <td>
-                  <code>`numpy.array`</code>
+                  <code><span title="numpy.typing.NDArray">NDArray</span>[<span title="numpy.float32">float32</span>]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4416,17 +4416,17 @@ array([[0.25, 0.  ],
 </span><span id="__span-0-170"><a id="__codelineno-0-170" name="__codelineno-0-170"></a><span class="sd">    `[0, 1]`, matching each box from the first batch to each from the second.</span>
 </span><span id="__span-0-171"><a id="__codelineno-0-171" name="__codelineno-0-171"></a>
 </span><span id="__span-0-172"><a id="__codelineno-0-172" name="__codelineno-0-172"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-173"><a id="__codelineno-0-173" name="__codelineno-0-173"></a><span class="sd">        boxes_true (`numpy.array`): Array of reference boxes in</span>
+</span><span id="__span-0-173"><a id="__codelineno-0-173" name="__codelineno-0-173"></a><span class="sd">        boxes_true: Array of reference boxes in</span>
 </span><span id="__span-0-174"><a id="__codelineno-0-174" name="__codelineno-0-174"></a><span class="sd">            shape `(N, 4)` as `(x_min, y_min, x_max, y_max)`.</span>
-</span><span id="__span-0-175"><a id="__codelineno-0-175" name="__codelineno-0-175"></a><span class="sd">        boxes_detection (`numpy.array`): Array of detected boxes in</span>
+</span><span id="__span-0-175"><a id="__codelineno-0-175" name="__codelineno-0-175"></a><span class="sd">        boxes_detection: Array of detected boxes in</span>
 </span><span id="__span-0-176"><a id="__codelineno-0-176" name="__codelineno-0-176"></a><span class="sd">            shape `(M, 4)` as `(x_min, y_min, x_max, y_max)`.</span>
-</span><span id="__span-0-177"><a id="__codelineno-0-177" name="__codelineno-0-177"></a><span class="sd">        overlap_metric (`OverlapMetric` or `str`): Overlap type.</span>
+</span><span id="__span-0-177"><a id="__codelineno-0-177" name="__codelineno-0-177"></a><span class="sd">        overlap_metric: Overlap type.</span>
 </span><span id="__span-0-178"><a id="__codelineno-0-178" name="__codelineno-0-178"></a><span class="sd">            Use `OverlapMetric.IOU` for intersection-over-union,</span>
 </span><span id="__span-0-179"><a id="__codelineno-0-179" name="__codelineno-0-179"></a><span class="sd">            `OverlapMetric.IOS` for intersection-over-smaller-area.</span>
 </span><span id="__span-0-180"><a id="__codelineno-0-180" name="__codelineno-0-180"></a><span class="sd">            Defaults to `OverlapMetric.IOU`.</span>
 </span><span id="__span-0-181"><a id="__codelineno-0-181" name="__codelineno-0-181"></a>
 </span><span id="__span-0-182"><a id="__codelineno-0-182" name="__codelineno-0-182"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-183"><a id="__codelineno-0-183" name="__codelineno-0-183"></a><span class="sd">        (`numpy.array`): Overlap matrix of shape `(N, M)`, where entry</span>
+</span><span id="__span-0-183"><a id="__codelineno-0-183" name="__codelineno-0-183"></a><span class="sd">        Overlap matrix of shape `(N, M)`, where entry</span>
 </span><span id="__span-0-184"><a id="__codelineno-0-184" name="__codelineno-0-184"></a><span class="sd">            `[i, j]` is the overlap between `boxes_true[i]` and</span>
 </span><span id="__span-0-185"><a id="__codelineno-0-185" name="__codelineno-0-185"></a><span class="sd">            `boxes_detection[j]`.</span>
 </span><span id="__span-0-186"><a id="__codelineno-0-186" name="__codelineno-0-186"></a>
