@@ -548,8 +548,23 @@ class PrecisionResult:
             >>> precision_result = precision_metric.update(
             ...     predictions, targets
             ... ).compute()
-            >>> "PrecisionResult" in str(precision_result)
-            True
+            >>> print(precision_result)  # doctest: +ELLIPSIS
+            PrecisionResult:
+            Metric target:    MetricTarget.BOXES
+            Averaging method: AveragingMethod.WEIGHTED
+            P @ 50:     1.0000
+            P @ 75:     1.0000
+            P @ thresh: [1. ... 1.]
+            IoU thresh: [0.5  0.55 ... 0.95]
+            Precision per class:
+              0: [1. ... 1.]
+            ...
+            Medium objects:
+              PrecisionResult:
+              Metric target:    MetricTarget.BOXES
+              Averaging method: AveragingMethod.WEIGHTED
+              P @ 50:     0.0000
+              ...
 
             ```
         """

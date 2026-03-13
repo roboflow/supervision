@@ -544,8 +544,23 @@ class RecallResult:
             ... )
             >>> recall_metric = Recall()
             >>> recall_result = recall_metric.update(predictions, targets).compute()
-            >>> "RecallResult" in str(recall_result)
-            True
+            >>> print(recall_result)  # doctest: +ELLIPSIS
+            RecallResult:
+            Metric target:    MetricTarget.BOXES
+            Averaging method: AveragingMethod.WEIGHTED
+            R @ 50:     1.0000
+            R @ 75:     1.0000
+            R @ thresh: [1. ... 1.]
+            IoU thresh: [0.5  0.55 ... 0.95]
+            Recall per class:
+              0: [1. ... 1.]
+            ...
+            Medium objects:
+              RecallResult:
+              Metric target:    MetricTarget.BOXES
+              Averaging method: AveragingMethod.WEIGHTED
+              R @ 50:     0.0000
+              ...
 
             ```
         """

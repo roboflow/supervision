@@ -102,8 +102,22 @@ class MeanAverageRecallResult:
             ... )
             >>> mar_metric = MeanAverageRecall()
             >>> mar_result = mar_metric.update(predictions, targets).compute()
-            >>> str(mar_result)  # doctest: +ELLIPSIS
-            'MeanAverageRecallResult:\\nMetric target:  ...'
+            >>> print(mar_result)  # doctest: +ELLIPSIS
+            MeanAverageRecallResult:
+            Metric target:  MetricTarget.BOXES
+            mAR @ 1:    1.0000
+            mAR @ 10:   1.0000
+            mAR @ 100:  1.0000
+            max detections: [  1  10 100]
+            IoU thresh:     [0.5  0.55 ... 0.95]
+            mAR per class:
+              0: [1. ... 1.]
+            ...
+            Medium objects:
+              MeanAverageRecallResult:
+              Metric target:  MetricTarget.BOXES
+              mAR @ 1:    0.0000
+              ...
 
             ```
         """

@@ -535,8 +535,23 @@ class F1ScoreResult:
             ... )
             >>> f1_metric = F1Score()
             >>> f1_result = f1_metric.update(predictions, targets).compute()
-            >>> "F1ScoreResult:" in str(f1_result)
-            True
+            >>> print(f1_result)  # doctest: +ELLIPSIS
+            F1ScoreResult:
+            Metric target: MetricTarget.BOXES
+            Averaging method: AveragingMethod.WEIGHTED
+            F1 @ 50:     1.0000
+            F1 @ 75:     1.0000
+            F1 @ thresh: [1. ... 1.]
+            IoU thresh:  [0.5  0.55 ... 0.95]
+            F1 per class:
+              0: [1. ... 1.]
+            ...
+            Medium objects:
+              F1ScoreResult:
+              Metric target: MetricTarget.BOXES
+              Averaging method: AveragingMethod.WEIGHTED
+              F1 @ 50:     0.0000
+              ...
 
             ```
         """
