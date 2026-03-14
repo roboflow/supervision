@@ -79,7 +79,7 @@ len(detections)
 
     image = Image.open(...)
     model = get_model(model_id="rfdetr-small", api_key="ROBOFLOW_API_KEY")
-    result = model.infer(image, confidence=0.5)[0]
+    result = model.infer(image)[0]
     detections = sv.Detections.from_inference(result)
 
     len(detections)
