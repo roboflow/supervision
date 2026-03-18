@@ -50,17 +50,18 @@ Read more about conda, mamba, and installing from source in our [guide](https://
 
 ### models
 
-Supervision was designed to be model agnostic. Just plug in any classification, detection, or segmentation model. For your convenience, we have created [connectors](https://supervision.roboflow.com/latest/detection/core/#detections) for the most popular libraries like Ultralytics, Transformers, or MMDetection.
+Supervision was designed to be model agnostic. Just plug in any classification, detection, or segmentation model. For your convenience, we have created [connectors](https://supervision.roboflow.com/latest/detection/core/#detections) for the most popular libraries like Ultralytics, Transformers, MMDetection, or Inference. Other integrations, like `rfdetr`, already return `sv.Detections` directly.
+
+Install the optional dependencies for this example with `pip install pillow rfdetr`.
 
 ```python
-import cv2
 import supervision as sv
-from ultralytics import YOLO
+from PIL import Image
+from rfdetr import RFDETRSmall
 
-image = cv2.imread(...)
-model = YOLO("yolov8s.pt")
-result = model(image)[0]
-detections = sv.Detections.from_ultralytics(result)
+image = Image.open(...)
+model = RFDETRSmall()
+detections = model.predict(image, threshold=0.5)
 
 len(detections)
 # 5
@@ -74,12 +75,12 @@ len(detections)
     Running with [Inference](https://github.com/roboflow/inference) requires a [Roboflow API KEY](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key).
 
     ```python
-    import cv2
     import supervision as sv
+    from PIL import Image
     from inference import get_model
 
-    image = cv2.imread(...)
-    model = get_model(model_id="yolov8s-640", api_key="ROBOFLOW_API_KEY")
+    image = Image.open(...)
+    model = get_model(model_id="rfdetr-small", api_key="ROBOFLOW_API_KEY")
     result = model.infer(image)[0]
     detections = sv.Detections.from_inference(result)
 
