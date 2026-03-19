@@ -99,7 +99,6 @@ packages.find.where = [ "src" ]
 packages.find.include = [ "supervision*" ]
 
 # exclude = [ "docs*", "tests*", "examples*" ]
-
 [tool.ruff]
 target-version = "py39"
 line-length = 88
