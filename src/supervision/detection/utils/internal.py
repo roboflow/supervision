@@ -8,7 +8,7 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
-from supervision.detection.utils.converters import polygon_to_mask
+from supervision.detection.utils.converters import polygon_to_mask, rle_to_mask
 from supervision.geometry.core import Vector
 
 
@@ -88,7 +88,20 @@ def process_roboflow_result(
         x_max = x_min + width
         y_max = y_min + height
 
-        if "points" not in prediction:
+        rle_data = (
+            prediction.get("rle") if "rle" in prediction else prediction.get("rle_mask")
+        )
+        if rle_data is not None:
+            h, w = rle_data["size"]
+            mask = rle_to_mask(rle_data["counts"], (w, h))
+            xyxy.append([x_min, y_min, x_max, y_max])
+            class_id.append(prediction["class_id"])
+            class_name.append(prediction["class"])
+            confidence.append(prediction["confidence"])
+            masks.append(mask)
+            if "tracker_id" in prediction:
+                tracker_ids.append(prediction["tracker_id"])
+        elif "points" not in prediction:
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])

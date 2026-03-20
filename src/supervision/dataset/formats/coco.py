@@ -10,11 +10,13 @@ import numpy.typing as npt
 from supervision.dataset.utils import (
     approximate_mask_with_polygons,
     map_detections_class_id,
-    mask_to_rle,
-    rle_to_mask,
 )
 from supervision.detection.core import Detections
-from supervision.detection.utils.converters import polygon_to_mask
+from supervision.detection.utils.converters import (
+    mask_to_rle,
+    polygon_to_mask,
+    rle_to_mask,
+)
 from supervision.detection.utils.masks import contains_holes, contains_multiple_segments
 from supervision.utils.file import read_json_file, save_json_file
 

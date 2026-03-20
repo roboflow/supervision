@@ -63,7 +63,6 @@ nav:
       - Trackers: trackers.md
       - Datasets:
           - Core: datasets/core.md
-          - Utils: datasets/utils.md
       - Metrics:
           - mAP: metrics/mean_average_precision.md
           - mAR: metrics/mean_average_recall.md

@@ -17,6 +17,13 @@ from supervision.detection.utils.internal import (
 TEST_MASK = np.zeros((1, 1000, 1000), dtype=bool)
 TEST_MASK[:, 300:351, 200:251] = True
 
+TEST_RLE_MASK = np.zeros((1, 4, 4), dtype=bool)
+TEST_RLE_MASK[0, 1:3, 1:3] = True
+
+TEST_RLE_NONCONTIGUOUS_MASK = np.zeros((1, 4, 4), dtype=bool)
+TEST_RLE_NONCONTIGUOUS_MASK[0, 0:2, 0:2] = True
+TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
+
 
 @pytest.mark.parametrize(
     ("roboflow_result", "expected_result", "exception"),
@@ -219,6 +226,85 @@ TEST_MASK[:, 300:351, 200:251] = True
             ),
             DoesNotRaise(),
         ),  # two instance segmentation results - one correct, one incorrect
+        (
+            {
+                "predictions": [
+                    {
+                        "x": 1.5,
+                        "y": 1.5,
+                        "width": 2.0,
+                        "height": 2.0,
+                        "confidence": 0.9,
+                        "class_id": 0,
+                        "class": "person",
+                        "rle": {"size": [4, 4], "counts": "52203"},
+                    }
+                ],
+                "image": {"width": 4, "height": 4},
+            },
+            (
+                np.array([[0.5, 0.5, 2.5, 2.5]]),
+                np.array([0.9]),
+                np.array([0]),
+                TEST_RLE_MASK,
+                None,
+                {CLASS_NAME_DATA_FIELD: np.array(["person"])},
+            ),
+            DoesNotRaise(),
+        ),  # single RLE prediction with compressed string counts
+        (
+            {
+                "predictions": [
+                    {
+                        "x": 2.0,
+                        "y": 2.0,
+                        "width": 4.0,
+                        "height": 4.0,
+                        "confidence": 0.85,
+                        "class_id": 1,
+                        "class": "cat",
+                        "rle": {"size": [4, 4], "counts": "02203ON0"},
+                    }
+                ],
+                "image": {"width": 4, "height": 4},
+            },
+            (
+                np.array([[0.0, 0.0, 4.0, 4.0]]),
+                np.array([0.85]),
+                np.array([1]),
+                TEST_RLE_NONCONTIGUOUS_MASK,
+                None,
+                {CLASS_NAME_DATA_FIELD: np.array(["cat"])},
+            ),
+            DoesNotRaise(),
+        ),  # single RLE prediction with non-contiguous mask
+        (
+            {
+                "predictions": [
+                    {
+                        "x": 1.5,
+                        "y": 1.5,
+                        "width": 2.0,
+                        "height": 2.0,
+                        "confidence": 0.9,
+                        "class_id": 0,
+                        "class": "person",
+                        "rle": {"size": [4, 4], "counts": "52203"},
+                        "tracker_id": 5,
+                    }
+                ],
+                "image": {"width": 4, "height": 4},
+            },
+            (
+                np.array([[0.5, 0.5, 2.5, 2.5]]),
+                np.array([0.9]),
+                np.array([0]),
+                TEST_RLE_MASK,
+                np.array([5]),
+                {CLASS_NAME_DATA_FIELD: np.array(["person"])},
+            ),
+            DoesNotRaise(),
+        ),  # RLE prediction with tracker_id
     ],
 )
 def test_process_roboflow_result(
