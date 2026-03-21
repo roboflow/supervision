@@ -492,6 +492,18 @@ def test_mask_to_rle(
             ).astype(bool),
             DoesNotRaise(),
         ),  # compressed RLE string
+        (
+            "!",
+            [4, 4],
+            None,
+            pytest.raises(ValueError, match="Malformed compressed RLE string"),
+        ),  # malformed compressed RLE string with invalid character
+        (
+            "52P",
+            [4, 4],
+            None,
+            pytest.raises(ValueError, match="Malformed compressed RLE string"),
+        ),  # malformed compressed RLE: unterminated continuation byte
     ],
 )
 def test_rle_to_mask(

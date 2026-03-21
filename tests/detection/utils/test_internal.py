@@ -305,6 +305,110 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
             ),
             DoesNotRaise(),
         ),  # RLE prediction with tracker_id
+        (
+            {
+                "predictions": [
+                    {
+                        "x": 1.5,
+                        "y": 1.5,
+                        "width": 2.0,
+                        "height": 2.0,
+                        "confidence": 0.9,
+                        "class_id": 0,
+                        "class": "person",
+                        "rle_mask": {"size": [4, 4], "counts": "52203"},
+                    }
+                ],
+                "image": {"width": 4, "height": 4},
+            },
+            (
+                np.array([[0.5, 0.5, 2.5, 2.5]]),
+                np.array([0.9]),
+                np.array([0]),
+                TEST_RLE_MASK,
+                None,
+                {CLASS_NAME_DATA_FIELD: np.array(["person"])},
+            ),
+            DoesNotRaise(),
+        ),  # single RLE prediction with compressed string counts under rle_mask key
+        (
+            {
+                "predictions": [
+                    {
+                        "x": 1.5,
+                        "y": 1.5,
+                        "width": 2.0,
+                        "height": 2.0,
+                        "confidence": 0.9,
+                        "class_id": 0,
+                        "class": "person",
+                        "rle": "bad_string",
+                    }
+                ],
+                "image": {"width": 4, "height": 4},
+            },
+            (
+                np.array([[0.5, 0.5, 2.5, 2.5]]),
+                np.array([0.9]),
+                np.array([0]),
+                None,
+                None,
+                {CLASS_NAME_DATA_FIELD: np.array(["person"])},
+            ),
+            DoesNotRaise(),
+        ),  # malformed RLE payload should fall through to box-only detection
+        (
+            {
+                "predictions": [
+                    {
+                        "x": 1.5,
+                        "y": 1.5,
+                        "width": 2.0,
+                        "height": 2.0,
+                        "confidence": 0.9,
+                        "class_id": 0,
+                        "class": "person",
+                        "rle": {"size": [4, 4]},
+                    }
+                ],
+                "image": {"width": 4, "height": 4},
+            },
+            (
+                np.array([[0.5, 0.5, 2.5, 2.5]]),
+                np.array([0.9]),
+                np.array([0]),
+                None,
+                None,
+                {CLASS_NAME_DATA_FIELD: np.array(["person"])},
+            ),
+            DoesNotRaise(),
+        ),  # RLE dict missing counts falls through to box-only detection
+        (
+            {
+                "predictions": [
+                    {
+                        "x": 1.5,
+                        "y": 1.5,
+                        "width": 2.0,
+                        "height": 2.0,
+                        "confidence": 0.9,
+                        "class_id": 0,
+                        "class": "person",
+                        "rle": {"size": [4, 4], "counts": "!"},
+                    }
+                ],
+                "image": {"width": 4, "height": 4},
+            },
+            (
+                np.array([[0.5, 0.5, 2.5, 2.5]]),
+                np.array([0.9]),
+                np.array([0]),
+                None,
+                None,
+                {CLASS_NAME_DATA_FIELD: np.array(["person"])},
+            ),
+            DoesNotRaise(),
+        ),  # malformed compressed counts falls through to box-only detection
     ],
 )
 def test_process_roboflow_result(

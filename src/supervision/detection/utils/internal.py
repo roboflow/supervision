@@ -72,7 +72,7 @@ def process_roboflow_result(
     confidence: list[float] = []
     class_id: list[int] = []
     class_name: list[str] = []
-    masks: list[npt.NDArray[np.uint8]] = []
+    masks: list[npt.NDArray[np.bool_]] = []
     tracker_ids: list[int] = []
 
     image_width = int(roboflow_result["image"]["width"])
@@ -89,9 +89,18 @@ def process_roboflow_result(
         y_max = y_min + height
 
         rle_data = prediction.get("rle") or prediction.get("rle_mask")
+        if not isinstance(rle_data, dict) or not {
+            "size",
+            "counts",
+        }.issubset(rle_data):
+            rle_data = None
         if rle_data is not None:
-            h, w = rle_data["size"]
-            mask = rle_to_mask(rle_data["counts"], (w, h))
+            try:
+                h, w = rle_data["size"]
+                mask = rle_to_mask(rle_data["counts"], (w, h))
+            except (ValueError, AssertionError, KeyError, TypeError):
+                rle_data = None
+        if rle_data is not None:
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])

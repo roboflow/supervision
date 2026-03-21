@@ -1,5 +1,11 @@
 # Changelog
 
+### develop
+
+- Changed [#2178](https://github.com/roboflow/supervision/pull/2178): [`sv.Detections.from_inference`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_inference) now supports compressed COCO RLE masks. Inference responses with `rle` or `rle_mask` fields containing a compressed counts string (as produced by `pycocotools`) are decoded directly into binary masks, avoiding a lossy polygon round-trip.
+
+- Changed [#2178](https://github.com/roboflow/supervision/pull/2178): [`sv.rle_to_mask`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.rle_to_mask) and [`sv.mask_to_rle`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.mask_to_rle) moved to `supervision.detection.utils.converters`. The old import path `supervision.dataset.utils` continues to work but is deprecated.
+
 ### 0.27.0 <small>Nov 16, 2025</small>
 
 - Added [#2008](https://github.com/roboflow/supervision/pull/2008): [`sv.filter_segments_by_distance`](https://supervision.roboflow.com/0.27.0/detection/utils/masks/#supervision.detection.utils.masks.filter_segments_by_distance) to keep the largest connected component and nearby components within an absolute or relative distance threshold. Useful for cleaning segmentation predictions from models such as SAM, SAM2, YOLO segmentation, and RF-DETR segmentation.

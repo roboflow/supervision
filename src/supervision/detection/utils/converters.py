@@ -329,6 +329,10 @@ def _decode_coco_rle_string(s: str) -> list[int]:
         k = 0
         more = True
         while more:
+            if i >= len(s):
+                raise ValueError(
+                    f"Malformed compressed RLE string: unexpected end at position {i}"
+                )
             c = ord(s[i]) - 48
             x |= (c & 0x1F) << (5 * k)
             more = bool(c & 0x20)

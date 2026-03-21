@@ -13,18 +13,28 @@ import numpy.typing as npt
 
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import mask_to_polygons
-
-# Deprecated: import from supervision.detection.utils.converters instead
 from supervision.detection.utils.converters import (
-    mask_to_rle as mask_to_rle,
+    mask_to_rle as _mask_to_rle,
 )
 from supervision.detection.utils.converters import (
-    rle_to_mask as rle_to_mask,
+    rle_to_mask as _rle_to_mask,
 )
 from supervision.detection.utils.polygons import (
     approximate_polygon,
     filter_polygons_by_area,
 )
+from supervision.utils.internal import deprecated
+
+
+@deprecated("Import mask_to_rle from supervision.detection.utils.converters instead.")
+def mask_to_rle(*args, **kwargs):  # type: ignore[no-untyped-def]
+    return _mask_to_rle(*args, **kwargs)
+
+
+@deprecated("Import rle_to_mask from supervision.detection.utils.converters instead.")
+def rle_to_mask(*args, **kwargs):  # type: ignore[no-untyped-def]
+    return _rle_to_mask(*args, **kwargs)
+
 
 if TYPE_CHECKING:
     from supervision.dataset.core import DetectionDataset
