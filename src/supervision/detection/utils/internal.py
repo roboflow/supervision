@@ -88,9 +88,7 @@ def process_roboflow_result(
         x_max = x_min + width
         y_max = y_min + height
 
-        rle_data = (
-            prediction.get("rle") if "rle" in prediction else prediction.get("rle_mask")
-        )
+        rle_data = prediction.get("rle") or prediction.get("rle_mask")
         if rle_data is not None:
             h, w = rle_data["size"]
             mask = rle_to_mask(rle_data["counts"], (w, h))
