@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Union, cast
 
 import numpy as np
 import numpy.typing as npt
+from tqdm.auto import tqdm
 
 from supervision.dataset.utils import (
     approximate_mask_with_polygons,
@@ -352,6 +353,7 @@ def load_coco_annotations(
     annotations_path: str,
     force_masks: bool = False,
     use_iscrowd: bool = True,
+    show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
     """
     Load COCO annotations and convert them to `Detections`.
@@ -365,6 +367,7 @@ def load_coco_annotations(
         annotations_path: Path to COCO JSON annotations.
         force_masks: If `True`, always attempt to load masks.
         use_iscrowd: If `True`, include `iscrowd` and `area` in detection data.
+        show_progress: If `True`, display a progress bar while loading images.
 
     Returns:
         A tuple of `(classes, image_paths, annotations)`.
@@ -381,6 +384,17 @@ def load_coco_annotations(
         paths outside the directory are rejected to prevent path-traversal
         attacks when loading user-supplied annotation files. Symlinked images
         pointing outside the resolved images directory are also rejected.
+
+    Examples:
+        ```python
+        import supervision as sv
+
+        ds = sv.DetectionDataset.from_coco(
+            images_directory_path="images/train",
+            annotations_path="images/train/_annotations.coco.json",
+            show_progress=True,
+        )
+        ```
     """
     coco_data = read_json_file(file_path=annotations_path)
     classes = coco_categories_to_classes(coco_categories=coco_data["categories"])
@@ -398,58 +412,64 @@ def load_coco_annotations(
     annotations = {}
     images_directory_resolved = Path(images_directory_path).resolve()
 
-    for coco_image in coco_images:
-        image_name, image_width, image_height = (
-            coco_image["file_name"],
-            coco_image["width"],
-            coco_image["height"],
-        )
-        image_annotations = coco_annotations_groups.get(coco_image["id"], [])
-        image_path = str(Path(images_directory_path) / Path(image_name))
-        try:
-            resolved_image_path = Path(image_path).resolve()
-        except (OSError, ValueError) as exc:
-            raise ValueError(
-                f"COCO annotation refers to image {image_name!r}, which "
-                f"produces an invalid path: {exc}"
-            ) from exc
-        if resolved_image_path == images_directory_resolved:
-            raise ValueError(
-                f"COCO annotation refers to image {image_name!r}, which "
-                f"resolves to the images directory itself "
-                f"({images_directory_resolved}). Expected a path to an "
-                "image file."
+    with tqdm(
+        total=len(coco_images),
+        desc="Loading COCO annotations",
+        disable=not show_progress,
+    ) as progress_bar:
+        for coco_image in coco_images:
+            image_name, image_width, image_height = (
+                coco_image["file_name"],
+                coco_image["width"],
+                coco_image["height"],
             )
-        if images_directory_resolved not in resolved_image_path.parents:
-            raise ValueError(
-                f"COCO annotation refers to image {image_name!r}, which "
-                f"resolves to {resolved_image_path} — outside the images "
-                f"directory {images_directory_resolved}."
+            image_annotations = coco_annotations_groups.get(coco_image["id"], [])
+            image_path = str(Path(images_directory_path) / Path(image_name))
+            try:
+                resolved_image_path = Path(image_path).resolve()
+            except (OSError, ValueError) as exc:
+                raise ValueError(
+                    f"COCO annotation refers to image {image_name!r}, which "
+                    f"produces an invalid path: {exc}"
+                ) from exc
+            if resolved_image_path == images_directory_resolved:
+                raise ValueError(
+                    f"COCO annotation refers to image {image_name!r}, which "
+                    f"resolves to the images directory itself "
+                    f"({images_directory_resolved}). Expected a path to an "
+                    "image file."
+                )
+            if images_directory_resolved not in resolved_image_path.parents:
+                raise ValueError(
+                    f"COCO annotation refers to image {image_name!r}, which "
+                    f"resolves to {resolved_image_path} - outside the images "
+                    f"directory {images_directory_resolved}."
+                )
+            if resolved_image_path.is_dir():
+                raise ValueError(
+                    f"COCO annotation refers to image {image_name!r}, which "
+                    f"resolves to directory {resolved_image_path}. Expected a "
+                    "path to an image file."
+                )
+
+            with_masks = force_masks or any(
+                _with_seg_mask(annotation) for annotation in image_annotations
             )
-        if resolved_image_path.is_dir():
-            raise ValueError(
-                f"COCO annotation refers to image {image_name!r}, which "
-                f"resolves to directory {resolved_image_path}. Expected a "
-                "path to an image file."
+            annotation = coco_annotations_to_detections(
+                image_annotations=image_annotations,
+                resolution_wh=(image_width, image_height),
+                with_masks=with_masks,
+                use_iscrowd=use_iscrowd,
             )
 
-        with_masks = force_masks or any(
-            _with_seg_mask(annotation) for annotation in image_annotations
-        )
-        annotation = coco_annotations_to_detections(
-            image_annotations=image_annotations,
-            resolution_wh=(image_width, image_height),
-            with_masks=with_masks,
-            use_iscrowd=use_iscrowd,
-        )
+            annotation = map_detections_class_id(
+                source_to_target_mapping=class_index_mapping,
+                detections=annotation,
+            )
 
-        annotation = map_detections_class_id(
-            source_to_target_mapping=class_index_mapping,
-            detections=annotation,
-        )
-
-        images.append(image_path)
-        annotations[image_path] = annotation
+            images.append(image_path)
+            annotations[image_path] = annotation
+            progress_bar.update(1)
 
     return classes, images, annotations
 

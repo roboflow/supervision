@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import numpy.typing as npt
 from PIL import Image
+from tqdm.auto import tqdm
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.utils import approximate_mask_with_polygons
@@ -190,6 +191,7 @@ def load_yolo_annotations(
     data_yaml_path: str,
     force_masks: bool = False,
     is_obb: bool = False,
+    show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
     """
     Loads YOLO annotations and returns class names, images,
@@ -208,11 +210,24 @@ def load_yolo_annotations(
         is_obb: If True, loads the annotations in OBB format.
             OBB annotations are defined as `[class_id, x, y, x, y, x, y, x, y]`,
             where pairs of [x, y] are box corners.
+        show_progress: If `True`, display a progress bar while loading images.
 
     Returns:
         A tuple containing a list of class names, a dictionary with
             image names as keys and images as values, and a dictionary
             with image names as keys and corresponding Detections instances as values.
+
+    Examples:
+        ```python
+        import supervision as sv
+
+        ds = sv.DetectionDataset.from_yolo(
+            images_directory_path="images/train",
+            annotations_directory_path="labels/train",
+            data_yaml_path="data.yaml",
+            show_progress=True,
+        )
+        ```
     """
     if is_obb and force_masks:
         warnings.warn(
@@ -242,32 +257,42 @@ def load_yolo_annotations(
     classes = _extract_class_names(file_path=data_yaml_path)
     annotations = {}
 
-    for image_path in image_paths:
-        image_stem = Path(image_path).stem
-        annotation_path = os.path.join(annotations_directory_path, f"{image_stem}.txt")
-        if not os.path.exists(annotation_path):
-            annotations[image_path] = Detections.empty()
-            continue
-
-        # PIL is much faster than cv2 for checking image shape and mode: https://github.com/roboflow/supervision/issues/1554
-        image = Image.open(image_path)
-        lines = read_txt_file(file_path=annotation_path, skip_empty=True)
-        w, h = image.size
-        resolution_wh = (w, h)
-        if image.mode not in ("RGB", "L"):
-            raise ValueError(
-                f"Images must be 'RGB' or 'grayscale', \
-                but {image_path} mode is '{image.mode}'."
+    with tqdm(
+        total=len(image_paths),
+        desc="Loading YOLO annotations",
+        disable=not show_progress,
+    ) as progress_bar:
+        for image_path in image_paths:
+            image_stem = Path(image_path).stem
+            annotation_path = os.path.join(
+                annotations_directory_path, f"{image_stem}.txt"
             )
+            if not os.path.exists(annotation_path):
+                annotations[image_path] = Detections.empty()
+                progress_bar.update(1)
+                continue
 
-        with_masks = not is_obb and (force_masks or _with_seg_mask(lines=lines))
-        annotation = yolo_annotations_to_detections(
-            lines=lines,
-            resolution_wh=resolution_wh,
-            with_masks=with_masks,
-            is_obb=is_obb,
-        )
-        annotations[image_path] = annotation
+            # PIL is much faster than cv2 for checking image shape and mode: https://github.com/roboflow/supervision/issues/1554
+            image = Image.open(image_path)
+            lines = read_txt_file(file_path=annotation_path, skip_empty=True)
+            w, h = image.size
+            resolution_wh = (w, h)
+            if image.mode not in ("RGB", "L"):
+                raise ValueError(
+                    f"Images must be 'RGB' or 'grayscale', \
+                but {image_path} mode is '{image.mode}'."
+                )
+
+            with_masks = force_masks or _with_seg_mask(lines=lines)
+            annotation = yolo_annotations_to_detections(
+                lines=lines,
+                resolution_wh=resolution_wh,
+                with_masks=with_masks,
+                is_obb=is_obb,
+            )
+            annotations[image_path] = annotation
+            progress_bar.update(1)
+
     return classes, image_paths, annotations
 
 

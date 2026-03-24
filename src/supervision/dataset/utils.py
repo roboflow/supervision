@@ -11,6 +11,7 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 from deprecate import deprecated, void
+from tqdm.auto import tqdm
 
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import mask_to_polygons
@@ -125,15 +126,48 @@ def map_detections_class_id(
     return detections_copy
 
 
-def save_dataset_images(dataset: DetectionDataset, images_directory_path: str) -> None:
+def save_dataset_images(
+    dataset: DetectionDataset,
+    images_directory_path: str,
+    show_progress: bool = False,
+) -> None:
+    """
+    Saves all images from a dataset to the specified directory.
+
+    Args:
+        dataset: The dataset whose images should be saved.
+        images_directory_path: Path to the directory where images will be saved.
+        show_progress: If `True`, display a progress bar while saving images.
+
+    Examples:
+        ```python
+        import supervision as sv
+
+        ds = sv.DetectionDataset.from_coco(
+            images_directory_path="images/train",
+            annotations_path="images/train/_annotations.coco.json",
+        )
+        sv.dataset.utils.save_dataset_images(
+            dataset=ds,
+            images_directory_path="output/images",
+            show_progress=True,
+        )
+        ```
+    """
     Path(images_directory_path).mkdir(parents=True, exist_ok=True)
-    for image_path in dataset.image_paths:
-        final_path = os.path.join(images_directory_path, Path(image_path).name)
-        if image_path in dataset._images_in_memory:
-            image = dataset._images_in_memory[image_path]
-            cv2.imwrite(final_path, image)
-        else:
-            shutil.copyfile(image_path, final_path)
+    with tqdm(
+        total=len(dataset.image_paths),
+        desc="Saving images",
+        disable=not show_progress,
+    ) as progress_bar:
+        for image_path in dataset.image_paths:
+            final_path = os.path.join(images_directory_path, Path(image_path).name)
+            if image_path in dataset._images_in_memory:
+                image = dataset._images_in_memory[image_path]
+                cv2.imwrite(final_path, image)
+            else:
+                shutil.copyfile(image_path, final_path)
+            progress_bar.update(1)
 
 
 def train_test_split(

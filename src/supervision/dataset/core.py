@@ -334,6 +334,7 @@ class DetectionDataset(BaseDataset):
         min_image_area_percentage: float = 0.0,
         max_image_area_percentage: float = 1.0,
         approximation_percentage: float = 0.0,
+        show_progress: bool = False,
     ) -> None:
         """
         Exports the dataset to PASCAL VOC format. This method saves the images
@@ -357,11 +358,13 @@ class DetectionDataset(BaseDataset):
             approximation_percentage: The percentage of
                 polygon points to be removed from the input polygon,
                 in the range [0, 1). Argument is used only for segmentation datasets.
+            show_progress: If `True`, display a progress bar while saving images.
         """
         if images_directory_path:
             save_dataset_images(
                 dataset=self,
                 images_directory_path=images_directory_path,
+                show_progress=show_progress,
             )
         if annotations_directory_path:
             Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
@@ -390,6 +393,7 @@ class DetectionDataset(BaseDataset):
         images_directory_path: str,
         annotations_directory_path: str,
         force_masks: bool = False,
+        show_progress: bool = False,
     ) -> DetectionDataset:
         """
         Creates a Dataset instance from PASCAL VOC formatted data.
@@ -400,6 +404,7 @@ class DetectionDataset(BaseDataset):
                 containing the PASCAL VOC XML annotations.
             force_masks: If True, forces masks to
                 be loaded for all annotations, regardless of whether they are present.
+            show_progress: If `True`, display a progress bar while loading images.
 
         Returns:
             A DetectionDataset instance containing
@@ -432,6 +437,7 @@ class DetectionDataset(BaseDataset):
             images_directory_path=images_directory_path,
             annotations_directory_path=annotations_directory_path,
             force_masks=force_masks,
+            show_progress=show_progress,
         )
 
         return DetectionDataset(
@@ -446,6 +452,7 @@ class DetectionDataset(BaseDataset):
         data_yaml_path: str,
         force_masks: bool = False,
         is_obb: bool = False,
+        show_progress: bool = False,
     ) -> DetectionDataset:
         """
         Creates a Dataset instance from YOLO formatted data.
@@ -463,6 +470,7 @@ class DetectionDataset(BaseDataset):
             is_obb: If True, loads the annotations in OBB format.
                 OBB annotations are defined as `[class_id, x, y, x, y, x, y, x, y]`,
                 where pairs of [x, y] are box corners.
+            show_progress: If `True`, display a progress bar while loading images.
 
         Returns:
             A DetectionDataset instance
@@ -496,6 +504,7 @@ class DetectionDataset(BaseDataset):
             data_yaml_path=data_yaml_path,
             force_masks=force_masks,
             is_obb=is_obb,
+            show_progress=show_progress,
         )
         return DetectionDataset(
             classes=classes, images=image_paths, annotations=annotations
@@ -510,6 +519,7 @@ class DetectionDataset(BaseDataset):
         max_image_area_percentage: float = 1.0,
         approximation_percentage: float = 0.0,
         is_obb: bool = False,
+        show_progress: bool = False,
     ) -> None:
         """
         Exports the dataset to YOLO format. This method saves the
@@ -543,6 +553,7 @@ class DetectionDataset(BaseDataset):
                 corners stored in `detections.data["xyxyxyxy"]`. Mirrors
                 `from_yolo(..., is_obb=True)`. Masks are ignored when
                 `is_obb=True`.
+            show_progress: If `True`, display a progress bar while saving images.
         """
         if is_obb and (
             min_image_area_percentage != 0.0
@@ -560,7 +571,9 @@ class DetectionDataset(BaseDataset):
             )
         if images_directory_path is not None:
             save_dataset_images(
-                dataset=self, images_directory_path=images_directory_path
+                dataset=self,
+                images_directory_path=images_directory_path,
+                show_progress=show_progress,
             )
         if annotations_directory_path is not None:
             save_yolo_annotations(
@@ -580,6 +593,7 @@ class DetectionDataset(BaseDataset):
         images_directory_path: str,
         annotations_path: str,
         force_masks: bool = False,
+        show_progress: bool = False,
     ) -> DetectionDataset:
         """
         Creates a Dataset instance from COCO formatted data.
@@ -591,6 +605,7 @@ class DetectionDataset(BaseDataset):
             force_masks: If True,
                 forces masks to be loaded for all annotations,
                 regardless of whether they are present.
+            show_progress: If `True`, display a progress bar while loading images.
         Returns:
             A DetectionDataset instance containing
                 the loaded images and annotations.
@@ -620,6 +635,7 @@ class DetectionDataset(BaseDataset):
             images_directory_path=images_directory_path,
             annotations_path=annotations_path,
             force_masks=force_masks,
+            show_progress=show_progress,
         )
         return DetectionDataset(classes=classes, images=images, annotations=annotations)
 
@@ -632,6 +648,7 @@ class DetectionDataset(BaseDataset):
         approximation_percentage: float = 0.0,
         starting_image_id: int = 1,
         starting_annotation_id: int = 1,
+        show_progress: bool = False,
     ) -> tuple[int, int]:
         """
         Exports the dataset to COCO format. This method saves the
@@ -675,6 +692,7 @@ class DetectionDataset(BaseDataset):
             starting_annotation_id: First annotation id to assign in the
                 exported file. Defaults to ``1``. Override for the same
                 multi-split reason as ``starting_image_id``.
+            show_progress: If `True`, display a progress bar while saving images.
 
         Returns:
             A ``(next_image_id, next_annotation_id)`` tuple containing the
@@ -703,12 +721,14 @@ class DetectionDataset(BaseDataset):
                 annotations_path="out/test/annotations.json",
                 starting_image_id=next_image_id,
                 starting_annotation_id=next_annotation_id,
-            )  # return value not needed — no further split
+            )
             ```
         """
         if images_directory_path is not None:
             save_dataset_images(
-                dataset=self, images_directory_path=images_directory_path
+                dataset=self,
+                images_directory_path=images_directory_path,
+                show_progress=show_progress,
             )
         if annotations_path is not None:
             return save_coco_annotations(

@@ -9,6 +9,7 @@ import numpy as np
 import numpy.typing as npt
 from defusedxml.ElementTree import parse, tostring
 from defusedxml.minidom import parseString
+from tqdm.auto import tqdm
 
 from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
@@ -149,6 +150,7 @@ def load_pascal_voc_annotations(
     images_directory_path: str,
     annotations_directory_path: str,
     force_masks: bool = False,
+    show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
     """
     Loads PASCAL VOC XML annotations and returns the image name,
@@ -160,11 +162,23 @@ def load_pascal_voc_annotations(
             PASCAL VOC annotation files.
         force_masks: If True, forces masks to be loaded for all
             annotations, regardless of whether they are present.
+        show_progress: If `True`, display a progress bar while loading images.
 
     Returns:
         A tuple with a list
             of class names, a list of paths to images, and a dictionary with image
             paths as keys and corresponding Detections instances as values.
+
+    Examples:
+        ```python
+        import supervision as sv
+
+        ds = sv.DetectionDataset.from_pascal_voc(
+            images_directory_path="images/train",
+            annotations_directory_path="images/train/labels",
+            show_progress=True,
+        )
+        ```
     """
 
     image_paths = [
@@ -177,24 +191,33 @@ def load_pascal_voc_annotations(
     classes: list[str] = []
     annotations = {}
 
-    for image_path in image_paths:
-        image_stem = Path(image_path).stem
-        annotation_path = os.path.join(annotations_directory_path, f"{image_stem}.xml")
-        if not os.path.exists(annotation_path):
-            annotations[image_path] = Detections.empty()
-            continue
+    with tqdm(
+        total=len(image_paths),
+        desc="Loading Pascal VOC annotations",
+        disable=not show_progress,
+    ) as progress_bar:
+        for image_path in image_paths:
+            image_stem = Path(image_path).stem
+            annotation_path = os.path.join(
+                annotations_directory_path, f"{image_stem}.xml"
+            )
+            if not os.path.exists(annotation_path):
+                annotations[image_path] = Detections.empty()
+                progress_bar.update(1)
+                continue
 
-        tree = parse(annotation_path)
-        root = tree.getroot()
+            tree = parse(annotation_path)
+            root = tree.getroot()
 
-        image = cv2.imread(image_path)
-        if image is None:
-            raise ValueError(f"Could not read image from path: {image_path}")
-        resolution_wh = (image.shape[1], image.shape[0])
-        annotation, classes = detections_from_xml_obj(
-            root, classes, resolution_wh, force_masks
-        )
-        annotations[image_path] = annotation
+            image = cv2.imread(image_path)
+            if image is None:
+                raise ValueError(f"Could not read image from path: {image_path}")
+            resolution_wh = (image.shape[1], image.shape[0])
+            annotation, classes = detections_from_xml_obj(
+                root, classes, resolution_wh, force_masks
+            )
+            annotations[image_path] = annotation
+            progress_bar.update(1)
 
     return classes, image_paths, annotations
 
