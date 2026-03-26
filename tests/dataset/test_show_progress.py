@@ -166,12 +166,12 @@ def test_load_coco_show_progress(coco_dataset: dict, show_progress: bool) -> Non
 
 
 def test_load_coco_show_progress_consistent(coco_dataset: dict) -> None:
-    classes_off, paths_off, ann_off = load_coco_annotations(
+    classes_off, paths_off, _ann_off = load_coco_annotations(
         images_directory_path=coco_dataset["images_dir"],
         annotations_path=coco_dataset["annotations_path"],
         show_progress=False,
     )
-    classes_on, paths_on, ann_on = load_coco_annotations(
+    classes_on, paths_on, _ann_on = load_coco_annotations(
         images_directory_path=coco_dataset["images_dir"],
         annotations_path=coco_dataset["annotations_path"],
         show_progress=True,
