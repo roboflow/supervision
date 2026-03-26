@@ -2,23 +2,28 @@
 Tests that show_progress parameter works correctly for all dataset
 loaders and savers, and that output is identical regardless of its value.
 """
+
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 import cv2
 import numpy as np
 import pytest
 
-from supervision import DetectionDataset, Detections
-from supervision.dataset.formats.coco import load_coco_annotations, save_coco_annotations
+from supervision import DetectionDataset
+from supervision.dataset.formats.coco import (
+    load_coco_annotations,
+    save_coco_annotations,
+)
 from supervision.dataset.formats.pascal_voc import load_pascal_voc_annotations
-from supervision.dataset.formats.yolo import load_yolo_annotations, save_yolo_annotations
+from supervision.dataset.formats.yolo import (
+    load_yolo_annotations,
+    save_yolo_annotations,
+)
 from supervision.dataset.utils import save_dataset_images
 from tests.helpers import create_yolo_dataset
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -290,9 +295,7 @@ def test_save_coco_annotations_show_progress_consistent(
     out_off = tmp_path / "coco_off" / "annotations.json"
     out_on = tmp_path / "coco_on" / "annotations.json"
     save_coco_annotations(dataset=ds, annotation_path=str(out_off))
-    save_coco_annotations(
-        dataset=ds, annotation_path=str(out_on), show_progress=True
-    )
+    save_coco_annotations(dataset=ds, annotation_path=str(out_on), show_progress=True)
     data_off = json.loads(out_off.read_text())
     data_on = json.loads(out_on.read_text())
     assert len(data_off["images"]) == len(data_on["images"])
@@ -334,9 +337,7 @@ def test_as_pascal_voc_show_progress_consistent(
     out_off = tmp_path / "voc_off"
     out_on = tmp_path / "voc_on"
     ds.as_pascal_voc(annotations_directory_path=str(out_off))
-    ds.as_pascal_voc(
-        annotations_directory_path=str(out_on), show_progress=True
-    )
+    ds.as_pascal_voc(annotations_directory_path=str(out_on), show_progress=True)
     files_off = sorted(f.name for f in out_off.glob("*.xml"))
     files_on = sorted(f.name for f in out_on.glob("*.xml"))
     assert files_off == files_on
