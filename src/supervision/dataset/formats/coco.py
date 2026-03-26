@@ -486,6 +486,7 @@ def save_coco_annotations(
     approximation_percentage: float = 0.0,
     starting_image_id: int = 1,
     starting_annotation_id: int = 1,
+    show_progress: bool = False,
 ) -> tuple[int, int]:
     """Save a DetectionDataset to a COCO-format ``annotations.json`` file.
 
@@ -504,6 +505,7 @@ def save_coco_annotations(
         starting_annotation_id: First annotation id to assign in the exported
             file. Defaults to ``1``. Override for the same multi-split reason
             as ``starting_image_id``.
+        show_progress: If `True`, display a progress bar while saving annotations.
 
     Returns:
         A ``(next_image_id, next_annotation_id)`` tuple. The returned values
@@ -515,7 +517,7 @@ def save_coco_annotations(
 
         .. note::
             This function ensures globally unique integer ``id`` values across
-            splits. It does **not** ensure unique ``file_name`` values — the
+            splits. It does **not** ensure unique ``file_name`` values - the
             ``file_name`` field is set to the bare image basename, so splits
             that share filenames (e.g. ``000001.jpg`` in both train and valid)
             will have duplicate ``file_name`` values when their COCO files are
@@ -535,7 +537,7 @@ def save_coco_annotations(
         next_img_id, next_ann_id = save_coco_annotations(
             dataset=ds, annotation_path="out/train/annotations.json"
         )
-        # next_img_id and next_ann_id are the first unused ids — pass them
+        # next_img_id and next_ann_id are the first unused ids - pass them
         # to the next split to keep ids globally unique across files.
         ```
     """
@@ -559,30 +561,36 @@ def save_coco_annotations(
     coco_categories = classes_to_coco_categories(classes=dataset.classes)
 
     image_id, annotation_id = starting_image_id, starting_annotation_id
-    for image_path, image, annotation in dataset:
-        image_height, image_width, _ = image.shape
-        image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"
-        coco_image = {
-            "id": image_id,
-            "license": 1,
-            "file_name": image_name,
-            "height": image_height,
-            "width": image_width,
-            "date_captured": datetime.now().strftime("%m/%d/%Y,%H:%M:%S"),
-        }
+    with tqdm(
+        total=len(dataset),
+        desc="Saving COCO annotations",
+        disable=not show_progress,
+    ) as progress_bar:
+        for image_path, image, annotation in dataset:
+            image_height, image_width, _ = image.shape
+            image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"
+            coco_image = {
+                "id": image_id,
+                "license": 1,
+                "file_name": image_name,
+                "height": image_height,
+                "width": image_width,
+                "date_captured": datetime.now().strftime("%m/%d/%Y,%H:%M:%S"),
+            }
 
-        coco_images.append(coco_image)
-        coco_annotation, annotation_id = detections_to_coco_annotations(
-            detections=annotation,
-            image_id=image_id,
-            annotation_id=annotation_id,
-            min_image_area_percentage=min_image_area_percentage,
-            max_image_area_percentage=max_image_area_percentage,
-            approximation_percentage=approximation_percentage,
-        )
+            coco_images.append(coco_image)
+            coco_annotation, annotation_id = detections_to_coco_annotations(
+                detections=annotation,
+                image_id=image_id,
+                annotation_id=annotation_id,
+                min_image_area_percentage=min_image_area_percentage,
+                max_image_area_percentage=max_image_area_percentage,
+                approximation_percentage=approximation_percentage,
+            )
 
-        coco_annotations.extend(coco_annotation)
-        image_id += 1
+            coco_annotations.extend(coco_annotation)
+            image_id += 1
+            progress_bar.update(1)
 
     annotation_dict = {
         "info": {},

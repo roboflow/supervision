@@ -451,6 +451,7 @@ def save_yolo_annotations(
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
     is_obb: bool = False,
+    show_progress: bool = False,
 ) -> None:
     """Save dataset annotations in YOLO format.
 
@@ -479,21 +480,29 @@ def save_yolo_annotations(
         >>> save_yolo_annotations(dataset, "/tmp/labels")
     """
     Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
-    for image_path, image, annotation in dataset:
-        image_name = Path(image_path).name
-        yolo_annotations_name = _image_name_to_annotation_name(image_name=image_name)
-        yolo_annotations_path = os.path.join(
-            annotations_directory_path, yolo_annotations_name
-        )
-        lines = detections_to_yolo_annotations(
-            detections=annotation,
-            image_shape=image.shape,
-            min_image_area_percentage=min_image_area_percentage,
-            max_image_area_percentage=max_image_area_percentage,
-            approximation_percentage=approximation_percentage,
-            is_obb=is_obb,
-        )
-        save_text_file(lines=lines, file_path=yolo_annotations_path)
+    with tqdm(
+        total=len(dataset),
+        desc="Saving YOLO annotations",
+        disable=not show_progress,
+    ) as progress_bar:
+        for image_path, image, annotation in dataset:
+            image_name = Path(image_path).name
+            yolo_annotations_name = _image_name_to_annotation_name(
+                image_name=image_name
+            )
+            yolo_annotations_path = os.path.join(
+                annotations_directory_path, yolo_annotations_name
+            )
+            lines = detections_to_yolo_annotations(
+                detections=annotation,
+                image_shape=image.shape,
+                min_image_area_percentage=min_image_area_percentage,
+                max_image_area_percentage=max_image_area_percentage,
+                approximation_percentage=approximation_percentage,
+                is_obb=is_obb,
+            )
+            save_text_file(lines=lines, file_path=yolo_annotations_path)
+            progress_bar.update(1)
 
 
 def save_data_yaml(data_yaml_path: str, classes: list[str]) -> None:

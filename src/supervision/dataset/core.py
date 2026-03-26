@@ -10,6 +10,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 import numpy.typing as npt
+from tqdm.auto import tqdm
 
 from supervision.classification.core import Classifications
 from supervision.config import CLASS_NAME_DATA_FIELD
@@ -368,24 +369,30 @@ class DetectionDataset(BaseDataset):
             )
         if annotations_directory_path:
             Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
-            for image_path, image, annotations in self:
-                annotation_name = Path(image_path).stem
-                annotations_path = os.path.join(
-                    annotations_directory_path, f"{annotation_name}.xml"
-                )
-                image_name = Path(image_path).name
-                pascal_voc_xml = detections_to_pascal_voc(
-                    detections=annotations,
-                    classes=self.classes,
-                    filename=image_name,
-                    image_shape=image.shape,
-                    min_image_area_percentage=min_image_area_percentage,
-                    max_image_area_percentage=max_image_area_percentage,
-                    approximation_percentage=approximation_percentage,
-                )
+            with tqdm(
+                total=len(self),
+                desc="Saving Pascal VOC annotations",
+                disable=not show_progress,
+            ) as progress_bar:
+                for image_path, image, annotations in self:
+                    annotation_name = Path(image_path).stem
+                    annotations_path = os.path.join(
+                        annotations_directory_path, f"{annotation_name}.xml"
+                    )
+                    image_name = Path(image_path).name
+                    pascal_voc_xml = detections_to_pascal_voc(
+                        detections=annotations,
+                        classes=self.classes,
+                        filename=image_name,
+                        image_shape=image.shape,
+                        min_image_area_percentage=min_image_area_percentage,
+                        max_image_area_percentage=max_image_area_percentage,
+                        approximation_percentage=approximation_percentage,
+                    )
 
-                with open(annotations_path, "w") as f:
-                    f.write(pascal_voc_xml)
+                    with open(annotations_path, "w") as f:
+                        f.write(pascal_voc_xml)
+                    progress_bar.update(1)
 
     @classmethod
     def from_pascal_voc(
@@ -583,6 +590,7 @@ class DetectionDataset(BaseDataset):
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
                 is_obb=is_obb,
+                show_progress=show_progress,
             )
         if data_yaml_path is not None:
             save_data_yaml(data_yaml_path=data_yaml_path, classes=self.classes)
@@ -739,6 +747,7 @@ class DetectionDataset(BaseDataset):
                 approximation_percentage=approximation_percentage,
                 starting_image_id=starting_image_id,
                 starting_annotation_id=starting_annotation_id,
+                show_progress=show_progress,
             )
         return starting_image_id, starting_annotation_id
 
