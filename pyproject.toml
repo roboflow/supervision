@@ -178,13 +178,6 @@ count = true
 quiet-level = 3
 ignore-words-list = "STrack,sTrack,strack"
 
-[tool.pytest]
-ini_options.addopts = [
-  "--doctest-modules",
-  "--color=yes",
-]
-ini_options.doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE"
-
 [tool.mypy]
 python_version = "3.9"
 ignore_missing_imports = false
@@ -203,6 +196,13 @@ overrides = [
     "examples.*",
   ], ignore_errors = true },
 ]
+
+[tool.pytest]
+ini_options.addopts = [
+  "--doctest-modules",
+  "--color=yes",
+]
+ini_options.doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE"
 
 [tool.autoflake]
 check = true
