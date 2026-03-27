@@ -4,7 +4,14 @@ import numpy as np
 import pytest
 
 from supervision.key_points.core import KeyPoints
-from tests.helpers import _create_key_points
+from tests.helpers import (
+    _create_key_points,
+    _FakeMediapipeLandmark,
+    _FakeMediapipePose,
+    _FakeMediapipeResults,
+    _FakeYoloNasKeyPoint,
+    _FakeYoloNasKeyPointResults,
+)
 
 KEY_POINTS = _create_key_points(
     xy=[
@@ -431,3 +438,107 @@ def test_key_points_equality_with_data():
     )
     key_points2["custom"] = ["value"]
     assert key_points1 != key_points2
+
+
+@pytest.mark.parametrize(
+    ("inference_results", "expected_key_points"),
+    [
+        (
+            {
+                "predictions": [
+                    {
+                        "class_id": 1,
+                        "class": "person",
+                        "keypoints": [
+                            {"x": 100, "y": 150, "confidence": 0.9},
+                            {"x": 120, "y": 160, "confidence": 0.85},
+                        ],
+                    }
+                ]
+            },
+            _create_key_points(
+                xy=[[[100.0, 150.0], [120.0, 160.0]]],
+                confidence=[[0.9, 0.85]],
+                class_id=[1],
+                data={"class_name": np.array(["person"])},
+            ),
+        ),
+        ({"predictions": []}, KeyPoints.empty()),
+    ],
+)
+def test_from_inference_input(inference_results, expected_key_points):
+    """Test the from_inference method with valid input."""
+    key_points = KeyPoints.from_inference(inference_results)
+    assert key_points == expected_key_points
+
+
+def test_from_inference_invalid_input():
+    """Test the from_inference method with invalid input."""
+    key_points = _create_key_points(
+        xy=[[[0, 1], [2, 3]]], confidence=[[0.8, 0.9]], class_id=[0]
+    )
+    with pytest.raises(
+        ValueError, match=r"from_inference\(\) operates on a single result at a time.*"
+    ):
+        KeyPoints.from_inference([key_points])
+
+
+@pytest.mark.parametrize(
+    ("yolo_nas_results", "expected_key_points"),
+    [
+        (
+            _FakeYoloNasKeyPointResults(
+                _FakeYoloNasKeyPoint(
+                    poses=[[[100.0, 150.0, 0.9], [120.0, 160.0, 0.85]]],
+                    labels=[1],
+                ),
+            ),
+            _create_key_points(
+                xy=[[[100.0, 150.0], [120.0, 160.0]]],
+                confidence=[[0.9, 0.85]],
+                class_id=[1],
+            ),
+        ),
+        (
+            _FakeYoloNasKeyPointResults(
+                _FakeYoloNasKeyPoint(
+                    poses=[],
+                ),
+            ),
+            KeyPoints.empty(),
+        ),
+    ],
+)
+def test_from_yolo_nas_input(yolo_nas_results, expected_key_points):
+    """Test the from_yolo_nas method with valid input."""
+    key_points = KeyPoints.from_yolo_nas(yolo_nas_results)
+    assert key_points == expected_key_points
+
+
+@pytest.mark.parametrize(
+    ("mediapipe_results", "resolution_wh", "expected_key_points"),
+    [
+        (
+            _FakeMediapipeResults(
+                _FakeMediapipePose(
+                    landmarks=[
+                        _FakeMediapipeLandmark(0.5, 0.75, 0.9),
+                        _FakeMediapipeLandmark(0.6, 0.8, 0.85),
+                    ]
+                )
+            ),
+            (200, 200),
+            _create_key_points(
+                xy=[[[100.0, 150.0], [120.0, 160.0]]],
+                confidence=[[0.9, 0.85]],
+                class_id=None,
+            ),
+        )
+    ],
+)
+def test_from_mediapipe_input(mediapipe_results, resolution_wh, expected_key_points):
+    """Test the from_mediapipe method with valid input."""
+    key_points = KeyPoints.from_mediapipe(
+        mediapipe_results, resolution_wh=resolution_wh
+    )
+    assert key_points == expected_key_points
