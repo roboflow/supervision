@@ -520,7 +520,7 @@ def test_from_yolo_nas_input(yolo_nas_results, expected_key_points):
     [
         (
             _FakeMediapipeResults(
-                _FakeMediapipePose(
+                pose_landmarks=_FakeMediapipePose(
                     landmarks=[
                         _FakeMediapipeLandmark(0.5, 0.75, 0.9),
                         _FakeMediapipeLandmark(0.6, 0.8, 0.85),
@@ -533,7 +533,23 @@ def test_from_yolo_nas_input(yolo_nas_results, expected_key_points):
                 confidence=[[0.9, 0.85]],
                 class_id=None,
             ),
-        )
+        ),
+        (
+            _FakeMediapipeResults(
+                pose_landmarks=[
+                    [
+                        _FakeMediapipeLandmark(0.5, 0.75, 0.9),
+                        _FakeMediapipeLandmark(0.6, 0.8, 0.85),
+                    ]
+                ]
+            ),
+            (200, 200),
+            _create_key_points(
+                xy=[[[100.0, 150.0], [120.0, 160.0]]],
+                confidence=[[0.9, 0.85]],
+                class_id=None,
+            ),
+        ),
     ],
 )
 def test_from_mediapipe_input(mediapipe_results, resolution_wh, expected_key_points):
