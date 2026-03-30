@@ -1,187 +1,209 @@
-[tool.poetry]
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = [ "setuptools>=61" ]
+
+[project]
 name = "supervision"
-version = "0.17.1"
+version = "0.28.0rc0"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
-authors = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
-maintainers = ["Piotr Skalski <piotr.skalski92@gmail.com>"]
 readme = "README.md"
+keywords = [
+  "AI",
+  "deep-learning",
+  "DL",
+  "machine-learning",
+  "ML",
+  "Roboflow",
+  "vision",
+]
 license = "MIT"
-packages = [{include = "supervision"}]
-homepage = "https://github.com/roboflow/supervision"
-repository = "https://github.com/roboflow/supervision"
-documentation = "https://github.com/roboflow/supervision/blob/main/README.md"
-keywords = ["machine-learning", "deep-learning", "vision", "ML", "DL", "AI", "Roboflow"]
-
-classifiers=[
-    'Development Status :: 4 - Beta',
-    'Intended Audience :: Developers',
-    'Intended Audience :: Education',
-    'Intended Audience :: Science/Research',
-    'License :: OSI Approved :: MIT License',
-    'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3 :: Only',
-    'Topic :: Software Development',
-    'Topic :: Scientific/Engineering',
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "Topic :: Scientific/Engineering :: Image Recognition",
-    'Typing :: Typed',
-    'Operating System :: Microsoft :: Windows',
-    'Operating System :: POSIX :: Linux',
-    'Operating System :: MacOS'
+maintainers = [
+  { name = "Piotr Skalski", email = "piotr@roboflow.com" },
 ]
-
-[tool.poetry.dependencies]
-python = "^3.8"
-numpy = ">=1.21.2"
-scipy =  ">=1.9.0"
-matplotlib = ">=3.5.0"
-pyyaml = ">=5.3"
-pillow = ">=9.4"
-opencv-python = { version = ">=4.5.5.64,<=4.8.1.78", optional = true }
-opencv-python-headless = ">=4.5.5.64,<=4.8.1.78"
-requests = { version = ">=2.26.0,<=2.31.0", optional = true }
-tqdm = { version = ">=4.62.3,<=4.66.1", optional = true }
-defusedxml = "^0.7.1"
-
-
-[tool.poetry.extras]
-desktop = ["opencv-python"]
-assets = ["requests","tqdm"]
-
-[tool.poetry.group.dev.dependencies]
-twine = "^4.0.2"
-pytest = "^7.2.2"
-wheel = ">=0.40,<0.43"
-notebook = ">=6.5.3,<8.0.0"
-build = ">=0.10,<1.1"
-ruff = ">=0.0.280,<0.1.10"
-isort = "^5.12.0"
-mypy = "^1.4.1"
-pre-commit = "^3.3.3"
-tox = "^4.11.4"
-
-
-[tool.poetry.group.docs.dependencies]
-mkdocs-material = "^9.1.4"
-mkdocstrings = {extras = ["python"], version = ">=0.20,<0.25"}
-
-
-[tool.isort]
-line_length = 88
-profile = "black"
-
-[tool.bandit]
-target = ["test", "supervision"]
-tests = ["B201", "B301", "B318", "B314", "B303", "B413", "B412", "B410"]
-
-[tool.autoflake]
-check = true
-imports = ["cv2", "supervision"]
-
-
-[tool.black]
-target-version = ["py38"]
-line-length = 88
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-  | docs
-)/
-'''
-
-[tool.ruff]
-target-version = "py38"
-# Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
-select = ["E", "F"]
-ignore = []
-
-# Allow autofix for all enabled rules (when `--fix`) is provided.
-fixable = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W", "ANN", "ARG", "BLE", "COM", "DJ", "DTZ", "EM", "ERA", "EXE", "FBT", "ICN", "INP", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PTH", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TCH", "TID", "TRY", "UP", "YTT"]
-unfixable = []
-
-# Exclude a variety of commonly ignored directories.
-exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".git-rewrite",
-    ".hg",
-    ".mypy_cache",
-    ".nox",
-    ".pants.d",
-    ".pytype",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "venv",
-    "yarn-error.log",
-    "yarn.lock",
-    "docs",
+authors = [
+  { name = "Roboflow et al.", email = "develop@roboflow.com" },
 ]
+requires-python = ">=3.9"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Education",
+  "Intended Audience :: Science/Research",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Multimedia :: Graphics",
+  "Topic :: Multimedia :: Video",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Scientific/Engineering :: Image Recognition",
+  "Topic :: Software Development",
+  "Typing :: Typed",
+]
+dependencies = [
+  "defusedxml>=0.7.1",
+  "matplotlib>=3.6",
+  "numpy>=1.21.2",
+  "opencv-python>=4.5.5.64",
+  "pillow>=9.4",
+  "pyyaml>=5.3",
+  "requests>=2.26",
+  "scipy>=1.10",
+  "tqdm>=4.62.3",
+]
+optional-dependencies.metrics = [
+  "pandas>=2",
+]
+urls.Documentation = "https://supervision.roboflow.com/latest/"
+urls.Homepage = "https://github.com/roboflow/supervision"
+urls.Repository = "https://github.com/roboflow/supervision"
 
-# Same as Black.
-line-length = 88
-indent-width = 4
-
-# Allow unused variables when underscore-prefixed.
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
-
-[tool.ruff.flake8-quotes]
-inline-quotes = "double"
-multiline-quotes = "double"
-docstring-quotes = "double"
-
-[tool.ruff.pydocstyle]
-convention = "google"
-
-[tool.ruff.per-file-ignores]
-"__init__.py" = ["E402","F401"]
-"supervision/assets/list.py" = ["E501"]
-
-[tool.ruff.lint.mccabe]
-# Flag errors (`C901`) whenever the complexity level exceeds 5.
-max-complexity = 20
-
-
-[tool.ruff.pylint]
-max-args = 20
-
-[tool.ruff.format]
-# Like Black, use double quotes for strings.
-quote-style = "double"
-
-# Like Black, indent with spaces, rather than tabs.
-indent-style = "space"
-
-# Like Black, respect magic trailing commas.
-skip-magic-trailing-comma = false
-
-# Like Black, automatically detect the appropriate line ending.
-line-ending = "auto"
+[dependency-groups]
+dev = [
+  "docutils!=0.21",
+  "ipywidgets>=8.1.1",
+  "jupytext>=1.16.1",
+  "nbconvert>=7.14.2",
+  "notebook>=6.5.3,<8",
+  "pre-commit>=3.8",
+  "pytest>=7.2.2,<9",
+  "pytest-cov>=4,<8",
+  "tox>=4.11.4",
+]
+docs = [
+  "mike>=2",
+  "mkdocs-git-committers-plugin-2>=2.4.1; python_version>='3.9' and python_version<'4'",
+  "mkdocs-git-revision-date-localized-plugin>=1.2.4",
+  "mkdocs-jupyter>=0.24.3",
+  "mkdocs-material[imaging]>=9.7",
+  "mkdocstrings>=0.25.2,<0.31",
+  "mkdocstrings-python>=1.10.9,<2",                                                      # todo: breaking changes in 2.x
+]
+build = [
+  "build>=0.10,<1.5",
+  "twine>=5.1.1,<7",
+  "wheel>=0.40,<0.47",
+]
 
 [tool.setuptools]
 include-package-data = false
+package-data.supervision = [ "py.typed" ]
+packages.find.where = [ "src" ]
+packages.find.include = [ "supervision*" ]
 
-[tool.setuptools.packages.find]
-exclude = ["docs*", "test*","examples*"]
+# exclude = [ "docs*", "tests*", "examples*" ]
+[tool.ruff]
+target-version = "py39"
+line-length = 88
+indent-width = 4
+# Exclude a variety of commonly ignored directories.
+exclude = [
+  ".bzr",
+  ".direnv",
+  ".eggs",
+  ".git",
+  ".git-rewrite",
+  ".hg",
+  ".mypy_cache",
+  ".nox",
+  ".pants.d",
+  ".pytype",
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  "__pypackages__",
+  "_build",
+  "buck-out",
+  "build",
+  "dist",
+  "docs",
+  "node_modules",
+  "venv",
+  "yarn-error.log",
+  "yarn.lock",
+]
+# Like Black, indent with spaces, rather than tabs.
+format.indent-style = "space"
+# Like Black, use double quotes for strings.
+format.quote-style = "double"
+# Like Black, automatically detect the appropriate line ending.
+format.line-ending = "auto"
+# Like Black, respect magic trailing commas.
+format.skip-magic-trailing-comma = false
+# Enable linting rules for code style, imports, and best practices.
+lint.select = [
+  "A",   # flake8-builtins - https://docs.astral.sh/ruff/rules/#flake8-builtins-a
+  "E",   # pycodestyle errors - https://docs.astral.sh/ruff/rules/#error-e
+  "F",   # Pyflakes - https://docs.astral.sh/ruff/rules/#pyflakes-f
+  "I",   # isort - https://docs.astral.sh/ruff/rules/#isort-i
+  "PT",  # pytest - https://docs.astral.sh/ruff/rules/#flake8-pytest-style-pt
+  "Q",   # flake8-quotes - https://docs.astral.sh/ruff/rules/#flake8-quotes-q
+  "RUF", # Ruff-specific rules - https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
+  "S",   # bandit - https://docs.astral.sh/ruff/rules/#flake8-bandit-s
+  "UP",  # pyupgrade - https://docs.astral.sh/ruff/rules/#pyupgrade-up
+  "W",   # pycodestyle warnings - https://docs.astral.sh/ruff/rules/#pycodestyle-w
+]
+lint.ignore = []
+lint.per-file-ignores."__init__.py" = [ "E402", "F401" ]
+lint.per-file-ignores."src/**" = [
+  "S101", # TODO: Replace asserts with proper error handling
+]
+lint.per-file-ignores."tests/**" = [
+  "S101", # Use of `assert` detected
+]
+lint.unfixable = []
+# Allow unused variables when underscore-prefixed.
+lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+lint.flake8-quotes.docstring-quotes = "double"
+lint.flake8-quotes.inline-quotes = "double"
+lint.flake8-quotes.multiline-quotes = "double"
+lint.isort.no-sections = false
+lint.isort.order-by-type = true
+# Flag errors (`C901`) whenever the complexity level exceeds 5.
+lint.mccabe.max-complexity = 20
+lint.pydocstyle.convention = "google"
+lint.pylint.max-args = 20
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[tool.codespell]
+skip = "*.ipynb"
+count = true
+quiet-level = 3
+ignore-words-list = "STrack,sTrack,strack"
+
+[tool.mypy]
+python_version = "3.9"
+ignore_missing_imports = false
+explicit_package_bases = true
+strict = true
+mypy_path = "src"
+overrides = [
+  # exclude = [
+  #  "docs",
+  #  "test",
+  #  "examples",
+  #  "setup.py",
+  # ]
+  { module = [
+    "tests.*",
+    "examples.*",
+  ], ignore_errors = true },
+]
+
+[tool.pytest]
+ini_options.addopts = [
+  "--doctest-modules",
+  "--color=yes",
+]
+ini_options.doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE"
+
+[tool.autoflake]
+check = true
+imports = [ "cv2", "supervision" ]

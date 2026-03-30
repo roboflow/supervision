@@ -1,3 +1,9 @@
+---
+comments: true
+---
+
+# Filter Detections
+
 The advanced filtering capabilities of the `Detections` class offer users a versatile and efficient way to narrow down
 and refine object detections. This section outlines various filtering methods, including filtering by specific class
 or a set of classes, confidence, object area, bounding box area, relative area, box dimensions, and designated zones.
@@ -37,7 +43,6 @@ Allows you to select detections that belong only to one selected class.
     ![original](https://media.roboflow.com/open-source/supervision/supervision-detection-original.png){ align=center width="800" }
 
     </div>
-
 
 ### by set of classes
 

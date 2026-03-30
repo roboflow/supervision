@@ -1,0 +1,44 @@
+name: Publish Supervision Releases to TestPyPI
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - ".github/workflows/build-package.yml"
+      - ".github/workflows/publish-testpypi.yml"
+
+permissions: {} # Explicitly remove all permissions by default
+
+jobs:
+  build:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/build-package.yml
+
+  publish-testpypi:
+    name: Publish Release Package
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/project/supervision/
+    timeout-minutes: 10
+    permissions:
+      id-token: write # Required for PyPI publishing
+      contents: read # Required for checkout
+    steps:
+      - name: 📥 Download distribution artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      - name: List distribution artifacts
+        run: ls -lh dist/
+
+      - name: 🚀 Publish to Test-PyPi
+        if: github.event_name != 'pull_request'
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          attestations: true

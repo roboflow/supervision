@@ -1,4 +1,6 @@
+gdown
+inference
 supervision
 tqdm
 ultralytics
-gdown
+jsonargparse[signatures]

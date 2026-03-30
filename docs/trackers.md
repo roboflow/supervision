@@ -1,3 +1,7 @@
-## ByteTrack
+---
+comments: true
+---
+
+# ByteTrack
 
 :::supervision.tracker.byte_tracker.core.ByteTrack
