@@ -1,9 +1,5 @@
 # Changelog
 
-### 0.28.0
-
-- Changed [#2186](https://github.com/roboflow/supervision/pull/2186): [`sv.InferenceSlicer`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer) now emits a `SupervisionWarnings` warning (at most once per instance) when a callback returns detections whose coordinates fall outside the slice bounds, helping users catch the common mistake of running inference on the full image instead of the provided slice.
-
 ### 0.27.0 <small>Nov 16, 2025</small>
 
 - Added [#2008](https://github.com/roboflow/supervision/pull/2008): [`sv.filter_segments_by_distance`](https://supervision.roboflow.com/0.27.0/detection/utils/masks/#supervision.detection.utils.masks.filter_segments_by_distance) to keep the largest connected component and nearby components within an absolute or relative distance threshold. Useful for cleaning segmentation predictions from models such as SAM, SAM2, YOLO segmentation, and RF-DETR segmentation.
