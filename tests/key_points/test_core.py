@@ -347,6 +347,25 @@ KEY_POINTS = _create_key_points(
             ),
             DoesNotRaise(),
         ),  # all-False 2D mask — all rows select 0 keypoints, equal counts → ok
+        (
+            _create_key_points(
+                xy=[[[0, 1], [2, 3], [4, 5]]],
+                confidence=[[0.8, 0.2, 0.6]],
+                class_id=[0],
+            ),
+            _create_key_points(
+                xy=[[[0, 1], [2, 3], [4, 5]]],
+                confidence=[[0.8, 0.2, 0.6]],
+                class_id=[0],
+            ).confidence
+            > 0.5,
+            _create_key_points(
+                xy=[[[0, 1], [4, 5]]],
+                confidence=[[0.8, 0.6]],
+                class_id=[0],
+            ),
+            DoesNotRaise(),
+        ),  # kp[kp.confidence > 0.5] — single-object canonical use case
     ],
 )
 def test_key_points_getitem(key_points, index, expected_result, exception):

@@ -673,6 +673,22 @@ class KeyPoints:
     def _get_by_2d_bool_mask(self, mask: npt.NDArray[np.bool_]) -> KeyPoints:
         """Filter keypoints using a 2D boolean mask of shape `(n, m)`.
 
+        This method selects the **same set of keypoints from every object**, so
+        every row of `mask` must contain the same number of `True` values.  The
+        result is a new `KeyPoints` whose keypoint count is that uniform `k`.
+
+        This is suitable for use cases such as *"keep only the left-side joints for
+        all persons"* — where the selected joint indices are identical across objects.
+
+        It is **not** suitable for per-object confidence filtering
+        (`kp[kp.confidence > 0.5]`) when the threshold yields a different number of
+        passing keypoints per object, because NumPy cannot represent a ragged
+        `(n, ?, 2)` array.  For that pattern either process objects individually or
+        zero out low-confidence entries in-place via `kp.confidence`.
+
+        For the single-object case (`n == 1`) any boolean mask always satisfies the
+        uniform-count requirement, so `kp[kp.confidence > 0.5]` works as expected.
+
         Args:
             mask: A boolean array of shape `(n, m)` where `n` is the number of
                 objects and `m` is the number of keypoints per object.  Every row
@@ -685,9 +701,8 @@ class KeyPoints:
 
         Raises:
             ValueError: If `mask.shape[0]` does not match the number of objects, if
-                `mask.shape[1]` does not match the number of keypoints (for non-empty
-                instances), or if different rows of the mask select different numbers
-                of `True` values.
+                `mask.shape[1]` does not match the number of keypoints, or if
+                different rows of the mask select different numbers of `True` values.
         """
         n = len(self.xy)
         if mask.shape[0] != n:
