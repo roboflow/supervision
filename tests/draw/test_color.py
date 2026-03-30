@@ -63,8 +63,9 @@ def test_color_from_hex(
 
     Scenario: Creating a `Color` object from various hex string formats (3-, 4-, 6-,
     and 8-digit, with/without # prefix).
-    Expected: Correct RGBA values are parsed, and invalid hex strings raise `ValueError`.
-    This allows users to define colors using familiar web formats including alpha.
+    Expected: Correct RGBA values are parsed, and invalid hex strings raise
+        `ValueError`. This allows users to define colors using familiar web formats
+        including alpha.
     """
     with exception:
         result = Color.from_hex(color_hex=color_hex)
