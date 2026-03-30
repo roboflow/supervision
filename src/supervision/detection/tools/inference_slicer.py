@@ -219,14 +219,18 @@ class InferenceSlicer:
                     y_negative = np.any(detections.xyxy[:, [1, 3]] < 0)
                     if x_exceeds or y_exceeds or x_negative or y_negative:
                         self._out_of_slice_bounds_warned = True
+                        msg = (
+                            "Detections returned by the callback have coordinates "
+                            "outside the slice bounds. This may be caused by the "
+                            "callback running inference on the full image instead of "
+                            "the provided image slice. Ensure your callback uses the "
+                            "input slice for inference, not the original "
+                            "full-resolution image."
+                        )
                         warnings.warn(
-                            "Detections returned by the callback have coordinates outside "
-                            "the slice bounds. This may be caused by the callback running "
-                            "inference on the full image instead of the provided image "
-                            "slice. Ensure your callback uses the input slice for "
-                            "inference, not the original full-resolution image.",
+                            msg,
                             category=SupervisionWarnings,
-                            stacklevel=,
+                            stacklevel=2,
                         )
         detections = move_detections(
             detections=detections,
