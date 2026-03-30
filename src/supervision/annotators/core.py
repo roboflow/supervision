@@ -15,6 +15,8 @@ from supervision.annotators.utils import (
     PENDING_TRACK_ID,
     ColorLookup,
     Trace,
+    calculate_dynamic_kernel_size,
+    calculate_dynamic_pixel_size,
     get_labels_text,
     hex_to_rgba,
     resolve_color,
@@ -1841,12 +1843,14 @@ class BlurAnnotator(BaseAnnotator):
     A class for blurring regions in an image using provided detections.
     """
 
-    def __init__(self, kernel_size: int = 15):
+    def __init__(self, kernel_size: int | None = None):
         """
         Args:
             kernel_size: The size of the average pooling kernel used for blurring.
+                If `None`, the kernel size is computed dynamically based on the image
+                resolution using `calculate_dynamic_kernel_size`.
         """
-        self.kernel_size: int = kernel_size
+        self.kernel_size: int | None = kernel_size
 
     @ensure_cv2_image_for_class_method
     def annotate(
@@ -1890,13 +1894,22 @@ class BlurAnnotator(BaseAnnotator):
         if not isinstance(scene, np.ndarray):
             return scene
         image_height, image_width = scene.shape[:2]
+        kernel_size = (
+            self.kernel_size
+            if self.kernel_size is not None
+            else calculate_dynamic_kernel_size(
+                resolution_wh=(image_width, image_height)
+            )
+        )
         clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
             xyxy=detections.xyxy, resolution_wh=(image_width, image_height)
         ).astype(int)
 
         for x1, y1, x2, y2 in clipped_xyxy:
             roi = scene[y1:y2, x1:x2]
-            roi = cv2.blur(roi, (self.kernel_size, self.kernel_size))
+            roi_height, roi_width = roi.shape[:2]
+            effective_kernel = max(1, min(kernel_size, roi_width, roi_height))
+            roi = cv2.blur(roi, (effective_kernel, effective_kernel))
             scene[y1:y2, x1:x2] = roi
 
         return scene
@@ -2145,12 +2158,16 @@ class PixelateAnnotator(BaseAnnotator):
     A class for pixelating regions in an image using provided detections.
     """
 
-    def __init__(self, pixel_size: int = 20):
+    def __init__(self, pixel_size: int | None = None):
         """
         Args:
-            pixel_size: The size of the pixelation.
+            pixel_size: The size of the pixelation. If `None`, the pixel size is
+                computed dynamically based on the image resolution using
+                `calculate_dynamic_pixel_size`. If the specified or computed pixel
+                size exceeds the dimensions of the region, the region is filled with
+                its average color instead.
         """
-        self.pixel_size: int = pixel_size
+        self.pixel_size: int | None = pixel_size
 
     @ensure_cv2_image_for_class_method
     def annotate(
@@ -2192,18 +2209,27 @@ class PixelateAnnotator(BaseAnnotator):
         if not isinstance(scene, np.ndarray):
             return scene
         image_height, image_width = scene.shape[:2]
+        pixel_size = (
+            self.pixel_size
+            if self.pixel_size is not None
+            else calculate_dynamic_pixel_size(resolution_wh=(image_width, image_height))
+        )
         clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
             xyxy=detections.xyxy, resolution_wh=(image_width, image_height)
         ).astype(int)
 
         for x1, y1, x2, y2 in clipped_xyxy:
             roi = scene[y1:y2, x1:x2]
+            roi_height, roi_width = roi.shape[:2]
+            if roi_width < pixel_size or roi_height < pixel_size:
+                scene[y1:y2, x1:x2] = roi.mean(axis=(0, 1)).astype(np.uint8)
+                continue
             scaled_up_roi = cv2.resize(
-                src=roi, dsize=None, fx=1 / self.pixel_size, fy=1 / self.pixel_size
+                src=roi, dsize=None, fx=1 / pixel_size, fy=1 / pixel_size
             )
             scaled_down_roi = cv2.resize(
                 src=scaled_up_roi,
-                dsize=(roi.shape[1], roi.shape[0]),
+                dsize=(roi_width, roi_height),
                 interpolation=cv2.INTER_NEAREST,
             )
 

@@ -17,6 +17,58 @@ PENDING_TRACK_COLOR = Color.GREY
 PENDING_TRACK_ID = -1
 
 
+def calculate_dynamic_kernel_size(resolution_wh: tuple[int, int]) -> int:
+    """
+    Calculate a dynamic blur kernel size based on image resolution.
+
+    Scales the kernel size proportionally to the smallest dimension of the
+    image resolution, ensuring effective blurring across different resolutions.
+
+    Args:
+        resolution_wh: A tuple of `(width, height)` of the image in pixels.
+
+    Returns:
+        Recommended blur kernel size in pixels.
+
+    Examples:
+        ```pycon
+        >>> from supervision.annotators.utils import calculate_dynamic_kernel_size
+        >>> calculate_dynamic_kernel_size((1920, 1080))
+        27
+        >>> calculate_dynamic_kernel_size((640, 480))
+        12
+
+        ```
+    """
+    return max(1, int(min(resolution_wh) * 0.025))
+
+
+def calculate_dynamic_pixel_size(resolution_wh: tuple[int, int]) -> int:
+    """
+    Calculate a dynamic pixel size for pixelation based on image resolution.
+
+    Scales the pixel size proportionally to the smallest dimension of the
+    image resolution, ensuring effective pixelation across different resolutions.
+
+    Args:
+        resolution_wh: A tuple of `(width, height)` of the image in pixels.
+
+    Returns:
+        Recommended pixelation block size in pixels.
+
+    Examples:
+        ```pycon
+        >>> from supervision.annotators.utils import calculate_dynamic_pixel_size
+        >>> calculate_dynamic_pixel_size((1920, 1080))
+        54
+        >>> calculate_dynamic_pixel_size((640, 480))
+        24
+
+        ```
+    """
+    return max(1, int(min(resolution_wh) * 0.05))
+
+
 class ColorLookup(Enum):
     """
     Enumeration class to define strategies for mapping colors to annotations.

@@ -33,6 +33,8 @@ from supervision.annotators.core import (
 )
 from supervision.annotators.utils import (
     ColorLookup,
+    calculate_dynamic_kernel_size,
+    calculate_dynamic_pixel_size,
     hex_to_rgba,
     is_valid_hex,
     rgba_to_hex,
@@ -209,6 +211,8 @@ __all__ = [
     "box_iou_batch_with_jaccard",
     "box_non_max_merge",
     "box_non_max_suppression",
+    "calculate_dynamic_kernel_size",
+    "calculate_dynamic_pixel_size",
     "calculate_masks_centroids",
     "calculate_optimal_line_thickness",
     "calculate_optimal_text_scale",

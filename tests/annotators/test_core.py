@@ -504,6 +504,22 @@ class TestBlurAnnotator:
         result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
         assert not np.array_equal(gradient_image, result)
 
+    def test_annotate_with_dynamic_kernel_size(self, gradient_image):
+        """Test that annotate works when kernel_size is None (dynamic)"""
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        annotator = BlurAnnotator()
+        assert annotator.kernel_size is None
+        result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
+        assert not np.array_equal(gradient_image, result)
+
+    def test_annotate_with_small_detection(self, gradient_image):
+        """Test that annotate handles a detection smaller than the kernel_size"""
+        detections = _create_detections(xyxy=[[10, 10, 12, 12]], class_id=[0])
+        annotator = BlurAnnotator(kernel_size=50)
+        result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
+        # Blur should be applied to the small region without raising an error
+        assert result.shape == gradient_image.shape
+
 
 class TestPixelateAnnotator:
     """Tests for PixelateAnnotator class"""
@@ -521,6 +537,28 @@ class TestPixelateAnnotator:
         annotator = PixelateAnnotator(pixel_size=10)
         result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
         assert not np.array_equal(gradient_image, result)
+
+    def test_annotate_with_dynamic_pixel_size(self, gradient_image):
+        """Test that annotate works when pixel_size is None (dynamic)"""
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        annotator = PixelateAnnotator()
+        assert annotator.pixel_size is None
+        result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
+        assert not np.array_equal(gradient_image, result)
+
+    def test_annotate_with_small_detection(self, gradient_image):
+        """Test that small detection is filled with average color instead of failing"""
+        x1, y1, x2, y2 = 10, 10, 12, 12
+        detections = _create_detections(xyxy=[[x1, y1, x2, y2]], class_id=[0])
+        annotator = PixelateAnnotator(pixel_size=20)
+        original = gradient_image.copy()
+        result = annotator.annotate(scene=original, detections=detections)
+        # Region should be filled with uniform average color
+        roi = result[y1:y2, x1:x2]
+        expected_color = gradient_image[y1:y2, x1:x2].mean(axis=(0, 1)).astype(
+            np.uint8
+        )
+        assert np.all(roi == expected_color)
 
 
 class TestTriangleAnnotator:
