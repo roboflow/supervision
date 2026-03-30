@@ -230,7 +230,7 @@ class InferenceSlicer:
                         warnings.warn(
                             msg,
                             category=SupervisionWarnings,
-                            stacklevel=2,
+                            stacklevel=2
                         )
         detections = move_detections(
             detections=detections,
