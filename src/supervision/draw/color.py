@@ -206,18 +206,21 @@ class Color:
         Create a Color instance from an RGBA tuple.
 
         Args:
-            color_tuple (Tuple[int, int, int, int]): A tuple representing the color
-                in RGBA format, where each element is an integer in the range 0-255.
+            color_tuple: A tuple representing the color in RGBA format, where each
+                element is an integer in the range 0-255.
 
         Returns:
-            Color: An instance representing the color.
+            An instance representing the color.
+
+        Raises:
+            ValueError: If any RGBA value is outside the range 0-255.
 
         Example:
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import supervision as sv
+            >>> sv.Color.from_rgba_tuple((255, 255, 0, 128))
+            Color(r=255, g=255, b=0, a=128)
 
-            sv.Color.from_rgba_tuple((255, 255, 0, 128))
-            # Color(r=255, g=255, b=0, a=128)
             ```
         """
         r, g, b, a = color_tuple
@@ -233,18 +236,21 @@ class Color:
         Create a Color instance from a BGRA tuple.
 
         Args:
-            color_tuple (Tuple[int, int, int, int]): A tuple representing the color
-                in BGRA format, where each element is an integer in the range 0-255.
+            color_tuple: A tuple representing the color in BGRA format, where each
+                element is an integer in the range 0-255.
 
         Returns:
-            Color: An instance representing the color.
+            An instance representing the color.
+
+        Raises:
+            ValueError: If any BGRA value is outside the range 0-255.
 
         Example:
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import supervision as sv
+            >>> sv.Color.from_bgra_tuple((0, 255, 255, 128))
+            Color(r=255, g=255, b=0, a=128)
 
-            sv.Color.from_bgra_tuple((0, 255, 255, 128))
-            # Color(r=255, g=255, b=0, a=128)
             ```
         """
         b, g, r, a = color_tuple
@@ -316,14 +322,14 @@ class Color:
         Returns the color as an RGBA tuple.
 
         Returns:
-            Tuple[int, int, int, int]: RGBA tuple.
+            RGBA tuple.
 
         Example:
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import supervision as sv
+            >>> sv.Color(r=255, g=255, b=0, a=128).as_rgba()
+            (255, 255, 0, 128)
 
-            sv.Color(r=255, g=255, b=0, a=128).as_rgba()
-            # (255, 255, 0, 128)
             ```
         """
         return self.r, self.g, self.b, self.a
@@ -333,14 +339,14 @@ class Color:
         Returns the color as a BGRA tuple.
 
         Returns:
-            Tuple[int, int, int, int]: BGRA tuple.
+            BGRA tuple.
 
         Example:
-            ```python
-            import supervision as sv
+            ```pycon
+            >>> import supervision as sv
+            >>> sv.Color(r=255, g=255, b=0, a=128).as_bgra()
+            (0, 255, 255, 128)
 
-            sv.Color(r=255, g=255, b=0, a=128).as_bgra()
-            # (0, 255, 255, 128)
             ```
         """
         return self.b, self.g, self.r, self.a

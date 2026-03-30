@@ -287,3 +287,31 @@ def test_color_as_bgra(
     with exception:
         result = color.as_bgra()
         assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    ("color", "expected_repr"),
+    [
+        (Color(r=255, g=255, b=255), "Color(r=255, g=255, b=255)"),
+        (Color(r=0, g=0, b=0), "Color(r=0, g=0, b=0)"),
+        (Color(r=255, g=0, b=255, a=255), "Color(r=255, g=0, b=255)"),
+        (Color(r=255, g=0, b=255, a=128), "Color(r=255, g=0, b=255, a=128)"),
+        (Color(r=255, g=0, b=255, a=0), "Color(r=255, g=0, b=255, a=0)"),
+    ],
+)
+def test_color_repr(color: Color, expected_repr: str) -> None:
+    assert repr(color) == expected_repr
+
+
+@pytest.mark.parametrize(
+    ("color_a", "color_b", "expect_equal_hash"),
+    [
+        (Color(r=255, g=0, b=0), Color(r=255, g=0, b=0), True),
+        (Color(r=255, g=0, b=0, a=255), Color(r=255, g=0, b=0), True),
+        (Color(r=255, g=0, b=0, a=128), Color(r=255, g=0, b=0, a=64), False),
+        (Color(r=255, g=0, b=0, a=0), Color(r=255, g=0, b=0, a=255), False),
+    ],
+)
+def test_color_hash(color_a: Color, color_b: Color, expect_equal_hash: bool) -> None:
+    assert (hash(color_a) == hash(color_b)) == expect_equal_hash
+    assert (color_a == color_b) == expect_equal_hash
