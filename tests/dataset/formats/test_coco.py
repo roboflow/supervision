@@ -947,6 +947,90 @@ def test_detections_to_coco_annotations_handles_empty_approximated_polygons() ->
     assert annotations[0]["iscrowd"] == 0
 
 
+def test_detections_to_coco_annotations_preserves_area_from_data() -> None:
+    """area stored in detections.data should be used instead of bbox area."""
+    detections = Detections(
+        xyxy=np.array([[10.0, 20.0, 110.0, 120.0]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+        data={"iscrowd": np.array([0], dtype=int), "area": np.array([5000.0])},
+    )
+
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections,
+        image_id=1,
+        annotation_id=1,
+    )
+
+    assert len(annotations) == 1
+    assert annotations[0]["area"] == 5000.0
+    assert annotations[0]["iscrowd"] == 0
+    assert isinstance(annotations[0]["iscrowd"], int)
+
+
+def test_detections_to_coco_annotations_preserves_iscrowd_from_data_when_no_mask() -> (
+    None
+):
+    """iscrowd stored in detections.data should be used when no mask is present."""
+    detections = Detections(
+        xyxy=np.array([[0.0, 0.0, 100.0, 100.0]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+        data={"iscrowd": np.array([1], dtype=int), "area": np.array([1234.5])},
+    )
+
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections,
+        image_id=1,
+        annotation_id=1,
+    )
+
+    assert len(annotations) == 1
+    assert annotations[0]["iscrowd"] == 1
+    assert isinstance(annotations[0]["iscrowd"], int)
+    assert annotations[0]["area"] == 1234.5
+
+
+def test_detections_to_coco_annotations_iscrowd_is_int_not_bool_when_mask_provided() -> (
+    None
+):
+    """iscrowd should be stored as int (0 or 1), not as Python bool."""
+    mask = np.zeros((1, 5, 5), dtype=bool)
+    mask[0, 0:3, 0:3] = True  # simple single-component rectangle
+
+    detections = Detections(
+        xyxy=np.array([[0.0, 0.0, 3.0, 3.0]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+        mask=mask,
+    )
+
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections,
+        image_id=1,
+        annotation_id=1,
+    )
+
+    assert len(annotations) == 1
+    assert annotations[0]["iscrowd"] == 0
+    assert isinstance(annotations[0]["iscrowd"], int)
+
+
+def test_detections_to_coco_annotations_fallback_area_when_no_data() -> None:
+    """When detections have no area in data, area should fall back to bbox area."""
+    detections = Detections(
+        xyxy=np.array([[10.0, 20.0, 110.0, 120.0]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+    )
+
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections,
+        image_id=1,
+        annotation_id=1,
+    )
+
+    assert len(annotations) == 1
+    assert annotations[0]["area"] == 100.0 * 100.0
+    assert annotations[0]["iscrowd"] == 0
+
+
 def test_load_coco_annotations_infers_masks_from_segmentation_field(
     tmp_path, coco_data_with_and_without_segmentation: dict[str, object]
 ) -> None:
