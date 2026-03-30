@@ -698,7 +698,7 @@ class KeyPoints:
                     f"Got counts per object: {counts.tolist()}"
                 )
             k = int(counts[0]) if n > 0 else 0
-            xy_selected = np.zeros((n, k, 2), dtype=self.xy.dtype)
+            xy_selected = np.zeros((n, k, self.xy.shape[2]), dtype=self.xy.dtype)
             conf_selected: npt.NDArray[np.float32] | None = None
             if self.confidence is not None:
                 conf_selected = cast(
