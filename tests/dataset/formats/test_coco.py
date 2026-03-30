@@ -989,9 +989,7 @@ def test_detections_to_coco_annotations_preserves_iscrowd_from_data_when_no_mask
     assert annotations[0]["area"] == 1234.5
 
 
-def test_detections_to_coco_annotations_iscrowd_is_int_not_bool_when_mask_provided() -> (
-    None
-):
+def test_detections_to_coco_annotations_iscrowd_is_int_when_mask_provided() -> None:
     """iscrowd should be stored as int (0 or 1), not as Python bool."""
     mask = np.zeros((1, 5, 5), dtype=bool)
     mask[0, 0:3, 0:3] = True  # simple single-component rectangle
