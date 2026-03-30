@@ -195,6 +195,20 @@ def test_color_from_bgr_tuple(
         ((255, 255, 0, 128), Color(r=255, g=255, b=0, a=128), DoesNotRaise()),
         ((0, 255, 255, 255), Color(r=0, g=255, b=255, a=255), DoesNotRaise()),
         ((128, 0, 128, 0), Color(r=128, g=0, b=128, a=0), DoesNotRaise()),
+        (
+            (300, 0, 0, 128),
+            None,
+            pytest.raises(
+                ValueError, match=r"RGBA values must be in range.*300, 0, 0, 128"
+            ),
+        ),
+        (
+            (0, 0, 0, 300),
+            None,
+            pytest.raises(
+                ValueError, match=r"RGBA values must be in range.*0, 0, 0, 300"
+            ),
+        ),
     ],
 )
 def test_color_from_rgba_tuple(
@@ -213,6 +227,20 @@ def test_color_from_rgba_tuple(
         ((0, 255, 255, 128), Color(r=255, g=255, b=0, a=128), DoesNotRaise()),
         ((255, 255, 0, 255), Color(r=0, g=255, b=255, a=255), DoesNotRaise()),
         ((128, 0, 128, 0), Color(r=128, g=0, b=128, a=0), DoesNotRaise()),
+        (
+            (300, 0, 0, 128),
+            None,
+            pytest.raises(
+                ValueError, match=r"BGRA values must be in range.*300, 0, 0, 128"
+            ),
+        ),
+        (
+            (0, 0, 0, 300),
+            None,
+            pytest.raises(
+                ValueError, match=r"BGRA values must be in range.*0, 0, 0, 300"
+            ),
+        ),
     ],
 )
 def test_color_from_bgra_tuple(

@@ -221,6 +221,10 @@ class Color:
             ```
         """
         r, g, b, a = color_tuple
+        if not (0 <= r <= 255 and 0 <= g <= 255 and 0 <= b <= 255 and 0 <= a <= 255):
+            raise ValueError(
+                f"RGBA values must be in range 0-255, got ({r}, {g}, {b}, {a})"
+            )
         return cls(r=r, g=g, b=b, a=a)
 
     @classmethod
@@ -244,6 +248,10 @@ class Color:
             ```
         """
         b, g, r, a = color_tuple
+        if not (0 <= r <= 255 and 0 <= g <= 255 and 0 <= b <= 255 and 0 <= a <= 255):
+            raise ValueError(
+                f"BGRA values must be in range 0-255, got ({b}, {g}, {r}, {a})"
+            )
         return cls(r=r, g=g, b=b, a=a)
 
     def as_hex(self) -> str:
