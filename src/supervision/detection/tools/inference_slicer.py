@@ -227,11 +227,7 @@ class InferenceSlicer:
                             "input slice for inference, not the original "
                             "full-resolution image."
                         )
-                        warnings.warn(
-                            msg,
-                            category=SupervisionWarnings,
-                            stacklevel=2
-                        )
+                        warnings.warn(msg, category=SupervisionWarnings, stacklevel=2)
         detections = move_detections(
             detections=detections,
             offset=offset[:2],
