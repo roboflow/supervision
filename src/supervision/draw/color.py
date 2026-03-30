@@ -68,7 +68,8 @@ class Color:
     Represents a color in RGBA format.
 
     This class provides methods to work with colors, including creating colors from hex
-    codes, converting colors to hex strings, RGB tuples, BGR tuples, RGBA tuples, and BGRA tuples.
+    codes, converting colors to hex strings, RGB tuples, BGR tuples, RGBA tuples,
+    and BGRA tuples.
 
     Attributes:
         r: Red channel value (0-255).
