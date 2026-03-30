@@ -164,14 +164,18 @@ def detections_to_coco_annotations(
     approximation_percentage: float = 0.75,
 ) -> tuple[list[CocoDict], int]:
     coco_annotations: list[CocoDict] = []
-    for xyxy, mask, _, class_id, _, _ in detections:
+    for xyxy, mask, _, class_id, _, data in detections:
         if class_id is None:
             raise ValueError("Detections must include class_id for COCO export.")
         box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
         segmentation: Union[list[list[float]], dict[str, list[int]]] = []
-        iscrowd = 0
         if mask is not None:
-            iscrowd = contains_holes(mask=mask) or contains_multiple_segments(mask=mask)
+            if "iscrowd" in data:
+                iscrowd = int(np.asarray(data["iscrowd"]).item())
+            else:
+                iscrowd = int(
+                    contains_holes(mask=mask) or contains_multiple_segments(mask=mask)
+                )
 
             if iscrowd:
                 segmentation = {
@@ -196,12 +200,16 @@ def detections_to_coco_annotations(
                         "returned no polygons.",
                         stacklevel=2,
                     )
+        else:
+            iscrowd = int(np.asarray(data.get("iscrowd", 0)).item())
+
+        area: float = float(np.asarray(data.get("area", box_width * box_height)).item())
         coco_annotation = {
             "id": annotation_id,
             "image_id": image_id,
             "category_id": int(class_id),
             "bbox": [xyxy[0], xyxy[1], box_width, box_height],
-            "area": box_width * box_height,
+            "area": area,
             "segmentation": segmentation,
             "iscrowd": iscrowd,
         }
