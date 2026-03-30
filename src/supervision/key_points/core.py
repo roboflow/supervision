@@ -677,6 +677,34 @@ class KeyPoints:
         if isinstance(index, str):
             return self.data.get(index)
 
+        if isinstance(index, np.ndarray) and index.ndim == 2 and index.dtype == bool:
+            n = len(self.xy)
+            counts = np.sum(index, axis=1)
+            if n > 0 and not np.all(counts == counts[0]):
+                raise ValueError(
+                    "Cannot filter keypoints with a 2D boolean mask where rows have "
+                    "different numbers of True values. All objects must select the same "
+                    f"number of keypoints. Got counts per object: {counts.tolist()}"
+                )
+            k = int(counts[0]) if n > 0 else 0
+            xy_selected = np.zeros((n, k, 2), dtype=self.xy.dtype)
+            conf_selected = (
+                np.zeros((n, k), dtype=self.confidence.dtype)
+                if self.confidence is not None
+                else None
+            )
+            for row in range(n):
+                row_indices = np.flatnonzero(index[row])
+                xy_selected[row] = self.xy[row, row_indices]
+                if conf_selected is not None:
+                    conf_selected[row] = self.confidence[row, row_indices]
+            return KeyPoints(
+                xy=xy_selected,
+                confidence=conf_selected,
+                class_id=self.class_id.copy() if self.class_id is not None else None,
+                data=get_data_item(self.data, slice(None)),
+            )
+
         if not isinstance(index, tuple):
             index = (index, slice(None))
 

@@ -244,6 +244,56 @@ KEY_POINTS = _create_key_points(
             _create_key_points(xy=[[[8, 9]]], confidence=[[0.5]], class_id=[0]),
             DoesNotRaise(),
         ),  # select the last anchor from the first skeleton by index
+        (
+            KEY_POINTS,
+            np.array(
+                [
+                    [True, False, True, False, False],
+                    [True, True, False, False, False],
+                    [False, True, True, False, False],
+                ]
+            ),
+            _create_key_points(
+                xy=[
+                    [[0, 1], [4, 5]],
+                    [[10, 11], [12, 13]],
+                    [[22, 23], [24, 25]],
+                ],
+                confidence=[[0.8, 0.6], [0.7, 0.9], [0.6, 0.8]],
+                class_id=[0, 1, 2],
+            ),
+            DoesNotRaise(),
+        ),  # filter keypoints by 2D boolean mask, same count per row
+        (
+            _create_key_points(
+                xy=[[[0, 1], [2, 3], [4, 5]]],
+                confidence=[[0.8, 0.2, 0.6]],
+                class_id=[0],
+            ),
+            np.array([[True, False, True]]),
+            _create_key_points(
+                xy=[[[0, 1], [4, 5]]],
+                confidence=[[0.8, 0.6]],
+                class_id=[0],
+            ),
+            DoesNotRaise(),
+        ),  # filter keypoints by 2D boolean mask, single object
+        (
+            _create_key_points(
+                xy=[
+                    [[0, 1], [2, 3], [4, 5]],
+                    [[10, 11], [12, 13], [14, 15]],
+                ],
+                confidence=[
+                    [0.8, 0.2, 0.6],
+                    [0.1, 0.2, 0.3],
+                ],
+                class_id=[0, 1],
+            ),
+            np.array([[True, False, True], [False, False, False]]),
+            None,
+            pytest.raises(ValueError),
+        ),  # 2D boolean mask with different counts per row raises ValueError
     ],
 )
 def test_key_points_getitem(key_points, index, expected_result, exception):
