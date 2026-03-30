@@ -198,9 +198,9 @@ def detections_to_coco_annotations(
                         stacklevel=2,
                     )
         else:
-            iscrowd = int(data.get("iscrowd", 0))
+            iscrowd = int(np.asarray(data.get("iscrowd", 0)).item())
 
-        area: float = float(data.get("area", box_width * box_height))
+        area: float = float(np.asarray(data.get("area", box_width * box_height)).item())
         coco_annotation = {
             "id": annotation_id,
             "image_id": image_id,
