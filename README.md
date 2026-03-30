@@ -16,13 +16,14 @@
 
 [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
 [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
-[![snyk](https://snyk.io/advisor/python/supervision/badge.svg)](https://snyk.io/advisor/python/supervision)
-[![license](https://img.shields.io/pypi/l/supervision)](https://github.com/roboflow/supervision/blob/main/LICENSE.md)
+[![license](https://img.shields.io/pypi/l/supervision)](LICENSE.md)
 [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
+[![codecov](https://codecov.io/gh/roboflow/supervision/graph/badge.svg?token=HMNJ5FVZ36)](https://codecov.io/gh/roboflow/supervision)
+
+[![snyk](https://snyk.io/advisor/python/supervision/badge.svg)](https://snyk.io/advisor/python/supervision)
 [![colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/roboflow/supervision/blob/main/demo.ipynb)
 [![gradio](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Roboflow/Annotators)
 [![discord](https://img.shields.io/discord/1159501506232451173?logo=discord&label=discord&labelColor=fff&color=5865f2&link=https%3A%2F%2Fdiscord.gg%2FGbfgXGJ8Bk)](https://discord.gg/GbfgXGJ8Bk)
-[![built-with-material-for-mkdocs](https://img.shields.io/badge/Material_for_MkDocs-526CFE?logo=MaterialForMkDocs&logoColor=white)](https://squidfunk.github.io/mkdocs-material/)
 
 <div align="center">
     <a href="https://trendshift.io/repositories/124"  target="_blank"><img src="https://trendshift.io/api/badge/repositories/124" alt="roboflow%2Fsupervision | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
@@ -49,17 +50,18 @@ Read more about conda, mamba, and installing from source in our [guide](https://
 
 ### models
 
-Supervision was designed to be model agnostic. Just plug in any classification, detection, or segmentation model. For your convenience, we have created [connectors](https://supervision.roboflow.com/latest/detection/core/#detections) for the most popular libraries like Ultralytics, Transformers, or MMDetection.
+Supervision was designed to be model agnostic. Just plug in any classification, detection, or segmentation model. For your convenience, we have created [connectors](https://supervision.roboflow.com/latest/detection/core/#detections) for the most popular libraries like Ultralytics, Transformers, MMDetection, or Inference. Other integrations, like `rfdetr`, already return `sv.Detections` directly.
+
+Install the optional dependencies for this example with `pip install pillow rfdetr`.
 
 ```python
-import cv2
 import supervision as sv
-from ultralytics import YOLO
+from PIL import Image
+from rfdetr import RFDETRSmall
 
-image = cv2.imread(...)
-model = YOLO("yolov8s.pt")
-result = model(image)[0]
-detections = sv.Detections.from_ultralytics(result)
+image = Image.open(...)
+model = RFDETRSmall()
+detections = model.predict(image, threshold=0.5)
 
 len(detections)
 # 5
@@ -73,12 +75,12 @@ len(detections)
     Running with [Inference](https://github.com/roboflow/inference) requires a [Roboflow API KEY](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key).
 
     ```python
-    import cv2
     import supervision as sv
+    from PIL import Image
     from inference import get_model
 
-    image = cv2.imread(...)
-    model = get_model(model_id="yolov8s-640", api_key="ROBOFLOW_API_KEY")
+    image = Image.open(...)
+    model = get_model(model_id="rfdetr-small", api_key="ROBOFLOW_API_KEY")
     result = model.infer(image)[0]
     detections = sv.Detections.from_inference(result)
 
@@ -221,7 +223,7 @@ for path, image, annotation in ds:
 
 ## 🎬 tutorials
 
-Want to learn how to use Supervision? Explore our [how-to guides](https://supervision.roboflow.com/develop/how_to/detect_and_annotate/), [end-to-end examples](https://github.com/roboflow/supervision/tree/develop/examples), [cheatsheet](https://roboflow.github.io/cheatsheet-supervision/), and [cookbooks](https://supervision.roboflow.com/develop/cookbooks/)!
+Want to learn how to use Supervision? Explore our [how-to guides](https://supervision.roboflow.com/develop/how_to/detect_and_annotate/), [end-to-end examples](./examples), [cheatsheet](https://roboflow.github.io/cheatsheet-supervision/), and [cookbooks](https://supervision.roboflow.com/develop/cookbooks/)!
 
 <br/>
 
@@ -255,7 +257,7 @@ Visit our [documentation](https://roboflow.github.io/supervision) page to learn 
 
 ## 🏆 contribution
 
-We love your input! Please see our [contributing guide](https://github.com/roboflow/supervision/blob/main/CONTRIBUTING.md) to get started. Thank you 🙏 to all our contributors!
+We love your input! Please see our [contributing guide](.github/CONTRIBUTING.md) to get started. Thank you 🙏 to all our contributors!
 
 <p align="center">
     <a href="https://github.com/roboflow/supervision/graphs/contributors">

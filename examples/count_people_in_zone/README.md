@@ -24,14 +24,14 @@ https://github.com/roboflow/supervision/assets/26109316/f84db7b5-79e2-4142-a1da-
 - setup python environment and activate it [optional]
 
     ```bash
-    python3 -m venv venv
-    source venv/bin/activate
+    uv venv
+    source .venv/bin/activate
     ```
 
 - install required dependencies
 
     ```bash
-    pip install -r requirements.txt
+    uv pip install -r requirements.txt
     ```
 
 - download `traffic_analysis.pt` and `traffic_analysis.mov` files

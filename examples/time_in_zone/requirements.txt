@@ -4,3 +4,6 @@ inference
 # https://github.com/pytube/pytube/issues/2044
 # pytube
 pytubefix
+jsonargparse[signatures]
+rfdetr
+yt_dlp

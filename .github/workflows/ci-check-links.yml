@@ -1,0 +1,37 @@
+name: Check links & references
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  schedule:
+    # Run once a week on Sundays
+    - cron: "0 9 * * 0"
+
+concurrency:
+  group: ci-check-links-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  links-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: 🔗 Link Checker
+        uses: lycheeverse/lychee-action@v2
+        with:
+          lycheeVersion: v0.22.0
+          args: |
+            --config .github/lychee.toml
+            './**/*.md'
+          # TODO: enable also following file types
+          # './**/*.toml'
+          # './**/*.yml'
+          # './**/*.yaml'
+          # './**/*.py'
+          fail: true
+          token: ${{ secrets.GITHUB_TOKEN }}

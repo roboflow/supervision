@@ -1,3 +1,6 @@
+default_language_version:
+  python: python3
+
 ci:
   autofix_prs: true
   autoupdate_schedule: weekly
@@ -18,27 +21,35 @@ repos:
       - id: detect-private-key
       - id: pretty-format-json
         exclude: demo.ipynb
-        args: ['--autofix', '--no-sort-keys', '--indent=4']
+        args: ["--autofix", "--no-sort-keys", "--indent=4"]
       - id: end-of-file-fixer
       - id: mixed-line-ending
 
-  -   repo: https://github.com/tox-dev/pyproject-fmt
-      rev: v2.6.0
-      hooks:
-        - id: pyproject-fmt
+  - repo: https://github.com/JoC0de/pre-commit-prettier
+    rev: v3.8.1 # using tag; previously pinned SHA when tags were not persistent
+    hooks:
+      - id: prettier
+        files: \.(ya?ml|toml)$
+        # https://prettier.io/docs/en/options.html#print-width
+        args: ["--print-width=120"]
 
-  -   repo: https://github.com/abravalheri/validate-pyproject
-      rev: v0.24.1
-      hooks:
-        - id: validate-pyproject
+  - repo: https://github.com/tox-dev/pyproject-fmt
+    rev: v2.20.0
+    hooks:
+      - id: pyproject-fmt
 
-  -   repo: https://github.com/astral-sh/ruff-pre-commit
-      rev: v0.14.11
-      hooks:
-      -   id: ruff-check
-          args: [--fix]
-      -   id: ruff-format
-          types_or: [ python, pyi, jupyter ]
+  - repo: https://github.com/abravalheri/validate-pyproject
+    rev: v0.25
+    hooks:
+      - id: validate-pyproject
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.7
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+        types_or: [python, pyi, jupyter]
 
   - repo: https://github.com/executablebooks/mdformat
     rev: 1.0.0
@@ -46,12 +57,22 @@ repos:
       - id: mdformat
         additional_dependencies:
           - "mdformat-mkdocs[recommended]>=2.1.0"
+          - "mdformat-ruff"
         args: ["--number"]
-        exclude: ^docs/
+        exclude: ^(docs/changelog\.md|docs/deprecated\.md)$
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.19.1
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - "numpy>=2.0"
+          - "types-PyYAML"
+          - "types-requests"
 
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.1
+    rev: v2.4.2
     hooks:
       - id: codespell
         additional_dependencies:
-          - tomli
+          - "tomli>=2.0.1"
