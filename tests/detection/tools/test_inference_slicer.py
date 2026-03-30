@@ -306,7 +306,7 @@ def test_run_callback_warns_only_once_with_multiple_threads() -> None:
             class_id=np.array([0]),
         )
 
-    # 512×512 / 64 slice → 64 slices; all 4 threads will see out-of-bounds detections
+    # 512x512 / 64 slice -> 64 slices; all 4 threads will see out-of-bounds detections
     image = np.zeros((512, 512, 3), dtype=np.uint8)
     slicer = InferenceSlicer(
         callback=out_of_bounds_callback,
@@ -333,7 +333,7 @@ def test_run_callback_no_warning_for_detection_exactly_at_slice_boundary() -> No
     does not trigger the warning (boundary is exclusive: > not >=)."""
 
     def at_boundary_callback(_: np.ndarray) -> Detections:
-        # x2=64, y2=64 on a 64×64 slice — touching the edge but not exceeding it
+        # x2=64, y2=64 on a 64x64 slice — touching the edge but not exceeding it
         return Detections(
             xyxy=np.array([[0, 0, 64, 64]], dtype=float),
             confidence=np.array([0.9]),
