@@ -1008,7 +1008,7 @@ def test_detections_to_coco_annotations_iscrowd_is_int_when_mask_provided() -> N
 
     assert len(annotations) == 1
     assert annotations[0]["iscrowd"] == 0
-    assert isinstance(annotations[0]["iscrowd"], int)
+    assert type(annotations[0]["iscrowd"]) is int
 
 
 def test_detections_to_coco_annotations_data_area_overrides_bbox_with_mask() -> None:
