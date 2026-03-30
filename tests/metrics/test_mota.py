@@ -1,13 +1,14 @@
 import numpy as np
 import pytest
+
 from supervision.detection.core import Detections
 from supervision.metrics.mota import (
+    MOTAResult,
+    MOTMetricsResult,
+    MOTPResult,
     MultiObjectTrackingAccuracy,
     MultiObjectTrackingPrecision,
     TrackingMetrics,
-    MOTAResult,
-    MOTPResult,
-    MOTMetricsResult,
 )
 
 
@@ -278,7 +279,14 @@ class TestTrackingMetricsReset:
 
 class TestResultStrings:
     def test_mota_str(self):
-        r = MOTAResult(mota=0.75, num_false_positives=5, num_false_negatives=10, num_id_switches=2, num_ground_truth=68, num_frames=20)
+        r = MOTAResult(
+            mota=0.75,
+            num_false_positives=5,
+            num_false_negatives=10,
+            num_id_switches=2,
+            num_ground_truth=68,
+            num_frames=20,
+        )
         assert "0.75" in str(r)
 
     def test_motp_str(self):
@@ -286,5 +294,14 @@ class TestResultStrings:
         assert "0.85" in str(r)
 
     def test_combined_str(self):
-        r = MOTMetricsResult(mota=0.8, motp=0.9, num_false_positives=3, num_false_negatives=5, num_id_switches=1, num_ground_truth=45, num_matches=36, num_frames=10)
+        r = MOTMetricsResult(
+            mota=0.8,
+            motp=0.9,
+            num_false_positives=3,
+            num_false_negatives=5,
+            num_id_switches=1,
+            num_ground_truth=45,
+            num_matches=36,
+            num_frames=10,
+        )
         assert "0.8" in str(r)

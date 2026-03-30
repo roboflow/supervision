@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+
 import numpy as np
-from supervision.detection.core import Detections
 
 
 @dataclass
@@ -31,10 +31,7 @@ class MOTPResult:
     num_frames: int
 
     def __str__(self):
-        return (
-            f"MOTPResult(motp={self.motp:.4f}, "
-            f"matches={self.num_matches})"
-        )
+        return f"MOTPResult(motp={self.motp:.4f}, matches={self.num_matches})"
 
 
 @dataclass
@@ -179,7 +176,9 @@ class MultiObjectTrackingPrecision:
 
     def compute(self):
         if self._num_matches == 0:
-            raise ValueError("No matches found. Call update() with matching detections first.")
+            raise ValueError(
+                "No matches found. Call update() with matching detections first."
+            )
         motp = self._total_iou / self._num_matches
         return MOTPResult(
             motp=motp,
