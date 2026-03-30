@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import os
+import tempfile
 from contextlib import ExitStack as DoesNotRaise
 
 import numpy as np
 import pytest
+from PIL import Image
 
 from supervision.dataset.formats.yolo import (
     _image_name_to_annotation_name,
     _with_seg_mask,
     detections_to_yolo_annotations,
+    load_yolo_annotations,
     object_to_yolo,
     yolo_annotations_to_detections,
 )
@@ -308,3 +312,36 @@ def test_detections_to_yolo_annotations_raises_for_non_integer_class_id() -> Non
         detections_to_yolo_annotations(
             detections=detections, image_shape=(1000, 1000, 3)
         )
+
+
+def test_load_yolo_annotations_obb_does_not_generate_masks() -> None:
+    """OBB annotations must not produce mask arrays (memory regression test)."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        images_dir = os.path.join(tmp_dir, "images")
+        labels_dir = os.path.join(tmp_dir, "labels")
+        os.makedirs(images_dir)
+        os.makedirs(labels_dir)
+
+        # Create a small RGB image
+        img = Image.new("RGB", (100, 100))
+        img.save(os.path.join(images_dir, "test.jpg"))
+
+        # OBB annotation: class_id x1 y1 x2 y2 x3 y3 x4 y4 (9 values per line)
+        with open(os.path.join(labels_dir, "test.txt"), "w") as f:
+            f.write("0 0.4 0.4 0.6 0.4 0.6 0.6 0.4 0.6\n")
+
+        # Create a minimal data.yaml
+        data_yaml_path = os.path.join(tmp_dir, "data.yaml")
+        with open(data_yaml_path, "w") as f:
+            f.write("names: ['object']\n")
+
+        _, _, annotations = load_yolo_annotations(
+            images_directory_path=images_dir,
+            annotations_directory_path=labels_dir,
+            data_yaml_path=data_yaml_path,
+            is_obb=True,
+        )
+
+        assert len(annotations) == 1
+        detection = list(annotations.values())[0]
+        assert detection.mask is None, "OBB annotations must not produce mask arrays to avoid excessive memory use"
