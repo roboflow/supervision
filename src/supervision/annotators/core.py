@@ -2221,8 +2221,11 @@ class PixelateAnnotator(BaseAnnotator):
                 else calculate_dynamic_pixel_size(x1, y1, x2, y2)
             )
             if min(y2 - y1, x2 - x1) < pixel_size:
-                avg_color = cv2.mean(roi)[:3]
-                scene[y1:y2, x1:x2] = avg_color
+                if roi.ndim == 2 or (roi.ndim == 3 and roi.shape[2] == 1):
+                    scene[y1:y2, x1:x2] = cv2.mean(roi)[0]
+                else:
+                    num_channels = scene.shape[2]
+                    scene[y1:y2, x1:x2] = cv2.mean(roi)[:num_channels]
                 continue
 
             scaled_up_roi = cv2.resize(
