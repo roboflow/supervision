@@ -1899,9 +1899,13 @@ class BlurAnnotator(BaseAnnotator):
         ).astype(int)
 
         for x1, y1, x2, y2 in clipped_xyxy:
+            if x2 <= x1 or y2 <= y1:
+                continue
             roi = scene[y1:y2, x1:x2]
-            kernel_size = self.kernel_size or calculate_dynamic_kernel_size(
-                x1, y1, x2, y2
+            kernel_size = (
+                self.kernel_size
+                if self.kernel_size is not None
+                else calculate_dynamic_kernel_size(x1, y1, x2, y2)
             )
             roi = cv2.blur(roi, (kernel_size, kernel_size))
             scene[y1:y2, x1:x2] = roi
@@ -2207,14 +2211,20 @@ class PixelateAnnotator(BaseAnnotator):
         ).astype(int)
 
         for x1, y1, x2, y2 in clipped_xyxy:
+            if x2 <= x1 or y2 <= y1:
+                continue
             roi = scene[y1:y2, x1:x2]
 
-            if self.pixel_size is not None and min(y2 - y1, x2 - x1) < self.pixel_size:
+            pixel_size = (
+                self.pixel_size
+                if self.pixel_size is not None
+                else calculate_dynamic_pixel_size(x1, y1, x2, y2)
+            )
+            if min(y2 - y1, x2 - x1) < pixel_size:
                 avg_color = cv2.mean(roi)[:3]
                 scene[y1:y2, x1:x2] = avg_color
                 continue
 
-            pixel_size = self.pixel_size or calculate_dynamic_pixel_size(x1, y1, x2, y2)
             scaled_up_roi = cv2.resize(
                 src=roi, dsize=None, fx=1 / pixel_size, fy=1 / pixel_size
             )
