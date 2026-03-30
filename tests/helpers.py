@@ -330,7 +330,7 @@ class _FakeMediapipeLandmark:
 
 
 class _FakeMediapipePose:
-    def __init__(self, landmarks: _FakeMediapipeLandmark):
+    def __init__(self, landmarks: list[_FakeMediapipeLandmark]):
         self.landmark = landmarks
 
 
@@ -340,7 +340,7 @@ class _FakeMediapipeResults:
         pose_landmarks: list[list[_FakeMediapipeLandmark]]
         | _FakeMediapipePose
         | None = None,
-        face_landmarks: _FakeMediapipeLandmark = None,
+        face_landmarks: _FakeMediapipeLandmark | None = None,
         multi_face_landmarks: list[_FakeMediapipeLandmark] | None = None,
     ):
         self.pose_landmarks = pose_landmarks
