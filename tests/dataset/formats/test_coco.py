@@ -985,7 +985,7 @@ def test_detections_to_coco_annotations_preserves_iscrowd_from_data_when_no_mask
 
     assert len(annotations) == 1
     assert annotations[0]["iscrowd"] == 1
-    assert isinstance(annotations[0]["iscrowd"], int)
+    assert type(annotations[0]["iscrowd"]) is int
     assert annotations[0]["area"] == 1234.5
 
 
