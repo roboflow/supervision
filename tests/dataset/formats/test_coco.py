@@ -1011,6 +1011,28 @@ def test_detections_to_coco_annotations_iscrowd_is_int_when_mask_provided() -> N
     assert isinstance(annotations[0]["iscrowd"], int)
 
 
+def test_detections_to_coco_annotations_data_area_overrides_bbox_with_mask() -> None:
+    """data["area"] should override computed bbox area even when a mask is present."""
+    mask = np.zeros((1, 10, 10), dtype=bool)
+    mask[0, 0:4, 0:4] = True  # 16-pixel polygon area
+
+    detections = Detections(
+        xyxy=np.array([[0.0, 0.0, 10.0, 10.0]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+        mask=mask,
+        data={"area": np.array([999.0])},
+    )
+
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections,
+        image_id=1,
+        annotation_id=1,
+    )
+
+    assert len(annotations) == 1
+    assert annotations[0]["area"] == 999.0
+
+
 def test_detections_to_coco_annotations_fallback_area_when_no_data() -> None:
     """When detections have no area in data, area should fall back to bbox area."""
     detections = Detections(
