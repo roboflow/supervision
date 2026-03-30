@@ -1848,8 +1848,10 @@ class BlurAnnotator(BaseAnnotator):
         Args:
             kernel_size: The size of the average pooling kernel used for blurring.
                 If not set, a dynamic size is computed as one-third of the shorter
-                bounding-box dimension.
+                bounding-box dimension. Must be >= 1 when provided.
         """
+        if kernel_size is not None and kernel_size < 1:
+            raise ValueError(f"kernel_size must be >= 1, got {kernel_size}.")
         self.kernel_size: int | None = kernel_size
 
     @ensure_cv2_image_for_class_method
@@ -2163,7 +2165,10 @@ class PixelateAnnotator(BaseAnnotator):
                 computed as one-half of the shorter bounding-box dimension. When set
                 and the detection area is smaller than `pixel_size`, the region is
                 filled with its average colour instead to avoid an OpenCV crash.
+                Must be >= 1 when provided.
         """
+        if pixel_size is not None and pixel_size < 1:
+            raise ValueError(f"pixel_size must be >= 1, got {pixel_size}.")
         self.pixel_size: int | None = pixel_size
 
     @ensure_cv2_image_for_class_method

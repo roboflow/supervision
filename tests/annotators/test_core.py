@@ -504,6 +504,19 @@ class TestBlurAnnotator:
         result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
         assert not np.array_equal(gradient_image, result)
 
+    @pytest.mark.parametrize("bad_size", [0, -1, -10])
+    def test_invalid_kernel_size_raises(self, bad_size):
+        """BlurAnnotator must reject kernel_size < 1 at construction time."""
+        with pytest.raises(ValueError, match="kernel_size must be >= 1"):
+            BlurAnnotator(kernel_size=bad_size)
+
+    def test_annotate_zero_area_bbox_is_skipped(self, test_image):
+        """Zero-area bounding boxes must be silently skipped, not crash."""
+        detections = _create_detections(xyxy=[[10, 10, 10, 50]], class_id=[0])
+        annotator = BlurAnnotator(kernel_size=5)
+        result = annotator.annotate(scene=test_image.copy(), detections=detections)
+        assert np.array_equal(test_image, result)
+
 
 class TestPixelateAnnotator:
     """Tests for PixelateAnnotator class"""
@@ -559,6 +572,19 @@ class TestPixelateAnnotator:
         annotator = PixelateAnnotator(pixel_size=50)
         result = annotator.annotate(scene=gray.copy(), detections=detections)
         assert result.shape == gray.shape
+
+    @pytest.mark.parametrize("bad_size", [0, -1, -10])
+    def test_invalid_pixel_size_raises(self, bad_size):
+        """PixelateAnnotator must reject pixel_size < 1 at construction time."""
+        with pytest.raises(ValueError, match="pixel_size must be >= 1"):
+            PixelateAnnotator(pixel_size=bad_size)
+
+    def test_annotate_zero_area_bbox_is_skipped(self, test_image):
+        """Zero-area bounding boxes must be silently skipped, not crash."""
+        detections = _create_detections(xyxy=[[10, 10, 10, 50]], class_id=[0])
+        annotator = PixelateAnnotator(pixel_size=5)
+        result = annotator.annotate(scene=test_image.copy(), detections=detections)
+        assert np.array_equal(test_image, result)
 
 
 class TestTriangleAnnotator:
