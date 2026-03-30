@@ -299,7 +299,7 @@ KEY_POINTS = _create_key_points(
             ),
             np.array([[True, False, True], [False, False, False]]),
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="different numbers of True values"),
         ),  # 2D boolean mask with different counts per row raises ValueError
     ],
 )
