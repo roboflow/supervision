@@ -301,6 +301,52 @@ KEY_POINTS = _create_key_points(
             None,
             pytest.raises(ValueError, match="different numbers of True values"),
         ),  # 2D boolean mask with different counts per row raises ValueError
+        (
+            _create_key_points(
+                xy=[[[0, 1], [2, 3], [4, 5]]],
+                class_id=[0],
+            ),
+            np.array([[True, False, True]]),
+            _create_key_points(
+                xy=[[[0, 1], [4, 5]]],
+                class_id=[0],
+            ),
+            DoesNotRaise(),
+        ),  # 2D boolean mask with confidence=None — no confidence array in result
+        (
+            _create_key_points(
+                xy=[[[0, 1], [2, 3], [4, 5]]],
+                confidence=[[0.8, 0.2, 0.6]],
+                class_id=[0],
+            ),
+            np.array([[True, False]]),
+            None,
+            pytest.raises(ValueError, match="column count"),
+        ),  # 2D boolean mask column count mismatch raises ValueError
+        (
+            _create_key_points(
+                xy=[[[0, 1], [2, 3], [4, 5]]],
+                confidence=[[0.8, 0.2, 0.6]],
+                class_id=[0],
+            ),
+            np.array([[True, False, True], [True, False, True]]),
+            None,
+            pytest.raises(ValueError, match="row count"),
+        ),  # 2D boolean mask row count mismatch raises ValueError
+        (
+            _create_key_points(
+                xy=[[[0, 1], [2, 3]], [[4, 5], [6, 7]]],
+                confidence=[[0.8, 0.2], [0.6, 0.9]],
+                class_id=[0, 1],
+            ),
+            np.array([[False, False], [False, False]]),
+            KeyPoints(
+                xy=np.zeros((2, 0, 2), dtype=np.float32),
+                confidence=np.zeros((2, 0), dtype=np.float32),
+                class_id=np.array([0, 1]),
+            ),
+            DoesNotRaise(),
+        ),  # all-False 2D mask — all rows select 0 keypoints, equal counts → ok
     ],
 )
 def test_key_points_getitem(key_points, index, expected_result, exception):
