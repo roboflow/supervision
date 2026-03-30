@@ -226,7 +226,7 @@ class InferenceSlicer:
                             "slice. Ensure your callback uses the input slice for "
                             "inference, not the original full-resolution image.",
                             category=SupervisionWarnings,
-                            stacklevel=1,
+                            stacklevel=,
                         )
         detections = move_detections(
             detections=detections,
