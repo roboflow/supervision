@@ -170,9 +170,12 @@ def detections_to_coco_annotations(
         box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
         segmentation: Union[list[list[float]], dict[str, list[int]]] = []
         if mask is not None:
-            iscrowd = int(
-                contains_holes(mask=mask) or contains_multiple_segments(mask=mask)
-            )
+            if "iscrowd" in data:
+                iscrowd = int(np.asarray(data["iscrowd"]).item())
+            else:
+                iscrowd = int(
+                    contains_holes(mask=mask) or contains_multiple_segments(mask=mask)
+                )
 
             if iscrowd:
                 segmentation = {
