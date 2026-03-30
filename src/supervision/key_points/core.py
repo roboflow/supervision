@@ -679,6 +679,16 @@ class KeyPoints:
 
         if isinstance(index, np.ndarray) and index.ndim == 2 and index.dtype == bool:
             n = len(self.xy)
+            if index.shape[0] != n:
+                raise ValueError(
+                    f"2D boolean mask row count {index.shape[0]} does not match "
+                    f"object count {n}."
+                )
+            if n > 0 and index.shape[1] != self.xy.shape[1]:
+                raise ValueError(
+                    f"2D boolean mask column count {index.shape[1]} does not match "
+                    f"keypoint count {self.xy.shape[1]}."
+                )
             counts = np.sum(index, axis=1)
             if n > 0 and not np.all(counts == counts[0]):
                 raise ValueError(
