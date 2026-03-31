@@ -347,3 +347,69 @@ def test_load_yolo_annotations_obb_does_not_generate_masks() -> None:
         assert detection.mask is None, (
             "OBB annotations must not produce mask arrays to avoid excessive memory use"
         )
+
+
+def test_load_yolo_annotations_obb_force_masks_ignored() -> None:
+    """force_masks=True must have no effect when is_obb=True."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        images_dir = os.path.join(tmp_dir, "images")
+        labels_dir = os.path.join(tmp_dir, "labels")
+        os.makedirs(images_dir)
+        os.makedirs(labels_dir)
+
+        img = Image.new("RGB", (100, 100))
+        img.save(os.path.join(images_dir, "test.jpg"))
+
+        with open(os.path.join(labels_dir, "test.txt"), "w") as f:
+            f.write("0 0.4 0.4 0.6 0.4 0.6 0.6 0.4 0.6\n")
+
+        data_yaml_path = os.path.join(tmp_dir, "data.yaml")
+        with open(data_yaml_path, "w") as f:
+            f.write("names: ['object']\n")
+
+        _, _, annotations = load_yolo_annotations(
+            images_directory_path=images_dir,
+            annotations_directory_path=labels_dir,
+            data_yaml_path=data_yaml_path,
+            is_obb=True,
+            force_masks=True,
+        )
+
+        assert len(annotations) == 1
+        detection = next(iter(annotations.values()))
+        assert detection.mask is None, (
+            "force_masks=True must be ignored for OBB annotations"
+        )
+
+
+def test_load_yolo_annotations_segmentation_produces_masks() -> None:
+    """Segmentation annotations with is_obb=False must still produce masks."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        images_dir = os.path.join(tmp_dir, "images")
+        labels_dir = os.path.join(tmp_dir, "labels")
+        os.makedirs(images_dir)
+        os.makedirs(labels_dir)
+
+        img = Image.new("RGB", (100, 100))
+        img.save(os.path.join(images_dir, "test.jpg"))
+
+        # Polygon annotation: class_id + 3 x,y pairs (6 tokens > 5 triggers mask)
+        with open(os.path.join(labels_dir, "test.txt"), "w") as f:
+            f.write("0 0.1 0.1 0.9 0.1 0.9 0.9\n")
+
+        data_yaml_path = os.path.join(tmp_dir, "data.yaml")
+        with open(data_yaml_path, "w") as f:
+            f.write("names: ['object']\n")
+
+        _, _, annotations = load_yolo_annotations(
+            images_directory_path=images_dir,
+            annotations_directory_path=labels_dir,
+            data_yaml_path=data_yaml_path,
+            is_obb=False,
+        )
+
+        assert len(annotations) == 1
+        detection = next(iter(annotations.values()))
+        assert detection.mask is not None, (
+            "Segmentation annotations with is_obb=False must produce mask arrays"
+        )
