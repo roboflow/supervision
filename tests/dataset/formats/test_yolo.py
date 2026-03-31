@@ -343,5 +343,7 @@ def test_load_yolo_annotations_obb_does_not_generate_masks() -> None:
         )
 
         assert len(annotations) == 1
-        detection = list(annotations.values())[0]
-        assert detection.mask is None, "OBB annotations must not produce mask arrays to avoid excessive memory use"
+        detection = next(iter(annotations.values()))
+        assert detection.mask is None, (
+            "OBB annotations must not produce mask arrays to avoid excessive memory use"
+        )
