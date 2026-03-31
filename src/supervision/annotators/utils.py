@@ -429,3 +429,49 @@ def is_valid_hex(hex_color: str) -> bool:
         True if the string is a valid 6- or 8-digit hex color, otherwise False.
     """
     return bool(re.fullmatch(r"#?[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?", hex_color.strip()))
+
+
+def calculate_dynamic_kernel_size(x1: int, y1: int, x2: int, y2: int) -> int:
+    """
+    Computes a blur kernel size proportional to the shorter side of a bounding box.
+
+    Args:
+        x1: Left edge of the bounding box.
+        y1: Top edge of the bounding box.
+        x2: Right edge of the bounding box.
+        y2: Bottom edge of the bounding box.
+
+    Returns:
+        Kernel size as one-third of the shorter dimension, minimum 1.
+
+    Examples:
+        ```pycon
+        >>> calculate_dynamic_kernel_size(0, 0, 90, 60)
+        20
+
+        ```
+    """
+    return max(1, min(y2 - y1, x2 - x1) // 3)
+
+
+def calculate_dynamic_pixel_size(x1: int, y1: int, x2: int, y2: int) -> int:
+    """
+    Computes a pixelation size proportional to the shorter side of a bounding box.
+
+    Args:
+        x1: Left edge of the bounding box.
+        y1: Top edge of the bounding box.
+        x2: Right edge of the bounding box.
+        y2: Bottom edge of the bounding box.
+
+    Returns:
+        Pixel size as one-half of the shorter dimension, minimum 1.
+
+    Examples:
+        ```pycon
+        >>> calculate_dynamic_pixel_size(0, 0, 90, 60)
+        30
+
+        ```
+    """
+    return max(1, min(y2 - y1, x2 - x1) // 2)
