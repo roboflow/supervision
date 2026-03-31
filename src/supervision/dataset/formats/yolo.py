@@ -164,8 +164,8 @@ def load_yolo_annotations(
 
     Returns:
         A tuple containing a list of class names, a dictionary with
-        image names as keys and images as values, and a dictionary
-        with image names as keys and corresponding Detections instances as values.
+            image names as keys and images as values, and a dictionary
+            with image names as keys and corresponding Detections instances as values.
     """
     if is_obb and force_masks:
         warnings.warn(
