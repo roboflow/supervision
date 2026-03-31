@@ -413,3 +413,63 @@ def test_load_yolo_annotations_segmentation_produces_masks() -> None:
         assert detection.mask is not None, (
             "Segmentation annotations with is_obb=False must produce mask arrays"
         )
+
+
+def test_yolo_polygon_mask_precision_no_coord_drift() -> None:
+    """Regression test for #1746: polygon coordinates must not drift on YOLO load/save.
+
+    When loading YOLO annotations with force_masks=True and immediately saving them
+    back, the coordinate round-trip should have negligible drift. Previously, an
+    early .astype(int) cast on pixel coordinates caused substantial misalignment
+    (up to ~1/640 normalised-unit error per point). The fix delays int conversion
+    until the final cv2.fillPoly call so the mask edge is as accurate as possible.
+    """
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        images_dir = os.path.join(tmp_dir, "images")
+        labels_dir = os.path.join(tmp_dir, "labels")
+        os.makedirs(images_dir)
+        os.makedirs(labels_dir)
+
+        resolution_wh = (640, 480)
+        img = Image.new("RGB", resolution_wh)
+        img.save(os.path.join(images_dir, "test.jpg"))
+
+        # Rectangle in normalised YOLO polygon format.  The exact values are chosen
+        # so that early int-truncation would shift at least one vertex by a full pixel.
+        original_line = (
+            "0 0.25000 0.40000 0.25000 0.60000 0.45000 0.60000 0.45000 0.40000"
+        )
+        with open(os.path.join(labels_dir, "test.txt"), "w") as f:
+            f.write(original_line + "\n")
+
+        data_yaml_path = os.path.join(tmp_dir, "data.yaml")
+        with open(data_yaml_path, "w") as f:
+            f.write("names: ['class0']\n")
+
+        _, _, annotations = load_yolo_annotations(
+            images_directory_path=images_dir,
+            annotations_directory_path=labels_dir,
+            data_yaml_path=data_yaml_path,
+            force_masks=True,
+        )
+
+        assert len(annotations) == 1
+        detection = next(iter(annotations.values()))
+        assert detection.mask is not None
+
+        image_arr = np.zeros((resolution_wh[1], resolution_wh[0], 3), dtype=np.uint8)
+        saved_lines = detections_to_yolo_annotations(
+            detections=detection, image_shape=image_arr.shape
+        )
+
+        assert len(saved_lines) == 1
+        original_values = list(map(float, original_line.split()[1:]))
+        saved_values = list(map(float, saved_lines[0].split()[1:]))
+        assert len(saved_values) == len(original_values)
+
+        max_drift = max(abs(s - o) for s, o in zip(saved_values, original_values))
+        # Drift must stay well below 1 pixel / max(width, height) ≈ 0.0016
+        assert max_drift < 0.005, (
+            f"Coordinate drift {max_drift:.6f} exceeds threshold — "
+            "precision regression in polygon mask conversion"
+        )
