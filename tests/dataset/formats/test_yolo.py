@@ -415,14 +415,41 @@ def test_load_yolo_annotations_segmentation_produces_masks() -> None:
         )
 
 
+def test_polygons_to_masks_multiple_polygons_shape() -> None:
+    """Regression test for #1746: _polygons_to_masks must return shape (N, H, W).
+
+    The original PR rewrite processed only a single polygon and always returned
+    shape (1, H, W), breaking multi-polygon detections.
+    """
+    from supervision.dataset.formats.yolo import _polygons_to_masks
+
+    resolution_wh = (100, 100)
+    # Fractional pixel coords ensure the rounding path inside the function is exercised
+    polygon_a = np.array(
+        [[10.5, 20.5], [10.5, 50.5], [40.5, 50.5], [40.5, 20.5]], dtype=np.float32
+    )
+    polygon_b = np.array(
+        [[60.3, 30.7], [60.3, 70.3], [90.3, 70.3], [90.3, 30.7]], dtype=np.float32
+    )
+
+    masks = _polygons_to_masks(
+        polygons=[polygon_a, polygon_b], resolution_wh=resolution_wh
+    )
+
+    assert masks.shape == (2, 100, 100), f"Expected (2, 100, 100), got {masks.shape}"
+    assert masks.dtype == np.bool_
+    assert masks[0].any(), "Polygon A produced an empty mask"
+    assert masks[1].any(), "Polygon B produced an empty mask"
+    assert not np.any(masks[0] & masks[1]), (
+        "Non-overlapping polygons produced overlapping masks"
+    )
+
+
 def test_yolo_polygon_mask_precision_no_coord_drift() -> None:
     """Regression test for #1746: polygon coordinates must not drift on YOLO load/save.
 
-    When loading YOLO annotations with force_masks=True and immediately saving them
-    back, the coordinate round-trip should have negligible drift. Previously, an
-    early .astype(int) cast on pixel coordinates caused substantial misalignment
-    (up to ~1/640 normalised-unit error per point). The fix delays int conversion
-    until the final cv2.fillPoly call so the mask edge is as accurate as possible.
+    Uses an odd resolution (101 x 97) so that the normalised coordinates do not map
+    to exact integer pixel values, exercising the rounding path in _polygons_to_masks.
     """
     with tempfile.TemporaryDirectory() as tmp_dir:
         images_dir = os.path.join(tmp_dir, "images")
@@ -430,12 +457,11 @@ def test_yolo_polygon_mask_precision_no_coord_drift() -> None:
         os.makedirs(images_dir)
         os.makedirs(labels_dir)
 
-        resolution_wh = (640, 480)
+        # Odd resolution ensures coord * dim is non-integer (e.g. 0.25 * 101 = 25.25)
+        resolution_wh = (101, 97)
         img = Image.new("RGB", resolution_wh)
         img.save(os.path.join(images_dir, "test.jpg"))
 
-        # Rectangle in normalised YOLO polygon format.  The exact values are chosen
-        # so that early int-truncation would shift at least one vertex by a full pixel.
         original_line = (
             "0 0.25000 0.40000 0.25000 0.60000 0.45000 0.60000 0.45000 0.40000"
         )
@@ -468,8 +494,8 @@ def test_yolo_polygon_mask_precision_no_coord_drift() -> None:
         assert len(saved_values) == len(original_values)
 
         max_drift = max(abs(s - o) for s, o in zip(saved_values, original_values))
-        # Drift must stay well below 1 pixel / max(width, height) ≈ 0.0016
-        assert max_drift < 0.005, (
+        # Drift must stay under 2 pixels / min(resolution) ≈ 0.02
+        assert max_drift < 0.02, (
             f"Coordinate drift {max_drift:.6f} exceeds threshold — "
             "precision regression in polygon mask conversion"
         )
