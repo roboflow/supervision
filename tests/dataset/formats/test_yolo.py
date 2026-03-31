@@ -446,7 +446,7 @@ def test_polygons_to_masks_multiple_polygons_shape() -> None:
 
 
 def test_yolo_polygon_mask_precision_no_coord_drift() -> None:
-    """Regression test for #1746: polygon coordinates must not drift on YOLO load/save.
+    """Regression test for #1746: polygon masks must remain stable on YOLO load/save.
 
     Uses an odd resolution (101 x 97) so that the normalised coordinates do not map
     to exact integer pixel values, exercising the rounding path in _polygons_to_masks.
@@ -489,13 +489,24 @@ def test_yolo_polygon_mask_precision_no_coord_drift() -> None:
         )
 
         assert len(saved_lines) == 1
-        original_values = list(map(float, original_line.split()[1:]))
-        saved_values = list(map(float, saved_lines[0].split()[1:]))
-        assert len(saved_values) == len(original_values)
+        original_detection = yolo_annotations_to_detections(
+            lines=[original_line], resolution_wh=resolution_wh, with_masks=True
+        )
+        saved_detection = yolo_annotations_to_detections(
+            lines=saved_lines, resolution_wh=resolution_wh, with_masks=True
+        )
 
-        max_drift = max(abs(s - o) for s, o in zip(saved_values, original_values))
-        # Drift must stay under 2 pixels / min(resolution) ≈ 0.02
-        assert max_drift < 0.02, (
-            f"Coordinate drift {max_drift:.6f} exceeds threshold — "
+        assert original_detection.mask is not None
+        assert saved_detection.mask is not None
+
+        original_mask = original_detection.mask[0]
+        saved_mask = saved_detection.mask[0]
+        intersection = np.logical_and(original_mask, saved_mask).sum()
+        union = np.logical_or(original_mask, saved_mask).sum()
+        assert union > 0
+        # Keep polygon round-trip drift bounded while avoiding vertex-order assumptions.
+        iou = intersection / union
+        assert iou > 0.95, (
+            f"Mask IoU {iou:.6f} too low after YOLO load/save round-trip — "
             "precision regression in polygon mask conversion"
         )

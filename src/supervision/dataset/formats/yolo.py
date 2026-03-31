@@ -5,7 +5,6 @@ import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import cv2
 import numpy as np
 import numpy.typing as npt
 from PIL import Image
@@ -13,7 +12,7 @@ from PIL import Image
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
-from supervision.detection.utils.converters import polygon_to_xyxy
+from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
 from supervision.utils.file import (
     list_files_with_extensions,
     read_txt_file,
@@ -52,13 +51,16 @@ def _parse_polygon(values: list[str]) -> npt.NDArray[np.float32]:
 def _polygons_to_masks(
     polygons: list[npt.NDArray[np.number]], resolution_wh: tuple[int, int]
 ) -> npt.NDArray[np.bool_]:
-    masks = []
-    for polygon in polygons:
-        polygon_int = np.round(polygon).astype(np.int32)
-        mask = np.zeros((resolution_wh[1], resolution_wh[0]), dtype=np.uint8)
-        cv2.fillPoly(mask, [polygon_int], 1)
-        masks.append(mask.astype(bool))
-    return np.array(masks, dtype=bool)
+    return np.array(
+        [
+            polygon_to_mask(
+                polygon=np.round(polygon).astype(np.int32),
+                resolution_wh=resolution_wh,
+            )
+            for polygon in polygons
+        ],
+        dtype=bool,
+    )
 
 
 def _with_seg_mask(lines: list[str]) -> bool:
@@ -164,8 +166,8 @@ def load_yolo_annotations(
 
     Returns:
         A tuple containing a list of class names, a dictionary with
-        image names as keys and images as values, and a dictionary
-        with image names as keys and corresponding Detections instances as values.
+            image names as keys and images as values, and a dictionary
+            with image names as keys and corresponding Detections instances as values.
     """
     if is_obb and force_masks:
         warnings.warn(
