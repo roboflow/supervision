@@ -393,7 +393,7 @@ def test_load_yolo_annotations_segmentation_produces_masks() -> None:
         img = Image.new("RGB", (100, 100))
         img.save(os.path.join(images_dir, "test.jpg"))
 
-        # Polygon annotation: class_id + 3 x,y pairs (6 tokens > 5 triggers mask)
+        # Polygon annotation: class_id + 3 x,y pairs (7 tokens > 5 triggers mask)
         with open(os.path.join(labels_dir, "test.txt"), "w") as f:
             f.write("0 0.1 0.1 0.9 0.1 0.9 0.9\n")
 
