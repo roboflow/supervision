@@ -460,9 +460,7 @@ def yolo_mask_round_trip_sample(
     resolution_wh = (101, 97)
     Image.new("RGB", resolution_wh).save(images_dir / "test.jpg")
 
-    original_line = (
-        "0 0.25000 0.40000 0.25000 0.60000 0.45000 0.60000 0.45000 0.40000"
-    )
+    original_line = "0 0.25000 0.40000 0.25000 0.60000 0.45000 0.60000 0.45000 0.40000"
     (labels_dir / "test.txt").write_text(original_line + "\n")
 
     data_yaml_path = tmp_path / "data.yaml"
