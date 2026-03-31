@@ -670,12 +670,88 @@ class KeyPoints:
         else:
             return cls.empty()
 
+    def _get_by_2d_bool_mask(self, mask: npt.NDArray[np.bool_]) -> KeyPoints:
+        """Filter keypoints using a 2D boolean mask of shape `(n, m)`.
+
+        This method selects the **same set of keypoints from every object**, so
+        every row of `mask` must contain the same number of `True` values.  The
+        result is a new `KeyPoints` whose keypoint count is that uniform `k`.
+
+        This is suitable for use cases such as *"keep only the left-side joints for
+        all persons"* — where the selected joint indices are identical across objects.
+
+        It is **not** suitable for per-object confidence filtering
+        (`kp[kp.confidence > 0.5]`) when the threshold yields a different number of
+        passing keypoints per object, because NumPy cannot represent a ragged
+        `(n, ?, 2)` array.  For that pattern either process objects individually or
+        zero out low-confidence entries in-place via `kp.confidence`.
+
+        For the single-object case (`n == 1`) any boolean mask always satisfies the
+        uniform-count requirement, so `kp[kp.confidence > 0.5]` works as expected.
+
+        Args:
+            mask: A boolean array of shape `(n, m)` where `n` is the number of
+                objects and `m` is the number of keypoints per object.  Every row
+                must select the same number of keypoints so that the result can be
+                stored in a uniform `(n, k, ...)` array.
+
+        Returns:
+            A new `KeyPoints` instance containing only the keypoints selected by
+            the mask for each object.
+
+        Raises:
+            ValueError: If `mask.shape[0]` does not match the number of objects, if
+                `mask.shape[1]` does not match the number of keypoints, or if
+                different rows of the mask select different numbers of `True` values.
+        """
+        n = len(self.xy)
+        if mask.shape[0] != n:
+            raise ValueError(
+                f"2D boolean mask row count {mask.shape[0]} does not match "
+                f"object count {n}."
+            )
+        if mask.shape[1] != self.xy.shape[1]:
+            raise ValueError(
+                f"2D boolean mask column count {mask.shape[1]} does not match "
+                f"keypoint count {self.xy.shape[1]}."
+            )
+        counts = np.sum(mask, axis=1)
+        if n > 0 and not np.all(counts == counts[0]):
+            raise ValueError(
+                "Cannot filter keypoints with a 2D boolean mask where rows have "
+                "different numbers of True values. "
+                "All objects must select the same number of keypoints. "
+                f"Got counts per object: {counts.tolist()}"
+            )
+        k = int(counts[0]) if n > 0 else 0
+        xy_selected = np.zeros((n, k, self.xy.shape[2]), dtype=self.xy.dtype)
+        conf_selected: npt.NDArray[np.float32] | None = None
+        if self.confidence is not None:
+            conf_selected = cast(
+                npt.NDArray[np.float32],
+                np.zeros((n, k), dtype=self.confidence.dtype),
+            )
+        for row in range(n):
+            row_indices = np.flatnonzero(mask[row])
+            xy_selected[row] = self.xy[row, row_indices]
+            if conf_selected is not None and self.confidence is not None:
+                conf_selected[row] = self.confidence[row, row_indices]
+        return KeyPoints(
+            xy=xy_selected,
+            confidence=conf_selected,
+            class_id=self.class_id.copy() if self.class_id is not None else None,
+            data=get_data_item(self.data, slice(None)),
+        )
+
     def __getitem__(
         self,
         index: Index1D | Index2D | str,
     ) -> KeyPoints | npt.NDArray[np.generic] | list[Any] | None:
         if isinstance(index, str):
             return self.data.get(index)
+
+        if isinstance(index, np.ndarray) and index.ndim == 2 and index.dtype == bool:
+            return self._get_by_2d_bool_mask(index)
 
         if not isinstance(index, tuple):
             index = (index, slice(None))
