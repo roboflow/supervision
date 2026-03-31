@@ -8,16 +8,17 @@ def edit_distance(string_1: str, string_2: str, case_sensitive: bool = True) -> 
     deletion, and substitution.
 
     Args:
-        string_1 (str): The source string to be transformed.
-        string_2 (str): The target string to transform into.
-        case_sensitive (bool, optional): Whether comparison should be case-sensitive.
+        string_1: The source string to be transformed.
+        string_2: The target string to transform into.
+        case_sensitive: Whether comparison should be case-sensitive.
             Defaults to True.
 
     Returns:
-        int: The minimum number of edits required to convert `string_1`
+        The minimum number of edits required to convert `string_1`
         into `string_2`.
 
     Examples:
+        ```pycon
         >>> import supervision as sv
         >>> sv.edit_distance("hello", "hello")
         0
@@ -31,6 +32,8 @@ def edit_distance(string_1: str, string_2: str, case_sensitive: bool = True) -> 
         0
         >>> sv.edit_distance("hello world", "helloworld")
         1
+
+        ```
     """
     if not case_sensitive:
         string_1 = string_1.lower()
@@ -70,16 +73,17 @@ def fuzzy_match_index(
     to `query` is less than or equal to `threshold`.
 
     Args:
-        candidates (list[str]): List of strings to search.
-        query (str): String to compare against the candidates.
-        threshold (int): Maximum allowed edit distance for a match.
-        case_sensitive (bool, optional): Whether matching should be case-sensitive.
+        candidates: List of strings to search.
+        query: String to compare against the candidates.
+        threshold: Maximum allowed edit distance for a match.
+        case_sensitive: Whether matching should be case-sensitive.
 
     Returns:
-        Optional[int]: Index of the first matching string in candidates,
-            or None if no match is found.
+        Index of the first matching string in candidates,
+        or None if no match is found.
 
     Examples:
+        ```pycon
         >>> from supervision.detection.utils.vlms import fuzzy_match_index
         >>> fuzzy_match_index(["cat", "dog", "rat"], "dat", threshold=1)
         0
@@ -87,6 +91,8 @@ def fuzzy_match_index(
         1
         >>> fuzzy_match_index(["one", "two", "three"], "xyz", threshold=2) is None
         True
+
+        ```
     """
     for idx, candidate in enumerate(candidates):
         if edit_distance(candidate, query, case_sensitive=case_sensitive) <= threshold:

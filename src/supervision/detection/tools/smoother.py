@@ -3,6 +3,7 @@ from __future__ import annotations
 import warnings
 from collections import defaultdict, deque
 from copy import deepcopy
+from typing import cast
 
 import numpy as np
 
@@ -30,6 +31,32 @@ class DetectionsSmoother:
         - This class is not compatible with segmentation models.
 
     Example:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> smoother = sv.DetectionsSmoother(length=3)
+        >>> detections_1 = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]]),
+        ...     confidence=np.array([0.5]),
+        ...     tracker_id=np.array([1])
+        ... )
+        >>> detections_2 = sv.Detections(
+        ...     xyxy=np.array([[2, 2, 12, 12]]),
+        ...     confidence=np.array([0.7]),
+        ...     tracker_id=np.array([1])
+        ... )
+        >>> smoothed = smoother.update_with_detections(detections_1)
+        >>> smoothed.xyxy
+        array([[ 0.,  0., 10., 10.]])
+        >>> smoothed = smoother.update_with_detections(detections_2)
+        >>> smoothed.xyxy
+        array([[ 1.,  1., 11., 11.]])
+        >>> smoothed.confidence
+        array([0.6])
+
+        ```
+
+
         ```python
         import supervision as sv
 
@@ -60,17 +87,19 @@ class DetectionsSmoother:
     def __init__(self, length: int = 5) -> None:
         """
         Args:
-            length (int): The maximum number of frames to consider for smoothing
+            length: The maximum number of frames to consider for smoothing
                 detections. Defaults to 5.
         """
-        self.tracks = defaultdict(lambda: deque(maxlen=length))
+        self.tracks: defaultdict[int, deque[Detections | None]] = defaultdict(
+            lambda: deque(maxlen=length)
+        )
 
     def update_with_detections(self, detections: Detections) -> Detections:
         """
         Updates the smoother with a new set of detections from a frame.
 
         Args:
-            detections (Detections): The detections to add to the smoother.
+            detections: The detections to add to the smoother.
         """
 
         if detections.tracker_id is None:
@@ -83,9 +112,10 @@ class DetectionsSmoother:
             return detections
 
         for detection_idx in range(len(detections)):
-            tracker_id = detections.tracker_id[detection_idx]
+            tracker_id_value = detections.tracker_id[detection_idx]
+            tracker_id = int(tracker_id_value)
 
-            self.tracks[tracker_id].append(detections[detection_idx])
+            self.tracks[tracker_id].append(cast(Detections, detections[detection_idx]))
 
         for track_id in self.tracks.keys():
             if track_id not in detections.tracker_id:
@@ -102,13 +132,13 @@ class DetectionsSmoother:
         if track is None:
             return None
 
-        track = [d for d in track if d is not None]
-        if len(track) == 0:
+        valid: list[Detections] = [d for d in track if d is not None]
+        if len(valid) == 0:
             return None
 
-        ret = deepcopy(track[0])
-        ret.xyxy = np.mean([d.xyxy for d in track], axis=0)
-        ret.confidence = np.mean([d.confidence for d in track], axis=0)
+        ret = deepcopy(valid[0])
+        ret.xyxy = np.mean([d.xyxy for d in valid], axis=0)
+        ret.confidence = np.mean([d.confidence for d in valid], axis=0)
 
         return ret
 

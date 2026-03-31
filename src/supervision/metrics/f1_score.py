@@ -38,6 +38,7 @@ class F1Score(Metric):
     `F1 = 2 * (precision * recall) / (precision + recall)`
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> from supervision.metrics import F1Score
@@ -54,6 +55,8 @@ class F1Score(Metric):
         >>> f1_result = f1_metric.update(predictions, targets).compute()
         >>> round(float(f1_result.f1_50), 2)
         1.0
+
+        ```
 
     ![example_plot](
         https://media.roboflow.com/supervision-docs/metrics/f1_plot_example.png
@@ -363,7 +366,7 @@ class F1Score(Metric):
         """
         Broadcastable function, computing the F1 score from the confusion matrix.
 
-        Arguments:
+        Args:
             confusion_matrix: shape (N, ..., 3), where the last dimension
                 contains the true positives, false positives, and false negatives.
 
@@ -517,21 +520,39 @@ class F1ScoreResult:
         Format as a pretty string.
 
         Example:
-            ```python
-            print(f1_result)
-            # F1ScoreResult:
-            # Metric target: MetricTarget.BOXES
-            # Averaging method: AveragingMethod.WEIGHTED
-            # F1 @ 50:     0.7618
-            # F1 @ 75:     0.7487
-            # F1 @ thresh: [0.76175  0.76068  0.76068]
-            # IoU thresh:  [0.5  0.55  0.6  ...]
-            # F1 per class:
-            # 0: [0.70968  0.70968  0.70968  ...]
-            # ...
-            # Small objects: ...
-            # Medium objects: ...
-            # Large objects: ...
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> from supervision.metrics import F1Score
+            >>> predictions = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 10, 10]]),
+            ...     class_id=np.array([0]),
+            ...     confidence=np.array([0.9])
+            ... )
+            >>> targets = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 10, 10]]),
+            ...     class_id=np.array([0])
+            ... )
+            >>> f1_metric = F1Score()
+            >>> f1_result = f1_metric.update(predictions, targets).compute()
+            >>> print(f1_result)  # doctest: +ELLIPSIS
+            F1ScoreResult:
+            Metric target: MetricTarget.BOXES
+            Averaging method: AveragingMethod.WEIGHTED
+            F1 @ 50:     1.0000
+            F1 @ 75:     1.0000
+            F1 @ thresh: [1. ... 1.]
+            IoU thresh:  [0.5  0.55 ... 0.95]
+            F1 per class:
+              0: [1. ... 1.]
+            ...
+            Medium objects:
+              F1ScoreResult:
+              Metric target: MetricTarget.BOXES
+              Averaging method: AveragingMethod.WEIGHTED
+              F1 @ 50:     0.0000
+              ...
+
             ```
         """
         out_str = (

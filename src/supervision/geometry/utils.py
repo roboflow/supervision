@@ -9,18 +9,19 @@ def get_polygon_center(polygon: npt.NDArray[np.float64]) -> Point:
     Calculate the center of a polygon. The center is calculated as the center
     of the solid figure formed by the points of the polygon
 
-    Parameters:
-        polygon (np.ndarray): A 2-dimensional numpy ndarray representing the
-            vertices of the polygon.
+    Args:
+        polygon: A 2-dimensional numpy ndarray representing the vertices of the
+            polygon.
 
     Returns:
-        Point: The center of the polygon, represented as a
-            Point object with x and y attributes.
+        The center of the polygon, represented as a Point object with x and y
+            attributes.
 
     Raises:
         ValueError: If the polygon has no vertices.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> import supervision as sv
         >>> polygon = np.array([[0, 0], [0, 2], [2, 2], [2, 0]])
@@ -29,6 +30,8 @@ def get_polygon_center(polygon: npt.NDArray[np.float64]) -> Point:
         1.0
         >>> float(center.y)
         1.0
+
+        ```
     """
 
     # This is one of the 3 candidate algorithms considered for centroid calculation.

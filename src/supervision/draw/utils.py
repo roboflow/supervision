@@ -21,15 +21,15 @@ def draw_line(
     """
     Draws a line on a given scene.
 
-    Parameters:
-        scene (np.ndarray): The scene on which the line will be drawn
-        start (Point): The starting point of the line
-        end (Point): The end point of the line
-        color (Color): The color of the line, defaults to Color.ROBOFLOW
-        thickness (int): The thickness of the line
+    Args:
+        scene: The scene on which the line will be drawn
+        start: The starting point of the line
+        end: The end point of the line
+        color: The color of the line, defaults to Color.ROBOFLOW
+        thickness: The thickness of the line
 
     Returns:
-        np.ndarray: The scene with the line drawn on it
+        The scene with the line drawn on it
     """
     cv2.line(
         scene,
@@ -50,14 +50,14 @@ def draw_rectangle(
     """
     Draws a rectangle on an image.
 
-    Parameters:
-        scene (np.ndarray): The scene on which the rectangle will be drawn
-        rect (Rect): The rectangle to be drawn
-        color (Color): The color of the rectangle
-        thickness (int): The thickness of the rectangle border
+    Args:
+        scene: The scene on which the rectangle will be drawn
+        rect: The rectangle to be drawn
+        color: The color of the rectangle
+        thickness: The thickness of the rectangle border
 
     Returns:
-        np.ndarray: The scene with the rectangle drawn on it
+        The scene with the rectangle drawn on it
     """
     cv2.rectangle(
         scene,
@@ -78,14 +78,14 @@ def draw_filled_rectangle(
     """
     Draws a filled rectangle on an image.
 
-    Parameters:
-        scene (np.ndarray): The scene on which the rectangle will be drawn
-        rect (Rect): The rectangle to be drawn
-        color (Color): The color of the rectangle
-        opacity (float): The opacity of rectangle when drawn on the scene.
+    Args:
+        scene: The scene on which the rectangle will be drawn
+        rect: The rectangle to be drawn
+        color: The color of the rectangle
+        opacity: The opacity of rectangle when drawn on the scene.
 
     Returns:
-        np.ndarray: The scene with the rectangle drawn on it
+        The scene with the rectangle drawn on it
     """
     if opacity == 1:
         cv2.rectangle(
@@ -120,14 +120,14 @@ def draw_rounded_rectangle(
     """
     Draws a rounded rectangle on an image.
 
-    Parameters:
-        scene (np.ndarray): The image on which the rounded rectangle will be drawn.
-        rect (Rect): The rectangle to be drawn.
-        color (Color): The color of the rounded rectangle.
-        border_radius (int): The radius of the corner rounding.
+    Args:
+        scene: The image on which the rounded rectangle will be drawn.
+        rect: The rectangle to be drawn.
+        color: The color of the rounded rectangle.
+        border_radius: The radius of the corner rounding.
 
     Returns:
-        np.ndarray: The image with the rounded rectangle drawn on it.
+        The image with the rounded rectangle drawn on it.
     """
     x1, y1, x2, y2 = rect.as_xyxy_int_tuple()
     width, height = x2 - x1, y2 - y1
@@ -171,14 +171,14 @@ def draw_polygon(
 ) -> npt.NDArray[np.uint8]:
     """Draw a polygon on a scene.
 
-    Parameters:
-        scene (np.ndarray): The scene to draw the polygon on.
-        polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.
-        color (Color): The color of the polygon. Defaults to Color.ROBOFLOW.
-        thickness (int): The thickness of the polygon lines, by default 2.
+    Args:
+        scene: The scene to draw the polygon on.
+        polygon: The polygon to be drawn, given as a list of vertices.
+        color: The color of the polygon. Defaults to Color.ROBOFLOW.
+        thickness: The thickness of the polygon lines, by default 2.
 
     Returns:
-        np.ndarray: The scene with the polygon drawn on it.
+        The scene with the polygon drawn on it.
     """
     cv2.polylines(
         scene, [polygon], isClosed=True, color=color.as_bgr(), thickness=thickness
@@ -194,14 +194,14 @@ def draw_filled_polygon(
 ) -> npt.NDArray[np.uint8]:
     """Draw a filled polygon on a scene.
 
-    Parameters:
-        scene (np.ndarray): The scene to draw the polygon on.
-        polygon (np.ndarray): The polygon to be drawn, given as a list of vertices.
-        color (Color): The color of the polygon. Defaults to Color.ROBOFLOW.
-        opacity (float): The opacity of polygon when drawn on the scene.
+    Args:
+        scene: The scene to draw the polygon on.
+        polygon: The polygon to be drawn, given as a list of vertices.
+        color: The color of the polygon. Defaults to Color.ROBOFLOW.
+        opacity: The opacity of polygon when drawn on the scene.
 
     Returns:
-        np.ndarray: The scene with the polygon drawn on it.
+        The scene with the polygon drawn on it.
     """
     if opacity == 1:
         cv2.fillPoly(scene, [polygon], color=color.as_bgr())
@@ -229,25 +229,28 @@ def draw_text(
     """
     Draw text with background on a scene.
 
-    Parameters:
-        scene (np.ndarray): A 2-dimensional numpy ndarray representing an image or scene
-        text (str): The text to be drawn.
-        text_anchor (Point): The anchor point for the text, represented as a
+    Args:
+        scene: A numpy ndarray representing the image, typically of shape
+            (H, W, 3) for a color BGR image or (H, W) for grayscale,
+            with dtype uint8.
+        text: The text to be drawn.
+        text_anchor: The anchor point for the text, represented as a
             Point object with x and y attributes.
-        text_color (Color): The color of the text. Defaults to black.
-        text_scale (float): The scale of the text. Defaults to 0.5.
-        text_thickness (int): The thickness of the text. Defaults to 1.
-        text_padding (int): The amount of padding to add around the text
+        text_color: The color of the text. Defaults to black.
+        text_scale: The scale of the text. Defaults to 0.5.
+        text_thickness: The thickness of the text. Defaults to 1.
+        text_padding: The amount of padding to add around the text
             when drawing a rectangle in the background. Defaults to 10.
-        text_font (int): The font to use for the text.
+        text_font: The font to use for the text.
             Defaults to cv2.FONT_HERSHEY_SIMPLEX.
-        background_color (Optional[Color]): The color of the background rectangle,
+        background_color: The color of the background rectangle,
             if one is to be drawn. Defaults to None.
 
     Returns:
-        np.ndarray: The input scene with the text drawn on it.
+        The input scene with the text drawn on it.
 
     Examples:
+        ```pycon
         >>> import numpy as np
         >>> from supervision.geometry.core import Point
         >>> from supervision.draw.utils import draw_text
@@ -258,6 +261,8 @@ def draw_text(
         ... )
         >>> scene.shape
         (100, 100, 3)
+
+        ```
     """
     text_width, text_height = cv2.getTextSize(
         text=text,
@@ -303,13 +308,13 @@ def draw_image(
     Draws an image onto a given scene with specified opacity and dimensions.
 
     Args:
-        scene (np.ndarray): Background image where the new image will be drawn.
-        image (Union[str, np.ndarray]): Image to draw.
-        opacity (float): Opacity of the image to be drawn.
-        rect (Rect): Rectangle specifying where to draw the image.
+        scene: Background image where the new image will be drawn.
+        image: Image to draw, either a file path or an already-loaded image array.
+        opacity: Opacity of the image to be drawn.
+        rect: Rectangle specifying where to draw the image.
 
     Returns:
-        np.ndarray: The updated scene.
+        The updated scene.
 
     Raises:
         FileNotFoundError: If the image path does not exist.
@@ -370,17 +375,20 @@ def calculate_optimal_text_scale(resolution_wh: tuple[int, int]) -> float:
     consistent readability.
 
     Args:
-        resolution_wh (tuple[int, int]): (width, height) of the image in pixels
+        resolution_wh: A tuple of `(width, height)` of the image in pixels.
 
     Returns:
-        float: recommended font scale factor
+        Recommended font scale factor.
 
     Examples:
+        ```pycon
         >>> import supervision as sv
         >>> sv.calculate_optimal_text_scale((1920, 1080))
         1.08
         >>> sv.calculate_optimal_text_scale((640, 480))
         0.48
+
+        ```
     """
     return min(resolution_wh) * 1e-3
 
@@ -392,17 +400,20 @@ def calculate_optimal_line_thickness(resolution_wh: tuple[int, int]) -> int:
     image resolution.
 
     Args:
-        resolution_wh (tuple[int, int]): (width, height) of the image in pixels
+        resolution_wh: A tuple of `(width, height)` of the image in pixels.
 
     Returns:
-        int: recommended line thickness in pixels
+        Recommended line thickness in pixels.
 
     Examples:
+        ```pycon
         >>> import supervision as sv
         >>> sv.calculate_optimal_line_thickness((1920, 1080))
         4
         >>> sv.calculate_optimal_line_thickness((640, 480))
         2
+
+        ```
     """
     if min(resolution_wh) < 1080:
         return 2

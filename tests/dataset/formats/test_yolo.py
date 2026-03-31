@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+import os
+import tempfile
 from contextlib import ExitStack as DoesNotRaise
 
 import numpy as np
 import pytest
+from PIL import Image
 
 from supervision.dataset.formats.yolo import (
     _image_name_to_annotation_name,
-    _with_mask,
+    _with_seg_mask,
+    detections_to_yolo_annotations,
+    load_yolo_annotations,
     object_to_yolo,
     yolo_annotations_to_detections,
 )
@@ -60,7 +65,7 @@ def test_with_mask(
     lines: list[str], expected_result: bool | None, exception: Exception
 ) -> None:
     with exception:
-        result = _with_mask(lines=lines)
+        result = _with_seg_mask(lines=lines)
         assert result == expected_result
 
 
@@ -295,3 +300,116 @@ def test_object_to_yolo(
             xyxy=xyxy, class_id=class_id, image_shape=image_shape, polygon=polygon
         )
         assert result == expected_result
+
+
+def test_detections_to_yolo_annotations_raises_for_non_integer_class_id() -> None:
+    detections = Detections(
+        xyxy=np.array([[100, 100, 200, 200]], dtype=np.float32),
+        class_id=np.array([1.9], dtype=np.float32),
+    )
+
+    with pytest.raises(ValueError, match="must be an integer"):
+        detections_to_yolo_annotations(
+            detections=detections, image_shape=(1000, 1000, 3)
+        )
+
+
+def test_load_yolo_annotations_obb_does_not_generate_masks() -> None:
+    """OBB annotations must not produce mask arrays (memory regression test)."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        images_dir = os.path.join(tmp_dir, "images")
+        labels_dir = os.path.join(tmp_dir, "labels")
+        os.makedirs(images_dir)
+        os.makedirs(labels_dir)
+
+        # Create a small RGB image
+        img = Image.new("RGB", (100, 100))
+        img.save(os.path.join(images_dir, "test.jpg"))
+
+        # OBB annotation: class_id x1 y1 x2 y2 x3 y3 x4 y4 (9 values per line)
+        with open(os.path.join(labels_dir, "test.txt"), "w") as f:
+            f.write("0 0.4 0.4 0.6 0.4 0.6 0.6 0.4 0.6\n")
+
+        # Create a minimal data.yaml
+        data_yaml_path = os.path.join(tmp_dir, "data.yaml")
+        with open(data_yaml_path, "w") as f:
+            f.write("names: ['object']\n")
+
+        _, _, annotations = load_yolo_annotations(
+            images_directory_path=images_dir,
+            annotations_directory_path=labels_dir,
+            data_yaml_path=data_yaml_path,
+            is_obb=True,
+        )
+
+        assert len(annotations) == 1
+        detection = next(iter(annotations.values()))
+        assert detection.mask is None, (
+            "OBB annotations must not produce mask arrays to avoid excessive memory use"
+        )
+
+
+def test_load_yolo_annotations_obb_force_masks_ignored() -> None:
+    """force_masks=True must have no effect when is_obb=True."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        images_dir = os.path.join(tmp_dir, "images")
+        labels_dir = os.path.join(tmp_dir, "labels")
+        os.makedirs(images_dir)
+        os.makedirs(labels_dir)
+
+        img = Image.new("RGB", (100, 100))
+        img.save(os.path.join(images_dir, "test.jpg"))
+
+        with open(os.path.join(labels_dir, "test.txt"), "w") as f:
+            f.write("0 0.4 0.4 0.6 0.4 0.6 0.6 0.4 0.6\n")
+
+        data_yaml_path = os.path.join(tmp_dir, "data.yaml")
+        with open(data_yaml_path, "w") as f:
+            f.write("names: ['object']\n")
+
+        _, _, annotations = load_yolo_annotations(
+            images_directory_path=images_dir,
+            annotations_directory_path=labels_dir,
+            data_yaml_path=data_yaml_path,
+            is_obb=True,
+            force_masks=True,
+        )
+
+        assert len(annotations) == 1
+        detection = next(iter(annotations.values()))
+        assert detection.mask is None, (
+            "force_masks=True must be ignored for OBB annotations"
+        )
+
+
+def test_load_yolo_annotations_segmentation_produces_masks() -> None:
+    """Segmentation annotations with is_obb=False must still produce masks."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        images_dir = os.path.join(tmp_dir, "images")
+        labels_dir = os.path.join(tmp_dir, "labels")
+        os.makedirs(images_dir)
+        os.makedirs(labels_dir)
+
+        img = Image.new("RGB", (100, 100))
+        img.save(os.path.join(images_dir, "test.jpg"))
+
+        # Polygon annotation: class_id + 3 x,y pairs (7 tokens > 5 triggers mask)
+        with open(os.path.join(labels_dir, "test.txt"), "w") as f:
+            f.write("0 0.1 0.1 0.9 0.1 0.9 0.9\n")
+
+        data_yaml_path = os.path.join(tmp_dir, "data.yaml")
+        with open(data_yaml_path, "w") as f:
+            f.write("names: ['object']\n")
+
+        _, _, annotations = load_yolo_annotations(
+            images_directory_path=images_dir,
+            annotations_directory_path=labels_dir,
+            data_yaml_path=data_yaml_path,
+            is_obb=False,
+        )
+
+        assert len(annotations) == 1
+        detection = next(iter(annotations.values()))
+        assert detection.mask is not None, (
+            "Segmentation annotations with is_obb=False must produce mask arrays"
+        )

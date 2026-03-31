@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from contextlib import ExitStack as DoesNotRaise
 
 import numpy as np
@@ -7,6 +8,7 @@ import pytest
 
 from supervision.detection.core import Detections, merge_inner_detection_object_pair
 from supervision.geometry.core import Position
+from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import _create_detections
 
 PREDICTIONS = np.array(
@@ -129,6 +131,30 @@ TEST_DET_DIFFERENT_METADATA = Detections(
 )
 
 
+@pytest.mark.parametrize("mask_dtype", [bool, np.bool_])
+def test_detections_bool_mask_types_do_not_warn(mask_dtype) -> None:
+    with warnings.catch_warnings(record=True) as recorded_warnings:
+        warnings.simplefilter("always")
+        Detections(
+            xyxy=np.array([[1, 2, 3, 4]]),
+            mask=np.array([[[1, 0], [0, 1]]], dtype=mask_dtype),
+        )
+    assert not any(
+        warning.category is SupervisionWarnings for warning in recorded_warnings
+    )
+
+
+def test_detections_non_bool_mask_warns_with_migration_path() -> None:
+    with pytest.warns(
+        SupervisionWarnings,
+        match="supervision-0.28.0.*ValueError.*astype\\(bool\\)",
+    ):
+        Detections(
+            xyxy=np.array([[1, 2, 3, 4]]),
+            mask=np.array([[[1, 0], [0, 1]]], dtype=np.uint8),
+        )
+
+
 @pytest.mark.parametrize(
     ("detections", "index", "expected_result", "exception"),
     [
@@ -231,16 +257,26 @@ TEST_DET_DIFFERENT_METADATA = Detections(
         ),
         # Scenario: Index out of range.
         # Expected: IndexError is raised.
-        (DETECTIONS, 10, None, pytest.raises(IndexError)),
-        (DETECTIONS, [0, 2, 10], None, pytest.raises(IndexError)),
-        (DETECTIONS, np.array([0, 2, 10]), None, pytest.raises(IndexError)),
+        (DETECTIONS, 10, None, pytest.raises(IndexError, match="index 10 is out")),
+        (
+            DETECTIONS,
+            [0, 2, 10],
+            None,
+            pytest.raises(IndexError, match="out of bounds for axis 0"),
+        ),
+        (
+            DETECTIONS,
+            np.array([0, 2, 10]),
+            None,
+            pytest.raises(IndexError, match="axis 0 with size"),
+        ),
         (
             DETECTIONS,
             np.array(
                 [True, True, True, True, True, True, True, True, True, True, True]
             ),
             None,
-            pytest.raises(IndexError),
+            pytest.raises(IndexError, match="boolean index did not match"),
         ),
         # Scenario: Filter an empty Detections object.
         # Expected: Returns an empty Detections object without crashing.
@@ -321,18 +357,18 @@ def test_getitem(
                 TEST_DET_NONE,
             ],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="mask' fields must be None"),
         ),  # Empty detection, but not Detections.empty()
         # Errors: Non-zero-length differently defined keys & data
         (
             [TEST_DET_1, TEST_DET_DIFFERENT_FIELDS],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="confidence' fields must be None"),
         ),  # Non-empty detections with different fields
         (
             [TEST_DET_1, TEST_DET_DIFFERENT_DATA],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="same keys to merge"),
         ),  # Non-empty detections with different data keys
         (
             [
@@ -377,7 +413,7 @@ def test_getitem(
                 Detections(xyxy=np.array([[30, 30, 40, 40]]), class_id=np.array([2])),
             ],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="metadata dictionaries must have the same"),
         ),  # Empty and non-empty metadata
         (
             [
@@ -428,7 +464,9 @@ def test_getitem(
                 ),
             ],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(
+                ValueError, match="Conflicting metadata for key: 'source'\\."
+            ),
         ),  # Different metadata values
         (
             [
@@ -457,7 +495,7 @@ def test_getitem(
                 ),
             ],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="metadata for key: 'source'"),
         ),  # Inconsistent types in metadata values
         (
             [
@@ -469,7 +507,7 @@ def test_getitem(
                 ),
             ],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="same keys to merge"),
         ),  # Metadata key mismatch
         (
             [
@@ -526,7 +564,7 @@ def test_getitem(
                 ),
             ],
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="calibration_matrix"),
         ),  # Mismatching 2D numpy arrays in metadata
     ],
 )
@@ -694,7 +732,7 @@ def test_equal(
             ),
             Detections.empty(),
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="exactly 1 detected object"),
         ),  # merge with empty: error
         (
             _create_detections(
@@ -704,7 +742,7 @@ def test_equal(
                 xyxy=[[10, 10, 30, 30], [40, 40, 60, 60]],
             ),
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Both Detections should have"),
         ),  # merge with 2+ objects: error
         (
             _create_detections(
@@ -797,7 +835,7 @@ def test_equal(
                 confidence=[0.2],
             ),
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Field 'confidence'"),
         ),  # confidence: None + [x]
         (
             _create_detections(
@@ -809,7 +847,7 @@ def test_equal(
                 mask=None,
             ),
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Field 'mask'"),
         ),  # mask: None + [x]
         (
             _create_detections(xyxy=[[0, 0, 20, 20]], tracker_id=[1]),
@@ -818,7 +856,7 @@ def test_equal(
                 tracker_id=None,
             ),
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Field 'tracker_id'"),
         ),  # tracker_id: None + []
         (
             _create_detections(xyxy=[[0, 0, 20, 20]], class_id=[1]),
@@ -827,7 +865,7 @@ def test_equal(
                 class_id=None,
             ),
             None,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="Field 'class_id'"),
         ),  # class_id: None + []
     ],
 )

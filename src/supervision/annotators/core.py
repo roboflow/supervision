@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from math import sqrt
-from typing import Any
+from typing import Any, overload
 
 import cv2
 import numpy as np
@@ -15,7 +15,10 @@ from supervision.annotators.utils import (
     PENDING_TRACK_ID,
     ColorLookup,
     Trace,
+    calculate_dynamic_kernel_size,
+    calculate_dynamic_pixel_size,
     get_labels_text,
+    hex_to_rgba,
     resolve_color,
     resolve_text_background_xyxy,
     snap_boxes,
@@ -44,6 +47,33 @@ from supervision.utils.image import (
     overlay_image,
     scale_image,
 )
+from supervision.utils.logger import _get_logger
+
+logger = _get_logger(__name__)
+
+
+@overload
+def _normalize_color_input(color: Color | str) -> Color: ...
+
+
+@overload
+def _normalize_color_input(
+    color: Color | ColorPalette | str,
+) -> Color | ColorPalette: ...
+
+
+def _normalize_color_input(color: Color | ColorPalette | str) -> Color | ColorPalette:
+    """Normalize accepted color inputs to internal color objects.
+
+    Accepts `Color`, `ColorPalette`, or hex string input. Hex strings are parsed via
+    `hex_to_rgba` and converted to `Color` (alpha channel is ignored because annotator
+    drawing uses RGB/BGR colors).
+    """
+    if isinstance(color, str):
+        r, g, b, _ = hex_to_rgba(color)
+        return Color.from_rgb_tuple((r, g, b))
+    return color
+
 
 CV2_FONT = cv2.FONT_HERSHEY_SIMPLEX
 
@@ -70,9 +100,9 @@ class _BaseLabelAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-        text_color: Color | ColorPalette = Color.WHITE,
+        text_color: Color | ColorPalette | str = Color.WHITE,
         text_padding: int = 10,
         text_position: Position = Position.TOP_LEFT,
         text_offset: tuple[int, int] = (0, 0),
@@ -102,9 +132,9 @@ class _BaseLabelAnnotator(BaseAnnotator):
             max_line_length: Maximum number of characters per
                 line before wrapping the text. None means no wrapping.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.color_lookup: ColorLookup = color_lookup
-        self.text_color: Color | ColorPalette = text_color
+        self.text_color: Color | ColorPalette = _normalize_color_input(text_color)
         self.text_padding: int = text_padding
         self.text_anchor: Position = text_position
         self.text_offset: tuple[int, int] = text_offset
@@ -162,7 +192,7 @@ class BoxAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -174,7 +204,7 @@ class BoxAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
@@ -201,6 +231,7 @@ class BoxAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -213,6 +244,8 @@ class BoxAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![bounding-box-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/bounding-box-annotator-example-purple.png)
@@ -246,7 +279,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -258,7 +291,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
@@ -337,7 +370,7 @@ class MaskAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         opacity: float = 0.5,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -349,7 +382,7 @@ class MaskAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.opacity = opacity
         self.color_lookup: ColorLookup = color_lookup
 
@@ -376,6 +409,7 @@ class MaskAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -389,6 +423,8 @@ class MaskAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![mask-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/mask-annotator-example-purple.png)
@@ -409,7 +445,7 @@ class MaskAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            mask = detections.mask[detection_idx]
+            mask = np.asarray(detections.mask[detection_idx], dtype=bool)
             colored_mask[mask] = color.as_bgr()
 
         cv2.addWeighted(
@@ -429,7 +465,7 @@ class PolygonAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -441,7 +477,7 @@ class PolygonAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
@@ -468,6 +504,7 @@ class PolygonAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -480,6 +517,8 @@ class PolygonAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![polygon-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/polygon-annotator-example-purple.png)
@@ -517,7 +556,7 @@ class ColorAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         opacity: float = 0.5,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -529,7 +568,7 @@ class ColorAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.color_lookup: ColorLookup = color_lookup
         self.opacity = opacity
 
@@ -556,6 +595,7 @@ class ColorAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -568,6 +608,8 @@ class ColorAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![box-mask-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/box-mask-annotator-example-purple.png)
@@ -610,7 +652,7 @@ class HaloAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         opacity: float = 0.8,
         kernel_size: int = 40,
         color_lookup: ColorLookup = ColorLookup.CLASS,
@@ -625,7 +667,7 @@ class HaloAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.opacity = opacity
         self.color_lookup: ColorLookup = color_lookup
         self.kernel_size: int = kernel_size
@@ -653,6 +695,7 @@ class HaloAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -665,6 +708,8 @@ class HaloAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![halo-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/halo-annotator-example-purple.png)
@@ -687,7 +732,7 @@ class HaloAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            mask = detections.mask[detection_idx]
+            mask = np.asarray(detections.mask[detection_idx], dtype=bool)
             fmask = np.logical_or(fmask, mask)
             color_bgr = color.as_bgr()
             colored_mask[mask] = color_bgr
@@ -709,7 +754,7 @@ class EllipseAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         start_angle: int = -45,
         end_angle: int = 235,
@@ -725,7 +770,7 @@ class EllipseAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.start_angle: int = start_angle
         self.end_angle: int = end_angle
@@ -754,6 +799,7 @@ class EllipseAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -766,6 +812,8 @@ class EllipseAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![ellipse-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/ellipse-annotator-example-purple.png)
@@ -805,7 +853,7 @@ class BoxCornerAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 4,
         corner_length: int = 15,
         color_lookup: ColorLookup = ColorLookup.CLASS,
@@ -819,7 +867,7 @@ class BoxCornerAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.corner_length: int = corner_length
         self.color_lookup: ColorLookup = color_lookup
@@ -847,6 +895,7 @@ class BoxCornerAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -859,6 +908,8 @@ class BoxCornerAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![box-corner-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/box-corner-annotator-example-purple.png)
@@ -897,7 +948,7 @@ class CircleAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -910,7 +961,7 @@ class CircleAnnotator(BaseAnnotator):
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
 
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
@@ -937,6 +988,7 @@ class CircleAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -949,6 +1001,8 @@ class CircleAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
 
         ![circle-annotator-example](https://media.roboflow.com/
@@ -987,12 +1041,12 @@ class DotAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         radius: int = 4,
         position: Position = Position.CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         outline_thickness: int = 0,
-        outline_color: Color | ColorPalette = Color.BLACK,
+        outline_color: Color | ColorPalette | str = Color.BLACK,
     ):
         """
         Args:
@@ -1007,12 +1061,12 @@ class DotAnnotator(BaseAnnotator):
                 use for outline. It is activated by setting outline_thickness to a value
                 greater than 0.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.radius: int = radius
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
         self.outline_thickness = outline_thickness
-        self.outline_color: Color | ColorPalette = outline_color
+        self.outline_color: Color | ColorPalette = _normalize_color_input(outline_color)
 
     @ensure_cv2_image_for_class_method
     def annotate(
@@ -1037,6 +1091,7 @@ class DotAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -1049,6 +1104,8 @@ class DotAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![dot-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/dot-annotator-example-purple.png)
@@ -1094,9 +1151,9 @@ class LabelAnnotator(_BaseLabelAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-        text_color: Color | ColorPalette = Color.WHITE,
+        text_color: Color | ColorPalette | str = Color.WHITE,
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
@@ -1166,6 +1223,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -1186,6 +1244,8 @@ class LabelAnnotator(_BaseLabelAnnotator):
             ...     detections=detections,
             ...     labels=labels
             ... )
+
+            ```
 
         ![label-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/label-annotator-example-purple.png)
@@ -1407,9 +1467,9 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-        text_color: Color | ColorPalette = Color.WHITE,
+        text_color: Color | ColorPalette | str = Color.WHITE,
         font_path: str | None = None,
         font_size: int = 10,
         text_padding: int = 10,
@@ -1481,6 +1541,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> from PIL import Image
@@ -1502,6 +1563,8 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             ...     detections=detections,
             ...     labels=labels
             ... )
+
+            ```
         """
         assert isinstance(scene, Image.Image)
         validate_labels(labels, detections)
@@ -1666,7 +1729,9 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         try:
             return ImageFont.truetype(font_path, font_size)
         except OSError:
-            print(f"Font path '{font_path}' not found. Using PIL's default font.")
+            logger.warning(
+                "Font path '%s' not found. Using PIL's default font.", font_path
+            )
             return load_default_font(font_size)
 
 
@@ -1778,12 +1843,16 @@ class BlurAnnotator(BaseAnnotator):
     A class for blurring regions in an image using provided detections.
     """
 
-    def __init__(self, kernel_size: int = 15):
+    def __init__(self, kernel_size: int | None = None):
         """
         Args:
             kernel_size: The size of the average pooling kernel used for blurring.
+                If not set, a dynamic size is computed as one-third of the shorter
+                bounding-box dimension. Must be >= 1 when provided.
         """
-        self.kernel_size: int = kernel_size
+        if kernel_size is not None and kernel_size < 1:
+            raise ValueError(f"kernel_size must be >= 1, got {kernel_size}.")
+        self.kernel_size: int | None = kernel_size
 
     @ensure_cv2_image_for_class_method
     def annotate(
@@ -1805,6 +1874,7 @@ class BlurAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -1818,6 +1888,8 @@ class BlurAnnotator(BaseAnnotator):
             ...     detections=detections
             ... )
 
+            ```
+
         ![blur-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/blur-annotator-example-purple.png)
         """
@@ -1829,8 +1901,15 @@ class BlurAnnotator(BaseAnnotator):
         ).astype(int)
 
         for x1, y1, x2, y2 in clipped_xyxy:
+            if x2 <= x1 or y2 <= y1:
+                continue
             roi = scene[y1:y2, x1:x2]
-            roi = cv2.blur(roi, (self.kernel_size, self.kernel_size))
+            kernel_size = (
+                self.kernel_size
+                if self.kernel_size is not None
+                else calculate_dynamic_kernel_size(x1, y1, x2, y2)
+            )
+            roi = cv2.blur(roi, (kernel_size, kernel_size))
             scene[y1:y2, x1:x2] = roi
 
         return scene
@@ -1849,7 +1928,7 @@ class TraceAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         position: Position = Position.CENTER,
         trace_length: int = 30,
         thickness: int = 2,
@@ -1869,7 +1948,7 @@ class TraceAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.trace = Trace(max_size=trace_length, anchor=position)
         self.thickness = thickness
         self.smooth = smooth
@@ -2079,12 +2158,18 @@ class PixelateAnnotator(BaseAnnotator):
     A class for pixelating regions in an image using provided detections.
     """
 
-    def __init__(self, pixel_size: int = 20):
+    def __init__(self, pixel_size: int | None = None):
         """
         Args:
-            pixel_size: The size of the pixelation.
+            pixel_size: The size of the pixelation. If not set, a dynamic size is
+                computed as one-half of the shorter bounding-box dimension. When set
+                and the detection area is smaller than `pixel_size`, the region is
+                filled with its average colour instead to avoid an OpenCV crash.
+                Must be >= 1 when provided.
         """
-        self.pixel_size: int = pixel_size
+        if pixel_size is not None and pixel_size < 1:
+            raise ValueError(f"pixel_size must be >= 1, got {pixel_size}.")
+        self.pixel_size: int | None = pixel_size
 
     @ensure_cv2_image_for_class_method
     def annotate(
@@ -2131,9 +2216,25 @@ class PixelateAnnotator(BaseAnnotator):
         ).astype(int)
 
         for x1, y1, x2, y2 in clipped_xyxy:
+            if x2 <= x1 or y2 <= y1:
+                continue
             roi = scene[y1:y2, x1:x2]
+
+            pixel_size = (
+                self.pixel_size
+                if self.pixel_size is not None
+                else calculate_dynamic_pixel_size(x1, y1, x2, y2)
+            )
+            if min(y2 - y1, x2 - x1) < pixel_size:
+                if roi.ndim == 2 or (roi.ndim == 3 and roi.shape[2] == 1):
+                    scene[y1:y2, x1:x2] = cv2.mean(roi)[0]
+                else:
+                    num_channels = scene.shape[2]
+                    scene[y1:y2, x1:x2] = cv2.mean(roi)[:num_channels]
+                continue
+
             scaled_up_roi = cv2.resize(
-                src=roi, dsize=None, fx=1 / self.pixel_size, fy=1 / self.pixel_size
+                src=roi, dsize=None, fx=1 / pixel_size, fy=1 / pixel_size
             )
             scaled_down_roi = cv2.resize(
                 src=scaled_up_roi,
@@ -2154,13 +2255,13 @@ class TriangleAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         base: int = 10,
         height: int = 10,
         position: Position = Position.TOP_CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         outline_thickness: int = 0,
-        outline_color: Color | ColorPalette = Color.BLACK,
+        outline_color: Color | ColorPalette | str = Color.BLACK,
     ):
         """
         Args:
@@ -2176,13 +2277,13 @@ class TriangleAnnotator(BaseAnnotator):
                 use for outline. It is activated by setting outline_thickness to a value
                 greater than 0.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.base: int = base
         self.height: int = height
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
         self.outline_thickness: int = outline_thickness
-        self.outline_color: Color | ColorPalette = outline_color
+        self.outline_color: Color | ColorPalette = _normalize_color_input(outline_color)
 
     @ensure_cv2_image_for_class_method
     def annotate(
@@ -2207,6 +2308,7 @@ class TriangleAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -2219,6 +2321,8 @@ class TriangleAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![triangle-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/triangle-annotator-example.png)
@@ -2273,7 +2377,7 @@ class RoundBoxAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         roundness: float = 0.6,
@@ -2290,7 +2394,7 @@ class RoundBoxAnnotator(BaseAnnotator):
                 By default roundness percent is calculated based on smaller side
                 length (width or height).
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
         if not 0 < roundness <= 1.0:
@@ -2321,6 +2425,7 @@ class RoundBoxAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -2333,6 +2438,8 @@ class RoundBoxAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![round-box-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/round-box-annotator-example-purple.png)
@@ -2407,8 +2514,8 @@ class PercentageBarAnnotator(BaseAnnotator):
         self,
         height: int = 16,
         width: int = 80,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
-        border_color: Color = Color.BLACK,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
+        border_color: Color | str = Color.BLACK,
         position: Position = Position.TOP_CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         border_thickness: int | None = None,
@@ -2427,8 +2534,8 @@ class PercentageBarAnnotator(BaseAnnotator):
         """
         self.height: int = height
         self.width: int = width
-        self.color: Color | ColorPalette = color
-        self.border_color: Color = border_color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
+        self.border_color: Color = _normalize_color_input(border_color)
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
 
@@ -2469,6 +2576,7 @@ class PercentageBarAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -2482,6 +2590,8 @@ class PercentageBarAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![percentage-bar-example](https://media.roboflow.com/
         supervision-annotator-examples/percentage-bar-annotator-example-purple.png)
@@ -2599,7 +2709,7 @@ class CropAnnotator(BaseAnnotator):
         self,
         position: Position = Position.TOP_CENTER,
         scale_factor: float = 2.0,
-        border_color: Color | ColorPalette = ColorPalette.DEFAULT,
+        border_color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         border_thickness: int = 2,
         border_color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -2618,7 +2728,7 @@ class CropAnnotator(BaseAnnotator):
         """
         self.position: Position = position
         self.scale_factor: float = scale_factor
-        self.border_color: Color | ColorPalette = border_color
+        self.border_color: Color | ColorPalette = _normalize_color_input(border_color)
         self.border_thickness: int = border_thickness
         self.border_color_lookup: ColorLookup = border_color_lookup
 
@@ -2648,6 +2758,7 @@ class CropAnnotator(BaseAnnotator):
             The annotated image.
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -2660,6 +2771,8 @@ class CropAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![crop-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/crop-annotator-example.png)
@@ -2790,6 +2903,7 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
                 or `PIL.Image.Image`)
 
         Examples:
+            ```pycon
             >>> import numpy as np
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -2802,6 +2916,8 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
             ...     scene=image.copy(),
             ...     detections=detections
             ... )
+
+            ```
 
         ![background-overlay-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/background-color-annotator-example-purple.png)
@@ -2819,6 +2935,7 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
                 colored_mask[y1:y2, x1:x2] = scene[y1:y2, x1:x2]
         else:
             for mask in detections.mask:
+                mask = np.asarray(mask, dtype=bool)
                 colored_mask[mask] = scene[mask]
 
         np.copyto(scene, colored_mask)
@@ -3025,7 +3142,7 @@ class ComparisonAnnotator:
         computed positions.
 
         Args:
-            scene (npt.NDArray[np.uint8]): The image where the labels will be drawn.
+            scene: The image where the labels will be drawn.
         """
         margin = int(50 * self.label_scale)
         gap = int(40 * self.label_scale)

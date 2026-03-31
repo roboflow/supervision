@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import io
 import json
 import os
 from typing import Any
+
+import numpy as np
 
 from supervision.detection.core import Detections
 
@@ -16,11 +19,11 @@ class JSONSink:
 
     !!! tip
 
-        JSONsink allow to pass custom data alongside the detection fields, providing
+        JSONSink allows passing custom data alongside detection fields, providing
         flexibility for logging various types of information.
 
     Args:
-        file_name (str): The name of the JSON file where the detections will be stored.
+        file_name: The name of the JSON file where the detections will be stored.
             Defaults to 'output.json'.
 
     Example:
@@ -45,13 +48,10 @@ class JSONSink:
         Initialize the JSONSink instance.
 
         Args:
-            file_name (str): The name of the JSON file.
-
-        Returns:
-            None
+            file_name: The name of the JSON file.
         """
         self.file_name = file_name
-        self.file: open | None = None
+        self.file: io.TextIOWrapper | None = None
         self.data: list[dict[str, Any]] = []
 
     def __enter__(self) -> JSONSink:
@@ -69,9 +69,6 @@ class JSONSink:
     def open(self) -> None:
         """
         Open the JSON file for writing.
-
-        Returns:
-            None
         """
         parent_directory = os.path.dirname(self.file_name)
         if parent_directory and not os.path.exists(parent_directory):
@@ -82,9 +79,6 @@ class JSONSink:
     def write_and_close(self) -> None:
         """
         Write and close the JSON file.
-
-        Returns:
-            None
         """
         if self.file:
             json.dump(self.data, self.file, indent=4)
@@ -114,11 +108,14 @@ class JSONSink:
 
             if hasattr(detections, "data"):
                 for key, value in detections.data.items():
-                    row[key] = (
-                        str(value[i])
-                        if hasattr(value, "__getitem__") and value.ndim != 0
-                        else str(value)
-                    )
+                    if isinstance(value, np.ndarray):
+                        row[key] = str(value[i]) if value.ndim != 0 else str(value)
+                    else:
+                        row[key] = (
+                            str(value[i])
+                            if hasattr(value, "__getitem__")
+                            else str(value)
+                        )
 
             if custom_data:
                 row.update(custom_data)
@@ -132,11 +129,8 @@ class JSONSink:
         Append detection data to the JSON file.
 
         Args:
-            detections (Detections): The detection data.
-            custom_data (Dict[str, Any]): Custom data to include.
-
-        Returns:
-            None
+            detections: The detection data.
+            custom_data: Custom data to include.
         """
         parsed_rows = JSONSink.parse_detection_data(detections, custom_data)
         self.data.extend(parsed_rows)
