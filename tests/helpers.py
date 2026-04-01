@@ -305,6 +305,49 @@ class _FakeYoloNasResults:
         self.prediction = prediction
 
 
+class _FakeYoloNasKeyPoint:
+    """YOLO-NAS-like key point struct."""
+
+    def __init__(self, poses, labels=None):
+        self.poses = np.array(poses, dtype=np.float32)
+        if labels is not None:
+            self.labels = np.array(labels, dtype=int)
+
+
+class _FakeYoloNasKeyPointResults:
+    """YOLO-NAS-like results exposing key points."""
+
+    def __init__(self, prediction: _FakeYoloNasKeyPoint, class_names=None):
+        self.prediction = prediction
+        self.class_names = class_names
+
+
+class _FakeMediapipeLandmark:
+    def __init__(self, x, y, visibility=1.0):
+        self.x = x
+        self.y = y
+        self.visibility = visibility
+
+
+class _FakeMediapipePose:
+    def __init__(self, landmarks: list[_FakeMediapipeLandmark]):
+        self.landmark = landmarks
+
+
+class _FakeMediapipeResults:
+    def __init__(
+        self,
+        pose_landmarks: list[list[_FakeMediapipeLandmark]]
+        | _FakeMediapipePose
+        | None = None,
+        face_landmarks: _FakeMediapipeLandmark | None = None,
+        multi_face_landmarks: list[_FakeMediapipeLandmark] | None = None,
+    ):
+        self.pose_landmarks = pose_landmarks
+        self.face_landmarks = face_landmarks
+        self.multi_face_landmarks = multi_face_landmarks
+
+
 def create_yolo_dataset(
     dataset_dir: str,
     num_images: int = 15,
