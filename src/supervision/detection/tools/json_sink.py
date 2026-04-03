@@ -118,7 +118,13 @@ class JSONSink:
                         )
 
             if custom_data:
-                row.update(custom_data)
+                for key, value in custom_data.items():
+                    if isinstance(value, np.ndarray) and value.ndim == 0:
+                        row[key] = str(value)
+                    elif isinstance(value, np.ndarray):
+                        row[key] = str(value[i])
+                    else:
+                        row[key] = value
             parsed_rows.append(row)
         return parsed_rows
 

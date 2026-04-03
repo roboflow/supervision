@@ -144,7 +144,13 @@ class CSVSink:
                         row[key] = value[i] if hasattr(value, "__getitem__") else value
 
             if custom_data:
-                row.update(custom_data)
+                for key, value in custom_data.items():
+                    if isinstance(value, np.ndarray) and value.ndim == 0:
+                        row[key] = value
+                    elif isinstance(value, np.ndarray):
+                        row[key] = value[i]
+                    else:
+                        row[key] = value
             parsed_rows.append(row)
         return parsed_rows
 
