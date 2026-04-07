@@ -21,6 +21,7 @@ BASE_HEADER = [
     "class_id",
     "confidence",
     "tracker_id",
+    "area",
 ]
 
 
@@ -33,7 +34,7 @@ class CSVSink:
     A utility class for saving detection data to a CSV file. This class is designed to
     efficiently serialize detection objects into a CSV format, allowing for the
     inclusion of bounding box coordinates and additional attributes like `confidence`,
-    `class_id`, and `tracker_id`.
+    `class_id`, `tracker_id`, and `area`.
 
     !!! tip
 
@@ -117,6 +118,7 @@ class CSVSink:
         detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> list[dict[str, Any]]:
         parsed_rows = []
+        areas = detections.area
         for i in range(len(detections.xyxy)):
             row = {
                 "x_min": detections.xyxy[i][0],
@@ -132,6 +134,7 @@ class CSVSink:
                 "tracker_id": ""
                 if detections.tracker_id is None
                 else str(detections.tracker_id[i]),
+                "area": str(areas[i]),
             }
 
             if hasattr(detections, "data"):
