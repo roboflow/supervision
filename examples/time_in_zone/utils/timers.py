@@ -11,7 +11,8 @@ class FPSBasedTimer:
     per second (FPS).
 
     Attributes:
-        fps (float): The frame rate of the video stream, used to calculate time durations.
+        fps (float): The frame rate of the video stream, used to calculate
+            time durations.
         frame_id (int): The current frame number in the sequence.
         tracker_id2frame_id (Dict[int, int]): Maps each tracker's ID to the frame number
             at which it was first detected.
