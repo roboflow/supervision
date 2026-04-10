@@ -19,6 +19,19 @@ def dummy_video_path(tmp_path):
     return path
 
 
+@pytest.fixture
+def float_fps_video_path(tmp_path):
+    """Video created at 23.976 fps to test non-integer FPS handling."""
+    path = str(tmp_path / "float_fps_video.mp4")
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    out = cv2.VideoWriter(path, fourcc, 23.976, (320, 240))
+    for _ in range(10):
+        frame = np.zeros((240, 320, 3), dtype=np.uint8)
+        out.write(frame)
+    out.release()
+    return path
+
+
 def test_process_video_exception_handling(dummy_video_path, tmp_path):
     """
     Verify that process_video correctly propagates exceptions from the callback.
@@ -149,9 +162,24 @@ def test_video_info(dummy_video_path):
     video_info = VideoInfo.from_video_path(dummy_video_path)
     assert video_info.width == 640
     assert video_info.height == 480
-    assert video_info.fps == 25
+    assert video_info.fps == 25.0
+    assert isinstance(video_info.fps, float)
     assert video_info.total_frames == 10
     assert video_info.resolution_wh == (640, 480)
+
+
+def test_video_info_float_fps(float_fps_video_path):
+    """
+    Verify that VideoInfo preserves non-integer FPS values as floats.
+
+    Scenario: Retrieving metadata from a video encoded at 23.976 fps.
+    Expected: fps is returned as a float, not truncated to an integer. This prevents
+    frame-timing drift in long videos (e.g. 23 vs 23.976 accumulates ~1s error/minute).
+    """
+    video_info = VideoInfo.from_video_path(float_fps_video_path)
+    assert isinstance(video_info.fps, float)
+    assert video_info.fps > 23
+    assert video_info.fps < 25
 
 
 def test_get_video_frames_generator(dummy_video_path):
