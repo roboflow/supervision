@@ -878,3 +878,42 @@ def test_merge_inner_detection_object_pair(
     with exception:
         result = merge_inner_detection_object_pair(detection_1, detection_2)
         assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "detections, expected",
+    [
+        (
+            Detections.empty(),
+            True,
+        ),  # canonical empty
+        (
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10]]),
+                class_id=np.array([1]),
+                confidence=np.array([0.9]),
+            ),
+            False,
+        ),  # non-empty, no tracker_id
+        (
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10], [0, 0, 20, 30]]),
+                class_id=np.array([1, 2]),
+                confidence=np.array([0.6, 0.7]),
+                tracker_id=np.array([1, 2]),
+            )[np.array([False, False])],
+            True,
+        ),  # filtered to empty with tracker_id — the regression case from #2195
+        (
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10], [0, 0, 20, 30]]),
+                class_id=np.array([1, 2]),
+                confidence=np.array([0.6, 0.7]),
+                tracker_id=np.array([1, 2]),
+            )[np.array([True, False])],
+            False,
+        ),  # one detection remaining after filter
+    ],
+)
+def test_is_empty(detections: Detections, expected: bool) -> None:
+    assert detections.is_empty() == expected

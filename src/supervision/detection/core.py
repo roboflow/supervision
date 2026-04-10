@@ -2071,12 +2071,26 @@ class Detections:
 
     def is_empty(self) -> bool:
         """
-        Returns `True` if the `Detections` object is considered empty.
+        Returns `True` if the `Detections` object contains no detections.
+
+        Returns:
+            bool: `True` if there are no detections, `False` otherwise.
+
+        Example:
+            ```python
+            import supervision as sv
+            import numpy as np
+
+            detections = sv.Detections(
+                xyxy=np.array([[10, 20, 110, 120]]),
+                tracker_id=np.array([1]),
+            )
+            filtered = detections[detections.class_id == 99]
+            filtered.is_empty()
+            # True
+            ```
         """
-        empty_detections = Detections.empty()
-        empty_detections.data = self.data
-        empty_detections.metadata = self.metadata
-        return bool(self == empty_detections)
+        return len(self.xyxy) == 0
 
     @classmethod
     def merge(cls, detections_list: list[Detections]) -> Detections:
