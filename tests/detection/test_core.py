@@ -881,7 +881,7 @@ def test_merge_inner_detection_object_pair(
 
 
 @pytest.mark.parametrize(
-    "detections, expected",
+    ("detections", "expected"),
     [
         (
             Detections.empty(),
