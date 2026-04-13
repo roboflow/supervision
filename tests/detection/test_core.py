@@ -325,9 +325,9 @@ def test_getitem(
         ),  # single detection with fields
         (
             [TEST_DET_NONE],
-            TEST_DET_NONE,
+            Detections.empty(),
             DoesNotRaise(),
-        ),  # Single weakly-defined detection
+        ),  # Single weakly-defined detection: now correctly treated as empty
         (
             [TEST_DET_1, TEST_DET_2],
             TEST_DET_1_2,
@@ -348,17 +348,17 @@ def test_getitem(
         ),  # Single detection and empty-array fields
         (
             [TEST_DET_ZERO_LENGTH, TEST_DET_ZERO_LENGTH],
-            TEST_DET_ZERO_LENGTH,
+            Detections.empty(),
             DoesNotRaise(),
-        ),  # Zero-length fields across all Detections
+        ),  # Zero-length fields: all treated as empty, result is canonical empty
         (
             [
                 TEST_DET_1,
                 TEST_DET_NONE,
             ],
-            None,
-            pytest.raises(ValueError, match="mask' fields must be None"),
-        ),  # Empty detection, but not Detections.empty()
+            TEST_DET_1,
+            DoesNotRaise(),
+        ),  # Empty detection stripped; non-empty detection returned intact
         # Errors: Non-zero-length differently defined keys & data
         (
             [TEST_DET_1, TEST_DET_DIFFERENT_FIELDS],
