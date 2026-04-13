@@ -19,19 +19,6 @@ def dummy_video_path(tmp_path):
     return path
 
 
-@pytest.fixture
-def float_fps_video_path(tmp_path):
-    """Video created at 23.976 fps to test non-integer FPS handling."""
-    path = str(tmp_path / "float_fps_video.mp4")
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    out = cv2.VideoWriter(path, fourcc, 23.976, (320, 240))
-    for _ in range(10):
-        frame = np.zeros((240, 320, 3), dtype=np.uint8)
-        out.write(frame)
-    out.release()
-    return path
-
-
 def test_process_video_exception_handling(dummy_video_path, tmp_path):
     """
     Verify that process_video correctly propagates exceptions from the callback.
