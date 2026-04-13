@@ -2073,17 +2073,27 @@ class Detections:
 
     def is_empty(self) -> bool:
         """
-        Returns `True` if the `Detections` object is considered empty.
+        Check whether the `Detections` object has zero bounding boxes.
+
+        Returns:
+            `True` if there are no detections, `False` otherwise.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[10, 20, 110, 120]]),
+            ...     class_id=np.array([1]),
+            ...     tracker_id=np.array([1]),
+            ... )
+            >>> filtered = detections[detections.class_id == 99]
+            >>> filtered.is_empty()
+            True
+
+            ```
         """
-        # Fast path: avoids __eq__ which calls np.array_equal(to_dense(), ...)
-        # and would materialise the entire (N, H, W) CompactMask to a dense
-        # array just to check emptiness — O(N·H·W) for an O(1) check.
-        if len(self.xyxy) > 0:
-            return False
-        empty_detections = Detections.empty()
-        empty_detections.data = self.data
-        empty_detections.metadata = self.metadata
-        return bool(self == empty_detections)
+        return len(self.xyxy) == 0
 
     @classmethod
     def merge(cls, detections_list: list[Detections]) -> Detections:

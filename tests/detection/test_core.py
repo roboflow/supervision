@@ -325,9 +325,9 @@ def test_getitem(
         ),  # single detection with fields
         (
             [TEST_DET_NONE],
-            TEST_DET_NONE,
+            Detections.empty(),
             DoesNotRaise(),
-        ),  # Single weakly-defined detection
+        ),  # Single weakly-defined detection: now correctly treated as empty
         (
             [TEST_DET_1, TEST_DET_2],
             TEST_DET_1_2,
@@ -348,17 +348,17 @@ def test_getitem(
         ),  # Single detection and empty-array fields
         (
             [TEST_DET_ZERO_LENGTH, TEST_DET_ZERO_LENGTH],
-            TEST_DET_ZERO_LENGTH,
+            Detections.empty(),
             DoesNotRaise(),
-        ),  # Zero-length fields across all Detections
+        ),  # Zero-length fields: all treated as empty, result is canonical empty
         (
             [
                 TEST_DET_1,
                 TEST_DET_NONE,
             ],
-            None,
-            pytest.raises(ValueError, match="mask' fields must be None"),
-        ),  # Empty detection, but not Detections.empty()
+            TEST_DET_1,
+            DoesNotRaise(),
+        ),  # Empty detection stripped; non-empty detection returned intact
         # Errors: Non-zero-length differently defined keys & data
         (
             [TEST_DET_1, TEST_DET_DIFFERENT_FIELDS],
@@ -878,3 +878,58 @@ def test_merge_inner_detection_object_pair(
     with exception:
         result = merge_inner_detection_object_pair(detection_1, detection_2)
         assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    ("detections", "expected"),
+    [
+        (
+            Detections.empty(),
+            True,
+        ),  # canonical empty
+        (
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10]]),
+                class_id=np.array([1]),
+                confidence=np.array([0.9]),
+            ),
+            False,
+        ),  # non-empty, no tracker_id
+        (
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10], [0, 0, 20, 30]]),
+                class_id=np.array([1, 2]),
+                confidence=np.array([0.6, 0.7]),
+                tracker_id=np.array([1, 2]),
+            )[np.array([False, False])],
+            True,
+        ),  # filtered to empty with tracker_id — the regression case from #2195
+        (
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10], [0, 0, 20, 30]]),
+                class_id=np.array([1, 2]),
+                confidence=np.array([0.6, 0.7]),
+                tracker_id=np.array([1, 2]),
+            )[np.array([True, False])],
+            False,
+        ),  # one detection remaining after filter
+        (
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10], [0, 0, 20, 30]]),
+                mask=np.zeros((2, 4, 4), dtype=bool),
+                class_id=np.array([1, 2]),
+            )[np.array([False, False])],
+            True,
+        ),  # filtered to empty with mask — same bug could affect mask field
+    ],
+    ids=[
+        "canonical_empty",
+        "non_empty_no_tracker",
+        "filtered_empty_with_tracker",
+        "one_remaining_after_filter",
+        "filtered_empty_with_mask",
+    ],
+)
+def test_is_empty(detections: Detections, expected: bool) -> None:
+    """Verify is_empty() returns True iff the Detections object has zero detections."""
+    assert detections.is_empty() == expected
