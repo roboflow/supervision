@@ -6,6 +6,7 @@ from typing import Any, cast
 import numpy as np
 import numpy.typing as npt
 
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.utils.converters import polygon_to_mask
 from supervision.detection.utils.masks import resize_masks
 
@@ -583,7 +584,6 @@ def mask_iou_batch(
     Returns:
         Pairwise IoU of masks from `masks_true` and `masks_detection`.
     """
-    from supervision.detection.compact_mask import CompactMask
 
     if isinstance(masks_true, CompactMask) and isinstance(masks_detection, CompactMask):
         return compact_mask_iou_batch(masks_true, masks_detection, overlap_metric)
@@ -846,7 +846,6 @@ def mask_non_max_merge(
         AssertionError: If `iou_threshold` is not within the closed
             range from `0` to `1`.
     """
-    from supervision.detection.compact_mask import CompactMask
 
     if isinstance(masks, CompactMask):
         # _group_overlapping_masks needs dense arrays for logical_or union merging.

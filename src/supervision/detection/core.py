@@ -4,7 +4,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import reduce
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -13,6 +13,7 @@ from supervision.config import (
     CLASS_NAME_DATA_FIELD,
     ORIENTED_BOX_COORDINATES,
 )
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.tools.transformers import (
     process_transformers_detection_result,
     process_transformers_v4_segmentation_result,
@@ -58,9 +59,6 @@ from supervision.detection.vlm import (
 from supervision.geometry.core import Position
 from supervision.utils.internal import deprecated, get_instance_variables
 from supervision.validators import validate_detections_fields, validate_resolution
-
-if TYPE_CHECKING:
-    from supervision.detection.compact_mask import CompactMask
 
 
 @dataclass
@@ -2167,8 +2165,6 @@ class Detections:
             if any(d.__getattribute__(name) is None for d in detections_list):
                 raise ValueError(f"All or none of the '{name}' fields must be None")
             if name == "mask":
-                from supervision.detection.compact_mask import CompactMask
-
                 masks = [d.__getattribute__(name) for d in detections_list]
                 if all(isinstance(m, CompactMask) for m in masks):
                     return CompactMask.merge(masks)
@@ -2358,8 +2354,6 @@ class Detections:
                 where n is the number of detections.
         """
         if self.mask is not None:
-            from supervision.detection.compact_mask import CompactMask
-
             if isinstance(self.mask, CompactMask):
                 return self.mask.area
             return np.array([np.sum(mask) for mask in self.mask])

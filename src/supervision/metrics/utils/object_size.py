@@ -7,10 +7,10 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection.compact_mask import CompactMask
 from supervision.metrics.core import MetricTarget
 
 if TYPE_CHECKING:
-    from supervision.detection.compact_mask import CompactMask
     from supervision.detection.core import Detections
 
 SIZE_THRESHOLDS = (32**2, 96**2)
@@ -150,8 +150,6 @@ def get_mask_size_category(
 
         ```
     """
-    from supervision.detection.compact_mask import CompactMask
-
     if isinstance(mask, CompactMask):
         areas = mask.area
     else:

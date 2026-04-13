@@ -26,6 +26,7 @@ from supervision.annotators.utils import (
     wrap_text,
 )
 from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import clip_boxes, spread_out_boxes
 from supervision.detection.utils.converters import (
@@ -435,8 +436,6 @@ class MaskAnnotator(BaseAnnotator):
             return scene
 
         colored_mask = np.array(scene, copy=True, dtype=np.uint8)
-
-        from supervision.detection.compact_mask import CompactMask
 
         compact_mask = (
             detections.mask if isinstance(detections.mask, CompactMask) else None

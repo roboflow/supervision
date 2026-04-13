@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, cast
+from typing import Any, Literal, cast
 
 import cv2
 import numpy as np
 import numpy.typing as npt
 
-if TYPE_CHECKING:
-    from supervision.detection.compact_mask import CompactMask
+from supervision.detection.compact_mask import CompactMask
 
 
 def move_masks(
@@ -103,8 +102,6 @@ def calculate_masks_centroids(
         A 2D NumPy array of shape (num_masks, 2), where each row contains the x and y
             coordinates (in that order) of the centroid of the corresponding mask.
     """
-    from supervision.detection.compact_mask import CompactMask
-
     if isinstance(masks, CompactMask):
         # Compute centroids per-crop to avoid materialising the full (N, H, W) array.
         n = len(masks)

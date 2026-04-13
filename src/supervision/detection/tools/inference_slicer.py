@@ -10,6 +10,7 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import move_boxes, move_oriented_boxes
 from supervision.detection.utils.iou_and_nms import OverlapFilter, OverlapMetric
@@ -46,8 +47,6 @@ def move_detections(
                 "Resolution width and height are required for moving segmentation "
                 "detections. This should be the same as (width, height) of image shape."
             )
-        from supervision.detection.compact_mask import CompactMask
-
         if isinstance(detections.mask, CompactMask):
             # Preserve move_masks clipping semantics without dense materialisation.
             detections.mask = detections.mask.with_offset(
@@ -226,8 +225,6 @@ class InferenceSlicer:
             and detections.mask is not None
             and isinstance(detections.mask, np.ndarray)
         ):
-            from supervision.detection.compact_mask import CompactMask
-
             slice_w, slice_h = get_image_resolution_wh(image_slice)
             detections.mask = CompactMask.from_dense(
                 detections.mask,
