@@ -13,6 +13,7 @@ from supervision.config import (
     CLASS_NAME_DATA_FIELD,
     ORIENTED_BOX_COORDINATES,
 )
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.tools.transformers import (
     process_transformers_detection_result,
     process_transformers_v4_segmentation_result,
@@ -133,7 +134,8 @@ class Detections:
         xyxy: An array of shape `(n, 4)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`
         mask: An array of shape `(n, H, W)` containing the segmentation masks
-            (`bool` data type), or `None` when masks are not available.
+            (`bool` data type), or `None` when masks are not available, or as
+            :class:`~supervision.detection.compact_mask.CompactMask`.
         confidence: An array of shape `(n,)` containing the confidence scores
             of the detections, or `None` when confidence values are not available.
         class_id: An array of shape `(n,)` containing the class ids of the
@@ -149,7 +151,7 @@ class Detections:
     """  # noqa: E501 // docs
 
     xyxy: npt.NDArray[np.generic]
-    mask: npt.NDArray[np.generic] | None = None
+    mask: npt.NDArray[np.generic] | CompactMask | None = None
     confidence: npt.NDArray[np.generic] | None = None
     class_id: npt.NDArray[np.generic] | None = None
     tracker_id: npt.NDArray[np.generic] | None = None
@@ -2165,16 +2167,20 @@ class Detections:
 
         xyxy = np.vstack([d.xyxy for d in detections_list])
 
-        def stack_or_none(name: str) -> npt.NDArray[np.generic] | None:
+        def stack_or_none(
+            name: str,
+        ) -> npt.NDArray[np.generic] | CompactMask | None:
             if all(d.__getattribute__(name) is None for d in detections_list):
                 return None
             if any(d.__getattribute__(name) is None for d in detections_list):
                 raise ValueError(f"All or none of the '{name}' fields must be None")
-            return (
-                np.vstack([d.__getattribute__(name) for d in detections_list])
-                if name == "mask"
-                else np.hstack([d.__getattribute__(name) for d in detections_list])
-            )
+            if name == "mask":
+                masks = [d.__getattribute__(name) for d in detections_list]
+                if all(isinstance(m, CompactMask) for m in masks):
+                    return CompactMask.merge(masks)
+                # Mixed or all-ndarray: __array__ auto-converts any CompactMask.
+                return np.vstack([np.asarray(m) for m in masks])
+            return np.hstack([d.__getattribute__(name) for d in detections_list])
 
         mask = stack_or_none("mask")
         confidence = stack_or_none("confidence")
@@ -2296,7 +2302,7 @@ class Detections:
         """
         if isinstance(index, str):
             return self.data.get(index)
-        if self.is_empty():
+        if len(self) == 0:
             return self
         if isinstance(index, int):
             index = [index]
@@ -2358,6 +2364,8 @@ class Detections:
                 where n is the number of detections.
         """
         if self.mask is not None:
+            if isinstance(self.mask, CompactMask):
+                return self.mask.area
             return np.array([np.sum(mask) for mask in self.mask])
         else:
             return self.box_area

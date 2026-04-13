@@ -6,6 +6,7 @@ from typing import Any, cast
 import numpy as np
 import numpy.typing as npt
 
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.utils.converters import polygon_to_mask
 from supervision.detection.utils.masks import resize_masks
 
@@ -30,7 +31,7 @@ class OverlapFilter(Enum):
 
     @classmethod
     def list(cls) -> list[str]:
-        return list(map(lambda c: c.value, cls))
+        return list(map(lambda member: member.value, cls))
 
     @classmethod
     def from_value(cls, value: OverlapFilter | str) -> OverlapFilter:
@@ -66,7 +67,7 @@ class OverlapMetric(Enum):
 
     @classmethod
     def list(cls) -> list[str]:
-        return list(map(lambda c: c.value, cls))
+        return list(map(lambda member: member.value, cls))
 
     @classmethod
     def from_value(cls, value: OverlapMetric | str) -> OverlapMetric:
@@ -351,9 +352,9 @@ def box_iou_batch_with_jaccard(
     ious: npt.NDArray[np.float64] = np.zeros(
         (len(boxes_detection), len(boxes_true)), dtype=np.float64
     )
-    for g_idx, g in enumerate(boxes_true):
-        for d_idx, d in enumerate(boxes_detection):
-            ious[d_idx, g_idx] = _jaccard(d, g, is_crowd[g_idx])
+    for gt_idx, gt_box in enumerate(boxes_true):
+        for det_idx, det_box in enumerate(boxes_detection):
+            ious[det_idx, gt_idx] = _jaccard(det_box, gt_box, is_crowd[gt_idx])
     return ious
 
 
@@ -385,17 +386,122 @@ def oriented_box_iou_batch(
     max_width = int(max(boxes_true[:, :, 1].max(), boxes_detection[:, :, 1].max()) + 1)
 
     mask_true = np.zeros((boxes_true.shape[0], max_height, max_width), dtype=np.uint8)
-    for i, box_true in enumerate(boxes_true):
-        mask_true[i] = polygon_to_mask(box_true, (max_width, max_height))
+    for box_idx, box_true in enumerate(boxes_true):
+        mask_true[box_idx] = polygon_to_mask(box_true, (max_width, max_height))
 
     mask_detection = np.zeros(
         (boxes_detection.shape[0], max_height, max_width), dtype=np.uint8
     )
-    for i, box_detection in enumerate(boxes_detection):
-        mask_detection[i] = polygon_to_mask(box_detection, (max_width, max_height))
+    for box_idx, box_detection in enumerate(boxes_detection):
+        mask_detection[box_idx] = polygon_to_mask(
+            box_detection, (max_width, max_height)
+        )
 
     ious = mask_iou_batch(mask_true, mask_detection)
     return ious
+
+
+def compact_mask_iou_batch(
+    masks_true: Any,
+    masks_detection: Any,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+) -> npt.NDArray[np.floating]:
+    """Compute pairwise overlap between two :class:`CompactMask` collections.
+
+    Avoids materialising full ``(N, H, W)`` arrays by:
+
+    1. Vectorised bounding-box pre-filter — pairs whose boxes do not overlap
+       get IoU = 0 without any mask decoding.
+    2. Sub-crop decoding — for overlapping pairs, only the intersection region
+       of each crop is decoded and compared.
+    3. Crop caching — each individual crop is decoded at most once even when it
+       participates in many pairs.
+
+    The result is numerically identical to running the dense
+    :func:`mask_iou_batch` on ``np.asarray(masks_true)`` /
+    ``np.asarray(masks_detection)``.
+
+    Args:
+        masks_true: :class:`~supervision.detection.compact_mask.CompactMask`
+            holding the ground-truth masks.
+        masks_detection: :class:`~supervision.detection.compact_mask.CompactMask`
+            holding the detection masks.
+        overlap_metric: :class:`OverlapMetric` — ``IOU`` or ``IOS``.
+
+    Returns:
+        Float array of shape ``(N1, N2)`` with pairwise overlap values.
+    """
+    n1: int = len(masks_true)
+    n2: int = len(masks_detection)
+    result: npt.NDArray[np.floating] = np.zeros((n1, n2), dtype=float)
+
+    if n1 == 0 or n2 == 0:
+        return result
+
+    areas_a: npt.NDArray[np.int64] = masks_true.area
+    areas_b: npt.NDArray[np.int64] = masks_detection.area
+
+    # Inclusive per-mask bounding boxes obtained from public accessors.
+    # bbox_xyxy: (N, 4) → (x1, y1, x2, y2)
+    bboxes_a: npt.NDArray[np.int32] = masks_true.bbox_xyxy.astype(np.int32)
+    x1a: npt.NDArray[np.int32] = bboxes_a[:, 0]
+    y1a: npt.NDArray[np.int32] = bboxes_a[:, 1]
+    x2a: npt.NDArray[np.int32] = bboxes_a[:, 2]
+    y2a: npt.NDArray[np.int32] = bboxes_a[:, 3]
+
+    bboxes_b: npt.NDArray[np.int32] = masks_detection.bbox_xyxy.astype(np.int32)
+    x1b: npt.NDArray[np.int32] = bboxes_b[:, 0]
+    y1b: npt.NDArray[np.int32] = bboxes_b[:, 1]
+    x2b: npt.NDArray[np.int32] = bboxes_b[:, 2]
+    y2b: npt.NDArray[np.int32] = bboxes_b[:, 3]
+
+    # Pairwise intersection bounding box — shape (N1, N2).
+    ix1: npt.NDArray[np.int32] = np.maximum(x1a[:, None], x1b[None, :])
+    iy1: npt.NDArray[np.int32] = np.maximum(y1a[:, None], y1b[None, :])
+    ix2: npt.NDArray[np.int32] = np.minimum(x2a[:, None], x2b[None, :])
+    iy2: npt.NDArray[np.int32] = np.minimum(y2a[:, None], y2b[None, :])
+    bbox_overlap: npt.NDArray[np.bool_] = (ix1 <= ix2) & (iy1 <= iy2)
+
+    # Decode each crop at most once, even if it participates in many pairs.
+    crops_a: dict[int, npt.NDArray[np.bool_]] = {}
+    crops_b: dict[int, npt.NDArray[np.bool_]] = {}
+
+    for idx_pair in np.argwhere(bbox_overlap):
+        idx_a, idx_b = int(idx_pair[0]), int(idx_pair[1])
+
+        if idx_a not in crops_a:
+            crops_a[idx_a] = masks_true.crop(idx_a)
+        if idx_b not in crops_b:
+            crops_b[idx_b] = masks_detection.crop(idx_b)
+
+        lx1 = int(ix1[idx_a, idx_b])
+        ly1 = int(iy1[idx_a, idx_b])
+        lx2 = int(ix2[idx_a, idx_b])
+        ly2 = int(iy2[idx_a, idx_b])
+
+        ox_a, oy_a = int(x1a[idx_a]), int(y1a[idx_a])
+        sub_a = crops_a[idx_a][ly1 - oy_a : ly2 - oy_a + 1, lx1 - ox_a : lx2 - ox_a + 1]
+
+        ox_b, oy_b = int(x1b[idx_b]), int(y1b[idx_b])
+        sub_b = crops_b[idx_b][ly1 - oy_b : ly2 - oy_b + 1, lx1 - ox_b : lx2 - ox_b + 1]
+
+        inter = int(np.logical_and(sub_a, sub_b).sum())
+        area_a_i = int(areas_a[idx_a])
+        area_b_j = int(areas_b[idx_b])
+
+        if overlap_metric == OverlapMetric.IOU:
+            union = area_a_i + area_b_j - inter
+            result[idx_a, idx_b] = inter / union if union > 0 else 0.0
+        elif overlap_metric == OverlapMetric.IOS:
+            small = min(area_a_i, area_b_j)
+            result[idx_a, idx_b] = inter / small if small > 0 else 0.0
+        else:
+            raise ValueError(
+                f"overlap_metric {overlap_metric} is not supported, "
+                "only 'IOU' and 'IOS' are supported"
+            )
+
+    return result
 
 
 def _mask_iou_batch_split(
@@ -461,16 +567,33 @@ def mask_iou_batch(
     Compute Intersection over Union (IoU) of two sets of masks -
         `masks_true` and `masks_detection`.
 
+    Accepts both dense ``(N, H, W)`` boolean arrays and
+    :class:`~supervision.detection.compact_mask.CompactMask` objects.
+    When both inputs are :class:`~supervision.detection.compact_mask.CompactMask`,
+    the computation uses :func:`compact_mask_iou_batch` to avoid materialising
+    full ``(N, H, W)`` arrays.
+
     Args:
         masks_true: 3D `np.ndarray` representing ground-truth masks.
         masks_detection: 3D `np.ndarray` representing detection masks.
         overlap_metric: Metric used to compute the degree of overlap
             between pairs of masks (e.g., IoU, IoS).
         memory_limit: Memory limit in MB, default is 1024 * 5 MB (5GB).
+            Ignored when both inputs are CompactMask.
 
     Returns:
         Pairwise IoU of masks from `masks_true` and `masks_detection`.
     """
+
+    if isinstance(masks_true, CompactMask) and isinstance(masks_detection, CompactMask):
+        return compact_mask_iou_batch(masks_true, masks_detection, overlap_metric)
+
+    # Materialise any CompactMask that was passed alongside a dense array.
+    if isinstance(masks_true, CompactMask):
+        masks_true = np.asarray(masks_true)
+    if isinstance(masks_detection, CompactMask):
+        masks_detection = np.asarray(masks_detection)
+
     memory = (
         masks_true.shape[0]
         * masks_true.shape[1]
@@ -494,10 +617,12 @@ def mask_iou_batch(
         ),
         1,
     )
-    for i in range(0, masks_true.shape[0], step):
+    for chunk_start in range(0, masks_true.shape[0], step):
         ious.append(
             _mask_iou_batch_split(
-                masks_true[i : i + step], masks_detection, overlap_metric
+                masks_true[chunk_start : chunk_start + step],
+                masks_detection,
+                overlap_metric,
             )
         )
 
@@ -514,6 +639,11 @@ def mask_non_max_suppression(
     """
     Perform Non-Maximum Suppression (NMS) on segmentation predictions.
 
+    IoU is computed exactly on the full-resolution masks for both dense and
+    :class:`~supervision.detection.compact_mask.CompactMask` inputs.  The
+    ``mask_dimension`` parameter is kept for backward compatibility but is no
+    longer used — dense masks are **not** resized before IoU computation.
+
     Args:
         predictions: A 2D array of object detection predictions in
             the format of `(x_min, y_min, x_max, y_max, score)`
@@ -526,8 +656,8 @@ def mask_non_max_suppression(
             to use for non-maximum suppression.
         overlap_metric: Metric used to compute the degree of overlap
             between pairs of masks (e.g., IoU, IoS).
-        mask_dimension: The dimension to which the masks should be
-            resized before computing IOU values. Defaults to 640.
+        mask_dimension: Deprecated, no longer used. Kept for backward
+            compatibility.
 
     Returns:
         A boolean array indicating which predictions to keep after
@@ -549,15 +679,19 @@ def mask_non_max_suppression(
     sort_index = predictions[:, 4].argsort()[::-1]
     predictions = predictions[sort_index]
     masks = masks[sort_index]
-    masks_resized = resize_masks(masks, mask_dimension)
-    ious = mask_iou_batch(masks_resized, masks_resized, overlap_metric)
+
+    ious = mask_iou_batch(masks, masks, overlap_metric)
     categories = predictions[:, 5]
 
     keep = np.ones(rows, dtype=bool)
-    for i in range(rows):
-        if keep[i]:
-            condition = (ious[i] > iou_threshold) & (categories[i] == categories)
-            keep[i + 1 :] = np.where(condition[i + 1 :], False, keep[i + 1 :])
+    for row_idx in range(rows):
+        if keep[row_idx]:
+            condition = (ious[row_idx] > iou_threshold) & (
+                categories[row_idx] == categories
+            )
+            keep[row_idx + 1 :] = np.where(
+                condition[row_idx + 1 :], False, keep[row_idx + 1 :]
+            )
 
     return cast(npt.NDArray[np.bool_], keep[sort_index.argsort()])
 
@@ -712,7 +846,19 @@ def mask_non_max_merge(
         AssertionError: If `iou_threshold` is not within the closed
             range from `0` to `1`.
     """
-    masks_resized = resize_masks(masks, mask_dimension)
+
+    if isinstance(masks, CompactMask):
+        # _group_overlapping_masks needs dense arrays for logical_or union merging.
+        # Note: np.asarray(masks) first materialises a full-resolution (N, H, W)
+        # dense array before downscaling with resize_masks. This reduces the size
+        # of the array used for overlap computation but does not avoid the initial
+        # full-frame materialisation, which may still be memory-intensive for very
+        # large images or object counts.
+        masks = resize_masks(np.asarray(masks), mask_dimension)
+    else:
+        masks = resize_masks(masks, mask_dimension)
+    masks_resized = masks
+
     if predictions.shape[1] == 5:
         return _group_overlapping_masks(
             predictions, masks_resized, iou_threshold, overlap_metric

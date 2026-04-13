@@ -10,6 +10,7 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import move_boxes, move_oriented_boxes
 from supervision.detection.utils.iou_and_nms import OverlapFilter, OverlapMetric
@@ -46,9 +47,17 @@ def move_detections(
                 "Resolution width and height are required for moving segmentation "
                 "detections. This should be the same as (width, height) of image shape."
             )
-        detections.mask = move_masks(
-            masks=detections.mask, offset=offset, resolution_wh=resolution_wh
-        )
+        if isinstance(detections.mask, CompactMask):
+            # Preserve move_masks clipping semantics without dense materialisation.
+            detections.mask = detections.mask.with_offset(
+                dx=int(offset[0]),
+                dy=int(offset[1]),
+                new_image_shape=(resolution_wh[1], resolution_wh[0]),
+            )
+        else:
+            detections.mask = move_masks(
+                masks=detections.mask, offset=offset, resolution_wh=resolution_wh
+            )
     return detections
 
 
@@ -75,6 +84,15 @@ class InferenceSlicer:
         iou_threshold: IOU threshold used in merging overlap filtering.
         overlap_metric: Metric to compute overlap (`IOU` or `IOS`).
         thread_workers: Number of threads for concurrent slice inference.
+        compact_masks: If ``True``, dense ``(N, H, W)`` boolean mask
+            arrays returned by the callback are immediately converted to a
+            :class:`~supervision.detection.compact_mask.CompactMask`. This
+            keeps masks in run-length-encoded form for the entire pipeline —
+            merge, NMS, and annotation — avoiding the large ``(N, H, W)``
+            allocations that cause OOM on high-resolution images with many
+            objects. IoU and NMS are computed directly on the RLE crops
+            without ever materialising a full ``(N, H, W)`` array.
+            Defaults to ``False`` for backward compatibility.
 
     Raises:
         ValueError: If `slice_wh` or `overlap_wh` are invalid or inconsistent.
@@ -123,6 +141,7 @@ class InferenceSlicer:
         iou_threshold: float = 0.5,
         overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
         thread_workers: int = 1,
+        compact_masks: bool = False,
     ):
         slice_wh_norm = self._normalize_slice_wh(slice_wh)
         overlap_wh_norm = self._normalize_overlap_wh(overlap_wh)
@@ -136,6 +155,7 @@ class InferenceSlicer:
         self.overlap_filter = OverlapFilter.from_value(overlap_filter)
         self.callback: Callable[[ImageType], Detections] = callback
         self.thread_workers = thread_workers
+        self.compact_masks = compact_masks
         self._out_of_slice_bounds_warned: bool = False
         self._out_of_slice_bounds_lock = threading.Lock()
 
@@ -199,8 +219,20 @@ class InferenceSlicer:
         """
         image_slice = crop_image(image=image, xyxy=offset)
         detections = self.callback(image_slice)
-        resolution_wh = get_image_resolution_wh(image)
 
+        if (
+            self.compact_masks
+            and detections.mask is not None
+            and isinstance(detections.mask, np.ndarray)
+        ):
+            slice_w, slice_h = get_image_resolution_wh(image_slice)
+            detections.mask = CompactMask.from_dense(
+                detections.mask,
+                detections.xyxy,
+                image_shape=(slice_h, slice_w),
+            )
+
+        resolution_wh = get_image_resolution_wh(image)
         # Fast-path: skip locking and bounds checking when the warning has already
         # been emitted or when there are no detections to inspect.
         needs_warning_check = (
