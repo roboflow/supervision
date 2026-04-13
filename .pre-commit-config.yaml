@@ -26,7 +26,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/JoC0de/pre-commit-prettier
-    rev: v3.8.1 # using tag; previously pinned SHA when tags were not persistent
+    rev: v3.8.2 # using tag; previously pinned SHA when tags were not persistent
     hooks:
       - id: prettier
         files: \.(ya?ml|toml)$
@@ -34,7 +34,7 @@ repos:
         args: ["--print-width=120"]
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.21.0
+    rev: v2.21.1
     hooks:
       - id: pyproject-fmt
 
@@ -44,7 +44,7 @@ repos:
       - id: validate-pyproject
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.9
+    rev: v0.15.10
     hooks:
       - id: ruff-check
         args: [--fix]
@@ -62,7 +62,7 @@ repos:
         exclude: ^(docs/changelog\.md|docs/deprecated\.md)$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.20.0
+    rev: v1.20.1
     hooks:
       - id: mypy
         additional_dependencies:
