@@ -2073,24 +2073,24 @@ class Detections:
 
     def is_empty(self) -> bool:
         """
-        Returns `True` if the `Detections` object contains no detections.
+        Check whether the `Detections` object has zero bounding boxes.
 
         Returns:
             `True` if there are no detections, `False` otherwise.
 
-        Example:
-            ```python
-            import supervision as sv
-            import numpy as np
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[10, 20, 110, 120]]),
+            ...     class_id=np.array([1]),
+            ...     tracker_id=np.array([1]),
+            ... )
+            >>> filtered = detections[detections.class_id == 99]
+            >>> filtered.is_empty()
+            True
 
-            detections = sv.Detections(
-                xyxy=np.array([[10, 20, 110, 120]]),
-                class_id=np.array([1]),
-                tracker_id=np.array([1]),
-            )
-            filtered = detections[detections.class_id == 99]
-            filtered.is_empty()
-            # True
             ```
         """
         return len(self.xyxy) == 0
