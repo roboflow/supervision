@@ -6,6 +6,8 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 
+from supervision.detection.compact_mask import CompactMask
+
 
 def move_masks(
     masks: npt.NDArray[np.bool_],
@@ -86,7 +88,7 @@ def move_masks(
 
 
 def calculate_masks_centroids(
-    masks: npt.NDArray[Any],
+    masks: npt.NDArray[Any] | CompactMask,
 ) -> npt.NDArray[np.int_]:
     """
     Calculate the centroids of binary masks in a tensor.
@@ -94,11 +96,36 @@ def calculate_masks_centroids(
     Args:
         masks: A 3D NumPy array of shape (num_masks, height, width).
             Each 2D array in the tensor represents a binary mask.
+            Also accepts a :class:`~supervision.detection.compact_mask.CompactMask`.
 
     Returns:
         A 2D NumPy array of shape (num_masks, 2), where each row contains the x and y
             coordinates (in that order) of the centroid of the corresponding mask.
     """
+    if isinstance(masks, CompactMask):
+        # Compute centroids per-crop to avoid materialising the full (N, H, W) array.
+        n = len(masks)
+        if n == 0:
+            return cast(npt.NDArray[np.int_], np.empty((0, 2), dtype=int))
+
+        centroids: npt.NDArray[np.float64] = np.zeros((n, 2), dtype=np.float64)
+        for i in range(n):
+            crop = masks.crop(i)
+            crop_h, crop_w = crop.shape
+            x1 = int(masks.offsets[i, 0])
+            y1 = int(masks.offsets[i, 1])
+            total = int(crop.sum())
+            if total == 0:
+                centroids[i] = [0.0, 0.0]
+                continue
+            # Match the +0.5 offset used by the dense implementation.
+            crop_rows, crop_cols = np.indices((crop_h, crop_w))
+            cx = float(np.sum((crop_cols + 0.5)[crop])) / total + x1
+            cy = float(np.sum((crop_rows + 0.5)[crop])) / total + y1
+            centroids[i] = [cx, cy]
+
+        return cast(npt.NDArray[np.int_], centroids.astype(int))
+
     _num_masks, height, width = masks.shape
     total_pixels = masks.sum(axis=(1, 2))
 
@@ -339,7 +366,7 @@ def filter_segments_by_distance(
 
         ```
 
-        The nearby 2×2 block at columns 6–7 is kept because its edge distance
+        The nearby 2x2 block at columns 6-7 is kept because its edge distance
         is within 3 pixels. The distant block at columns 9-10 is removed.
     """  # noqa E501 // docs
     if mask.dtype != bool:
