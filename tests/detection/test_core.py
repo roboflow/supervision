@@ -913,7 +913,23 @@ def test_merge_inner_detection_object_pair(
             )[np.array([True, False])],
             False,
         ),  # one detection remaining after filter
+        (
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10], [0, 0, 20, 30]]),
+                mask=np.zeros((2, 4, 4), dtype=bool),
+                class_id=np.array([1, 2]),
+            )[np.array([False, False])],
+            True,
+        ),  # filtered to empty with mask — same bug could affect mask field
+    ],
+    ids=[
+        "canonical_empty",
+        "non_empty_no_tracker",
+        "filtered_empty_with_tracker",
+        "one_remaining_after_filter",
+        "filtered_empty_with_mask",
     ],
 )
 def test_is_empty(detections: Detections, expected: bool) -> None:
+    """Verify is_empty() returns True iff the Detections object has zero detections."""
     assert detections.is_empty() == expected
