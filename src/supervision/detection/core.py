@@ -2076,7 +2076,7 @@ class Detections:
         Returns `True` if the `Detections` object contains no detections.
 
         Returns:
-            bool: `True` if there are no detections, `False` otherwise.
+            `True` if there are no detections, `False` otherwise.
 
         Example:
             ```python
