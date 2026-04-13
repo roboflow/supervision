@@ -2083,6 +2083,7 @@ class Detections:
 
             detections = sv.Detections(
                 xyxy=np.array([[10, 20, 110, 120]]),
+                class_id=np.array([1]),
                 tracker_id=np.array([1]),
             )
             filtered = detections[detections.class_id == 99]
