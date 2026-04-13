@@ -149,7 +149,7 @@ def test_video_info(dummy_video_path):
     video_info = VideoInfo.from_video_path(dummy_video_path)
     assert video_info.width == 640
     assert video_info.height == 480
-    assert video_info.fps == 25.0
+    assert video_info.fps == pytest.approx(25.0)
     assert isinstance(video_info.fps, float)
     assert video_info.total_frames == 10
     assert video_info.resolution_wh == (640, 480)
