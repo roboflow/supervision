@@ -150,7 +150,7 @@ class CSVSink:
                     elif isinstance(value, np.ndarray):
                         row[key] = value[i]
                     else:
-                        row[key] = value[i] if hasattr(value, "__getitem__") else value
+                        row[key] = value
             parsed_rows.append(row)
         return parsed_rows
 
