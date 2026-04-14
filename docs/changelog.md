@@ -6,6 +6,8 @@
 
 - Changed [#2178](https://github.com/roboflow/supervision/pull/2178): [`sv.rle_to_mask`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.rle_to_mask) and [`sv.mask_to_rle`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.mask_to_rle) moved to `supervision.detection.utils.converters`. The old import path `supervision.dataset.utils` continues to work but is deprecated.
 
+- Fixed [#2178](https://github.com/roboflow/supervision/pull/2178): [`sv.rle_to_mask`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.rle_to_mask) now returns `NDArray[bool]` as declared in its signature. Previously the implementation returned `uint8` despite the `bool` annotation; code that relied on the undocumented `uint8` output (e.g. `mask * 255` producing `uint8`) should wrap the result with `.astype(np.uint8)`.
+
 - Fixed [#2210](https://github.com/roboflow/supervision/pull/2210): [`sv.VideoInfo.fps`](https://supervision.roboflow.com/latest/utils/video/#supervision.utils.video.VideoInfo) now returns a `float` instead of a truncated `int`. Previously, frame rates like 23.976, 29.97, and 59.94 were silently truncated, causing frame-timing drift that accumulates over long videos. The type of `VideoInfo.fps` has changed from `int` to `float`; callers that pass `fps` to APIs requiring an integer (such as `deque(maxlen=...)` or `TraceAnnotator(trace_length=...)`) should wrap the value with `int()`.
 
 ### 0.27.0 <small>Nov 16, 2025</small>
