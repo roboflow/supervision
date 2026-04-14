@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from typing import Literal, overload
+from typing import (
+    Any,
+    Literal,
+    overload,
+)
 
 import cv2
 import numpy as np
@@ -374,7 +378,7 @@ def _encode_coco_rle_string(counts: list[int]) -> str:
 
 
 def rle_to_mask(
-    rle: npt.NDArray[np.int_] | list[int] | str | bytes,
+    rle: npt.NDArray[np.integer[Any]] | list[int] | str | bytes,
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.bool_]:
     """
