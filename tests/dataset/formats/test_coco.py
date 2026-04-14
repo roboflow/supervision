@@ -706,6 +706,39 @@ def test_group_coco_annotations_by_image_id(
             DoesNotRaise(),
         ),  # two image annotations with mask, first mask as RLE with is crowd,
         # and second as polygon without iscrowd
+        (
+            [
+                mock_coco_annotation(
+                    category_id=0,
+                    bbox=(0, 0, 4, 4),
+                    area=4 * 4,
+                    segmentation={
+                        "size": [4, 4],
+                        "counts": "52203",
+                    },
+                    iscrowd=True,
+                )
+            ],
+            (4, 4),
+            True,
+            False,
+            Detections(
+                xyxy=np.array([[0, 0, 4, 4]], dtype=np.float32),
+                class_id=np.array([0], dtype=int),
+                mask=np.array(
+                    [
+                        [
+                            [False, False, False, False],
+                            [False, True, True, False],
+                            [False, True, True, False],
+                            [False, False, False, False],
+                        ]
+                    ],
+                    dtype=bool,
+                ),
+            ),
+            DoesNotRaise(),
+        ),  # single iscrowd annotation with compressed COCO RLE string counts
     ],
 )
 def test_coco_annotations_to_detections(
