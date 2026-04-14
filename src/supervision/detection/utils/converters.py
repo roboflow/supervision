@@ -378,13 +378,20 @@ def rle_to_mask(
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.bool_]:
     """
-    Converts run-length encoding (RLE) to a binary mask.
+    Converts a COCO run-length encoding (RLE) to a binary mask.
+
+    Implements the COCO RLE format used by ``pycocotools``: pixels are counted
+    in **column-major (Fortran) order** — top-to-bottom within each column,
+    left-to-right across columns. This is the opposite of the row-major order
+    used by NumPy's default ``'C'`` layout. Passing RLE data produced by a
+    different row-major convention will yield an incorrect mask.
 
     Args:
-        rle: The RLE data in one of the following formats:
+        rle: The COCO RLE data in one of the following formats:
+
             - A 1D array or list of integers (uncompressed COCO RLE, where
-              values at even indices represent background pixel counts and
-              values at odd indices represent foreground pixel counts).
+              values at even indices are background run-lengths and values at
+              odd indices are foreground run-lengths, both counted column-major).
             - A compressed COCO RLE string or bytes, as produced by
               ``pycocotools.mask.encode``.
         resolution_wh: The width (w) and height (h)
@@ -447,7 +454,12 @@ def mask_to_rle(
     mask: npt.NDArray[np.bool_], compressed: bool = False
 ) -> list[int] | str:
     """
-    Converts a binary mask into a run-length encoding (RLE).
+    Converts a binary mask into a COCO run-length encoding (RLE).
+
+    Produces RLE in the COCO format used by ``pycocotools``: pixels are counted
+    in **column-major (Fortran) order** — top-to-bottom within each column,
+    left-to-right across columns. The output is directly compatible with
+    ``pycocotools.mask.decode`` and COCO annotation JSON files.
 
     Args:
         mask: 2D binary mask where `True` indicates foreground
@@ -457,10 +469,11 @@ def mask_to_rle(
             return a list of integers.
 
     Returns:
-        The run-length encoded mask. When ``compressed`` is ``False``,
+        The COCO run-length encoded mask. When ``compressed`` is ``False``,
             values of a list with even indices represent the number of pixels
             assigned as background (`False`), values of a list with odd indices
-            represent the number of pixels assigned as foreground object (`True`).
+            represent the number of pixels assigned as foreground object (`True`),
+            both counted in column-major order.
             When ``compressed`` is ``True``, a COCO compressed RLE string.
 
     Raises:
