@@ -395,7 +395,7 @@ def rle_to_mask(
             marked with `True`'s and the rest is filled with `False`'s.
 
     Raises:
-        AssertionError: If the sum of pixels encoded in RLE differs from the
+        ValueError: If the sum of pixels encoded in RLE differs from the
             number of pixels in the expected mask (computed based on resolution_wh).
 
     Examples:
@@ -427,10 +427,11 @@ def rle_to_mask(
 
     width, height = resolution_wh
 
-    assert width * height == np.sum(rle), (
-        "the sum of the number of pixels in the RLE must be the same "
-        "as the number of pixels in the expected mask"
-    )
+    if width * height != np.sum(rle):
+        raise ValueError(
+            "the sum of the number of pixels in the RLE must be the same "
+            "as the number of pixels in the expected mask"
+        )
 
     zero_one_values = np.zeros(shape=(rle.size, 1), dtype=np.uint8)
     zero_one_values[1::2] = 1

@@ -461,10 +461,8 @@ def test_mask_to_rle(
             np.array([0, 5, 5, 5, 5, 5]),
             [2, 2],
             None,
-            pytest.raises(
-                AssertionError, match="sum of the number of pixels in the RLE"
-            ),
-        ),  # raises AssertionError because number of pixels in RLE does not match
+            pytest.raises(ValueError, match="sum of the number of pixels in the RLE"),
+        ),  # raises ValueError because number of pixels in RLE does not match
         # number of pixels in expected mask (width x height).
         (
             b"3124OM1",
