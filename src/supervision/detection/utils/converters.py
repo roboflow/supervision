@@ -534,7 +534,7 @@ def mask_to_rle(
     if mask[0][0] == 1:
         rle = np.insert(rle, 0, 0)
 
-    counts = list(rle)
+    counts = [int(count) for count in rle]
     if compressed:
         return _encode_coco_rle_string(counts)
     return counts
