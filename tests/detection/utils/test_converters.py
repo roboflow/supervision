@@ -502,6 +502,12 @@ def test_mask_to_rle(
             None,
             pytest.raises(ValueError, match="Malformed compressed RLE string"),
         ),  # malformed compressed RLE: unterminated continuation byte
+        (
+            b"\xff\xfe",
+            [4, 4],
+            None,
+            pytest.raises(UnicodeDecodeError),
+        ),  # bytes with invalid UTF-8 sequence raises UnicodeDecodeError
     ],
 )
 def test_rle_to_mask(
