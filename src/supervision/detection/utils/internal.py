@@ -98,6 +98,12 @@ def process_roboflow_result(
             try:
                 h, w = rle_data["size"]
                 mask = rle_to_mask(rle_data["counts"], (w, h))
+                if (h, w) != (image_height, image_width):
+                    mask = cv2.resize(
+                        mask.astype(np.uint8),
+                        (image_width, image_height),
+                        interpolation=cv2.INTER_NEAREST,
+                    ).astype(bool)
             except (ValueError, AssertionError, KeyError, TypeError):
                 rle_data = None
         if rle_data is not None:
