@@ -113,6 +113,12 @@ class CSVSink:
             self.file.close()
 
     @staticmethod
+    def _slice_value(value: Any, i: int) -> Any:
+        if isinstance(value, np.ndarray):
+            return value if value.ndim == 0 else value[i]
+        return value
+
+    @staticmethod
     def parse_detection_data(
         detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> list[dict[str, Any]]:
@@ -136,15 +142,12 @@ class CSVSink:
 
             if hasattr(detections, "data"):
                 for key, value in detections.data.items():
-                    if isinstance(value, np.ndarray) and value.ndim == 0:
-                        row[key] = value
-                    elif isinstance(value, np.ndarray):
-                        row[key] = value[i]
-                    else:
-                        row[key] = value[i] if hasattr(value, "__getitem__") else value
+                    row[key] = CSVSink._slice_value(value, i)
 
             if custom_data:
-                row.update(custom_data)
+                for key, value in custom_data.items():
+                    row[key] = CSVSink._slice_value(value, i)
+
             parsed_rows.append(row)
         return parsed_rows
 

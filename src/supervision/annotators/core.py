@@ -15,6 +15,8 @@ from supervision.annotators.utils import (
     PENDING_TRACK_ID,
     ColorLookup,
     Trace,
+    calculate_dynamic_kernel_size,
+    calculate_dynamic_pixel_size,
     get_labels_text,
     hex_to_rgba,
     resolve_color,
@@ -24,6 +26,7 @@ from supervision.annotators.utils import (
     wrap_text,
 )
 from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import clip_boxes, spread_out_boxes
 from supervision.detection.utils.converters import (
@@ -434,6 +437,9 @@ class MaskAnnotator(BaseAnnotator):
 
         colored_mask = np.array(scene, copy=True, dtype=np.uint8)
 
+        compact_mask = (
+            detections.mask if isinstance(detections.mask, CompactMask) else None
+        )
         for detection_idx in np.flip(np.argsort(detections.area)):
             color = resolve_color(
                 color=self.color,
@@ -443,8 +449,21 @@ class MaskAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            mask = np.asarray(detections.mask[detection_idx], dtype=bool)
-            colored_mask[mask] = color.as_bgr()
+            if compact_mask is not None:
+                # Paint only the bounding-box crop — avoids a full (H, W) alloc.
+                x1 = int(compact_mask.offsets[detection_idx, 0])
+                y1 = int(compact_mask.offsets[detection_idx, 1])
+                crop_m = compact_mask.crop(detection_idx)
+                crop_h, crop_w = crop_m.shape
+                colored_mask[y1 : y1 + crop_h, x1 : x1 + crop_w][crop_m] = (
+                    color.as_bgr()
+                )
+            else:
+                mask = np.asarray(
+                    detections.mask[detection_idx],
+                    dtype=bool,
+                )
+                colored_mask[mask] = color.as_bgr()
 
         cv2.addWeighted(
             colored_mask, self.opacity, scene, 1 - self.opacity, 0, dst=scene
@@ -1841,12 +1860,16 @@ class BlurAnnotator(BaseAnnotator):
     A class for blurring regions in an image using provided detections.
     """
 
-    def __init__(self, kernel_size: int = 15):
+    def __init__(self, kernel_size: int | None = None):
         """
         Args:
             kernel_size: The size of the average pooling kernel used for blurring.
+                If not set, a dynamic size is computed as one-third of the shorter
+                bounding-box dimension. Must be >= 1 when provided.
         """
-        self.kernel_size: int = kernel_size
+        if kernel_size is not None and kernel_size < 1:
+            raise ValueError(f"kernel_size must be >= 1, got {kernel_size}.")
+        self.kernel_size: int | None = kernel_size
 
     @ensure_cv2_image_for_class_method
     def annotate(
@@ -1895,8 +1918,15 @@ class BlurAnnotator(BaseAnnotator):
         ).astype(int)
 
         for x1, y1, x2, y2 in clipped_xyxy:
+            if x2 <= x1 or y2 <= y1:
+                continue
             roi = scene[y1:y2, x1:x2]
-            roi = cv2.blur(roi, (self.kernel_size, self.kernel_size))
+            kernel_size = (
+                self.kernel_size
+                if self.kernel_size is not None
+                else calculate_dynamic_kernel_size(x1, y1, x2, y2)
+            )
+            roi = cv2.blur(roi, (kernel_size, kernel_size))
             scene[y1:y2, x1:x2] = roi
 
         return scene
@@ -2145,12 +2175,18 @@ class PixelateAnnotator(BaseAnnotator):
     A class for pixelating regions in an image using provided detections.
     """
 
-    def __init__(self, pixel_size: int = 20):
+    def __init__(self, pixel_size: int | None = None):
         """
         Args:
-            pixel_size: The size of the pixelation.
+            pixel_size: The size of the pixelation. If not set, a dynamic size is
+                computed as one-half of the shorter bounding-box dimension. When set
+                and the detection area is smaller than `pixel_size`, the region is
+                filled with its average colour instead to avoid an OpenCV crash.
+                Must be >= 1 when provided.
         """
-        self.pixel_size: int = pixel_size
+        if pixel_size is not None and pixel_size < 1:
+            raise ValueError(f"pixel_size must be >= 1, got {pixel_size}.")
+        self.pixel_size: int | None = pixel_size
 
     @ensure_cv2_image_for_class_method
     def annotate(
@@ -2197,9 +2233,25 @@ class PixelateAnnotator(BaseAnnotator):
         ).astype(int)
 
         for x1, y1, x2, y2 in clipped_xyxy:
+            if x2 <= x1 or y2 <= y1:
+                continue
             roi = scene[y1:y2, x1:x2]
+
+            pixel_size = (
+                self.pixel_size
+                if self.pixel_size is not None
+                else calculate_dynamic_pixel_size(x1, y1, x2, y2)
+            )
+            if min(y2 - y1, x2 - x1) < pixel_size:
+                if roi.ndim == 2 or (roi.ndim == 3 and roi.shape[2] == 1):
+                    scene[y1:y2, x1:x2] = cv2.mean(roi)[0]
+                else:
+                    num_channels = scene.shape[2]
+                    scene[y1:y2, x1:x2] = cv2.mean(roi)[:num_channels]
+                continue
+
             scaled_up_roi = cv2.resize(
-                src=roi, dsize=None, fx=1 / self.pixel_size, fy=1 / self.pixel_size
+                src=roi, dsize=None, fx=1 / pixel_size, fy=1 / pixel_size
             )
             scaled_down_roi = cv2.resize(
                 src=scaled_up_roi,
@@ -2900,8 +2952,8 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
                 colored_mask[y1:y2, x1:x2] = scene[y1:y2, x1:x2]
         else:
             for mask in detections.mask:
-                mask = np.asarray(mask, dtype=bool)
-                colored_mask[mask] = scene[mask]
+                mask_bool = np.asarray(mask, dtype=bool)
+                colored_mask[mask_bool] = scene[mask_bool]
 
         np.copyto(scene, colored_mask)
         return scene

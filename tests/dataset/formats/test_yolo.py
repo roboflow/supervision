@@ -1,14 +1,19 @@
 from __future__ import annotations
 
+import os
+import tempfile
 from contextlib import ExitStack as DoesNotRaise
+from pathlib import Path
 
 import numpy as np
 import pytest
+from PIL import Image
 
 from supervision.dataset.formats.yolo import (
     _image_name_to_annotation_name,
     _with_seg_mask,
     detections_to_yolo_annotations,
+    load_yolo_annotations,
     object_to_yolo,
     yolo_annotations_to_detections,
 )
@@ -308,3 +313,228 @@ def test_detections_to_yolo_annotations_raises_for_non_integer_class_id() -> Non
         detections_to_yolo_annotations(
             detections=detections, image_shape=(1000, 1000, 3)
         )
+
+
+def test_load_yolo_annotations_obb_does_not_generate_masks() -> None:
+    """OBB annotations must not produce mask arrays (memory regression test)."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        images_dir = os.path.join(tmp_dir, "images")
+        labels_dir = os.path.join(tmp_dir, "labels")
+        os.makedirs(images_dir)
+        os.makedirs(labels_dir)
+
+        # Create a small RGB image
+        img = Image.new("RGB", (100, 100))
+        img.save(os.path.join(images_dir, "test.jpg"))
+
+        # OBB annotation: class_id x1 y1 x2 y2 x3 y3 x4 y4 (9 values per line)
+        with open(os.path.join(labels_dir, "test.txt"), "w") as f:
+            f.write("0 0.4 0.4 0.6 0.4 0.6 0.6 0.4 0.6\n")
+
+        # Create a minimal data.yaml
+        data_yaml_path = os.path.join(tmp_dir, "data.yaml")
+        with open(data_yaml_path, "w") as f:
+            f.write("names: ['object']\n")
+
+        _, _, annotations = load_yolo_annotations(
+            images_directory_path=images_dir,
+            annotations_directory_path=labels_dir,
+            data_yaml_path=data_yaml_path,
+            is_obb=True,
+        )
+
+        assert len(annotations) == 1
+        detection = next(iter(annotations.values()))
+        assert detection.mask is None, (
+            "OBB annotations must not produce mask arrays to avoid excessive memory use"
+        )
+
+
+def test_load_yolo_annotations_obb_force_masks_ignored() -> None:
+    """force_masks=True must have no effect when is_obb=True."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        images_dir = os.path.join(tmp_dir, "images")
+        labels_dir = os.path.join(tmp_dir, "labels")
+        os.makedirs(images_dir)
+        os.makedirs(labels_dir)
+
+        img = Image.new("RGB", (100, 100))
+        img.save(os.path.join(images_dir, "test.jpg"))
+
+        with open(os.path.join(labels_dir, "test.txt"), "w") as f:
+            f.write("0 0.4 0.4 0.6 0.4 0.6 0.6 0.4 0.6\n")
+
+        data_yaml_path = os.path.join(tmp_dir, "data.yaml")
+        with open(data_yaml_path, "w") as f:
+            f.write("names: ['object']\n")
+
+        _, _, annotations = load_yolo_annotations(
+            images_directory_path=images_dir,
+            annotations_directory_path=labels_dir,
+            data_yaml_path=data_yaml_path,
+            is_obb=True,
+            force_masks=True,
+        )
+
+        assert len(annotations) == 1
+        detection = next(iter(annotations.values()))
+        assert detection.mask is None, (
+            "force_masks=True must be ignored for OBB annotations"
+        )
+
+
+def test_load_yolo_annotations_segmentation_produces_masks() -> None:
+    """Segmentation annotations with is_obb=False must still produce masks."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        images_dir = os.path.join(tmp_dir, "images")
+        labels_dir = os.path.join(tmp_dir, "labels")
+        os.makedirs(images_dir)
+        os.makedirs(labels_dir)
+
+        img = Image.new("RGB", (100, 100))
+        img.save(os.path.join(images_dir, "test.jpg"))
+
+        # Polygon annotation: class_id + 3 x,y pairs (7 tokens > 5 triggers mask)
+        with open(os.path.join(labels_dir, "test.txt"), "w") as f:
+            f.write("0 0.1 0.1 0.9 0.1 0.9 0.9\n")
+
+        data_yaml_path = os.path.join(tmp_dir, "data.yaml")
+        with open(data_yaml_path, "w") as f:
+            f.write("names: ['object']\n")
+
+        _, _, annotations = load_yolo_annotations(
+            images_directory_path=images_dir,
+            annotations_directory_path=labels_dir,
+            data_yaml_path=data_yaml_path,
+            is_obb=False,
+        )
+
+        assert len(annotations) == 1
+        detection = next(iter(annotations.values()))
+        assert detection.mask is not None, (
+            "Segmentation annotations with is_obb=False must produce mask arrays"
+        )
+
+
+def test_polygons_to_masks_multiple_polygons_shape() -> None:
+    """Regression test for #1746: _polygons_to_masks must return shape (N, H, W).
+
+    The original PR rewrite processed only a single polygon and always returned
+    shape (1, H, W), breaking multi-polygon detections.
+    """
+    from supervision.dataset.formats.yolo import _polygons_to_masks
+
+    resolution_wh = (100, 100)
+    # Fractional pixel coords ensure the rounding path inside the function is exercised
+    polygon_a = np.array(
+        [[10.5, 20.5], [10.5, 50.5], [40.5, 50.5], [40.5, 20.5]], dtype=np.float32
+    )
+    polygon_b = np.array(
+        [[60.3, 30.7], [60.3, 70.3], [90.3, 70.3], [90.3, 30.7]], dtype=np.float32
+    )
+
+    masks = _polygons_to_masks(
+        polygons=[polygon_a, polygon_b], resolution_wh=resolution_wh
+    )
+
+    assert masks.shape == (2, 100, 100), f"Expected (2, 100, 100), got {masks.shape}"
+    assert masks.dtype == np.bool_
+    assert masks[0].any(), "Polygon A produced an empty mask"
+    assert masks[1].any(), "Polygon B produced an empty mask"
+    assert not np.any(masks[0] & masks[1]), (
+        "Non-overlapping polygons produced overlapping masks"
+    )
+
+
+@pytest.fixture
+def yolo_mask_round_trip_sample(
+    tmp_path: Path,
+) -> tuple[str, str, str, tuple[int, int], str]:
+    """Create a minimal YOLO segmentation sample for round-trip mask tests."""
+    images_dir = tmp_path / "images"
+    labels_dir = tmp_path / "labels"
+    images_dir.mkdir()
+    labels_dir.mkdir()
+
+    # Odd resolution ensures coord * dim is non-integer (e.g. 0.25 * 101 = 25.25)
+    resolution_wh = (101, 97)
+    Image.new("RGB", resolution_wh).save(images_dir / "test.jpg")
+
+    original_line = "0 0.25000 0.40000 0.25000 0.60000 0.45000 0.60000 0.45000 0.40000"
+    (labels_dir / "test.txt").write_text(original_line + "\n")
+
+    data_yaml_path = tmp_path / "data.yaml"
+    data_yaml_path.write_text("names: ['class0']\n")
+
+    return (
+        str(images_dir),
+        str(labels_dir),
+        str(data_yaml_path),
+        resolution_wh,
+        original_line,
+    )
+
+
+def test_yolo_polygon_mask_precision_no_coord_drift_loads_mask(
+    yolo_mask_round_trip_sample: tuple[str, str, str, tuple[int, int], str],
+) -> None:
+    """YOLO load with force_masks=True should produce a non-empty mask."""
+    images_dir, labels_dir, data_yaml_path, _, _ = yolo_mask_round_trip_sample
+
+    _, _, annotations = load_yolo_annotations(
+        images_directory_path=images_dir,
+        annotations_directory_path=labels_dir,
+        data_yaml_path=data_yaml_path,
+        force_masks=True,
+    )
+
+    assert len(annotations) == 1
+    detection = next(iter(annotations.values()))
+    assert detection.mask is not None
+    assert detection.mask.shape[0] == 1
+    assert detection.mask[0].any()
+
+
+def test_yolo_polygon_mask_precision_no_coord_drift_round_trip_iou(
+    yolo_mask_round_trip_sample: tuple[str, str, str, tuple[int, int], str],
+) -> None:
+    """YOLO load/save round-trip should keep segmentation mask geometry stable."""
+    images_dir, labels_dir, data_yaml_path, resolution_wh, original_line = (
+        yolo_mask_round_trip_sample
+    )
+
+    _, _, annotations = load_yolo_annotations(
+        images_directory_path=images_dir,
+        annotations_directory_path=labels_dir,
+        data_yaml_path=data_yaml_path,
+        force_masks=True,
+    )
+    detection = next(iter(annotations.values()))
+
+    image_arr = np.zeros((resolution_wh[1], resolution_wh[0], 3), dtype=np.uint8)
+    saved_lines = detections_to_yolo_annotations(
+        detections=detection, image_shape=image_arr.shape
+    )
+
+    assert len(saved_lines) == 1
+    original_detection = yolo_annotations_to_detections(
+        lines=[original_line], resolution_wh=resolution_wh, with_masks=True
+    )
+    saved_detection = yolo_annotations_to_detections(
+        lines=saved_lines, resolution_wh=resolution_wh, with_masks=True
+    )
+
+    assert original_detection.mask is not None
+    assert saved_detection.mask is not None
+
+    original_mask = original_detection.mask[0]
+    saved_mask = saved_detection.mask[0]
+    intersection = np.logical_and(original_mask, saved_mask).sum()
+    union = np.logical_or(original_mask, saved_mask).sum()
+    assert union > 0
+    # Keep polygon round-trip drift bounded while avoiding vertex-order assumptions.
+    iou = intersection / union
+    assert iou > 0.95, (
+        f"Mask IoU {iou:.6f} too low after YOLO load/save round-trip — "
+        "precision regression in polygon mask conversion"
+    )

@@ -27,7 +27,8 @@ class VideoInfo:
     Attributes:
         width: width of the video in pixels
         height: height of the video in pixels
-        fps: frames per second of the video
+        fps: frames per second of the video as a float. Common values include
+            23.976, 24.0, 25.0, 29.97, 30.0, 59.94, and 60.0.
         total_frames: total number of frames in the video,
             default is None
 
@@ -38,7 +39,7 @@ class VideoInfo:
         video_info = sv.VideoInfo.from_video_path(video_path="<SOURCE_VIDEO_FILE>")
 
         video_info
-        # VideoInfo(width=3840, height=2160, fps=25, total_frames=538)
+        # VideoInfo(width=3840, height=2160, fps=25.0, total_frames=538)
 
         video_info.resolution_wh
         # (3840, 2160)
@@ -47,7 +48,7 @@ class VideoInfo:
 
     width: int
     height: int
-    fps: int
+    fps: float
     total_frames: int | None = None
 
     @classmethod
@@ -58,7 +59,7 @@ class VideoInfo:
 
         width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = int(video.get(cv2.CAP_PROP_FPS))
+        fps = float(video.get(cv2.CAP_PROP_FPS))
         total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
         video.release()
         return VideoInfo(width, height, fps, total_frames)
