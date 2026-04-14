@@ -2,7 +2,7 @@ import os
 import warnings
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Union, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -179,7 +179,7 @@ def detections_to_coco_annotations(
 
             if iscrowd:
                 segmentation = {
-                    "counts": mask_to_rle(mask=mask),
+                    "counts": cast(list[int], mask_to_rle(mask=mask, compressed=False)),
                     "size": list(mask.shape[:2]),
                 }
             else:

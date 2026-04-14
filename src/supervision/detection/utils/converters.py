@@ -1,10 +1,6 @@
 from __future__ import annotations
 
-from typing import (
-    Any,
-    Literal,
-    overload,
-)
+from typing import Any
 
 import cv2
 import numpy as np
@@ -445,18 +441,6 @@ def rle_to_mask(
         decoded_rle, np.zeros(width * height - len(decoded_rle), dtype=np.uint8)
     )
     return decoded_rle.reshape((height, width), order="F").astype(bool)
-
-
-@overload
-def mask_to_rle(
-    mask: npt.NDArray[np.bool_], compressed: Literal[False] = ...
-) -> list[int]: ...
-
-
-@overload
-def mask_to_rle(
-    mask: npt.NDArray[np.bool_], compressed: Literal[True] = ...
-) -> str: ...
 
 
 def mask_to_rle(
