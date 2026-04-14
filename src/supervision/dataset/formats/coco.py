@@ -85,9 +85,7 @@ def coco_annotations_to_masks(
 
         if image_annotation.get("iscrowd", 0):
             masks.append(
-                rle_to_mask(
-                    rle=np.array(segmentation["counts"]), resolution_wh=resolution_wh
-                ).astype(bool)
+                rle_to_mask(rle=segmentation["counts"], resolution_wh=resolution_wh)
             )
             continue
 
