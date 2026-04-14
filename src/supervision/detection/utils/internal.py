@@ -130,7 +130,7 @@ def process_roboflow_result(
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
-            masks.append(mask)
+            masks.append(mask.astype(bool))
             if "tracker_id" in prediction:
                 tracker_ids.append(prediction["tracker_id"])
 
