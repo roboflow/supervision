@@ -40,6 +40,7 @@ def rle_to_mask(
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.bool_]:
     """Deprecated. Use `supervision.detection.utils.converters.rle_to_mask`."""
+    return void(mask, compressed=compressed)  # type: ignore[no-any-return]
 
 
 if TYPE_CHECKING:
