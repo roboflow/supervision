@@ -3254,6 +3254,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pydeprecate"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/2f/fa/1d6a26185653e3b65f2ddcee7f716a9d41f79a39ffb0e9dd9bf0ce43e587/pydeprecate-0.4.0.tar.gz", hash = "sha256:7c07295ee6faf427686a458ddc3406014124ac0fb6ad8f90e50eb9d21adb86f3", size = 27674, upload-time = "2025-12-03T10:40:10.066Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/20/e4/d618f8eec6bfbab64e2af8a5359a423470a2cad60ef8ea60e8a60be28517/pydeprecate-0.4.0-py3-none-any.whl", hash = "sha256:5f3a07fddb03829bb934163076853ce6ead460b2ec2ba7e0fdaad3e4fa93c186", size = 21798, upload-time = "2025-12-03T10:40:08.69Z" },
+]
+
+[[package]]
 name = "pygments"
 version = "2.19.2"
 source = { registry = "https://pypi.org/simple" }
@@ -4057,6 +4066,7 @@ dependencies = [
     { name = "numpy", version = "2.3.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "opencv-python" },
     { name = "pillow" },
+    { name = "pydeprecate" },
     { name = "pyyaml" },
     { name = "requests" },
     { name = "scipy", version = "1.13.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
@@ -4106,6 +4116,7 @@ requires-dist = [
     { name = "opencv-python", specifier = ">=4.5.5.64" },
     { name = "pandas", marker = "extra == 'metrics'", specifier = ">=2" },
     { name = "pillow", specifier = ">=9.4" },
+    { name = "pydeprecate", specifier = ">=0.4,<0.5" },
     { name = "pyyaml", specifier = ">=5.3" },
     { name = "requests", specifier = ">=2.26" },
     { name = "scipy", specifier = ">=1.10" },
