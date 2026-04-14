@@ -5,11 +5,12 @@ import os
 import random
 import shutil
 from pathlib import Path
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import cv2
 import numpy as np
 import numpy.typing as npt
+from deprecate import deprecated
 
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import mask_to_polygons
@@ -23,17 +24,21 @@ from supervision.detection.utils.polygons import (
     approximate_polygon,
     filter_polygons_by_area,
 )
-from supervision.utils.internal import deprecated
 
 
-@deprecated("Import mask_to_rle from supervision.detection.utils.converters instead.")
-def mask_to_rle(*args, **kwargs):  # type: ignore[no-untyped-def]
-    return _mask_to_rle(*args, **kwargs)
+@deprecated(target=_mask_to_rle, deprecated_in="0.28.0", remove_in="0.30.0")  # type: ignore[untyped-decorator]
+def mask_to_rle(
+    mask: npt.NDArray[np.bool_], compressed: bool = False
+) -> list[int] | str:
+    """Deprecated. Use `supervision.detection.utils.converters.mask_to_rle`."""
 
 
-@deprecated("Import rle_to_mask from supervision.detection.utils.converters instead.")
-def rle_to_mask(*args, **kwargs):  # type: ignore[no-untyped-def]
-    return _rle_to_mask(*args, **kwargs)
+@deprecated(target=_rle_to_mask, deprecated_in="0.28.0", remove_in="0.30.0")  # type: ignore[untyped-decorator]
+def rle_to_mask(
+    rle: npt.NDArray[np.integer[Any]] | list[int] | str | bytes,
+    resolution_wh: tuple[int, int],
+) -> npt.NDArray[np.bool_]:
+    """Deprecated. Use `supervision.detection.utils.converters.rle_to_mask`."""
 
 
 if TYPE_CHECKING:
