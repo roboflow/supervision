@@ -909,3 +909,18 @@ class MeanAveragePrecision:
 
         result: npt.NDArray[np.float64] = average_precisions
         return result
+
+
+# TODO: `pyDeprecate` wraps deprecated classes as callables and, on Python 3.9,
+# exposes static helpers as raw `staticmethod` objects on that wrapper.
+# Rebind the underlying functions so class-style calls remain callable.
+for _method_name in (
+    "compute_average_precision",
+    "_match_detection_batch",
+    "_average_precisions_per_class",
+):
+    setattr(
+        MeanAveragePrecision,
+        _method_name,
+        MeanAveragePrecision.__wrapped__.__dict__[_method_name].__func__,  # type: ignore[attr-defined]
+    )
