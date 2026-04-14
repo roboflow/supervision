@@ -409,6 +409,46 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
             ),
             DoesNotRaise(),
         ),  # malformed compressed counts falls through to box-only detection
+        (
+            {
+                "predictions": [
+                    {
+                        "x": 1.5,
+                        "y": 1.5,
+                        "width": 2.0,
+                        "height": 2.0,
+                        "confidence": 0.9,
+                        "class_id": 0,
+                        "class": "person",
+                        "rle": {"size": [4, 4], "counts": "52203"},
+                    },
+                    {
+                        "x": 3.0,
+                        "y": 3.0,
+                        "width": 2.0,
+                        "height": 2.0,
+                        "confidence": 0.8,
+                        "class_id": 1,
+                        "class": "car",
+                    },
+                ],
+                "image": {"width": 4, "height": 4},
+            },
+            (
+                np.array([[0.5, 0.5, 2.5, 2.5], [2.0, 2.0, 4.0, 4.0]]),
+                np.array([0.9, 0.8]),
+                np.array([0, 1]),
+                # NOTE: known misalignment — masks has 1 entry, xyxy has 2.
+                # Mixed RLE + box-only batches produce mask arrays shorter than
+                # xyxy; constructing Detections from this result would raise
+                # ValueError. This is a pre-existing limitation shared by the
+                # polygon + box-only path.
+                TEST_RLE_MASK,
+                None,
+                {CLASS_NAME_DATA_FIELD: np.array(["person", "car"])},
+            ),
+            DoesNotRaise(),
+        ),  # mixed RLE + box-only batch — masks misaligned with xyxy (known limitation)
     ],
 )
 def test_process_roboflow_result(
