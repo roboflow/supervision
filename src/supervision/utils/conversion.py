@@ -1,18 +1,20 @@
-from functools import wraps
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any, TypeVar, cast
 
 import cv2
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated
+from deprecate import deprecated, void
 from PIL import Image
 
 from supervision.draw.base import ImageType
 
+F = TypeVar("F", bound=Callable[..., Any])
+
 
 def ensure_cv2_image_for_class_method(
-    annotate_func: Callable[..., ImageType],
-) -> Callable[..., ImageType]:
+    annotate_func: F,
+) -> F:
     """
     Decorates `BaseAnnotator.annotate` implementations, converts scene to
     an image type used internally by the annotators, converts back when annotation
@@ -21,7 +23,6 @@ def ensure_cv2_image_for_class_method(
     Assumes the annotators modify the scene in-place.
     """
 
-    @wraps(annotate_func)
     def wrapper(self: Any, scene: ImageType, *args: Any, **kwargs: Any) -> ImageType:
         if isinstance(scene, np.ndarray):
             return annotate_func(self, scene, *args, **kwargs)
@@ -34,21 +35,23 @@ def ensure_cv2_image_for_class_method(
 
         raise ValueError(f"Unsupported image type: {type(scene)}")
 
-    return wrapper
+    return cast(F, wrapper)
 
 
-@deprecated(
+@deprecated(  # type: ignore[untyped-decorator]
     target=ensure_cv2_image_for_class_method,
     deprecated_in="0.27.0",
     remove_in="0.31.0",
 )
-def ensure_cv2_image_for_annotation(annotate_func):
-    pass
+def ensure_cv2_image_for_annotation(
+    annotate_func: F,
+) -> F:
+    return cast(F, void(annotate_func))
 
 
 def ensure_cv2_image_for_standalone_function(
-    image_processing_fun: Callable[..., ImageType],
-) -> Callable[..., ImageType]:
+    image_processing_fun: F,
+) -> F:
     """
     Decorates image processing functions that accept np.ndarray, converting `image` to
     np.ndarray, converts back when processing is complete.
@@ -56,7 +59,6 @@ def ensure_cv2_image_for_standalone_function(
     Assumes the annotators do NOT modify the scene in-place.
     """
 
-    @wraps(image_processing_fun)
     def wrapper(image: ImageType, *args: Any, **kwargs: Any) -> ImageType:
         if isinstance(image, np.ndarray):
             return image_processing_fun(image, *args, **kwargs)
@@ -68,12 +70,12 @@ def ensure_cv2_image_for_standalone_function(
 
         raise ValueError(f"Unsupported image type: {type(image)}")
 
-    return wrapper
+    return cast(F, wrapper)
 
 
 def ensure_pil_image_for_class_method(
-    annotate_func: Callable[..., ImageType],
-) -> Callable[..., ImageType]:
+    annotate_func: F,
+) -> F:
     """
     Decorates image processing functions that accept np.ndarray, converting `image` to
     PIL image, converts back when processing is complete.
@@ -81,7 +83,6 @@ def ensure_pil_image_for_class_method(
     Assumes the annotators modify the scene in-place.
     """
 
-    @wraps(annotate_func)
     def wrapper(self: Any, scene: ImageType, *args: Any, **kwargs: Any) -> ImageType:
         if isinstance(scene, np.ndarray):
             scene_pil = cv2_to_pillow(scene)
@@ -90,29 +91,33 @@ def ensure_pil_image_for_class_method(
             return scene
 
         if isinstance(scene, Image.Image):
-            return annotate_func(self, scene, *args, **kwargs)
+            return cast(ImageType, annotate_func(self, scene, *args, **kwargs))
 
         raise ValueError(f"Unsupported image type: {type(scene)}")
 
-    return wrapper
+    return cast(F, wrapper)
 
 
-@deprecated(
+@deprecated(  # type: ignore[untyped-decorator]
     target=ensure_pil_image_for_class_method,
     deprecated_in="0.27.0",
     remove_in="0.31.0",
 )
-def ensure_pil_image_for_annotation(annotate_func):
-    pass
+def ensure_pil_image_for_annotation(
+    annotate_func: F,
+) -> F:
+    return cast(F, void(annotate_func))
 
 
-@deprecated(
+@deprecated(  # type: ignore[untyped-decorator]
     target=ensure_cv2_image_for_standalone_function,
     deprecated_in="0.27.0",
     remove_in="0.31.0",
 )
-def ensure_cv2_image_for_processing(image_processing_fun):
-    pass
+def ensure_cv2_image_for_processing(
+    image_processing_fun: F,
+) -> F:
+    return cast(F, void(image_processing_fun))
 
 
 def images_to_cv2(images: list[ImageType]) -> list[npt.NDArray[np.uint8]]:

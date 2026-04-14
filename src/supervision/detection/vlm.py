@@ -11,8 +11,6 @@ from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
-
-from deprecate import deprecated
 from PIL import Image
 
 from supervision.detection.utils.boxes import denormalize_boxes

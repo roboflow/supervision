@@ -1,13 +1,12 @@
 from __future__ import annotations
 
+import warnings
 from collections.abc import Iterator
 from dataclasses import dataclass, field
-import warnings
 from functools import reduce
 from typing import Any, cast
 
 import numpy as np
-from deprecate import deprecated
 import numpy.typing as npt
 
 from supervision.config import (
@@ -57,7 +56,6 @@ from supervision.detection.vlm import (
     from_qwen_3_vl,
     validate_vlm_parameters,
 )
-from deprecate import deprecated
 from supervision.geometry.core import Position
 from supervision.utils.internal import get_instance_variables
 from supervision.validators import validate_detections_fields, validate_resolution
@@ -962,7 +960,9 @@ class Detections:
         )
 
     @classmethod
-    def from_lmm(cls, lmm: LMM | str, result: str | dict, **kwargs: Any) -> Detections:
+    def from_lmm(
+        cls, lmm: LMM | str, result: str | dict[str, Any], **kwargs: Any
+    ) -> Detections:
         """
         !!! deprecated "Deprecated"
             `Detections.from_lmm` is **deprecated** and will be removed in `supervision-0.31.0`.

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from math import sqrt
-from typing import Any, overload
+from typing import Any, cast, overload
 
 import cv2
 import numpy as np
@@ -1631,8 +1631,8 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             wrapped_lines = wrap_text(label, self.max_line_length)
 
             # Calculate the total text height and maximum width
-            max_width = 0
-            total_height = 0
+            max_width = 0.0
+            total_height = 0.0
 
             for line in wrapped_lines:
                 left, top, right, bottom = draw.textbbox((0, 0), line, font=self.font)
@@ -1777,7 +1777,10 @@ class IconAnnotator(BaseAnnotator):
 
     @ensure_cv2_image_for_class_method
     def annotate(
-        self, scene: ImageType, detections: Detections, icon_path: str | list[str]
+        self,
+        scene: ImageType,
+        detections: Detections,
+        icon_path: str | list[str] = "",
     ) -> ImageType:
         """
         Annotates the given scene with given icons.
@@ -1851,7 +1854,10 @@ class IconAnnotator(BaseAnnotator):
             raise FileNotFoundError(
                 f"Error: Couldn't load the icon image from {icon_path}"
             )
-        icon = letterbox_image(image=icon, resolution_wh=self.icon_resolution_wh)
+        icon = cast(
+            npt.NDArray[np.uint8],
+            letterbox_image(image=icon, resolution_wh=self.icon_resolution_wh),
+        )
         return icon
 
 

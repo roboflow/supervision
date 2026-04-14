@@ -6,7 +6,7 @@ import os
 import shutil
 from collections.abc import Callable
 from functools import partial
-from typing import Literal
+from typing import Any, Literal, cast
 
 import cv2
 import numpy as np
@@ -15,8 +15,6 @@ from deprecate import deprecated
 from PIL import Image
 
 from supervision.draw.base import ImageType
-from supervision import Point
-from supervision.annotators.base import ImageType
 from supervision.draw.color import Color, unify_to_bgr
 from supervision.draw.utils import calculate_optimal_text_scale, draw_text
 from supervision.geometry.core import Point
@@ -134,6 +132,7 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
 
     ![scale-image](https://media.roboflow.com/supervision-docs/supervision-docs-scale-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
+    assert isinstance(image, np.ndarray)
     if scale_factor <= 0:
         raise ValueError("Scale factor must be positive.")
 
@@ -191,6 +190,7 @@ def resize_image(
 
     ![resize-image](https://media.roboflow.com/supervision-docs/supervision-docs-resize-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
+    assert isinstance(image, np.ndarray)
     if keep_aspect_ratio:
         image_ratio = image.shape[1] / image.shape[0]
         target_ratio = resolution_wh[0] / resolution_wh[1]
@@ -272,7 +272,7 @@ def letterbox_image(
     return image_with_borders
 
 
-@deprecated(
+@deprecated(  # type: ignore[untyped-decorator]
     target=None,
     deprecated_in="0.27.0",
     remove_in="0.31.0",
@@ -386,6 +386,7 @@ def tint_image(
 
     ![tint-image](https://media.roboflow.com/supervision-docs/supervision-docs-tint-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
+    assert isinstance(image, np.ndarray)
     if not 0.0 <= opacity <= 1.0:
         raise ValueError("opacity must be between 0.0 and 1.0")
 
@@ -553,7 +554,7 @@ class ImageSink:
         pass
 
 
-@deprecated(
+@deprecated(  # type: ignore[untyped-decorator]
     target=None,
     deprecated_in="0.27.0",
     remove_in="0.31.0",
@@ -669,13 +670,12 @@ def create_tiles(
         )
     if titles is not None:
         titles = fill(sequence=titles, desired_size=len(images), content=None)
-    titles_anchors = (
-        [titles_anchors]
-        if not issubclass(type(titles_anchors), list)
-        else titles_anchors
-    )
+    if isinstance(titles_anchors, list):
+        titles_anchors_sequence = titles_anchors
+    else:
+        titles_anchors_sequence = [titles_anchors]
     titles_anchors = fill(
-        sequence=titles_anchors, desired_size=len(images), content=None
+        sequence=titles_anchors_sequence, desired_size=len(images), content=None
     )
     titles_color = unify_to_bgr(color=titles_color)
     titles_background_color = unify_to_bgr(color=titles_background_color)
@@ -698,7 +698,7 @@ def create_tiles(
     )
     if return_type == "pillow":
         tiles = cv2_to_pillow(image=tiles)
-    return tiles
+    return cast(ImageType, tiles)
 
 
 def _negotiate_tiles_format(images: list[ImageType]) -> Literal["cv2", "pillow"]:
@@ -709,7 +709,7 @@ def _negotiate_tiles_format(images: list[ImageType]) -> Literal["cv2", "pillow"]
 
 
 def _calculate_aggregated_images_shape(
-    images: list[np.ndarray], aggregator: Callable[[list[int]], float]
+    images: list[npt.NDArray[np.uint8]], aggregator: Callable[[list[int]], float]
 ) -> tuple[int, int]:
     height = round(aggregator([i.shape[0] for i in images]))
     width = round(aggregator([i.shape[1] for i in images]))
@@ -724,7 +724,7 @@ SHAPE_AGGREGATION_FUN = {
 
 
 def _aggregate_images_shape(
-    images: list[np.ndarray], mode: Literal["min", "max", "avg"]
+    images: list[npt.NDArray[np.uint8]], mode: Literal["min", "max", "avg"]
 ) -> tuple[int, int]:
     if mode not in SHAPE_AGGREGATION_FUN:
         raise ValueError(
@@ -735,18 +735,23 @@ def _aggregate_images_shape(
 
 
 def _establish_grid_size(
-    images: list[np.ndarray], grid_size: tuple[int | None, int | None] | None
+    images: list[npt.NDArray[np.uint8]],
+    grid_size: tuple[int | None, int | None] | None,
 ) -> tuple[int, int]:
     if grid_size is None or all(e is None for e in grid_size):
         return _negotiate_grid_size(images=images)
     if grid_size[0] is None:
-        return math.ceil(len(images) / grid_size[1]), grid_size[1]
+        columns = grid_size[1]
+        assert columns is not None
+        return math.ceil(len(images) / columns), columns
     if grid_size[1] is None:
-        return grid_size[0], math.ceil(len(images) / grid_size[0])
-    return grid_size
+        rows = grid_size[0]
+        assert rows is not None
+        return rows, math.ceil(len(images) / rows)
+    return cast(tuple[int, int], grid_size)
 
 
-def _negotiate_grid_size(images: list[np.ndarray]) -> tuple[int, int]:
+def _negotiate_grid_size(images: list[npt.NDArray[np.uint8]]) -> tuple[int, int]:
     if len(images) <= MAX_COLUMNS_FOR_SINGLE_ROW_GRID:
         return 1, len(images)
     nearest_sqrt = math.ceil(np.sqrt(len(images)))
@@ -758,7 +763,7 @@ def _negotiate_grid_size(images: list[np.ndarray]) -> tuple[int, int]:
 
 
 def _generate_tiles(
-    images: list[np.ndarray],
+    images: list[npt.NDArray[np.uint8]],
     grid_size: tuple[int, int],
     single_tile_size: tuple[int, int],
     tile_padding_color: tuple[int, int, int],
@@ -773,7 +778,7 @@ def _generate_tiles(
     titles_text_font: int,
     titles_background_color: tuple[int, int, int],
     default_title_placement: RelativePosition,
-) -> np.ndarray:
+) -> npt.NDArray[np.uint8]:
     images = _draw_texts(
         images=images,
         titles=titles,
@@ -807,7 +812,7 @@ def _generate_tiles(
 
 
 def _draw_texts(
-    images: list[np.ndarray],
+    images: list[npt.NDArray[np.uint8]],
     titles: list[str | None] | None,
     titles_anchors: list[Point | None],
     titles_color: tuple[int, int, int],
@@ -817,10 +822,10 @@ def _draw_texts(
     titles_text_font: int,
     titles_background_color: tuple[int, int, int],
     default_title_placement: RelativePosition,
-) -> list[np.ndarray]:
+) -> list[npt.NDArray[np.uint8]]:
     if titles is None:
         return images
-    titles_anchors = _prepare_default_titles_anchors(
+    prepared_titles_anchors = _prepare_default_titles_anchors(
         images=images,
         titles_anchors=titles_anchors,
         default_title_placement=default_title_placement,
@@ -831,7 +836,7 @@ def _draw_texts(
             resolution_wh=(image_width, image_height)
         )
     result = []
-    for image, text, anchor in zip(images, titles, titles_anchors):
+    for image, text, anchor in zip(images, titles, prepared_titles_anchors):
         if text is None:
             result.append(image)
             continue
@@ -851,7 +856,7 @@ def _draw_texts(
 
 
 def _prepare_default_titles_anchors(
-    images: list[np.ndarray],
+    images: list[npt.NDArray[np.uint8]],
     titles_anchors: list[Point | None],
     default_title_placement: RelativePosition,
 ) -> list[Point]:
@@ -870,14 +875,15 @@ def _prepare_default_titles_anchors(
 
 
 def _merge_tiles_elements(
-    tiles_elements: list[list[np.ndarray]],
+    tiles_elements: list[list[npt.NDArray[np.uint8]]],
     grid_size: tuple[int, int],
     single_tile_size: tuple[int, int],
     tile_margin: int,
     tile_margin_color: tuple[int, int, int],
-) -> np.ndarray:
-    vertical_padding = (
-        np.ones((single_tile_size[1], tile_margin, 3)) * tile_margin_color
+) -> npt.NDArray[np.uint8]:
+    vertical_padding: npt.NDArray[np.uint8] = (
+        np.ones((single_tile_size[1], tile_margin, 3), dtype=np.uint8)
+        * tile_margin_color
     )
     merged_rows = [
         np.concatenate(
@@ -898,13 +904,19 @@ def _merge_tiles_elements(
     for row in merged_rows:
         rows_with_paddings.append(row)
         rows_with_paddings.append(horizontal_padding)
-    return np.concatenate(
-        rows_with_paddings[:-1],
-        axis=0,
-    ).astype(np.uint8)
+    return cast(
+        npt.NDArray[np.uint8],
+        np.concatenate(
+            rows_with_paddings[:-1],
+            axis=0,
+        ).astype(np.uint8),
+    )
 
 
 def _generate_color_image(
     shape: tuple[int, int], color: tuple[int, int, int]
-) -> np.ndarray:
-    return np.ones((*shape[::-1], 3), dtype=np.uint8) * color
+) -> npt.NDArray[np.uint8]:
+    return cast(
+        npt.NDArray[np.uint8],
+        np.ones((*shape[::-1], 3), dtype=np.uint8) * color,
+    )

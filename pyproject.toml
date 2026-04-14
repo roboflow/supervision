@@ -53,11 +53,11 @@ dependencies = [
   "numpy>=1.21.2",
   "opencv-python>=4.5.5.64",
   "pillow>=9.4",
+  "pydeprecate>=0.4,<0.5",
   "pyyaml>=5.3",
   "requests>=2.26",
   "scipy>=1.10",
-  "tqdm>=4.62.3",
-  "pyDeprecate>=0.4.0,<0.5"
+  "tqdm>=4.62.3"
 ]
 optional-dependencies.metrics = [
   "pandas>=2",
