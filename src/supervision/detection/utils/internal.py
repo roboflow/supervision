@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from itertools import chain
 from typing import Any, cast
 
@@ -10,6 +11,8 @@ import numpy.typing as npt
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.utils.converters import polygon_to_mask, rle_to_mask
 from supervision.geometry.core import Vector
+
+logger = logging.getLogger(__name__)
 
 
 def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | None:
@@ -104,7 +107,12 @@ def process_roboflow_result(
                         (image_width, image_height),
                         interpolation=cv2.INTER_NEAREST,
                     ).astype(bool)
-            except (ValueError, AssertionError, KeyError, TypeError):
+            except (ValueError, AssertionError, KeyError, TypeError) as exc:
+                logger.warning(
+                    "Failed to decode RLE mask payload; falling back to box-only "
+                    "detection. Reason: %s",
+                    exc,
+                )
                 rle_data = None
         if rle_data is not None:
             xyxy.append([x_min, y_min, x_max, y_max])
