@@ -57,7 +57,7 @@ dependencies = [
   "pyyaml>=5.3",
   "requests>=2.26",
   "scipy>=1.10",
-  "tqdm>=4.62.3",
+  "tqdm>=4.62.3"
 ]
 optional-dependencies.metrics = [
   "pandas>=2",

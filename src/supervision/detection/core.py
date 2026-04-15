@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from dataclasses import dataclass, field
-from enum import Enum
 from functools import reduce
 from typing import Any, cast
 
@@ -57,7 +56,7 @@ from supervision.detection.vlm import (
     validate_vlm_parameters,
 )
 from supervision.geometry.core import Position
-from supervision.utils.internal import deprecated, get_instance_variables
+from supervision.utils.internal import get_instance_variables, warn_deprecated
 from supervision.validators import validate_detections_fields, validate_resolution
 
 
@@ -960,10 +959,6 @@ class Detections:
         )
 
     @classmethod
-    @deprecated(
-        "`Detections.from_lmm` property is deprecated and will be removed in "
-        "`supervision-0.31.0`. Use Detections.from_vlm instead."
-    )
     def from_lmm(
         cls, lmm: LMM | str, result: str | dict[str, Any], **kwargs: Any
     ) -> Detections:
@@ -1416,6 +1411,12 @@ class Detections:
             ```
         """  # noqa: E501
 
+        warn_deprecated(
+            "`Detections.from_lmm` is deprecated since `supervision-0.26.0` "
+            "and will be removed in `supervision-0.31.0`. "
+            "Use `Detections.from_vlm` instead."
+        )
+
         # filler logic mapping old from_lmm to new from_vlm
         lmm_to_vlm = {
             LMM.PALIGEMMA: VLM.PALIGEMMA,
@@ -1426,8 +1427,7 @@ class Detections:
             LMM.GOOGLE_GEMINI_2_5: VLM.GOOGLE_GEMINI_2_5,
         }
 
-        # (this works even if the LMM enum is wrapped by @deprecated)
-        if isinstance(lmm, Enum) and lmm.__class__.__name__ == "LMM":
+        if isinstance(lmm, LMM):
             vlm = lmm_to_vlm[lmm]
 
         elif isinstance(lmm, str):
