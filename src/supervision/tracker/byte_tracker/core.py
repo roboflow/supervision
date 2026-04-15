@@ -33,7 +33,8 @@ class ByteTrack:
         minimum_matching_threshold: Threshold for matching tracks with detections.
             Decreasing minimum_matching_threshold improves accuracy but risks fragmentation.
             Increasing it improves completeness but risks false positives and drift.
-        frame_rate: The frame rate of the video.
+        frame_rate: The frame rate of the video. Accepts float values (e.g. 23.976,
+            29.97) for accurate lost-track-buffer calculation.
         minimum_consecutive_frames: Number of consecutive frames that an object must
             be tracked before it is considered a 'valid' track.
             Increasing minimum_consecutive_frames prevents the creation of accidental tracks from
@@ -45,7 +46,7 @@ class ByteTrack:
         track_activation_threshold: float = 0.25,
         lost_track_buffer: int = 30,
         minimum_matching_threshold: float = 0.8,
-        frame_rate: int = 30,
+        frame_rate: float = 30,
         minimum_consecutive_frames: int = 1,
     ):
         self.track_activation_threshold = track_activation_threshold

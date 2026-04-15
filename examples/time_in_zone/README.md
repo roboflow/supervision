@@ -222,7 +222,7 @@ Script to run object detection on an RTSP stream using the RF-DETR model.
 - `--model_size`: RF-DETR backbone size to load — choose from 'nano', 'small', 'medium', 'base', or 'large' (default 'medium').
 - `--device`: Compute device to run the model on ('cpu', 'mps', or 'cuda'; default 'cpu').
 - `--classes`: Space-separated list of class IDs to track. Leave empty to track all classes.
-- `--confidence_threshold`: Minimum confidence score for a detection to be kept, range 0–1 (default 0.3).
+- `--confidence_threshold`: Minimum confidence score for a detection to be kept, range 0-1 (default 0.3).
 - `--iou_threshold`: IOU threshold applied during non-max suppression (default 0.7).
 - `--resolution`: Shortest-side input resolution supplied to the model. The script will round it to the nearest valid multiple (default 640).
 

@@ -2,6 +2,7 @@ import json
 import os
 from typing import Any
 
+import numpy as np
 import pytest
 
 import supervision as sv
@@ -227,6 +228,53 @@ from tests.helpers import _create_detections
                 },
             ],
         ),  # Complex Data
+        (
+            _create_detections(
+                xyxy=[[10, 20, 30, 40], [50, 60, 70, 80]],
+                confidence=[0.9, 0.8],
+                class_id=[0, 1],
+            ),
+            {"area": np.array([400.0, 400.0])},
+            _create_detections(
+                xyxy=[[15, 25, 35, 45]],
+                confidence=[0.7],
+                class_id=[2],
+            ),
+            {"area": np.array([400.0])},
+            "test_detections_array_custom_data.json",
+            [
+                {
+                    "x_min": 10,
+                    "y_min": 20,
+                    "x_max": 30,
+                    "y_max": 40,
+                    "class_id": 0,
+                    "confidence": 0.8999999761581421,
+                    "tracker_id": "",
+                    "area": "400.0",
+                },
+                {
+                    "x_min": 50,
+                    "y_min": 60,
+                    "x_max": 70,
+                    "y_max": 80,
+                    "class_id": 1,
+                    "confidence": 0.800000011920929,
+                    "tracker_id": "",
+                    "area": "400.0",
+                },
+                {
+                    "x_min": 15,
+                    "y_min": 25,
+                    "x_max": 35,
+                    "y_max": 45,
+                    "class_id": 2,
+                    "confidence": 0.699999988079071,
+                    "tracker_id": "",
+                    "area": "400.0",
+                },
+            ],
+        ),  # numpy array in custom_data sliced per detection row
     ],
 )
 def test_json_sink(

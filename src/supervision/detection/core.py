@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from dataclasses import dataclass, field
-from enum import Enum
 from functools import reduce
 from typing import Any, cast
 
@@ -13,6 +12,7 @@ from supervision.config import (
     CLASS_NAME_DATA_FIELD,
     ORIENTED_BOX_COORDINATES,
 )
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.tools.transformers import (
     process_transformers_detection_result,
     process_transformers_v4_segmentation_result,
@@ -56,7 +56,7 @@ from supervision.detection.vlm import (
     validate_vlm_parameters,
 )
 from supervision.geometry.core import Position
-from supervision.utils.internal import deprecated, get_instance_variables
+from supervision.utils.internal import get_instance_variables, warn_deprecated
 from supervision.validators import validate_detections_fields, validate_resolution
 
 
@@ -133,7 +133,8 @@ class Detections:
         xyxy: An array of shape `(n, 4)` containing
             the bounding boxes coordinates in format `[x1, y1, x2, y2]`
         mask: An array of shape `(n, H, W)` containing the segmentation masks
-            (`bool` data type), or `None` when masks are not available.
+            (`bool` data type), or `None` when masks are not available, or as
+            :class:`~supervision.detection.compact_mask.CompactMask`.
         confidence: An array of shape `(n,)` containing the confidence scores
             of the detections, or `None` when confidence values are not available.
         class_id: An array of shape `(n,)` containing the class ids of the
@@ -149,7 +150,7 @@ class Detections:
     """  # noqa: E501 // docs
 
     xyxy: npt.NDArray[np.generic]
-    mask: npt.NDArray[np.generic] | None = None
+    mask: npt.NDArray[np.generic] | CompactMask | None = None
     confidence: npt.NDArray[np.generic] | None = None
     class_id: npt.NDArray[np.generic] | None = None
     tracker_id: npt.NDArray[np.generic] | None = None
@@ -958,10 +959,6 @@ class Detections:
         )
 
     @classmethod
-    @deprecated(
-        "`Detections.from_lmm` property is deprecated and will be removed in "
-        "`supervision-0.31.0`. Use Detections.from_vlm instead."
-    )
     def from_lmm(
         cls, lmm: LMM | str, result: str | dict[str, Any], **kwargs: Any
     ) -> Detections:
@@ -1414,6 +1411,12 @@ class Detections:
             ```
         """  # noqa: E501
 
+        warn_deprecated(
+            "`Detections.from_lmm` is deprecated since `supervision-0.26.0` "
+            "and will be removed in `supervision-0.31.0`. "
+            "Use `Detections.from_vlm` instead."
+        )
+
         # filler logic mapping old from_lmm to new from_vlm
         lmm_to_vlm = {
             LMM.PALIGEMMA: VLM.PALIGEMMA,
@@ -1424,8 +1427,7 @@ class Detections:
             LMM.GOOGLE_GEMINI_2_5: VLM.GOOGLE_GEMINI_2_5,
         }
 
-        # (this works even if the LMM enum is wrapped by @deprecated)
-        if isinstance(lmm, Enum) and lmm.__class__.__name__ == "LMM":
+        if isinstance(lmm, LMM):
             vlm = lmm_to_vlm[lmm]
 
         elif isinstance(lmm, str):
@@ -2071,12 +2073,27 @@ class Detections:
 
     def is_empty(self) -> bool:
         """
-        Returns `True` if the `Detections` object is considered empty.
+        Check whether the `Detections` object has zero bounding boxes.
+
+        Returns:
+            `True` if there are no detections, `False` otherwise.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[10, 20, 110, 120]]),
+            ...     class_id=np.array([1]),
+            ...     tracker_id=np.array([1]),
+            ... )
+            >>> filtered = detections[detections.class_id == 99]
+            >>> filtered.is_empty()
+            True
+
+            ```
         """
-        empty_detections = Detections.empty()
-        empty_detections.data = self.data
-        empty_detections.metadata = self.metadata
-        return bool(self == empty_detections)
+        return len(self.xyxy) == 0
 
     @classmethod
     def merge(cls, detections_list: list[Detections]) -> Detections:
@@ -2150,16 +2167,20 @@ class Detections:
 
         xyxy = np.vstack([d.xyxy for d in detections_list])
 
-        def stack_or_none(name: str) -> npt.NDArray[np.generic] | None:
+        def stack_or_none(
+            name: str,
+        ) -> npt.NDArray[np.generic] | CompactMask | None:
             if all(d.__getattribute__(name) is None for d in detections_list):
                 return None
             if any(d.__getattribute__(name) is None for d in detections_list):
                 raise ValueError(f"All or none of the '{name}' fields must be None")
-            return (
-                np.vstack([d.__getattribute__(name) for d in detections_list])
-                if name == "mask"
-                else np.hstack([d.__getattribute__(name) for d in detections_list])
-            )
+            if name == "mask":
+                masks = [d.__getattribute__(name) for d in detections_list]
+                if all(isinstance(m, CompactMask) for m in masks):
+                    return CompactMask.merge(masks)
+                # Mixed or all-ndarray: __array__ auto-converts any CompactMask.
+                return np.vstack([np.asarray(m) for m in masks])
+            return np.hstack([d.__getattribute__(name) for d in detections_list])
 
         mask = stack_or_none("mask")
         confidence = stack_or_none("confidence")
@@ -2281,7 +2302,7 @@ class Detections:
         """
         if isinstance(index, str):
             return self.data.get(index)
-        if self.is_empty():
+        if len(self) == 0:
             return self
         if isinstance(index, int):
             index = [index]
@@ -2343,6 +2364,8 @@ class Detections:
                 where n is the number of detections.
         """
         if self.mask is not None:
+            if isinstance(self.mask, CompactMask):
+                return self.mask.area
             return np.array([np.sum(mask) for mask in self.mask])
         else:
             return self.box_area

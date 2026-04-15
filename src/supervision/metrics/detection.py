@@ -7,11 +7,11 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
+from deprecate import deprecated
 
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import box_iou_batch
-from supervision.utils.internal import deprecated
 
 
 def detections_to_tensor(
@@ -539,10 +539,9 @@ class ConfusionMatrix:
 
 
 @deprecated(
-    "`MeanAveragePrecision` is deprecated and will be removed in "
-    "`supervision-0.31.0`. Use "
-    "`supervision.metrics.mean_average_precision.MeanAveragePrecision` instead. The "
-    "deprecated implementation provides results that are inconsistent with pycocotools."
+    target=None,
+    deprecated_in="0.27.0",
+    remove_in="0.31.0",
 )
 @dataclass(frozen=True)
 class MeanAveragePrecision:
@@ -910,3 +909,18 @@ class MeanAveragePrecision:
 
         result: npt.NDArray[np.float64] = average_precisions
         return result
+
+
+# TODO: `pyDeprecate` wraps deprecated classes as callables and, on Python 3.9,
+# exposes static helpers as raw `staticmethod` objects on that wrapper.
+# Rebind the underlying functions so class-style calls remain callable.
+for _method_name in (
+    "compute_average_precision",
+    "_match_detection_batch",
+    "_average_precisions_per_class",
+):
+    setattr(
+        MeanAveragePrecision,
+        _method_name,
+        MeanAveragePrecision.__wrapped__.__dict__[_method_name].__func__,  # type: ignore[attr-defined]
+    )

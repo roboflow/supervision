@@ -85,6 +85,12 @@ class JSONSink:
             self.file.close()
 
     @staticmethod
+    def _slice_value(value: Any, i: int) -> Any:
+        if isinstance(value, np.ndarray):
+            return value if value.ndim == 0 else value[i]
+        return value
+
+    @staticmethod
     def parse_detection_data(
         detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> list[dict[str, Any]]:
@@ -108,17 +114,13 @@ class JSONSink:
 
             if hasattr(detections, "data"):
                 for key, value in detections.data.items():
-                    if isinstance(value, np.ndarray):
-                        row[key] = str(value[i]) if value.ndim != 0 else str(value)
-                    else:
-                        row[key] = (
-                            str(value[i])
-                            if hasattr(value, "__getitem__")
-                            else str(value)
-                        )
+                    row[key] = str(JSONSink._slice_value(value, i))
 
             if custom_data:
-                row.update(custom_data)
+                for key, value in custom_data.items():
+                    v = JSONSink._slice_value(value, i)
+                    row[key] = str(v) if isinstance(value, np.ndarray) else v
+
             parsed_rows.append(row)
         return parsed_rows
 

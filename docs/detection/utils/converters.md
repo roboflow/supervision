@@ -64,3 +64,15 @@ status: new
 </div>
 
 :::supervision.detection.utils.converters.xyxy_to_mask
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.converters.rle_to_mask">rle_to_mask</a></h2>
+</div>
+
+:::supervision.detection.utils.converters.rle_to_mask
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.converters.mask_to_rle">mask_to_rle</a></h2>
+</div>
+
+:::supervision.detection.utils.converters.mask_to_rle

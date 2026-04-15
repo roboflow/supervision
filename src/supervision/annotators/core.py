@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from math import sqrt
-from typing import Any, overload
+from typing import Any, cast, overload
 
 import cv2
 import numpy as np
@@ -26,6 +26,7 @@ from supervision.annotators.utils import (
     wrap_text,
 )
 from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import clip_boxes, spread_out_boxes
 from supervision.detection.utils.converters import (
@@ -436,6 +437,9 @@ class MaskAnnotator(BaseAnnotator):
 
         colored_mask = np.array(scene, copy=True, dtype=np.uint8)
 
+        compact_mask = (
+            detections.mask if isinstance(detections.mask, CompactMask) else None
+        )
         for detection_idx in np.flip(np.argsort(detections.area)):
             color = resolve_color(
                 color=self.color,
@@ -445,8 +449,21 @@ class MaskAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            mask = np.asarray(detections.mask[detection_idx], dtype=bool)
-            colored_mask[mask] = color.as_bgr()
+            if compact_mask is not None:
+                # Paint only the bounding-box crop — avoids a full (H, W) alloc.
+                x1 = int(compact_mask.offsets[detection_idx, 0])
+                y1 = int(compact_mask.offsets[detection_idx, 1])
+                crop_m = compact_mask.crop(detection_idx)
+                crop_h, crop_w = crop_m.shape
+                colored_mask[y1 : y1 + crop_h, x1 : x1 + crop_w][crop_m] = (
+                    color.as_bgr()
+                )
+            else:
+                mask = np.asarray(
+                    detections.mask[detection_idx],
+                    dtype=bool,
+                )
+                colored_mask[mask] = color.as_bgr()
 
         cv2.addWeighted(
             colored_mask, self.opacity, scene, 1 - self.opacity, 0, dst=scene
@@ -1614,8 +1631,8 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             wrapped_lines = wrap_text(label, self.max_line_length)
 
             # Calculate the total text height and maximum width
-            max_width = 0
-            total_height = 0
+            max_width = 0.0
+            total_height = 0.0
 
             for line in wrapped_lines:
                 left, top, right, bottom = draw.textbbox((0, 0), line, font=self.font)
@@ -1760,7 +1777,10 @@ class IconAnnotator(BaseAnnotator):
 
     @ensure_cv2_image_for_class_method
     def annotate(
-        self, scene: ImageType, detections: Detections, icon_path: str | list[str]
+        self,
+        scene: ImageType,
+        detections: Detections,
+        icon_path: str | list[str] = "",
     ) -> ImageType:
         """
         Annotates the given scene with given icons.
@@ -1834,7 +1854,10 @@ class IconAnnotator(BaseAnnotator):
             raise FileNotFoundError(
                 f"Error: Couldn't load the icon image from {icon_path}"
             )
-        icon = letterbox_image(image=icon, resolution_wh=self.icon_resolution_wh)
+        icon = cast(
+            npt.NDArray[np.uint8],
+            letterbox_image(image=icon, resolution_wh=self.icon_resolution_wh),
+        )
         return icon
 
 
@@ -2935,8 +2958,8 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
                 colored_mask[y1:y2, x1:x2] = scene[y1:y2, x1:x2]
         else:
             for mask in detections.mask:
-                mask = np.asarray(mask, dtype=bool)
-                colored_mask[mask] = scene[mask]
+                mask_bool = np.asarray(mask, dtype=bool)
+                colored_mask[mask_bool] = scene[mask_bool]
 
         np.copyto(scene, colored_mask)
         return scene

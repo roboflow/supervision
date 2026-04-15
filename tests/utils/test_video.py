@@ -149,9 +149,33 @@ def test_video_info(dummy_video_path):
     video_info = VideoInfo.from_video_path(dummy_video_path)
     assert video_info.width == 640
     assert video_info.height == 480
-    assert video_info.fps == 25
+    assert video_info.fps == pytest.approx(25.0)
+    assert isinstance(video_info.fps, float)
     assert video_info.total_frames == 10
     assert video_info.resolution_wh == (640, 480)
+
+
+def test_video_info_float_fps(dummy_video_path, monkeypatch):
+    """
+    Verify that VideoInfo preserves non-integer FPS values as floats.
+
+    Scenario: Retrieving metadata from a video while OpenCV reports 23.976 fps.
+    Expected: fps is returned as the original float value, not truncated to an
+    integer. This prevents frame-timing drift in long videos.
+    """
+    original_get = cv2.VideoCapture.get
+
+    def mocked_get(self, prop_id):
+        if prop_id == cv2.CAP_PROP_FPS:
+            return 23.976
+        return original_get(self, prop_id)
+
+    monkeypatch.setattr(cv2.VideoCapture, "get", mocked_get)
+
+    video_info = VideoInfo.from_video_path(dummy_video_path)
+    assert isinstance(video_info.fps, float)
+    assert video_info.fps == pytest.approx(23.976)
+    assert video_info.fps != int(video_info.fps)
 
 
 def test_get_video_frames_generator(dummy_video_path):

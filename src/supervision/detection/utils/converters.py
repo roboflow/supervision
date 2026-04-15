@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 import cv2
 import numpy as np
 import numpy.typing as npt
@@ -41,7 +45,7 @@ def polygon_to_mask(
     """
     width, height = map(int, resolution_wh)
     mask = np.zeros((height, width), dtype=np.uint8)
-    cv2.fillPoly(mask, [polygon.astype(np.int32)], color=1)
+    cv2.fillPoly(mask, [polygon.astype(np.int32)], color=(1,))
     return mask
 
 
@@ -302,6 +306,238 @@ def mask_to_polygons(mask: npt.NDArray[np.bool_]) -> list[npt.NDArray[np.int32]]
         for contour in contours
         if contour.shape[0] >= MIN_POLYGON_POINT_COUNT
     ]
+
+
+def _decode_coco_rle_string(s: str) -> list[int]:
+    """Decode a COCO compressed RLE counts string to a list of run-length integers.
+
+    Implements the decoding algorithm from the COCO API (pycocotools) for
+    compressed RLE strings. Each character encodes 5 data bits in a base-48
+    scheme with continuation and sign flags, using delta encoding for indices
+    beyond the first two.
+
+    Args:
+        s: The compressed RLE counts string.
+
+    Returns:
+        A list of run-length integers (alternating background/foreground counts).
+    """
+    counts: list[int] = []
+    i = 0
+    while i < len(s):
+        x = 0
+        k = 0
+        more = True
+        while more:
+            if i >= len(s):
+                raise ValueError(
+                    f"Malformed compressed RLE string: unexpected end at position {i}"
+                )
+            c = ord(s[i]) - 48
+            x |= (c & 0x1F) << (5 * k)
+            more = bool(c & 0x20)
+            i += 1
+            k += 1
+            if not more and (c & 0x10):
+                x |= ~0 << (5 * k)
+        if len(counts) > 2:
+            x += counts[-2]
+        counts.append(x)
+    return counts
+
+
+def _encode_coco_rle_string(counts: list[int]) -> str:
+    """Encode a list of run-length integers to a COCO compressed RLE string.
+
+    Implements the encoding algorithm from the COCO API (pycocotools).
+    The inverse of :func:`_decode_coco_rle_string`.
+
+    Args:
+        counts: A list of run-length integers (alternating background/foreground
+            counts).
+
+    Returns:
+        The compressed RLE counts string.
+    """
+    chars: list[str] = []
+    for i, cnt in enumerate(counts):
+        x = cnt - counts[i - 2] if i > 2 else cnt
+        more = True
+        while more:
+            c = x & 0x1F
+            x >>= 5
+            more = (x != -1) if (c & 0x10) else (x != 0)
+            if more:
+                c |= 0x20
+            chars.append(chr(c + 48))
+    return "".join(chars)
+
+
+def rle_to_mask(
+    rle: npt.NDArray[np.integer[Any]] | list[int] | str | bytes,
+    resolution_wh: tuple[int, int],
+) -> npt.NDArray[np.bool_]:
+    """
+    Converts a COCO run-length encoding (RLE) to a binary mask.
+
+    Implements the COCO RLE format used by ``pycocotools``: pixels are counted
+    in **column-major (Fortran) order** — top-to-bottom within each column,
+    left-to-right across columns. This is the opposite of the row-major order
+    used by NumPy's default ``'C'`` layout. Passing RLE data produced by a
+    different row-major convention will yield an incorrect mask.
+
+    Args:
+        rle: The COCO RLE data in one of the following formats:
+
+            - A 1D array or list of integers (uncompressed COCO RLE, where
+              values at even indices are background run-lengths and values at
+              odd indices are foreground run-lengths, both counted column-major).
+            - A compressed COCO RLE string or bytes, as produced by
+              ``pycocotools.mask.encode``.
+        resolution_wh: The width (w) and height (h)
+            of the desired binary mask.
+
+    Returns:
+        The generated 2D Boolean mask of shape `(h, w)`, where the foreground object is
+            marked with `True`'s and the rest is filled with `False`'s.
+
+    Raises:
+        ValueError: If the sum of pixels encoded in RLE differs from the
+            number of pixels in the expected mask (computed based on resolution_wh).
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> mask = sv.rle_to_mask([5, 2, 2, 2, 5], (4, 4))
+        >>> mask  # doctest: +NORMALIZE_WHITESPACE
+        array([[False, False, False, False],
+               [False,  True,  True, False],
+               [False,  True,  True, False],
+               [False, False, False, False]])
+
+        >>> mask = sv.rle_to_mask("52203", (4, 4))
+        >>> mask  # doctest: +NORMALIZE_WHITESPACE
+        array([[False, False, False, False],
+               [False,  True,  True, False],
+               [False,  True,  True, False],
+               [False, False, False, False]])
+
+        ```
+    """
+    if isinstance(rle, bytes):
+        rle = rle.decode("utf-8")
+    if isinstance(rle, str):
+        rle = np.array(_decode_coco_rle_string(rle), dtype=int)
+    elif isinstance(rle, list):
+        rle = np.array(rle, dtype=int)
+
+    width, height = resolution_wh
+
+    if width * height != np.sum(rle):
+        raise ValueError(
+            "the sum of the number of pixels in the RLE must be the same "
+            "as the number of pixels in the expected mask"
+        )
+
+    zero_one_values = np.zeros(shape=(rle.size, 1), dtype=np.uint8)
+    zero_one_values[1::2] = 1
+
+    decoded_rle = np.repeat(zero_one_values, rle, axis=0)
+    decoded_rle = np.append(
+        decoded_rle, np.zeros(width * height - len(decoded_rle), dtype=np.uint8)
+    )
+    return decoded_rle.reshape((height, width), order="F").astype(bool)
+
+
+def mask_to_rle(
+    mask: npt.NDArray[np.bool_], compressed: bool = False
+) -> list[int] | str:
+    """
+    Converts a binary mask into a COCO run-length encoding (RLE).
+
+    Produces RLE in the COCO format used by ``pycocotools``: pixels are counted
+    in **column-major (Fortran) order** — top-to-bottom within each column,
+    left-to-right across columns. The output is directly compatible with
+    ``pycocotools.mask.decode`` and COCO annotation JSON files.
+
+    Args:
+        mask: 2D binary mask where `True` indicates foreground
+            object and `False` indicates background.
+        compressed: If ``True``, return a compressed COCO RLE string
+            compatible with ``pycocotools``. If ``False`` (default),
+            return a list of integers.
+
+    Returns:
+        The COCO run-length encoded mask. When ``compressed`` is ``False``,
+            values of a list with even indices represent the number of pixels
+            assigned as background (`False`), values of a list with odd indices
+            represent the number of pixels assigned as foreground object (`True`),
+            both counted in column-major order.
+            When ``compressed`` is ``True``, a COCO compressed RLE string.
+
+    Raises:
+        AssertionError: If input mask is not 2D or is empty.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> mask = np.array([
+        ...     [True, True, True, True],
+        ...     [True, True, True, True],
+        ...     [True, True, True, True],
+        ...     [True, True, True, True],
+        ... ])
+        >>> rle = sv.mask_to_rle(mask)
+        >>> [int(x) for x in rle]
+        [0, 16]
+
+        ```
+
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> mask = np.array([
+        ...     [False, False, False, False],
+        ...     [False, True,  True,  False],
+        ...     [False, True,  True,  False],
+        ...     [False, False, False, False],
+        ... ])
+        >>> rle = sv.mask_to_rle(mask)
+        >>> [int(x) for x in rle]
+        [5, 2, 2, 2, 5]
+
+        >>> sv.mask_to_rle(mask, compressed=True)
+        '52203'
+
+        ```
+
+    ![mask_to_rle](https://media.roboflow.com/supervision-docs/
+    mask-to-rle.png){ align=center width="800" }
+    """
+    assert mask.ndim == 2, "Input mask must be 2D"
+    assert mask.size != 0, "Input mask cannot be empty"
+
+    on_value_change_indices = np.where(
+        mask.ravel(order="F") != np.roll(mask.ravel(order="F"), 1)
+    )[0]
+
+    on_value_change_indices = np.append(on_value_change_indices, mask.size)
+    # need to add 0 at the beginning when the same value is in the first and
+    # last element of the flattened mask
+    if on_value_change_indices[0] != 0:
+        on_value_change_indices = np.insert(on_value_change_indices, 0, 0)
+
+    rle = np.diff(on_value_change_indices)
+
+    if mask[0][0] == 1:
+        rle = np.insert(rle, 0, 0)
+
+    counts = [int(count) for count in rle]
+    if compressed:
+        return _encode_coco_rle_string(counts)
+    return counts
 
 
 def polygon_to_xyxy(polygon: npt.NDArray[np.number]) -> npt.NDArray[np.number]:

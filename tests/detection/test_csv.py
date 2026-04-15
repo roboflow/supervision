@@ -2,6 +2,7 @@ import csv
 import os
 from typing import Any
 
+import numpy as np
 import pytest
 
 import supervision as sv
@@ -193,6 +194,37 @@ from tests.helpers import _create_detections
                 ],
             ],
         ),  # Complex Data
+        (
+            _create_detections(
+                xyxy=[[10, 20, 30, 40], [50, 60, 70, 80]],
+                confidence=[0.9, 0.8],
+                class_id=[0, 1],
+            ),
+            {"area": np.array([400.0, 400.0]), "frame": 5},
+            _create_detections(
+                xyxy=[[15, 25, 35, 45]],
+                confidence=[0.7],
+                class_id=[2],
+            ),
+            {"area": np.array([100.0]), "frame": 6},
+            "test_detections_mixed_custom_data.csv",
+            [
+                [
+                    "x_min",
+                    "y_min",
+                    "x_max",
+                    "y_max",
+                    "class_id",
+                    "confidence",
+                    "tracker_id",
+                    "area",
+                    "frame",
+                ],
+                ["10.0", "20.0", "30.0", "40.0", "0", "0.9", "", "400.0", "5"],
+                ["50.0", "60.0", "70.0", "80.0", "1", "0.8", "", "400.0", "5"],
+                ["15.0", "25.0", "35.0", "45.0", "2", "0.7", "", "100.0", "6"],
+            ],
+        ),  # mixed custom_data: ndarray sliced per row, scalar broadcast to all rows
     ],
 )
 def test_csv_sink(

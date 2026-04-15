@@ -2,7 +2,7 @@ import os
 import warnings
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Union, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -10,11 +10,13 @@ import numpy.typing as npt
 from supervision.dataset.utils import (
     approximate_mask_with_polygons,
     map_detections_class_id,
-    mask_to_rle,
-    rle_to_mask,
 )
 from supervision.detection.core import Detections
-from supervision.detection.utils.converters import polygon_to_mask
+from supervision.detection.utils.converters import (
+    mask_to_rle,
+    polygon_to_mask,
+    rle_to_mask,
+)
 from supervision.detection.utils.masks import contains_holes, contains_multiple_segments
 from supervision.utils.file import read_json_file, save_json_file
 
@@ -83,9 +85,7 @@ def coco_annotations_to_masks(
 
         if image_annotation.get("iscrowd", 0):
             masks.append(
-                rle_to_mask(
-                    rle=np.array(segmentation["counts"]), resolution_wh=resolution_wh
-                ).astype(bool)
+                rle_to_mask(rle=segmentation["counts"], resolution_wh=resolution_wh)
             )
             continue
 
@@ -179,7 +179,7 @@ def detections_to_coco_annotations(
 
             if iscrowd:
                 segmentation = {
-                    "counts": mask_to_rle(mask=mask),
+                    "counts": cast(list[int], mask_to_rle(mask=mask, compressed=False)),
                     "size": list(mask.shape[:2]),
                 }
             else:

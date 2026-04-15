@@ -44,7 +44,7 @@ from supervision.dataset.core import (
     DetectionDataset,
 )
 from supervision.dataset.formats.coco import get_coco_class_index_mapping
-from supervision.dataset.utils import mask_to_rle, rle_to_mask
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.line_zone import (
     LineZone,
@@ -65,9 +65,11 @@ from supervision.detection.utils.boxes import (
 )
 from supervision.detection.utils.converters import (
     mask_to_polygons,
+    mask_to_rle,
     mask_to_xyxy,
     polygon_to_mask,
     polygon_to_xyxy,
+    rle_to_mask,
     xcycwh_to_xyxy,
     xywh_to_xyxy,
     xyxy_to_mask,
@@ -161,6 +163,7 @@ __all__ = [
     "ColorAnnotator",
     "ColorLookup",
     "ColorPalette",
+    "CompactMask",
     "ComparisonAnnotator",
     "ConfusionMatrix",
     "CropAnnotator",
