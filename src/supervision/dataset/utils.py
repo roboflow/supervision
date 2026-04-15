@@ -31,7 +31,7 @@ def mask_to_rle(
     mask: npt.NDArray[np.bool_], compressed: bool = False
 ) -> list[int] | str:
     """Deprecated. Use `supervision.detection.utils.converters.mask_to_rle`."""
-    return void(mask, compressed=compressed)  # type: ignore[no-any-return]
+    return void(mask, compressed)  # type: ignore[no-any-return]
 
 
 @deprecated(target=_rle_to_mask, deprecated_in="0.28.0", remove_in="0.30.0")  # type: ignore[untyped-decorator]
@@ -40,8 +40,7 @@ def rle_to_mask(
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.bool_]:
     """Deprecated. Use `supervision.detection.utils.converters.rle_to_mask`."""
-    return void(mask, compressed=compressed)  # type: ignore[no-any-return]
-    return void(mask, compressed=compressed)  # type: ignore[no-any-return]
+    return void(rle, resolution_wh)
 
 
 if TYPE_CHECKING:
