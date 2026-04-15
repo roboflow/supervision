@@ -1,3 +1,4 @@
+import functools
 from collections.abc import Callable
 from typing import Any, TypeVar, cast
 
@@ -23,6 +24,7 @@ def ensure_cv2_image_for_class_method(
     Assumes the annotators modify the scene in-place.
     """
 
+    @functools.wraps(annotate_func)
     def wrapper(self: Any, scene: ImageType, *args: Any, **kwargs: Any) -> ImageType:
         if isinstance(scene, np.ndarray):
             return annotate_func(self, scene, *args, **kwargs)
@@ -59,6 +61,7 @@ def ensure_cv2_image_for_standalone_function(
     Assumes the annotators do NOT modify the scene in-place.
     """
 
+    @functools.wraps(image_processing_fun)
     def wrapper(image: ImageType, *args: Any, **kwargs: Any) -> ImageType:
         if isinstance(image, np.ndarray):
             return image_processing_fun(image, *args, **kwargs)
@@ -83,6 +86,7 @@ def ensure_pil_image_for_class_method(
     Assumes the annotators modify the scene in-place.
     """
 
+    @functools.wraps(annotate_func)
     def wrapper(self: Any, scene: ImageType, *args: Any, **kwargs: Any) -> ImageType:
         if isinstance(scene, np.ndarray):
             scene_pil = cv2_to_pillow(scene)
