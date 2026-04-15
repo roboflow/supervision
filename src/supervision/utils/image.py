@@ -591,57 +591,56 @@ def create_tiles(
         until last row has at least one image
 
     Args:
-        images (List[ImageType]): Images to create tiles. Elements can be either
-            np.ndarray or PIL.Image, common representation will be agreed by the
+        images: Images to create tiles. Elements can be either np.ndarray or
+            PIL.Image, and a common representation will be agreed by the
             function.
-        grid_size (Optional[Tuple[Optional[int], Optional[int]]]): Expected grid
-            size in format (n_rows, n_cols). If not given - automated grid placement
-            will be applied. One may also provide only one out of two elements of the
-            tuple - then grid will be created with either n_rows or n_cols fixed,
-            leaving the other dimension to be adjusted by the number of images
-        single_tile_size (Optional[Tuple[int, int]]): sizeof a single tile element
-            provided in (width, height) format. If not given - size of tile will be
-            automatically calculated based on `tile_scaling` parameter.
-        tile_scaling (Literal["min", "max", "avg"]): If `single_tile_size` is not
-            given - parameter will be used to calculate tile size - using
-            min / max / avg size of image provided in `images` list.
-        tile_padding_color (Union[Tuple[int, int, int], sv.Color]): Color to be used in
-            images letterbox procedure (while standardising tiles sizes) as a padding.
-            If tuple provided - should be BGR.
-        tile_margin (int): size of margin between tiles (in pixels)
-        tile_margin_color (Union[Tuple[int, int, int], sv.Color]): Color of tile margin.
-            If tuple provided - should be BGR.
-        return_type (Literal["auto", "cv2", "pillow"]): Parameter dictates the format of
-            return image. One may choose specific type ("cv2" or "pillow") to enforce
-            conversion. "auto" mode takes a majority vote between types of elements in
-            `images` list - resolving draws in favour of OpenCV format. "auto" can be
-            safely used when all input images are of the same type.
-        titles (Optional[List[Optional[str]]]): Optional titles to be added to tiles.
-            Elements of that list may be empty - then specific tile (in order presented
-            in `images` parameter) will not be filled with title. It is possible to
-            provide list of titles shorter than `images` - then remaining titles will
-            be assumed empty.
-        titles_anchors (Optional[Union[Point, List[Optional[Point]]]]): Parameter to
-            specify anchor points for titles. It is possible to specify anchor either
-            globally or for specific tiles (following order of `images`).
-            If not given (either globally, or for specific element of the list),
-            it will be calculated automatically based on `default_title_placement`.
-        titles_color (Union[Tuple[int, int, int], Color]): Color of titles text.
-            If tuple provided - should be BGR.
-        titles_scale (Optional[float]): Scale of titles. If not provided - value will
-            be calculated using `calculate_optimal_text_scale(...)`.
-        titles_thickness (int): Thickness of titles text.
-        titles_padding (int): Size of titles padding.
-        titles_text_font (int): Font to be used to render titles. Must be integer
-            constant representing OpenCV font.
+        grid_size: Expected grid size in format (n_rows, n_cols). If not
+            given, automated grid placement will be applied. One may also
+            provide only one out of two elements of the tuple - then grid
+            will be created with either n_rows or n_cols fixed, leaving the
+            other dimension to be adjusted by the number of images.
+        single_tile_size: Size of a single tile element provided in
+            (width, height) format. If not given, size of tile will be
+            automatically calculated based on `tile_scaling`.
+        tile_scaling: Strategy used to calculate tile size when
+            `single_tile_size` is not given, using the min / max / avg size
+            of images provided in `images`.
+        tile_padding_color: Color to be used in the image letterbox procedure
+            while standardizing tile sizes. If a tuple is provided, it should
+            be in BGR order.
+        tile_margin: Size of margin between tiles, in pixels.
+        tile_margin_color: Color of the tile margin. If a tuple is provided,
+            it should be in BGR order.
+        return_type: Format of the returned image. One may choose a specific
+            format ("cv2" or "pillow") to enforce conversion. "auto" mode
+            takes a majority vote between types of elements in `images`,
+            resolving draws in favour of OpenCV format. "auto" can be safely
+            used when all input images are of the same type.
+        titles: Optional titles to be added to tiles. Elements of that list
+            may be empty - then a specific tile, in the order presented in
+            `images`, will not be filled with a title. It is possible to
+            provide a list of titles shorter than `images` - then remaining
+            titles will be assumed empty.
+        titles_anchors: Anchor points for titles. It is possible to specify
+            an anchor either globally or for specific tiles, following the
+            order of `images`. If not given, either globally or for a
+            specific element of the list, it will be calculated
+            automatically based on `default_title_placement`.
+        titles_color: Color of the title text. If a tuple is provided, it
+            should be in BGR order.
+        titles_scale: Scale of titles. If not provided, the value will be
+            calculated using `calculate_optimal_text_scale(...)`.
+        titles_thickness: Thickness of title text.
+        titles_padding: Size of title padding.
+        titles_text_font: Font used to render titles. Must be an integer
+            constant representing an OpenCV font.
             (See docs: https://docs.opencv.org/4.x/d6/d6e/group__imgproc__draw.html)
-        titles_background_color (Union[Tuple[int, int, int], Color]): Color of title
-            text padding.
-        default_title_placement (Literal["top", "bottom"]): Parameter specifies title
-            anchor placement in case if explicit anchor is not provided.
+        titles_background_color: Color of the title text padding.
+        default_title_placement: Title anchor placement used when an explicit
+            anchor is not provided.
 
     Returns:
-        ImageType: Image with all input images located in tails grid. The output type is
+        ImageType: Image with all input images located in tiles grid. The output type is
             determined by `return_type` parameter.
 
     Raises:
@@ -703,7 +702,7 @@ def create_tiles(
 
 def _negotiate_tiles_format(images: list[ImageType]) -> Literal["cv2", "pillow"]:
     number_of_np_arrays = sum(issubclass(type(i), np.ndarray) for i in images)
-    if number_of_np_arrays >= (len(images) // 2):
+    if number_of_np_arrays * 2 >= len(images):
         return "cv2"
     return "pillow"
 

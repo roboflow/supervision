@@ -1,9 +1,8 @@
-import warnings
+from supervision.utils.deprecation import warn_deprecated
 
-warnings.warn(
+warn_deprecated(
     "The 'supervision.keypoint' module is deprecated in `0.27.0` and will be removed "
     "in `0.30.0`. Please use 'supervision.key_points' instead.",
-    DeprecationWarning,
     stacklevel=2,
 )
 
