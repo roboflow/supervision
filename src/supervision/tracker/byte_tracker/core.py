@@ -4,6 +4,7 @@ from typing import cast
 
 import numpy as np
 import numpy.typing as npt
+from deprecate import deprecated_class
 
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import box_iou_batch
@@ -13,9 +14,20 @@ from supervision.tracker.byte_tracker.single_object_track import STrack, TrackSt
 from supervision.tracker.byte_tracker.utils import IdCounter
 
 
+@deprecated_class(
+    target=None,
+    deprecated_in="0.28.0",
+    remove_in="0.30.0",
+)
 class ByteTrack:
     """
     Initialize the ByteTrack object.
+
+    .. deprecated:: 0.28.0
+        `ByteTrack` is deprecated since `supervision-0.28.0` and will be removed in
+        `supervision-0.30.0`. Use `ByteTrackTracker` from the `trackers` package
+        instead (`pip install trackers`). Note: the update method is renamed from
+        `update_with_detections()` to `update()`.
 
     <video controls>
         <source src="https://media.roboflow.com/supervision/video-examples/how-to/track-objects/annotate-video-with-traces.mp4" type="video/mp4">
