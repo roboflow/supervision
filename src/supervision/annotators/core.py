@@ -2066,9 +2066,7 @@ class TraceAnnotator(BaseAnnotator):
                         x, y = unique_xy[:, 0], unique_xy[:, 1]
                         tck, _u = splprep([x, y], s=20)
                         xy_new = splev(np.linspace(0, 1, 100), tck)
-                        spline_points = np.stack(xy_new, axis=1).astype(
-                            np.int32
-                        )
+                        spline_points = np.stack(xy_new, axis=1).astype(np.int32)
                     except ValueError:
                         spline_points = unique_xy.astype(np.int32)
                 else:
