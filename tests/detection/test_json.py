@@ -275,6 +275,56 @@ from tests.helpers import _create_detections
                 },
             ],
         ),  # numpy array in custom_data sliced per detection row
+        (
+            _create_detections(
+                xyxy=[[10, 20, 30, 40], [50, 60, 70, 80]],
+                confidence=[0.9, 0.8],
+                class_id=[0, 1],
+            ),
+            {"ids": ["a", "b"], "tags": ("x", "y")},
+            _create_detections(
+                xyxy=[[15, 25, 35, 45]],
+                confidence=[0.7],
+                class_id=[2],
+            ),
+            {"ids": ["c"], "tags": ("z",)},
+            "test_detections_list_custom_data.json",
+            [
+                {
+                    "x_min": 10,
+                    "y_min": 20,
+                    "x_max": 30,
+                    "y_max": 40,
+                    "class_id": 0,
+                    "confidence": 0.8999999761581421,
+                    "tracker_id": "",
+                    "ids": "a",
+                    "tags": "x",
+                },
+                {
+                    "x_min": 50,
+                    "y_min": 60,
+                    "x_max": 70,
+                    "y_max": 80,
+                    "class_id": 1,
+                    "confidence": 0.800000011920929,
+                    "tracker_id": "",
+                    "ids": "b",
+                    "tags": "y",
+                },
+                {
+                    "x_min": 15,
+                    "y_min": 25,
+                    "x_max": 35,
+                    "y_max": 45,
+                    "class_id": 2,
+                    "confidence": 0.699999988079071,
+                    "tracker_id": "",
+                    "ids": "c",
+                    "tags": "z",
+                },
+            ],
+        ),  # list/tuple custom_data matching detection count is sliced per row
     ],
 )
 def test_json_sink(

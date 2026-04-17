@@ -225,6 +225,38 @@ from tests.helpers import _create_detections
                 ["15.0", "25.0", "35.0", "45.0", "2", "0.7", "", "100.0", "6"],
             ],
         ),  # mixed custom_data: ndarray sliced per row, scalar broadcast to all rows
+        (
+            _create_detections(
+                xyxy=[[10, 20, 30, 40], [50, 60, 70, 80]],
+                confidence=[0.9, 0.8],
+                class_id=[0, 1],
+            ),
+            {"ids": ["a", "b"], "tags": ("x", "y"), "frame": 7},
+            _create_detections(
+                xyxy=[[15, 25, 35, 45]],
+                confidence=[0.7],
+                class_id=[2],
+            ),
+            {"ids": ["c"], "tags": ("z",), "frame": 8},
+            "test_detections_list_custom_data.csv",
+            [
+                [
+                    "x_min",
+                    "y_min",
+                    "x_max",
+                    "y_max",
+                    "class_id",
+                    "confidence",
+                    "tracker_id",
+                    "frame",
+                    "ids",
+                    "tags",
+                ],
+                ["10.0", "20.0", "30.0", "40.0", "0", "0.9", "", "7", "a", "x"],
+                ["50.0", "60.0", "70.0", "80.0", "1", "0.8", "", "7", "b", "y"],
+                ["15.0", "25.0", "35.0", "45.0", "2", "0.7", "", "8", "c", "z"],
+            ],
+        ),  # list/tuple custom_data matching detection count is sliced per row
     ],
 )
 def test_csv_sink(
