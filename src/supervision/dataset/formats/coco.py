@@ -278,6 +278,19 @@ def load_coco_annotations(
 
     Returns:
         A tuple of `(classes, image_paths, annotations)`.
+
+    Raises:
+        ValueError: If any annotation's ``file_name`` resolves to the images
+            directory itself, to a path outside the images directory (e.g. via
+            ``../`` traversal or an absolute path), or to a subdirectory instead
+            of a regular image file.
+
+    Note:
+        Each annotation's ``file_name`` is validated against
+        ``images_directory_path`` before loading. Annotations that reference
+        paths outside the directory are rejected to prevent path-traversal
+        attacks when loading user-supplied annotation files. Symlinked images
+        pointing outside the resolved images directory are also rejected.
     """
     coco_data = read_json_file(file_path=annotations_path)
     classes = coco_categories_to_classes(coco_categories=coco_data["categories"])
