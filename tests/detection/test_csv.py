@@ -257,19 +257,53 @@ from tests.helpers import _create_detections
                 ["15.0", "25.0", "35.0", "45.0", "2", "0.7", "", "8", "c", "z"],
             ],
         ),  # list/tuple custom_data matching detection count is sliced per row
+        (
+            sv.Detections(
+                xyxy=np.array([[10, 20, 30, 40], [50, 60, 70, 80]]),
+                data={"labels": ["person", "car"]},
+            ),
+            None,
+            sv.Detections(
+                xyxy=np.array([[15, 25, 35, 45]]),
+                data={"labels": ["bus"]},
+            ),
+            None,
+            "test_detections_plain_list_data.csv",
+            [
+                [
+                    "x_min",
+                    "y_min",
+                    "x_max",
+                    "y_max",
+                    "class_id",
+                    "confidence",
+                    "tracker_id",
+                    "labels",
+                ],
+                ["10", "20", "30", "40", "", "", "", "person"],
+                ["50", "60", "70", "80", "", "", "", "car"],
+                ["15", "25", "35", "45", "", "", "", "bus"],
+            ],
+        ),  # plain Python list in detections.data is sliced per row without custom_data
     ],
 )
 def test_csv_sink(
     detections: sv.Detections,
-    custom_data: dict[str, Any],
+    custom_data: dict[str, Any] | None,
     second_detections: sv.Detections,
-    second_custom_data: dict[str, Any],
+    second_custom_data: dict[str, Any] | None,
     file_name: str,
     expected_result: list[list[Any]],
 ) -> None:
     with sv.CSVSink(file_name) as sink:
-        sink.append(detections, custom_data)
-        sink.append(second_detections, second_custom_data)
+        if custom_data is None:
+            sink.append(detections)
+        else:
+            sink.append(detections, custom_data)
+        if second_custom_data is None:
+            sink.append(second_detections)
+        else:
+            sink.append(second_detections, second_custom_data)
 
     assert_csv_equal(file_name, expected_result)
 

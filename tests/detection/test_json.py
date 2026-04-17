@@ -325,19 +325,70 @@ from tests.helpers import _create_detections
                 },
             ],
         ),  # list/tuple custom_data matching detection count is sliced per row
+        (
+            sv.Detections(
+                xyxy=np.array([[10, 20, 30, 40], [50, 60, 70, 80]]),
+                data={"labels": ["person", "car"]},
+            ),
+            None,
+            sv.Detections(
+                xyxy=np.array([[15, 25, 35, 45]]),
+                data={"labels": ["bus"]},
+            ),
+            None,
+            "test_detections_plain_list_data.json",
+            [
+                {
+                    "x_min": 10.0,
+                    "y_min": 20.0,
+                    "x_max": 30.0,
+                    "y_max": 40.0,
+                    "class_id": "",
+                    "confidence": "",
+                    "tracker_id": "",
+                    "labels": "person",
+                },
+                {
+                    "x_min": 50.0,
+                    "y_min": 60.0,
+                    "x_max": 70.0,
+                    "y_max": 80.0,
+                    "class_id": "",
+                    "confidence": "",
+                    "tracker_id": "",
+                    "labels": "car",
+                },
+                {
+                    "x_min": 15.0,
+                    "y_min": 25.0,
+                    "x_max": 35.0,
+                    "y_max": 45.0,
+                    "class_id": "",
+                    "confidence": "",
+                    "tracker_id": "",
+                    "labels": "bus",
+                },
+            ],
+        ),  # plain Python list in detections.data is sliced per row without custom_data
     ],
 )
 def test_json_sink(
     detections: sv.Detections,
-    custom_data: dict[str, Any],
+    custom_data: dict[str, Any] | None,
     second_detections: sv.Detections,
-    second_custom_data: dict[str, Any],
+    second_custom_data: dict[str, Any] | None,
     file_name: str,
     expected_result: list[list[Any]],
 ) -> None:
     with sv.JSONSink(file_name) as sink:
-        sink.append(detections, custom_data)
-        sink.append(second_detections, second_custom_data)
+        if custom_data is None:
+            sink.append(detections)
+        else:
+            sink.append(detections, custom_data)
+        if second_custom_data is None:
+            sink.append(second_detections)
+        else:
+            sink.append(second_detections, second_custom_data)
 
     assert_json_equal(file_name, expected_result)
 
