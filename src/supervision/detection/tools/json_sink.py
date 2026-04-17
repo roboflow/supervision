@@ -85,9 +85,11 @@ class JSONSink:
             self.file.close()
 
     @staticmethod
-    def _slice_value(value: Any, i: int) -> Any:
+    def _slice_value(value: Any, i: int, n: int) -> Any:
         if isinstance(value, np.ndarray):
             return value if value.ndim == 0 else value[i]
+        if isinstance(value, (list, tuple)) and len(value) == n:
+            return value[i]
         return value
 
     @staticmethod
@@ -95,7 +97,8 @@ class JSONSink:
         detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> list[dict[str, Any]]:
         parsed_rows = []
-        for i in range(len(detections.xyxy)):
+        n = len(detections.xyxy)
+        for i in range(n):
             row = {
                 "x_min": float(detections.xyxy[i][0]),
                 "y_min": float(detections.xyxy[i][1]),
@@ -114,11 +117,11 @@ class JSONSink:
 
             if hasattr(detections, "data"):
                 for key, value in detections.data.items():
-                    row[key] = str(JSONSink._slice_value(value, i))
+                    row[key] = str(JSONSink._slice_value(value, i, n))
 
             if custom_data:
                 for key, value in custom_data.items():
-                    v = JSONSink._slice_value(value, i)
+                    v = JSONSink._slice_value(value, i, n)
                     row[key] = str(v) if isinstance(value, np.ndarray) else v
 
             parsed_rows.append(row)
