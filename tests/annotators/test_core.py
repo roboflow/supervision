@@ -724,3 +724,38 @@ class TestComparisonAnnotator:
             scene=image.copy(), detections_1=detections1, detections_2=detections2
         )
         assert not np.array_equal(image, result)
+
+
+class TestTraceAnnotatorSmoothStationary:
+    """Regression tests for TraceAnnotator(smooth=True) on stationary tracker ids."""
+
+    def test_stationary_tracker_does_not_crash_spline_fit(self, test_image):
+        """
+        When the same tracker stays at an identical anchor point for several
+        frames the trace buffer accumulates duplicate points. `scipy.splprep`
+        rejects a zero-length input curve with `ValueError: Invalid inputs.`,
+        so the annotator must survive this input without raising.
+        """
+        detections = _create_detections(
+            xyxy=[[100, 100, 120, 120]],
+            class_id=[1],
+            tracker_id=[42],
+        )
+        annotator = TraceAnnotator(smooth=True, trace_length=10)
+        scene = test_image.copy()
+        for _ in range(6):
+            scene = annotator.annotate(scene=scene, detections=detections)
+
+    def test_smooth_trace_still_renders_for_moving_tracker(self, test_image):
+        """A moving tracker must still produce a smoothed polyline."""
+        annotator = TraceAnnotator(smooth=True, trace_length=10, thickness=2)
+        scene = test_image.copy()
+        before = scene.copy()
+        for offset in range(6):
+            detections = _create_detections(
+                xyxy=[[10 + offset * 5, 10 + offset * 5, 30, 30]],
+                class_id=[1],
+                tracker_id=[7],
+            )
+            scene = annotator.annotate(scene=scene, detections=detections)
+        assert not np.array_equal(before, scene)
