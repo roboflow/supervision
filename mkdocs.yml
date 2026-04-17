@@ -43,6 +43,7 @@ nav:
       - Detection and Segmentation:
           - Core: detection/core.md
           - Annotators: detection/annotators.md
+          - Compact Mask: detection/compact_mask.md
           - Converters: detection/utils/converters.md
           - IoU and NMS: detection/utils/iou_and_nms.md
           - Boxes: detection/utils/boxes.md
