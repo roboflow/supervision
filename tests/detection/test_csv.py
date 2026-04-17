@@ -535,7 +535,5 @@ def assert_csv_equal(file_name, expected_rows):
         (("z",), 0, 1, "z"),
     ],
 )
-def test_csv_sink_slice_value(
-    value: Any, i: int, n: int, expected: Any
-) -> None:
+def test_csv_sink_slice_value(value: Any, i: int, n: int, expected: Any) -> None:
     assert CSVSink._slice_value(value, i, n) == expected
