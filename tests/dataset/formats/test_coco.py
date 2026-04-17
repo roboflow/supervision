@@ -1196,6 +1196,7 @@ def test_load_coco_annotations_rejects_file_name_outside_images_directory(
     tmp_path,
     malicious_file_name: str,
 ) -> None:
+    """Reject relative traversal file_name values that escape the images directory."""
     images_directory = tmp_path / "images"
     images_directory.mkdir()
     annotations_path = tmp_path / "annotations.json"
@@ -1222,6 +1223,7 @@ def test_load_coco_annotations_rejects_file_name_outside_images_directory(
 
 
 def test_load_coco_annotations_rejects_absolute_file_name(tmp_path) -> None:
+    """Reject absolute file_name values that escape the images directory."""
     images_directory = tmp_path / "images"
     images_directory.mkdir()
     annotations_path = tmp_path / "annotations.json"
