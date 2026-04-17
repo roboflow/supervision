@@ -114,6 +114,24 @@ class JSONSink:
     def parse_detection_data(
         detections: Detections, custom_data: dict[str, Any] | None = None
     ) -> list[dict[str, Any]]:
+        """
+        Convert detections and optional custom data into per-detection rows.
+
+        Builds one dictionary per detection containing bounding box coordinates,
+        detection attributes, and any values from ``detections.data`` or
+        ``custom_data``. List and tuple values in ``custom_data`` with length
+        equal to ``len(detections.xyxy)`` are sliced one element per row; all
+        other values are broadcast to every row.
+
+        Args:
+            detections: Detection data to serialize into row dictionaries.
+            custom_data: Optional extra fields to include in each row.
+
+        Returns:
+            A list of dictionaries, one per detection, containing ``xyxy``
+            coordinates, ``class_id``, ``confidence``, ``tracker_id``, and any
+            values from ``detections.data`` or ``custom_data``.
+        """
         parsed_rows = []
         n = len(detections.xyxy)
         for i in range(n):
