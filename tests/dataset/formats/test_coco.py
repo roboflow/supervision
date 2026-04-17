@@ -1157,6 +1157,69 @@ def test_load_coco_annotations_force_masks_with_no_annotations(
     assert annotations[no_annotations_path] == Detections.empty()
 
 
+@pytest.mark.parametrize(
+    "malicious_file_name",
+    [
+        "../escape.txt",
+        "../../escape.txt",
+        "subdir/../../escape.txt",
+    ],
+)
+def test_load_coco_annotations_rejects_file_name_outside_images_directory(
+    tmp_path,
+    malicious_file_name: str,
+) -> None:
+    images_directory = tmp_path / "images"
+    images_directory.mkdir()
+    annotations_path = tmp_path / "annotations.json"
+
+    coco_data = {
+        "categories": [{"id": 1, "name": "object", "supercategory": "none"}],
+        "images": [
+            {
+                "id": 1,
+                "file_name": malicious_file_name,
+                "width": 5,
+                "height": 5,
+            }
+        ],
+        "annotations": [],
+    }
+    annotations_path.write_text(json.dumps(coco_data), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="outside the images directory"):
+        load_coco_annotations(
+            images_directory_path=str(images_directory),
+            annotations_path=str(annotations_path),
+        )
+
+
+def test_load_coco_annotations_rejects_absolute_file_name(tmp_path) -> None:
+    images_directory = tmp_path / "images"
+    images_directory.mkdir()
+    annotations_path = tmp_path / "annotations.json"
+
+    coco_data = {
+        "categories": [{"id": 1, "name": "object", "supercategory": "none"}],
+        "images": [
+            {
+                "id": 1,
+                "file_name": "/etc/passwd",
+                "width": 5,
+                "height": 5,
+            }
+        ],
+        "annotations": [],
+    }
+    annotations_path.write_text(json.dumps(coco_data), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="outside the images directory"):
+        load_coco_annotations(
+            images_directory_path=str(images_directory),
+            annotations_path=str(annotations_path),
+        )
+
+
 def test_load_coco_annotations_force_masks_handles_missing_segmentation(
     tmp_path,
 ) -> None:
