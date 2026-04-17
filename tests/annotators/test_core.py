@@ -753,7 +753,7 @@ class TestTraceAnnotatorSmoothStationary:
         before = scene.copy()
         for offset in range(6):
             detections = _create_detections(
-                xyxy=[[10 + offset * 5, 10 + offset * 5, 30, 30]],
+                xyxy=[[10 + offset * 5, 10 + offset * 5, 30 + offset * 5, 30 + offset * 5]],
                 class_id=[1],
                 tracker_id=[7],
             )
