@@ -1270,6 +1270,28 @@ def test_load_coco_annotations_rejects_file_name_resolving_to_directory(
         )
 
 
+def test_load_coco_annotations_accepts_valid_nested_file_name(tmp_path) -> None:
+    """Accept a legitimate nested file_name inside images/ without raising."""
+    images_directory = tmp_path / "images"
+    images_directory.mkdir()
+    (images_directory / "train").mkdir()
+    annotations_path = tmp_path / "annotations.json"
+
+    coco_data = {
+        "categories": [{"id": 1, "name": "object", "supercategory": "none"}],
+        "images": [{"id": 1, "file_name": "train/image.jpg", "width": 5, "height": 5}],
+        "annotations": [],
+    }
+    annotations_path.write_text(json.dumps(coco_data), encoding="utf-8")
+
+    _, _, annotations = load_coco_annotations(
+        images_directory_path=str(images_directory),
+        annotations_path=str(annotations_path),
+    )
+    expected_path = str(images_directory / "train" / "image.jpg")
+    assert expected_path in annotations
+
+
 def test_load_coco_annotations_force_masks_handles_missing_segmentation(
     tmp_path,
 ) -> None:
