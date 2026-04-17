@@ -86,6 +86,24 @@ class JSONSink:
 
     @staticmethod
     def _slice_value(value: Any, i: int, n: int) -> Any:
+        """
+        Return the i-th element when the value stores per-detection data.
+
+        Dispatch rules:
+            - np.ndarray with ndim == 0: return as-is for broadcasting
+            - np.ndarray with ndim >= 1: return value[i]
+            - list or tuple with len equal to n: return value[i]
+            - any other type: return as-is for broadcasting
+
+        Args:
+            value: Custom-data field value.
+            i: Zero-based detection index.
+            n: Total number of detections.
+
+        Returns:
+            Element at position i if value is a per-detection sequence,
+            otherwise value unchanged.
+        """
         if isinstance(value, np.ndarray):
             return value if value.ndim == 0 else value[i]
         if isinstance(value, (list, tuple)) and len(value) == n:
