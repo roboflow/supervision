@@ -1967,7 +1967,10 @@ class TraceAnnotator(BaseAnnotator):
             trace_length: The maximum length of the trace in terms of historical
                 points. Defaults to `30`.
             thickness: The thickness of the trace lines. Defaults to `2`.
-            smooth: Smooth the trace lines.
+            smooth: If `True`, applies spline smoothing to trace lines using
+                consecutive unique anchor points. Falls back to a raw polyline
+                when fewer than 4 unique points are available (e.g. when a
+                tracker is stationary).
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
@@ -2054,11 +2057,20 @@ class TraceAnnotator(BaseAnnotator):
             xy = self.trace.get(tracker_id=tracker_id)
             spline_points: npt.NDArray[np.int32] = xy.astype(np.int32)
 
-            if len(xy) > 3 and self.smooth:
-                x, y = xy[:, 0], xy[:, 1]
-                tck, _u = splprep([x, y], s=20)
-                x_new, y_new = splev(np.linspace(0, 1, 100), tck)
-                spline_points = np.stack([x_new, y_new], axis=1).astype(np.int32)
+            if self.smooth:
+                unique_xy = xy[
+                    np.concatenate(([True], np.any(np.diff(xy, axis=0) != 0, axis=1)))
+                ]
+                if len(unique_xy) > 3:
+                    try:
+                        x, y = unique_xy[:, 0], unique_xy[:, 1]
+                        tck, _u = splprep([x, y], s=20)
+                        xy_new = splev(np.linspace(0, 1, 100), tck)
+                        spline_points = np.stack(xy_new, axis=1).astype(np.int32)
+                    except ValueError:
+                        spline_points = unique_xy.astype(np.int32)
+                else:
+                    spline_points = unique_xy.astype(np.int32)
 
             if len(xy) > 1:
                 cv2.polylines(

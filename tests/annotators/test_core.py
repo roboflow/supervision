@@ -724,3 +724,137 @@ class TestComparisonAnnotator:
             scene=image.copy(), detections_1=detections1, detections_2=detections2
         )
         assert not np.array_equal(image, result)
+
+
+class TestTraceAnnotatorSmoothStationary:
+    """Regression tests for TraceAnnotator(smooth=True) on stationary tracker ids."""
+
+    def test_stationary_tracker_does_not_crash_spline_fit(self, test_image):
+        """
+        When the same tracker stays at an identical anchor point for several
+        frames the trace buffer accumulates duplicate points. `scipy.splprep`
+        rejects a zero-length input curve with `ValueError: Invalid inputs.`,
+        so the annotator must survive this input without raising.
+        """
+        detections = _create_detections(
+            xyxy=[[100, 100, 120, 120]],
+            class_id=[1],
+            tracker_id=[42],
+        )
+        annotator = TraceAnnotator(smooth=True, trace_length=10)
+        scene = test_image.copy()
+        for _ in range(6):
+            scene = annotator.annotate(scene=scene, detections=detections)
+        assert scene.shape == test_image.shape
+
+    def test_smooth_trace_still_renders_for_moving_tracker(self, test_image):
+        """Moving tracker must produce a spline trace distinct from the raw polyline.
+
+        Compares smooth=True output against smooth=False for the same movement
+        path to confirm the smoothing path is actually exercised (not just that
+        some pixels changed).
+        """
+        smooth_annotator = TraceAnnotator(smooth=True, trace_length=10, thickness=2)
+        raw_annotator = TraceAnnotator(smooth=False, trace_length=10, thickness=2)
+        scene_smooth = test_image.copy()
+        scene_raw = test_image.copy()
+        for offset in range(6):
+            detections = _create_detections(
+                xyxy=[
+                    [10 + offset * 5, 10 + offset * 5, 30 + offset * 5, 30 + offset * 5]
+                ],
+                class_id=[1],
+                tracker_id=[7],
+            )
+            scene_smooth = smooth_annotator.annotate(
+                scene=scene_smooth, detections=detections
+            )
+            scene_raw = raw_annotator.annotate(scene=scene_raw, detections=detections)
+        # After 4+ unique anchor positions the spline path fires and diverges from the
+        # raw polyline — the two output images must differ.
+        assert not np.array_equal(scene_smooth, scene_raw)
+
+    @pytest.mark.parametrize(
+        "unique_positions",
+        [1, 2, 3, 4],
+        ids=["1_unique", "2_unique", "3_unique", "4_unique"],
+    )
+    def test_smooth_does_not_crash_for_unique_point_counts(
+        self, test_image, unique_positions
+    ):
+        """smooth=True must not crash for any unique-position count from 1 to 4.
+
+        Each position is repeated twice to simulate brief holds between moves.
+        Covers the boundary at len(unique_xy) == 4 where splprep first fires.
+        """
+        annotator = TraceAnnotator(smooth=True, trace_length=10, thickness=2)
+        scene = test_image.copy()
+        for pos_idx in range(unique_positions):
+            for _ in range(2):
+                x = 10 + pos_idx * 15
+                detections = _create_detections(
+                    xyxy=[[x, x, x + 15, x + 15]],
+                    class_id=[1],
+                    tracker_id=[99],
+                )
+                scene = annotator.annotate(scene=scene, detections=detections)
+        assert scene.shape == test_image.shape
+
+    def test_smooth_fallback_matches_raw_when_fewer_than_four_unique_points(
+        self, test_image
+    ):
+        """With <4 unique positions smooth=True output must match smooth=False.
+
+        Verifies the dedup-then-fallback path: when unique_xy has ≤3 points,
+        both branches use the same raw-polyline draw.
+        """
+        annotator_smooth = TraceAnnotator(smooth=True, trace_length=10, thickness=2)
+        annotator_raw = TraceAnnotator(smooth=False, trace_length=10, thickness=2)
+        scene_smooth = test_image.copy()
+        scene_raw = test_image.copy()
+        for pos_idx in range(3):
+            for _ in range(2):
+                x = 10 + pos_idx * 15
+                detections = _create_detections(
+                    xyxy=[[x, x, x + 15, x + 15]],
+                    class_id=[1],
+                    tracker_id=[99],
+                )
+                scene_smooth = annotator_smooth.annotate(
+                    scene=scene_smooth, detections=detections
+                )
+                scene_raw = annotator_raw.annotate(
+                    scene=scene_raw, detections=detections
+                )
+        assert np.array_equal(scene_smooth, scene_raw)
+
+    def test_smooth_true_single_frame_does_not_crash(self, test_image):
+        """A single annotate() call with smooth=True must not crash.
+
+        When len(xy) == 1 the drawing guard skips cv2.polylines entirely;
+        the dedup path runs safely on an empty np.diff result.
+        """
+        detections = _create_detections(
+            xyxy=[[50, 50, 70, 70]],
+            class_id=[1],
+            tracker_id=[1],
+        )
+        annotator = TraceAnnotator(smooth=True, trace_length=10)
+        scene = annotator.annotate(scene=test_image.copy(), detections=detections)
+        assert scene.shape == test_image.shape
+
+    def test_smooth_false_stationary_tracker_does_not_crash(self, test_image):
+        """smooth=False with a stationary tracker must not crash (regression guard).
+
+        Ensures the refactor did not accidentally alter the smooth=False code path.
+        """
+        detections = _create_detections(
+            xyxy=[[100, 100, 120, 120]],
+            class_id=[1],
+            tracker_id=[42],
+        )
+        annotator = TraceAnnotator(smooth=False, trace_length=10)
+        scene = test_image.copy()
+        for _ in range(6):
+            scene = annotator.annotate(scene=scene, detections=detections)
+        assert scene.shape == test_image.shape
