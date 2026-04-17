@@ -2054,11 +2054,15 @@ class TraceAnnotator(BaseAnnotator):
             xy = self.trace.get(tracker_id=tracker_id)
             spline_points: npt.NDArray[np.int32] = xy.astype(np.int32)
 
-            if len(xy) > 3 and self.smooth:
-                x, y = xy[:, 0], xy[:, 1]
-                tck, _u = splprep([x, y], s=20)
-                x_new, y_new = splev(np.linspace(0, 1, 100), tck)
-                spline_points = np.stack([x_new, y_new], axis=1).astype(np.int32)
+            if self.smooth:
+                unique_xy = xy[
+                    np.concatenate(([True], np.any(np.diff(xy, axis=0) != 0, axis=1)))
+                ]
+                if len(unique_xy) > 3:
+                    x, y = unique_xy[:, 0], unique_xy[:, 1]
+                    tck, _u = splprep([x, y], s=20)
+                    x_new, y_new = splev(np.linspace(0, 1, 100), tck)
+                    spline_points = np.stack([x_new, y_new], axis=1).astype(np.int32)
 
             if len(xy) > 1:
                 cv2.polylines(
