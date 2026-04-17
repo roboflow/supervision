@@ -1247,6 +1247,29 @@ def test_load_coco_annotations_rejects_absolute_file_name(tmp_path) -> None:
         )
 
 
+def test_load_coco_annotations_rejects_file_name_resolving_to_directory(
+    tmp_path,
+) -> None:
+    """Reject file_name resolving to a subdirectory inside images/ (is_dir guard)."""
+    images_directory = tmp_path / "images"
+    images_directory.mkdir()
+    (images_directory / "subdir").mkdir()
+    annotations_path = tmp_path / "annotations.json"
+
+    coco_data = {
+        "categories": [{"id": 1, "name": "object", "supercategory": "none"}],
+        "images": [{"id": 1, "file_name": "subdir", "width": 5, "height": 5}],
+        "annotations": [],
+    }
+    annotations_path.write_text(json.dumps(coco_data), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="resolves to directory"):
+        load_coco_annotations(
+            images_directory_path=str(images_directory),
+            annotations_path=str(annotations_path),
+        )
+
+
 def test_load_coco_annotations_force_masks_handles_missing_segmentation(
     tmp_path,
 ) -> None:
