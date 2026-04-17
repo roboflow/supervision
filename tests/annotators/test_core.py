@@ -745,6 +745,7 @@ class TestTraceAnnotatorSmoothStationary:
         scene = test_image.copy()
         for _ in range(6):
             scene = annotator.annotate(scene=scene, detections=detections)
+        assert scene.shape == test_image.shape
 
     def test_smooth_trace_still_renders_for_moving_tracker(self, test_image):
         """Moving tracker must produce a spline trace distinct from the raw polyline.
@@ -797,6 +798,7 @@ class TestTraceAnnotatorSmoothStationary:
                     tracker_id=[99],
                 )
                 scene = annotator.annotate(scene=scene, detections=detections)
+        assert scene.shape == test_image.shape
 
     def test_smooth_fallback_matches_raw_when_fewer_than_four_unique_points(
         self, test_image
@@ -855,3 +857,4 @@ class TestTraceAnnotatorSmoothStationary:
         scene = test_image.copy()
         for _ in range(6):
             scene = annotator.annotate(scene=scene, detections=detections)
+        assert scene.shape == test_image.shape
