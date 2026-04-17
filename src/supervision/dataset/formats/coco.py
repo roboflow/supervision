@@ -304,14 +304,24 @@ def load_coco_annotations(
         image_annotations = coco_annotations_groups.get(coco_image["id"], [])
         image_path = os.path.join(images_directory_path, image_name)
         resolved_image_path = Path(image_path).resolve()
-        if (
-            resolved_image_path != images_directory_resolved
-            and images_directory_resolved not in resolved_image_path.parents
-        ):
+        if resolved_image_path == images_directory_resolved:
+            raise ValueError(
+                f"COCO annotation refers to image {image_name!r}, which "
+                f"resolves to the images directory itself "
+                f"({images_directory_resolved}). Expected a path to an "
+                "image file."
+            )
+        if images_directory_resolved not in resolved_image_path.parents:
             raise ValueError(
                 f"COCO annotation refers to image {image_name!r}, which "
                 f"resolves to {resolved_image_path} — outside the images "
                 f"directory {images_directory_resolved}."
+            )
+        if resolved_image_path.is_dir():
+            raise ValueError(
+                f"COCO annotation refers to image {image_name!r}, which "
+                f"resolves to directory {resolved_image_path}. Expected a "
+                "path to an image file."
             )
 
         with_masks = force_masks or any(
