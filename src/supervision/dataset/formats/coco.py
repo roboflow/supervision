@@ -1,4 +1,3 @@
-import os
 import warnings
 from datetime import datetime
 from pathlib import Path
@@ -315,7 +314,7 @@ def load_coco_annotations(
             coco_image["height"],
         )
         image_annotations = coco_annotations_groups.get(coco_image["id"], [])
-        image_path = os.path.join(images_directory_path, image_name)
+        image_path = str(Path(images_directory_path) / Path(image_name))
         try:
             resolved_image_path = Path(image_path).resolve()
         except (OSError, ValueError) as exc:
