@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 import supervision as sv
+from supervision.detection.tools.csv_sink import CSVSink
 from tests.helpers import _create_detections
 
 
@@ -521,3 +522,20 @@ def assert_csv_equal(file_name, expected_rows):
             )
 
     os.remove(file_name)
+
+
+@pytest.mark.parametrize(
+    ("value", "i", "n", "expected"),
+    [
+        (["x"], 0, 1, "x"),
+        (["a", "b", "c"], 0, 2, ["a", "b", "c"]),
+        ([42, "hello", None], 1, 3, "hello"),
+        ([["a", "b"], ["c", "d"]], 0, 2, ["a", "b"]),
+        ("ab", 0, 2, "ab"),
+        (("z",), 0, 1, "z"),
+    ],
+)
+def test_csv_sink_slice_value(
+    value: Any, i: int, n: int, expected: Any
+) -> None:
+    assert CSVSink._slice_value(value, i, n) == expected
