@@ -1158,6 +1158,33 @@ def test_load_coco_annotations_force_masks_with_no_annotations(
 
 
 @pytest.mark.parametrize(
+    "file_name",
+    [".", "", "subdir/.."],
+)
+def test_load_coco_annotations_rejects_file_name_resolving_to_images_directory(
+    tmp_path,
+    file_name: str,
+) -> None:
+    """Reject file_name resolving to the images directory itself (equality guard)."""
+    images_directory = tmp_path / "images"
+    images_directory.mkdir()
+    annotations_path = tmp_path / "annotations.json"
+
+    coco_data = {
+        "categories": [{"id": 1, "name": "object", "supercategory": "none"}],
+        "images": [{"id": 1, "file_name": file_name, "width": 5, "height": 5}],
+        "annotations": [],
+    }
+    annotations_path.write_text(json.dumps(coco_data), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="resolves to the images directory itself"):
+        load_coco_annotations(
+            images_directory_path=str(images_directory),
+            annotations_path=str(annotations_path),
+        )
+
+
+@pytest.mark.parametrize(
     "malicious_file_name",
     [
         "../escape.txt",
