@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import csv
 import os
 from typing import Any
@@ -6,6 +8,7 @@ import numpy as np
 import pytest
 
 import supervision as sv
+from supervision.detection.tools.csv_sink import CSVSink
 from tests.helpers import _create_detections
 
 
@@ -225,19 +228,85 @@ from tests.helpers import _create_detections
                 ["15.0", "25.0", "35.0", "45.0", "2", "0.7", "", "100.0", "6"],
             ],
         ),  # mixed custom_data: ndarray sliced per row, scalar broadcast to all rows
+        (
+            _create_detections(
+                xyxy=[[10, 20, 30, 40], [50, 60, 70, 80]],
+                confidence=[0.9, 0.8],
+                class_id=[0, 1],
+            ),
+            {"ids": ["a", "b"], "tags": ("x", "y"), "frame": 7},
+            _create_detections(
+                xyxy=[[15, 25, 35, 45]],
+                confidence=[0.7],
+                class_id=[2],
+            ),
+            {"ids": ["c"], "tags": ("z",), "frame": 8},
+            "test_detections_list_custom_data.csv",
+            [
+                [
+                    "x_min",
+                    "y_min",
+                    "x_max",
+                    "y_max",
+                    "class_id",
+                    "confidence",
+                    "tracker_id",
+                    "frame",
+                    "ids",
+                    "tags",
+                ],
+                ["10.0", "20.0", "30.0", "40.0", "0", "0.9", "", "7", "a", "x"],
+                ["50.0", "60.0", "70.0", "80.0", "1", "0.8", "", "7", "b", "y"],
+                ["15.0", "25.0", "35.0", "45.0", "2", "0.7", "", "8", "c", "z"],
+            ],
+        ),  # list/tuple custom_data matching detection count is sliced per row
+        (
+            sv.Detections(
+                xyxy=np.array([[10, 20, 30, 40], [50, 60, 70, 80]]),
+                data={"labels": ["person", "car"]},
+            ),
+            None,
+            sv.Detections(
+                xyxy=np.array([[15, 25, 35, 45]]),
+                data={"labels": ["bus"]},
+            ),
+            None,
+            "test_detections_plain_list_data.csv",
+            [
+                [
+                    "x_min",
+                    "y_min",
+                    "x_max",
+                    "y_max",
+                    "class_id",
+                    "confidence",
+                    "tracker_id",
+                    "labels",
+                ],
+                ["10", "20", "30", "40", "", "", "", "person"],
+                ["50", "60", "70", "80", "", "", "", "car"],
+                ["15", "25", "35", "45", "", "", "", "bus"],
+            ],
+        ),  # plain Python list in detections.data is sliced per row without custom_data
     ],
 )
 def test_csv_sink(
     detections: sv.Detections,
-    custom_data: dict[str, Any],
+    custom_data: dict[str, Any] | None,
     second_detections: sv.Detections,
-    second_custom_data: dict[str, Any],
+    second_custom_data: dict[str, Any] | None,
     file_name: str,
     expected_result: list[list[Any]],
 ) -> None:
     with sv.CSVSink(file_name) as sink:
-        sink.append(detections, custom_data)
-        sink.append(second_detections, second_custom_data)
+        if custom_data is None:
+            sink.append(detections)
+        else:
+            sink.append(detections, custom_data)
+        if second_custom_data is None:
+            sink.append(second_detections)
+        else:
+            sink.append(second_detections, second_custom_data)
 
     assert_csv_equal(file_name, expected_result)
 
@@ -455,3 +524,18 @@ def assert_csv_equal(file_name, expected_rows):
             )
 
     os.remove(file_name)
+
+
+@pytest.mark.parametrize(
+    ("value", "i", "n", "expected"),
+    [
+        (["x"], 0, 1, "x"),
+        (["a", "b", "c"], 0, 2, ["a", "b", "c"]),
+        ([42, "hello", None], 1, 3, "hello"),
+        ([["a", "b"], ["c", "d"]], 0, 2, ["a", "b"]),
+        ("ab", 0, 2, "ab"),
+        (("z",), 0, 1, "z"),
+    ],
+)
+def test_csv_sink_slice_value(value: Any, i: int, n: int, expected: Any) -> None:
+    assert CSVSink._slice_value(value, i, n) == expected
