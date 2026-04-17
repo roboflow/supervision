@@ -1967,7 +1967,10 @@ class TraceAnnotator(BaseAnnotator):
             trace_length: The maximum length of the trace in terms of historical
                 points. Defaults to `30`.
             thickness: The thickness of the trace lines. Defaults to `2`.
-            smooth: Smooth the trace lines.
+            smooth: If `True`, applies spline smoothing to trace lines using
+                consecutive unique anchor points. Falls back to a raw polyline
+                when fewer than 4 unique points are available (e.g. when a
+                tracker is stationary).
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
