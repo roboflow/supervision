@@ -162,7 +162,11 @@ class CSVSink:
 
         Args:
             detections: The detection data.
-            custom_data: Custom data to include.
+            custom_data: Custom data to include. Scalars, dictionaries, and
+                other non-sequence values are broadcast to every detection in
+                this batch. NumPy arrays, lists, and tuples with length equal
+                to ``len(detections)`` are sliced per detection; other lists
+                and tuples are broadcast unchanged.
         """
         if not self.writer:
             raise Exception(
