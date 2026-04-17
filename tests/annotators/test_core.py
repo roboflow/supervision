@@ -747,10 +747,16 @@ class TestTraceAnnotatorSmoothStationary:
             scene = annotator.annotate(scene=scene, detections=detections)
 
     def test_smooth_trace_still_renders_for_moving_tracker(self, test_image):
-        """A moving tracker must still produce a smoothed polyline."""
-        annotator = TraceAnnotator(smooth=True, trace_length=10, thickness=2)
-        scene = test_image.copy()
-        before = scene.copy()
+        """Moving tracker must produce a spline trace distinct from the raw polyline.
+
+        Compares smooth=True output against smooth=False for the same movement
+        path to confirm the smoothing path is actually exercised (not just that
+        some pixels changed).
+        """
+        smooth_annotator = TraceAnnotator(smooth=True, trace_length=10, thickness=2)
+        raw_annotator = TraceAnnotator(smooth=False, trace_length=10, thickness=2)
+        scene_smooth = test_image.copy()
+        scene_raw = test_image.copy()
         for offset in range(6):
             detections = _create_detections(
                 xyxy=[
@@ -759,5 +765,10 @@ class TestTraceAnnotatorSmoothStationary:
                 class_id=[1],
                 tracker_id=[7],
             )
-            scene = annotator.annotate(scene=scene, detections=detections)
-        assert not np.array_equal(before, scene)
+            scene_smooth = smooth_annotator.annotate(
+                scene=scene_smooth, detections=detections
+            )
+            scene_raw = raw_annotator.annotate(scene=scene_raw, detections=detections)
+        # After 4+ unique anchor positions the spline path fires and diverges from the
+        # raw polyline — the two output images must differ.
+        assert not np.array_equal(scene_smooth, scene_raw)
