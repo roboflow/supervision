@@ -2059,10 +2059,17 @@ class TraceAnnotator(BaseAnnotator):
                     np.concatenate(([True], np.any(np.diff(xy, axis=0) != 0, axis=1)))
                 ]
                 if len(unique_xy) > 3:
-                    x, y = unique_xy[:, 0], unique_xy[:, 1]
-                    tck, _u = splprep([x, y], s=20)
-                    x_new, y_new = splev(np.linspace(0, 1, 100), tck)
-                    spline_points = np.stack([x_new, y_new], axis=1).astype(np.int32)
+                    try:
+                        x, y = unique_xy[:, 0], unique_xy[:, 1]
+                        tck, _u = splprep([x, y], s=20)
+                        x_new, y_new = splev(np.linspace(0, 1, 100), tck)
+                        spline_points = np.stack([x_new, y_new], axis=1).astype(
+                            np.int32
+                        )
+                    except ValueError:
+                        spline_points = unique_xy.astype(np.int32)
+                else:
+                    spline_points = unique_xy.astype(np.int32)
 
             if len(xy) > 1:
                 cv2.polylines(
