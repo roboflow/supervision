@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import numpy.typing as npt
+from deprecate import deprecated
 
 from supervision.detection.utils.iou_and_nms import box_iou_batch
 
@@ -95,10 +96,17 @@ def pad_boxes(
     return result
 
 
+@deprecated(  # type: ignore[untyped-decorator]
+    target=True,
+    deprecated_in="0.27.0",
+    remove_in="0.30.0",
+    args_mapping={"normalized_xyxy": "xyxy"},
+)
 def denormalize_boxes(
     xyxy: npt.NDArray[np.number],
     resolution_wh: tuple[int, int],
     normalization_factor: float = 1.0,
+    normalized_xyxy: npt.NDArray[np.number] | None = None,
 ) -> npt.NDArray[np.number]:
     """
     Convert normalized bounding box coordinates to absolute pixel coordinates.
