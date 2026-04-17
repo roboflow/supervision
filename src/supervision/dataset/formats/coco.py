@@ -316,7 +316,13 @@ def load_coco_annotations(
         )
         image_annotations = coco_annotations_groups.get(coco_image["id"], [])
         image_path = os.path.join(images_directory_path, image_name)
-        resolved_image_path = Path(image_path).resolve()
+        try:
+            resolved_image_path = Path(image_path).resolve()
+        except (OSError, ValueError) as exc:
+            raise ValueError(
+                f"COCO annotation refers to image {image_name!r}, which "
+                f"produces an invalid path: {exc}"
+            ) from exc
         if resolved_image_path == images_directory_resolved:
             raise ValueError(
                 f"COCO annotation refers to image {image_name!r}, which "
