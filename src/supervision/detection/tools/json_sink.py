@@ -21,6 +21,7 @@ class JSONSink:
 
         JSONSink allows passing custom data alongside detection fields, providing
         flexibility for logging various types of information.
+        When a list or tuple value in custom_data (or detections.data) has the same length as the detection count, each element is written to the corresponding detection row; any other value is broadcast to all rows.
 
     Args:
         file_name: The name of the JSON file where the detections will be stored.
