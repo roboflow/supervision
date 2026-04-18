@@ -23,7 +23,7 @@ date_modified: 2026-04-23
 
 - Fixed [#2210](https://github.com/roboflow/supervision/pull/2210): [`sv.VideoInfo.fps`](https://supervision.roboflow.com/latest/utils/video/#supervision.utils.video.VideoInfo) now returns a `float` instead of a truncated `int`. Previously, frame rates like 23.976, 29.97, and 59.94 were silently truncated, causing frame-timing drift that accumulates over long videos. The type of `VideoInfo.fps` has changed from `int` to `float`; callers that pass `fps` to APIs requiring an integer (such as `deque(maxlen=...)` or `TraceAnnotator(trace_length=...)`) should wrap the value with `int()`.
 
-- Fixed [#2209](https://github.com/roboflow/supervision/pull/2209): [`sv.Detections.is_empty()`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.is_empty) now returns `False` for detections with an empty `tracker_id` array, matching the expected behaviour.
+- Fixed [#2209](https://github.com/roboflow/supervision/pull/2209): [`sv.Detections.is_empty()`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.is_empty) now returns `True` for detections filtered down to zero rows, even when `tracker_id` is an empty array. Previously this case incorrectly returned `False`.
 
 - Fixed [#2199](https://github.com/roboflow/supervision/pull/2199): [`sv.CSVSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink) now correctly slices numpy array values in `custom_data` per row. Previously the full array was written for every detection.
 
