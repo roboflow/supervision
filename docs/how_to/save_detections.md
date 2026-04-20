@@ -1,5 +1,6 @@
 ---
 comments: true
+description: "Save object detection results to CSV or JSON with supervision's CSVSink and JSONSink — export predictions for analysis and downstream pipelines."
 ---
 
 # Save Detections

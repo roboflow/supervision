@@ -1,5 +1,6 @@
 ---
 comments: true
+description: "Detect small objects in images by applying SAHI inference slicing with supervision's InferenceSlicer — improve recall for tiny targets."
 ---
 
 # Detect Small Objects

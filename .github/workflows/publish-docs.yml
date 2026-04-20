@@ -58,3 +58,19 @@ jobs:
         run: |
           latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
           mike deploy --push --update-aliases $latest_tag latest
+
+      - name: 🌐 Inject GEO root files into gh-pages
+        if: >
+          (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
+          github.event_name == 'workflow_dispatch' ||
+          (github.event_name == 'release' && github.event.action == 'published')
+        run: |
+          cp docs/robots.txt /tmp/robots.txt
+          cp docs/llms.txt /tmp/llms.txt
+          git fetch origin gh-pages
+          git checkout gh-pages
+          cp /tmp/robots.txt robots.txt
+          cp /tmp/llms.txt llms.txt
+          git add robots.txt llms.txt
+          git diff --cached --quiet || git commit -m "chore: update GEO root files (robots.txt, llms.txt)"
+          git push origin gh-pages
