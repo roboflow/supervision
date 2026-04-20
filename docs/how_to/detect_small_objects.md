@@ -20,6 +20,8 @@ with the [Inference](https://github.com/roboflow/inference),
 Small object detection in high-resolution images presents challenges due to the objects'
 size relative to the image resolution.
 
+Running a standard detection model on the full image establishes a baseline for comparison. Load your chosen model, pass the image through it, and convert the results into a `Detections` object. This baseline reveals how many small objects the model misses at native resolution, motivating the sliced inference approach shown later.
+
 === "Inference"
 
     ```python

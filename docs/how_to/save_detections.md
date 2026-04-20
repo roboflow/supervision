@@ -19,6 +19,8 @@ First, you'll need to obtain predictions from your object detection or segmentat
 model. You can learn more on this topic in our
 [How to Detect and Annotate](https://supervision.roboflow.com/latest/how_to/detect_and_annotate/) guide.
 
+To generate predictions for saving, initialize your model and iterate over video frames using `sv.get_video_frames_generator`. Each frame is passed to the model, and the raw output is converted into a `sv.Detections` object. This detection loop forms the foundation for both CSV and JSON export workflows shown below.
+
 === "Inference"
 
     ```python

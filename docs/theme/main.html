@@ -29,7 +29,8 @@
     "https://github.com/roboflow/supervision",
     "https://pypi.org/project/supervision",
     "https://twitter.com/roboflow",
-    "https://www.youtube.com/roboflow"
+    "https://www.youtube.com/roboflow",
+    "https://en.wikipedia.org/wiki/Roboflow"
   ]
 }
 </script>
@@ -53,6 +54,55 @@
     "price": "0",
     "priceCurrency": "USD"
   }
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is supervision?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Supervision is an open-source Python library by Roboflow for computer vision workflows. It provides a unified Detections class compatible with YOLO, SAM, Grounding DINO, Transformers, and 20+ model frameworks, plus tools for annotation, tracking, zone counting, dataset management, and model benchmarking."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I install supervision?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Install supervision with pip: pip install supervision. For evaluation tools use pip install supervision[metrics]. For sample assets use pip install supervision[assets]."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What can I do with supervision?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "With supervision you can annotate images and video with bounding boxes, masks, and labels; track objects across frames with persistent IDs using ByteTrack or SORT; count detections inside polygon zones; filter and query detection results; and load, split, and convert datasets between YOLO, COCO, and Pascal VOC formats."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is supervision free to use?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Supervision is free and open-source under the MIT license. Source code is at https://github.com/roboflow/supervision."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which object detection models work with supervision?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Supervision is model-agnostic and works with Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers, SAM, Grounding DINO, Florence-2, PaliGemma, and 20+ other frameworks through built-in connectors that convert any model output to a unified Detections object."
+      }
+    }
+  ]
 }
 </script>
 {% endif %}
@@ -109,6 +159,7 @@
 <meta name="twitter:title" content="{{ page.title }}" />
 <meta name="twitter:description" content="{{ page.meta.description | d(config.site_description) }}" />
 <meta name="twitter:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
+<meta name="indexnow-key" content="0d5d9799b1cc4a39825146388c6781eb" />
 
 {% endif %}
 

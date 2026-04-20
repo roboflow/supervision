@@ -56,7 +56,7 @@ jobs:
         env:
           MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          latest_tag=$(git tag --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
           mike deploy --push --update-aliases $latest_tag latest
 
       - name: 🌐 Inject GEO root files into gh-pages
@@ -67,10 +67,38 @@ jobs:
         run: |
           cp docs/robots.txt /tmp/robots.txt
           cp docs/llms.txt /tmp/llms.txt
+          cp docs/0d5d9799b1cc4a39825146388c6781eb.txt /tmp/indexnow.txt
           git fetch origin gh-pages
           git checkout gh-pages
           cp /tmp/robots.txt robots.txt
           cp /tmp/llms.txt llms.txt
-          git add robots.txt llms.txt
-          git diff --cached --quiet || git commit -m "chore: update GEO root files (robots.txt, llms.txt)"
+          cp /tmp/indexnow.txt 0d5d9799b1cc4a39825146388c6781eb.txt
+          git add robots.txt llms.txt 0d5d9799b1cc4a39825146388c6781eb.txt
+          git diff --cached --quiet || git commit -m "chore: update GEO root files (robots.txt, llms.txt, indexnow)"
           git push origin gh-pages
+
+      - name: 📡 Notify IndexNow
+        if: >
+          (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
+          github.event_name == 'workflow_dispatch' ||
+          (github.event_name == 'release' && github.event.action == 'published')
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" -X POST "https://api.indexnow.org/IndexNow" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            -d '{
+              "host": "supervision.roboflow.com",
+              "key": "0d5d9799b1cc4a39825146388c6781eb",
+              "keyLocation": "https://supervision.roboflow.com/0d5d9799b1cc4a39825146388c6781eb.txt",
+              "urlList": [
+                "https://supervision.roboflow.com/",
+                "https://supervision.roboflow.com/latest/",
+                "https://supervision.roboflow.com/latest/how_to/detect_and_annotate/",
+                "https://supervision.roboflow.com/latest/how_to/track_objects/",
+                "https://supervision.roboflow.com/latest/how_to/detect_small_objects/",
+                "https://supervision.roboflow.com/latest/how_to/filter_detections/",
+                "https://supervision.roboflow.com/latest/how_to/save_detections/",
+                "https://supervision.roboflow.com/latest/how_to/count_in_zone/",
+                "https://supervision.roboflow.com/latest/how_to/benchmark_a_model/",
+                "https://supervision.roboflow.com/latest/how_to/process_datasets/"
+              ]
+            }' || true

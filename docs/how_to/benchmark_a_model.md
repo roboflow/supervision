@@ -75,6 +75,8 @@ This will create a folder called `Corgi-v2-4` with the dataset in the current wo
 
 Let's load a model.
 
+Select and instantiate the detection or segmentation model you want to benchmark. Supervision works with Roboflow Inference for both local and cloud-deployed models, as well as Ultralytics YOLO checkpoints. Choose the tab below that matches your preferred framework, then pass images to the loaded model during the evaluation loop.
+
 === "Inference, Local"
 
     Roboflow supports a range of state-of-the-art [pre-trained models](https://inference.roboflow.com/quickstart/aliases/) for object detection, instance segmentation, and pose tracking. You don't even need an API key!

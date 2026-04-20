@@ -19,6 +19,8 @@ download_assets(VideoAssets.VEHICLES_2)
 
 First, we need to initialize a model. Let's use a YOLOv8 model with the default COCO checkpoint. We also need to load a video on which to run inference.
 
+Create a YOLO model instance and load the source video using supervision's `VideoInfo` helper. The model will process each frame during inference, while `VideoInfo` extracts resolution and frame-rate metadata needed by the polygon zone annotator. A shared color palette ensures consistent zone coloring throughout the output video.
+
 ```python
 import numpy as np
 import supervision as sv
@@ -69,6 +71,8 @@ polygons = [
 ## Define Zones
 
 With the coordinates of the zones to draw ready, we can set up our zones:
+
+Instantiate a `PolygonZone` for each polygon array, pairing it with a `PolygonZoneAnnotator` for visual overlay and a `BoxAnnotator` for drawing detection boxes. Each zone will later trigger on incoming detections to determine which objects fall inside its boundaries, enabling per-zone counting in the inference callback.
 
 ```python
 zones = [
