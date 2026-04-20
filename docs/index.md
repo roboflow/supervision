@@ -4,7 +4,7 @@ comments: true
 hide:
   - navigation
   - toc
-description: "Open-source Python library providing computer vision tools for annotating detections, tracking objects, counting in zones, and processing datasets."
+description: Open-source Python library providing computer vision tools for annotating detections, tracking objects, counting in zones, and processing datasets.
 ---
 
 <div class="md-typeset">

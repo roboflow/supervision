@@ -1,6 +1,6 @@
 ---
 comments: true
-description: "Load, split, merge, and convert computer vision datasets between YOLO, COCO, and Pascal VOC formats using supervision's DetectionDataset."
+description: Load, split, merge, and convert computer vision datasets between YOLO, COCO, and Pascal VOC formats using supervision's DetectionDataset.
 ---
 
 With Supervision, you can load and manipulate classification, object detection, and

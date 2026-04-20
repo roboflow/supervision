@@ -1,6 +1,6 @@
 ---
 comments: true
-description: "Learn to load model predictions, create Detections objects, and annotate images with bounding boxes, labels, and masks using supervision."
+description: Learn to load model predictions, create Detections objects, and annotate images with bounding boxes, labels, and masks using supervision.
 ---
 
 # Detect and Annotate

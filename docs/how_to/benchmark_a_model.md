@@ -1,6 +1,6 @@
 ---
 comments: true
-description: "Benchmark object detection models with supervision — compute mAP, confusion matrix, and per-class metrics to compare model performance."
+description: Benchmark object detection models with supervision — compute mAP, confusion matrix, and per-class metrics to compare model performance.
 ---
 
 ![Corgi Example](https://media.roboflow.com/supervision/image-examples/how-to/benchmark-models/corgi-sorted-2.png)

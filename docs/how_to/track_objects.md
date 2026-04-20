@@ -1,6 +1,6 @@
 ---
 comments: true
-description: "Track objects across video frames with ByteTrack in supervision — assign persistent IDs and analyze motion from any object detection model."
+description: Track objects across video frames with ByteTrack in supervision — assign persistent IDs and analyze motion from any object detection model.
 ---
 
 # Track Objects
