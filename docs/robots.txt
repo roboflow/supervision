@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /0.*/
 
 User-agent: GPTBot
 Allow: /
@@ -18,7 +19,5 @@ Allow: /
 
 User-agent: GoogleOther
 Allow: /
-
-Disallow: /0.*/
 
 Sitemap: https://supervision.roboflow.com/sitemap.xml
