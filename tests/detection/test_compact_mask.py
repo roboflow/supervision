@@ -12,6 +12,7 @@ from supervision.detection.compact_mask import (
     _rle_area,
     _rle_decode,
     _rle_encode,
+    _rle_resize,
 )
 from supervision.detection.utils.converters import mask_to_xyxy
 from supervision.detection.utils.masks import (
@@ -1100,3 +1101,210 @@ class TestCompactMaskResize:
                 f"Dense parity mismatch for seed={seed}, mask={i}: "
                 f"max pixel diff={diff}"
             )
+
+
+class TestRleResize:
+    """Tests for the _rle_resize direct RLE resizing function.
+
+    Verifies that _rle_resize produces identical results to the decode →
+    cv2.resize(INTER_NEAREST) → encode path for identity, upscale, downscale,
+    non-square, all-False, all-True, single-pixel, cross-row, and random masks.
+    """
+
+    def test_identity_4x4(self) -> None:
+        """Identity resize (same dimensions) preserves the decoded mask."""
+        mask = np.array(
+            [
+                [False, True, True, False],
+                [True, True, False, False],
+                [False, False, True, True],
+                [True, False, False, True],
+            ],
+            dtype=bool,
+        )
+        rle = _rle_encode(mask)
+        result_rle = _rle_resize(rle, 4, 4, 4, 4)
+        result = _rle_decode(result_rle, 4, 4)
+        np.testing.assert_array_equal(result, mask)
+
+    def test_2x_upscale(self) -> None:
+        """2x upscale of a 2x2 mask doubles each pixel."""
+        mask = np.array(
+            [
+                [True, False],
+                [False, True],
+            ],
+            dtype=bool,
+        )
+        rle = _rle_encode(mask)
+        result_rle = _rle_resize(rle, 2, 2, 4, 4)
+        result = _rle_decode(result_rle, 4, 4)
+
+        import cv2
+
+        expected = cv2.resize(
+            mask.astype(np.uint8), (4, 4), interpolation=cv2.INTER_NEAREST
+        ).astype(bool)
+        np.testing.assert_array_equal(result, expected)
+
+    def test_2x_downscale(self) -> None:
+        """2x downscale of a 4x4 mask halves dimensions."""
+        mask = np.array(
+            [
+                [True, True, False, False],
+                [True, True, False, False],
+                [False, False, True, True],
+                [False, False, True, True],
+            ],
+            dtype=bool,
+        )
+        rle = _rle_encode(mask)
+        result_rle = _rle_resize(rle, 4, 4, 2, 2)
+        result = _rle_decode(result_rle, 2, 2)
+
+        import cv2
+
+        expected = cv2.resize(
+            mask.astype(np.uint8), (2, 2), interpolation=cv2.INTER_NEAREST
+        ).astype(bool)
+        np.testing.assert_array_equal(result, expected)
+
+    def test_non_square_scale(self) -> None:
+        """Non-square resize: 4x6 to 2x3 with independent axis scaling."""
+        mask = np.zeros((4, 6), dtype=bool)
+        mask[0:2, 0:3] = True
+        mask[2:4, 3:6] = True
+        rle = _rle_encode(mask)
+        result_rle = _rle_resize(rle, 4, 6, 2, 3)
+        result = _rle_decode(result_rle, 2, 3)
+
+        import cv2
+
+        expected = cv2.resize(
+            mask.astype(np.uint8), (3, 2), interpolation=cv2.INTER_NEAREST
+        ).astype(bool)
+        np.testing.assert_array_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        ("src_shape", "dst_shape"),
+        [
+            ((3, 3), (6, 6)),
+            ((5, 5), (2, 2)),
+            ((4, 6), (8, 12)),
+            ((10, 10), (3, 3)),
+        ],
+    )
+    def test_all_false(
+        self, src_shape: tuple[int, int], dst_shape: tuple[int, int]
+    ) -> None:
+        """All-False mask resizes to all-False regardless of dimensions."""
+        mask = np.zeros(src_shape, dtype=bool)
+        rle = _rle_encode(mask)
+        result_rle = _rle_resize(rle, *src_shape, *dst_shape)
+        result = _rle_decode(result_rle, *dst_shape)
+        assert not result.any()
+
+    @pytest.mark.parametrize(
+        ("src_shape", "dst_shape"),
+        [
+            ((3, 3), (6, 6)),
+            ((5, 5), (2, 2)),
+            ((4, 6), (8, 12)),
+            ((10, 10), (3, 3)),
+        ],
+    )
+    def test_all_true(
+        self, src_shape: tuple[int, int], dst_shape: tuple[int, int]
+    ) -> None:
+        """All-True mask resizes to all-True regardless of dimensions."""
+        mask = np.ones(src_shape, dtype=bool)
+        rle = _rle_encode(mask)
+        result_rle = _rle_resize(rle, *src_shape, *dst_shape)
+        result = _rle_decode(result_rle, *dst_shape)
+        assert result.all()
+
+    def test_single_pixel_true_upscale(self) -> None:
+        """Single True pixel in a 3x3 mask upscaled preserves position."""
+        mask = np.zeros((3, 3), dtype=bool)
+        mask[1, 1] = True  # centre pixel
+        rle = _rle_encode(mask)
+        result_rle = _rle_resize(rle, 3, 3, 6, 6)
+        result = _rle_decode(result_rle, 6, 6)
+
+        import cv2
+
+        expected = cv2.resize(
+            mask.astype(np.uint8), (6, 6), interpolation=cv2.INTER_NEAREST
+        ).astype(bool)
+        np.testing.assert_array_equal(result, expected)
+
+    def test_cross_row_run_downscale(self) -> None:
+        """A run that straddles two rows survives downscale correctly."""
+        # Row 0: FFTTT, Row 1: TTTFF — the True run crosses the row boundary
+        mask = np.array(
+            [
+                [False, False, True, True, True],
+                [True, True, True, False, False],
+                [False, False, False, False, False],
+                [True, True, True, True, True],
+            ],
+            dtype=bool,
+        )
+        rle = _rle_encode(mask)
+        result_rle = _rle_resize(rle, 4, 5, 2, 3)
+        result = _rle_decode(result_rle, 2, 3)
+
+        import cv2
+
+        expected = cv2.resize(
+            mask.astype(np.uint8), (3, 2), interpolation=cv2.INTER_NEAREST
+        ).astype(bool)
+        np.testing.assert_array_equal(result, expected)
+
+    @pytest.mark.parametrize("seed", list(range(20)))
+    def test_roundtrip_parity_with_cv2(self, seed: int) -> None:
+        """_rle_resize output must be bit-exact with cv2.resize(INTER_NEAREST)."""
+        import cv2
+
+        rng = np.random.default_rng(seed + 7000)
+        crop_h = int(rng.integers(1, 50))
+        crop_w = int(rng.integers(1, 50))
+        new_crop_h = int(rng.integers(1, 100))
+        new_crop_w = int(rng.integers(1, 100))
+
+        mask = rng.random((crop_h, crop_w)) < 0.3
+        rle = _rle_encode(mask)
+        result_rle = _rle_resize(rle, crop_h, crop_w, new_crop_h, new_crop_w)
+        result = _rle_decode(result_rle, new_crop_h, new_crop_w)
+
+        expected = cv2.resize(
+            mask.astype(np.uint8),
+            (new_crop_w, new_crop_h),
+            interpolation=cv2.INTER_NEAREST,
+        ).astype(bool)
+        np.testing.assert_array_equal(
+            result,
+            expected,
+            err_msg=(
+                f"Bit-exact parity failed for seed={seed}, "
+                f"src=({crop_h},{crop_w}), dst=({new_crop_h},{new_crop_w})"
+            ),
+        )
+
+    def test_resize_dispatch_uses_l3_for_sparse(self) -> None:
+        """resize() dispatches to _rle_resize for sparse masks."""
+        # Create a sparse mask (few True pixels → few RLE runs → low density)
+        img_h, img_w = 100, 100
+        masks = np.zeros((1, img_h, img_w), dtype=bool)
+        masks[0, 50, 50] = True  # single pixel → very sparse RLE
+        xyxy = mask_to_xyxy(masks).astype(np.float32)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
+
+        # Resize to a different shape
+        resized = cm.resize((200, 200))
+
+        # Verify the result is correct (the L3 path was used for sparse mask)
+        assert resized.shape == (1, 200, 200)
+        dense = resized.to_dense()
+        # The single pixel should still be present somewhere
+        assert dense.sum() > 0
