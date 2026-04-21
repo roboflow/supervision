@@ -19,11 +19,13 @@ import numpy.typing as npt
 
 
 def _rle_encode(mask_2d: npt.NDArray[Any]) -> npt.NDArray[np.int32]:
-    """Run-length encode a 2D boolean mask in row-major order.
+    """Run-length encode a 2D boolean mask in column-major (Fortran) order.
 
-    The encoding starts with the count of leading ``False`` values (may be 0
-    if the mask begins with ``True``).  Subsequent values alternate between
-    ``True`` and ``False`` run counts.
+    Pixels are scanned column-by-column (top-to-bottom within each column,
+    left-to-right across columns), matching the COCO / pycocotools RLE
+    convention.  The encoding starts with the count of leading ``False``
+    values (may be 0 if the mask begins with ``True``).  Subsequent values
+    alternate between ``True`` and ``False`` run counts.
 
     Args:
         mask_2d: 2D boolean array of shape ``(H, W)``.
@@ -37,11 +39,11 @@ def _rle_encode(mask_2d: npt.NDArray[Any]) -> npt.NDArray[np.int32]:
         >>> from supervision.detection.compact_mask import _rle_encode
         >>> mask = np.array([[False, True, True], [True, False, False]])
         >>> _rle_encode(mask).tolist()
-        [1, 3, 2]
+        [1, 2, 1, 1, 1]
 
         ```
     """
-    flat = mask_2d.ravel()  # C-order (row-major)
+    flat = mask_2d.ravel(order="F")  # F-order (column-major, COCO-compatible)
     if len(flat) == 0:
         return np.array([0], dtype=np.int32)
 
@@ -76,7 +78,7 @@ def _rle_decode(
         ```pycon
         >>> import numpy as np
         >>> from supervision.detection.compact_mask import _rle_decode
-        >>> rle = np.array([1, 3, 2], dtype=np.int32)
+        >>> rle = np.array([1, 2, 1, 1, 1], dtype=np.int32)
         >>> _rle_decode(rle, 2, 3)
         array([[False,  True,  True],
                [ True, False, False]])
@@ -91,7 +93,9 @@ def _rle_decode(
         # Pad with False if the RLE is shorter than expected (e.g. all-False
         # tails are often omitted during encoding).
         flat = np.pad(flat, (0, num_pixels - len(flat)))
-    return cast(npt.NDArray[np.bool_], flat[:num_pixels].reshape(height, width))
+    return cast(
+        npt.NDArray[np.bool_], flat[:num_pixels].reshape(height, width, order="F")
+    )
 
 
 def _rle_area(rle: npt.NDArray[np.int32]) -> int:
@@ -138,17 +142,16 @@ class CompactMask:
     ``cm.to_dense().astype(np.uint8)``.  :meth:`to_dense` is the single
     explicit materialisation boundary.
 
-    .. note:: **RLE encoding incompatibility with pycocotools / COCO API**
+    .. note:: **RLE encoding — COCO / pycocotools pixel-scan order**
 
-        :class:`CompactMask` uses **row-major (C-order)** run-lengths scoped
-        to each mask's bounding-box crop.  The COCO API (pycocotools) uses
-        **column-major (Fortran-order)** run-lengths scoped to the **full
-        image**.  The two formats are not interchangeable: you cannot pass a
-        :class:`CompactMask` RLE directly to ``maskUtils.iou()`` or
-        ``maskUtils.decode()``, and you cannot load a COCO RLE dict into a
-        :class:`CompactMask` without re-encoding.  Use
-        :meth:`to_dense` to obtain a standard boolean array, then pass it to
-        pycocotools if needed.
+        :class:`CompactMask` uses **column-major (Fortran-order, F-order)**
+        run-lengths scoped to each mask's bounding-box crop, matching the
+        pixel-scan order used by the COCO API (pycocotools).  The crop scope
+        still differs from the full-image scope used by pycocotools, so a
+        :class:`CompactMask` RLE cannot be passed directly to
+        ``maskUtils.iou()`` or ``maskUtils.decode()`` without re-scoping to
+        the full canvas.  Use :meth:`to_dense` to obtain a standard boolean
+        array for pycocotools interop.
 
     Args:
         rles: List of N int32 run-length arrays.
