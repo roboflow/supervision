@@ -159,6 +159,13 @@
 <meta name="twitter:title" content="{{ page.title }}" />
 <meta name="twitter:description" content="{{ page.meta.description | d(config.site_description) }}" />
 <meta name="twitter:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
+{# IndexNow ownership key — do NOT change this value.
+   The same key must exist in three places (all must stay in sync):
+     1. This meta tag (docs/theme/main.html)
+     2. The key file at docs/0d5d9799b1cc4a39825146388c6781eb.txt
+     3. The CI step in .github/workflows/publish-docs.yml
+   Bing/Yandex verify ownership by fetching https://supervision.roboflow.com/<key>.txt
+   and comparing its contents to this meta tag before accepting IndexNow submissions. #}
 <meta name="indexnow-key" content="0d5d9799b1cc4a39825146388c6781eb" />
 
 {% endif %}
