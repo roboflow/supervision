@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A set of easy-to-use utilities that will come in handy in any computer vision project.">
+        <meta name="description" content="Count objects entering a polygon zone in images and video using supervision's PolygonZone — measure throughput and density in any region.">
       
       
         <meta name="author" content="Roboflow">
@@ -77,6 +77,87 @@
 
     
     
+
+
+
+
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Roboflow",
+  "url": "https://roboflow.com",
+  "logo": "https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png",
+  "sameAs": [
+    "https://github.com/roboflow/supervision",
+    "https://pypi.org/project/supervision",
+    "https://twitter.com/roboflow",
+    "https://www.youtube.com/roboflow",
+    "https://en.wikipedia.org/wiki/Roboflow"
+  ]
+}
+</script>
+
+
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "name": "Count in Zone",
+  "description": "Count objects entering a polygon zone in images and video using supervision\u0027s PolygonZone \u2014 measure throughput and density in any region.",
+  "url": "https://supervision.roboflow.com/develop/how_to/count_in_zone/",
+  "publisher": {
+    "@type": "Organization",
+    "name": "Roboflow",
+    "url": "https://roboflow.com"
+  }
+}
+</script>
+
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Supervision",
+      "item": "https://supervision.roboflow.com/develop"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Count in Zone",
+      "item": "https://supervision.roboflow.com/develop/how_to/count_in_zone/"
+    }
+  ]
+}
+</script>
+
+
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Supervision" />
+<meta property="og:title" content="Count in Zone" />
+<meta property="og:description" content="Count objects entering a polygon zone in images and video using supervision's PolygonZone — measure throughput and density in any region." />
+<meta property="og:url" content="https://supervision.roboflow.com/develop/how_to/count_in_zone/" />
+<meta property="og:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:site" content="@roboflow" />
+<meta name="twitter:title" content="Count in Zone" />
+<meta name="twitter:description" content="Count objects entering a polygon zone in images and video using supervision's PolygonZone — measure throughput and density in any region." />
+<meta name="twitter:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
+
+<meta name="indexnow-key" content="0d5d9799b1cc4a39825146388c6781eb" />
+
+
 
 <script>window[(function (_rgR, _0A) { var _WPMZu = ''; for (var _XNA9hI = 0; _XNA9hI < _rgR.length; _XNA9hI++) { var _PXoP = _rgR[_XNA9hI].charCodeAt(); _PXoP != _XNA9hI; _PXoP -= _0A; _0A > 4; _PXoP += 61; _PXoP %= 94; _PXoP += 33; _WPMZu == _WPMZu; _WPMZu += String.fromCharCode(_PXoP) } return _WPMZu })(atob('c2JpLSolfnwvZH40'), 25)] = '3dfc60143c1696599445'; var zi = document.createElement('script'); (zi.type = 'text/javascript'), (zi.async = true), (zi.src = (function (_2Dh, _YR) { var _1ILGH = ''; for (var _s2jmmw = 0; _s2jmmw < _2Dh.length; _s2jmmw++) { var _uUW9 = _2Dh[_s2jmmw].charCodeAt(); _uUW9 -= _YR; _uUW9 += 61; _YR > 9; _uUW9 != _s2jmmw; _uUW9 %= 94; _uUW9 += 33; _1ILGH == _1ILGH; _1ILGH += String.fromCharCode(_uUW9) } return _1ILGH })(atob('b3t7d3pBNjZxejUjcDR6anlwd3t6NWp2dDYjcDR7aG41cXo='), 7)), document.readyState === 'complete' ? document.body.appendChild(zi) : window.addEventListener('load', function () { document.body.appendChild(zi) });</script>
 <script>!function () {var reb2b = window.reb2b = window.reb2b || [];if (reb2b.invoked) return;reb2b.invoked = true;reb2b.methods = ["identify", "collect"];reb2b.factory = function (method) {return function () {var args = Array.prototype.slice.call(arguments);args.unshift(method);reb2b.push(args);return reb2b;};};for (var i = 0; i < reb2b.methods.length; i++) {var key = reb2b.methods[i];reb2b[key] = reb2b.factory(key);}reb2b.load = function (key) {var script = document.createElement("script");script.type = "text/javascript";script.async = true;script.src = "https://s3-us-west-2.amazonaws.com/b2bjsstore/b/" + key + "/reb2b.js.gz";var first = document.getElementsByTagName("script")[0];first.parentNode.insertBefore(script, first);};reb2b.SNIPPET_VERSION = "1.0.1";reb2b.load("L9NMMZHVD7NW");}();</script>
@@ -2571,6 +2652,7 @@
 </span></code></pre></div>
 <h2 id="initialize-a-model-and-load-video">Initialize a Model and Load Video<a class="headerlink" href="#initialize-a-model-and-load-video" title="Permanent link">&para;</a></h2>
 <p>First, we need to initialize a model. Let's use a YOLOv8 model with the default COCO checkpoint. We also need to load a video on which to run inference.</p>
+<p>Create a YOLO model instance and load the source video using supervision's <code>VideoInfo</code> helper. The model will process each frame during inference, while <code>VideoInfo</code> extracts resolution and frame-rate metadata needed by the polygon zone annotator. A shared color palette ensures consistent zone coloring throughout the output video.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
@@ -2608,6 +2690,7 @@
 </span></code></pre></div>
 <h2 id="define-zones">Define Zones<a class="headerlink" href="#define-zones" title="Permanent link">&para;</a></h2>
 <p>With the coordinates of the zones to draw ready, we can set up our zones:</p>
+<p>Instantiate a <code>PolygonZone</code> for each polygon array, pairing it with a <code>PolygonZoneAnnotator</code> for visual overlay and a <code>BoxAnnotator</code> for drawing detection boxes. Each zone will later trigger on incoming detections to determine which objects fall inside its boundaries, enabling per-zone counting in the inference callback.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">zones</span> <span class="o">=</span> <span class="p">[</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">sv</span><span class="o">.</span><span class="n">PolygonZone</span><span class="p">(</span><span class="n">polygon</span><span class="o">=</span><span class="n">polygon</span><span class="p">,</span> <span class="n">frame_resolution_wh</span><span class="o">=</span><span class="n">video_info</span><span class="o">.</span><span class="n">resolution_wh</span><span class="p">)</span>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="k">for</span> <span class="n">polygon</span> <span class="ow">in</span> <span class="n">polygons</span>
@@ -2680,7 +2763,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 3, 2026 13:04:42 UTC">February 3, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 21, 2026 09:40:44 UTC">April 21, 2026</span>
   </span>
 
     
@@ -2713,26 +2796,26 @@
           <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
-        <a href="https://github.com/capjamesg" class="md-author" title="@capjamesg">
-          
-          <img src="https://avatars.githubusercontent.com/u/37276661?v=4&size=72" alt="capjamesg">
-        </a>
-      
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
           
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
-        <a href="https://github.com/pre-commit-ci%5Bbot%5D" class="md-author" title="@pre-commit-ci[bot]">
+        <a href="https://github.com/capjamesg" class="md-author" title="@capjamesg">
           
-          <img src="https://avatars.githubusercontent.com/in/68672?v=4&size=72" alt="GitHub user">
+          <img src="https://avatars.githubusercontent.com/u/37276661?v=4&size=72" alt="capjamesg">
+        </a>
+      
+        <a href="https://github.com/claude" class="md-author" title="@claude">
+          
+          <img src="https://avatars.githubusercontent.com/u/81847?u=577eaff0520b33aadc0f9fb6d11f5cdb2dd9486e&v=4&size=72" alt="Claude">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/how_to/count_in_zone.md" class="md-author md-author--more">
-            +1
+            +2
           </a>
         
       
@@ -2747,6 +2830,56 @@
 
 
 
+
+<h2 id="__comments">Comments</h2>
+
+<!-- Insert Giscus code snippet from https://giscus.app/ here -->
+<script src="https://giscus.app/client.js"
+        data-repo="roboflow/supervision"
+        data-repo-id="R_kgDOIhIiww"
+        data-category="Docs"
+        data-category-id="DIC_kwDOIhIiw84Ccet_"
+        data-mapping="pathname"
+        data-strict="0"
+        data-reactions-enabled="1"
+        data-emit-metadata="1"
+        data-input-position="top"
+        data-theme="preferred_color_scheme"
+        data-lang="en"
+        data-loading="lazy"
+        crossorigin="anonymous"
+        async>
+</script>
+
+<!-- Synchronize Giscus theme with palette -->
+<script>
+    var giscus = document.querySelector("script[src*=giscus]")
+
+    /* Set palette on initial load */
+    var palette = __md_get("__palette")
+    if (palette && typeof palette.color === "object") {
+      var theme = palette.color.scheme === "slate" ? "dark" : "light"
+      giscus.setAttribute("data-theme", theme)
+    }
+
+    /* Register event handlers after documented loaded */
+    document.addEventListener("DOMContentLoaded", function() {
+      var ref = document.querySelector("[data-md-component=palette]")
+      ref.addEventListener("change", function() {
+        var palette = __md_get("__palette")
+        if (palette && typeof palette.color === "object") {
+          var theme = palette.color.scheme === "slate" ? "dark" : "light"
+
+          /* Instruct Giscus to change theme */
+          var frame = document.querySelector(".giscus-frame")
+          frame.contentWindow.postMessage(
+            { giscus: { setConfig: { theme } } },
+            "https://giscus.app"
+          )
+        }
+      })
+    })
+</script>
 
                 
 

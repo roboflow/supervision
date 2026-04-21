@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A set of easy-to-use utilities that will come in handy in any computer vision project.">
+        <meta name="description" content="Learn to load model predictions, create Detections objects, and annotate images with bounding boxes, labels, and masks using supervision.">
       
       
         <meta name="author" content="Roboflow">
@@ -77,6 +77,87 @@
 
     
     
+
+
+
+
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Roboflow",
+  "url": "https://roboflow.com",
+  "logo": "https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png",
+  "sameAs": [
+    "https://github.com/roboflow/supervision",
+    "https://pypi.org/project/supervision",
+    "https://twitter.com/roboflow",
+    "https://www.youtube.com/roboflow",
+    "https://en.wikipedia.org/wiki/Roboflow"
+  ]
+}
+</script>
+
+
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "name": "Detect and Annotate",
+  "description": "Learn to load model predictions, create Detections objects, and annotate images with bounding boxes, labels, and masks using supervision.",
+  "url": "https://supervision.roboflow.com/develop/how_to/detect_and_annotate/",
+  "publisher": {
+    "@type": "Organization",
+    "name": "Roboflow",
+    "url": "https://roboflow.com"
+  }
+}
+</script>
+
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Supervision",
+      "item": "https://supervision.roboflow.com/develop"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Detect and Annotate",
+      "item": "https://supervision.roboflow.com/develop/how_to/detect_and_annotate/"
+    }
+  ]
+}
+</script>
+
+
+
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Supervision" />
+<meta property="og:title" content="Detect and Annotate" />
+<meta property="og:description" content="Learn to load model predictions, create Detections objects, and annotate images with bounding boxes, labels, and masks using supervision." />
+<meta property="og:url" content="https://supervision.roboflow.com/develop/how_to/detect_and_annotate/" />
+<meta property="og:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:site" content="@roboflow" />
+<meta name="twitter:title" content="Detect and Annotate" />
+<meta name="twitter:description" content="Learn to load model predictions, create Detections objects, and annotate images with bounding boxes, labels, and masks using supervision." />
+<meta name="twitter:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
+
+<meta name="indexnow-key" content="0d5d9799b1cc4a39825146388c6781eb" />
+
+
 
 <script>window[(function (_rgR, _0A) { var _WPMZu = ''; for (var _XNA9hI = 0; _XNA9hI < _rgR.length; _XNA9hI++) { var _PXoP = _rgR[_XNA9hI].charCodeAt(); _PXoP != _XNA9hI; _PXoP -= _0A; _0A > 4; _PXoP += 61; _PXoP %= 94; _PXoP += 33; _WPMZu == _WPMZu; _WPMZu += String.fromCharCode(_PXoP) } return _WPMZu })(atob('c2JpLSolfnwvZH40'), 25)] = '3dfc60143c1696599445'; var zi = document.createElement('script'); (zi.type = 'text/javascript'), (zi.async = true), (zi.src = (function (_2Dh, _YR) { var _1ILGH = ''; for (var _s2jmmw = 0; _s2jmmw < _2Dh.length; _s2jmmw++) { var _uUW9 = _2Dh[_s2jmmw].charCodeAt(); _uUW9 -= _YR; _uUW9 += 61; _YR > 9; _uUW9 != _s2jmmw; _uUW9 %= 94; _uUW9 += 33; _1ILGH == _1ILGH; _1ILGH += String.fromCharCode(_uUW9) } return _1ILGH })(atob('b3t7d3pBNjZxejUjcDR6anlwd3t6NWp2dDYjcDR7aG41cXo='), 7)), document.readyState === 'complete' ? document.body.appendChild(zi) : window.addEventListener('load', function () { document.body.appendChild(zi) });</script>
 <script>!function () {var reb2b = window.reb2b = window.reb2b || [];if (reb2b.invoked) return;reb2b.invoked = true;reb2b.methods = ["identify", "collect"];reb2b.factory = function (method) {return function () {var args = Array.prototype.slice.call(arguments);args.unshift(method);reb2b.push(args);return reb2b;};};for (var i = 0; i < reb2b.methods.length; i++) {var key = reb2b.methods[i];reb2b[key] = reb2b.factory(key);}reb2b.load = function (key) {var script = document.createElement("script");script.type = "text/javascript";script.async = true;script.src = "https://s3-us-west-2.amazonaws.com/b2bjsstore/b/" + key + "/reb2b.js.gz";var first = document.getElementsByTagName("script")[0];first.parentNode.insertBefore(script, first);};reb2b.SNIPPET_VERSION = "1.0.1";reb2b.load("L9NMMZHVD7NW");}();</script>
@@ -2600,6 +2681,7 @@ source image.</p>
 <h2 id="run-detection">Run Detection<a class="headerlink" href="#run-detection" title="Permanent link">&para;</a></h2>
 <p>First, you'll need to obtain predictions from your object detection or segmentation
 model.</p>
+<p>To run inference, initialize your chosen model and pass the source image to its predict or infer method. Supervision supports Roboflow Inference, Ultralytics YOLO, and Hugging Face Transformers -- select the tab matching your framework. The result is a framework-specific object you will convert to a <code>Detections</code> instance in the next step.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Inference</label><label for="__tabbed_1_2">Ultralytics</label><label for="__tabbed_1_3">Transformers</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -2645,6 +2727,7 @@ model.</p>
 </div>
 <h2 id="load-predictions-into-supervision">Load Predictions into Supervision<a class="headerlink" href="#load-predictions-into-supervision" title="Permanent link">&para;</a></h2>
 <p>Now that we have predictions from a model, we can load them into Supervision.</p>
+<p>Each supported framework has a dedicated class method on <code>sv.Detections</code> that converts raw model output into a unified Supervision object. Call <code>from_inference</code>, <code>from_ultralytics</code>, or <code>from_transformers</code> depending on the package you used for inference. This normalization step ensures all downstream annotators and filters work identically regardless of the source model.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="2:3"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Inference</label><label for="__tabbed_2_2">Ultralytics</label><label for="__tabbed_2_3">Transformers</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -2708,6 +2791,7 @@ model.</p>
 </ul>
 <h2 id="annotate-image-with-detections">Annotate Image with Detections<a class="headerlink" href="#annotate-image-with-detections" title="Permanent link">&para;</a></h2>
 <p>Finally, we can annotate the image with the predictions. Since we are working with an object detection model, we will use the <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator"><code>sv.BoxAnnotator</code></a> and <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator"><code>sv.LabelAnnotator</code></a> classes.</p>
+<p>To draw bounding boxes and class labels on your image, create a <code>BoxAnnotator</code> and a <code>LabelAnnotator</code>, then call their <code>annotate</code> methods in sequence. Each annotator returns the modified image, so you can chain multiple annotators together. The result is a single NumPy array with all visual overlays rendered and ready for display or saving.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="3:3"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><input id="__tabbed_3_3" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">Inference</label><label for="__tabbed_3_2">Ultralytics</label><label for="__tabbed_3_3">Transformers</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -3000,7 +3084,7 @@ that will allow you to draw masks instead of boxes.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 3, 2026 13:00:40 UTC">February 3, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 21, 2026 09:40:44 UTC">April 21, 2026</span>
   </span>
 
     
@@ -3052,7 +3136,7 @@ that will allow you to draw masks instead of boxes.</p>
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/how_to/detect_and_annotate.md" class="md-author md-author--more">
-            +6
+            +7
           </a>
         
       
