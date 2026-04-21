@@ -903,3 +903,101 @@ class CompactMask:
             np.array(out_offsets_list, dtype=np.int32),
             new_image_shape,
         )
+
+    def resize(self, new_image_shape: tuple[int, int]) -> CompactMask:
+        """Return a new CompactMask scaled to a different image resolution.
+
+        Each crop mask is decoded, resized with nearest-neighbour interpolation
+        via ``cv2.resize``, and re-encoded.  Offsets and crop dimensions are
+        scaled proportionally to the new image size.
+
+        Args:
+            new_image_shape: ``(H, W)`` of the target image.
+
+        Returns:
+            New :class:`CompactMask` with updated ``image_shape``, scaled
+            offsets, scaled crop shapes, and re-encoded RLE crops.
+
+        Raises:
+            ValueError: If any dimension in *new_image_shape* is ``<= 0``.
+
+        Examples:
+            >>> import numpy as np
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> masks = np.zeros((1, 100, 100), dtype=bool)
+            >>> masks[0, 20:40, 30:60] = True
+            >>> xyxy = np.array([[30, 20, 59, 39]], dtype=np.float32)
+            >>> cm = CompactMask.from_dense(masks, xyxy, image_shape=(100, 100))
+            >>> small = cm.resize((50, 50))
+            >>> small.shape
+            (1, 50, 50)
+            >>> small.offsets[0].tolist()
+            [15, 10]
+        """
+        import cv2
+
+        new_h, new_w = new_image_shape
+        if new_h <= 0 or new_w <= 0:
+            raise ValueError("new_image_shape must contain positive dimensions")
+
+        # fast path — identity resize, shallow copy
+        if (new_h, new_w) == self._image_shape:
+            return CompactMask(
+                list(self._rles),
+                self._crop_shapes.copy(),
+                self._offsets.copy(),
+                new_image_shape,
+            )
+
+        # empty guard
+        if len(self) == 0:
+            return CompactMask(
+                [],
+                np.empty((0, 2), dtype=np.int32),
+                np.empty((0, 2), dtype=np.int32),
+                new_image_shape,
+            )
+
+        img_h, img_w = self._image_shape
+        sx = new_w / img_w
+        sy = new_h / img_h
+
+        new_rles: list[npt.NDArray[np.int32]] = []
+        new_crop_shapes_list: list[tuple[int, int]] = []
+        new_offsets_list: list[tuple[int, int]] = []
+
+        for i in range(len(self)):
+            x1 = int(self._offsets[i, 0])
+            y1 = int(self._offsets[i, 1])
+            crop_h = int(self._crop_shapes[i, 0])
+            crop_w = int(self._crop_shapes[i, 1])
+
+            new_x1 = round(x1 * sx)
+            new_y1 = round(y1 * sy)
+            new_x2 = round((x1 + crop_w - 1) * sx)
+            new_y2 = round((y1 + crop_h - 1) * sy)
+
+            new_x1 = max(0, min(new_x1, new_w - 1))
+            new_y1 = max(0, min(new_y1, new_h - 1))
+            new_x2 = max(0, min(new_x2, new_w - 1))
+            new_y2 = max(0, min(new_y2, new_h - 1))
+
+            new_crop_w = max(1, new_x2 - new_x1 + 1)
+            new_crop_h = max(1, new_y2 - new_y1 + 1)
+
+            crop = _rle_decode(self._rles[i], crop_h, crop_w)
+            resized = cv2.resize(
+                crop.view(np.uint8),
+                (new_crop_w, new_crop_h),
+                interpolation=cv2.INTER_NEAREST,
+            ).astype(bool)
+            new_rles.append(_rle_encode(resized))
+            new_crop_shapes_list.append((new_crop_h, new_crop_w))
+            new_offsets_list.append((new_x1, new_y1))
+
+        return CompactMask(
+            new_rles,
+            np.array(new_crop_shapes_list, dtype=np.int32),
+            np.array(new_offsets_list, dtype=np.int32),
+            new_image_shape,
+        )

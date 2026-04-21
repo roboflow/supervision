@@ -115,6 +115,9 @@ class ScenarioResult:
     merge_ok: bool | None
     offset_ok: bool | None
     centroids_ok: bool | None
+    dense_resize_s: float  # nan when dense_skipped
+    compact_resize_s: float
+    resize_ok: bool | None
     # skip flags
     dense_skipped: bool = field(default=False)
     iou_dense_skipped: bool = field(default=False)
@@ -325,6 +328,14 @@ def stage_build(
         masks_dense, xyxy, image_shape=(image_height, image_width)
     )
     return xyxy, masks_dense, class_ids, compact_mask
+
+
+def _resize_dense_to_shape(masks: np.ndarray, new_h: int, new_w: int) -> np.ndarray:
+    """Nearest-neighbour resize of (N, H, W) bool masks to (N, new_h, new_w)."""
+    x = np.linspace(0, masks.shape[2] - 1, new_w).astype(int)
+    y = np.linspace(0, masks.shape[1] - 1, new_h).astype(int)
+    xv, yv = np.meshgrid(x, y)
+    return masks[:, yv, xv]
 
 
 def stage_encode(
@@ -563,6 +574,39 @@ def stage_centroids(
     return dense_centroids_s, compact_centroids_s, centroids_ok
 
 
+def stage_resize(
+    masks_dense: np.ndarray,
+    compact_mask: CompactMask,
+    image_height: int,
+    image_width: int,
+    dense_skipped: bool,
+) -> tuple[float, float, bool | None]:
+    """Time resize to half resolution; check pixel-level correctness.
+
+    Dense uses numpy linspace fancy-indexing (same strategy as resize_masks).
+    Compact decodes each RLE crop, resizes with cv2.INTER_NEAREST, re-encodes.
+    Correctness is checked with 1-pixel tolerance — rounding between the two
+    nearest-neighbour strategies can differ by 1 px at bbox boundaries.
+    """
+    new_h, new_w = image_height // 2, image_width // 2
+    new_shape = (new_h, new_w)
+
+    compact_resize_s = time_reps(lambda: compact_mask.resize(new_shape))
+    if dense_skipped:
+        return math.nan, compact_resize_s, None
+
+    resized_dense = _resize_dense_to_shape(masks_dense, new_h, new_w)
+    resized_compact = compact_mask.resize(new_shape).to_dense()
+    resize_ok = bool(
+        np.abs(resized_dense.astype(np.int8) - resized_compact.astype(np.int8)).max()
+        <= 1
+    )
+    dense_resize_s = time_reps(
+        lambda: _resize_dense_to_shape(masks_dense, new_h, new_w)
+    )
+    return dense_resize_s, compact_resize_s, resize_ok
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Scenario runner — orchestrates stages
 # ══════════════════════════════════════════════════════════════════════════════
@@ -681,6 +725,9 @@ def run_scenario(
     dense_centroids_s, compact_centroids_s, centroids_ok = stage_centroids(
         masks_dense, compact_mask, dense_skipped
     )
+    dense_resize_s, compact_resize_s, resize_ok = stage_resize(
+        masks_dense, compact_mask, image_height, image_width, dense_skipped
+    )
 
     def _timing_line(label: str, dense_s: float, compact_s: float) -> str:
         compact_ms = f"{compact_s * 1e3:.2f} ms"
@@ -704,6 +751,7 @@ def run_scenario(
     console.print(_timing_line("merge    ", dense_merge_s, compact_merge_s))
     console.print(_timing_line("nms      ", dense_nms_s, compact_nms_s))
     console.print(_timing_line("offset   ", dense_offset_s, compact_offset_s))
+    console.print(_timing_line("resize   ", dense_resize_s, compact_resize_s))
 
     checks = {
         "pixel-perfect": pixel_perfect,
@@ -714,6 +762,7 @@ def run_scenario(
         "merge": merge_ok,
         "offset": offset_ok,
         "centroids": centroids_ok,
+        "resize": resize_ok,
     }
     parts = []
     for k, v in checks.items():
@@ -777,6 +826,9 @@ def run_scenario(
         merge_ok=merge_ok,
         offset_ok=offset_ok,
         centroids_ok=centroids_ok,
+        dense_resize_s=dense_resize_s,
+        compact_resize_s=compact_resize_s,
+        resize_ok=resize_ok,
         dense_skipped=dense_skipped,
         iou_dense_skipped=iou_dense_skipped,
     )
@@ -803,7 +855,17 @@ def _time_compact_annotate(scene: np.ndarray, det_compact: sv.Detections) -> flo
 # Rich summary table
 # ══════════════════════════════════════════════════════════════════════════════
 
-_OPS = ("area", "filter", "annot", "iou", "nms", "merge", "offset", "centroids")
+_OPS = (
+    "area",
+    "filter",
+    "annot",
+    "iou",
+    "nms",
+    "merge",
+    "offset",
+    "centroids",
+    "resize",
+)
 
 
 def _build_summary_df(results: list[ScenarioResult]) -> pd.DataFrame:
@@ -835,6 +897,7 @@ def _build_summary_df(results: list[ScenarioResult]) -> pd.DataFrame:
         "merge_ok",
         "offset_ok",
         "centroids_ok",
+        "resize_ok",
     ]
     df["ok"] = df.apply(
         lambda row: (
@@ -899,6 +962,7 @@ def print_summary(results: list[ScenarioResult]) -> None:
     table.add_column("NMS\nop.", justify="right", min_width=6)
     table.add_column("Merge\nop.", justify="right", min_width=6)
     table.add_column("Offset\nop.", justify="right", min_width=6)
+    table.add_column("Resize\nop.", justify="right", min_width=6)
     table.add_column("Centr\nop.", justify="right", min_width=6)
     table.add_column("OK?", justify="center", min_width=4)
 
@@ -940,6 +1004,7 @@ def print_summary(results: list[ScenarioResult]) -> None:
             _fmt_speedup(row["dense_nms_s"], row["compact_nms_s"]),
             _fmt_speedup(row["dense_merge_s"], row["compact_merge_s"]),
             _fmt_speedup(row["dense_offset_s"], row["compact_offset_s"]),
+            _fmt_speedup(row["dense_resize_s"], row["compact_resize_s"]),
             _fmt_speedup(row["dense_centroids_s"], row["compact_centroids_s"]),
             ok_cell,
         )
@@ -967,6 +1032,7 @@ def print_summary(results: list[ScenarioResult]) -> None:
                 "NMS x — mask_non_max_suppression speedup",
                 "Merge x — Detections.merge speedup",
                 "Offset x — move_masks vs with_offset speedup",
+                "Resize x — resize-to-half speedup",
                 "Centroids x — calculate_masks_centroids speedup",
                 "dim ms — dense skipped, compact absolute time shown",
             ]
@@ -1020,6 +1086,7 @@ def save_results_csv(results: list[ScenarioResult], path: Path) -> None:
             "encode_ms_per_mask": (df["encode_s"] * 1e3).round(4),
             "decode_ms_per_mask": (df["decode_s"] * 1e3).round(4),
             **{f"{op}_speedup": df[f"{op}_speedup"].round(2) for op in _OPS},
+            "resize_ok": df["resize_ok"],
             "ok": df["ok"],
         }
     ).to_csv(path, index=False)

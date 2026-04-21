@@ -934,3 +934,169 @@ class TestCompactMaskWithOffsetRandom:
             expected,
             err_msg=f"Larger canvas offset mismatch for seed={seed}",
         )
+
+
+class TestCompactMaskResize:
+    """Tests for CompactMask.resize()."""
+
+    @pytest.mark.parametrize(
+        ("src_shape", "mask_slice", "target_shape", "description"),
+        [
+            (
+                (100, 100),
+                (slice(10, 20), slice(10, 20)),
+                (100, 100),
+                "identity — same shape",
+            ),
+            (
+                (100, 100),
+                (slice(10, 20), slice(10, 20)),
+                (50, 50),
+                "halve — 100x100 to 50x50",
+            ),
+            (
+                (50, 50),
+                (slice(10, 20), slice(10, 20)),
+                (100, 100),
+                "double — 50x50 to 100x100",
+            ),
+        ],
+    )
+    def test_scale_shape_and_offsets(
+        self,
+        src_shape: tuple[int, int],
+        mask_slice: tuple[slice, slice],
+        target_shape: tuple[int, int],
+        description: str,
+    ) -> None:
+        """Resize scales shape and offsets proportionally."""
+        img_h, img_w = src_shape
+        masks = np.zeros((1, img_h, img_w), dtype=bool)
+        masks[0, mask_slice[0], mask_slice[1]] = True
+        xyxy = mask_to_xyxy(masks)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=src_shape)
+
+        resized = cm.resize(target_shape)
+
+        assert resized.shape == (1, target_shape[0], target_shape[1]), description
+
+        sx = target_shape[1] / src_shape[1]
+        sy = target_shape[0] / src_shape[0]
+        orig_offset_x = int(cm.offsets[0, 0])
+        orig_offset_y = int(cm.offsets[0, 1])
+        expected_x = round(orig_offset_x * sx)
+        expected_y = round(orig_offset_y * sy)
+        assert abs(int(resized.offsets[0, 0]) - expected_x) <= 1, description
+        assert abs(int(resized.offsets[0, 1]) - expected_y) <= 1, description
+
+    def test_identity_preserves_rle(self) -> None:
+        """Resize to same shape returns identical RLE, offsets, and crop shapes."""
+        masks = np.zeros((1, 80, 80), dtype=bool)
+        masks[0, 10:30, 15:45] = True
+        xyxy = mask_to_xyxy(masks)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(80, 80))
+
+        resized = cm.resize((80, 80))
+
+        assert resized.shape == cm.shape
+        np.testing.assert_array_equal(resized.offsets, cm.offsets)
+        np.testing.assert_array_equal(resized._crop_shapes, cm._crop_shapes)
+        for orig_rle, new_rle in zip(cm._rles, resized._rles):
+            np.testing.assert_array_equal(orig_rle, new_rle)
+
+    def test_empty_n0(self) -> None:
+        """Resize of an empty CompactMask returns empty with new image_shape."""
+        masks = np.zeros((0, 50, 50), dtype=bool)
+        xyxy = np.empty((0, 4), dtype=np.float32)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(50, 50))
+
+        resized = cm.resize((100, 200))
+
+        assert len(resized) == 0
+        assert resized.shape == (0, 100, 200)
+
+    @pytest.mark.parametrize(
+        "bad_shape",
+        [
+            (0, 50),
+            (-1, 50),
+            (50, 0),
+            (50, -1),
+        ],
+    )
+    def test_invalid_dimensions_raises(self, bad_shape: tuple[int, int]) -> None:
+        """Resize with non-positive dimensions raises ValueError."""
+        masks = np.zeros((1, 50, 50), dtype=bool)
+        masks[0, 10:20, 10:20] = True
+        xyxy = mask_to_xyxy(masks)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(50, 50))
+
+        with pytest.raises(ValueError, match="positive"):
+            cm.resize(bad_shape)
+
+    def test_non_square_scale(self) -> None:
+        """Non-square resize scales x and y independently."""
+        masks = np.zeros((1, 100, 200), dtype=bool)
+        masks[0, 20:40, 40:80] = True
+        xyxy = mask_to_xyxy(masks)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(100, 200))
+
+        resized = cm.resize((50, 100))
+
+        assert resized.shape == (1, 50, 100)
+        sx = 100 / 200  # 0.5
+        sy = 50 / 100  # 0.5
+        expected_x = round(int(cm.offsets[0, 0]) * sx)
+        expected_y = round(int(cm.offsets[0, 1]) * sy)
+        assert abs(int(resized.offsets[0, 0]) - expected_x) <= 1
+        assert abs(int(resized.offsets[0, 1]) - expected_y) <= 1
+        # Crop shape should scale proportionally too.
+        orig_crop_h = int(cm._crop_shapes[0, 0])
+        orig_crop_w = int(cm._crop_shapes[0, 1])
+        expected_crop_h = round(orig_crop_h * sy)
+        expected_crop_w = round(orig_crop_w * sx)
+        assert abs(int(resized._crop_shapes[0, 0]) - expected_crop_h) <= 1
+        assert abs(int(resized._crop_shapes[0, 1]) - expected_crop_w) <= 1
+
+    def test_zero_extent_extreme_downscale(self) -> None:
+        """Extreme downscale that would collapse a 1px bbox to 0px returns 1x1 crop."""
+        masks = np.zeros((1, 1000, 1000), dtype=bool)
+        masks[0, 500, 500] = True
+        xyxy = mask_to_xyxy(masks)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(1000, 1000))
+
+        resized = cm.resize((2, 2))
+
+        assert resized.shape == (1, 2, 2)
+        assert int(resized._crop_shapes[0, 0]) >= 1
+        assert int(resized._crop_shapes[0, 1]) >= 1
+        dense = resized.to_dense()
+        assert dense.shape == (1, 2, 2)
+
+    @pytest.mark.parametrize("seed", list(range(5)))
+    def test_dense_parity_roundtrip(self, seed: int) -> None:
+        """Resized CompactMask matches OpenCV-resized dense masks within 1px."""
+        import cv2
+
+        rng = np.random.default_rng(seed + 500)
+        img_h, img_w = 80, 120
+        target_h, target_w = 40, 60
+        num_masks = int(rng.integers(1, 5))
+        masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
+
+        resized = cm.resize((target_h, target_w))
+        resized_dense = resized.to_dense()
+
+        for i in range(num_masks):
+            expected = cv2.resize(
+                masks[i].astype(np.uint8),
+                (target_w, target_h),
+                interpolation=cv2.INTER_NEAREST,
+            ).astype(bool)
+            actual = resized_dense[i]
+            diff = np.abs(actual.astype(int) - expected.astype(int)).max()
+            assert int(diff) <= 1, (
+                f"Dense parity mismatch for seed={seed}, mask={i}: "
+                f"max pixel diff={diff}"
+            )
