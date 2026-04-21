@@ -199,7 +199,7 @@ def _rle_scale_row(
         col_map: int32 array of length ``new_crop_w``; ``col_map[c']`` is the
             source column index for output column ``c'``.  Use
             ``(np.arange(new_crop_w) * src_w // new_crop_w)`` for
-            ``cv2.INTER_NEAREST``-compatible mapping.
+            ``cv2.INTER_NEAREST``-compatible floor mapping.
 
     Returns:
         Scaled run list of total length ``len(col_map)``, always starting
