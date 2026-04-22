@@ -14,7 +14,7 @@ description: "Full version history of the supervision Python library — release
 
 - Fixed [#2210](https://github.com/roboflow/supervision/pull/2210): [`sv.VideoInfo.fps`](https://supervision.roboflow.com/latest/utils/video/#supervision.utils.video.VideoInfo) now returns a `float` instead of a truncated `int`. Previously, frame rates like 23.976, 29.97, and 59.94 were silently truncated, causing frame-timing drift that accumulates over long videos. The type of `VideoInfo.fps` has changed from `int` to `float`; callers that pass `fps` to APIs requiring an integer (such as `deque(maxlen=...)` or `TraceAnnotator(trace_length=...)`) should wrap the value with `int()`.
 
-- Added [#2230](https://github.com/roboflow/supervision/pull/2230): [`sv.is_compressed_rle`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.is_compressed_rle) to detect whether an RLE value is a COCO compressed string (`str` or `bytes`) vs an uncompressed integer list or array. Use to branch between compressed and uncompressed pipelines before calling `sv.rle_to_mask`.
+- Added [#2230](https://github.com/roboflow/supervision/pull/2230): [`sv.is_compressed_rle`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.is_compressed_rle) to detect whether an RLE value is a COCO compressed string (`str` or `bytes`) vs an uncompressed integer list or array. Useful when you need to inspect an unknown RLE value to decide how to serialize or otherwise handle it, or when using the low-level helpers directly.
 
 ### 0.27.0 <small>Nov 16, 2025</small>
 
