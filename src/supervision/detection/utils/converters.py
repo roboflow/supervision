@@ -436,7 +436,7 @@ def _delta_encode(counts: list[int]) -> list[int]:
     Examples:
         ```pycon
         >>> from supervision.detection.utils.converters import _delta_encode
-        >>> _delta_encode([5, 2, 2, 5, 5])
+        >>> _delta_encode([5, 2, 2, 2, 5])
         [5, 2, 2, 0, 3]
 
         ```
