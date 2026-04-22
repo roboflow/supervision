@@ -411,7 +411,7 @@ def _delta_decode(values: list[int]) -> list[int]:
         ```pycon
         >>> from supervision.detection.utils.converters import _delta_decode
         >>> _delta_decode([5, 2, 2, 0, 3])
-        [5, 2, 2, 5, 5]
+        [5, 2, 2, 2, 5]
 
         ```
     """
@@ -495,7 +495,7 @@ def _mask_to_rle_counts(mask_2d: npt.NDArray[Any]) -> npt.NDArray[np.int32]:
         >>> from supervision.detection.utils.converters import _mask_to_rle_counts
         >>> mask = np.array([[False, True], [True, False]])
         >>> _mask_to_rle_counts(mask).tolist()
-        [0, 1, 2, 1]
+        [1, 2, 1]
 
         ```
     """
