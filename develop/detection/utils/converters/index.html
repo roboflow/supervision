@@ -4546,35 +4546,35 @@ containing the <code>x</code>, <code>y</code> coordinates of the points.</p>
 
             <details class="quote">
               <summary>Source code in <code>src/supervision/detection/utils/converters.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-543">543</a></span>
-<span class="normal"><a href="#__codelineno-0-544">544</a></span>
-<span class="normal"><a href="#__codelineno-0-545">545</a></span>
-<span class="normal"><a href="#__codelineno-0-546">546</a></span>
-<span class="normal"><a href="#__codelineno-0-547">547</a></span>
-<span class="normal"><a href="#__codelineno-0-548">548</a></span>
-<span class="normal"><a href="#__codelineno-0-549">549</a></span>
-<span class="normal"><a href="#__codelineno-0-550">550</a></span>
-<span class="normal"><a href="#__codelineno-0-551">551</a></span>
-<span class="normal"><a href="#__codelineno-0-552">552</a></span>
-<span class="normal"><a href="#__codelineno-0-553">553</a></span>
-<span class="normal"><a href="#__codelineno-0-554">554</a></span>
-<span class="normal"><a href="#__codelineno-0-555">555</a></span>
-<span class="normal"><a href="#__codelineno-0-556">556</a></span>
-<span class="normal"><a href="#__codelineno-0-557">557</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-543"><a id="__codelineno-0-543" name="__codelineno-0-543"></a><span class="k">def</span><span class="w"> </span><span class="nf">polygon_to_xyxy</span><span class="p">(</span><span class="n">polygon</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">number</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">number</span><span class="p">]:</span>
-</span><span id="__span-0-544"><a id="__codelineno-0-544" name="__codelineno-0-544"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-545"><a id="__codelineno-0-545" name="__codelineno-0-545"></a><span class="sd">    Converts a polygon represented by a NumPy array into a bounding box.</span>
-</span><span id="__span-0-546"><a id="__codelineno-0-546" name="__codelineno-0-546"></a>
-</span><span id="__span-0-547"><a id="__codelineno-0-547" name="__codelineno-0-547"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-548"><a id="__codelineno-0-548" name="__codelineno-0-548"></a><span class="sd">        polygon: A polygon represented by a NumPy array of shape `(N, 2)`,</span>
-</span><span id="__span-0-549"><a id="__codelineno-0-549" name="__codelineno-0-549"></a><span class="sd">            containing the `x`, `y` coordinates of the points.</span>
-</span><span id="__span-0-550"><a id="__codelineno-0-550" name="__codelineno-0-550"></a>
-</span><span id="__span-0-551"><a id="__codelineno-0-551" name="__codelineno-0-551"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-552"><a id="__codelineno-0-552" name="__codelineno-0-552"></a><span class="sd">        A 1D NumPy array containing the bounding box</span>
-</span><span id="__span-0-553"><a id="__codelineno-0-553" name="__codelineno-0-553"></a><span class="sd">            `(x_min, y_min, x_max, y_max)` of the input polygon.</span>
-</span><span id="__span-0-554"><a id="__codelineno-0-554" name="__codelineno-0-554"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-555"><a id="__codelineno-0-555" name="__codelineno-0-555"></a>    <span class="n">x_min</span><span class="p">,</span> <span class="n">y_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">polygon</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-</span><span id="__span-0-556"><a id="__codelineno-0-556" name="__codelineno-0-556"></a>    <span class="n">x_max</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">polygon</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-</span><span id="__span-0-557"><a id="__codelineno-0-557" name="__codelineno-0-557"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x_min</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_max</span><span class="p">])</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-703">703</a></span>
+<span class="normal"><a href="#__codelineno-0-704">704</a></span>
+<span class="normal"><a href="#__codelineno-0-705">705</a></span>
+<span class="normal"><a href="#__codelineno-0-706">706</a></span>
+<span class="normal"><a href="#__codelineno-0-707">707</a></span>
+<span class="normal"><a href="#__codelineno-0-708">708</a></span>
+<span class="normal"><a href="#__codelineno-0-709">709</a></span>
+<span class="normal"><a href="#__codelineno-0-710">710</a></span>
+<span class="normal"><a href="#__codelineno-0-711">711</a></span>
+<span class="normal"><a href="#__codelineno-0-712">712</a></span>
+<span class="normal"><a href="#__codelineno-0-713">713</a></span>
+<span class="normal"><a href="#__codelineno-0-714">714</a></span>
+<span class="normal"><a href="#__codelineno-0-715">715</a></span>
+<span class="normal"><a href="#__codelineno-0-716">716</a></span>
+<span class="normal"><a href="#__codelineno-0-717">717</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-703"><a id="__codelineno-0-703" name="__codelineno-0-703"></a><span class="k">def</span><span class="w"> </span><span class="nf">polygon_to_xyxy</span><span class="p">(</span><span class="n">polygon</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">number</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">number</span><span class="p">]:</span>
+</span><span id="__span-0-704"><a id="__codelineno-0-704" name="__codelineno-0-704"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-705"><a id="__codelineno-0-705" name="__codelineno-0-705"></a><span class="sd">    Converts a polygon represented by a NumPy array into a bounding box.</span>
+</span><span id="__span-0-706"><a id="__codelineno-0-706" name="__codelineno-0-706"></a>
+</span><span id="__span-0-707"><a id="__codelineno-0-707" name="__codelineno-0-707"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-708"><a id="__codelineno-0-708" name="__codelineno-0-708"></a><span class="sd">        polygon: A polygon represented by a NumPy array of shape `(N, 2)`,</span>
+</span><span id="__span-0-709"><a id="__codelineno-0-709" name="__codelineno-0-709"></a><span class="sd">            containing the `x`, `y` coordinates of the points.</span>
+</span><span id="__span-0-710"><a id="__codelineno-0-710" name="__codelineno-0-710"></a>
+</span><span id="__span-0-711"><a id="__codelineno-0-711" name="__codelineno-0-711"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-712"><a id="__codelineno-0-712" name="__codelineno-0-712"></a><span class="sd">        A 1D NumPy array containing the bounding box</span>
+</span><span id="__span-0-713"><a id="__codelineno-0-713" name="__codelineno-0-713"></a><span class="sd">            `(x_min, y_min, x_max, y_max)` of the input polygon.</span>
+</span><span id="__span-0-714"><a id="__codelineno-0-714" name="__codelineno-0-714"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-715"><a id="__codelineno-0-715" name="__codelineno-0-715"></a>    <span class="n">x_min</span><span class="p">,</span> <span class="n">y_min</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">polygon</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-0-716"><a id="__codelineno-0-716" name="__codelineno-0-716"></a>    <span class="n">x_max</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">polygon</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</span><span id="__span-0-717"><a id="__codelineno-0-717" name="__codelineno-0-717"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x_min</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_max</span><span class="p">])</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4966,155 +4966,149 @@ array([[False, False, False, False],
 
             <details class="quote">
               <summary>Source code in <code>src/supervision/detection/utils/converters.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-376">376</a></span>
-<span class="normal"><a href="#__codelineno-0-377">377</a></span>
-<span class="normal"><a href="#__codelineno-0-378">378</a></span>
-<span class="normal"><a href="#__codelineno-0-379">379</a></span>
-<span class="normal"><a href="#__codelineno-0-380">380</a></span>
-<span class="normal"><a href="#__codelineno-0-381">381</a></span>
-<span class="normal"><a href="#__codelineno-0-382">382</a></span>
-<span class="normal"><a href="#__codelineno-0-383">383</a></span>
-<span class="normal"><a href="#__codelineno-0-384">384</a></span>
-<span class="normal"><a href="#__codelineno-0-385">385</a></span>
-<span class="normal"><a href="#__codelineno-0-386">386</a></span>
-<span class="normal"><a href="#__codelineno-0-387">387</a></span>
-<span class="normal"><a href="#__codelineno-0-388">388</a></span>
-<span class="normal"><a href="#__codelineno-0-389">389</a></span>
-<span class="normal"><a href="#__codelineno-0-390">390</a></span>
-<span class="normal"><a href="#__codelineno-0-391">391</a></span>
-<span class="normal"><a href="#__codelineno-0-392">392</a></span>
-<span class="normal"><a href="#__codelineno-0-393">393</a></span>
-<span class="normal"><a href="#__codelineno-0-394">394</a></span>
-<span class="normal"><a href="#__codelineno-0-395">395</a></span>
-<span class="normal"><a href="#__codelineno-0-396">396</a></span>
-<span class="normal"><a href="#__codelineno-0-397">397</a></span>
-<span class="normal"><a href="#__codelineno-0-398">398</a></span>
-<span class="normal"><a href="#__codelineno-0-399">399</a></span>
-<span class="normal"><a href="#__codelineno-0-400">400</a></span>
-<span class="normal"><a href="#__codelineno-0-401">401</a></span>
-<span class="normal"><a href="#__codelineno-0-402">402</a></span>
-<span class="normal"><a href="#__codelineno-0-403">403</a></span>
-<span class="normal"><a href="#__codelineno-0-404">404</a></span>
-<span class="normal"><a href="#__codelineno-0-405">405</a></span>
-<span class="normal"><a href="#__codelineno-0-406">406</a></span>
-<span class="normal"><a href="#__codelineno-0-407">407</a></span>
-<span class="normal"><a href="#__codelineno-0-408">408</a></span>
-<span class="normal"><a href="#__codelineno-0-409">409</a></span>
-<span class="normal"><a href="#__codelineno-0-410">410</a></span>
-<span class="normal"><a href="#__codelineno-0-411">411</a></span>
-<span class="normal"><a href="#__codelineno-0-412">412</a></span>
-<span class="normal"><a href="#__codelineno-0-413">413</a></span>
-<span class="normal"><a href="#__codelineno-0-414">414</a></span>
-<span class="normal"><a href="#__codelineno-0-415">415</a></span>
-<span class="normal"><a href="#__codelineno-0-416">416</a></span>
-<span class="normal"><a href="#__codelineno-0-417">417</a></span>
-<span class="normal"><a href="#__codelineno-0-418">418</a></span>
-<span class="normal"><a href="#__codelineno-0-419">419</a></span>
-<span class="normal"><a href="#__codelineno-0-420">420</a></span>
-<span class="normal"><a href="#__codelineno-0-421">421</a></span>
-<span class="normal"><a href="#__codelineno-0-422">422</a></span>
-<span class="normal"><a href="#__codelineno-0-423">423</a></span>
-<span class="normal"><a href="#__codelineno-0-424">424</a></span>
-<span class="normal"><a href="#__codelineno-0-425">425</a></span>
-<span class="normal"><a href="#__codelineno-0-426">426</a></span>
-<span class="normal"><a href="#__codelineno-0-427">427</a></span>
-<span class="normal"><a href="#__codelineno-0-428">428</a></span>
-<span class="normal"><a href="#__codelineno-0-429">429</a></span>
-<span class="normal"><a href="#__codelineno-0-430">430</a></span>
-<span class="normal"><a href="#__codelineno-0-431">431</a></span>
-<span class="normal"><a href="#__codelineno-0-432">432</a></span>
-<span class="normal"><a href="#__codelineno-0-433">433</a></span>
-<span class="normal"><a href="#__codelineno-0-434">434</a></span>
-<span class="normal"><a href="#__codelineno-0-435">435</a></span>
-<span class="normal"><a href="#__codelineno-0-436">436</a></span>
-<span class="normal"><a href="#__codelineno-0-437">437</a></span>
-<span class="normal"><a href="#__codelineno-0-438">438</a></span>
-<span class="normal"><a href="#__codelineno-0-439">439</a></span>
-<span class="normal"><a href="#__codelineno-0-440">440</a></span>
-<span class="normal"><a href="#__codelineno-0-441">441</a></span>
-<span class="normal"><a href="#__codelineno-0-442">442</a></span>
-<span class="normal"><a href="#__codelineno-0-443">443</a></span>
-<span class="normal"><a href="#__codelineno-0-444">444</a></span>
-<span class="normal"><a href="#__codelineno-0-445">445</a></span>
-<span class="normal"><a href="#__codelineno-0-446">446</a></span>
-<span class="normal"><a href="#__codelineno-0-447">447</a></span>
-<span class="normal"><a href="#__codelineno-0-448">448</a></span>
-<span class="normal"><a href="#__codelineno-0-449">449</a></span>
-<span class="normal"><a href="#__codelineno-0-450">450</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-376"><a id="__codelineno-0-376" name="__codelineno-0-376"></a><span class="k">def</span><span class="w"> </span><span class="nf">rle_to_mask</span><span class="p">(</span>
-</span><span id="__span-0-377"><a id="__codelineno-0-377" name="__codelineno-0-377"></a>    <span class="n">rle</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bytes</span><span class="p">,</span>
-</span><span id="__span-0-378"><a id="__codelineno-0-378" name="__codelineno-0-378"></a>    <span class="n">resolution_wh</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
-</span><span id="__span-0-379"><a id="__codelineno-0-379" name="__codelineno-0-379"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">]:</span>
-</span><span id="__span-0-380"><a id="__codelineno-0-380" name="__codelineno-0-380"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-381"><a id="__codelineno-0-381" name="__codelineno-0-381"></a><span class="sd">    Converts a COCO run-length encoding (RLE) to a binary mask.</span>
-</span><span id="__span-0-382"><a id="__codelineno-0-382" name="__codelineno-0-382"></a>
-</span><span id="__span-0-383"><a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="sd">    Implements the COCO RLE format used by ``pycocotools``: pixels are counted</span>
-</span><span id="__span-0-384"><a id="__codelineno-0-384" name="__codelineno-0-384"></a><span class="sd">    in **column-major (Fortran) order** — top-to-bottom within each column,</span>
-</span><span id="__span-0-385"><a id="__codelineno-0-385" name="__codelineno-0-385"></a><span class="sd">    left-to-right across columns. This is the opposite of the row-major order</span>
-</span><span id="__span-0-386"><a id="__codelineno-0-386" name="__codelineno-0-386"></a><span class="sd">    used by NumPy&#39;s default ``&#39;C&#39;`` layout. Passing RLE data produced by a</span>
-</span><span id="__span-0-387"><a id="__codelineno-0-387" name="__codelineno-0-387"></a><span class="sd">    different row-major convention will yield an incorrect mask.</span>
-</span><span id="__span-0-388"><a id="__codelineno-0-388" name="__codelineno-0-388"></a>
-</span><span id="__span-0-389"><a id="__codelineno-0-389" name="__codelineno-0-389"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-390"><a id="__codelineno-0-390" name="__codelineno-0-390"></a><span class="sd">        rle: The COCO RLE data in one of the following formats:</span>
-</span><span id="__span-0-391"><a id="__codelineno-0-391" name="__codelineno-0-391"></a>
-</span><span id="__span-0-392"><a id="__codelineno-0-392" name="__codelineno-0-392"></a><span class="sd">            - A 1D array or list of integers (uncompressed COCO RLE, where</span>
-</span><span id="__span-0-393"><a id="__codelineno-0-393" name="__codelineno-0-393"></a><span class="sd">              values at even indices are background run-lengths and values at</span>
-</span><span id="__span-0-394"><a id="__codelineno-0-394" name="__codelineno-0-394"></a><span class="sd">              odd indices are foreground run-lengths, both counted column-major).</span>
-</span><span id="__span-0-395"><a id="__codelineno-0-395" name="__codelineno-0-395"></a><span class="sd">            - A compressed COCO RLE string or bytes, as produced by</span>
-</span><span id="__span-0-396"><a id="__codelineno-0-396" name="__codelineno-0-396"></a><span class="sd">              ``pycocotools.mask.encode``.</span>
-</span><span id="__span-0-397"><a id="__codelineno-0-397" name="__codelineno-0-397"></a><span class="sd">        resolution_wh: The width (w) and height (h)</span>
-</span><span id="__span-0-398"><a id="__codelineno-0-398" name="__codelineno-0-398"></a><span class="sd">            of the desired binary mask.</span>
-</span><span id="__span-0-399"><a id="__codelineno-0-399" name="__codelineno-0-399"></a>
-</span><span id="__span-0-400"><a id="__codelineno-0-400" name="__codelineno-0-400"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-401"><a id="__codelineno-0-401" name="__codelineno-0-401"></a><span class="sd">        The generated 2D Boolean mask of shape `(h, w)`, where the foreground object is</span>
-</span><span id="__span-0-402"><a id="__codelineno-0-402" name="__codelineno-0-402"></a><span class="sd">            marked with `True`&#39;s and the rest is filled with `False`&#39;s.</span>
-</span><span id="__span-0-403"><a id="__codelineno-0-403" name="__codelineno-0-403"></a>
-</span><span id="__span-0-404"><a id="__codelineno-0-404" name="__codelineno-0-404"></a><span class="sd">    Raises:</span>
-</span><span id="__span-0-405"><a id="__codelineno-0-405" name="__codelineno-0-405"></a><span class="sd">        ValueError: If the sum of pixels encoded in RLE differs from the</span>
-</span><span id="__span-0-406"><a id="__codelineno-0-406" name="__codelineno-0-406"></a><span class="sd">            number of pixels in the expected mask (computed based on resolution_wh).</span>
-</span><span id="__span-0-407"><a id="__codelineno-0-407" name="__codelineno-0-407"></a>
-</span><span id="__span-0-408"><a id="__codelineno-0-408" name="__codelineno-0-408"></a><span class="sd">    Examples:</span>
-</span><span id="__span-0-409"><a id="__codelineno-0-409" name="__codelineno-0-409"></a><span class="sd">        ```pycon</span>
-</span><span id="__span-0-410"><a id="__codelineno-0-410" name="__codelineno-0-410"></a><span class="sd">        &gt;&gt;&gt; import numpy as np</span>
-</span><span id="__span-0-411"><a id="__codelineno-0-411" name="__codelineno-0-411"></a><span class="sd">        &gt;&gt;&gt; import supervision as sv</span>
-</span><span id="__span-0-412"><a id="__codelineno-0-412" name="__codelineno-0-412"></a><span class="sd">        &gt;&gt;&gt; mask = sv.rle_to_mask([5, 2, 2, 2, 5], (4, 4))</span>
-</span><span id="__span-0-413"><a id="__codelineno-0-413" name="__codelineno-0-413"></a><span class="sd">        &gt;&gt;&gt; mask  # doctest: +NORMALIZE_WHITESPACE</span>
-</span><span id="__span-0-414"><a id="__codelineno-0-414" name="__codelineno-0-414"></a><span class="sd">        array([[False, False, False, False],</span>
-</span><span id="__span-0-415"><a id="__codelineno-0-415" name="__codelineno-0-415"></a><span class="sd">               [False,  True,  True, False],</span>
-</span><span id="__span-0-416"><a id="__codelineno-0-416" name="__codelineno-0-416"></a><span class="sd">               [False,  True,  True, False],</span>
-</span><span id="__span-0-417"><a id="__codelineno-0-417" name="__codelineno-0-417"></a><span class="sd">               [False, False, False, False]])</span>
-</span><span id="__span-0-418"><a id="__codelineno-0-418" name="__codelineno-0-418"></a>
-</span><span id="__span-0-419"><a id="__codelineno-0-419" name="__codelineno-0-419"></a><span class="sd">        &gt;&gt;&gt; mask = sv.rle_to_mask(&quot;52203&quot;, (4, 4))</span>
-</span><span id="__span-0-420"><a id="__codelineno-0-420" name="__codelineno-0-420"></a><span class="sd">        &gt;&gt;&gt; mask  # doctest: +NORMALIZE_WHITESPACE</span>
-</span><span id="__span-0-421"><a id="__codelineno-0-421" name="__codelineno-0-421"></a><span class="sd">        array([[False, False, False, False],</span>
-</span><span id="__span-0-422"><a id="__codelineno-0-422" name="__codelineno-0-422"></a><span class="sd">               [False,  True,  True, False],</span>
-</span><span id="__span-0-423"><a id="__codelineno-0-423" name="__codelineno-0-423"></a><span class="sd">               [False,  True,  True, False],</span>
-</span><span id="__span-0-424"><a id="__codelineno-0-424" name="__codelineno-0-424"></a><span class="sd">               [False, False, False, False]])</span>
-</span><span id="__span-0-425"><a id="__codelineno-0-425" name="__codelineno-0-425"></a>
-</span><span id="__span-0-426"><a id="__codelineno-0-426" name="__codelineno-0-426"></a><span class="sd">        ```</span>
-</span><span id="__span-0-427"><a id="__codelineno-0-427" name="__codelineno-0-427"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-428"><a id="__codelineno-0-428" name="__codelineno-0-428"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rle</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
-</span><span id="__span-0-429"><a id="__codelineno-0-429" name="__codelineno-0-429"></a>        <span class="n">rle</span> <span class="o">=</span> <span class="n">rle</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
-</span><span id="__span-0-430"><a id="__codelineno-0-430" name="__codelineno-0-430"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rle</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-</span><span id="__span-0-431"><a id="__codelineno-0-431" name="__codelineno-0-431"></a>        <span class="n">rle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">_decode_coco_rle_string</span><span class="p">(</span><span class="n">rle</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
-</span><span id="__span-0-432"><a id="__codelineno-0-432" name="__codelineno-0-432"></a>    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rle</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-</span><span id="__span-0-433"><a id="__codelineno-0-433" name="__codelineno-0-433"></a>        <span class="n">rle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">rle</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
-</span><span id="__span-0-434"><a id="__codelineno-0-434" name="__codelineno-0-434"></a>
-</span><span id="__span-0-435"><a id="__codelineno-0-435" name="__codelineno-0-435"></a>    <span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="n">resolution_wh</span>
-</span><span id="__span-0-436"><a id="__codelineno-0-436" name="__codelineno-0-436"></a>
-</span><span id="__span-0-437"><a id="__codelineno-0-437" name="__codelineno-0-437"></a>    <span class="k">if</span> <span class="n">width</span> <span class="o">*</span> <span class="n">height</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">rle</span><span class="p">):</span>
-</span><span id="__span-0-438"><a id="__codelineno-0-438" name="__codelineno-0-438"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-</span><span id="__span-0-439"><a id="__codelineno-0-439" name="__codelineno-0-439"></a>            <span class="s2">&quot;the sum of the number of pixels in the RLE must be the same &quot;</span>
-</span><span id="__span-0-440"><a id="__codelineno-0-440" name="__codelineno-0-440"></a>            <span class="s2">&quot;as the number of pixels in the expected mask&quot;</span>
-</span><span id="__span-0-441"><a id="__codelineno-0-441" name="__codelineno-0-441"></a>        <span class="p">)</span>
-</span><span id="__span-0-442"><a id="__codelineno-0-442" name="__codelineno-0-442"></a>
-</span><span id="__span-0-443"><a id="__codelineno-0-443" name="__codelineno-0-443"></a>    <span class="n">zero_one_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">rle</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
-</span><span id="__span-0-444"><a id="__codelineno-0-444" name="__codelineno-0-444"></a>    <span class="n">zero_one_values</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
-</span><span id="__span-0-445"><a id="__codelineno-0-445" name="__codelineno-0-445"></a>
-</span><span id="__span-0-446"><a id="__codelineno-0-446" name="__codelineno-0-446"></a>    <span class="n">decoded_rle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">zero_one_values</span><span class="p">,</span> <span class="n">rle</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-</span><span id="__span-0-447"><a id="__codelineno-0-447" name="__codelineno-0-447"></a>    <span class="n">decoded_rle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-</span><span id="__span-0-448"><a id="__codelineno-0-448" name="__codelineno-0-448"></a>        <span class="n">decoded_rle</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">width</span> <span class="o">*</span> <span class="n">height</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">decoded_rle</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
-</span><span id="__span-0-449"><a id="__codelineno-0-449" name="__codelineno-0-449"></a>    <span class="p">)</span>
-</span><span id="__span-0-450"><a id="__codelineno-0-450" name="__codelineno-0-450"></a>    <span class="k">return</span> <span class="n">decoded_rle</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">),</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;F&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-554">554</a></span>
+<span class="normal"><a href="#__codelineno-0-555">555</a></span>
+<span class="normal"><a href="#__codelineno-0-556">556</a></span>
+<span class="normal"><a href="#__codelineno-0-557">557</a></span>
+<span class="normal"><a href="#__codelineno-0-558">558</a></span>
+<span class="normal"><a href="#__codelineno-0-559">559</a></span>
+<span class="normal"><a href="#__codelineno-0-560">560</a></span>
+<span class="normal"><a href="#__codelineno-0-561">561</a></span>
+<span class="normal"><a href="#__codelineno-0-562">562</a></span>
+<span class="normal"><a href="#__codelineno-0-563">563</a></span>
+<span class="normal"><a href="#__codelineno-0-564">564</a></span>
+<span class="normal"><a href="#__codelineno-0-565">565</a></span>
+<span class="normal"><a href="#__codelineno-0-566">566</a></span>
+<span class="normal"><a href="#__codelineno-0-567">567</a></span>
+<span class="normal"><a href="#__codelineno-0-568">568</a></span>
+<span class="normal"><a href="#__codelineno-0-569">569</a></span>
+<span class="normal"><a href="#__codelineno-0-570">570</a></span>
+<span class="normal"><a href="#__codelineno-0-571">571</a></span>
+<span class="normal"><a href="#__codelineno-0-572">572</a></span>
+<span class="normal"><a href="#__codelineno-0-573">573</a></span>
+<span class="normal"><a href="#__codelineno-0-574">574</a></span>
+<span class="normal"><a href="#__codelineno-0-575">575</a></span>
+<span class="normal"><a href="#__codelineno-0-576">576</a></span>
+<span class="normal"><a href="#__codelineno-0-577">577</a></span>
+<span class="normal"><a href="#__codelineno-0-578">578</a></span>
+<span class="normal"><a href="#__codelineno-0-579">579</a></span>
+<span class="normal"><a href="#__codelineno-0-580">580</a></span>
+<span class="normal"><a href="#__codelineno-0-581">581</a></span>
+<span class="normal"><a href="#__codelineno-0-582">582</a></span>
+<span class="normal"><a href="#__codelineno-0-583">583</a></span>
+<span class="normal"><a href="#__codelineno-0-584">584</a></span>
+<span class="normal"><a href="#__codelineno-0-585">585</a></span>
+<span class="normal"><a href="#__codelineno-0-586">586</a></span>
+<span class="normal"><a href="#__codelineno-0-587">587</a></span>
+<span class="normal"><a href="#__codelineno-0-588">588</a></span>
+<span class="normal"><a href="#__codelineno-0-589">589</a></span>
+<span class="normal"><a href="#__codelineno-0-590">590</a></span>
+<span class="normal"><a href="#__codelineno-0-591">591</a></span>
+<span class="normal"><a href="#__codelineno-0-592">592</a></span>
+<span class="normal"><a href="#__codelineno-0-593">593</a></span>
+<span class="normal"><a href="#__codelineno-0-594">594</a></span>
+<span class="normal"><a href="#__codelineno-0-595">595</a></span>
+<span class="normal"><a href="#__codelineno-0-596">596</a></span>
+<span class="normal"><a href="#__codelineno-0-597">597</a></span>
+<span class="normal"><a href="#__codelineno-0-598">598</a></span>
+<span class="normal"><a href="#__codelineno-0-599">599</a></span>
+<span class="normal"><a href="#__codelineno-0-600">600</a></span>
+<span class="normal"><a href="#__codelineno-0-601">601</a></span>
+<span class="normal"><a href="#__codelineno-0-602">602</a></span>
+<span class="normal"><a href="#__codelineno-0-603">603</a></span>
+<span class="normal"><a href="#__codelineno-0-604">604</a></span>
+<span class="normal"><a href="#__codelineno-0-605">605</a></span>
+<span class="normal"><a href="#__codelineno-0-606">606</a></span>
+<span class="normal"><a href="#__codelineno-0-607">607</a></span>
+<span class="normal"><a href="#__codelineno-0-608">608</a></span>
+<span class="normal"><a href="#__codelineno-0-609">609</a></span>
+<span class="normal"><a href="#__codelineno-0-610">610</a></span>
+<span class="normal"><a href="#__codelineno-0-611">611</a></span>
+<span class="normal"><a href="#__codelineno-0-612">612</a></span>
+<span class="normal"><a href="#__codelineno-0-613">613</a></span>
+<span class="normal"><a href="#__codelineno-0-614">614</a></span>
+<span class="normal"><a href="#__codelineno-0-615">615</a></span>
+<span class="normal"><a href="#__codelineno-0-616">616</a></span>
+<span class="normal"><a href="#__codelineno-0-617">617</a></span>
+<span class="normal"><a href="#__codelineno-0-618">618</a></span>
+<span class="normal"><a href="#__codelineno-0-619">619</a></span>
+<span class="normal"><a href="#__codelineno-0-620">620</a></span>
+<span class="normal"><a href="#__codelineno-0-621">621</a></span>
+<span class="normal"><a href="#__codelineno-0-622">622</a></span>
+<span class="normal"><a href="#__codelineno-0-623">623</a></span>
+<span class="normal"><a href="#__codelineno-0-624">624</a></span>
+<span class="normal"><a href="#__codelineno-0-625">625</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-554"><a id="__codelineno-0-554" name="__codelineno-0-554"></a><span class="k">def</span><span class="w"> </span><span class="nf">rle_to_mask</span><span class="p">(</span>
+</span><span id="__span-0-555"><a id="__codelineno-0-555" name="__codelineno-0-555"></a>    <span class="n">rle</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">bytes</span><span class="p">,</span>
+</span><span id="__span-0-556"><a id="__codelineno-0-556" name="__codelineno-0-556"></a>    <span class="n">resolution_wh</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+</span><span id="__span-0-557"><a id="__codelineno-0-557" name="__codelineno-0-557"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">]:</span>
+</span><span id="__span-0-558"><a id="__codelineno-0-558" name="__codelineno-0-558"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-559"><a id="__codelineno-0-559" name="__codelineno-0-559"></a><span class="sd">    Converts a COCO run-length encoding (RLE) to a binary mask.</span>
+</span><span id="__span-0-560"><a id="__codelineno-0-560" name="__codelineno-0-560"></a>
+</span><span id="__span-0-561"><a id="__codelineno-0-561" name="__codelineno-0-561"></a><span class="sd">    Implements the COCO RLE format used by ``pycocotools``: pixels are counted</span>
+</span><span id="__span-0-562"><a id="__codelineno-0-562" name="__codelineno-0-562"></a><span class="sd">    in **column-major (Fortran) order** — top-to-bottom within each column,</span>
+</span><span id="__span-0-563"><a id="__codelineno-0-563" name="__codelineno-0-563"></a><span class="sd">    left-to-right across columns. This is the opposite of the row-major order</span>
+</span><span id="__span-0-564"><a id="__codelineno-0-564" name="__codelineno-0-564"></a><span class="sd">    used by NumPy&#39;s default ``&#39;C&#39;`` layout. Passing RLE data produced by a</span>
+</span><span id="__span-0-565"><a id="__codelineno-0-565" name="__codelineno-0-565"></a><span class="sd">    different row-major convention will yield an incorrect mask.</span>
+</span><span id="__span-0-566"><a id="__codelineno-0-566" name="__codelineno-0-566"></a>
+</span><span id="__span-0-567"><a id="__codelineno-0-567" name="__codelineno-0-567"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-568"><a id="__codelineno-0-568" name="__codelineno-0-568"></a><span class="sd">        rle: The COCO RLE data in one of the following formats:</span>
+</span><span id="__span-0-569"><a id="__codelineno-0-569" name="__codelineno-0-569"></a>
+</span><span id="__span-0-570"><a id="__codelineno-0-570" name="__codelineno-0-570"></a><span class="sd">            - A 1D array or list of integers (uncompressed COCO RLE, where</span>
+</span><span id="__span-0-571"><a id="__codelineno-0-571" name="__codelineno-0-571"></a><span class="sd">              values at even indices are background run-lengths and values at</span>
+</span><span id="__span-0-572"><a id="__codelineno-0-572" name="__codelineno-0-572"></a><span class="sd">              odd indices are foreground run-lengths, both counted column-major).</span>
+</span><span id="__span-0-573"><a id="__codelineno-0-573" name="__codelineno-0-573"></a><span class="sd">            - A compressed COCO RLE string or bytes, as produced by</span>
+</span><span id="__span-0-574"><a id="__codelineno-0-574" name="__codelineno-0-574"></a><span class="sd">              ``pycocotools.mask.encode``.</span>
+</span><span id="__span-0-575"><a id="__codelineno-0-575" name="__codelineno-0-575"></a><span class="sd">        resolution_wh: The width (w) and height (h)</span>
+</span><span id="__span-0-576"><a id="__codelineno-0-576" name="__codelineno-0-576"></a><span class="sd">            of the desired binary mask.</span>
+</span><span id="__span-0-577"><a id="__codelineno-0-577" name="__codelineno-0-577"></a>
+</span><span id="__span-0-578"><a id="__codelineno-0-578" name="__codelineno-0-578"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-579"><a id="__codelineno-0-579" name="__codelineno-0-579"></a><span class="sd">        The generated 2D Boolean mask of shape `(h, w)`, where the foreground object is</span>
+</span><span id="__span-0-580"><a id="__codelineno-0-580" name="__codelineno-0-580"></a><span class="sd">            marked with `True`&#39;s and the rest is filled with `False`&#39;s.</span>
+</span><span id="__span-0-581"><a id="__codelineno-0-581" name="__codelineno-0-581"></a>
+</span><span id="__span-0-582"><a id="__codelineno-0-582" name="__codelineno-0-582"></a><span class="sd">    Raises:</span>
+</span><span id="__span-0-583"><a id="__codelineno-0-583" name="__codelineno-0-583"></a><span class="sd">        ValueError: If the sum of pixels encoded in RLE differs from the</span>
+</span><span id="__span-0-584"><a id="__codelineno-0-584" name="__codelineno-0-584"></a><span class="sd">            number of pixels in the expected mask (computed based on resolution_wh).</span>
+</span><span id="__span-0-585"><a id="__codelineno-0-585" name="__codelineno-0-585"></a>
+</span><span id="__span-0-586"><a id="__codelineno-0-586" name="__codelineno-0-586"></a><span class="sd">    Examples:</span>
+</span><span id="__span-0-587"><a id="__codelineno-0-587" name="__codelineno-0-587"></a><span class="sd">        ```pycon</span>
+</span><span id="__span-0-588"><a id="__codelineno-0-588" name="__codelineno-0-588"></a><span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+</span><span id="__span-0-589"><a id="__codelineno-0-589" name="__codelineno-0-589"></a><span class="sd">        &gt;&gt;&gt; import supervision as sv</span>
+</span><span id="__span-0-590"><a id="__codelineno-0-590" name="__codelineno-0-590"></a><span class="sd">        &gt;&gt;&gt; mask = sv.rle_to_mask([5, 2, 2, 2, 5], (4, 4))</span>
+</span><span id="__span-0-591"><a id="__codelineno-0-591" name="__codelineno-0-591"></a><span class="sd">        &gt;&gt;&gt; mask  # doctest: +NORMALIZE_WHITESPACE</span>
+</span><span id="__span-0-592"><a id="__codelineno-0-592" name="__codelineno-0-592"></a><span class="sd">        array([[False, False, False, False],</span>
+</span><span id="__span-0-593"><a id="__codelineno-0-593" name="__codelineno-0-593"></a><span class="sd">               [False,  True,  True, False],</span>
+</span><span id="__span-0-594"><a id="__codelineno-0-594" name="__codelineno-0-594"></a><span class="sd">               [False,  True,  True, False],</span>
+</span><span id="__span-0-595"><a id="__codelineno-0-595" name="__codelineno-0-595"></a><span class="sd">               [False, False, False, False]])</span>
+</span><span id="__span-0-596"><a id="__codelineno-0-596" name="__codelineno-0-596"></a>
+</span><span id="__span-0-597"><a id="__codelineno-0-597" name="__codelineno-0-597"></a><span class="sd">        &gt;&gt;&gt; mask = sv.rle_to_mask(&quot;52203&quot;, (4, 4))</span>
+</span><span id="__span-0-598"><a id="__codelineno-0-598" name="__codelineno-0-598"></a><span class="sd">        &gt;&gt;&gt; mask  # doctest: +NORMALIZE_WHITESPACE</span>
+</span><span id="__span-0-599"><a id="__codelineno-0-599" name="__codelineno-0-599"></a><span class="sd">        array([[False, False, False, False],</span>
+</span><span id="__span-0-600"><a id="__codelineno-0-600" name="__codelineno-0-600"></a><span class="sd">               [False,  True,  True, False],</span>
+</span><span id="__span-0-601"><a id="__codelineno-0-601" name="__codelineno-0-601"></a><span class="sd">               [False,  True,  True, False],</span>
+</span><span id="__span-0-602"><a id="__codelineno-0-602" name="__codelineno-0-602"></a><span class="sd">               [False, False, False, False]])</span>
+</span><span id="__span-0-603"><a id="__codelineno-0-603" name="__codelineno-0-603"></a>
+</span><span id="__span-0-604"><a id="__codelineno-0-604" name="__codelineno-0-604"></a><span class="sd">        ```</span>
+</span><span id="__span-0-605"><a id="__codelineno-0-605" name="__codelineno-0-605"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-606"><a id="__codelineno-0-606" name="__codelineno-0-606"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rle</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+</span><span id="__span-0-607"><a id="__codelineno-0-607" name="__codelineno-0-607"></a>        <span class="n">rle</span> <span class="o">=</span> <span class="n">rle</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+</span><span id="__span-0-608"><a id="__codelineno-0-608" name="__codelineno-0-608"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rle</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+</span><span id="__span-0-609"><a id="__codelineno-0-609" name="__codelineno-0-609"></a>        <span class="n">counts</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+</span><span id="__span-0-610"><a id="__codelineno-0-610" name="__codelineno-0-610"></a>            <span class="n">_delta_decode</span><span class="p">(</span><span class="n">_base48_decode</span><span class="p">(</span><span class="n">rle</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span>
+</span><span id="__span-0-611"><a id="__codelineno-0-611" name="__codelineno-0-611"></a>        <span class="p">)</span>
+</span><span id="__span-0-612"><a id="__codelineno-0-612" name="__codelineno-0-612"></a>    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rle</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+</span><span id="__span-0-613"><a id="__codelineno-0-613" name="__codelineno-0-613"></a>        <span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">rle</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+</span><span id="__span-0-614"><a id="__codelineno-0-614" name="__codelineno-0-614"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-0-615"><a id="__codelineno-0-615" name="__codelineno-0-615"></a>        <span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">rle</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+</span><span id="__span-0-616"><a id="__codelineno-0-616" name="__codelineno-0-616"></a>
+</span><span id="__span-0-617"><a id="__codelineno-0-617" name="__codelineno-0-617"></a>    <span class="n">width</span><span class="p">,</span> <span class="n">height</span> <span class="o">=</span> <span class="n">resolution_wh</span>
+</span><span id="__span-0-618"><a id="__codelineno-0-618" name="__codelineno-0-618"></a>
+</span><span id="__span-0-619"><a id="__codelineno-0-619" name="__codelineno-0-619"></a>    <span class="k">if</span> <span class="n">width</span> <span class="o">*</span> <span class="n">height</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">counts</span><span class="p">):</span>
+</span><span id="__span-0-620"><a id="__codelineno-0-620" name="__codelineno-0-620"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+</span><span id="__span-0-621"><a id="__codelineno-0-621" name="__codelineno-0-621"></a>            <span class="s2">&quot;the sum of the number of pixels in the RLE must be the same &quot;</span>
+</span><span id="__span-0-622"><a id="__codelineno-0-622" name="__codelineno-0-622"></a>            <span class="s2">&quot;as the number of pixels in the expected mask&quot;</span>
+</span><span id="__span-0-623"><a id="__codelineno-0-623" name="__codelineno-0-623"></a>        <span class="p">)</span>
+</span><span id="__span-0-624"><a id="__codelineno-0-624" name="__codelineno-0-624"></a>
+</span><span id="__span-0-625"><a id="__codelineno-0-625" name="__codelineno-0-625"></a>    <span class="k">return</span> <span class="n">_rle_counts_to_mask</span><span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -5278,181 +5272,151 @@ mask-to-rle.png" width="800" /></p>
 
             <details class="quote">
               <summary>Source code in <code>src/supervision/detection/utils/converters.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-453">453</a></span>
-<span class="normal"><a href="#__codelineno-0-454">454</a></span>
-<span class="normal"><a href="#__codelineno-0-455">455</a></span>
-<span class="normal"><a href="#__codelineno-0-456">456</a></span>
-<span class="normal"><a href="#__codelineno-0-457">457</a></span>
-<span class="normal"><a href="#__codelineno-0-458">458</a></span>
-<span class="normal"><a href="#__codelineno-0-459">459</a></span>
-<span class="normal"><a href="#__codelineno-0-460">460</a></span>
-<span class="normal"><a href="#__codelineno-0-461">461</a></span>
-<span class="normal"><a href="#__codelineno-0-462">462</a></span>
-<span class="normal"><a href="#__codelineno-0-463">463</a></span>
-<span class="normal"><a href="#__codelineno-0-464">464</a></span>
-<span class="normal"><a href="#__codelineno-0-465">465</a></span>
-<span class="normal"><a href="#__codelineno-0-466">466</a></span>
-<span class="normal"><a href="#__codelineno-0-467">467</a></span>
-<span class="normal"><a href="#__codelineno-0-468">468</a></span>
-<span class="normal"><a href="#__codelineno-0-469">469</a></span>
-<span class="normal"><a href="#__codelineno-0-470">470</a></span>
-<span class="normal"><a href="#__codelineno-0-471">471</a></span>
-<span class="normal"><a href="#__codelineno-0-472">472</a></span>
-<span class="normal"><a href="#__codelineno-0-473">473</a></span>
-<span class="normal"><a href="#__codelineno-0-474">474</a></span>
-<span class="normal"><a href="#__codelineno-0-475">475</a></span>
-<span class="normal"><a href="#__codelineno-0-476">476</a></span>
-<span class="normal"><a href="#__codelineno-0-477">477</a></span>
-<span class="normal"><a href="#__codelineno-0-478">478</a></span>
-<span class="normal"><a href="#__codelineno-0-479">479</a></span>
-<span class="normal"><a href="#__codelineno-0-480">480</a></span>
-<span class="normal"><a href="#__codelineno-0-481">481</a></span>
-<span class="normal"><a href="#__codelineno-0-482">482</a></span>
-<span class="normal"><a href="#__codelineno-0-483">483</a></span>
-<span class="normal"><a href="#__codelineno-0-484">484</a></span>
-<span class="normal"><a href="#__codelineno-0-485">485</a></span>
-<span class="normal"><a href="#__codelineno-0-486">486</a></span>
-<span class="normal"><a href="#__codelineno-0-487">487</a></span>
-<span class="normal"><a href="#__codelineno-0-488">488</a></span>
-<span class="normal"><a href="#__codelineno-0-489">489</a></span>
-<span class="normal"><a href="#__codelineno-0-490">490</a></span>
-<span class="normal"><a href="#__codelineno-0-491">491</a></span>
-<span class="normal"><a href="#__codelineno-0-492">492</a></span>
-<span class="normal"><a href="#__codelineno-0-493">493</a></span>
-<span class="normal"><a href="#__codelineno-0-494">494</a></span>
-<span class="normal"><a href="#__codelineno-0-495">495</a></span>
-<span class="normal"><a href="#__codelineno-0-496">496</a></span>
-<span class="normal"><a href="#__codelineno-0-497">497</a></span>
-<span class="normal"><a href="#__codelineno-0-498">498</a></span>
-<span class="normal"><a href="#__codelineno-0-499">499</a></span>
-<span class="normal"><a href="#__codelineno-0-500">500</a></span>
-<span class="normal"><a href="#__codelineno-0-501">501</a></span>
-<span class="normal"><a href="#__codelineno-0-502">502</a></span>
-<span class="normal"><a href="#__codelineno-0-503">503</a></span>
-<span class="normal"><a href="#__codelineno-0-504">504</a></span>
-<span class="normal"><a href="#__codelineno-0-505">505</a></span>
-<span class="normal"><a href="#__codelineno-0-506">506</a></span>
-<span class="normal"><a href="#__codelineno-0-507">507</a></span>
-<span class="normal"><a href="#__codelineno-0-508">508</a></span>
-<span class="normal"><a href="#__codelineno-0-509">509</a></span>
-<span class="normal"><a href="#__codelineno-0-510">510</a></span>
-<span class="normal"><a href="#__codelineno-0-511">511</a></span>
-<span class="normal"><a href="#__codelineno-0-512">512</a></span>
-<span class="normal"><a href="#__codelineno-0-513">513</a></span>
-<span class="normal"><a href="#__codelineno-0-514">514</a></span>
-<span class="normal"><a href="#__codelineno-0-515">515</a></span>
-<span class="normal"><a href="#__codelineno-0-516">516</a></span>
-<span class="normal"><a href="#__codelineno-0-517">517</a></span>
-<span class="normal"><a href="#__codelineno-0-518">518</a></span>
-<span class="normal"><a href="#__codelineno-0-519">519</a></span>
-<span class="normal"><a href="#__codelineno-0-520">520</a></span>
-<span class="normal"><a href="#__codelineno-0-521">521</a></span>
-<span class="normal"><a href="#__codelineno-0-522">522</a></span>
-<span class="normal"><a href="#__codelineno-0-523">523</a></span>
-<span class="normal"><a href="#__codelineno-0-524">524</a></span>
-<span class="normal"><a href="#__codelineno-0-525">525</a></span>
-<span class="normal"><a href="#__codelineno-0-526">526</a></span>
-<span class="normal"><a href="#__codelineno-0-527">527</a></span>
-<span class="normal"><a href="#__codelineno-0-528">528</a></span>
-<span class="normal"><a href="#__codelineno-0-529">529</a></span>
-<span class="normal"><a href="#__codelineno-0-530">530</a></span>
-<span class="normal"><a href="#__codelineno-0-531">531</a></span>
-<span class="normal"><a href="#__codelineno-0-532">532</a></span>
-<span class="normal"><a href="#__codelineno-0-533">533</a></span>
-<span class="normal"><a href="#__codelineno-0-534">534</a></span>
-<span class="normal"><a href="#__codelineno-0-535">535</a></span>
-<span class="normal"><a href="#__codelineno-0-536">536</a></span>
-<span class="normal"><a href="#__codelineno-0-537">537</a></span>
-<span class="normal"><a href="#__codelineno-0-538">538</a></span>
-<span class="normal"><a href="#__codelineno-0-539">539</a></span>
-<span class="normal"><a href="#__codelineno-0-540">540</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-453"><a id="__codelineno-0-453" name="__codelineno-0-453"></a><span class="k">def</span><span class="w"> </span><span class="nf">mask_to_rle</span><span class="p">(</span>
-</span><span id="__span-0-454"><a id="__codelineno-0-454" name="__codelineno-0-454"></a>    <span class="n">mask</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">],</span> <span class="n">compressed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
-</span><span id="__span-0-455"><a id="__codelineno-0-455" name="__codelineno-0-455"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span><span class="p">:</span>
-</span><span id="__span-0-456"><a id="__codelineno-0-456" name="__codelineno-0-456"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-457"><a id="__codelineno-0-457" name="__codelineno-0-457"></a><span class="sd">    Converts a binary mask into a COCO run-length encoding (RLE).</span>
-</span><span id="__span-0-458"><a id="__codelineno-0-458" name="__codelineno-0-458"></a>
-</span><span id="__span-0-459"><a id="__codelineno-0-459" name="__codelineno-0-459"></a><span class="sd">    Produces RLE in the COCO format used by ``pycocotools``: pixels are counted</span>
-</span><span id="__span-0-460"><a id="__codelineno-0-460" name="__codelineno-0-460"></a><span class="sd">    in **column-major (Fortran) order** — top-to-bottom within each column,</span>
-</span><span id="__span-0-461"><a id="__codelineno-0-461" name="__codelineno-0-461"></a><span class="sd">    left-to-right across columns. The output is directly compatible with</span>
-</span><span id="__span-0-462"><a id="__codelineno-0-462" name="__codelineno-0-462"></a><span class="sd">    ``pycocotools.mask.decode`` and COCO annotation JSON files.</span>
-</span><span id="__span-0-463"><a id="__codelineno-0-463" name="__codelineno-0-463"></a>
-</span><span id="__span-0-464"><a id="__codelineno-0-464" name="__codelineno-0-464"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-465"><a id="__codelineno-0-465" name="__codelineno-0-465"></a><span class="sd">        mask: 2D binary mask where `True` indicates foreground</span>
-</span><span id="__span-0-466"><a id="__codelineno-0-466" name="__codelineno-0-466"></a><span class="sd">            object and `False` indicates background.</span>
-</span><span id="__span-0-467"><a id="__codelineno-0-467" name="__codelineno-0-467"></a><span class="sd">        compressed: If ``True``, return a compressed COCO RLE string</span>
-</span><span id="__span-0-468"><a id="__codelineno-0-468" name="__codelineno-0-468"></a><span class="sd">            compatible with ``pycocotools``. If ``False`` (default),</span>
-</span><span id="__span-0-469"><a id="__codelineno-0-469" name="__codelineno-0-469"></a><span class="sd">            return a list of integers.</span>
-</span><span id="__span-0-470"><a id="__codelineno-0-470" name="__codelineno-0-470"></a>
-</span><span id="__span-0-471"><a id="__codelineno-0-471" name="__codelineno-0-471"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-472"><a id="__codelineno-0-472" name="__codelineno-0-472"></a><span class="sd">        The COCO run-length encoded mask. When ``compressed`` is ``False``,</span>
-</span><span id="__span-0-473"><a id="__codelineno-0-473" name="__codelineno-0-473"></a><span class="sd">            values of a list with even indices represent the number of pixels</span>
-</span><span id="__span-0-474"><a id="__codelineno-0-474" name="__codelineno-0-474"></a><span class="sd">            assigned as background (`False`), values of a list with odd indices</span>
-</span><span id="__span-0-475"><a id="__codelineno-0-475" name="__codelineno-0-475"></a><span class="sd">            represent the number of pixels assigned as foreground object (`True`),</span>
-</span><span id="__span-0-476"><a id="__codelineno-0-476" name="__codelineno-0-476"></a><span class="sd">            both counted in column-major order.</span>
-</span><span id="__span-0-477"><a id="__codelineno-0-477" name="__codelineno-0-477"></a><span class="sd">            When ``compressed`` is ``True``, a COCO compressed RLE string.</span>
-</span><span id="__span-0-478"><a id="__codelineno-0-478" name="__codelineno-0-478"></a>
-</span><span id="__span-0-479"><a id="__codelineno-0-479" name="__codelineno-0-479"></a><span class="sd">    Raises:</span>
-</span><span id="__span-0-480"><a id="__codelineno-0-480" name="__codelineno-0-480"></a><span class="sd">        AssertionError: If input mask is not 2D or is empty.</span>
-</span><span id="__span-0-481"><a id="__codelineno-0-481" name="__codelineno-0-481"></a>
-</span><span id="__span-0-482"><a id="__codelineno-0-482" name="__codelineno-0-482"></a><span class="sd">    Examples:</span>
-</span><span id="__span-0-483"><a id="__codelineno-0-483" name="__codelineno-0-483"></a><span class="sd">        ```pycon</span>
-</span><span id="__span-0-484"><a id="__codelineno-0-484" name="__codelineno-0-484"></a><span class="sd">        &gt;&gt;&gt; import numpy as np</span>
-</span><span id="__span-0-485"><a id="__codelineno-0-485" name="__codelineno-0-485"></a><span class="sd">        &gt;&gt;&gt; import supervision as sv</span>
-</span><span id="__span-0-486"><a id="__codelineno-0-486" name="__codelineno-0-486"></a><span class="sd">        &gt;&gt;&gt; mask = np.array([</span>
-</span><span id="__span-0-487"><a id="__codelineno-0-487" name="__codelineno-0-487"></a><span class="sd">        ...     [True, True, True, True],</span>
-</span><span id="__span-0-488"><a id="__codelineno-0-488" name="__codelineno-0-488"></a><span class="sd">        ...     [True, True, True, True],</span>
-</span><span id="__span-0-489"><a id="__codelineno-0-489" name="__codelineno-0-489"></a><span class="sd">        ...     [True, True, True, True],</span>
-</span><span id="__span-0-490"><a id="__codelineno-0-490" name="__codelineno-0-490"></a><span class="sd">        ...     [True, True, True, True],</span>
-</span><span id="__span-0-491"><a id="__codelineno-0-491" name="__codelineno-0-491"></a><span class="sd">        ... ])</span>
-</span><span id="__span-0-492"><a id="__codelineno-0-492" name="__codelineno-0-492"></a><span class="sd">        &gt;&gt;&gt; rle = sv.mask_to_rle(mask)</span>
-</span><span id="__span-0-493"><a id="__codelineno-0-493" name="__codelineno-0-493"></a><span class="sd">        &gt;&gt;&gt; [int(x) for x in rle]</span>
-</span><span id="__span-0-494"><a id="__codelineno-0-494" name="__codelineno-0-494"></a><span class="sd">        [0, 16]</span>
-</span><span id="__span-0-495"><a id="__codelineno-0-495" name="__codelineno-0-495"></a>
-</span><span id="__span-0-496"><a id="__codelineno-0-496" name="__codelineno-0-496"></a><span class="sd">        ```</span>
-</span><span id="__span-0-497"><a id="__codelineno-0-497" name="__codelineno-0-497"></a>
-</span><span id="__span-0-498"><a id="__codelineno-0-498" name="__codelineno-0-498"></a><span class="sd">        ```pycon</span>
-</span><span id="__span-0-499"><a id="__codelineno-0-499" name="__codelineno-0-499"></a><span class="sd">        &gt;&gt;&gt; import numpy as np</span>
-</span><span id="__span-0-500"><a id="__codelineno-0-500" name="__codelineno-0-500"></a><span class="sd">        &gt;&gt;&gt; import supervision as sv</span>
-</span><span id="__span-0-501"><a id="__codelineno-0-501" name="__codelineno-0-501"></a><span class="sd">        &gt;&gt;&gt; mask = np.array([</span>
-</span><span id="__span-0-502"><a id="__codelineno-0-502" name="__codelineno-0-502"></a><span class="sd">        ...     [False, False, False, False],</span>
-</span><span id="__span-0-503"><a id="__codelineno-0-503" name="__codelineno-0-503"></a><span class="sd">        ...     [False, True,  True,  False],</span>
-</span><span id="__span-0-504"><a id="__codelineno-0-504" name="__codelineno-0-504"></a><span class="sd">        ...     [False, True,  True,  False],</span>
-</span><span id="__span-0-505"><a id="__codelineno-0-505" name="__codelineno-0-505"></a><span class="sd">        ...     [False, False, False, False],</span>
-</span><span id="__span-0-506"><a id="__codelineno-0-506" name="__codelineno-0-506"></a><span class="sd">        ... ])</span>
-</span><span id="__span-0-507"><a id="__codelineno-0-507" name="__codelineno-0-507"></a><span class="sd">        &gt;&gt;&gt; rle = sv.mask_to_rle(mask)</span>
-</span><span id="__span-0-508"><a id="__codelineno-0-508" name="__codelineno-0-508"></a><span class="sd">        &gt;&gt;&gt; [int(x) for x in rle]</span>
-</span><span id="__span-0-509"><a id="__codelineno-0-509" name="__codelineno-0-509"></a><span class="sd">        [5, 2, 2, 2, 5]</span>
-</span><span id="__span-0-510"><a id="__codelineno-0-510" name="__codelineno-0-510"></a>
-</span><span id="__span-0-511"><a id="__codelineno-0-511" name="__codelineno-0-511"></a><span class="sd">        &gt;&gt;&gt; sv.mask_to_rle(mask, compressed=True)</span>
-</span><span id="__span-0-512"><a id="__codelineno-0-512" name="__codelineno-0-512"></a><span class="sd">        &#39;52203&#39;</span>
-</span><span id="__span-0-513"><a id="__codelineno-0-513" name="__codelineno-0-513"></a>
-</span><span id="__span-0-514"><a id="__codelineno-0-514" name="__codelineno-0-514"></a><span class="sd">        ```</span>
-</span><span id="__span-0-515"><a id="__codelineno-0-515" name="__codelineno-0-515"></a>
-</span><span id="__span-0-516"><a id="__codelineno-0-516" name="__codelineno-0-516"></a><span class="sd">    ![mask_to_rle](https://media.roboflow.com/supervision-docs/</span>
-</span><span id="__span-0-517"><a id="__codelineno-0-517" name="__codelineno-0-517"></a><span class="sd">    mask-to-rle.png){ align=center width=&quot;800&quot; }</span>
-</span><span id="__span-0-518"><a id="__codelineno-0-518" name="__codelineno-0-518"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-519"><a id="__codelineno-0-519" name="__codelineno-0-519"></a>    <span class="k">assert</span> <span class="n">mask</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;Input mask must be 2D&quot;</span>
-</span><span id="__span-0-520"><a id="__codelineno-0-520" name="__codelineno-0-520"></a>    <span class="k">assert</span> <span class="n">mask</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Input mask cannot be empty&quot;</span>
-</span><span id="__span-0-521"><a id="__codelineno-0-521" name="__codelineno-0-521"></a>
-</span><span id="__span-0-522"><a id="__codelineno-0-522" name="__codelineno-0-522"></a>    <span class="n">on_value_change_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
-</span><span id="__span-0-523"><a id="__codelineno-0-523" name="__codelineno-0-523"></a>        <span class="n">mask</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="s2">&quot;F&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="n">np</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="s2">&quot;F&quot;</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
-</span><span id="__span-0-524"><a id="__codelineno-0-524" name="__codelineno-0-524"></a>    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-</span><span id="__span-0-525"><a id="__codelineno-0-525" name="__codelineno-0-525"></a>
-</span><span id="__span-0-526"><a id="__codelineno-0-526" name="__codelineno-0-526"></a>    <span class="n">on_value_change_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">on_value_change_indices</span><span class="p">,</span> <span class="n">mask</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
-</span><span id="__span-0-527"><a id="__codelineno-0-527" name="__codelineno-0-527"></a>    <span class="c1"># need to add 0 at the beginning when the same value is in the first and</span>
-</span><span id="__span-0-528"><a id="__codelineno-0-528" name="__codelineno-0-528"></a>    <span class="c1"># last element of the flattened mask</span>
-</span><span id="__span-0-529"><a id="__codelineno-0-529" name="__codelineno-0-529"></a>    <span class="k">if</span> <span class="n">on_value_change_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-</span><span id="__span-0-530"><a id="__codelineno-0-530" name="__codelineno-0-530"></a>        <span class="n">on_value_change_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">on_value_change_indices</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-</span><span id="__span-0-531"><a id="__codelineno-0-531" name="__codelineno-0-531"></a>
-</span><span id="__span-0-532"><a id="__codelineno-0-532" name="__codelineno-0-532"></a>    <span class="n">rle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">on_value_change_indices</span><span class="p">)</span>
-</span><span id="__span-0-533"><a id="__codelineno-0-533" name="__codelineno-0-533"></a>
-</span><span id="__span-0-534"><a id="__codelineno-0-534" name="__codelineno-0-534"></a>    <span class="k">if</span> <span class="n">mask</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-</span><span id="__span-0-535"><a id="__codelineno-0-535" name="__codelineno-0-535"></a>        <span class="n">rle</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">rle</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-</span><span id="__span-0-536"><a id="__codelineno-0-536" name="__codelineno-0-536"></a>
-</span><span id="__span-0-537"><a id="__codelineno-0-537" name="__codelineno-0-537"></a>    <span class="n">counts</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">count</span><span class="p">)</span> <span class="k">for</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">rle</span><span class="p">]</span>
-</span><span id="__span-0-538"><a id="__codelineno-0-538" name="__codelineno-0-538"></a>    <span class="k">if</span> <span class="n">compressed</span><span class="p">:</span>
-</span><span id="__span-0-539"><a id="__codelineno-0-539" name="__codelineno-0-539"></a>        <span class="k">return</span> <span class="n">_encode_coco_rle_string</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
-</span><span id="__span-0-540"><a id="__codelineno-0-540" name="__codelineno-0-540"></a>    <span class="k">return</span> <span class="n">counts</span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-628">628</a></span>
+<span class="normal"><a href="#__codelineno-0-629">629</a></span>
+<span class="normal"><a href="#__codelineno-0-630">630</a></span>
+<span class="normal"><a href="#__codelineno-0-631">631</a></span>
+<span class="normal"><a href="#__codelineno-0-632">632</a></span>
+<span class="normal"><a href="#__codelineno-0-633">633</a></span>
+<span class="normal"><a href="#__codelineno-0-634">634</a></span>
+<span class="normal"><a href="#__codelineno-0-635">635</a></span>
+<span class="normal"><a href="#__codelineno-0-636">636</a></span>
+<span class="normal"><a href="#__codelineno-0-637">637</a></span>
+<span class="normal"><a href="#__codelineno-0-638">638</a></span>
+<span class="normal"><a href="#__codelineno-0-639">639</a></span>
+<span class="normal"><a href="#__codelineno-0-640">640</a></span>
+<span class="normal"><a href="#__codelineno-0-641">641</a></span>
+<span class="normal"><a href="#__codelineno-0-642">642</a></span>
+<span class="normal"><a href="#__codelineno-0-643">643</a></span>
+<span class="normal"><a href="#__codelineno-0-644">644</a></span>
+<span class="normal"><a href="#__codelineno-0-645">645</a></span>
+<span class="normal"><a href="#__codelineno-0-646">646</a></span>
+<span class="normal"><a href="#__codelineno-0-647">647</a></span>
+<span class="normal"><a href="#__codelineno-0-648">648</a></span>
+<span class="normal"><a href="#__codelineno-0-649">649</a></span>
+<span class="normal"><a href="#__codelineno-0-650">650</a></span>
+<span class="normal"><a href="#__codelineno-0-651">651</a></span>
+<span class="normal"><a href="#__codelineno-0-652">652</a></span>
+<span class="normal"><a href="#__codelineno-0-653">653</a></span>
+<span class="normal"><a href="#__codelineno-0-654">654</a></span>
+<span class="normal"><a href="#__codelineno-0-655">655</a></span>
+<span class="normal"><a href="#__codelineno-0-656">656</a></span>
+<span class="normal"><a href="#__codelineno-0-657">657</a></span>
+<span class="normal"><a href="#__codelineno-0-658">658</a></span>
+<span class="normal"><a href="#__codelineno-0-659">659</a></span>
+<span class="normal"><a href="#__codelineno-0-660">660</a></span>
+<span class="normal"><a href="#__codelineno-0-661">661</a></span>
+<span class="normal"><a href="#__codelineno-0-662">662</a></span>
+<span class="normal"><a href="#__codelineno-0-663">663</a></span>
+<span class="normal"><a href="#__codelineno-0-664">664</a></span>
+<span class="normal"><a href="#__codelineno-0-665">665</a></span>
+<span class="normal"><a href="#__codelineno-0-666">666</a></span>
+<span class="normal"><a href="#__codelineno-0-667">667</a></span>
+<span class="normal"><a href="#__codelineno-0-668">668</a></span>
+<span class="normal"><a href="#__codelineno-0-669">669</a></span>
+<span class="normal"><a href="#__codelineno-0-670">670</a></span>
+<span class="normal"><a href="#__codelineno-0-671">671</a></span>
+<span class="normal"><a href="#__codelineno-0-672">672</a></span>
+<span class="normal"><a href="#__codelineno-0-673">673</a></span>
+<span class="normal"><a href="#__codelineno-0-674">674</a></span>
+<span class="normal"><a href="#__codelineno-0-675">675</a></span>
+<span class="normal"><a href="#__codelineno-0-676">676</a></span>
+<span class="normal"><a href="#__codelineno-0-677">677</a></span>
+<span class="normal"><a href="#__codelineno-0-678">678</a></span>
+<span class="normal"><a href="#__codelineno-0-679">679</a></span>
+<span class="normal"><a href="#__codelineno-0-680">680</a></span>
+<span class="normal"><a href="#__codelineno-0-681">681</a></span>
+<span class="normal"><a href="#__codelineno-0-682">682</a></span>
+<span class="normal"><a href="#__codelineno-0-683">683</a></span>
+<span class="normal"><a href="#__codelineno-0-684">684</a></span>
+<span class="normal"><a href="#__codelineno-0-685">685</a></span>
+<span class="normal"><a href="#__codelineno-0-686">686</a></span>
+<span class="normal"><a href="#__codelineno-0-687">687</a></span>
+<span class="normal"><a href="#__codelineno-0-688">688</a></span>
+<span class="normal"><a href="#__codelineno-0-689">689</a></span>
+<span class="normal"><a href="#__codelineno-0-690">690</a></span>
+<span class="normal"><a href="#__codelineno-0-691">691</a></span>
+<span class="normal"><a href="#__codelineno-0-692">692</a></span>
+<span class="normal"><a href="#__codelineno-0-693">693</a></span>
+<span class="normal"><a href="#__codelineno-0-694">694</a></span>
+<span class="normal"><a href="#__codelineno-0-695">695</a></span>
+<span class="normal"><a href="#__codelineno-0-696">696</a></span>
+<span class="normal"><a href="#__codelineno-0-697">697</a></span>
+<span class="normal"><a href="#__codelineno-0-698">698</a></span>
+<span class="normal"><a href="#__codelineno-0-699">699</a></span>
+<span class="normal"><a href="#__codelineno-0-700">700</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-628"><a id="__codelineno-0-628" name="__codelineno-0-628"></a><span class="k">def</span><span class="w"> </span><span class="nf">mask_to_rle</span><span class="p">(</span>
+</span><span id="__span-0-629"><a id="__codelineno-0-629" name="__codelineno-0-629"></a>    <span class="n">mask</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">bool_</span><span class="p">],</span> <span class="n">compressed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+</span><span id="__span-0-630"><a id="__codelineno-0-630" name="__codelineno-0-630"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="__span-0-631"><a id="__codelineno-0-631" name="__codelineno-0-631"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-632"><a id="__codelineno-0-632" name="__codelineno-0-632"></a><span class="sd">    Converts a binary mask into a COCO run-length encoding (RLE).</span>
+</span><span id="__span-0-633"><a id="__codelineno-0-633" name="__codelineno-0-633"></a>
+</span><span id="__span-0-634"><a id="__codelineno-0-634" name="__codelineno-0-634"></a><span class="sd">    Produces RLE in the COCO format used by ``pycocotools``: pixels are counted</span>
+</span><span id="__span-0-635"><a id="__codelineno-0-635" name="__codelineno-0-635"></a><span class="sd">    in **column-major (Fortran) order** — top-to-bottom within each column,</span>
+</span><span id="__span-0-636"><a id="__codelineno-0-636" name="__codelineno-0-636"></a><span class="sd">    left-to-right across columns. The output is directly compatible with</span>
+</span><span id="__span-0-637"><a id="__codelineno-0-637" name="__codelineno-0-637"></a><span class="sd">    ``pycocotools.mask.decode`` and COCO annotation JSON files.</span>
+</span><span id="__span-0-638"><a id="__codelineno-0-638" name="__codelineno-0-638"></a>
+</span><span id="__span-0-639"><a id="__codelineno-0-639" name="__codelineno-0-639"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-640"><a id="__codelineno-0-640" name="__codelineno-0-640"></a><span class="sd">        mask: 2D binary mask where `True` indicates foreground</span>
+</span><span id="__span-0-641"><a id="__codelineno-0-641" name="__codelineno-0-641"></a><span class="sd">            object and `False` indicates background.</span>
+</span><span id="__span-0-642"><a id="__codelineno-0-642" name="__codelineno-0-642"></a><span class="sd">        compressed: If ``True``, return a compressed COCO RLE string</span>
+</span><span id="__span-0-643"><a id="__codelineno-0-643" name="__codelineno-0-643"></a><span class="sd">            compatible with ``pycocotools``. If ``False`` (default),</span>
+</span><span id="__span-0-644"><a id="__codelineno-0-644" name="__codelineno-0-644"></a><span class="sd">            return a list of integers.</span>
+</span><span id="__span-0-645"><a id="__codelineno-0-645" name="__codelineno-0-645"></a>
+</span><span id="__span-0-646"><a id="__codelineno-0-646" name="__codelineno-0-646"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-647"><a id="__codelineno-0-647" name="__codelineno-0-647"></a><span class="sd">        The COCO run-length encoded mask. When ``compressed`` is ``False``,</span>
+</span><span id="__span-0-648"><a id="__codelineno-0-648" name="__codelineno-0-648"></a><span class="sd">            values of a list with even indices represent the number of pixels</span>
+</span><span id="__span-0-649"><a id="__codelineno-0-649" name="__codelineno-0-649"></a><span class="sd">            assigned as background (`False`), values of a list with odd indices</span>
+</span><span id="__span-0-650"><a id="__codelineno-0-650" name="__codelineno-0-650"></a><span class="sd">            represent the number of pixels assigned as foreground object (`True`),</span>
+</span><span id="__span-0-651"><a id="__codelineno-0-651" name="__codelineno-0-651"></a><span class="sd">            both counted in column-major order.</span>
+</span><span id="__span-0-652"><a id="__codelineno-0-652" name="__codelineno-0-652"></a><span class="sd">            When ``compressed`` is ``True``, a COCO compressed RLE string.</span>
+</span><span id="__span-0-653"><a id="__codelineno-0-653" name="__codelineno-0-653"></a>
+</span><span id="__span-0-654"><a id="__codelineno-0-654" name="__codelineno-0-654"></a><span class="sd">    Raises:</span>
+</span><span id="__span-0-655"><a id="__codelineno-0-655" name="__codelineno-0-655"></a><span class="sd">        AssertionError: If input mask is not 2D or is empty.</span>
+</span><span id="__span-0-656"><a id="__codelineno-0-656" name="__codelineno-0-656"></a>
+</span><span id="__span-0-657"><a id="__codelineno-0-657" name="__codelineno-0-657"></a><span class="sd">    Examples:</span>
+</span><span id="__span-0-658"><a id="__codelineno-0-658" name="__codelineno-0-658"></a><span class="sd">        ```pycon</span>
+</span><span id="__span-0-659"><a id="__codelineno-0-659" name="__codelineno-0-659"></a><span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+</span><span id="__span-0-660"><a id="__codelineno-0-660" name="__codelineno-0-660"></a><span class="sd">        &gt;&gt;&gt; import supervision as sv</span>
+</span><span id="__span-0-661"><a id="__codelineno-0-661" name="__codelineno-0-661"></a><span class="sd">        &gt;&gt;&gt; mask = np.array([</span>
+</span><span id="__span-0-662"><a id="__codelineno-0-662" name="__codelineno-0-662"></a><span class="sd">        ...     [True, True, True, True],</span>
+</span><span id="__span-0-663"><a id="__codelineno-0-663" name="__codelineno-0-663"></a><span class="sd">        ...     [True, True, True, True],</span>
+</span><span id="__span-0-664"><a id="__codelineno-0-664" name="__codelineno-0-664"></a><span class="sd">        ...     [True, True, True, True],</span>
+</span><span id="__span-0-665"><a id="__codelineno-0-665" name="__codelineno-0-665"></a><span class="sd">        ...     [True, True, True, True],</span>
+</span><span id="__span-0-666"><a id="__codelineno-0-666" name="__codelineno-0-666"></a><span class="sd">        ... ])</span>
+</span><span id="__span-0-667"><a id="__codelineno-0-667" name="__codelineno-0-667"></a><span class="sd">        &gt;&gt;&gt; rle = sv.mask_to_rle(mask)</span>
+</span><span id="__span-0-668"><a id="__codelineno-0-668" name="__codelineno-0-668"></a><span class="sd">        &gt;&gt;&gt; [int(x) for x in rle]</span>
+</span><span id="__span-0-669"><a id="__codelineno-0-669" name="__codelineno-0-669"></a><span class="sd">        [0, 16]</span>
+</span><span id="__span-0-670"><a id="__codelineno-0-670" name="__codelineno-0-670"></a>
+</span><span id="__span-0-671"><a id="__codelineno-0-671" name="__codelineno-0-671"></a><span class="sd">        ```</span>
+</span><span id="__span-0-672"><a id="__codelineno-0-672" name="__codelineno-0-672"></a>
+</span><span id="__span-0-673"><a id="__codelineno-0-673" name="__codelineno-0-673"></a><span class="sd">        ```pycon</span>
+</span><span id="__span-0-674"><a id="__codelineno-0-674" name="__codelineno-0-674"></a><span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+</span><span id="__span-0-675"><a id="__codelineno-0-675" name="__codelineno-0-675"></a><span class="sd">        &gt;&gt;&gt; import supervision as sv</span>
+</span><span id="__span-0-676"><a id="__codelineno-0-676" name="__codelineno-0-676"></a><span class="sd">        &gt;&gt;&gt; mask = np.array([</span>
+</span><span id="__span-0-677"><a id="__codelineno-0-677" name="__codelineno-0-677"></a><span class="sd">        ...     [False, False, False, False],</span>
+</span><span id="__span-0-678"><a id="__codelineno-0-678" name="__codelineno-0-678"></a><span class="sd">        ...     [False, True,  True,  False],</span>
+</span><span id="__span-0-679"><a id="__codelineno-0-679" name="__codelineno-0-679"></a><span class="sd">        ...     [False, True,  True,  False],</span>
+</span><span id="__span-0-680"><a id="__codelineno-0-680" name="__codelineno-0-680"></a><span class="sd">        ...     [False, False, False, False],</span>
+</span><span id="__span-0-681"><a id="__codelineno-0-681" name="__codelineno-0-681"></a><span class="sd">        ... ])</span>
+</span><span id="__span-0-682"><a id="__codelineno-0-682" name="__codelineno-0-682"></a><span class="sd">        &gt;&gt;&gt; rle = sv.mask_to_rle(mask)</span>
+</span><span id="__span-0-683"><a id="__codelineno-0-683" name="__codelineno-0-683"></a><span class="sd">        &gt;&gt;&gt; [int(x) for x in rle]</span>
+</span><span id="__span-0-684"><a id="__codelineno-0-684" name="__codelineno-0-684"></a><span class="sd">        [5, 2, 2, 2, 5]</span>
+</span><span id="__span-0-685"><a id="__codelineno-0-685" name="__codelineno-0-685"></a>
+</span><span id="__span-0-686"><a id="__codelineno-0-686" name="__codelineno-0-686"></a><span class="sd">        &gt;&gt;&gt; sv.mask_to_rle(mask, compressed=True)</span>
+</span><span id="__span-0-687"><a id="__codelineno-0-687" name="__codelineno-0-687"></a><span class="sd">        &#39;52203&#39;</span>
+</span><span id="__span-0-688"><a id="__codelineno-0-688" name="__codelineno-0-688"></a>
+</span><span id="__span-0-689"><a id="__codelineno-0-689" name="__codelineno-0-689"></a><span class="sd">        ```</span>
+</span><span id="__span-0-690"><a id="__codelineno-0-690" name="__codelineno-0-690"></a>
+</span><span id="__span-0-691"><a id="__codelineno-0-691" name="__codelineno-0-691"></a><span class="sd">    ![mask_to_rle](https://media.roboflow.com/supervision-docs/</span>
+</span><span id="__span-0-692"><a id="__codelineno-0-692" name="__codelineno-0-692"></a><span class="sd">    mask-to-rle.png){ align=center width=&quot;800&quot; }</span>
+</span><span id="__span-0-693"><a id="__codelineno-0-693" name="__codelineno-0-693"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-694"><a id="__codelineno-0-694" name="__codelineno-0-694"></a>    <span class="k">assert</span> <span class="n">mask</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;Input mask must be 2D&quot;</span>
+</span><span id="__span-0-695"><a id="__codelineno-0-695" name="__codelineno-0-695"></a>    <span class="k">assert</span> <span class="n">mask</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Input mask cannot be empty&quot;</span>
+</span><span id="__span-0-696"><a id="__codelineno-0-696" name="__codelineno-0-696"></a>
+</span><span id="__span-0-697"><a id="__codelineno-0-697" name="__codelineno-0-697"></a>    <span class="n">counts</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">_mask_to_rle_counts</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+</span><span id="__span-0-698"><a id="__codelineno-0-698" name="__codelineno-0-698"></a>    <span class="k">if</span> <span class="n">compressed</span><span class="p">:</span>
+</span><span id="__span-0-699"><a id="__codelineno-0-699" name="__codelineno-0-699"></a>        <span class="k">return</span> <span class="n">_base48_encode</span><span class="p">(</span><span class="n">_delta_encode</span><span class="p">(</span><span class="n">counts</span><span class="p">))</span>
+</span><span id="__span-0-700"><a id="__codelineno-0-700" name="__codelineno-0-700"></a>    <span class="k">return</span> <span class="n">counts</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
