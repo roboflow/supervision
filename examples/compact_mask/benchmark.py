@@ -584,7 +584,9 @@ def stage_resize(
     """Time resize to half resolution; check pixel-level correctness.
 
     Dense uses numpy linspace fancy-indexing (same strategy as resize_masks).
-    Compact decodes each RLE crop, resizes with cv2.INTER_NEAREST, re-encodes.
+    Compact times ``CompactMask.resize()``, which may resize sparse masks with
+    direct RLE arithmetic and otherwise can fall back to decode/resize/
+    re-encode internally.
     Correctness is checked with 1-pixel tolerance — rounding between the two
     nearest-neighbour strategies can differ by 1 px at bbox boundaries.
     """
