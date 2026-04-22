@@ -153,6 +153,18 @@ class CompactMask:
         the full canvas.  Use :meth:`to_dense` to obtain a standard boolean
         array for pycocotools interop.
 
+        This scan order is part of CompactMask's internal RLE representation.
+        Switching from row-major (C-order) to column-major (F-order) is a
+        backward-incompatible format change for any persisted or serialized
+        :class:`CompactMask` state, including pickled objects and any
+        external storage of ``._rles``.  Older stored RLE arrays will decode
+        incorrectly under the new convention.
+
+        Migration note: load or decode legacy masks with the older version,
+        materialize them to dense boolean arrays, and then re-encode them
+        with the current version (for example via :meth:`to_dense` followed
+        by :meth:`from_dense`) before persisting them again.
+
     Args:
         rles: List of N int32 run-length arrays.
         crop_shapes: Array of shape ``(N, 2)`` — ``(crop_h, crop_w)`` per mask.
