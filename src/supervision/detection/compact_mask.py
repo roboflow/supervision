@@ -12,20 +12,25 @@ crop boundaries, so no extra metadata is required from the caller.
 from __future__ import annotations
 
 from collections.abc import Iterator
-from typing import Any, cast
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
+
+from supervision.detection.utils.converters import (
+    _mask_to_rle_counts,
+    _rle_counts_to_mask,
+)
 
 
 def _rle_encode(mask_2d: npt.NDArray[Any]) -> npt.NDArray[np.int32]:
     """Run-length encode a 2D boolean mask in column-major (Fortran) order.
 
-    Pixels are scanned column-by-column (top-to-bottom within each column,
-    left-to-right across columns), matching the COCO / pycocotools RLE
-    convention.  The encoding starts with the count of leading ``False``
-    values (may be 0 if the mask begins with ``True``).  Subsequent values
-    alternate between ``True`` and ``False`` run counts.
+    Delegates to :func:`~supervision.detection.utils.converters._mask_to_rle_counts`,
+    the shared COCO-format RLE encoder. Pixels are scanned column-by-column
+    (top-to-bottom within each column, left-to-right across columns), matching
+    the COCO / pycocotools convention. The encoding starts with the count of
+    leading ``False`` values (may be 0 if the mask begins with ``True``).
 
     Args:
         mask_2d: 2D boolean array of shape ``(H, W)``.
@@ -43,28 +48,16 @@ def _rle_encode(mask_2d: npt.NDArray[Any]) -> npt.NDArray[np.int32]:
 
         ```
     """
-    flat = mask_2d.ravel(order="F")  # F-order (column-major, COCO-compatible)
-    if len(flat) == 0:
-        return np.array([0], dtype=np.int32)
-
-    # Locate positions where the boolean value changes.
-    changes = np.diff(flat.view(np.uint8))
-    boundaries = np.where(changes != 0)[0] + 1
-
-    positions = np.concatenate(([0], boundaries, [len(flat)]))
-    run_lengths = np.diff(positions).astype(np.int32)
-
-    # Guarantee the encoding always starts with a False count.
-    if flat[0]:
-        run_lengths = np.concatenate(([np.int32(0)], run_lengths))
-
-    return run_lengths
+    return _mask_to_rle_counts(mask_2d)
 
 
 def _rle_decode(
     rle: npt.NDArray[np.int32], height: int, width: int
 ) -> npt.NDArray[np.bool_]:
     """Decode a run-length encoded mask back to a 2D boolean array.
+
+    Delegates to :func:`~supervision.detection.utils.converters._rle_counts_to_mask`,
+    the shared COCO-format RLE decoder.
 
     Args:
         rle: int32 array of run lengths as produced by :func:`_rle_encode`.
@@ -85,17 +78,7 @@ def _rle_decode(
 
         ```
     """
-    # Even-indexed entries → False runs; odd-indexed entries → True runs.
-    is_true = np.arange(len(rle)) % 2 == 1
-    flat: npt.NDArray[np.bool_] = np.repeat(is_true, rle)
-    num_pixels = height * width
-    if len(flat) < num_pixels:
-        # Pad with False if the RLE is shorter than expected (e.g. all-False
-        # tails are often omitted during encoding).
-        flat = np.pad(flat, (0, num_pixels - len(flat)))
-    return cast(
-        npt.NDArray[np.bool_], flat[:num_pixels].reshape(height, width, order="F")
-    )
+    return _rle_counts_to_mask(rle, height, width)
 
 
 def _rle_area(rle: npt.NDArray[np.int32]) -> int:
