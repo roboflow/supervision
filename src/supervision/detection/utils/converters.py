@@ -411,7 +411,7 @@ def _delta_decode(values: list[int]) -> list[int]:
         ```pycon
         >>> from supervision.detection.utils.converters import _delta_decode
         >>> _delta_decode([5, 2, 2, 0, 3])
-        [5, 2, 2, 5, 5]
+        [5, 2, 2, 2, 5]
 
         ```
     """
