@@ -318,3 +318,29 @@ zone. In the example below you can see how to filter out all detections located 
     ![original](https://media.roboflow.com/open-source/supervision/supervision-detection-original.png){ align=center width="800" }
 
     </div>
+
+## Frequently Asked Questions
+
+### How do I filter detections by class in supervision?
+
+Use NumPy-style boolean indexing: `detections[detections.class_id == 0]` for class 0. Combine with `&` or `|` for multiple conditions.
+
+### How do I filter by confidence threshold?
+
+`detections[detections.confidence > 0.5]` returns only detections above the threshold. Chain with class filters for precise results.
+
+### How do I filter by bounding box area?
+
+`detections[detections.area > 1000]` filters by pixel area. `detections.area` is computed from `xyxy` coordinates.
+
+### Can I filter by box aspect ratio or dimensions?
+
+Yes. Access `detections.width`, `detections.height`, and compute `detections.width / detections.height` for aspect ratio filtering.
+
+### How do I remove duplicate detections (NMS) from my results?
+
+Use `sv.Detections.nms(detections, IoU_threshold=0.5)` — it applies non-maximum suppression on the `xyxy` boxes.
+
+## Author
+
+- [Piotr Skalski](https://github.com/SkalskiP) — Computer Vision Engineer, Roboflow

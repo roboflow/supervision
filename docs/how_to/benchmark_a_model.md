@@ -450,3 +450,25 @@ A condensed version of this guide is also available as a [Colab Notebook](https:
 For more details, be sure to check out our [documentation](https://supervision.roboflow.com/latest/) and join our community discussions. If you find any issues, please let us know on [GitHub](https://github.com/roboflow/supervision/issues).
 
 Best of luck with your benchmarking!
+
+## Frequently Asked Questions
+
+### How do I benchmark a model with supervision?
+
+Create `sv.MeanAveragePrecision`, call `metric.from_detections(predictions, ground_truth)` with prediction and ground-truth `Detections` lists, then inspect `metric.compute()`.
+
+### What IoU thresholds does MeanAveragePrecision use?
+
+It computes mAP over IoU thresholds from 0.50 to 0.95 in steps of 0.05 (mAP@50:95), plus mAP@50 and mAP@75 individually.
+
+### Can I benchmark segmentation models?
+
+Yes. Pass `Detections` with valid `mask` fields to `from_detections()` — the metric will compute mask-based mAP.
+
+### What is a ConfusionMatrix and how do I use it?
+
+`sv.ConfusionMatrix` visualizes true positives, false positives, and false negatives per class. Create one with `ConfusionMatrix(threshold=0.5)`, call `from_detections()`, then `metric.plot()` to render a heatmap.
+
+## Author
+
+- [Piotr Skalski](https://github.com/SkalskiP) — Computer Vision Engineer, Roboflow

@@ -197,6 +197,25 @@
 </script>
 {% endif %}
 
+{# ── How-to FAQ schema ──────────────────────────────────────── #}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How do I {{ page.title | striptags | lower }} with supervision?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": {{ page.meta.description | d(config.site_description) | tojson }}
+      }
+    }
+  ]
+}
+</script>
+{% endif %}
+
 {% if not page.is_homepage %}
 <script type="application/ld+json">
 {
@@ -232,6 +251,57 @@
 <meta name="twitter:title" content="{{ page.title }}" />
 <meta name="twitter:description" content="{{ page.meta.description | d(config.site_description) }}" />
 <meta name="twitter:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
+{# ── API reference schema (detection/ metrics/ datasets/ reference pages) ── #}
+{% if 'reference' in page.url or '/detection/' in page.url or '/metrics/' in page.url or '/keypoint/' in page.url or '/classification/' in page.url %}
+{% if 'how_to' not in page.url %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  "name": {{ page.title | tojson }},
+  "description": {{ page.meta.description | d('Supervision API reference documentation.') | tojson }},
+  "url": {{ page.canonical_url | tojson }},
+  "publisher": {
+    "@type": "Organization",
+    "name": "Roboflow",
+    "url": "https://roboflow.com"
+  },
+  "codeRepository": "https://github.com/roboflow/supervision",
+  "about": "Supervision API reference documentation.",
+  "programmingLanguage": "Python"
+}
+</script>
+{% endif %}
+{% endif %}
+
+{# Cookbooks FAQ schema ── #}
+{% if 'cookbook' in page.url %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What computer vision tutorials does supervision offer?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Supervision provides cookbooks for object tracking with ByteTrack, zero-shot detection with YOLO-World, small object detection with SAHI, occupancy analytics, and line-crossing counts."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I track objects in video with supervision?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Use sv.ByteTrack — pass Detections to update_with_detections() and it assigns persistent tracker IDs. Combine with sv.TraceAnnotator to visualize trajectories. See the Object Tracking cookbook."
+      }
+    }
+  ]
+}
+</script>
+{% endif %}
+
 {# IndexNow ownership key — do NOT change this value.
    The same key must exist in three places (all must stay in sync):
      1. This meta tag (docs/theme/main.html)

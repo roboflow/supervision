@@ -664,3 +664,26 @@ We could stop here as we have successfully tracked the object detected by the ke
 </video>
 
 This structured walkthrough should give a detailed pathway to annotate videos effectively using Supervision’s various functionalities, including object tracking and trace annotations.
+
+## Frequently Asked Questions
+
+### How do I track objects across video frames with supervision?
+
+Pass `Detections` to `sv.ByteTrack.update_with_detections()` on each frame. The tracker assigns persistent IDs. Combine with `sv.TraceAnnotator` to visualize trajectories.
+
+### What's the difference between ByteTrack and SORT?
+
+ByteTrack uses low-confidence detections as temporary tracklets, giving better recall for fast-moving objects. SORT is simpler and faster but may lose tracks during brief occlusions.
+
+### Can I track instances instead of bounding boxes?
+
+Yes. ByteTrack tracks bounding boxes. For instance masks, use `sv.MaskAnnotator` with the tracker IDs to color-code each tracked object consistently.
+
+### Does ByteTrack work with any detection model?
+
+Yes. ByteTrack is model-agnostic — it accepts any `Detections` object regardless of source (YOLO, SAM, Grounding DINO, Transformers, etc.).
+
+## Authors
+
+- [Piotr Skalski](https://github.com/SkalskiP) — Computer Vision Engineer, Roboflow
+- [Soumik Mandal](https://github.com/soumik12345) — ML Engineer, Roboflow

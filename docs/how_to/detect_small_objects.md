@@ -336,3 +336,21 @@ objects within each, and aggregating the results.
     ```
 
 ![detection-with-inference-slicer](https://media.roboflow.com/supervision-docs/inference-slicer-segmentation-example.png)
+
+## Frequently Asked Questions
+
+### How do I detect small objects with supervision?
+
+Use `sv.InferenceSlicer` to split a high-resolution image into overlapping tiles, run detection on each tile, and merge results with non-maximum suppression. This dramatically improves recall for tiny targets.
+
+### What overlap should I use between tiles?
+
+An overlap of 50% is a good default. Increase to 75% for very small objects (<16x16 pixels). Decrease to 25% for speed.
+
+### Can I use InferenceSlicer with any detection model?
+
+Yes. Pass any `Detections` object (from YOLO, SAM, Grounding DINO, Transformers, etc.) to `InferenceSlicer(detections)`.
+
+## Author
+
+- [Piotr Skalski](https://github.com/SkalskiP) — Computer Vision Engineer, Roboflow

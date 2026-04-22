@@ -137,3 +137,21 @@ Here is an example of inference run on the video:
 <video width="100%" loop muted autoplay>
   <source src="https://blog.roboflow.com/content/media/2023/03/trim-counting.mp4" type="video/mp4">
 </video>
+
+## Frequently Asked Questions
+
+### How do I count objects in a zone with supervision?
+
+Create `sv.PolygonZone` with a polygon defining your region. Call `zone.trigger(detections)` on each frame — it returns a mask of detections inside the zone.
+
+### Can I count objects crossing a line instead of entering a zone?
+
+Yes. Use `sv.LineZone` — define a start and end point. `zone.trigger(detections)` returns detections that crossed the line in the specified direction.
+
+### Can I combine zone counting with tracking?
+
+Yes. Pass the tracker IDs from `sv.ByteTrack` to `PolygonZone` — each object is counted only once when it first enters the zone.
+
+## Author
+
+- [Piotr Skalski](https://github.com/SkalskiP) — Computer Vision Engineer, Roboflow

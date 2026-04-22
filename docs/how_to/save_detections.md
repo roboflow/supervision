@@ -302,3 +302,25 @@ with
             detections = sv.Detections.from_transformers(results)
             sink.append(detections, {"frame_index": frame_index})
     ```
+
+## Frequently Asked Questions
+
+### How do I save detections to CSV with supervision?
+
+Create `sv.CSVSink("output.csv")` and call `sink.append(detections)` for each frame. The CSV includes box coordinates, confidence, class ID, and tracker ID.
+
+### Can I save detections to JSON instead?
+
+Use `sv.JSONSink("output.json")` — it writes all detections as a JSON array, one detection per entry.
+
+### Can I add custom fields to the saved output?
+
+Yes. Pass a dict as the second argument: `sink.append(detections, {"frame_index": 5})` — the keys become extra columns in the CSV or extra fields in the JSON.
+
+### Can I save only specific classes or confidence levels?
+
+Filter the `Detections` object before saving: `sink.append(detections[detections.confidence > 0.7])`.
+
+## Author
+
+- [Piotr Skalski](https://github.com/SkalskiP) — Computer Vision Engineer, Roboflow

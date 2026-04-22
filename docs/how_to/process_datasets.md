@@ -455,3 +455,25 @@ augmented_annotations = replace(
 ```
 
 ![augment-dataset](https://media.roboflow.com/supervision-docs/augment-dataset.png)
+
+## Frequently Asked Questions
+
+### What dataset formats does supervision support?
+
+YOLO, COCO JSON, and Pascal VOC for both detection and classification tasks. Use `DetectionDataset.from_yolo()`, `from_coco()`, or `from_pascal_voc()` to load. Use `as_yolo()`, `as_coco()`, or `as_pascal_voc()` to save.
+
+### Can I split a dataset into train/val/test sets?
+
+Yes. `DetectionDataset.split(ratio=0.8)` splits into train (80%) and val (20%). Pass `val=0.1, test=0.1` for three-way splits.
+
+### Can I merge two datasets together?
+
+Yes. `Dataset.merge(other_dataset)` combines two datasets into one. Useful for combining datasets from different sources.
+
+### What augmentations are available?
+
+Flip, rotate, translate, scale, crop, color jitter, Gaussian blur, mosaic, and mixup. Chain them with `sv.Augmenter` or apply individually.
+
+## Author
+
+- [Piotr Skalski](https://github.com/SkalskiP) — Computer Vision Engineer, Roboflow

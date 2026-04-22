@@ -435,3 +435,26 @@ that will allow you to draw masks instead of boxes.
     ```
 
 ![segmentation-annotation](https://media.roboflow.com/supervision_detect_and_annotate_example_3.png)
+
+## Frequently Asked Questions
+
+### How do I detect and annotate objects with supervision?
+
+Pass any model's output to `sv.Detections.from_<model>()` to create a unified `Detections` object. Then pass it to `sv.BoxAnnotator` or `sv.MaskAnnotator` to draw predictions on an image.
+
+### Can I annotate both bounding boxes and masks at the same time?
+
+Yes. Chain annotators: first draw boxes with `BoxAnnotator`, then overlay masks with `MaskAnnotator` on the same scene.
+
+### How do I label detections with class names?
+
+Use the `label` parameter of any annotator, or pass `detections.class_name` if your connector set it. `sv.LabelAnnotator` renders text inside or beside each box.
+
+### Can I use supervision with Hugging Face models?
+
+Yes. `sv.Detections.from_transformers()` accepts any Hugging Face pipeline output (e.g., OWL-ViT, Grounding DINO). `sv.Detections.from_florence2()` and `sv.Detections.from_paligemma()` handle vision-language models directly.
+
+## Authors
+
+- [Piotr Skalski](https://github.com/SkalskiP) — Computer Vision Engineer, Roboflow
+- [Borda](https://github.com/borda) — Open Source Engineer, Roboflow
