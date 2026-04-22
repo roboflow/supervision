@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import cv2
 import numpy as np
@@ -308,21 +308,35 @@ def mask_to_polygons(mask: npt.NDArray[np.bool_]) -> list[npt.NDArray[np.int32]]
     ]
 
 
-def _decode_coco_rle_string(s: str) -> list[int]:
-    """Decode a COCO compressed RLE counts string to a list of run-length integers.
+def _base48_decode(s: str) -> list[int]:
+    """Decode a COCO base-48 string to raw (delta-encoded) integers.
 
-    Implements the decoding algorithm from the COCO API (pycocotools) for
-    compressed RLE strings. Each character encodes 5 data bits in a base-48
-    scheme with continuation and sign flags, using delta encoding for indices
-    beyond the first two.
+    Implements the variable-length base-48 codec from the COCO API
+    (pycocotools). Each integer is encoded across one or more 6-bit
+    characters: bits 0-4 carry data; bit 5 signals continuation; bit 4
+    of the final character signals a negative value.
+
+    This is the pure codec layer — call :func:`_delta_decode` on the
+    result to obtain absolute run-length counts.
 
     Args:
-        s: The compressed RLE counts string.
+        s: COCO compressed RLE string.
 
     Returns:
-        A list of run-length integers (alternating background/foreground counts).
+        Raw delta-encoded integers, one per run.
+
+    Raises:
+        ValueError: If the string is truncated mid-integer.
+
+    Examples:
+        ```pycon
+        >>> from supervision.detection.utils.converters import _base48_decode
+        >>> _base48_decode("52203")
+        [5, 2, 2, 0, 3]
+
+        ```
     """
-    counts: list[int] = []
+    values: list[int] = []
     i = 0
     while i < len(s):
         x = 0
@@ -340,28 +354,35 @@ def _decode_coco_rle_string(s: str) -> list[int]:
             k += 1
             if not more and (c & 0x10):
                 x |= ~0 << (5 * k)
-        if len(counts) > 2:
-            x += counts[-2]
-        counts.append(x)
-    return counts
+        values.append(x)
+    return values
 
 
-def _encode_coco_rle_string(counts: list[int]) -> str:
-    """Encode a list of run-length integers to a COCO compressed RLE string.
+def _base48_encode(values: list[int]) -> str:
+    """Encode raw (delta-encoded) integers to a COCO base-48 string.
 
-    Implements the encoding algorithm from the COCO API (pycocotools).
-    The inverse of :func:`_decode_coco_rle_string`.
+    The inverse of :func:`_base48_decode`. Applies the same variable-length
+    base-48 codec used by pycocotools.
+
+    Apply :func:`_delta_encode` to absolute run-length counts before calling
+    this function to produce a valid COCO compressed RLE string.
 
     Args:
-        counts: A list of run-length integers (alternating background/foreground
-            counts).
+        values: Raw (delta-encoded) integers to encode.
 
     Returns:
-        The compressed RLE counts string.
+        COCO base-48 encoded string.
+
+    Examples:
+        ```pycon
+        >>> from supervision.detection.utils.converters import _base48_encode
+        >>> _base48_encode([5, 2, 2, 0, 3])
+        '52203'
+
+        ```
     """
     chars: list[str] = []
-    for i, cnt in enumerate(counts):
-        x = cnt - counts[i - 2] if i > 2 else cnt
+    for x in values:
         more = True
         while more:
             c = x & 0x1F
@@ -371,6 +392,163 @@ def _encode_coco_rle_string(counts: list[int]) -> str:
                 c |= 0x20
             chars.append(chr(c + 48))
     return "".join(chars)
+
+
+def _delta_decode(values: list[int]) -> list[int]:
+    """Undo COCO delta encoding: ``counts[i] += counts[i - 2]`` for ``i > 2``.
+
+    The COCO compressed RLE format stores run lengths as deltas relative to
+    the count two positions earlier (starting at index 3). This function
+    converts those relative values back to absolute run lengths.
+
+    Args:
+        values: Raw delta-encoded integers from :func:`_base48_decode`.
+
+    Returns:
+        Absolute run-length counts (alternating background / foreground).
+
+    Examples:
+        ```pycon
+        >>> from supervision.detection.utils.converters import _delta_decode
+        >>> _delta_decode([5, 2, 2, 0, 3])
+        [5, 2, 2, 2, 5]
+
+        ```
+    """
+    counts = list(values)
+    for i in range(3, len(counts)):
+        counts[i] += counts[i - 2]
+    return counts
+
+
+def _delta_encode(counts: list[int]) -> list[int]:
+    """Apply COCO delta encoding: ``d[i] = counts[i] - counts[i - 2]`` for ``i > 2``.
+
+    The inverse of :func:`_delta_decode`. Converts absolute run lengths to
+    the relative representation required by the COCO compressed RLE format.
+
+    Args:
+        counts: Absolute run-length counts (alternating background / foreground).
+
+    Returns:
+        Delta-encoded integers ready for :func:`_base48_encode`.
+
+    Examples:
+        ```pycon
+        >>> from supervision.detection.utils.converters import _delta_encode
+        >>> _delta_encode([5, 2, 2, 2, 5])
+        [5, 2, 2, 0, 3]
+
+        ```
+    """
+    deltas = list(counts)
+    for i in range(3, len(deltas)):
+        deltas[i] = counts[i] - counts[i - 2]
+    return deltas
+
+
+def is_compressed_rle(rle: object) -> bool:
+    """Return ``True`` if ``rle`` is a COCO compressed RLE (``str`` or ``bytes``).
+
+    Use this to branch between the compressed-string pipeline
+    (:func:`_base48_decode` → :func:`_delta_decode`) and the uncompressed
+    integer-list / array pipeline before calling :func:`rle_to_mask`.
+
+    Args:
+        rle: Candidate RLE value to inspect.
+
+    Returns:
+        ``True`` for ``str`` or ``bytes`` inputs; ``False`` otherwise.
+
+    Examples:
+        ```pycon
+        >>> from supervision.detection.utils.converters import is_compressed_rle
+        >>> is_compressed_rle("52203")
+        True
+        >>> is_compressed_rle([5, 2, 2, 2, 5])
+        False
+
+        ```
+    """
+    return isinstance(rle, (str, bytes))
+
+
+def _mask_to_rle_counts(mask_2d: npt.NDArray[Any]) -> npt.NDArray[np.int32]:
+    """Encode a 2D boolean mask as COCO F-order run lengths (int32 array).
+
+    Pixels are scanned column-by-column (Fortran order), matching the COCO /
+    pycocotools RLE convention. The first value is always the count of leading
+    ``False`` pixels (may be 0 if the mask starts with ``True``).
+
+    This is the shared low-level encoder used by both :func:`mask_to_rle` and
+    :class:`~supervision.detection.compact_mask.CompactMask`.
+
+    Args:
+        mask_2d: 2D boolean array of shape ``(H, W)``.
+
+    Returns:
+        int32 array of run lengths starting with the False count.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.utils.converters import _mask_to_rle_counts
+        >>> mask = np.array([[False, True], [True, False]])
+        >>> _mask_to_rle_counts(mask).tolist()
+        [1, 2, 1]
+
+        ```
+    """
+    flat = np.asarray(mask_2d, dtype=np.bool_).ravel(order="F")
+    if len(flat) == 0:
+        return np.array([0], dtype=np.int32)
+
+    changes = np.diff(flat.view(np.uint8))
+    boundaries = np.where(changes != 0)[0] + 1
+    positions = np.concatenate(([0], boundaries, [len(flat)]))
+    run_lengths = np.diff(positions).astype(np.int32)
+
+    if flat[0]:
+        run_lengths = np.concatenate(([np.int32(0)], run_lengths))
+
+    return run_lengths
+
+
+def _rle_counts_to_mask(
+    rle: npt.NDArray[np.int32], height: int, width: int
+) -> npt.NDArray[np.bool_]:
+    """Decode COCO F-order run lengths back to a 2D boolean mask.
+
+    This is the shared low-level decoder used by both :func:`rle_to_mask` and
+    :class:`~supervision.detection.compact_mask.CompactMask`.
+
+    Args:
+        rle: int32 array of run lengths as produced by :func:`_mask_to_rle_counts`.
+        height: Height of the output mask.
+        width: Width of the output mask.
+
+    Returns:
+        2D boolean array of shape ``(height, width)``.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.utils.converters import _rle_counts_to_mask
+        >>> rle = np.array([0, 1, 2, 1], dtype=np.int32)
+        >>> _rle_counts_to_mask(rle, 2, 2)
+        array([[ True, False],
+               [False,  True]])
+
+        ```
+    """
+    is_true = np.arange(len(rle)) % 2 == 1
+    flat: npt.NDArray[np.bool_] = np.repeat(is_true, rle)
+    num_pixels = height * width
+    if len(flat) < num_pixels:
+        flat = np.pad(flat, (0, num_pixels - len(flat)))
+    return cast(
+        npt.NDArray[np.bool_], flat[:num_pixels].reshape(height, width, order="F")
+    )
 
 
 def rle_to_mask(
@@ -428,26 +606,23 @@ def rle_to_mask(
     if isinstance(rle, bytes):
         rle = rle.decode("utf-8")
     if isinstance(rle, str):
-        rle = np.array(_decode_coco_rle_string(rle), dtype=int)
+        counts: npt.NDArray[np.int32] = np.array(
+            _delta_decode(_base48_decode(rle)), dtype=np.int32
+        )
     elif isinstance(rle, list):
-        rle = np.array(rle, dtype=int)
+        counts = np.array(rle, dtype=np.int32)
+    else:
+        counts = np.asarray(rle, dtype=np.int32)
 
     width, height = resolution_wh
 
-    if width * height != np.sum(rle):
+    if width * height != np.sum(counts):
         raise ValueError(
             "the sum of the number of pixels in the RLE must be the same "
             "as the number of pixels in the expected mask"
         )
 
-    zero_one_values = np.zeros(shape=(rle.size, 1), dtype=np.uint8)
-    zero_one_values[1::2] = 1
-
-    decoded_rle = np.repeat(zero_one_values, rle, axis=0)
-    decoded_rle = np.append(
-        decoded_rle, np.zeros(width * height - len(decoded_rle), dtype=np.uint8)
-    )
-    return decoded_rle.reshape((height, width), order="F").astype(bool)
+    return _rle_counts_to_mask(counts, height, width)
 
 
 def mask_to_rle(
@@ -519,24 +694,9 @@ def mask_to_rle(
     assert mask.ndim == 2, "Input mask must be 2D"
     assert mask.size != 0, "Input mask cannot be empty"
 
-    on_value_change_indices = np.where(
-        mask.ravel(order="F") != np.roll(mask.ravel(order="F"), 1)
-    )[0]
-
-    on_value_change_indices = np.append(on_value_change_indices, mask.size)
-    # need to add 0 at the beginning when the same value is in the first and
-    # last element of the flattened mask
-    if on_value_change_indices[0] != 0:
-        on_value_change_indices = np.insert(on_value_change_indices, 0, 0)
-
-    rle = np.diff(on_value_change_indices)
-
-    if mask[0][0] == 1:
-        rle = np.insert(rle, 0, 0)
-
-    counts = [int(count) for count in rle]
+    counts: list[int] = cast(list[int], _mask_to_rle_counts(mask).tolist())
     if compressed:
-        return _encode_coco_rle_string(counts)
+        return _base48_encode(_delta_encode(counts))
     return counts
 
 

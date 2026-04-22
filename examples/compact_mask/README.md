@@ -102,7 +102,7 @@ At N=1 000 with 1 % overlap, bbox pre-filter reduces 499 500 candidate pairs to 
 Both formats compress extremely well; the deciding factors for Crop-RLE are:
 
 1. **~3x smaller** for masks that are themselves sparse within their bounding box.
-2. **COCO RLE interop path** — row-major crop RLE can be re-encoded to column-major full-image RLE for `pycocotools` if needed.
+2. **COCO RLE interop path** — crop RLE uses column-major (F-order) pixel scan, matching `pycocotools`; to interoperate, you still need to construct a full-image COCO RLE from the crop-scoped encoding (for example by padding/merging runs onto the full-image canvas, or by materialising the crop in the full image and re-encoding).
 3. `.area` computed directly from run lengths — no materialisation, no allocation.
 
 The main trade-off: crop-only decode is O(A) rather than O(1). For the common solid-fill segmentation mask this is negligible (\<0.1 ms per mask).
@@ -578,7 +578,7 @@ All non-skipped scenarios pass: pixel-perfect annotation, exact area, lossless `
 ## Limitations
 
 - `CompactMask` is **not** a full `np.ndarray`. Call `.to_dense()` before passing to code that requires arbitrary ndarray methods (`astype`, `reshape`, `ravel`, `any`, `all`, …).
-- RLE format is **row-major (C-order), crop-scoped** — incompatible with pycocotools / COCO API RLEs (column-major, full-image-scoped). Use `.to_dense()` first if you need pycocotools interop.
+- RLE format is **column-major (F-order), crop-scoped** — pixel-scan order matches COCO / pycocotools, but crop scope differs from full-image scope. Use `.to_dense()` to materialize a full-image dense mask, then encode that mask to COCO RLE before passing it to pycocotools.
 - `from_dense()` requires the input `(N, H, W)` array to fit in memory. For truly OOM-scale data, build `CompactMask` per-detection directly from model output crops rather than from a pre-allocated dense stack.
 
 ---

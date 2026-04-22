@@ -10,11 +10,14 @@ import pytest
 from supervision.detection.compact_mask import (
     CompactMask,
     _rle_area,
-    _rle_decode,
-    _rle_encode,
-    _rle_resize,
+    _rle_resize
 )
-from supervision.detection.utils.converters import mask_to_xyxy
+from supervision.detection.utils.converters import (
+    _mask_to_rle_counts,
+    _rle_counts_to_mask,
+    mask_to_rle,
+    mask_to_xyxy,
+)
 from supervision.detection.utils.masks import (
     calculate_masks_centroids,
     contains_holes,
@@ -32,7 +35,7 @@ def _make_cm(masks: np.ndarray, image_shape: tuple[int, int]) -> CompactMask:
 
 
 class TestRleHelpers:
-    """Tests for _rle_encode, _rle_decode, and _rle_area.
+    """Tests for _mask_to_rle_counts, _rle_counts_to_mask, and _rle_area.
 
     Verifies that the private RLE encoding round-trips correctly for a range
     of mask shapes (all-False, all-True, diagonal, L-shape, checkerboard,
@@ -62,14 +65,15 @@ class TestRleHelpers:
     def test_encode_decode_round_trip(
         self, mask_2d: np.ndarray, description: str
     ) -> None:
+        """_mask_to_rle_counts -> _rle_counts_to_mask round-trip is lossless."""
         if mask_2d.size == 0:
-            rle = _rle_encode(mask_2d)
+            rle = _mask_to_rle_counts(mask_2d)
             assert _rle_area(rle) == 0
             return
 
-        rle = _rle_encode(mask_2d)
+        rle = _mask_to_rle_counts(mask_2d)
         assert rle.dtype == np.int32, "RLE must be int32"
-        reconstructed = _rle_decode(rle, mask_2d.shape[0], mask_2d.shape[1])
+        reconstructed = _rle_counts_to_mask(rle, mask_2d.shape[0], mask_2d.shape[1])
         np.testing.assert_array_equal(
             reconstructed, mask_2d, err_msg=f"Round-trip failed for: {description}"
         )
@@ -84,8 +88,47 @@ class TestRleHelpers:
         ],
     )
     def test_area_matches_numpy_sum(self, mask_2d: np.ndarray) -> None:
-        rle = _rle_encode(mask_2d)
+        """_rle_area must equal np.sum on the original boolean array."""
+        rle = _mask_to_rle_counts(mask_2d)
         assert _rle_area(rle) == int(np.sum(mask_2d))
+
+    @pytest.mark.parametrize(
+        ("mask_2d", "expected_rle"),
+        [
+            # 2x3; F-order flat: [F,T,T,F,T,F] -> 1F,2T,1F,1T,1F
+            (
+                np.array([[False, True, True], [True, False, False]]),
+                [1, 2, 1, 1, 1],
+            ),
+            # 3x3 all-False -> single run of 9
+            (np.zeros((3, 3), dtype=bool), [9]),
+            # 3x1 all-True; F-order scan starts True -> leading zero prepended
+            (np.ones((3, 1), dtype=bool), [0, 3]),
+            # 2x2; F-order flat: [F,T,F,T] -> alternating single-pixel runs
+            (
+                np.array([[False, False], [True, True]]),
+                [1, 1, 1, 1],
+            ),
+        ],
+    )
+    def test_encode_matches_coco_f_order(
+        self, mask_2d: np.ndarray, expected_rle: list[int]
+    ) -> None:
+        """_mask_to_rle_counts produces COCO-compatible F-order RLE for known masks."""
+        assert _mask_to_rle_counts(mask_2d).tolist() == expected_rle
+
+    @pytest.mark.parametrize(
+        "mask_2d",
+        [
+            np.array([[False, True, True], [True, False, False]]),
+            np.zeros((4, 4), dtype=bool),
+            np.array([[False, False], [True, True]]),
+            np.ones((3, 1), dtype=bool),
+        ],
+    )
+    def test_encode_agrees_with_mask_to_rle(self, mask_2d: np.ndarray) -> None:
+        """_mask_to_rle_counts output matches the public mask_to_rle encoder."""
+        assert _mask_to_rle_counts(mask_2d).tolist() == mask_to_rle(mask_2d)
 
 
 class TestFromDenseToDense:

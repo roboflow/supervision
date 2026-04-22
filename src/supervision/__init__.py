@@ -64,6 +64,7 @@ from supervision.detection.utils.boxes import (
     scale_boxes,
 )
 from supervision.detection.utils.converters import (
+    is_compressed_rle,
     mask_to_polygons,
     mask_to_rle,
     mask_to_xyxy,
@@ -237,6 +238,7 @@ __all__ = [
     "get_video_frames_generator",
     "grayscale_image",
     "hex_to_rgba",
+    "is_compressed_rle",
     "is_valid_hex",
     "letterbox_image",
     "list_files_with_extensions",
