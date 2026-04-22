@@ -163,7 +163,7 @@ def _rle_scale_col(
         return [0]
 
     # Reconstruct per-source-row boolean values from run list.
-    src_values = np.empty(src_h, dtype=np.bool_)
+    src_values: npt.NDArray[np.bool_] = np.empty(src_h, dtype=np.bool_)
     pos = 0
     for ri, rl in enumerate(col_runs):
         src_values[pos : pos + rl] = ri % 2 == 1  # odd index → True
@@ -177,8 +177,8 @@ def _rle_scale_col(
     # RLE-encode the output column; vectorised via np.diff on bool view.
     out_uint8 = out_values.view(np.uint8)
     boundaries = np.flatnonzero(np.diff(out_uint8))
-    run_starts = np.empty(len(boundaries) + 1, dtype=np.int64)
-    run_ends = np.empty(len(boundaries) + 1, dtype=np.int64)
+    run_starts: npt.NDArray[np.int64] = np.empty(len(boundaries) + 1, dtype=np.int64)
+    run_ends: npt.NDArray[np.int64] = np.empty(len(boundaries) + 1, dtype=np.int64)
     run_starts[0] = 0
     run_starts[1:] = boundaries + 1
     run_ends[:-1] = boundaries + 1
