@@ -331,9 +331,15 @@ def stage_build(
 
 
 def _resize_dense_to_shape(masks: np.ndarray, new_h: int, new_w: int) -> np.ndarray:
-    """Nearest-neighbour resize of (N, H, W) bool masks to (N, new_h, new_w)."""
-    x = np.linspace(0, masks.shape[2] - 1, new_w).astype(int)
-    y = np.linspace(0, masks.shape[1] - 1, new_h).astype(int)
+    """Nearest-neighbour resize of (N, H, W) bool masks to (N, new_h, new_w).
+
+    Uses floor-division indexing (``arange * src // dst``) to match the
+    strategy in ``_rle_resize``, ensuring pixel-exact parity for correctness
+    comparisons in :func:`stage_resize`.
+    """
+    orig_h, orig_w = masks.shape[1], masks.shape[2]
+    x = np.arange(new_w) * orig_w // new_w
+    y = np.arange(new_h) * orig_h // new_h
     xv, yv = np.meshgrid(x, y)
     return masks[:, yv, xv]
 
@@ -583,17 +589,20 @@ def stage_resize(
 ) -> tuple[float, float, bool | None]:
     """Time resize to half resolution; check pixel-level correctness.
 
-    Dense uses numpy linspace fancy-indexing (same strategy as resize_masks).
-    Compact times ``CompactMask.resize()``, which may resize sparse masks with
-    direct RLE arithmetic and otherwise can fall back to decode/resize/
-    re-encode internally.
-    Correctness is checked with 1-pixel tolerance — rounding between the two
-    nearest-neighbour strategies can differ by 1 px at bbox boundaries.
+    Dense path uses numpy fancy-indexing via ``_resize_dense_to_shape``.
+    Compact path times ``CompactMask.resize()``, which uses direct RLE
+    arithmetic for sparse masks (below ``_L3_DENSITY_THRESHOLD``) and
+    falls back to ``cv2.INTER_NEAREST`` decode/resize/re-encode for dense
+    masks.  The two nearest-neighbour strategies can differ by 1 px at
+    bbox boundaries, so correctness is checked with 1-pixel tolerance.
     """
     new_h, new_w = image_height // 2, image_width // 2
     new_shape = (new_h, new_w)
 
-    compact_resize_s = time_reps(lambda: compact_mask.resize(new_shape))
+    # Use parallel=1 to avoid nested ThreadPoolExecutor contention:
+    # CompactMask.resize() itself spawns a thread pool for N >= _PARALLEL_THRESHOLD,
+    # and time_reps' own parallel outer loop would cause oversubscription.
+    compact_resize_s = time_reps(lambda: compact_mask.resize(new_shape), parallel=1)
     if dense_skipped:
         return math.nan, compact_resize_s, None
 
