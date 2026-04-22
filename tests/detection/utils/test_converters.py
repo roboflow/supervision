@@ -601,6 +601,10 @@ def test_base48_encode(values: list[int], expected: str) -> None:
         [5, 2, 2, 0, 3],
         [0, 9],
         [6, 3, 2, 1, 1, 1, 2, 3, 6],
+        [100],  # value >= 32 requires multi-byte continuation characters
+        [1000],  # value requiring 3 continuation bytes
+        [-3],  # negative delta: sign bit at bit 4 of final character
+        [-1, 0, -100],  # multiple negative values
     ],
 )
 def test_base48_round_trip(values: list[int]) -> None:
@@ -754,6 +758,12 @@ def test_mask_to_rle_counts(
             3,
             np.zeros((2, 3), dtype=bool),
         ),  # RLE encodes only 3 of 6 pixels; remainder padded False
+        (
+            np.array([0, 10], dtype=np.int32),
+            2,
+            3,
+            np.ones((2, 3), dtype=bool),
+        ),  # RLE sum (10) > h*w (6); excess truncated via flat[:num_pixels]
     ],
 )
 def test_rle_counts_to_mask(
