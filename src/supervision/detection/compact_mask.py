@@ -111,7 +111,7 @@ def _rle_area(rle: npt.NDArray[np.int32]) -> int:
         ```pycon
         >>> import numpy as np
         >>> from supervision.detection.compact_mask import _rle_area
-        >>> rle = np.array([1, 3, 2], dtype=np.int32)  # 1 F, 3 T, 2 F
+        >>> rle = np.array([1, 2, 1, 1, 1], dtype=np.int32)
         >>> _rle_area(rle)
         3
 
