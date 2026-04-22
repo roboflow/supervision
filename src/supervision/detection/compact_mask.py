@@ -173,18 +173,19 @@ def _rle_scale_col(
     # Map output rows to source values.
     out_values = src_values[row_map]
 
-    # RLE-encode the output column; start from False so index 0 is False count.
-    result_runs: list[int] = []
-    current_val = False
-    current_len = 0
-    for v in out_values:
-        if bool(v) == current_val:
-            current_len += 1
-        else:
-            result_runs.append(current_len)
-            current_val = bool(v)
-            current_len = 1
-    result_runs.append(current_len)
+    # RLE-encode the output column; vectorised via np.diff on bool view.
+    out_uint8 = out_values.view(np.uint8)
+    boundaries = np.flatnonzero(np.diff(out_uint8))
+    run_starts = np.empty(len(boundaries) + 1, dtype=np.int64)
+    run_ends = np.empty(len(boundaries) + 1, dtype=np.int64)
+    run_starts[0] = 0
+    run_starts[1:] = boundaries + 1
+    run_ends[:-1] = boundaries + 1
+    run_ends[-1] = new_crop_h
+    result_runs: list[int] = (run_ends - run_starts).tolist()
+    # RLE starts with a False count; prepend 0 if output begins with True.
+    if bool(out_values[0]):
+        result_runs.insert(0, 0)
     return result_runs
 
 
