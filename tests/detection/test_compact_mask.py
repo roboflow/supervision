@@ -1037,8 +1037,29 @@ class TestRleSplitCols:
             err_msg=f"Split→join round-trip failed for seed={seed}",
         )
 
+    def test_join_true_true_junction_no_zero_run(self) -> None:
+        """_rle_join_cols merges True/True boundary; no zero-length False run inserted.
 
-class TestResize:
+        When column A ends True and column B starts True (leading False count = 0),
+        the junction must produce a single merged True run, not a zero-length False
+        run between two True runs.  A zero-length run would inflate len(rle) and
+        misroute density-based dispatch in _resize_crop.
+        """
+        from supervision.detection.compact_mask import _rle_join_cols
+
+        # col A: [0, 3] → T=3 (height=3, all True)
+        # col B: [0, 3] → T=3 (height=3, all True)
+        # Merged: should be [0, 6], NOT [0, 3, 0, 3].
+        cols = [[0, 3], [0, 3]]
+        result = _rle_join_cols(cols, 6).tolist()
+        assert result == [0, 6], (
+            f"Expected [0, 6] (merged True runs), got {result}; "
+            "zero-length False run would inflate density metric"
+        )
+        assert 0 not in result[1:], "Zero-length run found after junction merge"
+
+
+class TestCompactMaskResize:
     """Tests for CompactMask.resize method.
 
     Verifies scaling behaviour, coordinate arithmetic, identity resize,

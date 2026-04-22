@@ -11,6 +11,7 @@ crop boundaries, so no extra metadata is required from the caller.
 
 from __future__ import annotations
 
+import os
 from collections.abc import Iterator
 from typing import Any
 
@@ -333,6 +334,8 @@ def _rle_resize(
 # instead of the decode → cv2 → re-encode path.  Sparse masks have few long
 # runs; dense/complex masks approach 1 run per 2 pixels.
 _L3_DENSITY_THRESHOLD: float = 0.25
+# Thread overhead outweighs gains below this mask count.
+_PARALLEL_THRESHOLD: int = 8
 
 
 def _resize_crop(
@@ -1233,7 +1236,9 @@ class CompactMask:
         if new_h <= 0 or new_w <= 0:
             raise ValueError("new_image_shape must contain positive dimensions")
 
-        # fast path — identity resize, shallow copy
+        # fast path — identity resize; list() creates a new container but the
+        # individual RLE numpy arrays are shared (shallow copy).  Callers must
+        # not mutate returned RLE arrays in-place.
         if (new_h, new_w) == self._image_shape:
             return CompactMask(
                 list(self._rles),
@@ -1288,9 +1293,8 @@ class CompactMask:
         ]
 
         n = len(self)
-        _PARALLEL_THRESHOLD = 8  # thread overhead outweighs gains below this
         if n >= _PARALLEL_THRESHOLD:
-            with ThreadPoolExecutor() as pool:
+            with ThreadPoolExecutor(max_workers=min(n, os.cpu_count() or 4)) as pool:
                 new_rles: list[npt.NDArray[np.int32]] = list(
                     pool.map(lambda a: _resize_crop(*a), args)
                 )
