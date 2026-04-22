@@ -194,9 +194,10 @@ def _rle_join_cols(
 ) -> npt.NDArray[np.int32]:
     """Concatenate per-column run lists into a flat RLE, merging junctions.
 
-    When the last run of one column and the first run of the next have the
-    same parity (both ``False`` or both ``True``), they are merged into a
-    single run to keep the encoding minimal.
+    Because each column run list starts with a ``False``-run count, only a
+    ``False``/``False`` junction can be merged across column boundaries. When
+    the accumulated output ends with a ``False`` run, that run is merged with
+    the next column's leading ``False`` run to keep the encoding minimal.
 
     Args:
         scaled_cols: List of per-column run lists, each starting with a
