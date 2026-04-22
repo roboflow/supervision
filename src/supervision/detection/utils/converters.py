@@ -473,36 +473,6 @@ def is_compressed_rle(rle: object) -> bool:
     return isinstance(rle, (str, bytes))
 
 
-def _decode_coco_rle_string(s: str) -> list[int]:
-    """Decode a COCO compressed RLE string to absolute run-length counts.
-
-    Convenience wrapper: :func:`_base48_decode` followed by
-    :func:`_delta_decode`.
-
-    Args:
-        s: COCO compressed RLE string.
-
-    Returns:
-        Absolute run-length counts (alternating background / foreground).
-    """
-    return _delta_decode(_base48_decode(s))
-
-
-def _encode_coco_rle_string(counts: list[int]) -> str:
-    """Encode absolute run-length counts to a COCO compressed RLE string.
-
-    Convenience wrapper: :func:`_delta_encode` followed by
-    :func:`_base48_encode`. Inverse of :func:`_decode_coco_rle_string`.
-
-    Args:
-        counts: Absolute run-length counts (alternating background / foreground).
-
-    Returns:
-        COCO compressed RLE string.
-    """
-    return _base48_encode(_delta_encode(counts))
-
-
 def _mask_to_rle_counts(mask_2d: npt.NDArray[Any]) -> npt.NDArray[np.int32]:
     """Encode a 2D boolean mask as COCO F-order run lengths (int32 array).
 
@@ -637,7 +607,7 @@ def rle_to_mask(
         rle = rle.decode("utf-8")
     if isinstance(rle, str):
         counts: npt.NDArray[np.int32] = np.array(
-            _decode_coco_rle_string(rle), dtype=np.int32
+            _delta_decode(_base48_decode(rle)), dtype=np.int32
         )
     elif isinstance(rle, list):
         counts = np.array(rle, dtype=np.int32)
@@ -726,7 +696,7 @@ def mask_to_rle(
 
     counts: list[int] = cast(list[int], _mask_to_rle_counts(mask).tolist())
     if compressed:
-        return _encode_coco_rle_string(counts)
+        return _base48_encode(_delta_encode(counts))
     return counts
 
 

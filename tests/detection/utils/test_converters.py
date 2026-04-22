@@ -9,10 +9,8 @@ import pytest
 from supervision.detection.utils.converters import (
     _base48_decode,
     _base48_encode,
-    _decode_coco_rle_string,
     _delta_decode,
     _delta_encode,
-    _encode_coco_rle_string,
     _mask_to_rle_counts,
     _rle_counts_to_mask,
     is_compressed_rle,
@@ -315,23 +313,6 @@ def test_xyxy_to_mask(boxes: np.ndarray, resolution_wh, expected: np.ndarray) ->
     assert result.dtype == np.bool_
     assert result.shape == expected.shape
     np.testing.assert_array_equal(result, expected)
-
-
-@pytest.mark.parametrize(
-    "counts",
-    [
-        [5, 2, 2, 2, 5],
-        [0, 16],
-        [9],
-        [0, 5, 5, 5, 5, 5],
-        [6, 3, 2, 1, 1, 1, 2, 3, 6],
-        [3, 1, 2, 4, 2, 1, 3],
-    ],
-)
-def test_coco_rle_encode_decode_round_trip(counts: list[int]) -> None:
-    encoded = _encode_coco_rle_string(counts)
-    decoded = _decode_coco_rle_string(encoded)
-    assert decoded == counts
 
 
 @pytest.mark.parametrize(
