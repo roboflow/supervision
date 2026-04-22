@@ -13,7 +13,7 @@ from supervision.detection.compact_mask import (
     _rle_decode,
     _rle_encode,
 )
-from supervision.detection.utils.converters import mask_to_xyxy
+from supervision.detection.utils.converters import mask_to_rle, mask_to_xyxy
 from supervision.detection.utils.masks import (
     calculate_masks_centroids,
     contains_holes,
@@ -85,6 +85,44 @@ class TestRleHelpers:
     def test_area_matches_numpy_sum(self, mask_2d: np.ndarray) -> None:
         rle = _rle_encode(mask_2d)
         assert _rle_area(rle) == int(np.sum(mask_2d))
+
+    @pytest.mark.parametrize(
+        ("mask_2d", "expected_rle"),
+        [
+            # 2x3; F-order flat: [F,T,T,F,T,F] -> 1F,2T,1F,1T,1F
+            (
+                np.array([[False, True, True], [True, False, False]]),
+                [1, 2, 1, 1, 1],
+            ),
+            # 3x3 all-False -> single run of 9
+            (np.zeros((3, 3), dtype=bool), [9]),
+            # 3x1 all-True; F-order scan starts True -> leading zero prepended
+            (np.ones((3, 1), dtype=bool), [0, 3]),
+            # 2x2; F-order flat: [F,T,F,T] -> alternating single-pixel runs
+            (
+                np.array([[False, False], [True, True]]),
+                [1, 1, 1, 1],
+            ),
+        ],
+    )
+    def test_encode_matches_coco_f_order(
+        self, mask_2d: np.ndarray, expected_rle: list[int]
+    ) -> None:
+        """_rle_encode produces COCO-compatible F-order RLE for known masks."""
+        assert _rle_encode(mask_2d).tolist() == expected_rle
+
+    @pytest.mark.parametrize(
+        "mask_2d",
+        [
+            np.array([[False, True, True], [True, False, False]]),
+            np.zeros((4, 4), dtype=bool),
+            np.array([[False, False], [True, True]]),
+            np.ones((3, 1), dtype=bool),
+        ],
+    )
+    def test_encode_agrees_with_mask_to_rle(self, mask_2d: np.ndarray) -> None:
+        """_rle_encode output matches mask_to_rle (the public COCO-format encoder)."""
+        assert _rle_encode(mask_2d).tolist() == mask_to_rle(mask_2d)
 
 
 class TestFromDenseToDense:
