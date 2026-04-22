@@ -1,0 +1,59 @@
+# supervision
+
+> Open-source Python library for computer vision — annotate, track, count, filter, and convert.
+
+Supervision is a Python library by Roboflow that provides a model-agnostic `Detections` class and composable tools for object detection and segmentation workflows. Works with YOLO, SAM, Grounding DINO, Transformers, Inference, and 20+ other model frameworks.
+
+## Install
+
+```
+pip install supervision
+```
+
+## Links
+
+- GitHub: https://github.com/roboflow/supervision
+- PyPI: https://pypi.org/project/supervision
+- Docs: https://supervision.roboflow.com/latest/
+- Changelog: https://supervision.roboflow.com/latest/changelog/
+
+## Key APIs
+
+- `sv.Detections` — core data structure for bounding boxes, masks, confidence scores, class IDs, and tracker IDs
+- `sv.BoxAnnotator`, `sv.MaskAnnotator`, `sv.LabelAnnotator` — draw predictions on images and video
+- `sv.ByteTrack`, `sv.SORT` — track objects across video frames with persistent IDs
+- `sv.PolygonZone`, `sv.LineZone` — count and filter detections by spatial region
+- `sv.DetectionDataset` — load, merge, split, and convert YOLO / COCO / Pascal VOC datasets
+- `sv.InferenceSlicer` — SAHI-style sliced inference for small object detection
+- `sv.CSVSink`, `sv.JSONSink` — export detection results to CSV or JSON
+
+## How-To Guides
+
+- Detect and annotate: https://supervision.roboflow.com/latest/how_to/detect_and_annotate/
+- Track objects: https://supervision.roboflow.com/latest/how_to/track_objects/
+- Detect small objects: https://supervision.roboflow.com/latest/how_to/detect_small_objects/
+- Filter detections: https://supervision.roboflow.com/latest/how_to/filter_detections/
+- Save detections: https://supervision.roboflow.com/latest/how_to/save_detections/
+- Count in zone: https://supervision.roboflow.com/latest/how_to/count_in_zone/
+- Benchmark a model: https://supervision.roboflow.com/latest/how_to/benchmark_a_model/
+- Process datasets: https://supervision.roboflow.com/latest/how_to/process_datasets/
+
+## License
+
+MIT — https://github.com/roboflow/supervision/blob/develop/LICENSE.md
+
+## Citation
+
+```bibtex
+@software{supervision,
+  author = {Roboflow},
+  title = {Supervision: Computer Vision Toolkit},
+  url = {https://github.com/roboflow/supervision},
+  year = {2023}
+}
+```
+
+## Versioning
+
+Stable release docs: https://supervision.roboflow.com/latest/
+Development branch: https://supervision.roboflow.com/develop/
