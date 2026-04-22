@@ -7,11 +7,7 @@ from contextlib import ExitStack as DoesNotRaise
 import numpy as np
 import pytest
 
-from supervision.detection.compact_mask import (
-    CompactMask,
-    _rle_area,
-    _rle_resize
-)
+from supervision.detection.compact_mask import CompactMask, _rle_area, _rle_resize
 from supervision.detection.utils.converters import (
     _mask_to_rle_counts,
     _rle_counts_to_mask,
