@@ -1,5 +1,6 @@
 ---
 comments: true
+description: API reference for supervision's assets module — download sample video and image files for demos, testing, and tutorials.
 ---
 
 # Assets

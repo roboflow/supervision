@@ -75,7 +75,7 @@
       "name": "How do I install supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Install supervision with pip: pip install supervision. For evaluation tools use pip install supervision[metrics]. For sample assets use pip install supervision[assets]."
+        "text": "Install supervision with pip: pip install supervision. For evaluation tools use pip install supervision[metrics]. For sample assets use pip install supervision[assets]. Requires Python 3.9+."
       }
     },
     {
@@ -83,7 +83,7 @@
       "name": "What can I do with supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "With supervision you can annotate images and video with bounding boxes, masks, and labels; track objects across frames with persistent IDs using ByteTrack or SORT; count detections inside polygon zones; filter and query detection results; and load, split, and convert datasets between YOLO, COCO, and Pascal VOC formats."
+        "text": "With supervision you can annotate images and video with bounding boxes, masks, and labels; track objects across frames with persistent IDs using ByteTrack or SORT; count detections inside polygon zones; filter and query detection results; load, split, and convert datasets between YOLO, COCO, and Pascal VOC formats; and benchmark model performance with mAP and confusion matrices."
       }
     },
     {
@@ -99,7 +99,63 @@
       "name": "Which object detection models work with supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Supervision is model-agnostic and works with Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers, SAM, Grounding DINO, Florence-2, PaliGemma, and 20+ other frameworks through built-in connectors that convert any model output to a unified Detections object."
+        "text": "Supervision is model-agnostic and works with Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers, SAM, Grounding DINO, Florence-2, PaliGemma, MediaPipe, Detectron2, MMDetection, and 20+ other frameworks through built-in connectors that convert any model output to a unified Detections object."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I benchmark a model with supervision?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Use sv.MeanAveragePrecision for mAP and sv.ConfusionMatrix for confusion matrices. Pass prediction and ground-truth Detections lists to the from_detections() method on each metric class. See the Benchmark a Model guide at https://supervision.roboflow.com/latest/how_to/benchmark_a_model/ for a complete walkthrough."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I track objects across video frames?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Use sv.ByteTrack — pass Detections to update_with_detections() and it assigns persistent tracker IDs. Combine with sv.TraceAnnotator to visualize trajectories."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What dataset formats does supervision support?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "YOLO, COCO JSON, and Pascal VOC for both detection and classification tasks. Use DetectionDataset.from_yolo(), from_coco(), or from_pascal_voc() to load, as_yolo(), as_coco(), or as_pascal_voc() to save."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I count objects in a zone?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Use sv.PolygonZone for arbitrary polygon zones or sv.LineZone for line-crossing counts. Both trigger on incoming Detections to determine which objects are inside or crossing the zone."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I detect small objects with supervision?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Use sv.InferenceSlicer to split high-resolution images into overlapping tiles, run detection on each tile, and merge results with non-maximum suppression. See the Detect Small Objects guide at https://supervision.roboflow.com/latest/how_to/detect_small_objects/."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I filter detections by class or confidence?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Detections supports NumPy-style boolean indexing. Filter by class: detections[detections.class_id == 0]. Filter by confidence: detections[detections.confidence > 0.5]. Filter by area: detections[detections.area > 1000]. Combine conditions with & or |."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does supervision support keypoint detection and tracking?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Use sv.KeyPoints.from_ultralytics() or sv.KeyPoints.from_inference() to load keypoint predictions. Convert to detections via as_detections() for tracking. Annotate with sv.EdgeAnnotator and sv.VertexAnnotator."
       }
     }
   ]
@@ -119,7 +175,24 @@
     "@type": "Organization",
     "name": "Roboflow",
     "url": "https://roboflow.com"
-  }
+  },
+  "author": [
+    {% for author in page.meta.authors %}
+    {
+      "@type": "Person",
+      "name": {{ author.name | tojson }},
+      "jobTitle": {{ author.role | tojson }},
+      "sameAs": {{ author.github | tojson }}
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ],
+  {% if page.meta.date_modified %}
+  "dateModified": {{ page.meta.date_modified | tojson }},
+  {% endif %}
+  {% if page.meta.date_published %}
+  "datePublished": {{ page.meta.date_published | tojson }},
+  {% endif %}
+  "articleBody": "Tutorial guide published on the Supervision documentation site."
 }
 </script>
 {% endif %}

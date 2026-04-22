@@ -1,6 +1,11 @@
 ---
 comments: true
 description: Count objects entering a polygon zone in images and video using supervision's PolygonZone — measure throughput and density in any region.
+authors:
+  - name: SkalskiP (Piotr Skalski)
+    role: Computer Vision Engineer, Roboflow
+    github: https://github.com/SkalskiP
+date_modified: 2026-04-22
 ---
 
 With supervision, you can count the number of objects in a zone in an image or video. In this guide, we will show how to count the number of cars in a traffic video.
