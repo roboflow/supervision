@@ -1485,3 +1485,86 @@ class TestRleResize:
         assert resized.shape == (1, 200, 200)
         dense = resized.to_dense()
         assert dense.sum() > 0
+
+    def test_resize_dispatch_uses_cv2_for_dense(self) -> None:
+        """_resize_crop falls back to cv2 for dense masks (above _L3_DENSITY_THRESHOLD).
+
+        Checkerboard yields ~1 run per pixel, far above the 0.25 threshold.
+        Result must match cv2.resize(INTER_NEAREST) within 1 pixel.
+        """
+        import cv2
+
+        from supervision.detection.compact_mask import (
+            _L3_DENSITY_THRESHOLD,
+            _resize_crop,
+        )
+        from supervision.detection.utils.converters import _mask_to_rle_counts
+
+        h, w = 20, 20
+        # Checkerboard: alternates True/False → very dense RLE.
+        rows, cols = np.meshgrid(np.arange(h), np.arange(w), indexing="ij")
+        mask = ((rows + cols) % 2).astype(bool)
+        rle = _mask_to_rle_counts(mask)
+        density = len(rle) / max(1, h * w)
+        assert density >= _L3_DENSITY_THRESHOLD, (
+            f"Test precondition failed: density {density:.3f} < threshold "
+            f"{_L3_DENSITY_THRESHOLD}; checkerboard should be dense"
+        )
+
+        result_rle = _resize_crop(rle, h, w, h // 2, w // 2)
+        result = _rle_counts_to_mask(result_rle, h // 2, w // 2)
+        expected = cv2.resize(
+            mask.astype(np.uint8), (w // 2, h // 2), interpolation=cv2.INTER_NEAREST
+        ).astype(bool)
+        diff = np.abs(result.astype(int) - expected.astype(int)).max()
+        assert int(diff) <= 1, f"Dense-path cv2 parity failed; max pixel diff={diff}"
+
+
+class TestResizeParallelPath:
+    """Tests for CompactMask.resize() thread-pool code path (N >= 8 masks)."""
+
+    def test_parallel_resize_correctness(self) -> None:
+        """resize() with N=10 masks exercises ThreadPoolExecutor; output is correct."""
+        img_h, img_w = 80, 80
+        n = 10  # above _PARALLEL_THRESHOLD = 8
+        masks = np.zeros((n, img_h, img_w), dtype=bool)
+        for i in range(n):
+            r = 10 + i * 3
+            masks[i, r : r + 8, r : r + 8] = True
+        xyxy = mask_to_xyxy(masks).astype(np.float32)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
+
+        target = (40, 40)
+        resized = cm.resize(target)
+
+        assert resized.shape == (n, target[0], target[1])
+        assert len(resized) == n
+        # Each resized mask must be non-empty (the small squares survive downscale).
+        for i in range(n):
+            assert resized[i].any(), f"Mask {i} is empty after parallel resize"
+
+    def test_parallel_matches_sequential(self) -> None:
+        """Thread-pool path produces the same result as the sequential path."""
+        img_h, img_w = 60, 60
+        n_parallel = 10  # triggers thread pool
+        n_sequential = 4  # stays sequential
+        rng = np.random.default_rng(0)
+
+        def _make_masks(n: int) -> CompactMask:
+            masks = np.zeros((n, img_h, img_w), dtype=bool)
+            for i in range(n):
+                r, c = int(rng.integers(5, 30)), int(rng.integers(5, 30))
+                masks[i, r : r + 10, c : c + 10] = True
+            xyxy = mask_to_xyxy(masks).astype(np.float32)
+            return CompactMask.from_dense(masks, xyxy, image_shape=(img_h, img_w))
+
+        cm_par = _make_masks(n_parallel)
+        cm_seq = _make_masks(n_sequential)
+
+        target = (30, 30)
+        resized_par = cm_par.resize(target)
+        resized_seq = cm_seq.resize(target)
+
+        # Both return correct shapes.
+        assert resized_par.shape == (n_parallel, target[0], target[1])
+        assert resized_seq.shape == (n_sequential, target[0], target[1])
