@@ -499,7 +499,7 @@ def _mask_to_rle_counts(mask_2d: npt.NDArray[Any]) -> npt.NDArray[np.int32]:
 
         ```
     """
-    flat = mask_2d.ravel(order="F")
+    flat = np.asarray(mask_2d, dtype=np.bool_).ravel(order="F")
     if len(flat) == 0:
         return np.array([0], dtype=np.int32)
 
