@@ -1,5 +1,6 @@
 ---
 comments: true
+description: Filter and query detection results by class, confidence, or spatial overlap using supervision's Detections API — clean predictions in one line.
 ---
 
 # Filter Detections

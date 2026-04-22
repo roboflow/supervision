@@ -1,5 +1,6 @@
 ---
 comments: true
+description: Learn to load model predictions, create Detections objects, and annotate images with bounding boxes, labels, and masks using supervision.
 ---
 
 # Detect and Annotate
@@ -18,6 +19,8 @@ source image.
 
 First, you'll need to obtain predictions from your object detection or segmentation
 model.
+
+To run inference, initialize your chosen model and pass the source image to its predict or infer method. Supervision supports Roboflow Inference, Ultralytics YOLO, and Hugging Face Transformers -- select the tab matching your framework. The result is a framework-specific object you will convert to a `Detections` instance in the next step.
 
 === "Inference"
 
@@ -67,6 +70,8 @@ model.
 ## Load Predictions into Supervision
 
 Now that we have predictions from a model, we can load them into Supervision.
+
+Each supported framework has a dedicated class method on `sv.Detections` that converts raw model output into a unified Supervision object. Call `from_inference`, `from_ultralytics`, or `from_transformers` depending on the package you used for inference. This normalization step ensures all downstream annotators and filters work identically regardless of the source model.
 
 === "Inference"
 
@@ -137,6 +142,8 @@ You can load predictions from other computer vision frameworks and libraries usi
 ## Annotate Image with Detections
 
 Finally, we can annotate the image with the predictions. Since we are working with an object detection model, we will use the [`sv.BoxAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator) and [`sv.LabelAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator) classes.
+
+To draw bounding boxes and class labels on your image, create a `BoxAnnotator` and a `LabelAnnotator`, then call their `annotate` methods in sequence. Each annotator returns the modified image, so you can chain multiple annotators together. The result is a single NumPy array with all visual overlays rendered and ready for display or saving.
 
 === "Inference"
 

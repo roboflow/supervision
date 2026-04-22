@@ -158,5 +158,14 @@ Desktop.ini
 data/
 
 # Claude working scratchpad (plans, lessons, ephemeral artefacts)
+.claude/logs
+.claude/state/
+.plans/
+.reports/
+.temp/
+.tmp/
+_outputs/
+_resolutions/
+_reviews/
 tasks/
 *.local.md

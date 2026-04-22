@@ -1,3 +1,7 @@
+---
+description: "Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version."
+---
+
 # Changelog
 
 ### 0.28.0 <small>Unreleased</small>

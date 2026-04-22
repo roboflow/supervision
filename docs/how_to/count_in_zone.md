@@ -1,3 +1,8 @@
+---
+comments: true
+description: Count objects entering a polygon zone in images and video using supervision's PolygonZone — measure throughput and density in any region.
+---
+
 With supervision, you can count the number of objects in a zone in an image or video. In this guide, we will show how to count the number of cars in a traffic video.
 
 [View the notebook that accompanies this tutorial](https://github.com/roboflow/notebooks/blob/main/notebooks/how-to-use-polygonzone-annotate-and-supervision.ipynb).
@@ -13,6 +18,8 @@ download_assets(VideoAssets.VEHICLES_2)
 ## Initialize a Model and Load Video
 
 First, we need to initialize a model. Let's use a YOLOv8 model with the default COCO checkpoint. We also need to load a video on which to run inference.
+
+Create a YOLO model instance and load the source video using supervision's `VideoInfo` helper. The model will process each frame during inference, while `VideoInfo` extracts resolution and frame-rate metadata needed by the polygon zone annotator. A shared color palette ensures consistent zone coloring throughout the output video.
 
 ```python
 import numpy as np
@@ -64,6 +71,8 @@ polygons = [
 ## Define Zones
 
 With the coordinates of the zones to draw ready, we can set up our zones:
+
+Instantiate a `PolygonZone` for each polygon array, pairing it with a `PolygonZoneAnnotator` for visual overlay and a `BoxAnnotator` for drawing detection boxes. Each zone will later trigger on incoming detections to determine which objects fall inside its boundaries, enabling per-zone counting in the inference callback.
 
 ```python
 zones = [

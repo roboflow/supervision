@@ -1,5 +1,6 @@
 ---
 comments: true
+description: Track objects across video frames with ByteTrack in supervision — assign persistent IDs and analyze motion from any object detection model.
 ---
 
 # Track Objects
@@ -18,6 +19,8 @@ for a deeper analysis.
 To make it easier for you to follow our tutorial download the video we will use as an
 example. You can do this using
 [`supervision[assets]`](https://supervision.roboflow.com/latest/assets/) extension.
+
+This section demonstrates how to detect and segment objects in video frames using YOLOv8 with either the Inference or Ultralytics package. You will download a sample video, define a per-frame callback function that runs model prediction, and process the entire video to produce an annotated output file.
 
 ```python
 from supervision.assets import download_assets, VideoAssets

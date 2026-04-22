@@ -1,5 +1,6 @@
 ---
 comments: true
+description: API reference for supervision's annotator classes — draw bounding boxes, masks, labels, tracks, and heatmaps on images with one method call.
 ---
 
 # Annotators

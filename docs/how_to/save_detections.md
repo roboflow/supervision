@@ -1,5 +1,6 @@
 ---
 comments: true
+description: Save object detection results to CSV or JSON with supervision's CSVSink and JSONSink — export predictions for analysis and downstream pipelines.
 ---
 
 # Save Detections
@@ -17,6 +18,8 @@ processing. This guide demonstrates how to perform video inference using the
 First, you'll need to obtain predictions from your object detection or segmentation
 model. You can learn more on this topic in our
 [How to Detect and Annotate](https://supervision.roboflow.com/latest/how_to/detect_and_annotate/) guide.
+
+To generate predictions for saving, initialize your model and iterate over video frames using `sv.get_video_frames_generator`. Each frame is passed to the model, and the raw output is converted into a `sv.Detections` object. This detection loop forms the foundation for both CSV and JSON export workflows shown below.
 
 === "Inference"
 
