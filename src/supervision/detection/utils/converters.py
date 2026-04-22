@@ -536,8 +536,8 @@ def _rle_counts_to_mask(
         >>> from supervision.detection.utils.converters import _rle_counts_to_mask
         >>> rle = np.array([0, 1, 2, 1], dtype=np.int32)
         >>> _rle_counts_to_mask(rle, 2, 2)
-        array([[False,  True],
-               [ True, False]])
+        array([[ True, False],
+               [False,  True]])
 
         ```
     """
