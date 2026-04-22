@@ -194,10 +194,16 @@ def _rle_join_cols(
 ) -> npt.NDArray[np.int32]:
     """Concatenate per-column run lists into a flat RLE, merging junctions.
 
-    Because each column run list starts with a ``False``-run count, only a
-    ``False``/``False`` junction can be merged across column boundaries. When
-    the accumulated output ends with a ``False`` run, that run is merged with
-    the next column's leading ``False`` run to keep the encoding minimal.
+    Each column run list starts with a ``False``-run count. Two junction types
+    can be merged across column boundaries:
+
+    * ``False``/``False``: the trailing False run merges with the leading False
+      run of the next column (leading count may be zero).
+    * ``True``/``True``: when the accumulated output ends on a True run and the
+      next column's leading False count is zero (column starts with True), the
+      two True runs are merged to avoid inserting a zero-length False run that
+      would inflate ``len(rle)`` and skew the density metric in
+      :func:`_resize_crop`.
 
     Args:
         scaled_cols: List of per-column run lists, each starting with a
@@ -227,6 +233,11 @@ def _rle_join_cols(
             if not last_is_true:  # last == False == first → merge
                 output_runs[-1] += col_runs[0]
                 output_runs.extend(col_runs[1:])
+            elif col_runs[0] == 0 and len(col_runs) > 1:
+                # last run = True; column also starts True (leading False = 0)
+                # → merge to avoid a zero-length False run at the junction.
+                output_runs[-1] += col_runs[1]
+                output_runs.extend(col_runs[2:])
             else:
                 output_runs.extend(col_runs)
 
