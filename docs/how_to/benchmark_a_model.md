@@ -455,7 +455,7 @@ Best of luck with your benchmarking!
 
 ### How do I benchmark a model with supervision?
 
-Use `supervision.metrics.mean_average_precision.MeanAveragePrecision` — accumulate prediction and ground-truth `Detections` with `update(...)` and then call `compute()`. For confusion matrices, use `sv.ConfusionMatrix.from_detections(predictions, ground_truth, classes=classes)`.
+Use `supervision.metrics.mean_average_precision.MeanAveragePrecision` — accumulate prediction and ground-truth `Detections` with `update(...)` and then call `compute()`. For confusion matrices, use `sv.ConfusionMatrix.from_detections(predictions=predictions, targets=targets, classes=classes)`.
 
 ### What IoU thresholds does MeanAveragePrecision use?
 
@@ -463,11 +463,11 @@ It computes mAP over IoU thresholds from 0.50 to 0.95 in steps of 0.05 (mAP@50:9
 
 ### Can I benchmark segmentation models?
 
-Yes. Pass `Detections` with valid `mask` fields to `from_detections()` — the metric will compute mask-based mAP.
+Yes, if you want to evaluate their bounding boxes. Convert model outputs to `Detections` and pass them to `MeanAveragePrecision.update(...)`; the current mAP path prepares COCO-style bounding boxes from `detections.xyxy`.
 
 ### What is a ConfusionMatrix and how do I use it?
 
-`sv.ConfusionMatrix` visualizes true positives, false positives, and false negatives per class. Create one with `sv.ConfusionMatrix.from_detections(predictions, ground_truth, classes=classes, conf_threshold=0.5, iou_threshold=0.5)`, then call `metric.plot()` to render a heatmap.
+`sv.ConfusionMatrix` visualizes true positives, false positives, and false negatives per class. Create one with `sv.ConfusionMatrix.from_detections(predictions=predictions, targets=targets, classes=classes, conf_threshold=0.5, iou_threshold=0.5)`, then call `metric.plot()` to render a heatmap.
 
 ## Author
 

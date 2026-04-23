@@ -345,7 +345,7 @@ Use `sv.InferenceSlicer` to split a high-resolution image into overlapping tiles
 
 ### What overlap should I use between tiles?
 
-An overlap of 50% is a good default. Increase to 75% for very small objects (\<16x16 pixels). Decrease to 25% for speed.
+`InferenceSlicer` takes overlap in pixels via `overlap_wh`, not as a percentage. The default is `100` pixels in both directions. Increase `overlap_wh` when objects are close to the tile size or often appear on tile boundaries, and decrease it when speed is more important.
 
 ### Can I use InferenceSlicer with any detection model?
 

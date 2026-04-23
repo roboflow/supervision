@@ -16,7 +16,7 @@ processing. This guide demonstrates how to perform video inference using the
 [Ultralytics](https://github.com/ultralytics/ultralytics) or
 [Transformers](https://github.com/huggingface/transformers) packages and save their results with
 [`sv.CSVSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink) and
-[`sv.JSONSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.JSONSink).
+[`sv.JSONSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.json_sink.JSONSink).
 
 ## Run Detection
 
@@ -239,7 +239,7 @@ If you prefer to save the result in a `.JSON` file instead of a `.CSV` file, all
 need to do is replace
 [`sv.CSVSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink)
 with
-[`sv.JSONSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.JSONSink).
+[`sv.JSONSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.json_sink.JSONSink).
 
 === "Inference"
 
@@ -307,11 +307,11 @@ with
 
 ### How do I save detections to CSV with supervision?
 
-Create `sv.CSVSink("output.csv")` and call `sink.append(detections)` for each frame. The CSV includes box coordinates, confidence, class ID, and tracker ID.
+Open `sv.CSVSink("output.csv")` as a context manager and call `sink.append(detections)` for each frame. The CSV includes box coordinates, confidence, class ID, tracker ID, and any fields stored in `detections.data`.
 
 ### Can I save detections to JSON instead?
 
-Use `sv.JSONSink("output.json")` — it writes all detections as a JSON array, one detection per entry.
+Yes. Open `sv.JSONSink("output.json")` as a context manager and call `sink.append(detections)` for each frame. The file is written as a JSON array when the context exits.
 
 ### Can I add custom fields to the saved output?
 

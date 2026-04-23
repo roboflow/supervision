@@ -38,25 +38,25 @@ Extras: `pip install supervision[metrics]` for mAP/confusion matrix. `pip instal
 Core data structure for bounding boxes, masks, confidence scores, class IDs, tracker IDs, and arbitrary per-detection metadata stored in a `data` dict. The lingua franca of the entire library — every connector, annotator, and tracker accepts or returns `Detections`. Supports NumPy-style boolean indexing for filtering by class, confidence, area, and spatial regions.
 
 ### sv.BoxAnnotator, sv.MaskAnnotator, sv.LabelAnnotator
-Draw bounding boxes, segmentation masks, and text labels on images. Each annotator class implements `__call__(scene, detections)` — pass an input image and a `Detections` object to get the annotated output. Colors can be assigned by class or manually specified.
+Draw bounding boxes, segmentation masks, and text labels on images. Annotators expose `annotate(scene=..., detections=...)`; pass an input image and a `Detections` object to get the annotated output. `LabelAnnotator` can use explicit `labels` or fall back to `detections["class_name"]`, class IDs, then detection indices. Colors can be assigned by class or manually specified.
 
-### sv.ByteTrack and sv.SORT
-Object trackers that assign persistent IDs across video frames. `ByteTrack` is the recommended tracker — it associates low-confidence detections as temporary tracklets. Use `update_with_detections()` to get tracked results, then `sv.TraceAnnotator` to visualize trajectories.
+### sv.ByteTrack
+Object tracker wrapper that assigns persistent IDs across video frames. The built-in `sv.ByteTrack` accepts `Detections` via `update_with_detections()`, but it is deprecated in favor of `ByteTrackTracker` from the external `trackers` package, where the method is named `update()`. Use tracked `Detections` with `sv.TraceAnnotator` to visualize trajectories.
 
 ### sv.PolygonZone and sv.LineZone
-Zone-based counting. `PolygonZone` triggers when a detection enters an arbitrary polygon. `LineZone` triggers when a detection crosses a line in a specific direction. Both are commonly paired with the library's annotators, such as zone annotators, for real-time counting visualization.
+Zone-based counting. `PolygonZone.trigger(detections)` returns a boolean mask for detections currently inside an arbitrary polygon. `LineZone.trigger(detections)` returns `(crossed_in, crossed_out)` arrays for line crossings and requires `detections.tracker_id` so objects can be matched across frames. Both are commonly paired with zone annotators for visualization.
 
 ### sv.DetectionDataset and sv.ClassificationDataset
-Load, merge, split, and convert datasets between YOLO, COCO JSON, and Pascal VOC formats. Load from `.yaml` config or from folders with images and annotation files. Save in any supported format.
+For detection datasets, load, merge, split, and convert between YOLO, COCO JSON, and Pascal VOC formats. Classification datasets use folder-structure import and export via `ClassificationDataset.from_folder_structure()` and `as_folder_structure()`.
 
 ### sv.InferenceSlicer
-SAHI-style inference slicing: split high-resolution images into overlapping tiles, run detection on each tile, merge results with non-maximum suppression. Dramatically improves recall for small objects (e.g., 16x16 targets in 4K images).
+SAHI-style inference slicing: split high-resolution images into overlapping tiles, run detection on each tile, merge results with non-maximum suppression or non-maximum merge. Configure tile overlap in pixels with `overlap_wh`.
 
-### sv.MeanAveragePrecision and sv.ConfusionMatrix
-Benchmarking tools. For mAP@0.5:0.95, use the recommended metrics API with `update()` and `compute()` rather than the deprecated top-level `sv.MeanAveragePrecision.from_detections()`. `ConfusionMatrix.from_detections(..., classes=classes)` generates a confusion matrix with per-class precision, recall, and F1 scores, and supports oriented bounding boxes (OBB).
+### supervision.metrics.MeanAveragePrecision and sv.ConfusionMatrix
+Benchmarking tools. For mAP@0.5:0.95, use `supervision.metrics.MeanAveragePrecision` with `update()` and `compute()` rather than the deprecated top-level `sv.MeanAveragePrecision.from_detections()`. `ConfusionMatrix.from_detections(predictions=predictions, targets=targets, classes=classes)` generates a confusion matrix for detection results.
 
 ### sv.CSVSink and sv.JSONSink
-Export detection results to structured files. `CSVSink` writes one row per detection with columns for box coordinates, confidence, class ID, and tracker ID. `JSONSink` writes all detections as a JSON array.
+Export detection results to structured files. Use `CSVSink` and `JSONSink` as context managers, call `sink.append(detections, custom_data=...)`, and they write one row/object per detection with box coordinates, confidence, class ID, tracker ID, and data fields.
 
 ## How-To Guides
 
@@ -120,11 +120,11 @@ Supervision is an open-source Python library by Roboflow for computer vision wor
 
 ### How do I install supervision?
 
-Install with `pip install supervision`. For evaluation tools use `pip install supervision[metrics]`. For sample assets use `pip install supervision[assets]`. Requires Python 3.9+.
+Install with `pip install supervision`. For evaluation tools use `pip install supervision[metrics]`. For sample assets use `pip install supervision[assets]`. The current package metadata requires Python 3.9+.
 
 ### What can I do with supervision?
 
-Annotate images and video with bounding boxes, masks, and labels; track objects across frames with persistent IDs using ByteTrack or SORT; count detections inside polygon zones; filter and query detection results; load, split, and convert datasets between YOLO, COCO, and Pascal VOC formats; and benchmark model performance with mAP and confusion matrices.
+Annotate images and video with bounding boxes, masks, and labels; track objects across frames with persistent IDs; count detections inside polygon zones or line crossings; filter and query detection results; load, split, and convert detection datasets between YOLO, COCO, and Pascal VOC formats; manage classification datasets with folder structures; and benchmark model performance with mAP and confusion matrices.
 
 ### Is supervision free to use?
 
@@ -132,27 +132,27 @@ Yes. Supervision is free and open-source under the MIT license. Source code is a
 
 ### Which object detection models work with supervision?
 
-Supervision is model-agnostic and works with Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers, SAM, Grounding DINO, Florence-2, PaliGemma, MediaPipe, Detectron2, MMDetection, and 20+ other frameworks through built-in `from_*` connectors.
+Supervision is model-agnostic and works with Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers, SAM, Grounding DINO, Florence-2, PaliGemma, MediaPipe, Detectron2, MMDetection, and 20+ other frameworks through built-in connectors such as `from_ultralytics()`, `from_transformers()`, and `from_vlm(...)`.
 
 ### How do I benchmark a model with supervision?
 
-Use `supervision.metrics.mean_average_precision.MeanAveragePrecision` for mAP — accumulate predictions and ground truth with `update(...)` then call `compute()`. For confusion matrices, use `sv.ConfusionMatrix.from_detections(predictions, ground_truth, classes=classes)`. See the Benchmark a Model how-to guide for a complete walkthrough.
+Use `supervision.metrics.mean_average_precision.MeanAveragePrecision` for mAP — accumulate predictions and ground truth with `update(...)` then call `compute()`. For confusion matrices, use `sv.ConfusionMatrix.from_detections(predictions=predictions, targets=targets, classes=classes)`. See the Benchmark a Model how-to guide for a complete walkthrough.
 
 ### How do I track objects across video frames?
 
-Use `sv.ByteTrack` — pass `Detections` to `update_with_detections()` and it assigns persistent tracker IDs. Combine with `sv.TraceAnnotator` to visualize trajectories.
+Use a tracker to assign persistent IDs. The built-in `sv.ByteTrack` wrapper accepts `Detections` with `update_with_detections()`, but it is deprecated in favor of `ByteTrackTracker` from the external `trackers` package. Combine tracked detections with `sv.TraceAnnotator` to visualize trajectories.
 
 ### What dataset formats does supervision support?
 
-YOLO, COCO JSON, and Pascal VOC for both detection and classification tasks. Use `DetectionDataset.from_yolo()`, `from_coco()`, or `from_pascal_voc()` to load, `as_yolo()`, `as_coco()`, or `as_pascal_voc()` to save.
+For detection datasets, supervision supports YOLO, COCO JSON, and Pascal VOC. Use `DetectionDataset.from_yolo()`, `from_coco()`, or `from_pascal_voc()` to load, and `as_yolo()`, `as_coco()`, or `as_pascal_voc()` to save. For classification datasets, use `ClassificationDataset.from_folder_structure()` and `as_folder_structure()`.
 
 ### How do I count objects in a zone?
 
-Use `sv.PolygonZone` for arbitrary polygon zones or `sv.LineZone` for line-crossing counts. Both trigger on incoming `Detections` to determine which objects are inside or crossing the zone.
+Use `sv.PolygonZone` for arbitrary polygon zones. Use `sv.LineZone` for line-crossing counts after assigning tracker IDs, because `LineZone` needs `detections.tracker_id` to match objects across frames.
 
 ### How do I detect small objects with supervision?
 
-Use `sv.InferenceSlicer` to split high-resolution images into overlapping tiles, run detection on each tile, and merge results with non-maximum suppression. See the Detect Small Objects how-to guide.
+Use `sv.InferenceSlicer` to split high-resolution images into overlapping tiles, run detection on each tile, and merge results with non-maximum suppression. Configure tile overlap in pixels with `overlap_wh`. See the Detect Small Objects how-to guide.
 
 ## Benchmarking
 

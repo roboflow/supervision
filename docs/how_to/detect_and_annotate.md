@@ -448,11 +448,11 @@ Yes. Chain annotators: first draw boxes with `BoxAnnotator`, then overlay masks 
 
 ### How do I label detections with class names?
 
-Use the `label` parameter of any annotator, or pass `detections.class_name` if your connector set it. `sv.LabelAnnotator` renders text inside or beside each box.
+Use `sv.LabelAnnotator` and pass custom text with the `labels` parameter. If a connector provides class names, they are stored in `detections["class_name"]` / `detections.data["class_name"]`; when `labels` is omitted, `LabelAnnotator` uses class names first, then class IDs, then detection indices.
 
 ### Can I use supervision with Hugging Face models?
 
-Yes. `sv.Detections.from_transformers()` accepts any Hugging Face pipeline output (e.g., OWL-ViT, Grounding DINO). `sv.Detections.from_florence2()` and `sv.Detections.from_paligemma()` handle vision-language models directly.
+Yes. `sv.Detections.from_transformers()` accepts supported Hugging Face object detection and segmentation outputs. Vision-language model outputs are handled through `sv.Detections.from_vlm(...)`, for example with `sv.VLM.FLORENCE_2` or `sv.VLM.PALIGEMMA`.
 
 ## Authors
 

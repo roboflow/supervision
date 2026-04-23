@@ -78,7 +78,7 @@
       "name": "How do I install supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Install supervision with pip: pip install supervision. For evaluation tools use pip install supervision[metrics]. For sample assets use pip install supervision[assets]. Requires Python 3.9+."
+        "text": "Install supervision with pip: pip install supervision. For evaluation tools use pip install supervision[metrics]. For sample assets use pip install supervision[assets]. The current package metadata requires Python 3.9+."
       }
     },
     {
@@ -86,7 +86,7 @@
       "name": "What can I do with supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "With supervision you can annotate images and video with bounding boxes, masks, and labels; track objects across frames with persistent IDs using ByteTrack or SORT; count detections inside polygon zones; filter and query detection results; load, split, and convert datasets between YOLO, COCO, and Pascal VOC formats; and benchmark model performance with mAP and confusion matrices."
+        "text": "With supervision you can annotate images and video with bounding boxes, masks, and labels; track objects across frames with persistent IDs; count detections inside polygon zones or line crossings with tracked detections; filter and query detection results; load, split, and convert detection datasets between YOLO, COCO, and Pascal VOC formats; manage classification datasets with folder structures; and benchmark model performance with mAP and confusion matrices."
       }
     },
     {
@@ -102,7 +102,7 @@
       "name": "Which object detection models work with supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Supervision is model-agnostic and works with Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers, SAM, Grounding DINO, Florence-2, PaliGemma, MediaPipe, Detectron2, MMDetection, and 20+ other frameworks through built-in connectors that convert any model output to a unified Detections object."
+        "text": "Supervision is model-agnostic and works with Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers, SAM, Grounding DINO, Florence-2, PaliGemma, MediaPipe, Detectron2, MMDetection, and 20+ other frameworks through connectors that convert supported model outputs to a unified Detections object."
       }
     },
     {
@@ -118,7 +118,7 @@
       "name": "How do I track objects across video frames?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Use sv.ByteTrack — pass Detections to update_with_detections() and it assigns persistent tracker IDs. Combine with sv.TraceAnnotator to visualize trajectories."
+        "text": "Use a tracker to assign persistent IDs before visualization. The built-in sv.ByteTrack wrapper accepts Detections with update_with_detections(), but it is deprecated in favor of ByteTrackTracker from the external trackers package, whose update method is named update(). Combine tracked Detections with sv.TraceAnnotator to visualize trajectories."
       }
     },
     {
@@ -126,7 +126,7 @@
       "name": "What dataset formats does supervision support?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "YOLO, COCO JSON, and Pascal VOC for both detection and classification tasks. Use DetectionDataset.from_yolo(), from_coco(), or from_pascal_voc() to load, as_yolo(), as_coco(), or as_pascal_voc() to save."
+        "text": "For detection datasets, supervision supports YOLO, COCO JSON, and Pascal VOC. Use DetectionDataset.from_yolo(), from_coco(), or from_pascal_voc() to load, and as_yolo(), as_coco(), or as_pascal_voc() to save. ClassificationDataset supports folder-structure import and export."
       }
     },
     {
@@ -134,7 +134,7 @@
       "name": "How do I count objects in a zone?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Use sv.PolygonZone for arbitrary polygon zones or sv.LineZone for line-crossing counts. Both trigger on incoming Detections to determine which objects are inside or crossing the zone."
+        "text": "Use sv.PolygonZone for arbitrary polygon zones. Use sv.LineZone for line-crossing counts after assigning tracker IDs, because LineZone needs detections.tracker_id to match objects across frames."
       }
     },
     {
@@ -142,7 +142,7 @@
       "name": "How do I detect small objects with supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Use sv.InferenceSlicer to split high-resolution images into overlapping tiles, run detection on each tile, and merge results with non-maximum suppression. See the Detect Small Objects guide at https://supervision.roboflow.com/latest/how_to/detect_small_objects/."
+        "text": "Use sv.InferenceSlicer to split high-resolution images into overlapping tiles, run detection on each tile, and merge results with non-maximum suppression. Configure overlap in pixels with overlap_wh. See the Detect Small Objects guide at https://supervision.roboflow.com/latest/how_to/detect_small_objects/."
       }
     },
     {
@@ -289,7 +289,7 @@
       "name": "What computer vision tutorials does supervision offer?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Supervision provides cookbooks for object tracking with ByteTrack, zero-shot detection with YOLO-World, small object detection with SAHI, occupancy analytics, and line-crossing counts."
+        "text": "Supervision provides cookbooks for object tracking, zero-shot detection with YOLO-World, small object detection with SAHI-style slicing, occupancy analytics, and line-crossing counts."
       }
     },
     {
@@ -297,7 +297,7 @@
       "name": "How do I track objects in video with supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Use sv.ByteTrack — pass Detections to update_with_detections() and it assigns persistent tracker IDs. Combine with sv.TraceAnnotator to visualize trajectories. See the Object Tracking cookbook."
+        "text": "Assign persistent tracker IDs before visualizing trajectories. The built-in sv.ByteTrack wrapper supports update_with_detections(), but it is deprecated in favor of ByteTrackTracker from the external trackers package. Combine tracked Detections with sv.TraceAnnotator. See the Object Tracking cookbook."
       }
     }
   ]

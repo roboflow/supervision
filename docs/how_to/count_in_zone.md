@@ -146,7 +146,7 @@ Create `sv.PolygonZone` with a polygon defining your region. Call `zone.trigger(
 
 ### Can I count objects crossing a line instead of entering a zone?
 
-Yes. Use `sv.LineZone` — define a start and end point. `zone.trigger(detections)` returns a tuple of two boolean arrays, `(crossed_in, crossed_out)`, indicating which detections crossed the line in each direction.
+Yes. Use `sv.LineZone` — define a start and end point. `zone.trigger(detections)` returns a tuple of two boolean arrays, `(crossed_in, crossed_out)`, indicating which detections crossed the line in each direction. `LineZone` requires `detections.tracker_id`; run a tracker first so the same object can be matched across frames.
 
 ### Can I combine zone counting with tracking?
 

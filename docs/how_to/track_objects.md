@@ -669,11 +669,11 @@ This structured walkthrough should give a detailed pathway to annotate videos ef
 
 ### How do I track objects across video frames with supervision?
 
-Pass `Detections` to `sv.ByteTrack.update_with_detections()` on each frame. The tracker assigns persistent IDs. Combine with `sv.TraceAnnotator` to visualize trajectories.
+Pass `Detections` to `sv.ByteTrack.update_with_detections()` on each frame. The tracker assigns persistent IDs. Combine with `sv.TraceAnnotator` to visualize trajectories. `sv.ByteTrack` is deprecated in favor of `ByteTrackTracker` from the `trackers` package, where the update method is named `update()`.
 
-### What's the difference between ByteTrack and SORT?
+### What should I know about ByteTrack?
 
-ByteTrack uses low-confidence detections as temporary tracklets, giving better recall for fast-moving objects. SORT is simpler and faster but may lose tracks during brief occlusions.
+ByteTrack uses low-confidence detections during association, which can improve continuity during missed or weak detections. Supervision's built-in `ByteTrack` wrapper is deprecated in favor of the external `trackers` package.
 
 ### Can I track instances instead of bounding boxes?
 
@@ -681,7 +681,7 @@ Yes. ByteTrack tracks bounding boxes. For instance masks, use `sv.MaskAnnotator`
 
 ### Does ByteTrack work with any detection model?
 
-Yes. ByteTrack is model-agnostic — it accepts any `Detections` object regardless of source (YOLO, SAM, Grounding DINO, Transformers, etc.).
+Yes. ByteTrack is model-agnostic — it accepts any `Detections` object with bounding boxes, regardless of source (YOLO, SAM, Grounding DINO, Transformers, etc.).
 
 ## Authors
 
