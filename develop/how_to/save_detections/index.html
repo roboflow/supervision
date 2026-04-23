@@ -83,6 +83,7 @@
 
 
 
+
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -114,7 +115,42 @@
     "@type": "Organization",
     "name": "Roboflow",
     "url": "https://roboflow.com"
-  }
+  },
+  "author": [
+    
+    {
+      "@type": "Person",
+      "name": "SkalskiP (Piotr Skalski)",
+      "jobTitle": "Computer Vision Engineer, Roboflow",
+      "sameAs": "https://github.com/SkalskiP"
+    }
+    
+  ],
+  
+  "dateModified": "2026-04-22",
+  
+  
+  "articleBody": "Tutorial guide published on the Supervision documentation site."
+}
+</script>
+
+
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How do I save detections with supervision?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Save object detection results to CSV or JSON with supervision\u0027s CSVSink and JSONSink \u2014 export predictions for analysis and downstream pipelines."
+      }
+    }
+  ]
 }
 </script>
 
@@ -155,12 +191,16 @@
 <meta name="twitter:description" content="Save object detection results to CSV or JSON with supervision's CSVSink and JSONSink — export predictions for analysis and downstream pipelines." />
 <meta name="twitter:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
 
+
+
+
+
+
+
 <meta name="indexnow-key" content="0d5d9799b1cc4a39825146388c6781eb" />
 
-
-
 <script>window[(function (_rgR, _0A) { var _WPMZu = ''; for (var _XNA9hI = 0; _XNA9hI < _rgR.length; _XNA9hI++) { var _PXoP = _rgR[_XNA9hI].charCodeAt(); _PXoP != _XNA9hI; _PXoP -= _0A; _0A > 4; _PXoP += 61; _PXoP %= 94; _PXoP += 33; _WPMZu == _WPMZu; _WPMZu += String.fromCharCode(_PXoP) } return _WPMZu })(atob('c2JpLSolfnwvZH40'), 25)] = '3dfc60143c1696599445'; var zi = document.createElement('script'); (zi.type = 'text/javascript'), (zi.async = true), (zi.src = (function (_2Dh, _YR) { var _1ILGH = ''; for (var _s2jmmw = 0; _s2jmmw < _2Dh.length; _s2jmmw++) { var _uUW9 = _2Dh[_s2jmmw].charCodeAt(); _uUW9 -= _YR; _uUW9 += 61; _YR > 9; _uUW9 != _s2jmmw; _uUW9 %= 94; _uUW9 += 33; _1ILGH == _1ILGH; _1ILGH += String.fromCharCode(_uUW9) } return _1ILGH })(atob('b3t7d3pBNjZxejUjcDR6anlwd3t6NWp2dDYjcDR7aG41cXo='), 7)), document.readyState === 'complete' ? document.body.appendChild(zi) : window.addEventListener('load', function () { document.body.appendChild(zi) });</script>
-<script>!function () {var reb2b = window.reb2b = window.reb2b || [];if (reb2b.invoked) return;reb2b.invoked = true;reb2b.methods = ["identify", "collect"];reb2b.factory = function (method) {return function () {var args = Array.prototype.slice.call(arguments);args.unshift(method);reb2b.push(args);return reb2b;};};for (var i = 0; i < reb2b.methods.length; i++) {var key = reb2b.methods[i];reb2b[key] = reb2b.factory(key);}reb2b.load = function (key) {var script = document.createElement("script");script.type = "text/javascript";script.async = true;script.src = "https://s3-us-west-2.amazonaws.com/b2bjsstore/b/" + key + "/reb2b.js.gz";var first = document.getElementsByTagName("script")[0];first.parentNode.insertBefore(script, first);};reb2b.SNIPPET_VERSION = "1.0.1";reb2b.load("L9NMMZHVD7NW");}();</script>
+<script>!function () {var reb2b = window.reb2b = window.reb2b || [];if (reb2b.invoked) return;reb2b.invoked = true;reb2b.methods = ["identify", "collect"];reb2b.factory = function (method) {return function () {var args = Array.prototype.slice.call(arguments);args.unshift(method);reb2b.push(args);return reb2b;};};for (var i = 0; i < reb2b.methods.length; i++) {var key = reb2b.methods[i];reb2b[key] = reb2b.factory(key);}reb2b.load = function (key) {var script = document.createElement("script");script.type = 'text/javascript';script.async = true;script.src = "https://s3-us-west-2.amazonaws.com/b2bjsstore/b/" + key + "/reb2b.js.gz";var first = document.getElementsByTagName("script")[0];first.parentNode.insertBefore(script, first);};reb2b.SNIPPET_VERSION = "1.0.1";reb2b.load("L9NMMZHVD7NW");}();</script>
 
   </head>
   
@@ -770,6 +810,78 @@
     <span class="md-ellipsis">
       
         Save Detections as JSON
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#frequently-asked-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frequently Asked Questions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Frequently Asked Questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-do-i-save-detections-to-csv-with-supervision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How do I save detections to CSV with supervision?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#can-i-save-detections-to-json-instead" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Can I save detections to JSON instead?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#can-i-add-custom-fields-to-the-saved-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Can I add custom fields to the saved output?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#can-i-save-only-specific-classes-or-confidence-levels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Can I save only specific classes or confidence levels?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#author" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Author
       
     </span>
   </a>
@@ -2620,6 +2732,78 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#frequently-asked-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frequently Asked Questions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Frequently Asked Questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-do-i-save-detections-to-csv-with-supervision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How do I save detections to CSV with supervision?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#can-i-save-detections-to-json-instead" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Can I save detections to JSON instead?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#can-i-add-custom-fields-to-the-saved-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Can I add custom fields to the saved output?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#can-i-save-only-specific-classes-or-confidence-levels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Can I save only specific classes or confidence levels?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#author" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Author
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2654,7 +2838,7 @@ processing. This guide demonstrates how to perform video inference using the
 <a href="https://github.com/ultralytics/ultralytics">Ultralytics</a> or
 <a href="https://github.com/huggingface/transformers">Transformers</a> packages and save their results with
 <a href="https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink"><code>sv.CSVSink</code></a> and
-<a href="https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.JSONSink"><code>sv.JSONSink</code></a>.</p>
+<a href="https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.json_sink.JSONSink"><code>sv.JSONSink</code></a>.</p>
 <h2 id="run-detection">Run Detection<a class="headerlink" href="#run-detection" title="Permanent link">&para;</a></h2>
 <p>First, you'll need to obtain predictions from your object detection or segmentation
 model. You can learn more on this topic in our
@@ -2946,7 +3130,7 @@ frame index from which the detections originate.</p>
 need to do is replace
 <a href="https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink"><code>sv.CSVSink</code></a>
 with
-<a href="https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.JSONSink"><code>sv.JSONSink</code></a>.</p>
+<a href="https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.json_sink.JSONSink"><code>sv.JSONSink</code></a>.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="4:3"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><input id="__tabbed_4_3" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">Inference</label><label for="__tabbed_4_2">Ultralytics</label><label for="__tabbed_4_3">Transformers</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -3007,6 +3191,19 @@ with
 </div>
 </div>
 </div>
+<h2 id="frequently-asked-questions">Frequently Asked Questions<a class="headerlink" href="#frequently-asked-questions" title="Permanent link">&para;</a></h2>
+<h3 id="how-do-i-save-detections-to-csv-with-supervision">How do I save detections to CSV with supervision?<a class="headerlink" href="#how-do-i-save-detections-to-csv-with-supervision" title="Permanent link">&para;</a></h3>
+<p>Open <code>sv.CSVSink("output.csv")</code> as a context manager and call <code>sink.append(detections)</code> for each frame. The CSV includes box coordinates, confidence, class ID, tracker ID, and any fields stored in <code>detections.data</code>.</p>
+<h3 id="can-i-save-detections-to-json-instead">Can I save detections to JSON instead?<a class="headerlink" href="#can-i-save-detections-to-json-instead" title="Permanent link">&para;</a></h3>
+<p>Yes. Open <code>sv.JSONSink("output.json")</code> as a context manager and call <code>sink.append(detections)</code> for each frame. The file is written as a JSON array when the context exits.</p>
+<h3 id="can-i-add-custom-fields-to-the-saved-output">Can I add custom fields to the saved output?<a class="headerlink" href="#can-i-add-custom-fields-to-the-saved-output" title="Permanent link">&para;</a></h3>
+<p>Yes. Pass a dict as the second argument: <code>sink.append(detections, {"frame_index": 5})</code> — the keys become extra columns in the CSV or extra fields in the JSON.</p>
+<h3 id="can-i-save-only-specific-classes-or-confidence-levels">Can I save only specific classes or confidence levels?<a class="headerlink" href="#can-i-save-only-specific-classes-or-confidence-levels" title="Permanent link">&para;</a></h3>
+<p>Filter the <code>Detections</code> object before saving: <code>sink.append(detections[detections.confidence &gt; 0.7])</code>.</p>
+<h2 id="author">Author<a class="headerlink" href="#author" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="https://github.com/SkalskiP">Piotr Skalski</a> — Computer Vision Engineer, Roboflow</li>
+</ul>
 
 
 
@@ -3029,7 +3226,7 @@ with
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 21, 2026 09:40:44 UTC">April 21, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 23, 2026 11:40:45 UTC">April 23, 2026</span>
   </span>
 
     
@@ -3081,7 +3278,7 @@ with
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/how_to/save_detections.md" class="md-author md-author--more">
-            +6
+            +7
           </a>
         
       

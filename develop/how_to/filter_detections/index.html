@@ -83,6 +83,7 @@
 
 
 
+
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -114,7 +115,42 @@
     "@type": "Organization",
     "name": "Roboflow",
     "url": "https://roboflow.com"
-  }
+  },
+  "author": [
+    
+    {
+      "@type": "Person",
+      "name": "SkalskiP (Piotr Skalski)",
+      "jobTitle": "Computer Vision Engineer, Roboflow",
+      "sameAs": "https://github.com/SkalskiP"
+    }
+    
+  ],
+  
+  "dateModified": "2026-04-22",
+  
+  
+  "articleBody": "Tutorial guide published on the Supervision documentation site."
+}
+</script>
+
+
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How do I filter detections with supervision?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Filter and query detection results by class, confidence, or spatial overlap using supervision\u0027s Detections API \u2014 clean predictions in one line."
+      }
+    }
+  ]
 }
 </script>
 
@@ -155,12 +191,16 @@
 <meta name="twitter:description" content="Filter and query detection results by class, confidence, or spatial overlap using supervision's Detections API — clean predictions in one line." />
 <meta name="twitter:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
 
+
+
+
+
+
+
 <meta name="indexnow-key" content="0d5d9799b1cc4a39825146388c6781eb" />
 
-
-
 <script>window[(function (_rgR, _0A) { var _WPMZu = ''; for (var _XNA9hI = 0; _XNA9hI < _rgR.length; _XNA9hI++) { var _PXoP = _rgR[_XNA9hI].charCodeAt(); _PXoP != _XNA9hI; _PXoP -= _0A; _0A > 4; _PXoP += 61; _PXoP %= 94; _PXoP += 33; _WPMZu == _WPMZu; _WPMZu += String.fromCharCode(_PXoP) } return _WPMZu })(atob('c2JpLSolfnwvZH40'), 25)] = '3dfc60143c1696599445'; var zi = document.createElement('script'); (zi.type = 'text/javascript'), (zi.async = true), (zi.src = (function (_2Dh, _YR) { var _1ILGH = ''; for (var _s2jmmw = 0; _s2jmmw < _2Dh.length; _s2jmmw++) { var _uUW9 = _2Dh[_s2jmmw].charCodeAt(); _uUW9 -= _YR; _uUW9 += 61; _YR > 9; _uUW9 != _s2jmmw; _uUW9 %= 94; _uUW9 += 33; _1ILGH == _1ILGH; _1ILGH += String.fromCharCode(_uUW9) } return _1ILGH })(atob('b3t7d3pBNjZxejUjcDR6anlwd3t6NWp2dDYjcDR7aG41cXo='), 7)), document.readyState === 'complete' ? document.body.appendChild(zi) : window.addEventListener('load', function () { document.body.appendChild(zi) });</script>
-<script>!function () {var reb2b = window.reb2b = window.reb2b || [];if (reb2b.invoked) return;reb2b.invoked = true;reb2b.methods = ["identify", "collect"];reb2b.factory = function (method) {return function () {var args = Array.prototype.slice.call(arguments);args.unshift(method);reb2b.push(args);return reb2b;};};for (var i = 0; i < reb2b.methods.length; i++) {var key = reb2b.methods[i];reb2b[key] = reb2b.factory(key);}reb2b.load = function (key) {var script = document.createElement("script");script.type = "text/javascript";script.async = true;script.src = "https://s3-us-west-2.amazonaws.com/b2bjsstore/b/" + key + "/reb2b.js.gz";var first = document.getElementsByTagName("script")[0];first.parentNode.insertBefore(script, first);};reb2b.SNIPPET_VERSION = "1.0.1";reb2b.load("L9NMMZHVD7NW");}();</script>
+<script>!function () {var reb2b = window.reb2b = window.reb2b || [];if (reb2b.invoked) return;reb2b.invoked = true;reb2b.methods = ["identify", "collect"];reb2b.factory = function (method) {return function () {var args = Array.prototype.slice.call(arguments);args.unshift(method);reb2b.push(args);return reb2b;};};for (var i = 0; i < reb2b.methods.length; i++) {var key = reb2b.methods[i];reb2b[key] = reb2b.factory(key);}reb2b.load = function (key) {var script = document.createElement("script");script.type = 'text/javascript';script.async = true;script.src = "https://s3-us-west-2.amazonaws.com/b2bjsstore/b/" + key + "/reb2b.js.gz";var first = document.getElementsByTagName("script")[0];first.parentNode.insertBefore(script, first);};reb2b.SNIPPET_VERSION = "1.0.1";reb2b.load("L9NMMZHVD7NW");}();</script>
 
   </head>
   
@@ -842,6 +882,89 @@
     <span class="md-ellipsis">
       
         by mixed conditions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#frequently-asked-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frequently Asked Questions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Frequently Asked Questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-do-i-filter-detections-by-class-in-supervision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How do I filter detections by class in supervision?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-do-i-filter-by-confidence-threshold" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How do I filter by confidence threshold?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-do-i-filter-by-bounding-box-area" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How do I filter by bounding box area?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#can-i-filter-by-box-aspect-ratio-or-dimensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Can I filter by box aspect ratio or dimensions?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-do-i-remove-duplicate-detections-nms-from-my-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How do I remove duplicate detections (NMS) from my results?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#author" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Author
       
     </span>
   </a>
@@ -2708,6 +2831,89 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#frequently-asked-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frequently Asked Questions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Frequently Asked Questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-do-i-filter-detections-by-class-in-supervision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How do I filter detections by class in supervision?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-do-i-filter-by-confidence-threshold" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How do I filter by confidence threshold?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-do-i-filter-by-bounding-box-area" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How do I filter by bounding box area?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#can-i-filter-by-box-aspect-ratio-or-dimensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Can I filter by box aspect ratio or dimensions?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-do-i-remove-duplicate-detections-nms-from-my-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How do I remove duplicate detections (NMS) from my results?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#author" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Author
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2980,6 +3186,21 @@ zone. In the example below you can see how to filter out all detections located 
 </div>
 </div>
 </div>
+<h2 id="frequently-asked-questions">Frequently Asked Questions<a class="headerlink" href="#frequently-asked-questions" title="Permanent link">&para;</a></h2>
+<h3 id="how-do-i-filter-detections-by-class-in-supervision">How do I filter detections by class in supervision?<a class="headerlink" href="#how-do-i-filter-detections-by-class-in-supervision" title="Permanent link">&para;</a></h3>
+<p>Use NumPy-style boolean indexing: <code>detections[detections.class_id == 0]</code> for class 0. Combine with <code>&amp;</code> or <code>|</code> for multiple conditions.</p>
+<h3 id="how-do-i-filter-by-confidence-threshold">How do I filter by confidence threshold?<a class="headerlink" href="#how-do-i-filter-by-confidence-threshold" title="Permanent link">&para;</a></h3>
+<p><code>detections[detections.confidence &gt; 0.5]</code> returns only detections above the threshold. Chain with class filters for precise results.</p>
+<h3 id="how-do-i-filter-by-bounding-box-area">How do I filter by bounding box area?<a class="headerlink" href="#how-do-i-filter-by-bounding-box-area" title="Permanent link">&para;</a></h3>
+<p><code>detections[detections.area &gt; 1000]</code> filters by pixel area. If masks are present, <code>detections.area</code> uses mask area; otherwise it uses bounding box area from <code>xyxy</code>. Use <code>detections.box_area</code> when you specifically need bounding box area.</p>
+<h3 id="can-i-filter-by-box-aspect-ratio-or-dimensions">Can I filter by box aspect ratio or dimensions?<a class="headerlink" href="#can-i-filter-by-box-aspect-ratio-or-dimensions" title="Permanent link">&para;</a></h3>
+<p>Yes. Use <code>detections.box_aspect_ratio</code> for aspect ratio filtering. If you need explicit box dimensions, compute them from <code>detections.xyxy</code> as <code>width = detections.xyxy[:, 2] - detections.xyxy[:, 0]</code> and <code>height = detections.xyxy[:, 3] - detections.xyxy[:, 1]</code>.</p>
+<h3 id="how-do-i-remove-duplicate-detections-nms-from-my-results">How do I remove duplicate detections (NMS) from my results?<a class="headerlink" href="#how-do-i-remove-duplicate-detections-nms-from-my-results" title="Permanent link">&para;</a></h3>
+<p>Use <code>detections.with_nms(threshold=0.5)</code> — it applies non-maximum suppression on the <code>xyxy</code> boxes.</p>
+<h2 id="author">Author<a class="headerlink" href="#author" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="https://github.com/SkalskiP">Piotr Skalski</a> — Computer Vision Engineer, Roboflow</li>
+</ul>
 
 
 
@@ -3002,7 +3223,7 @@ zone. In the example below you can see how to filter out all detections located 
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 21, 2026 09:40:44 UTC">April 21, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 23, 2026 11:40:45 UTC">April 23, 2026</span>
   </span>
 
     
@@ -3054,7 +3275,7 @@ zone. In the example below you can see how to filter out all detections located 
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/how_to/filter_detections.md" class="md-author md-author--more">
-            +2
+            +4
           </a>
         
       

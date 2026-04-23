@@ -83,6 +83,7 @@
 
 
 
+
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -114,7 +115,49 @@
     "@type": "Organization",
     "name": "Roboflow",
     "url": "https://roboflow.com"
-  }
+  },
+  "author": [
+    
+    {
+      "@type": "Person",
+      "name": "SkalskiP (Piotr Skalski)",
+      "jobTitle": "Computer Vision Engineer, Roboflow",
+      "sameAs": "https://github.com/SkalskiP"
+    },
+    
+    {
+      "@type": "Person",
+      "name": "Borda",
+      "jobTitle": "Open Source Engineer, Roboflow",
+      "sameAs": "https://github.com/borda"
+    }
+    
+  ],
+  
+  "dateModified": "2026-04-22",
+  
+  
+  "articleBody": "Tutorial guide published on the Supervision documentation site."
+}
+</script>
+
+
+
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How do I detect and annotate with supervision?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Learn to load model predictions, create Detections objects, and annotate images with bounding boxes, labels, and masks using supervision."
+      }
+    }
+  ]
 }
 </script>
 
@@ -155,12 +198,16 @@
 <meta name="twitter:description" content="Learn to load model predictions, create Detections objects, and annotate images with bounding boxes, labels, and masks using supervision." />
 <meta name="twitter:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
 
+
+
+
+
+
+
 <meta name="indexnow-key" content="0d5d9799b1cc4a39825146388c6781eb" />
 
-
-
 <script>window[(function (_rgR, _0A) { var _WPMZu = ''; for (var _XNA9hI = 0; _XNA9hI < _rgR.length; _XNA9hI++) { var _PXoP = _rgR[_XNA9hI].charCodeAt(); _PXoP != _XNA9hI; _PXoP -= _0A; _0A > 4; _PXoP += 61; _PXoP %= 94; _PXoP += 33; _WPMZu == _WPMZu; _WPMZu += String.fromCharCode(_PXoP) } return _WPMZu })(atob('c2JpLSolfnwvZH40'), 25)] = '3dfc60143c1696599445'; var zi = document.createElement('script'); (zi.type = 'text/javascript'), (zi.async = true), (zi.src = (function (_2Dh, _YR) { var _1ILGH = ''; for (var _s2jmmw = 0; _s2jmmw < _2Dh.length; _s2jmmw++) { var _uUW9 = _2Dh[_s2jmmw].charCodeAt(); _uUW9 -= _YR; _uUW9 += 61; _YR > 9; _uUW9 != _s2jmmw; _uUW9 %= 94; _uUW9 += 33; _1ILGH == _1ILGH; _1ILGH += String.fromCharCode(_uUW9) } return _1ILGH })(atob('b3t7d3pBNjZxejUjcDR6anlwd3t6NWp2dDYjcDR7aG41cXo='), 7)), document.readyState === 'complete' ? document.body.appendChild(zi) : window.addEventListener('load', function () { document.body.appendChild(zi) });</script>
-<script>!function () {var reb2b = window.reb2b = window.reb2b || [];if (reb2b.invoked) return;reb2b.invoked = true;reb2b.methods = ["identify", "collect"];reb2b.factory = function (method) {return function () {var args = Array.prototype.slice.call(arguments);args.unshift(method);reb2b.push(args);return reb2b;};};for (var i = 0; i < reb2b.methods.length; i++) {var key = reb2b.methods[i];reb2b[key] = reb2b.factory(key);}reb2b.load = function (key) {var script = document.createElement("script");script.type = "text/javascript";script.async = true;script.src = "https://s3-us-west-2.amazonaws.com/b2bjsstore/b/" + key + "/reb2b.js.gz";var first = document.getElementsByTagName("script")[0];first.parentNode.insertBefore(script, first);};reb2b.SNIPPET_VERSION = "1.0.1";reb2b.load("L9NMMZHVD7NW");}();</script>
+<script>!function () {var reb2b = window.reb2b = window.reb2b || [];if (reb2b.invoked) return;reb2b.invoked = true;reb2b.methods = ["identify", "collect"];reb2b.factory = function (method) {return function () {var args = Array.prototype.slice.call(arguments);args.unshift(method);reb2b.push(args);return reb2b;};};for (var i = 0; i < reb2b.methods.length; i++) {var key = reb2b.methods[i];reb2b[key] = reb2b.factory(key);}reb2b.load = function (key) {var script = document.createElement("script");script.type = 'text/javascript';script.async = true;script.src = "https://s3-us-west-2.amazonaws.com/b2bjsstore/b/" + key + "/reb2b.js.gz";var first = document.getElementsByTagName("script")[0];first.parentNode.insertBefore(script, first);};reb2b.SNIPPET_VERSION = "1.0.1";reb2b.load("L9NMMZHVD7NW");}();</script>
 
   </head>
   
@@ -753,6 +800,78 @@
     <span class="md-ellipsis">
       
         Annotate Image with Segmentations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#frequently-asked-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frequently Asked Questions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Frequently Asked Questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-do-i-detect-and-annotate-objects-with-supervision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How do I detect and annotate objects with supervision?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#can-i-annotate-both-bounding-boxes-and-masks-at-the-same-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Can I annotate both bounding boxes and masks at the same time?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-do-i-label-detections-with-class-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How do I label detections with class names?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#can-i-use-supervision-with-hugging-face-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Can I use supervision with Hugging Face models?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authors
       
     </span>
   </a>
@@ -2642,6 +2761,78 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#frequently-asked-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frequently Asked Questions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Frequently Asked Questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#how-do-i-detect-and-annotate-objects-with-supervision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How do I detect and annotate objects with supervision?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#can-i-annotate-both-bounding-boxes-and-masks-at-the-same-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Can I annotate both bounding boxes and masks at the same time?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-do-i-label-detections-with-class-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How do I label detections with class names?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#can-i-use-supervision-with-hugging-face-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Can I use supervision with Hugging Face models?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authors
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3062,6 +3253,20 @@ that will allow you to draw masks instead of boxes.</p>
 </div>
 </div>
 <p><img alt="segmentation-annotation" src="https://media.roboflow.com/supervision_detect_and_annotate_example_3.png" /></p>
+<h2 id="frequently-asked-questions">Frequently Asked Questions<a class="headerlink" href="#frequently-asked-questions" title="Permanent link">&para;</a></h2>
+<h3 id="how-do-i-detect-and-annotate-objects-with-supervision">How do I detect and annotate objects with supervision?<a class="headerlink" href="#how-do-i-detect-and-annotate-objects-with-supervision" title="Permanent link">&para;</a></h3>
+<p>Pass any model's output to <code>sv.Detections.from_&lt;model&gt;()</code> to create a unified <code>Detections</code> object. Then pass it to <code>sv.BoxAnnotator</code> or <code>sv.MaskAnnotator</code> to draw predictions on an image.</p>
+<h3 id="can-i-annotate-both-bounding-boxes-and-masks-at-the-same-time">Can I annotate both bounding boxes and masks at the same time?<a class="headerlink" href="#can-i-annotate-both-bounding-boxes-and-masks-at-the-same-time" title="Permanent link">&para;</a></h3>
+<p>Yes. Chain annotators: first draw boxes with <code>BoxAnnotator</code>, then overlay masks with <code>MaskAnnotator</code> on the same scene.</p>
+<h3 id="how-do-i-label-detections-with-class-names">How do I label detections with class names?<a class="headerlink" href="#how-do-i-label-detections-with-class-names" title="Permanent link">&para;</a></h3>
+<p>Use <code>sv.LabelAnnotator</code> and pass custom text with the <code>labels</code> parameter. If a connector provides class names, they are stored in <code>detections["class_name"]</code> / <code>detections.data["class_name"]</code>; when <code>labels</code> is omitted, <code>LabelAnnotator</code> uses class names first, then class IDs, then detection indices.</p>
+<h3 id="can-i-use-supervision-with-hugging-face-models">Can I use supervision with Hugging Face models?<a class="headerlink" href="#can-i-use-supervision-with-hugging-face-models" title="Permanent link">&para;</a></h3>
+<p>Yes. <code>sv.Detections.from_transformers()</code> accepts supported Hugging Face object detection and segmentation outputs. Vision-language model outputs are handled through <code>sv.Detections.from_vlm(...)</code>, for example with <code>sv.VLM.FLORENCE_2</code> or <code>sv.VLM.PALIGEMMA</code>.</p>
+<h2 id="authors">Authors<a class="headerlink" href="#authors" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="https://github.com/SkalskiP">Piotr Skalski</a> — Computer Vision Engineer, Roboflow</li>
+<li><a href="https://github.com/borda">Borda</a> — Open Source Engineer, Roboflow</li>
+</ul>
 
 
 
@@ -3084,7 +3289,7 @@ that will allow you to draw masks instead of boxes.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 21, 2026 09:40:44 UTC">April 21, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 23, 2026 11:40:45 UTC">April 23, 2026</span>
   </span>
 
     
@@ -3136,7 +3341,7 @@ that will allow you to draw masks instead of boxes.</p>
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/how_to/detect_and_annotate.md" class="md-author md-author--more">
-            +7
+            +8
           </a>
         
       

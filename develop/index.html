@@ -81,6 +81,7 @@
 
 
 
+
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -138,7 +139,7 @@
       "name": "How do I install supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Install supervision with pip: pip install supervision. For evaluation tools use pip install supervision[metrics]. For sample assets use pip install supervision[assets]."
+        "text": "Install supervision with pip: pip install supervision. For evaluation tools use pip install supervision[metrics]. For sample assets use pip install supervision[assets]. The current package metadata requires Python 3.9+."
       }
     },
     {
@@ -146,7 +147,7 @@
       "name": "What can I do with supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "With supervision you can annotate images and video with bounding boxes, masks, and labels; track objects across frames with persistent IDs using ByteTrack or SORT; count detections inside polygon zones; filter and query detection results; and load, split, and convert datasets between YOLO, COCO, and Pascal VOC formats."
+        "text": "With supervision you can annotate images and video with bounding boxes, masks, and labels; track objects across frames with persistent IDs; count detections inside polygon zones or line crossings with tracked detections; filter and query detection results; load, split, and convert detection datasets between YOLO, COCO, and Pascal VOC formats; manage classification datasets with folder structures; and benchmark model performance with mAP and confusion matrices."
       }
     },
     {
@@ -162,12 +163,71 @@
       "name": "Which object detection models work with supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Supervision is model-agnostic and works with Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers, SAM, Grounding DINO, Florence-2, PaliGemma, and 20+ other frameworks through built-in connectors that convert any model output to a unified Detections object."
+        "text": "Supervision is model-agnostic and works with Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers, SAM, Grounding DINO, Florence-2, PaliGemma, MediaPipe, Detectron2, MMDetection, and 20+ other frameworks through connectors that convert supported model outputs to a unified Detections object."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I benchmark a model with supervision?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Use supervision.metrics.mean_average_precision.MeanAveragePrecision for mAP and sv.ConfusionMatrix for confusion matrices. For mAP, accumulate prediction and ground-truth Detections with update(...) and then call compute(). See the Benchmark a Model guide at https://supervision.roboflow.com/latest/how_to/benchmark_a_model/ for a complete walkthrough."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I track objects across video frames?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Use a tracker to assign persistent IDs before visualization. The built-in sv.ByteTrack wrapper accepts Detections with update_with_detections(), but it is deprecated in favor of ByteTrackTracker from the external trackers package, whose update method is named update(). Combine tracked Detections with sv.TraceAnnotator to visualize trajectories."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What dataset formats does supervision support?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "For detection datasets, supervision supports YOLO, COCO JSON, and Pascal VOC. Use DetectionDataset.from_yolo(), from_coco(), or from_pascal_voc() to load, and as_yolo(), as_coco(), or as_pascal_voc() to save. ClassificationDataset supports folder-structure import and export."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I count objects in a zone?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Use sv.PolygonZone for arbitrary polygon zones. Use sv.LineZone for line-crossing counts after assigning tracker IDs, because LineZone needs detections.tracker_id to match objects across frames."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I detect small objects with supervision?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Use sv.InferenceSlicer to split high-resolution images into overlapping tiles, run detection on each tile, and merge results with non-maximum suppression. Configure overlap in pixels with overlap_wh. See the Detect Small Objects guide at https://supervision.roboflow.com/latest/how_to/detect_small_objects/."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I filter detections by class or confidence?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Detections supports NumPy-style boolean indexing. Filter by class: detections[detections.class_id == 0]. Filter by confidence: detections[detections.confidence > 0.5]. Filter by area: detections[detections.area > 1000]. Combine conditions with & or |."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does supervision support keypoint detection and tracking?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Use sv.KeyPoints.from_ultralytics() or sv.KeyPoints.from_inference() to load keypoint predictions. Convert to detections via as_detections() for tracking. Annotate with sv.EdgeAnnotator and sv.VertexAnnotator."
       }
     }
   ]
 }
 </script>
+
+
+
 
 
 
@@ -187,12 +247,16 @@
 <meta name="twitter:description" content="Open-source Python library providing computer vision tools for annotating detections, tracking objects, counting in zones, and processing datasets." />
 <meta name="twitter:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
 
+
+
+
+
+
+
 <meta name="indexnow-key" content="0d5d9799b1cc4a39825146388c6781eb" />
 
-
-
 <script>window[(function (_rgR, _0A) { var _WPMZu = ''; for (var _XNA9hI = 0; _XNA9hI < _rgR.length; _XNA9hI++) { var _PXoP = _rgR[_XNA9hI].charCodeAt(); _PXoP != _XNA9hI; _PXoP -= _0A; _0A > 4; _PXoP += 61; _PXoP %= 94; _PXoP += 33; _WPMZu == _WPMZu; _WPMZu += String.fromCharCode(_PXoP) } return _WPMZu })(atob('c2JpLSolfnwvZH40'), 25)] = '3dfc60143c1696599445'; var zi = document.createElement('script'); (zi.type = 'text/javascript'), (zi.async = true), (zi.src = (function (_2Dh, _YR) { var _1ILGH = ''; for (var _s2jmmw = 0; _s2jmmw < _2Dh.length; _s2jmmw++) { var _uUW9 = _2Dh[_s2jmmw].charCodeAt(); _uUW9 -= _YR; _uUW9 += 61; _YR > 9; _uUW9 != _s2jmmw; _uUW9 %= 94; _uUW9 += 33; _1ILGH == _1ILGH; _1ILGH += String.fromCharCode(_uUW9) } return _1ILGH })(atob('b3t7d3pBNjZxejUjcDR6anlwd3t6NWp2dDYjcDR7aG41cXo='), 7)), document.readyState === 'complete' ? document.body.appendChild(zi) : window.addEventListener('load', function () { document.body.appendChild(zi) });</script>
-<script>!function () {var reb2b = window.reb2b = window.reb2b || [];if (reb2b.invoked) return;reb2b.invoked = true;reb2b.methods = ["identify", "collect"];reb2b.factory = function (method) {return function () {var args = Array.prototype.slice.call(arguments);args.unshift(method);reb2b.push(args);return reb2b;};};for (var i = 0; i < reb2b.methods.length; i++) {var key = reb2b.methods[i];reb2b[key] = reb2b.factory(key);}reb2b.load = function (key) {var script = document.createElement("script");script.type = "text/javascript";script.async = true;script.src = "https://s3-us-west-2.amazonaws.com/b2bjsstore/b/" + key + "/reb2b.js.gz";var first = document.getElementsByTagName("script")[0];first.parentNode.insertBefore(script, first);};reb2b.SNIPPET_VERSION = "1.0.1";reb2b.load("L9NMMZHVD7NW");}();</script>
+<script>!function () {var reb2b = window.reb2b = window.reb2b || [];if (reb2b.invoked) return;reb2b.invoked = true;reb2b.methods = ["identify", "collect"];reb2b.factory = function (method) {return function () {var args = Array.prototype.slice.call(arguments);args.unshift(method);reb2b.push(args);return reb2b;};};for (var i = 0; i < reb2b.methods.length; i++) {var key = reb2b.methods[i];reb2b[key] = reb2b.factory(key);}reb2b.load = function (key) {var script = document.createElement("script");script.type = 'text/javascript';script.async = true;script.src = "https://s3-us-west-2.amazonaws.com/b2bjsstore/b/" + key + "/reb2b.js.gz";var first = document.getElementsByTagName("script")[0];first.parentNode.insertBefore(script, first);};reb2b.SNIPPET_VERSION = "1.0.1";reb2b.load("L9NMMZHVD7NW");}();</script>
 
   </head>
   
