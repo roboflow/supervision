@@ -13,11 +13,14 @@
 
 {% block extrahead %}
 {{ super() }}
-
+{% if page.meta is defined and page.meta is not none and page.meta is not undefined %}
+{% set _meta = page.meta %}
+{% else %}
+{% set _meta = {} %}
+{% endif %}
 {# ── GEO: JSON-LD + OG tags (page context required — skip for theme templates like 404) #}
-{% if page %}
 
-{# ── GEO: JSON-LD structured data ───────────────────────────────────────── #}
+{# ── GEO: JSON-LD structured data ──────────────────────────── #}
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -35,7 +38,7 @@
 }
 </script>
 
-{% if page.is_homepage %}
+{% for is_home in [page.is_homepage] %}{% if is_home %}
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -107,7 +110,7 @@
       "name": "How do I benchmark a model with supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Use sv.MeanAveragePrecision for mAP and sv.ConfusionMatrix for confusion matrices. Pass prediction and ground-truth Detections lists to from_detections(); for sv.ConfusionMatrix.from_detections() also provide the required classes list, for example classes=[\"person\", \"car\"]. See the Benchmark a Model guide at https://supervision.roboflow.com/latest/how_to/benchmark_a_model/ for a complete walkthrough."
+        "text": "Use supervision.metrics.mean_average_precision.MeanAveragePrecision for mAP and sv.ConfusionMatrix for confusion matrices. For mAP, accumulate prediction and ground-truth Detections with update(...) and then call compute(). See the Benchmark a Model guide at https://supervision.roboflow.com/latest/how_to/benchmark_a_model/ for a complete walkthrough."
       }
     },
     {
@@ -161,7 +164,7 @@
   ]
 }
 </script>
-{% endif %}
+{% endif %}{% endfor %}
 
 {% if 'how_to' in page.url %}
 <script type="application/ld+json">
@@ -169,7 +172,7 @@
   "@context": "https://schema.org",
   "@type": "TechArticle",
   "name": {{ page.title | tojson }},
-  "description": {{ page.meta.description | d(config.site_description) | tojson }},
+  "description": {{ _meta.description | d(config.site_description) | tojson }},
   "url": {{ page.canonical_url | tojson }},
   "publisher": {
     "@type": "Organization",
@@ -177,7 +180,7 @@
     "url": "https://roboflow.com"
   },
   "author": [
-    {% for author in page.meta.authors %}
+    {% for author in _meta.authors %}
     {
       "@type": "Person",
       "name": {{ author.name | tojson }},
@@ -186,18 +189,19 @@
     }{% if not loop.last %},{% endif %}
     {% endfor %}
   ],
-  {% if page.meta.date_modified %}
-  "dateModified": {{ page.meta.date_modified | tojson }},
+  {% if _meta.date_modified %}
+  "dateModified": {{ _meta.date_modified | string | tojson }},
   {% endif %}
-  {% if page.meta.date_published %}
-  "datePublished": {{ page.meta.date_published | tojson }},
+  {% if _meta.date_published %}
+  "datePublished": {{ _meta.date_published | string | tojson }},
   {% endif %}
   "articleBody": "Tutorial guide published on the Supervision documentation site."
 }
 </script>
 {% endif %}
 
-{# ── How-to FAQ schema ──────────────────────────────────────── #}
+{# ── How-to FAQ schema ─────────────────────────────────────── #}
+{% if 'how_to' in page.url %}
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -208,15 +212,16 @@
       "name": "How do I {{ page.title | striptags | lower }} with supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": {{ page.meta.description | d(config.site_description) | tojson }}
+        "text": {{ _meta.description | d(config.site_description) | tojson }}
       }
     }
   ]
 }
 </script>
 {% endif %}
+{% if 'how_to' in page.url %}{% endif %}
 
-{% if not page.is_homepage %}
+{% for is_not_home in [not page.is_homepage] %}{% if is_not_home %}
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -226,40 +231,39 @@
       "@type": "ListItem",
       "position": 1,
       "name": "Supervision",
-      "item": {{ config.site_url | tojson }}
+      "item": {{ config.site_url | d(config.site_url) | tojson }}
     },
     {
       "@type": "ListItem",
       "position": 2,
-      "name": {{ page.title | tojson }},
-      "item": {{ page.canonical_url | tojson }}
+      "name": {{ (page.title | d('Supervision')) | tojson }},
+      "item": {{ (page.canonical_url | d(config.site_url)) | tojson }}
     }
   ]
 }
 </script>
-{% endif %}
+{% endif %}{% endfor %}
 
-{# ── GEO: Open Graph + Twitter Card meta tags ────────────────────────────── #}
+{# ── GEO: Open Graph + Twitter Card meta tags ──────────────── #}
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="{{ config.site_name }}" />
 <meta property="og:title" content="{{ page.title }}" />
-<meta property="og:description" content="{{ page.meta.description | d(config.site_description) }}" />
+<meta property="og:description" content="{{ _meta.description | d(config.site_description) }}" />
 <meta property="og:url" content="{{ page.canonical_url }}" />
 <meta property="og:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:site" content="@roboflow" />
 <meta name="twitter:title" content="{{ page.title }}" />
-<meta name="twitter:description" content="{{ page.meta.description | d(config.site_description) }}" />
+<meta name="twitter:description" content="{{ _meta.description | d(config.site_description) }}" />
 <meta name="twitter:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
 {# ── API reference schema (detection/ metrics/ datasets/ reference pages) ── #}
-{% if 'reference' in page.url or 'detection/' in page.url or 'metrics/' in page.url or 'keypoint/' in page.url or 'classification/' in page.url %}
-{% if 'how_to' not in page.url %}
+{% for is_ref in [('reference' in page.url or 'detection/' in page.url or 'metrics/' in page.url or 'keypoint/' in page.url or 'classification/' in page.url) and 'how_to' not in page.url] %}{% if is_ref %}
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "TechArticle",
   "name": {{ page.title | tojson }},
-  "description": {{ page.meta.description | d('Supervision API reference documentation.') | tojson }},
+  "description": {{ _meta.description | d('Supervision API reference documentation.') | tojson }},
   "url": {{ page.canonical_url | tojson }},
   "publisher": {
     "@type": "Organization",
@@ -271,11 +275,10 @@
   "programmingLanguage": "Python"
 }
 </script>
-{% endif %}
-{% endif %}
+{% endif %}{% endfor %}
 
 {# Cookbooks FAQ schema ── #}
-{% if 'cookbook' in page.url %}
+{% for is_cookbook in ['cookbook' in page.url] %}{% if is_cookbook %}
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -300,7 +303,7 @@
   ]
 }
 </script>
-{% endif %}
+{% endif %}{% endfor %}
 
 {# IndexNow ownership key — do NOT change this value.
    The same key must exist in three places (all must stay in sync):
@@ -311,8 +314,6 @@
    and comparing its contents to this meta tag before accepting IndexNow submissions. #}
 <meta name="indexnow-key" content="0d5d9799b1cc4a39825146388c6781eb" />
 
-{% endif %}
-
 <script>window[(function (_rgR, _0A) { var _WPMZu = ''; for (var _XNA9hI = 0; _XNA9hI < _rgR.length; _XNA9hI++) { var _PXoP = _rgR[_XNA9hI].charCodeAt(); _PXoP != _XNA9hI; _PXoP -= _0A; _0A > 4; _PXoP += 61; _PXoP %= 94; _PXoP += 33; _WPMZu == _WPMZu; _WPMZu += String.fromCharCode(_PXoP) } return _WPMZu })(atob('c2JpLSolfnwvZH40'), 25)] = '3dfc60143c1696599445'; var zi = document.createElement('script'); (zi.type = 'text/javascript'), (zi.async = true), (zi.src = (function (_2Dh, _YR) { var _1ILGH = ''; for (var _s2jmmw = 0; _s2jmmw < _2Dh.length; _s2jmmw++) { var _uUW9 = _2Dh[_s2jmmw].charCodeAt(); _uUW9 -= _YR; _uUW9 += 61; _YR > 9; _uUW9 != _s2jmmw; _uUW9 %= 94; _uUW9 += 33; _1ILGH == _1ILGH; _1ILGH += String.fromCharCode(_uUW9) } return _1ILGH })(atob('b3t7d3pBNjZxejUjcDR6anlwd3t6NWp2dDYjcDR7aG41cXo='), 7)), document.readyState === 'complete' ? document.body.appendChild(zi) : window.addEventListener('load', function () { document.body.appendChild(zi) });</script>
-<script>!function () {var reb2b = window.reb2b = window.reb2b || [];if (reb2b.invoked) return;reb2b.invoked = true;reb2b.methods = ["identify", "collect"];reb2b.factory = function (method) {return function () {var args = Array.prototype.slice.call(arguments);args.unshift(method);reb2b.push(args);return reb2b;};};for (var i = 0; i < reb2b.methods.length; i++) {var key = reb2b.methods[i];reb2b[key] = reb2b.factory(key);}reb2b.load = function (key) {var script = document.createElement("script");script.type = "text/javascript";script.async = true;script.src = "https://s3-us-west-2.amazonaws.com/b2bjsstore/b/" + key + "/reb2b.js.gz";var first = document.getElementsByTagName("script")[0];first.parentNode.insertBefore(script, first);};reb2b.SNIPPET_VERSION = "1.0.1";reb2b.load("L9NMMZHVD7NW");}();</script>
+<script>!function () {var reb2b = window.reb2b = window.reb2b || [];if (reb2b.invoked) return;reb2b.invoked = true;reb2b.methods = ["identify", "collect"];reb2b.factory = function (method) {return function () {var args = Array.prototype.slice.call(arguments);args.unshift(method);reb2b.push(args);return reb2b;};};for (var i = 0; i < reb2b.methods.length; i++) {var key = reb2b.methods[i];reb2b[key] = reb2b.factory(key);}reb2b.load = function (key) {var script = document.createElement("script");script.type = 'text/javascript';script.async = true;script.src = "https://s3-us-west-2.amazonaws.com/b2bjsstore/b/" + key + "/reb2b.js.gz";var first = document.getElementsByTagName("script")[0];first.parentNode.insertBefore(script, first);};reb2b.SNIPPET_VERSION = "1.0.1";reb2b.load("L9NMMZHVD7NW");}();</script>
 {% endblock %}

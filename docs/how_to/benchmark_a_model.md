@@ -455,7 +455,7 @@ Best of luck with your benchmarking!
 
 ### How do I benchmark a model with supervision?
 
-Create `sv.MeanAveragePrecision`, call `metric.from_detections(predictions, ground_truth)` with prediction and ground-truth `Detections` lists, then inspect `metric.compute()`.
+Use `supervision.metrics.mean_average_precision.MeanAveragePrecision` — accumulate prediction and ground-truth `Detections` with `update(...)` and then call `compute()`. For confusion matrices, use `sv.ConfusionMatrix.from_detections(predictions, ground_truth, classes=classes)`.
 
 ### What IoU thresholds does MeanAveragePrecision use?
 

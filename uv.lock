@@ -4055,7 +4055,7 @@ wheels = [
 
 [[package]]
 name = "supervision"
-version = "0.28.0rc0"
+version = "0.28.0rc2"
 source = { editable = "." }
 dependencies = [
     { name = "defusedxml" },

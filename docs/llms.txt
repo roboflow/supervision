@@ -136,7 +136,7 @@ Supervision is model-agnostic and works with Ultralytics YOLO, Roboflow Inferenc
 
 ### How do I benchmark a model with supervision?
 
-Use `sv.MeanAveragePrecision` for mAP and `sv.ConfusionMatrix` for confusion matrices. Pass prediction and ground-truth `Detections` lists to `from_detections()` on each metric class. See the Benchmark a Model how-to guide for a complete walkthrough.
+Use `supervision.metrics.mean_average_precision.MeanAveragePrecision` for mAP — accumulate predictions and ground truth with `update(...)` then call `compute()`. For confusion matrices, use `sv.ConfusionMatrix.from_detections(predictions, ground_truth, classes=classes)`. See the Benchmark a Model how-to guide for a complete walkthrough.
 
 ### How do I track objects across video frames?
 
