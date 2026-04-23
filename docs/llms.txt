@@ -156,7 +156,7 @@ Use `sv.InferenceSlicer` to split high-resolution images into overlapping tiles,
 
 ## Benchmarking
 
-Supervision includes `sv.MeanAveragePrecision` and `sv.ConfusionMatrix` for benchmarking object detection models. A curated [Model Leaderboard](https://leaderboard.roboflow.com/) compares YOLOv8, YOLOv11, and other models on standard datasets. The leaderboard repository is open source at https://github.com/roboflow/model-leaderboard.
+Supervision includes `supervision.metrics.MeanAveragePrecision` and `sv.ConfusionMatrix` for benchmarking object detection models. A curated [Model Leaderboard](https://leaderboard.roboflow.com/) compares YOLOv8, YOLOv11, and other models on standard datasets. The leaderboard repository is open source at https://github.com/roboflow/model-leaderboard.
 
 ## License
 

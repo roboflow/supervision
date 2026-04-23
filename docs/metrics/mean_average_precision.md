@@ -1,6 +1,6 @@
 ---
 comments: true
-description: API reference for MeanAveragePrecision — compute mAP for object detection benchmarking with support for bounding boxes, masks, and oriented bounding boxes.
+description: API reference for MeanAveragePrecision — compute mAP for object detection benchmarking with bounding boxes.
 ---
 
 # Mean Average Precision
