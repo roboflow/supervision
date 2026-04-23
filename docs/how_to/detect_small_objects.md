@@ -349,7 +349,7 @@ An overlap of 50% is a good default. Increase to 75% for very small objects (\<1
 
 ### Can I use InferenceSlicer with any detection model?
 
-Yes. Pass any `Detections` object (from YOLO, SAM, Grounding DINO, Transformers, etc.) to `InferenceSlicer(detections)`.
+Yes. Wrap any model that can produce `sv.Detections` (from YOLO, SAM, Grounding DINO, Transformers, etc.) in a callback, pass that callback to `sv.InferenceSlicer(callback=...)`, and then call the slicer with your image.
 
 ## Author
 

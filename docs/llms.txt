@@ -44,16 +44,16 @@ Draw bounding boxes, segmentation masks, and text labels on images. Each annotat
 Object trackers that assign persistent IDs across video frames. `ByteTrack` is the recommended tracker — it associates low-confidence detections as temporary tracklets. Use `update_with_detections()` to get tracked results, then `sv.TraceAnnotator` to visualize trajectories.
 
 ### sv.PolygonZone and sv.LineZone
-Zone-based counting. `PolygonZone` triggers when a detection enters an arbitrary polygon. `LineZone` triggers when a detection crosses a line in a specific direction. Both integrate with `sv.Plotter` for real-time counting visualization.
+Zone-based counting. `PolygonZone` triggers when a detection enters an arbitrary polygon. `LineZone` triggers when a detection crosses a line in a specific direction. Both are commonly paired with the library's annotators, such as zone annotators, for real-time counting visualization.
 
 ### sv.DetectionDataset and sv.ClassificationDataset
-Load, merge, split, and convert datasets between YOLO, COCO JSON, and Pascal VOC formats. Load from `.yaml` config or from folders with images and annotation files. Save in any supported format. Includes augmentation pipeline with color jitter, flip, rotate, and crop transforms.
+Load, merge, split, and convert datasets between YOLO, COCO JSON, and Pascal VOC formats. Load from `.yaml` config or from folders with images and annotation files. Save in any supported format.
 
 ### sv.InferenceSlicer
 SAHI-style inference slicing: split high-resolution images into overlapping tiles, run detection on each tile, merge results with non-maximum suppression. Dramatically improves recall for small objects (e.g., 16x16 targets in 4K images).
 
 ### sv.MeanAveragePrecision and sv.ConfusionMatrix
-Benchmarking tools. `MeanAveragePrecision.from_detections()` computes mAP@0.5:0.95 for bounding boxes or masks. `ConfusionMatrix.from_detections()` generates a confusion matrix with per-class precision, recall, and F1 scores. Both support oriented bounding boxes (OBB).
+Benchmarking tools. For mAP@0.5:0.95, use the recommended metrics API with `update()` and `compute()` rather than the deprecated top-level `sv.MeanAveragePrecision.from_detections()`. `ConfusionMatrix.from_detections(..., classes=classes)` generates a confusion matrix with per-class precision, recall, and F1 scores, and supports oriented bounding boxes (OBB).
 
 ### sv.CSVSink and sv.JSONSink
 Export detection results to structured files. `CSVSink` writes one row per detection with columns for box coordinates, confidence, class ID, and tracker ID. `JSONSink` writes all detections as a JSON array.

@@ -467,7 +467,7 @@ Yes. Pass `Detections` with valid `mask` fields to `from_detections()` — the m
 
 ### What is a ConfusionMatrix and how do I use it?
 
-`sv.ConfusionMatrix` visualizes true positives, false positives, and false negatives per class. Create one with `ConfusionMatrix(threshold=0.5)`, call `from_detections()`, then `metric.plot()` to render a heatmap.
+`sv.ConfusionMatrix` visualizes true positives, false positives, and false negatives per class. Create one with `sv.ConfusionMatrix.from_detections(predictions, ground_truth, classes=classes, conf_threshold=0.5, iou_threshold=0.5)`, then call `metric.plot()` to render a heatmap.
 
 ## Author
 

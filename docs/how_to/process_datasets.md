@@ -464,15 +464,15 @@ YOLO, COCO JSON, and Pascal VOC for both detection and classification tasks. Use
 
 ### Can I split a dataset into train/val/test sets?
 
-Yes. `DetectionDataset.split(ratio=0.8)` splits into train (80%) and val (20%). Pass `val=0.1, test=0.1` for three-way splits.
+`DetectionDataset.split(split_ratio=0.8)` returns exactly two datasets: train (80%) and test (20%). If you need a validation set, split one of those subsets in a separate step.
 
 ### Can I merge two datasets together?
 
-Yes. `Dataset.merge(other_dataset)` combines two datasets into one. Useful for combining datasets from different sources.
+Yes. `DetectionDataset.merge([dataset_a, dataset_b])` combines multiple datasets into one. Useful for combining datasets from different sources.
 
 ### What augmentations are available?
 
-Flip, rotate, translate, scale, crop, color jitter, Gaussian blur, mosaic, and mixup. Chain them with `sv.Augmenter` or apply individually.
+Common augmentations such as flip, rotate, translate, scale, crop, color jitter, and Gaussian blur can be applied using an external library like Albumentations, as shown in the augmentation example above. Supervision does not provide an `sv.Augmenter` pipeline.
 
 ## Author
 

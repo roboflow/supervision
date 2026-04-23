@@ -107,7 +107,7 @@
       "name": "How do I benchmark a model with supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Use sv.MeanAveragePrecision for mAP and sv.ConfusionMatrix for confusion matrices. Pass prediction and ground-truth Detections lists to the from_detections() method on each metric class. See the Benchmark a Model guide at https://supervision.roboflow.com/latest/how_to/benchmark_a_model/ for a complete walkthrough."
+        "text": "Use sv.MeanAveragePrecision for mAP and sv.ConfusionMatrix for confusion matrices. Pass prediction and ground-truth Detections lists to from_detections(); for sv.ConfusionMatrix.from_detections() also provide the required classes list, for example classes=[\"person\", \"car\"]. See the Benchmark a Model guide at https://supervision.roboflow.com/latest/how_to/benchmark_a_model/ for a complete walkthrough."
       }
     },
     {
@@ -252,7 +252,7 @@
 <meta name="twitter:description" content="{{ page.meta.description | d(config.site_description) }}" />
 <meta name="twitter:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
 {# ── API reference schema (detection/ metrics/ datasets/ reference pages) ── #}
-{% if 'reference' in page.url or '/detection/' in page.url or '/metrics/' in page.url or '/keypoint/' in page.url or '/classification/' in page.url %}
+{% if 'reference' in page.url or 'detection/' in page.url or 'metrics/' in page.url or 'keypoint/' in page.url or 'classification/' in page.url %}
 {% if 'how_to' not in page.url %}
 <script type="application/ld+json">
 {

@@ -335,11 +335,11 @@ Use NumPy-style boolean indexing: `detections[detections.class_id == 0]` for cla
 
 ### Can I filter by box aspect ratio or dimensions?
 
-Yes. Access `detections.width`, `detections.height`, and compute `detections.width / detections.height` for aspect ratio filtering.
+Yes. Use `detections.box_aspect_ratio` for aspect ratio filtering. If you need explicit box dimensions, compute them from `detections.xyxy` as `width = detections.xyxy[:, 2] - detections.xyxy[:, 0]` and `height = detections.xyxy[:, 3] - detections.xyxy[:, 1]`.
 
 ### How do I remove duplicate detections (NMS) from my results?
 
-Use `sv.Detections.nms(detections, IoU_threshold=0.5)` — it applies non-maximum suppression on the `xyxy` boxes.
+Use `detections.with_nms(threshold=0.5)` — it applies non-maximum suppression on the `xyxy` boxes.
 
 ## Author
 
