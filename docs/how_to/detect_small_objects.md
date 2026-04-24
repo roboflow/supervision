@@ -349,7 +349,7 @@ Use `sv.InferenceSlicer` to split a high-resolution image into overlapping tiles
 
 ### Can I use InferenceSlicer with any detection model?
 
-Yes. Wrap any model that can produce `sv.Detections` (from YOLO, SAM, Grounding DINO, Transformers, etc.) in a callback, pass that callback to `sv.InferenceSlicer(callback=...)`, and then call the slicer with your image.
+Yes. Wrap any model or converter path that can produce `sv.Detections` in a callback, pass that callback to `sv.InferenceSlicer(callback=...)`, and then call the slicer with your image.
 
 ## Author
 

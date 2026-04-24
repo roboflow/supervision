@@ -25,8 +25,8 @@ for a deeper analysis.
 ## Object Detection & Segmentation
 
 To make it easier for you to follow our tutorial download the video we will use as an
-example. You can do this using
-[`supervision[assets]`](https://supervision.roboflow.com/latest/assets/) extension.
+example. You can do this using the
+[`supervision.assets`](https://supervision.roboflow.com/latest/assets/) module included in the base package.
 
 This section demonstrates how to detect and segment objects in video frames using YOLOv8 with either the Inference or Ultralytics package. You will download a sample video, define a per-frame callback function that runs model prediction, and process the entire video to produce an annotated output file.
 
@@ -336,7 +336,7 @@ movement patterns and interactions between objects in the video.
 Models aren't limited to object detection and segmentation. Keypoint detection allows for detailed analysis of body joints and connections, especially valuable for applications like human pose estimation. This section introduces keypoint tracking. We'll walk through the steps of annotating keypoints, converting them into bounding box detections compatible with `ByteTrack`, and applying detection smoothing for enhanced stability.
 
 To make it easier for you to follow our tutorial, let's download the video we will use as an
-example. You can do this using [`supervision[assets]`](https://supervision.roboflow.com/latest/assets/) extension.
+example. You can do this using the [`supervision.assets`](https://supervision.roboflow.com/latest/assets/) module included in the base package.
 
 ```python
 from supervision.assets import download_assets, VideoAssets
@@ -681,7 +681,7 @@ Yes. ByteTrack tracks bounding boxes. For instance masks, use `sv.MaskAnnotator`
 
 ### Does ByteTrack work with any detection model?
 
-Yes. ByteTrack is model-agnostic — it accepts any `Detections` object with bounding boxes, regardless of source (YOLO, SAM, Grounding DINO, Transformers, etc.).
+Yes. ByteTrack is model-agnostic - it accepts any `Detections` object with bounding boxes, regardless of the supported converter or model output that produced it.
 
 ## Authors
 

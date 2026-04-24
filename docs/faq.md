@@ -7,7 +7,7 @@ description: Frequently asked questions about installing Supervision, supported 
 
 ## What is Supervision?
 
-Supervision is an open-source Python library by Roboflow for computer vision workflows. It provides a unified `Detections` class compatible with YOLO, SAM, Grounding DINO, Transformers, Roboflow Inference, and 20+ model frameworks.
+Supervision is an open-source Python library by Roboflow for computer vision workflows. It provides a unified `Detections` class with converters for supported object detection, segmentation, and VLM outputs.
 
 ## How do I install Supervision?
 
@@ -17,16 +17,17 @@ Install the base package with:
 pip install supervision
 ```
 
-Use extras when you need optional features:
+Use the `metrics` extra when you need optional metric dependencies:
 
 ```bash
 pip install "supervision[metrics]"
-pip install "supervision[assets]"
 ```
+
+Sample asset utilities are part of the base package under `supervision.assets`.
 
 ## Which object detection models work with Supervision?
 
-Supervision is model agnostic. It includes connectors for Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers, SAM, Grounding DINO, Florence-2, PaliGemma, MediaPipe, Detectron2, MMDetection, and other frameworks.
+Supervision is model agnostic. `sv.Detections` includes converters for Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers outputs, SAM, Detectron2, MMDetection, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers including Florence-2, PaliGemma, Qwen VL, Gemini, DeepSeek VL 2, and Moondream. Keypoint outputs have separate `sv.KeyPoints` converters, including MediaPipe.
 
 ## What can I do with Supervision?
 

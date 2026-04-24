@@ -51,7 +51,7 @@
   "downloadUrl": "https://pypi.org/project/supervision",
   "codeRepository": "https://github.com/roboflow/supervision",
   "license": "https://github.com/roboflow/supervision/blob/develop/LICENSE.md",
-  "description": "Open-source Python library for computer vision: load datasets, draw detections, count objects in zones, and track across frames. Used in 4,000+ papers and by 38,000+ GitHub stargazers.",
+  "description": "Open-source Python library for computer vision: load datasets, draw detections, count objects in zones, and track across frames.",
   "offers": {
     "@type": "Offer",
     "price": "0",
@@ -106,7 +106,7 @@
       "name": "What is supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Supervision is an open-source Python library by Roboflow for computer vision workflows. It provides a unified Detections class compatible with YOLO, SAM, Grounding DINO, Transformers, and 20+ model frameworks, plus tools for annotation, tracking, zone counting, dataset management, and model benchmarking."
+        "text": "Supervision is an open-source Python library by Roboflow for computer vision workflows. It provides a unified Detections class with converters for supported detection, segmentation, and VLM outputs, plus tools for annotation, tracking, zone counting, dataset management, and model benchmarking."
       }
     },
     {
@@ -114,7 +114,7 @@
       "name": "How do I install supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Install supervision with pip: pip install supervision. For evaluation tools use pip install supervision[metrics]. For sample assets use pip install supervision[assets]. The current package metadata requires Python 3.9+."
+        "text": "Install supervision with pip: pip install supervision. For optional metric dependencies use pip install supervision[metrics]. Sample asset utilities are included in the base package under supervision.assets. The current package metadata requires Python 3.9+."
       }
     },
     {
@@ -138,7 +138,7 @@
       "name": "Which object detection models work with supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Supervision is model-agnostic and works with Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers, SAM, Grounding DINO, Florence-2, PaliGemma, MediaPipe, Detectron2, MMDetection, and 20+ other frameworks through connectors that convert supported model outputs to a unified Detections object."
+        "text": "Supervision is model-agnostic and works with supported outputs from Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers, SAM, Detectron2, MMDetection, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers such as Florence-2, PaliGemma, Qwen VL, Gemini, DeepSeek VL 2, and Moondream. Keypoint outputs have separate converters, including MediaPipe."
       }
     },
     {
@@ -213,7 +213,7 @@
       "name": "What is Supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Supervision is an open-source Python library by Roboflow for computer vision workflows. It provides a unified Detections class compatible with YOLO, SAM, Grounding DINO, Transformers, Roboflow Inference, and 20+ model frameworks."
+        "text": "Supervision is an open-source Python library by Roboflow for computer vision workflows. It provides a unified Detections class with converters for supported detection, segmentation, and VLM outputs."
       }
     },
     {
@@ -221,7 +221,7 @@
       "name": "How do I install Supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Install Supervision with pip install supervision. Optional extras include supervision[metrics] for evaluation tools and supervision[assets] for sample assets."
+        "text": "Install Supervision with pip install supervision. Optional metric dependencies are available with supervision[metrics]. Sample asset utilities are included in the base package under supervision.assets."
       }
     },
     {
