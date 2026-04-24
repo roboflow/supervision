@@ -1,9 +1,15 @@
 name: Docs/Build and Publish
 
+# Deploy matrix:
+#   push develop      -> mike deploy develop
+#   push release/latest -> mike deploy latest
+#   release published -> mike deploy <tag> only; does not move /latest/
+
 on:
   push:
     branches:
       - develop
+      - release/latest
   workflow_dispatch:
   release:
     types: [published]
@@ -51,13 +57,20 @@ jobs:
         run: |
           mike deploy --push develop
 
+      - name: 🚀 Deploy Latest Docs
+        if: github.event_name == 'push' && github.ref == 'refs/heads/release/latest'
+        env:
+          MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mike deploy --push latest
+
       - name: 🚀 Deploy Release Docs
         if: github.event_name == 'release' && github.event.action == 'published'
         env:
           MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          latest_tag=$(git tag --sort=-v:refname | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
-          mike deploy --push --update-aliases $latest_tag latest
+          release_tag="${GITHUB_REF_NAME#v}"
+          mike deploy --push "$release_tag"
 
       # IndexNow key: 0d5d9799b1cc4a39825146388c6781eb
       # This key must stay in sync across three files:
@@ -70,27 +83,41 @@ jobs:
         if: >
           (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
           github.event_name == 'workflow_dispatch' ||
+          (github.event_name == 'push' && github.ref == 'refs/heads/release/latest') ||
           (github.event_name == 'release' && github.event.action == 'published')
         run: |
           cp docs/robots.txt /tmp/robots.txt
           cp docs/llms.txt /tmp/llms.txt
           cp docs/llms.full.txt /tmp/llms.full.txt
+          cp docs/llms-100k.txt /tmp/llms-100k.txt
+          cp docs/_headers /tmp/headers.txt
           cp docs/0d5d9799b1cc4a39825146388c6781eb.txt /tmp/indexnow.txt
+          if [[ "$GITHUB_REF" == "refs/heads/release/latest" ]]; then
+            version_dir="latest"
+          else
+            version_dir=""
+          fi
           git fetch origin gh-pages
           git checkout gh-pages
           cp /tmp/robots.txt robots.txt
           cp /tmp/llms.txt llms.txt
           cp /tmp/llms.full.txt llms.full.txt
+          cp /tmp/llms-100k.txt llms-100k.txt
+          cp /tmp/headers.txt _headers
           cp /tmp/indexnow.txt 0d5d9799b1cc4a39825146388c6781eb.txt
-          git add robots.txt llms.txt llms.full.txt 0d5d9799b1cc4a39825146388c6781eb.txt
-          git diff --cached --quiet || git commit -m "chore: update GEO root files (robots.txt, llms.txt, llms.full.txt, indexnow)"
+          if [[ -n "$version_dir" && -f "$version_dir/sitemap.xml" ]]; then
+            cp "$version_dir/sitemap.xml" sitemap.xml
+            gzip -9 -c sitemap.xml > sitemap.xml.gz
+          fi
+          git add robots.txt llms.txt llms.full.txt llms-100k.txt _headers sitemap.xml sitemap.xml.gz 0d5d9799b1cc4a39825146388c6781eb.txt
+          git diff --cached --quiet || git commit -m "chore: update GEO root files"
           git push origin gh-pages
 
       - name: 📡 Notify IndexNow
         if: >
           (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
           github.event_name == 'workflow_dispatch' ||
-          (github.event_name == 'release' && github.event.action == 'published')
+          (github.event_name == 'push' && github.ref == 'refs/heads/release/latest')
         run: |
           curl -s -o /dev/null -w "%{http_code}" -X POST "https://api.indexnow.org/IndexNow" \
             -H "Content-Type: application/json; charset=utf-8" \

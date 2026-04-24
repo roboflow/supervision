@@ -1,7 +1,7 @@
 site_name: Supervision
 site_url: https://supervision.roboflow.com/
 site_author: Roboflow
-site_description: "Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections. Works with YOLO, SAM, Transformers, and 20+ frameworks."
+site_description: "Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections. Works with YOLO, SAM, Transformers, and 20+ frameworks. Used in 4,000+ papers and by 38,000+ GitHub stargazers."
 repo_name: roboflow/supervision
 edit_uri: https://github.com/roboflow/supervision/tree/main/docs
 copyright: Roboflow 2025. All rights reserved.
@@ -30,6 +30,9 @@ extra_css:
 
 nav:
   - Home: index.md
+  - About: about.md
+  - Contact: contact.md
+  - FAQ: faq.md
   - Learn:
       - Detect and Annotate: how_to/detect_and_annotate.md
       - Save Detections: how_to/save_detections.md
