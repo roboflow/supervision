@@ -109,7 +109,21 @@ jobs:
             cp "$version_dir/sitemap.xml" sitemap.xml
             gzip -9 -c sitemap.xml > sitemap.xml.gz
           fi
-          git add robots.txt llms.txt llms.full.txt llms-100k.txt _headers sitemap.xml sitemap.xml.gz 0d5d9799b1cc4a39825146388c6781eb.txt
+          files_to_add=(
+            robots.txt
+            llms.txt
+            llms.full.txt
+            llms-100k.txt
+            _headers
+            0d5d9799b1cc4a39825146388c6781eb.txt
+          )
+          if [[ -f "sitemap.xml" ]]; then
+            files_to_add+=(sitemap.xml)
+          fi
+          if [[ -f "sitemap.xml.gz" ]]; then
+            files_to_add+=(sitemap.xml.gz)
+          fi
+          git add "${files_to_add[@]}"
           git diff --cached --quiet || git commit -m "chore: update GEO root files"
           git push origin gh-pages
 
