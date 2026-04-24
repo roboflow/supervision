@@ -18,6 +18,7 @@
 {% else %}
 {% set _meta = {} %}
 {% endif %}
+{% set page_description = _meta.description | d(config.site_description) %}
 {# ── GEO: JSON-LD + OG tags (page context required — skip for theme templates like 404) #}
 
 {# ── GEO: JSON-LD structured data ──────────────────────────── #}
@@ -38,7 +39,6 @@
 }
 </script>
 
-{% for is_home in [page.is_homepage] %}{% if is_home %}
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -63,6 +63,42 @@
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Supervision Documentation",
+  "url": "https://supervision.roboflow.com/",
+  "publisher": {
+    "@type": "Organization",
+    "name": "Roboflow",
+    "url": "https://roboflow.com"
+  },
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "{{ config.site_url }}search/?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  "name": "supervision",
+  "codeRepository": "https://github.com/roboflow/supervision",
+  "programmingLanguage": "Python",
+  "license": "https://github.com/roboflow/supervision/blob/develop/LICENSE.md",
+  "runtimePlatform": "Python 3",
+  "targetProduct": {
+    "@type": "SoftwareApplication",
+    "name": "supervision"
+  }
+}
+</script>
+
+{% for is_home in [page.is_homepage] %}{% if is_home %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
   "@type": "FAQPage",
   "mainEntity": [
     {
@@ -70,7 +106,7 @@
       "name": "What is supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Supervision is an open-source Python library by Roboflow for computer vision workflows. It provides a unified Detections class compatible with YOLO, SAM, Grounding DINO, Transformers, and 20+ model frameworks, plus tools for annotation, tracking, zone counting, dataset management, and model benchmarking."
+        "text": "Supervision is an open-source Python library by Roboflow for computer vision workflows. It provides a unified Detections class with converters for supported detection, segmentation, and VLM outputs, plus tools for annotation, tracking, zone counting, dataset management, and model benchmarking."
       }
     },
     {
@@ -78,7 +114,7 @@
       "name": "How do I install supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Install supervision with pip: pip install supervision. For evaluation tools use pip install supervision[metrics]. For sample assets use pip install supervision[assets]. The current package metadata requires Python 3.9+."
+        "text": "Install supervision with pip: pip install supervision. For optional metric dependencies use pip install supervision[metrics]. Sample asset utilities are included in the base package under supervision.assets. The current package metadata requires Python 3.9+."
       }
     },
     {
@@ -102,7 +138,7 @@
       "name": "Which object detection models work with supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Supervision is model-agnostic and works with Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers, SAM, Grounding DINO, Florence-2, PaliGemma, MediaPipe, Detectron2, MMDetection, and 20+ other frameworks through connectors that convert supported model outputs to a unified Detections object."
+        "text": "Supervision is model-agnostic and works with supported outputs from Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers, SAM, Detectron2, MMDetection, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers such as Florence-2, PaliGemma, Qwen VL, Gemini, DeepSeek VL 2, and Moondream. Keypoint outputs have separate converters, including MediaPipe."
       }
     },
     {
@@ -166,13 +202,65 @@
 </script>
 {% endif %}{% endfor %}
 
+{% if page.url == 'faq/' %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is Supervision?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Supervision is an open-source Python library by Roboflow for computer vision workflows. It provides a unified Detections class with converters for supported detection, segmentation, and VLM outputs."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I install Supervision?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Install Supervision with pip install supervision. Optional metric dependencies are available with supervision[metrics]. Sample asset utilities are included in the base package under supervision.assets."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is Supervision free to use?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Supervision is free and open source under the MIT license."
+      }
+    }
+  ]
+}
+</script>
+{% endif %}
+
+{% if page.url == 'about/' or page.url == 'contact/' %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "{% if page.url == 'contact/' %}ContactPage{% else %}AboutPage{% endif %}",
+  "name": {{ page.title | tojson }},
+  "description": {{ page_description | tojson }},
+  "url": {{ page.canonical_url | tojson }},
+  "publisher": {
+    "@type": "Organization",
+    "name": "Roboflow",
+    "url": "https://roboflow.com"
+  }
+}
+</script>
+{% endif %}
+
 {% if 'how_to' in page.url %}
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "TechArticle",
+  "@type": ["TechArticle", "HowTo"],
   "name": {{ page.title | tojson }},
-  "description": {{ _meta.description | d(config.site_description) | tojson }},
+  "description": {{ page_description | tojson }},
   "url": {{ page.canonical_url | tojson }},
   "publisher": {
     "@type": "Organization",
@@ -180,6 +268,7 @@
     "url": "https://roboflow.com"
   },
   "author": [
+    {% if _meta.authors is defined %}
     {% for author in _meta.authors %}
     {
       "@type": "Person",
@@ -188,14 +277,29 @@
       "sameAs": {{ author.github | tojson }}
     }{% if not loop.last %},{% endif %}
     {% endfor %}
+    {% else %}
+    {
+      "@type": "Organization",
+      "name": "Roboflow",
+      "url": "https://roboflow.com"
+    }
+    {% endif %}
   ],
+  "mainEntityOfPage": {{ page.canonical_url | tojson }},
   {% if _meta.date_modified %}
   "dateModified": {{ _meta.date_modified | string | tojson }},
   {% endif %}
   {% if _meta.date_published %}
   "datePublished": {{ _meta.date_published | string | tojson }},
   {% endif %}
-  "articleBody": "Tutorial guide published on the Supervision documentation site."
+  "articleBody": "Tutorial guide published on the Supervision documentation site.",
+  "step": [
+    {
+      "@type": "HowToStep",
+      "name": {{ page.title | tojson }},
+      "text": {{ page_description | tojson }}
+    }
+  ]
 }
 </script>
 {% endif %}
@@ -212,7 +316,7 @@
       "name": "How do I {{ page.title | striptags | lower }} with supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": {{ _meta.description | d(config.site_description) | tojson }}
+        "text": {{ page_description | tojson }}
       }
     }
   ]
@@ -247,23 +351,32 @@
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="{{ config.site_name }}" />
 <meta property="og:title" content="{{ page.title }}" />
-<meta property="og:description" content="{{ _meta.description | d(config.site_description) }}" />
+<meta property="og:description" content="{{ page_description }}" />
 <meta property="og:url" content="{{ page.canonical_url }}" />
 <meta property="og:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
+<meta property="og:image:alt" content="Supervision computer vision Python library by Roboflow" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:site" content="@roboflow" />
+<meta name="twitter:creator" content="@roboflow" />
 <meta name="twitter:title" content="{{ page.title }}" />
-<meta name="twitter:description" content="{{ _meta.description | d(config.site_description) }}" />
+<meta name="twitter:description" content="{{ page_description }}" />
 <meta name="twitter:image" content="https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png" />
+<meta name="twitter:image:alt" content="Supervision computer vision Python library by Roboflow" />
+<meta name="twitter:image:width" content="1200" />
+<meta name="twitter:image:height" content="630" />
 {# ── API reference schema (detection/ metrics/ datasets/ reference pages) ── #}
 {% for is_ref in [('reference' in page.url or 'detection/' in page.url or 'metrics/' in page.url or 'keypoint/' in page.url or 'classification/' in page.url) and 'how_to' not in page.url] %}{% if is_ref %}
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "TechArticle",
+  "additionalType": "https://schema.org/DocumentationPage",
   "name": {{ page.title | tojson }},
-  "description": {{ _meta.description | d('Supervision API reference documentation.') | tojson }},
+  "description": {{ page_description | tojson }},
   "url": {{ page.canonical_url | tojson }},
+  "mainEntityOfPage": {{ page.canonical_url | tojson }},
   "publisher": {
     "@type": "Organization",
     "name": "Roboflow",
