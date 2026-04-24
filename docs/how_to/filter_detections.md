@@ -2,7 +2,7 @@
 comments: true
 description: Filter and query detection results by class, confidence, or spatial overlap using supervision's Detections API — clean predictions in one line.
 authors:
-  - name: SkalskiP (Piotr Skalski)
+  - name: Piotr Skalski
     role: Computer Vision Engineer, Roboflow
     github: https://github.com/SkalskiP
 date_modified: 2026-04-22

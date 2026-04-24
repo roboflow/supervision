@@ -2,7 +2,7 @@
 comments: true
 description: Load, split, merge, and convert computer vision datasets between YOLO, COCO, and Pascal VOC formats using supervision's DetectionDataset.
 authors:
-  - name: SkalskiP (Piotr Skalski)
+  - name: Piotr Skalski
     role: Computer Vision Engineer, Roboflow
     github: https://github.com/SkalskiP
 date_modified: 2026-04-22

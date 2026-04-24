@@ -2,7 +2,7 @@
 comments: true
 description: Learn to load model predictions, create Detections objects, and annotate images with bounding boxes, labels, and masks using supervision.
 authors:
-  - name: SkalskiP (Piotr Skalski)
+  - name: Piotr Skalski
     role: Computer Vision Engineer, Roboflow
     github: https://github.com/SkalskiP
   - name: Borda

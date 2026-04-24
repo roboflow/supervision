@@ -2,7 +2,7 @@
 comments: true
 description: Benchmark object detection models with supervision — compute mAP, confusion matrix, and per-class metrics to compare model performance.
 authors:
-  - name: SkalskiP (Piotr Skalski)
+  - name: Piotr Skalski
     role: Computer Vision Engineer, Roboflow
     github: https://github.com/SkalskiP
 date_modified: 2026-04-22

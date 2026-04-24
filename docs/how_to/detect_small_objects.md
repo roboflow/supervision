@@ -2,7 +2,7 @@
 comments: true
 description: Detect small objects in images by applying SAHI inference slicing with supervision's InferenceSlicer — improve recall for tiny targets.
 authors:
-  - name: SkalskiP (Piotr Skalski)
+  - name: Piotr Skalski
     role: Computer Vision Engineer, Roboflow
     github: https://github.com/SkalskiP
 date_modified: 2026-04-22

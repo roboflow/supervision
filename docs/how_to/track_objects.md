@@ -2,10 +2,10 @@
 comments: true
 description: Track objects across video frames with ByteTrack in supervision — assign persistent IDs and analyze motion from any object detection model.
 authors:
-  - name: SkalskiP (Piotr Skalski)
+  - name: Piotr Skalski
     role: Computer Vision Engineer, Roboflow
     github: https://github.com/SkalskiP
-  - name: soumik12345 (Soumik Mandal)
+  - name: Soumik Mandal
     role: ML Engineer, Roboflow
     github: https://github.com/soumik12345
 date_modified: 2026-04-22

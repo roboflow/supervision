@@ -4,7 +4,7 @@ site_author: Roboflow
 site_description: "Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including Ultralytics, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, and VLM parsers."
 repo_name: roboflow/supervision
 edit_uri: https://github.com/roboflow/supervision/tree/main/docs
-copyright: Roboflow 2025. All rights reserved.
+copyright: Roboflow 2026. All rights reserved.
 
 extra:
   social:
