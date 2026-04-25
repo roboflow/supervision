@@ -28,13 +28,19 @@
   "@type": "Organization",
   "name": "Roboflow",
   "url": "https://roboflow.com",
-  "logo": "https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png",
+  "logo": {
+    "@type": "ImageObject",
+    "url": "https://media.roboflow.com/open-source/supervision/rf-supervision-banner.png",
+    "width": 1200,
+    "height": 630
+  },
   "sameAs": [
     "https://github.com/roboflow/supervision",
     "https://pypi.org/project/supervision",
     "https://twitter.com/roboflow",
     "https://www.youtube.com/roboflow",
-    "https://en.wikipedia.org/wiki/Roboflow"
+    "https://en.wikipedia.org/wiki/Roboflow",
+    "https://www.linkedin.com/company/roboflow-ai"
   ]
 }
 </script>
@@ -213,7 +219,7 @@
       "name": "What is Supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Supervision is an open-source Python library by Roboflow for computer vision workflows. It provides a unified Detections class with converters for supported detection, segmentation, and VLM outputs."
+        "text": "Supervision is an open-source Python library by Roboflow for computer vision workflows. It provides a unified Detections class with converters for supported object detection, segmentation, and VLM outputs."
       }
     },
     {
@@ -221,7 +227,55 @@
       "name": "How do I install Supervision?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Install Supervision with pip install supervision. Optional metric dependencies are available with supervision[metrics]. Sample asset utilities are included in the base package under supervision.assets."
+        "text": "Install the base package with pip install supervision. Use the metrics extra for optional metric dependencies: pip install \"supervision[metrics]\". Sample asset utilities are included in the base package under supervision.assets."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which object detection models work with Supervision?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Supervision is model-agnostic. sv.Detections includes converters for Ultralytics YOLO, Roboflow Inference, Hugging Face Transformers, SAM, Detectron2, MMDetection, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers including Florence-2, PaliGemma, Qwen VL, Gemini, DeepSeek VL 2, and Moondream. Keypoint outputs have separate sv.KeyPoints converters, including MediaPipe."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What can I do with Supervision?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "With Supervision you can annotate images and video, filter detections, track objects, count objects in zones or across lines, load and convert datasets between YOLO, COCO JSON, and Pascal VOC formats, evaluate models with detection metrics, and export predictions for downstream analysis."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I track objects across video frames?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Assign persistent tracker IDs before visualization. The built-in sv.ByteTrack wrapper accepts Detections through update_with_detections(). After tracking, combine the output with annotators such as sv.TraceAnnotator, sv.BoxAnnotator, and sv.LabelAnnotator."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What dataset formats does Supervision support?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "For detection datasets, Supervision supports YOLO, COCO JSON, and Pascal VOC. Use DetectionDataset.from_yolo(), DetectionDataset.from_coco(), or DetectionDataset.from_pascal_voc() to load datasets, and the matching as_* methods to export them."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I count objects in a zone?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Use sv.PolygonZone for arbitrary polygon regions and sv.LineZone for line-crossing counts. Line crossing requires detections.tracker_id, so run a tracker before calling the line zone trigger."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I benchmark a model?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Use supervision.metrics.mean_average_precision.MeanAveragePrecision for mAP and sv.ConfusionMatrix for confusion matrices. Accumulate predictions and ground-truth Detections, then call compute() to calculate metrics."
       }
     },
     {
@@ -230,6 +284,14 @@
       "acceptedAnswer": {
         "@type": "Answer",
         "text": "Yes. Supervision is free and open source under the MIT license."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Where is the source code?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The source code is available at https://github.com/roboflow/supervision."
       }
     }
   ]
@@ -258,7 +320,7 @@
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": ["TechArticle", "HowTo"],
+  "@type": "TechArticle",
   "name": {{ page.title | tojson }},
   "description": {{ page_description | tojson }},
   "url": {{ page.canonical_url | tojson }},
@@ -274,7 +336,8 @@
       "@type": "Person",
       "name": {{ author.name | tojson }},
       "jobTitle": {{ author.role | tojson }},
-      "sameAs": {{ author.github | tojson }}
+      "worksFor": {"@type": "Organization", "name": "Roboflow", "url": "https://roboflow.com"},
+      "sameAs": [{{ author.github | tojson }}]
     }{% if not loop.last %},{% endif %}
     {% endfor %}
     {% else %}
@@ -292,14 +355,11 @@
   {% if _meta.date_published %}
   "datePublished": {{ _meta.date_published | string | tojson }},
   {% endif %}
-  "articleBody": "Tutorial guide published on the Supervision documentation site.",
-  "step": [
-    {
-      "@type": "HowToStep",
-      "name": {{ page.title | tojson }},
-      "text": {{ page_description | tojson }}
-    }
-  ]
+  "articleBody": {{ page_description | tojson }},
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [".md-content h1", ".md-content h2", ".md-typeset > p"]
+  }
 }
 </script>
 {% endif %}
@@ -384,7 +444,11 @@
   },
   "codeRepository": "https://github.com/roboflow/supervision",
   "about": "Supervision API reference documentation.",
-  "programmingLanguage": "Python"
+  "programmingLanguage": "Python",
+  "speakable": {
+    "@type": "SpeakableSpecification",
+    "cssSelector": [".md-content h1", ".md-content h2", ".md-typeset > p"]
+  }
 }
 </script>
 {% endif %}{% endfor %}
