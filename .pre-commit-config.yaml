@@ -79,3 +79,7 @@ repos:
       - id: codespell
         additional_dependencies:
           - "tomli>=2.0.1"
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.16.3
+    hooks:
+      - id: gitleaks

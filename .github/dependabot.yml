@@ -20,3 +20,33 @@ updates:
     commit-message:
       prefix: ⬆️
     target-branch: "develop"
+
+  - package-ecosystem: pip
+    directory: /examples/count_people_in_zone
+    schedule:
+      interval: daily
+
+  - package-ecosystem: pip
+    directory: /examples/heatmap_and_track
+    schedule:
+      interval: daily
+
+  - package-ecosystem: pip
+    directory: /examples/speed_estimation
+    schedule:
+      interval: daily
+
+  - package-ecosystem: pip
+    directory: /examples/time_in_zone
+    schedule:
+      interval: daily
+
+  - package-ecosystem: pip
+    directory: /examples/tracking
+    schedule:
+      interval: daily
+
+  - package-ecosystem: pip
+    directory: /examples/traffic_analysis
+    schedule:
+      interval: daily
