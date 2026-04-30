@@ -264,27 +264,28 @@ if isinstance(detections.mask, sv.CompactMask):
 # Annotators call `.to_dense()` internally -- CompactMask is invisible to them.
 
 # %%
-if isinstance(detections.mask, sv.CompactMask) and dense_bytes > 0:
-    annotated_compact = image_bgr.copy()
-    annotated_compact = sv.MaskAnnotator(color=PALETTE, opacity=0.45).annotate(
-        annotated_compact, large
-    )
-    annotated_compact = sv.BoxAnnotator(color=PALETTE, thickness=2).annotate(
-        annotated_compact, large
-    )
-    annotated_compact = sv.LabelAnnotator(
-        color=PALETTE, text_scale=0.5, text_thickness=1
-    ).annotate(annotated_compact, large, labels=large_labels)
+assert isinstance(detections.mask, sv.CompactMask) and dense_bytes > 0
 
-    plt.figure(figsize=(12, 7))
-    plt.imshow(cv2.cvtColor(annotated_compact, cv2.COLOR_BGR2RGB))
-    plt.axis("off")
-    plt.title(
-        f"CompactMask (filtered) -- {len(large)} instance(s)  "
-        f"| {dense_bytes / 1024:.0f} KB dense -> {crop_bytes / 1024:.0f} KB crops"
-    )
-    plt.tight_layout()
-    plt.show()
+annotated_compact = image_bgr.copy()
+annotated_compact = sv.MaskAnnotator(color=PALETTE, opacity=0.45).annotate(
+    annotated_compact, large
+)
+annotated_compact = sv.BoxAnnotator(color=PALETTE, thickness=2).annotate(
+    annotated_compact, large
+)
+annotated_compact = sv.LabelAnnotator(
+    color=PALETTE, text_scale=0.5, text_thickness=1
+).annotate(annotated_compact, large, labels=large_labels)
+
+plt.figure(figsize=(12, 7))
+plt.imshow(cv2.cvtColor(annotated_compact, cv2.COLOR_BGR2RGB))
+plt.axis("off")
+plt.title(
+    f"CompactMask (filtered) -- {len(large)} instance(s)  "
+    f"| {dense_bytes / 1024:.0f} KB dense -> {crop_bytes / 1024:.0f} KB crops"
+)
+plt.tight_layout()
+plt.show()
 
 # %% [markdown]
 # ### 4.5 Per-instance crop
@@ -293,26 +294,27 @@ if isinstance(detections.mask, sv.CompactMask) and dense_bytes > 0:
 # `(H_crop, W_crop)` bool array -- no full mask materialised.
 
 # %%
-if isinstance(detections.mask, sv.CompactMask) and len(detections) > 0:
-    crop = detections.mask.crop(0)
-    bbox = detections.mask.bbox_xyxy[0].astype(int)
+assert isinstance(detections.mask, sv.CompactMask) and len(detections) > 0
 
-    fig, axes = plt.subplots(1, 2, figsize=(10, 4))
-    axes[0].imshow(image_rgb[bbox[1] : bbox[3], bbox[0] : bbox[2]])
-    axes[0].set_title("Image crop  (instance 0)")
-    axes[0].axis("off")
+crop = detections.mask.crop(0)
+bbox = detections.mask.bbox_xyxy[0].astype(int)
 
-    axes[1].imshow(crop, cmap="gray")
-    axes[1].set_title(f"Mask crop  ({crop.shape[1]} x {crop.shape[0]} px)")
-    axes[1].axis("off")
+fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+axes[0].imshow(image_rgb[bbox[1] : bbox[3], bbox[0] : bbox[2]])
+axes[0].set_title("Image crop  (instance 0)")
+axes[0].axis("off")
 
-    plt.tight_layout()
-    plt.show()
+axes[1].imshow(crop, cmap="gray")
+axes[1].set_title(f"Mask crop  ({crop.shape[1]} x {crop.shape[0]} px)")
+axes[1].axis("off")
 
-    full_px = H * W
-    crop_kb = crop.nbytes / 1024
-    print(f"Full-res mask slot: {H} x {W} = {full_px / 1024:.0f} KB")
-    print(f"Compact crop:       {crop.shape[0]} x {crop.shape[1]} = {crop_kb:.1f} KB")
+plt.tight_layout()
+plt.show()
+
+full_px = H * W
+crop_kb = crop.nbytes / 1024
+print(f"Full-res mask slot: {H} x {W} = {full_px / 1024:.0f} KB")
+print(f"Compact crop:       {crop.shape[0]} x {crop.shape[1]} = {crop_kb:.1f} KB")
 
 # %% [markdown]
 # ## 5. SAM3
@@ -326,6 +328,8 @@ if isinstance(detections.mask, sv.CompactMask) and len(detections) > 0:
 
 # %%
 import os
+import base64
+import requests
 from typing import Optional
 
 try:
@@ -338,63 +342,59 @@ except Exception:
 PROMPTS = ["person", "bag"]
 sam3_detections: Optional[sv.Detections] = None
 
-if ROBOFLOW_API_KEY:
-    import base64
+assert ROBOFLOW_API_KEY
 
-    import requests
+with open(image_path, "rb") as _f:
+    _img_b64 = base64.b64encode(_f.read()).decode("utf-8")
 
-    with open(image_path, "rb") as _f:
-        _img_b64 = base64.b64encode(_f.read()).decode("utf-8")
-
-    _response = requests.post(
-        f"https://api.roboflow.com/inferenceproxy/seg-preview?api_key={ROBOFLOW_API_KEY}",
-        json={
-            "image": {"type": "base64", "value": _img_b64},
-            "prompts": [{"type": "text", "text": p} for p in PROMPTS],
-            "output_prob_thresh": 0.3,
-        },
-        headers={"Content-Type": "application/json"},
-        timeout=60,
-    )
-    _response.raise_for_status()
-    sam3_result: dict[str, Any] = _response.json()
-    sam3_detections = sv.Detections.from_sam3(
-        sam3_result=sam3_result, resolution_wh=(W, H)
-    )
-    print(f"SAM3 detections: {len(sam3_detections)}")
-    if sam3_detections.class_id is not None:
-        for idx, prompt in enumerate(PROMPTS):
-            count = int((sam3_detections.class_id == idx).sum())
-            print(f"  [{idx}] '{prompt}': {count} instance(s)")
-else:
-    print("No ROBOFLOW_API_KEY -- skipping SAM3. Set the key to run this section.")
+_response = requests.post(
+    f"https://api.roboflow.com/inferenceproxy/seg-preview?api_key={ROBOFLOW_API_KEY}",
+    json={
+        "image": {"type": "base64", "value": _img_b64},
+        "prompts": [{"type": "text", "text": p} for p in PROMPTS],
+        "output_prob_thresh": 0.3,
+    },
+    headers={"Content-Type": "application/json"},
+    timeout=60,
+)
+_response.raise_for_status()
+sam3_result: dict[str, Any] = _response.json()
+sam3_detections = sv.Detections.from_sam3(
+    sam3_result=sam3_result, resolution_wh=(W, H)
+)
+print(f"SAM3 detections: {len(sam3_detections)}")
+if sam3_detections.class_id is not None:
+    for idx, prompt in enumerate(PROMPTS):
+        count = int((sam3_detections.class_id == idx).sum())
+        print(f"  [{idx}] '{prompt}': {count} instance(s)")
 
 # %%
-if sam3_detections is not None and len(sam3_detections) > 0:
-    sam3_labels = (
-        [PROMPTS[c] for c in sam3_detections.class_id]
-        if sam3_detections.class_id is not None
-        else []
-    )
-    SAM3_PALETTE = sv.ColorPalette.from_hex(["#ff6b6b", "#4ecdc4"])
+assert sam3_detections is not None and len(sam3_detections) > 0
 
-    annotated_sam3 = image_bgr.copy()
-    annotated_sam3 = sv.MaskAnnotator(color=SAM3_PALETTE, opacity=0.45).annotate(
-        annotated_sam3, sam3_detections
-    )
-    annotated_sam3 = sv.BoxAnnotator(color=SAM3_PALETTE, thickness=2).annotate(
-        annotated_sam3, sam3_detections
-    )
-    annotated_sam3 = sv.LabelAnnotator(
-        color=SAM3_PALETTE, text_scale=0.5, text_thickness=1
-    ).annotate(annotated_sam3, sam3_detections, labels=sam3_labels)
+sam3_labels = (
+    [PROMPTS[c] for c in sam3_detections.class_id]
+    if sam3_detections.class_id is not None
+    else []
+)
+SAM3_PALETTE = sv.ColorPalette.from_hex(["#ff6b6b", "#4ecdc4"])
 
-    plt.figure(figsize=(12, 7))
-    plt.imshow(cv2.cvtColor(annotated_sam3, cv2.COLOR_BGR2RGB))
-    plt.axis("off")
-    plt.title(f"SAM3 -- from_sam3() -- {len(sam3_detections)} instance(s)")
-    plt.tight_layout()
-    plt.show()
+annotated_sam3 = image_bgr.copy()
+annotated_sam3 = sv.MaskAnnotator(color=SAM3_PALETTE, opacity=0.45).annotate(
+    annotated_sam3, sam3_detections
+)
+annotated_sam3 = sv.BoxAnnotator(color=SAM3_PALETTE, thickness=2).annotate(
+    annotated_sam3, sam3_detections
+)
+annotated_sam3 = sv.LabelAnnotator(
+    color=SAM3_PALETTE, text_scale=0.5, text_thickness=1
+).annotate(annotated_sam3, sam3_detections, labels=sam3_labels)
+
+plt.figure(figsize=(12, 7))
+plt.imshow(cv2.cvtColor(annotated_sam3, cv2.COLOR_BGR2RGB))
+plt.axis("off")
+plt.title(f"SAM3 -- from_sam3() -- {len(sam3_detections)} instance(s)")
+plt.tight_layout()
+plt.show()
 
 # %% [markdown]
 # ## 6. Other notable changes in 0.28.0
