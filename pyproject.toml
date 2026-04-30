@@ -154,6 +154,10 @@ lint.select = [
 ]
 lint.ignore = []
 lint.per-file-ignores."__init__.py" = [ "E402", "F401" ]
+lint.per-file-ignores."notebooks/**" = [
+  "PT018", # Assertion should be broken down into multiple parts
+  "S101",  # Use of `assert` detected
+]
 lint.per-file-ignores."src/**" = [
   "S101", # TODO: Replace asserts with proper error handling
 ]

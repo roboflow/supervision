@@ -327,10 +327,11 @@ print(f"Compact crop:       {crop.shape[0]} x {crop.shape[1]} = {crop_kb:.1f} KB
 # This section runs only when `ROBOFLOW_API_KEY` is available.
 
 # %%
-import os
 import base64
-import requests
+import os
 from typing import Optional
+
+import requests
 
 try:
     from google.colab import userdata  # type: ignore[import, unused-ignore]
@@ -359,9 +360,7 @@ _response = requests.post(
 )
 _response.raise_for_status()
 sam3_result: dict[str, Any] = _response.json()
-sam3_detections = sv.Detections.from_sam3(
-    sam3_result=sam3_result, resolution_wh=(W, H)
-)
+sam3_detections = sv.Detections.from_sam3(sam3_result=sam3_result, resolution_wh=(W, H))
 print(f"SAM3 detections: {len(sam3_detections)}")
 if sam3_detections.class_id is not None:
     for idx, prompt in enumerate(PROMPTS):
