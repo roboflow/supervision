@@ -141,15 +141,15 @@ COCO_NAMES: dict[int, str] = {
 }
 
 labels = []
-if detections.class_id is not None:
-    for cid, conf in zip(
-        detections.class_id,
-        detections.confidence
-        if detections.confidence is not None
-        else [None] * len(detections),
-    ):
-        name = COCO_NAMES.get(int(cid), f"cls_{cid}")
-        labels.append(f"{name} {conf:.2f}" if conf is not None else name)
+assert detections.class_id is not None
+for cid, conf in zip(
+    detections.class_id,
+    detections.confidence
+    if detections.confidence is not None
+    else [None] * len(detections),
+):
+    name = COCO_NAMES.get(int(cid), f"cls_{cid}")
+    labels.append(f"{name} {conf:.2f}" if conf is not None else name)
 
 # %% [markdown]
 # ### 3.2 Visualise RF-DETR Seg output
@@ -197,14 +197,15 @@ from typing import Any
 dense_bytes: int = 0
 dense_mask: "np.ndarray[Any, np.dtype[np.bool_]] | None" = None
 
-if detections.mask is not None and isinstance(detections.mask, np.ndarray):
-    dense_mask = detections.mask
-    dense_bytes = dense_mask.nbytes
-    n_inst = len(dense_mask)
-    print(f"Instances:       {n_inst}")
-    print(f"Mask shape:      {dense_mask.shape}  (N x H x W, bool)")
-    print(f"Dense footprint: {dense_bytes / 1024:.1f} KB")
-    print(f"  = {n_inst} masks x {H} x {W} x 1 byte")
+assert detections.mask is not None and isinstance(detections.mask, np.ndarray)
+
+dense_mask = detections.mask
+dense_bytes = dense_mask.nbytes
+n_inst = len(dense_mask)
+print(f"Instances:       {n_inst}")
+print(f"Mask shape:      {dense_mask.shape}  (N x H x W, bool)")
+print(f"Dense footprint: {dense_bytes / 1024:.1f} KB")
+print(f"  = {n_inst} masks x {H} x {W} x 1 byte")
 
 # %% [markdown]
 # ### 4.2 Convert to CompactMask
@@ -213,24 +214,24 @@ if detections.mask is not None and isinstance(detections.mask, np.ndarray):
 compact: "sv.CompactMask | None" = None
 crop_bytes: int = 0
 
-if dense_mask is not None:
-    compact = sv.CompactMask.from_dense(
-        masks=dense_mask,
-        xyxy=detections.xyxy,
-        image_shape=(H, W),
-    )
+assert dense_mask is not None
+compact = sv.CompactMask.from_dense(
+    masks=dense_mask,
+    xyxy=detections.xyxy,
+    image_shape=(H, W),
+)
 
-    # Measure compact size via uncompressed crop booleans (upper bound; RLE < this).
-    crop_bytes = sum(compact.crop(i).nbytes for i in range(len(compact)))
+# Measure compact size via uncompressed crop booleans (upper bound; RLE < this).
+crop_bytes = sum(compact.crop(i).nbytes for i in range(len(compact)))
 
-    print(f"Crop size (est.):   {crop_bytes / 1024:.1f} KB  (uncompressed crops)")
-    if crop_bytes > 0 and dense_bytes > 0:
-        ratio = dense_bytes / crop_bytes
-        print(f"Reduction factor:   {ratio:.1f}x  (before RLE compression)")
+print(f"Crop size (est.):   {crop_bytes / 1024:.1f} KB  (uncompressed crops)")
+if crop_bytes > 0 and dense_bytes > 0:
+    ratio = dense_bytes / crop_bytes
+    print(f"Reduction factor:   {ratio:.1f}x  (before RLE compression)")
 
-    # Swap in CompactMask -- supervision uses it transparently from here on.
-    detections.mask = compact
-    print(f"\ndetections.mask type: {type(detections.mask).__name__}")
+# Swap in CompactMask -- supervision uses it transparently from here on.
+detections.mask = compact
+print(f"\ndetections.mask type: {type(detections.mask).__name__}")
 
 # %% [markdown]
 # ### 4.3 Filtering by mask area
@@ -242,21 +243,21 @@ if dense_mask is not None:
 large: sv.Detections = detections
 large_labels: list[str] = labels
 
-if isinstance(detections.mask, sv.CompactMask):
-    areas = detections.mask.area
-    print(
-        f"Mask areas (px): min={areas.min():.0f}  "
-        f"mean={areas.mean():.0f}  max={areas.max():.0f}"
-    )
+assert isinstance(detections.mask, sv.CompactMask)
+areas = detections.mask.area
+print(
+    f"Mask areas (px): min={areas.min():.0f}  "
+    f"mean={areas.mean():.0f}  max={areas.max():.0f}"
+)
 
-    # Keep instances larger than 0.1% of the image.
-    min_area = 0.001 * H * W
-    keep_idx = np.where(areas > min_area)[0]
-    _filtered = detections[keep_idx]
-    if isinstance(_filtered, sv.Detections):
-        large = _filtered
-        large_labels = [labels[i] for i in keep_idx] if labels else []
-    print(f"\nInstances > {min_area:.0f} px: {len(large)}")
+# Keep instances larger than 0.1% of the image.
+min_area = 0.001 * H * W
+keep_idx = np.where(areas > min_area)[0]
+_filtered = detections[keep_idx]
+if isinstance(_filtered, sv.Detections):
+    large = _filtered
+    large_labels = [labels[i] for i in keep_idx] if labels else []
+print(f"\nInstances > {min_area:.0f} px: {len(large)}")
 
 # %% [markdown]
 # ### 4.4 Annotate with CompactMask

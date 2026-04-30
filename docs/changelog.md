@@ -7,7 +7,9 @@ date_modified: 2026-04-23
 
 ### 0.28.0 <small>Apr 30, 2026</small>
 
-- Added [#2159](https://github.com/roboflow/supervision/pull/2159): [`sv.CompactMask`](https://supervision.roboflow.com/develop/detection/compact_mask/#supervision.detection.compact_mask.CompactMask) for memory-efficient mask storage. Masks are stored as crop-region bounding boxes plus RLE-encoded data instead of full-resolution bitmaps, reducing memory by 10–100× for sparse masks. Integrates transparently with `sv.Detections.mask` — filtering, merging, and `area` all work without materialising the full array.
+- Added [#2159](https://github.com/roboflow/supervision/pull/2159): [`sv.CompactMask`](https://supervision.roboflow.com/develop/detection/compact_mask/#supervision.detection.compact_mask.CompactMask) for memory-efficient mask storage. Masks are stored as crop-region bounding boxes plus RLE-encoded data instead of full-resolution bitmaps, reducing memory by up to 240× for sparse masks. Integrates transparently with `sv.Detections.mask` — filtering, merging, and `area` all work without materialising the full array.
+
+- Added [#2227](https://github.com/roboflow/supervision/pull/2227): [`sv.CompactMask.resize(new_image_shape)`](https://supervision.roboflow.com/develop/detection/compact_mask/#supervision.detection.compact_mask.CompactMask.resize) rescales all stored crops to match a new image resolution, enabling use across frames or after image resizing pipelines.
 
 - Added [#2178](https://github.com/roboflow/supervision/pull/2178): [`sv.Detections.from_inference`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_inference) now supports compressed COCO RLE masks. Inference responses with `rle` or `rle_mask` fields containing a compressed counts string (as produced by `pycocotools`) are decoded directly into binary masks, avoiding a lossy polygon round-trip.
 
@@ -17,7 +19,7 @@ date_modified: 2026-04-23
 
 - Added [#2186](https://github.com/roboflow/supervision/pull/2186): [`sv.InferenceSlicer`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer) now emits a warning when detections returned by the callback fall outside the tile boundaries, helping catch coordinate-system bugs in custom callbacks.
 
-- Added [#2103](https://github.com/roboflow/supervision/pull/2103), [#2152](https://github.com/roboflow/supervision/pull/2152): [`sv.Detections.from_inference`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_inference) now parses SAM3 detection and PVS (point-video segmentation) outputs, both from the local `inference` package and from Roboflow-hosted server responses.
+- Added [#2103](https://github.com/roboflow/supervision/pull/2103), [#2152](https://github.com/roboflow/supervision/pull/2152): New [`sv.Detections.from_sam3()`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_sam3) classmethod parses SAM3 PCS (text-prompted) and PVS (visual-prompted video segmentation) response formats into a standard `sv.Detections`, both from the local `inference` package and from Roboflow-hosted server responses.
 
 - Added [#2154](https://github.com/roboflow/supervision/pull/2154): The library now uses Python's `logging` module instead of `print` for diagnostic output. Messages are emitted under the `supervision` logger so applications can capture, filter, or silence them through standard `logging` configuration.
 
@@ -49,7 +51,7 @@ date_modified: 2026-04-23
 
 - Fixed [#1746](https://github.com/roboflow/supervision/pull/1746): Precision loss when converting annotations with `force_mask=True` in dataset format converters.
 
-- Fixed [#1991](https://github.com/roboflow/supervision/pull/1991): [`sv.PolygonZone`](https://supervision.roboflow.com/latest/detection/tools/polygon_zone/) no longer double-counts the same object when multiple zones overlap. The bottom-center anchor was previously assigned to every zone whose polygon contained it; trigger now reflects the chosen anchor's containment per zone independently.
+- Fixed [#1991](https://github.com/roboflow/supervision/pull/1991): [`sv.PolygonZone`](https://supervision.roboflow.com/latest/detection/tools/polygon_zone/) no longer double-counts the same object when multiple zones overlap. Detection bounding boxes were incorrectly clipped to each zone's ROI before anchor computation, causing the same detection to appear at a different anchor point in each zone; anchor is now computed from the original bounding box so containment is independent per zone.
 
 - Fixed [#1868](https://github.com/roboflow/supervision/pull/1868): [`sv.LineZone`](https://supervision.roboflow.com/latest/detection/tools/line_zone/) no longer mis-attributes crossings when a tracker reuses the same `tracker_id` across different classes. Class-aware bookkeeping prevents a new object from inheriting another class's prior crossing state.
 
@@ -67,7 +69,7 @@ date_modified: 2026-04-23
 
 - Deprecated [#2215](https://github.com/roboflow/supervision/pull/2215): [`sv.ByteTrack`](https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) is deprecated in favour of `ByteTrackTracker` from the external [`trackers`](https://pypi.org/project/trackers/) package (`pip install trackers`). The update method is renamed from `update_with_detections()` to `update()`. Removal planned for `supervision-0.30.0`.
 
-- Deprecated [#2214](https://github.com/roboflow/supervision/pull/2214): `supervision.keypoint` module is deprecated; use `supervision.key_points` instead. `LMM` enum and `from_lmm` method are deprecated in favour of `VLM` and `from_vlm`. `create_tiles` in `supervision.utils.image`, `ensure_cv2_image_for_processing` in `supervision.utils.conversion`, and keypoint validation utilities in `supervision.validators` are deprecated.
+- Deprecated [#2214](https://github.com/roboflow/supervision/pull/2214): `supervision.keypoint` module is deprecated; use `supervision.key_points` instead. `create_tiles` in `supervision.utils.image`, `ensure_cv2_image_for_processing` in `supervision.utils.conversion`, and keypoint validation utilities in `supervision.validators` are deprecated. The `LMM` enum (use `VLM`) and `from_lmm` method (use `from_vlm`) were deprecated in 0.26.0; this release migrates their deprecation mechanism to `pydeprecate`.
 
 - Deprecated: `normalized_xyxy` argument in [`sv.denormalize_boxes`](https://supervision.roboflow.com/latest/detection/utils/boxes/#supervision.detection.utils.boxes.denormalize_boxes) renamed to `xyxy`. Passing `normalized_xyxy=` now emits a `FutureWarning`; support will be removed in `supervision-0.30.0`.
 
