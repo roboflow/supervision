@@ -5,7 +5,7 @@ status: deprecated
 
 # Deprecated
 
-These features are phased out due to better alternatives or potential issues in future versions. Deprecated functionalities are supported for **five subsequent releases**, providing time for users to transition to updated methods.
+These features are phased out due to better alternatives or potential issues in future versions. Deprecated functionalities are typically supported for multiple subsequent releases, providing time for users to transition to updated methods.
 
 - [`sv.ByteTrack`](https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) is deprecated in favour of `ByteTrackTracker` from the external [`trackers`](https://pypi.org/project/trackers/) package (`pip install trackers`). The update method is renamed from `update_with_detections()` to `update()`. Removal planned for `supervision-0.30.0`.
 - `supervision.keypoint` module is deprecated; use `supervision.key_points` instead. Will be removed in `supervision-0.30.0`.
