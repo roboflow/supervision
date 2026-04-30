@@ -445,7 +445,5 @@ print(f"deque maxlen: {buf.maxlen}  (= int({info.fps}))")
 #   -- PCS and PVS format reference
 # - [RF-DETR docs](https://github.com/roboflow/rf-detr)
 #   -- training, export, and deployment
-# - [Migration guide for 0.28.0](https://github.com/roboflow/supervision/blob/develop/releases/0.28.0/MIGRATION.md)
-#   -- before/after snippets for all breaking changes
 # - [Full changelog](https://supervision.roboflow.com/develop/changelog/)
 #   -- every change in 0.28.0

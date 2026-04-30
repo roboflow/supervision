@@ -5,7 +5,7 @@ date_modified: 2026-04-23
 
 # Changelog
 
-### 0.28.0 <small>Apr 17, 2026</small>
+### 0.28.0 <small>Apr 30, 2026</small>
 
 - Added [#2159](https://github.com/roboflow/supervision/pull/2159): [`sv.CompactMask`](https://supervision.roboflow.com/develop/detection/compact_mask/#supervision.detection.compact_mask.CompactMask) for memory-efficient mask storage. Masks are stored as crop-region bounding boxes plus RLE-encoded data instead of full-resolution bitmaps, reducing memory by 10–100× for sparse masks. Integrates transparently with `sv.Detections.mask` — filtering, merging, and `area` all work without materialising the full array.
 
