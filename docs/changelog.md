@@ -17,6 +17,14 @@ date_modified: 2026-04-23
 
 - Added [#2186](https://github.com/roboflow/supervision/pull/2186): [`sv.InferenceSlicer`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer) now emits a warning when detections returned by the callback fall outside the tile boundaries, helping catch coordinate-system bugs in custom callbacks.
 
+- Added [#2103](https://github.com/roboflow/supervision/pull/2103), [#2152](https://github.com/roboflow/supervision/pull/2152): [`sv.Detections.from_inference`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_inference) now parses SAM3 detection and PVS (point-video segmentation) outputs, both from the local `inference` package and from Roboflow-hosted server responses.
+
+- Added [#2154](https://github.com/roboflow/supervision/pull/2154): The library now uses Python's `logging` module instead of `print` for diagnostic output. Messages are emitted under the `supervision` logger so applications can capture, filter, or silence them through standard `logging` configuration.
+
+- Added [#932](https://github.com/roboflow/supervision/pull/932): [`sv.ImageAssets`](https://supervision.roboflow.com/latest/assets/) for downloading sample images alongside existing video assets, useful for examples and tutorials.
+
+- Changed [#2169](https://github.com/roboflow/supervision/pull/2169): [`sv.MeanAveragePrecisionResult`](https://supervision.roboflow.com/latest/metrics/mean_average_precision/) and related metric arrays (`mAP_scores`, `ap_per_class`, `iou_thresholds`, precision/recall) are now `float32` instead of `float64`. Reduces memory and speeds up computation; numerical results may differ in the last few digits.
+
 - Changed [#2178](https://github.com/roboflow/supervision/pull/2178): [`sv.rle_to_mask`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.rle_to_mask) and [`sv.mask_to_rle`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.mask_to_rle) moved to `supervision.detection.utils.converters`. The old import path `supervision.dataset.utils` continues to work but is deprecated.
 
 - Fixed [#2178](https://github.com/roboflow/supervision/pull/2178): [`sv.rle_to_mask`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.rle_to_mask) now returns `NDArray[bool]` as declared in its signature. Previously the implementation returned `uint8` despite the `bool` annotation; code that relied on the undocumented `uint8` output (e.g. `mask * 255` producing `uint8`) should wrap the result with `.astype(np.uint8)`.
@@ -40,6 +48,22 @@ date_modified: 2026-04-23
 - Fixed [#2185](https://github.com/roboflow/supervision/pull/2185): [`sv.DetectionDataset.as_coco()`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.as_coco) now preserves `area` and `iscrowd` fields instead of silently dropping them in the round-trip.
 
 - Fixed [#1746](https://github.com/roboflow/supervision/pull/1746): Precision loss when converting annotations with `force_mask=True` in dataset format converters.
+
+- Fixed [#1991](https://github.com/roboflow/supervision/pull/1991): [`sv.PolygonZone`](https://supervision.roboflow.com/latest/detection/tools/polygon_zone/) no longer double-counts the same object when multiple zones overlap. The bottom-center anchor was previously assigned to every zone whose polygon contained it; trigger now reflects the chosen anchor's containment per zone independently.
+
+- Fixed [#1868](https://github.com/roboflow/supervision/pull/1868): [`sv.LineZone`](https://supervision.roboflow.com/latest/detection/tools/line_zone/) no longer mis-attributes crossings when a tracker reuses the same `tracker_id` across different classes. Class-aware bookkeeping prevents a new object from inheriting another class's prior crossing state.
+
+- Fixed [#2022](https://github.com/roboflow/supervision/pull/2022): [`sv.process_video`](https://supervision.roboflow.com/latest/utils/video/#supervision.utils.video.process_video) now raises immediately when the user callback throws, instead of silently swallowing the exception and hanging until the writer is flushed.
+
+- Fixed [#2156](https://github.com/roboflow/supervision/pull/2156): [`sv.DetectionDataset`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset) now populates `data["class_name"]` on every loaded annotation, matching what model connectors produce. Downstream code can rely on `class_name` being present whether detections come from a dataset or a model.
+
+- Fixed [#1364](https://github.com/roboflow/supervision/pull/1364): [`sv.ByteTrack`](https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) now preserves externally assigned `tracker_id` values instead of overwriting them with internal ids on the first update.
+
+- Fixed [#1853](https://github.com/roboflow/supervision/pull/1853): [`sv.ConfusionMatrix`](https://supervision.roboflow.com/latest/metrics/confusion_matrix/) `evaluate_detection_batch` now matches predictions to ground truth correctly when multiple detections fall on the same target. Previously, double-counting inflated false-positive and false-negative counts.
+
+- Fixed [#2136](https://github.com/roboflow/supervision/pull/2136): [`sv.MeanAverageRecall`](https://supervision.roboflow.com/latest/metrics/mean_average_recall/) now computes mAR@K using the top-K detections per image, matching the COCO definition. Previous values were inflated relative to `pycocotools`.
+
+- Fixed [#1086](https://github.com/roboflow/supervision/pull/1086), [#265](https://github.com/roboflow/supervision/pull/265): COCO export and `force_masks` behaviour are now consistent across dataset formats. Empty polygons no longer raise during `as_coco`, and `force_masks=True` produces masks regardless of source format.
 
 - Deprecated [#2215](https://github.com/roboflow/supervision/pull/2215): [`sv.ByteTrack`](https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) is deprecated in favour of `ByteTrackTracker` from the external [`trackers`](https://pypi.org/project/trackers/) package (`pip install trackers`). The update method is renamed from `update_with_detections()` to `update()`. Removal planned for `supervision-0.30.0`.
 
