@@ -59,7 +59,7 @@ date_modified: 2026-04-23
 
 - Fixed [#1364](https://github.com/roboflow/supervision/pull/1364): [`sv.ByteTrack`](https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) now preserves externally assigned `tracker_id` values instead of overwriting them with internal ids on the first update.
 
-- Fixed [#1853](https://github.com/roboflow/supervision/pull/1853): [`sv.ConfusionMatrix`](https://supervision.roboflow.com/latest/metrics/confusion_matrix/) `evaluate_detection_batch` now matches predictions to ground truth correctly when multiple detections fall on the same target. Previously, double-counting inflated false-positive and false-negative counts.
+- Fixed [#1853](https://github.com/roboflow/supervision/pull/1853): [`sv.ConfusionMatrix`](https://supervision.roboflow.com/latest/detection/metrics/#supervision.metrics.detection.ConfusionMatrix) `evaluate_detection_batch` now matches predictions to ground truth correctly when multiple detections fall on the same target. Previously, double-counting inflated false-positive and false-negative counts.
 
 - Fixed [#2136](https://github.com/roboflow/supervision/pull/2136): [`sv.MeanAverageRecall`](https://supervision.roboflow.com/latest/metrics/mean_average_recall/) now computes mAR@K using the top-K detections per image, matching the COCO definition. Previous values were inflated relative to `pycocotools`.
 
