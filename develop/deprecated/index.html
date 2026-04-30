@@ -2718,13 +2718,24 @@
 
 
 <h1 id="deprecated">Deprecated<a class="headerlink" href="#deprecated" title="Permanent link">&para;</a></h1>
-<p>These features are phased out due to better alternatives or potential issues in future versions. Deprecated functionalities are supported for <strong>five subsequent releases</strong>, providing time for users to transition to updated methods.</p>
+<p>These features are phased out due to better alternatives or potential issues in future versions. Deprecated functionalities are typically supported for multiple subsequent releases, providing time for users to transition to updated methods.</p>
 <ul>
-<li><code>overlap_ratio_wh</code> in <a href="https://supervision.roboflow.com/latest/detection/tools/inference_slicer/"><code>InferenceSlicer.__init__</code></a> is deprecated and will be removed in <code>supervision-0.27.0</code>. Please set it to <code>None</code> and use <code>overlap_wh</code> instead.</li>
+<li><a href="https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack"><code>sv.ByteTrack</code></a> is deprecated in favour of <code>ByteTrackTracker</code> from the external <a href="https://pypi.org/project/trackers/"><code>trackers</code></a> package (<code>pip install trackers</code>). The update method is renamed from <code>update_with_detections()</code> to <code>update()</code>. Removal planned for <code>supervision-0.30.0</code>.</li>
+<li><code>supervision.keypoint</code> module is deprecated; use <code>supervision.key_points</code> instead. Will be removed in <code>supervision-0.30.0</code>.</li>
+<li><code>create_tiles</code> in <code>supervision.utils.image</code> is deprecated. Will be removed in <code>supervision-0.31.0</code>.</li>
+<li><code>ensure_cv2_image_for_processing</code> in <code>supervision.utils.conversion</code> is deprecated. Will be removed in <code>supervision-0.31.0</code>.</li>
+<li>Keypoint validation utilities in <code>supervision.validators</code> are deprecated. Will be removed in <code>supervision-0.31.0</code>.</li>
+<li><code>normalized_xyxy</code> argument in <a href="https://supervision.roboflow.com/latest/detection/utils/boxes/#supervision.detection.utils.boxes.denormalize_boxes"><code>sv.denormalize_boxes</code></a> is renamed to <code>xyxy</code>. Passing <code>normalized_xyxy=</code> emits a <code>FutureWarning</code>; support will be removed in <code>supervision-0.30.0</code>.</li>
+<li><code>supervision.dataset.utils</code> import path for <a href="https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.rle_to_mask"><code>sv.rle_to_mask</code></a> and <a href="https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.mask_to_rle"><code>sv.mask_to_rle</code></a> is deprecated. These functions moved to <code>supervision.detection.utils.converters</code>. Will be removed in <code>supervision-0.30.0</code>.</li>
 <li><code>sv.LMM</code> enum is deprecated and will be removed in <code>supervision-0.31.0</code>. Use <code>sv.VLM</code> instead.</li>
-<li><a href="https://supervision.roboflow.com/0.26.0/detection/core/#supervision.detection.core.Detections.from_lmm"><code>sv.Detections.from_lmm</code></a> property is deprecated and will be removed in <code>supervision-0.31.0</code>. Use <a href="https://supervision.roboflow.com/0.26.0/detection/core/#supervision.detection.core.Detections.from_vlm"><code>sv.Detections.from_vlm</code></a> instead.</li>
+<li><a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_lmm"><code>sv.Detections.from_lmm</code></a> property is deprecated and will be removed in <code>supervision-0.31.0</code>. Use <a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_vlm"><code>sv.Detections.from_vlm</code></a> instead.</li>
 </ul>
 <h1 id="removed">Removed<a class="headerlink" href="#removed" title="Permanent link">&para;</a></h1>
+<h3 id="0270">0.27.0<a class="headerlink" href="#0270" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>overlap_ratio_wh</code> parameter in <a href="https://supervision.roboflow.com/latest/detection/tools/inference_slicer/"><code>sv.InferenceSlicer</code></a> has been removed. Use the pixel-based <code>overlap_wh</code> parameter instead.</li>
+<li><code>overlap_filter_strategy</code> parameter in <a href="https://supervision.roboflow.com/latest/detection/tools/inference_slicer/"><code>sv.InferenceSlicer</code></a> has been removed. Use <code>overlap_strategy</code> instead.</li>
+</ul>
 <h3 id="0260">0.26.0<a class="headerlink" href="#0260" title="Permanent link">&para;</a></h3>
 <ul>
 <li>The <code>sv.DetectionDataset.images</code> property has been removed in <code>supervision-0.26.0</code>. Please loop over images with <code>for path, image, annotation in dataset:</code>, as that does not require loading all images into memory. Also, constructing <code>sv.DetectionDataset</code> with parameter <code>images</code> as <code>Dict[str, np.ndarray]</code> is deprecated and has been removed in <code>supervision-0.26.0</code>. Please pass a list of paths <code>List[str]</code> instead.</li>
@@ -2774,7 +2785,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 3, 2026 15:52:55 UTC">February 3, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 30, 2026 22:49:15 UTC">April 30, 2026</span>
   </span>
 
     
@@ -2802,9 +2813,9 @@
     
     <nav>
       
-        <a href="https://github.com/MKSubrahmanya12345" class="md-author" title="@MKSubrahmanya12345">
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
-          <img src="https://avatars.githubusercontent.com/u/180646554?v=4&size=72" alt="MKSubrahmanya12345">
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -2812,9 +2823,9 @@
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/MKSubrahmanya12345" class="md-author" title="@MKSubrahmanya12345">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/180646554?v=4&size=72" alt="MKSubrahmanya12345">
         </a>
       
         <a href="https://github.com/SkalskiP" class="md-author" title="@SkalskiP">
@@ -2826,7 +2837,7 @@
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/deprecated.md" class="md-author md-author--more">
-            +6
+            +8
           </a>
         
       
