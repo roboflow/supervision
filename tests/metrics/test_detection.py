@@ -13,12 +13,53 @@ from supervision.metrics.detection import (
     ConfusionMatrix,
     MeanAveragePrecision,
     detections_to_tensor,
+    validate_input_tensors,
 )
 from tests.helpers import (
     _create_detections,
     assert_almost_equal,
     create_predictions_with_class_iou_tests,
 )
+
+
+def _call_confusion_matrix_from_detections_masks() -> None:
+    ConfusionMatrix.from_detections(
+        predictions=[
+            Detections(
+                xyxy=np.zeros((1, 4), dtype=np.float32),
+                class_id=np.array([0]),
+                confidence=np.array([0.9]),
+            )
+        ],
+        targets=[
+            Detections(
+                xyxy=np.zeros((1, 4), dtype=np.float32),
+                class_id=np.array([0]),
+            )
+        ],
+        classes=["box"],
+        metric_target=MetricTarget.MASKS,
+    )
+
+
+def _call_confusion_matrix_from_tensors_masks() -> None:
+    ConfusionMatrix.from_tensors(
+        predictions=[np.zeros((1, 6), dtype=np.float32)],
+        targets=[np.zeros((1, 5), dtype=np.float32)],
+        classes=["box"],
+        metric_target=MetricTarget.MASKS,
+    )
+
+
+def _call_confusion_matrix_evaluate_detection_batch_masks() -> None:
+    ConfusionMatrix.evaluate_detection_batch(
+        predictions=np.zeros((1, 6), dtype=np.float32),
+        targets=np.zeros((1, 5), dtype=np.float32),
+        num_classes=1,
+        conf_threshold=0.3,
+        iou_threshold=0.5,
+        metric_target=MetricTarget.MASKS,
+    )
 
 
 class TestDetectionMetrics:
@@ -1151,7 +1192,6 @@ class TestDetectionMetrics:
     def test_validate_input_tensors_obb(
         self, predictions, targets, metric_target, exception
     ):
-        from supervision.metrics.detection import validate_input_tensors
 
         with exception:
             validate_input_tensors(predictions, targets, metric_target=metric_target)
@@ -1368,43 +1408,15 @@ class TestDetectionMetrics:
         "call",
         [
             pytest.param(
-                lambda: ConfusionMatrix.from_detections(
-                    predictions=[
-                        Detections(
-                            xyxy=np.zeros((1, 4), dtype=np.float32),
-                            class_id=np.array([0]),
-                            confidence=np.array([0.9]),
-                        )
-                    ],
-                    targets=[
-                        Detections(
-                            xyxy=np.zeros((1, 4), dtype=np.float32),
-                            class_id=np.array([0]),
-                        )
-                    ],
-                    classes=["box"],
-                    metric_target=MetricTarget.MASKS,
-                ),
+                _call_confusion_matrix_from_detections_masks,
                 id="from_detections",
             ),
             pytest.param(
-                lambda: ConfusionMatrix.from_tensors(
-                    predictions=[np.zeros((1, 6), dtype=np.float32)],
-                    targets=[np.zeros((1, 5), dtype=np.float32)],
-                    classes=["box"],
-                    metric_target=MetricTarget.MASKS,
-                ),
+                _call_confusion_matrix_from_tensors_masks,
                 id="from_tensors",
             ),
             pytest.param(
-                lambda: ConfusionMatrix.evaluate_detection_batch(
-                    predictions=np.zeros((1, 6), dtype=np.float32),
-                    targets=np.zeros((1, 5), dtype=np.float32),
-                    num_classes=1,
-                    conf_threshold=0.3,
-                    iou_threshold=0.5,
-                    metric_target=MetricTarget.MASKS,
-                ),
+                _call_confusion_matrix_evaluate_detection_batch_masks,
                 id="evaluate_detection_batch",
             ),
         ],

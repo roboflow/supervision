@@ -67,30 +67,31 @@ def detections_to_tensor(
             or if the stored array does not have exactly `N * 8` elements.
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
-        from supervision.metrics.core import MetricTarget
-        from supervision.config import ORIENTED_BOX_COORDINATES
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> from supervision.metrics.core import MetricTarget
+        >>> from supervision.config import ORIENTED_BOX_COORDINATES
+        >>> detections = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        ...     class_id=np.array([0]),
+        ...     confidence=np.array([0.9]),
+        ... )
+        >>> tensor = detections_to_tensor(detections, with_confidence=True)
+        >>> tensor.shape
+        (1, 6)
+        >>> obb_coords = np.array([[0, 0, 10, 0, 10, 10, 0, 10]], dtype=np.float32)
+        >>> det_obb = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        ...     class_id=np.array([0]),
+        ...     data={ORIENTED_BOX_COORDINATES: obb_coords},
+        ... )
+        >>> tensor_obb = detections_to_tensor(
+        ...     det_obb, metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES
+        ... )
+        >>> tensor_obb.shape
+        (1, 9)
 
-        detections = sv.Detections(
-            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
-            class_id=np.array([0]),
-            confidence=np.array([0.9]),
-        )
-        tensor = detections_to_tensor(detections, with_confidence=True)
-        # tensor.shape == (1, 6): [x_min, y_min, x_max, y_max, class_id, confidence]
-
-        obb_coords = np.array([[0, 0, 10, 0, 10, 10, 0, 10]], dtype=np.float32)
-        det_obb = sv.Detections(
-            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
-            class_id=np.array([0]),
-            data={ORIENTED_BOX_COORDINATES: obb_coords},
-        )
-        tensor_obb = detections_to_tensor(
-            det_obb, metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES
-        )
-        # tensor_obb.shape == (1, 9): [x1, y1, x2, y2, x3, y3, x4, y4, class_id]
         ```
     """
     _assert_supported_target(metric_target)
@@ -105,7 +106,7 @@ def detections_to_tensor(
         if obb is None:
             if len(detections) > 0:
                 raise ValueError(
-                    f"ORIENTED_BOUNDING_BOXES requested, but "
+                    "ORIENTED_BOUNDING_BOXES requested, but "
                     f"{ORIENTED_BOX_COORDINATES} is missing from detections.data"
                 )
             box_data = np.empty((0, 8), dtype=np.float32)
@@ -117,7 +118,7 @@ def detections_to_tensor(
                     f"{len(detections) * 8} elements "
                     f"(N={len(detections)} detections x 8 coordinates), "
                     f"but got {obb_arr.size}. "
-                    f"Each OBB must be stored as [x1, y1, x2, y2, x3, y3, x4, y4]."
+                    "Each OBB must be stored as [x1, y1, x2, y2, x3, y3, x4, y4]."
                 )
             box_data = obb_arr.reshape(-1, 8)
     else:
@@ -155,7 +156,7 @@ def validate_input_tensors(
             targets[0], np.ndarray
         ):
             raise ValueError(
-                f"Predictions and targets must be lists of numpy arrays. "
+                "Predictions and targets must be lists of numpy arrays. "
                 f"Got {type(predictions[0])} and {type(targets[0])} instead."
             )
 
