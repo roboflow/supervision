@@ -33,7 +33,7 @@
 
 ## 👋 hello
 
-**We are your essential toolkit for computer vision.** From data loading to real-time zone counting, we provide the building blocks so you can focus on building your models. 🤝
+**We are your essential toolkit for computer vision.** From data loading to real-time zone counting, we provide the building blocks so you can focus on building applications around your models. 🤝
 
 ## 💻 install
 
