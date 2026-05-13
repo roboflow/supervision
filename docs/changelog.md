@@ -25,7 +25,7 @@ date_modified: 2026-04-23
 
 - Added [#932](https://github.com/roboflow/supervision/pull/932): [`sv.ImageAssets`](https://supervision.roboflow.com/latest/assets/) for downloading sample images alongside existing video assets, useful for examples and tutorials.
 
-- Added [#2247](https://github.com/roboflow/supervision/pull/2247): [`sv.ConfusionMatrix`](https://supervision.roboflow.com/latest/metrics/detection/#supervision.metrics.detection.ConfusionMatrix) now accepts `metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES`, computing IoU via `oriented_box_iou_batch` over `xyxyxyxy` coordinates. Previously, OBB inputs silently fell back to axis-aligned bounding-box IoU, producing incorrect match scores for rotated detections.
+- Added [#2247](https://github.com/roboflow/supervision/pull/2247): [`sv.ConfusionMatrix`](https://supervision.roboflow.com/metrics/detection/#confusionmatrix) now accepts `metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES`, computing IoU via `oriented_box_iou_batch` over `xyxyxyxy` coordinates. Previously, OBB inputs silently fell back to axis-aligned bounding-box IoU, producing incorrect match scores for rotated detections.
 
 - Changed [#2169](https://github.com/roboflow/supervision/pull/2169): [`sv.MeanAveragePrecisionResult`](https://supervision.roboflow.com/latest/metrics/mean_average_precision/) and related metric arrays (`mAP_scores`, `ap_per_class`, `iou_thresholds`, precision/recall) are now `float32` instead of `float64`. Reduces memory and speeds up computation; numerical results may differ in the last few digits.
 
