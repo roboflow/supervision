@@ -40,7 +40,7 @@ jobs:
 
       - name: 📦 Upload assets to Release
         if: github.event_name == 'release'
-        uses: AButler/upload-release-assets@v3.0
+        uses: AButler/upload-release-assets@v4.0
         with:
           files: "dist/*"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
