@@ -248,7 +248,7 @@ class TestDetectionMetrics:
                 False,
                 MetricTarget.MASKS,
                 None,
-                pytest.raises(NotImplementedError),
+                pytest.raises(ValueError, match=r"MetricTarget\.MASKS"),
             ),  # MASKS requested but not supported
             (
                 _create_detections(
@@ -1238,3 +1238,254 @@ class TestDetectionMetrics:
         # differentiates behavior
         assert cm_sensitivity_obb.matrix[0, 0] == 0
         assert cm_sensitivity_boxes.matrix[0, 0] == 1
+
+    def test_confusion_matrix_obb_regression_1760(self):
+        """Regression for #1760: thin OBBs with same AABB must not match.
+
+        Two thin bars (100 px long, 10 px wide) at 45° and -45° share an identical
+        AABB (AABB IoU = 1.0), but their actual OBB overlap is only at the crossing
+        centre (OBB IoU ≈ 0.05).
+
+        With iou_threshold=0.5:
+        - ORIENTED_BOUNDING_BOXES mode: no match → FP + FN (bug before fix: TP)
+        - BOXES mode: AABB IoU=1.0 → TP (controls: confirms AABB path unbroken)
+
+        A regression that swaps oriented_box_iou_batch back to box_iou_batch would
+        flip the OBB assertion to TP, surfacing the exact bug from issue #1760.
+        """
+        classes = ["bar"]
+        sq2 = np.float32(1.0 / np.sqrt(2))
+        cx, cy = np.float32(100.0), np.float32(100.0)
+        hl, hw = np.float32(50.0), np.float32(5.0)
+
+        # Bar at 45°: length direction (sq2, sq2), width direction (-sq2, sq2)
+        bar_45 = np.array(
+            [
+                [cx + (hl - hw) * sq2, cy + (hl + hw) * sq2],
+                [cx + (hl + hw) * sq2, cy + (hl - hw) * sq2],
+                [cx - (hl - hw) * sq2, cy - (hl + hw) * sq2],
+                [cx - (hl + hw) * sq2, cy - (hl - hw) * sq2],
+            ],
+            dtype=np.float32,
+        )
+        # Bar at -45°: length direction (sq2, -sq2), width direction (sq2, sq2)
+        bar_neg45 = np.array(
+            [
+                [cx + (hl + hw) * sq2, cy - (hl - hw) * sq2],
+                [cx + (hl - hw) * sq2, cy - (hl + hw) * sq2],
+                [cx - (hl + hw) * sq2, cy + (hl - hw) * sq2],
+                [cx - (hl - hw) * sq2, cy + (hl + hw) * sq2],
+            ],
+            dtype=np.float32,
+        )
+
+        # Both bars share the same axis-aligned bounding box
+        half_aabb = (hl + hw) * sq2
+        shared_xyxy = np.array(
+            [[cx - half_aabb, cy - half_aabb, cx + half_aabb, cy + half_aabb]],
+            dtype=np.float32,
+        )
+
+        gt = [
+            Detections(
+                xyxy=shared_xyxy,
+                class_id=np.array([0]),
+                data={"xyxyxyxy": bar_45[np.newaxis]},
+            )
+        ]
+        pred = [
+            Detections(
+                xyxy=shared_xyxy,
+                class_id=np.array([0]),
+                confidence=np.array([0.9], dtype=np.float32),
+                data={"xyxyxyxy": bar_neg45[np.newaxis]},
+            )
+        ]
+
+        # OBB mode: orthogonal bars barely overlap → FP and FN, not TP
+        cm_obb = ConfusionMatrix.from_detections(
+            predictions=pred,
+            targets=gt,
+            classes=classes,
+            iou_threshold=0.5,
+            metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES,
+        )
+        assert cm_obb.matrix[0, 0] == 0  # no TP
+        assert cm_obb.matrix[0, 1] == 1  # FN
+        assert cm_obb.matrix[1, 0] == 1  # FP
+
+        # BOXES mode: identical AABB → TP (controls that AABB path is intact)
+        cm_boxes = ConfusionMatrix.from_detections(
+            predictions=pred,
+            targets=gt,
+            classes=classes,
+            iou_threshold=0.5,
+            metric_target=MetricTarget.BOXES,
+        )
+        assert cm_boxes.matrix[0, 0] == 1
+        assert cm_boxes.matrix.sum() == 1
+
+    @pytest.mark.parametrize(
+        ("pred_tensor", "target_tensor", "iou_threshold", "expected_matrix"),
+        [
+            pytest.param(
+                np.array([[5, 0, 10, 5, 5, 10, 0, 5, 0, 0.9]], dtype=np.float32),
+                np.array([[5, 0, 10, 5, 5, 10, 0, 5, 0]], dtype=np.float32),
+                0.5,
+                np.array([[1.0, 0.0], [0.0, 0.0]]),
+                id="perfect_match_tp",
+            ),
+            pytest.param(
+                np.array([[0, 0, 10, 0, 10, 10, 0, 10, 0, 0.9]], dtype=np.float32),
+                np.array([[5, 0, 10, 5, 5, 10, 0, 5, 0]], dtype=np.float32),
+                0.3,
+                np.array([[1.0, 0.0], [0.0, 0.0]]),
+                id="partial_obb_match_tp_at_threshold_0_3",
+            ),
+            pytest.param(
+                np.array([[0, 0, 10, 0, 10, 10, 0, 10, 0, 0.9]], dtype=np.float32),
+                np.array([[5, 0, 10, 5, 5, 10, 0, 5, 0]], dtype=np.float32),
+                0.7,
+                np.array([[0.0, 1.0], [1.0, 0.0]]),
+                id="partial_obb_no_match_at_threshold_0_7",
+            ),
+        ],
+    )
+    def test_confusion_matrix_from_tensors_obb(
+        self, pred_tensor, target_tensor, iou_threshold, expected_matrix
+    ):
+        """Direct from_tensors OBB end-to-end coverage with pre-built tensors."""
+        cm = ConfusionMatrix.from_tensors(
+            predictions=[pred_tensor],
+            targets=[target_tensor],
+            classes=["box"],
+            iou_threshold=iou_threshold,
+            metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES,
+        )
+        np.testing.assert_array_equal(cm.matrix, expected_matrix)
+
+    @pytest.mark.parametrize(
+        "call",
+        [
+            pytest.param(
+                lambda: ConfusionMatrix.from_detections(
+                    predictions=[
+                        Detections(
+                            xyxy=np.zeros((1, 4), dtype=np.float32),
+                            class_id=np.array([0]),
+                            confidence=np.array([0.9]),
+                        )
+                    ],
+                    targets=[
+                        Detections(
+                            xyxy=np.zeros((1, 4), dtype=np.float32),
+                            class_id=np.array([0]),
+                        )
+                    ],
+                    classes=["box"],
+                    metric_target=MetricTarget.MASKS,
+                ),
+                id="from_detections",
+            ),
+            pytest.param(
+                lambda: ConfusionMatrix.from_tensors(
+                    predictions=[np.zeros((1, 6), dtype=np.float32)],
+                    targets=[np.zeros((1, 5), dtype=np.float32)],
+                    classes=["box"],
+                    metric_target=MetricTarget.MASKS,
+                ),
+                id="from_tensors",
+            ),
+            pytest.param(
+                lambda: ConfusionMatrix.evaluate_detection_batch(
+                    predictions=np.zeros((1, 6), dtype=np.float32),
+                    targets=np.zeros((1, 5), dtype=np.float32),
+                    num_classes=1,
+                    conf_threshold=0.3,
+                    iou_threshold=0.5,
+                    metric_target=MetricTarget.MASKS,
+                ),
+                id="evaluate_detection_batch",
+            ),
+        ],
+    )
+    def test_confusion_matrix_masks_rejection(self, call):
+        """MetricTarget.MASKS raises ValueError at every public entry point."""
+        with pytest.raises(ValueError, match=r"MetricTarget\.MASKS"):
+            call()
+
+    def test_confusion_matrix_multiclass_obb(self):
+        """Multi-class OBB: TP for exact match, FP+FN for rotation mismatch."""
+        classes = ["box", "circle"]
+
+        # Ground truth: class-0 diamond at [0,0,10,10], class-1 diamond at [20,20,30,30]
+        gt = [
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]], dtype=np.float32),
+                class_id=np.array([0, 1]),
+                data={
+                    "xyxyxyxy": np.array(
+                        [
+                            [[5, 0], [10, 5], [5, 10], [0, 5]],
+                            [[25, 20], [30, 25], [25, 30], [20, 25]],
+                        ],
+                        dtype=np.float32,
+                    )
+                },
+            )
+        ]
+        # Predictions: class-0 same diamond (OBB IoU=1.0 → TP);
+        #              class-1 axis-aligned square (OBB IoU=0.5 < threshold=0.6 → FP+FN)
+        pred = [
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]], dtype=np.float32),
+                class_id=np.array([0, 1]),
+                confidence=np.array([0.9, 0.8], dtype=np.float32),
+                data={
+                    "xyxyxyxy": np.array(
+                        [
+                            [[5, 0], [10, 5], [5, 10], [0, 5]],
+                            [[20, 20], [30, 20], [30, 30], [20, 30]],
+                        ],
+                        dtype=np.float32,
+                    )
+                },
+            )
+        ]
+
+        cm = ConfusionMatrix.from_detections(
+            predictions=pred,
+            targets=gt,
+            classes=classes,
+            iou_threshold=0.6,
+            metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES,
+        )
+
+        assert cm.matrix[0, 0] == 1  # TP class 0
+        assert cm.matrix[1, 2] == 1  # FN class 1 (unmatched GT)
+        assert cm.matrix[2, 1] == 1  # FP class 1 (unmatched pred)
+
+    def test_confusion_matrix_metric_target_persistence_from_detections(self):
+        """metric_target field reflects the value passed to from_detections."""
+        xyxy = np.array([[0, 0, 10, 10]], dtype=np.float32)
+        cm = ConfusionMatrix.from_detections(
+            predictions=[
+                Detections(
+                    xyxy=xyxy, class_id=np.array([0]), confidence=np.array([0.9])
+                )
+            ],
+            targets=[Detections(xyxy=xyxy, class_id=np.array([0]))],
+            classes=["box"],
+            metric_target=MetricTarget.BOXES,
+        )
+        assert cm.metric_target == MetricTarget.BOXES
+
+    def test_confusion_matrix_metric_target_persistence_from_tensors(self):
+        """metric_target field reflects the value passed to from_tensors."""
+        cm = ConfusionMatrix.from_tensors(
+            predictions=[np.array([[0, 0, 10, 10, 0, 0.9]], dtype=np.float32)],
+            targets=[np.array([[0, 0, 10, 10, 0]], dtype=np.float32)],
+            classes=["box"],
+            metric_target=MetricTarget.BOXES,
+        )
+        assert cm.metric_target == MetricTarget.BOXES
