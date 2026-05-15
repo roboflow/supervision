@@ -99,7 +99,4 @@ uv run pre-commit run --all-files
 
 ## Cursor Cloud specific instructions
 
-- `uv` is installed at `$HOME/.local/bin/uv`. Add to PATH: `export PATH="$HOME/.local/bin:$PATH"`
-- Install dev dependencies: `uv sync --group dev`
-- Tests do not support `--timeout` flag (pytest-timeout is not installed); use `uv run pytest tests/ -x -q`
-- All 1688 tests pass on the current `develop` branch.
+- `uv` is at `$HOME/.local/bin/uv` — add to PATH if not found: `export PATH="$HOME/.local/bin:$PATH"`
