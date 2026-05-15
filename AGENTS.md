@@ -96,10 +96,3 @@ uv run pre-commit run --all-files
 - All tests must pass before opening a PR. Note: some existing tests in the repo may
     already be failing — your changes must not introduce new failures.
 - Fix any issues reported and re-run until clean.
-
-## Cursor Cloud specific instructions
-
-- `uv` is installed at `$HOME/.local/bin/uv`. Add to PATH: `export PATH="$HOME/.local/bin:$PATH"`
-- Install dev dependencies: `uv sync --group dev`
-- Tests do not support `--timeout` flag (pytest-timeout is not installed); use `uv run pytest tests/ -x -q`
-- All 1688 tests pass on the current `develop` branch.
