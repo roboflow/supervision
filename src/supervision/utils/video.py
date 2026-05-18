@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import os
+import shutil
+import subprocess
+import tempfile
 import threading
 import time
 from collections import deque
@@ -133,6 +137,63 @@ class VideoSink:
             self.__writer.release()
 
 
+def _mux_audio(source_path: str, video_path: str) -> None:
+    """Mux audio from `source_path` into `video_path` in-place using ffmpeg.
+
+    Args:
+        source_path: Path to the original video file containing the audio stream.
+        video_path: Path to the video-only file to be updated with audio.
+    """
+    ffmpeg_path = shutil.which("ffmpeg")
+    if ffmpeg_path is None:
+        logger.warning(
+            "ffmpeg not found on PATH. Audio will not be preserved. "
+            "Install ffmpeg to enable audio preservation."
+        )
+        return
+
+    tmp_fd, tmp_path = tempfile.mkstemp(suffix=os.path.splitext(video_path)[1])
+    os.close(tmp_fd)
+    try:
+        result = subprocess.run(  # noqa: S603
+            [
+                ffmpeg_path,
+                "-y",
+                "-i",
+                video_path,
+                "-i",
+                source_path,
+                "-c:v",
+                "copy",
+                "-c:a",
+                "copy",
+                "-map",
+                "0:v:0",
+                "-map",
+                "1:a:0",
+                "-shortest",
+                tmp_path,
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+        )
+        if result.returncode != 0:
+            logger.warning(
+                "ffmpeg failed to mux audio (return code %d). "
+                "The output video will not have audio.",
+                result.returncode,
+            )
+            return
+        shutil.move(tmp_path, video_path)
+    except Exception as exc:
+        logger.warning(
+            "Audio muxing failed: %s. Output video will not have audio.", exc
+        )
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
 def _validate_and_setup_video(
     source_path: str, start: int, end: int | None, iterative_seek: bool = False
 ) -> tuple[cv2.VideoCapture, int, int]:
@@ -219,6 +280,7 @@ def process_video(
     writer_buffer: int = 32,
     show_progress: bool = False,
     progress_message: str = "Processing video",
+    preserve_audio: bool = False,
 ) -> None:
     """
     Process video frames asynchronously using a threaded pipeline.
@@ -252,6 +314,9 @@ def process_video(
         show_progress: Whether to display a tqdm progress bar during processing.
             Default is False.
         progress_message: Description shown in the progress bar.
+        preserve_audio: If True, copy the audio stream from `source_path` into
+            `target_path` after frame processing. Requires `ffmpeg` on PATH.
+            Default is False.
 
     Returns:
         None
@@ -271,6 +336,7 @@ def process_video(
             source_path="source.mp4",
             target_path="target.mp4",
             callback=callback,
+            preserve_audio=True,
         )
         ```
     """
@@ -367,6 +433,9 @@ def process_video(
             progress_bar.close()
             if exception_in_worker is not None:
                 raise exception_in_worker
+
+    if preserve_audio:
+        _mux_audio(source_path=source_path, video_path=target_path)
 
 
 class FPSMonitor:

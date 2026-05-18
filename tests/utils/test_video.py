@@ -1,10 +1,17 @@
 import os
+import shutil
+from unittest.mock import MagicMock, patch
 
 import cv2
 import numpy as np
 import pytest
 
-from supervision.utils.video import VideoInfo, get_video_frames_generator, process_video
+from supervision.utils.video import (
+    VideoInfo,
+    _mux_audio,
+    get_video_frames_generator,
+    process_video,
+)
 
 
 @pytest.fixture
@@ -204,6 +211,87 @@ def test_get_video_frames_generator_with_stride(dummy_video_path):
     generator = get_video_frames_generator(dummy_video_path, stride=2)
     frames = list(generator)
     assert len(frames) == 5
+
+
+def test_process_video_preserve_audio_calls_mux(dummy_video_path, tmp_path):
+    """
+    Verify that process_video calls _mux_audio when preserve_audio=True.
+
+    Scenario: Processing a video with preserve_audio=True and ffmpeg available.
+    Expected: _mux_audio is called exactly once with the correct source and target
+    paths, confirming the audio muxing step is triggered after frame writing completes.
+    """
+    target_path = str(tmp_path / "target_audio.mp4")
+
+    with patch("supervision.utils.video._mux_audio") as mock_mux:
+        process_video(
+            source_path=dummy_video_path,
+            target_path=target_path,
+            callback=lambda frame, idx: frame,
+            preserve_audio=True,
+        )
+        mock_mux.assert_called_once_with(
+            source_path=dummy_video_path, video_path=target_path
+        )
+
+
+def test_process_video_no_audio_by_default(dummy_video_path, tmp_path):
+    """
+    Verify that process_video does not call _mux_audio when preserve_audio=False.
+
+    Scenario: Default process_video call without setting preserve_audio.
+    Expected: _mux_audio is never called, preserving existing behavior for callers
+    that do not need audio.
+    """
+    target_path = str(tmp_path / "target_no_audio.mp4")
+
+    with patch("supervision.utils.video._mux_audio") as mock_mux:
+        process_video(
+            source_path=dummy_video_path,
+            target_path=target_path,
+            callback=lambda frame, idx: frame,
+        )
+        mock_mux.assert_not_called()
+
+
+def test_mux_audio_warns_when_ffmpeg_missing(dummy_video_path, tmp_path):
+    """
+    Verify that _mux_audio logs a warning and returns without error when ffmpeg absent.
+
+    Scenario: ffmpeg is not available on PATH.
+    Expected: A warning is logged and the target video file is left unchanged,
+    so the caller still gets a valid (audio-less) output rather than a crash.
+    """
+    target_path = str(tmp_path / "video_only.mp4")
+    shutil.copy(dummy_video_path, target_path)
+    original_size = os.path.getsize(target_path)
+
+    with patch("shutil.which", return_value=None):
+        _mux_audio(source_path=dummy_video_path, video_path=target_path)
+
+    assert os.path.getsize(target_path) == original_size
+
+
+def test_mux_audio_warns_on_ffmpeg_failure(dummy_video_path, tmp_path):
+    """
+    Verify that _mux_audio logs a warning and leaves the file intact when ffmpeg fails.
+
+    Scenario: ffmpeg is present but exits with a non-zero return code.
+    Expected: The original video-only file is preserved and no exception is raised,
+    so a transient ffmpeg error does not crash the caller's pipeline.
+    """
+    target_path = str(tmp_path / "video_only.mp4")
+    shutil.copy(dummy_video_path, target_path)
+    original_size = os.path.getsize(target_path)
+
+    failed_result = MagicMock()
+    failed_result.returncode = 1
+
+    with patch("shutil.which", return_value="/usr/bin/ffmpeg"):
+        with patch("subprocess.run", return_value=failed_result):
+            _mux_audio(source_path=dummy_video_path, video_path=target_path)
+
+    assert os.path.getsize(target_path) == original_size
 
 
 def test_get_video_frames_generator_with_start_end(dummy_video_path):
