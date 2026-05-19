@@ -266,7 +266,7 @@ def test_mux_audio_warns_when_ffmpeg_missing(dummy_video_path, tmp_path):
     shutil.copy(dummy_video_path, target_path)
     original_size = os.path.getsize(target_path)
 
-    with patch("shutil.which", return_value=None):
+    with patch("supervision.utils.video.shutil.which", return_value=None):
         _mux_audio(source_path=dummy_video_path, video_path=target_path)
 
     assert os.path.getsize(target_path) == original_size
@@ -287,8 +287,10 @@ def test_mux_audio_warns_on_ffmpeg_failure(dummy_video_path, tmp_path):
     failed_result = MagicMock()
     failed_result.returncode = 1
 
-    with patch("shutil.which", return_value="/usr/bin/ffmpeg"):
-        with patch("subprocess.run", return_value=failed_result):
+    with patch("supervision.utils.video.shutil.which", return_value="/usr/bin/ffmpeg"):
+        with patch(
+            "supervision.utils.video.subprocess.run", return_value=failed_result
+        ):
             _mux_audio(source_path=dummy_video_path, video_path=target_path)
 
     assert os.path.getsize(target_path) == original_size
