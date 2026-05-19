@@ -254,92 +254,75 @@ def test_process_video_no_audio_by_default(dummy_video_path, tmp_path):
         mock_mux.assert_not_called()
 
 
-def test_mux_audio_warns_when_ffmpeg_missing(dummy_video_path, tmp_path):
-    """
-    Verify that _mux_audio logs a warning and returns without error when ffmpeg absent.
+class TestMuxAudio:
+    def test_warns_when_ffmpeg_missing(self, dummy_video_path, tmp_path):
+        """_mux_audio leaves file unchanged and returns when ffmpeg not on PATH."""
+        target_path = str(tmp_path / "video_only.mp4")
+        shutil.copy(dummy_video_path, target_path)
+        original_size = os.path.getsize(target_path)
 
-    Scenario: ffmpeg is not available on PATH.
-    Expected: A warning is logged and the target video file is left unchanged,
-    so the caller still gets a valid (audio-less) output rather than a crash.
-    """
-    target_path = str(tmp_path / "video_only.mp4")
-    shutil.copy(dummy_video_path, target_path)
-    original_size = os.path.getsize(target_path)
-
-    with patch("supervision.utils.video.shutil.which", return_value=None):
-        _mux_audio(source_path=dummy_video_path, video_path=target_path)
-
-    assert os.path.getsize(target_path) == original_size
-
-
-def test_mux_audio_warns_on_ffmpeg_failure(dummy_video_path, tmp_path):
-    """
-    Verify that _mux_audio logs a warning and leaves the file intact when ffmpeg fails.
-
-    Scenario: ffmpeg is present but exits with a non-zero return code.
-    Expected: The original video-only file is preserved and no exception is raised,
-    so a transient ffmpeg error does not crash the caller's pipeline.
-    """
-    target_path = str(tmp_path / "video_only.mp4")
-    shutil.copy(dummy_video_path, target_path)
-    original_size = os.path.getsize(target_path)
-
-    failed_result = MagicMock()
-    failed_result.returncode = 1
-    failed_result.stderr = b""
-
-    with patch("supervision.utils.video.shutil.which", return_value="/usr/bin/ffmpeg"):
-        with patch(
-            "supervision.utils.video.subprocess.run", return_value=failed_result
-        ):
+        with patch("supervision.utils.video.shutil.which", return_value=None):
             _mux_audio(source_path=dummy_video_path, video_path=target_path)
 
-    assert os.path.getsize(target_path) == original_size
+        assert os.path.getsize(target_path) == original_size
 
+    def test_warns_on_ffmpeg_failure(self, dummy_video_path, tmp_path):
+        """_mux_audio leaves file unchanged and raises no exception on non-zero exit."""
+        target_path = str(tmp_path / "video_only.mp4")
+        shutil.copy(dummy_video_path, target_path)
+        original_size = os.path.getsize(target_path)
 
-def test_mux_audio_moves_file_on_success(dummy_video_path, tmp_path):
-    """Verify that _mux_audio replaces video_path via os.replace when ffmpeg succeeds.
+        failed_result = MagicMock()
+        failed_result.returncode = 1
+        failed_result.stderr = b""
 
-    Scenario: ffmpeg is present and exits with return code 0.
-    Expected: os.replace is called once with video_path as the destination,
-    confirming the muxed output atomically replaces the original video-only file.
-    """
-    target_path = str(tmp_path / "video.mp4")
-    shutil.copy(dummy_video_path, target_path)
-
-    success_result = MagicMock()
-    success_result.returncode = 0
-    success_result.stderr = b""
-
-    with patch("supervision.utils.video.shutil.which", return_value="/usr/bin/ffmpeg"):
         with patch(
-            "supervision.utils.video.subprocess.run", return_value=success_result
+            "supervision.utils.video.shutil.which", return_value="/usr/bin/ffmpeg"
         ):
-            with patch("supervision.utils.video.os.replace") as mock_replace:
+            with patch(
+                "supervision.utils.video.subprocess.run", return_value=failed_result
+            ):
                 _mux_audio(source_path=dummy_video_path, video_path=target_path)
 
-    mock_replace.assert_called_once()
-    assert mock_replace.call_args[0][1] == target_path
+        assert os.path.getsize(target_path) == original_size
 
+    def test_replaces_file_on_success(self, dummy_video_path, tmp_path):
+        """_mux_audio calls os.replace with video_path as destination on success."""
+        target_path = str(tmp_path / "video.mp4")
+        shutil.copy(dummy_video_path, target_path)
 
-def test_mux_audio_swallows_subprocess_exception(dummy_video_path, tmp_path):
-    """Verify that _mux_audio does not propagate subprocess errors to the caller.
+        success_result = MagicMock()
+        success_result.returncode = 0
+        success_result.stderr = b""
 
-    Scenario: subprocess.run raises OSError after ffmpeg is found on PATH.
-    Expected: No exception escapes _mux_audio; the original video file is unchanged.
-    """
-    target_path = str(tmp_path / "video.mp4")
-    shutil.copy(dummy_video_path, target_path)
-    original_size = os.path.getsize(target_path)
-
-    with patch("supervision.utils.video.shutil.which", return_value="/usr/bin/ffmpeg"):
         with patch(
-            "supervision.utils.video.subprocess.run",
-            side_effect=OSError("mux failed"),
+            "supervision.utils.video.shutil.which", return_value="/usr/bin/ffmpeg"
         ):
-            _mux_audio(source_path=dummy_video_path, video_path=target_path)
+            with patch(
+                "supervision.utils.video.subprocess.run", return_value=success_result
+            ):
+                with patch("supervision.utils.video.os.replace") as mock_replace:
+                    _mux_audio(source_path=dummy_video_path, video_path=target_path)
 
-    assert os.path.getsize(target_path) == original_size
+        mock_replace.assert_called_once()
+        assert mock_replace.call_args[0][1] == target_path
+
+    def test_swallows_subprocess_exception(self, dummy_video_path, tmp_path):
+        """_mux_audio does not propagate OSError from subprocess.run to the caller."""
+        target_path = str(tmp_path / "video.mp4")
+        shutil.copy(dummy_video_path, target_path)
+        original_size = os.path.getsize(target_path)
+
+        with patch(
+            "supervision.utils.video.shutil.which", return_value="/usr/bin/ffmpeg"
+        ):
+            with patch(
+                "supervision.utils.video.subprocess.run",
+                side_effect=OSError("mux failed"),
+            ):
+                _mux_audio(source_path=dummy_video_path, video_path=target_path)
+
+        assert os.path.getsize(target_path) == original_size
 
 
 def test_get_video_frames_generator_with_start_end(dummy_video_path):
