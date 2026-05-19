@@ -286,10 +286,56 @@ def test_mux_audio_warns_on_ffmpeg_failure(dummy_video_path, tmp_path):
 
     failed_result = MagicMock()
     failed_result.returncode = 1
+    failed_result.stderr = b""
 
     with patch("supervision.utils.video.shutil.which", return_value="/usr/bin/ffmpeg"):
         with patch(
             "supervision.utils.video.subprocess.run", return_value=failed_result
+        ):
+            _mux_audio(source_path=dummy_video_path, video_path=target_path)
+
+    assert os.path.getsize(target_path) == original_size
+
+
+def test_mux_audio_moves_file_on_success(dummy_video_path, tmp_path):
+    """Verify that _mux_audio replaces video_path via shutil.move when ffmpeg succeeds.
+
+    Scenario: ffmpeg is present and exits with return code 0.
+    Expected: shutil.move is called once with video_path as the destination,
+    confirming the muxed output replaces the original video-only file.
+    """
+    target_path = str(tmp_path / "video.mp4")
+    shutil.copy(dummy_video_path, target_path)
+
+    success_result = MagicMock()
+    success_result.returncode = 0
+    success_result.stderr = b""
+
+    with patch("supervision.utils.video.shutil.which", return_value="/usr/bin/ffmpeg"):
+        with patch(
+            "supervision.utils.video.subprocess.run", return_value=success_result
+        ):
+            with patch("supervision.utils.video.shutil.move") as mock_move:
+                _mux_audio(source_path=dummy_video_path, video_path=target_path)
+
+    mock_move.assert_called_once()
+    assert mock_move.call_args[0][1] == target_path
+
+
+def test_mux_audio_swallows_subprocess_exception(dummy_video_path, tmp_path):
+    """Verify that _mux_audio does not propagate subprocess errors to the caller.
+
+    Scenario: subprocess.run raises OSError after ffmpeg is found on PATH.
+    Expected: No exception escapes _mux_audio; the original video file is unchanged.
+    """
+    target_path = str(tmp_path / "video.mp4")
+    shutil.copy(dummy_video_path, target_path)
+    original_size = os.path.getsize(target_path)
+
+    with patch("supervision.utils.video.shutil.which", return_value="/usr/bin/ffmpeg"):
+        with patch(
+            "supervision.utils.video.subprocess.run",
+            side_effect=OSError("mux failed"),
         ):
             _mux_audio(source_path=dummy_video_path, video_path=target_path)
 
