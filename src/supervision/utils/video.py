@@ -333,7 +333,6 @@ def process_video(
 
     Example:
         ```python
-        import cv2
         import supervision as sv
         from rfdetr import RFDETRMedium
 
@@ -342,7 +341,7 @@ def process_video(
         def callback(frame, frame_index):
             return model.predict(frame)
 
-        process_video(
+        sv.process_video(
             source_path="source.mp4",
             target_path="target.mp4",
             callback=callback,
