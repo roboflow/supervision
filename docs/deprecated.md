@@ -5,19 +5,29 @@ status: deprecated
 
 # Deprecated
 
-These features are phased out due to better alternatives or potential issues in future versions. Deprecated functionalities are supported for **five subsequent releases**, providing time for users to transition to updated methods.
+These features are phased out due to better alternatives or potential issues in future versions. Deprecated functionalities are typically supported for multiple subsequent releases, providing time for users to transition to updated methods.
 
-- `overlap_ratio_wh` in [`InferenceSlicer.__init__`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/) is deprecated and will be removed in `supervision-0.27.0`. Please set it to `None` and use `overlap_wh` instead.
+- [`sv.ByteTrack`](https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) is deprecated in favour of `ByteTrackTracker` from the external [`trackers`](https://pypi.org/project/trackers/) package (`pip install trackers`). The update method is renamed from `update_with_detections()` to `update()`. Removal planned for `supervision-0.30.0`.
+- `supervision.keypoint` module is deprecated; use `supervision.key_points` instead. Will be removed in `supervision-0.30.0`.
+- `create_tiles` in `supervision.utils.image` is deprecated. Will be removed in `supervision-0.31.0`.
+- `ensure_cv2_image_for_processing` in `supervision.utils.conversion` is deprecated. Will be removed in `supervision-0.31.0`.
+- Keypoint validation utilities in `supervision.validators` are deprecated. Will be removed in `supervision-0.31.0`.
+- `normalized_xyxy` argument in [`sv.denormalize_boxes`](https://supervision.roboflow.com/latest/detection/utils/boxes/#supervision.detection.utils.boxes.denormalize_boxes) is renamed to `xyxy`. Passing `normalized_xyxy=` emits a `FutureWarning`; support will be removed in `supervision-0.30.0`.
+- `supervision.dataset.utils` import path for [`sv.rle_to_mask`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.rle_to_mask) and [`sv.mask_to_rle`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.mask_to_rle) is deprecated. These functions moved to `supervision.detection.utils.converters`. Will be removed in `supervision-0.30.0`.
 - `sv.LMM` enum is deprecated and will be removed in `supervision-0.31.0`. Use `sv.VLM` instead.
-- [`sv.Detections.from_lmm`](https://supervision.roboflow.com/0.26.0/detection/core/#supervision.detection.core.Detections.from_lmm) property is deprecated and will be removed in `supervision-0.31.0`. Use [`sv.Detections.from_vlm`](https://supervision.roboflow.com/0.26.0/detection/core/#supervision.detection.core.Detections.from_vlm) instead.
+- [`sv.Detections.from_lmm`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_lmm) property is deprecated and will be removed in `supervision-0.31.0`. Use [`sv.Detections.from_vlm`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_vlm) instead.
 
 # Removed
+
+### 0.27.0
+
+- `overlap_ratio_wh` parameter in [`sv.InferenceSlicer`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/) has been removed. Use the pixel-based `overlap_wh` parameter instead.
+- `overlap_filter_strategy` parameter in [`sv.InferenceSlicer`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/) has been removed. Use `overlap_strategy` instead.
 
 ### 0.26.0
 
 - The `sv.DetectionDataset.images` property has been removed in `supervision-0.26.0`. Please loop over images with `for path, image, annotation in dataset:`, as that does not require loading all images into memory. Also, constructing `sv.DetectionDataset` with parameter `images` as `Dict[str, np.ndarray]` is deprecated and has been removed in `supervision-0.26.0`. Please pass a list of paths `List[str]` instead.
 - The name `sv.BoundingBoxAnnotator` is deprecated and has been removed in `supervision-0.26.0`. It has been renamed to [`sv.BoxAnnotator`](https://supervision.roboflow.com/0.22.0/detection/annotators/#supervision.annotators.core.BoxAnnotator).
-
 
 ### 0.24.0
 

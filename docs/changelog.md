@@ -7,9 +7,9 @@ date_modified: 2026-04-23
 
 ### 0.28.0 <small>Apr 30, 2026</small>
 
-- Added [#2159](https://github.com/roboflow/supervision/pull/2159): [`sv.CompactMask`](https://supervision.roboflow.com/develop/detection/compact_mask/#supervision.detection.compact_mask.CompactMask) for memory-efficient mask storage. Masks are stored as crop-region bounding boxes plus RLE-encoded data instead of full-resolution bitmaps, reducing memory by up to 240× for sparse masks. Integrates transparently with `sv.Detections.mask` — filtering, merging, and `area` all work without materialising the full array.
+- Added [#2159](https://github.com/roboflow/supervision/pull/2159): [`sv.CompactMask`](https://supervision.roboflow.com/latest/detection/compact_mask/#supervision.detection.compact_mask.CompactMask) for memory-efficient mask storage. Masks are stored as crop-region bounding boxes plus RLE-encoded data instead of full-resolution bitmaps, reducing memory by up to 240× for sparse masks. Integrates transparently with `sv.Detections.mask` — filtering, merging, and `area` all work without materialising the full array.
 
-- Added [#2227](https://github.com/roboflow/supervision/pull/2227): [`sv.CompactMask.resize(new_image_shape)`](https://supervision.roboflow.com/develop/detection/compact_mask/#supervision.detection.compact_mask.CompactMask.resize) rescales all stored crops to match a new image resolution, enabling use across frames or after image resizing pipelines.
+- Added [#2227](https://github.com/roboflow/supervision/pull/2227): [`sv.CompactMask.resize(new_image_shape)`](https://supervision.roboflow.com/latest/detection/compact_mask/#supervision.detection.compact_mask.CompactMask.resize) rescales all stored crops to match a new image resolution, enabling use across frames or after image resizing pipelines.
 
 - Added [#2178](https://github.com/roboflow/supervision/pull/2178): [`sv.Detections.from_inference`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_inference) now supports compressed COCO RLE masks. Inference responses with `rle` or `rle_mask` fields containing a compressed counts string (as produced by `pycocotools`) are decoded directly into binary masks, avoiding a lossy polygon round-trip.
 
