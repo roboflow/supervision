@@ -1,10 +1,17 @@
 import os
+import shutil
+from unittest.mock import MagicMock, patch
 
 import cv2
 import numpy as np
 import pytest
 
-from supervision.utils.video import VideoInfo, get_video_frames_generator, process_video
+from supervision.utils.video import (
+    VideoInfo,
+    _mux_audio,
+    get_video_frames_generator,
+    process_video,
+)
 
 
 @pytest.fixture
@@ -204,6 +211,100 @@ def test_get_video_frames_generator_with_stride(dummy_video_path):
     generator = get_video_frames_generator(dummy_video_path, stride=2)
     frames = list(generator)
     assert len(frames) == 5
+
+
+def test_process_video_preserve_audio_calls_mux(dummy_video_path, tmp_path):
+    """
+    Verify that process_video calls _mux_audio when preserve_audio=True.
+
+    Scenario: Processing a video with preserve_audio=True and ffmpeg available.
+    Expected: _mux_audio is called exactly once with the correct source and target
+    paths, confirming the audio muxing step is triggered after frame writing completes.
+    """
+    target_path = str(tmp_path / "target_audio.mp4")
+
+    with patch("supervision.utils.video._mux_audio") as mock_mux:
+        process_video(
+            source_path=dummy_video_path,
+            target_path=target_path,
+            callback=lambda frame, idx: frame,
+            preserve_audio=True,
+        )
+        mock_mux.assert_called_once_with(
+            source_path=dummy_video_path, video_path=target_path
+        )
+
+
+def test_process_video_no_audio_by_default(dummy_video_path, tmp_path):
+    """
+    Verify that process_video does not call _mux_audio when preserve_audio=False.
+
+    Scenario: Default process_video call without setting preserve_audio.
+    Expected: _mux_audio is never called, preserving existing behavior for callers
+    that do not need audio.
+    """
+    target_path = str(tmp_path / "target_no_audio.mp4")
+
+    with patch("supervision.utils.video._mux_audio") as mock_mux:
+        process_video(
+            source_path=dummy_video_path,
+            target_path=target_path,
+            callback=lambda frame, idx: frame,
+        )
+        mock_mux.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("which_rv", "run_kwargs"),
+    [
+        pytest.param(None, {}, id="ffmpeg_missing"),
+        pytest.param(
+            "/usr/bin/ffmpeg",
+            {"return_value": MagicMock(returncode=1, stderr=b"")},
+            id="ffmpeg_fails",
+        ),
+        pytest.param(
+            "/usr/bin/ffmpeg",
+            {"side_effect": OSError("mux failed")},
+            id="subprocess_raises",
+        ),
+    ],
+)
+def test_mux_audio_file_unchanged_on_failure(
+    dummy_video_path, tmp_path, which_rv, run_kwargs
+):
+    """_mux_audio leaves the output file unchanged when muxing cannot complete."""
+    target_path = str(tmp_path / "video.mp4")
+    shutil.copy(dummy_video_path, target_path)
+    original_size = os.path.getsize(target_path)
+
+    with (
+        patch("supervision.utils.video.shutil.which", return_value=which_rv),
+        patch("supervision.utils.video.subprocess.run", **run_kwargs),
+    ):
+        _mux_audio(source_path=dummy_video_path, video_path=target_path)
+
+    assert os.path.getsize(target_path) == original_size
+
+
+def test_mux_audio_replaces_file_on_success(dummy_video_path, tmp_path):
+    """_mux_audio calls os.replace with video_path as destination on success."""
+    target_path = str(tmp_path / "video.mp4")
+    shutil.copy(dummy_video_path, target_path)
+
+    success_result = MagicMock()
+    success_result.returncode = 0
+    success_result.stderr = b""
+
+    with (
+        patch("supervision.utils.video.shutil.which", return_value="/usr/bin/ffmpeg"),
+        patch("supervision.utils.video.subprocess.run", return_value=success_result),
+        patch("supervision.utils.video.os.replace") as mock_replace,
+    ):
+        _mux_audio(source_path=dummy_video_path, video_path=target_path)
+
+    mock_replace.assert_called_once()
+    assert mock_replace.call_args[0][1] == target_path
 
 
 def test_get_video_frames_generator_with_start_end(dummy_video_path):
