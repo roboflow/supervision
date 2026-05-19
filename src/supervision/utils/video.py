@@ -194,7 +194,7 @@ def _mux_audio(source_path: str, video_path: str) -> None:
                 f": {stderr_msg}" if stderr_msg else "",
             )
             return
-        shutil.move(tmp_path, video_path)
+        os.replace(tmp_path, video_path)
     except Exception as exc:
         logger.warning(
             "Audio muxing failed: %s. Output video will not have audio.", exc
