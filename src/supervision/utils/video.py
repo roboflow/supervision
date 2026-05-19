@@ -163,6 +163,9 @@ def _mux_audio(source_path: str, video_path: str) -> None:
             [
                 ffmpeg_path,
                 "-y",
+                "-loglevel",
+                "error",
+                "-nostats",
                 "-i",
                 video_path,
                 "-i",
@@ -183,10 +186,12 @@ def _mux_audio(source_path: str, video_path: str) -> None:
             timeout=300,
         )
         if result.returncode != 0:
+            stderr_msg = result.stderr.decode(errors="replace").strip()
             logger.warning(
-                "ffmpeg failed to mux audio (return code %d). "
+                "ffmpeg failed to mux audio (return code %d)%s. "
                 "The output video will not have audio.",
                 result.returncode,
+                f": {stderr_msg}" if stderr_msg else "",
             )
             return
         shutil.move(tmp_path, video_path)
