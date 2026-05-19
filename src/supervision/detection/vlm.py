@@ -202,7 +202,7 @@ def validate_vlm_parameters(vlm: VLM | str, result: Any, kwargs: dict[str, Any])
 
 def from_paligemma(
     result: str, resolution_wh: tuple[int, int], classes: list[str] | None = None
-) -> tuple[npt.NDArray[Any], npt.NDArray[Any] | None, npt.NDArray[Any]]:
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[Any]]:
     """
     Parse bounding boxes from paligemma-formatted text, scale them to the specified
     resolution, and optionally filter by classes.
