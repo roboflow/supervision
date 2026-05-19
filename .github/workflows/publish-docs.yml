@@ -62,7 +62,7 @@ jobs:
         env:
           MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mike deploy --push -u latest
+          mike deploy --push latest
 
       - name: 🏷️ Determine release deployment metadata
         id: release_metadata
