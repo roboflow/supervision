@@ -71,10 +71,10 @@ jobs:
           release_tag=""
           if [[ "$GITHUB_EVENT_NAME" == "release" ]]; then
             release_tag="${GITHUB_REF_NAME#v}"
-            if [[ "$release_tag" == *[Rr][Cc]* ]]; then
+            release_tag="${release_tag%.post*}"
+            release_tag_lower="${release_tag,,}"
+            if [[ "$release_tag_lower" =~ (^|[._-])rc[0-9]+$ ]] || [[ "$release_tag_lower" =~ [0-9]rc[0-9]+$ ]]; then
               is_rc=true
-            else
-              release_tag="${release_tag%.post*}"
             fi
           fi
           echo "is_rc=$is_rc" >> "$GITHUB_OUTPUT"
