@@ -64,13 +64,29 @@ jobs:
         run: |
           mike deploy --push latest
 
+      - name: 🏷️ Determine release deployment metadata
+        id: release_metadata
+        run: |
+          is_rc=false
+          release_tag=""
+          if [[ "$GITHUB_EVENT_NAME" == "release" ]]; then
+            release_tag="${GITHUB_REF_NAME#v}"
+            release_tag="${release_tag%.post*}"
+            release_tag_lower="${release_tag,,}"
+            # Match RC suffixes with separators (1.0-rc1, 1.0.rc1) or compact form (1.0rc1).
+            if [[ "$release_tag_lower" =~ (^|[._-])rc[0-9]+$ ]] || [[ "$release_tag_lower" =~ [0-9]rc[0-9]+$ ]]; then
+              is_rc=true
+            fi
+          fi
+          echo "is_rc=$is_rc" >> "$GITHUB_OUTPUT"
+          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
+
       - name: 🚀 Deploy Release Docs
-        if: github.event_name == 'release' && github.event.action == 'published'
+        if: github.event_name == 'release' && github.event.action == 'published' && steps.release_metadata.outputs.is_rc != 'true'
         env:
           MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          release_tag="${GITHUB_REF_NAME#v}"
-          mike deploy --push "$release_tag"
+          mike deploy --push "${{ steps.release_metadata.outputs.release_tag }}"
 
       # IndexNow key: 0d5d9799b1cc4a39825146388c6781eb
       # This key must stay in sync across three files:
@@ -84,7 +100,7 @@ jobs:
           (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
           github.event_name == 'workflow_dispatch' ||
           (github.event_name == 'push' && github.ref == 'refs/heads/release/latest') ||
-          (github.event_name == 'release' && github.event.action == 'published')
+          (github.event_name == 'release' && github.event.action == 'published' && steps.release_metadata.outputs.is_rc != 'true')
         run: |
           cp docs/robots.txt /tmp/robots.txt
           cp docs/llms.txt /tmp/llms.txt
