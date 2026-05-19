@@ -62,7 +62,7 @@ jobs:
         env:
           MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mike deploy --push latest
+          mike deploy --push -u latest
 
       - name: 🚀 Deploy Release Docs
         if: github.event_name == 'release' && github.event.action == 'published'
@@ -70,6 +70,13 @@ jobs:
           MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
         run: |
           release_tag="${GITHUB_REF_NAME#v}"
+          # Skip RC releases
+          if [[ "$release_tag" == *rc* ]] || [[ "$release_tag" == *RC* ]]; then
+            echo "Skipping RC release: $release_tag"
+            exit 0
+          fi
+          # Strip .postX suffix
+          release_tag="${release_tag%.post*}"
           mike deploy --push "$release_tag"
 
       # IndexNow key: 0d5d9799b1cc4a39825146388c6781eb
