@@ -73,6 +73,7 @@ jobs:
             release_tag="${GITHUB_REF_NAME#v}"
             release_tag="${release_tag%.post*}"
             release_tag_lower="${release_tag,,}"
+            # Match RC suffixes like 1.0rc1, 1.0-rc1, or 1.0.rc1.
             if [[ "$release_tag_lower" =~ (^|[._-])rc[0-9]+$ ]] || [[ "$release_tag_lower" =~ [0-9]rc[0-9]+$ ]]; then
               is_rc=true
             fi
@@ -100,7 +101,7 @@ jobs:
           github.event_name == 'workflow_dispatch' ||
           (github.event_name == 'push' && github.ref == 'refs/heads/release/latest') ||
           (github.event_name == 'release' && github.event.action == 'published' &&
-          steps.release_metadata.outputs.is_rc != 'true')
+            steps.release_metadata.outputs.is_rc != 'true')
         run: |
           cp docs/robots.txt /tmp/robots.txt
           cp docs/llms.txt /tmp/llms.txt
