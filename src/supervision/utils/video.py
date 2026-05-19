@@ -152,9 +152,13 @@ def _mux_audio(source_path: str, video_path: str) -> None:
         )
         return
 
-    tmp_fd, tmp_path = tempfile.mkstemp(suffix=os.path.splitext(video_path)[1])
-    os.close(tmp_fd)
+    tmp_path = None
     try:
+        tmp_fd, tmp_path = tempfile.mkstemp(
+            suffix=os.path.splitext(video_path)[1],
+            dir=os.path.dirname(os.path.abspath(video_path)),
+        )
+        os.close(tmp_fd)
         result = subprocess.run(  # noqa: S603
             [
                 ffmpeg_path,
@@ -190,7 +194,7 @@ def _mux_audio(source_path: str, video_path: str) -> None:
             "Audio muxing failed: %s. Output video will not have audio.", exc
         )
     finally:
-        if os.path.exists(tmp_path):
+        if tmp_path is not None and os.path.exists(tmp_path):
             os.remove(tmp_path)
 
 
