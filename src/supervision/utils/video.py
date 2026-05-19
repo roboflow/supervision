@@ -447,7 +447,13 @@ def process_video(
                 raise exception_in_worker
 
     if preserve_audio:
-        _mux_audio(source_path=source_path, video_path=target_path)
+        if writer_worker.is_alive():
+            logger.warning(
+                "Writer thread did not finish in time; skipping audio mux "
+                "to avoid reading an incomplete output file."
+            )
+        else:
+            _mux_audio(source_path=source_path, video_path=target_path)
 
 
 class FPSMonitor:

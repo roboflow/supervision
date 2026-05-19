@@ -298,11 +298,11 @@ def test_mux_audio_warns_on_ffmpeg_failure(dummy_video_path, tmp_path):
 
 
 def test_mux_audio_moves_file_on_success(dummy_video_path, tmp_path):
-    """Verify that _mux_audio replaces video_path via shutil.move when ffmpeg succeeds.
+    """Verify that _mux_audio replaces video_path via os.replace when ffmpeg succeeds.
 
     Scenario: ffmpeg is present and exits with return code 0.
-    Expected: shutil.move is called once with video_path as the destination,
-    confirming the muxed output replaces the original video-only file.
+    Expected: os.replace is called once with video_path as the destination,
+    confirming the muxed output atomically replaces the original video-only file.
     """
     target_path = str(tmp_path / "video.mp4")
     shutil.copy(dummy_video_path, target_path)
@@ -315,11 +315,11 @@ def test_mux_audio_moves_file_on_success(dummy_video_path, tmp_path):
         with patch(
             "supervision.utils.video.subprocess.run", return_value=success_result
         ):
-            with patch("supervision.utils.video.shutil.move") as mock_move:
+            with patch("supervision.utils.video.os.replace") as mock_replace:
                 _mux_audio(source_path=dummy_video_path, video_path=target_path)
 
-    mock_move.assert_called_once()
-    assert mock_move.call_args[0][1] == target_path
+    mock_replace.assert_called_once()
+    assert mock_replace.call_args[0][1] == target_path
 
 
 def test_mux_audio_swallows_subprocess_exception(dummy_video_path, tmp_path):
