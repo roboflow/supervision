@@ -7,34 +7,14 @@
   {
     "version": "0.28.0",
     "title": "0.28.0",
-    "aliases": []
-  },
-  {
-    "version": "0.28.0rc1",
-    "title": "0.28.0rc1",
-    "aliases": []
-  },
-  {
-    "version": "0.27.0.post2",
-    "title": "0.27.0.post2",
-    "aliases": []
-  },
-  {
-    "version": "0.27.0.post1",
-    "title": "0.27.0.post1",
-    "aliases": []
-  },
-  {
-    "version": "0.27.0.post0",
-    "title": "0.27.0.post0",
-    "aliases": []
+    "aliases": [
+      "latest"
+    ]
   },
   {
     "version": "0.27.0",
     "title": "0.27.0",
-    "aliases": [
-      "latest"
-    ]
+    "aliases": []
   },
   {
     "version": "0.26.1",
