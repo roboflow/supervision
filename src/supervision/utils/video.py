@@ -325,8 +325,11 @@ def process_video(
             Default is False.
         progress_message: Description shown in the progress bar.
         preserve_audio: If True, copy the audio stream from `source_path` into
-            `target_path` after frame processing. Requires `ffmpeg` on PATH.
-            Default is False.
+            `target_path` after frame processing. Requires `ffmpeg` on PATH
+            (e.g. `apt install ffmpeg`, `brew install ffmpeg`). If ffmpeg is
+            not found or the mux step fails, a warning is logged and the output
+            video is saved without audio — no exception is raised. Audio is
+            truncated to match the processed video duration. Default is False.
 
     Returns:
         None
