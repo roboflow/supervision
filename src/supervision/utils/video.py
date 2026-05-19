@@ -180,6 +180,7 @@ def _mux_audio(source_path: str, video_path: str) -> None:
             ],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE,
+            timeout=300,
         )
         if result.returncode != 0:
             logger.warning(
