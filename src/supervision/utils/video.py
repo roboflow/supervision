@@ -174,7 +174,7 @@ def _mux_audio(source_path: str, video_path: str) -> None:
                 "-map",
                 "0:v:0",
                 "-map",
-                "1:a:0",
+                "1:a:0?",
                 "-shortest",
                 tmp_path,
             ],
