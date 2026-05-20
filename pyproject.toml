@@ -162,6 +162,7 @@ lint.per-file-ignores."src/**" = [
   "S101", # TODO: Replace asserts with proper error handling
 ]
 lint.per-file-ignores."tests/**" = [
+  "ANN",  # Missing type annotations for test functions
   "S101", # Use of `assert` detected
 ]
 lint.unfixable = []
