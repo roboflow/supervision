@@ -208,6 +208,7 @@ ini_options.addopts = [
   "--color=yes",
 ]
 ini_options.doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE"
+ini_options.norecursedirs = [ "examples", "docs", "notebooks", ".venv", ".git", "dist", "build" ]
 
 [tool.autoflake]
 check = true
