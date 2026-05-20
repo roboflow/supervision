@@ -476,7 +476,7 @@ class ConfusionMatrix:
             Confusion matrix plot.
         """
 
-        array = self.matrix.copy()
+        array = self.matrix.astype(np.float32, copy=True)
 
         if normalize:
             eps = 1e-8
