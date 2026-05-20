@@ -1281,7 +1281,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
 
         if self.smart_position:
             xyxy = label_properties[:, :4]
-            xyxy = spread_out_boxes(xyxy)
+            xyxy = cast(npt.NDArray[np.float32], spread_out_boxes(xyxy))
             label_properties[:, :4] = xyxy
 
             label_properties = self._adjust_labels_in_frame(
