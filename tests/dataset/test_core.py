@@ -289,13 +289,14 @@ class TestClassNamePopulation:
 
 
 def test_split_as_coco_preserves_annotation_id_continuity(tmp_path: Path) -> None:
+    image_shape = (10, 10, 3)
     image_paths = []
     annotations = {}
     detection_counts = [2, 1, 3, 1]
 
     for index, detection_count in enumerate(detection_counts):
         image_path = tmp_path / f"image-{index}.png"
-        cv2.imwrite(str(image_path), np.zeros((10, 10, 3), dtype=np.uint8))
+        cv2.imwrite(str(image_path), np.zeros(image_shape, dtype=np.uint8))
         image_paths.append(str(image_path))
         annotations[str(image_path)] = _create_detections(
             xyxy=[[i, i, i + 1, i + 1] for i in range(detection_count)],
@@ -323,10 +324,11 @@ def test_split_as_coco_preserves_annotation_id_continuity(tmp_path: Path) -> Non
     train_annotation_ids = [annotation["id"] for annotation in train_ids]
     valid_annotation_ids = [annotation["id"] for annotation in valid_ids]
     test_annotation_ids = [annotation["id"] for annotation in test_ids]
+    all_annotation_ids = (
+        train_annotation_ids + valid_annotation_ids + test_annotation_ids
+    )
 
     assert train_annotation_ids == [1, 2, 3]
     assert valid_annotation_ids == [4, 5, 6]
     assert test_annotation_ids == [7]
-    assert len(
-        train_annotation_ids + valid_annotation_ids + test_annotation_ids
-    ) == len(set(train_annotation_ids + valid_annotation_ids + test_annotation_ids))
+    assert len(all_annotation_ids) == len(set(all_annotation_ids))
