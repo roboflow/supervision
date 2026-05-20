@@ -84,7 +84,7 @@ docs = [
   "mkdocs-jupyter>=0.24.3",
   "mkdocs-material[imaging]>=9.7",
   "mkdocstrings>=0.25.2,<0.31",
-  "mkdocstrings-python>=1.10.9,<2",                                                      # todo: breaking changes in 2.x
+  "mkdocstrings-python>=1.10.9,<2",                                                       # todo: breaking changes in 2.x
 ]
 build = [
   "build>=0.10,<1.5",
