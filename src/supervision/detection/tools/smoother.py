@@ -3,10 +3,8 @@ from __future__ import annotations
 import warnings
 from collections import defaultdict, deque
 from copy import deepcopy
-from typing import cast
 
 import numpy as np
-import numpy.typing as npt
 
 from supervision.detection.core import Detections
 from supervision.utils.internal import SupervisionWarnings
@@ -48,12 +46,12 @@ class DetectionsSmoother:
         ... )
         >>> smoothed = smoother.update_with_detections(detections_1)
         >>> smoothed.xyxy
-        array([[ 0.,  0., 10., 10.]], dtype=float32)
+        array([[ 0.,  0., 10., 10.]])
         >>> smoothed = smoother.update_with_detections(detections_2)
         >>> smoothed.xyxy
-        array([[ 1.,  1., 11., 11.]], dtype=float32)
+        array([[ 1.,  1., 11., 11.]])
         >>> smoothed.confidence
-        array([0.6], dtype=float32)
+        array([0.6])
 
         ```
 
@@ -138,23 +136,14 @@ class DetectionsSmoother:
             return None
 
         ret = deepcopy(valid[0])
-        xyxy_stack = np.stack(
-            [np.asarray(d.xyxy, dtype=np.float32) for d in valid], axis=0
-        )
-        ret.xyxy = cast(npt.NDArray[np.float32], xyxy_stack.mean(axis=0))
+        xyxy_stack = np.stack([d.xyxy for d in valid], axis=0)
+        ret.xyxy = xyxy_stack.mean(axis=0)
 
         if all(d.confidence is not None for d in valid):
             confidence_stack = np.stack(
-                [
-                    np.asarray(d.confidence, dtype=np.float32)
-                    for d in valid
-                    if d.confidence is not None
-                ],
-                axis=0,
+                [d.confidence for d in valid if d.confidence is not None], axis=0
             )
-            ret.confidence = cast(
-                npt.NDArray[np.float32], confidence_stack.mean(axis=0)
-            )
+            ret.confidence = confidence_stack.mean(axis=0)
         else:
             ret.confidence = None
 

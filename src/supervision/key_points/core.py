@@ -825,13 +825,13 @@ class KeyPoints:
             data=data_selected,
         )
 
-    def __setitem__(self, key: str, value: Any) -> None:
+    def __setitem__(self, key: str, value: npt.NDArray[np.generic] | list[Any]) -> None:
         """
         Set a value in the data dictionary of the `sv.KeyPoints` object.
 
         Args:
             key: The key in the data dictionary to set.
-            value: The value to set for the key.
+            value: The value to set for the key. Must be a np.ndarray or list.
 
         Examples:
             ```python

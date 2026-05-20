@@ -12,7 +12,7 @@ from supervision.detection.utils.iou_and_nms import box_iou_batch
 def clip_boxes(
     xyxy: npt.NDArray[np.number[Any]],
     resolution_wh: tuple[int, int],
-) -> npt.NDArray[np.float64]:
+) -> npt.NDArray[np.number[Any]]:
     """
     Clips bounding boxes coordinates to fit within the frame resolution.
 
@@ -38,13 +38,13 @@ def clip_boxes(
         ...     [-10, -20, 30, 40]
         ... ])
         >>> sv.clip_boxes(xyxy=xyxy, resolution_wh=(320, 240))
-        array([[ 10.,  20., 300., 200.],
-               [ 15.,  25., 320., 240.],
-               [  0.,   0.,  30.,  40.]])
+        array([[ 10,  20, 300, 200],
+               [ 15,  25, 320, 240],
+               [  0,   0,  30,  40]])
 
         ```
     """
-    result: npt.NDArray[np.float64] = np.asarray(xyxy, dtype=np.float64).copy()
+    result = np.copy(xyxy)
     width, height = resolution_wh
     result[:, [0, 2]] = result[:, [0, 2]].clip(0, width)
     result[:, [1, 3]] = result[:, [1, 3]].clip(0, height)
@@ -55,7 +55,7 @@ def pad_boxes(
     xyxy: npt.NDArray[np.number[Any]],
     px: int,
     py: int | None = None,
-) -> npt.NDArray[np.float64]:
+) -> npt.NDArray[np.number[Any]]:
     """
     Pads bounding boxes coordinates with a constant padding.
 
@@ -83,15 +83,15 @@ def pad_boxes(
         ...     [15, 25, 35, 45]
         ... ])
         >>> sv.pad_boxes(xyxy=xyxy, px=5, py=10)
-        array([[ 5., 10., 35., 50.],
-               [10., 15., 40., 55.]])
+        array([[ 5, 10, 35, 50],
+               [10, 15, 40, 55]])
 
         ```
     """
     if py is None:
         py = px
 
-    result: npt.NDArray[np.float64] = np.asarray(xyxy, dtype=np.float64).copy()
+    result = xyxy.copy()
     result[:, [0, 1]] -= [px, py]
     result[:, [2, 3]] += [px, py]
 
@@ -186,12 +186,12 @@ def move_boxes(
         ... ])
         >>> offset = np.array([5, 5])
         >>> sv.move_boxes(xyxy=xyxy, offset=offset)
-        array([[15., 15., 25., 25.],
-               [35., 35., 45., 45.]])
+        array([[15, 15, 25, 25],
+               [35, 35, 45, 45]])
 
         ```
     """
-    return np.asarray(xyxy, dtype=np.float64) + np.hstack([offset, offset])
+    return xyxy + np.hstack([offset, offset])
 
 
 def move_oriented_boxes(
@@ -228,19 +228,19 @@ def move_oriented_boxes(
         ... ])
         >>> offset = np.array([5, 5])
         >>> move_oriented_boxes(xyxyxyxy=xyxyxyxy, offset=offset)
-        array([[[25., 15.],
-                [15., 25.],
-                [25., 35.],
-                [35., 25.]],
+        array([[[25, 15],
+                [15, 25],
+                [25, 35],
+                [35, 25]],
         <BLANKLINE>
-               [[35., 35.],
-                [25., 45.],
-                [35., 55.],
-                [45., 45.]]])
+               [[35, 35],
+                [25, 45],
+                [35, 55],
+                [45, 45]]])
 
         ```
     """
-    return np.asarray(xyxyxyxy, dtype=np.float64) + np.asarray(offset, dtype=np.float64)
+    return xyxyxyxy + offset
 
 
 def scale_boxes(
@@ -282,7 +282,7 @@ def scale_boxes(
 def spread_out_boxes(
     xyxy: npt.NDArray[np.number[Any]],
     max_iterations: int = 100,
-) -> npt.NDArray[np.float32]:
+) -> npt.NDArray[np.number[Any]]:
     """
     Spread out boxes that overlap with each other.
 
@@ -308,9 +308,9 @@ def spread_out_boxes(
         ```
     """
     if len(xyxy) == 0:
-        return np.asarray(xyxy, dtype=np.float32)
+        return xyxy
 
-    xyxy_padded = pad_boxes(np.asarray(xyxy, dtype=np.float64), px=1)
+    xyxy_padded = pad_boxes(xyxy, px=1)
     for _ in range(max_iterations):
         # NxN
         iou = box_iou_batch(xyxy_padded, xyxy_padded)
@@ -349,4 +349,4 @@ def spread_out_boxes(
         xyxy_padded[:, [0, 1]] += force_vectors
         xyxy_padded[:, [2, 3]] += force_vectors
 
-    return pad_boxes(xyxy_padded, px=-1).astype(np.float32, copy=False)
+    return pad_boxes(xyxy_padded, px=-1)

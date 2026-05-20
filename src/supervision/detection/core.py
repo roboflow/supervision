@@ -2437,13 +2437,13 @@ class Detections:
             metadata=self.metadata,
         )
 
-    def __setitem__(self, key: str, value: Any) -> None:
+    def __setitem__(self, key: str, value: npt.NDArray[np.generic] | list[Any]) -> None:
         """
         Set a value in the data dictionary of the Detections object.
 
         Args:
             key: The key in the data dictionary to set.
-            value: The value to set for the key.
+            value: The value to set for the key. Must be a np.ndarray or list.
 
         Example:
             ```python
@@ -2464,6 +2464,12 @@ class Detections:
              ]
             ```
         """
+        if not isinstance(value, (np.ndarray, list)):
+            raise TypeError("Value must be a np.ndarray or a list")
+
+        if isinstance(value, list):
+            value = np.array(value)
+
         self.data[key] = value
 
     @property

@@ -141,7 +141,6 @@ format.skip-magic-trailing-comma = false
 # Enable linting rules for code style, imports, and best practices.
 lint.select = [
   "A",   # flake8-builtins - https://docs.astral.sh/ruff/rules/#flake8-builtins-a
-  "ANN", # flake8-annotations - https://docs.astral.sh/ruff/rules/#flake8-annotations-ann
   "E",   # pycodestyle errors - https://docs.astral.sh/ruff/rules/#error-e
   "F",   # Pyflakes - https://docs.astral.sh/ruff/rules/#pyflakes-f
   "I",   # isort - https://docs.astral.sh/ruff/rules/#isort-i
@@ -154,19 +153,14 @@ lint.select = [
 ]
 lint.ignore = []
 lint.per-file-ignores."__init__.py" = [ "E402", "F401" ]
-lint.per-file-ignores."examples/**" = [
-  "ANN401", # Examples integrate with external SDKs that expose dynamic payloads.
-]
 lint.per-file-ignores."notebooks/**" = [
   "PT018", # Assertion should be broken down into multiple parts
   "S101",  # Use of `assert` detected
 ]
 lint.per-file-ignores."src/**" = [
-  "ANN401", # Interop-heavy external result objects intentionally use dynamic types.
-  "S101",   # TODO: Replace asserts with proper error handling
+  "S101", # TODO: Replace asserts with proper error handling
 ]
 lint.per-file-ignores."tests/**" = [
-  "ANN",  # Missing type annotations for test functions
   "S101", # Use of `assert` detected
 ]
 lint.unfixable = []

@@ -558,7 +558,7 @@ class PolygonAnnotator(BaseAnnotator):
             for polygon in mask_to_polygons(mask=mask):
                 scene = draw_polygon(
                     scene=scene,
-                    polygon=polygon.astype(np.int64),
+                    polygon=polygon.astype(np.int32),
                     color=color,
                     thickness=self.thickness,
                 )
@@ -2165,7 +2165,7 @@ class HeatMapAnnotator(BaseAnnotator):
         if self.heat_mask is None:
             self.heat_mask = np.zeros(scene.shape[:2], dtype=np.float32)
 
-        mask = np.zeros(scene.shape[:2], dtype=np.float32)
+        mask = np.zeros(scene.shape[:2])
         for xy in detections.get_anchors_coordinates(self.position):
             x, y = int(xy[0]), int(xy[1])
             cv2.circle(
