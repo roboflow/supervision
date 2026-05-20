@@ -150,6 +150,7 @@ lint.select = [
   "S",   # bandit - https://docs.astral.sh/ruff/rules/#flake8-bandit-s
   "UP",  # pyupgrade - https://docs.astral.sh/ruff/rules/#pyupgrade-up
   "W",   # pycodestyle warnings - https://docs.astral.sh/ruff/rules/#pycodestyle-w
+  "ANN", # flake8-annotations - https://docs.astral.sh/ruff/rules/#flake8-annotations-ann
 ]
 lint.ignore = []
 lint.per-file-ignores."__init__.py" = [ "E402", "F401" ]
