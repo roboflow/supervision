@@ -417,12 +417,18 @@ class MeanAverageRecall(Metric):
                         )
 
                     matches = self._match_detection_batch(
-                        predictions.class_id
-                        if predictions.class_id is not None
-                        else np.array([], dtype=np.int32),
-                        targets.class_id
-                        if targets.class_id is not None
-                        else np.array([], dtype=np.int32),
+                        cast(
+                            npt.NDArray[np.integer[Any]],
+                            predictions.class_id
+                            if predictions.class_id is not None
+                            else np.array([], dtype=np.int32),
+                        ),
+                        cast(
+                            npt.NDArray[np.integer[Any]],
+                            targets.class_id
+                            if targets.class_id is not None
+                            else np.array([], dtype=np.int32),
+                        ),
                         iou,
                         iou_thresholds,
                     )

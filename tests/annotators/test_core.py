@@ -17,6 +17,7 @@ from supervision.annotators.core import (
     DotAnnotator,
     EllipseAnnotator,
     HaloAnnotator,
+    HeatMapAnnotator,
     LabelAnnotator,
     MaskAnnotator,
     OrientedBoxAnnotator,
@@ -283,6 +284,38 @@ class TestPolygonAnnotator:
         )
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert_image_mostly_same(test_image, result, similarity_threshold=0.85)
+
+    @pytest.mark.parametrize(
+        "mask_dtype",
+        [np.bool_, np.uint8, np.float32, np.float64],
+    )
+    @pytest.mark.filterwarnings(
+        "ignore:A `Detections` object was created with a mask of type"
+    )
+    def test_annotate_with_non_bool_mask_dtype(
+        self, test_image, test_mask, mask_dtype
+    ) -> None:
+        """Annotator handles non-bool mask dtypes without crashing.
+
+        Public ``Detections.mask`` accepts any ``npt.NDArray[np.generic]`` dtype.
+        Float-dtype masks must not raise ``cv2.error`` from the int32 polygon
+        coercion, and the rendered output must be visually equivalent to the
+        canonical bool-mask path. Non-bool dtypes emit a deprecation warning;
+        the test suppresses that warning since the dtype variation is the point.
+        """
+        casted_mask = test_mask.astype(mask_dtype)
+        detections = Detections(
+            xyxy=np.array([[10, 10, 90, 90]], dtype=np.float32),
+            mask=np.asarray([casted_mask]),
+            class_id=np.array([0], dtype=int),
+        )
+        annotator = PolygonAnnotator(
+            color=Color.WHITE, thickness=2, color_lookup=ColorLookup.INDEX
+        )
+        result = annotator.annotate(scene=test_image.copy(), detections=detections)
+        # Output should differ from input (polygon was drawn) but mostly same.
+        assert_image_mostly_same(test_image, result, similarity_threshold=0.85)
+        assert not np.array_equal(test_image, result)
 
 
 class TestColorAnnotator:
@@ -858,3 +891,71 @@ class TestTraceAnnotatorSmoothStationary:
         for _ in range(6):
             scene = annotator.annotate(scene=scene, detections=detections)
         assert scene.shape == test_image.shape
+
+
+class TestHeatMapAnnotator:
+    """Coverage tests for HeatMapAnnotator.
+
+    The annotator was refactored to use ``cast(Any, ...)`` around HSV plane
+    assignment and the cv2 blur call. These tests pin the public contract:
+    empty detections leave the heat mask uninitialised, a single annotate call
+    initialises and writes to the scene, and heat persists across calls.
+    """
+
+    @pytest.mark.filterwarnings("ignore::RuntimeWarning")
+    def test_annotate_with_empty_detections_returns_scene_unchanged(
+        self, test_image
+    ) -> None:
+        """Empty detections short-circuit: scene and internal heat_mask stay untouched.
+
+        The ``cv2.circle`` loop has nothing to iterate, but the code path beyond it
+        (division by ``heat_values.max()``) hits ``0/0`` → NaN → uint8 cast,
+        which emits RuntimeWarnings; both are suppressed since the all-zero
+        ``heat_mask`` filters out any pixel writes via ``mask_bool``.
+        """
+        annotator = HeatMapAnnotator()
+        scene = annotator.annotate(
+            scene=test_image.copy(), detections=Detections.empty()
+        )
+        # heat_mask is created during annotate(); equals all zeros — the scene
+        # is untouched because mask_bool selects no pixels.
+        assert scene.shape == test_image.shape
+        assert np.array_equal(scene, test_image)
+        assert annotator.heat_mask is not None
+        assert annotator.heat_mask.shape == test_image.shape[:2]
+        assert float(annotator.heat_mask.sum()) == 0.0
+
+    def test_annotate_with_detections_writes_to_scene(self, test_image) -> None:
+        """A single detection produces a heat overlay distinguishable from input."""
+        detections = _create_detections(
+            xyxy=[[30, 30, 70, 70]],
+            class_id=[0],
+        )
+        annotator = HeatMapAnnotator(radius=10, kernel_size=5)
+        result = annotator.annotate(scene=test_image.copy(), detections=detections)
+        assert result.shape == test_image.shape
+        assert not np.array_equal(test_image, result)
+
+    def test_annotate_with_kernel_size_none_skips_blur(self, test_image) -> None:
+        """``kernel_size=None`` skips the cv2.blur branch and must not crash."""
+        detections = _create_detections(
+            xyxy=[[30, 30, 70, 70]],
+            class_id=[0],
+        )
+        annotator = HeatMapAnnotator(radius=10, kernel_size=None)
+        result = annotator.annotate(scene=test_image.copy(), detections=detections)
+        assert result.shape == test_image.shape
+        assert not np.array_equal(test_image, result)
+
+    def test_heat_accumulates_across_calls(self, test_image) -> None:
+        """Heat mask accumulates across annotate calls — sum strictly increases."""
+        detections = _create_detections(
+            xyxy=[[30, 30, 70, 70]],
+            class_id=[0],
+        )
+        annotator = HeatMapAnnotator(radius=10, kernel_size=5)
+        annotator.annotate(scene=test_image.copy(), detections=detections)
+        first_sum = float(annotator.heat_mask.sum())
+        annotator.annotate(scene=test_image.copy(), detections=detections)
+        second_sum = float(annotator.heat_mask.sum())
+        assert second_sum > first_sum

@@ -5,6 +5,11 @@ date_modified: 2026-04-23
 
 # Changelog
 
+### 0.29.0 <small>Unreleased</small>
+
+!!! failure "Removed"
+    `supervision-0.29.0` drops Python 3.9 support. Python 3.9 reached end-of-life in October 2025. Use Python 3.10 or newer. The last version supporting Python 3.9 is `supervision-0.28.x`.
+
 ### 0.28.0 <small>Apr 30, 2026</small>
 
 - Added [#2159](https://github.com/roboflow/supervision/pull/2159): [`sv.CompactMask`](https://supervision.roboflow.com/latest/detection/compact_mask/#supervision.detection.compact_mask.CompactMask) for memory-efficient mask storage. Masks are stored as crop-region bounding boxes plus RLE-encoded data instead of full-resolution bitmaps, reducing memory by up to 240× for sparse masks. Integrates transparently with `sv.Detections.mask` — filtering, merging, and `area` all work without materialising the full array.

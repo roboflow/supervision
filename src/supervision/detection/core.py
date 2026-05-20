@@ -149,11 +149,11 @@ class Detections:
             as the video name, camera parameters, timestamp, or other global metadata.
     """  # noqa: E501 // docs
 
-    xyxy: npt.NDArray[np.number[Any]]
-    mask: npt.NDArray[np.bool_] | CompactMask | None = None
-    confidence: npt.NDArray[np.floating[Any]] | None = None
-    class_id: npt.NDArray[np.integer[Any]] | None = None
-    tracker_id: npt.NDArray[np.integer[Any]] | None = None
+    xyxy: npt.NDArray[np.generic]
+    mask: npt.NDArray[np.generic] | CompactMask | None = None
+    confidence: npt.NDArray[np.generic] | None = None
+    class_id: npt.NDArray[np.generic] | None = None
+    tracker_id: npt.NDArray[np.generic] | None = None
     data: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -177,11 +177,11 @@ class Detections:
         self,
     ) -> Iterator[
         tuple[
-            npt.NDArray[np.number[Any]],
-            npt.NDArray[np.bool_] | None,
-            np.floating[Any] | None,
-            np.integer[Any] | None,
-            np.integer[Any] | None,
+            npt.NDArray[np.generic],
+            npt.NDArray[np.generic] | None,
+            np.generic | None,
+            np.generic | None,
+            np.generic | None,
             dict[str, Any],
         ]
     ]:
@@ -191,22 +191,22 @@ class Detections:
         """
         for i in range(len(self.xyxy)):
             mask = (
-                cast(npt.NDArray[np.bool_], self.mask[i])
+                cast(npt.NDArray[np.generic], self.mask[i])
                 if self.mask is not None
                 else None
             )
             confidence = (
-                cast(np.floating[Any], self.confidence[i])
+                cast(np.generic, self.confidence[i])
                 if self.confidence is not None
                 else None
             )
             class_id = (
-                cast(np.integer[Any], self.class_id[i])
+                cast(np.generic, self.class_id[i])
                 if self.class_id is not None
                 else None
             )
             tracker_id = (
-                cast(np.integer[Any], self.tracker_id[i])
+                cast(np.generic, self.tracker_id[i])
                 if self.tracker_id is not None
                 else None
             )
@@ -1978,7 +1978,7 @@ class Detections:
 
             return cls(
                 xyxy=florence_xyxy,
-                mask=cast(npt.NDArray[np.bool_] | None, florence_mask),
+                mask=cast(npt.NDArray[np.generic] | None, florence_mask),
                 data=florence_data,
             )
 
@@ -2237,7 +2237,7 @@ class Detections:
 
         def stack_or_none(
             name: str,
-        ) -> npt.NDArray[np.number[Any]] | CompactMask | None:
+        ) -> npt.NDArray[np.generic] | CompactMask | None:
             if all(d.__getattribute__(name) is None for d in detections_list):
                 return None
             if any(d.__getattribute__(name) is None for d in detections_list):
@@ -2250,14 +2250,10 @@ class Detections:
                 return np.vstack([np.asarray(m) for m in masks])
             return np.hstack([d.__getattribute__(name) for d in detections_list])
 
-        mask = cast(npt.NDArray[np.bool_] | CompactMask | None, stack_or_none("mask"))
-        confidence = cast(
-            npt.NDArray[np.floating[Any]] | None, stack_or_none("confidence")
-        )
-        class_id = cast(npt.NDArray[np.integer[Any]] | None, stack_or_none("class_id"))
-        tracker_id = cast(
-            npt.NDArray[np.integer[Any]] | None, stack_or_none("tracker_id")
-        )
+        mask = stack_or_none("mask")
+        confidence = cast(npt.NDArray[np.generic] | None, stack_or_none("confidence"))
+        class_id = cast(npt.NDArray[np.generic] | None, stack_or_none("class_id"))
+        tracker_id = cast(npt.NDArray[np.generic] | None, stack_or_none("tracker_id"))
 
         data = merge_data([d.data for d in detections_list])
 
@@ -2293,13 +2289,17 @@ class Detections:
         Raises:
             ValueError: If the provided `anchor` is not supported.
         """
+        # Local numeric view of xyxy: the public field annotation is
+        # ``np.generic`` for backward compatibility, but arithmetic below
+        # requires a numeric dtype for the type checker.
+        xyxy = cast(npt.NDArray[np.number[Any]], self.xyxy)
         if anchor == Position.CENTER:
             return cast(
                 npt.NDArray[np.number[Any]],
                 np.array(
                     [
-                        (self.xyxy[:, 0] + self.xyxy[:, 2]) / 2,
-                        (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
+                        (xyxy[:, 0] + xyxy[:, 2]) / 2,
+                        (xyxy[:, 1] + xyxy[:, 3]) / 2,
                     ]
                 ).transpose(),
             )
@@ -2317,8 +2317,8 @@ class Detections:
                 npt.NDArray[np.number[Any]],
                 np.array(
                     [
-                        self.xyxy[:, 0],
-                        (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
+                        xyxy[:, 0],
+                        (xyxy[:, 1] + xyxy[:, 3]) / 2,
                     ]
                 ).transpose(),
             )
@@ -2327,44 +2327,40 @@ class Detections:
                 npt.NDArray[np.number[Any]],
                 np.array(
                     [
-                        self.xyxy[:, 2],
-                        (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
+                        xyxy[:, 2],
+                        (xyxy[:, 1] + xyxy[:, 3]) / 2,
                     ]
                 ).transpose(),
             )
         elif anchor == Position.BOTTOM_CENTER:
             return cast(
                 npt.NDArray[np.number[Any]],
-                np.array(
-                    [(self.xyxy[:, 0] + self.xyxy[:, 2]) / 2, self.xyxy[:, 3]]
-                ).transpose(),
+                np.array([(xyxy[:, 0] + xyxy[:, 2]) / 2, xyxy[:, 3]]).transpose(),
             )
         elif anchor == Position.BOTTOM_LEFT:
             return cast(
                 npt.NDArray[np.number[Any]],
-                np.array([self.xyxy[:, 0], self.xyxy[:, 3]]).transpose(),
+                np.array([xyxy[:, 0], xyxy[:, 3]]).transpose(),
             )
         elif anchor == Position.BOTTOM_RIGHT:
             return cast(
                 npt.NDArray[np.number[Any]],
-                np.array([self.xyxy[:, 2], self.xyxy[:, 3]]).transpose(),
+                np.array([xyxy[:, 2], xyxy[:, 3]]).transpose(),
             )
         elif anchor == Position.TOP_CENTER:
             return cast(
                 npt.NDArray[np.number[Any]],
-                np.array(
-                    [(self.xyxy[:, 0] + self.xyxy[:, 2]) / 2, self.xyxy[:, 1]]
-                ).transpose(),
+                np.array([(xyxy[:, 0] + xyxy[:, 2]) / 2, xyxy[:, 1]]).transpose(),
             )
         elif anchor == Position.TOP_LEFT:
             return cast(
                 npt.NDArray[np.number[Any]],
-                np.array([self.xyxy[:, 0], self.xyxy[:, 1]]).transpose(),
+                np.array([xyxy[:, 0], xyxy[:, 1]]).transpose(),
             )
         elif anchor == Position.TOP_RIGHT:
             return cast(
                 npt.NDArray[np.number[Any]],
-                np.array([self.xyxy[:, 2], self.xyxy[:, 1]]).transpose(),
+                np.array([xyxy[:, 2], xyxy[:, 1]]).transpose(),
             )
 
         raise ValueError(f"{anchor} is not supported.")
@@ -2503,7 +2499,8 @@ class Detections:
                 box in the format of `(area_1, area_2, ..., area_n)`,
                 where n is the number of detections.
         """
-        return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
+        xyxy = cast(npt.NDArray[np.number[Any]], self.xyxy)
+        return (xyxy[:, 3] - xyxy[:, 1]) * (xyxy[:, 2] - xyxy[:, 0])
 
     @property
     def box_aspect_ratio(self) -> npt.NDArray[np.floating[Any]]:
@@ -2535,8 +2532,9 @@ class Detections:
             # array([[10., 10., 50., 50.]])
             ```
         """
-        widths = self.xyxy[:, 2] - self.xyxy[:, 0]
-        heights = self.xyxy[:, 3] - self.xyxy[:, 1]
+        xyxy = cast(npt.NDArray[np.number[Any]], self.xyxy)
+        widths = xyxy[:, 2] - xyxy[:, 0]
+        heights = xyxy[:, 3] - xyxy[:, 1]
 
         aspect_ratios: npt.NDArray[np.float64] = np.full_like(
             widths, np.nan, dtype=np.float64
@@ -2799,7 +2797,11 @@ def merge_inner_detections_objects(
                 0
             ]
         else:
-            iou = box_iou_batch(detections_1.xyxy, detections_2.xyxy, overlap_metric)[0]
+            iou = box_iou_batch(
+                cast(npt.NDArray[np.number[Any]], detections_1.xyxy),
+                cast(npt.NDArray[np.number[Any]], detections_2.xyxy),
+                overlap_metric,
+            )[0]
         if iou < threshold:
             break
         detections_1 = merge_inner_detection_object_pair(detections_1, detections_2)

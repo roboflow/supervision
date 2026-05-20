@@ -109,7 +109,7 @@ def denormalize_boxes(
     resolution_wh: tuple[int, int],
     normalization_factor: float = 1.0,
     normalized_xyxy: npt.NDArray[np.number[Any]] | None = None,
-) -> npt.NDArray[np.float64]:
+) -> npt.NDArray[np.number[Any]]:
     """
     Convert normalized bounding box coordinates to absolute pixel coordinates.
 
@@ -155,7 +155,7 @@ def denormalize_boxes(
         ```
     """
     width, height = resolution_wh
-    result: npt.NDArray[np.float64] = np.asarray(xyxy, dtype=np.float64).copy()
+    result = xyxy.copy()
 
     result[:, [0, 2]] = (result[:, [0, 2]] * width) / normalization_factor
     result[:, [1, 3]] = (result[:, [1, 3]] * height) / normalization_factor
@@ -245,7 +245,7 @@ def move_oriented_boxes(
 
 def scale_boxes(
     xyxy: npt.NDArray[np.number[Any]], factor: float
-) -> npt.NDArray[np.float64]:
+) -> npt.NDArray[np.number[Any]]:
     """
     Scale the dimensions of bounding boxes.
 
@@ -273,9 +273,8 @@ def scale_boxes(
 
         ```
     """
-    xyxy_f64 = np.asarray(xyxy, dtype=np.float64)
-    centers = (xyxy_f64[:, :2] + xyxy_f64[:, 2:]) / 2
-    new_sizes = (xyxy_f64[:, 2:] - xyxy_f64[:, :2]) * factor
+    centers = (xyxy[:, :2] + xyxy[:, 2:]) / 2
+    new_sizes = (xyxy[:, 2:] - xyxy[:, :2]) * factor
     return np.concatenate((centers - new_sizes / 2, centers + new_sizes / 2), axis=1)
 
 

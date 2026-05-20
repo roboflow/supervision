@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from xml.etree.ElementTree import Element, SubElement
 
 import cv2
@@ -127,7 +127,7 @@ def detections_to_pascal_voc(
         name = classes[class_id]
         if mask is not None:
             polygons = approximate_mask_with_polygons(
-                mask=mask,
+                mask=cast(npt.NDArray[np.bool_], mask),
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
@@ -139,7 +139,9 @@ def detections_to_pascal_voc(
                 )
                 annotation.append(next_object)
         else:
-            next_object = object_to_pascal_voc(xyxy=xyxy, name=name)
+            next_object = object_to_pascal_voc(
+                xyxy=cast(npt.NDArray[np.number[Any]], xyxy), name=name
+            )
             annotation.append(next_object)
 
     # Generate XML string

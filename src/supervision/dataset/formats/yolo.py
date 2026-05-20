@@ -4,7 +4,7 @@ import os
 import warnings
 from collections.abc import Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -274,7 +274,7 @@ def detections_to_yolo_annotations(
 
         if mask is not None:
             polygons = approximate_mask_with_polygons(
-                mask=mask,
+                mask=cast(npt.NDArray[np.bool_], mask),
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
@@ -290,7 +290,9 @@ def detections_to_yolo_annotations(
                 annotation.append(next_object)
         else:
             next_object = object_to_yolo(
-                xyxy=xyxy, class_id=class_id_int, image_shape=image_shape
+                xyxy=cast(npt.NDArray[np.number[Any]], xyxy),
+                class_id=class_id_int,
+                image_shape=image_shape,
             )
             annotation.append(next_object)
     return annotation

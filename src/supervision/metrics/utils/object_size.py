@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -229,11 +229,16 @@ def get_detection_size_category(
         the enum values of ObjectSizeCategory. Shaped (N,).
     """
     if metric_target == MetricTarget.BOXES:
-        return get_bbox_size_category(detections.xyxy)
+        return get_bbox_size_category(
+            cast(npt.NDArray[np.number[Any]], detections.xyxy)
+        )
     if metric_target == MetricTarget.MASKS:
         if detections.mask is None:
             raise ValueError("Detections mask is not available")
-        return get_mask_size_category(detections.mask)
+        mask = detections.mask
+        if isinstance(mask, CompactMask):
+            return get_mask_size_category(mask)
+        return get_mask_size_category(cast(npt.NDArray[np.bool_], mask))
     if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
         if detections.data.get(ORIENTED_BOX_COORDINATES) is None:
             raise ValueError("Detections oriented bounding boxes are not available")

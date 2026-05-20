@@ -24,8 +24,11 @@ def ensure_cv2_image_for_class_method(
     Assumes the annotators modify the scene in-place.
     """
 
+    # ``wrapper`` is typed with ``Any`` parameters to avoid an inner TypeVar
+    # appearing in a position where ``functools.wraps`` requires a concrete
+    # signature; type identity is restored via the outer ``cast(F, wrapper)``.
     @functools.wraps(annotate_func)
-    def wrapper(self: Any, scene: ImageType, *args: Any, **kwargs: Any) -> ImageType:
+    def wrapper(self: Any, scene: Any, *args: Any, **kwargs: Any) -> Any:
         if isinstance(scene, np.ndarray):
             annotated_np = cast(
                 npt.NDArray[np.uint8],
@@ -68,8 +71,9 @@ def ensure_cv2_image_for_standalone_function(
     Assumes the annotators do NOT modify the scene in-place.
     """
 
+    # See note above on the ``Any`` annotation pattern for ``wrapper``.
     @functools.wraps(image_processing_fun)
-    def wrapper(image: ImageType, *args: Any, **kwargs: Any) -> ImageType:
+    def wrapper(image: Any, *args: Any, **kwargs: Any) -> Any:
         if isinstance(image, np.ndarray):
             annotated_np = cast(
                 npt.NDArray[np.uint8],
@@ -100,8 +104,9 @@ def ensure_pil_image_for_class_method(
     Assumes the annotators modify the scene in-place.
     """
 
+    # See note above on the ``Any`` annotation pattern for ``wrapper``.
     @functools.wraps(annotate_func)
-    def wrapper(self: Any, scene: ImageType, *args: Any, **kwargs: Any) -> ImageType:
+    def wrapper(self: Any, scene: Any, *args: Any, **kwargs: Any) -> Any:
         if isinstance(scene, np.ndarray):
             scene_pil = cv2_to_pillow(scene)
             annotated_pil = cast(
@@ -111,7 +116,7 @@ def ensure_pil_image_for_class_method(
             return scene
 
         if isinstance(scene, Image.Image):
-            return cast(ImageType, annotate_func(self, scene, *args, **kwargs))
+            return cast(Image.Image, annotate_func(self, scene, *args, **kwargs))
 
         raise ValueError(f"Unsupported image type: {type(scene)}")
 

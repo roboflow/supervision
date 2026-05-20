@@ -8,7 +8,7 @@ This file provides context-aware guidance for GitHub Copilot when working in the
 
 **Supervision** is a Python library providing reusable computer vision utilities for working with object detection models (YOLO, SAM, etc.). It offers tools for detections processing, tracking, annotation, and dataset management.
 
-- **Languages**: Python 3.9+
+- **Languages**: Python 3.10+
 - **Key Dependencies**: NumPy, OpenCV, SciPy
 - **License**: MIT
 

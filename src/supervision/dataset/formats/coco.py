@@ -171,21 +171,25 @@ def detections_to_coco_annotations(
         box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
         segmentation: list[list[float]] | dict[str, list[int]] = []
         if mask is not None:
+            mask_bool = cast(npt.NDArray[np.bool_], mask)
             if "iscrowd" in data:
                 iscrowd = int(np.asarray(data["iscrowd"]).item())
             else:
                 iscrowd = int(
-                    contains_holes(mask=mask) or contains_multiple_segments(mask=mask)
+                    contains_holes(mask=mask_bool)
+                    or contains_multiple_segments(mask=mask_bool)
                 )
 
             if iscrowd:
                 segmentation = {
-                    "counts": cast(list[int], mask_to_rle(mask=mask, compressed=False)),
-                    "size": list(mask.shape[:2]),
+                    "counts": cast(
+                        list[int], mask_to_rle(mask=mask_bool, compressed=False)
+                    ),
+                    "size": list(mask_bool.shape[:2]),
                 }
             else:
                 polygons = approximate_mask_with_polygons(
-                    mask=mask,
+                    mask=mask_bool,
                     min_image_area_percentage=min_image_area_percentage,
                     max_image_area_percentage=max_image_area_percentage,
                     approximation_percentage=approximation_percentage,

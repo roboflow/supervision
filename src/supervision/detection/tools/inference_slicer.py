@@ -4,10 +4,11 @@ import threading
 import warnings
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, cast
+from typing import Any, TypeAlias, cast
 
 import numpy as np
 import numpy.typing as npt
+from PIL import Image as PILImage
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
@@ -18,6 +19,14 @@ from supervision.detection.utils.masks import move_masks
 from supervision.draw.base import ImageType
 from supervision.utils.image import crop_image, get_image_resolution_wh
 from supervision.utils.internal import SupervisionWarnings
+
+# Concrete union for callback storage: the callback may receive either an
+# 8-bit ndarray or a PIL image. ``ImageType`` is a constrained ``TypeVar``
+# (see ``supervision.draw.base``) and cannot be stored on a non-generic class
+# as an attribute annotation — using the underlying union keeps the public
+# API contract intact while satisfying static type checking.
+_SliceCallbackInput: TypeAlias = npt.NDArray[np.uint8] | PILImage.Image
+SliceCallback = Callable[[_SliceCallbackInput], Detections]
 
 
 def move_detections(
@@ -36,7 +45,9 @@ def move_detections(
     Returns:
         Repositioned Detections object.
     """
-    detections.xyxy = move_boxes(xyxy=detections.xyxy, offset=offset)
+    detections.xyxy = move_boxes(
+        xyxy=cast(npt.NDArray[np.number[Any]], detections.xyxy), offset=offset
+    )
     if ORIENTED_BOX_COORDINATES in detections.data:
         oriented_boxes = cast(
             npt.NDArray[np.number[Any]],
@@ -60,7 +71,9 @@ def move_detections(
             )
         else:
             detections.mask = move_masks(
-                masks=detections.mask, offset=offset, resolution_wh=resolution_wh
+                masks=cast(npt.NDArray[np.bool_], detections.mask),
+                offset=offset,
+                resolution_wh=resolution_wh,
             )
     return detections
 
@@ -138,7 +151,7 @@ class InferenceSlicer:
 
     def __init__(
         self,
-        callback: Callable[[ImageType], Detections],
+        callback: SliceCallback,
         slice_wh: int | tuple[int, int] = 640,
         overlap_wh: int | tuple[int, int] = 100,
         overlap_filter: OverlapFilter | str = OverlapFilter.NON_MAX_SUPPRESSION,
@@ -157,7 +170,7 @@ class InferenceSlicer:
         self.iou_threshold = iou_threshold
         self.overlap_metric = OverlapMetric.from_value(overlap_metric)
         self.overlap_filter = OverlapFilter.from_value(overlap_filter)
-        self.callback: Callable[[ImageType], Detections] = callback
+        self.callback: SliceCallback = callback
         self.thread_workers = thread_workers
         self.compact_masks = compact_masks
         self._out_of_slice_bounds_warned: bool = False
@@ -222,7 +235,10 @@ class InferenceSlicer:
             Detections adjusted to the full image coordinate system.
         """
         image_slice = crop_image(image=image, xyxy=offset)
-        detections = self.callback(image_slice)
+        # ``image_slice`` matches the input ``ImageType`` (TypeVar); the callback
+        # is typed against the underlying union for storage, so a narrowing cast
+        # is required to bridge the two at the call site.
+        detections = self.callback(cast(_SliceCallbackInput, image_slice))
 
         if (
             self.compact_masks
@@ -231,7 +247,7 @@ class InferenceSlicer:
         ):
             slice_w, slice_h = get_image_resolution_wh(image_slice)
             detections.mask = CompactMask.from_dense(
-                detections.mask,
+                cast(npt.NDArray[np.bool_], detections.mask),
                 detections.xyxy,
                 image_shape=(slice_h, slice_w),
             )
@@ -249,10 +265,11 @@ class InferenceSlicer:
                 if not self._out_of_slice_bounds_warned and len(detections) > 0:
                     slice_width = offset[2] - offset[0]
                     slice_height = offset[3] - offset[1]
-                    x_exceeds = np.any(detections.xyxy[:, [0, 2]] > slice_width)
-                    y_exceeds = np.any(detections.xyxy[:, [1, 3]] > slice_height)
-                    x_negative = np.any(detections.xyxy[:, [0, 2]] < 0)
-                    y_negative = np.any(detections.xyxy[:, [1, 3]] < 0)
+                    xyxy_num = cast(npt.NDArray[np.number[Any]], detections.xyxy)
+                    x_exceeds = np.any(xyxy_num[:, [0, 2]] > slice_width)
+                    y_exceeds = np.any(xyxy_num[:, [1, 3]] > slice_height)
+                    x_negative = np.any(xyxy_num[:, [0, 2]] < 0)
+                    y_negative = np.any(xyxy_num[:, [1, 3]] < 0)
                     if x_exceeds or y_exceeds or x_negative or y_negative:
                         self._out_of_slice_bounds_warned = True
                         msg = (
