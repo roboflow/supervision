@@ -36,25 +36,20 @@ class PolygonZone:
         mask: The 2D bool mask for the polygon zone
 
     Example:
-        ```python
-        import supervision as sv
-        from ultralytics import YOLO
-        import numpy as np
-        import cv2
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> polygon = np.array([[100, 200], [200, 100], [300, 200], [200, 300]])
+        >>> polygon_zone = sv.PolygonZone(polygon=polygon)
+        >>> detections = sv.Detections(
+        ...     xyxy=np.array([[180, 100, 220, 200], [400, 400, 450, 500]])
+        ... )
+        >>> is_detections_in_zone = polygon_zone.trigger(detections)
+        >>> is_detections_in_zone
+        array([ True, False])
+        >>> polygon_zone.current_count
+        1
 
-        image = cv2.imread("<SOURCE_IMAGE_PATH>")
-        model = YOLO("yolo11s")
-        tracker = sv.ByteTrack()
-
-        polygon = np.array([[100, 200], [200, 100], [300, 200], [200, 300]])
-        polygon_zone = sv.PolygonZone(polygon=polygon)
-
-        result = model.infer(image)[0]
-        detections = sv.Detections.from_ultralytics(result)
-        detections = tracker.update_with_detections(detections)
-
-        is_detections_in_zone = polygon_zone.trigger(detections)
-        print(polygon_zone.current_count)
         ```
     """
 
