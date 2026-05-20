@@ -390,7 +390,6 @@ def test_run_callback_does_not_rewarn_on_second_call() -> None:
 def test_obb_callbacks_run_sequentially_even_with_multiple_workers() -> None:
     """Test that OBB callbacks are serialized even when thread_workers > 1."""
 
-    callback_started = threading.Event()
     active_calls = 0
     max_active_calls = 0
     callback_lock = threading.Lock()
@@ -401,7 +400,6 @@ def test_obb_callbacks_run_sequentially_even_with_multiple_workers() -> None:
         with callback_lock:
             active_calls += 1
             max_active_calls = max(max_active_calls, active_calls)
-            callback_started.set()
 
         time.sleep(0.01)
 
@@ -430,6 +428,5 @@ def test_obb_callbacks_run_sequentially_even_with_multiple_workers() -> None:
     with pytest.warns(SupervisionWarnings, match="oriented bounding boxes"):
         detections = slicer(image)
 
-    assert callback_started.is_set()
     assert max_active_calls == 1
     assert len(detections) == 4
