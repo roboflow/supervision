@@ -84,6 +84,9 @@ class InferenceSlicer:
         iou_threshold: IOU threshold used in merging overlap filtering.
         overlap_metric: Metric to compute overlap (`IOU` or `IOS`).
         thread_workers: Number of threads for concurrent slice inference.
+            When the callback returns oriented bounding boxes, Supervision
+            falls back to sequential processing to avoid thread-safety issues
+            in common OBB inference backends.
         compact_masks: If ``True``, dense ``(N, H, W)`` boolean mask
             arrays returned by the callback are immediately converted to a
             :class:`~supervision.detection.compact_mask.CompactMask`. This
@@ -158,6 +161,7 @@ class InferenceSlicer:
         self.compact_masks = compact_masks
         self._out_of_slice_bounds_warned: bool = False
         self._out_of_slice_bounds_lock = threading.Lock()
+        self._obb_thread_workers_warned: bool = False
 
     def __call__(self, image: ImageType) -> Detections:
         """
@@ -178,12 +182,44 @@ class InferenceSlicer:
             overlap_wh=self.overlap_wh,
         )
 
-        with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
-            futures = [
-                executor.submit(self._run_callback, image, offset) for offset in offsets
-            ]
-            for future in as_completed(futures):
-                detections_list.append(future.result())
+        if len(offsets) == 0:
+            return Detections.empty()
+
+        first_offset = offsets[0]
+        first_detections = self._run_callback(image, first_offset)
+        detections_list.append(first_detections)
+
+        remaining_offsets = offsets[1:]
+        should_run_sequentially = (
+            self.thread_workers <= 1
+            or ORIENTED_BOX_COORDINATES in first_detections.data
+        )
+
+        if should_run_sequentially:
+            if (
+                self.thread_workers > 1
+                and ORIENTED_BOX_COORDINATES in first_detections.data
+                and not self._obb_thread_workers_warned
+            ):
+                self._obb_thread_workers_warned = True
+                warnings.warn(
+                    "InferenceSlicer detected oriented bounding boxes while "
+                    "`thread_workers > 1`. Remaining slices will be processed "
+                    "sequentially because many OBB inference backends are not "
+                    "thread-safe and can crash when shared across threads.",
+                    category=SupervisionWarnings,
+                    stacklevel=2,
+                )
+            for offset in remaining_offsets:
+                detections_list.append(self._run_callback(image, offset))
+        else:
+            with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
+                futures = [
+                    executor.submit(self._run_callback, image, offset)
+                    for offset in remaining_offsets
+                ]
+                for future in as_completed(futures):
+                    detections_list.append(future.result())
 
         merged = Detections.merge(detections_list=detections_list)
         if self.overlap_filter == OverlapFilter.NONE:
