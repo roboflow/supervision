@@ -346,9 +346,7 @@ class F1Score(Metric):
             if num_predictions == 0:
                 true_positives = np.zeros(num_thresholds, dtype=np.float64)
                 false_positives = np.zeros(num_thresholds, dtype=np.float64)
-                false_negatives = np.full(
-                    num_thresholds, num_true, dtype=np.float64
-                )
+                false_negatives = np.full(num_thresholds, num_true, dtype=np.float64)
             elif num_true == 0:
                 true_positives = np.zeros(num_thresholds, dtype=np.float64)
                 false_positives = np.full(
@@ -447,9 +445,7 @@ class F1Score(Metric):
         if new_detections.class_id is not None:
             new_detections.class_id = cast(Any, new_detections.class_id[size_mask])
         if new_detections.confidence is not None:
-            new_detections.confidence = cast(
-                Any, new_detections.confidence[size_mask]
-            )
+            new_detections.confidence = cast(Any, new_detections.confidence[size_mask])
         if new_detections.tracker_id is not None:
             new_detections.tracker_id = cast(Any, new_detections.tracker_id[size_mask])
         if new_detections.data is not None:

@@ -582,9 +582,7 @@ class MeanAverageRecall(Metric):
             if num_predictions == 0:
                 true_positives = np.zeros(num_thresholds, dtype=np.float64)
                 false_positives = np.zeros(num_thresholds, dtype=np.float64)
-                false_negatives = np.full(
-                    num_thresholds, num_true, dtype=np.float64
-                )
+                false_negatives = np.full(num_thresholds, num_true, dtype=np.float64)
             elif num_true == 0:
                 true_positives = np.zeros(num_thresholds, dtype=np.float64)
                 false_positives = np.full(
@@ -685,9 +683,7 @@ class MeanAverageRecall(Metric):
             npt.NDArray[np.number[Any]], new_detections.xyxy[size_mask]
         )
         if new_detections.mask is not None:
-            new_detections.mask = cast(
-                Any, new_detections.mask[size_mask]
-            )
+            new_detections.mask = cast(Any, new_detections.mask[size_mask])
         if new_detections.class_id is not None:
             new_detections.class_id = cast(
                 npt.NDArray[np.integer[Any]], new_detections.class_id[size_mask]

@@ -168,9 +168,7 @@ def process_roboflow_result(
         else cast(npt.NDArray[np.str_], np.empty(0, dtype=str))
     )
     masks_arr: npt.NDArray[np.bool_] | None = (
-        cast(npt.NDArray[np.bool_], np.stack(masks, axis=0))
-        if len(masks) > 0
-        else None
+        cast(npt.NDArray[np.bool_], np.stack(masks, axis=0)) if len(masks) > 0 else None
     )
     tracker_id_arr: npt.NDArray[np.integer[Any]] | None = (
         np.array(tracker_ids, dtype=np.int64) if len(tracker_ids) > 0 else None

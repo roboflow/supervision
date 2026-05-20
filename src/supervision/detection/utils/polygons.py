@@ -35,8 +35,7 @@ def filter_polygons_by_area(
     if min_area is None and max_area is None:
         return polygons
     ares = [
-        cv2.contourArea(np.asarray(polygon, dtype=np.float32))
-        for polygon in polygons
+        cv2.contourArea(np.asarray(polygon, dtype=np.float32)) for polygon in polygons
     ]
     return [
         polygon

@@ -60,9 +60,7 @@ def approximate_mask_with_polygons(
     minimum_detection_area = min_image_area_percentage * image_area
     maximum_detection_area = max_image_area_percentage * image_area
 
-    polygons = cast(
-        list[npt.NDArray[np.number[Any]]], mask_to_polygons(mask=mask)
-    )
+    polygons = cast(list[npt.NDArray[np.number[Any]]], mask_to_polygons(mask=mask))
     if len(polygons) == 1:
         polygons = filter_polygons_by_area(
             polygons=polygons, min_area=None, max_area=maximum_detection_area
