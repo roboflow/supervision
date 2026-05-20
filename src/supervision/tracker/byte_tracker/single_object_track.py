@@ -75,9 +75,7 @@ class STrack:
             multi_mean_arr, multi_covariance_arr = shared_kalman.multi_predict(
                 np.asarray(multi_mean), np.asarray(multi_covariance)
             )
-            for i, (mean, cov) in enumerate(
-                zip(multi_mean_arr, multi_covariance_arr)
-            ):
+            for i, (mean, cov) in enumerate(zip(multi_mean_arr, multi_covariance_arr)):
                 stracks[i].mean = mean
                 stracks[i].covariance = cov
 

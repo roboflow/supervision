@@ -96,8 +96,7 @@ def plot_images_grid(
     nrows, ncols = grid_size
 
     images_np: list[npt.NDArray[np.uint8]] = [
-        pillow_to_cv2(img) if isinstance(img, Image.Image) else img
-        for img in images
+        pillow_to_cv2(img) if isinstance(img, Image.Image) else img for img in images
     ]
 
     if len(images_np) > nrows * ncols:

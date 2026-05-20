@@ -365,8 +365,8 @@ class Trace:
         self.current_frame_id += 1
 
     def get(self, tracker_id: int) -> npt.NDArray[np.float32]:
-        filtered = self.xy[self.tracker_id == tracker_id].copy().astype(
-            np.float32, copy=False
+        filtered = (
+            self.xy[self.tracker_id == tracker_id].copy().astype(np.float32, copy=False)
         )
         return cast(npt.NDArray[np.float32], filtered)
 

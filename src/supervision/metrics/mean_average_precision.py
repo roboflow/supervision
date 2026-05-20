@@ -1481,7 +1481,9 @@ class MeanAveragePrecision(Metric):
         mAP_small = MeanAveragePrecisionResult(
             metric_target=self._metric_target,
             is_class_agnostic=self._class_agnostic,
-            mAP_scores=np.asarray(cocoEval.results["mAP_scores_small"], dtype=np.float64),
+            mAP_scores=np.asarray(
+                cocoEval.results["mAP_scores_small"], dtype=np.float64
+            ),
             ap_per_class=np.asarray(
                 cocoEval.results["ap_per_class_small"], dtype=np.float64
             ),
