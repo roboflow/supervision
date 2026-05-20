@@ -1,6 +1,8 @@
 import re
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+
 EXPECTED_ANNOTATOR_TAB_GROUPS = {
     "Outlines": [
         "Box",
@@ -26,33 +28,37 @@ EXPECTED_ANNOTATOR_TAB_GROUPS = {
 
 
 def _extract_annotator_tab_groups() -> dict[str, list[str]]:
-    repo_root = Path(__file__).resolve().parents[2]
-    docs_path = repo_root / "docs" / "detection" / "annotators.md"
+    docs_path = REPO_ROOT / "docs" / "detection" / "annotators.md"
     content = docs_path.read_text()
-    end_marker = (
-        '<div class="md-typeset">\n'
-        "    <h2>Try Supervision Annotators on your own image</h2>"
-    )
 
     start = content.index('=== "Outlines"')
-    end = content.index(end_marker)
+    end = content.index("Try Supervision Annotators on your own image")
     example_section = content[start:end]
 
     groups: dict[str, list[str]] = {}
     current_group = None
 
     for line in example_section.splitlines():
-        if match := re.match(r'^=== "([^"]+)"$', line):
-            current_group = match.group(1)
-            groups[current_group] = []
-        elif current_group and (match := re.match(r'^    === "([^"]+)"$', line)):
-            groups[current_group].append(match.group(1))
+        if match := re.match(r'^(?P<indent>\s*)=== "([^"]+)"$', line):
+            indent = len(match.group("indent").expandtabs(4))
+            label = match.group(2)
 
+            if indent == 0:
+                current_group = label
+                groups[current_group] = []
+            elif indent > 0 and current_group:
+                groups[current_group].append(label)
     return groups
 
 
 def test_annotator_example_tabs_are_split_into_expected_groups() -> None:
-    assert _extract_annotator_tab_groups() == EXPECTED_ANNOTATOR_TAB_GROUPS
+    error_message = (
+        "Annotator example tabs should stay grouped by the documented "
+        "category breakdown."
+    )
+    assert _extract_annotator_tab_groups() == EXPECTED_ANNOTATOR_TAB_GROUPS, (
+        error_message
+    )
 
 
 def test_annotator_example_tab_groups_stay_within_material_limit() -> None:
