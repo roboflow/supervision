@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import threading
-import time
 import warnings
 
 import numpy as np
@@ -390,18 +389,32 @@ def test_run_callback_does_not_rewarn_on_second_call() -> None:
 def test_obb_callbacks_run_sequentially_even_with_multiple_workers() -> None:
     """Test that OBB callbacks are serialized even when thread_workers > 1."""
 
+    barrier = threading.Barrier(3)
     active_calls = 0
     max_active_calls = 0
+    concurrent_callbacks = 0
+    callback_count = 0
     callback_lock = threading.Lock()
 
     def obb_callback(_: np.ndarray) -> Detections:
-        nonlocal active_calls, max_active_calls
+        nonlocal active_calls, max_active_calls, concurrent_callbacks, callback_count
+
+        with callback_lock:
+            callback_index = callback_count
+            callback_count += 1
 
         with callback_lock:
             active_calls += 1
             max_active_calls = max(max_active_calls, active_calls)
 
-        time.sleep(0.01)
+        if callback_index > 0:
+            try:
+                barrier.wait(timeout=1.0)
+            except threading.BrokenBarrierError:
+                pass
+            else:
+                with callback_lock:
+                    concurrent_callbacks += 1
 
         with callback_lock:
             active_calls -= 1
@@ -429,4 +442,5 @@ def test_obb_callbacks_run_sequentially_even_with_multiple_workers() -> None:
         detections = slicer(image)
 
     assert max_active_calls == 1
+    assert concurrent_callbacks == 0
     assert len(detections) == 4
