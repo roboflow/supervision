@@ -2178,7 +2178,10 @@ class HeatMapAnnotator(BaseAnnotator):
             )
         self.heat_mask = mask + self.heat_mask
         heat_values = self.heat_mask.copy()
-        heat_values = self.low_hue - heat_values / heat_values.max() * (
+        max_heat_value = heat_values.max()
+        if max_heat_value == 0:
+            return scene
+        heat_values = self.low_hue - heat_values / max_heat_value * (
             self.low_hue - self.top_hue
         )
         heat_values = heat_values.astype(np.uint8)
