@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
 
@@ -284,3 +285,67 @@ class TestClassNamePopulation:
                 np.testing.assert_array_equal(
                     annotation.data[CLASS_NAME_DATA_FIELD], expected_names
                 )
+
+    def test_class_name_from_coco_with_multi_segment_mask(self, tmp_path: Path) -> None:
+        """Integration test: from_coco should merge multi-segment masks per object."""
+        images_directory = tmp_path / "images"
+        images_directory.mkdir()
+        annotations_path = tmp_path / "annotations.json"
+
+        annotations_path.write_text(
+            json.dumps(
+                {
+                    "categories": [{"id": 1, "name": "eye", "supercategory": "cat"}],
+                    "images": [
+                        {
+                            "id": 1,
+                            "file_name": "image.jpg",
+                            "width": 5,
+                            "height": 5,
+                        }
+                    ],
+                    "annotations": [
+                        {
+                            "id": 1,
+                            "image_id": 1,
+                            "category_id": 1,
+                            "bbox": [0, 0, 5, 5],
+                            "area": 25,
+                            "segmentation": [
+                                [0, 0, 1, 0, 1, 1, 0, 1],
+                                [3, 3, 4, 3, 4, 4, 3, 4],
+                            ],
+                            "iscrowd": 0,
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        dataset = DetectionDataset.from_coco(
+            images_directory_path=str(images_directory),
+            annotations_path=str(annotations_path),
+            force_masks=True,
+        )
+
+        annotation = dataset.annotations[str(images_directory / "image.jpg")]
+        assert annotation.mask is not None
+        np.testing.assert_array_equal(
+            annotation.mask,
+            np.array(
+                [
+                    [
+                        [1, 1, 0, 0, 0],
+                        [1, 1, 0, 0, 0],
+                        [0, 0, 0, 0, 0],
+                        [0, 0, 0, 1, 1],
+                        [0, 0, 0, 1, 1],
+                    ]
+                ],
+                dtype=bool,
+            ),
+        )
+        np.testing.assert_array_equal(
+            annotation.data[CLASS_NAME_DATA_FIELD], np.array(["eye"])
+        )
