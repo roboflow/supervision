@@ -318,6 +318,7 @@ def draw_image(
 
     Raises:
         FileNotFoundError: If the image path does not exist.
+        OSError: If the image path exists but cannot be decoded.
         ValueError: For invalid opacity or rectangle dimensions.
     """
 
@@ -327,7 +328,7 @@ def draw_image(
             raise FileNotFoundError(f"Image path ('{image}') does not exist.")
         loaded_image = cv2.imread(image, cv2.IMREAD_UNCHANGED)
         if loaded_image is None:
-            raise FileNotFoundError(f"Could not read image path ('{image}').")
+            raise OSError(f"Could not decode image path ('{image}').")
         image_np = cast(npt.NDArray[np.uint8], loaded_image)
     else:
         image_np = image

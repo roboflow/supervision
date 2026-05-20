@@ -138,7 +138,7 @@ class InferenceSlicer:
 
     def __init__(
         self,
-        callback: Callable[[Any], Detections],
+        callback: Callable[[ImageType], Detections],
         slice_wh: int | tuple[int, int] = 640,
         overlap_wh: int | tuple[int, int] = 100,
         overlap_filter: OverlapFilter | str = OverlapFilter.NON_MAX_SUPPRESSION,
@@ -157,7 +157,7 @@ class InferenceSlicer:
         self.iou_threshold = iou_threshold
         self.overlap_metric = OverlapMetric.from_value(overlap_metric)
         self.overlap_filter = OverlapFilter.from_value(overlap_filter)
-        self.callback: Callable[[Any], Detections] = callback
+        self.callback: Callable[[ImageType], Detections] = callback
         self.thread_workers = thread_workers
         self.compact_masks = compact_masks
         self._out_of_slice_bounds_warned: bool = False
