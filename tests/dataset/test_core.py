@@ -286,8 +286,8 @@ class TestClassNamePopulation:
                     annotation.data[CLASS_NAME_DATA_FIELD], expected_names
                 )
 
-    def test_class_name_from_coco_with_multi_segment_mask(self, tmp_path: Path) -> None:
-        """Integration test: from_coco should merge multi-segment masks per object."""
+    def test_from_coco_multi_segment_masks(self, tmp_path: Path) -> None:
+        """Regression test: from_coco should merge multi-segment masks per object."""
         images_directory = tmp_path / "images"
         images_directory.mkdir()
         annotations_path = tmp_path / "annotations.json"
@@ -295,7 +295,13 @@ class TestClassNamePopulation:
         annotations_path.write_text(
             json.dumps(
                 {
-                    "categories": [{"id": 1, "name": "eye", "supercategory": "cat"}],
+                    "categories": [
+                        {
+                            "id": 1,
+                            "name": "cat_eye",
+                            "supercategory": "animal_parts",
+                        }
+                    ],
                     "images": [
                         {
                             "id": 1,
@@ -331,6 +337,7 @@ class TestClassNamePopulation:
 
         annotation = dataset.annotations[str(images_directory / "image.jpg")]
         assert annotation.mask is not None
+        assert annotation.mask.shape == (1, 5, 5)
         np.testing.assert_array_equal(
             annotation.mask,
             np.array(
@@ -347,5 +354,5 @@ class TestClassNamePopulation:
             ),
         )
         np.testing.assert_array_equal(
-            annotation.data[CLASS_NAME_DATA_FIELD], np.array(["eye"])
+            annotation.data[CLASS_NAME_DATA_FIELD], np.array(["cat_eye"])
         )
