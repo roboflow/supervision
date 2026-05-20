@@ -318,7 +318,10 @@ Annotators accept detections and apply box or mask visualizations to the detecti
         detections = sv.Detections(...)
 
         blur_annotator = sv.BlurAnnotator()
-        annotated_frame = (blur_annotator.annotate(scene=image.copy(), detections=detections),)
+        annotated_frame = blur_annotator.annotate(
+            scene=image.copy(),
+            detections=detections,
+        )
         ```
 
         <div class="result" markdown>
