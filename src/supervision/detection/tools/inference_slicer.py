@@ -182,9 +182,6 @@ class InferenceSlicer:
             overlap_wh=self.overlap_wh,
         )
 
-        if len(offsets) == 0:
-            return Detections.empty()
-
         first_offset = offsets[0]
         first_detections = self._run_callback(image, first_offset)
         detections_list.append(first_detections)
