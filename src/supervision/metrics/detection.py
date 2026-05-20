@@ -226,7 +226,9 @@ class ConfusionMatrix:
         validate_input_tensors(predictions, targets)
 
         num_classes = len(classes)
-        matrix = np.zeros((num_classes + 1, num_classes + 1))
+        matrix: npt.NDArray[np.int32] = np.zeros(
+            (num_classes + 1, num_classes + 1), dtype=np.int32
+        )
         for true_batch, detection_batch in zip(targets, predictions):
             matrix += cls.evaluate_detection_batch(
                 predictions=detection_batch,
@@ -271,7 +273,9 @@ class ConfusionMatrix:
         Returns:
             Confusion matrix based on a single image.
         """
-        result_matrix = np.zeros((num_classes + 1, num_classes + 1))
+        result_matrix: npt.NDArray[np.int32] = np.zeros(
+            (num_classes + 1, num_classes + 1), dtype=np.int32
+        )
 
         # Filter predictions by confidence threshold
         conf_idx = 5

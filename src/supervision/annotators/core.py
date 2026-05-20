@@ -1597,7 +1597,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
 
         if self.smart_position:
             xyxy = label_properties[:, :4]
-            xyxy = spread_out_boxes(xyxy)
+            xyxy = spread_out_boxes(xyxy)  # type: ignore[assignment]
             label_properties[:, :4] = xyxy
 
             label_properties = self._adjust_labels_in_frame(
@@ -2165,7 +2165,7 @@ class HeatMapAnnotator(BaseAnnotator):
         if self.heat_mask is None:
             self.heat_mask = np.zeros(scene.shape[:2], dtype=np.float32)
 
-        mask = np.zeros(scene.shape[:2])
+        mask: npt.NDArray[np.float32] = np.zeros(scene.shape[:2], dtype=np.float32)
         for xy in detections.get_anchors_coordinates(self.position):
             x, y = int(xy[0]), int(xy[1])
             cv2.circle(

@@ -92,8 +92,8 @@ def pad_boxes(
         py = px
 
     result = xyxy.copy()
-    result[:, [0, 1]] -= [px, py]
-    result[:, [2, 3]] += [px, py]
+    result[:, :2] = result[:, :2] - [px, py]
+    result[:, 2:] = result[:, 2:] + [px, py]
 
     return result
 
@@ -165,7 +165,7 @@ def denormalize_boxes(
 
 def move_boxes(
     xyxy: npt.NDArray[np.number[Any]], offset: npt.NDArray[np.int32]
-) -> npt.NDArray[np.float64]:
+) -> npt.NDArray[np.number[Any]]:
     """
     Args:
         xyxy: An array of shape `(n, 4)` containing the
@@ -196,7 +196,7 @@ def move_boxes(
 
 def move_oriented_boxes(
     xyxyxyxy: npt.NDArray[np.number[Any]], offset: npt.NDArray[np.int32]
-) -> npt.NDArray[np.float64]:
+) -> npt.NDArray[np.number[Any]]:
     """
     Args:
         xyxyxyxy: An array of shape `(n, 4, 2)` containing the
@@ -325,7 +325,7 @@ def spread_out_boxes(
 
         # NxNx2
         delta_centers = centers[:, np.newaxis, :] - centers[np.newaxis, :, :]
-        delta_centers *= overlap_mask[:, :, np.newaxis]
+        delta_centers = delta_centers * overlap_mask[:, :, np.newaxis]
 
         # Nx2
         delta_sum = np.sum(delta_centers, axis=1)
@@ -340,13 +340,13 @@ def spread_out_boxes(
         force_vectors = np.sum(iou, axis=1)
         force_vectors = force_vectors[:, np.newaxis] * direction_vectors
 
-        force_vectors *= 10
+        force_vectors = force_vectors * 10
         force_vectors[(force_vectors > 0) & (force_vectors < 2)] = 2
         force_vectors[(force_vectors < 0) & (force_vectors > -2)] = -2
 
         force_vectors = force_vectors.astype(int)
 
-        xyxy_padded[:, [0, 1]] += force_vectors
-        xyxy_padded[:, [2, 3]] += force_vectors
+        xyxy_padded[:, :2] = xyxy_padded[:, :2] + force_vectors
+        xyxy_padded[:, 2:] = xyxy_padded[:, 2:] + force_vectors
 
     return pad_boxes(xyxy_padded, px=-1)
