@@ -4,8 +4,8 @@ import pytest
 
 matplotlib.use("Agg")
 
-import supervision as sv  # noqa: E402
-from tests.helpers import _create_key_points  # noqa: E402
+import supervision as sv
+from tests.helpers import _create_key_points
 
 
 @pytest.fixture
