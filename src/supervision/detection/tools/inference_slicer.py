@@ -4,7 +4,7 @@ import threading
 import warnings
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -38,8 +38,12 @@ def move_detections(
     """
     detections.xyxy = move_boxes(xyxy=detections.xyxy, offset=offset)
     if ORIENTED_BOX_COORDINATES in detections.data:
+        oriented_boxes = cast(
+            npt.NDArray[np.number[Any]],
+            detections.data[ORIENTED_BOX_COORDINATES],
+        )
         detections.data[ORIENTED_BOX_COORDINATES] = move_oriented_boxes(
-            xyxyxyxy=detections.data[ORIENTED_BOX_COORDINATES], offset=offset
+            xyxyxyxy=oriented_boxes, offset=offset
         )
     if detections.mask is not None:
         if resolution_wh is None:
@@ -134,7 +138,7 @@ class InferenceSlicer:
 
     def __init__(
         self,
-        callback: Callable[[ImageType], Detections],
+        callback: Callable[[Any], Detections],
         slice_wh: int | tuple[int, int] = 640,
         overlap_wh: int | tuple[int, int] = 100,
         overlap_filter: OverlapFilter | str = OverlapFilter.NON_MAX_SUPPRESSION,
@@ -153,7 +157,7 @@ class InferenceSlicer:
         self.iou_threshold = iou_threshold
         self.overlap_metric = OverlapMetric.from_value(overlap_metric)
         self.overlap_filter = OverlapFilter.from_value(overlap_filter)
-        self.callback: Callable[[ImageType], Detections] = callback
+        self.callback: Callable[[Any], Detections] = callback
         self.thread_workers = thread_workers
         self.compact_masks = compact_masks
         self._out_of_slice_bounds_warned: bool = False

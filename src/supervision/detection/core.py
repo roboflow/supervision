@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from functools import reduce
-from typing import Any, cast
+from typing import Any, cast, overload
 
 import numpy as np
 import numpy.typing as npt
@@ -149,12 +149,12 @@ class Detections:
             as the video name, camera parameters, timestamp, or other global metadata.
     """  # noqa: E501 // docs
 
-    xyxy: npt.NDArray[np.generic]
-    mask: npt.NDArray[np.generic] | CompactMask | None = None
-    confidence: npt.NDArray[np.generic] | None = None
-    class_id: npt.NDArray[np.generic] | None = None
-    tracker_id: npt.NDArray[np.generic] | None = None
-    data: dict[str, npt.NDArray[np.generic] | list[Any]] = field(default_factory=dict)
+    xyxy: npt.NDArray[np.number[Any]]
+    mask: npt.NDArray[np.bool_] | CompactMask | None = None
+    confidence: npt.NDArray[np.floating[Any]] | None = None
+    class_id: npt.NDArray[np.integer[Any]] | None = None
+    tracker_id: npt.NDArray[np.integer[Any]] | None = None
+    data: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -177,12 +177,12 @@ class Detections:
         self,
     ) -> Iterator[
         tuple[
-            npt.NDArray[np.generic],
-            npt.NDArray[np.generic] | None,
-            np.generic | None,
-            np.generic | None,
-            np.generic | None,
-            dict[str, npt.NDArray[np.generic] | list[Any]],
+            npt.NDArray[np.number[Any]],
+            npt.NDArray[np.bool_] | None,
+            np.floating[Any] | None,
+            np.integer[Any] | None,
+            np.integer[Any] | None,
+            dict[str, Any],
         ]
     ]:
         """
@@ -190,28 +190,62 @@ class Detections:
         `(xyxy, mask, confidence, class_id, tracker_id, data)` for each detection.
         """
         for i in range(len(self.xyxy)):
+            mask = (
+                cast(npt.NDArray[np.bool_], self.mask[i])
+                if self.mask is not None
+                else None
+            )
+            confidence = (
+                cast(np.floating[Any], self.confidence[i])
+                if self.confidence is not None
+                else None
+            )
+            class_id = (
+                cast(np.integer[Any], self.class_id[i])
+                if self.class_id is not None
+                else None
+            )
+            tracker_id = (
+                cast(np.integer[Any], self.tracker_id[i])
+                if self.tracker_id is not None
+                else None
+            )
             yield (
                 self.xyxy[i],
-                self.mask[i] if self.mask is not None else None,
-                self.confidence[i] if self.confidence is not None else None,
-                self.class_id[i] if self.class_id is not None else None,
-                self.tracker_id[i] if self.tracker_id is not None else None,
+                mask,
+                confidence,
+                class_id,
+                tracker_id,
                 get_data_item(self.data, i),
             )
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Detections):
             return NotImplemented
-        return all(
-            [
-                np.array_equal(self.xyxy, other.xyxy),
-                np.array_equal(self.mask, other.mask),
-                np.array_equal(self.class_id, other.class_id),
-                np.array_equal(self.confidence, other.confidence),
-                np.array_equal(self.tracker_id, other.tracker_id),
-                is_data_equal(self.data, other.data),
-                is_metadata_equal(self.metadata, other.metadata),
-            ]
+        if not np.array_equal(self.xyxy, other.xyxy):
+            return False
+        if self.mask is None or other.mask is None:
+            if self.mask is not other.mask:
+                return False
+        elif not np.array_equal(np.asarray(self.mask), np.asarray(other.mask)):
+            return False
+        if self.class_id is None or other.class_id is None:
+            if self.class_id is not other.class_id:
+                return False
+        elif not np.array_equal(self.class_id, other.class_id):
+            return False
+        if self.confidence is None or other.confidence is None:
+            if self.confidence is not other.confidence:
+                return False
+        elif not np.array_equal(self.confidence, other.confidence):
+            return False
+        if self.tracker_id is None or other.tracker_id is None:
+            if self.tracker_id is not other.tracker_id:
+                return False
+        elif not np.array_equal(self.tracker_id, other.tracker_id):
+            return False
+        return is_data_equal(self.data, other.data) and is_metadata_equal(
+            self.metadata, other.metadata
         )
 
     @classmethod
@@ -299,6 +333,8 @@ class Detections:
 
         if hasattr(ultralytics_results, "boxes") and ultralytics_results.boxes is None:
             masks = extract_ultralytics_masks(ultralytics_results)
+            if masks is None:
+                return cls.empty()
             return cls(
                 xyxy=mask_to_xyxy(masks),
                 mask=masks,
@@ -1874,73 +1910,105 @@ class Detections:
 
         if vlm == VLM.PALIGEMMA:
             assert isinstance(result, str)
-            xyxy, class_id, class_name = from_paligemma(result, **kwargs)
-            data: dict[str, npt.NDArray[np.generic] | list[Any]] = {
-                CLASS_NAME_DATA_FIELD: class_name,
+            paligemma_xyxy, paligemma_class_id, paligemma_class_name = from_paligemma(
+                result, **kwargs
+            )
+            paligemma_data: dict[str, Any] = {
+                CLASS_NAME_DATA_FIELD: paligemma_class_name,
             }
-            return cls(xyxy=xyxy, class_id=class_id, data=data)
+            return cls(
+                xyxy=paligemma_xyxy,
+                class_id=paligemma_class_id,
+                data=paligemma_data,
+            )
 
         if vlm == VLM.QWEN_2_5_VL:
             assert isinstance(result, str)
-            xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
-            data = {CLASS_NAME_DATA_FIELD: class_name}
+            qwen_xyxy, qwen_class_id, qwen_class_name = from_qwen_2_5_vl(
+                result, **kwargs
+            )
+            qwen_data = {CLASS_NAME_DATA_FIELD: qwen_class_name}
             confidence_arr: npt.NDArray[np.floating[Any]] = np.ones(
-                len(xyxy), dtype=float
+                len(qwen_xyxy), dtype=float
             )
             return cls(
-                xyxy=xyxy, class_id=class_id, confidence=confidence_arr, data=data
+                xyxy=qwen_xyxy,
+                class_id=qwen_class_id,
+                confidence=confidence_arr,
+                data=qwen_data,
             )
 
         if vlm == VLM.QWEN_3_VL:
             assert isinstance(result, str)
-            xyxy, class_id, class_name = from_qwen_3_vl(result, **kwargs)
-            data = {CLASS_NAME_DATA_FIELD: class_name}
-            confidence_arr = np.ones(len(xyxy), dtype=float)
+            qwen3_xyxy, qwen3_class_id, qwen3_class_name = from_qwen_3_vl(
+                result, **kwargs
+            )
+            qwen3_data = {CLASS_NAME_DATA_FIELD: qwen3_class_name}
+            confidence_arr = np.ones(len(qwen3_xyxy), dtype=float)
             return cls(
-                xyxy=xyxy, class_id=class_id, confidence=confidence_arr, data=data
+                xyxy=qwen3_xyxy,
+                class_id=qwen3_class_id,
+                confidence=confidence_arr,
+                data=qwen3_data,
             )
 
         if vlm == VLM.DEEPSEEK_VL_2:
             assert isinstance(result, str)
-            xyxy, class_id, class_name = from_deepseek_vl_2(result, **kwargs)
-            data = {CLASS_NAME_DATA_FIELD: class_name}
-            return cls(xyxy=xyxy, class_id=class_id, data=data)
+            deepseek_xyxy, deepseek_class_id, deepseek_class_name = from_deepseek_vl_2(
+                result, **kwargs
+            )
+            deepseek_data = {CLASS_NAME_DATA_FIELD: deepseek_class_name}
+            return cls(
+                xyxy=deepseek_xyxy, class_id=deepseek_class_id, data=deepseek_data
+            )
 
         if vlm == VLM.FLORENCE_2:
             assert isinstance(result, dict)
-            xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
-            if len(xyxy) == 0:
+            florence_xyxy, florence_labels, florence_mask, florence_xyxyxyxy = (
+                from_florence_2(result, **kwargs)
+            )
+            if len(florence_xyxy) == 0:
                 return cls.empty()
 
-            data = {}
-            if labels is not None:
-                data[CLASS_NAME_DATA_FIELD] = labels
-            if xyxyxyxy is not None:
-                data[ORIENTED_BOX_COORDINATES] = xyxyxyxy
+            florence_data: dict[str, Any] = {}
+            if florence_labels is not None:
+                florence_data[CLASS_NAME_DATA_FIELD] = florence_labels
+            if florence_xyxyxyxy is not None:
+                florence_data[ORIENTED_BOX_COORDINATES] = florence_xyxyxyxy
 
-            return cls(xyxy=xyxy, mask=mask, data=data)
+            return cls(
+                xyxy=florence_xyxy,
+                mask=cast(npt.NDArray[np.bool_] | None, florence_mask),
+                data=florence_data,
+            )
 
         if vlm == VLM.GOOGLE_GEMINI_2_0:
             assert isinstance(result, str)
-            xyxy, class_id, class_name = from_google_gemini_2_0(result, **kwargs)
-            data = {CLASS_NAME_DATA_FIELD: class_name}
-            return cls(xyxy=xyxy, class_id=class_id, data=data)
+            gemini20_xyxy, gemini20_class_id, gemini20_class_name = (
+                from_google_gemini_2_0(result, **kwargs)
+            )
+            gemini20_data = {CLASS_NAME_DATA_FIELD: gemini20_class_name}
+            return cls(
+                xyxy=gemini20_xyxy,
+                class_id=gemini20_class_id,
+                data=gemini20_data,
+            )
 
         if vlm == VLM.MOONDREAM:
             assert isinstance(result, dict)
-            xyxy = from_moondream(result, **kwargs)
-            return cls(xyxy=xyxy)
+            moondream_xyxy = from_moondream(result, **kwargs)
+            return cls(xyxy=moondream_xyxy)
 
         if vlm == VLM.GOOGLE_GEMINI_2_5:
             assert isinstance(result, str)
-            gemini_result = from_google_gemini_2_5(result, **kwargs)
-            data = {CLASS_NAME_DATA_FIELD: gemini_result[2]}
+            gemini25_result = from_google_gemini_2_5(result, **kwargs)
+            gemini25_data = {CLASS_NAME_DATA_FIELD: gemini25_result[2]}
             return cls(
-                xyxy=gemini_result[0],
-                class_id=gemini_result[1],
-                mask=gemini_result[4],
-                confidence=gemini_result[3],
-                data=data,
+                xyxy=gemini25_result[0],
+                class_id=gemini25_result[1],
+                mask=gemini25_result[4],
+                confidence=gemini25_result[3],
+                data=gemini25_data,
             )
 
         return cls.empty()
@@ -2169,7 +2237,7 @@ class Detections:
 
         def stack_or_none(
             name: str,
-        ) -> npt.NDArray[np.generic] | CompactMask | None:
+        ) -> npt.NDArray[np.number[Any]] | CompactMask | None:
             if all(d.__getattribute__(name) is None for d in detections_list):
                 return None
             if any(d.__getattribute__(name) is None for d in detections_list):
@@ -2177,15 +2245,19 @@ class Detections:
             if name == "mask":
                 masks = [d.__getattribute__(name) for d in detections_list]
                 if all(isinstance(m, CompactMask) for m in masks):
-                    return CompactMask.merge(masks)
+                    return CompactMask.merge(cast(list[CompactMask], masks))
                 # Mixed or all-ndarray: __array__ auto-converts any CompactMask.
                 return np.vstack([np.asarray(m) for m in masks])
             return np.hstack([d.__getattribute__(name) for d in detections_list])
 
-        mask = stack_or_none("mask")
-        confidence = stack_or_none("confidence")
-        class_id = stack_or_none("class_id")
-        tracker_id = stack_or_none("tracker_id")
+        mask = cast(npt.NDArray[np.bool_] | CompactMask | None, stack_or_none("mask"))
+        confidence = cast(
+            npt.NDArray[np.floating[Any]] | None, stack_or_none("confidence")
+        )
+        class_id = cast(npt.NDArray[np.integer[Any]] | None, stack_or_none("class_id"))
+        tracker_id = cast(
+            npt.NDArray[np.integer[Any]] | None, stack_or_none("tracker_id")
+        )
 
         data = merge_data([d.data for d in detections_list])
 
@@ -2202,7 +2274,7 @@ class Detections:
             metadata=metadata,
         )
 
-    def get_anchors_coordinates(self, anchor: Position) -> npt.NDArray[np.generic]:
+    def get_anchors_coordinates(self, anchor: Position) -> npt.NDArray[np.number[Any]]:
         """
         Calculates and returns the coordinates of a specific anchor point
         within the bounding boxes defined by the `xyxy` attribute. The anchor
@@ -2222,54 +2294,93 @@ class Detections:
             ValueError: If the provided `anchor` is not supported.
         """
         if anchor == Position.CENTER:
-            return np.array(
-                [
-                    (self.xyxy[:, 0] + self.xyxy[:, 2]) / 2,
-                    (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
-                ]
-            ).transpose()
+            return cast(
+                npt.NDArray[np.number[Any]],
+                np.array(
+                    [
+                        (self.xyxy[:, 0] + self.xyxy[:, 2]) / 2,
+                        (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
+                    ]
+                ).transpose(),
+            )
         elif anchor == Position.CENTER_OF_MASS:
             if self.mask is None:
                 raise ValueError(
                     "Cannot use `Position.CENTER_OF_MASS` without a detection mask."
                 )
-            return calculate_masks_centroids(masks=self.mask)
+            return cast(
+                npt.NDArray[np.number[Any]],
+                calculate_masks_centroids(masks=self.mask),
+            )
         elif anchor == Position.CENTER_LEFT:
-            return np.array(
-                [
-                    self.xyxy[:, 0],
-                    (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
-                ]
-            ).transpose()
+            return cast(
+                npt.NDArray[np.number[Any]],
+                np.array(
+                    [
+                        self.xyxy[:, 0],
+                        (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
+                    ]
+                ).transpose(),
+            )
         elif anchor == Position.CENTER_RIGHT:
-            return np.array(
-                [
-                    self.xyxy[:, 2],
-                    (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
-                ]
-            ).transpose()
+            return cast(
+                npt.NDArray[np.number[Any]],
+                np.array(
+                    [
+                        self.xyxy[:, 2],
+                        (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
+                    ]
+                ).transpose(),
+            )
         elif anchor == Position.BOTTOM_CENTER:
-            return np.array(
-                [(self.xyxy[:, 0] + self.xyxy[:, 2]) / 2, self.xyxy[:, 3]]
-            ).transpose()
+            return cast(
+                npt.NDArray[np.number[Any]],
+                np.array(
+                    [(self.xyxy[:, 0] + self.xyxy[:, 2]) / 2, self.xyxy[:, 3]]
+                ).transpose(),
+            )
         elif anchor == Position.BOTTOM_LEFT:
-            return np.array([self.xyxy[:, 0], self.xyxy[:, 3]]).transpose()
+            return cast(
+                npt.NDArray[np.number[Any]],
+                np.array([self.xyxy[:, 0], self.xyxy[:, 3]]).transpose(),
+            )
         elif anchor == Position.BOTTOM_RIGHT:
-            return np.array([self.xyxy[:, 2], self.xyxy[:, 3]]).transpose()
+            return cast(
+                npt.NDArray[np.number[Any]],
+                np.array([self.xyxy[:, 2], self.xyxy[:, 3]]).transpose(),
+            )
         elif anchor == Position.TOP_CENTER:
-            return np.array(
-                [(self.xyxy[:, 0] + self.xyxy[:, 2]) / 2, self.xyxy[:, 1]]
-            ).transpose()
+            return cast(
+                npt.NDArray[np.number[Any]],
+                np.array(
+                    [(self.xyxy[:, 0] + self.xyxy[:, 2]) / 2, self.xyxy[:, 1]]
+                ).transpose(),
+            )
         elif anchor == Position.TOP_LEFT:
-            return np.array([self.xyxy[:, 0], self.xyxy[:, 1]]).transpose()
+            return cast(
+                npt.NDArray[np.number[Any]],
+                np.array([self.xyxy[:, 0], self.xyxy[:, 1]]).transpose(),
+            )
         elif anchor == Position.TOP_RIGHT:
-            return np.array([self.xyxy[:, 2], self.xyxy[:, 1]]).transpose()
+            return cast(
+                npt.NDArray[np.number[Any]],
+                np.array([self.xyxy[:, 2], self.xyxy[:, 1]]).transpose(),
+            )
 
         raise ValueError(f"{anchor} is not supported.")
 
+    @overload
+    def __getitem__(self, index: str) -> Any: ...
+
+    @overload
     def __getitem__(
-        self, index: int | slice | list[int] | npt.NDArray[np.generic] | str
-    ) -> Detections | list[Any] | npt.NDArray[np.generic] | None:
+        self,
+        index: int | slice | list[int] | list[bool] | npt.NDArray[Any],
+    ) -> Detections: ...
+
+    def __getitem__(
+        self, index: int | slice | list[int] | list[bool] | npt.NDArray[Any] | str
+    ) -> Detections | Any | None:
         """
         Get a subset of the Detections object or access an item from its data field.
 
@@ -2306,17 +2417,27 @@ class Detections:
             return self
         if isinstance(index, int):
             index = [index]
+        mask = cast(Any, self.mask[index]) if self.mask is not None else None
+        confidence = (
+            cast(Any, self.confidence[index]) if self.confidence is not None else None
+        )
+        class_id = (
+            cast(Any, self.class_id[index]) if self.class_id is not None else None
+        )
+        tracker_id = (
+            cast(Any, self.tracker_id[index]) if self.tracker_id is not None else None
+        )
         return Detections(
-            xyxy=self.xyxy[index],
-            mask=self.mask[index] if self.mask is not None else None,
-            confidence=self.confidence[index] if self.confidence is not None else None,
-            class_id=self.class_id[index] if self.class_id is not None else None,
-            tracker_id=self.tracker_id[index] if self.tracker_id is not None else None,
+            xyxy=cast(Any, self.xyxy[index]),
+            mask=mask,
+            confidence=confidence,
+            class_id=class_id,
+            tracker_id=tracker_id,
             data=get_data_item(self.data, index),
             metadata=self.metadata,
         )
 
-    def __setitem__(self, key: str, value: npt.NDArray[np.generic] | list[Any]) -> None:
+    def __setitem__(self, key: str, value: Any) -> None:
         """
         Set a value in the data dictionary of the Detections object.
 
@@ -2343,16 +2464,10 @@ class Detections:
              ]
             ```
         """
-        if not isinstance(value, (np.ndarray, list)):
-            raise TypeError("Value must be a np.ndarray or a list")
-
-        if isinstance(value, list):
-            value = np.array(value)
-
         self.data[key] = value
 
     @property
-    def area(self) -> npt.NDArray[np.generic]:
+    def area(self) -> npt.NDArray[np.number[Any]]:
         """
         Calculate the area of each detection in the set of object detections.
         If masks field is defined property returns are of each mask.
@@ -2366,12 +2481,14 @@ class Detections:
         if self.mask is not None:
             if isinstance(self.mask, CompactMask):
                 return self.mask.area
-            return np.array([np.sum(mask) for mask in self.mask])
-        else:
-            return self.box_area
+            return cast(
+                npt.NDArray[np.number[Any]],
+                np.array([np.sum(mask) for mask in self.mask]),
+            )
+        return self.box_area
 
     @property
-    def box_area(self) -> npt.NDArray[np.generic]:
+    def box_area(self) -> npt.NDArray[np.number[Any]]:
         """
         Calculate the area of each bounding box in the set of object detections.
 
@@ -2383,7 +2500,7 @@ class Detections:
         return (self.xyxy[:, 3] - self.xyxy[:, 1]) * (self.xyxy[:, 2] - self.xyxy[:, 0])
 
     @property
-    def box_aspect_ratio(self) -> npt.NDArray[np.generic]:
+    def box_aspect_ratio(self) -> npt.NDArray[np.floating[Any]]:
         """
         Compute the aspect ratio (width divided by height) for each bounding box.
 
@@ -2415,7 +2532,9 @@ class Detections:
         widths = self.xyxy[:, 2] - self.xyxy[:, 0]
         heights = self.xyxy[:, 3] - self.xyxy[:, 1]
 
-        aspect_ratios = np.full_like(widths, np.nan, dtype=np.float64)
+        aspect_ratios: npt.NDArray[np.float64] = np.full_like(
+            widths, np.nan, dtype=np.float64
+        )
         np.divide(widths, heights, out=aspect_ratios, where=heights != 0)
         return aspect_ratios
 
@@ -2483,7 +2602,7 @@ class Detections:
                 overlap_metric=overlap_metric,
             )
 
-        return cast(Detections, self[indices])
+        return self[indices]
 
     def with_nmm(
         self,
@@ -2551,7 +2670,7 @@ class Detections:
 
         result: list[Detections] = []
         for merge_group in merge_groups:
-            unmerged_detections = [cast(Detections, self[i]) for i in merge_group]
+            unmerged_detections = [self[i] for i in merge_group]
             merged_detections = merge_inner_detections_objects_without_iou(
                 unmerged_detections
             )
@@ -2630,7 +2749,9 @@ def merge_inner_detection_object_pair(
     if detections_1.mask is None and detections_2.mask is None:
         merged_mask = None
     else:
-        merged_mask = np.logical_or(detections_1.mask, detections_2.mask)
+        merged_mask = np.logical_or(
+            np.asarray(detections_1.mask), np.asarray(detections_2.mask)
+        )
 
     if detections_1.confidence is None or detections_2.confidence is None:
         winning_detection = detections_1

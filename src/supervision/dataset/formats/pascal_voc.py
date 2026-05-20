@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import Any
 from xml.etree.ElementTree import Element, SubElement
 
 import cv2
@@ -17,9 +18,9 @@ from supervision.utils.file import list_files_with_extensions
 
 
 def object_to_pascal_voc(
-    xyxy: npt.NDArray[np.number],
+    xyxy: npt.NDArray[np.number[Any]],
     name: str,
-    polygon: npt.NDArray[np.number] | None = None,
+    polygon: npt.NDArray[np.number[Any]] | None = None,
 ) -> Element:
     root = Element("object")
 
@@ -27,7 +28,7 @@ def object_to_pascal_voc(
     object_name.text = name
 
     # https://github.com/roboflow/supervision/issues/144
-    xyxy += 1
+    xyxy = np.asarray(xyxy).copy() + 1
 
     bndbox = SubElement(root, "bndbox")
     xmin = SubElement(bndbox, "xmin")
@@ -41,7 +42,7 @@ def object_to_pascal_voc(
 
     if polygon is not None:
         # https://github.com/roboflow/supervision/issues/144
-        polygon += 1
+        polygon = np.asarray(polygon).copy() + 1
         object_polygon = SubElement(root, "polygon")
         for index, point in enumerate(polygon, start=1):
             x_coordinate, y_coordinate = point
@@ -57,7 +58,7 @@ def detections_to_pascal_voc(
     detections: Detections,
     classes: list[str],
     filename: str,
-    image_shape: tuple[int, int, int],
+    image_shape: tuple[int, ...],
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
@@ -82,7 +83,8 @@ def detections_to_pascal_voc(
     Returns:
         An XML string in Pascal VOC format representing the detections.
     """
-    height, width, depth = image_shape
+    height, width = image_shape[:2]
+    depth = image_shape[2] if len(image_shape) > 2 else 1
 
     # Create root element
     annotation = Element("annotation")
@@ -141,7 +143,9 @@ def detections_to_pascal_voc(
             annotation.append(next_object)
 
     # Generate XML string
-    xml_string = str(parseString(tostring(annotation)).toprettyxml(indent="  "))
+    xml_string = str(
+        parseString(tostring(annotation, encoding="unicode")).toprettyxml(indent="  ")
+    )
     return xml_string
 
 
@@ -186,6 +190,7 @@ def load_pascal_voc_annotations(
 
         tree = parse(annotation_path)
         root = tree.getroot()
+        assert root is not None
 
         image = cv2.imread(image_path)
         if image is None:

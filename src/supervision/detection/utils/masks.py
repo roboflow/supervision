@@ -376,14 +376,12 @@ def filter_segments_by_distance(
     if not np.any(mask):
         return mask.copy()
 
-    image = mask.astype(np.uint8)
-    num_labels: int
-    labels: npt.NDArray[np.int32]
-    stats: npt.NDArray[np.int32]
-    centroids: npt.NDArray[np.float64]
-    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(
-        image, connectivity=connectivity
-    )
+    image = cast(npt.NDArray[np.uint8], mask.astype(np.uint8))
+    components = cv2.connectedComponentsWithStats(image, connectivity=connectivity)
+    num_labels = int(components[0])
+    labels = cast(npt.NDArray[np.int32], components[1])
+    stats = cast(npt.NDArray[np.int32], components[2])
+    centroids = cast(npt.NDArray[np.float64], components[3])
 
     if num_labels <= 1:
         return mask.copy()

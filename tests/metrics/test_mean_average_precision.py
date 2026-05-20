@@ -33,7 +33,9 @@ class TestMeanAveragePrecision:
         # Should be perfect 1.0 mAP
         assert abs(result.map50_95 - 1.0) < 1e-6
 
-    def test_batch_updates_perfect_detections(self, detections_50_50, targets_50_50) -> None:
+    def test_batch_updates_perfect_detections(
+        self, detections_50_50, targets_50_50
+    ) -> None:
         """Test that batch updates with perfect detections get 1.0 mAP"""
         metric = MeanAveragePrecision()
         # Add 3 batch updates

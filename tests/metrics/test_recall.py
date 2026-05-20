@@ -144,7 +144,9 @@ class TestRecall:
         assert 0 in result.matched_classes
         assert 1 in result.matched_classes
 
-    def test_different_iou_thresholds(self, predictions_iou_064, targets_iou_064) -> None:
+    def test_different_iou_thresholds(
+        self, predictions_iou_064, targets_iou_064
+    ) -> None:
         """Test recall at different IoU thresholds"""
         metric = Recall()
         result = metric.update(predictions_iou_064, targets_iou_064).compute()
@@ -154,7 +156,9 @@ class TestRecall:
         assert result.recall_at_50 == 1.0  # TP=1, FN=0
         assert result.recall_at_75 == 0.0  # TP=0, FN=1
 
-    def test_confidence_ranking(self, predictions_confidence_ranking, targets_50_50) -> None:
+    def test_confidence_ranking(
+        self, predictions_confidence_ranking, targets_50_50
+    ) -> None:
         """Test that higher confidence predictions are preferred for matching"""
         metric = Recall()
         result = metric.update(predictions_confidence_ranking, targets_50_50).compute()
@@ -199,7 +203,9 @@ class TestRecall:
         "averaging_method",
         [AveragingMethod.MACRO, AveragingMethod.MICRO, AveragingMethod.WEIGHTED],
     )
-    def test_averaging_methods(self, averaging_method, detections_50_50, targets_50_50) -> None:
+    def test_averaging_methods(
+        self, averaging_method, detections_50_50, targets_50_50
+    ) -> None:
         """Test different averaging methods"""
         metric = Recall(averaging_method=averaging_method)
         result = metric.update(detections_50_50, targets_50_50).compute()

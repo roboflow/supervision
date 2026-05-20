@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, cast
 
 import cv2
 import numpy as np
@@ -353,12 +353,12 @@ class VertexLabelAnnotator:
             labels=labels, points_count=points_count, skeletons_count=skeletons_count
         )
 
-        anchors = anchors[mask]
+        anchors = cast(Any, anchors[mask])
         colors = colors[mask]
         text_colors = text_colors[mask]
         filtered_labels = processed_labels[mask]
 
-        xyxy = np.array(
+        xyxy: npt.NDArray[np.float32] = np.array(
             [
                 self.get_text_bounding_box(
                     text=label,
@@ -368,13 +368,16 @@ class VertexLabelAnnotator:
                     center_coordinates=tuple(anchor),
                 )
                 for anchor, label in zip(anchors, filtered_labels)
-            ]
+            ],
+            dtype=np.float32,
         )
-        xyxy_padded = pad_boxes(xyxy=xyxy, px=self.text_padding)
+        xyxy_padded: npt.NDArray[np.float32] = pad_boxes(
+            xyxy=xyxy, px=self.text_padding
+        ).astype(np.float32)
 
         if self.smart_position:
-            xyxy_padded = spread_out_boxes(xyxy_padded)
-            xyxy = pad_boxes(xyxy=xyxy_padded, px=-self.text_padding)
+            xyxy_padded = spread_out_boxes(xyxy_padded).astype(np.float32)
+            xyxy = pad_boxes(xyxy=xyxy_padded, px=-self.text_padding).astype(np.float32)
 
         for text, color, text_color, box, box_padded in zip(
             filtered_labels, colors, text_colors, xyxy, xyxy_padded

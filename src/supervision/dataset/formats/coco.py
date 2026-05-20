@@ -125,14 +125,16 @@ def coco_annotations_to_detections(
     if not image_annotations:
         return Detections.empty()
 
-    class_ids = [
+    class_ids: list[int] = [
         image_annotation["category_id"] for image_annotation in image_annotations
     ]
-    xyxy = [image_annotation["bbox"] for image_annotation in image_annotations]
-    xyxy = np.asarray(xyxy, dtype=np.float32)
+    xyxy_list: list[list[float]] = [
+        image_annotation["bbox"] for image_annotation in image_annotations
+    ]
+    xyxy = np.asarray(xyxy_list, dtype=np.float32)
     xyxy[:, 2:4] += xyxy[:, 0:2]
 
-    data: dict[str, npt.NDArray[np.generic]] = {}
+    data: dict[str, Any] = {}
     if use_iscrowd:
         iscrowd = [
             image_annotation["iscrowd"] for image_annotation in image_annotations

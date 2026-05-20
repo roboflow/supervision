@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -155,7 +155,7 @@ class Precision(Metric):
     def _compute(
         self, predictions_list: list[Detections], targets_list: list[Detections]
     ) -> PrecisionResult:
-        iou_thresholds = np.linspace(0.5, 0.95, 10)
+        iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
         stats: list[Any] = []
 
         for predictions, targets in zip(predictions_list, targets_list):
@@ -168,8 +168,11 @@ class Precision(Metric):
                         (
                             np.zeros((0, iou_thresholds.size), dtype=bool),
                             np.zeros((0,), dtype=np.float32),
-                            np.zeros((0,), dtype=int),
-                            targets.class_id,
+                            np.zeros((0,), dtype=np.int32),
+                            cast(
+                                npt.NDArray[np.int32],
+                                targets.class_id,
+                            ),
                         )
                     )
 
@@ -190,10 +193,10 @@ class Precision(Metric):
                     matches = self._match_detection_batch(
                         predictions.class_id
                         if predictions.class_id is not None
-                        else np.array([]),
+                        else np.array([], dtype=np.int32),
                         targets.class_id
                         if targets.class_id is not None
-                        else np.array([]),
+                        else np.array([], dtype=np.int32),
                         iou,
                         iou_thresholds,
                     )
@@ -201,8 +204,8 @@ class Precision(Metric):
                         (
                             matches,
                             predictions.confidence,
-                            predictions.class_id,
-                            targets.class_id,
+                            cast(npt.NDArray[np.int32], predictions.class_id),
+                            cast(npt.NDArray[np.int32], targets.class_id),
                         )
                     )
 
@@ -213,7 +216,7 @@ class Precision(Metric):
                 precision_scores=np.zeros(iou_thresholds.shape[0]),
                 precision_per_class=np.zeros((0, iou_thresholds.shape[0])),
                 iou_thresholds=iou_thresholds,
-                matched_classes=np.array([], dtype=int),
+                matched_classes=np.array([], dtype=np.int32),
                 small_objects=None,
                 medium_objects=None,
                 large_objects=None,
@@ -276,10 +279,10 @@ class Precision(Metric):
 
     @staticmethod
     def _match_detection_batch(
-        predictions_classes: npt.NDArray[np.int32],
-        target_classes: npt.NDArray[np.int32],
-        iou: npt.NDArray[np.float32],
-        iou_thresholds: npt.NDArray[np.float32],
+        predictions_classes: npt.NDArray[np.integer[Any]],
+        target_classes: npt.NDArray[np.integer[Any]],
+        iou: npt.NDArray[np.floating[Any]],
+        iou_thresholds: npt.NDArray[np.floating[Any]],
     ) -> npt.NDArray[np.bool_]:
         num_predictions, num_iou_levels = (
             predictions_classes.shape[0],
@@ -308,9 +311,9 @@ class Precision(Metric):
     @staticmethod
     def _compute_confusion_matrix(
         sorted_matches: npt.NDArray[np.bool_],
-        sorted_prediction_class_ids: npt.NDArray[np.int32],
-        unique_classes: npt.NDArray[np.int32],
-        class_counts: npt.NDArray[np.int32],
+        sorted_prediction_class_ids: npt.NDArray[np.integer[Any]],
+        unique_classes: npt.NDArray[np.integer[Any]],
+        class_counts: npt.NDArray[np.integer[Any]],
     ) -> npt.NDArray[np.float64]:
         """
         Compute the confusion matrix for each class and IoU threshold.
@@ -345,13 +348,17 @@ class Precision(Metric):
             num_predictions = is_class.sum()
 
             if num_predictions == 0:
-                true_positives = np.zeros(num_thresholds)
-                false_positives = np.zeros(num_thresholds)
-                false_negatives = np.full(num_thresholds, num_true)
+                true_positives = np.zeros(num_thresholds, dtype=np.float64)
+                false_positives = np.zeros(num_thresholds, dtype=np.float64)
+                false_negatives = np.full(
+                    num_thresholds, num_true, dtype=np.float64
+                )
             elif num_true == 0:
-                true_positives = np.zeros(num_thresholds)
-                false_positives = np.full(num_thresholds, num_predictions)
-                false_negatives = np.zeros(num_thresholds)
+                true_positives = np.zeros(num_thresholds, dtype=np.float64)
+                false_positives = np.full(
+                    num_thresholds, num_predictions, dtype=np.float64
+                )
+                false_negatives = np.zeros(num_thresholds, dtype=np.float64)
             else:
                 true_positives = sorted_matches[is_class].sum(0)
                 false_positives = (1 - sorted_matches[is_class]).sum(0)
@@ -398,11 +405,15 @@ class Precision(Metric):
     def _detections_content(self, detections: Detections) -> npt.NDArray[Any]:
         """Return boxes, masks or oriented bounding boxes from detections."""
         if self._metric_target == MetricTarget.BOXES:
-            result_boxes: npt.NDArray[np.float32] = detections.xyxy
+            result_boxes: npt.NDArray[np.float32] = np.asarray(
+                detections.xyxy, dtype=np.float32
+            )
             return result_boxes
         if self._metric_target == MetricTarget.MASKS:
             if detections.mask is not None:
-                result_masks: npt.NDArray[np.bool_] = detections.mask
+                result_masks: npt.NDArray[np.bool_] = np.asarray(
+                    detections.mask, dtype=bool
+                )
                 return result_masks
             return self._make_empty_content()
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
@@ -441,18 +452,20 @@ class Precision(Metric):
         sizes = get_detection_size_category(new_detections, self._metric_target)
         size_mask = sizes == size_category.value
 
-        new_detections.xyxy = new_detections.xyxy[size_mask]
+        new_detections.xyxy = cast(Any, new_detections.xyxy[size_mask])
         if new_detections.mask is not None:
-            new_detections.mask = new_detections.mask[size_mask]
+            new_detections.mask = cast(Any, new_detections.mask[size_mask])
         if new_detections.class_id is not None:
-            new_detections.class_id = new_detections.class_id[size_mask]
+            new_detections.class_id = cast(Any, new_detections.class_id[size_mask])
         if new_detections.confidence is not None:
-            new_detections.confidence = new_detections.confidence[size_mask]
+            new_detections.confidence = cast(
+                Any, new_detections.confidence[size_mask]
+            )
         if new_detections.tracker_id is not None:
-            new_detections.tracker_id = new_detections.tracker_id[size_mask]
+            new_detections.tracker_id = cast(Any, new_detections.tracker_id[size_mask])
         if new_detections.data is not None:
             for key, value in new_detections.data.items():
-                new_detections.data[key] = np.array(value)[size_mask]
+                new_detections.data[key] = cast(Any, np.asarray(value)[size_mask])
 
         return new_detections
 
@@ -608,7 +621,7 @@ class PrecisionResult:
         ensure_pandas_installed()
         import pandas as pd
 
-        pandas_data = {
+        pandas_data: dict[str, Any] = {
             "P@50": self.precision_at_50,
             "P@75": self.precision_at_75,
         }

@@ -403,7 +403,9 @@ def test_complex_integration_scenario(
     np.testing.assert_almost_equal(result.recall_scores, expected_result, decimal=6)
 
 
-def test_mar_at_k_limits_per_image_not_per_class(two_class_two_image_detections) -> None:
+def test_mar_at_k_limits_per_image_not_per_class(
+    two_class_two_image_detections,
+) -> None:
     """
     Test that `mAR @ K` limits detections per image, not per class.
 

@@ -6,6 +6,7 @@ from copy import deepcopy
 from typing import cast
 
 import numpy as np
+import numpy.typing as npt
 
 from supervision.detection.core import Detections
 from supervision.utils.internal import SupervisionWarnings
@@ -115,7 +116,7 @@ class DetectionsSmoother:
             tracker_id_value = detections.tracker_id[detection_idx]
             tracker_id = int(tracker_id_value)
 
-            self.tracks[tracker_id].append(cast(Detections, detections[detection_idx]))
+            self.tracks[tracker_id].append(detections[detection_idx])
 
         for track_id in self.tracks.keys():
             if track_id not in detections.tracker_id:
@@ -137,8 +138,25 @@ class DetectionsSmoother:
             return None
 
         ret = deepcopy(valid[0])
-        ret.xyxy = np.mean([d.xyxy for d in valid], axis=0)
-        ret.confidence = np.mean([d.confidence for d in valid], axis=0)
+        xyxy_stack = np.stack(
+            [np.asarray(d.xyxy, dtype=np.float32) for d in valid], axis=0
+        )
+        ret.xyxy = cast(npt.NDArray[np.float32], xyxy_stack.mean(axis=0))
+
+        if all(d.confidence is not None for d in valid):
+            confidence_stack = np.stack(
+                [
+                    np.asarray(d.confidence, dtype=np.float32)
+                    for d in valid
+                    if d.confidence is not None
+                ],
+                axis=0,
+            )
+            ret.confidence = cast(
+                npt.NDArray[np.float32], confidence_stack.mean(axis=0)
+            )
+        else:
+            ret.confidence = None
 
         return ret
 

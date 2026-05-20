@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import numpy.typing as npt
@@ -44,7 +44,7 @@ class ObjectSizeCategory(Enum):
 
 
 def get_object_size_category(
-    data: npt.NDArray, metric_target: MetricTarget
+    data: npt.NDArray[Any], metric_target: MetricTarget
 ) -> npt.NDArray[np.int_]:
     """
     Get the size category of an object. Distinguish based on the metric target.
@@ -82,7 +82,7 @@ def get_object_size_category(
     raise ValueError("Invalid metric type")
 
 
-def get_bbox_size_category(xyxy: npt.NDArray[np.float32]) -> npt.NDArray[np.int_]:
+def get_bbox_size_category(xyxy: npt.NDArray[np.number[Any]]) -> npt.NDArray[np.int_]:
     """
     Get the size category of a bounding boxes array.
 
@@ -165,7 +165,9 @@ def get_mask_size_category(
     return result
 
 
-def get_obb_size_category(xyxyxyxy: npt.NDArray[np.float32]) -> npt.NDArray[np.int_]:
+def get_obb_size_category(
+    xyxyxyxy: npt.NDArray[np.number[Any]],
+) -> npt.NDArray[np.int_]:
     """
     Get the size category of a oriented bounding boxes array.
 
@@ -236,6 +238,6 @@ def get_detection_size_category(
         if detections.data.get(ORIENTED_BOX_COORDINATES) is None:
             raise ValueError("Detections oriented bounding boxes are not available")
         return get_obb_size_category(
-            np.array(detections.data[ORIENTED_BOX_COORDINATES])
+            np.asarray(detections.data[ORIENTED_BOX_COORDINATES], dtype=np.float32)
         )
     raise ValueError("Invalid metric type")

@@ -667,7 +667,9 @@ def test_from_yolo_nas_input(yolo_nas_results, expected_key_points) -> None:
         ),
     ],
 )
-def test_from_mediapipe_input(mediapipe_results, resolution_wh, expected_key_points) -> None:
+def test_from_mediapipe_input(
+    mediapipe_results, resolution_wh, expected_key_points
+) -> None:
     """Test the from_mediapipe method with valid input."""
     key_points = KeyPoints.from_mediapipe(
         mediapipe_results, resolution_wh=resolution_wh

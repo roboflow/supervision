@@ -161,7 +161,7 @@ class MeanAverageRecallResult:
         ensure_pandas_installed()
         import pandas as pd
 
-        pandas_data = {
+        pandas_data: dict[str, Any] = {
             "mAR @ 1": self.mAR_at_1,
             "mAR @ 10": self.mAR_at_10,
             "mAR @ 100": self.mAR_at_100,
@@ -381,7 +381,7 @@ class MeanAverageRecall(Metric):
     def _compute(
         self, predictions_list: list[Detections], targets_list: list[Detections]
     ) -> MeanAverageRecallResult:
-        iou_thresholds = np.linspace(0.5, 0.95, 10)
+        iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
         stats: list[Any] = []
 
         for predictions, targets in zip(predictions_list, targets_list):
@@ -393,9 +393,12 @@ class MeanAverageRecall(Metric):
                     stats.append(
                         (
                             np.zeros((0, iou_thresholds.size), dtype=bool),
-                            np.zeros((0,), dtype=int),
-                            np.zeros((0,), dtype=int),
-                            targets.class_id,
+                            np.zeros((0,), dtype=np.int32),
+                            np.zeros((0,), dtype=np.int32),
+                            cast(
+                                npt.NDArray[np.int32],
+                                targets.class_id,
+                            ),
                         )
                     )
 
@@ -416,10 +419,10 @@ class MeanAverageRecall(Metric):
                     matches = self._match_detection_batch(
                         predictions.class_id
                         if predictions.class_id is not None
-                        else np.array([]),
+                        else np.array([], dtype=np.int32),
                         targets.class_id
                         if targets.class_id is not None
-                        else np.array([]),
+                        else np.array([], dtype=np.int32),
                         iou,
                         iou_thresholds,
                     )
@@ -445,7 +448,7 @@ class MeanAverageRecall(Metric):
                 recall_per_class=np.zeros((0, iou_thresholds.shape[0])),
                 max_detections=self.max_detections,
                 iou_thresholds=iou_thresholds,
-                matched_classes=np.array([], dtype=int),
+                matched_classes=np.array([], dtype=np.int32),
                 small_objects=None,
                 medium_objects=None,
                 large_objects=None,
@@ -481,7 +484,7 @@ class MeanAverageRecall(Metric):
     ]:
         unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
 
-        recalls_at_k = []
+        recalls_at_k_list: list[npt.NDArray[np.float64]] = []
         for max_detections in self.max_detections:
             # Shape: PxTh,P,C,C -> CxThx3
             confusion_matrix = self._compute_confusion_matrix(
@@ -493,10 +496,10 @@ class MeanAverageRecall(Metric):
 
             # Shape: CxThx3 -> CxTh
             recall_per_class = self._compute_recall(confusion_matrix)
-            recalls_at_k.append(recall_per_class)
+            recalls_at_k_list.append(recall_per_class)
 
         # Shape: KxCxTh -> KxC
-        recalls_at_k = np.array(recalls_at_k)
+        recalls_at_k = np.array(recalls_at_k_list, dtype=np.float64)
         average_recall_per_class = np.mean(recalls_at_k, axis=2)
 
         # Shape: KxC -> K
@@ -506,10 +509,10 @@ class MeanAverageRecall(Metric):
 
     @staticmethod
     def _match_detection_batch(
-        predictions_classes: npt.NDArray[np.int32],
-        target_classes: npt.NDArray[np.int32],
-        iou: npt.NDArray[np.float32],
-        iou_thresholds: npt.NDArray[np.float32],
+        predictions_classes: npt.NDArray[np.integer[Any]],
+        target_classes: npt.NDArray[np.integer[Any]],
+        iou: npt.NDArray[np.floating[Any]],
+        iou_thresholds: npt.NDArray[np.floating[Any]],
     ) -> npt.NDArray[np.bool_]:
         num_predictions, num_iou_levels = (
             predictions_classes.shape[0],
@@ -538,9 +541,9 @@ class MeanAverageRecall(Metric):
     @staticmethod
     def _compute_confusion_matrix(
         sorted_matches: npt.NDArray[np.bool_],
-        sorted_prediction_class_ids: npt.NDArray[np.int32],
-        unique_classes: npt.NDArray[np.int32],
-        class_counts: npt.NDArray[np.int32],
+        sorted_prediction_class_ids: npt.NDArray[np.integer[Any]],
+        unique_classes: npt.NDArray[np.integer[Any]],
+        class_counts: npt.NDArray[np.integer[Any]],
     ) -> npt.NDArray[np.float64]:
         """
         Compute the confusion matrix for each class and IoU threshold.
@@ -577,13 +580,17 @@ class MeanAverageRecall(Metric):
             num_predictions = is_class.sum()
 
             if num_predictions == 0:
-                true_positives = np.zeros(num_thresholds)
-                false_positives = np.zeros(num_thresholds)
-                false_negatives = np.full(num_thresholds, num_true)
+                true_positives = np.zeros(num_thresholds, dtype=np.float64)
+                false_positives = np.zeros(num_thresholds, dtype=np.float64)
+                false_negatives = np.full(
+                    num_thresholds, num_true, dtype=np.float64
+                )
             elif num_true == 0:
-                true_positives = np.zeros(num_thresholds)
-                false_positives = np.full(num_thresholds, num_predictions)
-                false_negatives = np.zeros(num_thresholds)
+                true_positives = np.zeros(num_thresholds, dtype=np.float64)
+                false_positives = np.full(
+                    num_thresholds, num_predictions, dtype=np.float64
+                )
+                false_negatives = np.zeros(num_thresholds, dtype=np.float64)
             else:
                 limited_matches = sorted_matches[is_class]
                 true_positives = limited_matches.sum(0)
@@ -629,11 +636,15 @@ class MeanAverageRecall(Metric):
     def _detections_content(self, detections: Detections) -> npt.NDArray[Any]:
         """Return boxes, masks or oriented bounding boxes from detections."""
         if self._metric_target == MetricTarget.BOXES:
-            result_boxes: npt.NDArray[np.float32] = detections.xyxy
+            result_boxes: npt.NDArray[np.float32] = np.asarray(
+                detections.xyxy, dtype=np.float32
+            )
             return result_boxes
         if self._metric_target == MetricTarget.MASKS:
             if detections.mask is not None:
-                result_masks: npt.NDArray[np.bool_] = detections.mask
+                result_masks: npt.NDArray[np.bool_] = np.asarray(
+                    detections.mask, dtype=bool
+                )
                 return result_masks
             return self._make_empty_content()
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
@@ -670,18 +681,28 @@ class MeanAverageRecall(Metric):
         sizes = get_detection_size_category(new_detections, self._metric_target)
         size_mask = sizes == size_category.value
 
-        new_detections.xyxy = new_detections.xyxy[size_mask]
+        new_detections.xyxy = cast(
+            npt.NDArray[np.number[Any]], new_detections.xyxy[size_mask]
+        )
         if new_detections.mask is not None:
-            new_detections.mask = new_detections.mask[size_mask]
+            new_detections.mask = cast(
+                Any, new_detections.mask[size_mask]
+            )
         if new_detections.class_id is not None:
-            new_detections.class_id = new_detections.class_id[size_mask]
+            new_detections.class_id = cast(
+                npt.NDArray[np.integer[Any]], new_detections.class_id[size_mask]
+            )
         if new_detections.confidence is not None:
-            new_detections.confidence = new_detections.confidence[size_mask]
+            new_detections.confidence = cast(
+                npt.NDArray[np.floating[Any]], new_detections.confidence[size_mask]
+            )
         if new_detections.tracker_id is not None:
-            new_detections.tracker_id = new_detections.tracker_id[size_mask]
+            new_detections.tracker_id = cast(
+                npt.NDArray[np.integer[Any]], new_detections.tracker_id[size_mask]
+            )
         if new_detections.data is not None:
             for key, value in new_detections.data.items():
-                new_detections.data[key] = np.array(value)[size_mask]
+                new_detections.data[key] = cast(Any, np.array(value)[size_mask])
 
         return new_detections
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import textwrap
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -316,7 +316,7 @@ def snap_boxes(
     bottom_shift = height - result[bottom_overflow, 3]
     result[bottom_overflow, 1:4:2] += bottom_shift[:, np.newaxis]
 
-    return result.astype(np.float32)  # type: ignore
+    return cast(npt.NDArray[np.float32], result.astype(np.float32))
 
 
 class Trace:
@@ -359,16 +359,16 @@ class Trace:
             max_allowed_frame_id = self.current_frame_id - self.max_size + 1
             filtering_mask = self.frame_id >= max_allowed_frame_id
             self.frame_id = self.frame_id[filtering_mask]
-            self.xy = self.xy[filtering_mask]
+            self.xy = cast(Any, self.xy[filtering_mask])
             self.tracker_id = self.tracker_id[filtering_mask]
 
         self.current_frame_id += 1
 
-    def get(self, tracker_id: int) -> np.ndarray[Any, np.dtype[np.float32]]:
-        filtered: np.ndarray[Any, np.dtype[np.float32]] = (
-            self.xy[self.tracker_id == tracker_id].copy().astype(np.float32, copy=False)
+    def get(self, tracker_id: int) -> npt.NDArray[np.float32]:
+        filtered = self.xy[self.tracker_id == tracker_id].copy().astype(
+            np.float32, copy=False
         )
-        return filtered
+        return cast(npt.NDArray[np.float32], filtered)
 
 
 def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:

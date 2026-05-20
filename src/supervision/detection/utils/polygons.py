@@ -34,7 +34,10 @@ def filter_polygons_by_area(
     """
     if min_area is None and max_area is None:
         return polygons
-    ares = [cv2.contourArea(polygon) for polygon in polygons]
+    ares = [
+        cv2.contourArea(np.asarray(polygon, dtype=np.float32))
+        for polygon in polygons
+    ]
     return [
         polygon
         for polygon, area in zip(polygons, ares)
@@ -71,16 +74,20 @@ def approximate_polygon(
     if percentage < 0 or percentage >= 1:
         raise ValueError("Percentage must be in the range [0, 1).")
 
-    target_points = max(int(len(polygon) * (1 - percentage)), 3)
+    polygon_f32 = np.asarray(polygon, dtype=np.float32)
+    target_points = max(int(len(polygon_f32) * (1 - percentage)), 3)
 
-    if len(polygon) <= target_points:
-        return polygon
+    if len(polygon_f32) <= target_points:
+        return cast(npt.NDArray[np.number], polygon_f32)
 
     epsilon: float = 0
-    approximated_points = polygon
+    approximated_points: npt.NDArray[np.float32] = polygon_f32
     while True:
         epsilon += epsilon_step
-        new_approximated_points = cv2.approxPolyDP(polygon, epsilon, closed=True)
+        new_approximated_points = cast(
+            npt.NDArray[np.float32],
+            cv2.approxPolyDP(polygon_f32, epsilon, closed=True),
+        )
         if len(new_approximated_points) > target_points:
             approximated_points = new_approximated_points
         else:

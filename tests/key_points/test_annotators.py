@@ -27,7 +27,9 @@ class TestVertexAnnotator:
             original=scene, annotated=result, similarity_threshold=0.8
         )
 
-    def test_annotate_with_custom_color_and_radius(self, scene, sample_key_points) -> None:
+    def test_annotate_with_custom_color_and_radius(
+        self, scene, sample_key_points
+    ) -> None:
         """
         Verify that VertexAnnotator respects custom color and radius settings.
 

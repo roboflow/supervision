@@ -202,7 +202,7 @@ def validate_vlm_parameters(vlm: VLM | str, result: Any, kwargs: dict[str, Any])
 
 def from_paligemma(
     result: str, resolution_wh: tuple[int, int], classes: list[str] | None = None
-) -> tuple[npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[Any]]:
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any] | None, npt.NDArray[Any]]:
     """
     Parse bounding boxes from paligemma-formatted text, scale them to the specified
     resolution, and optionally filter by classes.
@@ -226,23 +226,32 @@ def from_paligemma(
         r"(?<!<loc\d{4}>)<loc(\d{4})><loc(\d{4})><loc(\d{4})><loc(\d{4})> ([\w\s\-]+)"
     )
     matches = pattern.findall(result)
-    matches = np.array(matches) if matches else np.empty((0, 5))
+    matches_arr = (
+        np.array(matches, dtype=object) if matches else np.empty((0, 5), dtype=object)
+    )
 
-    if matches.shape[0] == 0:
-        return np.empty((0, 4)), np.empty((0,), dtype=int), np.empty(0, dtype=str)
+    if matches_arr.shape[0] == 0:
+        return (
+            np.empty((0, 4), dtype=np.float32),
+            np.empty((0,), dtype=np.int64),
+            np.empty(0, dtype=str),
+        )
 
-    xyxy, class_name = matches[:, [1, 0, 3, 2]], matches[:, 4]
-    xyxy = xyxy.astype(int) / 1024 * np.array([w, h, w, h])
-    class_name = np.char.strip(class_name.astype(str))
-    class_id = None
+    xyxy_arr = (
+        matches_arr[:, [1, 0, 3, 2]].astype(np.float32)
+        / 1024
+        * np.array([w, h, w, h], dtype=np.float32)
+    )
+    class_name_arr = np.char.strip(matches_arr[:, 4].astype(str))
+    class_id_arr: npt.NDArray[np.integer[Any]] | None = None
 
     if classes is not None:
-        mask = np.array([name in classes for name in class_name], dtype=bool)
-        xyxy = xyxy[mask]
-        class_name = class_name[mask]
-        class_id = np.array([classes.index(name) for name in class_name])
+        mask_arr = np.array([name in classes for name in class_name_arr], dtype=bool)
+        xyxy_arr = xyxy_arr[mask_arr]
+        class_name_arr = class_name_arr[mask_arr]
+        class_id_arr = np.array([classes.index(name) for name in class_name_arr])
 
-    return xyxy, class_id, class_name
+    return xyxy_arr, class_id_arr, class_name_arr
 
 
 def recover_truncated_qwen_2_5_vl_response(text: str) -> Any | None:
@@ -448,12 +457,13 @@ def from_deepseek_vl_2(
             f"and det tags ({len(detection_segments)}) in the result must be equal."
         )
 
-    xyxy, class_name_list = [], []
+    xyxy_list: list[list[float]] = []
+    class_name_list: list[str] = []
     for label, detection_blob in zip(label_segments, detection_segments):
         current_class_name = label.strip()
         for box in re.findall(r"\[(.*?)\]", detection_blob):
             x1, y1, x2, y2 = map(float, box.strip("[]").split(","))
-            xyxy.append(
+            xyxy_list.append(
                 [
                     (x1 / 999 * width),
                     (y1 / 999 * height),
@@ -463,20 +473,20 @@ def from_deepseek_vl_2(
             )
             class_name_list.append(current_class_name)
 
-    xyxy = np.array(xyxy, dtype=np.float32)
-    class_name = np.array(class_name_list)
+    xyxy_arr = np.array(xyxy_list, dtype=np.float32)
+    class_name_arr = np.array(class_name_list)
 
     if classes is not None:
-        mask = np.array([name in classes for name in class_name], dtype=bool)
-        xyxy = xyxy[mask]
-        class_name = class_name[mask]
-        class_id = np.array([classes.index(name) for name in class_name])
+        mask_arr = np.array([name in classes for name in class_name_arr], dtype=bool)
+        xyxy_arr = xyxy_arr[mask_arr]
+        class_name_arr = class_name_arr[mask_arr]
+        class_id_arr = np.array([classes.index(name) for name in class_name_arr])
     else:
-        unique_classes = sorted(list(set(class_name)))
+        unique_classes = sorted(list(set(class_name_arr)))
         class_to_id = {name: i for i, name in enumerate(unique_classes)}
-        class_id = np.array([class_to_id[name] for name in class_name])
+        class_id_arr = np.array([class_to_id[name] for name in class_name_arr])
 
-    return xyxy, class_id, class_name
+    return xyxy_arr, class_id_arr, class_name_arr
 
 
 def from_florence_2(
@@ -524,7 +534,9 @@ def from_florence_2(
     if task == "<OCR_WITH_REGION>":
         xyxyxyxy = np.array(result["quad_boxes"], dtype=np.float32)
         xyxyxyxy = xyxyxyxy.reshape(-1, 4, 2)
-        xyxy = np.array([polygon_to_xyxy(polygon) for polygon in xyxyxyxy])
+        xyxy = np.array(
+            [polygon_to_xyxy(polygon) for polygon in xyxyxyxy], dtype=np.float32
+        )
         labels = np.array(result["labels"])
         return xyxy, labels, None, xyxyxyxy
 
@@ -536,8 +548,8 @@ def from_florence_2(
                 polygon = np.reshape(polygon, (-1, 2)).astype(np.int32)
                 mask = polygon_to_mask(polygon, resolution_wh).astype(bool)
                 masks_list.append(mask)
-                xyxy = polygon_to_xyxy(polygon)
-                xyxy_list.append(xyxy)
+                xyxy_box = np.asarray(polygon_to_xyxy(polygon), dtype=np.float32)
+                xyxy_list.append(xyxy_box)
             # per-class labels also provided, but they are ["", "", "", ...]
             # when we figure out how to set class names, we can do
             # zip(result["labels"], result["polygons"])
@@ -758,11 +770,11 @@ def from_google_gemini_2_5(
                 bbox_width = x_max - x_min
 
                 if bbox_height > 0 and bbox_width > 0:
-                    mask_img = mask_img.resize(
+                    mask_img_resized = mask_img.resize(
                         (bbox_width, bbox_height), resample=Image.Resampling.BILINEAR
                     )
                     np_mask: npt.NDArray[np.bool_] = np.zeros((h, w), dtype=bool)
-                    np_mask[y_min:y_max, x_min:x_max] = np.array(mask_img) > 0
+                    np_mask[y_min:y_max, x_min:x_max] = np.array(mask_img_resized) > 0
                     masks_list.append(np_mask)
                 else:
                     masks_list.append(np.zeros((h, w), dtype=bool))

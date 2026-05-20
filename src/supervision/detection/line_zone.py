@@ -695,17 +695,19 @@ class LineZoneAnnotator:
             background_color=Color.WHITE if text_box_show else None,
             **text_args,
         )
-        annotation = np.dstack((annotation, annotation_alpha))
+        annotation = cast(Any, np.dstack((annotation, annotation_alpha)))
 
         # Make sure text is displayed upright
         if 90 < line_angle_degrees % 360 < 270:
-            annotation = cv2.flip(annotation, flipCode=-1).astype(np.uint8)
+            annotation = cast(Any, cv2.flip(annotation, flipCode=-1))
 
         rotation_angle = -line_angle_degrees
         rotation_matrix = cv2.getRotationMatrix2D(
             annotation_center.as_xy_float_tuple(), rotation_angle, scale=1
         )
-        annotation = cv2.warpAffine(annotation, rotation_matrix, annotation_shape)
+        annotation = cast(
+            Any, cv2.warpAffine(annotation, rotation_matrix, annotation_shape)
+        )
 
         return cast(npt.NDArray[np.uint8], annotation)
 

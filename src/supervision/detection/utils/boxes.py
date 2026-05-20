@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 import numpy.typing as npt
 from deprecate import deprecated
@@ -8,9 +10,9 @@ from supervision.detection.utils.iou_and_nms import box_iou_batch
 
 
 def clip_boxes(
-    xyxy: npt.NDArray[np.number],
+    xyxy: npt.NDArray[np.number[Any]],
     resolution_wh: tuple[int, int],
-) -> npt.NDArray[np.number]:
+) -> npt.NDArray[np.float64]:
     """
     Clips bounding boxes coordinates to fit within the frame resolution.
 
@@ -42,7 +44,7 @@ def clip_boxes(
 
         ```
     """
-    result: npt.NDArray[np.number] = np.copy(xyxy)
+    result: npt.NDArray[np.float64] = np.asarray(xyxy, dtype=np.float64).copy()
     width, height = resolution_wh
     result[:, [0, 2]] = result[:, [0, 2]].clip(0, width)
     result[:, [1, 3]] = result[:, [1, 3]].clip(0, height)
@@ -50,10 +52,10 @@ def clip_boxes(
 
 
 def pad_boxes(
-    xyxy: npt.NDArray[np.number],
+    xyxy: npt.NDArray[np.number[Any]],
     px: int,
     py: int | None = None,
-) -> npt.NDArray[np.number]:
+) -> npt.NDArray[np.float64]:
     """
     Pads bounding boxes coordinates with a constant padding.
 
@@ -89,7 +91,7 @@ def pad_boxes(
     if py is None:
         py = px
 
-    result = xyxy.copy()
+    result: npt.NDArray[np.float64] = np.asarray(xyxy, dtype=np.float64).copy()
     result[:, [0, 1]] -= [px, py]
     result[:, [2, 3]] += [px, py]
 
@@ -103,11 +105,11 @@ def pad_boxes(
     args_mapping={"normalized_xyxy": "xyxy"},
 )
 def denormalize_boxes(
-    xyxy: npt.NDArray[np.number],
+    xyxy: npt.NDArray[np.number[Any]],
     resolution_wh: tuple[int, int],
     normalization_factor: float = 1.0,
-    normalized_xyxy: npt.NDArray[np.number] | None = None,
-) -> npt.NDArray[np.number]:
+    normalized_xyxy: npt.NDArray[np.number[Any]] | None = None,
+) -> npt.NDArray[np.float64]:
     """
     Convert normalized bounding box coordinates to absolute pixel coordinates.
 
@@ -153,7 +155,7 @@ def denormalize_boxes(
         ```
     """
     width, height = resolution_wh
-    result = xyxy.copy()
+    result: npt.NDArray[np.float64] = np.asarray(xyxy, dtype=np.float64).copy()
 
     result[:, [0, 2]] = (result[:, [0, 2]] * width) / normalization_factor
     result[:, [1, 3]] = (result[:, [1, 3]] * height) / normalization_factor
@@ -162,7 +164,7 @@ def denormalize_boxes(
 
 
 def move_boxes(
-    xyxy: npt.NDArray[np.float64], offset: npt.NDArray[np.int32]
+    xyxy: npt.NDArray[np.number[Any]], offset: npt.NDArray[np.int32]
 ) -> npt.NDArray[np.float64]:
     """
     Args:
@@ -189,11 +191,11 @@ def move_boxes(
 
         ```
     """
-    return xyxy + np.hstack([offset, offset])
+    return np.asarray(xyxy, dtype=np.float64) + np.hstack([offset, offset])
 
 
 def move_oriented_boxes(
-    xyxyxyxy: npt.NDArray[np.float64], offset: npt.NDArray[np.int32]
+    xyxyxyxy: npt.NDArray[np.number[Any]], offset: npt.NDArray[np.int32]
 ) -> npt.NDArray[np.float64]:
     """
     Args:
@@ -238,11 +240,11 @@ def move_oriented_boxes(
 
         ```
     """
-    return xyxyxyxy + offset
+    return np.asarray(xyxyxyxy, dtype=np.float64) + np.asarray(offset, dtype=np.float64)
 
 
 def scale_boxes(
-    xyxy: npt.NDArray[np.float64], factor: float
+    xyxy: npt.NDArray[np.number[Any]], factor: float
 ) -> npt.NDArray[np.float64]:
     """
     Scale the dimensions of bounding boxes.
@@ -271,15 +273,16 @@ def scale_boxes(
 
         ```
     """
-    centers = (xyxy[:, :2] + xyxy[:, 2:]) / 2
-    new_sizes = (xyxy[:, 2:] - xyxy[:, :2]) * factor
+    xyxy_f64 = np.asarray(xyxy, dtype=np.float64)
+    centers = (xyxy_f64[:, :2] + xyxy_f64[:, 2:]) / 2
+    new_sizes = (xyxy_f64[:, 2:] - xyxy_f64[:, :2]) * factor
     return np.concatenate((centers - new_sizes / 2, centers + new_sizes / 2), axis=1)
 
 
 def spread_out_boxes(
-    xyxy: npt.NDArray[np.number],
+    xyxy: npt.NDArray[np.number[Any]],
     max_iterations: int = 100,
-) -> npt.NDArray[np.number]:
+) -> npt.NDArray[np.float32]:
     """
     Spread out boxes that overlap with each other.
 
@@ -305,9 +308,9 @@ def spread_out_boxes(
         ```
     """
     if len(xyxy) == 0:
-        return xyxy
+        return np.asarray(xyxy, dtype=np.float32)
 
-    xyxy_padded = pad_boxes(xyxy, px=1)
+    xyxy_padded = pad_boxes(np.asarray(xyxy, dtype=np.float64), px=1)
     for _ in range(max_iterations):
         # NxN
         iou = box_iou_batch(xyxy_padded, xyxy_padded)
@@ -346,4 +349,4 @@ def spread_out_boxes(
         xyxy_padded[:, [0, 1]] += force_vectors
         xyxy_padded[:, [2, 3]] += force_vectors
 
-    return pad_boxes(xyxy_padded, px=-1)
+    return pad_boxes(xyxy_padded, px=-1).astype(np.float32, copy=False)

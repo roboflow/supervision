@@ -1,4 +1,3 @@
-import functools
 from collections.abc import Callable
 from typing import Any, TypeVar, cast
 
@@ -24,14 +23,20 @@ def ensure_cv2_image_for_class_method(
     Assumes the annotators modify the scene in-place.
     """
 
-    @functools.wraps(annotate_func)
     def wrapper(self: Any, scene: ImageType, *args: Any, **kwargs: Any) -> ImageType:
         if isinstance(scene, np.ndarray):
-            return annotate_func(self, scene, *args, **kwargs)
+            annotated_np = cast(
+                npt.NDArray[np.uint8],
+                annotate_func(self, scene, *args, **kwargs),
+            )
+            return annotated_np
 
         if isinstance(scene, Image.Image):
             scene_np = pillow_to_cv2(scene)
-            annotated_np = annotate_func(self, scene_np, *args, **kwargs)
+            annotated_np = cast(
+                npt.NDArray[np.uint8],
+                annotate_func(self, scene_np, *args, **kwargs),
+            )
             scene.paste(cv2_to_pillow(annotated_np))
             return scene
 
@@ -61,14 +66,20 @@ def ensure_cv2_image_for_standalone_function(
     Assumes the annotators do NOT modify the scene in-place.
     """
 
-    @functools.wraps(image_processing_fun)
     def wrapper(image: ImageType, *args: Any, **kwargs: Any) -> ImageType:
         if isinstance(image, np.ndarray):
-            return image_processing_fun(image, *args, **kwargs)
+            annotated_np = cast(
+                npt.NDArray[np.uint8],
+                image_processing_fun(image, *args, **kwargs),
+            )
+            return annotated_np
 
         if isinstance(image, Image.Image):
             scene = pillow_to_cv2(image)
-            annotated = image_processing_fun(scene, *args, **kwargs)
+            annotated = cast(
+                npt.NDArray[np.uint8],
+                image_processing_fun(scene, *args, **kwargs),
+            )
             return cv2_to_pillow(annotated)
 
         raise ValueError(f"Unsupported image type: {type(image)}")
@@ -86,11 +97,12 @@ def ensure_pil_image_for_class_method(
     Assumes the annotators modify the scene in-place.
     """
 
-    @functools.wraps(annotate_func)
     def wrapper(self: Any, scene: ImageType, *args: Any, **kwargs: Any) -> ImageType:
         if isinstance(scene, np.ndarray):
             scene_pil = cv2_to_pillow(scene)
-            annotated_pil = annotate_func(self, scene_pil, *args, **kwargs)
+            annotated_pil = cast(
+                Image.Image, annotate_func(self, scene_pil, *args, **kwargs)
+            )
             np.copyto(scene, pillow_to_cv2(annotated_pil))
             return scene
 
@@ -137,11 +149,12 @@ def images_to_cv2(images: list[ImageType]) -> list[npt.NDArray[np.uint8]]:
             (with order preserved).
 
     """
-    result = []
+    result: list[npt.NDArray[np.uint8]] = []
     for image in images:
-        if issubclass(type(image), Image.Image):
-            image = pillow_to_cv2(image)
-        result.append(image)
+        if isinstance(image, Image.Image):
+            result.append(pillow_to_cv2(image))
+        else:
+            result.append(image)
     return result
 
 
@@ -156,9 +169,9 @@ def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
     Returns:
         Input image converted to OpenCV format.
     """
-    scene = np.array(image)
-    scene = cv2.cvtColor(scene, cv2.COLOR_RGB2BGR)
-    return scene.astype(np.uint8)
+    scene: npt.NDArray[np.uint8] = cast(npt.NDArray[np.uint8], np.array(image))
+    scene = cast(npt.NDArray[np.uint8], cv2.cvtColor(scene, cv2.COLOR_RGB2BGR))
+    return cast(npt.NDArray[np.uint8], scene.astype(np.uint8))
 
 
 def cv2_to_pillow(image: npt.NDArray[np.uint8]) -> Image.Image:
@@ -172,5 +185,5 @@ def cv2_to_pillow(image: npt.NDArray[np.uint8]) -> Image.Image:
     Returns:
         Input image converted to Pillow format.
     """
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    return Image.fromarray(image)
+    converted = cast(npt.NDArray[np.uint8], cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    return Image.fromarray(converted)

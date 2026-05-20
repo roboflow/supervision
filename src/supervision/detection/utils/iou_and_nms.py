@@ -158,8 +158,8 @@ def box_iou(
 
 
 def box_iou_batch(
-    boxes_true: npt.NDArray[np.number],
-    boxes_detection: npt.NDArray[np.number],
+    boxes_true: npt.NDArray[np.number[Any]],
+    boxes_detection: npt.NDArray[np.number[Any]],
     overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
 ) -> npt.NDArray[np.float32]:
     """
@@ -359,7 +359,8 @@ def box_iou_batch_with_jaccard(
 
 
 def oriented_box_iou_batch(
-    boxes_true: npt.NDArray[np.number], boxes_detection: npt.NDArray[np.number]
+    boxes_true: npt.NDArray[np.number[Any]],
+    boxes_detection: npt.NDArray[np.number[Any]],
 ) -> npt.NDArray[np.floating]:
     """
     Compute Intersection over Union (IoU) of two sets of oriented bounding boxes -
@@ -433,7 +434,7 @@ def compact_mask_iou_batch(
     """
     n1: int = len(masks_true)
     n2: int = len(masks_detection)
-    result: npt.NDArray[np.floating] = np.zeros((n1, n2), dtype=float)
+    result: npt.NDArray[np.floating[Any]] = np.zeros((n1, n2), dtype=float)
 
     if n1 == 0 or n2 == 0:
         return result
@@ -558,8 +559,8 @@ def _mask_iou_batch_split(
 
 
 def mask_iou_batch(
-    masks_true: npt.NDArray[Any],
-    masks_detection: npt.NDArray[Any],
+    masks_true: npt.NDArray[Any] | CompactMask,
+    masks_detection: npt.NDArray[Any] | CompactMask,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
     memory_limit: int = 1024 * 5,
 ) -> npt.NDArray[np.floating]:
@@ -631,7 +632,7 @@ def mask_iou_batch(
 
 def mask_non_max_suppression(
     predictions: npt.NDArray[np.floating],
-    masks: npt.NDArray[Any],
+    masks: npt.NDArray[Any] | CompactMask,
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
     mask_dimension: int = 640,
@@ -738,7 +739,7 @@ def box_non_max_suppression(
     boxes = predictions[:, :4]
     categories = predictions[:, 5]
     ious = box_iou_batch(boxes, boxes, overlap_metric)
-    ious = ious - np.eye(rows)
+    ious = ious - np.eye(rows, dtype=ious.dtype)
 
     keep = np.ones(rows, dtype=bool)
 
@@ -755,8 +756,8 @@ def box_non_max_suppression(
 
 
 def _group_overlapping_masks(
-    predictions: npt.NDArray[np.float64],
-    masks: npt.NDArray[np.float64],
+    predictions: npt.NDArray[np.floating[Any]],
+    masks: npt.NDArray[Any],
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
@@ -812,8 +813,8 @@ def _group_overlapping_masks(
 
 
 def mask_non_max_merge(
-    predictions: npt.NDArray[np.floating],
-    masks: npt.NDArray[Any],
+    predictions: npt.NDArray[np.floating[Any]],
+    masks: npt.NDArray[Any] | CompactMask,
     iou_threshold: float = 0.5,
     mask_dimension: int = 640,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,

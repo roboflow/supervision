@@ -144,7 +144,9 @@ class TestPrecision:
         assert 0 in result.matched_classes
         assert 1 in result.matched_classes
 
-    def test_different_iou_thresholds(self, predictions_iou_064, targets_iou_064) -> None:
+    def test_different_iou_thresholds(
+        self, predictions_iou_064, targets_iou_064
+    ) -> None:
         """Test precision at different IoU thresholds"""
         metric = Precision()
         result = metric.update(predictions_iou_064, targets_iou_064).compute()
@@ -154,7 +156,9 @@ class TestPrecision:
         assert result.precision_at_50 == 1.0  # TP=1, FP=0
         assert result.precision_at_75 == 0.0  # TP=0, FP=1
 
-    def test_confidence_ranking(self, predictions_confidence_ranking, targets_50_50) -> None:
+    def test_confidence_ranking(
+        self, predictions_confidence_ranking, targets_50_50
+    ) -> None:
         """Test that predictions are ranked by confidence"""
         metric = Precision()
         result = metric.update(predictions_confidence_ranking, targets_50_50).compute()
@@ -188,7 +192,9 @@ class TestPrecision:
         "averaging_method",
         [AveragingMethod.MACRO, AveragingMethod.MICRO, AveragingMethod.WEIGHTED],
     )
-    def test_averaging_methods(self, averaging_method, detections_50_50, targets_50_50) -> None:
+    def test_averaging_methods(
+        self, averaging_method, detections_50_50, targets_50_50
+    ) -> None:
         """Test different averaging methods"""
         metric = Precision(averaging_method=averaging_method)
         result = metric.update(detections_50_50, targets_50_50).compute()

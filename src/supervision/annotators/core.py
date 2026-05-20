@@ -148,7 +148,7 @@ class _BaseLabelAnnotator(BaseAnnotator):
         resolution_wh: tuple[int, int],
         labels: list[str],
         label_properties: npt.NDArray[np.float32],
-    ) -> npt.NDArray[np.uint8]:
+    ) -> npt.NDArray[np.float32]:
         """
         Adjusts the position of labels to ensure they stay within the frame boundaries.
 
@@ -558,7 +558,7 @@ class PolygonAnnotator(BaseAnnotator):
             for polygon in mask_to_polygons(mask=mask):
                 scene = draw_polygon(
                     scene=scene,
-                    polygon=polygon,
+                    polygon=polygon.astype(np.int64),
                     color=color,
                     thickness=self.thickness,
                 )
@@ -754,7 +754,10 @@ class HaloAnnotator(BaseAnnotator):
             color_bgr = color.as_bgr()
             colored_mask[mask] = color_bgr
 
-        colored_mask = cv2.blur(colored_mask, (self.kernel_size, self.kernel_size))
+        colored_mask = cast(
+            npt.NDArray[np.uint8],
+            cv2.blur(colored_mask, (self.kernel_size, self.kernel_size)),
+        )
         colored_mask[fmask] = [0, 0, 0]
         gray = cv2.cvtColor(colored_mask, cv2.COLOR_BGR2GRAY)
         alpha = self.opacity * gray / gray.max()
@@ -1854,10 +1857,8 @@ class IconAnnotator(BaseAnnotator):
             raise FileNotFoundError(
                 f"Error: Couldn't load the icon image from {icon_path}"
             )
-        icon = cast(
-            npt.NDArray[np.uint8],
-            letterbox_image(image=icon, resolution_wh=self.icon_resolution_wh),
-        )
+        icon = cast(npt.NDArray[np.uint8], icon)
+        icon = letterbox_image(image=icon, resolution_wh=self.icon_resolution_wh)
         return icon
 
 
@@ -1932,7 +1933,7 @@ class BlurAnnotator(BaseAnnotator):
                 if self.kernel_size is not None
                 else calculate_dynamic_kernel_size(x1, y1, x2, y2)
             )
-            roi = cv2.blur(roi, (kernel_size, kernel_size))
+            roi = cast(npt.NDArray[np.uint8], cv2.blur(roi, (kernel_size, kernel_size)))
             scene[y1:y2, x1:x2] = roi
 
         return scene
@@ -2038,7 +2039,7 @@ class TraceAnnotator(BaseAnnotator):
             )
         filtered_detections: Detections = detections[
             detections.tracker_id != PENDING_TRACK_ID
-        ]  # type: ignore
+        ]
 
         self.trace.put(filtered_detections)
         for detection_idx in range(len(filtered_detections)):
@@ -2065,7 +2066,7 @@ class TraceAnnotator(BaseAnnotator):
                     try:
                         x, y = unique_xy[:, 0], unique_xy[:, 1]
                         tck, _u = splprep([x, y], s=20)
-                        xy_new = splev(np.linspace(0, 1, 100), tck)
+                        xy_new = splev(np.linspace(0, 1, 100), cast(Any, tck))
                         spline_points = np.stack(xy_new, axis=1).astype(np.int32)
                     except ValueError:
                         spline_points = unique_xy.astype(np.int32)
@@ -2162,7 +2163,7 @@ class HeatMapAnnotator(BaseAnnotator):
         if self.heat_mask is None:
             self.heat_mask = np.zeros(scene.shape[:2], dtype=np.float32)
 
-        mask = np.zeros(scene.shape[:2])
+        mask = np.zeros(scene.shape[:2], dtype=np.float32)
         for xy in detections.get_anchors_coordinates(self.position):
             x, y = int(xy[0]), int(xy[1])
             cv2.circle(
@@ -2173,18 +2174,25 @@ class HeatMapAnnotator(BaseAnnotator):
                 thickness=-1,  # fill
             )
         self.heat_mask = mask + self.heat_mask
-        temp = self.heat_mask.copy()
-        temp = self.low_hue - temp / temp.max() * (self.low_hue - self.top_hue)
-        temp = temp.astype(np.uint8)
+        heat_values = self.heat_mask.copy()
+        heat_values = self.low_hue - heat_values / heat_values.max() * (
+            self.low_hue - self.top_hue
+        )
+        heat_values = heat_values.astype(np.uint8)
         if self.kernel_size is not None:
-            temp = cv2.blur(temp, (self.kernel_size, self.kernel_size))
+            heat_values = cast(
+                Any,
+                cv2.blur(heat_values, (self.kernel_size, self.kernel_size)),
+            )
         hsv = np.full(scene.shape, 255, dtype=np.uint8)
-        hsv[..., 0] = temp
-        temp = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-        mask = cv2.cvtColor(self.heat_mask.astype(np.uint8), cv2.COLOR_GRAY2BGR) > 0
-        scene[mask] = cv2.addWeighted(temp, self.opacity, scene, 1 - self.opacity, 0)[
-            mask
-        ]
+        hsv[..., 0] = cast(Any, heat_values)
+        heat_bgr = cast(npt.NDArray[np.uint8], cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR))
+        mask_bool = (
+            cv2.cvtColor(self.heat_mask.astype(np.uint8), cv2.COLOR_GRAY2BGR) > 0
+        )
+        scene[mask_bool] = cv2.addWeighted(
+            heat_bgr, self.opacity, scene, 1 - self.opacity, 0
+        )[mask_bool]
         return scene
 
 

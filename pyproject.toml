@@ -200,6 +200,7 @@ overrides = [
     "tests.*",
     "examples.*",
   ], ignore_errors = true },
+  { module = "deprecate", ignore_missing_imports = true },
 ]
 
 [tool.pytest]

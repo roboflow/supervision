@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
-from typing import Any, Union, cast
+from typing import Any, Union, cast, overload
 
 import numpy as np
 import numpy.typing as npt
@@ -167,7 +167,7 @@ class KeyPoints:
     xy: npt.NDArray[np.float32]
     class_id: npt.NDArray[np.int_] | None = None
     confidence: npt.NDArray[np.float32] | None = None
-    data: dict[str, npt.NDArray[np.generic] | list[Any]] = field(default_factory=dict)
+    data: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         validate_key_points_fields(
@@ -202,9 +202,9 @@ class KeyPoints:
     ) -> Iterator[
         tuple[
             npt.NDArray[np.float32],
-            npt.NDArray[np.float32] | None,
-            npt.NDArray[np.int_] | None,
-            dict[str, npt.NDArray[np.generic] | list[Any]],
+            np.float32 | None,
+            np.integer[Any] | None,
+            dict[str, Any],
         ]
     ]:
         """
@@ -212,24 +212,39 @@ class KeyPoints:
         `(xy, confidence, class_id, data)` for each object detection.
         """
         for i in range(len(self.xy)):
+            confidence = (
+                cast(np.float32, self.confidence[i])
+                if self.confidence is not None
+                else None
+            )
+            class_id = (
+                cast(np.integer[Any], self.class_id[i])
+                if self.class_id is not None
+                else None
+            )
             yield (
                 self.xy[i],
-                self.confidence[i] if self.confidence is not None else None,
-                self.class_id[i] if self.class_id is not None else None,
+                confidence,
+                class_id,
                 get_data_item(self.data, i),
             )
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, KeyPoints):
             return NotImplemented
-        return all(
-            [
-                np.array_equal(self.xy, other.xy),
-                np.array_equal(self.class_id, other.class_id),
-                np.array_equal(self.confidence, other.confidence),
-                is_data_equal(self.data, other.data),
-            ]
-        )
+        if not np.array_equal(self.xy, other.xy):
+            return False
+        if self.class_id is None or other.class_id is None:
+            if self.class_id is not other.class_id:
+                return False
+        elif not np.array_equal(self.class_id, other.class_id):
+            return False
+        if self.confidence is None or other.confidence is None:
+            if self.confidence is not other.confidence:
+                return False
+        elif not np.array_equal(self.confidence, other.confidence):
+            return False
+        return is_data_equal(self.data, other.data)
 
     @classmethod
     def from_inference(cls, inference_result: Any) -> KeyPoints:
@@ -743,15 +758,18 @@ class KeyPoints:
             data=get_data_item(self.data, slice(None)),
         )
 
-    def __getitem__(
-        self,
-        index: Index1D | Index2D | str,
-    ) -> KeyPoints | npt.NDArray[np.generic] | list[Any] | None:
+    @overload
+    def __getitem__(self, index: str) -> Any: ...
+
+    @overload
+    def __getitem__(self, index: Index1D | Index2D) -> KeyPoints: ...
+
+    def __getitem__(self, index: Index1D | Index2D | str) -> KeyPoints | Any | None:
         if isinstance(index, str):
             return self.data.get(index)
 
         if isinstance(index, np.ndarray) and index.ndim == 2 and index.dtype == bool:
-            return self._get_by_2d_bool_mask(index)
+            return self._get_by_2d_bool_mask(cast(npt.NDArray[np.bool_], index))
 
         if not isinstance(index, tuple):
             index = (index, slice(None))
@@ -777,7 +795,7 @@ class KeyPoints:
             and not np.isscalar(i)
             and not np.isscalar(j)
         ):
-            i, j = np.ix_(i, j)
+            i, j = np.ix_(np.asarray(i), np.asarray(j))
 
         xy_selected = self.xy[i, j]
 
@@ -812,7 +830,7 @@ class KeyPoints:
             data=data_selected,
         )
 
-    def __setitem__(self, key: str, value: npt.NDArray[np.generic] | list[Any]) -> None:
+    def __setitem__(self, key: str, value: Any) -> None:
         """
         Set a value in the data dictionary of the `sv.KeyPoints` object.
 
@@ -953,6 +971,7 @@ class KeyPoints:
         detections = Detections.merge(detections_list)
         detections.class_id = self.class_id
         detections.data = self.data
-        detections = cast(Detections, detections[detections.area > 0])
+        area = detections.area
+        detections = detections[area > 0]
 
         return detections

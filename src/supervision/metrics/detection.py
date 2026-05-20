@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import cast
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -226,7 +227,7 @@ class ConfusionMatrix:
         validate_input_tensors(predictions, targets)
 
         num_classes = len(classes)
-        matrix = np.zeros((num_classes + 1, num_classes + 1))
+        matrix = np.zeros((num_classes + 1, num_classes + 1), dtype=np.int32)
         for true_batch, detection_batch in zip(targets, predictions):
             matrix += cls.evaluate_detection_batch(
                 predictions=detection_batch,
@@ -236,7 +237,7 @@ class ConfusionMatrix:
                 iou_threshold=iou_threshold,
             )
         return cls(
-            matrix=matrix,
+            matrix=cast(npt.NDArray[np.int32], matrix),
             classes=classes,
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
@@ -271,7 +272,7 @@ class ConfusionMatrix:
         Returns:
             Confusion matrix based on a single image.
         """
-        result_matrix = np.zeros((num_classes + 1, num_classes + 1))
+        result_matrix = np.zeros((num_classes + 1, num_classes + 1), dtype=np.int32)
 
         # Filter predictions by confidence threshold
         conf_idx = 5
@@ -284,7 +285,7 @@ class ConfusionMatrix:
             true_classes = np.array(targets[:, class_id_idx], dtype=np.int16)
             for gt_class in true_classes:
                 result_matrix[gt_class, num_classes] += 1
-            return result_matrix
+            return cast(npt.NDArray[np.int32], result_matrix)
 
         if len(targets) == 0:
             # No ground truth - all detections are FP
@@ -294,7 +295,7 @@ class ConfusionMatrix:
             )
             for det_class in detection_classes:
                 result_matrix[num_classes, det_class] += 1
-            return result_matrix
+            return cast(npt.NDArray[np.int32], result_matrix)
 
         class_id_idx = 4
         true_classes = np.array(targets[:, class_id_idx], dtype=np.int16)
@@ -368,7 +369,7 @@ class ConfusionMatrix:
             if det_idx not in matched_det_idx:
                 result_matrix[num_classes, det_class] += 1
 
-        return result_matrix
+        return cast(npt.NDArray[np.int32], result_matrix)
 
     @staticmethod
     def _drop_extra_matches(
@@ -495,7 +496,7 @@ class ConfusionMatrix:
         im = ax.imshow(array, cmap="Blues")
 
         cbar = ax.figure.colorbar(im, ax=ax)
-        cbar.mappable.set_clim(vmin=0, vmax=np.nanmax(array))
+        cbar.mappable.set_clim(vmin=0, vmax=float(np.nanmax(array)))
 
         if x_tick_labels is None:
             tick_interval = 2

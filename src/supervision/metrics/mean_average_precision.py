@@ -7,7 +7,7 @@ from collections import defaultdict
 from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -152,7 +152,7 @@ class MeanAveragePrecisionResult:
         ensure_pandas_installed()
         import pandas as pd
 
-        pandas_data = {
+        pandas_data: dict[str, Any] = {
             "mAP@50:95": self.map50_95,
             "mAP@50": self.map50,
             "mAP@75": self.map75,
@@ -1009,14 +1009,14 @@ class COCOEvaluator:
         # Helper function to compute average precision while handling -1 sentinel values
         def compute_average_precision(
             precision_slice: npt.NDArray[np.float32],
-        ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
+        ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
             """Compute average precision while handling -1 sentinel values."""
             valid_mask = precision_slice != -1
             valid_precision = np.where(valid_mask, precision_slice, np.float32(0.0))
 
             def mean_with_mask(
                 axis: int | tuple[int, ...],
-            ) -> npt.NDArray[np.float32]:
+            ) -> npt.NDArray[np.float64]:
                 sums = valid_precision.sum(axis=axis, dtype=np.float64)
                 counts = valid_mask.sum(axis=axis)
                 means = np.divide(
@@ -1025,7 +1025,7 @@ class COCOEvaluator:
                     out=np.full(sums.shape, -1.0, dtype=np.float64),
                     where=counts > 0,
                 )
-                return means.astype(np.float32)
+                return cast(npt.NDArray[np.float64], means)
 
             mAP_scores = mean_with_mask((1, 2))
             ap_per_class = mean_with_mask(1).transpose(1, 0)
@@ -1481,38 +1481,52 @@ class MeanAveragePrecision(Metric):
         mAP_small = MeanAveragePrecisionResult(
             metric_target=self._metric_target,
             is_class_agnostic=self._class_agnostic,
-            mAP_scores=cocoEval.results["mAP_scores_small"],
-            ap_per_class=cocoEval.results["ap_per_class_small"],
-            iou_thresholds=cocoEval.params.iou_thrs,
-            matched_classes=np.array(cocoEval.params.cat_ids),
+            mAP_scores=np.asarray(cocoEval.results["mAP_scores_small"], dtype=np.float64),
+            ap_per_class=np.asarray(
+                cocoEval.results["ap_per_class_small"], dtype=np.float64
+            ),
+            iou_thresholds=np.asarray(cocoEval.params.iou_thrs, dtype=np.float64),
+            matched_classes=np.asarray(cocoEval.params.cat_ids, dtype=np.int32),
         )
         # Create MeanAveragePrecisionResult object for medium objects
         mAP_medium = MeanAveragePrecisionResult(
             metric_target=self._metric_target,
             is_class_agnostic=self._class_agnostic,
-            mAP_scores=cocoEval.results["mAP_scores_medium"],
-            ap_per_class=cocoEval.results["ap_per_class_medium"],
-            iou_thresholds=cocoEval.params.iou_thrs,
-            matched_classes=np.array(cocoEval.params.cat_ids),
+            mAP_scores=np.asarray(
+                cocoEval.results["mAP_scores_medium"], dtype=np.float64
+            ),
+            ap_per_class=np.asarray(
+                cocoEval.results["ap_per_class_medium"], dtype=np.float64
+            ),
+            iou_thresholds=np.asarray(cocoEval.params.iou_thrs, dtype=np.float64),
+            matched_classes=np.asarray(cocoEval.params.cat_ids, dtype=np.int32),
         )
         # Create MeanAveragePrecisionResult object for large objects
         mAP_large = MeanAveragePrecisionResult(
             metric_target=self._metric_target,
             is_class_agnostic=self._class_agnostic,
-            mAP_scores=cocoEval.results["mAP_scores_large"],
-            ap_per_class=cocoEval.results["ap_per_class_large"],
-            iou_thresholds=cocoEval.params.iou_thrs,
-            matched_classes=np.array(cocoEval.params.cat_ids),
+            mAP_scores=np.asarray(
+                cocoEval.results["mAP_scores_large"], dtype=np.float64
+            ),
+            ap_per_class=np.asarray(
+                cocoEval.results["ap_per_class_large"], dtype=np.float64
+            ),
+            iou_thresholds=np.asarray(cocoEval.params.iou_thrs, dtype=np.float64),
+            matched_classes=np.asarray(cocoEval.params.cat_ids, dtype=np.int32),
         )
 
         # Create the final MeanAveragePrecisionResult object
         mAP_result = MeanAveragePrecisionResult(
             metric_target=self._metric_target,
             is_class_agnostic=self._class_agnostic,
-            mAP_scores=cocoEval.results["mAP_scores_all_sizes"],
-            ap_per_class=cocoEval.results["ap_per_class_all_sizes"],
-            iou_thresholds=cocoEval.params.iou_thrs,
-            matched_classes=np.array(cocoEval.params.cat_ids),
+            mAP_scores=np.asarray(
+                cocoEval.results["mAP_scores_all_sizes"], dtype=np.float64
+            ),
+            ap_per_class=np.asarray(
+                cocoEval.results["ap_per_class_all_sizes"], dtype=np.float64
+            ),
+            iou_thresholds=np.asarray(cocoEval.params.iou_thrs, dtype=np.float64),
+            matched_classes=np.asarray(cocoEval.params.cat_ids, dtype=np.int32),
             small_objects=mAP_small,
             medium_objects=mAP_medium,
             large_objects=mAP_large,
