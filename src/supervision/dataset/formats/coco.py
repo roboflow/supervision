@@ -370,6 +370,7 @@ def _with_seg_mask(annotation: dict[str, Any]) -> bool:
 def save_coco_annotations(
     dataset: "DetectionDataset",
     annotation_path: str,
+    annotation_id_start: int = 1,
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
@@ -387,7 +388,7 @@ def save_coco_annotations(
     coco_images = []
     coco_categories = classes_to_coco_categories(classes=dataset.classes)
 
-    image_id, annotation_id = 1, 1
+    image_id, annotation_id = 1, annotation_id_start
     for image_path, image, annotation in dataset:
         image_height, image_width, _ = image.shape
         image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"

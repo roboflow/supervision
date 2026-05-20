@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
 
+import cv2
 import numpy as np
 import pytest
 
@@ -284,3 +286,47 @@ class TestClassNamePopulation:
                 np.testing.assert_array_equal(
                     annotation.data[CLASS_NAME_DATA_FIELD], expected_names
                 )
+
+
+def test_split_as_coco_preserves_annotation_id_continuity(tmp_path: Path) -> None:
+    image_paths = []
+    annotations = {}
+    detection_counts = [2, 1, 3, 1]
+
+    for index, detection_count in enumerate(detection_counts):
+        image_path = tmp_path / f"image-{index}.png"
+        cv2.imwrite(str(image_path), np.zeros((10, 10, 3), dtype=np.uint8))
+        image_paths.append(str(image_path))
+        annotations[str(image_path)] = _create_detections(
+            xyxy=[[i, i, i + 1, i + 1] for i in range(detection_count)],
+            class_id=[0] * detection_count,
+        )
+
+    dataset = DetectionDataset(
+        classes=["object"], images=image_paths, annotations=annotations
+    )
+    train_dataset, holdout_dataset = dataset.split(split_ratio=0.5, shuffle=False)
+    valid_dataset, test_dataset = holdout_dataset.split(split_ratio=0.5, shuffle=False)
+
+    train_annotations_path = tmp_path / "train.json"
+    valid_annotations_path = tmp_path / "valid.json"
+    test_annotations_path = tmp_path / "test.json"
+
+    train_dataset.as_coco(annotations_path=str(train_annotations_path))
+    valid_dataset.as_coco(annotations_path=str(valid_annotations_path))
+    test_dataset.as_coco(annotations_path=str(test_annotations_path))
+
+    train_ids = json.loads(train_annotations_path.read_text())["annotations"]
+    valid_ids = json.loads(valid_annotations_path.read_text())["annotations"]
+    test_ids = json.loads(test_annotations_path.read_text())["annotations"]
+
+    train_annotation_ids = [annotation["id"] for annotation in train_ids]
+    valid_annotation_ids = [annotation["id"] for annotation in valid_ids]
+    test_annotation_ids = [annotation["id"] for annotation in test_ids]
+
+    assert train_annotation_ids == [1, 2, 3]
+    assert valid_annotation_ids == [4, 5, 6]
+    assert test_annotation_ids == [7]
+    assert len(
+        train_annotation_ids + valid_annotation_ids + test_annotation_ids
+    ) == len(set(train_annotation_ids + valid_annotation_ids + test_annotation_ids))

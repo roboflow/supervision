@@ -97,6 +97,7 @@ class DetectionDataset(BaseDataset):
         self.image_paths = list(dict.fromkeys(images))
 
         self._images_in_memory: dict[str, npt.NDArray[np.uint8]] = {}
+        self._annotation_id_start = 1
 
     def _get_image(self, image_path: str) -> npt.NDArray[np.uint8]:
         """Assumes that image is in dataset."""
@@ -224,6 +225,10 @@ class DetectionDataset(BaseDataset):
             classes=self.classes,
             images=test_input,
             annotations=test_annotations,
+        )
+        train_dataset._annotation_id_start = self._annotation_id_start
+        test_dataset._annotation_id_start = self._annotation_id_start + sum(
+            len(self.annotations[path]) for path in train_paths
         )
         return train_dataset, test_dataset
 
@@ -654,6 +659,7 @@ class DetectionDataset(BaseDataset):
             save_coco_annotations(
                 dataset=self,
                 annotation_path=annotations_path,
+                annotation_id_start=self._annotation_id_start,
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
