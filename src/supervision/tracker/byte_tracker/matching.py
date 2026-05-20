@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
 import numpy as np
 import numpy.typing as npt
 from scipy.optimize import linear_sum_assignment
 
 from supervision.detection.utils.iou_and_nms import box_iou_batch
-
-if TYPE_CHECKING:
-    from supervision.tracker.byte_tracker.single_object_track import STrack
+from supervision.tracker.byte_tracker.single_object_track import STrack
 
 
 def indices_to_matches(

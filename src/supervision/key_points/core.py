@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
-from typing import Any, Union, cast, overload
+from typing import Any, cast, overload
 
 import numpy as np
 import numpy.typing as npt
@@ -12,14 +12,9 @@ from supervision.detection.core import Detections
 from supervision.detection.utils.internal import get_data_item, is_data_equal
 from supervision.validators import validate_key_points_fields
 
-Index1D = Union[
-    int,
-    slice,
-    list[int],
-    list[bool],
-    npt.NDArray[np.int_],
-    npt.NDArray[np.bool_],
-]
+Index1D = (
+    int | slice | list[int] | list[bool] | npt.NDArray[np.int_] | npt.NDArray[np.bool_]
+)
 Index2D = tuple[Index1D, Index1D]
 
 

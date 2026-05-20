@@ -48,12 +48,12 @@ class DetectionsSmoother:
         ... )
         >>> smoothed = smoother.update_with_detections(detections_1)
         >>> smoothed.xyxy
-        array([[ 0.,  0., 10., 10.]])
+        array([[ 0.,  0., 10., 10.]], dtype=float32)
         >>> smoothed = smoother.update_with_detections(detections_2)
         >>> smoothed.xyxy
-        array([[ 1.,  1., 11., 11.]])
+        array([[ 1.,  1., 11., 11.]], dtype=float32)
         >>> smoothed.confidence
-        array([0.6])
+        array([0.6], dtype=float32)
 
         ```
 

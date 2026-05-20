@@ -703,8 +703,10 @@ def create_tiles(
         default_title_placement=default_title_placement,
     )
     if return_type == "pillow":
-        return cast(ImageType, cv2_to_pillow(image=tiles_image))  # type: ignore[redundant-cast]
-    return cast(ImageType, tiles_image)  # type: ignore[redundant-cast]
+        tiles_image_pillow: object = cv2_to_pillow(image=tiles_image)
+        return cast(ImageType, tiles_image_pillow)
+    tiles_image_cv2: object = tiles_image
+    return cast(ImageType, tiles_image_cv2)
 
 
 def _negotiate_tiles_format(images: list[ImageType]) -> Literal["cv2", "pillow"]:

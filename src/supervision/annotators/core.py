@@ -1858,8 +1858,10 @@ class IconAnnotator(BaseAnnotator):
                 f"Error: Couldn't load the icon image from {icon_path}"
             )
         icon = cast(npt.NDArray[np.uint8], icon)
-        icon = letterbox_image(image=icon, resolution_wh=self.icon_resolution_wh)
-        return icon
+        icon_image: Any = letterbox_image(
+            image=icon, resolution_wh=self.icon_resolution_wh
+        )
+        return cast(npt.NDArray[np.uint8], icon_image)
 
 
 class BlurAnnotator(BaseAnnotator):
