@@ -359,7 +359,7 @@ def three_class_single_image_detections():
     return predictions, targets
 
 
-def test_single_perfect_detection():
+def test_single_perfect_detection() -> None:
     """Test that a single perfect detection yields 1.0 recall."""
     detections = Detections(
         xyxy=np.array([[10, 10, 50, 50]], dtype=np.float32),
@@ -377,7 +377,7 @@ def test_single_perfect_detection():
 
 def test_complex_integration_scenario(
     complex_scenario_predictions, complex_scenario_targets
-):
+) -> None:
     """Test integration scenario with multiple images and varying performance."""
 
     def mock_detections_list(boxes_list):
@@ -403,7 +403,7 @@ def test_complex_integration_scenario(
     np.testing.assert_almost_equal(result.recall_scores, expected_result, decimal=6)
 
 
-def test_mar_at_k_limits_per_image_not_per_class(two_class_two_image_detections):
+def test_mar_at_k_limits_per_image_not_per_class(two_class_two_image_detections) -> None:
     """
     Test that `mAR @ K` limits detections per image, not per class.
 
@@ -458,7 +458,7 @@ def test_mar_at_k_limits_per_image_not_per_class(two_class_two_image_detections)
     )
 
 
-def test_three_class_single_image_scenario(three_class_single_image_detections):
+def test_three_class_single_image_scenario(three_class_single_image_detections) -> None:
     """
     Test with 3 classes on single image - explicit N x K bug reproduction.
 
@@ -505,7 +505,7 @@ def test_three_class_single_image_scenario(three_class_single_image_detections):
     )
 
 
-def test_dataset_split_integration(yolo_dataset_two_classes):
+def test_dataset_split_integration(yolo_dataset_two_classes) -> None:
     """
     Test mAR with a roboflow-format dataset loaded from disk.
 

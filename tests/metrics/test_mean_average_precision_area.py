@@ -44,7 +44,7 @@ class TestMeanAveragePrecisionArea:
     )
     def test_area_calculation_and_size_specific_map(
         self, xyxy, expected_areas, expected_size_maps
-    ):
+    ) -> None:
         """Test area calculation and size-specific mAP functionality."""
         gt = Detections(
             xyxy=xyxy,
@@ -96,7 +96,7 @@ class TestMeanAveragePrecisionArea:
                 "Large objects should have no data"
             )
 
-    def test_area_preserved_from_data(self):
+    def test_area_preserved_from_data(self) -> None:
         """Test that area from data field is preserved (COCO case)."""
         gt = Detections(
             xyxy=np.array(

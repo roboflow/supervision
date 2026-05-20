@@ -12,7 +12,7 @@ class TestVertexAnnotator:
     which is essential for human pose estimation or similar tasks.
     """
 
-    def test_annotate_with_default_parameters(self, scene, sample_key_points):
+    def test_annotate_with_default_parameters(self, scene, sample_key_points) -> None:
         """
         Verify that VertexAnnotator correctly draws keypoints with default parameters.
 
@@ -27,7 +27,7 @@ class TestVertexAnnotator:
             original=scene, annotated=result, similarity_threshold=0.8
         )
 
-    def test_annotate_with_custom_color_and_radius(self, scene, sample_key_points):
+    def test_annotate_with_custom_color_and_radius(self, scene, sample_key_points) -> None:
         """
         Verify that VertexAnnotator respects custom color and radius settings.
 
@@ -45,7 +45,7 @@ class TestVertexAnnotator:
             original=scene, annotated=result, similarity_threshold=0.7
         )
 
-    def test_annotate_empty_key_points(self, scene, empty_key_points):
+    def test_annotate_empty_key_points(self, scene, empty_key_points) -> None:
         """
         Verify that VertexAnnotator handles empty keypoints without modifying the scene.
 
@@ -67,7 +67,7 @@ class TestEdgeAnnotator:
     forming skeletons that help users interpret spatial relationships.
     """
 
-    def test_annotate_with_default_parameters(self, scene, sample_key_points):
+    def test_annotate_with_default_parameters(self, scene, sample_key_points) -> None:
         """
         Verify correctly draw skeleton edges with default parameters.
 
@@ -82,7 +82,7 @@ class TestEdgeAnnotator:
             original=scene, annotated=result, similarity_threshold=0.7
         )
 
-    def test_annotate_with_custom_edges(self, scene, sample_key_points):
+    def test_annotate_with_custom_edges(self, scene, sample_key_points) -> None:
         """
         Verify that EdgeAnnotator respects custom-defined skeleton structures.
 
@@ -99,7 +99,7 @@ class TestEdgeAnnotator:
             original=scene, annotated=result, similarity_threshold=0.8
         )
 
-    def test_annotate_empty_key_points(self, scene, empty_key_points):
+    def test_annotate_empty_key_points(self, scene, empty_key_points) -> None:
         """
         Verify that EdgeAnnotator handles empty keypoints without modifying the scene.
 
@@ -112,7 +112,7 @@ class TestEdgeAnnotator:
         # Should return the original scene unchanged
         assert np.array_equal(result, scene)
 
-    def test_annotate_no_edges_found(self, scene):
+    def test_annotate_no_edges_found(self, scene) -> None:
         """
         Verify returning unmodified scene when no known skeleton matches.
 

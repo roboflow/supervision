@@ -70,7 +70,7 @@ class Precision(Metric):
         self,
         metric_target: MetricTarget = MetricTarget.BOXES,
         averaging_method: AveragingMethod = AveragingMethod.WEIGHTED,
-    ):
+    ) -> None:
         """
         Initialize the Precision metric.
 

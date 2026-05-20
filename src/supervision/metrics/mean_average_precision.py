@@ -252,7 +252,7 @@ class EvaluationDataset:
     `COCOEvaluator` class.
     """
 
-    def __init__(self, targets: dict[str, Any] | None = None):
+    def __init__(self, targets: dict[str, Any] | None = None) -> None:
         """
         Constructor of EvaluationDataset object used to evaluate models with
         Mean Average Precision.
@@ -588,7 +588,7 @@ class COCOEvaluator:
 
     def __init__(
         self, coco_targets: EvaluationDataset, coco_predictions: EvaluationDataset
-    ):
+    ) -> None:
         """
         Constructor of COCOEvaluator object.
 
@@ -1267,7 +1267,7 @@ class MeanAveragePrecision(Metric):
         class_agnostic: bool = False,
         class_mapping: dict[int, int] | None = None,
         image_indices: list[int] | None = None,
-    ):
+    ) -> None:
         """
         Initialize the Mean Average Precision metric.
 

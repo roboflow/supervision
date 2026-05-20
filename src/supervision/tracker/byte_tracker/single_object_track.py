@@ -25,7 +25,7 @@ class STrack:
         shared_kalman: KalmanFilter,
         internal_id_counter: IdCounter,
         external_id_counter: IdCounter,
-    ):
+    ) -> None:
         self.state = TrackState.New
         self.is_activated = False
         self.start_frame = 0

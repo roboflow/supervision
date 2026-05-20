@@ -481,7 +481,7 @@ class ImageSink:
         target_dir_path: str,
         overwrite: bool = False,
         image_name_pattern: str = "image_{:05d}.png",
-    ):
+    ) -> None:
         """
         Initialize context manager for saving images to directory.
 

@@ -67,7 +67,7 @@ class F1Score(Metric):
         self,
         metric_target: MetricTarget = MetricTarget.BOXES,
         averaging_method: AveragingMethod = AveragingMethod.WEIGHTED,
-    ):
+    ) -> None:
         """
         Initialize the F1Score metric.
 

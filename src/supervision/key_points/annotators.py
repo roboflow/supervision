@@ -207,7 +207,7 @@ class VertexLabelAnnotator:
         text_padding: int = 10,
         border_radius: int = 0,
         smart_position: bool = False,
-    ):
+    ) -> None:
         """
         Args:
             color: The color to use for each keypoint label. If a list is provided,

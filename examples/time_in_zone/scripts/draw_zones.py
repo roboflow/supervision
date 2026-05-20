@@ -119,7 +119,7 @@ def redraw_polygons(image: np.ndarray) -> None:
             )
 
 
-def save_polygons_to_json(polygons, target_path):
+def save_polygons_to_json(polygons, target_path) -> None:
     data_to_save = polygons if polygons[-1] else polygons[:-1]
     with open(target_path, "w") as f:
         json.dump(data_to_save, f)

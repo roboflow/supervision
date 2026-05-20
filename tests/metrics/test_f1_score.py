@@ -36,7 +36,7 @@ class TestF1Score:
             class_id=np.array([0, 1]),
         )
 
-    def test_initialization_default(self):
+    def test_initialization_default(self) -> None:
         """Test that F1Score can be initialized with default parameters"""
         metric = F1Score()
         assert metric._metric_target == MetricTarget.BOXES
@@ -44,7 +44,7 @@ class TestF1Score:
         assert metric._predictions_list == []
         assert metric._targets_list == []
 
-    def test_initialization_custom(self):
+    def test_initialization_custom(self) -> None:
         """Test that F1Score can be initialized with custom parameters"""
         metric = F1Score(
             metric_target=MetricTarget.MASKS,
@@ -53,7 +53,7 @@ class TestF1Score:
         assert metric._metric_target == MetricTarget.MASKS
         assert metric.averaging_method == AveragingMethod.MACRO
 
-    def test_reset(self, dummy_prediction):
+    def test_reset(self, dummy_prediction) -> None:
         """Test that reset() clears all stored data"""
         metric = F1Score()
 
@@ -69,7 +69,7 @@ class TestF1Score:
         assert metric._predictions_list == []
         assert metric._targets_list == []
 
-    def test_perfect_match(self, detections_50_50, targets_50_50):
+    def test_perfect_match(self, detections_50_50, targets_50_50) -> None:
         """Test F1 score with perfect matching predictions and targets"""
         metric = F1Score()
         result = metric.update(detections_50_50, targets_50_50).compute()
@@ -84,7 +84,7 @@ class TestF1Score:
         assert len(result.matched_classes) == 1
         assert result.matched_classes[0] == 0
 
-    def test_no_overlap(self, predictions_no_overlap, targets_no_overlap):
+    def test_no_overlap(self, predictions_no_overlap, targets_no_overlap) -> None:
         """Test F1 score with predictions that don't overlap with targets"""
         metric = F1Score()
         result = metric.update(predictions_no_overlap, targets_no_overlap).compute()
@@ -96,7 +96,7 @@ class TestF1Score:
         assert result.f1_50 == 0.0
         assert result.f1_75 == 0.0
 
-    def test_empty_predictions(self, targets_50_50):
+    def test_empty_predictions(self, targets_50_50) -> None:
         """Test F1 score with empty predictions but existing targets"""
         predictions = Detections.empty()
 
@@ -110,7 +110,7 @@ class TestF1Score:
         assert result.f1_50 == 0.0
         assert result.f1_75 == 0.0
 
-    def test_empty_targets(self, detections_50_50):
+    def test_empty_targets(self, detections_50_50) -> None:
         """Test F1 score with predictions but no targets"""
         targets = Detections.empty()
 
@@ -126,7 +126,7 @@ class TestF1Score:
 
     def test_single_class_mixed_results(
         self, predictions_confidence_ranking, targets_50_50
-    ):
+    ) -> None:
         """Test F1 score calculation with mixed precision and recall"""
         metric = F1Score()
         result = metric.update(predictions_confidence_ranking, targets_50_50).compute()
@@ -141,7 +141,7 @@ class TestF1Score:
 
     def test_precision_recall_imbalance(
         self, detections_50_50, targets_two_objects_class_0
-    ):
+    ) -> None:
         """Test F1 score with different precision and recall scenarios"""
         metric = F1Score()
         result = metric.update(detections_50_50, targets_two_objects_class_0).compute()
@@ -156,7 +156,7 @@ class TestF1Score:
 
     def test_multiple_classes(
         self, predictions_multiple_classes, targets_multiple_classes
-    ):
+    ) -> None:
         """Test F1 score calculation for multiple classes"""
         metric = F1Score()
         result = metric.update(
@@ -172,7 +172,7 @@ class TestF1Score:
         assert 0 in result.matched_classes
         assert 1 in result.matched_classes
 
-    def test_different_iou_thresholds(self, predictions_iou_064, targets_iou_064):
+    def test_different_iou_thresholds(self, predictions_iou_064, targets_iou_064) -> None:
         """Test F1 score at different IoU thresholds"""
         metric = F1Score()
         result = metric.update(predictions_iou_064, targets_iou_064).compute()
@@ -183,7 +183,7 @@ class TestF1Score:
         assert result.f1_50 == 1.0
         assert result.f1_75 == 0.0
 
-    def test_confidence_ranking(self, predictions_confidence_ranking, targets_50_50):
+    def test_confidence_ranking(self, predictions_confidence_ranking, targets_50_50) -> None:
         """Test that F1 score respects confidence ranking"""
         metric = F1Score()
         result = metric.update(predictions_confidence_ranking, targets_50_50).compute()
@@ -197,7 +197,7 @@ class TestF1Score:
 
     def test_list_inputs(
         self, detections_50_50, targets_50_50, prediction_class_1, target_class_1
-    ):
+    ) -> None:
         """Test F1 score with list inputs"""
         metric = F1Score()
         result = metric.update(
@@ -208,7 +208,7 @@ class TestF1Score:
         assert result.f1_50 == 1.0
         assert result.f1_75 == 1.0
 
-    def test_mismatched_list_lengths(self, detections_50_50, targets_50_50):
+    def test_mismatched_list_lengths(self, detections_50_50, targets_50_50) -> None:
         """Test that mismatched prediction/target list lengths raise error"""
         metric = F1Score()
 
@@ -220,7 +220,7 @@ class TestF1Score:
         "averaging_method",
         [AveragingMethod.MACRO, AveragingMethod.MICRO, AveragingMethod.WEIGHTED],
     )
-    def test_averaging_methods(self, averaging_method, detections_50_50, targets_50_50):
+    def test_averaging_methods(self, averaging_method, detections_50_50, targets_50_50) -> None:
         """Test different averaging methods"""
         metric = F1Score(averaging_method=averaging_method)
         result = metric.update(detections_50_50, targets_50_50).compute()
@@ -231,7 +231,7 @@ class TestF1Score:
 
     def test_macro_averaging(
         self, predictions_multiple_classes, targets_multiple_classes
-    ):
+    ) -> None:
         """Test MACRO averaging with specific example"""
         metric = F1Score(averaging_method=AveragingMethod.MACRO)
         result = metric.update(
@@ -244,7 +244,7 @@ class TestF1Score:
 
     def test_micro_averaging(
         self, predictions_multiple_classes, targets_multiple_classes
-    ):
+    ) -> None:
         """Test MICRO averaging with specific example"""
         metric = F1Score(averaging_method=AveragingMethod.MICRO)
         result = metric.update(
@@ -257,7 +257,7 @@ class TestF1Score:
 
     def test_weighted_averaging(
         self, predictions_multiple_classes, targets_multiple_classes
-    ):
+    ) -> None:
         """Test WEIGHTED averaging with specific example"""
         metric = F1Score(averaging_method=AveragingMethod.WEIGHTED)
         result = metric.update(

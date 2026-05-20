@@ -63,7 +63,7 @@ def test_read_txt_file(
     skip_empty: bool,
     expected_result: list[str] | None,
     exception: Exception,
-):
+) -> None:
     with exception:
         result = read_txt_file(file_name, skip_empty)
         assert result == expected_result

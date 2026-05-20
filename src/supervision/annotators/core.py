@@ -110,7 +110,7 @@ class _BaseLabelAnnotator(BaseAnnotator):
         border_radius: int = 0,
         smart_position: bool = False,
         max_line_length: int | None = None,
-    ):
+    ) -> None:
         """
         Initializes the _BaseLabelAnnotator.
 
@@ -196,7 +196,7 @@ class BoxAnnotator(BaseAnnotator):
         color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-    ):
+    ) -> None:
         """
         Args:
             color: The color or color palette to use for
@@ -283,7 +283,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
         color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-    ):
+    ) -> None:
         """
         Args:
             color: The color or color palette to use for
@@ -374,7 +374,7 @@ class MaskAnnotator(BaseAnnotator):
         color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         opacity: float = 0.5,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-    ):
+    ) -> None:
         """
         Args:
             color: The color or color palette to use for
@@ -485,7 +485,7 @@ class PolygonAnnotator(BaseAnnotator):
         color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-    ):
+    ) -> None:
         """
         Args:
             color: The color or color palette to use for
@@ -576,7 +576,7 @@ class ColorAnnotator(BaseAnnotator):
         color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         opacity: float = 0.5,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-    ):
+    ) -> None:
         """
         Args:
             color: The color or color palette to use for
@@ -673,7 +673,7 @@ class HaloAnnotator(BaseAnnotator):
         opacity: float = 0.8,
         kernel_size: int = 40,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-    ):
+    ) -> None:
         """
         Args:
             color: The color or color palette to use for
@@ -776,7 +776,7 @@ class EllipseAnnotator(BaseAnnotator):
         start_angle: int = -45,
         end_angle: int = 235,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-    ):
+    ) -> None:
         """
         Args:
             color: The color or color palette to use for
@@ -874,7 +874,7 @@ class BoxCornerAnnotator(BaseAnnotator):
         thickness: int = 4,
         corner_length: int = 15,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-    ):
+    ) -> None:
         """
         Args:
             color: The color or color palette to use for
@@ -968,7 +968,7 @@ class CircleAnnotator(BaseAnnotator):
         color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-    ):
+    ) -> None:
         """
         Args:
             color: The color or color palette to use for
@@ -1064,7 +1064,7 @@ class DotAnnotator(BaseAnnotator):
         color_lookup: ColorLookup = ColorLookup.CLASS,
         outline_thickness: int = 0,
         outline_color: Color | ColorPalette | str = Color.BLACK,
-    ):
+    ) -> None:
         """
         Args:
             color: The color or color palette to use for
@@ -1179,7 +1179,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
         border_radius: int = 0,
         smart_position: bool = False,
         max_line_length: int | None = None,
-    ):
+    ) -> None:
         """
         Args:
             color: The color or color palette to use for
@@ -1495,7 +1495,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         border_radius: int = 0,
         smart_position: bool = False,
         max_line_length: int | None = None,
-    ):
+    ) -> None:
         """
         Args:
             color: The color or color palette to use for
@@ -1762,7 +1762,7 @@ class IconAnnotator(BaseAnnotator):
         icon_resolution_wh: tuple[int, int] = (64, 64),
         icon_position: Position = Position.TOP_CENTER,
         offset_xy: tuple[int, int] = (0, 0),
-    ):
+    ) -> None:
         """
         Args:
             icon_resolution_wh: The size of drawn icons.
@@ -1866,7 +1866,7 @@ class BlurAnnotator(BaseAnnotator):
     A class for blurring regions in an image using provided detections.
     """
 
-    def __init__(self, kernel_size: int | None = None):
+    def __init__(self, kernel_size: int | None = None) -> None:
         """
         Args:
             kernel_size: The size of the average pooling kernel used for blurring.
@@ -1957,7 +1957,7 @@ class TraceAnnotator(BaseAnnotator):
         thickness: int = 2,
         smooth: bool = False,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-    ):
+    ) -> None:
         """
         Args:
             color: The color to draw the trace, can be
@@ -2098,7 +2098,7 @@ class HeatMapAnnotator(BaseAnnotator):
         kernel_size: int = 25,
         top_hue: int = 0,
         low_hue: int = 125,
-    ):
+    ) -> None:
         """
         Args:
             position: The position of the heatmap. Defaults to
@@ -2193,7 +2193,7 @@ class PixelateAnnotator(BaseAnnotator):
     A class for pixelating regions in an image using provided detections.
     """
 
-    def __init__(self, pixel_size: int | None = None):
+    def __init__(self, pixel_size: int | None = None) -> None:
         """
         Args:
             pixel_size: The size of the pixelation. If not set, a dynamic size is
@@ -2297,7 +2297,7 @@ class TriangleAnnotator(BaseAnnotator):
         color_lookup: ColorLookup = ColorLookup.CLASS,
         outline_thickness: int = 0,
         outline_color: Color | ColorPalette | str = Color.BLACK,
-    ):
+    ) -> None:
         """
         Args:
             color: The color or color palette to use for
@@ -2416,7 +2416,7 @@ class RoundBoxAnnotator(BaseAnnotator):
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         roundness: float = 0.6,
-    ):
+    ) -> None:
         """
         Args:
             color: The color or color palette to use for
@@ -2554,7 +2554,7 @@ class PercentageBarAnnotator(BaseAnnotator):
         position: Position = Position.TOP_CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         border_thickness: int | None = None,
-    ):
+    ) -> None:
         """
         Args:
             height: The height in pixels of the percentage bar.
@@ -2747,7 +2747,7 @@ class CropAnnotator(BaseAnnotator):
         border_color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         border_thickness: int = 2,
         border_color_lookup: ColorLookup = ColorLookup.CLASS,
-    ):
+    ) -> None:
         """
         Args:
             position: The anchor position for placing the cropped and scaled
@@ -2910,7 +2910,7 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
         color: Color = Color.BLACK,
         opacity: float = 0.5,
         force_box: bool = False,
-    ):
+    ) -> None:
         """
         Args:
             color: The color to use for annotating detections.
@@ -2999,7 +2999,7 @@ class ComparisonAnnotator:
         label_2: str = "",
         label_overlap: str = "",
         label_scale: float = 1.0,
-    ):
+    ) -> None:
         """
         Args:
             color_1: Color of areas only present in the first set of

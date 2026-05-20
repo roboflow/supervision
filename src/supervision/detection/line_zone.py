@@ -99,7 +99,7 @@ class LineZone:
             Position.BOTTOM_RIGHT,
         ),
         minimum_crossing_threshold: int = 1,
-    ):
+    ) -> None:
         """
         Args:
             start: The starting point of the line.
@@ -344,7 +344,7 @@ class LineZoneAnnotator:
         display_text_box: bool = True,
         text_orient_to_line: bool = False,
         text_centered: bool = True,
-    ):
+    ) -> None:
         """
         A class for drawing the `LineZone` and its detected object count
         on an image.
@@ -728,7 +728,7 @@ class LineZoneAnnotatorMulticlass:
         text_scale: float = 0.75,
         text_thickness: int = 1,
         force_draw_class_ids: bool = False,
-    ):
+    ) -> None:
         """
         Draw a table showing how many items of each class crossed each line.
 

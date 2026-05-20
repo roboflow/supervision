@@ -874,7 +874,7 @@ def test_merge_inner_detection_object_pair(
     detection_2: Detections,
     expected_result: Detections | None,
     exception: Exception,
-):
+) -> None:
     with exception:
         result = merge_inner_detection_object_pair(detection_1, detection_2)
         assert result == expected_result

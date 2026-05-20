@@ -131,7 +131,7 @@ def test_letterbox_image_for_pillow_image() -> None:
         ),
     ],
 )
-def test_crop_image(image, xyxy, expected_size):
+def test_crop_image(image, xyxy, expected_size) -> None:
     cropped = crop_image(image=image, xyxy=xyxy)
     if isinstance(image, np.ndarray):
         assert isinstance(cropped, np.ndarray)
@@ -155,6 +155,6 @@ def test_crop_image(image, xyxy, expected_size):
         (Image.new("L", (20, 10), color=0), (20, 10)),
     ],
 )
-def test_get_image_resolution_wh(image, expected):
+def test_get_image_resolution_wh(image, expected) -> None:
     resolution = get_image_resolution_wh(image)
     assert resolution == expected

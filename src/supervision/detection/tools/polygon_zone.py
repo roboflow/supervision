@@ -62,7 +62,7 @@ class PolygonZone:
         self,
         polygon: npt.NDArray[np.int64],
         triggering_anchors: Iterable[Position] = (Position.BOTTOM_CENTER,),
-    ):
+    ) -> None:
         self.polygon = polygon.astype(int)
         self.triggering_anchors = triggering_anchors
         if not list(self.triggering_anchors):
@@ -144,7 +144,7 @@ class PolygonZoneAnnotator:
         text_padding: int = 10,
         display_in_zone_count: bool = True,
         opacity: float = 0,
-    ):
+    ) -> None:
         self.zone = zone
         self.color = color
         self.thickness = thickness

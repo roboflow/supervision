@@ -297,7 +297,7 @@ class MeanAverageRecall(Metric):
     def __init__(
         self,
         metric_target: MetricTarget = MetricTarget.BOXES,
-    ):
+    ) -> None:
         """
         Initialize the Mean Average Recall metric.
 

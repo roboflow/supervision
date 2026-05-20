@@ -368,13 +368,13 @@ KEY_POINTS = _create_key_points(
         ),  # kp[kp.confidence > 0.5] — single-object canonical use case
     ],
 )
-def test_key_points_getitem(key_points, index, expected_result, exception):
+def test_key_points_getitem(key_points, index, expected_result, exception) -> None:
     with exception:
         result = key_points[index]
         assert result == expected_result
 
 
-def test_key_points_empty():
+def test_key_points_empty() -> None:
     """Test the creation and behavior of an empty KeyPoints object."""
     empty_key_points = KeyPoints.empty()
     assert len(empty_key_points) == 0
@@ -382,7 +382,7 @@ def test_key_points_empty():
     assert empty_key_points.xy.shape == (0, 0, 2)
 
 
-def test_key_points_is_empty():
+def test_key_points_is_empty() -> None:
     """Test the is_empty method for KeyPoints objects."""
     empty_key_points = KeyPoints.empty()
     assert empty_key_points.is_empty()
@@ -395,7 +395,7 @@ def test_key_points_is_empty():
     assert not non_empty_key_points.is_empty()
 
 
-def test_key_points_setitem():
+def test_key_points_setitem() -> None:
     """Test the __setitem__ method for KeyPoints objects."""
     key_points = _create_key_points(
         xy=[[[0, 1], [2, 3]]],
@@ -438,7 +438,7 @@ def test_key_points_setitem():
 )
 def test_key_points_as_detections(
     key_points, expected_xyxy, expected_confidence, expected_class_id
-):
+) -> None:
     """Test the as_detections method for KeyPoints objects."""
     detections = key_points.as_detections()
     assert len(detections) == len(expected_xyxy)
@@ -447,14 +447,14 @@ def test_key_points_as_detections(
     assert np.array_equal(detections.class_id, expected_class_id)
 
 
-def test_key_points_as_detections_empty():
+def test_key_points_as_detections_empty() -> None:
     """Test the as_detections method for empty KeyPoints objects."""
     empty_key_points = KeyPoints.empty()
     empty_detections = empty_key_points.as_detections()
     assert empty_detections.is_empty()
 
 
-def test_key_points_as_detections_with_data():
+def test_key_points_as_detections_with_data() -> None:
     """Test the as_detections method preserves data."""
     key_points = _create_key_points(
         xy=[[[0, 1], [2, 3], [4, 5]]],
@@ -467,7 +467,7 @@ def test_key_points_as_detections_with_data():
     assert np.array_equal(detections.data["custom_data"], np.array(["value1"]))
 
 
-def test_key_points_iteration():
+def test_key_points_iteration() -> None:
     """Test the iteration over KeyPoints objects."""
     key_points = _create_key_points(
         xy=[[[0, 1], [2, 3]], [[4, 5], [6, 7]]],
@@ -485,7 +485,7 @@ def test_key_points_iteration():
     assert iterations == 2
 
 
-def test_key_points_iteration_no_confidence():
+def test_key_points_iteration_no_confidence() -> None:
     """Test the iteration over KeyPoints objects without confidence."""
     key_points_no_conf = _create_key_points(
         xy=[[[0, 1], [2, 3]]],
@@ -537,13 +537,13 @@ def test_key_points_iteration_no_confidence():
         ),
     ],
 )
-def test_key_points_equality(key_points1, key_points2, expected_equal):
+def test_key_points_equality(key_points1, key_points2, expected_equal) -> None:
     """Test the equality comparison for KeyPoints objects."""
     status = key_points1 == key_points2
     assert status is expected_equal
 
 
-def test_key_points_equality_with_data():
+def test_key_points_equality_with_data() -> None:
     """Test the equality comparison for KeyPoints objects with data."""
     key_points1 = _create_key_points(
         xy=[[[0, 1], [2, 3]]], confidence=[[0.8, 0.9]], class_id=[0]
@@ -581,13 +581,13 @@ def test_key_points_equality_with_data():
         ({"predictions": []}, KeyPoints.empty()),
     ],
 )
-def test_from_inference_input(inference_results, expected_key_points):
+def test_from_inference_input(inference_results, expected_key_points) -> None:
     """Test the from_inference method with valid input."""
     key_points = KeyPoints.from_inference(inference_results)
     assert key_points == expected_key_points
 
 
-def test_from_inference_invalid_input():
+def test_from_inference_invalid_input() -> None:
     """Test the from_inference method with invalid input."""
     key_points = _create_key_points(
         xy=[[[0, 1], [2, 3]]], confidence=[[0.8, 0.9]], class_id=[0]
@@ -624,7 +624,7 @@ def test_from_inference_invalid_input():
         ),
     ],
 )
-def test_from_yolo_nas_input(yolo_nas_results, expected_key_points):
+def test_from_yolo_nas_input(yolo_nas_results, expected_key_points) -> None:
     """Test the from_yolo_nas method with valid input."""
     key_points = KeyPoints.from_yolo_nas(yolo_nas_results)
     assert key_points == expected_key_points
@@ -667,7 +667,7 @@ def test_from_yolo_nas_input(yolo_nas_results, expected_key_points):
         ),
     ],
 )
-def test_from_mediapipe_input(mediapipe_results, resolution_wh, expected_key_points):
+def test_from_mediapipe_input(mediapipe_results, resolution_wh, expected_key_points) -> None:
     """Test the from_mediapipe method with valid input."""
     key_points = KeyPoints.from_mediapipe(
         mediapipe_results, resolution_wh=resolution_wh

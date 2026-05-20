@@ -142,7 +142,7 @@ class InferenceSlicer:
         overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
         thread_workers: int = 1,
         compact_masks: bool = False,
-    ):
+    ) -> None:
         slice_wh_norm = self._normalize_slice_wh(slice_wh)
         overlap_wh_norm = self._normalize_overlap_wh(overlap_wh)
 

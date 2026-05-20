@@ -395,7 +395,7 @@ def test_json_sink(
     assert_json_equal(file_name, expected_result)
 
 
-def assert_json_equal(file_name, expected_rows):
+def assert_json_equal(file_name, expected_rows) -> None:
     with open(file_name) as file:
         data = json.load(file)
         assert data == expected_rows, (
