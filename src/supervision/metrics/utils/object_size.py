@@ -236,8 +236,6 @@ def get_detection_size_category(
         mask = detections.mask
         if mask is None:
             raise ValueError("Detections mask is not available")
-        if isinstance(mask, CompactMask):
-            return get_mask_size_category(mask)
         return get_mask_size_category(mask)
     if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
         oriented_box_coordinates = detections.data.get(ORIENTED_BOX_COORDINATES)
