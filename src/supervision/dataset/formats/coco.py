@@ -1,7 +1,7 @@
 import warnings
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, TypeAlias, TypedDict, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -23,23 +23,53 @@ from supervision.utils.file import read_json_file, save_json_file
 if TYPE_CHECKING:
     from supervision.dataset.core import DetectionDataset
 
-CocoDict = dict[str, object]
+
+class CocoCategory(TypedDict):
+    id: int
+    name: str
+    supercategory: str
 
 
-def coco_categories_to_classes(coco_categories: list[CocoDict]) -> list[str]:
+class CocoImage(TypedDict, total=False):
+    id: int
+    file_name: str
+    width: int
+    height: int
+    license: int
+    date_captured: str
+
+
+CocoRLE: TypeAlias = dict[str, list[int] | str | bytes]
+
+
+class CocoAnnotation(TypedDict, total=False):
+    id: int
+    image_id: int
+    category_id: int
+    bbox: list[float]
+    area: float
+    segmentation: list[list[float]] | CocoRLE
+    iscrowd: int
+
+
+class CocoFile(TypedDict):
+    categories: list[CocoCategory]
+    images: list[CocoImage]
+    annotations: list[CocoAnnotation]
+
+
+def coco_categories_to_classes(coco_categories: list[CocoCategory]) -> list[str]:
     return [
-        str(category["name"])
-        for category in sorted(
-            coco_categories, key=lambda category: cast(int, category["id"])
-        )
+        category["name"]
+        for category in sorted(coco_categories, key=lambda category: category["id"])
     ]
 
 
 def build_coco_class_index_mapping(
-    coco_categories: list[CocoDict], target_classes: list[str]
+    coco_categories: list[CocoCategory], target_classes: list[str]
 ) -> dict[int, int]:
     source_class_to_index = {
-        str(category["name"]): cast(int, category["id"]) for category in coco_categories
+        category["name"]: category["id"] for category in coco_categories
     }
     return {
         source_class_to_index[target_class_name]: target_class_index
@@ -47,7 +77,7 @@ def build_coco_class_index_mapping(
     }
 
 
-def classes_to_coco_categories(classes: list[str]) -> list[CocoDict]:
+def classes_to_coco_categories(classes: list[str]) -> list[CocoCategory]:
     return [
         {
             "id": class_id,
@@ -59,19 +89,16 @@ def classes_to_coco_categories(classes: list[str]) -> list[CocoDict]:
 
 
 def group_coco_annotations_by_image_id(
-    coco_annotations: list[CocoDict],
-) -> dict[int, list[CocoDict]]:
-    annotations: dict[int, list[CocoDict]] = {}
+    coco_annotations: list[CocoAnnotation],
+) -> dict[int, list[CocoAnnotation]]:
+    annotations: dict[int, list[CocoAnnotation]] = {}
     for annotation in coco_annotations:
-        image_id = cast(int, annotation["image_id"])
-        if image_id not in annotations:
-            annotations[image_id] = []
-        annotations[image_id].append(annotation)
+        annotations.setdefault(annotation["image_id"], []).append(annotation)
     return annotations
 
 
 def coco_annotations_to_masks(
-    image_annotations: list[CocoDict], resolution_wh: tuple[int, int]
+    image_annotations: list[CocoAnnotation], resolution_wh: tuple[int, int]
 ) -> npt.NDArray[np.bool_]:
     height, width = resolution_wh[1], resolution_wh[0]
     empty_mask: npt.NDArray[np.bool_] = np.zeros((height, width), dtype=bool)
@@ -85,11 +112,10 @@ def coco_annotations_to_masks(
             masks.append(empty_mask.copy())
             continue
 
-        if image_annotation.get("iscrowd", 0):
-            segmentation_rle = cast(dict[str, object], segmentation)
+        if isinstance(segmentation, dict):
             masks.append(
                 rle_to_mask(
-                    rle=cast(list[int] | str | bytes, segmentation_rle["counts"]),
+                    rle=segmentation["counts"],
                     resolution_wh=resolution_wh,
                 )
             )
@@ -98,7 +124,7 @@ def coco_annotations_to_masks(
         if not isinstance(segmentation, list):
             masks.append(empty_mask.copy())
             continue
-        segmentation_list = cast(list[object], segmentation)
+        segmentation_list = segmentation
         polygons = (
             segmentation_list
             if isinstance(segmentation_list[0], list)
@@ -129,7 +155,7 @@ def coco_annotations_to_masks(
 
 
 def coco_annotations_to_detections(
-    image_annotations: list[CocoDict],
+    image_annotations: list[CocoAnnotation],
     resolution_wh: tuple[int, int],
     with_masks: bool,
     use_iscrowd: bool = True,
@@ -138,12 +164,10 @@ def coco_annotations_to_detections(
         return Detections.empty()
 
     class_ids: list[int] = [
-        cast(int, image_annotation["category_id"])
-        for image_annotation in image_annotations
+        image_annotation["category_id"] for image_annotation in image_annotations
     ]
     xyxy_list: list[list[float]] = [
-        cast(list[float], image_annotation["bbox"])
-        for image_annotation in image_annotations
+        image_annotation["bbox"] for image_annotation in image_annotations
     ]
     xyxy = np.asarray(xyxy_list, dtype=np.float32)
     xyxy[:, 2:4] += xyxy[:, 0:2]
@@ -151,13 +175,9 @@ def coco_annotations_to_detections(
     data: DetectionData = {}
     if use_iscrowd:
         iscrowd = [
-            cast(int, image_annotation["iscrowd"])
-            for image_annotation in image_annotations
+            image_annotation["iscrowd"] for image_annotation in image_annotations
         ]
-        area = [
-            cast(float, image_annotation["area"])
-            for image_annotation in image_annotations
-        ]
+        area = [image_annotation["area"] for image_annotation in image_annotations]
         data["iscrowd"] = np.asarray(iscrowd, dtype=np.int64)
         data["area"] = np.asarray(area, dtype=np.float64)
 
@@ -180,15 +200,15 @@ def detections_to_coco_annotations(
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
-) -> tuple[list[CocoDict], int]:
-    coco_annotations: list[CocoDict] = []
+) -> tuple[list[CocoAnnotation], int]:
+    coco_annotations: list[CocoAnnotation] = []
     for xyxy, mask, _, class_id, _, data in detections:
         if class_id is None:
             raise ValueError("Detections must include class_id for COCO export.")
         box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
-        segmentation: list[list[float]] | dict[str, list[int]] = []
+        segmentation: list[list[float]] | CocoRLE = []
         if mask is not None:
-            mask_bool = cast(npt.NDArray[np.bool_], mask)
+            mask_bool = np.asarray(mask, dtype=bool)
             if "iscrowd" in data:
                 iscrowd = int(np.asarray(data["iscrowd"]).item())
             else:
@@ -199,9 +219,7 @@ def detections_to_coco_annotations(
 
             if iscrowd:
                 segmentation = {
-                    "counts": cast(
-                        list[int], mask_to_rle(mask=mask_bool, compressed=False)
-                    ),
+                    "counts": mask_to_rle(mask=mask_bool),
                     "size": list(mask_bool.shape[:2]),
                 }
             else:
@@ -226,7 +244,7 @@ def detections_to_coco_annotations(
             iscrowd = int(np.asarray(data.get("iscrowd", 0)).item())
 
         area: float = float(np.asarray(data.get("area", box_width * box_height)).item())
-        coco_annotation = {
+        coco_annotation: CocoAnnotation = {
             "id": annotation_id,
             "image_id": image_id,
             "category_id": int(class_id),
@@ -271,12 +289,10 @@ def get_coco_class_index_mapping(annotations_path: str) -> dict[int, int]:
         A mapping from new class id (sequential ranging from 0 to 79)
         to original COCO class id (1 to 90 with skipped ids).
     """
-    coco_data = cast(dict[str, object], read_json_file(annotations_path))
-    classes = coco_categories_to_classes(
-        coco_categories=cast(list[CocoDict], coco_data["categories"])
-    )
+    coco_data = cast(CocoFile, read_json_file(annotations_path))
+    classes = coco_categories_to_classes(coco_categories=coco_data["categories"])
     class_mapping = build_coco_class_index_mapping(
-        coco_categories=cast(list[CocoDict], coco_data["categories"]),
+        coco_categories=coco_data["categories"],
         target_classes=classes,
     )
     return {v: k for k, v in class_mapping.items()}
@@ -317,8 +333,8 @@ def load_coco_annotations(
         attacks when loading user-supplied annotation files. Symlinked images
         pointing outside the resolved images directory are also rejected.
     """
-    coco_data = cast(dict[str, object], read_json_file(file_path=annotations_path))
-    coco_categories = cast(list[CocoDict], coco_data["categories"])
+    coco_data = cast(CocoFile, read_json_file(file_path=annotations_path))
+    coco_categories = coco_data["categories"]
     classes = coco_categories_to_classes(coco_categories=coco_categories)
 
     class_index_mapping = build_coco_class_index_mapping(
@@ -326,22 +342,22 @@ def load_coco_annotations(
         target_classes=classes,
     )
 
-    coco_images = cast(list[CocoDict], coco_data["images"])
+    coco_images = coco_data["images"]
     coco_annotations_groups = group_coco_annotations_by_image_id(
-        coco_annotations=cast(list[CocoDict], coco_data["annotations"])
+        coco_annotations=coco_data["annotations"]
     )
 
-    images = []
-    annotations = {}
+    images: list[str] = []
+    annotations: dict[str, Detections] = {}
     images_directory_resolved = Path(images_directory_path).resolve()
 
     for coco_image in coco_images:
         image_name, image_width, image_height = (
-            cast(str, coco_image["file_name"]),
-            cast(int, coco_image["width"]),
-            cast(int, coco_image["height"]),
+            coco_image["file_name"],
+            coco_image["width"],
+            coco_image["height"],
         )
-        image_annotations = coco_annotations_groups.get(cast(int, coco_image["id"]), [])
+        image_annotations = coco_annotations_groups.get(coco_image["id"], [])
         image_path = str(Path(images_directory_path) / Path(image_name))
         try:
             resolved_image_path = Path(image_path).resolve()
@@ -391,7 +407,7 @@ def load_coco_annotations(
     return classes, images, annotations
 
 
-def _with_seg_mask(annotation: dict[str, object]) -> bool:
+def _with_seg_mask(annotation: CocoAnnotation) -> bool:
     return bool(annotation.get("segmentation"))
 
 
@@ -411,15 +427,15 @@ def save_coco_annotations(
         }
     ]
 
-    coco_annotations = []
-    coco_images = []
+    coco_annotations: list[CocoAnnotation] = []
+    coco_images: list[CocoImage] = []
     coco_categories = classes_to_coco_categories(classes=dataset.classes)
 
     image_id, annotation_id = 1, 1
     for image_path, image, annotation in dataset:
         image_height, image_width, _ = image.shape
         image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"
-        coco_image = {
+        coco_image: CocoImage = {
             "id": image_id,
             "license": 1,
             "file_name": image_name,
