@@ -1364,4 +1364,3 @@ def test_from_google_gemini_3_5_matches_2_5(
     )
     if detections_2_5.confidence is not None:
         assert np.allclose(detections_2_5.confidence, detections_3_5.confidence)
-
