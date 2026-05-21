@@ -10,15 +10,15 @@ import numpy.typing as npt
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.utils.internal import (
-    DetectionData,
+    _TypeDetectionData,
     get_data_item,
     is_data_equal,
 )
 from supervision.validators import validate_key_points_fields
 
 
-class _TensorLike(Protocol):
-    def cpu(self) -> _TensorLike:
+class _TypeTensorLike(Protocol):
+    def cpu(self) -> _TypeTensorLike:
         """Return the tensor on CPU."""
 
     def numpy(self) -> npt.NDArray[np.generic]:
@@ -28,85 +28,87 @@ class _TensorLike(Protocol):
         """Return the number of elements in the tensor."""
 
 
-class _InferenceKeypoint(TypedDict):
+class _TypeInferenceKeypoint(TypedDict):
     x: float
     y: float
     confidence: float
 
 
-_InferencePrediction = TypedDict(
-    "_InferencePrediction",
+_TypeInferencePrediction = TypedDict(
+    "_TypeInferencePrediction",
     {
-        "keypoints": list[_InferenceKeypoint],
+        "keypoints": list[_TypeInferenceKeypoint],
         "class_id": int,
         "class": str,
     },
 )
 
 
-class _InferenceResult(TypedDict):
-    predictions: list[_InferencePrediction]
+class _TypeInferenceResult(TypedDict):
+    predictions: list[_TypeInferencePrediction]
 
 
-class _MediapipeLandmark(Protocol):
+class _TypeMediapipeLandmark(Protocol):
     x: float
     y: float
     visibility: float
 
 
-class _MediapipeLandmarkList(Protocol):
-    landmark: list[_MediapipeLandmark]
+class _TypeMediapipeLandmarkList(Protocol):
+    landmark: list[_TypeMediapipeLandmark]
 
 
-class _MediapipeResults(Protocol):
-    pose_landmarks: list[list[_MediapipeLandmark]] | _MediapipeLandmarkList | None
-    face_landmarks: list[list[_MediapipeLandmark]]
-    multi_face_landmarks: list[_MediapipeLandmarkList] | None
+class _TypeMediapipeResults(Protocol):
+    pose_landmarks: (
+        list[list[_TypeMediapipeLandmark]] | _TypeMediapipeLandmarkList | None
+    )
+    face_landmarks: list[list[_TypeMediapipeLandmark]]
+    multi_face_landmarks: list[_TypeMediapipeLandmarkList] | None
 
 
-class _UltralyticsKeypoints(Protocol):
-    xy: _TensorLike
-    conf: _TensorLike
+class _TypeUltralyticsKeypoints(Protocol):
+    xy: _TypeTensorLike
+    conf: _TypeTensorLike
 
 
-class _UltralyticsBoxes(Protocol):
-    cls: _TensorLike
+class _TypeUltralyticsBoxes(Protocol):
+    cls: _TypeTensorLike
 
 
-class _UltralyticsResults(Protocol):
-    keypoints: _UltralyticsKeypoints
-    boxes: _UltralyticsBoxes
+class _TypeUltralyticsResults(Protocol):
+    keypoints: _TypeUltralyticsKeypoints
+    boxes: _TypeUltralyticsBoxes
     names: dict[int, str]
 
 
-class _YoloNasPrediction(Protocol):
+class _TypeYoloNasPrediction(Protocol):
     poses: npt.NDArray[np.float32]
     labels: npt.NDArray[np.int_] | None
 
 
-class _YoloNasResults(Protocol):
-    prediction: _YoloNasPrediction
+class _TypeYoloNasResults(Protocol):
+    prediction: _TypeYoloNasPrediction
     class_names: Sequence[str] | None
 
 
-class _Detectron2Instances(Protocol):
-    pred_keypoints: _TensorLike
-    pred_classes: _TensorLike
+class _TypeDetectron2Instances(Protocol):
+    pred_keypoints: _TypeTensorLike
+    pred_classes: _TypeTensorLike
 
 
-class _Detectron2Results(Protocol):
-    instances: _Detectron2Instances
+class _TypeDetectron2Results(Protocol):
+    instances: _TypeDetectron2Instances
 
 
-class _TransformersResult(Protocol):
-    keypoints: _TensorLike
-    scores: _TensorLike
+class _TypeTransformersResult(Protocol):
+    keypoints: _TypeTensorLike
+    scores: _TypeTensorLike
 
 
-Index1D = (
+_TypeIndex1D = (
     int | slice | list[int] | list[bool] | npt.NDArray[np.int_] | npt.NDArray[np.bool_]
 )
-Index2D = tuple[Index1D, Index1D]
+_TypeIndex2D = tuple[_TypeIndex1D, _TypeIndex1D]
 
 
 @dataclass
@@ -253,7 +255,7 @@ class KeyPoints:
     xy: npt.NDArray[np.float32]
     class_id: npt.NDArray[np.int_] | None = None
     confidence: npt.NDArray[np.float32] | None = None
-    data: DetectionData = field(default_factory=dict)
+    data: _TypeDetectionData = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         validate_key_points_fields(
@@ -290,7 +292,7 @@ class KeyPoints:
             npt.NDArray[np.float32],
             np.float32 | None,
             np.integer | None,
-            DetectionData,
+            _TypeDetectionData,
         ]
     ]:
         """
@@ -383,13 +385,13 @@ class KeyPoints:
 
         if hasattr(inference_result, "dict"):
             inference_result = cast(
-                _InferenceResult,
+                _TypeInferenceResult,
                 inference_result.dict(exclude_none=True, by_alias=True),
             )
         elif hasattr(inference_result, "json"):
-            inference_result = cast(_InferenceResult, inference_result.json())
+            inference_result = cast(_TypeInferenceResult, inference_result.json())
         else:
-            inference_result = cast(_InferenceResult, inference_result)
+            inference_result = cast(_TypeInferenceResult, inference_result)
 
         if not inference_result.get("predictions"):
             return cls.empty()
@@ -411,7 +413,9 @@ class KeyPoints:
             class_id.append(prediction["class_id"])
             class_names.append(prediction["class"])
 
-        data: DetectionData = {CLASS_NAME_DATA_FIELD: np.array(class_names, dtype=str)}
+        data: _TypeDetectionData = {
+            CLASS_NAME_DATA_FIELD: np.array(class_names, dtype=str)
+        }
 
         return cls(
             xy=np.array(xy, dtype=np.float32),
@@ -422,7 +426,7 @@ class KeyPoints:
 
     @classmethod
     def from_mediapipe(
-        cls, mediapipe_results: _MediapipeResults, resolution_wh: tuple[int, int]
+        cls, mediapipe_results: _TypeMediapipeResults, resolution_wh: tuple[int, int]
     ) -> KeyPoints:
         """
         Creates a `sv.KeyPoints` instance from a
@@ -499,7 +503,7 @@ class KeyPoints:
             ```
 
         """
-        results: Sequence[Sequence[_MediapipeLandmark]] = []
+        results: Sequence[Sequence[_TypeMediapipeLandmark]] = []
         if hasattr(mediapipe_results, "pose_landmarks"):
             pose_landmarks = mediapipe_results.pose_landmarks
             if pose_landmarks is None:
@@ -544,7 +548,9 @@ class KeyPoints:
         )
 
     @classmethod
-    def from_ultralytics(cls, ultralytics_results: _UltralyticsResults) -> KeyPoints:
+    def from_ultralytics(
+        cls, ultralytics_results: _TypeUltralyticsResults
+    ) -> KeyPoints:
         """
         Creates a `sv.KeyPoints` instance from a
         [YOLOv8](https://github.com/ultralytics/ultralytics) pose inference result.
@@ -579,11 +585,11 @@ class KeyPoints:
         )
 
         confidence = ultralytics_results.keypoints.conf.cpu().numpy().astype(np.float32)
-        data: DetectionData = {CLASS_NAME_DATA_FIELD: class_names}
+        data: _TypeDetectionData = {CLASS_NAME_DATA_FIELD: class_names}
         return cls(xy, class_id, confidence, data)
 
     @classmethod
-    def from_yolo_nas(cls, yolo_nas_results: _YoloNasResults) -> KeyPoints:
+    def from_yolo_nas(cls, yolo_nas_results: _TypeYoloNasResults) -> KeyPoints:
         """
         Create a `sv.KeyPoints` instance from a [YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS-POSE.md)
         pose inference results.
@@ -625,7 +631,7 @@ class KeyPoints:
         else:
             class_id = None
 
-        data: DetectionData = {}
+        data: _TypeDetectionData = {}
         if class_id is not None and yolo_nas_results.class_names is not None:
             class_names = []
             for c_id in class_id:
@@ -673,7 +679,7 @@ class KeyPoints:
             ```
         """
 
-        instances = cast(_Detectron2Instances, detectron2_results["instances"])
+        instances = cast(_TypeDetectron2Instances, detectron2_results["instances"])
         if hasattr(instances, "pred_keypoints"):
             if instances.pred_keypoints.cpu().numpy().size == 0:
                 return cls.empty()
@@ -689,7 +695,7 @@ class KeyPoints:
 
     @classmethod
     def from_transformers(
-        cls, transformers_results: list[dict[str, _TensorLike]]
+        cls, transformers_results: list[dict[str, _TypeTensorLike]]
     ) -> KeyPoints:
         """
         Create a `sv.KeyPoints` object from the
@@ -851,9 +857,11 @@ class KeyPoints:
     def __getitem__(self, index: str) -> object: ...
 
     @overload
-    def __getitem__(self, index: Index1D | Index2D) -> KeyPoints: ...
+    def __getitem__(self, index: _TypeIndex1D | _TypeIndex2D) -> KeyPoints: ...
 
-    def __getitem__(self, index: Index1D | Index2D | str) -> KeyPoints | object | None:
+    def __getitem__(
+        self, index: _TypeIndex1D | _TypeIndex2D | str
+    ) -> KeyPoints | object | None:
         if isinstance(index, str):
             return self.data.get(index)
 

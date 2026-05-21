@@ -14,47 +14,47 @@ from supervision.geometry.core import Vector
 
 logger = logging.getLogger(__name__)
 
-DetectionDataValue: TypeAlias = npt.NDArray[np.generic] | list[object]
-DetectionData: TypeAlias = dict[str, DetectionDataValue]
-Metadata: TypeAlias = dict[str, object]
+_TypeDetectionDataValue: TypeAlias = npt.NDArray[np.generic] | list[object]
+_TypeDetectionData: TypeAlias = dict[str, _TypeDetectionDataValue]
+_TypeMetadata: TypeAlias = dict[str, object]
 
 
-class _UltralyticsMaskData(Protocol):
+class _TypeUltralyticsMaskData(Protocol):
     shape: tuple[int, ...]
 
-    def cpu(self) -> _UltralyticsMaskData:
+    def cpu(self) -> _TypeUltralyticsMaskData:
         """Return the mask data on CPU."""
 
     def numpy(self) -> npt.NDArray[np.generic]:
         """Convert the mask data to a NumPy array."""
 
 
-class _UltralyticsMasks(Protocol):
-    data: _UltralyticsMaskData
+class _TypeUltralyticsMasks(Protocol):
+    data: _TypeUltralyticsMaskData
 
 
-class _UltralyticsResult(Protocol):
-    masks: _UltralyticsMasks | None
+class _TypeUltralyticsResult(Protocol):
+    masks: _TypeUltralyticsMasks | None
     orig_shape: tuple[int, int]
 
 
-class _RoboflowImage(TypedDict):
+class _TypeRoboflowImage(TypedDict):
     width: int
     height: int
 
 
-class _RoboflowPoint(TypedDict):
+class _TypeRoboflowPoint(TypedDict):
     x: float
     y: float
 
 
-class _RoboflowRLE(TypedDict):
+class _TypeRoboflowRLE(TypedDict):
     size: tuple[int, int] | list[int]
     counts: npt.NDArray[np.integer] | list[int] | str | bytes
 
 
-_RoboflowPrediction = TypedDict(
-    "_RoboflowPrediction",
+_TypeRoboflowPrediction = TypedDict(
+    "_TypeRoboflowPrediction",
     {
         "x": float,
         "y": float,
@@ -64,21 +64,21 @@ _RoboflowPrediction = TypedDict(
         "class": str,
         "confidence": float,
         "tracker_id": int,
-        "rle": _RoboflowRLE,
-        "rle_mask": _RoboflowRLE,
-        "points": list[_RoboflowPoint],
+        "rle": _TypeRoboflowRLE,
+        "rle_mask": _TypeRoboflowRLE,
+        "points": list[_TypeRoboflowPoint],
     },
     total=False,
 )
 
 
-class _RoboflowResult(TypedDict):
-    predictions: list[_RoboflowPrediction]
-    image: _RoboflowImage
+class _TypeRoboflowResult(TypedDict):
+    predictions: list[_TypeRoboflowPrediction]
+    image: _TypeRoboflowImage
 
 
 def extract_ultralytics_masks(
-    yolov8_results: _UltralyticsResult,
+    yolov8_results: _TypeUltralyticsResult,
 ) -> npt.NDArray[np.bool_] | None:
     if yolov8_results.masks is None:
         return None
@@ -116,14 +116,14 @@ def extract_ultralytics_masks(
 
 
 def process_roboflow_result(
-    roboflow_result: _RoboflowResult,
+    roboflow_result: _TypeRoboflowResult,
 ) -> tuple[
     npt.NDArray[np.float64],
     npt.NDArray[np.float64],
     npt.NDArray[np.int64],
     npt.NDArray[np.bool_] | None,
     npt.NDArray[np.int64] | None,
-    DetectionData,
+    _TypeDetectionData,
 ]:
     if not roboflow_result["predictions"]:
         return (
@@ -237,7 +237,7 @@ def process_roboflow_result(
     tracker_id_arr: npt.NDArray[np.int64] | None = (
         np.array(tracker_ids, dtype=np.int64) if len(tracker_ids) > 0 else None
     )
-    data: DetectionData = {CLASS_NAME_DATA_FIELD: class_name_arr}
+    data: _TypeDetectionData = {CLASS_NAME_DATA_FIELD: class_name_arr}
 
     return (
         xyxy_arr,
@@ -250,8 +250,8 @@ def process_roboflow_result(
 
 
 def is_data_equal(
-    data_a: DetectionData,
-    data_b: DetectionData,
+    data_a: _TypeDetectionData,
+    data_b: _TypeDetectionData,
 ) -> bool:
     """
     Compares the data payloads of two Detections instances.
@@ -280,7 +280,7 @@ def is_data_equal(
     return True
 
 
-def is_metadata_equal(metadata_a: Metadata, metadata_b: Metadata) -> bool:
+def is_metadata_equal(metadata_a: _TypeMetadata, metadata_b: _TypeMetadata) -> bool:
     """
     Compares the metadata payloads of two Detections instances.
 
@@ -308,9 +308,7 @@ def is_metadata_equal(metadata_a: Metadata, metadata_b: Metadata) -> bool:
     return True
 
 
-def merge_data(
-    data_list: list[DetectionData],
-) -> DetectionData:
+def merge_data(data_list: list[_TypeDetectionData]) -> _TypeDetectionData:
     """
     Merges the data payloads of a list of Detections instances.
 
@@ -344,14 +342,14 @@ def merge_data(
                 "All data values within a single object must have equal length."
             )
 
-    merged_data_values: dict[str, list[DetectionDataValue]] = {
+    merged_data_values: dict[str, list[_TypeDetectionDataValue]] = {
         key: [] for key in all_keys_sets[0]
     }
     for data in data_list:
         for key, value in data.items():
             merged_data_values[key].append(value)
 
-    merged_data: DetectionData = {}
+    merged_data: _TypeDetectionData = {}
     for key, values in merged_data_values.items():
         if all(isinstance(item, list) for item in values):
             list_values = cast(list[list[object]], values)
@@ -374,7 +372,7 @@ def merge_data(
     return merged_data
 
 
-def merge_metadata(metadata_list: list[Metadata]) -> Metadata:
+def merge_metadata(metadata_list: list[_TypeMetadata]) -> _TypeMetadata:
     """
     Merge metadata from a list of metadata dictionaries.
 
@@ -401,7 +399,7 @@ def merge_metadata(metadata_list: list[Metadata]) -> Metadata:
     if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
         raise ValueError("All metadata dictionaries must have the same keys to merge.")
 
-    merged_metadata: Metadata = {}
+    merged_metadata: _TypeMetadata = {}
     for metadata in metadata_list:
         for key, value in metadata.items():
             if key not in merged_metadata:
@@ -431,14 +429,14 @@ def merge_metadata(metadata_list: list[Metadata]) -> Metadata:
 
 
 def get_data_item(
-    data: DetectionData,
+    data: _TypeDetectionData,
     index: int
     | slice
     | list[int]
     | list[bool]
     | npt.NDArray[np.int_]
     | npt.NDArray[np.bool_],
-) -> DetectionData:
+) -> _TypeDetectionData:
     """
     Retrieve a subset of the data dictionary based on the given index.
 
@@ -449,7 +447,7 @@ def get_data_item(
     Returns:
         A subset of the data dictionary corresponding to the specified index.
     """
-    subset_data: DetectionData = {}
+    subset_data: _TypeDetectionData = {}
     for key, value in data.items():
         if isinstance(value, np.ndarray):
             subset_data[key] = value[index]

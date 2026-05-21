@@ -7,7 +7,7 @@ from collections import defaultdict
 from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, TypeAlias, TypedDict
 
 import numpy as np
 import numpy.typing as npt
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-class CocoDict(TypedDict, total=False):
+class _TypeCocoDict(TypedDict, total=False):
     id: int
     image_id: int
     category_id: int
@@ -43,10 +43,10 @@ class CocoDict(TypedDict, total=False):
     keypoints: list[float]
 
 
-CocoDataset = dict[str, list[CocoDict]]
+_TypeCocoDataset: TypeAlias = dict[str, list[_TypeCocoDict]]
 
 
-class EvaluationImageResult(TypedDict):
+class _TypeEvaluationImageResult(TypedDict):
     image_id: int
     category_id: int
     area_range: list[float] | tuple[float, float]
@@ -286,7 +286,7 @@ class EvaluationDataset:
     `COCOEvaluator` class.
     """
 
-    def __init__(self, targets: CocoDataset | None = None) -> None:
+    def __init__(self, targets: _TypeCocoDataset | None = None) -> None:
         """
         Constructor of EvaluationDataset object used to evaluate models with
         Mean Average Precision.
@@ -297,11 +297,11 @@ class EvaluationDataset:
         """
         # Initialize members
         # Initialize members
-        self.dataset: CocoDataset = {}
-        self.anns: dict[int, CocoDict] = {}
-        self.cats: dict[int, CocoDict] = {}
-        self.imgs: dict[int, CocoDict] = {}
-        self.img_to_anns: dict[int, list[CocoDict]] = defaultdict(list)
+        self.dataset: _TypeCocoDataset = {}
+        self.anns: dict[int, _TypeCocoDict] = {}
+        self.cats: dict[int, _TypeCocoDict] = {}
+        self.imgs: dict[int, _TypeCocoDict] = {}
+        self.img_to_anns: dict[int, list[_TypeCocoDict]] = defaultdict(list)
         self.cat_to_imgs: dict[int, list[int]] = defaultdict(list)
 
         if targets is None:
@@ -319,10 +319,10 @@ class EvaluationDataset:
         """
         Create index elements for the dataset.
         """
-        anns: dict[int, CocoDict] = {}
-        cats: dict[int, CocoDict] = {}
-        imgs: dict[int, CocoDict] = {}
-        img_to_anns: dict[int, list[CocoDict]] = defaultdict(list)
+        anns: dict[int, _TypeCocoDict] = {}
+        cats: dict[int, _TypeCocoDict] = {}
+        imgs: dict[int, _TypeCocoDict] = {}
+        img_to_anns: dict[int, list[_TypeCocoDict]] = defaultdict(list)
         cat_to_imgs: dict[int, list[int]] = defaultdict(list)
         if "annotations" in self.dataset:
             for ann in self.dataset["annotations"]:
@@ -479,7 +479,7 @@ class EvaluationDataset:
 
         return list(ids_set)
 
-    def get_annotations(self, ids: list[int] | None = None) -> list[CocoDict]:
+    def get_annotations(self, ids: list[int] | None = None) -> list[_TypeCocoDict]:
         """
         Get annotations with the specified ids.
 
@@ -493,7 +493,7 @@ class EvaluationDataset:
             return []
         return [self.anns[idx] for idx in ids]
 
-    def load_predictions(self, predictions: list[CocoDict]) -> EvaluationDataset:
+    def load_predictions(self, predictions: list[_TypeCocoDict]) -> EvaluationDataset:
         """
         Load prediction result into an EvaluationDataset object.
 
@@ -643,13 +643,15 @@ class COCOEvaluator:
         # List of dictionaries containing the evaluation results
         # len(eval_imgs) = (categories) * (area_ranges) * (images)
         # For COCO 2017: len(eval_images) = 80 * 4 * 5000 = 1600000
-        self.eval_imgs: list[EvaluationImageResult | None] = []
+        self.eval_imgs: list[_TypeEvaluationImageResult | None] = []
         # Dictionary of accumulated results
         self.results: dict[str, object] = {}
         # Dictionary of targets for evaluation
-        self._targets: defaultdict[tuple[int, int], list[CocoDict]] = defaultdict(list)
-        self._predictions: defaultdict[tuple[int, int], list[CocoDict]] = defaultdict(
+        self._targets: defaultdict[tuple[int, int], list[_TypeCocoDict]] = defaultdict(
             list
+        )
+        self._predictions: defaultdict[tuple[int, int], list[_TypeCocoDict]] = (
+            defaultdict(list)
         )
         # Parameters for evaluation
         self.params = COCOEvaluatorParameters()
@@ -742,7 +744,7 @@ class COCOEvaluator:
         cat_id: int,
         area_range: list[float] | tuple[float, float],
         max_det: int,
-    ) -> EvaluationImageResult | None:
+    ) -> _TypeEvaluationImageResult | None:
         """
         Perform evaluation for single category and image.
         Args:
@@ -755,8 +757,8 @@ class COCOEvaluator:
             The evaluation results.
         """
         # Get targets (gt) and predictions (dt) for the given image and category
-        gt: list[CocoDict] = self._targets[img_id, cat_id]
-        dt: list[CocoDict] = self._predictions[img_id, cat_id]
+        gt: list[_TypeCocoDict] = self._targets[img_id, cat_id]
+        dt: list[_TypeCocoDict] = self._predictions[img_id, cat_id]
 
         # If there is nothing to evaluate
         if len(gt) == 0 and len(dt) == 0:
@@ -943,7 +945,7 @@ class COCOEvaluator:
                     eval_img_data_raw = [
                         self.eval_imgs[cat_offset + area_offset + i] for i in image_inds
                     ]
-                    eval_img_data: list[EvaluationImageResult] = [
+                    eval_img_data: list[_TypeEvaluationImageResult] = [
                         e for e in eval_img_data_raw if e is not None
                     ]
 
@@ -1382,13 +1384,15 @@ class MeanAveragePrecision(
 
         return self
 
-    def _prepare_targets(self, targets: list[Detections]) -> dict[str, list[CocoDict]]:
+    def _prepare_targets(
+        self, targets: list[Detections]
+    ) -> dict[str, list[_TypeCocoDict]]:
         """Transform targets into a dictionary that can be used by the COCO evaluator"""
-        images: list[CocoDict] = [{"id": img_id} for img_id in range(len(targets))]
+        images: list[_TypeCocoDict] = [{"id": img_id} for img_id in range(len(targets))]
         if self._image_indices is not None:
             images = [{"id": self._image_indices[img["id"]]} for img in images]
         # Annotations list
-        annotations: list[CocoDict] = []
+        annotations: list[_TypeCocoDict] = []
         for image_id, image_targets in enumerate(targets):
             if self._image_indices is not None:
                 image_id = self._image_indices[image_id]
@@ -1428,7 +1432,7 @@ class MeanAveragePrecision(
                     )
                     iscrowd = int(iscrowd_data[target_idx])
 
-                dict_annotation: CocoDict = {
+                dict_annotation: _TypeCocoDict = {
                     "area": area,
                     "iscrowd": iscrowd,
                     "image_id": image_id,
@@ -1440,7 +1444,7 @@ class MeanAveragePrecision(
                 annotations.append(dict_annotation)
         # Category list
         all_cat_ids = {annotation["category_id"] for annotation in annotations}
-        categories: list[CocoDict] = [{"id": cat_id} for cat_id in all_cat_ids]
+        categories: list[_TypeCocoDict] = [{"id": cat_id} for cat_id in all_cat_ids]
         # Create coco dictionary
         return {
             "images": images,
@@ -1448,10 +1452,12 @@ class MeanAveragePrecision(
             "categories": categories,
         }
 
-    def _prepare_predictions(self, predictions: list[Detections]) -> list[CocoDict]:
+    def _prepare_predictions(
+        self, predictions: list[Detections]
+    ) -> list[_TypeCocoDict]:
         """Transform predictions into a list of predictions that can be used by the COCO
         evaluator."""
-        coco_predictions: list[CocoDict] = []
+        coco_predictions: list[_TypeCocoDict] = []
         for image_id, image_predictions in enumerate(predictions):
             if self._image_indices is not None:
                 image_id = self._image_indices[image_id]
@@ -1489,7 +1495,7 @@ class MeanAveragePrecision(
                 if area is None:
                     area = xywh[2] * xywh[3]
 
-                dict_prediction: CocoDict = {
+                dict_prediction: _TypeCocoDict = {
                     "image_id": image_id,
                     "bbox": xywh,
                     "score": score,

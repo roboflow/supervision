@@ -25,8 +25,8 @@ from supervision.utils.internal import SupervisionWarnings
 # (see ``supervision.draw.base``) and cannot be stored on a non-generic class
 # as an attribute annotation — using the underlying union keeps the public
 # API contract intact while satisfying static type checking.
-_SliceCallbackInput: TypeAlias = npt.NDArray[np.uint8] | PILImage.Image
-SliceCallback = Callable[[_SliceCallbackInput], Detections]
+_TypeSliceCallbackInput: TypeAlias = npt.NDArray[np.uint8] | PILImage.Image
+_TypeSliceCallback = Callable[[_TypeSliceCallbackInput], Detections]
 
 
 def move_detections(
@@ -151,7 +151,7 @@ class InferenceSlicer:
 
     def __init__(
         self,
-        callback: SliceCallback,
+        callback: _TypeSliceCallback,
         slice_wh: int | tuple[int, int] = 640,
         overlap_wh: int | tuple[int, int] = 100,
         overlap_filter: OverlapFilter | str = OverlapFilter.NON_MAX_SUPPRESSION,
@@ -170,7 +170,7 @@ class InferenceSlicer:
         self.iou_threshold = iou_threshold
         self.overlap_metric = OverlapMetric.from_value(overlap_metric)
         self.overlap_filter = OverlapFilter.from_value(overlap_filter)
-        self.callback: SliceCallback = callback
+        self.callback: _TypeSliceCallback = callback
         self.thread_workers = thread_workers
         self.compact_masks = compact_masks
         self._out_of_slice_bounds_warned: bool = False
@@ -240,7 +240,7 @@ class InferenceSlicer:
         # ``image_slice`` matches the input ``ImageType`` (TypeVar); the callback
         # is typed against the underlying union for storage, so a narrowing cast
         # is required to bridge the two at the call site.
-        detections = self.callback(cast(_SliceCallbackInput, image_slice))
+        detections = self.callback(cast(_TypeSliceCallbackInput, image_slice))
 
         if (
             self.compact_masks

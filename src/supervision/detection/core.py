@@ -25,9 +25,9 @@ from supervision.detection.utils.converters import (
     xywh_to_xyxy,
 )
 from supervision.detection.utils.internal import (
-    DetectionData,
-    _RoboflowResult,
-    _UltralyticsResult,
+    _TypeDetectionData,
+    _TypeRoboflowResult,
+    _TypeUltralyticsResult,
     extract_ultralytics_masks,
     get_data_item,
     is_data_equal,
@@ -64,110 +64,110 @@ from supervision.utils.internal import get_instance_variables, warn_deprecated
 from supervision.validators import validate_detections_fields, validate_resolution
 
 
-class _TensorLike(Protocol):
-    def cpu(self) -> _TensorLike:
+class _TypeTensorLike(Protocol):
+    def cpu(self) -> _TypeTensorLike:
         """Return a CPU copy of the tensor-like object."""
 
     def numpy(self) -> npt.NDArray[np.generic]:
         """Convert the tensor-like object to a NumPy array."""
 
-    def astype(self, dtype: object) -> _TensorLike:
+    def astype(self, dtype: object) -> _TypeTensorLike:
         """Cast the tensor-like object to the requested dtype."""
 
-    def int(self) -> _TensorLike:
+    def int(self) -> _TypeTensorLike:
         """Cast the tensor-like object to integers."""
 
     def numel(self) -> builtins.int:
         """Return the number of elements."""
 
 
-class _YoloV5Results(Protocol):
-    pred: Sequence[_TensorLike]
+class _TypeYoloV5Results(Protocol):
+    pred: Sequence[_TypeTensorLike]
 
 
-class _UltralyticsBoxes(Protocol):
-    cls: _TensorLike
-    xyxy: _TensorLike
-    conf: _TensorLike
-    id: _TensorLike | None
+class _TypeUltralyticsBoxes(Protocol):
+    cls: _TypeTensorLike
+    xyxy: _TypeTensorLike
+    conf: _TypeTensorLike
+    id: _TypeTensorLike | None
 
 
-class _UltralyticsOBB(Protocol):
-    cls: _TensorLike
-    xyxyxyxy: _TensorLike
-    xyxy: _TensorLike
-    conf: _TensorLike
-    id: _TensorLike | None
+class _TypeUltralyticsOBB(Protocol):
+    cls: _TypeTensorLike
+    xyxyxyxy: _TypeTensorLike
+    xyxy: _TypeTensorLike
+    conf: _TypeTensorLike
+    id: _TypeTensorLike | None
 
 
-class _UltralyticsResults(_UltralyticsResult, Protocol):
+class _TypeUltralyticsResults(_TypeUltralyticsResult, Protocol):
     names: dict[int, str]
-    boxes: _UltralyticsBoxes | None
-    obb: _UltralyticsOBB | None
+    boxes: _TypeUltralyticsBoxes | None
+    obb: _TypeUltralyticsOBB | None
 
     def __len__(self) -> int:
         """Return the number of detections in the result."""
 
 
-class _YoloNasPrediction(Protocol):
+class _TypeYoloNasPrediction(Protocol):
     bboxes_xyxy: npt.NDArray[np.float32]
     confidence: npt.NDArray[np.float32]
     labels: npt.NDArray[np.int_]
 
 
-class _YoloNasResults(Protocol):
-    prediction: _YoloNasPrediction
+class _TypeYoloNasResults(Protocol):
+    prediction: _TypeYoloNasPrediction
 
 
-class _TensorflowResult(Protocol):
-    def __getitem__(self, key: str) -> Sequence[_TensorLike]:
+class _TypeTensorflowResult(Protocol):
+    def __getitem__(self, key: str) -> Sequence[_TypeTensorLike]:
         """Return a tensor sequence for a given prediction key."""
 
 
-class _DeepSparseResults(Protocol):
+class _TypeDeepSparseResults(Protocol):
     boxes: Sequence[npt.NDArray[np.float32]]
     scores: Sequence[npt.NDArray[np.float32]]
     labels: Sequence[npt.NDArray[np.int_]]
 
 
-class _MMDetInstances(Protocol):
-    bboxes: _TensorLike
-    scores: _TensorLike
-    labels: _TensorLike
-    masks: _TensorLike
+class _TypeMMDetInstances(Protocol):
+    bboxes: _TypeTensorLike
+    scores: _TypeTensorLike
+    labels: _TypeTensorLike
+    masks: _TypeTensorLike
 
     def __contains__(self, item: object) -> bool:
         """Return whether a field is available."""
 
 
-class _MMDetResults(Protocol):
-    pred_instances: _MMDetInstances
+class _TypeMMDetResults(Protocol):
+    pred_instances: _TypeMMDetInstances
 
 
-class _Detectron2Boxes(Protocol):
-    tensor: _TensorLike
+class _TypeDetectron2Boxes(Protocol):
+    tensor: _TypeTensorLike
 
 
-class _Detectron2Instances(Protocol):
-    pred_boxes: _Detectron2Boxes
-    scores: _TensorLike
-    pred_classes: _TensorLike
-    pred_masks: _TensorLike | None
+class _TypeDetectron2Instances(Protocol):
+    pred_boxes: _TypeDetectron2Boxes
+    scores: _TypeTensorLike
+    pred_classes: _TypeTensorLike
+    pred_masks: _TypeTensorLike | None
 
 
-class _Detectron2Results(Protocol):
-    instances: _Detectron2Instances
+class _TypeDetectron2Results(Protocol):
+    instances: _TypeDetectron2Instances
 
 
-class _NcnnRect(Protocol):
+class _TypeNcnnRect(Protocol):
     x: np.generic
     y: np.generic
     w: np.generic
     h: np.generic
 
 
-class _NcnnResult(Protocol):
-    rect: _NcnnRect
+class _TypeNcnnResult(Protocol):
+    rect: _TypeNcnnRect
     prob: float
     label: int
 
@@ -266,7 +266,7 @@ class Detections:
     confidence: npt.NDArray[np.floating] | None = None
     class_id: npt.NDArray[np.integer] | None = None
     tracker_id: npt.NDArray[np.integer] | None = None
-    data: DetectionData = field(default_factory=dict)
+    data: _TypeDetectionData = field(default_factory=dict)
     metadata: dict[str, object] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -294,7 +294,7 @@ class Detections:
             np.floating | None,
             np.integer | None,
             np.integer | None,
-            DetectionData,
+            _TypeDetectionData,
         ]
     ]:
         """
@@ -361,7 +361,7 @@ class Detections:
         )
 
     @classmethod
-    def from_yolov5(cls, yolov5_results: _YoloV5Results) -> Detections:
+    def from_yolov5(cls, yolov5_results: _TypeYoloV5Results) -> Detections:
         """
         Creates a Detections instance from a
         [YOLOv5](https://github.com/ultralytics/yolov5) inference result.
@@ -396,7 +396,9 @@ class Detections:
         )
 
     @classmethod
-    def from_ultralytics(cls, ultralytics_results: _UltralyticsResults) -> Detections:
+    def from_ultralytics(
+        cls, ultralytics_results: _TypeUltralyticsResults
+    ) -> Detections:
         """
         Creates a `sv.Detections` instance from a
         [YOLOv8](https://github.com/ultralytics/ultralytics) inference result.
@@ -512,7 +514,7 @@ class Detections:
         return cls.empty()
 
     @classmethod
-    def from_yolo_nas(cls, yolo_nas_results: _YoloNasResults) -> Detections:
+    def from_yolo_nas(cls, yolo_nas_results: _TypeYoloNasResults) -> Detections:
         """
         Creates a Detections instance from a
         [YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS.md)
@@ -550,7 +552,7 @@ class Detections:
 
     @classmethod
     def from_tensorflow(
-        cls, tensorflow_results: _TensorflowResult, resolution_wh: tuple[int, int]
+        cls, tensorflow_results: _TypeTensorflowResult, resolution_wh: tuple[int, int]
     ) -> Detections:
         """
         Creates a Detections instance from a
@@ -602,7 +604,7 @@ class Detections:
         )
 
     @classmethod
-    def from_deepsparse(cls, deepsparse_results: _DeepSparseResults) -> Detections:
+    def from_deepsparse(cls, deepsparse_results: _TypeDeepSparseResults) -> Detections:
         """
         Creates a Detections instance from a
         [DeepSparse](https://github.com/neuralmagic/deepsparse)
@@ -638,7 +640,7 @@ class Detections:
         )
 
     @classmethod
-    def from_mmdetection(cls, mmdet_results: _MMDetResults) -> Detections:
+    def from_mmdetection(cls, mmdet_results: _TypeMMDetResults) -> Detections:
         """
         Creates a Detections instance from a
         [mmdetection](https://github.com/open-mmlab/mmdetection) and
@@ -800,7 +802,7 @@ class Detections:
             detections = sv.Detections.from_detectron2(result)
             ```
         """
-        instances = cast(_Detectron2Instances, detectron2_results["instances"])
+        instances = cast(_TypeDetectron2Instances, detectron2_results["instances"])
 
         return cls(
             xyxy=instances.pred_boxes.tensor.cpu().numpy().astype(np.float32),
@@ -848,7 +850,7 @@ class Detections:
         elif hasattr(roboflow_result, "json"):
             roboflow_result = roboflow_result.json()
         xyxy, confidence, class_id, masks, trackers, data = process_roboflow_result(
-            roboflow_result=cast(_RoboflowResult, roboflow_result)
+            roboflow_result=cast(_TypeRoboflowResult, roboflow_result)
         )
 
         if np.asarray(xyxy).shape[0] == 0:
@@ -2121,7 +2123,7 @@ class Detections:
                 resolution_wh=resolution_wh,
                 classes=classes,
             )
-            paligemma_data: DetectionData = {
+            paligemma_data: _TypeDetectionData = {
                 CLASS_NAME_DATA_FIELD: cast(
                     npt.NDArray[np.generic], paligemma_class_name
                 ),
@@ -2143,7 +2145,7 @@ class Detections:
                 resolution_wh=resolution_wh,
                 classes=classes,
             )
-            qwen_data: DetectionData = {
+            qwen_data: _TypeDetectionData = {
                 CLASS_NAME_DATA_FIELD: cast(npt.NDArray[np.generic], qwen_class_name)
             }
             confidence_arr: npt.NDArray[np.float32] = np.ones(
@@ -2165,7 +2167,7 @@ class Detections:
                 resolution_wh=resolution_wh,
                 classes=classes,
             )
-            qwen3_data: DetectionData = {
+            qwen3_data: _TypeDetectionData = {
                 CLASS_NAME_DATA_FIELD: cast(npt.NDArray[np.generic], qwen3_class_name)
             }
             confidence_arr = np.ones(len(qwen3_xyxy), dtype=float)
@@ -2185,7 +2187,7 @@ class Detections:
                 resolution_wh=resolution_wh,
                 classes=classes,
             )
-            deepseek_data: DetectionData = {
+            deepseek_data: _TypeDetectionData = {
                 CLASS_NAME_DATA_FIELD: cast(
                     npt.NDArray[np.generic], deepseek_class_name
                 )
@@ -2203,7 +2205,7 @@ class Detections:
             if len(florence_xyxy) == 0:
                 return cls.empty()
 
-            florence_data: DetectionData = {}
+            florence_data: _TypeDetectionData = {}
             if florence_labels is not None:
                 florence_data[CLASS_NAME_DATA_FIELD] = cast(
                     npt.NDArray[np.generic], florence_labels
@@ -2230,7 +2232,7 @@ class Detections:
                     classes=classes,
                 )
             )
-            gemini20_data: DetectionData = {
+            gemini20_data: _TypeDetectionData = {
                 CLASS_NAME_DATA_FIELD: cast(
                     npt.NDArray[np.generic], gemini20_class_name
                 )
@@ -2256,7 +2258,7 @@ class Detections:
                 resolution_wh=resolution_wh,
                 classes=classes,
             )
-            gemini25_data: DetectionData = {
+            gemini25_data: _TypeDetectionData = {
                 CLASS_NAME_DATA_FIELD: cast(npt.NDArray[np.generic], gemini25_result[2])
             }
             return cls(
@@ -2318,7 +2320,7 @@ class Detections:
         )
 
     @classmethod
-    def from_ncnn(cls, ncnn_results: Sequence[_NcnnResult]) -> Detections:
+    def from_ncnn(cls, ncnn_results: Sequence[_TypeNcnnResult]) -> Detections:
         """
         Creates a Detections instance from the
         [ncnn](https://github.com/Tencent/ncnn) inference result.

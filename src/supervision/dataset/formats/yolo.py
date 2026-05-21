@@ -14,7 +14,7 @@ from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
-from supervision.detection.utils.internal import DetectionData
+from supervision.detection.utils.internal import _TypeDetectionData
 from supervision.utils.file import (
     list_files_with_extensions,
     read_txt_file,
@@ -122,7 +122,7 @@ def yolo_annotations_to_detections(
     class_id = np.array(class_id_list, dtype=np.int64)
     relative_xyxy = np.array(relative_xyxy_list, dtype=np.float32)
     xyxy = relative_xyxy * np.array([w, h, w, h], dtype=np.float32)
-    data: DetectionData = {}
+    data: _TypeDetectionData = {}
 
     if is_obb:
         relative_xyxyxyxy = np.array(relative_xyxyxyxy_list, dtype=np.float32)
