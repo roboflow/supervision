@@ -23,7 +23,7 @@ maintainers = [
 authors = [
   { name = "Roboflow et al.", email = "develop@roboflow.com" },
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
@@ -33,6 +33,7 @@ classifiers = [
   "Operating System :: Microsoft :: Windows",
   "Operating System :: POSIX :: Linux",
   "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -79,7 +80,7 @@ dev = [
 ]
 docs = [
   "mike>=2",
-  "mkdocs-git-committers-plugin-2>=2.4.1; python_version>='3.10' and python_version<'4'",
+  "mkdocs-git-committers-plugin-2>=2.4.1; python_version>='3.9' and python_version<'4'",
   "mkdocs-git-revision-date-localized-plugin>=1.2.4",
   "mkdocs-jupyter>=0.24.3",
   "mkdocs-material[imaging]>=9.7",

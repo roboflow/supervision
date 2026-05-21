@@ -1,5 +1,5 @@
 default_language_version:
-  python: python3.10
+  python: python3
 
 ci:
   autofix_prs: true
@@ -69,10 +69,9 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies:
-          # Pin hook extras so clean installs match the verified local env.
-          - "numpy==2.2.6"
-          - "types-PyYAML==6.0.12.20260408"
-          - "types-requests==2.33.0.20260408"
+          - "numpy>=2.0"
+          - "types-PyYAML"
+          - "types-requests"
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.2

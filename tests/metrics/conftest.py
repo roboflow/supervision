@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 import pytest
 
@@ -143,7 +145,7 @@ def target_class_1():
 def _yolo_dataset_factory(
     tmp_path,
     num_images: int = 20,
-    classes: list[str] | None = None,
+    classes: Optional[list[str]] = None,
     objects_per_image_range: tuple[int, int] = (1, 3),
 ):
     """
