@@ -71,6 +71,11 @@ def _with_seg_mask(lines: list[str]) -> bool:
 
 def _extract_class_names(file_path: str) -> list[str]:
     data = read_yaml_file(file_path=file_path)
+    if not isinstance(data, dict):
+        raise ValueError(
+            f"Expected mapping in data.yaml at '{file_path}',"
+            f" got {type(data).__name__}."
+        )
     names = data.get("names")
     if isinstance(names, dict):
         return [str(names[key]) for key in sorted(names.keys())]
