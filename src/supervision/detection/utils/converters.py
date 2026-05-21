@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal, overload
+from typing import Any
 
 import cv2
 import numpy as np
@@ -622,16 +622,6 @@ def rle_to_mask(
         )
 
     return _rle_counts_to_mask(counts, height, width)
-
-
-@overload
-def mask_to_rle(
-    mask: npt.NDArray[np.bool_], compressed: Literal[False] = False
-) -> list[int]: ...
-
-
-@overload
-def mask_to_rle(mask: npt.NDArray[np.bool_], compressed: Literal[True]) -> str: ...
 
 
 def mask_to_rle(
