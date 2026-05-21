@@ -1300,7 +1300,7 @@ def test_from_deepseek_vl_2(
 
 
 @pytest.mark.parametrize(
-    "result, resolution_wh, classes",
+    ("result", "resolution_wh", "classes"),
     [
         (
             "random text",
