@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Generic, ParamSpec, TypeVar
+from typing import Any, Generic, ParamSpec, TypeVar
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -29,7 +29,7 @@ class Metric(ABC, Generic[P, R]):
         raise NotImplementedError
 
     @abstractmethod
-    def compute(self) -> R:
+    def compute(self, *args: Any, **kwargs: Any) -> R:
         """
         Compute the metric from the internal state and return the result.
         """
