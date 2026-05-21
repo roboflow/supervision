@@ -1,5 +1,3 @@
-from typing import Optional
-
 import cv2
 from ultralytics import YOLO
 
@@ -14,7 +12,7 @@ def download_video() -> str:
 
 def main(
     source_weights_path: str,
-    source_video_path: Optional[str] = None,
+    source_video_path: str | None = None,
     target_video_path: str = "output.mp4",
     confidence_threshold: float = 0.35,
     iou_threshold: float = 0.5,
