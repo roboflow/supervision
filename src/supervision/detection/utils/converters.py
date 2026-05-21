@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import cv2
 import numpy as np
@@ -546,8 +546,9 @@ def _rle_counts_to_mask(
     num_pixels = height * width
     if len(flat) < num_pixels:
         flat = np.pad(flat, (0, num_pixels - len(flat)))
-    mask: npt.NDArray[np.bool_] = flat[:num_pixels].reshape(height, width, order="F")
-    return mask
+    return cast(
+        npt.NDArray[np.bool_], flat[:num_pixels].reshape(height, width, order="F")
+    )
 
 
 def rle_to_mask(
@@ -693,7 +694,7 @@ def mask_to_rle(
     assert mask.ndim == 2, "Input mask must be 2D"
     assert mask.size != 0, "Input mask cannot be empty"
 
-    counts = [int(count) for count in _mask_to_rle_counts(mask)]
+    counts: list[int] = cast(list[int], _mask_to_rle_counts(mask).tolist())
     if compressed:
         return _base48_encode(_delta_encode(counts))
     return counts
