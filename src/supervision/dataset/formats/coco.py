@@ -11,12 +11,12 @@ from supervision.dataset.utils import (
     map_detections_class_id,
 )
 from supervision.detection.core import Detections
+from supervision.detection.utils._typing import _TypeDetectionData
 from supervision.detection.utils.converters import (
     mask_to_rle,
     polygon_to_mask,
     rle_to_mask,
 )
-from supervision.detection.utils.internal import _TypeDetectionData
 from supervision.detection.utils.masks import contains_holes, contains_multiple_segments
 from supervision.utils.file import read_json_file, save_json_file
 

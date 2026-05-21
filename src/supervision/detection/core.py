@@ -19,13 +19,13 @@ from supervision.detection.tools.transformers import (
     process_transformers_v4_segmentation_result,
     process_transformers_v5_segmentation_result,
 )
+from supervision.detection.utils._typing import _TypeDetectionData
 from supervision.detection.utils.converters import (
     mask_to_xyxy,
     polygon_to_mask,
     xywh_to_xyxy,
 )
 from supervision.detection.utils.internal import (
-    _TypeDetectionData,
     _TypeRoboflowResult,
     _TypeUltralyticsResult,
     extract_ultralytics_masks,

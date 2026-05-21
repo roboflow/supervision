@@ -2,21 +2,22 @@ from __future__ import annotations
 
 import logging
 from itertools import chain
-from typing import Protocol, TypeAlias, TypedDict, cast
+from typing import Protocol, TypedDict, cast
 
 import cv2
 import numpy as np
 import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.detection.utils._typing import (
+    _TypeDetectionData,
+    _TypeDetectionDataValue,
+    _TypeMetadata,
+)
 from supervision.detection.utils.converters import polygon_to_mask, rle_to_mask
 from supervision.geometry.core import Vector
 
 logger = logging.getLogger(__name__)
-
-_TypeDetectionDataValue: TypeAlias = npt.NDArray[np.generic] | list[object]
-_TypeDetectionData: TypeAlias = dict[str, _TypeDetectionDataValue]
-_TypeMetadata: TypeAlias = dict[str, object]
 
 
 class _TypeUltralyticsMaskData(Protocol):
