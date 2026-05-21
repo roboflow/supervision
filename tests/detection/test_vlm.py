@@ -1297,3 +1297,71 @@ def test_from_deepseek_vl_2(
             detections.data[CLASS_NAME_DATA_FIELD],
             expected_detections.data[CLASS_NAME_DATA_FIELD],
         )
+
+
+@pytest.mark.parametrize(
+    "result, resolution_wh, classes",
+    [
+        (
+            "random text",
+            (1000, 1000),
+            None,
+        ),
+        (
+            "```json\n[]\n```",
+            (1000, 1000),
+            None,
+        ),
+        (
+            """```json
+            [
+                {"box_2d": [100, 200, 300, 400], "label": "cat", "confidence": 0.8}
+            ]
+            ```""",
+            (1000, 500),
+            None,
+        ),
+        (
+            """```json
+            [
+                {"box_2d": [10, 20, 110, 120], "label": "cat", "confidence": 0.8},
+                {"box_2d": [50, 100, 150, 200], "label": "dog", "confidence": 0.9}
+            ]
+            ```""",
+            (640, 480),
+            ["cat", "dog"],
+        ),
+    ],
+)
+def test_from_google_gemini_3_5_matches_2_5(
+    result: str,
+    resolution_wh: tuple[int, int],
+    classes: list[str] | None,
+):
+    detections_2_5 = Detections.from_vlm(
+        vlm=VLM.GOOGLE_GEMINI_2_5,
+        result=result,
+        resolution_wh=resolution_wh,
+        classes=classes,
+    )
+    detections_3_5 = Detections.from_vlm(
+        vlm=VLM.GOOGLE_GEMINI_3_5,
+        result=result,
+        resolution_wh=resolution_wh,
+        classes=classes,
+    )
+
+    assert len(detections_2_5) == len(detections_3_5)
+
+    if len(detections_2_5) == 0:
+        return
+
+    assert np.allclose(detections_2_5.xyxy, detections_3_5.xyxy)
+    assert np.array_equal(detections_2_5.class_id, detections_3_5.class_id)
+    assert np.array_equal(
+        detections_2_5.data[CLASS_NAME_DATA_FIELD],
+        detections_3_5.data[CLASS_NAME_DATA_FIELD],
+    )
+    if detections_2_5.confidence is not None:
+        assert np.allclose(detections_2_5.confidence, detections_3_5.confidence)
+

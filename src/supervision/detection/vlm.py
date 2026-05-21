@@ -33,6 +33,7 @@ class LMM(Enum):
         QWEN_3_VL: Qwen3-VL open vision-language model from Alibaba.
         GOOGLE_GEMINI_2_0: Google Gemini 2.0 vision-language model.
         GOOGLE_GEMINI_2_5: Google Gemini 2.5 vision-language model.
+        GOOGLE_GEMINI_3_5: Google Gemini 3.5 vision-language model.
         MOONDREAM: The Moondream vision-language model.
     """
 
@@ -43,6 +44,7 @@ class LMM(Enum):
     DEEPSEEK_VL_2 = "deepseek_vl_2"
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
+    GOOGLE_GEMINI_3_5 = "gemini_3_5"
     MOONDREAM = "moondream"
 
     @classmethod
@@ -80,6 +82,7 @@ class VLM(Enum):
         QWEN_3_VL: Qwen3-VL open vision-language model from Alibaba.
         GOOGLE_GEMINI_2_0: Google Gemini 2.0 vision-language model.
         GOOGLE_GEMINI_2_5: Google Gemini 2.5 vision-language model.
+        GOOGLE_GEMINI_3_5: Google Gemini 3.5 vision-language model.
         MOONDREAM: The Moondream vision-language model.
     """
 
@@ -90,6 +93,7 @@ class VLM(Enum):
     DEEPSEEK_VL_2 = "deepseek_vl_2"
     GOOGLE_GEMINI_2_0 = "gemini_2_0"
     GOOGLE_GEMINI_2_5 = "gemini_2_5"
+    GOOGLE_GEMINI_3_5 = "gemini_3_5"
     MOONDREAM = "moondream"
 
     @classmethod
@@ -120,6 +124,7 @@ RESULT_TYPES: dict[VLM, type] = {
     VLM.DEEPSEEK_VL_2: str,
     VLM.GOOGLE_GEMINI_2_0: str,
     VLM.GOOGLE_GEMINI_2_5: str,
+    VLM.GOOGLE_GEMINI_3_5: str,
     VLM.MOONDREAM: dict,
 }
 
@@ -131,6 +136,7 @@ REQUIRED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.DEEPSEEK_VL_2: ["resolution_wh"],
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh"],
+    VLM.GOOGLE_GEMINI_3_5: ["resolution_wh"],
     VLM.MOONDREAM: ["resolution_wh"],
 }
 
@@ -142,6 +148,7 @@ ALLOWED_ARGUMENTS: dict[VLM, list[str]] = {
     VLM.DEEPSEEK_VL_2: ["resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_2_0: ["resolution_wh", "classes"],
     VLM.GOOGLE_GEMINI_2_5: ["resolution_wh", "classes"],
+    VLM.GOOGLE_GEMINI_3_5: ["resolution_wh", "classes"],
     VLM.MOONDREAM: ["resolution_wh"],
 }
 

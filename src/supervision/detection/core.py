@@ -977,6 +977,7 @@ class Detections:
         | Qwen2.5-VL          | `QWEN_2_5_VL`        | detection               | `resolution_wh`, `input_wh` | `classes`           |
         | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
+        | Google Gemini 3.5   | `GOOGLE_GEMINI_3_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
         | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
 
@@ -1425,6 +1426,7 @@ class Detections:
             LMM.DEEPSEEK_VL_2: VLM.DEEPSEEK_VL_2,
             LMM.GOOGLE_GEMINI_2_0: VLM.GOOGLE_GEMINI_2_0,
             LMM.GOOGLE_GEMINI_2_5: VLM.GOOGLE_GEMINI_2_5,
+            LMM.GOOGLE_GEMINI_3_5: VLM.GOOGLE_GEMINI_3_5,
         }
 
         if isinstance(lmm, LMM):
@@ -1464,6 +1466,7 @@ class Detections:
         | Qwen3-VL            | `QWEN_3_VL`          | detection               | `resolution_wh`,            | `classes`           |
         | Google Gemini 2.0   | `GOOGLE_GEMINI_2_0`  | detection               | `resolution_wh`             | `classes`           |
         | Google Gemini 2.5   | `GOOGLE_GEMINI_2_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
+        | Google Gemini 3.5   | `GOOGLE_GEMINI_3_5`  | detection, segmentation | `resolution_wh`             | `classes`           |
         | Moondream           | `MOONDREAM`          | detection               | `resolution_wh`             |                     |
         | DeepSeek-VL2        | `DEEPSEEK_VL_2`      | detection               | `resolution_wh`             | `classes`           |
 
@@ -1931,7 +1934,7 @@ class Detections:
             xyxy = from_moondream(result, **kwargs)
             return cls(xyxy=xyxy)
 
-        if vlm == VLM.GOOGLE_GEMINI_2_5:
+        if vlm in (VLM.GOOGLE_GEMINI_2_5, VLM.GOOGLE_GEMINI_3_5):
             assert isinstance(result, str)
             gemini_result = from_google_gemini_2_5(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: gemini_result[2]}
