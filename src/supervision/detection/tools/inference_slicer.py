@@ -4,7 +4,7 @@ import threading
 import warnings
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, TypeAlias, cast
+from typing import TypeAlias, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -31,7 +31,7 @@ SliceCallback = Callable[[_SliceCallbackInput], Detections]
 
 def move_detections(
     detections: Detections,
-    offset: npt.NDArray[Any],
+    offset: npt.NDArray[np.int_],
     resolution_wh: tuple[int, int] | None = None,
 ) -> Detections:
     """
@@ -46,11 +46,11 @@ def move_detections(
         Repositioned Detections object.
     """
     detections.xyxy = move_boxes(
-        xyxy=cast(npt.NDArray[np.number[Any]], detections.xyxy), offset=offset
+        xyxy=cast(npt.NDArray[np.float32], detections.xyxy), offset=offset
     )
     if ORIENTED_BOX_COORDINATES in detections.data:
         oriented_boxes = cast(
-            npt.NDArray[np.number[Any]],
+            npt.NDArray[np.float32],
             detections.data[ORIENTED_BOX_COORDINATES],
         )
         detections.data[ORIENTED_BOX_COORDINATES] = move_oriented_boxes(
@@ -71,7 +71,7 @@ def move_detections(
             )
         else:
             detections.mask = move_masks(
-                masks=cast(npt.NDArray[np.bool_], detections.mask),
+                masks=detections.mask,
                 offset=offset,
                 resolution_wh=resolution_wh,
             )
@@ -222,7 +222,9 @@ class InferenceSlicer:
         )
         return merged
 
-    def _run_callback(self, image: ImageType, offset: npt.NDArray[Any]) -> Detections:
+    def _run_callback(
+        self, image: ImageType, offset: npt.NDArray[np.int_]
+    ) -> Detections:
         """
         Run detection callback on a sliced portion of the image and adjust coordinates.
 
@@ -247,7 +249,7 @@ class InferenceSlicer:
         ):
             slice_w, slice_h = get_image_resolution_wh(image_slice)
             detections.mask = CompactMask.from_dense(
-                cast(npt.NDArray[np.bool_], detections.mask),
+                detections.mask,
                 detections.xyxy,
                 image_shape=(slice_h, slice_w),
             )
@@ -265,7 +267,7 @@ class InferenceSlicer:
                 if not self._out_of_slice_bounds_warned and len(detections) > 0:
                     slice_width = offset[2] - offset[0]
                     slice_height = offset[3] - offset[1]
-                    xyxy_num = cast(npt.NDArray[np.number[Any]], detections.xyxy)
+                    xyxy_num = detections.xyxy
                     x_exceeds = np.any(xyxy_num[:, [0, 2]] > slice_width)
                     y_exceeds = np.any(xyxy_num[:, [1, 3]] > slice_height)
                     x_negative = np.any(xyxy_num[:, [0, 2]] < 0)
@@ -344,7 +346,7 @@ class InferenceSlicer:
         resolution_wh: tuple[int, int],
         slice_wh: tuple[int, int],
         overlap_wh: tuple[int, int],
-    ) -> npt.NDArray[Any]:
+    ) -> npt.NDArray[np.int_]:
         """
         Generate bounding boxes defining the coordinates of image slices with overlap.
 
@@ -396,7 +398,7 @@ class InferenceSlicer:
         x_max = np.clip(x_min + slice_width, 0, image_width)
         y_max = np.clip(y_min + slice_height, 0, image_height)
 
-        offsets: npt.NDArray[Any] = np.stack(
+        offsets: npt.NDArray[np.int_] = np.stack(
             [x_min, y_min, x_max, y_max],
             axis=-1,
         ).reshape(-1, 4)

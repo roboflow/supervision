@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any, cast
 
 import cv2
 import numpy as np
@@ -331,7 +330,9 @@ class VertexLabelAnnotator:
         if skeletons_count == 0:
             return scene
 
-        anchors = key_points.xy.reshape(points_count * skeletons_count, 2).astype(int)
+        anchors: npt.NDArray[np.int_] = np.asarray(
+            key_points.xy.reshape(points_count * skeletons_count, 2), dtype=int
+        )
         mask = np.all(anchors != 0, axis=1)
 
         if not np.any(mask):
@@ -353,7 +354,7 @@ class VertexLabelAnnotator:
             labels=labels, points_count=points_count, skeletons_count=skeletons_count
         )
 
-        anchors = cast(Any, anchors[mask])
+        anchors = anchors[mask]
         colors = colors[mask]
         text_colors = text_colors[mask]
         filtered_labels = processed_labels[mask]
@@ -442,7 +443,7 @@ class VertexLabelAnnotator:
         colors: Color | list[Color] | None,
         points_count: int,
         skeletons_count: int,
-    ) -> npt.NDArray[Any]:
+    ) -> npt.NDArray[np.object_]:
         if isinstance(colors, list) and len(colors) != points_count:
             raise ValueError(
                 f"Number of colors ({len(colors)}) must match number of key points "

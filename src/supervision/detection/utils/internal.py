@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from itertools import chain
-from typing import Any, cast
+from typing import Protocol, TypeAlias, TypedDict, cast
 
 import cv2
 import numpy as np
@@ -14,15 +14,79 @@ from supervision.geometry.core import Vector
 
 logger = logging.getLogger(__name__)
 
+DetectionDataValue: TypeAlias = npt.NDArray[np.generic] | list[object]
+DetectionData: TypeAlias = dict[str, DetectionDataValue]
+Metadata: TypeAlias = dict[str, object]
 
-def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | None:
-    if not yolov8_results.masks:
+
+class _UltralyticsMaskData(Protocol):
+    shape: tuple[int, ...]
+
+    def cpu(self) -> _UltralyticsMaskData:
+        """Return the mask data on CPU."""
+
+    def numpy(self) -> npt.NDArray[np.generic]:
+        """Convert the mask data to a NumPy array."""
+
+
+class _UltralyticsMasks(Protocol):
+    data: _UltralyticsMaskData
+
+
+class _UltralyticsResult(Protocol):
+    masks: _UltralyticsMasks | None
+    orig_shape: tuple[int, int]
+
+
+class _RoboflowImage(TypedDict):
+    width: int
+    height: int
+
+
+class _RoboflowPoint(TypedDict):
+    x: float
+    y: float
+
+
+class _RoboflowRLE(TypedDict):
+    size: tuple[int, int] | list[int]
+    counts: npt.NDArray[np.integer] | list[int] | str | bytes
+
+
+_RoboflowPrediction = TypedDict(
+    "_RoboflowPrediction",
+    {
+        "x": float,
+        "y": float,
+        "width": float,
+        "height": float,
+        "class_id": int,
+        "class": str,
+        "confidence": float,
+        "tracker_id": int,
+        "rle": _RoboflowRLE,
+        "rle_mask": _RoboflowRLE,
+        "points": list[_RoboflowPoint],
+    },
+    total=False,
+)
+
+
+class _RoboflowResult(TypedDict):
+    predictions: list[_RoboflowPrediction]
+    image: _RoboflowImage
+
+
+def extract_ultralytics_masks(
+    yolov8_results: _UltralyticsResult,
+) -> npt.NDArray[np.bool_] | None:
+    if yolov8_results.masks is None:
         return None
 
     orig_shape = yolov8_results.orig_shape
     inference_shape = tuple(yolov8_results.masks.data.shape[1:])
 
-    pad = (0, 0)
+    pad: tuple[float, float] = (0.0, 0.0)
 
     if inference_shape != orig_shape:
         gain = min(
@@ -52,14 +116,14 @@ def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | No
 
 
 def process_roboflow_result(
-    roboflow_result: dict[str, Any],
+    roboflow_result: _RoboflowResult,
 ) -> tuple[
-    npt.NDArray[np.number[Any]],
-    npt.NDArray[np.floating[Any]],
-    npt.NDArray[np.integer[Any]],
+    npt.NDArray[np.float64],
+    npt.NDArray[np.float64],
+    npt.NDArray[np.int64],
     npt.NDArray[np.bool_] | None,
-    npt.NDArray[np.integer[Any]] | None,
-    dict[str, Any],
+    npt.NDArray[np.int64] | None,
+    DetectionData,
 ]:
     if not roboflow_result["predictions"]:
         return (
@@ -147,20 +211,20 @@ def process_roboflow_result(
             if "tracker_id" in prediction:
                 tracker_ids.append(prediction["tracker_id"])
 
-    xyxy_arr: npt.NDArray[np.number[Any]] = (
+    xyxy_arr: npt.NDArray[np.float64] = (
         np.array(xyxy, dtype=np.float64)
         if len(xyxy) > 0
-        else cast(npt.NDArray[np.number[Any]], np.empty((0, 4), dtype=np.float64))
+        else np.empty((0, 4), dtype=np.float64)
     )
-    confidence_arr: npt.NDArray[np.floating[Any]] = (
+    confidence_arr: npt.NDArray[np.float64] = (
         np.array(confidence, dtype=np.float64)
         if len(confidence) > 0
-        else cast(npt.NDArray[np.floating[Any]], np.empty(0, dtype=np.float64))
+        else np.empty(0, dtype=np.float64)
     )
-    class_id_arr: npt.NDArray[np.integer[Any]] = (
+    class_id_arr: npt.NDArray[np.int64] = (
         np.array(class_id, dtype=np.int64)
         if len(class_id) > 0
-        else cast(npt.NDArray[np.integer[Any]], np.empty(0, dtype=np.int64))
+        else np.empty(0, dtype=np.int64)
     )
     class_name_arr: npt.NDArray[np.str_] = (
         np.array(class_name)
@@ -170,10 +234,10 @@ def process_roboflow_result(
     masks_arr: npt.NDArray[np.bool_] | None = (
         cast(npt.NDArray[np.bool_], np.stack(masks, axis=0)) if len(masks) > 0 else None
     )
-    tracker_id_arr: npt.NDArray[np.integer[Any]] | None = (
+    tracker_id_arr: npt.NDArray[np.int64] | None = (
         np.array(tracker_ids, dtype=np.int64) if len(tracker_ids) > 0 else None
     )
-    data: dict[str, Any] = {CLASS_NAME_DATA_FIELD: class_name_arr}
+    data: DetectionData = {CLASS_NAME_DATA_FIELD: class_name_arr}
 
     return (
         xyxy_arr,
@@ -186,8 +250,8 @@ def process_roboflow_result(
 
 
 def is_data_equal(
-    data_a: dict[str, Any],
-    data_b: dict[str, Any],
+    data_a: DetectionData,
+    data_b: DetectionData,
 ) -> bool:
     """
     Compares the data payloads of two Detections instances.
@@ -198,12 +262,25 @@ def is_data_equal(
     Returns:
         True if the data payloads are equal, False otherwise.
     """
-    return set(data_a.keys()) == set(data_b.keys()) and all(
-        np.array_equal(data_a[key], data_b[key]) for key in data_a
-    )
+    if set(data_a.keys()) != set(data_b.keys()):
+        return False
+
+    for key in data_a:
+        value_a = data_a[key]
+        value_b = data_b[key]
+
+        if isinstance(value_a, np.ndarray) or isinstance(value_b, np.ndarray):
+            array_a = cast(npt.NDArray[np.generic], np.asarray(value_a))
+            array_b = cast(npt.NDArray[np.generic], np.asarray(value_b))
+            if not np.array_equal(array_a, array_b):
+                return False
+        elif value_a != value_b:
+            return False
+
+    return True
 
 
-def is_metadata_equal(metadata_a: dict[str, Any], metadata_b: dict[str, Any]) -> bool:
+def is_metadata_equal(metadata_a: Metadata, metadata_b: Metadata) -> bool:
     """
     Compares the metadata payloads of two Detections instances.
 
@@ -213,20 +290,27 @@ def is_metadata_equal(metadata_a: dict[str, Any], metadata_b: dict[str, Any]) ->
     Returns:
         True if the metadata payloads are equal, False otherwise.
     """
-    return set(metadata_a.keys()) == set(metadata_b.keys()) and all(
-        np.array_equal(metadata_a[key], metadata_b[key])
-        if (
-            isinstance(metadata_a[key], np.ndarray)
-            and isinstance(metadata_b[key], np.ndarray)
-        )
-        else metadata_a[key] == metadata_b[key]
-        for key in metadata_a
-    )
+    if set(metadata_a.keys()) != set(metadata_b.keys()):
+        return False
+
+    for key in metadata_a:
+        value_a = metadata_a[key]
+        value_b = metadata_b[key]
+
+        if isinstance(value_a, np.ndarray) or isinstance(value_b, np.ndarray):
+            array_a = cast(npt.NDArray[np.generic], np.asarray(value_a))
+            array_b = cast(npt.NDArray[np.generic], np.asarray(value_b))
+            if not np.array_equal(array_a, array_b):
+                return False
+        elif value_a != value_b:
+            return False
+
+    return True
 
 
 def merge_data(
-    data_list: list[dict[str, Any]],
-) -> dict[str, Any]:
+    data_list: list[DetectionData],
+) -> DetectionData:
     """
     Merges the data payloads of a list of Detections instances.
 
@@ -260,20 +344,25 @@ def merge_data(
                 "All data values within a single object must have equal length."
             )
 
-    merged_data: dict[str, Any] = {key: [] for key in all_keys_sets[0]}
+    merged_data_values: dict[str, list[DetectionDataValue]] = {
+        key: [] for key in all_keys_sets[0]
+    }
     for data in data_list:
-        for key in data:
-            merged_data[key].append(data[key])
+        for key, value in data.items():
+            merged_data_values[key].append(value)
 
-    for key in merged_data:
-        if all(isinstance(item, list) for item in merged_data[key]):
-            merged_data[key] = list(chain.from_iterable(merged_data[key]))
-        elif all(isinstance(item, np.ndarray) for item in merged_data[key]):
-            ndim = merged_data[key][0].ndim
+    merged_data: DetectionData = {}
+    for key, values in merged_data_values.items():
+        if all(isinstance(item, list) for item in values):
+            list_values = cast(list[list[object]], values)
+            merged_data[key] = list(chain.from_iterable(list_values))
+        elif all(isinstance(item, np.ndarray) for item in values):
+            array_values = cast(list[npt.NDArray[np.generic]], values)
+            ndim = array_values[0].ndim
             if ndim == 1:
-                merged_data[key] = np.hstack(merged_data[key])
+                merged_data[key] = np.hstack(array_values)
             elif ndim > 1:
-                merged_data[key] = np.vstack(merged_data[key])
+                merged_data[key] = np.vstack(array_values)
             else:
                 raise ValueError(f"Unexpected array dimension for key '{key}'.")
         else:
@@ -285,7 +374,7 @@ def merge_data(
     return merged_data
 
 
-def merge_metadata(metadata_list: list[dict[str, Any]]) -> dict[str, Any]:
+def merge_metadata(metadata_list: list[Metadata]) -> Metadata:
     """
     Merge metadata from a list of metadata dictionaries.
 
@@ -312,7 +401,7 @@ def merge_metadata(metadata_list: list[dict[str, Any]]) -> dict[str, Any]:
     if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
         raise ValueError("All metadata dictionaries must have the same keys to merge.")
 
-    merged_metadata: dict[str, Any] = {}
+    merged_metadata: Metadata = {}
     for metadata in metadata_list:
         for key, value in metadata.items():
             if key not in merged_metadata:
@@ -321,7 +410,9 @@ def merge_metadata(metadata_list: list[dict[str, Any]]) -> dict[str, Any]:
 
             other_value = merged_metadata[key]
             if isinstance(value, np.ndarray) and isinstance(other_value, np.ndarray):
-                if not np.array_equal(merged_metadata[key], value):
+                array_a = cast(npt.NDArray[np.generic], merged_metadata[key])
+                array_b = cast(npt.NDArray[np.generic], value)
+                if not np.array_equal(array_a, array_b):
                     raise ValueError(
                         f"Conflicting metadata for key: '{key}': "
                         "{type(value)}, {type(other_value)}."
@@ -340,9 +431,14 @@ def merge_metadata(metadata_list: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def get_data_item(
-    data: dict[str, Any],
-    index: int | slice | list[int] | list[bool] | npt.NDArray[Any],
-) -> dict[str, Any]:
+    data: DetectionData,
+    index: int
+    | slice
+    | list[int]
+    | list[bool]
+    | npt.NDArray[np.int_]
+    | npt.NDArray[np.bool_],
+) -> DetectionData:
     """
     Retrieve a subset of the data dictionary based on the given index.
 
@@ -353,12 +449,14 @@ def get_data_item(
     Returns:
         A subset of the data dictionary corresponding to the specified index.
     """
-    subset_data: dict[str, Any] = {}
+    subset_data: DetectionData = {}
     for key, value in data.items():
         if isinstance(value, np.ndarray):
             subset_data[key] = value[index]
         elif isinstance(value, list):
-            if isinstance(index, slice):
+            if isinstance(index, int):
+                subset_data[key] = [value[index]]
+            elif isinstance(index, slice):
                 subset_data[key] = value[index]
             elif isinstance(index, list):
                 subset_data[key] = [value[i] for i in index]
@@ -369,8 +467,6 @@ def get_data_item(
                     ]
                 else:
                     subset_data[key] = [value[i] for i in index]
-            elif isinstance(index, int):
-                subset_data[key] = [value[index]]
             else:
                 raise TypeError(f"Unsupported index type: {type(index)}")
         else:

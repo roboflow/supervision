@@ -4,7 +4,7 @@ import os
 import warnings
 from collections.abc import Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -14,6 +14,7 @@ from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
+from supervision.detection.utils.internal import DetectionData
 from supervision.utils.file import (
     list_files_with_extensions,
     read_txt_file,
@@ -50,7 +51,7 @@ def _parse_polygon(values: list[str]) -> npt.NDArray[np.float32]:
 
 
 def _polygons_to_masks(
-    polygons: Sequence[npt.NDArray[np.number[Any]]], resolution_wh: tuple[int, int]
+    polygons: Sequence[npt.NDArray[np.number]], resolution_wh: tuple[int, int]
 ) -> npt.NDArray[np.bool_]:
     return np.array(
         [
@@ -69,12 +70,7 @@ def _with_seg_mask(lines: list[str]) -> bool:
 
 
 def _extract_class_names(file_path: str) -> list[str]:
-    data: dict[str, Any] = read_yaml_file(file_path=file_path)
-    if not isinstance(data, dict):
-        raise ValueError(
-            f"Expected mapping in data.yaml at '{file_path}',"
-            f" got {type(data).__name__}."
-        )
+    data = read_yaml_file(file_path=file_path)
     names = data.get("names")
     if isinstance(names, dict):
         return [str(names[key]) for key in sorted(names.keys())]
@@ -123,10 +119,10 @@ def yolo_annotations_to_detections(
             if with_masks:
                 relative_polygon_list.append(polygon)
 
-    class_id = np.array(class_id_list, dtype=int)
+    class_id = np.array(class_id_list, dtype=np.int64)
     relative_xyxy = np.array(relative_xyxy_list, dtype=np.float32)
     xyxy = relative_xyxy * np.array([w, h, w, h], dtype=np.float32)
-    data: dict[str, Any] = {}
+    data: DetectionData = {}
 
     if is_obb:
         relative_xyxyxyxy = np.array(relative_xyxyxyxy_list, dtype=np.float32)
@@ -290,7 +286,7 @@ def detections_to_yolo_annotations(
                 annotation.append(next_object)
         else:
             next_object = object_to_yolo(
-                xyxy=cast(npt.NDArray[np.number[Any]], xyxy),
+                xyxy=xyxy,
                 class_id=class_id_int,
                 image_shape=image_shape,
             )

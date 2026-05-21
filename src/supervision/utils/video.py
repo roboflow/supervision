@@ -10,7 +10,8 @@ from collections import deque
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from queue import Empty, Full, Queue
-from typing import Any, cast
+from types import TracebackType
+from typing import cast
 
 import cv2
 import numpy as np
@@ -106,13 +107,14 @@ class VideoSink:
         self.__writer: cv2.VideoWriter | None = None
 
     def __enter__(self) -> VideoSink:
+        fourcc_fn = cast(
+            Callable[[str, str, str, str], int], getattr(cv2, "VideoWriter_fourcc")
+        )
         try:
-            fourcc_fun = cast(Any, cv2).VideoWriter_fourcc
-            self.__fourcc = int(fourcc_fun(*self.__codec))
+            self.__fourcc = int(fourcc_fn(*self.__codec))
         except TypeError as e:
             logger.warning("%s. Defaulting to mp4v...", str(e))
-            fourcc_fun = cast(Any, cv2).VideoWriter_fourcc
-            self.__fourcc = int(fourcc_fun(*"mp4v"))
+            self.__fourcc = int(fourcc_fn(*"mp4v"))
         self.__writer = cv2.VideoWriter(
             self.target_path,
             self.__fourcc,
@@ -136,7 +138,7 @@ class VideoSink:
         self,
         exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
-        exc_traceback: Any,
+        exc_traceback: TracebackType | None,
     ) -> None:
         if self.__writer is not None:
             self.__writer.release()

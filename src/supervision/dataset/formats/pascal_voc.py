@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, cast
+from typing import cast
 from xml.etree.ElementTree import Element, SubElement
 
 import cv2
@@ -18,9 +18,9 @@ from supervision.utils.file import list_files_with_extensions
 
 
 def object_to_pascal_voc(
-    xyxy: npt.NDArray[np.number[Any]],
+    xyxy: npt.NDArray[np.number],
     name: str,
-    polygon: npt.NDArray[np.number[Any]] | None = None,
+    polygon: npt.NDArray[np.number] | None = None,
 ) -> Element:
     root = Element("object")
 
@@ -139,9 +139,7 @@ def detections_to_pascal_voc(
                 )
                 annotation.append(next_object)
         else:
-            next_object = object_to_pascal_voc(
-                xyxy=cast(npt.NDArray[np.number[Any]], xyxy), name=name
-            )
+            next_object = object_to_pascal_voc(xyxy=xyxy, name=name)
             annotation.append(next_object)
 
     # Generate XML string

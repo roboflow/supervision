@@ -7,7 +7,7 @@ from collections import defaultdict
 from copy import deepcopy
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, TypedDict
 
 import numpy as np
 import numpy.typing as npt
@@ -24,6 +24,40 @@ logger = _get_logger(__name__)
 
 if TYPE_CHECKING:
     import pandas as pd
+
+
+class CocoDict(TypedDict, total=False):
+    id: int
+    image_id: int
+    category_id: int
+    bbox: list[float]
+    area: float
+    iscrowd: int
+    ignore: int
+    _ignore: int
+    score: float
+    segmentation: list[list[float]]
+    name: str
+    supercategory: str
+    caption: str
+    keypoints: list[float]
+
+
+CocoDataset = dict[str, list[CocoDict]]
+
+
+class EvaluationImageResult(TypedDict):
+    image_id: int
+    category_id: int
+    area_range: list[float] | tuple[float, float]
+    max_det: int
+    dt_ids: list[int]
+    gt_ids: list[int]
+    dtMatches: npt.NDArray[np.int64]
+    gtMatches: npt.NDArray[np.int64]
+    dtScores: list[float]
+    gtIgnore: npt.NDArray[np.int64]
+    dtIgnore: npt.NDArray[np.bool_]
 
 
 @dataclass
@@ -152,7 +186,7 @@ class MeanAveragePrecisionResult:
         ensure_pandas_installed()
         import pandas as pd
 
-        pandas_data: dict[str, Any] = {
+        pandas_data: dict[str, object] = {
             "mAP@50:95": self.map50_95,
             "mAP@50": self.map50,
             "mAP@75": self.map75,
@@ -252,7 +286,7 @@ class EvaluationDataset:
     `COCOEvaluator` class.
     """
 
-    def __init__(self, targets: dict[str, Any] | None = None) -> None:
+    def __init__(self, targets: CocoDataset | None = None) -> None:
         """
         Constructor of EvaluationDataset object used to evaluate models with
         Mean Average Precision.
@@ -263,11 +297,11 @@ class EvaluationDataset:
         """
         # Initialize members
         # Initialize members
-        self.dataset: dict[str, Any] = dict()
-        self.anns: dict[int, Any] = dict()
-        self.cats: dict[int, Any] = dict()
-        self.imgs: dict[int, Any] = dict()
-        self.img_to_anns: dict[int, list[Any]] = defaultdict(list)
+        self.dataset: CocoDataset = {}
+        self.anns: dict[int, CocoDict] = {}
+        self.cats: dict[int, CocoDict] = {}
+        self.imgs: dict[int, CocoDict] = {}
+        self.img_to_anns: dict[int, list[CocoDict]] = defaultdict(list)
         self.cat_to_imgs: dict[int, list[int]] = defaultdict(list)
 
         if targets is None:
@@ -285,8 +319,11 @@ class EvaluationDataset:
         """
         Create index elements for the dataset.
         """
-        anns, cats, imgs = {}, {}, {}
-        img_to_anns, cat_to_imgs = defaultdict(list), defaultdict(list)
+        anns: dict[int, CocoDict] = {}
+        cats: dict[int, CocoDict] = {}
+        imgs: dict[int, CocoDict] = {}
+        img_to_anns: dict[int, list[CocoDict]] = defaultdict(list)
+        cat_to_imgs: dict[int, list[int]] = defaultdict(list)
         if "annotations" in self.dataset:
             for ann in self.dataset["annotations"]:
                 img_to_anns[ann["image_id"]].append(ann)
@@ -442,7 +479,7 @@ class EvaluationDataset:
 
         return list(ids_set)
 
-    def get_annotations(self, ids: list[int] | None = None) -> list[dict[str, Any]]:
+    def get_annotations(self, ids: list[int] | None = None) -> list[CocoDict]:
         """
         Get annotations with the specified ids.
 
@@ -456,7 +493,7 @@ class EvaluationDataset:
             return []
         return [self.anns[idx] for idx in ids]
 
-    def load_predictions(self, predictions: list[dict[str, Any]]) -> EvaluationDataset:
+    def load_predictions(self, predictions: list[CocoDict]) -> EvaluationDataset:
         """
         Load prediction result into an EvaluationDataset object.
 
@@ -468,7 +505,7 @@ class EvaluationDataset:
         """
         # Create an empty EvaluationDataset object for the predictions
         predictions_dataset = EvaluationDataset.empty()
-        predictions_dataset.dataset["images"] = [img for img in self.dataset["images"]]
+        predictions_dataset.dataset["images"] = list(self.dataset["images"])
 
         if not isinstance(predictions, list):
             raise ValueError("results must be a list")
@@ -606,18 +643,20 @@ class COCOEvaluator:
         # List of dictionaries containing the evaluation results
         # len(eval_imgs) = (categories) * (area_ranges) * (images)
         # For COCO 2017: len(eval_images) = 80 * 4 * 5000 = 1600000
-        self.eval_imgs: Any = defaultdict(list)
+        self.eval_imgs: list[EvaluationImageResult | None] = []
         # Dictionary of accumulated results
-        self.results: dict[str, Any] = {}
+        self.results: dict[str, object] = {}
         # Dictionary of targets for evaluation
-        self._targets: defaultdict[tuple[int, int], list[Any]] = defaultdict(list)
-        self._predictions: defaultdict[tuple[int, int], list[Any]] = defaultdict(list)
+        self._targets: defaultdict[tuple[int, int], list[CocoDict]] = defaultdict(list)
+        self._predictions: defaultdict[tuple[int, int], list[CocoDict]] = defaultdict(
+            list
+        )
         # Parameters for evaluation
         self.params = COCOEvaluatorParameters()
         # List of results summarization
-        self.stats: list[Any] = []
+        self.stats: list[object] = []
         # Dictionary of IOUs between all targets and predictions
-        self.ious: dict[tuple[int, int], Any] = {}
+        self.ious: dict[tuple[int, int], npt.NDArray[np.float32]] = {}
         # Set image and category ids
         self.params.img_ids = sorted(self.coco_targets.get_image_ids())
         self.params.cat_ids = sorted(self.coco_targets.get_category_ids())
@@ -653,7 +692,7 @@ class COCOEvaluator:
             self._predictions[dt["image_id"], dt["category_id"]].append(dt)
 
         # Initialize evaluation results
-        self.eval_imgs = defaultdict(list)
+        self.eval_imgs = []
         self.results = {}
 
     def _compute_iou(self, img_id: int, cat_id: int) -> npt.NDArray[np.float32]:
@@ -703,7 +742,7 @@ class COCOEvaluator:
         cat_id: int,
         area_range: list[float] | tuple[float, float],
         max_det: int,
-    ) -> dict[str, Any] | None:
+    ) -> EvaluationImageResult | None:
         """
         Perform evaluation for single category and image.
         Args:
@@ -716,8 +755,8 @@ class COCOEvaluator:
             The evaluation results.
         """
         # Get targets (gt) and predictions (dt) for the given image and category
-        gt: list[dict[str, Any]] = self._targets[img_id, cat_id]
-        dt: list[dict[str, Any]] = self._predictions[img_id, cat_id]
+        gt: list[CocoDict] = self._targets[img_id, cat_id]
+        dt: list[CocoDict] = self._predictions[img_id, cat_id]
 
         # If there is nothing to evaluate
         if len(gt) == 0 and len(dt) == 0:
@@ -754,11 +793,11 @@ class COCOEvaluator:
         num_detections = len(dt)
 
         # Initialize matches: 0 means no match
-        gt_matches = np.zeros((num_thresholds, num_ground_truths))
-        dt_matches = np.zeros((num_thresholds, num_detections))
+        gt_matches = np.zeros((num_thresholds, num_ground_truths), dtype=np.int64)
+        dt_matches = np.zeros((num_thresholds, num_detections), dtype=np.int64)
         # Initialize ignore flags: 0 means no ignore
-        gt_ignore = np.array([g["_ignore"] for g in gt])
-        dt_ignore = np.zeros((num_thresholds, num_detections))
+        gt_ignore = np.array([g["_ignore"] for g in gt], dtype=np.int64)
+        dt_ignore = np.zeros((num_thresholds, num_detections), dtype=np.bool_)
         if len(ious) != 0:
             # Go through the iou thresholds
             for tresh_idx, thresh in enumerate(self.params.iou_thrs):
@@ -772,7 +811,7 @@ class COCOEvaluator:
                     for g_idx, g in enumerate(gt):
                         # If current gt is already matched, and not a crowd, continue
                         # if gt_matches[tresh_idx, g_idx] > 0 and not iscrowd[g_idx]:
-                        iscrowd = int(g.get("iscrowd", 0))
+                        iscrowd = g["iscrowd"]
                         if gt_matches[tresh_idx, g_idx] > 0 and not iscrowd:
                             continue
                         # Stop searching the ground truths
@@ -901,10 +940,12 @@ class COCOEvaluator:
 
                 # Loop through max detections
                 for max_det_idx, max_det in enumerate(selected_max_detections):
-                    eval_img_data = [
+                    eval_img_data_raw = [
                         self.eval_imgs[cat_offset + area_offset + i] for i in image_inds
                     ]
-                    eval_img_data = [e for e in eval_img_data if e is not None]
+                    eval_img_data: list[EvaluationImageResult] = [
+                        e for e in eval_img_data_raw if e is not None
+                    ]
 
                     # No image to evaluate
                     if len(eval_img_data) == 0:
@@ -1019,13 +1060,13 @@ class COCOEvaluator:
             ) -> npt.NDArray[np.float64]:
                 sums = valid_precision.sum(axis=axis, dtype=np.float64)
                 counts = valid_mask.sum(axis=axis)
-                means = np.divide(
+                means: npt.NDArray[np.float64] = np.divide(
                     sums,
                     counts,
                     out=np.full(sums.shape, -1.0, dtype=np.float64),
                     where=counts > 0,
                 )
-                return cast(npt.NDArray[np.float64], means)
+                return means
 
             mAP_scores = mean_with_mask((1, 2))
             ap_per_class = mean_with_mask(1).transpose(1, 0)
@@ -1119,7 +1160,9 @@ class COCOEvaluator:
             if use_ap:
                 # Dimension of precision:
                 # threshold x recall x classes x areas x max detections
-                s = self.results["precision"]
+                s: npt.NDArray[np.float32] = np.asarray(
+                    self.results["precision"], dtype=np.float32
+                )
                 # IOU
                 if iou_thr is not None:
                     t = np.where(iou_thr == self.params.iou_thrs)[0]
@@ -1128,7 +1171,7 @@ class COCOEvaluator:
             else:
                 # Dimension of recall:
                 # threshold x classes x areas x max detections
-                s = self.results["recall"]
+                s = np.asarray(self.results["recall"], dtype=np.float32)
                 if iou_thr is not None:
                     t = np.where(iou_thr == self.params.iou_thrs)[0]
                     s = s[t]
@@ -1223,7 +1266,12 @@ class COCOEvaluator:
         self._accumulate()
 
 
-class MeanAveragePrecision(Metric):
+class MeanAveragePrecision(
+    Metric[
+        [Detections | list[Detections], Detections | list[Detections]],
+        MeanAveragePrecisionResult,
+    ]
+):
     """
     Mean Average Precision (mAP) is a metric used to evaluate object detection models.
     It is the average of the precision-recall curves at different IoU thresholds.
@@ -1334,15 +1382,13 @@ class MeanAveragePrecision(Metric):
 
         return self
 
-    def _prepare_targets(
-        self, targets: list[Detections]
-    ) -> dict[str, list[dict[str, Any]]]:
+    def _prepare_targets(self, targets: list[Detections]) -> dict[str, list[CocoDict]]:
         """Transform targets into a dictionary that can be used by the COCO evaluator"""
-        images = [{"id": img_id} for img_id in range(len(targets))]
+        images: list[CocoDict] = [{"id": img_id} for img_id in range(len(targets))]
         if self._image_indices is not None:
             images = [{"id": self._image_indices[img["id"]]} for img in images]
         # Annotations list
-        annotations: list[dict[str, Any]] = []
+        annotations: list[CocoDict] = []
         for image_id, image_targets in enumerate(targets):
             if self._image_indices is not None:
                 image_id = self._image_indices[image_id]
@@ -1367,16 +1413,22 @@ class MeanAveragePrecision(Metric):
                 # Use area from data if available, otherwise calculate from bbox
                 area = None
                 if image_targets.data is not None and "area" in image_targets.data:
-                    area = float(image_targets.data["area"][target_idx])
+                    area_data: npt.NDArray[np.float32] = np.asarray(
+                        image_targets.data["area"], dtype=np.float32
+                    )
+                    area = float(area_data[target_idx])
 
                 if area is None:
                     area = xywh[2] * xywh[3]
 
                 iscrowd = 0
                 if image_targets.data is not None and "iscrowd" in image_targets.data:
-                    iscrowd = int(image_targets.data["iscrowd"][target_idx])
+                    iscrowd_data: npt.NDArray[np.int64] = np.asarray(
+                        image_targets.data["iscrowd"], dtype=np.int64
+                    )
+                    iscrowd = int(iscrowd_data[target_idx])
 
-                dict_annotation = {
+                dict_annotation: CocoDict = {
                     "area": area,
                     "iscrowd": iscrowd,
                     "image_id": image_id,
@@ -1387,8 +1439,8 @@ class MeanAveragePrecision(Metric):
                 }
                 annotations.append(dict_annotation)
         # Category list
-        all_cat_ids = {annotation.get("category_id") for annotation in annotations}
-        categories = [{"id": cat_id} for cat_id in all_cat_ids]
+        all_cat_ids = {annotation["category_id"] for annotation in annotations}
+        categories: list[CocoDict] = [{"id": cat_id} for cat_id in all_cat_ids]
         # Create coco dictionary
         return {
             "images": images,
@@ -1396,12 +1448,10 @@ class MeanAveragePrecision(Metric):
             "categories": categories,
         }
 
-    def _prepare_predictions(
-        self, predictions: list[Detections]
-    ) -> list[dict[str, Any]]:
+    def _prepare_predictions(self, predictions: list[Detections]) -> list[CocoDict]:
         """Transform predictions into a list of predictions that can be used by the COCO
         evaluator."""
-        coco_predictions: list[dict[str, Any]] = []
+        coco_predictions: list[CocoDict] = []
         for image_id, image_predictions in enumerate(predictions):
             if self._image_indices is not None:
                 image_id = self._image_indices[image_id]
@@ -1431,12 +1481,15 @@ class MeanAveragePrecision(Metric):
                     image_predictions.data is not None
                     and "area" in image_predictions.data
                 ):
-                    area = float(image_predictions.data["area"][pred_idx])
+                    area_data: npt.NDArray[np.float32] = np.asarray(
+                        image_predictions.data["area"], dtype=np.float32
+                    )
+                    area = float(area_data[pred_idx])
 
                 if area is None:
                     area = xywh[2] * xywh[3]
 
-                dict_prediction = {
+                dict_prediction: CocoDict = {
                     "image_id": image_id,
                     "bbox": xywh,
                     "score": score,

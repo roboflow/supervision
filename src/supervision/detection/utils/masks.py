@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal, cast
+from typing import Literal, cast
 
 import cv2
 import numpy as np
@@ -11,7 +11,7 @@ from supervision.detection.compact_mask import CompactMask
 
 def move_masks(
     masks: npt.NDArray[np.bool_],
-    offset: npt.NDArray[np.int32],
+    offset: npt.NDArray[np.integer],
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.bool_]:
     """
@@ -88,7 +88,7 @@ def move_masks(
 
 
 def calculate_masks_centroids(
-    masks: npt.NDArray[Any] | CompactMask,
+    masks: npt.NDArray[np.bool_] | CompactMask,
 ) -> npt.NDArray[np.int_]:
     """
     Calculate the centroids of binary masks in a tensor.
@@ -260,7 +260,9 @@ def contains_multiple_segments(
     return bool(number_of_labels > 2)
 
 
-def resize_masks(masks: npt.NDArray[Any], max_dimension: int = 640) -> npt.NDArray[Any]:
+def resize_masks(
+    masks: npt.NDArray[np.bool_], max_dimension: int = 640
+) -> npt.NDArray[np.bool_]:
     """
     Resize all masks in the array to have a maximum dimension of max_dimension,
     maintaining aspect ratio.

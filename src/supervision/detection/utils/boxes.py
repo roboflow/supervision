@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
-
 import numpy as np
 import numpy.typing as npt
 from deprecate import deprecated
@@ -10,9 +8,9 @@ from supervision.detection.utils.iou_and_nms import box_iou_batch
 
 
 def clip_boxes(
-    xyxy: npt.NDArray[np.number[Any]],
+    xyxy: npt.NDArray[np.number],
     resolution_wh: tuple[int, int],
-) -> npt.NDArray[np.number[Any]]:
+) -> npt.NDArray[np.number]:
     """
     Clips bounding boxes coordinates to fit within the frame resolution.
 
@@ -52,10 +50,10 @@ def clip_boxes(
 
 
 def pad_boxes(
-    xyxy: npt.NDArray[np.number[Any]],
+    xyxy: npt.NDArray[np.number],
     px: int,
     py: int | None = None,
-) -> npt.NDArray[np.number[Any]]:
+) -> npt.NDArray[np.number]:
     """
     Pads bounding boxes coordinates with a constant padding.
 
@@ -105,11 +103,11 @@ def pad_boxes(
     args_mapping={"normalized_xyxy": "xyxy"},
 )
 def denormalize_boxes(
-    xyxy: npt.NDArray[np.number[Any]],
+    xyxy: npt.NDArray[np.number],
     resolution_wh: tuple[int, int],
     normalization_factor: float = 1.0,
-    normalized_xyxy: npt.NDArray[np.number[Any]] | None = None,
-) -> npt.NDArray[np.number[Any]]:
+    normalized_xyxy: npt.NDArray[np.number] | None = None,
+) -> npt.NDArray[np.float64]:
     """
     Convert normalized bounding box coordinates to absolute pixel coordinates.
 
@@ -155,7 +153,7 @@ def denormalize_boxes(
         ```
     """
     width, height = resolution_wh
-    result = xyxy.copy()
+    result: npt.NDArray[np.float64] = np.array(xyxy, dtype=np.float64, copy=True)
 
     result[:, [0, 2]] = (result[:, [0, 2]] * width) / normalization_factor
     result[:, [1, 3]] = (result[:, [1, 3]] * height) / normalization_factor
@@ -164,8 +162,8 @@ def denormalize_boxes(
 
 
 def move_boxes(
-    xyxy: npt.NDArray[np.number[Any]], offset: npt.NDArray[np.int32]
-) -> npt.NDArray[np.number[Any]]:
+    xyxy: npt.NDArray[np.number], offset: npt.NDArray[np.integer]
+) -> npt.NDArray[np.number]:
     """
     Args:
         xyxy: An array of shape `(n, 4)` containing the
@@ -195,8 +193,8 @@ def move_boxes(
 
 
 def move_oriented_boxes(
-    xyxyxyxy: npt.NDArray[np.number[Any]], offset: npt.NDArray[np.int32]
-) -> npt.NDArray[np.number[Any]]:
+    xyxyxyxy: npt.NDArray[np.number], offset: npt.NDArray[np.integer]
+) -> npt.NDArray[np.number]:
     """
     Args:
         xyxyxyxy: An array of shape `(n, 4, 2)` containing the
@@ -243,9 +241,7 @@ def move_oriented_boxes(
     return xyxyxyxy + offset
 
 
-def scale_boxes(
-    xyxy: npt.NDArray[np.number[Any]], factor: float
-) -> npt.NDArray[np.number[Any]]:
+def scale_boxes(xyxy: npt.NDArray[np.number], factor: float) -> npt.NDArray[np.number]:
     """
     Scale the dimensions of bounding boxes.
 
@@ -279,9 +275,9 @@ def scale_boxes(
 
 
 def spread_out_boxes(
-    xyxy: npt.NDArray[np.number[Any]],
+    xyxy: npt.NDArray[np.number],
     max_iterations: int = 100,
-) -> npt.NDArray[np.number[Any]]:
+) -> npt.NDArray[np.number]:
     """
     Spread out boxes that overlap with each other.
 

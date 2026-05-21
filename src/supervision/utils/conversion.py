@@ -1,6 +1,6 @@
 import functools
 from collections.abc import Callable
-from typing import Any, TypeVar, cast
+from typing import TypeVar, cast
 
 import cv2
 import numpy as np
@@ -10,7 +10,7 @@ from PIL import Image
 
 from supervision.draw.base import ImageType
 
-F = TypeVar("F", bound=Callable[..., Any])
+F = TypeVar("F", bound=Callable[..., object])
 
 
 def ensure_cv2_image_for_class_method(
@@ -24,11 +24,13 @@ def ensure_cv2_image_for_class_method(
     Assumes the annotators modify the scene in-place.
     """
 
-    # ``wrapper`` is typed with ``Any`` parameters to avoid an inner TypeVar
-    # appearing in a position where ``functools.wraps`` requires a concrete
-    # signature; type identity is restored via the outer ``cast(F, wrapper)``.
     @functools.wraps(annotate_func)
-    def wrapper(self: Any, scene: Any, *args: Any, **kwargs: Any) -> Any:
+    def wrapper(
+        self: object,
+        scene: ImageType,
+        *args: object,
+        **kwargs: object,
+    ) -> object:
         if isinstance(scene, np.ndarray):
             annotated_np = cast(
                 npt.NDArray[np.uint8],
@@ -71,9 +73,8 @@ def ensure_cv2_image_for_standalone_function(
     Assumes the annotators do NOT modify the scene in-place.
     """
 
-    # See note above on the ``Any`` annotation pattern for ``wrapper``.
     @functools.wraps(image_processing_fun)
-    def wrapper(image: Any, *args: Any, **kwargs: Any) -> Any:
+    def wrapper(image: ImageType, *args: object, **kwargs: object) -> object:
         if isinstance(image, np.ndarray):
             annotated_np = cast(
                 npt.NDArray[np.uint8],
@@ -104,9 +105,13 @@ def ensure_pil_image_for_class_method(
     Assumes the annotators modify the scene in-place.
     """
 
-    # See note above on the ``Any`` annotation pattern for ``wrapper``.
     @functools.wraps(annotate_func)
-    def wrapper(self: Any, scene: Any, *args: Any, **kwargs: Any) -> Any:
+    def wrapper(
+        self: object,
+        scene: ImageType,
+        *args: object,
+        **kwargs: object,
+    ) -> object:
         if isinstance(scene, np.ndarray):
             scene_pil = cv2_to_pillow(scene)
             annotated_pil = cast(

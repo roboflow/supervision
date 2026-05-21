@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, cast
+from typing import cast
 
 import numpy as np
 import numpy.typing as npt
@@ -158,8 +158,8 @@ def box_iou(
 
 
 def box_iou_batch(
-    boxes_true: npt.NDArray[np.number[Any]],
-    boxes_detection: npt.NDArray[np.number[Any]],
+    boxes_true: npt.NDArray[np.number],
+    boxes_detection: npt.NDArray[np.number],
     overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
 ) -> npt.NDArray[np.float32]:
     """
@@ -359,8 +359,8 @@ def box_iou_batch_with_jaccard(
 
 
 def oriented_box_iou_batch(
-    boxes_true: npt.NDArray[np.number[Any]],
-    boxes_detection: npt.NDArray[np.number[Any]],
+    boxes_true: npt.NDArray[np.number],
+    boxes_detection: npt.NDArray[np.number],
 ) -> npt.NDArray[np.floating]:
     """
     Compute Intersection over Union (IoU) of two sets of oriented bounding boxes -
@@ -386,27 +386,29 @@ def oriented_box_iou_batch(
     # adding 1 because we are 0-indexed
     max_width = int(max(boxes_true[:, :, 1].max(), boxes_detection[:, :, 1].max()) + 1)
 
-    mask_true = np.zeros((boxes_true.shape[0], max_height, max_width), dtype=np.uint8)
+    mask_true = np.zeros((boxes_true.shape[0], max_height, max_width), dtype=bool)
     for box_idx, box_true in enumerate(boxes_true):
-        mask_true[box_idx] = polygon_to_mask(box_true, (max_width, max_height))
+        mask_true[box_idx] = polygon_to_mask(box_true, (max_width, max_height)).astype(
+            bool
+        )
 
     mask_detection = np.zeros(
-        (boxes_detection.shape[0], max_height, max_width), dtype=np.uint8
+        (boxes_detection.shape[0], max_height, max_width), dtype=bool
     )
     for box_idx, box_detection in enumerate(boxes_detection):
         mask_detection[box_idx] = polygon_to_mask(
             box_detection, (max_width, max_height)
-        )
+        ).astype(bool)
 
     ious = mask_iou_batch(mask_true, mask_detection)
     return ious
 
 
 def compact_mask_iou_batch(
-    masks_true: Any,
-    masks_detection: Any,
+    masks_true: CompactMask,
+    masks_detection: CompactMask,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
-) -> npt.NDArray[np.floating]:
+) -> npt.NDArray[np.float64]:
     """Compute pairwise overlap between two :class:`CompactMask` collections.
 
     Avoids materialising full ``(N, H, W)`` arrays by:
@@ -434,7 +436,7 @@ def compact_mask_iou_batch(
     """
     n1: int = len(masks_true)
     n2: int = len(masks_detection)
-    result: npt.NDArray[np.floating[Any]] = np.zeros((n1, n2), dtype=float)
+    result: npt.NDArray[np.float64] = np.zeros((n1, n2), dtype=float)
 
     if n1 == 0 or n2 == 0:
         return result
@@ -506,10 +508,10 @@ def compact_mask_iou_batch(
 
 
 def _mask_iou_batch_split(
-    masks_true: npt.NDArray[Any],
-    masks_detection: npt.NDArray[Any],
+    masks_true: npt.NDArray[np.bool_],
+    masks_detection: npt.NDArray[np.bool_],
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
-) -> npt.NDArray[np.floating]:
+) -> npt.NDArray[np.float64]:
     """
     Internal function.
     Compute Intersection over Union (IoU) of two sets of masks -
@@ -555,15 +557,15 @@ def _mask_iou_batch_split(
         )
 
     ious = np.nan_to_num(ious)
-    return cast(npt.NDArray[np.floating], ious)
+    return cast(npt.NDArray[np.float64], ious)
 
 
 def mask_iou_batch(
-    masks_true: npt.NDArray[Any] | CompactMask,
-    masks_detection: npt.NDArray[Any] | CompactMask,
+    masks_true: npt.NDArray[np.bool_] | CompactMask,
+    masks_detection: npt.NDArray[np.bool_] | CompactMask,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
     memory_limit: int = 1024 * 5,
-) -> npt.NDArray[np.floating]:
+) -> npt.NDArray[np.float64]:
     """
     Compute Intersection over Union (IoU) of two sets of masks -
         `masks_true` and `masks_detection`.
@@ -627,12 +629,12 @@ def mask_iou_batch(
             )
         )
 
-    return cast(npt.NDArray[np.floating], np.vstack(ious))
+    return cast(npt.NDArray[np.float64], np.vstack(ious))
 
 
 def mask_non_max_suppression(
     predictions: npt.NDArray[np.floating],
-    masks: npt.NDArray[Any] | CompactMask,
+    masks: npt.NDArray[np.bool_] | CompactMask,
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
     mask_dimension: int = 640,
@@ -756,8 +758,8 @@ def box_non_max_suppression(
 
 
 def _group_overlapping_masks(
-    predictions: npt.NDArray[np.floating[Any]],
-    masks: npt.NDArray[Any],
+    predictions: npt.NDArray[np.floating],
+    masks: npt.NDArray[np.bool_],
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
@@ -813,8 +815,8 @@ def _group_overlapping_masks(
 
 
 def mask_non_max_merge(
-    predictions: npt.NDArray[np.floating[Any]],
-    masks: npt.NDArray[Any] | CompactMask,
+    predictions: npt.NDArray[np.floating],
+    masks: npt.NDArray[np.bool_] | CompactMask,
     iou_threshold: float = 0.5,
     mask_dimension: int = 640,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,

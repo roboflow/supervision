@@ -6,7 +6,8 @@ import os
 import shutil
 from collections.abc import Callable
 from functools import partial
-from typing import Any, Literal, cast
+from types import TracebackType
+from typing import Literal, cast
 
 import cv2
 import numpy as np
@@ -33,7 +34,7 @@ MAX_COLUMNS_FOR_SINGLE_ROW_GRID = 3
 @ensure_cv2_image_for_standalone_function
 def crop_image(
     image: ImageType,
-    xyxy: npt.NDArray[np.number[Any]] | list[int] | tuple[int, int, int, int],
+    xyxy: npt.NDArray[np.number] | list[int] | tuple[int, int, int, int],
 ) -> ImageType:
     """
     Crop image based on bounding box coordinates.
@@ -556,7 +557,7 @@ class ImageSink:
         self,
         exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
-        exc_traceback: Any,
+        exc_traceback: TracebackType | None,
     ) -> None:
         pass
 
