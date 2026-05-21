@@ -20,17 +20,13 @@ def _coerce_single_mask(
     if isinstance(mask, CompactMask):
         if len(mask) != 1:
             raise ValueError(f"{mask_name} {_COMPACT_MASK_LENGTH_ERROR}")
-        return cast(
-            npt.NDArray[np.bool_], np.asarray(mask[0], dtype=bool)
-        )
+        return cast(npt.NDArray[np.bool_], np.asarray(mask[0], dtype=bool))
 
     mask_array = np.asarray(mask)
     if mask_array.ndim == 2:
         return cast(npt.NDArray[np.bool_], mask_array.astype(bool, copy=False))
     if mask_array.ndim == 3 and mask_array.shape[0] == 1:
-        return cast(
-            npt.NDArray[np.bool_], mask_array[0].astype(bool, copy=False)
-        )
+        return cast(npt.NDArray[np.bool_], mask_array[0].astype(bool, copy=False))
     raise ValueError(f"{mask_name} {_MASK_DIMENSIONS_ERROR}")
 
 
@@ -100,9 +96,7 @@ def _expand_boundary(
         kernel,
         borderType=cv2.BORDER_CONSTANT,
     )
-    return cast(
-        npt.NDArray[np.bool_], np.asarray(dilated_boundary, dtype=bool)
-    )
+    return cast(npt.NDArray[np.bool_], np.asarray(dilated_boundary, dtype=bool))
 
 
 def mask_iou(
