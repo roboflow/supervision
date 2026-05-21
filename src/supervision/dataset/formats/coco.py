@@ -11,7 +11,7 @@ from supervision.dataset.utils import (
     map_detections_class_id,
 )
 from supervision.detection.core import Detections
-from supervision.detection.utils._typing import _TypeDetectionData
+from supervision.detection.utils._typing import DetectionDataType
 from supervision.detection.utils.converters import (
     mask_to_rle,
     polygon_to_mask,
@@ -174,7 +174,7 @@ def coco_annotations_to_detections(
     xyxy = np.asarray(xyxy_list, dtype=np.float32)
     xyxy[:, 2:4] += xyxy[:, 0:2]
 
-    data: _TypeDetectionData = {}
+    data: DetectionDataType = {}
     if use_iscrowd:
         iscrowd = [
             image_annotation["iscrowd"] for image_annotation in image_annotations

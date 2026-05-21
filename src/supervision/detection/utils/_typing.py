@@ -5,6 +5,6 @@ from typing import TypeAlias
 import numpy as np
 import numpy.typing as npt
 
-_TypeDetectionDataValue: TypeAlias = npt.NDArray[np.generic] | list[object]
-_TypeDetectionData: TypeAlias = dict[str, _TypeDetectionDataValue]
-_TypeMetadata: TypeAlias = dict[str, object]
+DetectionDataValueType: TypeAlias = npt.NDArray[np.generic] | list[object]
+DetectionDataType: TypeAlias = dict[str, DetectionDataValueType]
+MetadataType: TypeAlias = dict[str, object]

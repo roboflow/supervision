@@ -19,7 +19,7 @@ from supervision.detection.tools.transformers import (
     process_transformers_v4_segmentation_result,
     process_transformers_v5_segmentation_result,
 )
-from supervision.detection.utils._typing import _TypeDetectionData
+from supervision.detection.utils._typing import DetectionDataType
 from supervision.detection.utils.converters import (
     mask_to_xyxy,
     polygon_to_mask,
@@ -266,7 +266,7 @@ class Detections:
     confidence: npt.NDArray[np.floating] | None = None
     class_id: npt.NDArray[np.integer] | None = None
     tracker_id: npt.NDArray[np.integer] | None = None
-    data: _TypeDetectionData = field(default_factory=dict)
+    data: DetectionDataType = field(default_factory=dict)
     metadata: dict[str, object] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -294,7 +294,7 @@ class Detections:
             np.floating | None,
             np.integer | None,
             np.integer | None,
-            _TypeDetectionData,
+            DetectionDataType,
         ]
     ]:
         """
@@ -2123,7 +2123,7 @@ class Detections:
                 resolution_wh=resolution_wh,
                 classes=classes,
             )
-            paligemma_data: _TypeDetectionData = {
+            paligemma_data: DetectionDataType = {
                 CLASS_NAME_DATA_FIELD: cast(
                     npt.NDArray[np.generic], paligemma_class_name
                 ),
@@ -2145,7 +2145,7 @@ class Detections:
                 resolution_wh=resolution_wh,
                 classes=classes,
             )
-            qwen_data: _TypeDetectionData = {
+            qwen_data: DetectionDataType = {
                 CLASS_NAME_DATA_FIELD: cast(npt.NDArray[np.generic], qwen_class_name)
             }
             confidence_arr: npt.NDArray[np.float32] = np.ones(
@@ -2167,7 +2167,7 @@ class Detections:
                 resolution_wh=resolution_wh,
                 classes=classes,
             )
-            qwen3_data: _TypeDetectionData = {
+            qwen3_data: DetectionDataType = {
                 CLASS_NAME_DATA_FIELD: cast(npt.NDArray[np.generic], qwen3_class_name)
             }
             confidence_arr = np.ones(len(qwen3_xyxy), dtype=float)
@@ -2187,7 +2187,7 @@ class Detections:
                 resolution_wh=resolution_wh,
                 classes=classes,
             )
-            deepseek_data: _TypeDetectionData = {
+            deepseek_data: DetectionDataType = {
                 CLASS_NAME_DATA_FIELD: cast(
                     npt.NDArray[np.generic], deepseek_class_name
                 )
@@ -2205,7 +2205,7 @@ class Detections:
             if len(florence_xyxy) == 0:
                 return cls.empty()
 
-            florence_data: _TypeDetectionData = {}
+            florence_data: DetectionDataType = {}
             if florence_labels is not None:
                 florence_data[CLASS_NAME_DATA_FIELD] = cast(
                     npt.NDArray[np.generic], florence_labels
@@ -2232,7 +2232,7 @@ class Detections:
                     classes=classes,
                 )
             )
-            gemini20_data: _TypeDetectionData = {
+            gemini20_data: DetectionDataType = {
                 CLASS_NAME_DATA_FIELD: cast(
                     npt.NDArray[np.generic], gemini20_class_name
                 )
@@ -2258,7 +2258,7 @@ class Detections:
                 resolution_wh=resolution_wh,
                 classes=classes,
             )
-            gemini25_data: _TypeDetectionData = {
+            gemini25_data: DetectionDataType = {
                 CLASS_NAME_DATA_FIELD: cast(npt.NDArray[np.generic], gemini25_result[2])
             }
             return cls(

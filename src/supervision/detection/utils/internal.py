@@ -10,9 +10,9 @@ import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.utils._typing import (
-    _TypeDetectionData,
-    _TypeDetectionDataValue,
-    _TypeMetadata,
+    DetectionDataType,
+    DetectionDataValueType,
+    MetadataType,
 )
 from supervision.detection.utils.converters import polygon_to_mask, rle_to_mask
 from supervision.geometry.core import Vector
@@ -124,7 +124,7 @@ def process_roboflow_result(
     npt.NDArray[np.int64],
     npt.NDArray[np.bool_] | None,
     npt.NDArray[np.int64] | None,
-    _TypeDetectionData,
+    DetectionDataType,
 ]:
     if not roboflow_result["predictions"]:
         return (
@@ -238,7 +238,7 @@ def process_roboflow_result(
     tracker_id_arr: npt.NDArray[np.int64] | None = (
         np.array(tracker_ids, dtype=np.int64) if len(tracker_ids) > 0 else None
     )
-    data: _TypeDetectionData = {CLASS_NAME_DATA_FIELD: class_name_arr}
+    data: DetectionDataType = {CLASS_NAME_DATA_FIELD: class_name_arr}
 
     return (
         xyxy_arr,
@@ -251,8 +251,8 @@ def process_roboflow_result(
 
 
 def is_data_equal(
-    data_a: _TypeDetectionData,
-    data_b: _TypeDetectionData,
+    data_a: DetectionDataType,
+    data_b: DetectionDataType,
 ) -> bool:
     """
     Compares the data payloads of two Detections instances.
@@ -281,7 +281,7 @@ def is_data_equal(
     return True
 
 
-def is_metadata_equal(metadata_a: _TypeMetadata, metadata_b: _TypeMetadata) -> bool:
+def is_metadata_equal(metadata_a: MetadataType, metadata_b: MetadataType) -> bool:
     """
     Compares the metadata payloads of two Detections instances.
 
@@ -309,7 +309,7 @@ def is_metadata_equal(metadata_a: _TypeMetadata, metadata_b: _TypeMetadata) -> b
     return True
 
 
-def merge_data(data_list: list[_TypeDetectionData]) -> _TypeDetectionData:
+def merge_data(data_list: list[DetectionDataType]) -> DetectionDataType:
     """
     Merges the data payloads of a list of Detections instances.
 
@@ -343,14 +343,14 @@ def merge_data(data_list: list[_TypeDetectionData]) -> _TypeDetectionData:
                 "All data values within a single object must have equal length."
             )
 
-    merged_data_values: dict[str, list[_TypeDetectionDataValue]] = {
+    merged_data_values: dict[str, list[DetectionDataValueType]] = {
         key: [] for key in all_keys_sets[0]
     }
     for data in data_list:
         for key, value in data.items():
             merged_data_values[key].append(value)
 
-    merged_data: _TypeDetectionData = {}
+    merged_data: DetectionDataType = {}
     for key, values in merged_data_values.items():
         if all(isinstance(item, list) for item in values):
             list_values = cast(list[list[object]], values)
@@ -373,7 +373,7 @@ def merge_data(data_list: list[_TypeDetectionData]) -> _TypeDetectionData:
     return merged_data
 
 
-def merge_metadata(metadata_list: list[_TypeMetadata]) -> _TypeMetadata:
+def merge_metadata(metadata_list: list[MetadataType]) -> MetadataType:
     """
     Merge metadata from a list of metadata dictionaries.
 
@@ -400,7 +400,7 @@ def merge_metadata(metadata_list: list[_TypeMetadata]) -> _TypeMetadata:
     if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
         raise ValueError("All metadata dictionaries must have the same keys to merge.")
 
-    merged_metadata: _TypeMetadata = {}
+    merged_metadata: MetadataType = {}
     for metadata in metadata_list:
         for key, value in metadata.items():
             if key not in merged_metadata:
@@ -430,14 +430,14 @@ def merge_metadata(metadata_list: list[_TypeMetadata]) -> _TypeMetadata:
 
 
 def get_data_item(
-    data: _TypeDetectionData,
+    data: DetectionDataType,
     index: int
     | slice
     | list[int]
     | list[bool]
     | npt.NDArray[np.int_]
     | npt.NDArray[np.bool_],
-) -> _TypeDetectionData:
+) -> DetectionDataType:
     """
     Retrieve a subset of the data dictionary based on the given index.
 
@@ -448,7 +448,7 @@ def get_data_item(
     Returns:
         A subset of the data dictionary corresponding to the specified index.
     """
-    subset_data: _TypeDetectionData = {}
+    subset_data: DetectionDataType = {}
     for key, value in data.items():
         if isinstance(value, np.ndarray):
             subset_data[key] = value[index]

@@ -20,11 +20,11 @@ import json
 import math
 import time
 import tracemalloc
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Callable
 
 import cv2
 import numpy as np

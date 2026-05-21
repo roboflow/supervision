@@ -9,7 +9,7 @@ import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
-from supervision.detection.utils._typing import _TypeDetectionData
+from supervision.detection.utils._typing import DetectionDataType
 from supervision.detection.utils.internal import (
     get_data_item,
     is_data_equal,
@@ -255,7 +255,7 @@ class KeyPoints:
     xy: npt.NDArray[np.float32]
     class_id: npt.NDArray[np.int_] | None = None
     confidence: npt.NDArray[np.float32] | None = None
-    data: _TypeDetectionData = field(default_factory=dict)
+    data: DetectionDataType = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         validate_key_points_fields(
@@ -292,7 +292,7 @@ class KeyPoints:
             npt.NDArray[np.float32],
             np.float32 | None,
             np.integer | None,
-            _TypeDetectionData,
+            DetectionDataType,
         ]
     ]:
         """
@@ -413,7 +413,7 @@ class KeyPoints:
             class_id.append(prediction["class_id"])
             class_names.append(prediction["class"])
 
-        data: _TypeDetectionData = {
+        data: DetectionDataType = {
             CLASS_NAME_DATA_FIELD: np.array(class_names, dtype=str)
         }
 
@@ -585,7 +585,7 @@ class KeyPoints:
         )
 
         confidence = ultralytics_results.keypoints.conf.cpu().numpy().astype(np.float32)
-        data: _TypeDetectionData = {CLASS_NAME_DATA_FIELD: class_names}
+        data: DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
         return cls(xy, class_id, confidence, data)
 
     @classmethod
@@ -631,7 +631,7 @@ class KeyPoints:
         else:
             class_id = None
 
-        data: _TypeDetectionData = {}
+        data: DetectionDataType = {}
         if class_id is not None and yolo_nas_results.class_names is not None:
             class_names = []
             for c_id in class_id:
