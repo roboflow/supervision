@@ -91,6 +91,12 @@ from supervision.detection.utils.iou_and_nms import (
     mask_non_max_suppression,
     oriented_box_iou_batch,
 )
+from supervision.detection.utils.mask_metrics import (
+    boundary_f_score,
+    boundary_iou,
+    dice_coefficient,
+    mask_iou,
+)
 from supervision.detection.utils.masks import (
     calculate_masks_centroids,
     contains_holes,
@@ -208,6 +214,8 @@ __all__ = [
     "VideoInfo",
     "VideoSink",
     "approximate_polygon",
+    "boundary_f_score",
+    "boundary_iou",
     "box_iou",
     "box_iou_batch",
     "box_iou_batch_with_jaccard",
@@ -221,6 +229,7 @@ __all__ = [
     "contains_multiple_segments",
     "crop_image",
     "cv2_to_pillow",
+    "dice_coefficient",
     "draw_filled_polygon",
     "draw_filled_rectangle",
     "draw_image",
@@ -242,6 +251,7 @@ __all__ = [
     "is_valid_hex",
     "letterbox_image",
     "list_files_with_extensions",
+    "mask_iou",
     "mask_iou_batch",
     "mask_non_max_merge",
     "mask_non_max_suppression",
