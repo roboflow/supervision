@@ -1347,12 +1347,12 @@ def _tiny_detection_dataset(
     annotations: dict[str, Detections] = {}
     for i in range(num_images):
         path = str(tmp_path / f"{prefix}_{i}.jpg")
-        cv2.imwrite(path, np.zeros((10, 10, 3), dtype=np.uint8))
+        assert cv2.imwrite(path, np.zeros((10, 10, 3), dtype=np.uint8))
         image_paths.append(path)
         xyxy = np.array(
             [[float(j), 0.0, float(j) + 1.0, 1.0] for j in range(dets_per_image)],
             dtype=float,
-        )
+        ).reshape(-1, 4)
         annotations[path] = Detections(
             xyxy=xyxy,
             class_id=np.zeros(dets_per_image, dtype=int),
@@ -1477,3 +1477,42 @@ def test_as_coco_without_annotations_path_returns_starting_ids(tmp_path):
     )
     assert next_image_id == 42
     assert next_annotation_id == 99
+
+
+def test_save_coco_annotations_annotation_image_id_references_correct_image(tmp_path):
+    """Every annotation's image_id must reference an image id present in the
+    same file, even when a non-default starting_image_id is used."""
+    dataset = _tiny_detection_dataset(tmp_path, "img", num_images=3, dets_per_image=2)
+    annotation_path = tmp_path / "annotations.json"
+
+    save_coco_annotations(
+        dataset=dataset,
+        annotation_path=str(annotation_path),
+        starting_image_id=100,
+        starting_annotation_id=500,
+    )
+
+    with open(annotation_path) as f:
+        coco = json.load(f)
+    image_id_set = {img["id"] for img in coco["images"]}
+    annotation_image_ids = {ann["image_id"] for ann in coco["annotations"]}
+    assert annotation_image_ids <= image_id_set, (
+        "annotation image_id values reference unknown image ids"
+    )
+
+
+def test_save_coco_annotations_zero_annotation_images(tmp_path):
+    """Dataset with images but zero detections per image: image ids are
+    assigned sequentially but annotation list stays empty."""
+    dataset = _tiny_detection_dataset(tmp_path, "img", num_images=2, dets_per_image=0)
+    annotation_path = tmp_path / "annotations.json"
+
+    next_image_id, next_annotation_id = save_coco_annotations(
+        dataset=dataset, annotation_path=str(annotation_path)
+    )
+
+    image_ids, annotation_ids = _read_ids(annotation_path)
+    assert image_ids == [1, 2]
+    assert annotation_ids == []
+    assert next_image_id == 3
+    assert next_annotation_id == 1
