@@ -374,21 +374,23 @@ def save_coco_annotations(
     image_id_start: int = 1,
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
-    approximation_percentage: float = 0.75,
-) -> None:
+    approximation_percentage: float = 0.0,
+    starting_image_id: int = 1,
+    starting_annotation_id: int = 1,
+) -> tuple[int, int]:
     """Save dataset annotations in COCO JSON format.
 
     Args:
         dataset: The dataset whose annotations to export.
         annotation_path: Destination path for the COCO JSON file. Parent
             directories are created automatically.
-        annotation_id_start: First annotation ID written to the output file.
+        starting_image_id: First image ID written to the output file. Defaults
+            to 1. Set alongside `starting_annotation_id` to keep image IDs
+            disjoint across split exports.
+        starting_annotation_id: First annotation ID written to the output file.
             Defaults to 1. Set to a higher value (e.g. using the offset
             propagated by `DetectionDataset.split()`) so that annotation IDs
             remain unique when multiple split JSON files are used together.
-        image_id_start: First image ID written to the output file. Defaults
-            to 1. Set alongside `annotation_id_start` to keep image IDs
-            disjoint across split exports.
         min_image_area_percentage: Minimum detection area as a fraction of the
             image area. Detections below this threshold are excluded. Only
             applies to segmentation datasets.
@@ -398,7 +400,27 @@ def save_coco_annotations(
         approximation_percentage: Fraction of polygon points to remove from
             each segmentation mask, in the range [0, 1). Higher values produce
             simpler polygons. Only applies to segmentation datasets.
+
+    Returns:
+        A ``(next_image_id, next_annotation_id)`` tuple. The returned values
+        are one greater than the highest ids written, so they can be fed
+        directly back into ``starting_image_id`` and ``starting_annotation_id``
+        when exporting another split. When the dataset is empty the starting
+        ids are returned unchanged.
+
+        .. note::
+            This function ensures globally unique integer ``id`` values across
+            splits. It does **not** ensure unique ``file_name`` values — the
+            ``file_name`` field is set to the bare image basename, so splits
+            that share filenames will have duplicate ``file_name`` values when
+            their COCO files are merged.
     """
+    if starting_image_id < 1 or starting_annotation_id < 1:
+        raise ValueError(
+            "starting_image_id and starting_annotation_id must be >= 1 "
+            "(COCO spec requires 1-indexed ids); "
+            f"got {starting_image_id=}, {starting_annotation_id=}"
+        )
     Path(annotation_path).parent.mkdir(parents=True, exist_ok=True)
     licenses = [
         {
@@ -412,7 +434,7 @@ def save_coco_annotations(
     coco_images = []
     coco_categories = classes_to_coco_categories(classes=dataset.classes)
 
-    image_id, annotation_id = image_id_start, annotation_id_start
+    image_id, annotation_id = starting_image_id, starting_annotation_id
     for image_path, image, annotation in dataset:
         image_height, image_width, _ = image.shape
         image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"
@@ -446,3 +468,4 @@ def save_coco_annotations(
         "annotations": coco_annotations,
     }
     save_json_file(annotation_dict, file_path=annotation_path)
+    return image_id, annotation_id

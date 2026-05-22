@@ -639,9 +639,9 @@ class DetectionDataset(BaseDataset):
         min_image_area_percentage: float = 0.0,
         max_image_area_percentage: float = 1.0,
         approximation_percentage: float = 0.0,
-        annotation_id_start: int | None = None,
-        image_id_start: int | None = None,
-    ) -> None:
+        starting_image_id: int | None = None,
+        starting_annotation_id: int | None = None,
+    ) -> tuple[int, int]:
         """
         Exports the dataset to COCO format. This method saves the
         images and their corresponding annotations in COCO format.
@@ -663,8 +663,8 @@ class DetectionDataset(BaseDataset):
         Note:
             Datasets produced by `split()` automatically carry an ID offset so that
             annotation and image IDs remain unique across all resulting splits. Pass
-            `annotation_id_start` or `image_id_start` to override the offset when
-            merging with a pre-existing COCO file.
+            `starting_image_id` or `starting_annotation_id` to override the offset
+            when merging with a pre-existing COCO file.
 
         Args:
             images_directory_path: The path to the directory
@@ -683,34 +683,68 @@ class DetectionDataset(BaseDataset):
                 to be removed from the input polygon,
                 in the range [0, 1). This is useful for simplifying the annotations.
                 Argument is used only for segmentation datasets.
-            annotation_id_start: Override the first annotation ID written to the COCO
-                file. When `None` (default), the dataset's internal offset is used,
-                which is automatically set by `split()` to produce disjoint ID ranges.
-            image_id_start: Override the first image ID written to the COCO file.
+            starting_annotation_id: Override the first annotation ID written to the
+                COCO file. When `None` (default), the dataset's internal offset is
+                used, which is automatically set by `split()` to produce disjoint
+                ID ranges.
+            starting_image_id: Override the first image ID written to the COCO file.
                 When `None` (default), the dataset's internal offset is used.
+
+        Returns:
+            A ``(next_image_id, next_annotation_id)`` tuple containing the
+            first unused ids after this export. Feed them straight back into
+            ``starting_image_id`` and ``starting_annotation_id`` on the next
+            split so ids stay globally unique. When ``annotations_path`` is
+            ``None`` (images-only export) the effective starting ids are returned
+            unchanged so chaining still composes.
+
+        Example:
+            ```python
+            # Exporting train, valid, and test splits with non-colliding ids
+            # so the three annotation files can later be merged into one COCO.
+            next_image_id, next_annotation_id = train_ds.as_coco(
+                images_directory_path="out/train/images",
+                annotations_path="out/train/annotations.json",
+            )
+            next_image_id, next_annotation_id = valid_ds.as_coco(
+                images_directory_path="out/valid/images",
+                annotations_path="out/valid/annotations.json",
+                starting_image_id=next_image_id,
+                starting_annotation_id=next_annotation_id,
+            )
+            _, _ = test_ds.as_coco(
+                images_directory_path="out/test/images",
+                annotations_path="out/test/annotations.json",
+                image_id_start=next_image_id,
+                annotation_id_start=next_annotation_id,
+            )  # return value not needed — no further split
+            ```
         """
         if images_directory_path is not None:
             save_dataset_images(
                 dataset=self, images_directory_path=images_directory_path
             )
+        effective_image_id = (
+            starting_image_id
+            if starting_image_id is not None
+            else self._coco_image_id_start
+        )
+        effective_annotation_id = (
+            starting_annotation_id
+            if starting_annotation_id is not None
+            else self._coco_annotation_id_start
+        )
         if annotations_path is not None:
-            save_coco_annotations(
+            return save_coco_annotations(
                 dataset=self,
                 annotation_path=annotations_path,
-                annotation_id_start=(
-                    annotation_id_start
-                    if annotation_id_start is not None
-                    else self._coco_annotation_id_start
-                ),
-                image_id_start=(
-                    image_id_start
-                    if image_id_start is not None
-                    else self._coco_image_id_start
-                ),
+                starting_image_id=effective_image_id,
+                starting_annotation_id=effective_annotation_id,
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
             )
+        return effective_image_id, effective_annotation_id
 
 
 @dataclass
