@@ -359,6 +359,44 @@ def three_class_single_image_detections():
     return predictions, targets
 
 
+@pytest.mark.parametrize(
+    "missing_attribute",
+    ["predictions_class_id", "targets_class_id", "predictions_confidence"],
+)
+def test_compute_value_error_for_missing_required_fields(missing_attribute) -> None:
+    """Test that compute raises ValueError when required detection fields are missing."""
+    metric = MeanAverageRecall()
+    boxes = np.array([[10, 10, 50, 50]], dtype=np.float32)
+    class_id = np.array([0], dtype=np.int32)
+    confidence = np.array([0.9], dtype=np.float32)
+
+    predictions = Detections(
+        xyxy=boxes,
+        confidence=confidence,
+        class_id=class_id,
+    )
+    targets = Detections(
+        xyxy=boxes,
+        class_id=class_id,
+    )
+
+    if missing_attribute == "predictions_class_id":
+        predictions = Detections(
+            xyxy=boxes,
+            confidence=confidence,
+        )
+    elif missing_attribute == "targets_class_id":
+        targets = Detections(xyxy=boxes)
+    else:
+        predictions = Detections(
+            xyxy=boxes,
+            class_id=class_id,
+        )
+
+    with pytest.raises(ValueError):
+        metric.update(predictions, targets).compute()
+
+
 def test_single_perfect_detection() -> None:
     """Test that a single perfect detection yields 1.0 recall."""
     detections = Detections(
