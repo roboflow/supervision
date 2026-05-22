@@ -1,9 +1,13 @@
 ---
 description: "Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version."
-date_modified: 2026-04-23
+date_modified: 2026-04-30
 ---
 
 # Changelog
+
+### UnReleased
+
+-
 
 ### 0.28.0 <small>Apr 30, 2026</small>
 
