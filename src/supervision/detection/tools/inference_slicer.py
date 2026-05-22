@@ -84,9 +84,13 @@ class InferenceSlicer:
         iou_threshold: IOU threshold used in merging overlap filtering.
         overlap_metric: Metric to compute overlap (`IOU` or `IOS`).
         thread_workers: Number of threads for concurrent slice inference.
-            When the callback returns oriented bounding boxes, Supervision
-            falls back to sequential processing to avoid thread-safety issues
-            in common OBB inference backends.
+            Must be a positive integer. When the first slice returns oriented
+            bounding boxes (OBB), Supervision probes additional slices until a
+            non-empty result is found, then falls back to sequential processing
+            for all remaining slices to avoid thread-safety issues in common OBB
+            inference backends. Note: the first slice always runs synchronously
+            regardless of this setting, so for grids with few slices
+            (e.g. two-slice images) effective parallelism is reduced.
         compact_masks: If ``True``, dense ``(N, H, W)`` boolean mask
             arrays returned by the callback are immediately converted to a
             :class:`~supervision.detection.compact_mask.CompactMask`. This
@@ -98,7 +102,8 @@ class InferenceSlicer:
             Defaults to ``False`` for backward compatibility.
 
     Raises:
-        ValueError: If `slice_wh` or `overlap_wh` are invalid or inconsistent.
+        ValueError: If `slice_wh`, `overlap_wh`, or `thread_workers` are
+            invalid or inconsistent.
 
     Example:
         ```python
@@ -173,6 +178,14 @@ class InferenceSlicer:
     def __call__(self, image: ImageType) -> Detections:
         """
         Perform tiled inference on the full image and return merged detections.
+
+        The first slice always runs synchronously so the output type can be
+        inspected before committing to a threading strategy. Detections are
+        merged in a deterministic order: the first slice is always at index 0,
+        followed by any probe slices, then the remaining slices in source order.
+        If oriented bounding boxes are detected, all remaining slices are
+        processed sequentially and a ``SupervisionWarnings`` warning is emitted
+        once per slicer instance.
 
         Args:
             image: The full image to run inference on.
