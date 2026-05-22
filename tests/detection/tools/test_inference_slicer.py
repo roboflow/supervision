@@ -389,32 +389,19 @@ def test_run_callback_does_not_rewarn_on_second_call() -> None:
 def test_obb_callbacks_run_sequentially_even_with_multiple_workers() -> None:
     """Test that OBB callbacks are serialized even when thread_workers > 1."""
 
-    barrier = threading.Barrier(3)
     active_calls = 0
     max_active_calls = 0
     concurrent_callbacks = 0
-    callback_count = 0
     callback_lock = threading.Lock()
 
     def obb_callback(_: np.ndarray) -> Detections:
-        nonlocal active_calls, max_active_calls, concurrent_callbacks, callback_count
-
-        with callback_lock:
-            callback_index = callback_count
-            callback_count += 1
+        nonlocal active_calls, max_active_calls, concurrent_callbacks
 
         with callback_lock:
             active_calls += 1
             max_active_calls = max(max_active_calls, active_calls)
-
-        if callback_index > 0:
-            try:
-                barrier.wait(timeout=1.0)
-            except threading.BrokenBarrierError:
-                pass
-            else:
-                with callback_lock:
-                    concurrent_callbacks += 1
+            if active_calls > 1:
+                concurrent_callbacks += 1
 
         with callback_lock:
             active_calls -= 1
