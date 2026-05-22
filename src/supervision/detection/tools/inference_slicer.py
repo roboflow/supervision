@@ -191,10 +191,7 @@ class InferenceSlicer:
         should_run_sequentially = self.thread_workers <= 1 or obb_detected
 
         probe_index = 0
-        if (
-            not should_run_sequentially
-            and len(first_detections) == 0
-        ):
+        if not should_run_sequentially and len(first_detections) == 0:
             while probe_index < len(remaining_offsets):
                 probe_offset = remaining_offsets[probe_index]
                 probe_detections = self._run_callback(image, probe_offset)
