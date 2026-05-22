@@ -6,7 +6,7 @@ from contextlib import ExitStack as DoesNotRaise
 import numpy as np
 import pytest
 
-from supervision import Detections
+from supervision import DetectionDataset, Detections
 from supervision.dataset.formats.coco import (
     build_coco_class_index_mapping,
     classes_to_coco_categories,
@@ -1329,3 +1329,80 @@ def test_load_coco_annotations_force_masks_handles_missing_segmentation(
     assert image_annotations.mask.shape == (1, 5, 5)
     assert not image_annotations.mask.any()
     assert np.array_equal(image_annotations.xyxy, np.array([[0, 0, 2, 2]], dtype=float))
+
+
+@pytest.fixture
+def coco_data_with_multi_segment_segmentation() -> dict[str, object]:
+    return {
+        "categories": [
+            {
+                "id": 1,
+                "name": "cat_eye",
+                "supercategory": "animal_parts",
+            }
+        ],
+        "images": [
+            {
+                "id": 1,
+                "file_name": "image.jpg",
+                "width": 5,
+                "height": 5,
+            }
+        ],
+        "annotations": [
+            {
+                "id": 1,
+                "image_id": 1,
+                "category_id": 1,
+                "bbox": [0, 0, 5, 5],
+                "area": 25,
+                "segmentation": [
+                    [0, 0, 1, 0, 1, 1, 0, 1],
+                    [3, 3, 4, 3, 4, 4, 3, 4],
+                ],
+                "iscrowd": 0,
+            }
+        ],
+    }
+
+
+class TestFromCocoMasks:
+    """Integration: DetectionDataset.from_coco loads multi-segment masks."""
+
+    def test_multi_segment_masks_auto_detected(
+        self,
+        tmp_path,
+        coco_data_with_multi_segment_segmentation: dict[str, object],
+    ) -> None:
+        """Multi-segment masks merged via _with_seg_mask auto-detection."""
+        images_directory = tmp_path / "images"
+        images_directory.mkdir()
+        annotations_path = tmp_path / "annotations.json"
+
+        annotations_path.write_text(
+            json.dumps(coco_data_with_multi_segment_segmentation), encoding="utf-8"
+        )
+
+        dataset = DetectionDataset.from_coco(
+            images_directory_path=str(images_directory),
+            annotations_path=str(annotations_path),
+        )
+
+        annotation = dataset.annotations[str(images_directory / "image.jpg")]
+        assert annotation.mask is not None
+        assert annotation.mask.shape == (1, 5, 5)
+        np.testing.assert_array_equal(
+            annotation.mask,
+            np.array(
+                [
+                    [
+                        [1, 1, 0, 0, 0],
+                        [1, 1, 0, 0, 0],
+                        [0, 0, 0, 0, 0],
+                        [0, 0, 0, 1, 1],
+                        [0, 0, 0, 1, 1],
+                    ]
+                ],
+                dtype=bool,
+            ),
+        )
