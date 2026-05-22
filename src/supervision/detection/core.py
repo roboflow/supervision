@@ -2560,44 +2560,71 @@ class Detections:
         """
         xyxy = self.xyxy
         if anchor == Position.CENTER:
-            return np.array(
+            return cast(
+                npt.NDArray[np.number],
+                np.array(
                 [
                     (xyxy[:, 0] + xyxy[:, 2]) / 2,
                     (xyxy[:, 1] + xyxy[:, 3]) / 2,
                 ]
-            ).transpose()
+                ).transpose(),
+            )
         elif anchor == Position.CENTER_OF_MASS:
             if self.mask is None:
                 raise ValueError(
                     "Cannot use `Position.CENTER_OF_MASS` without a detection mask."
                 )
-            return calculate_masks_centroids(masks=self.mask)
+            return cast(npt.NDArray[np.number], calculate_masks_centroids(masks=self.mask))
         elif anchor == Position.CENTER_LEFT:
-            return np.array(
+            return cast(
+                npt.NDArray[np.number],
+                np.array(
                 [
                     xyxy[:, 0],
                     (xyxy[:, 1] + xyxy[:, 3]) / 2,
                 ]
-            ).transpose()
+                ).transpose(),
+            )
         elif anchor == Position.CENTER_RIGHT:
-            return np.array(
+            return cast(
+                npt.NDArray[np.number],
+                np.array(
                 [
                     xyxy[:, 2],
                     (xyxy[:, 1] + xyxy[:, 3]) / 2,
                 ]
-            ).transpose()
+                ).transpose(),
+            )
         elif anchor == Position.BOTTOM_CENTER:
-            return np.array([(xyxy[:, 0] + xyxy[:, 2]) / 2, xyxy[:, 3]]).transpose()
+            return cast(
+                npt.NDArray[np.number],
+                np.array([(xyxy[:, 0] + xyxy[:, 2]) / 2, xyxy[:, 3]]).transpose(),
+            )
         elif anchor == Position.BOTTOM_LEFT:
-            return np.array([xyxy[:, 0], xyxy[:, 3]]).transpose()
+            return cast(
+                npt.NDArray[np.number],
+                np.array([xyxy[:, 0], xyxy[:, 3]]).transpose(),
+            )
         elif anchor == Position.BOTTOM_RIGHT:
-            return np.array([xyxy[:, 2], xyxy[:, 3]]).transpose()
+            return cast(
+                npt.NDArray[np.number],
+                np.array([xyxy[:, 2], xyxy[:, 3]]).transpose(),
+            )
         elif anchor == Position.TOP_CENTER:
-            return np.array([(xyxy[:, 0] + xyxy[:, 2]) / 2, xyxy[:, 1]]).transpose()
+            return cast(
+                npt.NDArray[np.number],
+                np.array([(xyxy[:, 0] + xyxy[:, 2]) / 2, xyxy[:, 1]]).transpose(),
+            )
         elif anchor == Position.TOP_LEFT:
-            return np.array([xyxy[:, 0], xyxy[:, 1]]).transpose()
+            return cast(
+                npt.NDArray[np.number],
+                np.array([xyxy[:, 0], xyxy[:, 1]]).transpose(),
+            )
         elif anchor == Position.TOP_RIGHT:
-            return np.array([xyxy[:, 2], xyxy[:, 1]]).transpose()
+            return cast(
+                npt.NDArray[np.number],
+                np.array([xyxy[:, 2], xyxy[:, 1]]).transpose(),
+            )
 
         raise ValueError(f"{anchor} is not supported.")
 

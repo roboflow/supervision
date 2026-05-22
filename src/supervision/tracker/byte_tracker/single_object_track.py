@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
+from typing import cast
 
 import numpy as np
 import numpy.typing as npt
@@ -142,11 +143,14 @@ class STrack:
         width, height)`.
         """
         if self.mean is None:
-            return self._tlwh.copy()
+            return cast(
+                npt.NDArray[np.float32],
+                np.asarray(self._tlwh.copy(), dtype=np.float32),
+            )
         ret = self.mean[:4].copy()
         ret[2] *= ret[3]
         ret[:2] -= ret[2:] / 2
-        return ret
+        return cast(npt.NDArray[np.float32], np.asarray(ret, dtype=np.float32))
 
     @property
     def tlbr(self) -> npt.NDArray[np.float32]:
@@ -155,7 +159,7 @@ class STrack:
         """
         ret = self.tlwh.copy()
         ret[2:] += ret[:2]
-        return ret
+        return cast(npt.NDArray[np.float32], np.asarray(ret, dtype=np.float32))
 
     @staticmethod
     def tlwh_to_xyah(tlwh: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
@@ -165,7 +169,7 @@ class STrack:
         ret = np.asarray(tlwh).copy()
         ret[:2] += ret[2:] / 2
         ret[2] /= ret[3]
-        return ret
+        return cast(npt.NDArray[np.float32], np.asarray(ret, dtype=np.float32))
 
     def to_xyah(self) -> npt.NDArray[np.float32]:
         return self.tlwh_to_xyah(self.tlwh)
@@ -174,13 +178,13 @@ class STrack:
     def tlbr_to_tlwh(tlbr: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         ret = np.asarray(tlbr).copy()
         ret[2:] -= ret[:2]
-        return ret
+        return cast(npt.NDArray[np.float32], np.asarray(ret, dtype=np.float32))
 
     @staticmethod
     def tlwh_to_tlbr(tlwh: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         ret = np.asarray(tlwh).copy()
         ret[2:] += ret[:2]
-        return ret
+        return cast(npt.NDArray[np.float32], np.asarray(ret, dtype=np.float32))
 
     def __repr__(self) -> str:
         return f"OT_{self.internal_track_id}_({self.start_frame}-{self.frame_id})"

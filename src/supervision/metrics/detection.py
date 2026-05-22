@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import cast
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -746,7 +747,7 @@ class MeanAveragePrecision:
 
             if true_objs.shape[0]:
                 matches = cls._match_detection_batch(
-                    predicted_objs, true_objs, iou_thresholds
+                    predicted_objs, true_objs, iou_thresholds.astype(np.float32, copy=False)
                 )
                 stats.append(
                     (
@@ -760,7 +761,12 @@ class MeanAveragePrecision:
         # Compute average precisions if any matches exist
         if stats:
             concatenated_stats = [np.concatenate(items, 0) for items in zip(*stats)]
-            average_precisions = cls._average_precisions_per_class(*concatenated_stats)
+            average_precisions = cls._average_precisions_per_class(
+                cast(npt.NDArray[np.bool_], concatenated_stats[0]),
+                cast(npt.NDArray[np.float32], concatenated_stats[1]),
+                cast(npt.NDArray[np.int32], concatenated_stats[2]),
+                cast(npt.NDArray[np.int32], concatenated_stats[3]),
+            )
             map50 = average_precisions[:, 0].mean()
             map75 = average_precisions[:, 5].mean()
             map50_95 = average_precisions.mean()

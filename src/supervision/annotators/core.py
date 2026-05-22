@@ -183,7 +183,10 @@ class _BaseLabelAnnotator(BaseAnnotator):
                 adjusted_properties[:, :4], resolution_wh
             )
 
-        return adjusted_properties
+        return cast(
+            npt.NDArray[np.float32],
+            np.asarray(adjusted_properties, dtype=np.float32),
+        )
 
 
 class BoxAnnotator(BaseAnnotator):
