@@ -372,7 +372,7 @@ def save_coco_annotations(
     annotation_path: str,
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
-    approximation_percentage: float = 0.75,
+    approximation_percentage: float = 0.0,
     starting_image_id: int = 1,
     starting_annotation_id: int = 1,
 ) -> tuple[int, int]:
