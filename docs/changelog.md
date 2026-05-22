@@ -1,17 +1,19 @@
 ---
 description: "Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version."
-date_modified: 2026-04-23
+date_modified: 2026-04-30
 ---
 
 # Changelog
 
-### 0.29.0 <small>upcoming</small>
+### UnReleased <small>upcoming</small>
 
 !!! failure "Python 3.9 Support Terminated"
 
     With the `supervision-0.29.0` release, we are terminating official support for Python 3.9, which reached end-of-life in October 2025. The minimum supported Python version is now **3.10**.
 
     Users on Python 3.9 should upgrade their environment before updating supervision.
+
+- Added [#2267](https://github.com/roboflow/supervision/pull/2267): [`DetectionDataset.as_coco`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.as_coco) and `save_coco_annotations` now accept `starting_image_id` and `starting_annotation_id` parameters (both default to `1`, preserving existing behavior) and return a `(next_image_id, next_annotation_id)` tuple. Feed the returned values into the next split's call to produce globally unique COCO ids across train/valid/test exports. Fixes id collisions reported in [#768](https://github.com/roboflow/supervision/issues/768). **Note**: the return type changes from `None` to `tuple[int, int]` — callers that assert `result is None` must be updated.
 
 ### 0.28.0 <small>Apr 30, 2026</small>
 

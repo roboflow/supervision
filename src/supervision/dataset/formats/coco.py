@@ -427,8 +427,68 @@ def save_coco_annotations(
     annotation_path: str,
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
-    approximation_percentage: float = 0.75,
-) -> None:
+    approximation_percentage: float = 0.0,
+    starting_image_id: int = 1,
+    starting_annotation_id: int = 1,
+) -> tuple[int, int]:
+    """Save a DetectionDataset to a COCO-format ``annotations.json`` file.
+
+    Args:
+        dataset: The DetectionDataset to write.
+        annotation_path: Output path for the COCO ``annotations.json``.
+        min_image_area_percentage: Lower bound on detection area / image area;
+            used only for segmentation datasets.
+        max_image_area_percentage: Upper bound on detection area / image area;
+            used only for segmentation datasets.
+        approximation_percentage: Polygon-simplification ratio in ``[0, 1)``;
+            used only for segmentation datasets.
+        starting_image_id: First image id to assign in the exported file.
+            Defaults to ``1``. Override when exporting multiple splits into
+            a coordinated COCO collection so ids remain unique across the set.
+        starting_annotation_id: First annotation id to assign in the exported
+            file. Defaults to ``1``. Override for the same multi-split reason
+            as ``starting_image_id``.
+
+    Returns:
+        A ``(next_image_id, next_annotation_id)`` tuple. The returned values
+        are one greater than the highest ids written, so they can be fed
+        directly back into ``starting_image_id`` and ``starting_annotation_id``
+        when exporting another split into a coordinated COCO collection
+        (see ``DetectionDataset.as_coco`` for the chaining pattern). When the
+        dataset is empty the starting ids are returned unchanged.
+
+        .. note::
+            This function ensures globally unique integer ``id`` values across
+            splits. It does **not** ensure unique ``file_name`` values — the
+            ``file_name`` field is set to the bare image basename, so splits
+            that share filenames (e.g. ``000001.jpg`` in both train and valid)
+            will have duplicate ``file_name`` values when their COCO files are
+            merged. Use distinct output directories or rename images before
+            merging if downstream tools require unique ``file_name`` keys.
+
+    Example:
+        ```python
+        import supervision as sv
+        from supervision.dataset.formats.coco import save_coco_annotations
+
+        ds = sv.DetectionDataset.from_yolo(
+            images_directory_path="train/images",
+            annotations_directory_path="train/labels",
+            data_yaml_path="data.yaml",
+        )
+        next_img_id, next_ann_id = save_coco_annotations(
+            dataset=ds, annotation_path="out/train/annotations.json"
+        )
+        # next_img_id and next_ann_id are the first unused ids — pass them
+        # to the next split to keep ids globally unique across files.
+        ```
+    """
+    if starting_image_id < 1 or starting_annotation_id < 1:
+        raise ValueError(
+            "starting_image_id and starting_annotation_id must be >= 1 "
+            "(COCO spec requires 1-indexed ids); "
+            f"got {starting_image_id=}, {starting_annotation_id=}"
+        )
     Path(annotation_path).parent.mkdir(parents=True, exist_ok=True)
     licenses = [
         {
@@ -442,7 +502,7 @@ def save_coco_annotations(
     coco_images: list[_TypeCocoImage] = []
     coco_categories = classes_to_coco_categories(classes=dataset.classes)
 
-    image_id, annotation_id = 1, 1
+    image_id, annotation_id = starting_image_id, starting_annotation_id
     for image_path, image, annotation in dataset:
         image_height, image_width, _ = image.shape
         image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"
@@ -476,3 +536,4 @@ def save_coco_annotations(
         "annotations": coco_annotations,
     }
     save_json_file(annotation_dict, file_path=annotation_path)
+    return image_id, annotation_id
