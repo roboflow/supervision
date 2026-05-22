@@ -44,9 +44,9 @@ supervision package for multiple tasks such as drawing heatmap annotations, trac
     particularly in distinguishing between different objects.
 - `--heatmap_alpha` (optional): Opacity of the overlay mask, between 0 and 1.
 - `--radius` (optional): Radius of the heat circle.
-- `--track_threshold` (optional): Detection confidence threshold for track activation.
+- `--track_activation_threshold` (optional): Detection confidence threshold for track activation.
 - `--track_seconds` (optional): Number of seconds to buffer when a track is lost.
-- `--match_threshold` (optional): Threshold for matching tracks with detections.
+- `--minimum_matching_threshold` (optional): Threshold for matching tracks with detections.
 
 ## ⚙️ run
 
