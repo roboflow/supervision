@@ -29,10 +29,27 @@ EXPECTED_ANNOTATOR_TAB_GROUPS = {
 
 def _extract_annotator_tab_groups() -> dict[str, list[str]]:
     docs_path = REPO_ROOT / "docs" / "detection" / "annotators.md"
-    content = docs_path.read_text()
+    content = docs_path.read_text(encoding="utf-8")
 
-    start = content.index('=== "Outlines"')
-    end = content.index("Try Supervision Annotators on your own image")
+    start_marker = '=== "Outlines"'
+    end_marker = "Try Supervision Annotators on your own image"
+
+    start = content.find(start_marker)
+    assert start != -1, (
+        f"Could not find start marker {start_marker!r} in {docs_path} while "
+        "parsing annotator example tab groups."
+    )
+
+    end = content.find(end_marker, start)
+    assert end != -1, (
+        f"Could not find end marker {end_marker!r} in {docs_path} while "
+        "parsing annotator example tab groups."
+    )
+    assert end > start, (
+        f"End marker {end_marker!r} must appear after start marker "
+        f"{start_marker!r} in {docs_path}."
+    )
+
     example_section = content[start:end]
 
     groups: dict[str, list[str]] = {}
