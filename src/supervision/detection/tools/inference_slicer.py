@@ -187,15 +187,34 @@ class InferenceSlicer:
         detections_list.append(first_detections)
 
         remaining_offsets = offsets[1:]
-        should_run_sequentially = (
-            self.thread_workers <= 1
-            or ORIENTED_BOX_COORDINATES in first_detections.data
-        )
+        obb_detected = ORIENTED_BOX_COORDINATES in first_detections.data
+        should_run_sequentially = self.thread_workers <= 1 or obb_detected
+
+        probe_index = 0
+        if (
+            not should_run_sequentially
+            and len(first_detections) == 0
+        ):
+            while probe_index < len(remaining_offsets):
+                probe_offset = remaining_offsets[probe_index]
+                probe_detections = self._run_callback(image, probe_offset)
+                detections_list.append(probe_detections)
+                probe_index += 1
+
+                if ORIENTED_BOX_COORDINATES in probe_detections.data:
+                    obb_detected = True
+                    should_run_sequentially = True
+                    break
+
+                if len(probe_detections) > 0:
+                    break
+
+        remaining_offsets = remaining_offsets[probe_index:]
 
         if should_run_sequentially:
             if (
                 self.thread_workers > 1
-                and ORIENTED_BOX_COORDINATES in first_detections.data
+                and obb_detected
                 and not self._obb_thread_workers_warned
             ):
                 self._obb_thread_workers_warned = True
