@@ -364,7 +364,7 @@ def three_class_single_image_detections():
     ["predictions_class_id", "targets_class_id", "predictions_confidence"],
 )
 def test_compute_value_error_for_missing_required_fields(missing_attribute) -> None:
-    """Test that compute raises ValueError when required detection fields are missing."""
+    """Raises ValueError when required detection fields are missing."""
     metric = MeanAverageRecall()
     boxes = np.array([[10, 10, 50, 50]], dtype=np.float32)
     class_id = np.array([0], dtype=np.int32)
@@ -393,7 +393,7 @@ def test_compute_value_error_for_missing_required_fields(missing_attribute) -> N
             class_id=class_id,
         )
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="MeanAverageRecall metric requires"):
         metric.update(predictions, targets).compute()
 
 

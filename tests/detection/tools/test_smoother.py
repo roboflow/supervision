@@ -6,7 +6,7 @@ from supervision.detection.core import Detections
 from supervision.detection.tools.smoother import DetectionsSmoother
 
 
-def test_detections_smoother_confidence_is_averaged_when_all_frames_have_confidence() -> None:
+def test_smoother_confidence_averaged_when_all_frames_have_confidence() -> None:
     smoother = DetectionsSmoother()
 
     first = Detections(

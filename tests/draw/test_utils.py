@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import numpy as np
 import cv2
+import numpy as np
 import pytest
 
 from supervision.draw.utils import draw_image
@@ -18,7 +18,7 @@ def test_draw_image_invalid_path_raises_oserror(tmp_path) -> None:
     scene = np.zeros((100, 100, 3), dtype=np.uint8)
     rect = Rect(x=0, y=0, width=100, height=100)
 
-    with pytest.raises(OSError):
+    with pytest.raises(OSError, match="Could not decode image path"):
         draw_image(
             scene=scene,
             image=str(invalid_image_path),

@@ -192,8 +192,10 @@ class TestPrecision:
         "missing_attribute",
         ["predictions_class_id", "targets_class_id", "predictions_confidence"],
     )
-    def test_compute_value_error_for_missing_required_fields(self, missing_attribute) -> None:
-        """Test that compute raises ValueError when required detection fields are missing."""
+    def test_compute_value_error_for_missing_required_fields(
+        self, missing_attribute
+    ) -> None:
+        """Raises ValueError when required detection fields are missing."""
         metric = Precision()
         boxes = np.array([[10, 10, 50, 50]], dtype=np.float32)
         class_id = np.array([0], dtype=np.int32)
@@ -222,7 +224,7 @@ class TestPrecision:
                 class_id=class_id,
             )
 
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Precision metric requires"):
             metric.update(predictions, targets).compute()
 
     @pytest.mark.parametrize(

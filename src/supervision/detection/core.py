@@ -2563,10 +2563,10 @@ class Detections:
             return cast(
                 npt.NDArray[np.number],
                 np.array(
-                [
-                    (xyxy[:, 0] + xyxy[:, 2]) / 2,
-                    (xyxy[:, 1] + xyxy[:, 3]) / 2,
-                ]
+                    [
+                        (xyxy[:, 0] + xyxy[:, 2]) / 2,
+                        (xyxy[:, 1] + xyxy[:, 3]) / 2,
+                    ]
                 ).transpose(),
             )
         elif anchor == Position.CENTER_OF_MASS:
@@ -2574,25 +2574,27 @@ class Detections:
                 raise ValueError(
                     "Cannot use `Position.CENTER_OF_MASS` without a detection mask."
                 )
-            return cast(npt.NDArray[np.number], calculate_masks_centroids(masks=self.mask))
+            return cast(
+                npt.NDArray[np.number], calculate_masks_centroids(masks=self.mask)
+            )
         elif anchor == Position.CENTER_LEFT:
             return cast(
                 npt.NDArray[np.number],
                 np.array(
-                [
-                    xyxy[:, 0],
-                    (xyxy[:, 1] + xyxy[:, 3]) / 2,
-                ]
+                    [
+                        xyxy[:, 0],
+                        (xyxy[:, 1] + xyxy[:, 3]) / 2,
+                    ]
                 ).transpose(),
             )
         elif anchor == Position.CENTER_RIGHT:
             return cast(
                 npt.NDArray[np.number],
                 np.array(
-                [
-                    xyxy[:, 2],
-                    (xyxy[:, 1] + xyxy[:, 3]) / 2,
-                ]
+                    [
+                        xyxy[:, 2],
+                        (xyxy[:, 1] + xyxy[:, 3]) / 2,
+                    ]
                 ).transpose(),
             )
         elif anchor == Position.BOTTOM_CENTER:
