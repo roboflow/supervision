@@ -377,12 +377,29 @@ def save_coco_annotations(
     starting_annotation_id: int = 1,
 ) -> tuple[int, int]:
     """
+    Args:
+        dataset: The DetectionDataset to write.
+        annotation_path: Output path for the COCO ``annotations.json``.
+        min_image_area_percentage: Lower bound on detection area / image area;
+            used only for segmentation datasets.
+        max_image_area_percentage: Upper bound on detection area / image area;
+            used only for segmentation datasets.
+        approximation_percentage: Polygon-simplification ratio in ``[0, 1)``;
+            used only for segmentation datasets.
+        starting_image_id: First image id to assign in the exported file.
+            Defaults to ``1``. Override when exporting multiple splits into
+            a coordinated COCO collection so ids remain unique across the set.
+        starting_annotation_id: First annotation id to assign in the exported
+            file. Defaults to ``1``. Override for the same multi-split reason
+            as ``starting_image_id``.
+
     Returns:
         A ``(next_image_id, next_annotation_id)`` tuple. The returned values
-        are one greater than the highest IDs written, so they can be fed
+        are one greater than the highest ids written, so they can be fed
         directly back into ``starting_image_id`` and ``starting_annotation_id``
         when exporting another split into a coordinated COCO collection
-        (see ``DetectionDataset.as_coco`` for the chaining pattern).
+        (see ``DetectionDataset.as_coco`` for the chaining pattern). When the
+        dataset is empty the starting ids are returned unchanged.
     """
     Path(annotation_path).parent.mkdir(parents=True, exist_ok=True)
     licenses = [

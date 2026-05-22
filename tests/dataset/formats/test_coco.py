@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from contextlib import ExitStack as DoesNotRaise
 
+import cv2
 import numpy as np
 import pytest
 
@@ -1341,8 +1342,6 @@ def _tiny_detection_dataset(
     """Build a DetectionDataset of ``num_images`` 10x10 RGB images on disk,
     each holding ``dets_per_image`` 1x1 detections of class 0. Image content
     is irrelevant; only the per-image Detections drive the COCO write path."""
-    import cv2
-
     classes = ["object"]
     image_paths: list[str] = []
     annotations: dict[str, Detections] = {}
@@ -1445,6 +1444,26 @@ def test_as_coco_chains_ids_across_splits_without_collision(tmp_path):
     # Concrete chained values.
     assert all_image_ids == [1, 2, 3, 4, 5, 6]
     assert all_annotation_ids == list(range(1, 6 + 8 + 5 + 1))
+
+
+def test_save_coco_annotations_empty_dataset_returns_starting_ids(tmp_path):
+    """An empty dataset writes a valid (but empty) COCO file and returns
+    the starting ids unchanged so chaining still composes around it."""
+    dataset = DetectionDataset(classes=["object"], images=[], annotations={})
+    annotation_path = tmp_path / "annotations.json"
+
+    next_image_id, next_annotation_id = save_coco_annotations(
+        dataset=dataset,
+        annotation_path=str(annotation_path),
+        starting_image_id=7,
+        starting_annotation_id=42,
+    )
+
+    image_ids, annotation_ids = _read_ids(annotation_path)
+    assert image_ids == []
+    assert annotation_ids == []
+    assert next_image_id == 7
+    assert next_annotation_id == 42
 
 
 def test_as_coco_without_annotations_path_returns_starting_ids(tmp_path):

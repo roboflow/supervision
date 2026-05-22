@@ -659,9 +659,9 @@ class DetectionDataset(BaseDataset):
             A ``(next_image_id, next_annotation_id)`` tuple containing the
             first unused ids after this export. Feed them straight back into
             ``starting_image_id`` and ``starting_annotation_id`` on the next
-            split so ids stay globally unique. ``(starting_image_id,
-            starting_annotation_id)`` is returned when no annotations are
-            written.
+            split so ids stay globally unique. When ``annotations_path`` is
+            ``None`` (images-only export) the starting ids are returned
+            unchanged so chaining still composes.
 
         Example:
             ```python
