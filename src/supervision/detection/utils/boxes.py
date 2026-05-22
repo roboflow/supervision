@@ -107,7 +107,7 @@ def denormalize_boxes(
     resolution_wh: tuple[int, int],
     normalization_factor: float = 1.0,
     normalized_xyxy: npt.NDArray[np.number] | None = None,
-) -> npt.NDArray[np.float64]:
+) -> npt.NDArray[np.number]:
     """
     Convert normalized bounding box coordinates to absolute pixel coordinates.
 
@@ -125,7 +125,8 @@ def denormalize_boxes(
 
     Returns:
         Array of shape `(N, 4)` with absolute coordinates in
-            `(x_min, y_min, x_max, y_max)` format.
+            `(x_min, y_min, x_max, y_max)` format. Preserves the caller's
+            floating-point dtype; integer inputs are upcast to float64.
 
     Examples:
         ```pycon
@@ -153,7 +154,7 @@ def denormalize_boxes(
         ```
     """
     width, height = resolution_wh
-    result: npt.NDArray[np.float64] = np.array(xyxy, dtype=np.float64, copy=True)
+    result: npt.NDArray[np.number] = np.array(xyxy, copy=True)
 
     result[:, [0, 2]] = (result[:, [0, 2]] * width) / normalization_factor
     result[:, [1, 3]] = (result[:, [1, 3]] * height) / normalization_factor
