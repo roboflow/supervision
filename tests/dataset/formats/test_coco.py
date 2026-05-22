@@ -1354,8 +1354,9 @@ def coco_data_with_multi_segment_segmentation() -> dict[str, object]:
                 "id": 1,
                 "image_id": 1,
                 "category_id": 1,
+                # bbox spans both segments; area = sum of two 1x1 polygon areas
                 "bbox": [0, 0, 5, 5],
-                "area": 25,
+                "area": 2,
                 "segmentation": [
                     [0, 0, 1, 0, 1, 1, 0, 1],
                     [3, 3, 4, 3, 4, 4, 3, 4],
