@@ -135,6 +135,27 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
         </div>
 
+    === "OrientedBox"
+
+        ```python
+        import supervision as sv
+
+        image = ...
+        detections = sv.Detections(...)
+
+        oriented_box_annotator = sv.OrientedBoxAnnotator()
+        annotated_frame = oriented_box_annotator.annotate(
+            scene=image.copy(),
+            detections=detections,
+        )
+        ```
+
+        <div class="result" markdown>
+
+        ![oriented-box-annotator-example](https://media.roboflow.com/supervision-annotator-examples/oriented-box-annotator-example-purple.png){ align=center width="800" }
+
+        </div>
+
 === "Shading"
 
     === "Color"
@@ -374,52 +395,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
         -->
 
-=== "Others"
-
-    === "PercentageBar"
-
-        ```python
-        import supervision as sv
-
-        image = ...
-        detections = sv.Detections(...)
-
-        percentage_bar_annotator = sv.PercentageBarAnnotator()
-        annotated_frame = percentage_bar_annotator.annotate(
-            scene=image.copy(),
-            detections=detections,
-        )
-        ```
-
-        <div class="result" markdown>
-
-        ![percentage-bar-annotator-example](https://media.roboflow.com/supervision-annotator-examples/percentage-bar-annotator-example-purple.png){ align=center width="800" }
-
-        </div>
-
-    === "Icon"
-
-        ```python
-        import supervision as sv
-
-        image = ...
-        detections = sv.Detections(...)
-
-        icon_paths = ["<ICON_PATH>" for _ in detections]
-
-        icon_annotator = sv.IconAnnotator()
-        annotated_frame = icon_annotator.annotate(
-            scene=image.copy(),
-            detections=detections,
-            icon_path=icon_paths,
-        )
-        ```
-
-        <div class="result" markdown>
-
-        ![icon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/icon-annotator-example.png){ align=center width="800" }
-
-        </div>
+=== "Tracking & Aggregation"
 
     === "Trace"
 
@@ -480,6 +456,53 @@ Annotators accept detections and apply box or mask visualizations to the detecti
         <div class="result" markdown>
 
         ![heat-map-annotator-example](https://media.roboflow.com/supervision-annotator-examples/heat-map-annotator-example-purple.png){ align=center width="800" }
+
+        </div>
+
+=== "Others"
+
+    === "PercentageBar"
+
+        ```python
+        import supervision as sv
+
+        image = ...
+        detections = sv.Detections(...)
+
+        percentage_bar_annotator = sv.PercentageBarAnnotator()
+        annotated_frame = percentage_bar_annotator.annotate(
+            scene=image.copy(),
+            detections=detections,
+        )
+        ```
+
+        <div class="result" markdown>
+
+        ![percentage-bar-annotator-example](https://media.roboflow.com/supervision-annotator-examples/percentage-bar-annotator-example-purple.png){ align=center width="800" }
+
+        </div>
+
+    === "Icon"
+
+        ```python
+        import supervision as sv
+
+        image = ...
+        detections = sv.Detections(...)
+
+        icon_paths = ["<ICON_PATH>" for _ in detections]
+
+        icon_annotator = sv.IconAnnotator()
+        annotated_frame = icon_annotator.annotate(
+            scene=image.copy(),
+            detections=detections,
+            icon_path=icon_paths,
+        )
+        ```
+
+        <div class="result" markdown>
+
+        ![icon-annotator-example](https://media.roboflow.com/supervision-annotator-examples/icon-annotator-example.png){ align=center width="800" }
 
         </div>
 
