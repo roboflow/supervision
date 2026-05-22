@@ -151,6 +151,12 @@ class InferenceSlicer:
 
         self._validate_overlap(slice_wh=slice_wh_norm, overlap_wh=overlap_wh_norm)
 
+        if thread_workers < 1:
+            raise ValueError(
+                "`thread_workers` must be a positive integer. "
+                f"Received: {thread_workers}"
+            )
+
         self.slice_wh = slice_wh_norm
         self.overlap_wh = overlap_wh_norm
         self.iou_threshold = iou_threshold
@@ -162,6 +168,7 @@ class InferenceSlicer:
         self._out_of_slice_bounds_warned: bool = False
         self._out_of_slice_bounds_lock = threading.Lock()
         self._obb_thread_workers_warned: bool = False
+        self._obb_thread_workers_lock = threading.Lock()
 
     def __call__(self, image: ImageType) -> Detections:
         """
@@ -191,10 +198,7 @@ class InferenceSlicer:
         should_run_sequentially = self.thread_workers <= 1 or obb_detected
 
         probe_index = 0
-        if (
-            not should_run_sequentially
-            and len(first_detections) == 0
-        ):
+        if not should_run_sequentially and len(first_detections) == 0:
             while probe_index < len(remaining_offsets):
                 probe_offset = remaining_offsets[probe_index]
                 probe_detections = self._run_callback(image, probe_offset)
@@ -212,20 +216,18 @@ class InferenceSlicer:
         remaining_offsets = remaining_offsets[probe_index:]
 
         if should_run_sequentially:
-            if (
-                self.thread_workers > 1
-                and obb_detected
-                and not self._obb_thread_workers_warned
-            ):
-                self._obb_thread_workers_warned = True
-                warnings.warn(
-                    "InferenceSlicer detected oriented bounding boxes while "
-                    "`thread_workers > 1`. Remaining slices will be processed "
-                    "sequentially because many OBB inference backends are not "
-                    "thread-safe and can crash when shared across threads.",
-                    category=SupervisionWarnings,
-                    stacklevel=2,
-                )
+            if self.thread_workers > 1 and obb_detected:
+                with self._obb_thread_workers_lock:
+                    if not self._obb_thread_workers_warned:
+                        self._obb_thread_workers_warned = True
+                        warnings.warn(
+                            "InferenceSlicer detected oriented bounding boxes while "
+                            "`thread_workers > 1`. Remaining slices will be processed "
+                            "sequentially because many OBB inference backends are not "
+                            "thread-safe and can crash when shared across threads.",
+                            category=SupervisionWarnings,
+                            stacklevel=2,
+                        )
             for offset in remaining_offsets:
                 detections_list.append(self._run_callback(image, offset))
         else:
