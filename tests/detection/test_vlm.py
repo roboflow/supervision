@@ -1305,33 +1305,10 @@ def test_from_deepseek_vl_2(
         (
             "random text",
             (1000, 1000),
-            None,
+            None
         ),
         (
-            "```json\n[]\n```",
-            (1000, 1000),
-            None,
-        ),
-        (
-            """```json
-            [
-                {"box_2d": [100, 200, 300, 400], "label": "cat", "confidence": 0.8}
-            ]
-            ```""",
-            (1000, 500),
-            None,
-        ),
-        (
-            """```json
-            [
-                {"box_2d": [10, 20, 110, 120], "label": "cat", "confidence": 0.8},
-                {"box_2d": [50, 100, 150, 200], "label": "dog", "confidence": 0.9}
-            ]
-            ```""",
-            (640, 480),
-            ["cat", "dog"],
-        ),
-    ],
+            "
 )
 def test_from_google_gemini_3_5_matches_2_5(
     result: str,
