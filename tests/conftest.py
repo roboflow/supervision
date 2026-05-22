@@ -1,5 +1,8 @@
+import matplotlib
 import numpy as np
 import pytest
+
+matplotlib.use("Agg")
 
 import supervision as sv
 from tests.helpers import _create_key_points
