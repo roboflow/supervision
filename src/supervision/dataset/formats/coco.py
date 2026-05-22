@@ -376,7 +376,8 @@ def save_coco_annotations(
     starting_image_id: int = 1,
     starting_annotation_id: int = 1,
 ) -> tuple[int, int]:
-    """
+    """Save a DetectionDataset to a COCO-format ``annotations.json`` file.
+
     Args:
         dataset: The DetectionDataset to write.
         annotation_path: Output path for the COCO ``annotations.json``.
