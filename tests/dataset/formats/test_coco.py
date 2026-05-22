@@ -1445,3 +1445,40 @@ class TestFromCocoMasks:
                 dtype=bool,
             ),
         )
+
+    def test_multi_segment_masks_uneven_length_no_value_error(self, tmp_path) -> None:
+        """Uneven-length segments load without ValueError (issue #1209 regression)."""
+        images_directory = tmp_path / "images"
+        images_directory.mkdir()
+        annotations_path = tmp_path / "annotations.json"
+
+        coco_data = {
+            "categories": [
+                {"id": 1, "name": "cat_eye", "supercategory": "animal_parts"}
+            ],
+            "images": [{"id": 1, "file_name": "image.jpg", "width": 5, "height": 5}],
+            "annotations": [
+                {
+                    "id": 1,
+                    "image_id": 1,
+                    "category_id": 1,
+                    "bbox": [0, 0, 5, 5],
+                    "area": 2,
+                    "segmentation": [
+                        [0, 0, 1, 0, 1, 1, 0, 1],  # 4 points (8 coords)
+                        [3, 3, 4, 3, 4, 4, 3, 4, 2, 4],  # 5 points (10 coords)
+                    ],
+                    "iscrowd": 0,
+                }
+            ],
+        }
+        annotations_path.write_text(json.dumps(coco_data), encoding="utf-8")
+
+        dataset = DetectionDataset.from_coco(
+            images_directory_path=str(images_directory),
+            annotations_path=str(annotations_path),
+        )
+
+        annotation = dataset.annotations[str(images_directory / "image.jpg")]
+        assert annotation.mask is not None
+        assert annotation.mask.shape == (1, 5, 5)
