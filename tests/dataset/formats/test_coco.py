@@ -1370,12 +1370,14 @@ def coco_data_with_multi_segment_segmentation() -> dict[str, object]:
 class TestFromCocoMasks:
     """Integration: DetectionDataset.from_coco loads multi-segment masks."""
 
-    def test_multi_segment_masks_auto_detected(
+    @pytest.mark.parametrize("force_masks", [False, True])
+    def test_multi_segment_masks_merged(
         self,
         tmp_path,
         coco_data_with_multi_segment_segmentation: dict[str, object],
+        force_masks: bool,
     ) -> None:
-        """Multi-segment masks merged via _with_seg_mask auto-detection."""
+        """Multi-segment masks merge correctly for both force_masks values."""
         images_directory = tmp_path / "images"
         images_directory.mkdir()
         annotations_path = tmp_path / "annotations.json"
@@ -1387,44 +1389,7 @@ class TestFromCocoMasks:
         dataset = DetectionDataset.from_coco(
             images_directory_path=str(images_directory),
             annotations_path=str(annotations_path),
-        )
-
-        annotation = dataset.annotations[str(images_directory / "image.jpg")]
-        assert annotation.mask is not None
-        assert annotation.mask.shape == (1, 5, 5)
-        np.testing.assert_array_equal(
-            annotation.mask,
-            np.array(
-                [
-                    [
-                        [1, 1, 0, 0, 0],
-                        [1, 1, 0, 0, 0],
-                        [0, 0, 0, 0, 0],
-                        [0, 0, 0, 1, 1],
-                        [0, 0, 0, 1, 1],
-                    ]
-                ],
-                dtype=bool,
-            ),
-        )
-
-    def test_multi_segment_masks_force_masks_matches_auto_detected(
-        self,
-        tmp_path,
-        coco_data_with_multi_segment_segmentation: dict[str, object],
-    ) -> None:
-        """force_masks=True produces the same merged mask as auto-detection."""
-        images_directory = tmp_path / "images"
-        images_directory.mkdir()
-        annotations_path = tmp_path / "annotations.json"
-        annotations_path.write_text(
-            json.dumps(coco_data_with_multi_segment_segmentation), encoding="utf-8"
-        )
-
-        dataset = DetectionDataset.from_coco(
-            images_directory_path=str(images_directory),
-            annotations_path=str(annotations_path),
-            force_masks=True,
+            force_masks=force_masks,
         )
 
         annotation = dataset.annotations[str(images_directory / "image.jpg")]
