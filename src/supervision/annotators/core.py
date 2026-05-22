@@ -1857,11 +1857,10 @@ class IconAnnotator(BaseAnnotator):
             raise FileNotFoundError(
                 f"Error: Couldn't load the icon image from {icon_path}"
             )
-        icon_uint8: npt.NDArray[np.uint8] = np.asarray(icon, dtype=np.uint8)
-        result: npt.NDArray[np.uint8] = letterbox_image(
-            image=icon_uint8, resolution_wh=self.icon_resolution_wh
+        return cast(
+            npt.NDArray[np.uint8],
+            letterbox_image(image=icon, resolution_wh=self.icon_resolution_wh),
         )
-        return result
 
 
 class BlurAnnotator(BaseAnnotator):
