@@ -401,6 +401,15 @@ def save_coco_annotations(
         when exporting another split into a coordinated COCO collection
         (see ``DetectionDataset.as_coco`` for the chaining pattern). When the
         dataset is empty the starting ids are returned unchanged.
+
+        .. note::
+            This function ensures globally unique integer ``id`` values across
+            splits. It does **not** ensure unique ``file_name`` values — the
+            ``file_name`` field is set to the bare image basename, so splits
+            that share filenames (e.g. ``000001.jpg`` in both train and valid)
+            will have duplicate ``file_name`` values when their COCO files are
+            merged. Use distinct output directories or rename images before
+            merging if downstream tools require unique ``file_name`` keys.
     """
     Path(annotation_path).parent.mkdir(parents=True, exist_ok=True)
     licenses = [
