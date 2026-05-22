@@ -411,6 +411,12 @@ def save_coco_annotations(
             merged. Use distinct output directories or rename images before
             merging if downstream tools require unique ``file_name`` keys.
     """
+    if starting_image_id < 1 or starting_annotation_id < 1:
+        raise ValueError(
+            "starting_image_id and starting_annotation_id must be >= 1 "
+            "(COCO spec requires 1-indexed ids); "
+            f"got {starting_image_id=}, {starting_annotation_id=}"
+        )
     Path(annotation_path).parent.mkdir(parents=True, exist_ok=True)
     licenses = [
         {
