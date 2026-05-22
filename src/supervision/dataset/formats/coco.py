@@ -410,6 +410,23 @@ def save_coco_annotations(
             will have duplicate ``file_name`` values when their COCO files are
             merged. Use distinct output directories or rename images before
             merging if downstream tools require unique ``file_name`` keys.
+
+    Example:
+        ```python
+        import supervision as sv
+        from supervision.dataset.formats.coco import save_coco_annotations
+
+        ds = sv.DetectionDataset.from_yolo(
+            images_directory_path="train/images",
+            annotations_directory_path="train/labels",
+            data_yaml_path="data.yaml",
+        )
+        next_img_id, next_ann_id = save_coco_annotations(
+            dataset=ds, annotation_path="out/train/annotations.json"
+        )
+        # next_img_id and next_ann_id are the first unused ids — pass them
+        # to the next split to keep ids globally unique across files.
+        ```
     """
     if starting_image_id < 1 or starting_annotation_id < 1:
         raise ValueError(
