@@ -677,12 +677,12 @@ class DetectionDataset(BaseDataset):
                 starting_image_id=next_image_id,
                 starting_annotation_id=next_annotation_id,
             )
-            test_ds.as_coco(
+            _, _ = test_ds.as_coco(
                 images_directory_path="out/test/images",
                 annotations_path="out/test/annotations.json",
                 starting_image_id=next_image_id,
                 starting_annotation_id=next_annotation_id,
-            )
+            )  # return value not needed — no further split
             ```
         """
         if images_directory_path is not None:
