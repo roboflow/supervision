@@ -20,7 +20,6 @@ EXPECTED_ANNOTATOR_TAB_GROUPS: dict[str, list[str]] = {
         "Circle",
         "Ellipse",
         "Polygon",
-        "OrientedBox",
     ],
     "Shading": ["Color", "Halo", "Mask"],
     "Markers": ["Dot", "Triangle"],

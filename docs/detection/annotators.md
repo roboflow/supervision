@@ -135,27 +135,6 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
         </div>
 
-    === "OrientedBox"
-
-        ```python
-        import supervision as sv
-
-        image = ...
-        detections = sv.Detections(...)
-
-        oriented_box_annotator = sv.OrientedBoxAnnotator()
-        annotated_frame = oriented_box_annotator.annotate(
-            scene=image.copy(),
-            detections=detections,
-        )
-        ```
-
-        <div class="result" markdown>
-
-        ![oriented-box-annotator-example](https://media.roboflow.com/supervision-annotator-examples/oriented-box-annotator-example-purple.png){ align=center width="800" }
-
-        </div>
-
 === "Shading"
 
     === "Color"
