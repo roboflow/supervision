@@ -1302,16 +1302,8 @@ def test_from_deepseek_vl_2(
 @pytest.mark.parametrize(
     ("result", "resolution_wh", "classes"),
     [
-        (
-            "random text",
-            (1000, 1000),
-            None
-        ),
-        (
-            "```json\n[]\n```",
-            (1000, 1000),
-            None
-        ),
+        ("random text", (1000, 1000), None),
+        ("```json\n[]\n```", (1000, 1000), None),
         (
             """```json
             [
@@ -1319,7 +1311,7 @@ def test_from_deepseek_vl_2(
             ]
             ```""",
             (1000, 500),
-            None
+            None,
         ),
         (
             """```json
@@ -1329,7 +1321,7 @@ def test_from_deepseek_vl_2(
             ]
             ```""",
             (640, 480),
-            ["cat", "dog"]
+            ["cat", "dog"],
         ),
     ],
 )
