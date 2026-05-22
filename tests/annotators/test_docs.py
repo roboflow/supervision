@@ -52,13 +52,7 @@ def _extract_annotator_tab_groups() -> dict[str, list[str]]:
 
 
 def test_annotator_example_tabs_are_split_into_expected_groups() -> None:
-    error_message = (
-        "Annotator example tabs should stay grouped by the documented "
-        "category breakdown."
-    )
-    assert _extract_annotator_tab_groups() == EXPECTED_ANNOTATOR_TAB_GROUPS, (
-        error_message
-    )
+    assert _extract_annotator_tab_groups() == EXPECTED_ANNOTATOR_TAB_GROUPS
 
 
 def test_annotator_example_tab_groups_stay_within_material_limit() -> None:
