@@ -577,7 +577,7 @@ class MeanAveragePrecision:
     map50_95: float
     map50: float
     map75: float
-    per_class_ap50_95: npt.NDArray[np.float64]
+    per_class_ap50_95: npt.NDArray[np.float32]
 
     @classmethod
     def from_detections(
@@ -747,7 +747,9 @@ class MeanAveragePrecision:
 
             if true_objs.shape[0]:
                 matches = cls._match_detection_batch(
-                    predicted_objs, true_objs, iou_thresholds.astype(np.float32, copy=False)
+                    predicted_objs,
+                    true_objs,
+                    iou_thresholds.astype(np.float32, copy=False),
                 )
                 stats.append(
                     (
@@ -871,7 +873,7 @@ class MeanAveragePrecision:
         prediction_class_ids: npt.NDArray[np.int32],
         true_class_ids: npt.NDArray[np.int32],
         eps: float = 1e-16,
-    ) -> npt.NDArray[np.float64]:
+    ) -> npt.NDArray[np.float32]:
         """
         Compute the average precision, given the recall and precision curves.
         Source: https://github.com/rafaelpadilla/Object-Detection-Metrics.
@@ -893,8 +895,8 @@ class MeanAveragePrecision:
         unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
         num_classes = unique_classes.shape[0]
 
-        average_precisions: npt.NDArray[np.float64] = np.zeros(
-            (num_classes, matches.shape[1]), dtype=np.float64
+        average_precisions: npt.NDArray[np.float32] = np.zeros(
+            (num_classes, matches.shape[1]), dtype=np.float32
         )
 
         for class_idx, class_id in enumerate(unique_classes):
@@ -917,5 +919,5 @@ class MeanAveragePrecision:
                     )
                 )
 
-        result: npt.NDArray[np.float64] = average_precisions
+        result: npt.NDArray[np.float32] = average_precisions
         return result
