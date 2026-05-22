@@ -373,7 +373,17 @@ def save_coco_annotations(
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
-) -> None:
+    starting_image_id: int = 1,
+    starting_annotation_id: int = 1,
+) -> tuple[int, int]:
+    """
+    Returns:
+        A ``(next_image_id, next_annotation_id)`` tuple. The returned values
+        are one greater than the highest IDs written, so they can be fed
+        directly back into ``starting_image_id`` and ``starting_annotation_id``
+        when exporting another split into a coordinated COCO collection
+        (see ``DetectionDataset.as_coco`` for the chaining pattern).
+    """
     Path(annotation_path).parent.mkdir(parents=True, exist_ok=True)
     licenses = [
         {
@@ -387,7 +397,7 @@ def save_coco_annotations(
     coco_images = []
     coco_categories = classes_to_coco_categories(classes=dataset.classes)
 
-    image_id, annotation_id = 1, 1
+    image_id, annotation_id = starting_image_id, starting_annotation_id
     for image_path, image, annotation in dataset:
         image_height, image_width, _ = image.shape
         image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"
@@ -421,3 +431,4 @@ def save_coco_annotations(
         "annotations": coco_annotations,
     }
     save_json_file(annotation_dict, file_path=annotation_path)
+    return image_id, annotation_id
