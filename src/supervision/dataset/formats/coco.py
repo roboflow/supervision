@@ -371,10 +371,34 @@ def save_coco_annotations(
     dataset: "DetectionDataset",
     annotation_path: str,
     annotation_id_start: int = 1,
+    image_id_start: int = 1,
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
 ) -> None:
+    """Save dataset annotations in COCO JSON format.
+
+    Args:
+        dataset: The dataset whose annotations to export.
+        annotation_path: Destination path for the COCO JSON file. Parent
+            directories are created automatically.
+        annotation_id_start: First annotation ID written to the output file.
+            Defaults to 1. Set to a higher value (e.g. using the offset
+            propagated by `DetectionDataset.split()`) so that annotation IDs
+            remain unique when multiple split JSON files are used together.
+        image_id_start: First image ID written to the output file. Defaults
+            to 1. Set alongside `annotation_id_start` to keep image IDs
+            disjoint across split exports.
+        min_image_area_percentage: Minimum detection area as a fraction of the
+            image area. Detections below this threshold are excluded. Only
+            applies to segmentation datasets.
+        max_image_area_percentage: Maximum detection area as a fraction of the
+            image area. Detections above this threshold are excluded. Only
+            applies to segmentation datasets.
+        approximation_percentage: Fraction of polygon points to remove from
+            each segmentation mask, in the range [0, 1). Higher values produce
+            simpler polygons. Only applies to segmentation datasets.
+    """
     Path(annotation_path).parent.mkdir(parents=True, exist_ok=True)
     licenses = [
         {
@@ -388,7 +412,7 @@ def save_coco_annotations(
     coco_images = []
     coco_categories = classes_to_coco_categories(classes=dataset.classes)
 
-    image_id, annotation_id = 1, annotation_id_start
+    image_id, annotation_id = image_id_start, annotation_id_start
     for image_path, image, annotation in dataset:
         image_height, image_width, _ = image.shape
         image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"

@@ -97,7 +97,8 @@ class DetectionDataset(BaseDataset):
         self.image_paths = list(dict.fromkeys(images))
 
         self._images_in_memory: dict[str, npt.NDArray[np.uint8]] = {}
-        self._coco_annotation_id_start = 1
+        self._coco_annotation_id_start: int = 1
+        self._coco_image_id_start: int = 1
 
     def _get_image(self, image_path: str) -> npt.NDArray[np.uint8]:
         """Assumes that image is in dataset."""
@@ -176,6 +177,11 @@ class DetectionDataset(BaseDataset):
             A tuple containing
                 the training and testing datasets.
 
+        Note:
+            When both returned datasets are exported with `as_coco()`, annotation
+            and image IDs are assigned sequentially across splits so that IDs remain
+            unique when the resulting JSON files are concatenated or used together.
+
         Examples:
             ```pycon
             >>> import numpy as np
@@ -230,6 +236,8 @@ class DetectionDataset(BaseDataset):
         test_dataset._coco_annotation_id_start = self._coco_annotation_id_start + sum(
             len(self.annotations[path]) for path in train_paths
         )
+        train_dataset._coco_image_id_start = self._coco_image_id_start
+        test_dataset._coco_image_id_start = self._coco_image_id_start + len(train_paths)
         return train_dataset, test_dataset
 
     @classmethod
@@ -241,6 +249,12 @@ class DetectionDataset(BaseDataset):
         This method takes a list of `DetectionDataset` objects and combines
         their respective fields (`classes`, `images`,
         `annotations`) into a single `DetectionDataset` object.
+
+        Note:
+            When any input dataset carries a non-default COCO ID offset (i.e. was
+            produced by `split()`), the merged dataset inherits the highest ID
+            watermark from its inputs so that subsequent `as_coco()` exports remain
+            disjoint from exports of the component datasets.
 
         Args:
             dataset_list: A list of `DetectionDataset`
@@ -326,11 +340,22 @@ class DetectionDataset(BaseDataset):
                     detections=annotations[image_path],
                 )
 
-        return cls(
+        merged = cls(
             classes=classes,
             images=images_in_memory or image_paths,
             annotations=annotations,
         )
+        if any(d._coco_annotation_id_start != 1 for d in dataset_list):
+            merged._coco_annotation_id_start = max(
+                d._coco_annotation_id_start
+                + sum(len(d.annotations[p]) for p in d.image_paths)
+                for d in dataset_list
+            )
+        if any(d._coco_image_id_start != 1 for d in dataset_list):
+            merged._coco_image_id_start = max(
+                d._coco_image_id_start + len(d.image_paths) for d in dataset_list
+            )
+        return merged
 
     def as_pascal_voc(
         self,
@@ -614,6 +639,8 @@ class DetectionDataset(BaseDataset):
         min_image_area_percentage: float = 0.0,
         max_image_area_percentage: float = 1.0,
         approximation_percentage: float = 0.0,
+        annotation_id_start: int | None = None,
+        image_id_start: int | None = None,
     ) -> None:
         """
         Exports the dataset to COCO format. This method saves the
@@ -633,6 +660,12 @@ class DetectionDataset(BaseDataset):
             appropriate and space-efficient format, complying with COCO dataset
             standards.
 
+        Note:
+            Datasets produced by `split()` automatically carry an ID offset so that
+            annotation and image IDs remain unique across all resulting splits. Pass
+            `annotation_id_start` or `image_id_start` to override the offset when
+            merging with a pre-existing COCO file.
+
         Args:
             images_directory_path: The path to the directory
                 where the images should be saved.
@@ -650,6 +683,11 @@ class DetectionDataset(BaseDataset):
                 to be removed from the input polygon,
                 in the range [0, 1). This is useful for simplifying the annotations.
                 Argument is used only for segmentation datasets.
+            annotation_id_start: Override the first annotation ID written to the COCO
+                file. When `None` (default), the dataset's internal offset is used,
+                which is automatically set by `split()` to produce disjoint ID ranges.
+            image_id_start: Override the first image ID written to the COCO file.
+                When `None` (default), the dataset's internal offset is used.
         """
         if images_directory_path is not None:
             save_dataset_images(
@@ -659,7 +697,16 @@ class DetectionDataset(BaseDataset):
             save_coco_annotations(
                 dataset=self,
                 annotation_path=annotations_path,
-                annotation_id_start=self._coco_annotation_id_start,
+                annotation_id_start=(
+                    annotation_id_start
+                    if annotation_id_start is not None
+                    else self._coco_annotation_id_start
+                ),
+                image_id_start=(
+                    image_id_start
+                    if image_id_start is not None
+                    else self._coco_image_id_start
+                ),
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
