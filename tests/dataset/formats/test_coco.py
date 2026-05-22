@@ -11,6 +11,7 @@ from supervision.dataset.formats.coco import (
     build_coco_class_index_mapping,
     classes_to_coco_categories,
     coco_annotations_to_detections,
+    coco_annotations_to_masks,
     coco_categories_to_classes,
     detections_to_coco_annotations,
     group_coco_annotations_by_image_id,
@@ -1155,6 +1156,31 @@ def test_load_coco_annotations_force_masks_with_no_annotations(
 
     no_annotations_path = str(images_directory / "no_annotations.jpg")
     assert annotations[no_annotations_path] == Detections.empty()
+
+
+def test_coco_annotations_to_masks_handles_rle_polygon_and_invalid_dict() -> None:
+    image_annotations = [
+        {"id": 1, "segmentation": {"size": [5, 5], "counts": [15, 2, 3, 2, 3]}},
+        {"id": 2, "segmentation": [[0, 0, 4, 0, 4, 4, 0, 4]]},
+        {"id": 3, "segmentation": {"size": [5, 5]}},
+    ]
+
+    with pytest.warns(
+        UserWarning,
+        match=(
+            "Skipping annotation 3: segmentation is a dict but missing 'counts' key "
+            r"\(expected RLE format\)"
+        ),
+    ):
+        masks = coco_annotations_to_masks(
+            image_annotations=image_annotations,
+            resolution_wh=(5, 5),
+        )
+
+    assert masks.shape == (3, 5, 5)
+    assert masks[0].any()
+    assert masks[1].any()
+    assert not masks[2].any()
 
 
 @pytest.mark.parametrize(
