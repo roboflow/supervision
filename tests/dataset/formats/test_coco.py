@@ -1407,3 +1407,41 @@ class TestFromCocoMasks:
                 dtype=bool,
             ),
         )
+
+    def test_multi_segment_masks_force_masks_matches_auto_detected(
+        self,
+        tmp_path,
+        coco_data_with_multi_segment_segmentation: dict[str, object],
+    ) -> None:
+        """force_masks=True produces the same merged mask as auto-detection."""
+        images_directory = tmp_path / "images"
+        images_directory.mkdir()
+        annotations_path = tmp_path / "annotations.json"
+        annotations_path.write_text(
+            json.dumps(coco_data_with_multi_segment_segmentation), encoding="utf-8"
+        )
+
+        dataset = DetectionDataset.from_coco(
+            images_directory_path=str(images_directory),
+            annotations_path=str(annotations_path),
+            force_masks=True,
+        )
+
+        annotation = dataset.annotations[str(images_directory / "image.jpg")]
+        assert annotation.mask is not None
+        assert annotation.mask.shape == (1, 5, 5)
+        np.testing.assert_array_equal(
+            annotation.mask,
+            np.array(
+                [
+                    [
+                        [1, 1, 0, 0, 0],
+                        [1, 1, 0, 0, 0],
+                        [0, 0, 0, 0, 0],
+                        [0, 0, 0, 1, 1],
+                        [0, 0, 0, 1, 1],
+                    ]
+                ],
+                dtype=bool,
+            ),
+        )
