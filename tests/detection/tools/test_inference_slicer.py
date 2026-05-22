@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import threading
 import warnings
 
 import numpy as np
 import pytest
 
+from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.tools.inference_slicer import InferenceSlicer
 from supervision.utils.internal import SupervisionWarnings
@@ -382,3 +384,50 @@ def test_run_callback_does_not_rewarn_on_second_call() -> None:
         and "outside the slice bounds" in str(w.message)
     ]
     assert len(out_of_bounds_warnings) == 1
+
+
+def test_obb_callbacks_run_sequentially_even_with_multiple_workers() -> None:
+    """Test that OBB callbacks are serialized even when thread_workers > 1."""
+
+    active_calls = 0
+    max_active_calls = 0
+    concurrent_callbacks = 0
+    callback_lock = threading.Lock()
+
+    def obb_callback(_: np.ndarray) -> Detections:
+        nonlocal active_calls, max_active_calls, concurrent_callbacks
+
+        with callback_lock:
+            active_calls += 1
+            max_active_calls = max(max_active_calls, active_calls)
+            if active_calls > 1:
+                concurrent_callbacks += 1
+
+        with callback_lock:
+            active_calls -= 1
+
+        return Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=float),
+            confidence=np.array([0.9]),
+            class_id=np.array([0]),
+            data={
+                ORIENTED_BOX_COORDINATES: np.array(
+                    [[[0, 0], [10, 0], [10, 10], [0, 10]]], dtype=float
+                )
+            },
+        )
+
+    image = np.zeros((128, 128, 3), dtype=np.uint8)
+    slicer = InferenceSlicer(
+        callback=obb_callback,
+        slice_wh=64,
+        overlap_wh=0,
+        thread_workers=4,
+    )
+
+    with pytest.warns(SupervisionWarnings, match="oriented bounding boxes"):
+        detections = slicer(image)
+
+    assert max_active_calls == 1
+    assert concurrent_callbacks == 0
+    assert len(detections) == 4
