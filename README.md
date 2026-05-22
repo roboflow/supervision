@@ -38,7 +38,7 @@
 ## 💻 install
 
 Pip install the supervision package in a
-[**Python>=3.9**](https://www.python.org/) environment.
+[**Python>=3.10**](https://www.python.org/) environment.
 
 ```bash
 pip install supervision
