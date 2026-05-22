@@ -296,7 +296,7 @@ def test_split_as_coco_preserves_annotation_id_continuity(tmp_path: Path) -> Non
 
     for index, detection_count in enumerate(detection_counts):
         image_path = tmp_path / f"image-{index}.png"
-        cv2.imwrite(str(image_path), np.zeros(image_shape, dtype=np.uint8))
+        assert cv2.imwrite(str(image_path), np.zeros(image_shape, dtype=np.uint8))
         image_paths.append(str(image_path))
         annotations[str(image_path)] = _create_detections(
             xyxy=[[i, i, i + 1, i + 1] for i in range(detection_count)],
