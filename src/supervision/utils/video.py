@@ -234,6 +234,7 @@ def get_video_frames_generator(
     start: int = 0,
     end: int | None = None,
     iterative_seek: bool = False,
+    prefetch: int = 0,
 ) -> Generator[npt.NDArray[np.uint8], None, None]:
     """
     Get a generator that yields the frames of the video.
@@ -249,6 +250,10 @@ def get_video_frames_generator(
         iterative_seek: If True, the generator will seek to the
             `start` frame by grabbing each frame, which is much slower. This is a
             workaround for videos that don't open at all when you set the `start` value.
+        prefetch: If > 0, decode frames in a background thread and buffer up to
+            this many frames in a bounded queue. Useful when the consumer (e.g.
+            CPU inference) is the bottleneck and can overlap with decode I/O.
+            Default 0 keeps the original synchronous behaviour unchanged.
 
     Returns:
         A generator that yields the
@@ -262,6 +267,17 @@ def get_video_frames_generator(
             ...
         ```
     """
+    if prefetch > 0:
+        yield from _prefetched_frames_generator(
+            source_path=source_path,
+            stride=stride,
+            start=start,
+            end=end,
+            iterative_seek=iterative_seek,
+            prefetch=prefetch,
+        )
+        return
+
     video, start, end = _validate_and_setup_video(
         source_path, start, end, iterative_seek
     )
@@ -278,6 +294,65 @@ def get_video_frames_generator(
                 break
         frame_position += stride
     video.release()
+
+
+def _prefetched_frames_generator(
+    source_path: str,
+    stride: int,
+    start: int,
+    end: int | None,
+    iterative_seek: bool,
+    prefetch: int,
+) -> Generator[npt.NDArray[np.uint8], None, None]:
+    frame_queue: Queue[npt.NDArray[np.uint8] | Exception | None] = Queue(
+        maxsize=prefetch
+    )
+    stop_event = threading.Event()
+
+    def reader() -> None:
+        sentinel: Exception | None = None
+        try:
+            for frame in get_video_frames_generator(
+                source_path=source_path,
+                stride=stride,
+                start=start,
+                end=end,
+                iterative_seek=iterative_seek,
+                prefetch=0,
+            ):
+                if stop_event.is_set():
+                    return
+                while True:
+                    try:
+                        frame_queue.put(frame, timeout=0.1)
+                        break
+                    except Full:
+                        if stop_event.is_set():
+                            return
+        except Exception as exc:
+            sentinel = exc
+        # Push the terminating sentinel (None for normal end, exception for error),
+        # respecting stop_event so we never block after the consumer has stopped.
+        while True:
+            try:
+                frame_queue.put(sentinel, timeout=0.1)
+                return
+            except Full:
+                if stop_event.is_set():
+                    return
+
+    thread = threading.Thread(target=reader, daemon=True)
+    thread.start()
+    try:
+        while True:
+            item = frame_queue.get()
+            if isinstance(item, Exception):
+                raise item
+            if item is None:
+                break
+            yield item
+    finally:
+        stop_event.set()
 
 
 def process_video(

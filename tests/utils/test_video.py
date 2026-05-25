@@ -200,6 +200,34 @@ def test_get_video_frames_generator(dummy_video_path):
     assert all(frame.shape == (480, 640, 3) for frame in frames)
 
 
+def test_get_video_frames_generator_prefetch_matches_sync(dummy_video_path):
+    """prefetch>0 must yield the same frames in the same order as the sync path."""
+    sync_frames = list(get_video_frames_generator(dummy_video_path))
+    prefetched_frames = list(get_video_frames_generator(dummy_video_path, prefetch=4))
+    assert len(prefetched_frames) == len(sync_frames) == 10
+    for a, b in zip(prefetched_frames, sync_frames):
+        assert np.array_equal(a, b)
+
+
+def test_get_video_frames_generator_prefetch_propagates_decode_errors(tmp_path):
+    """Errors raised by the reader thread must reach the consumer, not get swallowed."""
+    missing_path = str(tmp_path / "does_not_exist.mp4")
+    with pytest.raises(Exception, match="Could not open video"):
+        list(get_video_frames_generator(missing_path, prefetch=4))
+
+
+def test_get_video_frames_generator_prefetch_early_termination(dummy_video_path):
+    """Breaking out of the prefetched generator must not block subsequent iteration."""
+    taken = []
+    for frame in get_video_frames_generator(dummy_video_path, prefetch=4):
+        taken.append(frame)
+        if len(taken) >= 3:
+            break
+    assert len(taken) == 3
+    # A fresh generator on the same file must still work normally.
+    assert len(list(get_video_frames_generator(dummy_video_path, prefetch=4))) == 10
+
+
 def test_get_video_frames_generator_with_stride(dummy_video_path):
     """
     Verify that get_video_frames_generator correctly handles the stride parameter.
