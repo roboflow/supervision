@@ -16,7 +16,7 @@ from supervision.annotators.utils import ColorLookup
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import box_iou_batch
-from supervision.draw.color import Color, ColorPalette
+from supervision.draw.color import ColorPalette
 
 
 def detections_to_tensor(
@@ -666,7 +666,9 @@ class ConfusionMatrix:
             ```
         """
         if save_result_images:
-            save_directory_path = Path(save_directory_path) if save_directory_path else Path.cwd()
+            save_directory_path = (
+                Path(save_directory_path) if save_directory_path else Path.cwd()
+            )
             save_directory_path = save_directory_path / "result"
             save_directory_path.mkdir(parents=True, exist_ok=True)
 
