@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import numpy.typing as npt
 from PIL import Image
+from tqdm.auto import tqdm
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.utils import approximate_mask_with_polygons
@@ -145,6 +146,7 @@ def load_yolo_annotations(
     data_yaml_path: str,
     force_masks: bool = False,
     is_obb: bool = False,
+    show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
     """
     Loads YOLO annotations and returns class names, images,
@@ -163,6 +165,7 @@ def load_yolo_annotations(
         is_obb: If True, loads the annotations in OBB format.
             OBB annotations are defined as `[class_id, x, y, x, y, x, y, x, y]`,
             where pairs of [x, y] are box corners.
+        show_progress: If True, display a progress bar during loading.
 
     Returns:
         A tuple containing a list of class names, a dictionary with
@@ -197,7 +200,11 @@ def load_yolo_annotations(
     classes = _extract_class_names(file_path=data_yaml_path)
     annotations = {}
 
-    for image_path in image_paths:
+    for image_path in tqdm(
+        image_paths,
+        desc="Loading YOLO annotations",
+        disable=not show_progress,
+    ):
         image_stem = Path(image_path).stem
         annotation_path = os.path.join(annotations_directory_path, f"{image_stem}.txt")
         if not os.path.exists(annotation_path):
@@ -296,9 +303,15 @@ def save_yolo_annotations(
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
+    show_progress: bool = False,
 ) -> None:
     Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
-    for image_path, image, annotation in dataset:
+    for image_path, image, annotation in tqdm(
+        dataset,
+        total=len(dataset),
+        desc="Saving YOLO annotations",
+        disable=not show_progress,
+    ):
         image_name = Path(image_path).name
         yolo_annotations_name = _image_name_to_annotation_name(image_name=image_name)
         yolo_annotations_path = os.path.join(
