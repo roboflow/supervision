@@ -19,7 +19,6 @@ from tests.helpers import (
     assert_almost_equal,
     create_predictions_with_class_iou_tests,
 )
-from typing import ClassVar
 
 
 class TestDetectionMetrics:
@@ -1059,7 +1058,6 @@ class TestDetectionMetrics:
 
         class Dataset:
             classes: ClassVar[list[str]] = ["cat", "dog"]
-
 
             def __iter__(self):
                 yield "sample.jpg", image, targets
