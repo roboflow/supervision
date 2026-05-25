@@ -10,6 +10,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 import numpy.typing as npt
+from tqdm.auto import tqdm
 
 from supervision.classification.core import Classifications
 from supervision.config import CLASS_NAME_DATA_FIELD
@@ -36,8 +37,6 @@ from supervision.dataset.utils import (
 from supervision.detection.core import Detections
 from supervision.utils.internal import warn_deprecated
 from supervision.utils.iterables import find_duplicates
-
-from tqdm.auto import tqdm
 
 
 class BaseDataset(ABC):

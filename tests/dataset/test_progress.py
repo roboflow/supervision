@@ -1,22 +1,19 @@
 """Tests for show_progress parameter on dataset load/save operations."""
+
 from __future__ import annotations
 
 import json
 import os
 import tempfile
-from pathlib import Path
 from unittest.mock import patch
 
 import cv2
 import numpy as np
-import pytest
 
-from supervision import DetectionDataset, Detections
+from supervision import DetectionDataset
 
 
-def _create_dummy_yolo_dataset(
-    root: str, num_images: int = 3
-) -> tuple[str, str, str]:
+def _create_dummy_yolo_dataset(root: str, num_images: int = 3) -> tuple[str, str, str]:
     images_dir = os.path.join(root, "images")
     labels_dir = os.path.join(root, "labels")
     os.makedirs(images_dir, exist_ok=True)
@@ -26,7 +23,7 @@ def _create_dummy_yolo_dataset(
         img = np.zeros((100, 100, 3), dtype=np.uint8)
         cv2.imwrite(os.path.join(images_dir, f"img_{i}.jpg"), img)
         with open(os.path.join(labels_dir, f"img_{i}.txt"), "w") as f:
-            f.write(f"0 0.5 0.5 0.2 0.2\n")
+            f.write("0 0.5 0.5 0.2 0.2\n")
 
     data_yaml = os.path.join(root, "data.yaml")
     with open(data_yaml, "w") as f:
@@ -35,9 +32,7 @@ def _create_dummy_yolo_dataset(
     return images_dir, labels_dir, data_yaml
 
 
-def _create_dummy_coco_dataset(
-    root: str, num_images: int = 3
-) -> tuple[str, str]:
+def _create_dummy_coco_dataset(root: str, num_images: int = 3) -> tuple[str, str]:
     images_dir = os.path.join(root, "images")
     os.makedirs(images_dir, exist_ok=True)
 
@@ -78,9 +73,7 @@ def _create_dummy_coco_dataset(
     return images_dir, annotations_path
 
 
-def _create_dummy_pascal_voc_dataset(
-    root: str, num_images: int = 3
-) -> tuple[str, str]:
+def _create_dummy_pascal_voc_dataset(root: str, num_images: int = 3) -> tuple[str, str]:
     images_dir = os.path.join(root, "images")
     annotations_dir = os.path.join(root, "annotations")
     os.makedirs(images_dir, exist_ok=True)
@@ -118,7 +111,10 @@ class TestYoloProgress:
     def test_from_yolo_no_progress_by_default(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             images_dir, labels_dir, data_yaml = _create_dummy_yolo_dataset(tmpdir)
-            with patch("supervision.dataset.formats.yolo.tqdm", wraps=__import__("tqdm").auto.tqdm) as mock_tqdm:
+            with patch(
+                "supervision.dataset.formats.yolo.tqdm",
+                wraps=__import__("tqdm").auto.tqdm,
+            ) as mock_tqdm:
                 ds = DetectionDataset.from_yolo(
                     images_directory_path=images_dir,
                     annotations_directory_path=labels_dir,
@@ -131,7 +127,10 @@ class TestYoloProgress:
     def test_from_yolo_with_progress(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             images_dir, labels_dir, data_yaml = _create_dummy_yolo_dataset(tmpdir)
-            with patch("supervision.dataset.formats.yolo.tqdm", wraps=__import__("tqdm").auto.tqdm) as mock_tqdm:
+            with patch(
+                "supervision.dataset.formats.yolo.tqdm",
+                wraps=__import__("tqdm").auto.tqdm,
+            ) as mock_tqdm:
                 ds = DetectionDataset.from_yolo(
                     images_directory_path=images_dir,
                     annotations_directory_path=labels_dir,
@@ -155,7 +154,10 @@ class TestYoloProgress:
             out_images = os.path.join(out_dir, "images")
             out_labels = os.path.join(out_dir, "labels")
 
-            with patch("supervision.dataset.formats.yolo.tqdm", wraps=__import__("tqdm").auto.tqdm) as mock_tqdm:
+            with patch(
+                "supervision.dataset.formats.yolo.tqdm",
+                wraps=__import__("tqdm").auto.tqdm,
+            ) as mock_tqdm:
                 ds.as_yolo(
                     images_directory_path=out_images,
                     annotations_directory_path=out_labels,
@@ -170,7 +172,10 @@ class TestCocoProgress:
     def test_from_coco_no_progress_by_default(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             images_dir, annotations_path = _create_dummy_coco_dataset(tmpdir)
-            with patch("supervision.dataset.formats.coco.tqdm", wraps=__import__("tqdm").auto.tqdm) as mock_tqdm:
+            with patch(
+                "supervision.dataset.formats.coco.tqdm",
+                wraps=__import__("tqdm").auto.tqdm,
+            ) as mock_tqdm:
                 ds = DetectionDataset.from_coco(
                     images_directory_path=images_dir,
                     annotations_path=annotations_path,
@@ -182,7 +187,10 @@ class TestCocoProgress:
     def test_from_coco_with_progress(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             images_dir, annotations_path = _create_dummy_coco_dataset(tmpdir)
-            with patch("supervision.dataset.formats.coco.tqdm", wraps=__import__("tqdm").auto.tqdm) as mock_tqdm:
+            with patch(
+                "supervision.dataset.formats.coco.tqdm",
+                wraps=__import__("tqdm").auto.tqdm,
+            ) as mock_tqdm:
                 ds = DetectionDataset.from_coco(
                     images_directory_path=images_dir,
                     annotations_path=annotations_path,
@@ -201,7 +209,10 @@ class TestCocoProgress:
             )
 
             out_dir = os.path.join(tmpdir, "output")
-            with patch("supervision.dataset.formats.coco.tqdm", wraps=__import__("tqdm").auto.tqdm) as mock_tqdm:
+            with patch(
+                "supervision.dataset.formats.coco.tqdm",
+                wraps=__import__("tqdm").auto.tqdm,
+            ) as mock_tqdm:
                 ds.as_coco(
                     images_directory_path=os.path.join(out_dir, "images"),
                     annotations_path=os.path.join(out_dir, "annotations.json"),
@@ -215,7 +226,10 @@ class TestPascalVocProgress:
     def test_from_pascal_voc_no_progress_by_default(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             images_dir, annotations_dir = _create_dummy_pascal_voc_dataset(tmpdir)
-            with patch("supervision.dataset.formats.pascal_voc.tqdm", wraps=__import__("tqdm").auto.tqdm) as mock_tqdm:
+            with patch(
+                "supervision.dataset.formats.pascal_voc.tqdm",
+                wraps=__import__("tqdm").auto.tqdm,
+            ) as mock_tqdm:
                 ds = DetectionDataset.from_pascal_voc(
                     images_directory_path=images_dir,
                     annotations_directory_path=annotations_dir,
@@ -227,7 +241,10 @@ class TestPascalVocProgress:
     def test_from_pascal_voc_with_progress(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             images_dir, annotations_dir = _create_dummy_pascal_voc_dataset(tmpdir)
-            with patch("supervision.dataset.formats.pascal_voc.tqdm", wraps=__import__("tqdm").auto.tqdm) as mock_tqdm:
+            with patch(
+                "supervision.dataset.formats.pascal_voc.tqdm",
+                wraps=__import__("tqdm").auto.tqdm,
+            ) as mock_tqdm:
                 ds = DetectionDataset.from_pascal_voc(
                     images_directory_path=images_dir,
                     annotations_directory_path=annotations_dir,
@@ -246,7 +263,9 @@ class TestPascalVocProgress:
             )
 
             out_dir = os.path.join(tmpdir, "output")
-            with patch("supervision.dataset.core.tqdm", wraps=__import__("tqdm").auto.tqdm) as mock_tqdm:
+            with patch(
+                "supervision.dataset.core.tqdm", wraps=__import__("tqdm").auto.tqdm
+            ) as mock_tqdm:
                 ds.as_pascal_voc(
                     images_directory_path=os.path.join(out_dir, "images"),
                     annotations_directory_path=os.path.join(out_dir, "annotations"),
@@ -267,8 +286,11 @@ class TestSaveImagesProgress:
             )
 
             out_images = os.path.join(tmpdir, "output_images")
-            with patch("supervision.dataset.utils.tqdm", wraps=__import__("tqdm").auto.tqdm) as mock_tqdm:
+            with patch(
+                "supervision.dataset.utils.tqdm", wraps=__import__("tqdm").auto.tqdm
+            ) as mock_tqdm:
                 from supervision.dataset.utils import save_dataset_images
+
                 save_dataset_images(
                     dataset=ds,
                     images_directory_path=out_images,
