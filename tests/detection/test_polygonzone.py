@@ -44,6 +44,16 @@ class TestPolygonZoneInit:
         with exception:
             sv.PolygonZone(polygon, triggering_anchors=triggering_anchors)
 
+    def test_generator_triggering_anchors_is_materialized(self):
+        """A generator passed for triggering_anchors must not be silently exhausted."""
+        zone = sv.PolygonZone(
+            POLYGON, triggering_anchors=(p for p in [sv.Position.CENTER])
+        )
+        detections = _create_detections(
+            xyxy=[[140.0, 140.0, 160.0, 160.0]], class_id=[0]
+        )
+        assert zone.trigger(detections)[0]
+
 
 class TestPolygonZoneTrigger:
     @pytest.mark.parametrize(
@@ -164,3 +174,21 @@ class TestPolygonZoneTrigger:
         )
         result = zone.trigger(detections)
         assert result[0]
+
+    def test_require_all_anchors_false_triggers_on_any_anchor(self) -> None:
+        """With require_all_anchors=False, any anchor inside triggers."""
+        # Box [85, 85, 115, 115] has only BOTTOM_RIGHT (115, 115) inside POLYGON
+        # ([100, 100]..[200, 200]); the other three corners are outside.
+        detections = _create_detections(xyxy=[[85.0, 85.0, 115.0, 115.0]], class_id=[0])
+        anchors = (
+            sv.Position.TOP_LEFT,
+            sv.Position.TOP_RIGHT,
+            sv.Position.BOTTOM_LEFT,
+            sv.Position.BOTTOM_RIGHT,
+        )
+        all_required = sv.PolygonZone(POLYGON, triggering_anchors=anchors)
+        any_anchor = sv.PolygonZone(
+            POLYGON, triggering_anchors=anchors, require_all_anchors=False
+        )
+        assert not all_required.trigger(detections)[0]
+        assert any_anchor.trigger(detections)[0]

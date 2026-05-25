@@ -32,6 +32,10 @@ class PolygonZone:
             which anchors of the detections bounding box to consider when deciding on
             whether the detection fits within the PolygonZone
             (default: (sv.Position.BOTTOM_CENTER,)).
+        require_all_anchors: If `True` (default), a detection is considered inside
+            the zone only when *every* anchor in `triggering_anchors` is inside.
+            If `False`, the detection triggers as soon as *any* anchor is inside.
+            Has no effect when `triggering_anchors` has a single entry.
         current_count: The current count of detected objects within the zone
         mask: The 2D bool mask for the polygon zone
 
@@ -62,11 +66,14 @@ class PolygonZone:
         self,
         polygon: npt.NDArray[np.int64],
         triggering_anchors: Iterable[Position] = (Position.BOTTOM_CENTER,),
+        require_all_anchors: bool = True,
     ):
         self.polygon = polygon.astype(int)
-        self.triggering_anchors = triggering_anchors
-        if not list(self.triggering_anchors):
+        # Materialize once so we can safely accept generators without exhausting them.
+        self.triggering_anchors = list(triggering_anchors)
+        if not self.triggering_anchors:
             raise ValueError("Triggering anchors cannot be empty.")
+        self.require_all_anchors = require_all_anchors
 
         self.current_count = 0
 
@@ -108,7 +115,9 @@ class PolygonZone:
         in_bounds = (x >= 0) & (y >= 0) & (x < mask_w) & (y < mask_h)
         x_safe = np.clip(x, 0, mask_w - 1)
         y_safe = np.clip(y, 0, mask_h - 1)
-        is_in_zone = np.all(in_bounds & self.mask[y_safe, x_safe], axis=0)
+        anchor_hits = in_bounds & self.mask[y_safe, x_safe]
+        reduce = np.all if self.require_all_anchors else np.any
+        is_in_zone = reduce(anchor_hits, axis=0)
         self.current_count = int(np.sum(is_in_zone))
         return is_in_zone.astype(bool)
 
