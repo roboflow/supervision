@@ -2,6 +2,8 @@
 Tests for supervision/annotators/core.py
 """
 
+import warnings
+
 import numpy as np
 import pytest
 
@@ -17,6 +19,7 @@ from supervision.annotators.core import (
     DotAnnotator,
     EllipseAnnotator,
     HaloAnnotator,
+    HeatMapAnnotator,
     LabelAnnotator,
     MaskAnnotator,
     OrientedBoxAnnotator,
@@ -359,6 +362,21 @@ class TestHaloAnnotator:
             scene=test_image.copy(), detections=detections_uint8
         )
         assert np.array_equal(result_bool, result_uint8)
+
+
+class TestHeatMapAnnotator:
+    """Tests for HeatMapAnnotator class"""
+
+    def test_annotate_with_no_detections_does_not_warn(
+        self, test_image: np.ndarray
+    ) -> None:
+        """Empty detections must not trigger a divide-by-zero RuntimeWarning."""
+        detections = Detections.empty()
+        annotator = HeatMapAnnotator()
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            result = annotator.annotate(scene=test_image.copy(), detections=detections)
+        assert np.array_equal(test_image, result)
 
 
 class TestEllipseAnnotator:

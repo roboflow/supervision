@@ -2174,7 +2174,8 @@ class HeatMapAnnotator(BaseAnnotator):
             )
         self.heat_mask = mask + self.heat_mask
         temp = self.heat_mask.copy()
-        temp = self.low_hue - temp / temp.max() * (self.low_hue - self.top_hue)
+        if temp.max() > 0:
+            temp = self.low_hue - temp / temp.max() * (self.low_hue - self.top_hue)
         temp = temp.astype(np.uint8)
         if self.kernel_size is not None:
             temp = cv2.blur(temp, (self.kernel_size, self.kernel_size))
