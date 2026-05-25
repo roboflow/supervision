@@ -187,11 +187,11 @@ def _get_annotation_parameters(
     panel_size = max(min(height, width), 1)
     grid_factor = 2
 
-    font_size = max(18, int(round(panel_size / (26 * grid_factor))))
-    box_thickness = max(2, int(round(font_size / 5)))
+    font_size = max(18, round(panel_size / (26 * grid_factor)))
+    box_thickness = max(2, round(font_size / 5))
     text_scale = float(max(1.0, font_size / 20.0))
-    text_thickness = max(1, int(round(font_size / 15.0)))
-    text_padding = max(6, int(round(font_size / 3)))
+    text_thickness = max(1, round(font_size / 15.0))
+    text_padding = max(6, round(font_size / 3))
 
     return box_thickness, text_scale, text_thickness, text_padding, font_size
 
@@ -201,11 +201,12 @@ def _annotate_detection_panel(
     detections: Detections,
     title: str,
     class_names: list[str] | None,
+    annotation_parameters: tuple[int, float, int, int, int],
 ) -> npt.NDArray[np.uint8]:
     panel = scene.copy()
 
     box_thickness, text_scale, text_thickness, text_padding, font_size = (
-        _get_annotation_parameters(panel)
+        annotation_parameters
     )
 
     if len(detections) > 0:
@@ -232,7 +233,7 @@ def _annotate_detection_panel(
         cv2.FONT_HERSHEY_SIMPLEX,
         float(max(1.0, font_size / 18.0)),
         (240, 240, 240),
-        max(2, int(round(font_size / 8))),
+        max(2, round(font_size / 8)),
         cv2.LINE_AA,
     )
     return panel
@@ -254,29 +255,35 @@ def _save_detection_validation_visualization(
         iou_threshold=iou_threshold,
     )
 
+    annotation_parameters = _get_annotation_parameters(scene)
+
     gt_panel = _annotate_detection_panel(
         scene=scene,
         detections=targets,
         title="Ground Truth",
         class_names=class_names,
+        annotation_parameters=annotation_parameters,
     )
     tp_panel = _annotate_detection_panel(
         scene=scene,
         detections=tp_predictions,
         title="True Positives",
         class_names=class_names,
+        annotation_parameters=annotation_parameters,
     )
     fp_panel = _annotate_detection_panel(
         scene=scene,
         detections=fp_predictions,
         title="False Positives",
         class_names=class_names,
+        annotation_parameters=annotation_parameters,
     )
     fn_panel = _annotate_detection_panel(
         scene=scene,
         detections=fn_targets,
         title="False Negatives",
         class_names=class_names,
+        annotation_parameters=annotation_parameters,
     )
 
     top_row = np.concatenate((gt_panel, tp_panel), axis=1)
