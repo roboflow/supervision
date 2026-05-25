@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import ExitStack as DoesNotRaise
 from typing import ClassVar
 
+import cv2
 import numpy as np
 import pytest
 
@@ -1039,3 +1040,46 @@ class TestDetectionMetrics:
             f"matched (TP={total_tp}, GT={total_gt}). IoU+class fix may be broken: "
             f"wrong-class preds with high IoU might incorrectly match GTs."
         )
+
+    def test_confusion_matrix_benchmark_saves_validation_visualizations(
+        self,
+        tmp_path,
+    ):
+        image = np.zeros((32, 32, 3), dtype=np.uint8)
+        targets = Detections(
+            xyxy=np.array([[2, 2, 12, 12], [18, 18, 28, 28]], dtype=np.float32),
+            class_id=np.array([0, 1]),
+        )
+        predictions = Detections(
+            xyxy=np.array([[2, 2, 12, 12], [0, 18, 8, 28]], dtype=np.float32),
+            confidence=np.array([0.95, 0.88]),
+            class_id=np.array([0, 1]),
+        )
+
+        class Dataset:
+            classes = ["cat", "dog"]
+
+            def __iter__(self):
+                yield "sample.jpg", image, targets
+
+        def callback(_: np.ndarray) -> Detections:
+            return predictions
+
+        confusion_matrix = ConfusionMatrix.benchmark(
+            dataset=Dataset(),
+            callback=callback,
+            save_directory_path=tmp_path,
+            save_result_images=True,
+        )
+
+        saved_image_path = tmp_path / "result" / "sample.jpg"
+        assert saved_image_path.exists()
+
+        saved_image = cv2.imread(str(saved_image_path))
+        assert saved_image is not None
+        assert saved_image.shape[:2] == (64, 64)
+        assert np.any(saved_image[:32, :32] != 0)
+        assert np.any(saved_image[:32, 32:] != 0)
+        assert np.any(saved_image[32:, :32] != 0)
+        assert np.any(saved_image[32:, 32:] != 0)
+        assert confusion_matrix.matrix.shape == (3, 3)

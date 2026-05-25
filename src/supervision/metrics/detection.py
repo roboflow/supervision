@@ -2,16 +2,21 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
+import cv2
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 from deprecate import deprecated_class
 
+from supervision.annotators.core import BoxAnnotator, LabelAnnotator
+from supervision.annotators.utils import ColorLookup
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import box_iou_batch
+from supervision.draw.color import Color, ColorPalette
 
 
 def detections_to_tensor(
@@ -74,6 +79,224 @@ def validate_input_tensors(
             raise ValueError(
                 f"Targets must have shape (N, 5). Got {targets[0].shape} instead."
             )
+
+
+def _split_detections_by_outcome(
+    predictions: Detections,
+    targets: Detections,
+    conf_threshold: float,
+    iou_threshold: float,
+) -> tuple[Detections, Detections, Detections]:
+    if predictions.class_id is None:
+        raise ValueError("Predictions must contain class_id values.")
+    if targets.class_id is None:
+        raise ValueError("Targets must contain class_id values.")
+
+    if predictions.confidence is None:
+        filtered_predictions = predictions
+    else:
+        filtered_predictions = predictions[predictions.confidence >= conf_threshold]
+
+    tp_indices: list[int] = []
+    fp_indices: list[int] = []
+    fn_indices: list[int] = []
+
+    class_ids = np.unique(
+        np.concatenate((filtered_predictions.class_id, targets.class_id)).astype(int)
+    )
+
+    for class_id in class_ids:
+        prediction_indices = np.flatnonzero(filtered_predictions.class_id == class_id)
+        target_indices = np.flatnonzero(targets.class_id == class_id)
+
+        if len(prediction_indices) == 0:
+            fn_indices.extend(target_indices.tolist())
+            continue
+
+        if len(target_indices) == 0:
+            fp_indices.extend(prediction_indices.tolist())
+            continue
+
+        if filtered_predictions.confidence is None:
+            ordered_prediction_indices = prediction_indices
+        else:
+            prediction_confidence = filtered_predictions.confidence[prediction_indices]
+            ordered_prediction_indices = prediction_indices[
+                np.argsort(prediction_confidence)[::-1]
+            ]
+
+        iou_matrix = box_iou_batch(
+            filtered_predictions.xyxy[ordered_prediction_indices],
+            targets.xyxy[target_indices],
+        )
+        matched_targets = np.zeros(len(target_indices), dtype=bool)
+
+        for row_index, prediction_index in enumerate(ordered_prediction_indices):
+            available_target_indices = np.flatnonzero(~matched_targets)
+            if len(available_target_indices) == 0:
+                fp_indices.append(prediction_index)
+                continue
+
+            best_available_target = available_target_indices[
+                np.argmax(iou_matrix[row_index, available_target_indices])
+            ]
+            best_iou = iou_matrix[row_index, best_available_target]
+
+            if best_iou >= iou_threshold:
+                tp_indices.append(prediction_index)
+                matched_targets[best_available_target] = True
+            else:
+                fp_indices.append(prediction_index)
+
+        fn_indices.extend(target_indices[~matched_targets].tolist())
+
+    return (
+        filtered_predictions[tp_indices],
+        filtered_predictions[fp_indices],
+        targets[fn_indices],
+    )
+
+
+def _build_error_labels(
+    detections: Detections,
+    class_names: list[str] | None,
+) -> list[str]:
+    if detections.class_id is None:
+        return [""] * len(detections)
+
+    labels: list[str] = []
+    for index, class_id in enumerate(detections.class_id):
+        if class_names is not None and 0 <= int(class_id) < len(class_names):
+            class_label = class_names[int(class_id)]
+        else:
+            class_label = str(int(class_id))
+
+        confidence = ""
+        if detections.confidence is not None:
+            confidence = f" {detections.confidence[index]:.2f}"
+
+        labels.append(f"{class_label}{confidence}")
+
+    return labels
+
+
+def _get_annotation_parameters(
+    scene: npt.NDArray[np.uint8],
+) -> tuple[int, float, int, int, int]:
+    height, width = scene.shape[:2]
+    panel_size = max(min(height, width), 1)
+    grid_factor = 2
+
+    font_size = max(18, int(round(panel_size / (26 * grid_factor))))
+    box_thickness = max(2, int(round(font_size / 5)))
+    text_scale = float(max(1.0, font_size / 20.0))
+    text_thickness = max(1, int(round(font_size / 15.0)))
+    text_padding = max(6, int(round(font_size / 3)))
+
+    return box_thickness, text_scale, text_thickness, text_padding, font_size
+
+
+def _annotate_detection_panel(
+    scene: npt.NDArray[np.uint8],
+    detections: Detections,
+    title: str,
+    class_names: list[str] | None,
+) -> npt.NDArray[np.uint8]:
+    panel = scene.copy()
+
+    box_thickness, text_scale, text_thickness, text_padding, font_size = (
+        _get_annotation_parameters(panel)
+    )
+
+    if len(detections) > 0:
+        box_annotator = BoxAnnotator(
+            color=ColorPalette.DEFAULT,
+            color_lookup=ColorLookup.CLASS,
+            thickness=box_thickness,
+        )
+        label_annotator = LabelAnnotator(
+            color=ColorPalette.DEFAULT,
+            color_lookup=ColorLookup.CLASS,
+            text_scale=text_scale,
+            text_thickness=text_thickness,
+            text_padding=text_padding,
+        )
+        labels = _build_error_labels(detections, class_names)
+        panel = box_annotator.annotate(panel, detections)
+        panel = label_annotator.annotate(panel, detections, labels=labels)
+
+    cv2.putText(
+        panel,
+        title,
+        (40, 100),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        float(max(1.0, font_size / 18.0)),
+        (240, 240, 240),
+        max(2, int(round(font_size / 8))),
+        cv2.LINE_AA,
+    )
+    return panel
+
+
+def _save_detection_validation_visualization(
+    scene: npt.NDArray[np.uint8],
+    predictions: Detections,
+    targets: Detections,
+    save_path: Path,
+    conf_threshold: float,
+    iou_threshold: float,
+    class_names: list[str] | None,
+) -> None:
+    tp_predictions, fp_predictions, fn_targets = _split_detections_by_outcome(
+        predictions=predictions,
+        targets=targets,
+        conf_threshold=conf_threshold,
+        iou_threshold=iou_threshold,
+    )
+
+    gt_panel = _annotate_detection_panel(
+        scene=scene,
+        detections=targets,
+        title="Ground Truth",
+        class_names=class_names,
+    )
+    tp_panel = _annotate_detection_panel(
+        scene=scene,
+        detections=tp_predictions,
+        title="True Positives",
+        class_names=class_names,
+    )
+    fp_panel = _annotate_detection_panel(
+        scene=scene,
+        detections=fp_predictions,
+        title="False Positives",
+        class_names=class_names,
+    )
+    fn_panel = _annotate_detection_panel(
+        scene=scene,
+        detections=fn_targets,
+        title="False Negatives",
+        class_names=class_names,
+    )
+
+    top_row = np.concatenate((gt_panel, tp_panel), axis=1)
+    bottom_row = np.concatenate((fp_panel, fn_panel), axis=1)
+    result = np.concatenate((top_row, bottom_row), axis=0)
+
+    cv2.rectangle(
+        result,
+        (0, 0),
+        (result.shape[1] - 1, result.shape[0] - 1),
+        (255, 255, 255),
+        thickness=8,
+    )
+
+    center_x = result.shape[1] // 2
+    center_y = result.shape[0] // 2
+    cv2.line(result, (center_x, 0), (center_x, result.shape[0] - 1), (255, 255, 255), 8)
+    cv2.line(result, (0, center_y), (result.shape[1] - 1, center_y), (255, 255, 255), 8)
+
+    cv2.imwrite(str(save_path), result)
 
 
 @dataclass
@@ -393,6 +616,8 @@ class ConfusionMatrix:
         callback: Callable[[npt.NDArray[np.uint8]], Detections],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
+        save_directory_path: str | Path | None = None,
+        save_result_images: bool = False,
     ) -> ConfusionMatrix:
         """
         Calculate confusion matrix from dataset and callback function.
@@ -405,6 +630,11 @@ class ConfusionMatrix:
                 Detections with lower confidence will be excluded.
             iou_threshold: Detection IoU threshold between `0` and `1`.
                 Detections with lower IoU will be classified as `FP`.
+            save_directory_path: Optional directory where per-image validation
+                result grids are saved under a `result/` subdirectory using the
+                original image filenames.
+            save_result_images: When `True`, save the per-image validation result
+                grids. The existing benchmark workflow is unchanged when `False`.
 
         Returns:
             New instance of ConfusionMatrix.
@@ -435,11 +665,38 @@ class ConfusionMatrix:
             # ])
             ```
         """
+        if save_result_images:
+            save_directory_path = Path(save_directory_path) if save_directory_path else Path.cwd()
+            save_directory_path = save_directory_path / "result"
+            save_directory_path.mkdir(parents=True, exist_ok=True)
+
         predictions, targets = [], []
-        for _, image, annotation in dataset:
+        for index, (image_name, image, annotation) in enumerate(dataset):
             predictions_batch = callback(image)
             predictions.append(predictions_batch)
             targets.append(annotation)
+
+            if save_result_images:
+                if isinstance(image_name, Path):
+                    image_filename = image_name.name
+                elif isinstance(image_name, str):
+                    image_filename = Path(image_name).name
+                else:
+                    image_filename = f"image_{index:06d}.jpg"
+
+                if Path(image_filename).suffix == "":
+                    image_filename = f"{image_filename}.jpg"
+
+                save_path = save_directory_path / image_filename
+                _save_detection_validation_visualization(
+                    scene=image,
+                    predictions=predictions_batch,
+                    targets=annotation,
+                    save_path=save_path,
+                    conf_threshold=conf_threshold,
+                    iou_threshold=iou_threshold,
+                    class_names=dataset.classes,
+                )
         return cls.from_detections(
             predictions=predictions,
             targets=targets,

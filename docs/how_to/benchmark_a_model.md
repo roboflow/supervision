@@ -467,7 +467,7 @@ Yes, if you want to evaluate their bounding boxes. Convert model outputs to `Det
 
 ### What is a ConfusionMatrix and how do I use it?
 
-`sv.ConfusionMatrix` visualizes true positives, false positives, and false negatives per class. Create one with `sv.ConfusionMatrix.from_detections(predictions=predictions, targets=targets, classes=classes, conf_threshold=0.5, iou_threshold=0.5)`, then call `metric.plot()` to render a heatmap.
+`sv.ConfusionMatrix` visualizes true positives, false positives, and false negatives per class. Create one with `sv.ConfusionMatrix.from_detections(predictions=predictions, targets=targets, classes=classes, conf_threshold=0.5, iou_threshold=0.5)`, then call `metric.plot()` to render a heatmap. If you want per-image validation visualizations saved to disk, pass `save_result_images=True` to `sv.ConfusionMatrix.benchmark(...)`; it will write 2x2 result grids into a `result/` folder using the original image filenames, with `GT`, `TP`, `FP`, and `FN` panels.
 
 ## Author
 
