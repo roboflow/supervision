@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import cast
 
 import cv2
 import matplotlib
@@ -95,7 +96,10 @@ def _split_detections_by_outcome(
     if predictions.confidence is None:
         filtered_predictions = predictions
     else:
-        filtered_predictions = predictions[predictions.confidence >= conf_threshold]
+        filtered_predictions = cast(
+            Detections,
+            predictions[predictions.confidence >= conf_threshold],
+        )
 
     tp_indices: list[int] = []
     fp_indices: list[int] = []
@@ -129,7 +133,9 @@ def _split_detections_by_outcome(
             filtered_predictions.xyxy[ordered_prediction_indices],
             targets.xyxy[target_indices],
         )
-        matched_targets = np.zeros(len(target_indices), dtype=bool)
+        matched_targets: npt.NDArray[np.bool_] = np.zeros(
+            len(target_indices), dtype=bool
+        )
 
         for row_index, prediction_index in enumerate(ordered_prediction_indices):
             available_target_indices = np.flatnonzero(~matched_targets)
@@ -151,9 +157,9 @@ def _split_detections_by_outcome(
         fn_indices.extend(target_indices[~matched_targets].tolist())
 
     return (
-        filtered_predictions[tp_indices],
-        filtered_predictions[fp_indices],
-        targets[fn_indices],
+        cast(Detections, filtered_predictions[tp_indices]),
+        cast(Detections, filtered_predictions[fp_indices]),
+        cast(Detections, targets[fn_indices]),
     )
 
 
@@ -673,11 +679,13 @@ class ConfusionMatrix:
             ```
         """
         if save_result_images:
-            save_directory_path = (
-                Path(save_directory_path) if save_directory_path else Path.cwd()
+            save_directory = (
+                Path(save_directory_path)
+                if save_directory_path is not None
+                else Path.cwd()
             )
-            save_directory_path = save_directory_path / "result"
-            save_directory_path.mkdir(parents=True, exist_ok=True)
+            save_directory = save_directory / "result"
+            save_directory.mkdir(parents=True, exist_ok=True)
 
         predictions, targets = [], []
         for index, (image_name, image, annotation) in enumerate(dataset):
@@ -696,7 +704,7 @@ class ConfusionMatrix:
                 if Path(image_filename).suffix == "":
                     image_filename = f"{image_filename}.jpg"
 
-                save_path = save_directory_path / image_filename
+                save_path = save_directory / image_filename
                 _save_detection_validation_visualization(
                     scene=image,
                     predictions=predictions_batch,
