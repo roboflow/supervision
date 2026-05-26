@@ -670,6 +670,66 @@ class KeyPoints:
         else:
             return cls.empty()
 
+    @classmethod
+    def from_rfdetr(cls, detections: Detections) -> KeyPoints:
+        """
+        Create a `sv.KeyPoints` object from RF-DETR keypoint predictions.
+
+        RF-DETR stores keypoints under `sv.Detections.data["keypoints"]` with shape
+        `(N, K, 3)`, where each keypoint is `(x, y, confidence)`.
+
+        Args:
+            detections: RF-DETR detections containing keypoints in
+                `detections.data["keypoints"]`.
+
+        Returns:
+            A `sv.KeyPoints` object containing xy coordinates, confidence, and class IDs.
+
+        Raises:
+            ValueError: If keypoints are missing or have invalid shape.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            ...     class_id=np.array([0], dtype=int),
+            ...     data={"keypoints": np.array([[[1, 2, 0.9], [3, 4, 0.8]]], dtype=np.float32)},
+            ... )
+            >>> key_points = sv.KeyPoints.from_rfdetr(detections)
+            >>> key_points.xy.shape
+            (1, 2, 2)
+            >>> key_points.confidence.shape
+            (1, 2)
+
+            ```
+        """
+        if "keypoints" not in detections.data:
+            raise ValueError(
+                "RF-DETR keypoints are missing. Expected detections.data['keypoints'] with shape (N, K, 3)."
+            )
+
+        keypoints = np.asarray(detections.data["keypoints"], dtype=np.float32)
+        if keypoints.ndim != 3 or keypoints.shape[-1] != 3:
+            raise ValueError(
+                "RF-DETR keypoints must have shape (N, K, 3) with (x, y, confidence) values."
+            )
+
+        xy = keypoints[..., :2].astype(np.float32, copy=False)
+        confidence = keypoints[..., 2].astype(np.float32, copy=False)
+        class_id = (
+            detections.class_id.astype(int, copy=False)
+            if detections.class_id is not None
+            else None
+        )
+
+        return cls(
+            xy=xy,
+            confidence=confidence,
+            class_id=class_id,
+        )
+
     def _get_by_2d_bool_mask(self, mask: npt.NDArray[np.bool_]) -> KeyPoints:
         """Filter keypoints using a 2D boolean mask of shape `(n, m)`.
 
