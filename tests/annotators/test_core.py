@@ -378,6 +378,34 @@ class TestHeatMapAnnotator:
             result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert np.array_equal(test_image, result)
 
+    def test_annotate_with_single_detection(self, test_image: np.ndarray) -> None:
+        """Single detection must produce visible heat — result differs from input."""
+        annotator = HeatMapAnnotator()
+        detections = _create_detections(xyxy=[[20, 20, 60, 60]])
+        result = annotator.annotate(scene=test_image.copy(), detections=detections)
+        assert not np.array_equal(test_image, result)
+
+    def test_annotate_state_preserved_after_empty_call(
+        self, test_image: np.ndarray
+    ) -> None:
+        """Empty call must not poison accumulated heat."""
+        annotator = HeatMapAnnotator()
+        detections = _create_detections(xyxy=[[20, 20, 60, 60]])
+        annotator.annotate(scene=test_image.copy(), detections=Detections.empty())
+        result = annotator.annotate(scene=test_image.copy(), detections=detections)
+        assert not np.array_equal(test_image, result)
+
+    def test_annotate_empty_after_real_does_not_warn(
+        self, test_image: np.ndarray
+    ) -> None:
+        """Empty call after heat accumulated must not trigger RuntimeWarning."""
+        annotator = HeatMapAnnotator()
+        detections = _create_detections(xyxy=[[20, 20, 60, 60]])
+        annotator.annotate(scene=test_image.copy(), detections=detections)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            annotator.annotate(scene=test_image.copy(), detections=Detections.empty())
+
 
 class TestEllipseAnnotator:
     """Tests for EllipseAnnotator class"""

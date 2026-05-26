@@ -2095,7 +2095,7 @@ class HeatMapAnnotator(BaseAnnotator):
         position: Position = Position.BOTTOM_CENTER,
         opacity: float = 0.2,
         radius: int = 40,
-        kernel_size: int = 25,
+        kernel_size: int | None = 25,
         top_hue: int = 0,
         low_hue: int = 125,
     ):
@@ -2105,7 +2105,8 @@ class HeatMapAnnotator(BaseAnnotator):
                 `BOTTOM_CENTER`.
             opacity: Opacity of the overlay mask, between 0 and 1.
             radius: Radius of the heat circle.
-            kernel_size: Kernel size for blurring the heatmap.
+            kernel_size: Kernel size for blurring the heatmap. Pass `None`
+                to disable blurring entirely.
             top_hue: Hue at the top of the heatmap. Defaults to 0 (red).
             low_hue: Hue at the bottom of the heatmap. Defaults to 125 (blue).
         """
@@ -2131,6 +2132,10 @@ class HeatMapAnnotator(BaseAnnotator):
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
+
+        Note:
+            When `detections` is empty or no heat has accumulated yet, the
+            scene is returned unchanged without raising a ``RuntimeWarning``.
 
         Example:
             ```python
