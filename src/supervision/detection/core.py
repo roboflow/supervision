@@ -324,7 +324,9 @@ class Detections:
                 data={CLASS_NAME_DATA_FIELD: class_names},
             )
 
-        return cls.empty()
+        empty = cls.empty()
+        empty.data = {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)}
+        return empty
 
     @classmethod
     def from_yolo_nas(cls, yolo_nas_results: Any) -> Detections:
@@ -1914,7 +1916,9 @@ class Detections:
             assert isinstance(result, dict)
             xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
             if len(xyxy) == 0:
-                return cls.empty()
+                empty = cls.empty()
+                empty.data = {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)}
+                return empty
 
             data = {}
             if labels is not None:
