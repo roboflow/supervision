@@ -1078,8 +1078,15 @@ class TestDetectionMetrics:
         saved_image = cv2.imread(str(saved_image_path))
         assert saved_image is not None
         assert saved_image.shape[:2] == (64, 64)
-        assert np.any(saved_image[:32, :32] != 0)
-        assert np.any(saved_image[:32, 32:] != 0)
-        assert np.any(saved_image[32:, :32] != 0)
-        assert np.any(saved_image[32:, 32:] != 0)
+        gt_panel = saved_image[:32, :32]
+        tp_panel = saved_image[:32, 32:]
+        fp_panel = saved_image[32:, :32]
+        fn_panel = saved_image[32:, 32:]
+
+        assert not np.array_equal(gt_panel, tp_panel)
+        assert not np.array_equal(gt_panel, fp_panel)
+        assert not np.array_equal(gt_panel, fn_panel)
+
+        assert not np.array_equal(tp_panel, fp_panel)
+        assert not np.array_equal(tp_panel, fn_panel)
         assert confusion_matrix.matrix.shape == (3, 3)

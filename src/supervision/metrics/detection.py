@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import cast
 
 import cv2
+import warnings
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -88,8 +89,24 @@ def _split_detections_by_outcome(
     conf_threshold: float,
     iou_threshold: float,
 ) -> tuple[Detections, Detections, Detections]:
+    """
+    Split detections into true positives, false positives, and false negatives.
+
+    Matching follows the same attribution logic as
+    ``ConfusionMatrix.evaluate_detection_batch``:
+    - matches are computed globally across classes
+    - same-class matches are prioritized
+    - higher-IoU matches are preferred
+    - each prediction and target can be matched at most once
+
+    Cross-class spatial matches are treated as:
+    - false positives for the prediction
+    - false negatives for the target
+    """
+
     if predictions.class_id is None:
         raise ValueError("Predictions must contain class_id values.")
+
     if targets.class_id is None:
         raise ValueError("Targets must contain class_id values.")
 
@@ -101,60 +118,95 @@ def _split_detections_by_outcome(
             predictions[predictions.confidence >= conf_threshold],
         )
 
+    prediction_count = len(filtered_predictions)
+    target_count = len(targets)
+
     tp_indices: list[int] = []
     fp_indices: list[int] = []
     fn_indices: list[int] = []
 
-    class_ids = np.unique(
-        np.concatenate((filtered_predictions.class_id, targets.class_id)).astype(int)
+    if prediction_count == 0:
+        fn_indices = list(range(target_count))
+        return (
+            cast(Detections, filtered_predictions[tp_indices]),
+            cast(Detections, filtered_predictions[fp_indices]),
+            cast(Detections, targets[fn_indices]),
+        )
+
+    if target_count == 0:
+        fp_indices = list(range(prediction_count))
+        return (
+            cast(Detections, filtered_predictions[tp_indices]),
+            cast(Detections, filtered_predictions[fp_indices]),
+            cast(Detections, targets[fn_indices]),
+        )
+
+    iou_matrix = box_iou_batch(
+        boxes_true=targets.xyxy,
+        boxes_detection=filtered_predictions.xyxy,
     )
 
-    for class_id in class_ids:
-        prediction_indices = np.flatnonzero(filtered_predictions.class_id == class_id)
-        target_indices = np.flatnonzero(targets.class_id == class_id)
+    target_candidate_indices, prediction_candidate_indices = np.where(
+        iou_matrix > iou_threshold
+    )
 
-        if len(prediction_indices) == 0:
-            fn_indices.extend(target_indices.tolist())
-            continue
+    matched_predictions: npt.NDArray[np.bool_] = np.zeros(
+        prediction_count, dtype=bool
+    )
+    matched_targets: npt.NDArray[np.bool_] = np.zeros(
+        target_count, dtype=bool
+    )
 
-        if len(target_indices) == 0:
-            fp_indices.extend(prediction_indices.tolist())
-            continue
+    cross_class_prediction_indices: list[int] = []
+    cross_class_target_indices: list[int] = []
 
-        if filtered_predictions.confidence is None:
-            ordered_prediction_indices = prediction_indices
-        else:
-            prediction_confidence = filtered_predictions.confidence[prediction_indices]
-            ordered_prediction_indices = prediction_indices[
-                np.argsort(prediction_confidence)[::-1]
-            ]
+    if len(target_candidate_indices) > 0:
+        candidate_ious = iou_matrix[
+            target_candidate_indices,
+            prediction_candidate_indices,
+        ]
 
-        iou_matrix = box_iou_batch(
-            filtered_predictions.xyxy[ordered_prediction_indices],
-            targets.xyxy[target_indices],
-        )
-        matched_targets: npt.NDArray[np.bool_] = np.zeros(
-            len(target_indices), dtype=bool
+        same_class_candidates = (
+            targets.class_id[target_candidate_indices]
+            == filtered_predictions.class_id[prediction_candidate_indices]
         )
 
-        for row_index, prediction_index in enumerate(ordered_prediction_indices):
-            available_target_indices = np.flatnonzero(~matched_targets)
-            if len(available_target_indices) == 0:
-                fp_indices.append(prediction_index)
+        candidate_order = np.lexsort(
+            (
+                -candidate_ious,
+                ~same_class_candidates,
+            )
+        )
+
+        for candidate_index in candidate_order:
+            target_index = int(target_candidate_indices[candidate_index])
+            prediction_index = int(
+                prediction_candidate_indices[candidate_index]
+            )
+
+            if (
+                matched_predictions[prediction_index]
+                or matched_targets[target_index]
+            ):
                 continue
 
-            best_available_target = available_target_indices[
-                np.argmax(iou_matrix[row_index, available_target_indices])
-            ]
-            best_iou = iou_matrix[row_index, best_available_target]
+            matched_predictions[prediction_index] = True
+            matched_targets[target_index] = True
 
-            if best_iou >= iou_threshold:
+            prediction_class = filtered_predictions.class_id[prediction_index]
+            target_class = targets.class_id[target_index]
+
+            if prediction_class == target_class:
                 tp_indices.append(prediction_index)
-                matched_targets[best_available_target] = True
             else:
-                fp_indices.append(prediction_index)
+                cross_class_prediction_indices.append(prediction_index)
+                cross_class_target_indices.append(target_index)
 
-        fn_indices.extend(target_indices[~matched_targets].tolist())
+    fp_indices.extend(np.flatnonzero(~matched_predictions).tolist())
+    fn_indices.extend(np.flatnonzero(~matched_targets).tolist())
+
+    fp_indices.extend(cross_class_prediction_indices)
+    fn_indices.extend(cross_class_target_indices)
 
     return (
         cast(Detections, filtered_predictions[tp_indices]),
@@ -232,14 +284,27 @@ def _annotate_detection_panel(
         panel = box_annotator.annotate(panel, detections)
         panel = label_annotator.annotate(panel, detections, labels=labels)
 
+    title_scale = float(max(1.0, font_size / 18.0))
+    title_thickness = max(2, round(font_size / 8))
+    panel_height, panel_width = panel.shape[:2]
+    (title_width, title_height), title_baseline = cv2.getTextSize(
+        title,
+        cv2.FONT_HERSHEY_SIMPLEX,
+        title_scale,
+        title_thickness,
+    )
+    title_x = max(0, min(text_padding, panel_width - title_width - 1))
+    title_y = max(title_height + text_padding, 0)
+    title_y = min(title_y, max(panel_height - title_baseline - 1, 0))
+
     cv2.putText(
         panel,
         title,
-        (40, 100),
+        (title_x, title_y),
         cv2.FONT_HERSHEY_SIMPLEX,
-        float(max(1.0, font_size / 18.0)),
+        title_scale,
         (240, 240, 240),
-        max(2, round(font_size / 8)),
+        title_thickness,
         cv2.LINE_AA,
     )
     return panel
@@ -296,20 +361,40 @@ def _save_detection_validation_visualization(
     bottom_row = np.concatenate((fp_panel, fn_panel), axis=1)
     result = np.concatenate((top_row, bottom_row), axis=0)
 
+    panel_height = result.shape[0] // 2
+    panel_width = result.shape[1] // 2
+    divider_thickness = max(1, min(8, min(panel_height, panel_width) // 32))
+
     cv2.rectangle(
         result,
         (0, 0),
         (result.shape[1] - 1, result.shape[0] - 1),
         (255, 255, 255),
-        thickness=8,
+        thickness=divider_thickness,
     )
 
     center_x = result.shape[1] // 2
     center_y = result.shape[0] // 2
-    cv2.line(result, (center_x, 0), (center_x, result.shape[0] - 1), (255, 255, 255), 8)
-    cv2.line(result, (0, center_y), (result.shape[1] - 1, center_y), (255, 255, 255), 8)
+    cv2.line(
+        result,
+        (center_x, 0),
+        (center_x, result.shape[0] - 1),
+        (255, 255, 255),
+        divider_thickness,
+    )
+    cv2.line(
+        result,
+        (0, center_y),
+        (result.shape[1] - 1, center_y),
+        (255, 255, 255),
+        divider_thickness,
+    )
 
-    cv2.imwrite(str(save_path), result)
+    write_success = cv2.imwrite(str(save_path), result)
+    if not write_success:
+        warnings.warn(
+            f"Failed to write validation image to '{save_path}'.", UserWarning, stacklevel=2
+        )
 
 
 @dataclass
