@@ -936,7 +936,7 @@ def test_is_empty(detections: Detections, expected: bool) -> None:
 
 
 def test_from_inference_empty_class_name_dtype_matches_non_empty() -> None:
-    """Empty and non-empty results should produce the same class_name dtype."""
+    """Empty and non-empty results should produce string-kind class_name arrays."""
     empty_result = {"predictions": [], "image": {"width": 100, "height": 100}}
     non_empty_result = {
         "predictions": [
@@ -954,4 +954,19 @@ def test_from_inference_empty_class_name_dtype_matches_non_empty() -> None:
     }
     empty = Detections.from_inference(empty_result)
     non_empty = Detections.from_inference(non_empty_result)
+
+    # null-safety: class_name must be an array, not None
+    assert empty["class_name"] is not None
+    assert non_empty["class_name"] is not None
+
+    # dtype kind must match between empty and non-empty paths
     assert empty["class_name"].dtype.kind == non_empty["class_name"].dtype.kind == "U"
+
+    # all data keys and dtypes must match between empty and non-empty paths
+    assert set(empty.data.keys()) == set(non_empty.data.keys())
+    for key in non_empty.data:
+        assert empty.data[key].dtype == non_empty.data[key].dtype, key
+
+    # concatenation across empty+non-empty must produce a string-kind array
+    concat = np.concatenate([empty["class_name"], non_empty["class_name"]])
+    assert concat.dtype.kind == "U"
