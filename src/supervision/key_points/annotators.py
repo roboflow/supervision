@@ -223,6 +223,10 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
             confidence_threshold: Minimum keypoint confidence required for drawing.
                 Ignored when ``key_points.confidence`` is ``None``.
             max_axis_length: Optional cap for ellipse semi-axis lengths in pixels.
+                When ``None`` (default), near-singular precision matrices can produce
+                extremely large eigenvalues and frame-spanning ellipses. Set this to
+                ``min(image_height, image_width)`` or a similar bound for production
+                use.
             line_style: Ellipse line style. Use ``"dashed"`` for less visually
                 dominant uncertainty overlays.
             dash_length: Arc length in degrees for each dashed segment. Only used
