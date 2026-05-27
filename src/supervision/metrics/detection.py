@@ -110,6 +110,11 @@ def _split_detections_by_outcome(
     if targets.class_id is None:
         raise ValueError("Targets must contain class_id values.")
 
+    prediction_class_ids = predictions.class_id
+    target_class_ids = targets.class_id
+    if prediction_class_ids is None or target_class_ids is None:
+        raise ValueError("Predictions and targets must contain class_id values.")
+
     if predictions.confidence is None:
         filtered_predictions = predictions
     else:
@@ -117,6 +122,10 @@ def _split_detections_by_outcome(
             Detections,
             predictions[predictions.confidence >= conf_threshold],
         )
+
+    filtered_prediction_class_ids = filtered_predictions.class_id
+    if filtered_prediction_class_ids is None:
+        raise ValueError("Predictions must contain class_id values.")
 
     prediction_count = len(filtered_predictions)
     target_count = len(targets)
@@ -163,8 +172,8 @@ def _split_detections_by_outcome(
         ]
 
         same_class_candidates = (
-            targets.class_id[target_candidate_indices]
-            == filtered_predictions.class_id[prediction_candidate_indices]
+            target_class_ids[target_candidate_indices]
+            == filtered_prediction_class_ids[prediction_candidate_indices]
         )
 
         candidate_order = np.lexsort(
@@ -184,8 +193,8 @@ def _split_detections_by_outcome(
             matched_predictions[prediction_index] = True
             matched_targets[target_index] = True
 
-            prediction_class = filtered_predictions.class_id[prediction_index]
-            target_class = targets.class_id[target_index]
+            prediction_class = filtered_prediction_class_ids[prediction_index]
+            target_class = target_class_ids[target_index]
 
             if prediction_class == target_class:
                 tp_indices.append(prediction_index)
