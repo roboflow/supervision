@@ -266,6 +266,11 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
         Returns:
             The annotated image, matching the type of ``scene``.
 
+        Raises:
+            ValueError: If ``key_points.data`` does not contain the key specified
+                by ``covariance_data_key``, or if the covariance array shape does
+                not match ``(N, K, 2, 2)``.
+
         Example:
             ```pycon
             >>> import numpy as np
