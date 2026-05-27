@@ -36,7 +36,7 @@ def test_keypoints_from_rfdetr_missing_keypoints_raises_clear_error() -> None:
         class_id=np.array([0], dtype=int),
     )
 
-    with pytest.raises(ValueError, match="detections.data\\['keypoints'\\]"):
+    with pytest.raises(ValueError, match=r"detections\.data\['keypoints'\]"):
         sv.KeyPoints.from_rfdetr(detections)
 
 
@@ -57,11 +57,17 @@ def test_keypoint_annotator_uses_vertex_and_edge_rendering() -> None:
     scene = np.zeros((32, 32, 3), dtype=np.uint8)
     detections = sv.Detections(
         xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
-        data={"keypoints": np.array([[[10.0, 10.0, 0.9], [20.0, 20.0, 0.8]]], dtype=np.float32)},
+        data={
+            "keypoints": np.array(
+                [[[10.0, 10.0, 0.9], [20.0, 20.0, 0.8]]], dtype=np.float32
+            )
+        },
     )
     key_points = sv.KeyPoints.from_rfdetr(detections)
 
     scene = sv.VertexAnnotator().annotate(scene=scene, key_points=key_points)
-    scene = sv.EdgeAnnotator(edges=[(1, 2)]).annotate(scene=scene, key_points=key_points)
+    scene = sv.EdgeAnnotator(edges=[(1, 2)]).annotate(
+        scene=scene, key_points=key_points
+    )
 
     assert np.any(scene != 0)
