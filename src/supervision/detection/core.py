@@ -324,7 +324,9 @@ class Detections:
                 data={CLASS_NAME_DATA_FIELD: class_names},
             )
 
-        return cls.empty()
+        empty = cls.empty()
+        empty.data = {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)}
+        return empty
 
     @classmethod
     def from_yolo_nas(cls, yolo_nas_results: Any) -> Detections:
@@ -626,6 +628,10 @@ class Detections:
         Returns:
             A Detections object containing the bounding boxes, class IDs,
                 and confidences of the predictions.
+                `detections.data["class_name"]` is always present as a
+                string-dtype NumPy array aligned with the detections; it is
+                empty (shape `(0,)`, dtype str) when `predictions` is empty
+                or absent.
 
         Example:
             ```python
@@ -650,7 +656,7 @@ class Detections:
 
         if np.asarray(xyxy).shape[0] == 0:
             empty_detection = cls.empty()
-            empty_detection.data = {CLASS_NAME_DATA_FIELD: np.empty(0)}
+            empty_detection.data = data
             return empty_detection
 
         return cls(
@@ -1910,7 +1916,9 @@ class Detections:
             assert isinstance(result, dict)
             xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
             if len(xyxy) == 0:
-                return cls.empty()
+                empty = cls.empty()
+                empty.data = {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)}
+                return empty
 
             data = {}
             if labels is not None:
