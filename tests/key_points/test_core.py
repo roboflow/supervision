@@ -107,6 +107,20 @@ def test_key_points_from_rfdetr_precision_requires_source_shape(
         KeyPoints.from_rfdetr(rfdetr_detections)
 
 
+def test_key_points_from_rfdetr_empty_keypoints_returns_empty(
+    rfdetr_detections: Detections,
+) -> None:
+    rfdetr_detections.xyxy = np.empty((0, 4), dtype=np.float32)
+    rfdetr_detections.confidence = np.empty((0,), dtype=np.float32)
+    rfdetr_detections.class_id = np.empty((0,), dtype=int)
+    rfdetr_detections.data["keypoints"] = np.empty((0, 2, 3), dtype=np.float32)
+    del rfdetr_detections.data["source_shape"]
+
+    key_points = KeyPoints.from_rfdetr(rfdetr_detections)
+
+    assert key_points == KeyPoints.empty()
+
+
 @pytest.mark.parametrize(
     ("key_points", "index", "expected_result", "exception"),
     [

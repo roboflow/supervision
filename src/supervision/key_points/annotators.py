@@ -289,6 +289,8 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
                     continue
                 if key_points.confidence is not None:
                     confidence = key_points.confidence[detection_index, point_index]
+                    if not np.isfinite(confidence):
+                        continue
                     if confidence < self.confidence_threshold:
                         continue
                 ellipse = self._covariance_to_ellipse(

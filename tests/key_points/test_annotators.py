@@ -201,6 +201,25 @@ class TestVertexEllipseAnnotator:
 
         assert np.array_equal(result, scene)
 
+    @pytest.mark.parametrize("confidence", [np.nan, np.inf, -np.inf])
+    def test_annotate_skips_non_finite_confidence(self, scene, confidence):
+        """
+        Scenario: Keypoint confidence is not finite.
+        Expected: Ellipse is not rendered for invalid confidence values.
+        """
+        key_points = sv.KeyPoints(
+            xy=np.array([[[40.0, 40.0]]], dtype=np.float32),
+            confidence=np.array([[confidence]], dtype=np.float32),
+            data={
+                "covariance": np.array([[[[25.0, 0.0], [0.0, 9.0]]]], dtype=np.float32)
+            },
+        )
+        annotator = sv.VertexEllipseAnnotator(confidence_threshold=0.0)
+
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+
+        assert np.array_equal(result, scene)
+
     def test_annotate_missing_covariance_data_raises(self, scene, sample_key_points):
         """
         Scenario: Annotating non-empty keypoints without covariance data.

@@ -339,6 +339,8 @@ class KeyPoints:
             raise ValueError(
                 f"Expected RF-DETR keypoints shape (N, K, 3), got {keypoints.shape}."
             )
+        if keypoints.shape[0] == 0:
+            return cls.empty()
 
         data: dict[str, npt.NDArray[np.generic] | list[Any]] = {}
         precision_cholesky = rfdetr_detections.data.get("keypoint_precision_cholesky")
