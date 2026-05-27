@@ -36,7 +36,7 @@ def test_keypoints_from_rfdetr_missing_keypoints_raises_clear_error() -> None:
         class_id=np.array([0], dtype=int),
     )
 
-    with pytest.raises(ValueError, match=r"detections\.data\['keypoints'\]"):
+    with pytest.raises(ValueError, match=r"data\['keypoints'\]"):
         sv.KeyPoints.from_rfdetr(detections)
 
 

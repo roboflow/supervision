@@ -133,12 +133,14 @@ def process_roboflow_result(
             polygon = np.array(
                 [[point["x"], point["y"]] for point in prediction["points"]], dtype=int
             )
-            mask = polygon_to_mask(polygon, resolution_wh=(image_width, image_height))
+            mask = polygon_to_mask(
+                polygon, resolution_wh=(image_width, image_height)
+            ).astype(bool)
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
-            masks.append(mask.astype(bool))
+            masks.append(mask)
             if "tracker_id" in prediction:
                 tracker_ids.append(prediction["tracker_id"])
 
@@ -175,8 +177,8 @@ def process_roboflow_result(
 
 
 def is_data_equal(
-    data_a: dict[str, npt.NDArray[np.generic]],
-    data_b: dict[str, npt.NDArray[np.generic]],
+    data_a: dict[str, npt.NDArray[np.generic] | list[Any]],
+    data_b: dict[str, npt.NDArray[np.generic] | list[Any]],
 ) -> bool:
     """
     Compares the data payloads of two Detections instances.
@@ -249,7 +251,7 @@ def merge_data(
                 "All data values within a single object must have equal length."
             )
 
-    merged_data: dict[str, list[Any]] = {key: [] for key in all_keys_sets[0]}
+    merged_data: dict[str, Any] = {key: [] for key in all_keys_sets[0]}
     for data in data_list:
         for key in data:
             merged_data[key].append(data[key])
@@ -271,7 +273,7 @@ def merge_data(
                 f"types are allowed."
             )
 
-    return merged_data
+    return cast(dict[str, npt.NDArray[np.generic] | list[Any]], merged_data)
 
 
 def merge_metadata(metadata_list: list[dict[str, Any]]) -> dict[str, Any]:

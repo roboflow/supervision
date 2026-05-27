@@ -89,6 +89,15 @@ def _rfdetr_precision_cholesky_to_pixel_covariance(
     return covariances
 
 
+def _optional_array_equal(
+    first: npt.NDArray[np.generic] | None,
+    second: npt.NDArray[np.generic] | None,
+) -> bool:
+    if first is None or second is None:
+        return first is None and second is None
+    return np.array_equal(first, second)
+
+
 @dataclass
 class KeyPoints:
     """
@@ -291,8 +300,8 @@ class KeyPoints:
         return all(
             [
                 np.array_equal(self.xy, other.xy),
-                np.array_equal(self.class_id, other.class_id),
-                np.array_equal(self.confidence, other.confidence),
+                _optional_array_equal(self.class_id, other.class_id),
+                _optional_array_equal(self.confidence, other.confidence),
                 is_data_equal(self.data, other.data),
             ]
         )
@@ -345,7 +354,7 @@ class KeyPoints:
         return cls(
             xy=keypoints[:, :, :2].astype(np.float32),
             confidence=keypoints[:, :, 2].astype(np.float32),
-            class_id=rfdetr_detections.class_id,
+            class_id=cast(npt.NDArray[np.int_] | None, rfdetr_detections.class_id),
             data=data,
         )
 
@@ -422,7 +431,9 @@ class KeyPoints:
             class_id.append(prediction["class_id"])
             class_names.append(prediction["class"])
 
-        data = {CLASS_NAME_DATA_FIELD: np.array(class_names)}
+        data: dict[str, npt.NDArray[np.generic] | list[Any]] = {
+            CLASS_NAME_DATA_FIELD: np.array(class_names)
+        }
 
         return cls(
             xy=np.array(xy, dtype=np.float32),
@@ -591,7 +602,9 @@ class KeyPoints:
         class_names = np.array([ultralytics_results.names[i] for i in class_id])
 
         confidence = ultralytics_results.keypoints.conf.cpu().numpy()
-        data = {CLASS_NAME_DATA_FIELD: class_names}
+        data: dict[str, npt.NDArray[np.generic] | list[Any]] = {
+            CLASS_NAME_DATA_FIELD: class_names
+        }
         return cls(xy, class_id, confidence, data)
 
     @classmethod
@@ -637,7 +650,7 @@ class KeyPoints:
         else:
             class_id = None
 
-        data = {}
+        data: dict[str, npt.NDArray[np.generic] | list[Any]] = {}
         if class_id is not None and yolo_nas_results.class_names is not None:
             class_names = []
             for c_id in class_id:
@@ -869,7 +882,7 @@ class KeyPoints:
             return self.data.get(index)
 
         if isinstance(index, np.ndarray) and index.ndim == 2 and index.dtype == bool:
-            return self._get_by_2d_bool_mask(index)
+            return self._get_by_2d_bool_mask(cast(npt.NDArray[np.bool_], index))
 
         if not isinstance(index, tuple):
             index = (index, slice(None))
@@ -895,7 +908,9 @@ class KeyPoints:
             and not np.isscalar(i)
             and not np.isscalar(j)
         ):
-            i, j = np.ix_(i, j)
+            i_ix, j_ix = np.ix_(cast(Any, i), cast(Any, j))
+            i = cast(Any, i_ix)
+            j = cast(Any, j_ix)
 
         xy_selected = self.xy[i, j]
 
@@ -903,7 +918,7 @@ class KeyPoints:
 
         class_id_selected = self.class_id[i] if self.class_id is not None else None
 
-        data_selected = get_data_item(self.data, i)
+        data_selected = get_data_item(self.data, cast(Any, i))
 
         if xy_selected.ndim == 1:
             xy_selected = xy_selected.reshape(1, 1, 2)
@@ -1071,6 +1086,6 @@ class KeyPoints:
         detections = Detections.merge(detections_list)
         detections.class_id = self.class_id
         detections.data = self.data
-        detections = cast(Detections, detections[detections.area > 0])
+        detections = cast(Detections, detections[cast(Any, detections.area) > 0])
 
         return detections
