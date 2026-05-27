@@ -933,3 +933,52 @@ def test_merge_inner_detection_object_pair(
 def test_is_empty(detections: Detections, expected: bool) -> None:
     """Verify is_empty() returns True iff the Detections object has zero detections."""
     assert detections.is_empty() == expected
+
+
+def test_from_inference_empty_class_name_dtype_matches_non_empty() -> None:
+    """Empty and non-empty results should produce string-kind class_name arrays."""
+    empty_result = {"predictions": [], "image": {"width": 100, "height": 100}}
+    non_empty_result = {
+        "predictions": [
+            {
+                "x": 50,
+                "y": 50,
+                "width": 20,
+                "height": 20,
+                "confidence": 0.9,
+                "class": "cat",
+                "class_id": 0,
+            }
+        ],
+        "image": {"width": 100, "height": 100},
+    }
+    empty = Detections.from_inference(empty_result)
+    non_empty = Detections.from_inference(non_empty_result)
+
+    # null-safety: class_name must be an array, not None
+    assert empty["class_name"] is not None
+    assert non_empty["class_name"] is not None
+
+    # dtype kind must match between empty and non-empty paths
+    assert empty["class_name"].dtype.kind == non_empty["class_name"].dtype.kind == "U"
+
+    # all data keys and dtypes must match between empty and non-empty paths
+    assert set(empty.data.keys()) == set(non_empty.data.keys())
+    for key in non_empty.data:
+        assert empty.data[key].dtype.kind == non_empty.data[key].dtype.kind, key
+
+    # concatenation across empty+non-empty must produce a string-kind array
+    concat = np.concatenate([empty["class_name"], non_empty["class_name"]])
+    assert concat.dtype.kind == "U"
+
+
+def test_from_inference_sdk_dict_path_empty_preserves_class_name_dtype() -> None:
+    """SDK objects with .dict() and empty predictions produce string-kind class_name."""
+
+    class _FakeSdkResult:
+        def dict(self, **kwargs: object) -> dict:
+            return {"predictions": [], "image": {"width": 100, "height": 100}}
+
+    detections = Detections.from_inference(_FakeSdkResult())
+    assert detections["class_name"] is not None
+    assert detections["class_name"].dtype.kind == "U"

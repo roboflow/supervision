@@ -45,13 +45,38 @@ def build_coco_class_index_mapping(
 
 
 def classes_to_coco_categories(classes: list[str]) -> list[CocoDict]:
+    """Convert a list of class names to COCO ``categories`` entries.
+
+    Category ids are emitted 1-indexed to comply with the COCO specification
+    and tools such as CVAT, which require ``category_id`` values to start at
+    ``1``. The id assigned to the class at position ``class_index`` is
+    ``class_index + 1``, keeping it consistent with the ``category_id`` written
+    by [`detections_to_coco_annotations`](#detections_to_coco_annotations).
+
+    Args:
+        classes: Class names ordered by their internal (0-indexed) class id.
+
+    Returns:
+        A list of COCO category dictionaries with 1-indexed ``id`` values.
+
+    Examples:
+        ```python
+        from supervision.dataset.formats.coco import classes_to_coco_categories
+
+        classes_to_coco_categories(classes=["cat", "dog"])
+        # [
+        #     {"id": 1, "name": "cat", "supercategory": "common-objects"},
+        #     {"id": 2, "name": "dog", "supercategory": "common-objects"},
+        # ]
+        ```
+    """
     return [
         {
-            "id": class_id,
+            "id": class_index + 1,
             "name": class_name,
             "supercategory": "common-objects",
         }
-        for class_id, class_name in enumerate(classes)
+        for class_index, class_name in enumerate(classes)
     ]
 
 
@@ -122,6 +147,28 @@ def coco_annotations_to_detections(
     with_masks: bool,
     use_iscrowd: bool = True,
 ) -> Detections:
+    """Convert COCO annotation dicts for a single image into a `Detections` object.
+
+    .. warning::
+        The returned ``Detections.class_id`` contains **raw COCO** ``category_id``
+        values, not the final 0-indexed internal class ids.  Callers **must** pass
+        the result through :func:`map_detections_class_id` with the appropriate
+        ``source_to_target_mapping`` (built by
+        :func:`build_coco_class_index_mapping`) before the ``class_id`` values are
+        meaningful.  Skipping the remap step yields 1-based ids in a field that the
+        rest of supervision treats as 0-based.
+
+    Args:
+        image_annotations: List of COCO annotation dicts for one image.
+        resolution_wh: ``(width, height)`` of the image, used for mask decoding.
+        with_masks: Whether to decode segmentation fields into binary masks.
+        use_iscrowd: When ``True``, store ``iscrowd`` and ``area`` in
+            ``Detections.data``.
+
+    Returns:
+        Detections with ``class_id`` set to raw COCO ``category_id`` values.
+        Call :func:`map_detections_class_id` on the result before use.
+    """
     if not image_annotations:
         return Detections.empty()
 
@@ -162,6 +209,50 @@ def detections_to_coco_annotations(
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
 ) -> tuple[list[CocoDict], int]:
+    """Convert `Detections` to COCO ``annotations`` entries.
+
+    The internal 0-indexed ``Detections.class_id`` is serialized as a 1-indexed
+    COCO ``category_id`` (``category_id = class_id + 1``). This complies with the
+    COCO specification and tools such as CVAT, and stays consistent with the ids
+    emitted by [`classes_to_coco_categories`](#classes_to_coco_categories), so a
+    detection with internal ``class_id=k`` maps to ``category_id=k + 1``.
+
+    Args:
+        detections: The detections to convert. ``class_id`` must not be ``None``.
+        image_id: COCO ``image_id`` shared by every produced annotation.
+        annotation_id: First annotation id to assign; incremented per detection.
+        min_image_area_percentage: Lower bound on detection area / image area,
+            used only when approximating masks with polygons.
+        max_image_area_percentage: Upper bound on detection area / image area,
+            used only when approximating masks with polygons.
+        approximation_percentage: Polygon-simplification ratio in ``[0, 1)``.
+
+    Returns:
+        A ``(coco_annotations, next_annotation_id)`` tuple, where
+        ``next_annotation_id`` is one greater than the last id assigned.
+
+    Raises:
+        ValueError: If any detection has ``class_id`` equal to ``None``.
+
+    Examples:
+        ```python
+        import numpy as np
+        from supervision import Detections
+        from supervision.dataset.formats.coco import (
+            detections_to_coco_annotations,
+        )
+
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0], dtype=int),
+        )
+        annotations, next_id = detections_to_coco_annotations(
+            detections=detections, image_id=1, annotation_id=1
+        )
+        annotations[0]["category_id"]
+        # 1
+        ```
+    """
     coco_annotations: list[CocoDict] = []
     for xyxy, mask, _, class_id, _, data in detections:
         if class_id is None:
@@ -206,7 +297,7 @@ def detections_to_coco_annotations(
         coco_annotation = {
             "id": annotation_id,
             "image_id": image_id,
-            "category_id": int(class_id),
+            "category_id": int(class_id) + 1,
             "bbox": [xyxy[0], xyxy[1], box_width, box_height],
             "area": area,
             "segmentation": segmentation,
