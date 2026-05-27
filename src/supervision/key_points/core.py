@@ -382,11 +382,18 @@ class KeyPoints:
         data: dict[str, npt.NDArray[np.generic] | list[Any]] = {}
         precision_cholesky = rfdetr_detections.data.get("keypoint_precision_cholesky")
         if precision_cholesky is not None:
+            precision_cholesky_array = np.asarray(precision_cholesky, dtype=np.float32)
+            if precision_cholesky_array.shape[:2] != keypoints.shape[:2]:
+                raise ValueError(
+                    "keypoint_precision_cholesky shape "
+                    f"{precision_cholesky_array.shape[:2]} does not match "
+                    f"keypoints shape {keypoints.shape[:2]}."
+                )
             source_shape = _rfdetr_source_shape(
                 rfdetr_detections, detections_count=keypoints.shape[0]
             )
             data["covariance"] = _rfdetr_precision_cholesky_to_pixel_covariance(
-                precision_cholesky=np.asarray(precision_cholesky, dtype=np.float32),
+                precision_cholesky=precision_cholesky_array,
                 source_shape=source_shape,
             )
 
