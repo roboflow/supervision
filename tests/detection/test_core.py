@@ -970,3 +970,15 @@ def test_from_inference_empty_class_name_dtype_matches_non_empty() -> None:
     # concatenation across empty+non-empty must produce a string-kind array
     concat = np.concatenate([empty["class_name"], non_empty["class_name"]])
     assert concat.dtype.kind == "U"
+
+
+def test_from_inference_sdk_dict_path_empty_preserves_class_name_dtype() -> None:
+    """SDK objects with .dict() and empty predictions produce string-kind class_name."""
+
+    class _FakeSdkResult:
+        def dict(self, **kwargs: object) -> dict:
+            return {"predictions": [], "image": {"width": 100, "height": 100}}
+
+    detections = Detections.from_inference(_FakeSdkResult())
+    assert detections["class_name"] is not None
+    assert detections["class_name"].dtype.kind == "U"
