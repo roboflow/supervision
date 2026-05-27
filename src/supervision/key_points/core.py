@@ -250,6 +250,13 @@ class KeyPoints:
         key_point = sv.KeyPoints.from_transformers(results[0])
         ```
 
+    Note:
+        [`sv.KeyPoints.from_rfdetr`][supervision.key_points.core.KeyPoints.from_rfdetr]
+        accepts ``sv.Detections`` (not native RF-DETR output) because RF-DETR keypoints
+        are attached as extra fields inside a ``sv.Detections`` object returned by
+        ``model.predict()``. Run that conversion first, then pass the result to
+        ``from_rfdetr``.
+
     Attributes:
         xy: An array of shape `(n, m, 2)` containing
             `n` detected objects, each composed of `m` equally-sized
