@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from typing import Any, Union, cast
@@ -11,6 +12,8 @@ from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.utils.internal import get_data_item, is_data_equal
 from supervision.validators import validate_key_points_fields
+
+logger = logging.getLogger(__name__)
 
 Index1D = Union[
     int,
@@ -61,6 +64,11 @@ def _rfdetr_precision_cholesky_to_pixel_covariance(
             f"{precision_cholesky.shape[0]} and {source_shape.shape[0]}."
         )
 
+    n_total = precision_cholesky.shape[0] * precision_cholesky.shape[1]
+    n_non_finite = 0
+    n_singular = 0
+    n_overflow = 0
+
     covariances = np.full(
         (*precision_cholesky.shape[:2], 2, 2), np.nan, dtype=np.float32
     )
@@ -69,6 +77,7 @@ def _rfdetr_precision_cholesky_to_pixel_covariance(
         scale = np.diag([width, height]).astype(np.float64)
         for keypoint_index, params in enumerate(detection_precision):
             if not np.isfinite(params).all():
+                n_non_finite += 1
                 continue
             log_l11 = float(np.clip(params[0], -20.0, 20.0))
             l21 = float(np.clip(params[1], -1.0e4, 1.0e4))
@@ -82,11 +91,26 @@ def _rfdetr_precision_cholesky_to_pixel_covariance(
             try:
                 covariance = np.linalg.inv(precision)
             except np.linalg.LinAlgError:
+                n_singular += 1
                 continue
 
             pixel_covariance = scale @ covariance @ scale
             if np.isfinite(pixel_covariance).all():
                 covariances[detection_index, keypoint_index] = pixel_covariance
+            else:
+                n_overflow += 1
+
+    n_failed = n_non_finite + n_singular + n_overflow
+    if n_failed > 0:
+        logger.warning(
+            "%d of %d precision matrices failed: "
+            "non_finite=%d, singular=%d, overflow=%d",
+            n_failed,
+            n_total,
+            n_non_finite,
+            n_singular,
+            n_overflow,
+        )
     return covariances
 
 
