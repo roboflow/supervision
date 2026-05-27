@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
-from typing import Any, Union, cast
+from typing import Any, Optional, Union, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -436,7 +436,7 @@ class KeyPoints:
         return cls(
             xy=keypoints[:, :, :2].astype(np.float32),
             confidence=keypoints[:, :, 2].astype(np.float32),
-            class_id=cast(npt.NDArray[np.int_] | None, rfdetr_detections.class_id),
+            class_id=cast(Optional[npt.NDArray[np.int_]], rfdetr_detections.class_id),
             data=data,
         )
 

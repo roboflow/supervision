@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from itertools import chain
-from typing import Any, cast
+from typing import Any, Union, cast
 
 import cv2
 import numpy as np
@@ -296,7 +296,7 @@ def merge_data(
                 f"types are allowed."
             )
 
-    return cast(dict[str, npt.NDArray[np.generic] | list[Any]], merged_data)
+    return cast(dict[str, Union[npt.NDArray[np.generic], list[Any]]], merged_data)
 
 
 def merge_metadata(metadata_list: list[dict[str, Any]]) -> dict[str, Any]:
