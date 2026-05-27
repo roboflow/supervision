@@ -61,6 +61,29 @@ def process_roboflow_result(
     npt.NDArray[np.integer] | None,
     dict[str, npt.NDArray[np.generic]],
 ]:
+    """Parse a Roboflow API or Inference package result into detection arrays.
+
+    The returned ``data`` dict always contains ``CLASS_NAME_DATA_FIELD`` as a
+    string-dtype NumPy array. When ``predictions`` is empty, the array has
+    shape ``(0,)`` with ``dtype=str``, preserving dtype contracts for callers
+    that mix empty and non-empty results.
+
+    Args:
+        roboflow_result: Raw dict from the Roboflow REST API or the Inference
+            package (after ``.dict()`` serialisation).
+
+    Returns:
+        A 6-tuple of ``(xyxy, confidence, class_id, masks, tracker_ids, data)``
+        where each array is aligned with the others. ``masks`` and
+        ``tracker_ids`` are ``None`` when absent from the predictions.
+
+    Examples:
+        >>> from supervision.detection.utils.internal import process_roboflow_result
+        >>> result = {"predictions": [], "image": {"width": 100, "height": 100}}
+        >>> _, _, _, _, _, data = process_roboflow_result(result)
+        >>> data["class_name"].dtype.kind
+        'U'
+    """
     if not roboflow_result["predictions"]:
         return (
             np.empty((0, 4), dtype=np.float64),
