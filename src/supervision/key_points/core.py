@@ -31,7 +31,8 @@ def _rfdetr_source_shape(
     if source_shape is None:
         raise ValueError(
             "RF-DETR detections with keypoint precision data must contain "
-            "data['source_shape'] with shape (N, 2)."
+            "data['source_shape'] with shape (N, 2) where each row is "
+            "(height, width) in pixels."
         )
 
     source_shape_array = np.asarray(source_shape, dtype=np.float32)
@@ -318,6 +319,11 @@ class KeyPoints:
         those per-keypoint precision parameters into pixel-space covariance matrices
         and stores them in ``key_points.data["covariance"]`` for use with
         `sv.VertexEllipseAnnotator`.
+
+        Note:
+            ``detections.data["source_shape"]`` must have shape ``(N, 2)`` where each
+            row is ``(height, width)`` in pixels — note this is HW order, not the WH
+            order used by ``resolution_wh`` elsewhere in supervision.
 
         Args:
             rfdetr_detections: RF-DETR prediction returned by ``model.predict()``.
