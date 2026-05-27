@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import cv2
 import numpy as np
@@ -315,13 +315,16 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
                 f"key_points.data must contain {self.covariance_data_key!r} "
                 "with shape (N, K, 2, 2)."
             )
-        covariances = np.asarray(covariances, dtype=np.float32)
+        covariances_array = cast(
+            npt.NDArray[np.float32], np.asarray(covariances, dtype=np.float32)
+        )
         expected_shape = (*key_points.xy.shape[:2], 2, 2)
-        if covariances.shape != expected_shape:
+        if covariances_array.shape != expected_shape:
             raise ValueError(
-                f"Expected covariance shape {expected_shape}, got {covariances.shape}."
+                f"Expected covariance shape {expected_shape}, "
+                f"got {covariances_array.shape}."
             )
-        return covariances
+        return covariances_array
 
     def _covariance_to_ellipse(
         self, covariance: npt.NDArray[np.float32]
@@ -520,7 +523,10 @@ class VertexLabelAnnotator:
         if skeletons_count == 0:
             return scene
 
-        anchors = key_points.xy.reshape(points_count * skeletons_count, 2).astype(int)
+        anchors = cast(
+            npt.NDArray[np.int_],
+            key_points.xy.reshape(points_count * skeletons_count, 2).astype(int),
+        )
         mask = np.all(anchors != 0, axis=1)
 
         if not np.any(mask):
