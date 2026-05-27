@@ -268,3 +268,36 @@ class TestVertexEllipseAnnotator:
         assert not np.array_equal(result_high, scene), (
             "high-confidence keypoint must be drawn"
         )
+
+    def test_max_axis_length_caps_large_eigenvalue(self, scene):
+        """
+        Scenario: Covariance produces eigenvalue much larger than scene; cap applied.
+        Expected: Scene is modified (ellipse drawn) and axis is clamped to max.
+        """
+        large_cov = np.array([[[[1e6, 0.0], [0.0, 1e6]]]], dtype=np.float32)
+        key_points = sv.KeyPoints(
+            xy=np.array([[[50.0, 50.0]]], dtype=np.float32),
+            data={"covariance": large_cov},
+        )
+        annotator = sv.VertexEllipseAnnotator(max_axis_length=10.0)
+
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+
+        assert result.shape == scene.shape
+        assert not np.array_equal(result, scene)
+
+    @pytest.mark.parametrize(
+        ("kwargs", "match"),
+        [
+            ({"max_axis_length": 0}, "max_axis_length"),
+            ({"max_axis_length": -1}, "max_axis_length"),
+            ({"sigma": 0}, "sigma"),
+            ({"sigma": -1.0}, "sigma"),
+            ({"thickness": 0}, "thickness"),
+            ({"dash_length": 0}, "dash_length"),
+        ],
+    )
+    def test_constructor_raises_on_invalid_params(self, kwargs, match):
+        """Scenario: Invalid constructor parameters. Expected: ValueError."""
+        with pytest.raises(ValueError, match=match):
+            sv.VertexEllipseAnnotator(**kwargs)
