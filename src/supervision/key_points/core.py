@@ -329,6 +329,37 @@ class KeyPoints:
         Raises:
             ValueError: If the RF-DETR detections do not contain valid keypoints,
                 or if precision parameters are present without source shape data.
+
+        Examples:
+            Basic usage — keypoints only:
+
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> kp_arr = np.array([[[50, 80, 0.9], [60, 90, 0.8]]], dtype=np.float32)
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[10, 20, 100, 200]], dtype=np.float32),
+            ...     data={"keypoints": kp_arr},
+            ... )
+            >>> key_points = sv.KeyPoints.from_rfdetr(detections)
+            >>> key_points.xy.shape
+            (1, 2, 2)
+
+            With precision Cholesky parameters (produces covariance data):
+
+            >>> kp_arr2 = np.array([[[50, 80, 0.9], [60, 90, 0.8]]], dtype=np.float32)
+            >>> chol = np.zeros((1, 2, 3), dtype=np.float32)
+            >>> src = np.array([[480, 640]], dtype=np.float32)
+            >>> detections_with_cov = sv.Detections(
+            ...     xyxy=np.array([[10, 20, 100, 200]], dtype=np.float32),
+            ...     data={
+            ...         "keypoints": kp_arr2,
+            ...         "keypoint_precision_cholesky": chol,
+            ...         "source_shape": src,
+            ...     },
+            ... )
+            >>> kp = sv.KeyPoints.from_rfdetr(detections_with_cov)
+            >>> "covariance" in kp.data
+            True
         """
         rfdetr_keypoints = rfdetr_detections.data.get("keypoints")
         if rfdetr_keypoints is None:
