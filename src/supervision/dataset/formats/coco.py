@@ -147,6 +147,28 @@ def coco_annotations_to_detections(
     with_masks: bool,
     use_iscrowd: bool = True,
 ) -> Detections:
+    """Convert COCO annotation dicts for a single image into a `Detections` object.
+
+    .. warning::
+        The returned ``Detections.class_id`` contains **raw COCO** ``category_id``
+        values, not the final 0-indexed internal class ids.  Callers **must** pass
+        the result through :func:`map_detections_class_id` with the appropriate
+        ``source_to_target_mapping`` (built by
+        :func:`build_coco_class_index_mapping`) before the ``class_id`` values are
+        meaningful.  Skipping the remap step yields 1-based ids in a field that the
+        rest of supervision treats as 0-based.
+
+    Args:
+        image_annotations: List of COCO annotation dicts for one image.
+        resolution_wh: ``(width, height)`` of the image, used for mask decoding.
+        with_masks: Whether to decode segmentation fields into binary masks.
+        use_iscrowd: When ``True``, store ``iscrowd`` and ``area`` in
+            ``Detections.data``.
+
+    Returns:
+        Detections with ``class_id`` set to raw COCO ``category_id`` values.
+        Call :func:`map_detections_class_id` on the result before use.
+    """
     if not image_annotations:
         return Detections.empty()
 
