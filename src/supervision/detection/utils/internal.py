@@ -78,13 +78,11 @@ def process_roboflow_result(
         ``tracker_ids`` are ``None`` when absent from the predictions.
 
     Examples:
-        ```python
-        from supervision.detection.utils.internal import process_roboflow_result
-
-        result = {"predictions": [], "image": {"width": 100, "height": 100}}
-        xyxy, conf, cls_id, masks, trackers, data = process_roboflow_result(result)
-        # data["class_name"].dtype.kind == "U"  # always string kind
-        ```
+        >>> from supervision.detection.utils.internal import process_roboflow_result
+        >>> result = {"predictions": [], "image": {"width": 100, "height": 100}}
+        >>> _, _, _, _, _, data = process_roboflow_result(result)
+        >>> data["class_name"].dtype.kind
+        'U'
     """
     if not roboflow_result["predictions"]:
         return (
