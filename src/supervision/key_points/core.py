@@ -23,6 +23,72 @@ Index1D = Union[
 Index2D = tuple[Index1D, Index1D]
 
 
+def _rfdetr_source_shape(
+    rfdetr_detections: Detections,
+    detections_count: int,
+) -> npt.NDArray[np.float32]:
+    source_shape = rfdetr_detections.data.get("source_shape")
+    if source_shape is None:
+        raise ValueError(
+            "RF-DETR detections with keypoint precision data must contain "
+            "data['source_shape'] with shape (N, 2)."
+        )
+
+    source_shape_array = np.asarray(source_shape, dtype=np.float32)
+    expected_shape = (detections_count, 2)
+    if source_shape_array.shape != expected_shape:
+        raise ValueError(
+            "Expected RF-DETR source_shape shape "
+            f"{expected_shape}, got {source_shape_array.shape}."
+        )
+    return source_shape_array
+
+
+def _rfdetr_precision_cholesky_to_pixel_covariance(
+    precision_cholesky: npt.NDArray[np.float32],
+    source_shape: npt.NDArray[np.float32],
+) -> npt.NDArray[np.float32]:
+    if precision_cholesky.ndim != 3 or precision_cholesky.shape[2] != 3:
+        raise ValueError(
+            "Expected RF-DETR keypoint precision shape (N, K, 3), "
+            f"got {precision_cholesky.shape}."
+        )
+    if precision_cholesky.shape[0] != source_shape.shape[0]:
+        raise ValueError(
+            "RF-DETR keypoint precision and source_shape must contain the same "
+            "number of detections, got "
+            f"{precision_cholesky.shape[0]} and {source_shape.shape[0]}."
+        )
+
+    covariances = np.full(
+        (*precision_cholesky.shape[:2], 2, 2), np.nan, dtype=np.float32
+    )
+    for detection_index, detection_precision in enumerate(precision_cholesky):
+        height, width = source_shape[detection_index]
+        scale = np.diag([width, height]).astype(np.float64)
+        for keypoint_index, params in enumerate(detection_precision):
+            if not np.isfinite(params).all():
+                continue
+            log_l11 = float(np.clip(params[0], -20.0, 20.0))
+            l21 = float(np.clip(params[1], -1.0e4, 1.0e4))
+            log_l22 = float(np.clip(params[2], -20.0, 20.0))
+            l11 = float(np.exp(log_l11))
+            l22 = float(np.exp(log_l22))
+            precision = np.array(
+                [[l11 * l11, l11 * l21], [l11 * l21, l21 * l21 + l22 * l22]],
+                dtype=np.float64,
+            )
+            try:
+                covariance = np.linalg.inv(precision)
+            except np.linalg.LinAlgError:
+                continue
+
+            pixel_covariance = scale @ covariance @ scale
+            if np.isfinite(pixel_covariance).all():
+                covariances[detection_index, keypoint_index] = pixel_covariance
+    return covariances
+
+
 @dataclass
 class KeyPoints:
     """
@@ -229,6 +295,58 @@ class KeyPoints:
                 np.array_equal(self.confidence, other.confidence),
                 is_data_equal(self.data, other.data),
             ]
+        )
+
+    @classmethod
+    def from_rfdetr(cls, rfdetr_detections: Detections) -> KeyPoints:
+        """
+        Create a `sv.KeyPoints` object from RF-DETR `sv.Detections` output.
+
+        RF-DETR attaches keypoint coordinates to ``detections.data["keypoints"]``
+        with shape ``(N, K, 3)`` where the last dimension stores ``[x, y,
+        confidence]`` in pixel coordinates. When RF-DETR also provides
+        ``detections.data["keypoint_precision_cholesky"]``, this method converts
+        those per-keypoint precision parameters into pixel-space covariance matrices
+        and stores them in ``key_points.data["covariance"]`` for use with
+        `sv.VertexEllipseAnnotator`.
+
+        Args:
+            rfdetr_detections: RF-DETR prediction returned by ``model.predict()``.
+
+        Returns:
+            A `sv.KeyPoints` object containing RF-DETR keypoints and optional
+                covariance matrices.
+
+        Raises:
+            ValueError: If the RF-DETR detections do not contain valid keypoints,
+                or if precision parameters are present without source shape data.
+        """
+        rfdetr_keypoints = rfdetr_detections.data.get("keypoints")
+        if rfdetr_keypoints is None:
+            raise ValueError("RF-DETR detections must contain data['keypoints'].")
+
+        keypoints = np.asarray(rfdetr_keypoints, dtype=np.float32)
+        if keypoints.ndim != 3 or keypoints.shape[2] != 3:
+            raise ValueError(
+                f"Expected RF-DETR keypoints shape (N, K, 3), got {keypoints.shape}."
+            )
+
+        data: dict[str, npt.NDArray[np.generic] | list[Any]] = {}
+        precision_cholesky = rfdetr_detections.data.get("keypoint_precision_cholesky")
+        if precision_cholesky is not None:
+            source_shape = _rfdetr_source_shape(
+                rfdetr_detections, detections_count=keypoints.shape[0]
+            )
+            data["covariance"] = _rfdetr_precision_cholesky_to_pixel_covariance(
+                precision_cholesky=np.asarray(precision_cholesky, dtype=np.float32),
+                source_shape=source_shape,
+            )
+
+        return cls(
+            xy=keypoints[:, :, :2].astype(np.float32),
+            confidence=keypoints[:, :, 2].astype(np.float32),
+            class_id=rfdetr_detections.class_id,
+            data=data,
         )
 
     @classmethod

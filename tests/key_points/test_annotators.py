@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import supervision as sv
 from tests.helpers import assert_image_mostly_same
@@ -131,3 +132,92 @@ class TestEdgeAnnotator:
 
         # Should return the original scene unchanged (no edges found)
         assert np.array_equal(result, scene)
+
+
+class TestVertexEllipseAnnotator:
+    """
+    Verify that VertexEllipseAnnotator draws covariance ellipses around keypoints.
+    """
+
+    def test_annotate_with_covariance_data(self, scene, sample_key_points):
+        """
+        Scenario: Annotating keypoints with per-point covariance matrices.
+        Expected: Scene is modified with ellipses at keypoint locations.
+        """
+        covariance = np.tile(
+            np.eye(2, dtype=np.float32),
+            (*sample_key_points.xy.shape[:2], 1, 1),
+        )
+        covariance[..., 0, 0] = 25.0
+        covariance[..., 1, 1] = 9.0
+        sample_key_points.data["covariance"] = covariance
+
+        annotator = sv.VertexEllipseAnnotator(color=sv.Color.RED, sigma=2.0)
+        result = annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
+
+        assert result.shape == scene.shape
+        assert not np.array_equal(result, scene)
+
+    def test_annotate_with_dashed_line_style(self, scene, sample_key_points):
+        """
+        Scenario: Annotating keypoints with dashed covariance ellipses.
+        Expected: Scene is modified with a low-interference dashed overlay.
+        """
+        covariance = np.tile(
+            np.eye(2, dtype=np.float32),
+            (*sample_key_points.xy.shape[:2], 1, 1),
+        )
+        covariance[..., 0, 0] = 25.0
+        covariance[..., 1, 1] = 9.0
+        sample_key_points.data["covariance"] = covariance
+
+        annotator = sv.VertexEllipseAnnotator(
+            color=sv.Color.RED,
+            thickness=1,
+            sigma=2.0,
+            line_style="dashed",
+            dash_length=12,
+        )
+        result = annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
+
+        assert result.shape == scene.shape
+        assert not np.array_equal(result, scene)
+
+    def test_invalid_line_style_raises(self):
+        """
+        Scenario: Invalid line style is requested.
+        Expected: Clear validation error.
+        """
+        with pytest.raises(ValueError, match="line_style"):
+            sv.VertexEllipseAnnotator(line_style="dotted")
+
+    def test_annotate_empty_key_points(self, scene, empty_key_points):
+        """
+        Scenario: Annotating a scene with no keypoints.
+        Expected: Original scene is returned untouched.
+        """
+        annotator = sv.VertexEllipseAnnotator()
+        result = annotator.annotate(scene=scene.copy(), key_points=empty_key_points)
+
+        assert np.array_equal(result, scene)
+
+    def test_annotate_missing_covariance_data_raises(self, scene, sample_key_points):
+        """
+        Scenario: Annotating non-empty keypoints without covariance data.
+        Expected: Clear error explaining the expected data field.
+        """
+        annotator = sv.VertexEllipseAnnotator()
+
+        with pytest.raises(ValueError, match="covariance"):
+            annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
+
+    def test_annotate_invalid_covariance_shape_raises(self, scene, sample_key_points):
+        """
+        Scenario: Covariance data does not match keypoint dimensions.
+        Expected: Clear shape validation error.
+        """
+        sample_key_points.data["covariance"] = np.zeros((1, 1, 2, 2), dtype=np.float32)
+        annotator = sv.VertexEllipseAnnotator()
+
+        with pytest.raises(ValueError, match="Expected covariance shape"):
+            annotator.annotate(scene=scene.copy(), key_points=sample_key_points)

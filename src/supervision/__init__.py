@@ -121,6 +121,7 @@ from supervision.geometry.utils import get_polygon_center
 from supervision.key_points.annotators import (
     EdgeAnnotator,
     VertexAnnotator,
+    VertexEllipseAnnotator,
     VertexLabelAnnotator,
 )
 from supervision.key_points.core import KeyPoints
@@ -204,6 +205,7 @@ __all__ = [
     "TraceAnnotator",
     "TriangleAnnotator",
     "VertexAnnotator",
+    "VertexEllipseAnnotator",
     "VertexLabelAnnotator",
     "VideoInfo",
     "VideoSink",
