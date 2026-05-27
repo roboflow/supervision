@@ -349,6 +349,11 @@ class KeyPoints:
             row is ``(height, width)`` in pixels — note this is HW order, not the WH
             order used by ``resolution_wh`` elsewhere in supervision.
 
+            Keypoint confidence values are stored as-is from RF-DETR output and are
+            expected to be probabilities in the range ``[0, 1]``. If RF-DETR returns
+            logits instead, user-supplied ``confidence_threshold`` values in
+            `sv.VertexEllipseAnnotator` should be adjusted accordingly.
+
         Args:
             rfdetr_detections: RF-DETR prediction returned by ``model.predict()``.
 
