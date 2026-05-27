@@ -626,6 +626,10 @@ class Detections:
         Returns:
             A Detections object containing the bounding boxes, class IDs,
                 and confidences of the predictions.
+                `detections.data["class_name"]` is always present as a
+                string-dtype NumPy array aligned with the detections; it is
+                empty (shape `(0,)`, dtype str) when `predictions` is empty
+                or absent.
 
         Example:
             ```python
