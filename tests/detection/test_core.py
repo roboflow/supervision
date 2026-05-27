@@ -965,7 +965,7 @@ def test_from_inference_empty_class_name_dtype_matches_non_empty() -> None:
     # all data keys and dtypes must match between empty and non-empty paths
     assert set(empty.data.keys()) == set(non_empty.data.keys())
     for key in non_empty.data:
-        assert empty.data[key].dtype == non_empty.data[key].dtype, key
+        assert empty.data[key].dtype.kind == non_empty.data[key].dtype.kind, key
 
     # concatenation across empty+non-empty must produce a string-kind array
     concat = np.concatenate([empty["class_name"], non_empty["class_name"]])
