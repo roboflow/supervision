@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import warnings
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
 import cv2
-import warnings
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -150,12 +150,8 @@ def _split_detections_by_outcome(
         iou_matrix > iou_threshold
     )
 
-    matched_predictions: npt.NDArray[np.bool_] = np.zeros(
-        prediction_count, dtype=bool
-    )
-    matched_targets: npt.NDArray[np.bool_] = np.zeros(
-        target_count, dtype=bool
-    )
+    matched_predictions: npt.NDArray[np.bool_] = np.zeros(prediction_count, dtype=bool)
+    matched_targets: npt.NDArray[np.bool_] = np.zeros(target_count, dtype=bool)
 
     cross_class_prediction_indices: list[int] = []
     cross_class_target_indices: list[int] = []
@@ -180,14 +176,9 @@ def _split_detections_by_outcome(
 
         for candidate_index in candidate_order:
             target_index = int(target_candidate_indices[candidate_index])
-            prediction_index = int(
-                prediction_candidate_indices[candidate_index]
-            )
+            prediction_index = int(prediction_candidate_indices[candidate_index])
 
-            if (
-                matched_predictions[prediction_index]
-                or matched_targets[target_index]
-            ):
+            if matched_predictions[prediction_index] or matched_targets[target_index]:
                 continue
 
             matched_predictions[prediction_index] = True
@@ -393,7 +384,9 @@ def _save_detection_validation_visualization(
     write_success = cv2.imwrite(str(save_path), result)
     if not write_success:
         warnings.warn(
-            f"Failed to write validation image to '{save_path}'.", UserWarning, stacklevel=2
+            f"Failed to write validation image to '{save_path}'.",
+            UserWarning,
+            stacklevel=2,
         )
 
 
