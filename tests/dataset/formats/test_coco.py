@@ -1715,3 +1715,133 @@ def test_save_coco_annotations_zero_annotation_images(tmp_path):
     assert annotation_ids == []
     assert next_image_id == 3
     assert next_annotation_id == 1
+
+
+# --- Regression: legacy 0-indexed COCO files still load correctly (#1181) ---
+
+
+def test_from_coco_loads_legacy_zero_indexed_category_ids(tmp_path) -> None:
+    """COCO files with 0-indexed category ids (written by supervision <=0.28.x)
+    must still load and produce correct internal 0-indexed class_ids."""
+    images_dir = tmp_path / "images"
+    images_dir.mkdir()
+    img_path = images_dir / "img.jpg"
+    assert cv2.imwrite(str(img_path), np.zeros((10, 10, 3), dtype=np.uint8))
+
+    coco_data = {
+        "categories": [
+            {"id": 0, "name": "cat", "supercategory": "none"},
+            {"id": 1, "name": "dog", "supercategory": "none"},
+        ],
+        "images": [{"id": 1, "file_name": "img.jpg", "width": 10, "height": 10}],
+        "annotations": [
+            {
+                "id": 1,
+                "image_id": 1,
+                "category_id": 0,
+                "bbox": [0, 0, 5, 5],
+                "area": 25,
+                "iscrowd": 0,
+            },
+            {
+                "id": 2,
+                "image_id": 1,
+                "category_id": 1,
+                "bbox": [1, 1, 3, 3],
+                "area": 9,
+                "iscrowd": 0,
+            },
+        ],
+    }
+    annotations_path = tmp_path / "annotations.json"
+    annotations_path.write_text(json.dumps(coco_data), encoding="utf-8")
+
+    dataset = DetectionDataset.from_coco(
+        images_directory_path=str(images_dir),
+        annotations_path=str(annotations_path),
+    )
+
+    assert dataset.classes == ["cat", "dog"]
+    dets = dataset.annotations[str(img_path)]
+    assert dets.class_id is not None
+    assert sorted(dets.class_id.tolist()) == [0, 1]
+
+
+# --- save_coco_annotations ValueError guards ---
+
+
+@pytest.mark.parametrize(
+    ("starting_image_id", "starting_annotation_id"),
+    [
+        (0, 1),
+        (1, 0),
+        (0, 0),
+    ],
+)
+def test_save_coco_annotations_rejects_zero_starting_ids(
+    tmp_path, starting_image_id: int, starting_annotation_id: int
+) -> None:
+    """starting_image_id and starting_annotation_id below 1 must raise ValueError."""
+    dataset = DetectionDataset(classes=["object"], images=[], annotations={})
+    annotation_path = tmp_path / "annotations.json"
+
+    with pytest.raises(ValueError, match="must be >= 1"):
+        save_coco_annotations(
+            dataset=dataset,
+            annotation_path=str(annotation_path),
+            starting_image_id=starting_image_id,
+            starting_annotation_id=starting_annotation_id,
+        )
+
+
+# --- detections_to_coco_annotations: class_id=None guard ---
+
+
+def test_detections_to_coco_annotations_raises_when_class_id_is_none() -> None:
+    """Detections with no class_id must raise ValueError before +1 arithmetic."""
+    detections = Detections(
+        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        class_id=None,
+    )
+
+    with pytest.raises(ValueError, match="class_id"):
+        detections_to_coco_annotations(
+            detections=detections,
+            image_id=1,
+            annotation_id=1,
+        )
+
+
+# --- Round-trip: multi-class-per-image case ---
+
+
+def test_coco_round_trip_multi_class_single_image(tmp_path) -> None:
+    """Single image with two detections of different classes round-trips losslessly."""
+    img_path = str(tmp_path / "img.jpg")
+    assert cv2.imwrite(img_path, np.zeros((10, 10, 3), dtype=np.uint8))
+
+    dataset = DetectionDataset(
+        classes=["cat", "dog"],
+        images=[img_path],
+        annotations={
+            img_path: Detections(
+                xyxy=np.array([[0, 0, 5, 5], [1, 1, 4, 4]], dtype=np.float32),
+                class_id=np.array([0, 1], dtype=int),
+            )
+        },
+    )
+
+    annotation_path = tmp_path / "annotations.json"
+    dataset.as_coco(annotations_path=str(annotation_path))
+
+    with open(annotation_path) as f:
+        payload = json.load(f)
+    assert sorted(ann["category_id"] for ann in payload["annotations"]) == [1, 2]
+
+    loaded = DetectionDataset.from_coco(
+        images_directory_path=str(tmp_path),
+        annotations_path=str(annotation_path),
+    )
+    dets = loaded.annotations[img_path]
+    assert dets.class_id is not None
+    assert sorted(dets.class_id.tolist()) == [0, 1]
