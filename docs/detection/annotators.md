@@ -194,6 +194,15 @@ Annotators accept detections and apply box or mask visualizations to the detecti
         )
         ```
 
+        !!! note
+
+            `MaskAnnotator` expects `detections.mask` to contain instance segmentation
+            masks. Each mask should match the height and width of the image passed
+            to `annotate`. If your model returns framework-specific results, convert
+            them to `sv.Detections` first, for example with
+            `sv.Detections.from_ultralytics(...)` or
+            `sv.Detections.from_inference(...)`.
+
         <div class="result" markdown>
 
         ![mask-annotator-example](https://media.roboflow.com/supervision-annotator-examples/mask-annotator-example-purple.png){ align=center width="800" }
