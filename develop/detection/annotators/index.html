@@ -10011,6 +10011,16 @@
 </span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    <span class="n">detections</span><span class="o">=</span><span class="n">detections</span><span class="p">,</span>
 </span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="p">)</span>
 </span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code>MaskAnnotator</code> expects <code>detections.mask</code> to contain instance segmentation
+masks aligned to the image passed to <code>annotate</code>. For dense masks, provide a
+boolean array of shape <code>(N, H, W)</code> where <code>(H, W)</code> matches the image height
+and width (it also accepts <code>sv.CompactMask</code>). If your model returns
+framework-specific results, convert them to <code>sv.Detections</code> first, for
+example with <code>sv.Detections.from_ultralytics(...)</code> or
+<code>sv.Detections.from_inference(...)</code>.</p>
+</div>
 <div class="result" markdown>
 <p><img align="center" alt="mask-annotator-example" src="https://media.roboflow.com/supervision-annotator-examples/mask-annotator-example-purple.png" width="800" /></p>
 </div>
@@ -28242,7 +28252,7 @@ supervision-annotator-examples/comparison-annotator-example.png" /></p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="May 22, 2026 17:54:33 UTC">May 22, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="May 29, 2026 08:24:45 UTC">May 29, 2026</span>
   </span>
 
     
@@ -28270,9 +28280,9 @@ supervision-annotator-examples/comparison-annotator-example.png" /></p>
     
     <nav>
       
-        <a href="https://github.com/apps/copilot-swe-agent" class="md-author" title="@Copilot">
+        <a href="https://github.com/tarunbommawar27" class="md-author" title="@tarunbommawar27">
           
-          <img src="https://avatars.githubusercontent.com/in/1143301?v=4&size=72" alt="Copilot">
+          <img src="https://avatars.githubusercontent.com/u/108282807?v=4&size=72" alt="tarunbommawar27">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -28280,21 +28290,21 @@ supervision-annotator-examples/comparison-annotator-example.png" /></p>
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/apps/copilot-swe-agent" class="md-author" title="@Copilot">
+          
+          <img src="https://avatars.githubusercontent.com/in/1143301?v=4&size=72" alt="Copilot">
+        </a>
+      
         <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
           <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
-        </a>
-      
-        <a href="https://github.com/SkalskiP" class="md-author" title="@SkalskiP">
-          
-          <img src="https://avatars.githubusercontent.com/u/26109316?v=4&size=72" alt="SkalskiP">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/detection/annotators.md" class="md-author md-author--more">
-            +9
+            +10
           </a>
         
       
