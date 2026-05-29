@@ -4,7 +4,7 @@ import threading
 import warnings
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any
+from typing import Any, Protocol, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -18,6 +18,35 @@ from supervision.detection.utils.masks import move_masks
 from supervision.draw.base import ImageType
 from supervision.utils.image import crop_image, get_image_resolution_wh
 from supervision.utils.internal import SupervisionWarnings
+
+
+class WindowedRasterDataset(Protocol):
+    """Structural type for a rasterio-style dataset read window-by-window.
+
+    Matched structurally (see [`_is_windowed_raster`][]) rather than by import so
+    `rasterio` stays an optional dependency — any object exposing these members
+    works. `rasterio.io.DatasetReader` satisfies this protocol.
+    """
+
+    width: int
+    height: int
+    crs: Any
+
+    def read(self, window: Any) -> npt.NDArray[Any]: ...
+
+
+def _is_windowed_raster(image: object) -> bool:
+    """Duck-type check for a rasterio-style dataset that supports windowed reads.
+
+    Avoids importing rasterio so it remains an optional dependency. numpy arrays
+    and PIL images do not expose this combination of attributes.
+    """
+    return (
+        callable(getattr(image, "read", None))
+        and hasattr(image, "crs")
+        and hasattr(image, "width")
+        and hasattr(image, "height")
+    )
 
 
 def move_detections(
@@ -138,6 +167,24 @@ class InferenceSlicer:
         image = Image.open("example.png")
         detections = slicer(image)
         ```
+
+        ```python
+        import rasterio
+        import supervision as sv
+
+        def callback(tile):  # tile is (H, W, C); select/convert bands as needed
+            ...
+
+        slicer = sv.InferenceSlicer(callback, slice_wh=640, overlap_wh=100)
+
+        with rasterio.open("large_orthomosaic.tif") as dataset:
+            detections = slicer(dataset)
+        ```
+
+        Passing an open rasterio dataset reads each tile lazily via a windowed
+        read, so multi-GB GeoTIFFs never need to be loaded into memory at once.
+        `rasterio` is an optional dependency installable via
+        `pip install "supervision[geotiff]"`.
     """
 
     def __init__(
@@ -175,7 +222,7 @@ class InferenceSlicer:
         self._obb_thread_workers_warned: bool = False
         self._obb_thread_workers_lock = threading.Lock()
 
-    def __call__(self, image: ImageType) -> Detections:
+    def __call__(self, image: ImageType | WindowedRasterDataset) -> Detections:
         """
         Perform tiled inference on the full image and return merged detections.
 
@@ -188,13 +235,32 @@ class InferenceSlicer:
         once per slicer instance.
 
         Args:
-            image: The full image to run inference on.
+            image: The full image to run inference on. In addition to in-memory
+                images (NumPy arrays or PIL images), this also accepts an open
+                rasterio-style dataset. When a dataset is provided, each tile is
+                read lazily via a windowed read instead of loading the whole image
+                into memory, enabling tiled inference on multi-GB GeoTIFFs. Tiles
+                read from a dataset preserve the source dtype (e.g. ``uint16`` for
+                16-bit sensors) and keep every band; convert or select bands to
+                the dtype/channels your model expects inside the callback.
 
         Returns:
             Merged detections across all slices.
         """
         detections_list: list[Detections] = []
-        resolution_wh = get_image_resolution_wh(image)
+        if _is_windowed_raster(image):
+            raster = cast(WindowedRasterDataset, image)
+            crs = raster.crs
+            if crs is not None and not crs.is_projected:
+                raise ValueError(
+                    "InferenceSlicer requires a projected coordinate reference "
+                    "system for pixel-space tiled inference on a raster dataset. "
+                    f"The provided dataset uses a geographic CRS ({crs}). Reproject "
+                    "it to a projected CRS (e.g. with `gdalwarp`) before slicing."
+                )
+            resolution_wh = (raster.width, raster.height)
+        else:
+            resolution_wh = get_image_resolution_wh(image)
 
         offsets = self._generate_offset(
             resolution_wh=resolution_wh,
@@ -272,7 +338,9 @@ class InferenceSlicer:
         )
         return merged
 
-    def _run_callback(self, image: ImageType, offset: npt.NDArray[Any]) -> Detections:
+    def _run_callback(
+        self, image: ImageType | WindowedRasterDataset, offset: npt.NDArray[Any]
+    ) -> Detections:
         """
         Run detection callback on a sliced portion of the image and adjust coordinates.
 
@@ -284,7 +352,21 @@ class InferenceSlicer:
         Returns:
             Detections adjusted to the full image coordinate system.
         """
-        image_slice = crop_image(image=image, xyxy=offset)
+        if _is_windowed_raster(image):
+            raster = cast(WindowedRasterDataset, image)
+            x_min, y_min, x_max, y_max = (int(v) for v in offset)
+            # rasterio tuple window:
+            # ((row_start, row_stop), (col_start, col_stop))
+            window = ((y_min, y_max), (x_min, x_max))
+            bands = raster.read(window=window)  # shape (channels, height, width)
+            image_slice = np.ascontiguousarray(
+                np.transpose(bands, (1, 2, 0))
+            )  # -> (H, W, C)
+            resolution_wh = (raster.width, raster.height)
+        else:
+            image_slice = crop_image(image=image, xyxy=offset)
+            resolution_wh = get_image_resolution_wh(image)
+
         detections = self.callback(image_slice)
 
         if (
@@ -299,7 +381,6 @@ class InferenceSlicer:
                 image_shape=(slice_h, slice_w),
             )
 
-        resolution_wh = get_image_resolution_wh(image)
         # Fast-path: skip locking and bounds checking when the warning has already
         # been emitted or when there are no detections to inspect.
         needs_warning_check = (
