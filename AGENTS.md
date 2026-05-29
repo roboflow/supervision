@@ -96,3 +96,15 @@ uv run pre-commit run --all-files
 - All tests must pass before opening a PR. Note: some existing tests in the repo may
     already be failing — your changes must not introduce new failures.
 - Fix any issues reported and re-run until clean.
+
+## Cursor Cloud specific instructions
+
+### Quick reference
+
+- Install/sync: `uv sync --group dev`
+- Tests with coverage: `uv run pytest --cov=supervision`
+- Pre-commit: `uv run pre-commit run --all-files`
+
+### Gotchas
+
+- The `pyproject-fmt` pre-commit hook may fail with an `ImportError` due to a `toml_fmt_common` version conflict. This is a pre-existing issue in the hook environment, not in the project code. All other hooks (ruff, mypy, codespell, mdformat, prettier) pass cleanly.
