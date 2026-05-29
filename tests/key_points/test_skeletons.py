@@ -58,3 +58,37 @@ class TestSkeletons:
         # For each vertex count, the stored skeleton should be the last one encountered
         for vertex_count, skeleton_value in expected_mapping.items():
             assert SKELETONS_BY_VERTEX_COUNT[vertex_count] == skeleton_value
+
+    def test_hand_skeleton_definition(self):
+        """Test MediaPipe hand skeleton definition."""
+        hand_skeleton = Skeleton.HAND.value
+
+        assert len(hand_skeleton) == 20
+        assert len({vertex for edge in hand_skeleton for vertex in edge}) == 21
+        assert SKELETONS_BY_VERTEX_COUNT[21] == hand_skeleton
+        assert SKELETONS_BY_EDGE_COUNT[20] == hand_skeleton
+
+    def test_hand_skeleton_edges(self):
+        """Test MediaPipe hand skeleton follows expected finger connections."""
+        assert Skeleton.HAND.value == (
+            (1, 2),
+            (2, 3),
+            (3, 4),
+            (4, 5),
+            (1, 6),
+            (6, 7),
+            (7, 8),
+            (8, 9),
+            (1, 10),
+            (10, 11),
+            (11, 12),
+            (12, 13),
+            (1, 14),
+            (14, 15),
+            (15, 16),
+            (16, 17),
+            (1, 18),
+            (18, 19),
+            (19, 20),
+            (20, 21),
+        )

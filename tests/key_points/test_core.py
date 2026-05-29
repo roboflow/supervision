@@ -8,6 +8,7 @@ from supervision.key_points.core import KeyPoints
 from tests.helpers import (
     _create_key_points,
     _FakeMediapipeLandmark,
+    _FakeMediapipeLandmarkWithoutVisibility,
     _FakeMediapipePose,
     _FakeMediapipeResults,
     _FakeYoloNasKeyPoint,
@@ -755,6 +756,40 @@ def test_from_yolo_nas_input(yolo_nas_results, expected_key_points):
             _create_key_points(
                 xy=[[[100.0, 150.0], [120.0, 160.0]]],
                 confidence=[[0.9, 0.85]],
+                class_id=None,
+            ),
+        ),
+        (
+            _FakeMediapipeResults(
+                hand_landmarks=[
+                    [
+                        _FakeMediapipeLandmarkWithoutVisibility(0.1, 0.2),
+                        _FakeMediapipeLandmarkWithoutVisibility(0.3, 0.4),
+                    ]
+                ]
+            ),
+            (100, 200),
+            _create_key_points(
+                xy=[[[10.0, 40.0], [30.0, 80.0]]],
+                confidence=[[1.0, 1.0]],
+                class_id=None,
+            ),
+        ),
+        (
+            _FakeMediapipeResults(
+                multi_hand_landmarks=[
+                    _FakeMediapipePose(
+                        landmarks=[
+                            _FakeMediapipeLandmarkWithoutVisibility(0.1, 0.2),
+                            _FakeMediapipeLandmarkWithoutVisibility(0.3, 0.4),
+                        ]
+                    )
+                ]
+            ),
+            (100, 200),
+            _create_key_points(
+                xy=[[[10.0, 40.0], [30.0, 80.0]]],
+                confidence=[[1.0, 1.0]],
                 class_id=None,
             ),
         ),

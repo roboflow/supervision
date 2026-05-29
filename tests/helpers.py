@@ -329,6 +329,12 @@ class _FakeMediapipeLandmark:
         self.visibility = visibility
 
 
+class _FakeMediapipeLandmarkWithoutVisibility:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+
 class _FakeMediapipePose:
     def __init__(self, landmarks: list[_FakeMediapipeLandmark]):
         self.landmark = landmarks
@@ -341,11 +347,15 @@ class _FakeMediapipeResults:
         | _FakeMediapipePose
         | None = None,
         face_landmarks: _FakeMediapipeLandmark | None = None,
-        multi_face_landmarks: list[_FakeMediapipeLandmark] | None = None,
+        hand_landmarks: list[list[_FakeMediapipeLandmark]] | None = None,
+        multi_face_landmarks: list[_FakeMediapipePose] | None = None,
+        multi_hand_landmarks: list[_FakeMediapipePose] | None = None,
     ):
         self.pose_landmarks = pose_landmarks
         self.face_landmarks = face_landmarks
+        self.hand_landmarks = hand_landmarks
         self.multi_face_landmarks = multi_face_landmarks
+        self.multi_hand_landmarks = multi_hand_landmarks
 
 
 def create_yolo_dataset(

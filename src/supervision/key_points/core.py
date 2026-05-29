@@ -537,9 +537,10 @@ class KeyPoints:
         pose landmark detection inference result.
 
         Args:
-            mediapipe_results: The output results from Mediapipe. It supports pose
-                and face landmarks from `PoseLandmarker`, `FaceLandmarker` and the
-                legacy ones from `Pose` and `FaceMesh`.
+            mediapipe_results: The output results from Mediapipe. It supports pose,
+                face, and hand landmarks from `PoseLandmarker`, `FaceLandmarker`,
+                `HandLandmarker`, and the legacy ones from `Pose`, `FaceMesh`, and
+                `Hands`.
             resolution_wh: A tuple of the form `(width, height)` representing the
                 resolution of the frame.
 
@@ -606,28 +607,28 @@ class KeyPoints:
             ```
 
         """
-        if hasattr(mediapipe_results, "pose_landmarks"):
+        if getattr(mediapipe_results, "pose_landmarks", None) is not None:
             results = mediapipe_results.pose_landmarks
             if not isinstance(mediapipe_results.pose_landmarks, list):
-                if mediapipe_results.pose_landmarks is None:
-                    results = []
-                else:
-                    results = [
-                        [
-                            landmark
-                            for landmark in mediapipe_results.pose_landmarks.landmark
-                        ]
-                    ]
-        elif hasattr(mediapipe_results, "face_landmarks"):
-            results = mediapipe_results.face_landmarks
-        elif hasattr(mediapipe_results, "multi_face_landmarks"):
-            if mediapipe_results.multi_face_landmarks is None:
-                results = []
-            else:
                 results = [
-                    face_landmark.landmark
-                    for face_landmark in mediapipe_results.multi_face_landmarks
+                    [landmark for landmark in mediapipe_results.pose_landmarks.landmark]
                 ]
+        elif getattr(mediapipe_results, "face_landmarks", None) is not None:
+            results = mediapipe_results.face_landmarks
+        elif getattr(mediapipe_results, "hand_landmarks", None) is not None:
+            results = mediapipe_results.hand_landmarks
+        elif getattr(mediapipe_results, "multi_face_landmarks", None) is not None:
+            results = [
+                face_landmark.landmark
+                for face_landmark in mediapipe_results.multi_face_landmarks
+            ]
+        elif getattr(mediapipe_results, "multi_hand_landmarks", None) is not None:
+            results = [
+                hand_landmark.landmark
+                for hand_landmark in mediapipe_results.multi_hand_landmarks
+            ]
+        else:
+            results = []
 
         if len(results) == 0:
             return cls.empty()
@@ -643,7 +644,7 @@ class KeyPoints:
                     landmark.y * resolution_wh[1],
                 ]
                 prediction_xy.append(keypoint_xy)
-                prediction_confidence.append(landmark.visibility)
+                prediction_confidence.append(getattr(landmark, "visibility", 1.0))
 
             xy.append(prediction_xy)
             confidence.append(prediction_confidence)
