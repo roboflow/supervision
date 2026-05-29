@@ -1,6 +1,8 @@
 import numpy as np
 
+from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
+from supervision.metrics.core import MetricTarget
 from supervision.metrics.mean_average_precision import MeanAveragePrecision
 
 
@@ -31,6 +33,32 @@ class TestMeanAveragePrecision:
         result = metric.compute()
 
         # Should be perfect 1.0 mAP
+        assert abs(result.map50_95 - 1.0) < 1e-6
+
+    def test_perfect_non_square_oriented_boxes_get_full_map(self):
+        """Perfect OBB detections must not fail when the canvas is non-square."""
+        obb = np.array(
+            [[[10, 0], [0, 1], [30, 4], [40, 3]]],
+            dtype=np.float32,
+        )
+        detections = Detections(
+            xyxy=np.array([[0, 0, 40, 4]], dtype=np.float64),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+            data={ORIENTED_BOX_COORDINATES: obb},
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 40, 4]], dtype=np.float64),
+            class_id=np.array([0]),
+            data={ORIENTED_BOX_COORDINATES: obb},
+        )
+
+        metric = MeanAveragePrecision(
+            metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES
+        )
+        metric.update([detections], [targets])
+        result = metric.compute()
+
         assert abs(result.map50_95 - 1.0) < 1e-6
 
     def test_batch_updates_perfect_detections(self, detections_50_50, targets_50_50):

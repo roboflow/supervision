@@ -381,9 +381,9 @@ def oriented_box_iou_batch(
     boxes_true = boxes_true.reshape(-1, 4, 2)
     boxes_detection = boxes_detection.reshape(-1, 4, 2)
 
-    max_height = int(max(boxes_true[:, :, 0].max(), boxes_detection[:, :, 0].max()) + 1)
     # adding 1 because we are 0-indexed
-    max_width = int(max(boxes_true[:, :, 1].max(), boxes_detection[:, :, 1].max()) + 1)
+    max_width = int(max(boxes_true[:, :, 0].max(), boxes_detection[:, :, 0].max()) + 1)
+    max_height = int(max(boxes_true[:, :, 1].max(), boxes_detection[:, :, 1].max()) + 1)
 
     mask_true = np.zeros((boxes_true.shape[0], max_height, max_width), dtype=np.uint8)
     for box_idx, box_true in enumerate(boxes_true):
