@@ -30,7 +30,6 @@ def _non_square_obb_detections(confidence: bool = False) -> Detections:
         (Precision, "precision_at_50"),
         (Recall, "recall_at_50"),
         (F1Score, "f1_50"),
-        (MeanAveragePrecision, "map50_95"),
         (MeanAverageRecall, "mAR_at_100"),
     ],
 )
@@ -38,6 +37,7 @@ def test_perfect_non_square_oriented_boxes_score_as_perfect(
     metric_cls: type,
     score_name: str,
 ) -> None:
+    """Perfect non-square OBB predictions score 1.0 for metrics that use OBB IoU."""
     predictions = _non_square_obb_detections(confidence=True)
     targets = _non_square_obb_detections()
 
@@ -45,3 +45,19 @@ def test_perfect_non_square_oriented_boxes_score_as_perfect(
     result = metric.update([predictions], [targets]).compute()
 
     assert getattr(result, score_name) == pytest.approx(1.0)
+
+
+def test_mean_average_precision_accepts_obb_metric_target() -> None:
+    """Smoke test: MeanAveragePrecision accepts metric_target=ORIENTED_BOUNDING_BOXES.
+
+    NOTE: MeanAveragePrecision uses the COCO evaluator path (box_iou_batch_with_jaccard)
+    and does not route through oriented_box_iou_batch regardless of metric_target.
+    This test verifies API acceptance only, not OBB IoU correctness.
+    """
+    predictions = _non_square_obb_detections(confidence=True)
+    targets = _non_square_obb_detections()
+
+    metric = MeanAveragePrecision(metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES)
+    result = metric.update([predictions], [targets]).compute()
+
+    assert result.map50_95 == pytest.approx(1.0)
