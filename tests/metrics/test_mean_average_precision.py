@@ -36,7 +36,14 @@ class TestMeanAveragePrecision:
         assert abs(result.map50_95 - 1.0) < 1e-6
 
     def test_perfect_non_square_oriented_boxes_get_full_map(self):
-        """Perfect OBB detections must not fail when the canvas is non-square."""
+        """Smoke test: MeanAveragePrecision accepts non-square OBB inputs without error.
+
+        NOTE: MeanAveragePrecision uses the COCO evaluator path
+        (box_iou_batch_with_jaccard) and does not route through
+        oriented_box_iou_batch regardless of metric_target.
+        This test verifies API acceptance and map50_95=1.0 via
+        xyxy COCO IoU, not OBB IoU.
+        """
         obb = np.array(
             [[[10, 0], [0, 1], [30, 4], [40, 3]]],
             dtype=np.float32,
