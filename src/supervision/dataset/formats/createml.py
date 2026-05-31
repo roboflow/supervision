@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 
@@ -110,7 +110,9 @@ def load_createml_annotations(
             directory itself or to a path outside it (e.g. via ``..`` traversal
             or an absolute path).
     """
-    createml_data = read_json_file(file_path=annotations_path)
+    createml_data = cast(
+        "list[CreateMLDict]", read_json_file(file_path=annotations_path)
+    )
 
     classes = sorted(
         {
@@ -140,13 +142,14 @@ def detections_to_createml_annotations(
     detections: Detections, classes: list[str]
 ) -> list[CreateMLDict]:
     """Convert ``Detections`` into a list of CreateML annotation dicts."""
-    if detections.class_id is None:
+    class_ids = detections.class_id
+    if class_ids is None:
         raise ValueError(
             "class_id is required for CreateML export, but the provided "
             "Detections has class_id=None."
         )
     annotations: list[CreateMLDict] = []
-    for xyxy, _, _, class_id, _, _ in detections:
+    for xyxy, class_id in zip(detections.xyxy, class_ids):
         x_min, y_min, x_max, y_max = (float(value) for value in xyxy)
         annotations.append(
             {
@@ -183,4 +186,6 @@ def save_createml_annotations(
         }
         for image_path in dataset.image_paths
     ]
-    save_json_file(data=createml_data, file_path=annotations_path)
+    save_json_file(
+        data=cast("dict[str, Any]", createml_data), file_path=annotations_path
+    )
