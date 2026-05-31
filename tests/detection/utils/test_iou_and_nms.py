@@ -1131,17 +1131,34 @@ def test_box_iou_batch_symmetric_large(
     )
 
 
-def test_oriented_box_iou_batch_is_invariant_to_non_square_scaling() -> None:
+@pytest.mark.parametrize(
+    "scale",
+    [
+        np.array([[10, 1]], dtype=np.float32),  # x-dominant (wide box)
+        np.array([[1, 10]], dtype=np.float32),  # y-dominant (tall box)
+    ],
+)
+def test_oriented_box_iou_batch_is_invariant_to_non_square_scaling(
+    scale: np.ndarray,
+) -> None:
+    """IoU is stable when boxes are scaled uniformly along one axis.
+
+    Regression guard for the canvas x/y swap bug: before the fix, a 10x
+    x-scale produced an undersized height dimension, truncating the polygon
+    and yielding a different IoU. Tolerance reflects rasterization discretization.
+    """
     boxes_true = np.array([[[1, 0], [0, 1], [3, 4], [4, 3]]], dtype=np.float32)
     boxes_detection = np.array([[[1, 1], [2, 0], [4, 2], [3, 3]]], dtype=np.float32)
 
     baseline_iou = oriented_box_iou_batch(boxes_true, boxes_detection)
     scaled_iou = oriented_box_iou_batch(
-        boxes_true * np.array([[10, 1]], dtype=np.float32),
-        boxes_detection * np.array([[10, 1]], dtype=np.float32),
+        boxes_true * scale,
+        boxes_detection * scale,
     )
 
     assert baseline_iou.shape == (1, 1)
     assert scaled_iou.shape == (1, 1)
     assert baseline_iou[0, 0] > 0.35
+    # rtol=0.03, atol=0.02: rasterization discretization introduces small
+    # coordinate-dependent error; exact equality is not achievable via pixel IoU.
     assert np.allclose(scaled_iou, baseline_iou, rtol=0.03, atol=0.02)
