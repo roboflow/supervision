@@ -11,6 +11,7 @@ import numpy.typing as npt
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.utils.internal import get_data_item, is_data_equal
+from supervision.utils.internal import warn_deprecated
 from supervision.validators import validate_key_points_fields
 
 logger = logging.getLogger(__name__)
@@ -24,94 +25,6 @@ Index1D = Union[
     npt.NDArray[np.bool_],
 ]
 Index2D = tuple[Index1D, Index1D]
-
-
-def _rfdetr_source_shape(
-    rfdetr_detections: Detections,
-    detections_count: int,
-) -> npt.NDArray[np.float32]:
-    source_shape = rfdetr_detections.data.get("source_shape")
-    if source_shape is None:
-        raise ValueError(
-            "RF-DETR detections with keypoint precision data must contain "
-            "data['source_shape'] with shape (N, 2) where each row is "
-            "(height, width) in pixels."
-        )
-
-    source_shape_array = np.asarray(source_shape, dtype=np.float32)
-    expected_shape = (detections_count, 2)
-    if source_shape_array.shape != expected_shape:
-        raise ValueError(
-            "Expected RF-DETR source_shape shape "
-            f"{expected_shape}, got {source_shape_array.shape}."
-        )
-    return source_shape_array
-
-
-def _rfdetr_precision_cholesky_to_pixel_covariance(
-    precision_cholesky: npt.NDArray[np.float32],
-    source_shape: npt.NDArray[np.float32],
-) -> npt.NDArray[np.float32]:
-    if precision_cholesky.ndim != 3 or precision_cholesky.shape[2] != 3:
-        raise ValueError(
-            "Expected RF-DETR keypoint precision shape (N, K, 3), "
-            f"got {precision_cholesky.shape}."
-        )
-    if precision_cholesky.shape[0] != source_shape.shape[0]:
-        raise ValueError(
-            "RF-DETR keypoint precision and source_shape must contain the same "
-            "number of detections, got "
-            f"{precision_cholesky.shape[0]} and {source_shape.shape[0]}."
-        )
-
-    n_total = precision_cholesky.shape[0] * precision_cholesky.shape[1]
-    n_non_finite = 0
-    n_singular = 0
-    n_overflow = 0
-
-    covariances = np.full(
-        (*precision_cholesky.shape[:2], 2, 2), np.nan, dtype=np.float32
-    )
-    for detection_index, detection_precision in enumerate(precision_cholesky):
-        height, width = source_shape[detection_index]
-        scale = np.diag([width, height]).astype(np.float64)
-        for keypoint_index, params in enumerate(detection_precision):
-            if not np.isfinite(params).all():
-                n_non_finite += 1
-                continue
-            log_l11 = float(np.clip(params[0], -20.0, 20.0))
-            l21 = float(np.clip(params[1], -1.0e4, 1.0e4))
-            log_l22 = float(np.clip(params[2], -20.0, 20.0))
-            l11 = float(np.exp(log_l11))
-            l22 = float(np.exp(log_l22))
-            precision = np.array(
-                [[l11 * l11, l11 * l21], [l11 * l21, l21 * l21 + l22 * l22]],
-                dtype=np.float64,
-            )
-            try:
-                covariance = np.linalg.inv(precision)
-            except np.linalg.LinAlgError:
-                n_singular += 1
-                continue
-
-            pixel_covariance = scale @ covariance @ scale
-            if np.isfinite(pixel_covariance).all():
-                covariances[detection_index, keypoint_index] = pixel_covariance
-            else:
-                n_overflow += 1
-
-    n_failed = n_non_finite + n_singular + n_overflow
-    if n_failed > 0:
-        logger.warning(
-            "%d of %d precision matrices failed: "
-            "non_finite=%d, singular=%d, overflow=%d",
-            n_failed,
-            n_total,
-            n_non_finite,
-            n_singular,
-            n_overflow,
-        )
-    return covariances
 
 
 def _optional_array_equal(
@@ -130,6 +43,23 @@ class KeyPoints:
     various keypoint detection and pose estimation models into a consistent format. This
     class simplifies data manipulation and filtering, providing a uniform API for
     integration with Supervision [keypoints annotators](/latest/keypoint/annotators).
+
+    === "RF-DETR"
+
+        [RF-DETR](https://github.com/roboflow/rf-detr) keypoint models return
+        `sv.KeyPoints` directly from `model.predict()` — no additional
+        conversion is needed.
+
+        ```python
+        import cv2
+        import supervision as sv
+        from rfdetr import RFDETRKeypointPreview
+
+        image = cv2.imread("<SOURCE_IMAGE_PATH>")
+        model = RFDETRKeypointPreview()
+
+        key_points = model.predict(image)
+        ```
 
     === "Ultralytics"
 
@@ -250,21 +180,20 @@ class KeyPoints:
         key_point = sv.KeyPoints.from_transformers(results[0])
         ```
 
-    Note:
-        [`sv.KeyPoints.from_rfdetr`][supervision.key_points.core.KeyPoints.from_rfdetr]
-        accepts ``sv.Detections`` (not native RF-DETR output) because RF-DETR keypoints
-        are attached as extra fields inside a ``sv.Detections`` object returned by
-        ``model.predict()``. Run that conversion first, then pass the result to
-        ``from_rfdetr``.
-
     Attributes:
         xy: An array of shape `(n, m, 2)` containing
             `n` detected objects, each composed of `m` equally-sized
             sets of key points, where each point is `[x, y]`.
         class_id: An array of shape
             `(n,)` containing the class ids of the detected objects.
-        confidence: An array of shape
+        keypoint_confidence: An array of shape
             `(n, m)` containing the confidence scores of each keypoint.
+        detection_confidence: An array of shape
+            `(n,)` containing the detection-level confidence scores.
+        visible: An optional boolean array of shape
+            `(n, m)` indicating which keypoints are visible. When ``None``,
+            all keypoints are treated as visible. Set this to filter anchors
+            without removing data: ``key_points.visible = key_points.keypoint_confidence > 0.3``.
         data: A dictionary containing additional
             data where each key is a string representing the data type, and the value
             is either a NumPy array or a list of corresponding data of length `n`
@@ -273,16 +202,37 @@ class KeyPoints:
 
     xy: npt.NDArray[np.float32]
     class_id: npt.NDArray[np.int_] | None = None
-    confidence: npt.NDArray[np.float32] | None = None
+    keypoint_confidence: npt.NDArray[np.float32] | None = None
+    detection_confidence: npt.NDArray[np.float32] | None = None
+    visible: npt.NDArray[np.bool_] | None = None
     data: dict[str, npt.NDArray[np.generic] | list[Any]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         validate_key_points_fields(
             xy=self.xy,
-            confidence=self.confidence,
             class_id=self.class_id,
+            keypoint_confidence=self.keypoint_confidence,
+            detection_confidence=self.detection_confidence,
+            visible=self.visible,
             data=self.data,
         )
+
+    @property
+    def confidence(self) -> npt.NDArray[np.float32] | None:
+        """Deprecated since 0.29.0. Use ``keypoint_confidence`` instead."""
+        warn_deprecated(
+            "'KeyPoints.confidence' is deprecated since 0.29.0 and will be "
+            "removed in 0.32.0. Use 'KeyPoints.keypoint_confidence' instead."
+        )
+        return self.keypoint_confidence
+
+    @confidence.setter
+    def confidence(self, value: npt.NDArray[np.float32] | None) -> None:
+        warn_deprecated(
+            "'KeyPoints.confidence' is deprecated since 0.29.0 and will be "
+            "removed in 0.32.0. Use 'KeyPoints.keypoint_confidence' instead."
+        )
+        self.keypoint_confidence = value
 
     def __len__(self) -> int:
         """
@@ -316,12 +266,12 @@ class KeyPoints:
     ]:
         """
         Iterates over the Keypoint object and yield a tuple of
-        `(xy, confidence, class_id, data)` for each object detection.
+        `(xy, keypoint_confidence, class_id, data)` for each object detection.
         """
         for i in range(len(self.xy)):
             yield (
                 self.xy[i],
-                self.confidence[i] if self.confidence is not None else None,
+                self.keypoint_confidence[i] if self.keypoint_confidence is not None else None,
                 self.class_id[i] if self.class_id is not None else None,
                 get_data_item(self.data, i),
             )
@@ -333,114 +283,11 @@ class KeyPoints:
             [
                 np.array_equal(self.xy, other.xy),
                 _optional_array_equal(self.class_id, other.class_id),
-                _optional_array_equal(self.confidence, other.confidence),
+                _optional_array_equal(self.keypoint_confidence, other.keypoint_confidence),
+                _optional_array_equal(self.detection_confidence, other.detection_confidence),
+                _optional_array_equal(self.visible, other.visible),
                 is_data_equal(self.data, other.data),
             ]
-        )
-
-    @classmethod
-    def from_rfdetr(cls, rfdetr_detections: Detections) -> KeyPoints:
-        """
-        Create a `sv.KeyPoints` object from RF-DETR `sv.Detections` output.
-
-        RF-DETR attaches keypoint coordinates to ``detections.data["keypoints"]``
-        with shape ``(N, K, 3)`` where the last dimension stores ``[x, y,
-        confidence]`` in pixel coordinates. When RF-DETR also provides
-        ``detections.data["keypoint_precision_cholesky"]``, this method converts
-        those per-keypoint precision parameters into pixel-space covariance matrices
-        and stores them in ``key_points.data["covariance"]`` for use with
-        `sv.VertexEllipseAnnotator`.
-
-        Note:
-            ``detections.data["source_shape"]`` must have shape ``(N, 2)`` where each
-            row is ``(height, width)`` in pixels — note this is HW order, not the WH
-            order used by ``resolution_wh`` elsewhere in supervision.
-
-            Keypoint confidence values are stored as-is from RF-DETR output and are
-            expected to be probabilities in the range ``[0, 1]``. If RF-DETR returns
-            logits instead, user-supplied ``confidence_threshold`` values in
-            `sv.VertexEllipseAnnotator` should be adjusted accordingly.
-
-        Args:
-            rfdetr_detections: RF-DETR prediction returned by ``model.predict()``.
-
-        Returns:
-            A `sv.KeyPoints` object containing RF-DETR keypoints and optional
-                covariance matrices.
-
-        Raises:
-            ValueError: If the RF-DETR detections do not contain valid keypoints,
-                or if precision parameters are present without source shape data.
-
-        Examples:
-            Basic usage — keypoints only:
-
-            >>> import numpy as np
-            >>> import supervision as sv
-            >>> kp_arr = np.array([[[50, 80, 0.9], [60, 90, 0.8]]], dtype=np.float32)
-            >>> detections = sv.Detections(
-            ...     xyxy=np.array([[10, 20, 100, 200]], dtype=np.float32),
-            ...     data={"keypoints": kp_arr},
-            ... )
-            >>> key_points = sv.KeyPoints.from_rfdetr(detections)
-            >>> key_points.xy.shape
-            (1, 2, 2)
-
-            With precision Cholesky parameters (produces covariance data):
-
-            >>> kp_arr2 = np.array([[[50, 80, 0.9], [60, 90, 0.8]]], dtype=np.float32)
-            >>> chol = np.zeros((1, 2, 3), dtype=np.float32)
-            >>> src = np.array([[480, 640]], dtype=np.float32)
-            >>> detections_with_cov = sv.Detections(
-            ...     xyxy=np.array([[10, 20, 100, 200]], dtype=np.float32),
-            ...     data={
-            ...         "keypoints": kp_arr2,
-            ...         "keypoint_precision_cholesky": chol,
-            ...         "source_shape": src,
-            ...     },
-            ... )
-            >>> kp = sv.KeyPoints.from_rfdetr(detections_with_cov)
-            >>> "covariance" in kp.data
-            True
-        """
-        rfdetr_keypoints = rfdetr_detections.data.get("keypoints")
-        if rfdetr_keypoints is None:
-            raise ValueError("RF-DETR detections must contain data['keypoints'].")
-
-        keypoints = np.asarray(rfdetr_keypoints, dtype=np.float32)
-        if keypoints.ndim != 3 or keypoints.shape[2] != 3:
-            raise ValueError(
-                f"Expected RF-DETR keypoints shape (N, K, 3), got {keypoints.shape}."
-            )
-        if keypoints.shape[0] == 0:
-            return cls.empty()
-
-        data: dict[str, npt.NDArray[np.generic] | list[Any]] = {}
-        precision_cholesky = rfdetr_detections.data.get("keypoint_precision_cholesky")
-        if precision_cholesky is not None:
-            precision_cholesky_array = np.asarray(precision_cholesky, dtype=np.float32)
-            if precision_cholesky_array.shape[:2] != keypoints.shape[:2]:
-                raise ValueError(
-                    "keypoint_precision_cholesky shape "
-                    f"{precision_cholesky_array.shape[:2]} does not match "
-                    f"keypoints shape {keypoints.shape[:2]}."
-                )
-            source_shape = _rfdetr_source_shape(
-                rfdetr_detections, detections_count=keypoints.shape[0]
-            )
-            data["covariance"] = _rfdetr_precision_cholesky_to_pixel_covariance(
-                precision_cholesky=precision_cholesky_array,
-                source_shape=source_shape,
-            )
-        class_id: npt.NDArray[np.int_] | None = None
-        if rfdetr_detections.class_id is not None:
-            class_id = rfdetr_detections.class_id.astype(np.int_)
-
-        return cls(
-            xy=keypoints[:, :, :2].astype(np.float32),
-            confidence=keypoints[:, :, 2].astype(np.float32),
-            class_id=class_id,
-            data=data,
         )
 
     @classmethod
@@ -522,7 +369,7 @@ class KeyPoints:
 
         return cls(
             xy=np.array(xy, dtype=np.float32),
-            confidence=np.array(confidence, dtype=np.float32),
+            keypoint_confidence=np.array(confidence, dtype=np.float32),
             class_id=np.array(class_id, dtype=int),
             data=data,
         )
@@ -650,7 +497,7 @@ class KeyPoints:
 
         return cls(
             xy=np.array(xy, dtype=np.float32),
-            confidence=np.array(confidence, dtype=np.float32),
+            keypoint_confidence=np.array(confidence, dtype=np.float32),
         )
 
     @classmethod
@@ -690,7 +537,7 @@ class KeyPoints:
         data: dict[str, npt.NDArray[np.generic] | list[Any]] = {
             CLASS_NAME_DATA_FIELD: class_names
         }
-        return cls(xy, class_id, confidence, data)
+        return cls(xy=xy, class_id=class_id, keypoint_confidence=confidence, data=data)
 
     @classmethod
     def from_yolo_nas(cls, yolo_nas_results: Any) -> KeyPoints:
@@ -745,7 +592,7 @@ class KeyPoints:
 
         return cls(
             xy=xy,
-            confidence=confidence,
+            keypoint_confidence=confidence,
             class_id=class_id,
             data=data,
         )
@@ -790,7 +637,7 @@ class KeyPoints:
                 xy=detectron2_results["instances"]
                 .pred_keypoints.cpu()
                 .numpy()[:, :, :2],
-                confidence=detectron2_results["instances"]
+                keypoint_confidence=detectron2_results["instances"]
                 .pred_keypoints.cpu()
                 .numpy()[:, :, 2],
                 class_id=detectron2_results["instances"]
@@ -880,7 +727,7 @@ class KeyPoints:
 
             return cls(
                 xy=np.stack(xy).astype(np.float32),
-                confidence=np.stack(scores).astype(np.float32),
+                keypoint_confidence=np.stack(scores).astype(np.float32),
                 class_id=np.arange(len(xy)).astype(int),
             )
         else:
@@ -941,20 +788,27 @@ class KeyPoints:
             )
         k = int(counts[0]) if n > 0 else 0
         xy_selected = np.zeros((n, k, self.xy.shape[2]), dtype=self.xy.dtype)
-        conf_selected: npt.NDArray[np.float32] | None = None
-        if self.confidence is not None:
-            conf_selected = cast(
+        keypoint_confidence_selected: npt.NDArray[np.float32] | None = None
+        if self.keypoint_confidence is not None:
+            keypoint_confidence_selected = cast(
                 npt.NDArray[np.float32],
-                np.zeros((n, k), dtype=self.confidence.dtype),
+                np.zeros((n, k), dtype=self.keypoint_confidence.dtype),
             )
+        visible_selected: npt.NDArray[np.bool_] | None = None
+        if self.visible is not None:
+            visible_selected = np.zeros((n, k), dtype=bool)
         for row in range(n):
             row_indices = np.flatnonzero(mask[row])
             xy_selected[row] = self.xy[row, row_indices]
-            if conf_selected is not None and self.confidence is not None:
-                conf_selected[row] = self.confidence[row, row_indices]
+            if keypoint_confidence_selected is not None and self.keypoint_confidence is not None:
+                keypoint_confidence_selected[row] = self.keypoint_confidence[row, row_indices]
+            if visible_selected is not None and self.visible is not None:
+                visible_selected[row] = self.visible[row, row_indices]
         return KeyPoints(
             xy=xy_selected,
-            confidence=conf_selected,
+            keypoint_confidence=keypoint_confidence_selected,
+            detection_confidence=self.detection_confidence.copy() if self.detection_confidence is not None else None,
+            visible=visible_selected,
             class_id=self.class_id.copy() if self.class_id is not None else None,
             data=get_data_item(self.data, slice(None)),
         )
@@ -963,6 +817,44 @@ class KeyPoints:
         self,
         index: Index1D | Index2D | str,
     ) -> KeyPoints | npt.NDArray[np.generic] | list[Any] | None:
+        """
+        Get a subset of the KeyPoints object or access an item from its data field.
+
+        Supports detection-level (skeleton) filtering, keypoint-level (anchor)
+        filtering, combined tuple indexing, and data field access by string key.
+
+        Args:
+            index: The index, indices, or key to access a subset of the KeyPoints
+                or an item from the data.
+
+        Returns:
+            A subset of the KeyPoints object or an item from the data field.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            key_points = sv.KeyPoints(...)
+
+            # detection-level filtering (returns KeyPoints)
+            high_conf = key_points[key_points.detection_confidence > 0.5]
+            class_0 = key_points[key_points.class_id == 0]
+
+            # keypoint-level filtering (returns KeyPoints)
+            visible = key_points[key_points.keypoint_confidence > 0.3]
+
+            # indexing
+            first = key_points[0]
+            first_two = key_points[0:2]
+            subset = key_points[[0, 2]]
+
+            # anchor selection (uniform across all skeletons)
+            nose_and_eyes = key_points[:, [0, 1, 2]]
+
+            # data field access
+            class_names = key_points['class_name']
+            ```
+        """
         if isinstance(index, str):
             return self.data.get(index)
 
@@ -999,7 +891,9 @@ class KeyPoints:
 
         xy_selected = self.xy[i, j]
 
-        conf_selected = self.confidence[i, j] if self.confidence is not None else None
+        keypoint_confidence_selected = self.keypoint_confidence[i, j] if self.keypoint_confidence is not None else None
+        detection_confidence_selected = self.detection_confidence[i] if self.detection_confidence is not None else None
+        visible_selected = self.visible[i, j] if self.visible is not None else None
 
         class_id_selected = self.class_id[i] if self.class_id is not None else None
 
@@ -1007,25 +901,33 @@ class KeyPoints:
 
         if xy_selected.ndim == 1:
             xy_selected = xy_selected.reshape(1, 1, 2)
-            if conf_selected is not None:
-                conf_selected = conf_selected.reshape(1, 1)
+            if keypoint_confidence_selected is not None:
+                keypoint_confidence_selected = keypoint_confidence_selected.reshape(1, 1)
+            if visible_selected is not None:
+                visible_selected = visible_selected.reshape(1, 1)
         elif xy_selected.ndim == 2:
             if np.isscalar(index[0]) or (
                 isinstance(index[0], np.ndarray) and index[0].ndim == 0
             ):
                 xy_selected = xy_selected[np.newaxis, ...]
-                if conf_selected is not None:
-                    conf_selected = conf_selected[np.newaxis, ...]
+                if keypoint_confidence_selected is not None:
+                    keypoint_confidence_selected = keypoint_confidence_selected[np.newaxis, ...]
+                if visible_selected is not None:
+                    visible_selected = visible_selected[np.newaxis, ...]
             elif np.isscalar(index[1]) or (
                 isinstance(index[1], np.ndarray) and index[1].ndim == 0
             ):
                 xy_selected = xy_selected[:, np.newaxis, :]
-                if conf_selected is not None:
-                    conf_selected = conf_selected[:, np.newaxis]
+                if keypoint_confidence_selected is not None:
+                    keypoint_confidence_selected = keypoint_confidence_selected[:, np.newaxis]
+                if visible_selected is not None:
+                    visible_selected = visible_selected[:, np.newaxis]
 
         return KeyPoints(
             xy=xy_selected,
-            confidence=conf_selected,
+            keypoint_confidence=keypoint_confidence_selected,
+            detection_confidence=detection_confidence_selected,
+            visible=visible_selected,
             class_id=class_id_selected,
             data=data_selected,
         )
@@ -1153,13 +1055,15 @@ class KeyPoints:
                 y_max = xy[:, 1].max()
                 xyxy = np.array([[x_min, y_min, x_max, y_max]], dtype=np.float32)
 
-            if self.confidence is None:
-                confidence = None
-            else:
-                confidence = self.confidence[i]
+            if self.detection_confidence is not None:
+                confidence = np.array([self.detection_confidence[i]], dtype=np.float32)
+            elif self.keypoint_confidence is not None:
+                confidence = self.keypoint_confidence[i]
                 if selected_keypoint_indices:
                     confidence = confidence[selected_keypoint_indices]
                 confidence = np.array([confidence.mean()], dtype=np.float32)
+            else:
+                confidence = None
 
             detections_list.append(
                 Detections(

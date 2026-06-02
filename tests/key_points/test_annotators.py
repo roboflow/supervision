@@ -59,6 +59,35 @@ class TestVertexAnnotator:
         # Should return the original scene unchanged
         assert np.array_equal(result, scene)
 
+    def test_visible_false_skips_vertex(self, scene):
+        """Vertices marked not visible are not drawn."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[50.0, 50.0]]], dtype=np.float32),
+            visible=np.array([[False]]),
+        )
+        annotator = sv.VertexAnnotator(radius=10)
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert np.array_equal(result, scene)
+
+    def test_visible_true_draws_vertex(self, scene):
+        """Vertices marked visible are drawn."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[50.0, 50.0]]], dtype=np.float32),
+            visible=np.array([[True]]),
+        )
+        annotator = sv.VertexAnnotator(radius=10)
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert not np.array_equal(result, scene)
+
+    def test_visible_none_draws_all(self, scene):
+        """When visible is None all vertices are drawn."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[50.0, 50.0]]], dtype=np.float32),
+        )
+        annotator = sv.VertexAnnotator(radius=10)
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert not np.array_equal(result, scene)
+
 
 class TestEdgeAnnotator:
     """
@@ -113,6 +142,26 @@ class TestEdgeAnnotator:
         # Should return the original scene unchanged
         assert np.array_equal(result, scene)
 
+    def test_visible_false_skips_edge(self, scene):
+        """Edges with an endpoint marked not visible are not drawn."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[10.0, 10.0], [90.0, 90.0]]], dtype=np.float32),
+            visible=np.array([[True, False]]),
+        )
+        annotator = sv.EdgeAnnotator(edges=[(1, 2)])
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert np.array_equal(result, scene)
+
+    def test_visible_true_draws_edge(self, scene):
+        """Edges with both endpoints visible are drawn."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[10.0, 10.0], [90.0, 90.0]]], dtype=np.float32),
+            visible=np.array([[True, True]]),
+        )
+        annotator = sv.EdgeAnnotator(edges=[(1, 2)])
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+        assert not np.array_equal(result, scene)
+
     def test_annotate_no_edges_found(self, scene):
         """
         Verify returning unmodified scene when no known skeleton matches.
@@ -124,7 +173,7 @@ class TestEdgeAnnotator:
         # Key points with more vertices than any skeleton
         large_key_points = sv.KeyPoints(
             xy=np.array([[[i * 10, i * 10] for i in range(100)]], dtype=np.float32),
-            confidence=np.array([[0.8] * 100], dtype=np.float32),
+            keypoint_confidence=np.array([[0.8] * 100], dtype=np.float32),
             class_id=np.array([0], dtype=int),
         )
         annotator = sv.EdgeAnnotator()
@@ -134,15 +183,16 @@ class TestEdgeAnnotator:
         assert np.array_equal(result, scene)
 
 
-class TestVertexEllipseAnnotator:
+class TestVertexUncertaintyAnnotator:
     """
-    Verify that VertexEllipseAnnotator draws covariance ellipses around keypoints.
+    Verify that VertexUncertaintyAnnotator draws filled semi-transparent
+    covariance ellipses around keypoints.
     """
 
     def test_annotate_with_covariance_data(self, scene, sample_key_points):
         """
         Scenario: Annotating keypoints with per-point covariance matrices.
-        Expected: Scene is modified with ellipses at keypoint locations.
+        Expected: Scene is modified with filled ellipses at keypoint locations.
         """
         covariance = np.tile(
             np.eye(2, dtype=np.float32),
@@ -152,71 +202,19 @@ class TestVertexEllipseAnnotator:
         covariance[..., 1, 1] = 9.0
         sample_key_points.data["covariance"] = covariance
 
-        annotator = sv.VertexEllipseAnnotator(color=sv.Color.RED, sigma=2.0)
+        annotator = sv.VertexUncertaintyAnnotator(sigma_levels=[1.0, 2.0])
         result = annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
 
         assert result.shape == scene.shape
         assert not np.array_equal(result, scene)
-
-    def test_annotate_with_dashed_line_style(self, scene, sample_key_points):
-        """
-        Scenario: Annotating keypoints with dashed covariance ellipses.
-        Expected: Scene is modified with a low-interference dashed overlay.
-        """
-        covariance = np.tile(
-            np.eye(2, dtype=np.float32),
-            (*sample_key_points.xy.shape[:2], 1, 1),
-        )
-        covariance[..., 0, 0] = 25.0
-        covariance[..., 1, 1] = 9.0
-        sample_key_points.data["covariance"] = covariance
-
-        annotator = sv.VertexEllipseAnnotator(
-            color=sv.Color.RED,
-            thickness=1,
-            sigma=2.0,
-            line_style="dashed",
-            dash_length=12,
-        )
-        result = annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
-
-        assert result.shape == scene.shape
-        assert not np.array_equal(result, scene)
-
-    def test_invalid_line_style_raises(self):
-        """
-        Scenario: Invalid line style is requested.
-        Expected: Clear validation error.
-        """
-        with pytest.raises(ValueError, match="line_style"):
-            sv.VertexEllipseAnnotator(line_style="dotted")
 
     def test_annotate_empty_key_points(self, scene, empty_key_points):
         """
         Scenario: Annotating a scene with no keypoints.
         Expected: Original scene is returned untouched.
         """
-        annotator = sv.VertexEllipseAnnotator()
+        annotator = sv.VertexUncertaintyAnnotator()
         result = annotator.annotate(scene=scene.copy(), key_points=empty_key_points)
-
-        assert np.array_equal(result, scene)
-
-    @pytest.mark.parametrize("confidence", [np.nan, np.inf, -np.inf])
-    def test_annotate_skips_non_finite_confidence(self, scene, confidence):
-        """
-        Scenario: Keypoint confidence is not finite.
-        Expected: Ellipse is not rendered for invalid confidence values.
-        """
-        key_points = sv.KeyPoints(
-            xy=np.array([[[40.0, 40.0]]], dtype=np.float32),
-            confidence=np.array([[confidence]], dtype=np.float32),
-            data={
-                "covariance": np.array([[[[25.0, 0.0], [0.0, 9.0]]]], dtype=np.float32)
-            },
-        )
-        annotator = sv.VertexEllipseAnnotator(confidence_threshold=0.0)
-
-        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
 
         assert np.array_equal(result, scene)
 
@@ -225,7 +223,7 @@ class TestVertexEllipseAnnotator:
         Scenario: Annotating non-empty keypoints without covariance data.
         Expected: Clear error explaining the expected data field.
         """
-        annotator = sv.VertexEllipseAnnotator()
+        annotator = sv.VertexUncertaintyAnnotator()
 
         with pytest.raises(ValueError, match="covariance"):
             annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
@@ -236,50 +234,44 @@ class TestVertexEllipseAnnotator:
         Expected: Clear shape validation error.
         """
         sample_key_points.data["covariance"] = np.zeros((1, 1, 2, 2), dtype=np.float32)
-        annotator = sv.VertexEllipseAnnotator()
+        annotator = sv.VertexUncertaintyAnnotator()
 
         with pytest.raises(ValueError, match="Expected covariance shape"):
             annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
 
-    def test_confidence_threshold_filters_low_confidence_keypoints(self, scene):
-        """
-        Scenario: Two keypoints with confidences 0.3 and 0.7; threshold=0.5.
-        Expected: Only the high-confidence keypoint is drawn.
-        """
+    def test_visible_false_skips_keypoint(self, scene):
+        """Not-visible keypoints produce no ellipses."""
         cov = np.array([[[[25.0, 0.0], [0.0, 9.0]]]], dtype=np.float32)
-        key_points_low = sv.KeyPoints(
+        key_points_hidden = sv.KeyPoints(
             xy=np.array([[[20.0, 20.0]]], dtype=np.float32),
-            confidence=np.array([[0.3]], dtype=np.float32),
+            visible=np.array([[False]]),
             data={"covariance": cov},
         )
-        key_points_high = sv.KeyPoints(
+        key_points_visible = sv.KeyPoints(
             xy=np.array([[[20.0, 20.0]]], dtype=np.float32),
-            confidence=np.array([[0.7]], dtype=np.float32),
+            visible=np.array([[True]]),
             data={"covariance": cov},
         )
-        annotator = sv.VertexEllipseAnnotator(confidence_threshold=0.5)
+        annotator = sv.VertexUncertaintyAnnotator()
 
-        result_low = annotator.annotate(scene=scene.copy(), key_points=key_points_low)
-        result_high = annotator.annotate(scene=scene.copy(), key_points=key_points_high)
+        result_hidden = annotator.annotate(
+            scene=scene.copy(), key_points=key_points_hidden
+        )
+        result_visible = annotator.annotate(
+            scene=scene.copy(), key_points=key_points_visible
+        )
 
-        assert np.array_equal(result_low, scene), (
-            "low-confidence keypoint must be skipped"
-        )
-        assert not np.array_equal(result_high, scene), (
-            "high-confidence keypoint must be drawn"
-        )
+        assert np.array_equal(result_hidden, scene)
+        assert not np.array_equal(result_visible, scene)
 
     def test_max_axis_length_caps_large_eigenvalue(self, scene):
-        """
-        Scenario: Covariance produces eigenvalue much larger than scene; cap applied.
-        Expected: Scene is modified (ellipse drawn) and axis is clamped to max.
-        """
+        """Large covariance with max_axis_length still produces a bounded ellipse."""
         large_cov = np.array([[[[1e6, 0.0], [0.0, 1e6]]]], dtype=np.float32)
         key_points = sv.KeyPoints(
             xy=np.array([[[50.0, 50.0]]], dtype=np.float32),
             data={"covariance": large_cov},
         )
-        annotator = sv.VertexEllipseAnnotator(max_axis_length=10.0)
+        annotator = sv.VertexUncertaintyAnnotator(max_axis_length=10.0)
 
         result = annotator.annotate(scene=scene.copy(), key_points=key_points)
 
@@ -291,13 +283,13 @@ class TestVertexEllipseAnnotator:
         [
             ({"max_axis_length": 0}, "max_axis_length"),
             ({"max_axis_length": -1}, "max_axis_length"),
-            ({"sigma": 0}, "sigma"),
-            ({"sigma": -1.0}, "sigma"),
-            ({"thickness": 0}, "thickness"),
-            ({"dash_length": 0}, "dash_length"),
+            ({"sigma_levels": []}, "sigma_levels"),
+            ({"sigma_levels": [-1.0]}, "sigma_levels"),
+            ({"opacity": 0}, "opacity"),
+            ({"opacity": 1.5}, "opacity"),
         ],
     )
     def test_constructor_raises_on_invalid_params(self, kwargs, match):
-        """Scenario: Invalid constructor parameters. Expected: ValueError."""
+        """Invalid constructor parameters raise ValueError."""
         with pytest.raises(ValueError, match=match):
-            sv.VertexEllipseAnnotator(**kwargs)
+            sv.VertexUncertaintyAnnotator(**kwargs)

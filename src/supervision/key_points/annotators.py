@@ -51,7 +51,8 @@ class VertexAnnotator(BaseKeyPointAnnotator):
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
         """
         Annotates the given scene with skeleton vertices based on the provided key
-        points. It draws circles at each key point location.
+        points. It draws circles at each key point location. Anchors marked as
+        not visible via ``key_points.visible`` are skipped.
 
         Args:
             scene: The image where skeleton vertices will be drawn. `ImageType` is a
@@ -88,8 +89,15 @@ class VertexAnnotator(BaseKeyPointAnnotator):
         if len(key_points) == 0:
             return scene
 
-        for xy in key_points.xy:
-            for x, y in xy:
+        for detection_index, xy in enumerate(key_points.xy):
+            for point_index, (x, y) in enumerate(xy):
+                if np.allclose((x, y), 0):
+                    continue
+                if (
+                    key_points.visible is not None
+                    and not key_points.visible[detection_index, point_index]
+                ):
+                    continue
                 cv2.circle(
                     img=scene,
                     center=(int(x), int(y)),
@@ -128,7 +136,8 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
         """
         Annotates the given scene by drawing lines between specified key points to form
-        edges.
+        edges. Edges where either endpoint is marked as not visible via
+        ``key_points.visible`` are skipped.
 
         Args:
             scene: The image where skeleton edges will be drawn. `ImageType` is a
@@ -165,7 +174,7 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         if len(key_points) == 0:
             return scene
 
-        for xy in key_points.xy:
+        for detection_index, xy in enumerate(key_points.xy):
             edges = self.edges
             if not edges:
                 edges = SKELETONS_BY_VERTEX_COUNT.get(len(xy))
@@ -174,12 +183,18 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
                 return scene
 
             for class_a, class_b in edges:
-                xy_a = xy[class_a - 1]
-                xy_b = xy[class_b - 1]
-                missing_a = np.allclose(xy_a, 0)
-                missing_b = np.allclose(xy_b, 0)
-                if missing_a or missing_b:
+                idx_a = class_a - 1
+                idx_b = class_b - 1
+                xy_a = xy[idx_a]
+                xy_b = xy[idx_b]
+                if np.allclose(xy_a, 0) or np.allclose(xy_b, 0):
                     continue
+                if key_points.visible is not None:
+                    if (
+                        not key_points.visible[detection_index, idx_a]
+                        or not key_points.visible[detection_index, idx_b]
+                    ):
+                        continue
 
                 cv2.line(
                     img=scene,
@@ -192,84 +207,96 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         return scene
 
 
-class VertexEllipseAnnotator(BaseKeyPointAnnotator):
+class VertexUncertaintyAnnotator(BaseKeyPointAnnotator):
     """
-    A class that draws covariance ellipses around skeleton vertices.
+    Draws concentric covariance ellipses at multiple sigma levels around each
+    keypoint, each ring in a different color.  This produces a bullseye-like
+    uncertainty visualization where inner rings represent higher probability
+    density.
 
     The annotator expects per-keypoint covariance matrices stored in
-    ``key_points.data[covariance_data_key]`` with shape ``(N, K, 2, 2)`` in pixel
-    coordinates, where ``N`` is the number of keypoint sets and ``K`` is the
-    number of vertices per set.
+    ``key_points.data[covariance_data_key]`` with shape ``(N, K, 2, 2)`` in
+    pixel coordinates.
     """
 
     def __init__(
         self,
-        color: Color = Color.ROBOFLOW,
-        thickness: int = 2,
-        sigma: float = 2.0,
+        sigma_levels: Sequence[float] = (1.0, 2.0, 3.0),
+        colors: Sequence[Color] | None = None,
+        opacity: float = 0.4,
         covariance_data_key: str = "covariance",
-        confidence_threshold: float = 0.0,
         max_axis_length: float | None = None,
-        line_style: Literal["solid", "dashed"] = "solid",
-        dash_length: int = 16,
     ) -> None:
         """
         Args:
-            color: The color to use for covariance ellipses.
-            thickness: The line thickness used to draw the ellipses.
-            sigma: Number of standard deviations represented by the ellipse axes.
+            sigma_levels: Sigma multipliers for each ring, drawn from outermost to
+                innermost.  Defaults to ``(1.0, 2.0, 3.0)``.
+            colors: One color per sigma level.  When ``None``, defaults to a
+                green-yellow-red gradient (inner=green, outer=red).
+            opacity: Opacity of the filled ellipses. Must be between ``0`` and
+                ``1``.
             covariance_data_key: Key in ``key_points.data`` containing covariance
                 matrices with shape ``(N, K, 2, 2)``.
-            confidence_threshold: Minimum keypoint confidence required for drawing.
-                Ignored when ``key_points.confidence`` is ``None``.
             max_axis_length: Optional cap for ellipse semi-axis lengths in pixels.
-                When ``None`` (default), near-singular precision matrices can produce
-                extremely large eigenvalues and frame-spanning ellipses. Set this to
-                ``min(image_height, image_width)`` or a similar bound for production
-                use.
-            line_style: Ellipse line style. Use ``"dashed"`` for less visually
-                dominant uncertainty overlays.
-            dash_length: Arc length in degrees for each dashed segment. Only used
-                when ``line_style="dashed"``.
         """
-        if sigma <= 0:
-            raise ValueError("sigma must be positive")
-        if thickness <= 0:
-            raise ValueError("thickness must be positive")
+        if len(sigma_levels) == 0:
+            raise ValueError("sigma_levels must contain at least one value")
+        if any(s <= 0 for s in sigma_levels):
+            raise ValueError("All sigma_levels must be positive")
+        if not 0 < opacity <= 1:
+            raise ValueError("opacity must be between 0 (exclusive) and 1 (inclusive)")
         if max_axis_length is not None and max_axis_length <= 0:
             raise ValueError("max_axis_length must be positive when provided")
-        if line_style not in {"solid", "dashed"}:
-            raise ValueError("line_style must be 'solid' or 'dashed'")
-        if dash_length <= 0:
-            raise ValueError("dash_length must be positive")
 
-        self.color = color
-        self.thickness = thickness
-        self.sigma = sigma
+        self.sigma_levels = sorted(sigma_levels, reverse=True)
+        if colors is not None:
+            if len(colors) != len(sigma_levels):
+                raise ValueError(
+                    f"colors length ({len(colors)}) must match "
+                    f"sigma_levels length ({len(sigma_levels)})"
+                )
+            sorted_indices = sorted(
+                range(len(sigma_levels)),
+                key=lambda i: sigma_levels[i],
+                reverse=True,
+            )
+            self.colors = [colors[i] for i in sorted_indices]
+        else:
+            self.colors = self._default_colors(len(self.sigma_levels))
+        self.opacity = opacity
         self.covariance_data_key = covariance_data_key
-        self.confidence_threshold = confidence_threshold
         self.max_axis_length = max_axis_length
-        self.line_style = line_style
-        self.dash_length = dash_length
+
+    @staticmethod
+    def _default_colors(n: int) -> list[Color]:
+        """Red (outer) through bright yellow (middle) to green (inner)."""
+        if n == 1:
+            return [Color.GREEN]
+        colors = []
+        for i in range(n):
+            t = i / (n - 1)
+            if t < 0.5:
+                r = 255
+                g = int(255 * (t / 0.5))
+            else:
+                r = int(255 * ((1.0 - t) / 0.5))
+                g = 255
+            colors.append(Color.from_rgb_tuple((r, g, 0)))
+        return colors
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
         """
-        Annotates the given scene with covariance ellipses around keypoints.
+        Draws concentric covariance ellipses around each keypoint.
 
         Args:
-            scene: The image where covariance ellipses will be drawn. ``ImageType``
-                accepts either ``numpy.ndarray`` or ``PIL.Image.Image``.
-            key_points: A collection of key points. Covariance matrices must be
-                stored in ``key_points.data[covariance_data_key]``.
+            scene: The image to annotate. ``ImageType`` accepts either
+                ``numpy.ndarray`` or ``PIL.Image.Image``.
+            key_points: Key points with covariance data in
+                ``key_points.data[covariance_data_key]``.
 
         Returns:
             The annotated image, matching the type of ``scene``.
-
-        Raises:
-            ValueError: If ``key_points.data`` does not contain the key specified
-                by ``covariance_data_key``, or if the covariance array shape does
-                not match ``(N, K, 2, 2)``.
 
         Example:
             ```pycon
@@ -277,44 +304,58 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
             >>> import supervision as sv
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
             >>> key_points = sv.KeyPoints(
-            ...     xy=np.array([[[50, 50], [60, 60]]], dtype=np.float32),
-            ...     data={"covariance": np.array([[[[25, 0], [0, 9]], [[9, 0], [0, 4]]]], dtype=np.float32)}
+            ...     xy=np.array([[[50, 50]]], dtype=np.float32),
+            ...     data={"covariance": np.array([[[[100, 0], [0, 64]]]], dtype=np.float32)}
             ... )
-            >>> annotator = sv.VertexEllipseAnnotator(color=sv.Color.GREEN)
-            >>> annotated_frame = annotator.annotate(image.copy(), key_points)
-            >>> annotated_frame.shape
+            >>> annotator = sv.VertexUncertaintyAnnotator()
+            >>> annotated = annotator.annotate(image.copy(), key_points)
+            >>> annotated.shape
             (100, 100, 3)
 
             ```
-        """  # noqa: E501 // docs
+        """
         assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
             return scene
 
-        covariances = self._get_covariances(key_points=key_points)
+        overlay = scene.copy()
+        covariances = self._get_covariances(key_points)
         for detection_index, xy in enumerate(key_points.xy):
             for point_index, (x, y) in enumerate(xy):
                 if np.allclose((x, y), 0):
                     continue
-                if key_points.confidence is not None:
-                    confidence = key_points.confidence[detection_index, point_index]
-                    if not np.isfinite(confidence):
-                        continue
-                    if confidence < self.confidence_threshold:
-                        continue
-                ellipse = self._covariance_to_ellipse(
-                    covariance=covariances[detection_index, point_index]
-                )
-                if ellipse is None:
+                if (
+                    key_points.visible is not None
+                    and not key_points.visible[detection_index, point_index]
+                ):
                     continue
-                axis_lengths, angle = ellipse
-                self._draw_ellipse(
-                    scene=scene,
-                    center=(round(x), round(y)),
-                    axes=axis_lengths,
-                    angle=angle,
+                covariance = covariances[detection_index, point_index]
+                decomposition = self._decompose_covariance(covariance)
+                if decomposition is None:
+                    continue
+                eigenvalues, eigenvectors = decomposition
+                angle = float(
+                    np.degrees(np.arctan2(eigenvectors[1, 0], eigenvectors[0, 0]))
                 )
+                center = (round(x), round(y))
+                for sigma, color in zip(self.sigma_levels, self.colors):
+                    axes = sigma * np.sqrt(eigenvalues)
+                    if self.max_axis_length is not None:
+                        axes = np.minimum(axes, self.max_axis_length)
+                    axis_lengths = (max(1, round(axes[0])), max(1, round(axes[1])))
+                    cv2.ellipse(
+                        img=overlay,
+                        center=center,
+                        axes=axis_lengths,
+                        angle=angle,
+                        startAngle=0,
+                        endAngle=360,
+                        color=color.as_bgr(),
+                        thickness=-1,
+                        lineType=cv2.LINE_AA,
+                    )
 
+        cv2.addWeighted(overlay, self.opacity, scene, 1 - self.opacity, 0, dst=scene)
         return scene
 
     def _get_covariances(self, key_points: KeyPoints) -> npt.NDArray[np.float32]:
@@ -335,9 +376,10 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
             )
         return covariances_array
 
-    def _covariance_to_ellipse(
+    def _decompose_covariance(
         self, covariance: npt.NDArray[np.float32]
-    ) -> tuple[tuple[int, int], float] | None:
+    ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]] | None:
+        """Eigendecompose a 2x2 covariance, returning sorted (eigenvalues, vectors)."""
         if not np.isfinite(covariance).all():
             return None
         try:
@@ -346,51 +388,8 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
             return None
         if not np.isfinite(eigenvalues).all() or np.any(eigenvalues <= 0):
             return None
-
         order = np.argsort(eigenvalues)[::-1]
-        eigenvalues = eigenvalues[order]
-        eigenvectors = eigenvectors[:, order]
-        axes = self.sigma * np.sqrt(eigenvalues)
-        if self.max_axis_length is not None:
-            axes = np.minimum(axes, self.max_axis_length)
-        axis_lengths = tuple(max(1, round(axis)) for axis in axes)
-        angle = float(np.degrees(np.arctan2(eigenvectors[1, 0], eigenvectors[0, 0])))
-        return axis_lengths, angle
-
-    def _draw_ellipse(
-        self,
-        scene: npt.NDArray[np.uint8],
-        center: tuple[int, int],
-        axes: tuple[int, int],
-        angle: float,
-    ) -> None:
-        if self.line_style == "solid":
-            cv2.ellipse(
-                img=scene,
-                center=center,
-                axes=axes,
-                angle=angle,
-                startAngle=0,
-                endAngle=360,
-                color=self.color.as_bgr(),
-                thickness=self.thickness,
-                lineType=cv2.LINE_AA,
-            )
-            return
-
-        step = self.dash_length * 2
-        for start_angle in range(0, 360, step):
-            cv2.ellipse(
-                img=scene,
-                center=center,
-                axes=axes,
-                angle=angle,
-                startAngle=start_angle,
-                endAngle=min(start_angle + self.dash_length, 360),
-                color=self.color.as_bgr(),
-                thickness=self.thickness,
-                lineType=cv2.LINE_AA,
-            )
+        return eigenvalues[order], eigenvectors[:, order]
 
 
 class VertexLabelAnnotator:
@@ -417,7 +416,7 @@ class VertexLabelAnnotator:
                 colors will be used in order for each keypoint.
             text_scale: The scale of the text.
             text_thickness: The thickness of the text.
-            text_padding: The padding around the text.
+I
             border_radius: The radius of the rounded corners of the boxes. Set to a
                 high value to produce circles.
             smart_position: Spread out the labels to avoid overlap.

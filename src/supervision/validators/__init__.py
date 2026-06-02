@@ -1,7 +1,6 @@
 from typing import Any
 
 import numpy as np
-from deprecate import deprecated, void
 
 from supervision.detection.compact_mask import CompactMask
 from supervision.utils.internal import warn_deprecated
@@ -76,7 +75,8 @@ def validate_class_id(class_id: Any, n: int) -> None:
         )
 
 
-def validate_confidence(confidence: Any, n: int) -> None:
+def validate_detection_confidence(confidence: Any, n: int) -> None:
+    """Validate detection-level confidence: 1D ``np.ndarray`` with shape ``(n,)``."""
     expected_shape = f"({n},)"
     actual_shape = str(getattr(confidence, "shape", None))
     is_valid = confidence is None or (
@@ -89,26 +89,27 @@ def validate_confidence(confidence: Any, n: int) -> None:
         )
 
 
-def validate_key_point_confidence(confidence: Any, n: int, m: int) -> None:
-    expected_shape = f"({n, m})"
-    actual_shape = str(getattr(confidence, "shape", None))
+def validate_keypoint_confidence(
+    keypoint_confidence: Any, n: int, m: int
+) -> None:
+    """Validate per-keypoint confidence: 2D ``np.ndarray`` with shape ``(n, m)``."""
+    actual_shape = str(getattr(keypoint_confidence, "shape", None))
 
-    if confidence is not None:
-        is_valid = isinstance(confidence, np.ndarray) and confidence.shape == (n, m)
-        if not is_valid:
+    if keypoint_confidence is not None:
+        if not isinstance(keypoint_confidence, np.ndarray) or keypoint_confidence.ndim != 2:
             raise ValueError(
-                f"confidence must be a 1D np.ndarray with shape {expected_shape}, but "
+                f"keypoint_confidence must be a 2D np.ndarray with shape (n, m), but "
                 f"got shape {actual_shape}"
             )
-
-
-@deprecated(  # type: ignore[untyped-decorator]
-    target=validate_key_point_confidence,
-    deprecated_in="0.27.0",
-    remove_in="0.31.0",
-)
-def validate_keypoint_confidence(confidence: Any, n: int, m: int) -> None:
-    void(confidence, n, m)
+        if keypoint_confidence.shape[0] != n:
+            raise ValueError(
+                f"keypoint_confidence first dimension must be {n}, but got shape {actual_shape}"
+            )
+        if n > 0 and keypoint_confidence.shape[1] != m:
+            raise ValueError(
+                f"keypoint_confidence second dimension must be {m}, but "
+                f"got shape {actual_shape}"
+            )
 
 
 def validate_tracker_id(tracker_id: Any, n: int) -> None:
@@ -141,16 +142,20 @@ def validate_data(data: dict[str, Any], n: int) -> None:
 
 
 def validate_xy(xy: Any, n: int, m: int) -> None:
-    expected_shape = f"({n, m},)"
     actual_shape = str(getattr(xy, "shape", None))
 
-    is_valid = isinstance(xy, np.ndarray) and (
-        xy.shape == (n, m, 2) or xy.shape == (n, m, 3)
-    )
-    if not is_valid:
+    if not isinstance(xy, np.ndarray) or xy.ndim != 3 or xy.shape[2] not in (2, 3):
         raise ValueError(
-            f"xy must be a 2D np.ndarray with shape {expected_shape}, but got shape "
-            f"{actual_shape}"
+            f"xy must be a 3D np.ndarray with shape (n, m, 2) or (n, m, 3), "
+            f"but got shape {actual_shape}"
+        )
+    if xy.shape[0] != n:
+        raise ValueError(
+            f"xy first dimension must be {n}, but got shape {actual_shape}"
+        )
+    if n > 0 and xy.shape[1] != m:
+        raise ValueError(
+            f"xy second dimension must be {m}, but got shape {actual_shape}"
         )
 
 
@@ -166,34 +171,49 @@ def validate_detections_fields(
     n = len(xyxy)
     validate_mask(mask, n)
     validate_class_id(class_id, n)
-    validate_confidence(confidence, n)
+    validate_detection_confidence(confidence, n)
     validate_tracker_id(tracker_id, n)
     validate_data(data, n)
+
+
+def validate_visible(visible: Any, n: int, m: int) -> None:
+    """Validate per-keypoint visibility mask: 2D bool ``np.ndarray`` with shape ``(n, m)``."""
+    if visible is None:
+        return
+    actual_shape = str(getattr(visible, "shape", None))
+    if not isinstance(visible, np.ndarray) or visible.ndim != 2:
+        raise ValueError(
+            f"visible must be a 2D np.ndarray with shape (n, m), but "
+            f"got shape {actual_shape}"
+        )
+    if visible.shape[0] != n:
+        raise ValueError(
+            f"visible first dimension must be {n}, but got shape {actual_shape}"
+        )
+    if n > 0 and visible.shape[1] != m:
+        raise ValueError(
+            f"visible second dimension must be {m}, but got shape {actual_shape}"
+        )
 
 
 def validate_key_points_fields(
     xy: Any,
     class_id: Any,
-    confidence: Any,
-    data: dict[str, Any],
+    keypoint_confidence: Any,
+    detection_confidence: Any = None,
+    visible: Any = None,
+    data: dict[str, Any] | None = None,
 ) -> None:
     n = len(xy)
     m = len(xy[0]) if len(xy) > 0 else 0
     validate_xy(xy, n, m)
     validate_class_id(class_id, n)
-    validate_key_point_confidence(confidence, n, m)
-    validate_data(data, n)
-
-
-@deprecated(  # type: ignore[untyped-decorator]
-    target=validate_key_points_fields,
-    deprecated_in="0.27.0",
-    remove_in="0.31.0",
-)
-def validate_keypoints_fields(
-    xy: Any, class_id: Any, confidence: Any, data: dict[str, Any]
-) -> None:
-    void(xy, class_id, confidence, data)
+    validate_keypoint_confidence(keypoint_confidence, n, m)
+    if detection_confidence is not None:
+        validate_detection_confidence(detection_confidence, n)
+    validate_visible(visible, n, m)
+    if data is not None:
+        validate_data(data, n)
 
 
 def validate_resolution(resolution: Any) -> tuple[int, int]:
