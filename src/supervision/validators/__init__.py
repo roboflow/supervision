@@ -89,14 +89,15 @@ def validate_detection_confidence(confidence: Any, n: int) -> None:
         )
 
 
-def validate_keypoint_confidence(
-    keypoint_confidence: Any, n: int, m: int
-) -> None:
+def validate_keypoint_confidence(keypoint_confidence: Any, n: int, m: int) -> None:
     """Validate per-keypoint confidence: 2D ``np.ndarray`` with shape ``(n, m)``."""
     actual_shape = str(getattr(keypoint_confidence, "shape", None))
 
     if keypoint_confidence is not None:
-        if not isinstance(keypoint_confidence, np.ndarray) or keypoint_confidence.ndim != 2:
+        if (
+            not isinstance(keypoint_confidence, np.ndarray)
+            or keypoint_confidence.ndim != 2
+        ):
             raise ValueError(
                 f"keypoint_confidence must be a 2D np.ndarray with shape (n, m), but "
                 f"got shape {actual_shape}"

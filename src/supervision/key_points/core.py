@@ -271,7 +271,9 @@ class KeyPoints:
         for i in range(len(self.xy)):
             yield (
                 self.xy[i],
-                self.keypoint_confidence[i] if self.keypoint_confidence is not None else None,
+                self.keypoint_confidence[i]
+                if self.keypoint_confidence is not None
+                else None,
                 self.class_id[i] if self.class_id is not None else None,
                 get_data_item(self.data, i),
             )
@@ -283,8 +285,12 @@ class KeyPoints:
             [
                 np.array_equal(self.xy, other.xy),
                 _optional_array_equal(self.class_id, other.class_id),
-                _optional_array_equal(self.keypoint_confidence, other.keypoint_confidence),
-                _optional_array_equal(self.detection_confidence, other.detection_confidence),
+                _optional_array_equal(
+                    self.keypoint_confidence, other.keypoint_confidence
+                ),
+                _optional_array_equal(
+                    self.detection_confidence, other.detection_confidence
+                ),
                 _optional_array_equal(self.visible, other.visible),
                 is_data_equal(self.data, other.data),
             ]
@@ -800,14 +806,21 @@ class KeyPoints:
         for row in range(n):
             row_indices = np.flatnonzero(mask[row])
             xy_selected[row] = self.xy[row, row_indices]
-            if keypoint_confidence_selected is not None and self.keypoint_confidence is not None:
-                keypoint_confidence_selected[row] = self.keypoint_confidence[row, row_indices]
+            if (
+                keypoint_confidence_selected is not None
+                and self.keypoint_confidence is not None
+            ):
+                keypoint_confidence_selected[row] = self.keypoint_confidence[
+                    row, row_indices
+                ]
             if visible_selected is not None and self.visible is not None:
                 visible_selected[row] = self.visible[row, row_indices]
         return KeyPoints(
             xy=xy_selected,
             keypoint_confidence=keypoint_confidence_selected,
-            detection_confidence=self.detection_confidence.copy() if self.detection_confidence is not None else None,
+            detection_confidence=self.detection_confidence.copy()
+            if self.detection_confidence is not None
+            else None,
             visible=visible_selected,
             class_id=self.class_id.copy() if self.class_id is not None else None,
             data=get_data_item(self.data, slice(None)),
@@ -891,8 +904,16 @@ class KeyPoints:
 
         xy_selected = self.xy[i, j]
 
-        keypoint_confidence_selected = self.keypoint_confidence[i, j] if self.keypoint_confidence is not None else None
-        detection_confidence_selected = self.detection_confidence[i] if self.detection_confidence is not None else None
+        keypoint_confidence_selected = (
+            self.keypoint_confidence[i, j]
+            if self.keypoint_confidence is not None
+            else None
+        )
+        detection_confidence_selected = (
+            self.detection_confidence[i]
+            if self.detection_confidence is not None
+            else None
+        )
         visible_selected = self.visible[i, j] if self.visible is not None else None
 
         class_id_selected = self.class_id[i] if self.class_id is not None else None
@@ -902,7 +923,9 @@ class KeyPoints:
         if xy_selected.ndim == 1:
             xy_selected = xy_selected.reshape(1, 1, 2)
             if keypoint_confidence_selected is not None:
-                keypoint_confidence_selected = keypoint_confidence_selected.reshape(1, 1)
+                keypoint_confidence_selected = keypoint_confidence_selected.reshape(
+                    1, 1
+                )
             if visible_selected is not None:
                 visible_selected = visible_selected.reshape(1, 1)
         elif xy_selected.ndim == 2:
@@ -911,7 +934,9 @@ class KeyPoints:
             ):
                 xy_selected = xy_selected[np.newaxis, ...]
                 if keypoint_confidence_selected is not None:
-                    keypoint_confidence_selected = keypoint_confidence_selected[np.newaxis, ...]
+                    keypoint_confidence_selected = keypoint_confidence_selected[
+                        np.newaxis, ...
+                    ]
                 if visible_selected is not None:
                     visible_selected = visible_selected[np.newaxis, ...]
             elif np.isscalar(index[1]) or (
@@ -919,7 +944,9 @@ class KeyPoints:
             ):
                 xy_selected = xy_selected[:, np.newaxis, :]
                 if keypoint_confidence_selected is not None:
-                    keypoint_confidence_selected = keypoint_confidence_selected[:, np.newaxis]
+                    keypoint_confidence_selected = keypoint_confidence_selected[
+                        :, np.newaxis
+                    ]
                 if visible_selected is not None:
                     visible_selected = visible_selected[:, np.newaxis]
 

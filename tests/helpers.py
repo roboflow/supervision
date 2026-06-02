@@ -135,9 +135,7 @@ def _create_key_points(
             if detection_confidence is None
             else np.array(detection_confidence, dtype=np.float32)
         ),
-        visible=(
-            visible if visible is None else np.array(visible, dtype=bool)
-        ),
+        visible=(visible if visible is None else np.array(visible, dtype=bool)),
         class_id=(class_id if class_id is None else np.array(class_id, dtype=int)),
         data=convert_data(data) if data else {},
     )
