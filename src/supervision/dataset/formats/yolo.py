@@ -254,9 +254,18 @@ def detections_to_yolo_annotations(
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
+    is_obb: bool = False,
 ) -> list[str]:
-    annotation = []
-    for xyxy, mask, _, class_id, _, _ in detections:
+    if is_obb and ORIENTED_BOX_COORDINATES not in detections.data:
+        raise ValueError(
+            f"`is_obb=True` requires `'{ORIENTED_BOX_COORDINATES}'` in "
+            "`detections.data`. Load OBB datasets via "
+            "`DetectionDataset.from_yolo(..., is_obb=True)` or set "
+            f"`detections.data['{ORIENTED_BOX_COORDINATES}']` before exporting."
+        )
+
+    annotation: list[str] = []
+    for xyxy, mask, _, class_id, _, data in detections:
         if class_id is None:
             raise ValueError("Class ID is required for YOLO annotations.")
         if not isinstance(class_id, (int, np.integer)):
@@ -265,6 +274,17 @@ def detections_to_yolo_annotations(
                 f"got {type(class_id)!r}."
             )
         class_id_int = int(class_id)
+
+        if is_obb:
+            corners = np.asarray(data[ORIENTED_BOX_COORDINATES], dtype=np.float32)
+            next_object = object_to_yolo(
+                xyxy=xyxy,
+                class_id=class_id_int,
+                image_shape=image_shape,
+                polygon=corners,
+            )
+            annotation.append(next_object)
+            continue
 
         if mask is not None:
             polygons = approximate_mask_with_polygons(
@@ -296,6 +316,7 @@ def save_yolo_annotations(
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.75,
+    is_obb: bool = False,
 ) -> None:
     Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
     for image_path, image, annotation in dataset:
@@ -310,6 +331,7 @@ def save_yolo_annotations(
             min_image_area_percentage=min_image_area_percentage,
             max_image_area_percentage=max_image_area_percentage,
             approximation_percentage=approximation_percentage,
+            is_obb=is_obb,
         )
         save_text_file(lines=lines, file_path=yolo_annotations_path)
 

@@ -9,6 +9,8 @@ import numpy as np
 import pytest
 from PIL import Image
 
+from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.dataset.core import DetectionDataset
 from supervision.dataset.formats.yolo import (
     _image_name_to_annotation_name,
     _with_seg_mask,
@@ -538,3 +540,98 @@ def test_yolo_polygon_mask_precision_no_coord_drift_round_trip_iou(
         f"Mask IoU {iou:.6f} too low after YOLO load/save round-trip — "
         "precision regression in polygon mask conversion"
     )
+
+
+def test_detections_to_yolo_annotations_obb_emits_nine_tokens() -> None:
+    """`is_obb=True` must serialize the 4 corners from `data['xyxyxyxy']`."""
+    corners = np.array(
+        [[[50.0, 10.0], [90.0, 50.0], [50.0, 90.0], [10.0, 50.0]]], dtype=np.float32
+    )
+    detections = Detections(
+        xyxy=np.array([[10.0, 10.0, 90.0, 90.0]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+        data={ORIENTED_BOX_COORDINATES: corners},
+    )
+
+    lines = detections_to_yolo_annotations(
+        detections=detections, image_shape=(100, 100, 3), is_obb=True
+    )
+
+    assert len(lines) == 1
+    tokens = lines[0].split()
+    assert len(tokens) == 9, (
+        f"OBB export must produce 9 tokens (class + 4 (x,y) pairs), got {tokens}"
+    )
+    assert tokens[0] == "0"
+    np.testing.assert_allclose(
+        np.array(tokens[1:], dtype=np.float32),
+        np.array([0.5, 0.1, 0.9, 0.5, 0.5, 0.9, 0.1, 0.5], dtype=np.float32),
+        atol=1e-5,
+    )
+
+
+def test_detections_to_yolo_annotations_obb_raises_without_corners() -> None:
+    """`is_obb=True` without `'xyxyxyxy'` in data must fail loudly, not silently."""
+    detections = Detections(
+        xyxy=np.array([[10.0, 10.0, 90.0, 90.0]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+    )
+    with pytest.raises(ValueError, match=ORIENTED_BOX_COORDINATES):
+        detections_to_yolo_annotations(
+            detections=detections, image_shape=(100, 100, 3), is_obb=True
+        )
+
+
+def test_dataset_as_yolo_obb_round_trip_preserves_corners() -> None:
+    """OBB round-trip via `from_yolo` -> `as_yolo` must preserve the 4 corners."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        images_dir = os.path.join(tmp_dir, "images")
+        labels_dir = os.path.join(tmp_dir, "labels")
+        os.makedirs(images_dir)
+        os.makedirs(labels_dir)
+
+        # Non-square image and rotated rhombus exercise both axes.
+        Image.new("RGB", (200, 100)).save(os.path.join(images_dir, "test.jpg"))
+        original_line = "0 0.5 0.1 0.9 0.5 0.5 0.9 0.1 0.5"
+        with open(os.path.join(labels_dir, "test.txt"), "w") as f:
+            f.write(original_line + "\n")
+
+        data_yaml_path = os.path.join(tmp_dir, "data.yaml")
+        with open(data_yaml_path, "w") as f:
+            f.write("names: ['object']\n")
+
+        loaded = DetectionDataset.from_yolo(
+            images_directory_path=images_dir,
+            annotations_directory_path=labels_dir,
+            data_yaml_path=data_yaml_path,
+            is_obb=True,
+        )
+
+        out_labels_dir = os.path.join(tmp_dir, "out_labels")
+        out_data_yaml_path = os.path.join(tmp_dir, "out_data.yaml")
+        loaded.as_yolo(
+            annotations_directory_path=out_labels_dir,
+            data_yaml_path=out_data_yaml_path,
+            is_obb=True,
+        )
+
+        with open(os.path.join(out_labels_dir, "test.txt")) as f:
+            saved_tokens = f.read().split()
+        assert len(saved_tokens) == 9, (
+            f"Saved OBB line must have 9 tokens, got "
+            f"{len(saved_tokens)}: {saved_tokens}"
+        )
+
+        reloaded = DetectionDataset.from_yolo(
+            images_directory_path=images_dir,
+            annotations_directory_path=out_labels_dir,
+            data_yaml_path=out_data_yaml_path,
+            is_obb=True,
+        )
+        original = next(iter(loaded.annotations.values()))
+        round_tripped = next(iter(reloaded.annotations.values()))
+        np.testing.assert_allclose(
+            round_tripped.data[ORIENTED_BOX_COORDINATES],
+            original.data[ORIENTED_BOX_COORDINATES],
+            atol=1e-3,
+        )
