@@ -170,7 +170,6 @@ class TestEdgeAnnotator:
         Expected: No edges are drawn, and the original scene is returned, avoiding
         incorrect or nonsensical connections.
         """
-        # Key points with more vertices than any skeleton
         large_key_points = sv.KeyPoints(
             xy=np.array([[[i * 10, i * 10] for i in range(100)]], dtype=np.float32),
             keypoint_confidence=np.array([[0.8] * 100], dtype=np.float32),
@@ -179,8 +178,75 @@ class TestEdgeAnnotator:
         annotator = sv.EdgeAnnotator()
         result = annotator.annotate(scene=scene.copy(), key_points=large_key_points)
 
-        # Should return the original scene unchanged (no edges found)
         assert np.array_equal(result, scene)
+
+    def test_dict_edges_draws_per_class_skeleton(self, scene):
+        """Dict-based edges apply different skeletons per class_id."""
+        key_points = sv.KeyPoints(
+            xy=np.array(
+                [
+                    [[10, 10], [30, 30], [50, 50], [0, 0]],
+                    [[60, 10], [80, 30], [0, 0], [0, 0]],
+                ],
+                dtype=np.float32,
+            ),
+            class_id=np.array([0, 1]),
+            visible=np.array(
+                [[True, True, True, False], [True, True, False, False]]
+            ),
+        )
+        annotator = sv.EdgeAnnotator(
+            edges={0: [(1, 2), (2, 3)], 1: [(1, 2)]},
+            thickness=2,
+        )
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+
+        assert not np.array_equal(result, scene)
+
+    def test_dict_edges_skips_missing_class_id(self, scene):
+        """Instances whose class_id is absent from the edges dict are skipped."""
+        key_points = sv.KeyPoints(
+            xy=np.array(
+                [
+                    [[10, 10], [30, 30]],
+                    [[60, 10], [80, 30]],
+                ],
+                dtype=np.float32,
+            ),
+            class_id=np.array([0, 99]),
+            visible=np.array([[True, True], [True, True]]),
+        )
+        annotator = sv.EdgeAnnotator(edges={0: [(1, 2)]}, thickness=2)
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+
+        only_class_0 = sv.KeyPoints(
+            xy=key_points.xy[:1],
+            class_id=np.array([0]),
+            visible=np.array([[True, True]]),
+        )
+        expected = annotator.annotate(scene=scene.copy(), key_points=only_class_0)
+
+        assert np.array_equal(result, expected)
+
+    def test_no_edges_continues_to_next_instance(self, scene):
+        """Failed skeleton lookup for one instance does not abort the rest."""
+        key_points = sv.KeyPoints(
+            xy=np.array(
+                [
+                    [[10, 10], [30, 30]],
+                    [[60, 10], [80, 30]],
+                ],
+                dtype=np.float32,
+            ),
+            class_id=np.array([0, 1]),
+        )
+        annotator = sv.EdgeAnnotator(
+            edges={0: [(1, 2)]},
+            thickness=2,
+        )
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
+
+        assert not np.array_equal(result, scene)
 
 
 class TestVertexUncertaintyAnnotator:
