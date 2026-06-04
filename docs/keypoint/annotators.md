@@ -77,7 +77,7 @@ comments: true
 
     </div>
 
-=== "VertexEllipseAnnotator"
+=== "VertexUncertaintyAnnotator"
 
     ```python
     import numpy as np
@@ -90,12 +90,12 @@ comments: true
     covariance = np.zeros((len(key_points), key_points.xy.shape[1], 2, 2), dtype=np.float32)
     key_points.data["covariance"] = covariance
 
-    ellipse_annotator = sv.VertexEllipseAnnotator(
+    uncertainty_annotator = sv.VertexUncertaintyAnnotator(
         color=sv.Color.GREEN,
         thickness=2,
         sigma=2.0,
     )
-    annotated_frame = ellipse_annotator.annotate(
+    annotated_frame = uncertainty_annotator.annotate(
         scene=image.copy(),
         key_points=key_points,
     )
@@ -120,7 +120,7 @@ comments: true
 :::supervision.key_points.annotators.VertexLabelAnnotator
 
 <div class="md-typeset">
-  <h2><a href="#supervision.key_points.annotators.VertexEllipseAnnotator">VertexEllipseAnnotator</a></h2>
+  <h2><a href="#supervision.key_points.annotators.VertexUncertaintyAnnotator">VertexUncertaintyAnnotator</a></h2>
 </div>
 
-:::supervision.key_points.annotators.VertexEllipseAnnotator
+:::supervision.key_points.annotators.VertexUncertaintyAnnotator
