@@ -88,15 +88,24 @@ def validate_detection_keypoints(keypoints: Any, n: int) -> None:
     """
     if keypoints is None:
         return
+    expected_shape = f"({n}, K, 2) or ({n}, K, 3)"
     if not isinstance(keypoints, np.ndarray):
         raise ValueError(
-            f"keypoints must be a np.ndarray, but got {type(keypoints).__name__}"
+            "keypoints must be a 3D np.ndarray with shape "
+            + f"{expected_shape}, but got {type(keypoints).__name__}"
         )
     if not np.issubdtype(keypoints.dtype, np.number):
         raise ValueError(
             f"keypoints must have a numeric dtype, but got dtype {keypoints.dtype}"
         )
-    validate_xy(keypoints, n)
+    try:
+        validate_xy(keypoints, n)
+    except ValueError:
+        actual_shape = str(keypoints.shape)
+        raise ValueError(
+            "keypoints must be a 3D np.ndarray with shape "
+            + f"{expected_shape}, but got shape {actual_shape}"
+        )
 
 
 def validate_class_id(class_id: Any, n: int) -> None:

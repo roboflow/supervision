@@ -178,11 +178,16 @@ def test_detections_non_bool_mask_warns_with_migration_path() -> None:
             ),
             pytest.raises(ValueError, match=r"keypoints must be a 3D np.ndarray"),
         ),
+        (
+            np.array([[["a", "b"]]], dtype=object),
+            pytest.raises(ValueError, match=r"keypoints must have a numeric dtype"),
+        ),
     ],
 )
 def test_detections_keypoints_validation(
     keypoints: np.ndarray, exception: Exception
 ) -> None:
+    """Validate that Detections rejects invalid keypoints arrays."""
     with exception:
         Detections(
             xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
@@ -795,11 +800,42 @@ def test_get_anchor_coordinates(
             _create_detections(xyxy=[[10, 10, 20, 20]], data={"test_1": [3]}),
             False,
         ),  # detections with xyxy, and different data field values
+        (
+            Detections(
+                xyxy=np.array([[0, 0, 1, 1]], dtype=np.float32),
+                keypoints=np.array([[[1.0, 2.0]]], dtype=np.float32),
+            ),
+            Detections(
+                xyxy=np.array([[0, 0, 1, 1]], dtype=np.float32),
+                keypoints=np.array([[[1.0, 2.0]]], dtype=np.float32),
+            ),
+            True,
+        ),  # equal non-None keypoints
+        (
+            Detections(
+                xyxy=np.array([[0, 0, 1, 1]], dtype=np.float32),
+                keypoints=np.array([[[1.0, 2.0]]], dtype=np.float32),
+            ),
+            Detections(xyxy=np.array([[0, 0, 1, 1]], dtype=np.float32)),
+            False,
+        ),  # one has keypoints, other is None
+        (
+            Detections(
+                xyxy=np.array([[0, 0, 1, 1]], dtype=np.float32),
+                keypoints=np.array([[[1.0, 2.0]]], dtype=np.float32),
+            ),
+            Detections(
+                xyxy=np.array([[0, 0, 1, 1]], dtype=np.float32),
+                keypoints=np.array([[[9.0, 9.0]]], dtype=np.float32),
+            ),
+            False,
+        ),  # same shape, different keypoint values
     ],
 )
 def test_equal(
     detections_a: Detections, detections_b: Detections, expected_result: bool
 ) -> None:
+    """Verify Detections equality covers all fields including keypoints."""
     assert (detections_a == detections_b) == expected_result
 
 
