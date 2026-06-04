@@ -594,7 +594,14 @@ class VertexLabelAnnotator:
         for i in range(skeletons_count):
             xy = key_points.xy[i]
 
-            instance_labels = self._resolve_labels(labels, key_points, i, points_count)
+            class_id = (
+                key_points.class_id[i]
+                if key_points.class_id is not None
+                else None
+            )
+            instance_labels = self._resolve_labels(
+                labels, points_count, class_id
+            )
             instance_colors = self._resolve_color_list(self.color, points_count)
             instance_text_colors = self._resolve_color_list(
                 self.text_color, points_count
@@ -681,25 +688,34 @@ class VertexLabelAnnotator:
     @staticmethod
     def _resolve_labels(
         labels: list[str] | dict[int, list[str]] | None,
-        key_points: KeyPoints,
-        instance_index: int,
         points_count: int,
+        class_id: int | None = None,
     ) -> list[str]:
         """Return the label list for a single instance."""
         if labels is None:
             return [str(j) for j in range(points_count)]
 
+        resolved: list[str]
         if isinstance(labels, dict):
-            class_id = (
-                key_points.class_id[instance_index]
-                if key_points.class_id is not None
-                else None
-            )
-            if class_id is not None and class_id in labels:
-                return labels[class_id]
-            return [str(j) for j in range(points_count)]
+            if class_id is None:
+                raise ValueError(
+                    "labels is a dict but class_id is None; "
+                    "KeyPoints must have class_id set."
+                )
+            if class_id not in labels:
+                raise ValueError(
+                    f"No labels defined for class_id={class_id}."
+                )
+            resolved = labels[class_id]
+        else:
+            resolved = labels
 
-        return labels
+        if len(resolved) != points_count:
+            raise ValueError(
+                f"Number of labels ({len(resolved)}) must match "
+                f"number of key points ({points_count})."
+            )
+        return resolved
 
     @staticmethod
     def _resolve_color_list(

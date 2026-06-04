@@ -291,3 +291,59 @@ class TestVertexUncertaintyAnnotator:
         """Invalid constructor parameters raise ValueError."""
         with pytest.raises(ValueError, match=match):
             sv.VertexUncertaintyAnnotator(**kwargs)
+
+
+class TestVertexLabelAnnotator:
+    @pytest.mark.parametrize(
+        ("labels", "points_count", "class_id", "expected"),
+        [
+            pytest.param(
+                None, 3, 0, ["0", "1", "2"],
+                id="none-returns-indices",
+            ),
+            pytest.param(
+                ["a", "b", "c"], 3, 0, ["a", "b", "c"],
+                id="list-returns-as-is",
+            ),
+            pytest.param(
+                {0: ["x", "y", "z"]}, 3, 0, ["x", "y", "z"],
+                id="dict-matching-class",
+            ),
+        ],
+    )
+    def test_resolve_labels_returns_expected(
+        self, labels, points_count, class_id, expected
+    ):
+        result = sv.VertexLabelAnnotator._resolve_labels(
+            labels, points_count, class_id
+        )
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        ("labels", "points_count", "class_id"),
+        [
+            pytest.param(
+                ["a", "b"], 3, 0,
+                id="list-wrong-length",
+            ),
+            pytest.param(
+                {0: ["a", "b"]}, 3, 0,
+                id="dict-wrong-length",
+            ),
+            pytest.param(
+                {9: ["x", "y", "z"]}, 3, 0,
+                id="dict-missing-class",
+            ),
+            pytest.param(
+                {0: ["x", "y", "z"]}, 3, None,
+                id="dict-no-class-id",
+            ),
+        ],
+    )
+    def test_resolve_labels_raises(
+        self, labels, points_count, class_id
+    ):
+        with pytest.raises(ValueError):
+            sv.VertexLabelAnnotator._resolve_labels(
+                labels, points_count, class_id
+            )
