@@ -63,6 +63,26 @@ class VertexAnnotator(BaseKeyPointAnnotator):
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
+
+        Example:
+            ```python
+            import numpy as np
+            import supervision as sv
+
+            image = np.zeros((800, 800, 3), dtype=np.uint8)
+            key_points = sv.KeyPoints(
+                xy=np.array(
+                    [[[400, 200], [300, 500], [500, 500]]],
+                    dtype=np.float32,
+                ),
+                class_id=np.array([0]),
+                visible=np.array([[True, True, True]]),
+            )
+            annotator = sv.VertexAnnotator(
+                color=sv.Color.ROBOFLOW, radius=10
+            )
+            result = annotator.annotate(image.copy(), key_points)
+            ```
         """
         assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
@@ -133,6 +153,57 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
+
+        Example:
+            Single-skeleton example:
+
+            ```python
+            import numpy as np
+            import supervision as sv
+
+            image = np.zeros((800, 800, 3), dtype=np.uint8)
+            key_points = sv.KeyPoints(
+                xy=np.array(
+                    [[[400, 200], [300, 500], [500, 500]]],
+                    dtype=np.float32,
+                ),
+                class_id=np.array([0]),
+                visible=np.array([[True, True, True]]),
+            )
+            annotator = sv.EdgeAnnotator(
+                color=sv.Color.ROBOFLOW,
+                thickness=3,
+                edges=[(1, 2), (1, 3)],
+            )
+            result = annotator.annotate(image.copy(), key_points)
+            ```
+
+            Multi-skeleton example with per-class edges:
+
+            ```python
+            import numpy as np
+            import supervision as sv
+
+            image = np.zeros((800, 800, 3), dtype=np.uint8)
+            key_points = sv.KeyPoints(
+                xy=np.array(
+                    [[[400, 200], [300, 500], [500, 500]],
+                     [[700, 300], [650, 500], [0, 0]]],
+                    dtype=np.float32,
+                ),
+                class_id=np.array([0, 1]),
+                visible=np.array(
+                    [[True, True, True],
+                     [True, True, False]],
+                ),
+            )
+            annotator = sv.EdgeAnnotator(
+                color=sv.Color.ROBOFLOW,
+                thickness=3,
+                edges={0: [(1, 2), (1, 3)], 1: [(1, 2)]},
+            )
+            result = annotator.annotate(image.copy(), key_points)
+            ```
         """
         assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
@@ -273,6 +344,34 @@ class VertexUncertaintyAnnotator(BaseKeyPointAnnotator):
 
         Returns:
             The annotated image, matching the type of ``scene``.
+
+        Example:
+            ```python
+            import numpy as np
+            import supervision as sv
+
+            image = np.zeros((800, 800, 3), dtype=np.uint8)
+            key_points = sv.KeyPoints(
+                xy=np.array(
+                    [[[400, 200], [300, 500], [500, 500]]],
+                    dtype=np.float32,
+                ),
+                class_id=np.array([0]),
+                visible=np.array([[True, True, True]]),
+                data={
+                    "covariance": np.array(
+                        [[[[800, 0], [0, 400]],
+                          [[400, 0], [0, 800]],
+                          [[600, 0], [0, 600]]]],
+                        dtype=np.float32,
+                    )
+                },
+            )
+            annotator = sv.VertexUncertaintyAnnotator(
+                sigma_levels=[1.0, 2.0],
+            )
+            result = annotator.annotate(image.copy(), key_points)
+            ```
         """
         assert isinstance(scene, np.ndarray)
         if len(key_points) == 0:
@@ -417,6 +516,68 @@ class VertexLabelAnnotator:
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
+
+        Example:
+            Single-skeleton example:
+
+            ```python
+            import numpy as np
+            import supervision as sv
+
+            image = np.zeros((800, 800, 3), dtype=np.uint8)
+            key_points = sv.KeyPoints(
+                xy=np.array(
+                    [[[400, 200], [300, 500], [500, 500]]],
+                    dtype=np.float32,
+                ),
+                class_id=np.array([0]),
+                visible=np.array([[True, True, True]]),
+            )
+            annotator = sv.VertexLabelAnnotator(
+                color=sv.Color.ROBOFLOW,
+                text_color=sv.Color.WHITE,
+                border_radius=5,
+            )
+            result = annotator.annotate(
+                scene=image.copy(),
+                key_points=key_points,
+                labels=["head", "L-foot", "R-foot"],
+            )
+            ```
+
+            Multi-skeleton example with per-class labels:
+
+            ```python
+            import numpy as np
+            import supervision as sv
+
+            image = np.zeros((800, 800, 3), dtype=np.uint8)
+            key_points = sv.KeyPoints(
+                xy=np.array(
+                    [[[400, 200], [300, 500], [500, 500]],
+                     [[700, 300], [650, 500], [0, 0]]],
+                    dtype=np.float32,
+                ),
+                class_id=np.array([0, 1]),
+                visible=np.array(
+                    [[True, True, True],
+                     [True, True, False]],
+                ),
+            )
+            annotator = sv.VertexLabelAnnotator(
+                color=sv.Color.ROBOFLOW,
+                text_color=sv.Color.WHITE,
+                border_radius=5,
+            )
+            result = annotator.annotate(
+                scene=image.copy(),
+                key_points=key_points,
+                labels={
+                    0: ["head", "L-foot", "R-foot"],
+                    1: ["top", "bottom", "pad"],
+                },
+            )
+            ```
         """
         assert isinstance(scene, np.ndarray)
         font = cv2.FONT_HERSHEY_SIMPLEX
