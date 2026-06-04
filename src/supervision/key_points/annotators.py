@@ -152,10 +152,11 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
             elif self.edges:
                 edges = self.edges
             else:
-                edges = SKELETONS_BY_VERTEX_COUNT.get(len(xy))
-                if not edges:
+                _looked_up = SKELETONS_BY_VERTEX_COUNT.get(len(xy))
+                if not _looked_up:
                     logger.warning("No skeleton found with %d vertices", len(xy))
                     continue
+                edges = _looked_up
 
             for class_a, class_b in edges:
                 idx_a = class_a - 1
