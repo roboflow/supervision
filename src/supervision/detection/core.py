@@ -2205,7 +2205,14 @@ class Detections:
                 # Mixed or all-ndarray: __array__ auto-converts any CompactMask.
                 return np.vstack([np.asarray(m) for m in masks])
             if name == "keypoints":
-                return np.vstack([d.__getattribute__(name) for d in detections_list])
+                kp_arrays = [d.__getattribute__(name) for d in detections_list]
+                shapes = [a.shape[1:] for a in kp_arrays]
+                if len(set(shapes)) > 1:
+                    raise ValueError(
+                        f"All 'keypoints' arrays must share the same (K, channels); "
+                        f"got shapes: {[a.shape for a in kp_arrays]}"
+                    )
+                return np.vstack(kp_arrays)
             return np.hstack([d.__getattribute__(name) for d in detections_list])
 
         mask = stack_or_none("mask")

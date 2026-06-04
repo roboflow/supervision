@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
 from deprecate import deprecated, void
@@ -88,24 +88,15 @@ def validate_detection_keypoints(keypoints: Any, n: int) -> None:
     """
     if keypoints is None:
         return
-
-    expected_shape = f"({n}, K, 2) or ({n}, K, 3)"
-    actual_shape = str(getattr(keypoints, "shape", None))
-    is_valid = (
-        isinstance(keypoints, np.ndarray)
-        and keypoints.ndim == 3
-        and keypoints.shape[0] == n
-        and keypoints.shape[2] in (2, 3)
-    )
-    if not is_valid:
+    if not isinstance(keypoints, np.ndarray):
         raise ValueError(
-            "keypoints must be a 3D np.ndarray with shape "
-            + f"{expected_shape}, but got shape {actual_shape}"
+            f"keypoints must be a np.ndarray, but got {type(keypoints).__name__}"
         )
     if not np.issubdtype(keypoints.dtype, np.number):
         raise ValueError(
             f"keypoints must have a numeric dtype, but got dtype {keypoints.dtype}"
         )
+    validate_xy(keypoints, n)
 
 
 def validate_class_id(class_id: Any, n: int) -> None:
@@ -185,13 +176,23 @@ def validate_data(data: dict[str, Any], n: int) -> None:
             raise ValueError(f"Value for key '{key}' must be a list or np.ndarray")
 
 
-def validate_xy(xy: Any, n: int, m: int) -> None:
-    expected_shape = f"({n, m},)"
+def validate_xy(xy: Any, n: int, m: Optional[int] = None) -> None:
     actual_shape = str(getattr(xy, "shape", None))
 
-    is_valid = isinstance(xy, np.ndarray) and (
-        xy.shape == (n, m, 2) or xy.shape == (n, m, 3)
-    )
+    if m is None:
+        is_valid = (
+            isinstance(xy, np.ndarray)
+            and xy.ndim == 3
+            and xy.shape[0] == n
+            and xy.shape[2] in (2, 3)
+        )
+        expected_shape = f"({n}, K, 2) or ({n}, K, 3)"
+    else:
+        is_valid = isinstance(xy, np.ndarray) and (
+            xy.shape == (n, m, 2) or xy.shape == (n, m, 3)
+        )
+        expected_shape = f"({n, m},)"
+
     if not is_valid:
         raise ValueError(
             f"xy must be a 2D np.ndarray with shape {expected_shape}, but got shape "
