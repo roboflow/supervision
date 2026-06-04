@@ -212,13 +212,17 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         for detection_index, xy in enumerate(key_points.xy):
             if isinstance(self.edges, dict):
                 class_id = (
-                    key_points.class_id[detection_index]
+                    int(key_points.class_id[detection_index])
                     if key_points.class_id is not None
                     else None
                 )
-                if class_id is None or class_id not in self.edges:
-                    logger.warning("No edges defined for class_id=%s", class_id)
-                    continue
+                if class_id is None:
+                    raise ValueError(
+                        "edges is a dict but class_id is None; "
+                        "KeyPoints must have class_id set."
+                    )
+                if class_id not in self.edges:
+                    raise ValueError(f"No edges defined for class_id={class_id}.")
                 edges = self.edges[class_id]
             elif self.edges:
                 edges = self.edges
@@ -595,7 +599,7 @@ class VertexLabelAnnotator:
             xy = key_points.xy[i]
 
             class_id = (
-                key_points.class_id[i] if key_points.class_id is not None else None
+                int(key_points.class_id[i]) if key_points.class_id is not None else None
             )
             instance_labels = self._resolve_labels(labels, points_count, class_id)
             instance_colors = self._resolve_color_list(self.color, points_count)
