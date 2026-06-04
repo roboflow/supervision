@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any, cast
+from typing import cast
 
 import cv2
 import numpy as np
@@ -432,12 +432,8 @@ class VertexLabelAnnotator:
         for i in range(skeletons_count):
             xy = key_points.xy[i]
 
-            instance_labels = self._resolve_labels(
-                labels, key_points, i, points_count
-            )
-            instance_colors = self._resolve_color_list(
-                self.color, points_count
-            )
+            instance_labels = self._resolve_labels(labels, key_points, i, points_count)
+            instance_colors = self._resolve_color_list(self.color, points_count)
             instance_text_colors = self._resolve_color_list(
                 self.text_color, points_count
             )

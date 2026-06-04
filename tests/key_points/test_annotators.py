@@ -180,6 +180,7 @@ class TestEdgeAnnotator:
 
         assert np.array_equal(result, scene)
 
+
 class TestVertexUncertaintyAnnotator:
     """
     Verify that VertexUncertaintyAnnotator draws filled semi-transparent
