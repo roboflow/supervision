@@ -53,7 +53,11 @@ patterns and follow these principles:
     containers.** Use `sv.Detections` for detection, segmentation, and other
     instance-level predictions that include boxes, masks, class ids, confidence
     scores, or extra per-instance fields. Use `sv.KeyPoints` for standalone
-    keypoint or pose predictions.
+    keypoint or pose predictions when keypoints exist independently of detection
+    boxes (e.g. pure pose estimation, landmark detection on pre-cropped images).
+    Use `Detections.keypoints` when keypoints are always co-incident with boxes
+    from the same model — the field stores an `(n, K, 2)` or `(n, K, 3)` array
+    where the optional third channel is per-point confidence in `[0, 1]`.
 2. **Do not add a `from_<model>` method when the model already returns a
     Supervision object.** `from_*` methods are for converting raw outputs from
     external packages such as Ultralytics, Transformers, Inference, or MediaPipe.
@@ -63,8 +67,8 @@ patterns and follow these principles:
 3. **Annotators render data; filtering and visibility are container state.**
     Filtering by confidence, class id, tracker id, geometry, or custom data should
     happen before annotation through the container slicing APIs, for example
-    `detections[detections.confidence > 0.7]` or an equivalent `sv.KeyPoints`
-    filter. Per-point presentation state, such as a `KeyPoints.visible` mask, may
+    `detections[detections.confidence > 0.7]` or `key_points[key_points.confidence > 0.5]`.
+    Per-point presentation state, such as a `KeyPoints.visible` mask, may
     live on the container and be honored consistently by annotators.
 4. **Annotator constructor arguments should describe visual presentation, not
     model-quality gates.** Use constructor arguments for color, thickness,
