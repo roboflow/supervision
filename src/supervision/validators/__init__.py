@@ -64,6 +64,28 @@ def validate_mask(mask: Any, n: int) -> None:
 
 
 def validate_detection_keypoints(keypoints: Any, n: int) -> None:
+    """Validate that keypoints is a numeric 3D array with shape (n, K, 2) or (n, K, 3).
+
+    The optional third channel encodes per-point confidence scores in ``[0, 1]``.
+    Pass ``None`` when keypoints are absent; any other value must be a numeric
+    ``np.ndarray``.
+
+    Args:
+        keypoints: The keypoints array to validate, or ``None``.
+        n: Expected number of detections (first dimension of the array).
+
+    Raises:
+        ValueError: If ``keypoints`` is not ``None`` and does not satisfy the shape
+            or dtype constraints described above.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> validate_detection_keypoints(None, 3)
+        >>> validate_detection_keypoints(np.zeros((3, 17, 2), dtype=np.float32), 3)
+
+        ```
+    """
     if keypoints is None:
         return
 
@@ -79,6 +101,10 @@ def validate_detection_keypoints(keypoints: Any, n: int) -> None:
         raise ValueError(
             "keypoints must be a 3D np.ndarray with shape "
             + f"{expected_shape}, but got shape {actual_shape}"
+        )
+    if not np.issubdtype(keypoints.dtype, np.number):
+        raise ValueError(
+            f"keypoints must have a numeric dtype, but got dtype {keypoints.dtype}"
         )
 
 

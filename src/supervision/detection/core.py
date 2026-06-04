@@ -137,7 +137,11 @@ class Detections:
             :class:`~supervision.detection.compact_mask.CompactMask`.
         keypoints: An array of shape `(n, K, 2)` or `(n, K, 3)` containing
             keypoint coordinates for each detection, or `None` when keypoints
-            are not available.
+            are not available. `K` is the number of keypoints per detection (e.g.
+            17 for COCO pose). The optional third channel is a per-point confidence
+            score in `[0, 1]` (float32). Use `sv.KeyPoints` for standalone pose
+            predictions without associated detection boxes; use this field when
+            keypoints are always co-incident with boxes from the same model.
         confidence: An array of shape `(n,)` containing the confidence scores
             of the detections, or `None` when confidence values are not available.
         class_id: An array of shape `(n,)` containing the class ids of the
@@ -193,6 +197,11 @@ class Detections:
         """
         Iterates over the Detections object and yield a tuple of
         `(xyxy, mask, confidence, class_id, tracker_id, data)` for each detection.
+
+        Note:
+            The `keypoints` field is intentionally excluded from iteration to preserve
+            the stable 6-tuple shape that downstream code depends on. Access keypoints
+            directly via `detections.keypoints`.
         """
         for i in range(len(self.xyxy)):
             yield (
