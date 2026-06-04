@@ -120,9 +120,7 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         color: Color = Color.ROBOFLOW,
         thickness: int = 2,
         edges: (
-            Sequence[tuple[int, int]]
-            | dict[int, Sequence[tuple[int, int]]]
-            | None
+            Sequence[tuple[int, int]] | dict[int, Sequence[tuple[int, int]]] | None
         ) = None,
     ) -> None:
         """
@@ -222,9 +220,7 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
                     else None
                 )
                 if class_id is None or class_id not in self.edges:
-                    logger.warning(
-                        "No edges defined for class_id=%s", class_id
-                    )
+                    logger.warning("No edges defined for class_id=%s", class_id)
                     continue
                 edges = self.edges[class_id]
             elif self.edges:
@@ -232,9 +228,7 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
             else:
                 edges = SKELETONS_BY_VERTEX_COUNT.get(len(xy))
                 if not edges:
-                    logger.warning(
-                        "No skeleton found with %d vertices", len(xy)
-                    )
+                    logger.warning("No skeleton found with %d vertices", len(xy))
                     continue
 
             for class_a, class_b in edges:
