@@ -327,34 +327,38 @@ class TestVertexLabelAnnotator:
         assert result == expected
 
     @pytest.mark.parametrize(
-        ("labels", "points_count", "class_id"),
+        ("labels", "points_count", "class_id", "match"),
         [
             pytest.param(
                 ["a", "b"],
                 3,
                 0,
+                "Number of labels",
                 id="list-wrong-length",
             ),
             pytest.param(
                 {0: ["a", "b"]},
                 3,
                 0,
+                "Number of labels",
                 id="dict-wrong-length",
             ),
             pytest.param(
                 {9: ["x", "y", "z"]},
                 3,
                 0,
+                "No labels defined",
                 id="dict-missing-class",
             ),
             pytest.param(
                 {0: ["x", "y", "z"]},
                 3,
                 None,
+                "class_id is None",
                 id="dict-no-class-id",
             ),
         ],
     )
-    def test_resolve_labels_raises(self, labels, points_count, class_id):
-        with pytest.raises(ValueError):
+    def test_resolve_labels_raises(self, labels, points_count, class_id, match):
+        with pytest.raises(ValueError, match=match):
             sv.VertexLabelAnnotator._resolve_labels(labels, points_count, class_id)
