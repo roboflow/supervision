@@ -46,6 +46,18 @@ All work must follow the conventions of the `supervision` library
 - Follow existing naming patterns.
 - Maintain backward compatibility unless explicitly allowed.
 - Prefer functional utilities over complex classes unless justified.
+- Treat [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md#api-design-principles)
+    as the canonical API design reference.
+- Keep model integrations aligned with existing containers: models that already
+    return `sv.Detections` should continue to do so, with extra payloads stored
+    in `data` or `metadata` under documented keys.
+- Reserve `from_*` methods for converting raw outputs from external packages
+    into Supervision containers; do not add one-off adapters for outputs that are
+    already `sv.Detections` or `sv.KeyPoints`.
+- Annotators render already-selected data. Do filtering by confidence, class id,
+    tracker id, geometry, or custom fields before annotation with container
+    slicing APIs, not annotator constructor arguments. Container-level visibility
+    masks may be honored by annotators when documented consistently.
 
 ### Performance
 
