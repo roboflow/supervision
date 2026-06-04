@@ -200,11 +200,11 @@ def validate_xy(xy: Any, n: int, m: Optional[int] = None) -> None:
         is_valid = isinstance(xy, np.ndarray) and (
             xy.shape == (n, m, 2) or xy.shape == (n, m, 3)
         )
-        expected_shape = f"({n, m},)"
+        expected_shape = f"({n}, {m}, 2) or ({n}, {m}, 3)"
 
     if not is_valid:
         raise ValueError(
-            f"xy must be a 2D np.ndarray with shape {expected_shape}, but got shape "
+            f"xy must be a 3D np.ndarray with shape {expected_shape}, but got shape "
             f"{actual_shape}"
         )
 
