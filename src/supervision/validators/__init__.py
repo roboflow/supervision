@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
 
@@ -104,7 +104,8 @@ def validate_keypoint_confidence(keypoint_confidence: Any, n: int, m: int) -> No
             )
         if keypoint_confidence.shape[0] != n:
             raise ValueError(
-                f"keypoint_confidence first dimension must be {n}, but got shape {actual_shape}"
+                f"keypoint_confidence first dimension must be {n}, "
+                f"but got shape {actual_shape}"
             )
         if n > 0 and keypoint_confidence.shape[1] != m:
             raise ValueError(
@@ -178,7 +179,10 @@ def validate_detections_fields(
 
 
 def validate_visible(visible: Any, n: int, m: int) -> None:
-    """Validate per-keypoint visibility mask: 2D bool ``np.ndarray`` with shape ``(n, m)``."""
+    """Validate per-keypoint visibility mask.
+
+    Expects a 2D bool ``np.ndarray`` with shape ``(n, m)``.
+    """
     if visible is None:
         return
     actual_shape = str(getattr(visible, "shape", None))
@@ -203,7 +207,7 @@ def validate_key_points_fields(
     keypoint_confidence: Any,
     detection_confidence: Any = None,
     visible: Any = None,
-    data: dict[str, Any] | None = None,
+    data: Optional[dict[str, Any]] = None,
 ) -> None:
     n = len(xy)
     m = len(xy[0]) if len(xy) > 0 else 0
