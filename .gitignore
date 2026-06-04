@@ -169,3 +169,4 @@ _resolutions/
 _reviews/
 tasks/
 *.local.md
+scripts/test_multi_skeleton.py

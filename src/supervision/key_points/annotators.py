@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any, cast
+from typing import cast
 
 import cv2
 import numpy as np
@@ -65,24 +65,23 @@ class VertexAnnotator(BaseKeyPointAnnotator):
                 or `PIL.Image.Image`)
 
         Example:
-            ```pycon
-            >>> import numpy as np
-            >>> import supervision as sv
-            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
-            >>> key_points = sv.KeyPoints(
-            ...     xy=np.array([[[50, 50], [60, 60]]], dtype=np.float32)
-            ... )
-            >>> vertex_annotator = sv.VertexAnnotator(
-            ...     color=sv.Color.GREEN,
-            ...     radius=10
-            ... )
-            >>> annotated_frame = vertex_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     key_points=key_points
-            ... )
-            >>> annotated_frame.shape
-            (100, 100, 3)
+            ```python
+            import numpy as np
+            import supervision as sv
 
+            image = np.zeros((800, 800, 3), dtype=np.uint8)
+            key_points = sv.KeyPoints(
+                xy=np.array(
+                    [[[400, 200], [300, 500], [500, 500]]],
+                    dtype=np.float32,
+                ),
+                class_id=np.array([0]),
+                visible=np.array([[True, True, True]]),
+            )
+            annotator = sv.VertexAnnotator(
+                color=sv.Color.ROBOFLOW, radius=10
+            )
+            result = annotator.annotate(image.copy(), key_points)
             ```
         """
         assert isinstance(scene, np.ndarray)
@@ -119,14 +118,20 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         self,
         color: Color = Color.ROBOFLOW,
         thickness: int = 2,
-        edges: Sequence[tuple[int, int]] | None = None,
+        edges: (
+            Sequence[tuple[int, int]] | dict[int, Sequence[tuple[int, int]]] | None
+        ) = None,
     ) -> None:
         """
         Args:
             color: The color to use for the edges.
             thickness: The thickness of the edges.
-            edges: The edges to draw. If set to `None`, will attempt to select
-                automatically.
+            edges: The edges to draw. If set to ``None``, will attempt to
+                auto-detect the skeleton by vertex count. A
+                ``Sequence[tuple[int, int]]`` applies a single skeleton to
+                every instance. A ``dict[int, Sequence[tuple[int, int]]]``
+                maps ``class_id`` to skeleton edges, enabling correct
+                rendering for datasets with multiple skeleton types.
         """
         self.color = color
         self.thickness = thickness
@@ -150,24 +155,54 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
                 or `PIL.Image.Image`)
 
         Example:
-            ```pycon
-            >>> import numpy as np
-            >>> import supervision as sv
-            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
-            >>> key_points = sv.KeyPoints(
-            ...     xy=np.array([[[50, 50], [60, 60]]], dtype=np.float32)
-            ... )
-            >>> edge_annotator = sv.EdgeAnnotator(
-            ...     color=sv.Color.GREEN,
-            ...     thickness=5
-            ... )
-            >>> annotated_frame = edge_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     key_points=key_points
-            ... )
-            >>> annotated_frame.shape
-            (100, 100, 3)
+            Single-skeleton example:
 
+            ```python
+            import numpy as np
+            import supervision as sv
+
+            image = np.zeros((800, 800, 3), dtype=np.uint8)
+            key_points = sv.KeyPoints(
+                xy=np.array(
+                    [[[400, 200], [300, 500], [500, 500]]],
+                    dtype=np.float32,
+                ),
+                class_id=np.array([0]),
+                visible=np.array([[True, True, True]]),
+            )
+            annotator = sv.EdgeAnnotator(
+                color=sv.Color.ROBOFLOW,
+                thickness=3,
+                edges=[(1, 2), (1, 3)],
+            )
+            result = annotator.annotate(image.copy(), key_points)
+            ```
+
+            Multi-skeleton example with per-class edges:
+
+            ```python
+            import numpy as np
+            import supervision as sv
+
+            image = np.zeros((800, 800, 3), dtype=np.uint8)
+            key_points = sv.KeyPoints(
+                xy=np.array(
+                    [[[400, 200], [300, 500], [500, 500]],
+                     [[700, 300], [650, 500], [0, 0]]],
+                    dtype=np.float32,
+                ),
+                class_id=np.array([0, 1]),
+                visible=np.array(
+                    [[True, True, True],
+                     [True, True, False]],
+                ),
+            )
+            annotator = sv.EdgeAnnotator(
+                color=sv.Color.ROBOFLOW,
+                thickness=3,
+                edges={0: [(1, 2), (1, 3)], 1: [(1, 2)]},
+            )
+            result = annotator.annotate(image.copy(), key_points)
             ```
         """
         assert isinstance(scene, np.ndarray)
@@ -175,12 +210,28 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
             return scene
 
         for detection_index, xy in enumerate(key_points.xy):
-            edges = self.edges
-            if not edges:
-                edges = SKELETONS_BY_VERTEX_COUNT.get(len(xy))
-            if not edges:
-                logger.warning("No skeleton found with %d vertices", len(xy))
-                return scene
+            if isinstance(self.edges, dict):
+                class_id = (
+                    int(key_points.class_id[detection_index])
+                    if key_points.class_id is not None
+                    else None
+                )
+                if class_id is None:
+                    raise ValueError(
+                        "edges is a dict but class_id is None; "
+                        "KeyPoints must have class_id set."
+                    )
+                if class_id not in self.edges:
+                    raise ValueError(f"No edges defined for class_id={class_id}.")
+                edges = self.edges[class_id]
+            elif self.edges:
+                edges = self.edges
+            else:
+                _looked_up = SKELETONS_BY_VERTEX_COUNT.get(len(xy))
+                if not _looked_up:
+                    logger.warning("No skeleton found with %d vertices", len(xy))
+                    continue
+                edges = _looked_up
 
             for class_a, class_b in edges:
                 idx_a = class_a - 1
@@ -299,23 +350,31 @@ class VertexUncertaintyAnnotator(BaseKeyPointAnnotator):
             The annotated image, matching the type of ``scene``.
 
         Example:
-            ```pycon
-            >>> import numpy as np
-            >>> import supervision as sv
-            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
-            >>> key_points = sv.KeyPoints(
-            ...     xy=np.array([[[50, 50]]], dtype=np.float32),
-            ...     data={
-            ...         "covariance": np.array(
-            ...             [[[[100, 0], [0, 64]]]], dtype=np.float32
-            ...         )
-            ...     }
-            ... )
-            >>> annotator = sv.VertexUncertaintyAnnotator()
-            >>> annotated = annotator.annotate(image.copy(), key_points)
-            >>> annotated.shape
-            (100, 100, 3)
+            ```python
+            import numpy as np
+            import supervision as sv
 
+            image = np.zeros((800, 800, 3), dtype=np.uint8)
+            key_points = sv.KeyPoints(
+                xy=np.array(
+                    [[[400, 200], [300, 500], [500, 500]]],
+                    dtype=np.float32,
+                ),
+                class_id=np.array([0]),
+                visible=np.array([[True, True, True]]),
+                data={
+                    "covariance": np.array(
+                        [[[[800, 0], [0, 400]],
+                          [[400, 0], [0, 800]],
+                          [[600, 0], [0, 600]]]],
+                        dtype=np.float32,
+                    )
+                },
+            )
+            annotator = sv.VertexUncertaintyAnnotator(
+                sigma_levels=[1.0, 2.0],
+            )
+            result = annotator.annotate(image.copy(), key_points)
             ```
         """
         assert isinstance(scene, np.ndarray)
@@ -441,96 +500,88 @@ class VertexLabelAnnotator:
         self,
         scene: ImageType,
         key_points: KeyPoints,
-        labels: list[str] | None = None,
+        labels: list[str] | dict[int, list[str]] | None = None,
     ) -> ImageType:
         """
-        A class that draws labels of skeleton vertices on images. It uses specified key
-            points to determine the locations where the vertices should be drawn.
+        Draws labels at skeleton vertex positions on the image. Vertices
+        marked not visible via ``key_points.visible`` are skipped.
 
         Args:
             scene: The image where vertex labels will be drawn. `ImageType` is a
                 flexible type, accepting either `numpy.ndarray` or `PIL.Image.Image`.
             key_points: A collection of key points where each key point consists of x
                 and y coordinates.
-            labels: A list of labels to be displayed on the annotated image. If not
-                provided, keypoint indices will be used.
+            labels: Labels to display at each keypoint. If ``None``, keypoint
+                indices are used. A ``list[str]`` applies the same labels to
+                every instance. A ``dict[int, list[str]]`` maps ``class_id``
+                to per-class label lists, enabling correct labeling for
+                datasets with multiple skeleton types.
 
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
 
         Example:
-            ```pycon
-            >>> import numpy as np
-            >>> import supervision as sv
-            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
-            >>> key_points = sv.KeyPoints(
-            ...     xy=np.array([[[50, 50], [60, 60]]], dtype=np.float32)
-            ... )
-            >>> vertex_label_annotator = sv.VertexLabelAnnotator(
-            ...     color=sv.Color.GREEN,
-            ...     text_color=sv.Color.BLACK,
-            ...     border_radius=5
-            ... )
-            >>> annotated_frame = vertex_label_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     key_points=key_points
-            ... )
-            >>> annotated_frame.shape
-            (100, 100, 3)
+            Single-skeleton example:
 
+            ```python
+            import numpy as np
+            import supervision as sv
+
+            image = np.zeros((800, 800, 3), dtype=np.uint8)
+            key_points = sv.KeyPoints(
+                xy=np.array(
+                    [[[400, 200], [300, 500], [500, 500]]],
+                    dtype=np.float32,
+                ),
+                class_id=np.array([0]),
+                visible=np.array([[True, True, True]]),
+            )
+            annotator = sv.VertexLabelAnnotator(
+                color=sv.Color.ROBOFLOW,
+                text_color=sv.Color.WHITE,
+                border_radius=5,
+            )
+            result = annotator.annotate(
+                scene=image.copy(),
+                key_points=key_points,
+                labels=["head", "L-foot", "R-foot"],
+            )
             ```
 
-        ![vertex-label-annotator-example](https://media.roboflow.com/supervision-annotator-examples/vertex-label-annotator-example.png)
+            Multi-skeleton example with per-class labels:
 
-        !!! tip
+            ```python
+            import numpy as np
+            import supervision as sv
 
-            `VertexLabelAnnotator` allows to customize the color of each keypoint label
-            values.
-
-        Example:
-            ```pycon
-            >>> import numpy as np
-            >>> import supervision as sv
-            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
-            >>> key_points = sv.KeyPoints(
-            ...     xy=np.array([[[50, 50], [60, 60], [70, 70], [80, 80],
-            ...                   [90, 90], [40, 40], [30, 30], [20, 20],
-            ...                   [10, 10], [5, 5], [15, 15], [25, 25],
-            ...                   [35, 35], [45, 45], [55, 55], [65, 65],
-            ...                   [75, 75]]], dtype=np.float32)
-            ... )
-            >>> LABELS = [
-            ...     "nose", "left eye", "right eye", "left ear",
-            ...     "right ear", "left shoulder", "right shoulder", "left elbow",
-            ...     "right elbow", "left wrist", "right wrist", "left hip",
-            ...     "right hip", "left knee", "right knee", "left ankle",
-            ...     "right ankle"
-            ... ]
-            >>> COLORS = [
-            ...     "#FF6347", "#FF6347", "#FF6347", "#FF6347",
-            ...     "#FF6347", "#FF1493", "#00FF00", "#FF1493",
-            ...     "#00FF00", "#FF1493", "#00FF00", "#FFD700",
-            ...     "#00BFFF", "#FFD700", "#00BFFF", "#FFD700",
-            ...     "#00BFFF"
-            ... ]
-            >>> COLORS = [sv.Color.from_hex(color_hex=c) for c in COLORS]
-            >>> vertex_label_annotator = sv.VertexLabelAnnotator(
-            ...     color=COLORS,
-            ...     text_color=sv.Color.BLACK,
-            ...     border_radius=5
-            ... )
-            >>> annotated_frame = vertex_label_annotator.annotate(
-            ...     scene=image.copy(),
-            ...     key_points=key_points,
-            ...     labels=LABELS
-            ... )
-            >>> annotated_frame.shape
-            (100, 100, 3)
-
+            image = np.zeros((800, 800, 3), dtype=np.uint8)
+            key_points = sv.KeyPoints(
+                xy=np.array(
+                    [[[400, 200], [300, 500], [500, 500]],
+                     [[700, 300], [650, 500], [0, 0]]],
+                    dtype=np.float32,
+                ),
+                class_id=np.array([0, 1]),
+                visible=np.array(
+                    [[True, True, True],
+                     [True, True, False]],
+                ),
+            )
+            annotator = sv.VertexLabelAnnotator(
+                color=sv.Color.ROBOFLOW,
+                text_color=sv.Color.WHITE,
+                border_radius=5,
+            )
+            result = annotator.annotate(
+                scene=image.copy(),
+                key_points=key_points,
+                labels={
+                    0: ["head", "L-foot", "R-foot"],
+                    1: ["top", "bottom", "pad"],
+                },
+            )
             ```
-
-        ![vertex-label-annotator-custom-example](https://media.roboflow.com/supervision-annotator-examples/vertex-label-annotator-custom-example.png)
         """
         assert isinstance(scene, np.ndarray)
         font = cv2.FONT_HERSHEY_SIMPLEX
@@ -539,35 +590,38 @@ class VertexLabelAnnotator:
         if skeletons_count == 0:
             return scene
 
-        anchors = cast(
-            npt.NDArray[np.int_],
-            key_points.xy.reshape(points_count * skeletons_count, 2).astype(int),
-        )
-        mask = np.all(anchors != 0, axis=1)
+        all_anchors: list[tuple[int, int]] = []
+        all_labels: list[str] = []
+        all_colors: list[Color] = []
+        all_text_colors: list[Color] = []
 
-        if not np.any(mask):
+        for i in range(skeletons_count):
+            xy = key_points.xy[i]
+
+            class_id = (
+                int(key_points.class_id[i]) if key_points.class_id is not None else None
+            )
+            instance_labels = self._resolve_labels(labels, points_count, class_id)
+            instance_colors = self._resolve_color_list(self.color, points_count)
+            instance_text_colors = self._resolve_color_list(
+                self.text_color, points_count
+            )
+
+            for j in range(points_count):
+                if key_points.visible is not None:
+                    if not key_points.visible[i, j]:
+                        continue
+                elif np.allclose(xy[j], 0):
+                    continue
+
+                anchor = (int(xy[j][0]), int(xy[j][1]))
+                all_anchors.append(anchor)
+                all_labels.append(instance_labels[j])
+                all_colors.append(instance_colors[j])
+                all_text_colors.append(instance_text_colors[j])
+
+        if not all_anchors:
             return scene
-
-        colors = self.preprocess_and_validate_colors(
-            colors=self.color,
-            points_count=points_count,
-            skeletons_count=skeletons_count,
-        )
-
-        text_colors = self.preprocess_and_validate_colors(
-            colors=self.text_color,
-            points_count=points_count,
-            skeletons_count=skeletons_count,
-        )
-
-        processed_labels = self.preprocess_and_validate_labels(
-            labels=labels, points_count=points_count, skeletons_count=skeletons_count
-        )
-
-        anchors = anchors[mask]
-        colors = colors[mask]
-        text_colors = text_colors[mask]
-        filtered_labels = processed_labels[mask]
 
         xyxy = np.array(
             [
@@ -576,9 +630,9 @@ class VertexLabelAnnotator:
                     font=font,
                     text_scale=self.text_scale,
                     text_thickness=self.text_thickness,
-                    center_coordinates=tuple(anchor),
+                    center_coordinates=anchor,
                 )
-                for anchor, label in zip(anchors, filtered_labels)
+                for anchor, label in zip(all_anchors, all_labels)
             ]
         )
         xyxy_padded = pad_boxes(xyxy=xyxy, px=self.text_padding)
@@ -588,7 +642,7 @@ class VertexLabelAnnotator:
             xyxy = pad_boxes(xyxy=xyxy_padded, px=-self.text_padding)
 
         for text, color, text_color, box, box_padded in zip(
-            filtered_labels, colors, text_colors, xyxy, xyxy_padded
+            all_labels, all_colors, all_text_colors, xyxy, xyxy_padded
         ):
             draw_rounded_rectangle(
                 scene=scene,
@@ -632,32 +686,46 @@ class VertexLabelAnnotator:
         )
 
     @staticmethod
-    def preprocess_and_validate_labels(
-        labels: list[str] | None, points_count: int, skeletons_count: int
-    ) -> npt.NDArray[np.str_]:
-        if labels and len(labels) != points_count:
-            raise ValueError(
-                f"Number of labels ({len(labels)}) must match number of key points "
-                f"({points_count})."
-            )
+    def _resolve_labels(
+        labels: list[str] | dict[int, list[str]] | None,
+        points_count: int,
+        class_id: int | None = None,
+    ) -> list[str]:
+        """Return the label list for a single instance."""
         if labels is None:
-            labels = [str(i) for i in range(points_count)]
+            return [str(j) for j in range(points_count)]
 
-        return np.array(labels * skeletons_count)
+        resolved: list[str]
+        if isinstance(labels, dict):
+            if class_id is None:
+                raise ValueError(
+                    "labels is a dict but class_id is None; "
+                    "KeyPoints must have class_id set."
+                )
+            if class_id not in labels:
+                raise ValueError(f"No labels defined for class_id={class_id}.")
+            resolved = labels[class_id]
+        else:
+            resolved = labels
+
+        if len(resolved) != points_count:
+            raise ValueError(
+                f"Number of labels ({len(resolved)}) must match "
+                f"number of key points ({points_count})."
+            )
+        return resolved
 
     @staticmethod
-    def preprocess_and_validate_colors(
-        colors: Color | list[Color] | None,
+    def _resolve_color_list(
+        colors: Color | list[Color],
         points_count: int,
-        skeletons_count: int,
-    ) -> npt.NDArray[Any]:
-        if isinstance(colors, list) and len(colors) != points_count:
-            raise ValueError(
-                f"Number of colors ({len(colors)}) must match number of key points "
-                f"({points_count})."
-            )
-        return (
-            np.array(colors * skeletons_count)
-            if isinstance(colors, list)
-            else np.array([colors] * points_count * skeletons_count)
-        )
+    ) -> list[Color]:
+        """Return a per-keypoint color list for a single instance."""
+        if isinstance(colors, list):
+            if len(colors) != points_count:
+                raise ValueError(
+                    f"Number of colors ({len(colors)}) must match "
+                    f"number of key points ({points_count})."
+                )
+            return colors
+        return [colors] * points_count

@@ -170,7 +170,6 @@ class TestEdgeAnnotator:
         Expected: No edges are drawn, and the original scene is returned, avoiding
         incorrect or nonsensical connections.
         """
-        # Key points with more vertices than any skeleton
         large_key_points = sv.KeyPoints(
             xy=np.array([[[i * 10, i * 10] for i in range(100)]], dtype=np.float32),
             keypoint_confidence=np.array([[0.8] * 100], dtype=np.float32),
@@ -179,7 +178,6 @@ class TestEdgeAnnotator:
         annotator = sv.EdgeAnnotator()
         result = annotator.annotate(scene=scene.copy(), key_points=large_key_points)
 
-        # Should return the original scene unchanged (no edges found)
         assert np.array_equal(result, scene)
 
 
@@ -293,3 +291,109 @@ class TestVertexUncertaintyAnnotator:
         """Invalid constructor parameters raise ValueError."""
         with pytest.raises(ValueError, match=match):
             sv.VertexUncertaintyAnnotator(**kwargs)
+
+
+class TestVertexLabelAnnotator:
+    @pytest.mark.parametrize(
+        ("labels", "points_count", "class_id", "expected"),
+        [
+            pytest.param(
+                None,
+                3,
+                0,
+                ["0", "1", "2"],
+                id="none-returns-indices",
+            ),
+            pytest.param(
+                ["a", "b", "c"],
+                3,
+                0,
+                ["a", "b", "c"],
+                id="list-returns-as-is",
+            ),
+            pytest.param(
+                {0: ["x", "y", "z"]},
+                3,
+                0,
+                ["x", "y", "z"],
+                id="dict-matching-class",
+            ),
+        ],
+    )
+    def test_resolve_labels_returns_expected(
+        self, labels, points_count, class_id, expected
+    ):
+        result = sv.VertexLabelAnnotator._resolve_labels(labels, points_count, class_id)
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        ("labels", "points_count", "class_id", "match"),
+        [
+            pytest.param(
+                ["a", "b"],
+                3,
+                0,
+                "Number of labels",
+                id="list-wrong-length",
+            ),
+            pytest.param(
+                {0: ["a", "b"]},
+                3,
+                0,
+                "Number of labels",
+                id="dict-wrong-length",
+            ),
+            pytest.param(
+                {9: ["x", "y", "z"]},
+                3,
+                0,
+                "No labels defined",
+                id="dict-missing-class",
+            ),
+            pytest.param(
+                {0: ["x", "y", "z"]},
+                3,
+                None,
+                "class_id is None",
+                id="dict-no-class-id",
+            ),
+        ],
+    )
+    def test_resolve_labels_raises(self, labels, points_count, class_id, match):
+        with pytest.raises(ValueError, match=match):
+            sv.VertexLabelAnnotator._resolve_labels(labels, points_count, class_id)
+
+    @pytest.mark.parametrize(
+        ("colors", "points_count", "expected"),
+        [
+            pytest.param(
+                sv.Color.RED,
+                3,
+                [sv.Color.RED, sv.Color.RED, sv.Color.RED],
+                id="single-color-expands",
+            ),
+            pytest.param(
+                [sv.Color.RED, sv.Color.GREEN, sv.Color.BLUE],
+                3,
+                [sv.Color.RED, sv.Color.GREEN, sv.Color.BLUE],
+                id="list-returns-as-is",
+            ),
+        ],
+    )
+    def test_resolve_color_list_returns_expected(self, colors, points_count, expected):
+        result = sv.VertexLabelAnnotator._resolve_color_list(colors, points_count)
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        ("colors", "points_count"),
+        [
+            pytest.param(
+                [sv.Color.RED, sv.Color.GREEN],
+                3,
+                id="list-wrong-length",
+            ),
+        ],
+    )
+    def test_resolve_color_list_wrong_length_raises(self, colors, points_count):
+        with pytest.raises(ValueError, match="Number of colors"):
+            sv.VertexLabelAnnotator._resolve_color_list(colors, points_count)
