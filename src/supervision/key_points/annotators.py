@@ -718,5 +718,10 @@ class VertexLabelAnnotator:
     ) -> list[Color]:
         """Return a per-keypoint color list for a single instance."""
         if isinstance(colors, list):
+            if len(colors) != points_count:
+                raise ValueError(
+                    f"Number of colors ({len(colors)}) must match "
+                    f"number of key points ({points_count})."
+                )
             return colors
         return [colors] * points_count

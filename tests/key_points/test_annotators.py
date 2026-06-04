@@ -362,3 +362,38 @@ class TestVertexLabelAnnotator:
     def test_resolve_labels_raises(self, labels, points_count, class_id, match):
         with pytest.raises(ValueError, match=match):
             sv.VertexLabelAnnotator._resolve_labels(labels, points_count, class_id)
+
+    @pytest.mark.parametrize(
+        ("colors", "points_count", "expected"),
+        [
+            pytest.param(
+                sv.Color.RED,
+                3,
+                [sv.Color.RED, sv.Color.RED, sv.Color.RED],
+                id="single-color-expands",
+            ),
+            pytest.param(
+                [sv.Color.RED, sv.Color.GREEN, sv.Color.BLUE],
+                3,
+                [sv.Color.RED, sv.Color.GREEN, sv.Color.BLUE],
+                id="list-returns-as-is",
+            ),
+        ],
+    )
+    def test_resolve_color_list_returns_expected(self, colors, points_count, expected):
+        result = sv.VertexLabelAnnotator._resolve_color_list(colors, points_count)
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        ("colors", "points_count"),
+        [
+            pytest.param(
+                [sv.Color.RED, sv.Color.GREEN],
+                3,
+                id="list-wrong-length",
+            ),
+        ],
+    )
+    def test_resolve_color_list_wrong_length_raises(self, colors, points_count):
+        with pytest.raises(ValueError, match="Number of colors"):
+            sv.VertexLabelAnnotator._resolve_color_list(colors, points_count)
