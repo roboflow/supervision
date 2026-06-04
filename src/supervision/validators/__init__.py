@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 from deprecate import deprecated, void
@@ -60,51 +60,6 @@ def validate_mask(mask: Any, n: int) -> None:
             " `mask = mask.astype(bool)` before creating the `Detections` object. If"
             " you did not create the mask manually, please report the issue to the"
             " `supervision` team."
-        )
-
-
-def validate_detection_keypoints(keypoints: Any, n: int) -> None:
-    """Validate that keypoints is a numeric 3D array with shape (n, K, 2) or (n, K, 3).
-
-    The optional third channel encodes per-point confidence scores in ``[0, 1]``.
-    Pass ``None`` when keypoints are absent; any other value must be a numeric
-    ``np.ndarray``.
-
-    Args:
-        keypoints: The keypoints array to validate, or ``None``.
-        n: Expected number of detections (first dimension of the array).
-
-    Raises:
-        ValueError: If ``keypoints`` is not ``None`` and does not satisfy the shape
-            or dtype constraints described above.
-
-    Examples:
-        ```pycon
-        >>> import numpy as np
-        >>> validate_detection_keypoints(None, 3)
-        >>> validate_detection_keypoints(np.zeros((3, 17, 2), dtype=np.float32), 3)
-
-        ```
-    """
-    if keypoints is None:
-        return
-    expected_shape = f"({n}, K, 2) or ({n}, K, 3)"
-    if not isinstance(keypoints, np.ndarray):
-        raise ValueError(
-            "keypoints must be a 3D np.ndarray with shape "
-            + f"{expected_shape}, but got {type(keypoints).__name__}"
-        )
-    if not np.issubdtype(keypoints.dtype, np.number):
-        raise ValueError(
-            f"keypoints must have a numeric dtype, but got dtype {keypoints.dtype}"
-        )
-    try:
-        validate_xy(keypoints, n)
-    except ValueError:
-        actual_shape = str(keypoints.shape)
-        raise ValueError(
-            "keypoints must be a 3D np.ndarray with shape "
-            + f"{expected_shape}, but got shape {actual_shape}"
         )
 
 
@@ -185,26 +140,16 @@ def validate_data(data: dict[str, Any], n: int) -> None:
             raise ValueError(f"Value for key '{key}' must be a list or np.ndarray")
 
 
-def validate_xy(xy: Any, n: int, m: Optional[int] = None) -> None:
+def validate_xy(xy: Any, n: int, m: int) -> None:
+    expected_shape = f"({n, m},)"
     actual_shape = str(getattr(xy, "shape", None))
 
-    if m is None:
-        is_valid = (
-            isinstance(xy, np.ndarray)
-            and xy.ndim == 3
-            and xy.shape[0] == n
-            and xy.shape[2] in (2, 3)
-        )
-        expected_shape = f"({n}, K, 2) or ({n}, K, 3)"
-    else:
-        is_valid = isinstance(xy, np.ndarray) and (
-            xy.shape == (n, m, 2) or xy.shape == (n, m, 3)
-        )
-        expected_shape = f"({n}, {m}, 2) or ({n}, {m}, 3)"
-
+    is_valid = isinstance(xy, np.ndarray) and (
+        xy.shape == (n, m, 2) or xy.shape == (n, m, 3)
+    )
     if not is_valid:
         raise ValueError(
-            f"xy must be a 3D np.ndarray with shape {expected_shape}, but got shape "
+            f"xy must be a 2D np.ndarray with shape {expected_shape}, but got shape "
             f"{actual_shape}"
         )
 
@@ -216,12 +161,10 @@ def validate_detections_fields(
     confidence: Any,
     tracker_id: Any,
     data: dict[str, Any],
-    keypoints: Any = None,
 ) -> None:
     validate_xyxy(xyxy)
     n = len(xyxy)
     validate_mask(mask, n)
-    validate_detection_keypoints(keypoints, n)
     validate_class_id(class_id, n)
     validate_confidence(confidence, n)
     validate_tracker_id(tracker_id, n)

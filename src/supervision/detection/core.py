@@ -135,13 +135,6 @@ class Detections:
         mask: An array of shape `(n, H, W)` containing the segmentation masks
             (`bool` data type), or `None` when masks are not available, or as
             :class:`~supervision.detection.compact_mask.CompactMask`.
-        keypoints: An array of shape `(n, K, 2)` or `(n, K, 3)` containing
-            keypoint coordinates for each detection, or `None` when keypoints
-            are not available. `K` is the number of keypoints per detection (e.g.
-            17 for COCO pose). The optional third channel is a per-point confidence
-            score in `[0, 1]` (float32). Use `sv.KeyPoints` for standalone pose
-            predictions without associated detection boxes; use this field when
-            keypoints are always co-incident with boxes from the same model.
         confidence: An array of shape `(n,)` containing the confidence scores
             of the detections, or `None` when confidence values are not available.
         class_id: An array of shape `(n,)` containing the class ids of the
@@ -163,7 +156,6 @@ class Detections:
     tracker_id: npt.NDArray[np.generic] | None = None
     data: dict[str, npt.NDArray[np.generic] | list[Any]] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
-    keypoints: npt.NDArray[np.generic] | None = None
 
     def __post_init__(self) -> None:
         validate_detections_fields(
@@ -173,7 +165,6 @@ class Detections:
             class_id=self.class_id,
             tracker_id=self.tracker_id,
             data=self.data,
-            keypoints=self.keypoints,
         )
 
     def __len__(self) -> int:
@@ -197,11 +188,6 @@ class Detections:
         """
         Iterates over the Detections object and yield a tuple of
         `(xyxy, mask, confidence, class_id, tracker_id, data)` for each detection.
-
-        Note:
-            The `keypoints` field is intentionally excluded from iteration to preserve
-            the stable 6-tuple shape that downstream code depends on. Access keypoints
-            directly via `detections.keypoints`.
         """
         for i in range(len(self.xyxy)):
             yield (
@@ -220,7 +206,6 @@ class Detections:
             [
                 np.array_equal(self.xyxy, other.xyxy),
                 np.array_equal(self.mask, other.mask),
-                np.array_equal(self.keypoints, other.keypoints),
                 np.array_equal(self.class_id, other.class_id),
                 np.array_equal(self.confidence, other.confidence),
                 np.array_equal(self.tracker_id, other.tracker_id),
@@ -2124,8 +2109,8 @@ class Detections:
         Merge a list of Detections objects into a single Detections object.
 
         This method takes a list of Detections objects and combines their
-        respective fields (`xyxy`, `mask`, `keypoints`, `confidence`, `class_id`, and
-        `tracker_id`) into a single Detections object.
+        respective fields (`xyxy`, `mask`, `confidence`, `class_id`, and `tracker_id`)
+        into a single Detections object.
 
         For example, if merging Detections with 3 and 4 detected objects, this method
         will return a Detections with 7 objects (7 entries in `xyxy`, `mask`, etc).
@@ -2186,7 +2171,6 @@ class Detections:
                 class_id=detections.class_id,
                 tracker_id=detections.tracker_id,
                 data=detections.data,
-                keypoints=detections.keypoints,
             )
 
         xyxy = np.vstack([d.xyxy for d in detections_list])
@@ -2204,19 +2188,9 @@ class Detections:
                     return CompactMask.merge(masks)
                 # Mixed or all-ndarray: __array__ auto-converts any CompactMask.
                 return np.vstack([np.asarray(m) for m in masks])
-            if name == "keypoints":
-                kp_arrays = [d.__getattribute__(name) for d in detections_list]
-                shapes = [a.shape[1:] for a in kp_arrays]
-                if len(set(shapes)) > 1:
-                    raise ValueError(
-                        f"All 'keypoints' arrays must share the same (K, channels); "
-                        f"got shapes: {[a.shape for a in kp_arrays]}"
-                    )
-                return np.vstack(kp_arrays)
             return np.hstack([d.__getattribute__(name) for d in detections_list])
 
         mask = stack_or_none("mask")
-        keypoints = stack_or_none("keypoints")
         confidence = stack_or_none("confidence")
         class_id = stack_or_none("class_id")
         tracker_id = stack_or_none("tracker_id")
@@ -2234,7 +2208,6 @@ class Detections:
             tracker_id=tracker_id,
             data=data,
             metadata=metadata,
-            keypoints=keypoints,
         )
 
     def get_anchors_coordinates(self, anchor: Position) -> npt.NDArray[np.generic]:
@@ -2349,7 +2322,6 @@ class Detections:
             tracker_id=self.tracker_id[index] if self.tracker_id is not None else None,
             data=get_data_item(self.data, index),
             metadata=self.metadata,
-            keypoints=self.keypoints[index] if self.keypoints is not None else None,
         )
 
     def __setitem__(self, key: str, value: npt.NDArray[np.generic] | list[Any]) -> None:
@@ -2610,8 +2582,7 @@ def merge_inner_detection_object_pair(
     The resulting `confidence` of the merged object is calculated by the weighted
     contribution of each detection to the merged object.
     The bounding boxes and masks of the two input detections are merged into a
-    single bounding box and mask, respectively. If keypoints are present, keypoints
-    from the winning detection are preserved.
+    single bounding box and mask, respectively.
 
     Args:
         detections_1: The first Detections object.
@@ -2686,7 +2657,6 @@ def merge_inner_detection_object_pair(
         tracker_id=winning_detection.tracker_id,
         data=winning_detection.data,
         metadata=metadata,
-        keypoints=winning_detection.keypoints,
     )
 
 
