@@ -910,10 +910,13 @@ class KeyPoints:
         else:
             xy = kp.astype(np.float32)
             confidence = None
+        class_id: npt.NDArray[np.int_] | None = None
+        if detections.class_id is not None:
+            class_id = detections.class_id.astype(np.int_)
         return cls(
             xy=xy,
             confidence=confidence,
-            class_id=detections.class_id,
+            class_id=class_id,
         )
 
     @classmethod
