@@ -127,44 +127,12 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         Args:
             color: The color to use for the edges.
             thickness: The thickness of the edges.
-            edges: The edges to draw. Accepts three forms:
-
-                - ``None`` (default) -- auto-detect skeleton by vertex count.
-                - ``Sequence[tuple[int, int]]`` -- a single skeleton applied
-                  to every instance.
-                - ``dict[int, Sequence[tuple[int, int]]]`` -- a mapping from
-                  ``class_id`` to skeleton edges, enabling correct rendering
-                  for datasets with multiple skeleton types (e.g. people and
-                  animals).
-
-        Example:
-            ```pycon
-            >>> import numpy as np
-            >>> import supervision as sv
-            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
-            >>> key_points = sv.KeyPoints(
-            ...     xy=np.array(
-            ...         [[[20, 10], [10, 40], [30, 40], [0, 0]],
-            ...          [[70, 10], [60, 40], [80, 40], [75, 60]]],
-            ...         dtype=np.float32,
-            ...     ),
-            ...     class_id=np.array([0, 1]),
-            ...     visible=np.array(
-            ...         [[True, True, True, False],
-            ...          [True, True, True, True]],
-            ...     ),
-            ... )
-            >>> annotator = sv.EdgeAnnotator(
-            ...     edges={
-            ...         0: [(1, 2), (1, 3)],
-            ...         1: [(1, 2), (1, 3), (1, 4)],
-            ...     }
-            ... )
-            >>> result = annotator.annotate(image.copy(), key_points)
-            >>> result.shape
-            (100, 100, 3)
-
-            ```
+            edges: The edges to draw. If set to ``None``, will attempt to
+                auto-detect the skeleton by vertex count. A
+                ``Sequence[tuple[int, int]]`` applies a single skeleton to
+                every instance. A ``dict[int, Sequence[tuple[int, int]]]``
+                maps ``class_id`` to skeleton edges, enabling correct
+                rendering for datasets with multiple skeleton types.
         """
         self.color = color
         self.thickness = thickness
