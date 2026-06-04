@@ -191,9 +191,7 @@ class TestEdgeAnnotator:
                 dtype=np.float32,
             ),
             class_id=np.array([0, 1]),
-            visible=np.array(
-                [[True, True, True, False], [True, True, False, False]]
-            ),
+            visible=np.array([[True, True, True, False], [True, True, False, False]]),
         )
         annotator = sv.EdgeAnnotator(
             edges={0: [(1, 2), (2, 3)], 1: [(1, 2)]},

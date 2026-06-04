@@ -1,4 +1,5 @@
 import numpy as np
+
 import supervision as sv
 from supervision.draw.color import Color
 
