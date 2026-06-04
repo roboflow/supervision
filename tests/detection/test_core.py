@@ -389,6 +389,7 @@ def test_merge_preserves_keypoints() -> None:
 
 
 def test_merge_rejects_mixed_keypoints_availability() -> None:
+    """Merging detections where only some have keypoints raises ValueError."""
     detections_1 = Detections(
         xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
         keypoints=np.array([[[1, 2, 0.9], [3, 4, 0.8]]], dtype=np.float32),
@@ -399,6 +400,106 @@ def test_merge_rejects_mixed_keypoints_availability() -> None:
 
     with pytest.raises(ValueError, match="All or none of the 'keypoints'"):
         Detections.merge([detections_1, detections_2])
+
+
+def test_getitem_with_none_keypoints() -> None:
+    """Integer-index slicing when keypoints=None returns None keypoints."""
+    detections = Detections(
+        xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]], dtype=np.float32),
+    )
+
+    result = detections[[0]]
+
+    assert result.keypoints is None
+
+
+def test_getitem_preserves_keypoints_boolean_mask() -> None:
+    """Boolean-mask indexing propagates the selected keypoints rows."""
+    keypoints = np.array(
+        [[[1, 2, 0.9], [3, 4, 0.8]], [[5, 6, 0.7], [7, 8, 0.6]]],
+        dtype=np.float32,
+    )
+    detections = Detections(
+        xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]], dtype=np.float32),
+        keypoints=keypoints,
+    )
+
+    result = detections[np.array([True, False])]
+
+    np.testing.assert_array_equal(result.keypoints, keypoints[[0]])
+
+
+def test_getitem_preserves_keypoints_slice() -> None:
+    """Slice indexing propagates the selected keypoints rows."""
+    keypoints = np.array(
+        [[[1, 2, 0.9], [3, 4, 0.8]], [[5, 6, 0.7], [7, 8, 0.6]]],
+        dtype=np.float32,
+    )
+    detections = Detections(
+        xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]], dtype=np.float32),
+        keypoints=keypoints,
+    )
+
+    result = detections[1:]
+
+    np.testing.assert_array_equal(result.keypoints, keypoints[1:])
+
+
+def test_merge_preserves_keypoints_no_confidence() -> None:
+    """Merging (N, K, 2) keypoints (no confidence channel) concatenates correctly."""
+    detections_1 = Detections(
+        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        keypoints=np.array([[[1, 2], [3, 4]]], dtype=np.float32),
+    )
+    detections_2 = Detections(
+        xyxy=np.array([[20, 20, 30, 30]], dtype=np.float32),
+        keypoints=np.array([[[5, 6], [7, 8]]], dtype=np.float32),
+    )
+
+    result = Detections.merge([detections_1, detections_2])
+
+    np.testing.assert_array_equal(
+        result.keypoints,
+        np.array([[[1, 2], [3, 4]], [[5, 6], [7, 8]]], dtype=np.float32),
+    )
+
+
+def test_merge_all_none_keypoints() -> None:
+    """Merging detections where all keypoints are None yields None keypoints."""
+    detections_1 = Detections(xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32))
+    detections_2 = Detections(xyxy=np.array([[20, 20, 30, 30]], dtype=np.float32))
+
+    result = Detections.merge([detections_1, detections_2])
+
+    assert result.keypoints is None
+
+
+def test_merge_three_way_preserves_keypoints() -> None:
+    """Three-way merge concatenates keypoints from all detections in order."""
+    kp1 = np.array([[[1, 2, 0.9]]], dtype=np.float32)
+    kp2 = np.array([[[3, 4, 0.8]]], dtype=np.float32)
+    kp3 = np.array([[[5, 6, 0.7]]], dtype=np.float32)
+    detections_1 = Detections(
+        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32), keypoints=kp1
+    )
+    detections_2 = Detections(
+        xyxy=np.array([[20, 20, 30, 30]], dtype=np.float32), keypoints=kp2
+    )
+    detections_3 = Detections(
+        xyxy=np.array([[40, 40, 50, 50]], dtype=np.float32), keypoints=kp3
+    )
+
+    result = Detections.merge([detections_1, detections_2, detections_3])
+
+    np.testing.assert_array_equal(
+        result.keypoints,
+        np.array([[[1, 2, 0.9]], [[3, 4, 0.8]], [[5, 6, 0.7]]], dtype=np.float32),
+    )
+
+
+def test_empty_detections_keypoints_is_none() -> None:
+    """Detections.empty() must have keypoints=None."""
+    assert Detections.empty().keypoints is None
 
 
 @pytest.mark.parametrize(

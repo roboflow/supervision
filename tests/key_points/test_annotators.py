@@ -265,6 +265,8 @@ class TestVertexEllipseAnnotator:
             key_points.xy[0, 0], np.array([0.0, 0.0], dtype=np.float32)
         )
         assert not np.array_equal(result, scene)
+        # The masked keypoint was moved to (0,0) but must not be drawn there.
+        np.testing.assert_array_equal(result[:10, :10], scene[:10, :10])
 
     def test_max_axis_length_caps_large_eigenvalue(self, scene):
         """
