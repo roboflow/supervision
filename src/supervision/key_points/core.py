@@ -10,7 +10,10 @@ import numpy.typing as npt
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.utils.internal import get_data_item, is_data_equal
-from supervision.validators import validate_key_points_fields
+from supervision.validators import (
+    validate_detection_keypoints,
+    validate_key_points_fields,
+)
 
 Index1D = Union[
     int,
@@ -900,6 +903,7 @@ class KeyPoints:
                 "detections.keypoints is None; cannot convert to KeyPoints"
             )
         kp = detections.keypoints
+        validate_detection_keypoints(kp, len(detections))
         if kp.shape[2] == 3:
             xy = kp[..., :2].astype(np.float32)
             confidence = kp[..., 2].astype(np.float32)
