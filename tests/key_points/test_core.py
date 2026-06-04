@@ -673,3 +673,56 @@ def test_from_mediapipe_input(mediapipe_results, resolution_wh, expected_key_poi
         mediapipe_results, resolution_wh=resolution_wh
     )
     assert key_points == expected_key_points
+
+
+class TestFromDetections:
+    """Verify KeyPoints.from_detections adapter behavior."""
+
+    def test_xy_only_input_no_confidence(self) -> None:
+        """(n, K, 2) keypoints: xy extracted, confidence is None."""
+        from supervision.detection.core import Detections
+
+        kp = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            keypoints=kp,
+        )
+        result = KeyPoints.from_detections(detections)
+        np.testing.assert_array_equal(result.xy, kp)
+        assert result.confidence is None
+
+    def test_xy_with_confidence_channel(self) -> None:
+        """(n, K, 3) keypoints: xy from first 2 channels, confidence from third."""
+        from supervision.detection.core import Detections
+
+        kp = np.array([[[1.0, 2.0, 0.9], [3.0, 4.0, 0.7]]], dtype=np.float32)
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            keypoints=kp,
+        )
+        result = KeyPoints.from_detections(detections)
+        np.testing.assert_array_equal(result.xy, kp[..., :2])
+        np.testing.assert_array_equal(result.confidence, kp[..., 2])
+
+    def test_none_keypoints_raises_value_error(self) -> None:
+        """keypoints=None raises ValueError with a descriptive message."""
+        from supervision.detection.core import Detections
+
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        )
+        with pytest.raises(ValueError, match="keypoints is None"):
+            KeyPoints.from_detections(detections)
+
+    def test_class_id_propagated(self) -> None:
+        """class_id from Detections is forwarded to the KeyPoints object."""
+        from supervision.detection.core import Detections
+
+        kp = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            keypoints=kp,
+            class_id=np.array([42], dtype=int),
+        )
+        result = KeyPoints.from_detections(detections)
+        np.testing.assert_array_equal(result.class_id, np.array([42]))
