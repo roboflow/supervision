@@ -863,6 +863,56 @@ class KeyPoints:
         self.data[key] = value
 
     @classmethod
+    def from_detections(cls, detections: Detections) -> KeyPoints:
+        """Convert a `sv.Detections` object to `sv.KeyPoints` using its keypoints field.
+
+        Use this adapter when passing `Detections.keypoints` to keypoint annotators
+        such as `sv.VertexAnnotator`, `sv.EdgeAnnotator`, or `sv.VertexEllipseAnnotator`
+        which accept `sv.KeyPoints` rather than raw NumPy arrays.
+
+        Args:
+            detections: A `sv.Detections` object with a non-``None`` ``keypoints``
+                field of shape ``(n, K, 2)`` or ``(n, K, 3)``.
+
+        Returns:
+            A `sv.KeyPoints` instance. When the third channel is present it is
+            interpreted as per-point confidence and stored in ``confidence``.
+
+        Raises:
+            ValueError: If ``detections.keypoints`` is ``None``.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[10, 20, 30, 40]], dtype=np.float32),
+            ...     keypoints=np.zeros((1, 17, 2), dtype=np.float32),
+            ... )
+            >>> key_points = sv.KeyPoints.from_detections(detections)
+            >>> key_points.xy.shape
+            (1, 17, 2)
+
+            ```
+        """
+        if detections.keypoints is None:
+            raise ValueError(
+                "detections.keypoints is None; cannot convert to KeyPoints"
+            )
+        kp = detections.keypoints
+        if kp.shape[2] == 3:
+            xy = kp[..., :2].astype(np.float32)
+            confidence = kp[..., 2].astype(np.float32)
+        else:
+            xy = kp.astype(np.float32)
+            confidence = None
+        return cls(
+            xy=xy,
+            confidence=confidence,
+            class_id=detections.class_id,
+        )
+
+    @classmethod
     def empty(cls) -> KeyPoints:
         """
         Create an empty KeyPoints object with no key points.
