@@ -595,13 +595,9 @@ class VertexLabelAnnotator:
             xy = key_points.xy[i]
 
             class_id = (
-                key_points.class_id[i]
-                if key_points.class_id is not None
-                else None
+                key_points.class_id[i] if key_points.class_id is not None else None
             )
-            instance_labels = self._resolve_labels(
-                labels, points_count, class_id
-            )
+            instance_labels = self._resolve_labels(labels, points_count, class_id)
             instance_colors = self._resolve_color_list(self.color, points_count)
             instance_text_colors = self._resolve_color_list(
                 self.text_color, points_count
@@ -703,9 +699,7 @@ class VertexLabelAnnotator:
                     "KeyPoints must have class_id set."
                 )
             if class_id not in labels:
-                raise ValueError(
-                    f"No labels defined for class_id={class_id}."
-                )
+                raise ValueError(f"No labels defined for class_id={class_id}.")
             resolved = labels[class_id]
         else:
             resolved = labels
