@@ -367,7 +367,7 @@ class Recall(Metric):
         """
         Broadcastable function, computing the recall from the confusion matrix.
 
-        Arguments:
+        Args:
             confusion_matrix: shape (N, ..., 3), where the last dimension
                 contains the true positives, false positives, and false negatives.
 
@@ -529,21 +529,39 @@ class RecallResult:
         Format as a pretty string.
 
         Example:
-            ```python
-            print(recall_result)
-            # RecallResult:
-            # Metric target:    MetricTarget.BOXES
-            # Averaging method: AveragingMethod.WEIGHTED
-            # R @ 50:     0.7615
-            # R @ 75:     0.7462
-            # R @ thresh: [0.76151  0.76011  0.76011  0.75732  ...]
-            # IoU thresh: [0.5  0.55  0.6  ...]
-            # Recall per class:
-            # 0: [0.78571  0.78571  0.78571  ...]
-            # ...
-            # Small objects: ...
-            # Medium objects: ...
-            # Large objects: ...
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> from supervision.metrics import Recall
+            >>> predictions = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 10, 10]]),
+            ...     class_id=np.array([0]),
+            ...     confidence=np.array([0.9])
+            ... )
+            >>> targets = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 10, 10]]),
+            ...     class_id=np.array([0])
+            ... )
+            >>> recall_metric = Recall()
+            >>> recall_result = recall_metric.update(predictions, targets).compute()
+            >>> print(recall_result)  # doctest: +ELLIPSIS
+            RecallResult:
+            Metric target:    MetricTarget.BOXES
+            Averaging method: AveragingMethod.WEIGHTED
+            R @ 50:     1.0000
+            R @ 75:     1.0000
+            R @ thresh: [1. ... 1.]
+            IoU thresh: [0.5  0.55 ... 0.95]
+            Recall per class:
+              0: [1. ... 1.]
+            ...
+            Medium objects:
+              RecallResult:
+              Metric target:    MetricTarget.BOXES
+              Averaging method: AveragingMethod.WEIGHTED
+              R @ 50:     0.0000
+              ...
+
             ```
         """
         out_str = (

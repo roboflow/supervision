@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -52,14 +53,17 @@ def _polygons_to_masks(
 ) -> npt.NDArray[np.bool_]:
     return np.array(
         [
-            polygon_to_mask(polygon=polygon, resolution_wh=resolution_wh)
+            polygon_to_mask(
+                polygon=np.round(polygon).astype(np.int32),
+                resolution_wh=resolution_wh,
+            )
             for polygon in polygons
         ],
         dtype=bool,
     )
 
 
-def _with_mask(lines: list[str]) -> bool:
+def _with_seg_mask(lines: list[str]) -> bool:
     return any([len(line.split()) > 5 for line in lines])
 
 
@@ -128,7 +132,7 @@ def yolo_annotations_to_detections(
         return Detections(class_id=class_id, xyxy=xyxy, data=data)
 
     polygons = [
-        np.round(polygon * np.array(resolution_wh, dtype=np.float32)).astype(int)
+        polygon * np.array(resolution_wh, dtype=np.float32)
         for polygon in relative_polygon
     ]
     mask = _polygons_to_masks(polygons=polygons, resolution_wh=resolution_wh)
@@ -154,6 +158,8 @@ def load_yolo_annotations(
             YAML file containing class information.
         force_masks: If True, forces masks to be loaded
             for all annotations, regardless of whether they are present.
+            This parameter has no effect when `is_obb=True`; mask generation
+            is always disabled for OBB annotations.
         is_obb: If True, loads the annotations in OBB format.
             OBB annotations are defined as `[class_id, x, y, x, y, x, y, x, y]`,
             where pairs of [x, y] are box corners.
@@ -163,6 +169,13 @@ def load_yolo_annotations(
             image names as keys and images as values, and a dictionary
             with image names as keys and corresponding Detections instances as values.
     """
+    if is_obb and force_masks:
+        warnings.warn(
+            "`force_masks=True` has no effect when `is_obb=True`; "
+            "mask generation is always disabled for OBB annotations.",
+            UserWarning,
+            stacklevel=2,
+        )
     image_paths = [
         str(path)
         for path in list_files_with_extensions(
@@ -202,8 +215,7 @@ def load_yolo_annotations(
                 but {image_path} mode is '{image.mode}'."
             )
 
-        with_masks = _with_mask(lines=lines)
-        with_masks = force_masks if force_masks else with_masks
+        with_masks = not is_obb and (force_masks or _with_seg_mask(lines=lines))
         annotation = yolo_annotations_to_detections(
             lines=lines,
             resolution_wh=resolution_wh,
@@ -247,6 +259,12 @@ def detections_to_yolo_annotations(
     for xyxy, mask, _, class_id, _, _ in detections:
         if class_id is None:
             raise ValueError("Class ID is required for YOLO annotations.")
+        if not isinstance(class_id, (int, np.integer)):
+            raise ValueError(
+                f"Detections class_id must be an integer for YOLO export, "
+                f"got {type(class_id)!r}."
+            )
+        class_id_int = int(class_id)
 
         if mask is not None:
             polygons = approximate_mask_with_polygons(
@@ -259,14 +277,14 @@ def detections_to_yolo_annotations(
                 xyxy = polygon_to_xyxy(polygon=polygon)
                 next_object = object_to_yolo(
                     xyxy=xyxy,
-                    class_id=class_id,
+                    class_id=class_id_int,
                     image_shape=image_shape,
                     polygon=polygon,
                 )
                 annotation.append(next_object)
         else:
             next_object = object_to_yolo(
-                xyxy=xyxy, class_id=class_id, image_shape=image_shape
+                xyxy=xyxy, class_id=class_id_int, image_shape=image_shape
             )
             annotation.append(next_object)
     return annotation

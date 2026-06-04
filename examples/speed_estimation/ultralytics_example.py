@@ -70,7 +70,7 @@ def main(
     )
     trace_annotator = sv.TraceAnnotator(
         thickness=thickness,
-        trace_length=video_info.fps * 2,
+        trace_length=int(video_info.fps * 2),
         position=sv.Position.BOTTOM_CENTER,
     )
 
@@ -79,7 +79,7 @@ def main(
     polygon_zone = sv.PolygonZone(polygon=SOURCE)
     view_transformer = ViewTransformer(source=SOURCE, target=TARGET)
 
-    coordinates = defaultdict(lambda: deque(maxlen=video_info.fps))
+    coordinates = defaultdict(lambda: deque(maxlen=int(video_info.fps)))
 
     with sv.VideoSink(target_video_path, video_info) as sink:
         for frame in frame_generator:

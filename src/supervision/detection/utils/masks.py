@@ -8,8 +8,9 @@ import numpy.typing as npt
 try:
     import cv2
 except ImportError:
-    cv2 = None  # type: ignore
+    cv2 = None  # type: ignore[assignment]
 
+from supervision.detection.compact_mask import CompactMask
 from supervision.utils.internal import ensure_cv2_installed
 
 
@@ -22,18 +23,17 @@ def move_masks(
     Offset the masks in an array by the specified (x, y) amount.
 
     Args:
-        masks (npt.NDArray[np.bool_]): A 3D array of binary masks corresponding to the
+        masks: A 3D array of binary masks corresponding to the
             predictions. Shape: `(N, H, W)`, where N is the number of predictions, and
             H, W are the dimensions of each mask.
-        offset (npt.NDArray[np.int32]): An array of shape `(2,)` containing int values
+        offset: An array of shape `(2,)` containing int values
             `[dx, dy]`. Supports both positive and negative values for bidirectional
             movement.
-        resolution_wh (Tuple[int, int]): The width and height of the desired mask
+        resolution_wh: The width and height of the desired mask
             resolution.
 
     Returns:
-        (npt.NDArray[np.bool_]) repositioned masks, optionally padded to the specified
-            shape.
+        Repositioned masks, optionally padded to the specified shape.
 
     Examples:
         ```pycon
@@ -93,19 +93,44 @@ def move_masks(
 
 
 def calculate_masks_centroids(
-    masks: npt.NDArray[Any],
+    masks: npt.NDArray[Any] | CompactMask,
 ) -> npt.NDArray[np.int_]:
     """
     Calculate the centroids of binary masks in a tensor.
 
-    Parameters:
-        masks (np.ndarray): A 3D NumPy array of shape (num_masks, height, width).
+    Args:
+        masks: A 3D NumPy array of shape (num_masks, height, width).
             Each 2D array in the tensor represents a binary mask.
+            Also accepts a :class:`~supervision.detection.compact_mask.CompactMask`.
 
     Returns:
         A 2D NumPy array of shape (num_masks, 2), where each row contains the x and y
             coordinates (in that order) of the centroid of the corresponding mask.
     """
+    if isinstance(masks, CompactMask):
+        # Compute centroids per-crop to avoid materialising the full (N, H, W) array.
+        n = len(masks)
+        if n == 0:
+            return cast(npt.NDArray[np.int_], np.empty((0, 2), dtype=int))
+
+        centroids: npt.NDArray[np.float64] = np.zeros((n, 2), dtype=np.float64)
+        for i in range(n):
+            crop = masks.crop(i)
+            crop_h, crop_w = crop.shape
+            x1 = int(masks.offsets[i, 0])
+            y1 = int(masks.offsets[i, 1])
+            total = int(crop.sum())
+            if total == 0:
+                centroids[i] = [0.0, 0.0]
+                continue
+            # Match the +0.5 offset used by the dense implementation.
+            crop_rows, crop_cols = np.indices((crop_h, crop_w))
+            cx = float(np.sum((crop_cols + 0.5)[crop])) / total + x1
+            cy = float(np.sum((crop_rows + 0.5)[crop])) / total + y1
+            centroids[i] = [cx, cy]
+
+        return cast(npt.NDArray[np.int_], centroids.astype(int))
+
     _num_masks, height, width = masks.shape
     total_pixels = masks.sum(axis=(1, 2))
 
@@ -134,7 +159,7 @@ def contains_holes(mask: npt.NDArray[np.bool_]) -> bool:
     foreground pixels).
 
     Args:
-        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground
+        mask: 2D binary mask where `True` indicates foreground
             object and `False` indicates background.
 
     Returns:
@@ -186,9 +211,9 @@ def contains_multiple_segments(
     Checks if the binary mask contains multiple unconnected foreground segments.
 
     Args:
-        mask (npt.NDArray[np.bool_]): 2D binary mask where `True` indicates foreground
+        mask: 2D binary mask where `True` indicates foreground
             object and `False` indicates background.
-        connectivity (int) : Default: 4 is 4-way connectivity, which means that
+        connectivity: Default: 4 is 4-way connectivity, which means that
             foreground pixels are the part of the same segment/component
             if their edges touch.
             Alternatively: 8 for 8-way connectivity, when foreground pixels are
@@ -248,11 +273,11 @@ def resize_masks(masks: npt.NDArray[Any], max_dimension: int = 640) -> npt.NDArr
     maintaining aspect ratio.
 
     Args:
-        masks (np.ndarray): 3D array of binary masks with shape (N, H, W).
-        max_dimension (int): The maximum dimension for the resized masks.
+        masks: 3D array of binary masks with shape (N, H, W).
+        max_dimension: The maximum dimension for the resized masks.
 
     Returns:
-        np.ndarray: Array of resized masks.
+        Array of resized masks.
     """
     max_height: int = masks.shape[1]
     max_width: int = masks.shape[2]
@@ -348,7 +373,7 @@ def filter_segments_by_distance(
 
         ```
 
-        The nearby 2×2 block at columns 6–7 is kept because its edge distance
+        The nearby 2x2 block at columns 6-7 is kept because its edge distance
         is within 3 pixels. The distant block at columns 9-10 is removed.
     """  # noqa E501 // docs
     ensure_cv2_installed()
@@ -360,6 +385,10 @@ def filter_segments_by_distance(
         return mask.copy()
 
     image = mask.astype(np.uint8)
+    num_labels: int
+    labels: npt.NDArray[np.int32]
+    stats: npt.NDArray[np.int32]
+    centroids: npt.NDArray[np.float64]
     num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(
         image, connectivity=connectivity
     )
@@ -378,7 +407,7 @@ def filter_segments_by_distance(
     else:
         raise ValueError("Either absolute_distance or relative_distance must be set.")
 
-    keep_labels = np.zeros(num_labels, dtype=bool)
+    keep_labels: npt.NDArray[np.bool_] = np.zeros(num_labels, dtype=bool)
     keep_labels[main_label] = True
 
     if mode == "centroid":

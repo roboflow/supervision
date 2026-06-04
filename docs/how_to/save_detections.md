@@ -1,5 +1,11 @@
 ---
 comments: true
+description: Save object detection results to CSV or JSON with supervision's CSVSink and JSONSink — export predictions for analysis and downstream pipelines.
+authors:
+  - name: Piotr Skalski
+    role: Computer Vision Engineer, Roboflow
+    github: https://github.com/SkalskiP
+date_modified: 2026-04-22
 ---
 
 # Save Detections
@@ -10,13 +16,15 @@ processing. This guide demonstrates how to perform video inference using the
 [Ultralytics](https://github.com/ultralytics/ultralytics) or
 [Transformers](https://github.com/huggingface/transformers) packages and save their results with
 [`sv.CSVSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink) and
-[`sv.JSONSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.JSONSink).
+[`sv.JSONSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.json_sink.JSONSink).
 
 ## Run Detection
 
 First, you'll need to obtain predictions from your object detection or segmentation
 model. You can learn more on this topic in our
 [How to Detect and Annotate](https://supervision.roboflow.com/latest/how_to/detect_and_annotate/) guide.
+
+To generate predictions for saving, initialize your model and iterate over video frames using `sv.get_video_frames_generator`. Each frame is passed to the model, and the raw output is converted into a `sv.Detections` object. This detection loop forms the foundation for both CSV and JSON export workflows shown below.
 
 === "Inference"
 
@@ -231,7 +239,7 @@ If you prefer to save the result in a `.JSON` file instead of a `.CSV` file, all
 need to do is replace
 [`sv.CSVSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink)
 with
-[`sv.JSONSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.JSONSink).
+[`sv.JSONSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.json_sink.JSONSink).
 
 === "Inference"
 
@@ -294,3 +302,25 @@ with
             detections = sv.Detections.from_transformers(results)
             sink.append(detections, {"frame_index": frame_index})
     ```
+
+## Frequently Asked Questions
+
+### How do I save detections to CSV with supervision?
+
+Open `sv.CSVSink("output.csv")` as a context manager and call `sink.append(detections)` for each frame. The CSV includes box coordinates, confidence, class ID, tracker ID, and any fields stored in `detections.data`.
+
+### Can I save detections to JSON instead?
+
+Yes. Open `sv.JSONSink("output.json")` as a context manager and call `sink.append(detections)` for each frame. The file is written as a JSON array when the context exits.
+
+### Can I add custom fields to the saved output?
+
+Yes. Pass a dict as the second argument: `sink.append(detections, {"frame_index": 5})` — the keys become extra columns in the CSV or extra fields in the JSON.
+
+### Can I save only specific classes or confidence levels?
+
+Filter the `Detections` object before saving: `sink.append(detections[detections.confidence > 0.7])`.
+
+## Author
+
+- [Piotr Skalski](https://github.com/SkalskiP) — Computer Vision Engineer, Roboflow

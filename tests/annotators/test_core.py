@@ -2,6 +2,8 @@
 Tests for supervision/annotators/core.py
 """
 
+import warnings
+
 import numpy as np
 import pytest
 
@@ -17,6 +19,7 @@ from supervision.annotators.core import (
     DotAnnotator,
     EllipseAnnotator,
     HaloAnnotator,
+    HeatMapAnnotator,
     LabelAnnotator,
     MaskAnnotator,
     OrientedBoxAnnotator,
@@ -25,6 +28,7 @@ from supervision.annotators.core import (
     PolygonAnnotator,
     RichLabelAnnotator,
     RoundBoxAnnotator,
+    TraceAnnotator,
     TriangleAnnotator,
 )
 from supervision.annotators.utils import ColorLookup
@@ -56,6 +60,53 @@ def gradient_image() -> np.ndarray:
         for j in range(100):
             image[i, j] = [i, j, (i + j) // 2]
     return image
+
+
+@pytest.mark.parametrize(
+    ("factory", "expected_colors"),
+    [
+        (lambda: BoxAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: OrientedBoxAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: MaskAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: PolygonAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: ColorAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: HaloAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: EllipseAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: BoxCornerAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (lambda: CircleAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (
+            lambda: DotAnnotator(color="#010203", outline_color="#040506"),
+            {"color": (1, 2, 3), "outline_color": (4, 5, 6)},
+        ),
+        (
+            lambda: LabelAnnotator(color="#010203", text_color="#040506"),
+            {"color": (1, 2, 3), "text_color": (4, 5, 6)},
+        ),
+        (
+            lambda: RichLabelAnnotator(color="#010203", text_color="#040506"),
+            {"color": (1, 2, 3), "text_color": (4, 5, 6)},
+        ),
+        (lambda: TraceAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (
+            lambda: TriangleAnnotator(color="#010203", outline_color="#040506"),
+            {"color": (1, 2, 3), "outline_color": (4, 5, 6)},
+        ),
+        (lambda: RoundBoxAnnotator(color="#010203"), {"color": (1, 2, 3)}),
+        (
+            lambda: PercentageBarAnnotator(color="#010203", border_color="#040506"),
+            {"color": (1, 2, 3), "border_color": (4, 5, 6)},
+        ),
+        (lambda: CropAnnotator(border_color="#010203"), {"border_color": (1, 2, 3)}),
+    ],
+)
+def test_hex_color_support_across_annotators(
+    factory, expected_colors: dict[str, tuple[int, int, int]]
+) -> None:
+    annotator = factory()
+    for attribute_name, expected_rgb in expected_colors.items():
+        color = getattr(annotator, attribute_name)
+        assert isinstance(color, Color)
+        assert color.as_rgb() == expected_rgb
 
 
 class TestBoxAnnotator:
@@ -186,6 +237,27 @@ class TestMaskAnnotator:
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert_image_mostly_same(test_image, result, similarity_threshold=0.6)
 
+    def test_annotate_uint8_mask_matches_bool_mask(self, test_image, test_mask):
+        """Test that uint8 and bool masks produce identical overlays."""
+        detections_bool = _create_detections(
+            xyxy=[[10, 10, 90, 90]], mask=[test_mask], class_id=[0]
+        )
+        detections_uint8 = _create_detections(
+            xyxy=[[10, 10, 90, 90]], mask=[test_mask], class_id=[0]
+        )
+        detections_uint8.mask = detections_uint8.mask.astype(np.uint8)
+
+        annotator = MaskAnnotator(
+            color=Color.RED, opacity=1.0, color_lookup=ColorLookup.INDEX
+        )
+        result_bool = annotator.annotate(
+            scene=test_image.copy(), detections=detections_bool
+        )
+        result_uint8 = annotator.annotate(
+            scene=test_image.copy(), detections=detections_uint8
+        )
+        assert np.array_equal(result_bool, result_uint8)
+
 
 class TestPolygonAnnotator:
     """Tests for PolygonAnnotator class"""
@@ -266,6 +338,73 @@ class TestHaloAnnotator:
         )
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert_image_mostly_same(test_image, result, similarity_threshold=0.85)
+
+    def test_annotate_uint8_mask_matches_bool_mask(self, test_image, test_mask):
+        """Test that uint8 and bool masks produce identical halos."""
+        detections_bool = _create_detections(
+            xyxy=[[10, 10, 90, 90]], mask=[test_mask], class_id=[0]
+        )
+        detections_uint8 = _create_detections(
+            xyxy=[[10, 10, 90, 90]], mask=[test_mask], class_id=[0]
+        )
+        detections_uint8.mask = detections_uint8.mask.astype(np.uint8)
+
+        annotator = HaloAnnotator(
+            color=Color.BLUE,
+            opacity=0.8,
+            kernel_size=10,
+            color_lookup=ColorLookup.INDEX,
+        )
+        result_bool = annotator.annotate(
+            scene=test_image.copy(), detections=detections_bool
+        )
+        result_uint8 = annotator.annotate(
+            scene=test_image.copy(), detections=detections_uint8
+        )
+        assert np.array_equal(result_bool, result_uint8)
+
+
+class TestHeatMapAnnotator:
+    """Tests for HeatMapAnnotator class"""
+
+    def test_annotate_with_no_detections_does_not_warn(
+        self, test_image: np.ndarray
+    ) -> None:
+        """Empty detections must not trigger a divide-by-zero RuntimeWarning."""
+        detections = Detections.empty()
+        annotator = HeatMapAnnotator()
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            result = annotator.annotate(scene=test_image.copy(), detections=detections)
+        assert np.array_equal(test_image, result)
+
+    def test_annotate_with_single_detection(self, test_image: np.ndarray) -> None:
+        """Single detection must produce visible heat — result differs from input."""
+        annotator = HeatMapAnnotator()
+        detections = _create_detections(xyxy=[[20, 20, 60, 60]])
+        result = annotator.annotate(scene=test_image.copy(), detections=detections)
+        assert not np.array_equal(test_image, result)
+
+    def test_annotate_state_preserved_after_empty_call(
+        self, test_image: np.ndarray
+    ) -> None:
+        """Empty call must not poison accumulated heat."""
+        annotator = HeatMapAnnotator()
+        detections = _create_detections(xyxy=[[20, 20, 60, 60]])
+        annotator.annotate(scene=test_image.copy(), detections=Detections.empty())
+        result = annotator.annotate(scene=test_image.copy(), detections=detections)
+        assert not np.array_equal(test_image, result)
+
+    def test_annotate_empty_after_real_does_not_warn(
+        self, test_image: np.ndarray
+    ) -> None:
+        """Empty call after heat accumulated must not trigger RuntimeWarning."""
+        annotator = HeatMapAnnotator()
+        detections = _create_detections(xyxy=[[20, 20, 60, 60]])
+        annotator.annotate(scene=test_image.copy(), detections=detections)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            annotator.annotate(scene=test_image.copy(), detections=Detections.empty())
 
 
 class TestEllipseAnnotator:
@@ -411,6 +550,19 @@ class TestBlurAnnotator:
         result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
         assert not np.array_equal(gradient_image, result)
 
+    @pytest.mark.parametrize("bad_size", [0, -1, -10])
+    def test_invalid_kernel_size_raises(self, bad_size):
+        """BlurAnnotator must reject kernel_size < 1 at construction time."""
+        with pytest.raises(ValueError, match="kernel_size must be >= 1"):
+            BlurAnnotator(kernel_size=bad_size)
+
+    def test_annotate_zero_area_bbox_is_skipped(self, test_image):
+        """Zero-area bounding boxes must be silently skipped, not crash."""
+        detections = _create_detections(xyxy=[[10, 10, 10, 50]], class_id=[0])
+        annotator = BlurAnnotator(kernel_size=5)
+        result = annotator.annotate(scene=test_image.copy(), detections=detections)
+        assert np.array_equal(test_image, result)
+
 
 class TestPixelateAnnotator:
     """Tests for PixelateAnnotator class"""
@@ -428,6 +580,57 @@ class TestPixelateAnnotator:
         annotator = PixelateAnnotator(pixel_size=10)
         result = annotator.annotate(scene=gradient_image.copy(), detections=detections)
         assert not np.array_equal(gradient_image, result)
+
+    def test_annotate_bbox_smaller_than_pixel_size_does_not_raise(self):
+        """PixelateAnnotator must not crash when the bbox is smaller than pixel_size.
+
+        Regression test for https://github.com/roboflow/supervision/issues/703:
+        a fixed pixel_size larger than the detection dimensions previously caused
+        an OpenCV assertion error in cv2.resize.
+        """
+        image = np.random.randint(0, 255, (100, 100, 3), dtype=np.uint8)
+        # bbox is 5x5; pixel_size=50 is much larger, triggers the avg-fill fallback
+        detections = _create_detections(xyxy=[[10, 10, 15, 15]], class_id=[0])
+        annotator = PixelateAnnotator(pixel_size=50)
+        result = annotator.annotate(scene=image.copy(), detections=detections)
+        assert result.shape == image.shape
+
+    def test_annotate_grayscale_image_does_not_raise(self):
+        """PixelateAnnotator must work on single-channel (grayscale) images.
+
+        The small-ROI avg-fill branch previously sliced cv2.mean()[:3] into a
+        2-D array, causing a NumPy broadcast error on grayscale frames.
+        """
+        gray = np.random.randint(0, 255, (100, 100), dtype=np.uint8)
+        # Normal-size detection — exercises the resize path on a grayscale frame
+        detections = _create_detections(xyxy=[[10, 10, 90, 90]], class_id=[0])
+        annotator = PixelateAnnotator(pixel_size=10)
+        result = annotator.annotate(scene=gray.copy(), detections=detections)
+        assert result.shape == gray.shape
+
+    def test_annotate_grayscale_image_small_roi_does_not_raise(self):
+        """Grayscale image with bbox smaller than pixel_size uses scalar avg fill.
+
+        Exercises the ndim-aware branch added to the small-ROI fallback.
+        """
+        gray = np.random.randint(0, 255, (100, 100), dtype=np.uint8)
+        detections = _create_detections(xyxy=[[10, 10, 15, 15]], class_id=[0])
+        annotator = PixelateAnnotator(pixel_size=50)
+        result = annotator.annotate(scene=gray.copy(), detections=detections)
+        assert result.shape == gray.shape
+
+    @pytest.mark.parametrize("bad_size", [0, -1, -10])
+    def test_invalid_pixel_size_raises(self, bad_size):
+        """PixelateAnnotator must reject pixel_size < 1 at construction time."""
+        with pytest.raises(ValueError, match="pixel_size must be >= 1"):
+            PixelateAnnotator(pixel_size=bad_size)
+
+    def test_annotate_zero_area_bbox_is_skipped(self, test_image):
+        """Zero-area bounding boxes must be silently skipped, not crash."""
+        detections = _create_detections(xyxy=[[10, 10, 10, 50]], class_id=[0])
+        annotator = PixelateAnnotator(pixel_size=5)
+        result = annotator.annotate(scene=test_image.copy(), detections=detections)
+        assert np.array_equal(test_image, result)
 
 
 class TestTriangleAnnotator:
@@ -526,6 +729,23 @@ class TestBackgroundOverlayAnnotator:
         result = annotator.annotate(scene=image.copy(), detections=detections)
         assert not np.array_equal(image, result)
 
+    def test_annotate_uint8_mask_matches_bool_mask(self):
+        """Test that uint8 and bool masks produce identical overlays."""
+        image = np.ones((100, 100, 3), dtype=np.uint8) * 255
+        mask = np.zeros((100, 100), dtype=bool)
+        mask[10:90, 10:90] = True
+
+        detections_bool = _create_detections(xyxy=[[10, 10, 90, 90]], mask=[mask])
+        detections_uint8 = _create_detections(xyxy=[[10, 10, 90, 90]], mask=[mask])
+        detections_uint8.mask = detections_uint8.mask.astype(np.uint8)
+
+        annotator = BackgroundOverlayAnnotator(color=Color.BLACK, opacity=0.5)
+        result_bool = annotator.annotate(scene=image.copy(), detections=detections_bool)
+        result_uint8 = annotator.annotate(
+            scene=image.copy(), detections=detections_uint8
+        )
+        assert np.array_equal(result_bool, result_uint8)
+
 
 class TestComparisonAnnotator:
     """Tests for ComparisonAnnotator class"""
@@ -550,3 +770,137 @@ class TestComparisonAnnotator:
             scene=image.copy(), detections_1=detections1, detections_2=detections2
         )
         assert not np.array_equal(image, result)
+
+
+class TestTraceAnnotatorSmoothStationary:
+    """Regression tests for TraceAnnotator(smooth=True) on stationary tracker ids."""
+
+    def test_stationary_tracker_does_not_crash_spline_fit(self, test_image):
+        """
+        When the same tracker stays at an identical anchor point for several
+        frames the trace buffer accumulates duplicate points. `scipy.splprep`
+        rejects a zero-length input curve with `ValueError: Invalid inputs.`,
+        so the annotator must survive this input without raising.
+        """
+        detections = _create_detections(
+            xyxy=[[100, 100, 120, 120]],
+            class_id=[1],
+            tracker_id=[42],
+        )
+        annotator = TraceAnnotator(smooth=True, trace_length=10)
+        scene = test_image.copy()
+        for _ in range(6):
+            scene = annotator.annotate(scene=scene, detections=detections)
+        assert scene.shape == test_image.shape
+
+    def test_smooth_trace_still_renders_for_moving_tracker(self, test_image):
+        """Moving tracker must produce a spline trace distinct from the raw polyline.
+
+        Compares smooth=True output against smooth=False for the same movement
+        path to confirm the smoothing path is actually exercised (not just that
+        some pixels changed).
+        """
+        smooth_annotator = TraceAnnotator(smooth=True, trace_length=10, thickness=2)
+        raw_annotator = TraceAnnotator(smooth=False, trace_length=10, thickness=2)
+        scene_smooth = test_image.copy()
+        scene_raw = test_image.copy()
+        for offset in range(6):
+            detections = _create_detections(
+                xyxy=[
+                    [10 + offset * 5, 10 + offset * 5, 30 + offset * 5, 30 + offset * 5]
+                ],
+                class_id=[1],
+                tracker_id=[7],
+            )
+            scene_smooth = smooth_annotator.annotate(
+                scene=scene_smooth, detections=detections
+            )
+            scene_raw = raw_annotator.annotate(scene=scene_raw, detections=detections)
+        # After 4+ unique anchor positions the spline path fires and diverges from the
+        # raw polyline — the two output images must differ.
+        assert not np.array_equal(scene_smooth, scene_raw)
+
+    @pytest.mark.parametrize(
+        "unique_positions",
+        [1, 2, 3, 4],
+        ids=["1_unique", "2_unique", "3_unique", "4_unique"],
+    )
+    def test_smooth_does_not_crash_for_unique_point_counts(
+        self, test_image, unique_positions
+    ):
+        """smooth=True must not crash for any unique-position count from 1 to 4.
+
+        Each position is repeated twice to simulate brief holds between moves.
+        Covers the boundary at len(unique_xy) == 4 where splprep first fires.
+        """
+        annotator = TraceAnnotator(smooth=True, trace_length=10, thickness=2)
+        scene = test_image.copy()
+        for pos_idx in range(unique_positions):
+            for _ in range(2):
+                x = 10 + pos_idx * 15
+                detections = _create_detections(
+                    xyxy=[[x, x, x + 15, x + 15]],
+                    class_id=[1],
+                    tracker_id=[99],
+                )
+                scene = annotator.annotate(scene=scene, detections=detections)
+        assert scene.shape == test_image.shape
+
+    def test_smooth_fallback_matches_raw_when_fewer_than_four_unique_points(
+        self, test_image
+    ):
+        """With <4 unique positions smooth=True output must match smooth=False.
+
+        Verifies the dedup-then-fallback path: when unique_xy has ≤3 points,
+        both branches use the same raw-polyline draw.
+        """
+        annotator_smooth = TraceAnnotator(smooth=True, trace_length=10, thickness=2)
+        annotator_raw = TraceAnnotator(smooth=False, trace_length=10, thickness=2)
+        scene_smooth = test_image.copy()
+        scene_raw = test_image.copy()
+        for pos_idx in range(3):
+            for _ in range(2):
+                x = 10 + pos_idx * 15
+                detections = _create_detections(
+                    xyxy=[[x, x, x + 15, x + 15]],
+                    class_id=[1],
+                    tracker_id=[99],
+                )
+                scene_smooth = annotator_smooth.annotate(
+                    scene=scene_smooth, detections=detections
+                )
+                scene_raw = annotator_raw.annotate(
+                    scene=scene_raw, detections=detections
+                )
+        assert np.array_equal(scene_smooth, scene_raw)
+
+    def test_smooth_true_single_frame_does_not_crash(self, test_image):
+        """A single annotate() call with smooth=True must not crash.
+
+        When len(xy) == 1 the drawing guard skips cv2.polylines entirely;
+        the dedup path runs safely on an empty np.diff result.
+        """
+        detections = _create_detections(
+            xyxy=[[50, 50, 70, 70]],
+            class_id=[1],
+            tracker_id=[1],
+        )
+        annotator = TraceAnnotator(smooth=True, trace_length=10)
+        scene = annotator.annotate(scene=test_image.copy(), detections=detections)
+        assert scene.shape == test_image.shape
+
+    def test_smooth_false_stationary_tracker_does_not_crash(self, test_image):
+        """smooth=False with a stationary tracker must not crash (regression guard).
+
+        Ensures the refactor did not accidentally alter the smooth=False code path.
+        """
+        detections = _create_detections(
+            xyxy=[[100, 100, 120, 120]],
+            class_id=[1],
+            tracker_id=[42],
+        )
+        annotator = TraceAnnotator(smooth=False, trace_length=10)
+        scene = test_image.copy()
+        for _ in range(6):
+            scene = annotator.annotate(scene=scene, detections=detections)
+        assert scene.shape == test_image.shape

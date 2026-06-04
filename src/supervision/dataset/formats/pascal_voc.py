@@ -12,7 +12,7 @@ from defusedxml.minidom import parseString
 try:
     import cv2
 except ImportError:
-    cv2 = None  # type: ignore
+    cv2 = None  # type: ignore[assignment]
 
 from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
@@ -122,6 +122,11 @@ def detections_to_pascal_voc(
     for xyxy, mask, _, class_id, _, _ in detections:
         if class_id is None:
             raise ValueError("Detections must include class_id for Pascal VOC export.")
+        if not isinstance(class_id, (int, np.integer)):
+            raise ValueError(
+                f"Detections class_id must be an integer for Pascal VOC export, "
+                f"got {type(class_id)!r}."
+            )
         name = classes[class_id]
         if mask is not None:
             polygons = approximate_mask_with_polygons(
@@ -240,7 +245,9 @@ def detections_from_xml_obj(
     xyxy: list[list[int]] = []
     class_names: list[str] = []
     masks: list[npt.NDArray[np.bool_]] = []
-    with_masks = False
+    with_masks = force_masks or any(
+        _with_poly_mask(obj) for obj in root.findall("object")
+    )
     extended_classes = classes[:]
     for obj in root.findall("object"):
         class_name = _get_required_text(obj, "name")
@@ -256,9 +263,9 @@ def detections_from_xml_obj(
 
         xyxy.append([x1, y1, x2, y2])
 
-        with_masks = obj.find("polygon") is not None
-        with_masks = force_masks if force_masks else with_masks
-
+        object_mask: npt.NDArray[np.bool_] = np.zeros(
+            (resolution_wh[1], resolution_wh[0]), dtype=bool
+        )
         for polygon_element in obj.findall("polygon"):
             polygon = parse_polygon_points(polygon_element)
             # https://github.com/roboflow/supervision/issues/144
@@ -268,7 +275,10 @@ def detections_from_xml_obj(
                 polygon=polygon,
                 resolution_wh=resolution_wh,
             )
-            masks.append(mask_from_polygon)
+            object_mask |= mask_from_polygon.astype(bool)
+
+        if with_masks:
+            masks.append(object_mask)
 
     xyxy_arr: npt.NDArray[np.float32]
     if xyxy:
@@ -288,11 +298,15 @@ def detections_from_xml_obj(
 
     annotation = Detections(
         xyxy=xyxy_arr,
-        mask=np.array(masks).astype(bool) if with_masks else None,
+        mask=np.array(masks, dtype=bool) if with_masks else None,
         class_id=class_id,
     )
 
     return annotation, extended_classes
+
+
+def _with_poly_mask(obj: Element) -> bool:
+    return obj.find("polygon") is not None
 
 
 def parse_polygon_points(polygon: Element) -> npt.NDArray[np.int_]:

@@ -33,7 +33,7 @@
 
 ## 👋 hello
 
-**We write your reusable computer vision tools.** Whether you need to load your dataset from your hard drive, draw detections on an image or video, or count how many detections are in a zone. You can count on us! 🤝
+**We are your essential toolkit for computer vision.** From data loading to real-time zone counting, we provide the building blocks so you can focus on building applications around your models. 🤝
 
 ## 💻 install
 
@@ -64,17 +64,18 @@ Read more about conda, mamba, and installing from source in our [guide](https://
 
 ### models
 
-Supervision was designed to be model agnostic. Just plug in any classification, detection, or segmentation model. For your convenience, we have created [connectors](https://supervision.roboflow.com/latest/detection/core/#detections) for the most popular libraries like Ultralytics, Transformers, or MMDetection.
+Supervision was designed to be model agnostic. Just plug in any classification, detection, or segmentation model. For your convenience, we have created [connectors](https://supervision.roboflow.com/latest/detection/core/#detections) for the most popular libraries like Ultralytics, Transformers, MMDetection, or Inference. Other integrations, like `rfdetr`, already return `sv.Detections` directly.
+
+Install the optional dependencies for this example with `pip install pillow rfdetr`.
 
 ```python
-import cv2
 import supervision as sv
-from ultralytics import YOLO
+from PIL import Image
+from rfdetr import RFDETRSmall
 
-image = cv2.imread(...)
-model = YOLO("yolov8s.pt")
-result = model(image)[0]
-detections = sv.Detections.from_ultralytics(result)
+image = Image.open(...)
+model = RFDETRSmall()
+detections = model.predict(image, threshold=0.5)
 
 len(detections)
 # 5
@@ -88,12 +89,12 @@ len(detections)
     Running with [Inference](https://github.com/roboflow/inference) requires a [Roboflow API KEY](https://docs.roboflow.com/api-reference/authentication#retrieve-an-api-key).
 
     ```python
-    import cv2
     import supervision as sv
+    from PIL import Image
     from inference import get_model
 
-    image = cv2.imread(...)
-    model = get_model(model_id="yolov8s-640", api_key="ROBOFLOW_API_KEY")
+    image = Image.open(...)
+    model = get_model(model_id="rfdetr-small", api_key="ROBOFLOW_API_KEY")
     result = model.infer(image)[0]
     detections = sv.Detections.from_inference(result)
 
@@ -241,7 +242,7 @@ Want to learn how to use Supervision? Explore our [how-to guides](https://superv
 <br/>
 
 <p align="left">
-<a href="https://youtu.be/hAWpsIuem10" title="Dwell Time Analysis with Computer Vision | Real-Time Stream Processing"><img src="https://github.com/SkalskiP/SkalskiP/assets/26109316/a742823d-c158-407d-b30f-063a5d11b4e1" alt="Dwell Time Analysis with Computer Vision | Real-Time Stream Processing" width="300px" align="left" /></a>
+<a href="https://youtu.be/hAWpsIuem10" title="Dwell Time Analysis with Computer Vision | Real-Time Stream Processing"><img src="https://github.com/user-attachments/assets/014cffc7-72b3-4c0a-bb89-6de265b2c06b" alt="Dwell Time Analysis with Computer Vision | Real-Time Stream Processing" width="300px" align="left" /></a>
 <a href="https://youtu.be/hAWpsIuem10" title="Dwell Time Analysis with Computer Vision | Real-Time Stream Processing"><strong>Dwell Time Analysis with Computer Vision | Real-Time Stream Processing</strong></a>
 <div><strong>Created: 5 Apr 2024</strong></div>
 <br/>Learn how to use computer vision to analyze wait times and optimize processes. This tutorial covers object detection, tracking, and calculating time spent in designated zones. Use these techniques to improve customer experience in retail, traffic management, or other scenarios.</p>
@@ -249,7 +250,7 @@ Want to learn how to use Supervision? Explore our [how-to guides](https://superv
 <br/>
 
 <p align="left">
-<a href="https://youtu.be/uWP6UjDeZvY" title="Speed Estimation & Vehicle Tracking | Computer Vision | Open Source"><img src="https://github.com/SkalskiP/SkalskiP/assets/26109316/61a444c8-b135-48ce-b979-2a5ab47c5a91" alt="Speed Estimation & Vehicle Tracking | Computer Vision | Open Source" width="300px" align="left" /></a>
+<a href="https://youtu.be/uWP6UjDeZvY" title="Speed Estimation & Vehicle Tracking | Computer Vision | Open Source"><img src="https://github.com/user-attachments/assets/b16b8e21-dc6c-4a73-a678-2f7d5d374793" alt="Speed Estimation & Vehicle Tracking | Computer Vision | Open Source" width="300px" align="left" /></a>
 <a href="https://youtu.be/uWP6UjDeZvY" title="Speed Estimation & Vehicle Tracking | Computer Vision | Open Source"><strong>Speed Estimation & Vehicle Tracking | Computer Vision | Open Source</strong></a>
 <div><strong>Created: 11 Jan 2024</strong></div>
 <br/>Learn how to track and estimate the speed of vehicles using YOLO, ByteTrack, and Roboflow Inference. This comprehensive tutorial covers object detection, multi-object tracking, filtering detections, perspective transformation, speed estimation, visualization improvements, and more.</p>

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from math import sqrt
-from typing import Any
+from typing import Any, cast, overload
 
 import numpy as np
 import numpy.typing as npt
@@ -12,14 +12,17 @@ from scipy.interpolate import splev, splprep
 try:
     import cv2
 except ImportError:
-    cv2 = None  # type: ignore
+    cv2 = None  # type: ignore[assignment]
 
 from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.utils import (
     PENDING_TRACK_ID,
     ColorLookup,
     Trace,
+    calculate_dynamic_kernel_size,
+    calculate_dynamic_pixel_size,
     get_labels_text,
+    hex_to_rgba,
     resolve_color,
     resolve_text_background_xyxy,
     snap_boxes,
@@ -27,6 +30,7 @@ from supervision.annotators.utils import (
     wrap_text,
 )
 from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import clip_boxes, spread_out_boxes
 from supervision.detection.utils.converters import (
@@ -48,9 +52,36 @@ from supervision.utils.image import (
     overlay_image,
     scale_image,
 )
+from supervision.utils.logger import _get_logger
+
+logger = _get_logger(__name__)
+
+
+@overload
+def _normalize_color_input(color: Color | str) -> Color: ...
+
+
+@overload
+def _normalize_color_input(
+    color: Color | ColorPalette | str,
+) -> Color | ColorPalette: ...
+
+
+def _normalize_color_input(color: Color | ColorPalette | str) -> Color | ColorPalette:
+    """Normalize accepted color inputs to internal color objects.
+
+    Accepts `Color`, `ColorPalette`, or hex string input. Hex strings are parsed via
+    `hex_to_rgba` and converted to `Color` (alpha channel is ignored because annotator
+    drawing uses RGB/BGR colors).
+    """
+    if isinstance(color, str):
+        r, g, b, _ = hex_to_rgba(color)
+        return Color.from_rgb_tuple((r, g, b))
+    return color
+
 
 # Lazy initialization for cv2 constants to avoid import errors
-CV2_FONT = None
+CV2_FONT: int | None = None
 
 
 def _get_cv2_font() -> int:
@@ -61,6 +92,7 @@ def _get_cv2_font() -> int:
 
         ensure_cv2_installed()
         CV2_FONT = cv2.FONT_HERSHEY_SIMPLEX
+    assert CV2_FONT is not None
     return CV2_FONT
 
 
@@ -86,9 +118,9 @@ class _BaseLabelAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-        text_color: Color | ColorPalette = Color.WHITE,
+        text_color: Color | ColorPalette | str = Color.WHITE,
         text_padding: int = 10,
         text_position: Position = Position.TOP_LEFT,
         text_offset: tuple[int, int] = (0, 0),
@@ -118,9 +150,9 @@ class _BaseLabelAnnotator(BaseAnnotator):
             max_line_length: Maximum number of characters per
                 line before wrapping the text. None means no wrapping.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.color_lookup: ColorLookup = color_lookup
-        self.text_color: Color | ColorPalette = text_color
+        self.text_color: Color | ColorPalette = _normalize_color_input(text_color)
         self.text_padding: int = text_padding
         self.text_anchor: Position = text_position
         self.text_offset: tuple[int, int] = text_offset
@@ -178,7 +210,7 @@ class BoxAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -190,7 +222,7 @@ class BoxAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
@@ -265,7 +297,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -277,7 +309,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
@@ -356,7 +388,7 @@ class MaskAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         opacity: float = 0.5,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -368,7 +400,7 @@ class MaskAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.opacity = opacity
         self.color_lookup: ColorLookup = color_lookup
 
@@ -422,6 +454,9 @@ class MaskAnnotator(BaseAnnotator):
 
         colored_mask = np.array(scene, copy=True, dtype=np.uint8)
 
+        compact_mask = (
+            detections.mask if isinstance(detections.mask, CompactMask) else None
+        )
         for detection_idx in np.flip(np.argsort(detections.area)):
             color = resolve_color(
                 color=self.color,
@@ -431,8 +466,21 @@ class MaskAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            mask = detections.mask[detection_idx]
-            colored_mask[mask] = color.as_bgr()
+            if compact_mask is not None:
+                # Paint only the bounding-box crop — avoids a full (H, W) alloc.
+                x1 = int(compact_mask.offsets[detection_idx, 0])
+                y1 = int(compact_mask.offsets[detection_idx, 1])
+                crop_m = compact_mask.crop(detection_idx)
+                crop_h, crop_w = crop_m.shape
+                colored_mask[y1 : y1 + crop_h, x1 : x1 + crop_w][crop_m] = (
+                    color.as_bgr()
+                )
+            else:
+                mask = np.asarray(
+                    detections.mask[detection_idx],
+                    dtype=bool,
+                )
+                colored_mask[mask] = color.as_bgr()
 
         cv2.addWeighted(
             colored_mask, self.opacity, scene, 1 - self.opacity, 0, dst=scene
@@ -451,7 +499,7 @@ class PolygonAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -463,7 +511,7 @@ class PolygonAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
@@ -542,7 +590,7 @@ class ColorAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         opacity: float = 0.5,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -554,7 +602,7 @@ class ColorAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.color_lookup: ColorLookup = color_lookup
         self.opacity = opacity
 
@@ -638,7 +686,7 @@ class HaloAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         opacity: float = 0.8,
         kernel_size: int = 40,
         color_lookup: ColorLookup = ColorLookup.CLASS,
@@ -653,7 +701,7 @@ class HaloAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.opacity = opacity
         self.color_lookup: ColorLookup = color_lookup
         self.kernel_size: int = kernel_size
@@ -718,7 +766,7 @@ class HaloAnnotator(BaseAnnotator):
                 if custom_color_lookup is None
                 else custom_color_lookup,
             )
-            mask = detections.mask[detection_idx]
+            mask = np.asarray(detections.mask[detection_idx], dtype=bool)
             fmask = np.logical_or(fmask, mask)
             color_bgr = color.as_bgr()
             colored_mask[mask] = color_bgr
@@ -740,7 +788,7 @@ class EllipseAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         start_angle: int = -45,
         end_angle: int = 235,
@@ -756,7 +804,7 @@ class EllipseAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.start_angle: int = start_angle
         self.end_angle: int = end_angle
@@ -839,7 +887,7 @@ class BoxCornerAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 4,
         corner_length: int = 15,
         color_lookup: ColorLookup = ColorLookup.CLASS,
@@ -853,7 +901,7 @@ class BoxCornerAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.corner_length: int = corner_length
         self.color_lookup: ColorLookup = color_lookup
@@ -934,7 +982,7 @@ class CircleAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -947,7 +995,7 @@ class CircleAnnotator(BaseAnnotator):
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
 
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
 
@@ -1027,12 +1075,12 @@ class DotAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         radius: int = 4,
         position: Position = Position.CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         outline_thickness: int = 0,
-        outline_color: Color | ColorPalette = Color.BLACK,
+        outline_color: Color | ColorPalette | str = Color.BLACK,
     ):
         """
         Args:
@@ -1047,12 +1095,12 @@ class DotAnnotator(BaseAnnotator):
                 use for outline. It is activated by setting outline_thickness to a value
                 greater than 0.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.radius: int = radius
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
         self.outline_thickness = outline_thickness
-        self.outline_color: Color | ColorPalette = outline_color
+        self.outline_color: Color | ColorPalette = _normalize_color_input(outline_color)
 
     @ensure_cv2_image_for_class_method
     def annotate(
@@ -1137,9 +1185,9 @@ class LabelAnnotator(_BaseLabelAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-        text_color: Color | ColorPalette = Color.WHITE,
+        text_color: Color | ColorPalette | str = Color.WHITE,
         text_scale: float = 0.5,
         text_thickness: int = 1,
         text_padding: int = 10,
@@ -1453,9 +1501,9 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-        text_color: Color | ColorPalette = Color.WHITE,
+        text_color: Color | ColorPalette | str = Color.WHITE,
         font_path: str | None = None,
         font_size: int = 10,
         text_padding: int = 10,
@@ -1600,8 +1648,8 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             wrapped_lines = wrap_text(label, self.max_line_length)
 
             # Calculate the total text height and maximum width
-            max_width = 0
-            total_height = 0
+            max_width = 0.0
+            total_height = 0.0
 
             for line in wrapped_lines:
                 left, top, right, bottom = draw.textbbox((0, 0), line, font=self.font)
@@ -1715,7 +1763,9 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         try:
             return ImageFont.truetype(font_path, font_size)
         except OSError:
-            print(f"Font path '{font_path}' not found. Using PIL's default font.")
+            logger.warning(
+                "Font path '%s' not found. Using PIL's default font.", font_path
+            )
             return load_default_font(font_size)
 
 
@@ -1744,7 +1794,10 @@ class IconAnnotator(BaseAnnotator):
 
     @ensure_cv2_image_for_class_method
     def annotate(
-        self, scene: ImageType, detections: Detections, icon_path: str | list[str]
+        self,
+        scene: ImageType,
+        detections: Detections,
+        icon_path: str | list[str] = "",
     ) -> ImageType:
         """
         Annotates the given scene with given icons.
@@ -1818,7 +1871,10 @@ class IconAnnotator(BaseAnnotator):
             raise FileNotFoundError(
                 f"Error: Couldn't load the icon image from {icon_path}"
             )
-        icon = letterbox_image(image=icon, resolution_wh=self.icon_resolution_wh)
+        icon = cast(
+            npt.NDArray[np.uint8],
+            letterbox_image(image=icon, resolution_wh=self.icon_resolution_wh),
+        )
         return icon
 
 
@@ -1827,12 +1883,16 @@ class BlurAnnotator(BaseAnnotator):
     A class for blurring regions in an image using provided detections.
     """
 
-    def __init__(self, kernel_size: int = 15):
+    def __init__(self, kernel_size: int | None = None):
         """
         Args:
             kernel_size: The size of the average pooling kernel used for blurring.
+                If not set, a dynamic size is computed as one-third of the shorter
+                bounding-box dimension. Must be >= 1 when provided.
         """
-        self.kernel_size: int = kernel_size
+        if kernel_size is not None and kernel_size < 1:
+            raise ValueError(f"kernel_size must be >= 1, got {kernel_size}.")
+        self.kernel_size: int | None = kernel_size
 
     @ensure_cv2_image_for_class_method
     def annotate(
@@ -1881,8 +1941,15 @@ class BlurAnnotator(BaseAnnotator):
         ).astype(int)
 
         for x1, y1, x2, y2 in clipped_xyxy:
+            if x2 <= x1 or y2 <= y1:
+                continue
             roi = scene[y1:y2, x1:x2]
-            roi = cv2.blur(roi, (self.kernel_size, self.kernel_size))
+            kernel_size = (
+                self.kernel_size
+                if self.kernel_size is not None
+                else calculate_dynamic_kernel_size(x1, y1, x2, y2)
+            )
+            roi = cv2.blur(roi, (kernel_size, kernel_size))
             scene[y1:y2, x1:x2] = roi
 
         return scene
@@ -1901,7 +1968,7 @@ class TraceAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         position: Position = Position.CENTER,
         trace_length: int = 30,
         thickness: int = 2,
@@ -1917,11 +1984,14 @@ class TraceAnnotator(BaseAnnotator):
             trace_length: The maximum length of the trace in terms of historical
                 points. Defaults to `30`.
             thickness: The thickness of the trace lines. Defaults to `2`.
-            smooth: Smooth the trace lines.
+            smooth: If `True`, applies spline smoothing to trace lines using
+                consecutive unique anchor points. Falls back to a raw polyline
+                when fewer than 4 unique points are available (e.g. when a
+                tracker is stationary).
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.trace = Trace(max_size=trace_length, anchor=position)
         self.thickness = thickness
         self.smooth = smooth
@@ -2004,11 +2074,20 @@ class TraceAnnotator(BaseAnnotator):
             xy = self.trace.get(tracker_id=tracker_id)
             spline_points: npt.NDArray[np.int32] = xy.astype(np.int32)
 
-            if len(xy) > 3 and self.smooth:
-                x, y = xy[:, 0], xy[:, 1]
-                tck, _u = splprep([x, y], s=20)
-                x_new, y_new = splev(np.linspace(0, 1, 100), tck)
-                spline_points = np.stack([x_new, y_new], axis=1).astype(np.int32)
+            if self.smooth:
+                unique_xy = xy[
+                    np.concatenate(([True], np.any(np.diff(xy, axis=0) != 0, axis=1)))
+                ]
+                if len(unique_xy) > 3:
+                    try:
+                        x, y = unique_xy[:, 0], unique_xy[:, 1]
+                        tck, _u = splprep([x, y], s=20)
+                        xy_new = splev(np.linspace(0, 1, 100), tck)
+                        spline_points = np.stack(xy_new, axis=1).astype(np.int32)
+                    except ValueError:
+                        spline_points = unique_xy.astype(np.int32)
+                else:
+                    spline_points = unique_xy.astype(np.int32)
 
             if len(xy) > 1:
                 cv2.polylines(
@@ -2033,7 +2112,7 @@ class HeatMapAnnotator(BaseAnnotator):
         position: Position = Position.BOTTOM_CENTER,
         opacity: float = 0.2,
         radius: int = 40,
-        kernel_size: int = 25,
+        kernel_size: int | None = 25,
         top_hue: int = 0,
         low_hue: int = 125,
     ):
@@ -2043,7 +2122,8 @@ class HeatMapAnnotator(BaseAnnotator):
                 `BOTTOM_CENTER`.
             opacity: Opacity of the overlay mask, between 0 and 1.
             radius: Radius of the heat circle.
-            kernel_size: Kernel size for blurring the heatmap.
+            kernel_size: Kernel size for blurring the heatmap. Pass `None`
+                to disable blurring entirely.
             top_hue: Hue at the top of the heatmap. Defaults to 0 (red).
             low_hue: Hue at the bottom of the heatmap. Defaults to 125 (blue).
         """
@@ -2069,6 +2149,10 @@ class HeatMapAnnotator(BaseAnnotator):
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
+
+        Note:
+            When `detections` is empty or no heat has accumulated yet, the
+            scene is returned unchanged without raising a ``RuntimeWarning``.
 
         Example:
             ```python
@@ -2112,7 +2196,9 @@ class HeatMapAnnotator(BaseAnnotator):
             )
         self.heat_mask = mask + self.heat_mask
         temp = self.heat_mask.copy()
-        temp = self.low_hue - temp / temp.max() * (self.low_hue - self.top_hue)
+        max_val = temp.max()
+        if max_val > 0:
+            temp = self.low_hue - temp / max_val * (self.low_hue - self.top_hue)
         temp = temp.astype(np.uint8)
         if self.kernel_size is not None:
             temp = cv2.blur(temp, (self.kernel_size, self.kernel_size))
@@ -2131,12 +2217,18 @@ class PixelateAnnotator(BaseAnnotator):
     A class for pixelating regions in an image using provided detections.
     """
 
-    def __init__(self, pixel_size: int = 20):
+    def __init__(self, pixel_size: int | None = None):
         """
         Args:
-            pixel_size: The size of the pixelation.
+            pixel_size: The size of the pixelation. If not set, a dynamic size is
+                computed as one-half of the shorter bounding-box dimension. When set
+                and the detection area is smaller than `pixel_size`, the region is
+                filled with its average colour instead to avoid an OpenCV crash.
+                Must be >= 1 when provided.
         """
-        self.pixel_size: int = pixel_size
+        if pixel_size is not None and pixel_size < 1:
+            raise ValueError(f"pixel_size must be >= 1, got {pixel_size}.")
+        self.pixel_size: int | None = pixel_size
 
     @ensure_cv2_image_for_class_method
     def annotate(
@@ -2183,9 +2275,25 @@ class PixelateAnnotator(BaseAnnotator):
         ).astype(int)
 
         for x1, y1, x2, y2 in clipped_xyxy:
+            if x2 <= x1 or y2 <= y1:
+                continue
             roi = scene[y1:y2, x1:x2]
+
+            pixel_size = (
+                self.pixel_size
+                if self.pixel_size is not None
+                else calculate_dynamic_pixel_size(x1, y1, x2, y2)
+            )
+            if min(y2 - y1, x2 - x1) < pixel_size:
+                if roi.ndim == 2 or (roi.ndim == 3 and roi.shape[2] == 1):
+                    scene[y1:y2, x1:x2] = cv2.mean(roi)[0]
+                else:
+                    num_channels = scene.shape[2]
+                    scene[y1:y2, x1:x2] = cv2.mean(roi)[:num_channels]
+                continue
+
             scaled_up_roi = cv2.resize(
-                src=roi, dsize=None, fx=1 / self.pixel_size, fy=1 / self.pixel_size
+                src=roi, dsize=None, fx=1 / pixel_size, fy=1 / pixel_size
             )
             scaled_down_roi = cv2.resize(
                 src=scaled_up_roi,
@@ -2206,13 +2314,13 @@ class TriangleAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         base: int = 10,
         height: int = 10,
         position: Position = Position.TOP_CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         outline_thickness: int = 0,
-        outline_color: Color | ColorPalette = Color.BLACK,
+        outline_color: Color | ColorPalette | str = Color.BLACK,
     ):
         """
         Args:
@@ -2228,13 +2336,13 @@ class TriangleAnnotator(BaseAnnotator):
                 use for outline. It is activated by setting outline_thickness to a value
                 greater than 0.
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.base: int = base
         self.height: int = height
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
         self.outline_thickness: int = outline_thickness
-        self.outline_color: Color | ColorPalette = outline_color
+        self.outline_color: Color | ColorPalette = _normalize_color_input(outline_color)
 
     @ensure_cv2_image_for_class_method
     def annotate(
@@ -2328,7 +2436,7 @@ class RoundBoxAnnotator(BaseAnnotator):
 
     def __init__(
         self,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         thickness: int = 2,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         roundness: float = 0.6,
@@ -2345,7 +2453,7 @@ class RoundBoxAnnotator(BaseAnnotator):
                 By default roundness percent is calculated based on smaller side
                 length (width or height).
         """
-        self.color: Color | ColorPalette = color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
         self.thickness: int = thickness
         self.color_lookup: ColorLookup = color_lookup
         if not 0 < roundness <= 1.0:
@@ -2465,8 +2573,8 @@ class PercentageBarAnnotator(BaseAnnotator):
         self,
         height: int = 16,
         width: int = 80,
-        color: Color | ColorPalette = ColorPalette.DEFAULT,
-        border_color: Color = Color.BLACK,
+        color: Color | ColorPalette | str = ColorPalette.DEFAULT,
+        border_color: Color | str = Color.BLACK,
         position: Position = Position.TOP_CENTER,
         color_lookup: ColorLookup = ColorLookup.CLASS,
         border_thickness: int | None = None,
@@ -2485,8 +2593,8 @@ class PercentageBarAnnotator(BaseAnnotator):
         """
         self.height: int = height
         self.width: int = width
-        self.color: Color | ColorPalette = color
-        self.border_color: Color = border_color
+        self.color: Color | ColorPalette = _normalize_color_input(color)
+        self.border_color: Color = _normalize_color_input(border_color)
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
 
@@ -2660,7 +2768,7 @@ class CropAnnotator(BaseAnnotator):
         self,
         position: Position = Position.TOP_CENTER,
         scale_factor: float = 2.0,
-        border_color: Color | ColorPalette = ColorPalette.DEFAULT,
+        border_color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         border_thickness: int = 2,
         border_color_lookup: ColorLookup = ColorLookup.CLASS,
     ):
@@ -2679,7 +2787,7 @@ class CropAnnotator(BaseAnnotator):
         """
         self.position: Position = position
         self.scale_factor: float = scale_factor
-        self.border_color: Color | ColorPalette = border_color
+        self.border_color: Color | ColorPalette = _normalize_color_input(border_color)
         self.border_thickness: int = border_thickness
         self.border_color_lookup: ColorLookup = border_color_lookup
 
@@ -2886,7 +2994,8 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
                 colored_mask[y1:y2, x1:x2] = scene[y1:y2, x1:x2]
         else:
             for mask in detections.mask:
-                colored_mask[mask] = scene[mask]
+                mask_bool = np.asarray(mask, dtype=bool)
+                colored_mask[mask_bool] = scene[mask_bool]
 
         np.copyto(scene, colored_mask)
         return scene
@@ -3092,7 +3201,7 @@ class ComparisonAnnotator:
         computed positions.
 
         Args:
-            scene (npt.NDArray[np.uint8]): The image where the labels will be drawn.
+            scene: The image where the labels will be drawn.
         """
         margin = int(50 * self.label_scale)
         gap = int(40 * self.label_scale)

@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import threading
 import warnings
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.boxes import move_boxes, move_oriented_boxes
 from supervision.detection.utils.iou_and_nms import OverlapFilter, OverlapMetric
@@ -18,19 +22,19 @@ from supervision.utils.internal import SupervisionWarnings
 
 def move_detections(
     detections: Detections,
-    offset: np.ndarray,
+    offset: npt.NDArray[Any],
     resolution_wh: tuple[int, int] | None = None,
 ) -> Detections:
     """
     Args:
-        detections (sv.Detections): Detections object to be moved.
-        offset (np.ndarray): An array of shape `(2,)` containing offset values in format
-            is `[dx, dy]`.
-        resolution_wh (Tuple[int, int]): The width and height of the desired mask
+        detections: Detections object to be moved.
+        offset: An array of shape `(2,)` containing offset values in the
+            format `[dx, dy]`.
+        resolution_wh: The width and height of the desired mask
             resolution. Required for segmentation detections.
 
     Returns:
-        (sv.Detections) repositioned Detections object.
+        Repositioned Detections object.
     """
     detections.xyxy = move_boxes(xyxy=detections.xyxy, offset=offset)
     if ORIENTED_BOX_COORDINATES in detections.data:
@@ -43,9 +47,17 @@ def move_detections(
                 "Resolution width and height are required for moving segmentation "
                 "detections. This should be the same as (width, height) of image shape."
             )
-        detections.mask = move_masks(
-            masks=detections.mask, offset=offset, resolution_wh=resolution_wh
-        )
+        if isinstance(detections.mask, CompactMask):
+            # Preserve move_masks clipping semantics without dense materialisation.
+            detections.mask = detections.mask.with_offset(
+                dx=int(offset[0]),
+                dy=int(offset[1]),
+                new_image_shape=(resolution_wh[1], resolution_wh[0]),
+            )
+        else:
+            detections.mask = move_masks(
+                masks=detections.mask, offset=offset, resolution_wh=resolution_wh
+            )
     return detections
 
 
@@ -61,21 +73,37 @@ class InferenceSlicer:
     parallel slice inference.
 
     Args:
-        callback (Callable[[ImageType], Detections]): Inference function that takes
-            a sliced image and returns a `Detections` object.
-        slice_wh (int or tuple[int, int]): Size of each slice `(width, height)`.
-            If int, both width and height are set to this value.
-        overlap_wh (int or tuple[int, int]): Overlap size `(width, height)` between
-            slices. If int, both width and height are set to this value.
-        overlap_filter (OverlapFilter or str): Strategy to merge overlapping
-            detections (`NON_MAX_SUPPRESSION`, `NON_MAX_MERGE`, or `NONE`).
-        iou_threshold (float): IOU threshold used in merging overlap filtering.
-        overlap_metric (OverlapMetric or str): Metric to compute overlap
-            (`IOU` or `IOS`).
-        thread_workers (int): Number of threads for concurrent slice inference.
+        callback: Inference function that takes a sliced image and returns a
+            `Detections` object.
+        slice_wh: Size of each slice `(width, height)`. If int, both width and
+            height are set to this value.
+        overlap_wh: Overlap size `(width, height)` between slices. If int, both
+            width and height are set to this value.
+        overlap_filter: Strategy to merge overlapping detections
+            (`NON_MAX_SUPPRESSION`, `NON_MAX_MERGE`, or `NONE`).
+        iou_threshold: IOU threshold used in merging overlap filtering.
+        overlap_metric: Metric to compute overlap (`IOU` or `IOS`).
+        thread_workers: Number of threads for concurrent slice inference.
+            Must be a positive integer. When the first slice returns oriented
+            bounding boxes (OBB), Supervision probes additional slices until a
+            non-empty result is found, then falls back to sequential processing
+            for all remaining slices to avoid thread-safety issues in common OBB
+            inference backends. Note: the first slice always runs synchronously
+            regardless of this setting, so for grids with few slices
+            (e.g. two-slice images) effective parallelism is reduced.
+        compact_masks: If ``True``, dense ``(N, H, W)`` boolean mask
+            arrays returned by the callback are immediately converted to a
+            :class:`~supervision.detection.compact_mask.CompactMask`. This
+            keeps masks in run-length-encoded form for the entire pipeline —
+            merge, NMS, and annotation — avoiding the large ``(N, H, W)``
+            allocations that cause OOM on high-resolution images with many
+            objects. IoU and NMS are computed directly on the RLE crops
+            without ever materialising a full ``(N, H, W)`` array.
+            Defaults to ``False`` for backward compatibility.
 
     Raises:
-        ValueError: If `slice_wh` or `overlap_wh` are invalid or inconsistent.
+        ValueError: If `slice_wh`, `overlap_wh`, or `thread_workers` are
+            invalid or inconsistent.
 
     Example:
         ```python
@@ -121,29 +149,49 @@ class InferenceSlicer:
         iou_threshold: float = 0.5,
         overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
         thread_workers: int = 1,
+        compact_masks: bool = False,
     ):
         slice_wh_norm = self._normalize_slice_wh(slice_wh)
         overlap_wh_norm = self._normalize_overlap_wh(overlap_wh)
 
         self._validate_overlap(slice_wh=slice_wh_norm, overlap_wh=overlap_wh_norm)
 
+        if thread_workers < 1:
+            raise ValueError(
+                "`thread_workers` must be a positive integer. "
+                f"Received: {thread_workers}"
+            )
+
         self.slice_wh = slice_wh_norm
         self.overlap_wh = overlap_wh_norm
         self.iou_threshold = iou_threshold
         self.overlap_metric = OverlapMetric.from_value(overlap_metric)
         self.overlap_filter = OverlapFilter.from_value(overlap_filter)
-        self.callback = callback
+        self.callback: Callable[[ImageType], Detections] = callback
         self.thread_workers = thread_workers
+        self.compact_masks = compact_masks
+        self._out_of_slice_bounds_warned: bool = False
+        self._out_of_slice_bounds_lock = threading.Lock()
+        self._obb_thread_workers_warned: bool = False
+        self._obb_thread_workers_lock = threading.Lock()
 
     def __call__(self, image: ImageType) -> Detections:
         """
         Perform tiled inference on the full image and return merged detections.
 
+        The first slice always runs synchronously so the output type can be
+        inspected before committing to a threading strategy. Detections are
+        merged in a deterministic order: the first slice is always at index 0,
+        followed by any probe slices, then the remaining slices in source order.
+        If oriented bounding boxes are detected, all remaining slices are
+        processed sequentially and a ``SupervisionWarnings`` warning is emitted
+        once per slicer instance.
+
         Args:
-            image (ImageType): The full image to run inference on.
+            image: The full image to run inference on.
 
         Returns:
-            Detections: Merged detections across all slices.
+            Merged detections across all slices.
         """
         detections_list: list[Detections] = []
         resolution_wh = get_image_resolution_wh(image)
@@ -154,12 +202,55 @@ class InferenceSlicer:
             overlap_wh=self.overlap_wh,
         )
 
-        with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
-            futures = [
-                executor.submit(self._run_callback, image, offset) for offset in offsets
-            ]
-            for future in as_completed(futures):
-                detections_list.append(future.result())
+        first_offset = offsets[0]
+        first_detections = self._run_callback(image, first_offset)
+        detections_list.append(first_detections)
+
+        remaining_offsets = offsets[1:]
+        obb_detected = ORIENTED_BOX_COORDINATES in first_detections.data
+        should_run_sequentially = self.thread_workers <= 1 or obb_detected
+
+        probe_index = 0
+        if not should_run_sequentially and len(first_detections) == 0:
+            while probe_index < len(remaining_offsets):
+                probe_offset = remaining_offsets[probe_index]
+                probe_detections = self._run_callback(image, probe_offset)
+                detections_list.append(probe_detections)
+                probe_index += 1
+
+                if ORIENTED_BOX_COORDINATES in probe_detections.data:
+                    obb_detected = True
+                    should_run_sequentially = True
+                    break
+
+                if len(probe_detections) > 0:
+                    break
+
+        remaining_offsets = remaining_offsets[probe_index:]
+
+        if should_run_sequentially:
+            if self.thread_workers > 1 and obb_detected:
+                with self._obb_thread_workers_lock:
+                    if not self._obb_thread_workers_warned:
+                        self._obb_thread_workers_warned = True
+                        warnings.warn(
+                            "InferenceSlicer detected oriented bounding boxes while "
+                            "`thread_workers > 1`. Remaining slices will be processed "
+                            "sequentially because many OBB inference backends are not "
+                            "thread-safe and can crash when shared across threads.",
+                            category=SupervisionWarnings,
+                            stacklevel=2,
+                        )
+            for offset in remaining_offsets:
+                detections_list.append(self._run_callback(image, offset))
+        else:
+            with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
+                futures = [
+                    executor.submit(self._run_callback, image, offset)
+                    for offset in remaining_offsets
+                ]
+                for future in as_completed(futures):
+                    detections_list.append(future.result())
 
         merged = Detections.merge(detections_list=detections_list)
         if self.overlap_filter == OverlapFilter.NONE:
@@ -181,22 +272,61 @@ class InferenceSlicer:
         )
         return merged
 
-    def _run_callback(self, image: ImageType, offset: np.ndarray) -> Detections:
+    def _run_callback(self, image: ImageType, offset: npt.NDArray[Any]) -> Detections:
         """
         Run detection callback on a sliced portion of the image and adjust coordinates.
 
         Args:
-            image (ImageType): The full image.
-            offset (numpy.ndarray): Coordinates `(x_min, y_min, x_max, y_max)` defining
+            image: The full image.
+            offset: Coordinates `(x_min, y_min, x_max, y_max)` defining
                 the slice region.
 
         Returns:
-            Detections: Detections adjusted to the full image coordinate system.
+            Detections adjusted to the full image coordinate system.
         """
-        image_slice: ImageType = crop_image(image=image, xyxy=offset)
+        image_slice = crop_image(image=image, xyxy=offset)
         detections = self.callback(image_slice)
-        resolution_wh = get_image_resolution_wh(image)
 
+        if (
+            self.compact_masks
+            and detections.mask is not None
+            and isinstance(detections.mask, np.ndarray)
+        ):
+            slice_w, slice_h = get_image_resolution_wh(image_slice)
+            detections.mask = CompactMask.from_dense(
+                detections.mask,
+                detections.xyxy,
+                image_shape=(slice_h, slice_w),
+            )
+
+        resolution_wh = get_image_resolution_wh(image)
+        # Fast-path: skip locking and bounds checking when the warning has already
+        # been emitted or when there are no detections to inspect.
+        needs_warning_check = (
+            not self._out_of_slice_bounds_warned and len(detections) > 0
+        )
+
+        if needs_warning_check:
+            with self._out_of_slice_bounds_lock:
+                # Re-check under the lock to ensure correctness with multiple threads.
+                if not self._out_of_slice_bounds_warned and len(detections) > 0:
+                    slice_width = offset[2] - offset[0]
+                    slice_height = offset[3] - offset[1]
+                    x_exceeds = np.any(detections.xyxy[:, [0, 2]] > slice_width)
+                    y_exceeds = np.any(detections.xyxy[:, [1, 3]] > slice_height)
+                    x_negative = np.any(detections.xyxy[:, [0, 2]] < 0)
+                    y_negative = np.any(detections.xyxy[:, [1, 3]] < 0)
+                    if x_exceeds or y_exceeds or x_negative or y_negative:
+                        self._out_of_slice_bounds_warned = True
+                        msg = (
+                            "Detections returned by the callback have coordinates "
+                            "outside the slice bounds. This may be caused by the "
+                            "callback running inference on the full image instead of "
+                            "the provided image slice. Ensure your callback uses the "
+                            "input slice for inference, not the original "
+                            "full-resolution image."
+                        )
+                        warnings.warn(msg, category=SupervisionWarnings, stacklevel=2)
         detections = move_detections(
             detections=detections,
             offset=offset[:2],
@@ -260,17 +390,17 @@ class InferenceSlicer:
         resolution_wh: tuple[int, int],
         slice_wh: tuple[int, int],
         overlap_wh: tuple[int, int],
-    ) -> np.ndarray:
+    ) -> npt.NDArray[Any]:
         """
         Generate bounding boxes defining the coordinates of image slices with overlap.
 
         Args:
-            resolution_wh (tuple[int, int]): Image resolution `(width, height)`.
-            slice_wh (tuple[int, int]): Size of each slice `(width, height)`.
-            overlap_wh (tuple[int, int]): Overlap size between slices `(width, height)`.
+            resolution_wh: Image resolution `(width, height)`.
+            slice_wh: Size of each slice `(width, height)`.
+            overlap_wh: Overlap size between slices `(width, height)`.
 
         Returns:
-            numpy.ndarray: Array of shape `(num_slices, 4)` with each row as
+            Array of shape `(num_slices, 4)` with each row as
                 `(x_min, y_min, x_max, y_max)` coordinates for a slice.
         """
         slice_width, slice_height = slice_wh
@@ -289,10 +419,10 @@ class InferenceSlicer:
                 return [0]
 
             if stride == slice_size:
-                return np.arange(0, image_size, stride).tolist()
+                return list(np.arange(0, image_size, stride).tolist())
 
             last_start = image_size - slice_size
-            starts = np.arange(0, last_start, stride).tolist()
+            starts: list[int] = list(np.arange(0, last_start, stride).tolist())
             if not starts or starts[-1] != last_start:
                 starts.append(last_start)
             return starts
@@ -312,7 +442,7 @@ class InferenceSlicer:
         x_max = np.clip(x_min + slice_width, 0, image_width)
         y_max = np.clip(y_min + slice_height, 0, image_height)
 
-        offsets = np.stack(
+        offsets: npt.NDArray[Any] = np.stack(
             [x_min, y_min, x_max, y_max],
             axis=-1,
         ).reshape(-1, 4)

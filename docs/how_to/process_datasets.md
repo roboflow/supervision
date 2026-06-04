@@ -1,5 +1,11 @@
 ---
 comments: true
+description: Load, split, merge, and convert computer vision datasets between YOLO, COCO, and Pascal VOC formats using supervision's DetectionDataset.
+authors:
+  - name: Piotr Skalski
+    role: Computer Vision Engineer, Roboflow
+    github: https://github.com/SkalskiP
+date_modified: 2026-04-22
 ---
 
 With Supervision, you can load and manipulate classification, object detection, and
@@ -449,3 +455,25 @@ augmented_annotations = replace(
 ```
 
 ![augment-dataset](https://media.roboflow.com/supervision-docs/augment-dataset.png)
+
+## Frequently Asked Questions
+
+### What dataset formats does supervision support?
+
+For detection datasets, supervision supports YOLO, COCO JSON, and Pascal VOC. Use `DetectionDataset.from_yolo()`, `from_coco()`, or `from_pascal_voc()` to load, and `as_yolo()`, `as_coco()`, or `as_pascal_voc()` to save. Classification datasets use `ClassificationDataset.from_folder_structure()` and `as_folder_structure()`.
+
+### Can I split a dataset into train/val/test sets?
+
+`DetectionDataset.split(split_ratio=0.8)` returns exactly two datasets: train (80%) and test (20%). If you need a validation set, split one of those subsets in a separate step.
+
+### Can I merge two datasets together?
+
+Yes. `DetectionDataset.merge([dataset_a, dataset_b])` combines multiple datasets into one. Useful for combining datasets from different sources.
+
+### What augmentations are available?
+
+Common augmentations such as flip, rotate, translate, scale, crop, color jitter, and Gaussian blur can be applied using an external library like Albumentations, as shown in the augmentation example above. Supervision does not provide an `sv.Augmenter` pipeline.
+
+## Author
+
+- [Piotr Skalski](https://github.com/SkalskiP) — Computer Vision Engineer, Roboflow

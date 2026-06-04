@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from contextlib import ExitStack as DoesNotRaise
 
 import numpy as np
@@ -7,6 +8,7 @@ import pytest
 
 from supervision.detection.core import Detections, merge_inner_detection_object_pair
 from supervision.geometry.core import Position
+from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import _create_detections
 
 PREDICTIONS = np.array(
@@ -127,6 +129,30 @@ TEST_DET_DIFFERENT_METADATA = Detections(
     class_id=np.array([3]),
     metadata={"source": "camera2"},
 )
+
+
+@pytest.mark.parametrize("mask_dtype", [bool, np.bool_])
+def test_detections_bool_mask_types_do_not_warn(mask_dtype) -> None:
+    with warnings.catch_warnings(record=True) as recorded_warnings:
+        warnings.simplefilter("always")
+        Detections(
+            xyxy=np.array([[1, 2, 3, 4]]),
+            mask=np.array([[[1, 0], [0, 1]]], dtype=mask_dtype),
+        )
+    assert not any(
+        warning.category is SupervisionWarnings for warning in recorded_warnings
+    )
+
+
+def test_detections_non_bool_mask_warns_with_migration_path() -> None:
+    with pytest.warns(
+        SupervisionWarnings,
+        match="supervision-0.28.0.*ValueError.*astype\\(bool\\)",
+    ):
+        Detections(
+            xyxy=np.array([[1, 2, 3, 4]]),
+            mask=np.array([[[1, 0], [0, 1]]], dtype=np.uint8),
+        )
 
 
 @pytest.mark.parametrize(
@@ -299,9 +325,9 @@ def test_getitem(
         ),  # single detection with fields
         (
             [TEST_DET_NONE],
-            TEST_DET_NONE,
+            Detections.empty(),
             DoesNotRaise(),
-        ),  # Single weakly-defined detection
+        ),  # Single weakly-defined detection: now correctly treated as empty
         (
             [TEST_DET_1, TEST_DET_2],
             TEST_DET_1_2,
@@ -322,17 +348,17 @@ def test_getitem(
         ),  # Single detection and empty-array fields
         (
             [TEST_DET_ZERO_LENGTH, TEST_DET_ZERO_LENGTH],
-            TEST_DET_ZERO_LENGTH,
+            Detections.empty(),
             DoesNotRaise(),
-        ),  # Zero-length fields across all Detections
+        ),  # Zero-length fields: all treated as empty, result is canonical empty
         (
             [
                 TEST_DET_1,
                 TEST_DET_NONE,
             ],
-            None,
-            pytest.raises(ValueError, match="mask' fields must be None"),
-        ),  # Empty detection, but not Detections.empty()
+            TEST_DET_1,
+            DoesNotRaise(),
+        ),  # Empty detection stripped; non-empty detection returned intact
         # Errors: Non-zero-length differently defined keys & data
         (
             [TEST_DET_1, TEST_DET_DIFFERENT_FIELDS],
@@ -852,3 +878,107 @@ def test_merge_inner_detection_object_pair(
     with exception:
         result = merge_inner_detection_object_pair(detection_1, detection_2)
         assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    ("detections", "expected"),
+    [
+        (
+            Detections.empty(),
+            True,
+        ),  # canonical empty
+        (
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10]]),
+                class_id=np.array([1]),
+                confidence=np.array([0.9]),
+            ),
+            False,
+        ),  # non-empty, no tracker_id
+        (
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10], [0, 0, 20, 30]]),
+                class_id=np.array([1, 2]),
+                confidence=np.array([0.6, 0.7]),
+                tracker_id=np.array([1, 2]),
+            )[np.array([False, False])],
+            True,
+        ),  # filtered to empty with tracker_id — the regression case from #2195
+        (
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10], [0, 0, 20, 30]]),
+                class_id=np.array([1, 2]),
+                confidence=np.array([0.6, 0.7]),
+                tracker_id=np.array([1, 2]),
+            )[np.array([True, False])],
+            False,
+        ),  # one detection remaining after filter
+        (
+            Detections(
+                xyxy=np.array([[0, 0, 10, 10], [0, 0, 20, 30]]),
+                mask=np.zeros((2, 4, 4), dtype=bool),
+                class_id=np.array([1, 2]),
+            )[np.array([False, False])],
+            True,
+        ),  # filtered to empty with mask — same bug could affect mask field
+    ],
+    ids=[
+        "canonical_empty",
+        "non_empty_no_tracker",
+        "filtered_empty_with_tracker",
+        "one_remaining_after_filter",
+        "filtered_empty_with_mask",
+    ],
+)
+def test_is_empty(detections: Detections, expected: bool) -> None:
+    """Verify is_empty() returns True iff the Detections object has zero detections."""
+    assert detections.is_empty() == expected
+
+
+def test_from_inference_empty_class_name_dtype_matches_non_empty() -> None:
+    """Empty and non-empty results should produce string-kind class_name arrays."""
+    empty_result = {"predictions": [], "image": {"width": 100, "height": 100}}
+    non_empty_result = {
+        "predictions": [
+            {
+                "x": 50,
+                "y": 50,
+                "width": 20,
+                "height": 20,
+                "confidence": 0.9,
+                "class": "cat",
+                "class_id": 0,
+            }
+        ],
+        "image": {"width": 100, "height": 100},
+    }
+    empty = Detections.from_inference(empty_result)
+    non_empty = Detections.from_inference(non_empty_result)
+
+    # null-safety: class_name must be an array, not None
+    assert empty["class_name"] is not None
+    assert non_empty["class_name"] is not None
+
+    # dtype kind must match between empty and non-empty paths
+    assert empty["class_name"].dtype.kind == non_empty["class_name"].dtype.kind == "U"
+
+    # all data keys and dtypes must match between empty and non-empty paths
+    assert set(empty.data.keys()) == set(non_empty.data.keys())
+    for key in non_empty.data:
+        assert empty.data[key].dtype.kind == non_empty.data[key].dtype.kind, key
+
+    # concatenation across empty+non-empty must produce a string-kind array
+    concat = np.concatenate([empty["class_name"], non_empty["class_name"]])
+    assert concat.dtype.kind == "U"
+
+
+def test_from_inference_sdk_dict_path_empty_preserves_class_name_dtype() -> None:
+    """SDK objects with .dict() and empty predictions produce string-kind class_name."""
+
+    class _FakeSdkResult:
+        def dict(self, **kwargs: object) -> dict:
+            return {"predictions": [], "image": {"width": 100, "height": 100}}
+
+    detections = Detections.from_inference(_FakeSdkResult())
+    assert detections["class_name"] is not None
+    assert detections["class_name"].dtype.kind == "U"

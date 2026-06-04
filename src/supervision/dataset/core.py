@@ -13,9 +13,10 @@ import numpy.typing as npt
 try:
     import cv2
 except ImportError:
-    cv2 = None  # type: ignore
+    cv2 = None  # type: ignore[assignment]
 
 from supervision.classification.core import Classifications
+from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.dataset.formats.coco import (
     load_coco_annotations,
     save_coco_annotations,
@@ -87,6 +88,14 @@ class DetectionDataset(BaseDataset):
                 "The keys of the images and annotations dictionaries must match."
             )
         self.annotations = annotations
+
+        if self.classes:
+            np_classes = np.array(self.classes)
+            for annotation in self.annotations.values():
+                if annotation.class_id is not None:
+                    annotation.data[CLASS_NAME_DATA_FIELD] = np_classes[
+                        annotation.class_id
+                    ]
 
         # Eliminate duplicates while preserving order
         self.image_paths = list(dict.fromkeys(images))
@@ -605,7 +614,9 @@ class DetectionDataset(BaseDataset):
         min_image_area_percentage: float = 0.0,
         max_image_area_percentage: float = 1.0,
         approximation_percentage: float = 0.0,
-    ) -> None:
+        starting_image_id: int = 1,
+        starting_annotation_id: int = 1,
+    ) -> tuple[int, int]:
         """
         Exports the dataset to COCO format. This method saves the
         images and their corresponding annotations in COCO format.
@@ -641,19 +652,59 @@ class DetectionDataset(BaseDataset):
                 to be removed from the input polygon,
                 in the range [0, 1). This is useful for simplifying the annotations.
                 Argument is used only for segmentation datasets.
+            starting_image_id: First image id to assign in the exported file.
+                Defaults to ``1``. Override when exporting multiple splits into
+                a coordinated COCO collection so ids remain unique across the
+                set (see example below).
+            starting_annotation_id: First annotation id to assign in the
+                exported file. Defaults to ``1``. Override for the same
+                multi-split reason as ``starting_image_id``.
+
+        Returns:
+            A ``(next_image_id, next_annotation_id)`` tuple containing the
+            first unused ids after this export. Feed them straight back into
+            ``starting_image_id`` and ``starting_annotation_id`` on the next
+            split so ids stay globally unique. When ``annotations_path`` is
+            ``None`` (images-only export) the starting ids are returned
+            unchanged so chaining still composes.
+
+        Example:
+            ```python
+            # Exporting train, valid, and test splits with non-colliding ids
+            # so the three annotation files can later be merged into one COCO.
+            next_image_id, next_annotation_id = train_ds.as_coco(
+                images_directory_path="out/train/images",
+                annotations_path="out/train/annotations.json",
+            )
+            next_image_id, next_annotation_id = valid_ds.as_coco(
+                images_directory_path="out/valid/images",
+                annotations_path="out/valid/annotations.json",
+                starting_image_id=next_image_id,
+                starting_annotation_id=next_annotation_id,
+            )
+            _, _ = test_ds.as_coco(
+                images_directory_path="out/test/images",
+                annotations_path="out/test/annotations.json",
+                starting_image_id=next_image_id,
+                starting_annotation_id=next_annotation_id,
+            )  # return value not needed — no further split
+            ```
         """
         if images_directory_path is not None:
             save_dataset_images(
                 dataset=self, images_directory_path=images_directory_path
             )
         if annotations_path is not None:
-            save_coco_annotations(
+            return save_coco_annotations(
                 dataset=self,
                 annotation_path=annotations_path,
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
+                starting_image_id=starting_image_id,
+                starting_annotation_id=starting_annotation_id,
             )
+        return starting_image_id, starting_annotation_id
 
 
 @dataclass

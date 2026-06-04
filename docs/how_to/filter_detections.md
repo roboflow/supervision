@@ -1,5 +1,11 @@
 ---
 comments: true
+description: Filter and query detection results by class, confidence, or spatial overlap using supervision's Detections API — clean predictions in one line.
+authors:
+  - name: Piotr Skalski
+    role: Computer Vision Engineer, Roboflow
+    github: https://github.com/SkalskiP
+date_modified: 2026-04-22
 ---
 
 # Filter Detections
@@ -312,3 +318,29 @@ zone. In the example below you can see how to filter out all detections located 
     ![original](https://media.roboflow.com/open-source/supervision/supervision-detection-original.png){ align=center width="800" }
 
     </div>
+
+## Frequently Asked Questions
+
+### How do I filter detections by class in supervision?
+
+Use NumPy-style boolean indexing: `detections[detections.class_id == 0]` for class 0. Combine with `&` or `|` for multiple conditions.
+
+### How do I filter by confidence threshold?
+
+`detections[detections.confidence > 0.5]` returns only detections above the threshold. Chain with class filters for precise results.
+
+### How do I filter by bounding box area?
+
+`detections[detections.area > 1000]` filters by pixel area. If masks are present, `detections.area` uses mask area; otherwise it uses bounding box area from `xyxy`. Use `detections.box_area` when you specifically need bounding box area.
+
+### Can I filter by box aspect ratio or dimensions?
+
+Yes. Use `detections.box_aspect_ratio` for aspect ratio filtering. If you need explicit box dimensions, compute them from `detections.xyxy` as `width = detections.xyxy[:, 2] - detections.xyxy[:, 0]` and `height = detections.xyxy[:, 3] - detections.xyxy[:, 1]`.
+
+### How do I remove duplicate detections (NMS) from my results?
+
+Use `detections.with_nms(threshold=0.5)` — it applies non-maximum suppression on the `xyxy` boxes.
+
+## Author
+
+- [Piotr Skalski](https://github.com/SkalskiP) — Computer Vision Engineer, Roboflow

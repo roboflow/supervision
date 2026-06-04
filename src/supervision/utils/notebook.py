@@ -6,7 +6,7 @@ from PIL import Image
 try:
     import cv2
 except ImportError:
-    cv2 = None  # type: ignore
+    cv2 = None  # type: ignore[assignment]
 
 from supervision.draw.base import ImageType
 from supervision.utils.conversion import pillow_to_cv2

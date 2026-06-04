@@ -1,10 +1,10 @@
 site_name: Supervision
 site_url: https://supervision.roboflow.com/
 site_author: Roboflow
-site_description: A set of easy-to-use utilities that will come in handy in any computer vision project.
+site_description: "Model-agnostic Python library for computer vision. Annotate, track, filter, and export detections from supported model outputs including Ultralytics, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, and VLM parsers."
 repo_name: roboflow/supervision
 edit_uri: https://github.com/roboflow/supervision/tree/main/docs
-copyright: Roboflow 2025. All rights reserved.
+copyright: Roboflow 2026. All rights reserved.
 
 extra:
   social:
@@ -30,6 +30,9 @@ extra_css:
 
 nav:
   - Home: index.md
+  - About: about.md
+  - Contact: contact.md
+  - FAQ: faq.md
   - Learn:
       - Detect and Annotate: how_to/detect_and_annotate.md
       - Save Detections: how_to/save_detections.md
@@ -43,6 +46,7 @@ nav:
       - Detection and Segmentation:
           - Core: detection/core.md
           - Annotators: detection/annotators.md
+          - Compact Mask: detection/compact_mask.md
           - Converters: detection/utils/converters.md
           - IoU and NMS: detection/utils/iou_and_nms.md
           - Boxes: detection/utils/boxes.md
@@ -63,7 +67,6 @@ nav:
       - Trackers: trackers.md
       - Datasets:
           - Core: datasets/core.md
-          - Utils: datasets/utils.md
       - Metrics:
           - mAP: metrics/mean_average_precision.md
           - mAR: metrics/mean_average_recall.md

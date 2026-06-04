@@ -1,5 +1,11 @@
 ---
 comments: true
+description: Detect small objects in images by applying SAHI inference slicing with supervision's InferenceSlicer — improve recall for tiny targets.
+authors:
+  - name: Piotr Skalski
+    role: Computer Vision Engineer, Roboflow
+    github: https://github.com/SkalskiP
+date_modified: 2026-04-22
 ---
 
 # Detect Small Objects
@@ -18,6 +24,8 @@ with the [Inference](https://github.com/roboflow/inference),
 
 Small object detection in high-resolution images presents challenges due to the objects'
 size relative to the image resolution.
+
+Running a standard detection model on the full image establishes a baseline for comparison. Load your chosen model, pass the image through it, and convert the results into a `Detections` object. This baseline reveals how many small objects the model misses at native resolution, motivating the sliced inference approach shown later.
 
 === "Inference"
 
@@ -328,3 +336,21 @@ objects within each, and aggregating the results.
     ```
 
 ![detection-with-inference-slicer](https://media.roboflow.com/supervision-docs/inference-slicer-segmentation-example.png)
+
+## Frequently Asked Questions
+
+### How do I detect small objects with supervision?
+
+Use `sv.InferenceSlicer` to split a high-resolution image into overlapping tiles, run detection on each tile, and merge results with non-maximum suppression. This dramatically improves recall for tiny targets.
+
+### What overlap should I use between tiles?
+
+`InferenceSlicer` takes overlap in pixels via `overlap_wh`, not as a percentage. The default is `100` pixels in both directions. Increase `overlap_wh` when objects are close to the tile size or often appear on tile boundaries, and decrease it when speed is more important.
+
+### Can I use InferenceSlicer with any detection model?
+
+Yes. Wrap any model or converter path that can produce `sv.Detections` in a callback, pass that callback to `sv.InferenceSlicer(callback=...)`, and then call the slicer with your image.
+
+## Author
+
+- [Piotr Skalski](https://github.com/SkalskiP) — Computer Vision Engineer, Roboflow

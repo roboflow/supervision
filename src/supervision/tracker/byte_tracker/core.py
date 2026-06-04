@@ -4,6 +4,7 @@ from typing import cast
 
 import numpy as np
 import numpy.typing as npt
+from deprecate import deprecated_class
 
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import box_iou_batch
@@ -13,9 +14,20 @@ from supervision.tracker.byte_tracker.single_object_track import STrack, TrackSt
 from supervision.tracker.byte_tracker.utils import IdCounter
 
 
+@deprecated_class(
+    target=None,
+    deprecated_in="0.28.0",
+    remove_in="0.30.0",
+)
 class ByteTrack:
     """
     Initialize the ByteTrack object.
+
+    .. deprecated:: 0.28.0
+        `ByteTrack` is deprecated since `supervision-0.28.0` and will be removed in
+        `supervision-0.30.0`. Use `ByteTrackTracker` from the `trackers` package
+        instead (`pip install trackers`). Note: the update method is renamed from
+        `update_with_detections()` to `update()`.
 
     <video controls>
         <source src="https://media.roboflow.com/supervision/video-examples/how-to/track-objects/annotate-video-with-traces.mp4" type="video/mp4">
@@ -31,9 +43,10 @@ class ByteTrack:
             reducing the likelihood of track fragmentation or disappearance caused
             by brief detection gaps.
         minimum_matching_threshold: Threshold for matching tracks with detections.
-            Increasing minimum_matching_threshold improves accuracy but risks fragmentation.
-            Decreasing it improves completeness but risks false positives and drift.
-        frame_rate: The frame rate of the video.
+            Decreasing minimum_matching_threshold improves accuracy but risks fragmentation.
+            Increasing it improves completeness but risks false positives and drift.
+        frame_rate: The frame rate of the video. Accepts float values (e.g. 23.976,
+            29.97) for accurate lost-track-buffer calculation.
         minimum_consecutive_frames: Number of consecutive frames that an object must
             be tracked before it is considered a 'valid' track.
             Increasing minimum_consecutive_frames prevents the creation of accidental tracks from
@@ -45,7 +58,7 @@ class ByteTrack:
         track_activation_threshold: float = 0.25,
         lost_track_buffer: int = 30,
         minimum_matching_threshold: float = 0.8,
-        frame_rate: int = 30,
+        frame_rate: float = 30,
         minimum_consecutive_frames: int = 1,
     ):
         self.track_activation_threshold = track_activation_threshold
@@ -371,7 +384,7 @@ def remove_duplicate_tracks(
     tracks_a: list[STrack], tracks_b: list[STrack]
 ) -> tuple[list[STrack], list[STrack]]:
     pairwise_distance = matching.iou_distance(tracks_a, tracks_b)
-    matching_pairs = np.where(pairwise_distance < 0.15)
+    matching_pairs = np.where(pairwise_distance < 0.05)
 
     duplicates_a, duplicates_b = set(), set()
     for track_index_a, track_index_b in zip(*matching_pairs):

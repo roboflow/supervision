@@ -1,24 +1,37 @@
 from __future__ import annotations
 
+import itertools
+import math
 import os
 import shutil
-from typing import Any
+from collections.abc import Callable
+from functools import partial
+from typing import Any, Literal, cast
 
 import numpy as np
 import numpy.typing as npt
+from deprecate import deprecated
 from PIL import Image
 
 try:
     import cv2
 except ImportError:
-    cv2 = None  # type: ignore
+    cv2 = None  # type: ignore[assignment]
 
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color, unify_to_bgr
+from supervision.draw.utils import calculate_optimal_text_scale, draw_text
+from supervision.geometry.core import Point
 from supervision.utils.conversion import (
+    cv2_to_pillow,
     ensure_cv2_image_for_standalone_function,
+    images_to_cv2,
 )
-from supervision.utils.internal import deprecated
+from supervision.utils.iterables import create_batches, fill
+
+RelativePosition = Literal["top", "bottom"]
+
+MAX_COLUMNS_FOR_SINGLE_ROW_GRID = 3
 
 
 @ensure_cv2_image_for_standalone_function
@@ -123,6 +136,7 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
 
     ![scale-image](https://media.roboflow.com/supervision-docs/supervision-docs-scale-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
+    assert isinstance(image, np.ndarray)
     if scale_factor <= 0:
         raise ValueError("Scale factor must be positive.")
 
@@ -180,6 +194,7 @@ def resize_image(
 
     ![resize-image](https://media.roboflow.com/supervision-docs/supervision-docs-resize-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
+    assert isinstance(image, np.ndarray)
     if keep_aspect_ratio:
         image_ratio = image.shape[1] / image.shape[0]
         target_ratio = resolution_wh[0] / resolution_wh[1]
@@ -261,9 +276,10 @@ def letterbox_image(
     return image_with_borders
 
 
-@deprecated(
-    "`overlay_image` function is deprecated and will be removed in "
-    "`supervision-0.32.0`. Use `draw_image` instead."
+@deprecated(  # type: ignore[untyped-decorator]
+    target=None,
+    deprecated_in="0.27.0",
+    remove_in="0.31.0",
 )
 def overlay_image(
     image: npt.NDArray[np.uint8],
@@ -374,6 +390,7 @@ def tint_image(
 
     ![tint-image](https://media.roboflow.com/supervision-docs/supervision-docs-tint-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
+    assert isinstance(image, np.ndarray)
     if not 0.0 <= opacity <= 1.0:
         raise ValueError("opacity must be between 0.0 and 1.0")
 
@@ -473,11 +490,11 @@ class ImageSink:
         Initialize context manager for saving images to directory.
 
         Args:
-            target_dir_path (`str`): Target directory path where images will be
+            target_dir_path: Target directory path where images will be
                 saved.
-            overwrite (`bool`): Whether to overwrite existing directory.
+            overwrite: Whether to overwrite existing directory.
                 Defaults to `False`.
-            image_name_pattern (`str`): File name pattern for saved images.
+            image_name_pattern: File name pattern for saved images.
                 Defaults to `"image_{:05d}.png"`.
 
         Examples:
@@ -542,3 +559,370 @@ class ImageSink:
         exc_traceback: Any,
     ) -> None:
         pass
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=None,
+    deprecated_in="0.27.0",
+    remove_in="0.31.0",
+)
+def create_tiles(
+    images: list[ImageType],
+    grid_size: tuple[int | None, int | None] | None = None,
+    single_tile_size: tuple[int, int] | None = None,
+    tile_scaling: Literal["min", "max", "avg"] = "avg",
+    tile_padding_color: tuple[int, int, int] | Color = Color.from_hex("#D9D9D9"),
+    tile_margin: int = 10,
+    tile_margin_color: tuple[int, int, int] | Color = Color.from_hex("#BFBEBD"),
+    return_type: Literal["auto", "cv2", "pillow"] = "auto",
+    titles: list[str | None] | None = None,
+    titles_anchors: Point | list[Point | None] | None = None,
+    titles_color: tuple[int, int, int] | Color = Color.from_hex("#262523"),
+    titles_scale: float | None = None,
+    titles_thickness: int = 1,
+    titles_padding: int = 10,
+    titles_text_font: int = cv2.FONT_HERSHEY_SIMPLEX,
+    titles_background_color: tuple[int, int, int] | Color = Color.from_hex("#D9D9D9"),
+    default_title_placement: RelativePosition = "top",
+) -> ImageType:
+    """
+    Creates tiles mosaic from input images, automating grid placement and
+    converting images to common resolution maintaining aspect ratio. It is
+    also possible to render text titles on tiles, using optional set of
+    parameters specifying text drawing (see parameters description).
+
+    Automated grid placement will try to maintain square shape of grid
+    (with size being the nearest integer square root of #images), up to two exceptions:
+    * if there are up to 3 images - images will be displayed in single row
+    * if square-grid placement causes last row to be empty - number of rows is trimmed
+        until last row has at least one image
+
+    Args:
+        images: Images to create tiles. Elements can be either np.ndarray or
+            PIL.Image, and a common representation will be agreed by the
+            function.
+        grid_size: Expected grid size in format (n_rows, n_cols). If not
+            given, automated grid placement will be applied. One may also
+            provide only one out of two elements of the tuple - then grid
+            will be created with either n_rows or n_cols fixed, leaving the
+            other dimension to be adjusted by the number of images.
+        single_tile_size: Size of a single tile element provided in
+            (width, height) format. If not given, size of tile will be
+            automatically calculated based on `tile_scaling`.
+        tile_scaling: Strategy used to calculate tile size when
+            `single_tile_size` is not given, using the min / max / avg size
+            of images provided in `images`.
+        tile_padding_color: Color to be used in the image letterbox procedure
+            while standardizing tile sizes. If a tuple is provided, it should
+            be in BGR order.
+        tile_margin: Size of margin between tiles, in pixels.
+        tile_margin_color: Color of the tile margin. If a tuple is provided,
+            it should be in BGR order.
+        return_type: Format of the returned image. One may choose a specific
+            format ("cv2" or "pillow") to enforce conversion. "auto" mode
+            takes a majority vote between types of elements in `images`,
+            resolving draws in favour of OpenCV format. "auto" can be safely
+            used when all input images are of the same type.
+        titles: Optional titles to be added to tiles. Elements of that list
+            may be empty - then a specific tile, in the order presented in
+            `images`, will not be filled with a title. It is possible to
+            provide a list of titles shorter than `images` - then remaining
+            titles will be assumed empty.
+        titles_anchors: Anchor points for titles. It is possible to specify
+            an anchor either globally or for specific tiles, following the
+            order of `images`. If not given, either globally or for a
+            specific element of the list, it will be calculated
+            automatically based on `default_title_placement`.
+        titles_color: Color of the title text. If a tuple is provided, it
+            should be in BGR order.
+        titles_scale: Scale of titles. If not provided, the value will be
+            calculated using `calculate_optimal_text_scale(...)`.
+        titles_thickness: Thickness of title text.
+        titles_padding: Size of title padding.
+        titles_text_font: Font used to render titles. Must be an integer
+            constant representing an OpenCV font.
+            (See docs: https://docs.opencv.org/4.x/d6/d6e/group__imgproc__draw.html)
+        titles_background_color: Color of the title text padding.
+        default_title_placement: Title anchor placement used when an explicit
+            anchor is not provided.
+
+    Returns:
+        ImageType: Image with all input images located in tiles grid. The output type is
+            determined by `return_type` parameter.
+
+    Raises:
+        ValueError: In case when input images list is empty, provided `grid_size` is too
+            small to fit all images, `tile_scaling` mode is invalid.
+    """
+    if len(images) == 0:
+        raise ValueError("Could not create image tiles from empty list of images.")
+    if return_type == "auto":
+        return_type = _negotiate_tiles_format(images=images)
+    tile_padding_color = unify_to_bgr(color=tile_padding_color)
+    tile_margin_color = unify_to_bgr(color=tile_margin_color)
+    images = images_to_cv2(images=images)
+    if single_tile_size is None:
+        single_tile_size = _aggregate_images_shape(images=images, mode=tile_scaling)
+    resized_images = [
+        letterbox_image(
+            image=i, resolution_wh=single_tile_size, color=tile_padding_color
+        )
+        for i in images
+    ]
+    grid_size = _establish_grid_size(images=images, grid_size=grid_size)
+    if len(images) > grid_size[0] * grid_size[1]:
+        raise ValueError(
+            f"Could not place {len(images)} in grid with size: {grid_size}."
+        )
+    if titles is not None:
+        titles = fill(sequence=titles, desired_size=len(images), content=None)
+    if isinstance(titles_anchors, list):
+        titles_anchors_sequence = titles_anchors
+    else:
+        titles_anchors_sequence = [titles_anchors]
+    titles_anchors = fill(
+        sequence=titles_anchors_sequence, desired_size=len(images), content=None
+    )
+    titles_color = unify_to_bgr(color=titles_color)
+    titles_background_color = unify_to_bgr(color=titles_background_color)
+    tiles = _generate_tiles(
+        images=resized_images,
+        grid_size=grid_size,
+        single_tile_size=single_tile_size,
+        tile_padding_color=tile_padding_color,
+        tile_margin=tile_margin,
+        tile_margin_color=tile_margin_color,
+        titles=titles,
+        titles_anchors=titles_anchors,
+        titles_color=titles_color,
+        titles_scale=titles_scale,
+        titles_thickness=titles_thickness,
+        titles_padding=titles_padding,
+        titles_text_font=titles_text_font,
+        titles_background_color=titles_background_color,
+        default_title_placement=default_title_placement,
+    )
+    if return_type == "pillow":
+        tiles = cv2_to_pillow(image=tiles)
+    return cast(ImageType, tiles)
+
+
+def _negotiate_tiles_format(images: list[ImageType]) -> Literal["cv2", "pillow"]:
+    number_of_np_arrays = sum(issubclass(type(i), np.ndarray) for i in images)
+    if number_of_np_arrays * 2 >= len(images):
+        return "cv2"
+    return "pillow"
+
+
+def _calculate_aggregated_images_shape(
+    images: list[npt.NDArray[np.uint8]], aggregator: Callable[[list[int]], float]
+) -> tuple[int, int]:
+    height = round(aggregator([i.shape[0] for i in images]))
+    width = round(aggregator([i.shape[1] for i in images]))
+    return width, height
+
+
+SHAPE_AGGREGATION_FUN = {
+    "min": partial(_calculate_aggregated_images_shape, aggregator=np.min),
+    "max": partial(_calculate_aggregated_images_shape, aggregator=np.max),
+    "avg": partial(_calculate_aggregated_images_shape, aggregator=np.average),
+}
+
+
+def _aggregate_images_shape(
+    images: list[npt.NDArray[np.uint8]], mode: Literal["min", "max", "avg"]
+) -> tuple[int, int]:
+    if mode not in SHAPE_AGGREGATION_FUN:
+        raise ValueError(
+            f"Could not aggregate images shape - provided unknown mode: {mode}. "
+            f"Supported modes: {list(SHAPE_AGGREGATION_FUN.keys())}."
+        )
+    return SHAPE_AGGREGATION_FUN[mode](images)
+
+
+def _establish_grid_size(
+    images: list[npt.NDArray[np.uint8]],
+    grid_size: tuple[int | None, int | None] | None,
+) -> tuple[int, int]:
+    if grid_size is None or all(e is None for e in grid_size):
+        return _negotiate_grid_size(images=images)
+    if grid_size[0] is None:
+        columns = grid_size[1]
+        assert columns is not None
+        return math.ceil(len(images) / columns), columns
+    if grid_size[1] is None:
+        rows = grid_size[0]
+        assert rows is not None
+        return rows, math.ceil(len(images) / rows)
+    return cast(tuple[int, int], grid_size)
+
+
+def _negotiate_grid_size(images: list[npt.NDArray[np.uint8]]) -> tuple[int, int]:
+    if len(images) <= MAX_COLUMNS_FOR_SINGLE_ROW_GRID:
+        return 1, len(images)
+    nearest_sqrt = math.ceil(np.sqrt(len(images)))
+    proposed_columns = nearest_sqrt
+    proposed_rows = nearest_sqrt
+    while proposed_columns * (proposed_rows - 1) >= len(images):
+        proposed_rows -= 1
+    return proposed_rows, proposed_columns
+
+
+def _generate_tiles(
+    images: list[npt.NDArray[np.uint8]],
+    grid_size: tuple[int, int],
+    single_tile_size: tuple[int, int],
+    tile_padding_color: tuple[int, int, int],
+    tile_margin: int,
+    tile_margin_color: tuple[int, int, int],
+    titles: list[str | None] | None,
+    titles_anchors: list[Point | None],
+    titles_color: tuple[int, int, int],
+    titles_scale: float | None,
+    titles_thickness: int,
+    titles_padding: int,
+    titles_text_font: int,
+    titles_background_color: tuple[int, int, int],
+    default_title_placement: RelativePosition,
+) -> npt.NDArray[np.uint8]:
+    images = _draw_texts(
+        images=images,
+        titles=titles,
+        titles_anchors=titles_anchors,
+        titles_color=titles_color,
+        titles_scale=titles_scale,
+        titles_thickness=titles_thickness,
+        titles_padding=titles_padding,
+        titles_text_font=titles_text_font,
+        titles_background_color=titles_background_color,
+        default_title_placement=default_title_placement,
+    )
+    rows, columns = grid_size
+    tiles_elements = list(create_batches(sequence=images, batch_size=columns))
+    while len(tiles_elements[-1]) < columns:
+        tiles_elements[-1].append(
+            _generate_color_image(shape=single_tile_size, color=tile_padding_color)
+        )
+    while len(tiles_elements) < rows:
+        tiles_elements.append(
+            [_generate_color_image(shape=single_tile_size, color=tile_padding_color)]
+            * columns
+        )
+    return _merge_tiles_elements(
+        tiles_elements=tiles_elements,
+        grid_size=grid_size,
+        single_tile_size=single_tile_size,
+        tile_margin=tile_margin,
+        tile_margin_color=tile_margin_color,
+    )
+
+
+def _draw_texts(
+    images: list[npt.NDArray[np.uint8]],
+    titles: list[str | None] | None,
+    titles_anchors: list[Point | None],
+    titles_color: tuple[int, int, int],
+    titles_scale: float | None,
+    titles_thickness: int,
+    titles_padding: int,
+    titles_text_font: int,
+    titles_background_color: tuple[int, int, int],
+    default_title_placement: RelativePosition,
+) -> list[npt.NDArray[np.uint8]]:
+    if titles is None:
+        return images
+    prepared_titles_anchors = _prepare_default_titles_anchors(
+        images=images,
+        titles_anchors=titles_anchors,
+        default_title_placement=default_title_placement,
+    )
+    if titles_scale is None:
+        image_height, image_width = images[0].shape[:2]
+        titles_scale = calculate_optimal_text_scale(
+            resolution_wh=(image_width, image_height)
+        )
+    result = []
+    for image, text, anchor in zip(images, titles, prepared_titles_anchors):
+        if text is None:
+            result.append(image)
+            continue
+        processed_image = draw_text(
+            scene=image,
+            text=text,
+            text_anchor=anchor,
+            text_color=Color.from_bgr_tuple(titles_color),
+            text_scale=titles_scale,
+            text_thickness=titles_thickness,
+            text_padding=titles_padding,
+            text_font=titles_text_font,
+            background_color=Color.from_bgr_tuple(titles_background_color),
+        )
+        result.append(processed_image)
+    return result
+
+
+def _prepare_default_titles_anchors(
+    images: list[npt.NDArray[np.uint8]],
+    titles_anchors: list[Point | None],
+    default_title_placement: RelativePosition,
+) -> list[Point]:
+    result = []
+    for image, anchor in zip(images, titles_anchors):
+        if anchor is not None:
+            result.append(anchor)
+            continue
+        image_height, image_width = image.shape[:2]
+        if default_title_placement == "top":
+            default_anchor = Point(x=image_width / 2, y=image_height * 0.1)
+        else:
+            default_anchor = Point(x=image_width / 2, y=image_height * 0.9)
+        result.append(default_anchor)
+    return result
+
+
+def _merge_tiles_elements(
+    tiles_elements: list[list[npt.NDArray[np.uint8]]],
+    grid_size: tuple[int, int],
+    single_tile_size: tuple[int, int],
+    tile_margin: int,
+    tile_margin_color: tuple[int, int, int],
+) -> npt.NDArray[np.uint8]:
+    vertical_padding: npt.NDArray[np.uint8] = (
+        np.ones((single_tile_size[1], tile_margin, 3), dtype=np.uint8)
+        * tile_margin_color
+    )
+    merged_rows = [
+        np.concatenate(
+            list(
+                itertools.chain.from_iterable(
+                    zip(row, [vertical_padding] * grid_size[1])
+                )
+            )[:-1],
+            axis=1,
+        )
+        for row in tiles_elements
+    ]
+    row_width = merged_rows[0].shape[1]
+    horizontal_padding = (
+        np.ones((tile_margin, row_width, 3), dtype=np.uint8) * tile_margin_color
+    )
+    rows_with_paddings = []
+    for row in merged_rows:
+        rows_with_paddings.append(row)
+        rows_with_paddings.append(horizontal_padding)
+    return cast(
+        npt.NDArray[np.uint8],
+        np.concatenate(
+            rows_with_paddings[:-1],
+            axis=0,
+        ).astype(np.uint8),
+    )
+
+
+def _generate_color_image(
+    shape: tuple[int, int], color: tuple[int, int, int]
+) -> npt.NDArray[np.uint8]:
+    return cast(
+        npt.NDArray[np.uint8],
+        np.ones((*shape[::-1], 3), dtype=np.uint8) * color,
+    )

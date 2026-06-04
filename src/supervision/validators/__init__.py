@@ -1,6 +1,10 @@
 from typing import Any
 
 import numpy as np
+from deprecate import deprecated, void
+
+from supervision.detection.compact_mask import CompactMask
+from supervision.utils.internal import warn_deprecated
 
 
 def validate_xyxy(xyxy: Any) -> None:
@@ -22,15 +26,40 @@ def validate_xyxy(xyxy: Any) -> None:
 
 
 def validate_mask(mask: Any, n: int) -> None:
+    if mask is None:
+        return
+
+    # Fast path: CompactMask only needs a length check.
+
+    if isinstance(mask, CompactMask):
+        if len(mask) != n:
+            raise ValueError(f"mask must contain {n} masks, but got {len(mask)}")
+        return
+
     expected_shape = f"({n}, H, W)"
     actual_shape = str(getattr(mask, "shape", None))
-    is_valid = mask is None or (
+    actual_dtype = getattr(mask, "dtype", None)
+
+    is_valid_shape = (
         isinstance(mask, np.ndarray) and len(mask.shape) == 3 and mask.shape[0] == n
     )
-    if not is_valid:
+    if not is_valid_shape:
         raise ValueError(
-            f"mask must be a 3D np.ndarray with shape {expected_shape}, but got shape "
-            f"{actual_shape}"
+            "mask must be a 3D np.ndarray with shape "
+            + f"{expected_shape}, but got shape {actual_shape}"
+        )
+    if not np.issubdtype(actual_dtype, bool):
+        warn_deprecated(
+            f"A `Detections` object was created with a mask of type {actual_dtype}."
+            " Masks of type other than `bool` are deprecated and may produce unexpected"
+            " behavior. Starting from `supervision-0.28.0`, passing a mask with"
+            " `dtype` different from `bool` to `Detections` will raise a `ValueError`"
+            " during validation instead of being accepted with a warning. To migrate,"
+            " please ensure your masks are boolean, for example by using"
+            " `mask = np.array(..., dtype=bool)` or by converting existing masks with"
+            " `mask = mask.astype(bool)` before creating the `Detections` object. If"
+            " you did not create the mask manually, please report the issue to the"
+            " `supervision` team."
         )
 
 
@@ -71,6 +100,15 @@ def validate_key_point_confidence(confidence: Any, n: int, m: int) -> None:
                 f"confidence must be a 1D np.ndarray with shape {expected_shape}, but "
                 f"got shape {actual_shape}"
             )
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=validate_key_point_confidence,
+    deprecated_in="0.27.0",
+    remove_in="0.31.0",
+)
+def validate_keypoint_confidence(confidence: Any, n: int, m: int) -> None:
+    void(confidence, n, m)
 
 
 def validate_tracker_id(tracker_id: Any, n: int) -> None:
@@ -145,6 +183,17 @@ def validate_key_points_fields(
     validate_class_id(class_id, n)
     validate_key_point_confidence(confidence, n, m)
     validate_data(data, n)
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=validate_key_points_fields,
+    deprecated_in="0.27.0",
+    remove_in="0.31.0",
+)
+def validate_keypoints_fields(
+    xy: Any, class_id: Any, confidence: Any, data: dict[str, Any]
+) -> None:
+    void(xy, class_id, confidence, data)
 
 
 def validate_resolution(resolution: Any) -> tuple[int, int]:

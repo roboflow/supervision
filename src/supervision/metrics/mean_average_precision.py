@@ -18,6 +18,9 @@ from supervision.detection.utils.iou_and_nms import box_iou_batch_with_jaccard
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import Metric, MetricTarget
 from supervision.metrics.utils.utils import ensure_pandas_installed
+from supervision.utils.logger import _get_logger
+
+logger = _get_logger(__name__)
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -85,15 +88,29 @@ class MeanAveragePrecisionResult:
         Formats the evaluation output metrics to match the structure used by pycocotools
 
         Example:
-           ```python
-           print(map_result)
-           # MeanAveragePrecisionResult:
-           Average Precision (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.464
-           Average Precision (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.637
-           Average Precision (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.203
-           Average Precision (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.284
-           Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.497
-           Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.629
+           ```pycon
+           >>> import numpy as np
+           >>> import supervision as sv
+           >>> from supervision.metrics import MeanAveragePrecision
+           >>> predictions = sv.Detections(
+           ...     xyxy=np.array([[0, 0, 10, 10]]),
+           ...     class_id=np.array([0]),
+           ...     confidence=np.array([0.9])
+           ... )
+           >>> targets = sv.Detections(
+           ...     xyxy=np.array([[0, 0, 10, 10]]),
+           ...     class_id=np.array([0])
+           ... )
+           >>> map_metric = MeanAveragePrecision()
+           >>> map_result = map_metric.update(predictions, targets).compute()
+           >>> print(map_result)  # doctest: +ELLIPSIS
+           Average Precision (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = ...
+           Average Precision (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = ...
+           Average Precision (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = ...
+           Average Precision (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = ...
+           Average Precision (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = ...
+           Average Precision (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = ...
+
            ```
         """
         if (
@@ -512,7 +529,7 @@ MEDIUM_OBJECT_AREA = 96**2
 MAX_ALL_OBJECT_AREA = 1e5**2
 
 # Smallest number to avoid division by zero
-EPS = np.spacing(1)
+EPS = np.finfo(np.float32).eps
 
 
 class ObjectSize(Enum):
@@ -539,11 +556,19 @@ class COCOEvaluatorParameters:
 
         # IoU thresholds [0.5, 0.55, 0.6, 0.65, ..., 0.95]
         self.iou_thrs = np.linspace(
-            0.5, 0.95, int(np.round((0.95 - 0.5) / 0.05)) + 1, endpoint=True
+            0.5,
+            0.95,
+            int(np.round((0.95 - 0.5) / 0.05)) + 1,
+            endpoint=True,
+            dtype=np.float32,
         )
         # 101 recall thresholds [0.0, 0.01, 0.02, ..., 1.00]
         self.rec_thrs = np.linspace(
-            0.0, 1.00, int(np.round((1.00 - 0.0) / 0.01)) + 1, endpoint=True
+            0.0,
+            1.00,
+            int(np.round((1.00 - 0.0) / 0.01)) + 1,
+            endpoint=True,
+            dtype=np.float32,
         )
         # 3 maximum detection thresholds [1, 10, 100]
         self.max_dets = [1, 10, 100]
@@ -631,7 +656,7 @@ class COCOEvaluator:
         self.eval_imgs = defaultdict(list)
         self.results = {}
 
-    def _compute_iou(self, img_id: int, cat_id: int) -> npt.NDArray[np.float64]:
+    def _compute_iou(self, img_id: int, cat_id: int) -> npt.NDArray[np.float32]:
         """
         Compute the IoU between the targets and predictions for a given image and
         category.
@@ -649,7 +674,7 @@ class COCOEvaluator:
 
         # If there is nothing to evaluate
         if len(gt) == 0 and len(dt) == 0:
-            empty_result: npt.NDArray[np.float64] = np.array([], dtype=np.float64)
+            empty_result: npt.NDArray[np.float32] = np.array([], dtype=np.float32)
             return empty_result
 
         # Sort predictions by highest score first
@@ -667,7 +692,9 @@ class COCOEvaluator:
         # Get the iscrowd flag for each gt
         is_crowd = [bool(o["iscrowd"]) for o in gt]
         # Compute iou between each prediction a and gt region
-        iou = box_iou_batch_with_jaccard(gt_boxes, dt_boxes, is_crowd)
+        iou = box_iou_batch_with_jaccard(gt_boxes, dt_boxes, is_crowd).astype(
+            np.float32
+        )
         return iou
 
     def _evaluate_image(
@@ -816,10 +843,12 @@ class COCOEvaluator:
                 num_categories,
                 num_area_ranges,
                 num_max_detections,
-            )
+            ),
+            dtype=np.float32,
         )
         recall = -np.ones(
-            (num_iou_thresholds, num_categories, num_area_ranges, num_max_detections)
+            (num_iou_thresholds, num_categories, num_area_ranges, num_max_detections),
+            dtype=np.float32,
         )
         scores = -np.ones(
             (
@@ -828,7 +857,8 @@ class COCOEvaluator:
                 num_categories,
                 num_area_ranges,
                 num_max_detections,
-            )
+            ),
+            dtype=np.float32,
         )
 
         # Create sets for indexing
@@ -911,8 +941,8 @@ class COCOEvaluator:
                         np.logical_not(dt_matches), np.logical_not(dt_ignored)
                     )
 
-                    tp_sum = np.cumsum(true_positives, axis=1).astype(dtype=np.float64)
-                    fp_sum = np.cumsum(false_positives, axis=1).astype(dtype=np.float64)
+                    tp_sum = np.cumsum(true_positives, axis=1).astype(dtype=np.float32)
+                    fp_sum = np.cumsum(false_positives, axis=1).astype(dtype=np.float32)
 
                     # Loop through thresholds
                     for iou_thresh_idx, (tp, fp) in enumerate(zip(tp_sum, fp_sum)):
@@ -920,7 +950,7 @@ class COCOEvaluator:
                         fp = np.array(fp)
                         num_tps = len(tp)
                         # Recall: TP / Total number of ground truth objects
-                        rc = tp / num_non_ignored_gt
+                        rc = tp / np.float32(num_non_ignored_gt)
                         # Precision: TP / (FP + TP)
                         pr = (tp / (fp + tp + EPS)).tolist()
                         # List to compute the precision at each recall threshold
@@ -954,11 +984,11 @@ class COCOEvaluator:
 
                         # Convert precision to numpy array
                         precision[iou_thresh_idx, :, cat_idx, area_idx, max_det_idx] = (
-                            np.array(precision_at_recall)
+                            np.array(precision_at_recall, dtype=np.float32)
                         )
                         # Convert scores to numpy array
                         scores[iou_thresh_idx, :, cat_idx, area_idx, max_det_idx] = (
-                            np.array(score_at_recall)
+                            np.array(score_at_recall, dtype=np.float32)
                         )
 
         self.results = {
@@ -978,19 +1008,28 @@ class COCOEvaluator:
 
         # Helper function to compute average precision while handling -1 sentinel values
         def compute_average_precision(
-            precision_slice: npt.NDArray[np.float64],
-        ) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]]:
+            precision_slice: npt.NDArray[np.float32],
+        ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
             """Compute average precision while handling -1 sentinel values."""
-            masked = np.ma.masked_equal(precision_slice, -1)  # type: ignore
-            if masked.count() == 0:
-                # All values are -1 (no data)
-                return np.full(num_iou_thresholds, -1, dtype=np.float64), np.full(
-                    (num_categories, num_iou_thresholds), -1, dtype=np.float64
+            valid_mask = precision_slice != -1
+            valid_precision = np.where(valid_mask, precision_slice, np.float32(0.0))
+
+            def mean_with_mask(
+                axis: int | tuple[int, ...],
+            ) -> npt.NDArray[np.float32]:
+                sums = valid_precision.sum(axis=axis, dtype=np.float64)
+                counts = valid_mask.sum(axis=axis)
+                means = np.divide(
+                    sums,
+                    counts,
+                    out=np.full(sums.shape, -1.0, dtype=np.float64),
+                    where=counts > 0,
                 )
-            else:
-                mAP_scores = np.ma.filled(masked.mean(axis=(1, 2)), -1)  # type: ignore
-                ap_per_class = np.ma.filled(masked.mean(axis=1), -1).transpose(1, 0)  # type: ignore
-                return mAP_scores, ap_per_class
+                return means.astype(np.float32)
+
+            mAP_scores = mean_with_mask((1, 2))
+            ap_per_class = mean_with_mask(1).transpose(1, 0)
+            return mAP_scores, ap_per_class
 
         # Average precision over all sizes, 100 max detections
         area_range_idx = list(ObjectSize).index(ObjectSize.ALL)
@@ -1000,7 +1039,7 @@ class COCOEvaluator:
             :, :, :, area_range_idx, max_100_dets_idx
         ]
         # mAP over thresholds (dimension=num_thresholds)
-        # Use masked array to exclude -1 values when computing mean
+        # Exclude -1 sentinel values when computing mean
         mAP_scores_all_sizes, ap_per_class_all_sizes = compute_average_precision(
             average_precision_all_sizes
         )
@@ -1098,11 +1137,13 @@ class COCOEvaluator:
                 mean_s = -1.0
             else:
                 mean_s = float(np.mean(s[s > -1]))
-            print(iStr.format(titleStr, typeStr, iou_str, area_range, max_dets, mean_s))
+            logger.info(
+                iStr.format(titleStr, typeStr, iou_str, area_range, max_dets, mean_s)
+            )
             return mean_s
 
-        def _summarize_predictions() -> npt.NDArray[np.float64]:
-            stats: npt.NDArray[np.float64] = np.zeros((12,), dtype=np.float64)
+        def _summarize_predictions() -> npt.NDArray[np.float32]:
+            stats: npt.NDArray[np.float32] = np.zeros((12,), dtype=np.float32)
             stats[0] = _summarize(use_ap=True)
             stats[1] = _summarize(
                 use_ap=True, iou_thr=0.5, max_dets=self.params.max_dets[2]

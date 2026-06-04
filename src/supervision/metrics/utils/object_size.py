@@ -7,6 +7,7 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection.compact_mask import CompactMask
 from supervision.metrics.core import MetricTarget
 
 if TYPE_CHECKING:
@@ -122,12 +123,15 @@ def get_bbox_size_category(xyxy: npt.NDArray[np.float32]) -> npt.NDArray[np.int_
     return result
 
 
-def get_mask_size_category(mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.int_]:
+def get_mask_size_category(
+    mask: npt.NDArray[np.bool_] | CompactMask,
+) -> npt.NDArray[np.int_]:
     """
     Get the size category of detection masks.
 
     Args:
-        mask: The mask array shaped (N, H, W).
+        mask: The mask array shaped (N, H, W), or a
+            :class:`~supervision.detection.compact_mask.CompactMask`.
 
     Returns:
         The size category of each mask, matching
@@ -146,10 +150,12 @@ def get_mask_size_category(mask: npt.NDArray[np.bool_]) -> npt.NDArray[np.int_]:
 
         ```
     """
-    if len(mask.shape) != 3:
-        raise ValueError("Masks must be shaped (N, H, W)")
-
-    areas = np.sum(mask, axis=(1, 2))
+    if isinstance(mask, CompactMask):
+        areas = mask.area
+    else:
+        if len(mask.shape) != 3:
+            raise ValueError("Masks must be shaped (N, H, W)")
+        areas = np.sum(mask, axis=(1, 2))
 
     result = np.full(areas.shape, ObjectSizeCategory.ANY.value)
     SM, LG = SIZE_THRESHOLDS

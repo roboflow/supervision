@@ -4,7 +4,7 @@ requires = [ "setuptools>=61" ]
 
 [project]
 name = "supervision"
-version = "0.28.0rc0"
+version = "0.29.0.dev"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 readme = "README.md"
 keywords = [
@@ -52,10 +52,11 @@ dependencies = [
   "matplotlib>=3.6",
   "numpy>=1.21.2",
   "pillow>=9.4",
+  "pydeprecate>=0.7,<0.9",
   "pyyaml>=5.3",
   "requests>=2.26",
   "scipy>=1.10",
-  "tqdm>=4.62.3",
+  "tqdm>=4.62.3"
 ]
 optional-dependencies.desktop = [
   "opencv-python>=4.5.5.64",
@@ -100,7 +101,7 @@ docs = [
 build = [
   "build>=0.10,<1.5",
   "twine>=5.1.1,<7",
-  "wheel>=0.40,<0.47",
+  "wheel>=0.40,<0.48",
 ]
 
 [tool.setuptools]
@@ -110,7 +111,6 @@ packages.find.where = [ "src" ]
 packages.find.include = [ "supervision*" ]
 
 # exclude = [ "docs*", "tests*", "examples*" ]
-
 [tool.ruff]
 target-version = "py39"
 line-length = 88
@@ -165,6 +165,10 @@ lint.select = [
 ]
 lint.ignore = []
 lint.per-file-ignores."__init__.py" = [ "E402", "F401" ]
+lint.per-file-ignores."notebooks/**" = [
+  "PT018", # Assertion should be broken down into multiple parts
+  "S101",  # Use of `assert` detected
+]
 lint.per-file-ignores."src/**" = [
   "S101", # TODO: Replace asserts with proper error handling
 ]
@@ -190,47 +194,32 @@ count = true
 quiet-level = 3
 ignore-words-list = "STrack,sTrack,strack"
 
-[tool.pytest]
-ini_options.addopts = [
-  "--doctest-modules",
-  "--color=yes",
-]
-ini_options.doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE"
-
 [tool.mypy]
 python_version = "3.9"
 ignore_missing_imports = false
 explicit_package_bases = true
 strict = true
 mypy_path = "src"
-# exclude = [
-#  "docs",
-#  "test",
-#  "examples",
-#  "setup.py",
-# ]
-
-[[tool.mypy.overrides]]
-module = [
-  "tests.*",
-  "examples.*",
-  # TODO: fix type errors in the following modules
-  "supervision.classification.core",
-  "supervision.detection.core",
-  "supervision.detection.line_zone",
-  "supervision.detection.tools.csv_sink",
-  "supervision.detection.tools.inference_slicer",
-  "supervision.detection.tools.json_sink",
-  "supervision.detection.tools.polygon_zone",
-  "supervision.detection.tools.smoother",
-  "supervision.detection.tools.transformers",
-  "supervision.detection.vlm",
-  "supervision.key_points.annotators",
-  "supervision.key_points.core",
-  "supervision.key_points.skeletons",
-  "supervision.metrics.utils.utils",
+overrides = [
+  # exclude = [
+  #  "docs",
+  #  "test",
+  #  "examples",
+  #  "setup.py",
+  # ]
+  { module = [
+    "tests.*",
+    "examples.*",
+  ], ignore_errors = true },
 ]
-ignore_errors = true
+
+[tool.pytest]
+ini_options.addopts = [
+  "--doctest-modules",
+  "--color=yes",
+]
+ini_options.doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE"
+ini_options.norecursedirs = [ "examples", "docs", "notebooks", ".venv", ".git", "dist", "build" ]
 
 [tool.autoflake]
 check = true

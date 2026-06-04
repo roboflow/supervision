@@ -1,10 +1,12 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 from supervision.detection.core import Detections
-from supervision.draw.base import ImageType
 
 
 class BaseAnnotator(ABC):
     @abstractmethod
-    def annotate(self, scene: ImageType, detections: Detections) -> ImageType:
+    def annotate(
+        self, scene: Any, detections: Detections, *args: Any, **kwargs: Any
+    ) -> Any:
         pass

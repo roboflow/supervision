@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import logging
 from itertools import chain
-from typing import Any, cast
+from typing import Any, Union, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -9,12 +10,14 @@ import numpy.typing as npt
 try:
     import cv2
 except ImportError:
-    cv2 = None  # type: ignore
+    cv2 = None  # type: ignore[assignment]
 
 from supervision.config import CLASS_NAME_DATA_FIELD
-from supervision.detection.utils.converters import polygon_to_mask
+from supervision.detection.utils.converters import polygon_to_mask, rle_to_mask
 from supervision.geometry.core import Vector
 from supervision.utils.internal import ensure_cv2_installed
+
+logger = logging.getLogger(__name__)
 
 
 def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | None:
@@ -64,6 +67,29 @@ def process_roboflow_result(
     npt.NDArray[np.integer] | None,
     dict[str, npt.NDArray[np.generic]],
 ]:
+    """Parse a Roboflow API or Inference package result into detection arrays.
+
+    The returned ``data`` dict always contains ``CLASS_NAME_DATA_FIELD`` as a
+    string-dtype NumPy array. When ``predictions`` is empty, the array has
+    shape ``(0,)`` with ``dtype=str``, preserving dtype contracts for callers
+    that mix empty and non-empty results.
+
+    Args:
+        roboflow_result: Raw dict from the Roboflow REST API or the Inference
+            package (after ``.dict()`` serialisation).
+
+    Returns:
+        A 6-tuple of ``(xyxy, confidence, class_id, masks, tracker_ids, data)``
+        where each array is aligned with the others. ``masks`` and
+        ``tracker_ids`` are ``None`` when absent from the predictions.
+
+    Examples:
+        >>> from supervision.detection.utils.internal import process_roboflow_result
+        >>> result = {"predictions": [], "image": {"width": 100, "height": 100}}
+        >>> _, _, _, _, _, data = process_roboflow_result(result)
+        >>> data["class_name"].dtype.kind
+        'U'
+    """
     if not roboflow_result["predictions"]:
         return (
             np.empty((0, 4), dtype=np.float64),
@@ -78,7 +104,7 @@ def process_roboflow_result(
     confidence: list[float] = []
     class_id: list[int] = []
     class_name: list[str] = []
-    masks: list[npt.NDArray[np.uint8]] = []
+    masks: list[npt.NDArray[np.bool_]] = []
     tracker_ids: list[int] = []
 
     image_width = int(roboflow_result["image"]["width"])
@@ -94,7 +120,38 @@ def process_roboflow_result(
         x_max = x_min + width
         y_max = y_min + height
 
-        if "points" not in prediction:
+        rle_data = prediction.get("rle") or prediction.get("rle_mask")
+        if not isinstance(rle_data, dict) or not {
+            "size",
+            "counts",
+        }.issubset(rle_data):
+            rle_data = None
+        if rle_data is not None:
+            try:
+                h, w = rle_data["size"]
+                mask = rle_to_mask(rle_data["counts"], (w, h))
+                if (h, w) != (image_height, image_width):
+                    mask = cv2.resize(
+                        mask.astype(np.uint8),
+                        (image_width, image_height),
+                        interpolation=cv2.INTER_NEAREST,
+                    ).astype(bool)
+            except (ValueError, AssertionError, KeyError, TypeError) as exc:
+                logger.warning(
+                    "Failed to decode RLE mask payload; falling back to box-only "
+                    "detection. Reason: %s",
+                    exc,
+                )
+                rle_data = None
+        if rle_data is not None:
+            xyxy.append([x_min, y_min, x_max, y_max])
+            class_id.append(prediction["class_id"])
+            class_name.append(prediction["class"])
+            confidence.append(prediction["confidence"])
+            masks.append(mask)
+            if "tracker_id" in prediction:
+                tracker_ids.append(prediction["tracker_id"])
+        elif "points" not in prediction:
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])
@@ -105,7 +162,9 @@ def process_roboflow_result(
             polygon = np.array(
                 [[point["x"], point["y"]] for point in prediction["points"]], dtype=int
             )
-            mask = polygon_to_mask(polygon, resolution_wh=(image_width, image_height))
+            mask = polygon_to_mask(
+                polygon, resolution_wh=(image_width, image_height)
+            ).astype(bool)
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])
@@ -147,8 +206,8 @@ def process_roboflow_result(
 
 
 def is_data_equal(
-    data_a: dict[str, npt.NDArray[np.generic]],
-    data_b: dict[str, npt.NDArray[np.generic]],
+    data_a: dict[str, npt.NDArray[np.generic] | list[Any]],
+    data_b: dict[str, npt.NDArray[np.generic] | list[Any]],
 ) -> bool:
     """
     Compares the data payloads of two Detections instances.
@@ -221,7 +280,7 @@ def merge_data(
                 "All data values within a single object must have equal length."
             )
 
-    merged_data: dict[str, list[Any]] = {key: [] for key in all_keys_sets[0]}
+    merged_data: dict[str, Any] = {key: [] for key in all_keys_sets[0]}
     for data in data_list:
         for key in data:
             merged_data[key].append(data[key])
@@ -243,7 +302,7 @@ def merge_data(
                 f"types are allowed."
             )
 
-    return merged_data
+    return cast(dict[str, Union[npt.NDArray[np.generic], list[Any]]], merged_data)
 
 
 def merge_metadata(metadata_list: list[dict[str, Any]]) -> dict[str, Any]:
@@ -257,10 +316,10 @@ def merge_metadata(metadata_list: list[dict[str, Any]]) -> dict[str, Any]:
     this function.
 
     Args:
-        metadata_list (List[Dict[str, Any]]): A list of metadata dictionaries to merge.
+        metadata_list: A list of metadata dictionaries to merge.
 
     Returns:
-        Dict[str, Any]: A single merged metadata dictionary.
+        A single merged metadata dictionary.
 
     Raises:
         ValueError: If there are conflicting values for the same key or if

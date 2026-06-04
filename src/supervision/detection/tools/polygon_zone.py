@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import replace
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -9,10 +9,9 @@ import numpy.typing as npt
 try:
     import cv2
 except ImportError:
-    cv2 = None  # type: ignore
+    cv2 = None  # type: ignore[assignment]
 
 from supervision import Detections
-from supervision.detection.utils.boxes import clip_boxes
 from supervision.detection.utils.converters import polygon_to_mask
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
@@ -32,35 +31,30 @@ class PolygonZone:
         tracking into your inference pipeline.
 
     Attributes:
-        polygon (np.ndarray): A polygon represented by a numpy array of shape
+        polygon: A polygon represented by a numpy array of shape
             `(N, 2)`, containing the `x`, `y` coordinates of the points.
-        triggering_anchors (Iterable[sv.Position]): A list of positions specifying
+        triggering_anchors: A list of positions specifying
             which anchors of the detections bounding box to consider when deciding on
             whether the detection fits within the PolygonZone
             (default: (sv.Position.BOTTOM_CENTER,)).
-        current_count (int): The current count of detected objects within the zone
-        mask (np.ndarray): The 2D bool mask for the polygon zone
+        current_count: The current count of detected objects within the zone
+        mask: The 2D bool mask for the polygon zone
 
     Example:
-        ```python
-        import supervision as sv
-        from ultralytics import YOLO
-        import numpy as np
-        import cv2
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> polygon = np.array([[100, 200], [200, 100], [300, 200], [200, 300]])
+        >>> polygon_zone = sv.PolygonZone(polygon=polygon)
+        >>> detections = sv.Detections(
+        ...     xyxy=np.array([[180, 100, 220, 200], [400, 400, 450, 500]])
+        ... )
+        >>> is_detections_in_zone = polygon_zone.trigger(detections)
+        >>> is_detections_in_zone
+        array([ True, False])
+        >>> polygon_zone.current_count
+        1
 
-        image = cv2.imread("<SOURCE_IMAGE_PATH>")
-        model = YOLO("yolo11s")
-        tracker = sv.ByteTrack()
-
-        polygon = np.array([[100, 200], [200, 100], [300, 200], [200, 300]])
-        polygon_zone = sv.PolygonZone(polygon=polygon)
-
-        result = model.infer(image)[0]
-        detections = sv.Detections.from_ultralytics(result)
-        detections = tracker.update_with_detections(detections)
-
-        is_detections_in_zone = polygon_zone.trigger(detections)
-        print(polygon_zone.current_count)
         ```
     """
 
@@ -77,7 +71,6 @@ class PolygonZone:
         self.current_count = 0
 
         x_max, y_max = np.max(polygon, axis=0)
-        self.frame_resolution_wh = (x_max + 1, y_max + 1)
         self.mask = polygon_to_mask(
             polygon=polygon, resolution_wh=(x_max + 2, y_max + 2)
         )
@@ -86,54 +79,57 @@ class PolygonZone:
         """
         Determines if the detections are within the polygon zone.
 
-        Parameters:
-            detections (Detections): The detections
-                to be checked against the polygon zone
+        Anchor points are calculated from original (unclipped) detection boxes to
+        avoid per-zone clipping shifting anchor positions. This prevents a single
+        detection from being counted in multiple non-overlapping zones due to
+        clipping artifacts, although overlapping zones may still legitimately
+        contain the same detection.
+
+        Args:
+            detections: The detections to be checked against the polygon zone
 
         Returns:
-            np.ndarray: A boolean numpy array indicating
+            A boolean numpy array indicating
                 if each detection is within the polygon zone
         """
+        if len(detections) == 0:
+            self.current_count = 0
+            return np.array([], dtype=bool)
 
-        clipped_xyxy = clip_boxes(
-            xyxy=detections.xyxy, resolution_wh=self.frame_resolution_wh
-        )
-        clipped_detections = replace(detections, xyxy=clipped_xyxy)
-        all_clipped_anchors = np.array(
+        all_anchors = np.array(
             [
-                np.ceil(clipped_detections.get_anchors_coordinates(anchor)).astype(int)
-                for anchor in self.triggering_anchors
+                np.ceil(detections.get_anchors_coordinates(anchors)).astype(int)
+                for anchors in self.triggering_anchors
             ]
         )
 
-        is_in_zone: npt.NDArray[np.bool_] = (
-            self.mask[all_clipped_anchors[:, :, 1], all_clipped_anchors[:, :, 0]]
-            .transpose()
-            .astype(bool)
-        )
-
-        is_in_zone: npt.NDArray[np.bool_] = np.all(is_in_zone, axis=1)
+        mask_h, mask_w = self.mask.shape
+        x, y = all_anchors[:, :, 0], all_anchors[:, :, 1]
+        in_bounds = (x >= 0) & (y >= 0) & (x < mask_w) & (y < mask_h)
+        x_safe = np.clip(x, 0, mask_w - 1)
+        y_safe = np.clip(y, 0, mask_h - 1)
+        is_in_zone = np.all(in_bounds & self.mask[y_safe, x_safe], axis=0)
         self.current_count = int(np.sum(is_in_zone))
         return is_in_zone.astype(bool)
 
 
 class PolygonZoneAnnotator:
     """
-    A class for annotating a polygon-shaped zone within a
-        frame with a count of detected objects.
+    A class for annotating a polygon-shaped zone within a frame with a count of
+    detected objects.
 
     Attributes:
-        zone (PolygonZone): The polygon zone to be annotated
-        color (Color): The color to draw the polygon lines, default is white
-        thickness (int): The thickness of the polygon lines, default is 2
-        text_color (Color): The color of the text on the polygon, default is black
-        text_scale (float): The scale of the text on the polygon, default is 0.5
-        text_thickness (int): The thickness of the text on the polygon, default is 1
-        text_padding (int): The padding around the text on the polygon, default is 10
-        font (int): The font type for the text on the polygon,
+        zone: The polygon zone to be annotated
+        color: The color to draw the polygon lines, default is white
+        thickness: The thickness of the polygon lines, default is 2
+        text_color: The color of the text on the polygon, default is black
+        text_scale: The scale of the text on the polygon, default is 0.5
+        text_thickness: The thickness of the text on the polygon, default is 1
+        text_padding: The padding around the text on the polygon, default is 10
+        font: The font type for the text on the polygon,
             default is cv2.FONT_HERSHEY_SIMPLEX
-        center (Tuple[int, int]): The center of the polygon for text placement
-        display_in_zone_count (bool): Show the label of the zone or not. Default is True
+        center: The center of the polygon for text placement
+        display_in_zone_count: Show the label of the zone or not. Default is True
         opacity: The opacity of zone filling when drawn on the scene. Default is 0
     """
 
@@ -162,17 +158,19 @@ class PolygonZoneAnnotator:
         self.display_in_zone_count = display_in_zone_count
         self.opacity = opacity
 
-    def annotate(self, scene: np.ndarray, label: str | None = None) -> np.ndarray:
+    def annotate(
+        self, scene: npt.NDArray[Any], label: str | None = None
+    ) -> npt.NDArray[Any]:
         """
         Annotates the polygon zone within a frame with a count of detected objects.
 
-        Parameters:
-            scene (np.ndarray): The image on which the polygon zone will be annotated
-            label (Optional[str]): A label for the count of detected objects
+        Args:
+            scene: The image on which the polygon zone will be annotated
+            label: A label for the count of detected objects
                 within the polygon zone (default: None)
 
         Returns:
-            np.ndarray: The image with the polygon zone and count of detected objects
+            The image with the polygon zone and count of detected objects
         """
         ensure_cv2_installed()
         if self.opacity == 0:
@@ -209,4 +207,4 @@ class PolygonZoneAnnotator:
                 text_font=self.font,
             )
 
-        return annotated_frame
+        return cast(npt.NDArray[Any], annotated_frame)

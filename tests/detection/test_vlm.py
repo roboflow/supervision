@@ -27,49 +27,49 @@ from supervision.detection.vlm import (
             "",
             (1000, 1000),
             None,
-            (np.empty((0, 4)), None, np.empty(0).astype(str)),
+            (np.empty((0, 4)), np.empty((0,), dtype=int), np.empty(0).astype(str)),
         ),  # empty text
         (
             does_not_raise(),
             "",
             (1000, 1000),
             ["cat", "dog"],
-            (np.empty((0, 4)), None, np.empty(0).astype(str)),
+            (np.empty((0, 4)), np.empty((0,), dtype=int), np.empty(0).astype(str)),
         ),  # empty text, classes
         (
             does_not_raise(),
             "\n",
             (1000, 1000),
             None,
-            (np.empty((0, 4)), None, np.empty(0).astype(str)),
+            (np.empty((0, 4)), np.empty((0,), dtype=int), np.empty(0).astype(str)),
         ),  # newline only
         (
             does_not_raise(),
             "the quick brown fox jumps over the lazy dog.",
             (1000, 1000),
             None,
-            (np.empty((0, 4)), None, np.empty(0).astype(str)),
+            (np.empty((0, 4)), np.empty((0,), dtype=int), np.empty(0).astype(str)),
         ),  # random text, no location
         (
             does_not_raise(),
             "<loc0256><loc0768><loc0768> cat",
             (1000, 1000),
             None,
-            (np.empty((0, 4)), None, np.empty(0).astype(str)),
+            (np.empty((0, 4)), np.empty((0,), dtype=int), np.empty(0).astype(str)),
         ),  # partial location
         (
             does_not_raise(),
             "<loc0256><loc0256><loc0768><loc0768><loc0768> cat",
             (1000, 1000),
             None,
-            (np.empty((0, 4)), None, np.empty(0).astype(str)),
+            (np.empty((0, 4)), np.empty((0,), dtype=int), np.empty(0).astype(str)),
         ),  # extra loc
         (
             does_not_raise(),
             "<loc0256><loc0256><loc0768><loc0768>",
             (1000, 1000),
             None,
-            (np.empty((0, 4)), None, np.empty(0).astype(str)),
+            (np.empty((0, 4)), np.empty((0,), dtype=int), np.empty(0).astype(str)),
         ),  # no class
         (
             does_not_raise(),
@@ -436,21 +436,21 @@ def test_from_qwen_2_5_vl(
             "random text",
             (1000, 1000),
             None,
-            (np.empty((0, 4)), None, np.empty(0, dtype=str)),
+            (np.empty((0, 4)), np.empty((0,), dtype=int), np.empty(0, dtype=str)),
         ),  # random text without JSON format
         (
             does_not_raise(),
             "```json\ninvalid json\n```",
             (1000, 1000),
             None,
-            (np.empty((0, 4)), None, np.empty(0, dtype=str)),
+            (np.empty((0, 4)), np.empty((0,), dtype=int), np.empty(0, dtype=str)),
         ),  # invalid JSON within code blocks
         (
             does_not_raise(),
             "```json\n[]\n```",
             (1000, 1000),
             None,
-            (np.empty((0, 4)), None, np.empty(0, dtype=str)),
+            (np.empty((0, 4)), np.empty((0,), dtype=int), np.empty(0, dtype=str)),
         ),  # empty JSON array
         (
             does_not_raise(),

@@ -1,5 +1,6 @@
 ---
 comments: true
+description: API reference for supervision's DetectionDataset and ClassificationDataset — load, merge, split, and convert datasets in YOLO, COCO, and VOC formats.
 ---
 
 # Datasets

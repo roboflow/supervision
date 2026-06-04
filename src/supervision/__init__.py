@@ -31,7 +31,12 @@ from supervision.annotators.core import (
     TraceAnnotator,
     TriangleAnnotator,
 )
-from supervision.annotators.utils import ColorLookup
+from supervision.annotators.utils import (
+    ColorLookup,
+    hex_to_rgba,
+    is_valid_hex,
+    rgba_to_hex,
+)
 from supervision.classification.core import Classifications
 from supervision.dataset.core import (
     BaseDataset,
@@ -39,7 +44,7 @@ from supervision.dataset.core import (
     DetectionDataset,
 )
 from supervision.dataset.formats.coco import get_coco_class_index_mapping
-from supervision.dataset.utils import mask_to_rle, rle_to_mask
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.line_zone import (
     LineZone,
@@ -59,10 +64,13 @@ from supervision.detection.utils.boxes import (
     scale_boxes,
 )
 from supervision.detection.utils.converters import (
+    is_compressed_rle,
     mask_to_polygons,
+    mask_to_rle,
     mask_to_xyxy,
     polygon_to_mask,
     polygon_to_xyxy,
+    rle_to_mask,
     xcycwh_to_xyxy,
     xywh_to_xyxy,
     xyxy_to_mask,
@@ -113,6 +121,7 @@ from supervision.geometry.utils import get_polygon_center
 from supervision.key_points.annotators import (
     EdgeAnnotator,
     VertexAnnotator,
+    VertexEllipseAnnotator,
     VertexLabelAnnotator,
 )
 from supervision.key_points.core import KeyPoints
@@ -156,6 +165,7 @@ __all__ = [
     "ColorAnnotator",
     "ColorLookup",
     "ColorPalette",
+    "CompactMask",
     "ComparisonAnnotator",
     "ConfusionMatrix",
     "CropAnnotator",
@@ -195,6 +205,7 @@ __all__ = [
     "TraceAnnotator",
     "TriangleAnnotator",
     "VertexAnnotator",
+    "VertexEllipseAnnotator",
     "VertexLabelAnnotator",
     "VideoInfo",
     "VideoSink",
@@ -228,6 +239,9 @@ __all__ = [
     "get_polygon_center",
     "get_video_frames_generator",
     "grayscale_image",
+    "hex_to_rgba",
+    "is_compressed_rle",
+    "is_valid_hex",
     "letterbox_image",
     "list_files_with_extensions",
     "mask_iou_batch",
@@ -248,6 +262,7 @@ __all__ = [
     "polygon_to_xyxy",
     "process_video",
     "resize_image",
+    "rgba_to_hex",
     "rle_to_mask",
     "scale_boxes",
     "scale_image",

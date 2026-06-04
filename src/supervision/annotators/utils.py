@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import textwrap
 from enum import Enum
 from typing import Any
@@ -364,7 +365,113 @@ class Trace:
         self.current_frame_id += 1
 
     def get(self, tracker_id: int) -> np.ndarray[Any, np.dtype[np.float32]]:
-        result: np.ndarray[Any, np.dtype[np.float32]] = self.xy[
-            self.tracker_id == tracker_id
-        ].copy()
-        return result
+        filtered: np.ndarray[Any, np.dtype[np.float32]] = (
+            self.xy[self.tracker_id == tracker_id].copy().astype(np.float32, copy=False)
+        )
+        return filtered
+
+
+def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
+    """
+    Converts a hex color string (e.g. "#FF00FF" or "#FF00FF80") to an RGBA tuple.
+
+    Args:
+        hex_color: A hex color string.
+
+    Returns:
+        RGBA values in range 0-255.
+
+    Raises:
+        ValueError: If the format is invalid.
+    """
+    hex_color = hex_color.strip().lstrip("#")
+    if len(hex_color) == 6:
+        hex_color += "FF"  # default full opacity
+    if len(hex_color) != 8:
+        raise ValueError(f"Invalid hex color format: {hex_color}")
+    try:
+        r = int(hex_color[0:2], 16)
+        g = int(hex_color[2:4], 16)
+        b = int(hex_color[4:6], 16)
+        a = int(hex_color[6:8], 16)
+    except ValueError as exc:
+        raise ValueError(f"Invalid hex digits in {hex_color}") from exc
+    return (r, g, b, a)
+
+
+def rgba_to_hex(rgba: tuple[int, int, int, int]) -> str:
+    """
+    Converts an RGBA tuple (0-255 each) to a hex color string.
+
+    Args:
+        rgba: RGBA values in range 0-255.
+
+    Returns:
+        Hex color string in the format "#RRGGBBAA".
+
+    Raises:
+        ValueError: If `rgba` is not a 4-tuple or contains values outside 0-255.
+    """
+    if len(rgba) != 4 or not all(0 <= c <= 255 for c in rgba):
+        raise ValueError("RGBA must be a 4-tuple with values between 0-255.")
+    return "#{:02X}{:02X}{:02X}{:02X}".format(*rgba)
+
+
+def is_valid_hex(hex_color: str) -> bool:
+    """
+    Checks if a given string is a valid hex color.
+
+    Args:
+        hex_color: A hex color string with an optional leading "#". Supports
+            6-digit (RGB) or 8-digit (RGBA) formats.
+
+    Returns:
+        True if the string is a valid 6- or 8-digit hex color, otherwise False.
+    """
+    return bool(re.fullmatch(r"#?[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?", hex_color.strip()))
+
+
+def calculate_dynamic_kernel_size(x1: int, y1: int, x2: int, y2: int) -> int:
+    """
+    Computes a blur kernel size proportional to the shorter side of a bounding box.
+
+    Args:
+        x1: Left edge of the bounding box.
+        y1: Top edge of the bounding box.
+        x2: Right edge of the bounding box.
+        y2: Bottom edge of the bounding box.
+
+    Returns:
+        Kernel size as one-third of the shorter dimension, minimum 1.
+
+    Examples:
+        ```pycon
+        >>> calculate_dynamic_kernel_size(0, 0, 90, 60)
+        20
+
+        ```
+    """
+    return max(1, min(y2 - y1, x2 - x1) // 3)
+
+
+def calculate_dynamic_pixel_size(x1: int, y1: int, x2: int, y2: int) -> int:
+    """
+    Computes a pixelation size proportional to the shorter side of a bounding box.
+
+    Args:
+        x1: Left edge of the bounding box.
+        y1: Top edge of the bounding box.
+        x2: Right edge of the bounding box.
+        y2: Bottom edge of the bounding box.
+
+    Returns:
+        Pixel size as one-half of the shorter dimension, minimum 1.
+
+    Examples:
+        ```pycon
+        >>> calculate_dynamic_pixel_size(0, 0, 90, 60)
+        30
+
+        ```
+    """
+    return max(1, min(y2 - y1, x2 - x1) // 2)

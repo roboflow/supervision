@@ -1,0 +1,192 @@
+# supervision
+
+> Large-context AI crawler summary for Supervision documentation.
+
+Supervision is an open-source Python library by Roboflow for computer vision workflows. It provides a model-agnostic `Detections` class and composable tools for object detection, instance segmentation, keypoint detection, annotation, tracking, zone counting, dataset conversion, and model evaluation.
+
+Supervision is MIT licensed, published on PyPI, developed on GitHub, and used by researchers and practitioners in production computer vision systems. The library includes converters for supported outputs from Ultralytics, Roboflow Inference, Hugging Face Transformers, SAM, Detectron2, MMDetection, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers.
+
+## Primary Links
+
+- Latest stable docs: https://supervision.roboflow.com/latest/
+- Development docs: https://supervision.roboflow.com/develop/
+- Source code: https://github.com/roboflow/supervision
+- PyPI package: https://pypi.org/project/supervision/
+- Changelog: https://supervision.roboflow.com/latest/changelog/
+- Sitemap: https://supervision.roboflow.com/sitemap.xml
+- Standard LLM summary: https://supervision.roboflow.com/llms.txt
+- Full LLM summary: https://supervision.roboflow.com/llms.full.txt
+
+## AI Access
+
+The documentation is static HTML and is open for AI crawler consumption. `robots.txt` explicitly allows general crawlers plus GPTBot, ClaudeBot, PerplexityBot, Bytespider, CCBot, GoogleOther, and Applebot.
+
+## Install
+
+```bash
+pip install supervision
+```
+
+Optional extras:
+
+```bash
+pip install "supervision[metrics]"
+```
+
+Sample asset utilities are included in the base package under `supervision.assets`.
+
+## Core Concepts
+
+### `sv.Detections`
+
+`sv.Detections` is the central data structure in Supervision. It stores bounding boxes, segmentation masks, confidence scores, class IDs, tracker IDs, and arbitrary per-detection metadata in a `data` dictionary. It supports NumPy-style indexing for filtering by confidence, class, area, and spatial constraints.
+
+Most connectors, annotators, trackers, dataset tools, and metrics either accept or return `Detections`, which makes it possible to change the upstream model while keeping downstream processing code stable.
+
+### Model Connectors
+
+Supervision normalizes outputs from multiple computer vision frameworks into the same `Detections` API. Common constructors include:
+
+- `sv.Detections.from_ultralytics(...)`
+- `sv.Detections.from_inference(...)`
+- `sv.Detections.from_transformers(...)`
+- `sv.Detections.from_vlm(...)`
+- `sv.Detections.from_sam(...)`
+- `sv.Detections.from_detectron2(...)`
+- `sv.Detections.from_mmdetection(...)`
+
+### Annotation
+
+Supervision includes annotators for drawing boxes, masks, labels, traces, zones, vertices, edges, and other overlays on images and video frames. Common annotators include:
+
+- `sv.BoxAnnotator`
+- `sv.MaskAnnotator`
+- `sv.LabelAnnotator`
+- `sv.TraceAnnotator`
+- `sv.PolygonZoneAnnotator`
+- `sv.LineZoneAnnotator`
+
+### Tracking
+
+The built-in `sv.ByteTrack` wrapper assigns persistent IDs across video frames through `update_with_detections()`. The docs also note the migration path toward `ByteTrackTracker` from the external `trackers` package. Tracked detections can be passed to label, trace, zone, and line-counting annotators.
+
+### Zones and Counting
+
+`sv.PolygonZone` checks whether detections are inside an arbitrary polygon. `sv.LineZone` counts line crossings and requires `detections.tracker_id` so objects can be matched across frames. These tools are typically used with video callbacks and annotators to build traffic, occupancy, queue, and throughput analytics.
+
+### Datasets
+
+`sv.DetectionDataset` loads, merges, splits, and converts object detection datasets. Supported formats include YOLO, COCO JSON, and Pascal VOC. `sv.ClassificationDataset` supports folder-structured classification datasets.
+
+### Metrics
+
+Supervision includes detection metrics including mean average precision, mean average recall, precision, recall, F1 score, and confusion matrices. The current mAP workflow uses `supervision.metrics.mean_average_precision.MeanAveragePrecision` with `update(...)` and `compute()`.
+
+## How-To Guides
+
+- Detect and annotate: https://supervision.roboflow.com/latest/how_to/detect_and_annotate/
+- Track objects: https://supervision.roboflow.com/latest/how_to/track_objects/
+- Detect small objects: https://supervision.roboflow.com/latest/how_to/detect_small_objects/
+- Filter detections: https://supervision.roboflow.com/latest/how_to/filter_detections/
+- Save detections: https://supervision.roboflow.com/latest/how_to/save_detections/
+- Count in zone: https://supervision.roboflow.com/latest/how_to/count_in_zone/
+- Benchmark a model: https://supervision.roboflow.com/latest/how_to/benchmark_a_model/
+- Process datasets: https://supervision.roboflow.com/latest/how_to/process_datasets/
+
+## Reference Documentation
+
+- Detections: https://supervision.roboflow.com/latest/detection/core/
+- Detection annotators: https://supervision.roboflow.com/latest/detection/annotators/
+- Compact masks: https://supervision.roboflow.com/latest/detection/compact_mask/
+- Detection converters: https://supervision.roboflow.com/latest/detection/utils/converters/
+- IoU and NMS: https://supervision.roboflow.com/latest/detection/utils/iou_and_nms/
+- Boxes: https://supervision.roboflow.com/latest/detection/utils/boxes/
+- Masks: https://supervision.roboflow.com/latest/detection/utils/masks/
+- Polygons: https://supervision.roboflow.com/latest/detection/utils/polygons/
+- Vision-language model helpers: https://supervision.roboflow.com/latest/detection/utils/vlms/
+- Keypoint core: https://supervision.roboflow.com/latest/keypoint/core/
+- Keypoint annotators: https://supervision.roboflow.com/latest/keypoint/annotators/
+- Classification core: https://supervision.roboflow.com/latest/classification/core/
+- Trackers: https://supervision.roboflow.com/latest/trackers/
+- Dataset core: https://supervision.roboflow.com/latest/datasets/core/
+- Mean average precision: https://supervision.roboflow.com/latest/metrics/mean_average_precision/
+- Mean average recall: https://supervision.roboflow.com/latest/metrics/mean_average_recall/
+- Precision: https://supervision.roboflow.com/latest/metrics/precision/
+- Recall: https://supervision.roboflow.com/latest/metrics/recall/
+- F1 score: https://supervision.roboflow.com/latest/metrics/f1_score/
+- Common metric values: https://supervision.roboflow.com/latest/metrics/common_values/
+- Line zone: https://supervision.roboflow.com/latest/detection/tools/line_zone/
+- Polygon zone: https://supervision.roboflow.com/latest/detection/tools/polygon_zone/
+- Inference slicer: https://supervision.roboflow.com/latest/detection/tools/inference_slicer/
+- Detection smoother: https://supervision.roboflow.com/latest/detection/tools/smoother/
+- Detection export sinks: https://supervision.roboflow.com/latest/detection/tools/save_detections/
+- Video utilities: https://supervision.roboflow.com/latest/utils/video/
+- Image utilities: https://supervision.roboflow.com/latest/utils/image/
+- Iterable utilities: https://supervision.roboflow.com/latest/utils/iterables/
+- Notebook utilities: https://supervision.roboflow.com/latest/utils/notebook/
+- File utilities: https://supervision.roboflow.com/latest/utils/file/
+- Draw utilities: https://supervision.roboflow.com/latest/utils/draw/
+- Geometry utilities: https://supervision.roboflow.com/latest/utils/geometry/
+- Assets: https://supervision.roboflow.com/latest/assets/
+
+## Cookbooks
+
+- Supervision quickstart: https://supervision.roboflow.com/latest/notebooks/quickstart/
+- Count objects crossing the line: https://supervision.roboflow.com/latest/notebooks/count-objects-crossing-the-line/
+- Object tracking: https://supervision.roboflow.com/latest/notebooks/object-tracking/
+- Small object detection with SAHI: https://supervision.roboflow.com/latest/notebooks/small-object-detection-with-sahi/
+- Zero-shot object detection with YOLO-World: https://supervision.roboflow.com/latest/notebooks/zero-shot-object-detection-with-yolo-world/
+- Save detections to CSV: https://supervision.roboflow.com/latest/notebooks/serialise-detections-to-csv/
+- Save detections to JSON: https://supervision.roboflow.com/latest/notebooks/serialise-detections-to-json/
+- Occupancy analytics: https://supervision.roboflow.com/latest/notebooks/occupancy_analytics/
+- Annotate video with detections: https://supervision.roboflow.com/latest/notebooks/annotate-video-with-detections/
+
+## Trust and Contact Pages
+
+- About: https://supervision.roboflow.com/latest/about/
+- Contact: https://supervision.roboflow.com/latest/contact/
+- FAQ: https://supervision.roboflow.com/latest/faq/
+- License: https://github.com/roboflow/supervision/blob/develop/LICENSE.md
+- Issues: https://github.com/roboflow/supervision/issues
+- Community: https://discord.gg/GbfgXGJ8Bk
+
+## Frequently Asked Questions
+
+### What is Supervision?
+
+Supervision is an open-source Python library by Roboflow for computer vision workflows. It provides a unified `Detections` class with converters for supported detection, segmentation, and VLM outputs.
+
+### Is Supervision tied to one model provider?
+
+No. Supervision is model agnostic. It is designed to normalize model outputs into a common API so downstream annotation, filtering, tracking, metrics, and dataset code can be reused.
+
+### What dataset formats are supported?
+
+For object detection datasets, Supervision supports YOLO, COCO JSON, and Pascal VOC import and export. For classification datasets, it supports folder-structure import and export.
+
+### How do I detect small objects?
+
+Use `sv.InferenceSlicer` to split large images into overlapping tiles, run inference on each tile, and merge the resulting detections with non-maximum suppression or non-maximum merge.
+
+### How do I count objects crossing a line?
+
+Run a tracker first to assign `detections.tracker_id`, then use `sv.LineZone.trigger(detections)` to calculate crossing events. Use `sv.LineZoneAnnotator` for visualization.
+
+### How do I benchmark a model?
+
+Load predictions and ground truth as `Detections`, update a `MeanAveragePrecision` metric object, and call `compute()`. Use `sv.ConfusionMatrix` when class-level confusion analysis is needed.
+
+## Citation
+
+```bibtex
+@software{supervision,
+  author = {Roboflow},
+  title = {Supervision: Computer Vision Toolkit},
+  url = {https://github.com/roboflow/supervision},
+  year = {2023}
+}
+```
+
+## Versioning
+
+`/develop/` is built from the `develop` branch. `/latest/` is built from the `release/latest` branch. Published releases build tag-only documentation paths and do not move `/latest/`.

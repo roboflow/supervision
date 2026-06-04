@@ -3,8 +3,41 @@ from contextlib import nullcontext as DoesNotRaise
 import numpy as np
 import pytest
 
+from supervision.detection.core import Detections
 from supervision.key_points.core import KeyPoints
-from tests.helpers import _create_key_points
+from tests.helpers import (
+    _create_key_points,
+    _FakeMediapipeLandmark,
+    _FakeMediapipePose,
+    _FakeMediapipeResults,
+    _FakeYoloNasKeyPoint,
+    _FakeYoloNasKeyPointResults,
+)
+
+
+@pytest.fixture
+def rfdetr_detections() -> Detections:
+    keypoints = np.array(
+        [
+            [[10.0, 20.0, 0.9], [30.0, 40.0, 0.8]],
+            [[50.0, 60.0, 0.7], [70.0, 80.0, 0.6]],
+        ],
+        dtype=np.float32,
+    )
+    precision_cholesky = np.zeros((2, 2, 3), dtype=np.float32)
+    return Detections(
+        xyxy=np.array(
+            [[0.0, 0.0, 40.0, 50.0], [10.0, 20.0, 90.0, 100.0]], dtype=np.float32
+        ),
+        confidence=np.array([0.95, 0.85], dtype=np.float32),
+        class_id=np.array([1, 1]),
+        data={
+            "keypoints": keypoints,
+            "keypoint_precision_cholesky": precision_cholesky,
+            "source_shape": np.array([[100, 200], [50, 100]], dtype=np.int64),
+        },
+    )
+
 
 KEY_POINTS = _create_key_points(
     xy=[
@@ -19,6 +52,73 @@ KEY_POINTS = _create_key_points(
     ],
     class_id=[0, 1, 2],
 )
+
+
+def test_key_points_from_rfdetr_loads_keypoints_and_covariance(
+    rfdetr_detections: Detections,
+) -> None:
+    key_points = KeyPoints.from_rfdetr(rfdetr_detections)
+
+    assert key_points.xy.shape == (2, 2, 2)
+    np.testing.assert_allclose(
+        key_points.xy, rfdetr_detections.data["keypoints"][:, :, :2]
+    )
+    np.testing.assert_allclose(
+        key_points.confidence, rfdetr_detections.data["keypoints"][:, :, 2]
+    )
+    np.testing.assert_array_equal(key_points.class_id, rfdetr_detections.class_id)
+    assert "covariance" in key_points.data
+    covariance = key_points.data["covariance"]
+    assert covariance.shape == (2, 2, 2, 2)
+    np.testing.assert_allclose(
+        covariance[0, 0], np.diag([200.0**2, 100.0**2]), rtol=1e-4, atol=1e-6
+    )
+    np.testing.assert_allclose(
+        covariance[1, 0], np.diag([100.0**2, 50.0**2]), rtol=1e-4, atol=1e-6
+    )
+
+
+def test_key_points_from_rfdetr_without_precision_omits_covariance(
+    rfdetr_detections: Detections,
+) -> None:
+    del rfdetr_detections.data["keypoint_precision_cholesky"]
+
+    key_points = KeyPoints.from_rfdetr(rfdetr_detections)
+
+    assert key_points.xy.shape == (2, 2, 2)
+    assert "covariance" not in key_points.data
+
+
+def test_key_points_from_rfdetr_missing_keypoints_raises(
+    rfdetr_detections: Detections,
+) -> None:
+    del rfdetr_detections.data["keypoints"]
+
+    with pytest.raises(ValueError, match=r"data\['keypoints'\]"):
+        KeyPoints.from_rfdetr(rfdetr_detections)
+
+
+def test_key_points_from_rfdetr_precision_requires_source_shape(
+    rfdetr_detections: Detections,
+) -> None:
+    del rfdetr_detections.data["source_shape"]
+
+    with pytest.raises(ValueError, match="source_shape"):
+        KeyPoints.from_rfdetr(rfdetr_detections)
+
+
+def test_key_points_from_rfdetr_empty_keypoints_returns_empty(
+    rfdetr_detections: Detections,
+) -> None:
+    rfdetr_detections.xyxy = np.empty((0, 4), dtype=np.float32)
+    rfdetr_detections.confidence = np.empty((0,), dtype=np.float32)
+    rfdetr_detections.class_id = np.empty((0,), dtype=int)
+    rfdetr_detections.data["keypoints"] = np.empty((0, 2, 3), dtype=np.float32)
+    del rfdetr_detections.data["source_shape"]
+
+    key_points = KeyPoints.from_rfdetr(rfdetr_detections)
+
+    assert key_points == KeyPoints.empty()
 
 
 @pytest.mark.parametrize(
@@ -244,6 +344,121 @@ KEY_POINTS = _create_key_points(
             _create_key_points(xy=[[[8, 9]]], confidence=[[0.5]], class_id=[0]),
             DoesNotRaise(),
         ),  # select the last anchor from the first skeleton by index
+        (
+            KEY_POINTS,
+            np.array(
+                [
+                    [True, False, True, False, False],
+                    [True, True, False, False, False],
+                    [False, True, True, False, False],
+                ]
+            ),
+            _create_key_points(
+                xy=[
+                    [[0, 1], [4, 5]],
+                    [[10, 11], [12, 13]],
+                    [[22, 23], [24, 25]],
+                ],
+                confidence=[[0.8, 0.6], [0.7, 0.9], [0.6, 0.8]],
+                class_id=[0, 1, 2],
+            ),
+            DoesNotRaise(),
+        ),  # filter keypoints by 2D boolean mask, same count per row
+        (
+            _create_key_points(
+                xy=[[[0, 1], [2, 3], [4, 5]]],
+                confidence=[[0.8, 0.2, 0.6]],
+                class_id=[0],
+            ),
+            np.array([[True, False, True]]),
+            _create_key_points(
+                xy=[[[0, 1], [4, 5]]],
+                confidence=[[0.8, 0.6]],
+                class_id=[0],
+            ),
+            DoesNotRaise(),
+        ),  # filter keypoints by 2D boolean mask, single object
+        (
+            _create_key_points(
+                xy=[
+                    [[0, 1], [2, 3], [4, 5]],
+                    [[10, 11], [12, 13], [14, 15]],
+                ],
+                confidence=[
+                    [0.8, 0.2, 0.6],
+                    [0.1, 0.2, 0.3],
+                ],
+                class_id=[0, 1],
+            ),
+            np.array([[True, False, True], [False, False, False]]),
+            None,
+            pytest.raises(ValueError, match="different numbers of True values"),
+        ),  # 2D boolean mask with different counts per row raises ValueError
+        (
+            _create_key_points(
+                xy=[[[0, 1], [2, 3], [4, 5]]],
+                class_id=[0],
+            ),
+            np.array([[True, False, True]]),
+            _create_key_points(
+                xy=[[[0, 1], [4, 5]]],
+                class_id=[0],
+            ),
+            DoesNotRaise(),
+        ),  # 2D boolean mask with confidence=None — no confidence array in result
+        (
+            _create_key_points(
+                xy=[[[0, 1], [2, 3], [4, 5]]],
+                confidence=[[0.8, 0.2, 0.6]],
+                class_id=[0],
+            ),
+            np.array([[True, False]]),
+            None,
+            pytest.raises(ValueError, match="column count"),
+        ),  # 2D boolean mask column count mismatch raises ValueError
+        (
+            _create_key_points(
+                xy=[[[0, 1], [2, 3], [4, 5]]],
+                confidence=[[0.8, 0.2, 0.6]],
+                class_id=[0],
+            ),
+            np.array([[True, False, True], [True, False, True]]),
+            None,
+            pytest.raises(ValueError, match="row count"),
+        ),  # 2D boolean mask row count mismatch raises ValueError
+        (
+            _create_key_points(
+                xy=[[[0, 1], [2, 3]], [[4, 5], [6, 7]]],
+                confidence=[[0.8, 0.2], [0.6, 0.9]],
+                class_id=[0, 1],
+            ),
+            np.array([[False, False], [False, False]]),
+            KeyPoints(
+                xy=np.zeros((2, 0, 2), dtype=np.float32),
+                confidence=np.zeros((2, 0), dtype=np.float32),
+                class_id=np.array([0, 1]),
+            ),
+            DoesNotRaise(),
+        ),  # all-False 2D mask — all rows select 0 keypoints, equal counts → ok
+        (
+            _create_key_points(
+                xy=[[[0, 1], [2, 3], [4, 5]]],
+                confidence=[[0.8, 0.2, 0.6]],
+                class_id=[0],
+            ),
+            _create_key_points(
+                xy=[[[0, 1], [2, 3], [4, 5]]],
+                confidence=[[0.8, 0.2, 0.6]],
+                class_id=[0],
+            ).confidence
+            > 0.5,
+            _create_key_points(
+                xy=[[[0, 1], [4, 5]]],
+                confidence=[[0.8, 0.6]],
+                class_id=[0],
+            ),
+            DoesNotRaise(),
+        ),  # kp[kp.confidence > 0.5] — single-object canonical use case
     ],
 )
 def test_key_points_getitem(key_points, index, expected_result, exception):
@@ -431,3 +646,123 @@ def test_key_points_equality_with_data():
     )
     key_points2["custom"] = ["value"]
     assert key_points1 != key_points2
+
+
+@pytest.mark.parametrize(
+    ("inference_results", "expected_key_points"),
+    [
+        (
+            {
+                "predictions": [
+                    {
+                        "class_id": 1,
+                        "class": "person",
+                        "keypoints": [
+                            {"x": 100, "y": 150, "confidence": 0.9},
+                            {"x": 120, "y": 160, "confidence": 0.85},
+                        ],
+                    }
+                ]
+            },
+            _create_key_points(
+                xy=[[[100.0, 150.0], [120.0, 160.0]]],
+                confidence=[[0.9, 0.85]],
+                class_id=[1],
+                data={"class_name": np.array(["person"])},
+            ),
+        ),
+        ({"predictions": []}, KeyPoints.empty()),
+    ],
+)
+def test_from_inference_input(inference_results, expected_key_points):
+    """Test the from_inference method with valid input."""
+    key_points = KeyPoints.from_inference(inference_results)
+    assert key_points == expected_key_points
+
+
+def test_from_inference_invalid_input():
+    """Test the from_inference method with invalid input."""
+    key_points = _create_key_points(
+        xy=[[[0, 1], [2, 3]]], confidence=[[0.8, 0.9]], class_id=[0]
+    )
+    with pytest.raises(
+        ValueError, match=r"from_inference\(\) operates on a single result at a time.*"
+    ):
+        KeyPoints.from_inference([key_points])
+
+
+@pytest.mark.parametrize(
+    ("yolo_nas_results", "expected_key_points"),
+    [
+        (
+            _FakeYoloNasKeyPointResults(
+                _FakeYoloNasKeyPoint(
+                    poses=[[[100.0, 150.0, 0.9], [120.0, 160.0, 0.85]]],
+                    labels=[1],
+                ),
+            ),
+            _create_key_points(
+                xy=[[[100.0, 150.0], [120.0, 160.0]]],
+                confidence=[[0.9, 0.85]],
+                class_id=[1],
+            ),
+        ),
+        (
+            _FakeYoloNasKeyPointResults(
+                _FakeYoloNasKeyPoint(
+                    poses=[],
+                ),
+            ),
+            KeyPoints.empty(),
+        ),
+    ],
+)
+def test_from_yolo_nas_input(yolo_nas_results, expected_key_points):
+    """Test the from_yolo_nas method with valid input."""
+    key_points = KeyPoints.from_yolo_nas(yolo_nas_results)
+    assert key_points == expected_key_points
+
+
+@pytest.mark.parametrize(
+    ("mediapipe_results", "resolution_wh", "expected_key_points"),
+    [
+        (
+            _FakeMediapipeResults(
+                pose_landmarks=_FakeMediapipePose(
+                    landmarks=[
+                        _FakeMediapipeLandmark(0.5, 0.75, 0.9),
+                        _FakeMediapipeLandmark(0.6, 0.8, 0.85),
+                    ]
+                )
+            ),
+            (200, 200),
+            _create_key_points(
+                xy=[[[100.0, 150.0], [120.0, 160.0]]],
+                confidence=[[0.9, 0.85]],
+                class_id=None,
+            ),
+        ),
+        (
+            _FakeMediapipeResults(
+                pose_landmarks=[
+                    [
+                        _FakeMediapipeLandmark(0.5, 0.75, 0.9),
+                        _FakeMediapipeLandmark(0.6, 0.8, 0.85),
+                    ]
+                ]
+            ),
+            (200, 200),
+            _create_key_points(
+                xy=[[[100.0, 150.0], [120.0, 160.0]]],
+                confidence=[[0.9, 0.85]],
+                class_id=None,
+            ),
+        ),
+    ],
+)
+def test_from_mediapipe_input(mediapipe_results, resolution_wh, expected_key_points):
+    """Test the from_mediapipe method with valid input."""
+    key_points = KeyPoints.from_mediapipe(
+        mediapipe_results, resolution_wh=resolution_wh
+    )
+    assert key_points == expected_key_points

@@ -1,5 +1,5 @@
 default_language_version:
-  python: python3.10
+  python: python3
 
 ci:
   autofix_prs: true
@@ -13,11 +13,14 @@ repos:
     hooks:
       - id: trailing-whitespace
       - id: check-yaml
-        exclude: mkdocs.yml
+        args: ["--unsafe"]
       - id: check-executables-have-shebangs
+      - id: check-json
       - id: check-toml
       - id: check-case-conflict
       - id: check-added-large-files
+        args: ["--maxkb=500", "--enforce-all"]
+        exclude: uv.lock|.*\.ipynb$
       - id: detect-private-key
       - id: pretty-format-json
         exclude: demo.ipynb
@@ -26,7 +29,7 @@ repos:
       - id: mixed-line-ending
 
   - repo: https://github.com/JoC0de/pre-commit-prettier
-    rev: v3.8.1 # using tag; previously pinned SHA when tags were not persistent
+    rev: v3.8.3 # using tag; previously pinned SHA when tags were not persistent
     hooks:
       - id: prettier
         files: \.(ya?ml|toml)$
@@ -34,7 +37,7 @@ repos:
         args: ["--print-width=120"]
 
   - repo: https://github.com/tox-dev/pyproject-fmt
-    rev: v2.14.2
+    rev: v2.21.1
     hooks:
       - id: pyproject-fmt
 
@@ -44,10 +47,10 @@ repos:
       - id: validate-pyproject
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.0
+    rev: v0.15.12
     hooks:
       - id: ruff-check
-        args: [--fix]
+        args: ["--fix"]
       - id: ruff-format
         types_or: [python, pyi, jupyter]
 
@@ -62,7 +65,7 @@ repos:
         exclude: ^(docs/changelog\.md|docs/deprecated\.md)$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.1
+    rev: v1.20.2
     hooks:
       - id: mypy
         additional_dependencies:
@@ -71,7 +74,7 @@ repos:
           - "types-requests"
 
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.4.1
+    rev: v2.4.2
     hooks:
       - id: codespell
         additional_dependencies:

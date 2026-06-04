@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import numpy.typing as npt
+from deprecate import deprecated
 
 from supervision.detection.utils.iou_and_nms import box_iou_batch
 
@@ -95,10 +96,17 @@ def pad_boxes(
     return result
 
 
+@deprecated(  # type: ignore[untyped-decorator]
+    target=True,
+    deprecated_in="0.27.0",
+    remove_in="0.30.0",
+    args_mapping={"normalized_xyxy": "xyxy"},
+)
 def denormalize_boxes(
     xyxy: npt.NDArray[np.number],
     resolution_wh: tuple[int, int],
     normalization_factor: float = 1.0,
+    normalized_xyxy: npt.NDArray[np.number] | None = None,
 ) -> npt.NDArray[np.number]:
     """
     Convert normalized bounding box coordinates to absolute pixel coordinates.
@@ -157,7 +165,7 @@ def move_boxes(
     xyxy: npt.NDArray[np.float64], offset: npt.NDArray[np.int32]
 ) -> npt.NDArray[np.float64]:
     """
-    Parameters:
+    Args:
         xyxy: An array of shape `(n, 4)` containing the
             bounding boxes coordinates in format `[x1, y1, x2, y2]`
         offset: An array of shape `(2,)` containing offset values in format
@@ -188,7 +196,7 @@ def move_oriented_boxes(
     xyxyxyxy: npt.NDArray[np.float64], offset: npt.NDArray[np.int32]
 ) -> npt.NDArray[np.float64]:
     """
-    Parameters:
+    Args:
         xyxyxyxy: An array of shape `(n, 4, 2)` containing the
         oriented bounding boxes coordinates in format
         `[[x1, y1], [x2, y2], [x3, y3], [x3, y3]]`
@@ -239,7 +247,7 @@ def scale_boxes(
     """
     Scale the dimensions of bounding boxes.
 
-    Parameters:
+    Args:
         xyxy: An array of shape `(n, 4)` containing the
             bounding boxes coordinates in format `[x1, y1, x2, y2]`
         factor: A float value representing the factor by which the box

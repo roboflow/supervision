@@ -4,6 +4,7 @@ comments: true
 hide:
   - navigation
   - toc
+description: Open-source Python library providing computer vision tools for annotating detections, tracking objects, counting in zones, and processing datasets.
 ---
 
 <div class="md-typeset">
@@ -22,6 +23,14 @@ hide:
         margin: 0;
     }
 </style>
+
+## What is Supervision?
+
+Supervision is an open-source Python library by Roboflow for building computer vision applications. It provides a unified `Detections` object with converters for supported outputs from Ultralytics, Roboflow Inference, Transformers, SAM, Detectron2, MMDetection, YOLO-NAS, PaddleDet, NCNN, Azure AI Vision, and VLM parsers.
+
+With Supervision you can annotate images and video with bounding boxes, masks, and labels; track objects across frames with persistent IDs; count and filter detections inside polygon zones; load and convert datasets between YOLO, COCO, and Pascal VOC formats; and benchmark model performance with mAP and confusion matrices.
+
+Supervision is MIT licensed, has 38,000+ GitHub stars, and over 1 million monthly PyPI downloads. It is developed in public on GitHub for production computer vision workflows.
 
 ## 👋 Hello
 

@@ -63,6 +63,21 @@ HOSTED_SAM3_DICT = {
     ],
     "time": 0.7277156260097399,
 }
+SERVERLESS_SAM3_PVS_DICT = {
+    "predictions": [
+        {
+            "masks": [
+                [[713, 1276], [713, 1279], [714, 1279], [714, 1277]],
+                [[711, 1273]],
+                [[671, 1231], [671, 1234]],
+                [[523, 1222], [522, 1223]],
+            ],
+            "confidence": 0.0025782063603401184,
+            "format": "polygon",
+        }
+    ],
+    "time": 0.07825545498053543,
+}
 
 
 @pytest.mark.parametrize(
@@ -151,6 +166,13 @@ def test_from_sam(
             ),
             np.array([0.898438, 0.941406], dtype=np.float32),
             np.array([0, 0], dtype=int),
+        ),
+        (
+            SERVERLESS_SAM3_PVS_DICT,
+            (2000, 2000),
+            np.array([[522.0, 1222.0, 714.0, 1279.0]], dtype=np.float32),
+            np.array([0.00257821], dtype=np.float32),
+            np.array([0], dtype=int),
         ),
     ],
 )
