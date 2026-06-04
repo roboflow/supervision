@@ -208,7 +208,6 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
         thickness: int = 2,
         sigma: float = 2.0,
         covariance_data_key: str = "covariance",
-        confidence_threshold: float = 0.0,
         max_axis_length: float | None = None,
         line_style: Literal["solid", "dashed"] = "solid",
         dash_length: int = 16,
@@ -220,8 +219,6 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
             sigma: Number of standard deviations represented by the ellipse axes.
             covariance_data_key: Key in ``key_points.data`` containing covariance
                 matrices with shape ``(N, K, 2, 2)``.
-            confidence_threshold: Minimum keypoint confidence required for drawing.
-                Ignored when ``key_points.confidence`` is ``None``.
             max_axis_length: Optional cap for ellipse semi-axis lengths in pixels.
                 When ``None`` (default), near-singular precision matrices can produce
                 extremely large eigenvalues and frame-spanning ellipses. Set this to
@@ -247,7 +244,6 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
         self.thickness = thickness
         self.sigma = sigma
         self.covariance_data_key = covariance_data_key
-        self.confidence_threshold = confidence_threshold
         self.max_axis_length = max_axis_length
         self.line_style = line_style
         self.dash_length = dash_length
@@ -299,8 +295,6 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
                 if key_points.confidence is not None:
                     confidence = key_points.confidence[detection_index, point_index]
                     if not np.isfinite(confidence):
-                        continue
-                    if confidence < self.confidence_threshold:
                         continue
                 ellipse = self._covariance_to_ellipse(
                     covariance=covariances[detection_index, point_index]

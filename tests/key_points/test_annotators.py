@@ -214,7 +214,7 @@ class TestVertexEllipseAnnotator:
                 "covariance": np.array([[[[25.0, 0.0], [0.0, 9.0]]]], dtype=np.float32)
             },
         )
-        annotator = sv.VertexEllipseAnnotator(confidence_threshold=0.0)
+        annotator = sv.VertexEllipseAnnotator()
 
         result = annotator.annotate(scene=scene.copy(), key_points=key_points)
 
@@ -241,33 +241,30 @@ class TestVertexEllipseAnnotator:
         with pytest.raises(ValueError, match="Expected covariance shape"):
             annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
 
-    def test_confidence_threshold_filters_low_confidence_keypoints(self, scene):
+    def test_pre_masked_keypoints_are_annotated(self, scene):
         """
-        Scenario: Two keypoints with confidences 0.3 and 0.7; threshold=0.5.
-        Expected: Only the high-confidence keypoint is drawn.
+        Scenario: Caller masks low-confidence keypoints before annotation.
+        Expected: Only the already-selected keypoint is drawn.
         """
-        cov = np.array([[[[25.0, 0.0], [0.0, 9.0]]]], dtype=np.float32)
-        key_points_low = sv.KeyPoints(
-            xy=np.array([[[20.0, 20.0]]], dtype=np.float32),
-            confidence=np.array([[0.3]], dtype=np.float32),
-            data={"covariance": cov},
+        key_points = sv.KeyPoints(
+            xy=np.array([[[20.0, 20.0], [40.0, 40.0]]], dtype=np.float32),
+            confidence=np.array([[0.3, 0.7]], dtype=np.float32),
+            data={
+                "covariance": np.tile(
+                    np.array([[[[25.0, 0.0], [0.0, 9.0]]]], dtype=np.float32),
+                    (1, 2, 1, 1),
+                )
+            },
         )
-        key_points_high = sv.KeyPoints(
-            xy=np.array([[[20.0, 20.0]]], dtype=np.float32),
-            confidence=np.array([[0.7]], dtype=np.float32),
-            data={"covariance": cov},
-        )
-        annotator = sv.VertexEllipseAnnotator(confidence_threshold=0.5)
+        key_points.xy[key_points.confidence < 0.5] = 0.0
+        annotator = sv.VertexEllipseAnnotator()
 
-        result_low = annotator.annotate(scene=scene.copy(), key_points=key_points_low)
-        result_high = annotator.annotate(scene=scene.copy(), key_points=key_points_high)
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points)
 
-        assert np.array_equal(result_low, scene), (
-            "low-confidence keypoint must be skipped"
+        np.testing.assert_array_equal(
+            key_points.xy[0, 0], np.array([0.0, 0.0], dtype=np.float32)
         )
-        assert not np.array_equal(result_high, scene), (
-            "high-confidence keypoint must be drawn"
-        )
+        assert not np.array_equal(result, scene)
 
     def test_max_axis_length_caps_large_eigenvalue(self, scene):
         """

@@ -63,6 +63,25 @@ def validate_mask(mask: Any, n: int) -> None:
         )
 
 
+def validate_detection_keypoints(keypoints: Any, n: int) -> None:
+    if keypoints is None:
+        return
+
+    expected_shape = f"({n}, K, 2) or ({n}, K, 3)"
+    actual_shape = str(getattr(keypoints, "shape", None))
+    is_valid = (
+        isinstance(keypoints, np.ndarray)
+        and keypoints.ndim == 3
+        and keypoints.shape[0] == n
+        and keypoints.shape[2] in (2, 3)
+    )
+    if not is_valid:
+        raise ValueError(
+            "keypoints must be a 3D np.ndarray with shape "
+            + f"{expected_shape}, but got shape {actual_shape}"
+        )
+
+
 def validate_class_id(class_id: Any, n: int) -> None:
     expected_shape = f"({n},)"
     actual_shape = str(getattr(class_id, "shape", None))
@@ -161,10 +180,12 @@ def validate_detections_fields(
     confidence: Any,
     tracker_id: Any,
     data: dict[str, Any],
+    keypoints: Any = None,
 ) -> None:
     validate_xyxy(xyxy)
     n = len(xyxy)
     validate_mask(mask, n)
+    validate_detection_keypoints(keypoints, n)
     validate_class_id(class_id, n)
     validate_confidence(confidence, n)
     validate_tracker_id(tracker_id, n)

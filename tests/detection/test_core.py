@@ -156,6 +156,41 @@ def test_detections_non_bool_mask_warns_with_migration_path() -> None:
 
 
 @pytest.mark.parametrize(
+    ("keypoints", "exception"),
+    [
+        (np.array([[[1, 2], [3, 4]]], dtype=np.float32), DoesNotRaise()),
+        (np.array([[[1, 2, 0.9], [3, 4, 0.8]]], dtype=np.float32), DoesNotRaise()),
+        (
+            np.array([[1, 2, 0.9], [3, 4, 0.8]], dtype=np.float32),
+            pytest.raises(ValueError, match=r"keypoints must be a 3D np.ndarray"),
+        ),
+        (
+            np.array([[[1, 2, 0.9, 1], [3, 4, 0.8, 1]]], dtype=np.float32),
+            pytest.raises(ValueError, match=r"keypoints must be a 3D np.ndarray"),
+        ),
+        (
+            np.array(
+                [
+                    [[1, 2, 0.9], [3, 4, 0.8]],
+                    [[5, 6, 0.7], [7, 8, 0.6]],
+                ],
+                dtype=np.float32,
+            ),
+            pytest.raises(ValueError, match=r"keypoints must be a 3D np.ndarray"),
+        ),
+    ],
+)
+def test_detections_keypoints_validation(
+    keypoints: np.ndarray, exception: Exception
+) -> None:
+    with exception:
+        Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            keypoints=keypoints,
+        )
+
+
+@pytest.mark.parametrize(
     ("detections", "index", "expected_result", "exception"),
     [
         # Scenario: Filter detections by class ID using a boolean mask.
@@ -302,6 +337,63 @@ def test_getitem(
     with exception:
         result = detections[index]
         assert result == expected_result
+
+
+def test_getitem_preserves_keypoints() -> None:
+    keypoints = np.array(
+        [
+            [[1, 2, 0.9], [3, 4, 0.8]],
+            [[5, 6, 0.7], [7, 8, 0.6]],
+        ],
+        dtype=np.float32,
+    )
+    detections = Detections(
+        xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]], dtype=np.float32),
+        confidence=np.array([0.9, 0.8], dtype=np.float32),
+        keypoints=keypoints,
+    )
+
+    result = detections[[1]]
+
+    assert isinstance(result, Detections)
+    np.testing.assert_array_equal(result.keypoints, keypoints[[1]])
+
+
+def test_merge_preserves_keypoints() -> None:
+    detections_1 = Detections(
+        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        keypoints=np.array([[[1, 2, 0.9], [3, 4, 0.8]]], dtype=np.float32),
+    )
+    detections_2 = Detections(
+        xyxy=np.array([[20, 20, 30, 30]], dtype=np.float32),
+        keypoints=np.array([[[5, 6, 0.7], [7, 8, 0.6]]], dtype=np.float32),
+    )
+
+    result = Detections.merge([detections_1, detections_2])
+
+    np.testing.assert_array_equal(
+        result.keypoints,
+        np.array(
+            [
+                [[1, 2, 0.9], [3, 4, 0.8]],
+                [[5, 6, 0.7], [7, 8, 0.6]],
+            ],
+            dtype=np.float32,
+        ),
+    )
+
+
+def test_merge_rejects_mixed_keypoints_availability() -> None:
+    detections_1 = Detections(
+        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        keypoints=np.array([[[1, 2, 0.9], [3, 4, 0.8]]], dtype=np.float32),
+    )
+    detections_2 = Detections(
+        xyxy=np.array([[20, 20, 30, 30]], dtype=np.float32),
+    )
+
+    with pytest.raises(ValueError, match="All or none of the 'keypoints'"):
+        Detections.merge([detections_1, detections_2])
 
 
 @pytest.mark.parametrize(
@@ -878,6 +970,25 @@ def test_merge_inner_detection_object_pair(
     with exception:
         result = merge_inner_detection_object_pair(detection_1, detection_2)
         assert result == expected_result
+
+
+def test_merge_inner_detection_object_pair_preserves_winning_keypoints() -> None:
+    losing_keypoints = np.array([[[1, 2, 0.9], [3, 4, 0.8]]], dtype=np.float32)
+    winning_keypoints = np.array([[[5, 6, 0.7], [7, 8, 0.6]]], dtype=np.float32)
+    detection_1 = Detections(
+        xyxy=np.array([[0, 0, 20, 20]], dtype=np.float32),
+        confidence=np.array([0.1], dtype=np.float32),
+        keypoints=losing_keypoints,
+    )
+    detection_2 = Detections(
+        xyxy=np.array([[10, 10, 30, 30]], dtype=np.float32),
+        confidence=np.array([0.9], dtype=np.float32),
+        keypoints=winning_keypoints,
+    )
+
+    result = merge_inner_detection_object_pair(detection_1, detection_2)
+
+    np.testing.assert_array_equal(result.keypoints, winning_keypoints)
 
 
 @pytest.mark.parametrize(
