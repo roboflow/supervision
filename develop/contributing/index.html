@@ -2724,6 +2724,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#api-design-principles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Design Principles
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2964,6 +2975,7 @@
 <ul>
 <li><a href="#contribution-guidelines">Contribution Guidelines</a><ul>
 <li><a href="#contributing-features">Contributing Features</a></li>
+<li><a href="#api-design-principles">API Design Principles</a></li>
 </ul>
 </li>
 <li><a href="#how-to-contribute-changes">How to Contribute Changes</a></li>
@@ -2992,6 +3004,41 @@
 <p>Supervision is designed to provide generic utilities to solve problems. Thus, we focus on contributions that can have an impact on a wide range of projects.</p>
 <p>For example, counting objects that cross a line anywhere on an image is a common problem in computer vision, but counting objects that cross a line 75% of the way through is less useful.</p>
 <p>Before you contribute a new feature, consider submitting an Issue to discuss the feature so the community can weigh in and assist.</p>
+<h3 id="api-design-principles">API Design Principles<a class="headerlink" href="#api-design-principles" title="Permanent link">&para;</a></h3>
+<p>Supervision APIs should remain generic, composable, and predictable across model
+families. Before adding a new integration, annotator option, or data conversion
+method, check the existing <code>sv.Detections</code>, <code>sv.KeyPoints</code>, and annotator
+patterns and follow these principles:</p>
+<ol>
+<li><strong>Model integrations normalize raw external outputs into existing Supervision
+    containers.</strong> Use <code>sv.Detections</code> for detection, segmentation, and other
+    instance-level predictions that include boxes, masks, class ids, confidence
+    scores, or extra per-instance fields. Use <code>sv.KeyPoints</code> for standalone
+    keypoint or pose predictions when keypoints exist independently of detection
+    boxes (e.g. pure pose estimation, landmark detection on pre-cropped images).
+    Use <code>Detections.keypoints</code> when keypoints are always co-incident with boxes
+    from the same model — the field stores an <code>(n, K, 2)</code> or <code>(n, K, 3)</code> array
+    where the optional third channel is per-point confidence in <code>[0, 1]</code>.</li>
+<li><strong>Do not add a <code>from_&lt;model&gt;</code> method when the model already returns a
+    Supervision object.</strong> <code>from_*</code> methods are for converting raw outputs from
+    external packages such as Ultralytics, Transformers, Inference, or MediaPipe.
+    If a model's <code>predict()</code> method already returns <code>sv.Detections</code>, keep that
+    result type and store additional structured payloads in <code>detections.data</code> or
+    <code>detections.metadata</code> using documented keys.</li>
+<li><strong>Annotators render data; filtering and visibility are container state.</strong>
+    Filtering by confidence, class id, tracker id, geometry, or custom data should
+    happen before annotation through the container slicing APIs, for example
+    <code>detections[detections.confidence &gt; 0.7]</code> or <code>key_points[key_points.confidence &gt; 0.5]</code>.
+    Per-point presentation state, such as a <code>KeyPoints.visible</code> mask, may
+    live on the container and be honored consistently by annotators.</li>
+<li><strong>Annotator constructor arguments should describe visual presentation, not
+    model-quality gates.</strong> Use constructor arguments for color, thickness,
+    opacity, text, position, style, and generic visualization parameters such as
+    sigma levels. Annotators may skip invalid geometry defensively, including
+    missing points, zero-area boxes, non-finite coordinates, or points marked
+    invisible on the container. They should not introduce confidence thresholds or
+    model-specific quality gates as rendering options.</li>
+</ol>
 <h2 id="how-to-contribute-changes">How to Contribute Changes<a class="headerlink" href="#how-to-contribute-changes" title="Permanent link">&para;</a></h2>
 <p>First, fork this repository to your own GitHub account. Click "fork" in the top corner of the <code>supervision</code> repository to get started:</p>
 <p><img alt="Forking the repository" src="https://media.roboflow.com/fork.png" /></p>
