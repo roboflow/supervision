@@ -28,7 +28,7 @@ def _validate_xyxy(xyxy: Any) -> None:
 @deprecated(  # type: ignore[untyped-decorator]
     target=_validate_xyxy,
     deprecated_in="0.29.0",
-    remove_in="0.31.0",
+    remove_in="0.32.0",
 )
 def validate_xyxy(xyxy: Any) -> None:
     void(xyxy)
@@ -75,7 +75,7 @@ def _validate_mask(mask: Any, n: int) -> None:
 @deprecated(  # type: ignore[untyped-decorator]
     target=_validate_mask,
     deprecated_in="0.29.0",
-    remove_in="0.31.0",
+    remove_in="0.32.0",
 )
 def validate_mask(mask: Any, n: int) -> None:
     void(mask, n)
@@ -97,7 +97,7 @@ def _validate_class_id(class_id: Any, n: int) -> None:
 @deprecated(  # type: ignore[untyped-decorator]
     target=_validate_class_id,
     deprecated_in="0.29.0",
-    remove_in="0.31.0",
+    remove_in="0.32.0",
 )
 def validate_class_id(class_id: Any, n: int) -> None:
     void(class_id, n)
@@ -119,7 +119,7 @@ def _validate_confidence(confidence: Any, n: int) -> None:
 @deprecated(  # type: ignore[untyped-decorator]
     target=_validate_confidence,
     deprecated_in="0.29.0",
-    remove_in="0.31.0",
+    remove_in="0.32.0",
 )
 def validate_confidence(confidence: Any, n: int) -> None:
     void(confidence, n)
@@ -141,7 +141,7 @@ def _validate_keypoint_confidence(confidence: Any, n: int, m: int) -> None:
 @deprecated(  # type: ignore[untyped-decorator]
     target=_validate_keypoint_confidence,
     deprecated_in="0.29.0",
-    remove_in="0.31.0",
+    remove_in="0.32.0",
 )
 def validate_key_point_confidence(confidence: Any, n: int, m: int) -> None:
     void(confidence, n, m)
