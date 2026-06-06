@@ -7,6 +7,7 @@ from typing import Any
 
 import numpy as np
 import numpy.typing as npt
+from deprecate import deprecated, void
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
@@ -201,7 +202,7 @@ def wrap_text(text: Any, max_line_length: int | None = None) -> list[str]:
     return all_lines or [""]
 
 
-def validate_labels(labels: list[str] | None, detections: Detections) -> None:
+def _validate_labels(labels: list[str] | None, detections: Detections) -> None:
     """
     Validates that the number of provided labels matches the number of detections.
 
@@ -220,6 +221,15 @@ def validate_labels(labels: list[str] | None, detections: Detections) -> None:
             f"number of detections ({len(detections)}). Each detection "
             f"should have exactly 1 label."
         )
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_validate_labels,
+    deprecated_in="0.29.0",
+    remove_in="0.31.0",
+)
+def validate_labels(labels: list[str] | None, detections: Detections) -> None:
+    void(labels, detections)
 
 
 def get_labels_text(

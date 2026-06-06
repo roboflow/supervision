@@ -7,7 +7,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated_class
+from deprecate import deprecated, deprecated_class, void
 
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
@@ -45,7 +45,7 @@ def detections_to_tensor(
     return result
 
 
-def validate_input_tensors(
+def _validate_input_tensors(
     predictions: list[npt.NDArray[np.float32]],
     targets: list[npt.NDArray[np.float32]],
 ) -> None:
@@ -74,6 +74,18 @@ def validate_input_tensors(
             raise ValueError(
                 f"Targets must have shape (N, 5). Got {targets[0].shape} instead."
             )
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_validate_input_tensors,
+    deprecated_in="0.29.0",
+    remove_in="0.31.0",
+)
+def validate_input_tensors(
+    predictions: list[npt.NDArray[np.float32]],
+    targets: list[npt.NDArray[np.float32]],
+) -> None:
+    void(predictions, targets)
 
 
 @dataclass
@@ -223,7 +235,7 @@ class ConfusionMatrix:
 
             ```
         """
-        validate_input_tensors(predictions, targets)
+        _validate_input_tensors(predictions, targets)
 
         num_classes = len(classes)
         matrix = np.zeros((num_classes + 1, num_classes + 1))
@@ -723,7 +735,7 @@ class MeanAveragePrecision:
 
             ```
         """
-        validate_input_tensors(predictions, targets)
+        _validate_input_tensors(predictions, targets)
         iou_thresholds = np.linspace(0.5, 0.95, 10)
         stats = []
 
