@@ -3538,6 +3538,9 @@
 <h3 id="unreleased">UnReleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p>Deprecated: public <code>validate_*</code> helper functions now delegate to private <code>_validate_*</code> implementations via <code>pydeprecate</code> shims. Existing imports continue to work with a <code>FutureWarning</code>; internal Supervision code uses the private helpers directly.</p>
+</li>
+<li>
 <p>Fixed <a href="https://github.com/roboflow/supervision/pull/2282">#2282</a>: <a href="https://supervision.roboflow.com/latest/detection/utils/iou_and_nms/"><code>oriented_box_iou_batch</code></a> now allocates the rasterization canvas with correct dimensions. Previously x-extents were mapped to canvas height and y-extents to width, causing IoU to be computed on a transposed canvas for non-square oriented bounding boxes. Metrics using OBB IoU (Precision, Recall, F1Score, MeanAverageRecall with <code>metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES</code>) now return correct scores.</p>
 </li>
 <li>
@@ -5402,7 +5405,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 1, 2026 07:20:38 UTC">June 1, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 6, 2026 19:15:54 UTC">June 6, 2026</span>
   </span>
 
     
@@ -5430,9 +5433,9 @@
     
     <nav>
       
-        <a href="https://github.com/RitwijParmar" class="md-author" title="@RitwijParmar">
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
-          <img src="https://avatars.githubusercontent.com/u/88580521?v=4&size=72" alt="RitwijParmar">
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -5440,14 +5443,14 @@
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/RitwijParmar" class="md-author" title="@RitwijParmar">
+          
+          <img src="https://avatars.githubusercontent.com/u/88580521?v=4&size=72" alt="RitwijParmar">
+        </a>
+      
         <a href="https://github.com/madhavcodez" class="md-author" title="@madhavcodez">
           
           <img src="https://avatars.githubusercontent.com/u/171856020?v=4&size=72" alt="madhavcodez">
-        </a>
-      
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
-          
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
       
