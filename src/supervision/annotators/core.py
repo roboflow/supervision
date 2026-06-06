@@ -2744,7 +2744,7 @@ class PercentageBarAnnotator(BaseAnnotator):
 
     @staticmethod
     @deprecated(  # type: ignore[untyped-decorator]
-        target=_validate_custom_values.__func__,
+        target=_validate_custom_values.__func__,  # type: ignore[attr-defined]
         deprecated_in="0.29.0",
         remove_in="0.31.0",
     )
