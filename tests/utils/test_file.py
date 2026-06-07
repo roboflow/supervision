@@ -76,9 +76,20 @@ def test_read_txt_file(
         (["image.jpg", "image.png"], ".jpg", {"image.jpg"}),
         (["image.JPG"], "jpg", {"image.JPG"}),
         (["archive.tar.gz"], "tar.gz", {"archive.tar.gz"}),
+        (
+            ["archive.backup.tar.gz", "archive.backup.gz"],
+            "tar.gz",
+            {"archive.backup.tar.gz"},
+        ),
         (["archive.tar.gz", "data.gz"], "gz", {"archive.tar.gz", "data.gz"}),
     ],
-    ids=["leading_dot", "case_insensitive", "multi_part_full", "multi_part_suffix"],
+    ids=[
+        "leading_dot",
+        "case_insensitive",
+        "multi_part_full",
+        "multi_part_filename_tail",
+        "multi_part_suffix",
+    ],
 )
 def test_list_files_with_extensions_normalization(
     tmp_path: Path,

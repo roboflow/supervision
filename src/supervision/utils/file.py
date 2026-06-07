@@ -68,10 +68,12 @@ def list_files_with_extensions(
 
     if extensions is not None:
         candidates = [p for p in directory.glob("*") if p.is_file()]
-        path_index: dict[Path, set[str]] = {
-            p: {p.suffix.lower().lstrip("."), "".join(p.suffixes).lower().lstrip(".")}
-            for p in candidates
-        }
+        path_index: dict[Path, set[str]] = {}
+        for path in candidates:
+            suffixes = [suffix.lower().lstrip(".") for suffix in path.suffixes]
+            path_index[path] = {
+                ".".join(suffixes[index:]) for index in range(len(suffixes))
+            }
         seen_paths: set[Path] = set()
         for ext in extensions:
             normalized_extension = ext.lower().lstrip(".")
