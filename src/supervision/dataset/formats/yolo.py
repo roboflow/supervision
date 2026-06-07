@@ -88,7 +88,16 @@ def _extract_class_names(file_path: str) -> list[str]:
                 return stripped.isdigit()
             return False
 
-        if all(_is_int_like(key) for key in keys):
+        int_like = [_is_int_like(k) for k in keys]
+        if any(int_like) and not all(int_like):
+            mixed_numeric = [k for k, il in zip(keys, int_like) if il][:3]
+            mixed_other = [k for k, il in zip(keys, int_like) if not il][:3]
+            raise ValueError(
+                f"Expected 'names' dict in data.yaml at '{file_path}' to have either "
+                f"all numeric or all non-numeric keys, got a mix: "
+                f"numeric {mixed_numeric} and non-numeric {mixed_other} keys."
+            )
+        if all(int_like):
             sorted_keys = sorted(keys, key=lambda key: int(key))
         else:
             sorted_keys = sorted(keys, key=str)
