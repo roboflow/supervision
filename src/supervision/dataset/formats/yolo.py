@@ -76,7 +76,12 @@ def _extract_class_names(file_path: str) -> list[str]:
         )
     names = data.get("names")
     if isinstance(names, dict):
-        return [str(names[key]) for key in sorted(names.keys())]
+        keys = list(names.keys())
+        try:
+            sorted_keys = sorted(keys, key=lambda key: int(key))
+        except (TypeError, ValueError):
+            sorted_keys = sorted(keys, key=str)
+        return [str(names[key]) for key in sorted_keys]
     if isinstance(names, list):
         return [str(name) for name in names]
     raise ValueError(

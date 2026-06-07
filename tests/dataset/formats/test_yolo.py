@@ -10,6 +10,7 @@ import pytest
 from PIL import Image
 
 from supervision.dataset.formats.yolo import (
+    _extract_class_names,
     _image_name_to_annotation_name,
     _with_seg_mask,
     detections_to_yolo_annotations,
@@ -231,6 +232,21 @@ def test_image_name_to_annotation_name(
     with exception:
         result = _image_name_to_annotation_name(image_name=image_name)
         assert result == expected_result
+
+
+def test_extract_class_names_sorts_numeric_string_keys(tmp_path: Path) -> None:
+    data_yaml_path = tmp_path / "data.yaml"
+    data_yaml_path.write_text(
+        "names:\n  '0': background\n  '1': person\n  '2': car\n  '10': traffic_light\n",
+        encoding="utf-8",
+    )
+
+    assert _extract_class_names(file_path=str(data_yaml_path)) == [
+        "background",
+        "person",
+        "car",
+        "traffic_light",
+    ]
 
 
 @pytest.mark.parametrize(
