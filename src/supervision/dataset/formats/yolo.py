@@ -77,9 +77,20 @@ def _extract_class_names(file_path: str) -> list[str]:
     names = data.get("names")
     if isinstance(names, dict):
         keys = list(names.keys())
-        try:
+
+        def _is_int_like(key: Any) -> bool:
+            if isinstance(key, bool):
+                return False
+            if isinstance(key, int):
+                return True
+            if isinstance(key, str):
+                stripped = key.strip()
+                return stripped.lstrip("-").isdigit()
+            return False
+
+        if all(_is_int_like(key) for key in keys):
             sorted_keys = sorted(keys, key=lambda key: int(key))
-        except (TypeError, ValueError):
+        else:
             sorted_keys = sorted(keys, key=str)
         return [str(names[key]) for key in sorted_keys]
     if isinstance(names, list):
