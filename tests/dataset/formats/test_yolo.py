@@ -234,19 +234,48 @@ def test_image_name_to_annotation_name(
         assert result == expected_result
 
 
-def test_extract_class_names_sorts_numeric_string_keys(tmp_path: Path) -> None:
+@pytest.mark.parametrize(
+    ("yaml_text", "expected_names", "exception"),
+    [
+        (
+            "names:\n  '0': background\n  '1': person\n"
+            "  '2': car\n  '10': traffic_light\n",
+            ["background", "person", "car", "traffic_light"],
+            DoesNotRaise(),
+        ),  # quoted string numeric keys sort by integer value, not lexicographically
+        (
+            "names:\n  0: background\n  2: car\n  10: traffic_light\n",
+            ["background", "car", "traffic_light"],
+            DoesNotRaise(),
+        ),  # native int keys (most common YOLO format from Ultralytics/Roboflow)
+        (
+            "names:\n  cat: 0\n  dog: 1\n",
+            ["0", "1"],
+            DoesNotRaise(),
+        ),  # non-numeric string keys fall back to lexicographic sort
+        (
+            "names: {}\n",
+            [],
+            DoesNotRaise(),
+        ),  # empty names dict returns empty list
+        (
+            "names:\n  '--1': ignore\n  '0': person\n",
+            None,
+            pytest.raises(ValueError, match="mix"),
+        ),  # mixed numeric/non-numeric keys raise ValueError
+    ],
+)
+def test_extract_class_names(
+    tmp_path: Path,
+    yaml_text: str,
+    expected_names: list[str] | None,
+    exception: Exception,
+) -> None:
+    """_extract_class_names returns class names sorted by class index."""
     data_yaml_path = tmp_path / "data.yaml"
-    data_yaml_path.write_text(
-        "names:\n  '0': background\n  '1': person\n  '2': car\n  '10': traffic_light\n",
-        encoding="utf-8",
-    )
-
-    assert _extract_class_names(file_path=str(data_yaml_path)) == [
-        "background",
-        "person",
-        "car",
-        "traffic_light",
-    ]
+    data_yaml_path.write_text(yaml_text, encoding="utf-8")
+    with exception:
+        assert _extract_class_names(file_path=str(data_yaml_path)) == expected_names
 
 
 @pytest.mark.parametrize(
