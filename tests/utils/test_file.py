@@ -70,45 +70,26 @@ def test_read_txt_file(
         assert result == expected_result
 
 
-def test_list_files_with_extensions_accepts_leading_dot(tmp_path: Path) -> None:
-    image_path = tmp_path / "image.jpg"
-    image_path.touch()
-    (tmp_path / "image.png").touch()
-
-    result = list_files_with_extensions(directory=tmp_path, extensions=[".jpg"])
-
-    assert set(result) == {image_path}
-
-
-def test_list_files_with_extensions_matches_case_insensitively(
+@pytest.mark.parametrize(
+    ("filenames_to_create", "extension", "expected_names"),
+    [
+        (["image.jpg", "image.png"], ".jpg", {"image.jpg"}),
+        (["image.JPG"], "jpg", {"image.JPG"}),
+        (["archive.tar.gz"], "tar.gz", {"archive.tar.gz"}),
+        (["archive.tar.gz", "data.gz"], "gz", {"archive.tar.gz", "data.gz"}),
+    ],
+    ids=["leading_dot", "case_insensitive", "multi_part_full", "multi_part_suffix"],
+)
+def test_list_files_with_extensions_normalization(
     tmp_path: Path,
+    filenames_to_create: list[str],
+    extension: str,
+    expected_names: set[str],
 ) -> None:
-    image_path = tmp_path / "image.JPG"
-    image_path.touch()
+    """Extension matching normalizes leading dots, case, and multi-part extensions."""
+    for filename in filenames_to_create:
+        (tmp_path / filename).touch()
 
-    result = list_files_with_extensions(directory=tmp_path, extensions=["jpg"])
+    result = list_files_with_extensions(directory=tmp_path, extensions=[extension])
 
-    assert set(result) == {image_path}
-
-
-def test_list_files_with_extensions_preserves_multi_part_extensions(
-    tmp_path: Path,
-) -> None:
-    archive_path = tmp_path / "archive.tar.gz"
-    archive_path.touch()
-
-    result = list_files_with_extensions(directory=tmp_path, extensions=["tar.gz"])
-
-    assert set(result) == {archive_path}
-
-
-def test_list_files_with_extensions_single_suffix_matches_multi_part(
-    tmp_path: Path,
-) -> None:
-    """extensions=['gz'] matches archive.tar.gz via suffix component matching."""
-    (tmp_path / "archive.tar.gz").touch()
-    (tmp_path / "data.gz").touch()
-
-    result = list_files_with_extensions(directory=tmp_path, extensions=["gz"])
-
-    assert {p.name for p in result} == {"archive.tar.gz", "data.gz"}
+    assert {p.name for p in result} == expected_names
