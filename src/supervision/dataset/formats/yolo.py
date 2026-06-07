@@ -68,6 +68,25 @@ def _with_seg_mask(lines: list[str]) -> bool:
 
 
 def _extract_class_names(file_path: str) -> list[str]:
+    """Return class names from a YOLO data.yaml file ordered by class index.
+
+    Supports list and dict forms of the ``names`` field. Dict keys that are
+    all int-like (plain ints or digit strings) are sorted numerically so
+    class index 10 follows index 9. All-non-numeric keys are sorted
+    lexicographically. Mixed numeric/non-numeric keys raise ``ValueError``.
+    Boolean YAML keys (``true``/``false``) are excluded from numeric sorting
+    because ``bool`` is a subclass of ``int`` in Python.
+
+    Args:
+        file_path: Path to the data.yaml file.
+
+    Returns:
+        Class names in class-index order.
+
+    Raises:
+        ValueError: If the YAML root is not a mapping, if ``names`` is
+            neither a list nor a dict, or if the dict has mixed key types.
+    """
     data: dict[str, Any] = read_yaml_file(file_path=file_path)
     if not isinstance(data, dict):
         raise ValueError(
