@@ -79,6 +79,7 @@ def _extract_class_names(file_path: str) -> list[str]:
         keys = list(names.keys())
 
         def _is_int_like(key: Any) -> bool:
+            # bool subclasses int; YAML `true`/`false` must not become class indices
             if isinstance(key, bool):
                 return False
             if isinstance(key, int):
