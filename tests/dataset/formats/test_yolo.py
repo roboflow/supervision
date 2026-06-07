@@ -265,7 +265,7 @@ def test_image_name_to_annotation_name(
         ),  # mixed numeric/non-numeric keys raise ValueError
     ],
 )
-def test_extract_class_names(
+def test_extract_class_names_sorts_numeric_string_keys(
     tmp_path: Path,
     yaml_text: str,
     expected_names: list[str] | None,
