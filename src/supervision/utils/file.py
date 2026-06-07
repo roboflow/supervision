@@ -63,8 +63,20 @@ def list_files_with_extensions(
     files_with_extensions: list[Path] = []
 
     if extensions is not None:
+        candidates = list(directory.glob("*"))
+        seen_paths: set[Path] = set()
         for ext in extensions:
-            files_with_extensions.extend(directory.glob(f"*.{ext}"))
+            normalized_extension = ext.lower().lstrip(".")
+            for path in candidates:
+                if path in seen_paths:
+                    continue
+                path_extensions = {
+                    path.suffix.lower().lstrip("."),
+                    "".join(path.suffixes).lower().lstrip("."),
+                }
+                if normalized_extension in path_extensions:
+                    files_with_extensions.append(path)
+                    seen_paths.add(path)
     else:
         files_with_extensions.extend(directory.glob("*"))
 

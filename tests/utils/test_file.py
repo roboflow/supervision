@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import os
 from contextlib import ExitStack as DoesNotRaise
+from pathlib import Path
 
 import pytest
 
-from supervision.utils.file import read_txt_file
+from supervision.utils.file import list_files_with_extensions, read_txt_file
 
 FILE_1_CONTENT = """Line 1
 Line 2
@@ -67,3 +68,35 @@ def test_read_txt_file(
     with exception:
         result = read_txt_file(file_name, skip_empty)
         assert result == expected_result
+
+
+def test_list_files_with_extensions_accepts_leading_dot(tmp_path: Path) -> None:
+    image_path = tmp_path / "image.jpg"
+    image_path.touch()
+    (tmp_path / "image.png").touch()
+
+    result = list_files_with_extensions(directory=tmp_path, extensions=[".jpg"])
+
+    assert result == [image_path]
+
+
+def test_list_files_with_extensions_matches_case_insensitively(
+    tmp_path: Path,
+) -> None:
+    image_path = tmp_path / "image.JPG"
+    image_path.touch()
+
+    result = list_files_with_extensions(directory=tmp_path, extensions=["jpg"])
+
+    assert result == [image_path]
+
+
+def test_list_files_with_extensions_preserves_multi_part_extensions(
+    tmp_path: Path,
+) -> None:
+    archive_path = tmp_path / "archive.tar.gz"
+    archive_path.touch()
+
+    result = list_files_with_extensions(directory=tmp_path, extensions=["tar.gz"])
+
+    assert result == [archive_path]
