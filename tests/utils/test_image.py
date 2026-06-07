@@ -72,6 +72,23 @@ def test_letterbox_image_for_opencv_image() -> None:
     )
 
 
+def test_letterbox_image_for_grayscale_opencv_image() -> None:
+    image = np.zeros((4, 6), dtype=np.uint8)
+    expected_result = np.concatenate(
+        [
+            np.ones((2, 10), dtype=np.uint8) * 255,
+            np.zeros((6, 10), dtype=np.uint8),
+            np.ones((2, 10), dtype=np.uint8) * 255,
+        ],
+        axis=0,
+    )
+
+    result = letterbox_image(image=image, resolution_wh=(10, 10), color=(255, 255, 255))
+
+    assert result.shape == (10, 10)
+    assert np.array_equal(result, expected_result)
+
+
 def test_letterbox_image_for_pillow_image() -> None:
     # given
     image = Image.new(mode="RGB", size=(640, 480), color=(0, 0, 0))

@@ -263,7 +263,7 @@ def letterbox_image(
         value=color,
     )
 
-    if image.shape[2] == 4:
+    if image.ndim == 3 and image.shape[2] == 4:
         image[:padding_top, :, 3] = 0
         image[height_new - padding_bottom :, :, 3] = 0
         image[:, :padding_left, 3] = 0
