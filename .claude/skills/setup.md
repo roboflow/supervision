@@ -35,20 +35,20 @@ except ImportError:
     print("❌ ultralytics missing")
 
 try:
-    import inference
-    print("✅ inference installed")
+import inference
+print("✅ inference installed")
 except ImportError:
-    print("❌ inference missing")
-      </code>
-    </snippet>
-    <snippet>
-      <name>standard_imports</name>
-      <description>Standard imports for supervision projects.</description>
-      <code>
+print("❌ inference missing")
+</code>
+</snippet>
+<snippet>
+<name>standard_imports</name>
+<description>Standard imports for supervision projects.</description>
+<code>
 import supervision as sv
 import cv2
 import numpy as np
-      </code>
-    </snippet>
-  </code_snippets>
+</code>
+</snippet>
+\</code_snippets>
 </skill>

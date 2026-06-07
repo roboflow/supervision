@@ -23,81 +23,101 @@
 import supervision as sv
 
 # From Ultralytics YOLOv8/YOLOv9/YOLOv10/YOLOv11
+
 # results = model.predict(image)
+
 detections = sv.Detections.from_ultralytics(results[0])
 
 # From Roboflow Inference
+
 # results = model.infer(image)
+
 detections = sv.Detections.from_inference(results)
-      ]]></code>
-    </snippet>
-    <snippet>
-      <title>Filtering Detections</title>
-      <description>Filter detections using confidence thresholds or specific class IDs with numpy-style masking.</description>
-      <code><![CDATA[
+\]\]></code>
+</snippet>
+<snippet>
+    <title>Filtering Detections</title>
+<description>Filter detections using confidence thresholds or specific class IDs with numpy-style masking.</description>
+<code>\<!\[CDATA\[
 import numpy as np
 
 # Filter by confidence
+
 detections = detections[detections.confidence > 0.5]
 
 # Filter by class ID
+
 target_classes = [0, 2] # e.g., person and car
 detections = detections[np.isin(detections.class_id, target_classes)]
 
 # Combined filtering
+
 detections = detections[(detections.confidence > 0.3) & (detections.class_id == 0)]
-      ]]></code>
-    </snippet>
-    <snippet>
-      <title>Quick Visualization with Annotators</title>
-      <description>Rapidly visualize detections using BoxAnnotator and LabelAnnotator.</description>
-      <code><![CDATA[
+\]\]></code>
+</snippet>
+<snippet>
+    <title>Quick Visualization with Annotators</title>
+<description>Rapidly visualize detections using BoxAnnotator and LabelAnnotator.</description>
+<code>\<!\[CDATA\[
 import supervision as sv
 
 # Initialize annotators
+
 box_annotator = sv.BoxAnnotator()
 label_annotator = sv.LabelAnnotator()
 
 # Prepare labels (optional)
-labels = [
-    f"{class_id} {confidence:.2f}"
-    for class_id, confidence
-    in zip(detections.class_id, detections.confidence)
-]
+
+labels = \[
+f"{class_id} {confidence:.2f}"
+for class_id, confidence
+in zip(detections.class_id, detections.confidence)
+\]
 
 # Annotate the scene
+
 annotated_image = box_annotator.annotate(
-    scene=image.copy(), 
-    detections=detections
+scene=image.copy(),
+detections=detections
 )
 annotated_image = label_annotator.annotate(
-    scene=annotated_image, 
-    detections=detections, 
-    labels=labels
+scene=annotated_image,
+detections=detections,
+labels=labels
 )
 
 # Display or save
+
 # sv.plot_image(annotated_image)
-      ]]></code>
-    </snippet>
-    <snippet>
-      <title>Dataset Exploration</title>
-      <description>Load and inspect a dataset in YOLO format.</description>
-      <code><![CDATA[
+
+```
+  ]]></code>
+</snippet>
+<snippet>
+  <title>Dataset Exploration</title>
+  <description>Load and inspect a dataset in YOLO format.</description>
+  <code><![CDATA[
+```
+
 import supervision as sv
 
 dataset = sv.DetectionDataset.from_yolo(
-    images_directory_path="images",
-    annotations_directory_path="labels",
-    data_yaml_path="data.yaml"
+images_directory_path="images",
+annotations_directory_path="labels",
+data_yaml_path="data.yaml"
 )
 
 print(f"Classes: {dataset.classes}")
 print(f"Number of images: {len(dataset)}")
 
 # Visualize the first image and its annotations
+
 # image_name, image, annotations = dataset[0]
-      ]]></code>
-    </snippet>
-  </code_snippets>
+
+```
+  ]]></code>
+</snippet>
+```
+
+\</code_snippets>
 </skill>

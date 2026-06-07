@@ -50,63 +50,71 @@ video_info = sv.VideoInfo.from_video_path("video.mp4")
 frame_generator = sv.get_video_frames_generator("video.mp4")
 
 with sv.VideoSink("output.mp4", video_info) as sink:
-    for frame in frame_generator:
-        # 1. Model Inference
-        # 2. sv.Detections
-        # 3. Annotate
-        sink.write_frame(annotated_frame)
-      ]]></code>
-    </snippet>
-    <snippet>
-      <title>Object Tracking with ByteTrack</title>
-      <code><![CDATA[
+for frame in frame_generator:
+\# 1. Model Inference
+\# 2. sv.Detections
+\# 3. Annotate
+sink.write_frame(annotated_frame)
+\]\]></code>
+</snippet>
+<snippet>
+    <title>Object Tracking with ByteTrack</title>
+<code>\<!\[CDATA\[
 tracker = sv.ByteTrack()
 
 # Inside the processing loop:
+
 detections = tracker.update_with_detections(detections)
+
 # Access persistent IDs via detections.tracker_id
-      ]]></code>
-    </snippet>
-    <snippet>
-      <title>Spatial Analytics (Zone Counting)</title>
-      <code><![CDATA[
+
+```
+  ]]></code>
+</snippet>
+<snippet>
+  <title>Spatial Analytics (Zone Counting)</title>
+  <code><![CDATA[
+```
+
 import numpy as np
 import supervision as sv
 
-polygon = np.array([[10, 10], [100, 10], [100, 100], [10, 100]])
+polygon = np.array(\[[10, 10], [100, 10], [100, 100], [10, 100]\])
 zone = sv.PolygonZone(polygon=polygon, frame_resolution_wh=video_info.resolution_wh)
 
 # Inside the processing loop:
+
 is_in_zone = zone.trigger(detections=detections)
 detections_in_zone = detections[is_in_zone]
 print(f"Objects in zone: {zone.current_count}")
-      ]]></code>
-    </snippet>
-    <snippet>
-      <title>Small Object Detection (SAHI)</title>
-      <code><![CDATA[
+\]\]></code>
+</snippet>
+<snippet>
+    <title>Small Object Detection (SAHI)</title>
+<code>\<!\[CDATA\[
 import supervision as sv
 
 def callback(image: np.ndarray) -> sv.Detections:
-    # Your model inference logic here
-    # Must return sv.Detections object
-    return sv.Detections(...)
+\# Your model inference logic here
+\# Must return sv.Detections object
+return sv.Detections(...)
 
 slicer = sv.InferenceSlicer(callback=callback)
 detections = slicer(image)
-      ]]></code>
-    </snippet>
-    <snippet>
-      <title>Event-Driven Hooks</title>
-      <code><![CDATA[
+\]\]></code>
+</snippet>
+<snippet>
+    <title>Event-Driven Hooks</title>
+<code>\<!\[CDATA\[
 def on_entry(tracker_id):
-    print(f"Object {tracker_id} entered the zone!")
+print(f"Object {tracker_id} entered the zone!")
 
 # Inside the processing loop after zone.trigger:
+
 for tracker_id in detections.tracker_id:
-    if is_in_zone[detections.tracker_id == tracker_id]:
-         on_entry(tracker_id)
-      ]]></code>
-    </snippet>
-  </code_snippets>
+if is_in_zone\[detections.tracker_id == tracker_id\]:
+on_entry(tracker_id)
+\]\]></code>
+</snippet>
+\</code_snippets>
 </skill>
