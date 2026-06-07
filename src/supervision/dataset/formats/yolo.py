@@ -85,7 +85,7 @@ def _extract_class_names(file_path: str) -> list[str]:
                 return True
             if isinstance(key, str):
                 stripped = key.strip()
-                return stripped.lstrip("-").isdigit()
+                return stripped.isdigit()
             return False
 
         if all(_is_int_like(key) for key in keys):
