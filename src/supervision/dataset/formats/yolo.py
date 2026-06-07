@@ -98,7 +98,7 @@ def _extract_class_names(file_path: str) -> list[str]:
                 f"numeric {mixed_numeric} and non-numeric {mixed_other} keys."
             )
         if all(int_like):
-            sorted_keys = sorted(keys, key=lambda key: int(key))
+            sorted_keys = sorted(keys, key=lambda k: int(k))
         else:
             sorted_keys = sorted(keys, key=str)
         return [str(names[key]) for key in sorted_keys]
