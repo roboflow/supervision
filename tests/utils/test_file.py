@@ -77,7 +77,7 @@ def test_list_files_with_extensions_accepts_leading_dot(tmp_path: Path) -> None:
 
     result = list_files_with_extensions(directory=tmp_path, extensions=[".jpg"])
 
-    assert result == [image_path]
+    assert set(result) == {image_path}
 
 
 def test_list_files_with_extensions_matches_case_insensitively(
@@ -88,7 +88,7 @@ def test_list_files_with_extensions_matches_case_insensitively(
 
     result = list_files_with_extensions(directory=tmp_path, extensions=["jpg"])
 
-    assert result == [image_path]
+    assert set(result) == {image_path}
 
 
 def test_list_files_with_extensions_preserves_multi_part_extensions(
@@ -99,4 +99,16 @@ def test_list_files_with_extensions_preserves_multi_part_extensions(
 
     result = list_files_with_extensions(directory=tmp_path, extensions=["tar.gz"])
 
-    assert result == [archive_path]
+    assert set(result) == {archive_path}
+
+
+def test_list_files_with_extensions_single_suffix_matches_multi_part(
+    tmp_path: Path,
+) -> None:
+    """extensions=['gz'] matches archive.tar.gz via suffix component matching."""
+    (tmp_path / "archive.tar.gz").touch()
+    (tmp_path / "data.gz").touch()
+
+    result = list_files_with_extensions(directory=tmp_path, extensions=["gz"])
+
+    assert {p.name for p in result} == {"archive.tar.gz", "data.gz"}
