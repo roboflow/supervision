@@ -301,6 +301,49 @@ def detections_to_yolo_annotations(
     approximation_percentage: float = 0.75,
     is_obb: bool = False,
 ) -> list[str]:
+    """Convert detections to YOLO annotation lines.
+
+    Args:
+        detections: The detections to serialize. Each detection must have a
+            valid integer ``class_id``. When ``is_obb=True``, each non-empty
+            detection must also carry ``detections.data['xyxyxyxy']`` with
+            shape ``(N, 4, 2)``.
+        image_shape: The ``(height, width, channels)`` shape of the source
+            image, used to normalize coordinates to ``[0, 1]``.
+        min_image_area_percentage: Minimum detection area as a fraction of the
+            image area; smaller detections are omitted. Ignored when
+            ``is_obb=True``.
+        max_image_area_percentage: Maximum detection area as a fraction of the
+            image area; larger detections are omitted. Ignored when
+            ``is_obb=True``.
+        approximation_percentage: Fraction of polygon points removed during
+            contour approximation when saving mask annotations. Ignored when
+            ``is_obb=True``.
+        is_obb: If ``True``, serializes oriented bounding-box corners from
+            ``detections.data['xyxyxyxy']`` as a 9-token YOLO OBB line
+            ``class_id x1 y1 x2 y2 x3 y3 x4 y4``. Mask data is ignored.
+
+    Returns:
+        A list of YOLO annotation strings, one per detection (or one per
+        polygon for instance-segmentation annotations).
+
+    Raises:
+        ValueError: If any detection has ``class_id=None`` or a non-integer
+            ``class_id``.
+        ValueError: If ``is_obb=True`` and any non-empty detection is missing
+            ``'xyxyxyxy'`` in ``detections.data``.
+
+    Examples:
+        >>> import numpy as np
+        >>> from supervision.detection.core import Detections
+        >>> from supervision.dataset.formats.yolo import detections_to_yolo_annotations
+        >>> detections = Detections(
+        ...     xyxy=np.array([[10, 10, 90, 90]], dtype=np.float32),
+        ...     class_id=np.array([0]),
+        ... )
+        >>> detections_to_yolo_annotations(detections, image_shape=(100, 100, 3))
+        ['0 0.50000 0.50000 0.80000 0.80000']
+    """
     if (
         is_obb
         and len(detections) > 0
@@ -308,9 +351,19 @@ def detections_to_yolo_annotations(
     ):
         raise ValueError(
             f"`is_obb=True` requires `'{ORIENTED_BOX_COORDINATES}'` in "
-            "`detections.data`. Load OBB datasets via "
+            "`detections.data` with shape (N, 4, 2). Load OBB datasets via "
             "`DetectionDataset.from_yolo(..., is_obb=True)` or set "
-            f"`detections.data['{ORIENTED_BOX_COORDINATES}']` before exporting."
+            f"`detections.data['{ORIENTED_BOX_COORDINATES}']` "
+            "(shape (N, 4, 2)) before exporting."
+        )
+
+    if is_obb and detections.mask is not None:
+        warnings.warn(
+            "`detections.mask` is ignored when `is_obb=True`; "
+            "OBB annotations use corner coordinates from "
+            f"`detections.data['{ORIENTED_BOX_COORDINATES}']`.",
+            UserWarning,
+            stacklevel=2,
         )
 
     annotation: list[str] = []
@@ -367,6 +420,32 @@ def save_yolo_annotations(
     approximation_percentage: float = 0.75,
     is_obb: bool = False,
 ) -> None:
+    """Save dataset annotations in YOLO format.
+
+    Args:
+        dataset: The dataset whose annotations are saved.
+        annotations_directory_path: Path to the directory where annotation
+            ``.txt`` files are written; created automatically if absent.
+        min_image_area_percentage: Minimum detection area as a fraction of the
+            image area; smaller detections are omitted. Ignored when
+            ``is_obb=True``.
+        max_image_area_percentage: Maximum detection area as a fraction of the
+            image area; larger detections are omitted. Ignored when
+            ``is_obb=True``.
+        approximation_percentage: Fraction of polygon points removed during
+            contour approximation when saving mask annotations. Ignored when
+            ``is_obb=True``.
+        is_obb: If ``True``, writes oriented bounding-box annotations using
+            the 9-token format ``class_id x1 y1 x2 y2 x3 y3 x4 y4``. Each
+            non-empty detection must carry ``detections.data['xyxyxyxy']``
+            with shape ``(N, 4, 2)``.
+
+    Examples:
+        >>> from supervision.dataset.core import DetectionDataset
+        >>> from supervision.dataset.formats.yolo import save_yolo_annotations
+        >>> dataset = DetectionDataset(classes=["cat"], images={}, annotations={})
+        >>> save_yolo_annotations(dataset, "/tmp/labels")
+    """
     Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
     for image_path, image, annotation in dataset:
         image_name = Path(image_path).name

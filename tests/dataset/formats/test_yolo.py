@@ -635,6 +635,42 @@ def test_detections_to_yolo_annotations_obb_empty_emits_no_lines() -> None:
     assert lines == []
 
 
+def test_detections_to_yolo_annotations_obb_multiple_detections() -> None:
+    """OBB export must correctly serialize N>1 detections per image."""
+    corners = np.array(
+        [
+            [[50.0, 10.0], [90.0, 50.0], [50.0, 90.0], [10.0, 50.0]],
+            [[20.0, 20.0], [80.0, 20.0], [80.0, 40.0], [20.0, 40.0]],
+        ],
+        dtype=np.float32,
+    )
+    detections = Detections(
+        xyxy=np.array(
+            [[10.0, 10.0, 90.0, 90.0], [20.0, 20.0, 80.0, 40.0]], dtype=np.float32
+        ),
+        class_id=np.array([0, 1], dtype=int),
+        data={ORIENTED_BOX_COORDINATES: corners},
+    )
+
+    lines = detections_to_yolo_annotations(
+        detections=detections, image_shape=(100, 100, 3), is_obb=True
+    )
+
+    assert len(lines) == 2, f"Expected 2 annotation lines, got {len(lines)}"
+    for i, line in enumerate(lines):
+        tokens = line.split()
+        assert len(tokens) == 9, (
+            f"Detection {i}: expected 9 tokens, got {len(tokens)}: {tokens}"
+        )
+    assert lines[0].split()[0] == "0"
+    assert lines[1].split()[0] == "1"
+    np.testing.assert_allclose(
+        np.array(lines[1].split()[1:], dtype=np.float32),
+        np.array([0.2, 0.2, 0.8, 0.2, 0.8, 0.4, 0.2, 0.4], dtype=np.float32),
+        atol=1e-5,
+    )
+
+
 def test_dataset_as_yolo_obb_round_trip_preserves_corners() -> None:
     """OBB round-trip via `from_yolo` -> `as_yolo` must preserve the 4 corners."""
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -687,4 +723,82 @@ def test_dataset_as_yolo_obb_round_trip_preserves_corners() -> None:
             round_tripped.data[ORIENTED_BOX_COORDINATES],
             original.data[ORIENTED_BOX_COORDINATES],
             atol=1e-3,
+        )
+
+
+def test_dataset_as_yolo_obb_round_trip_with_background_image() -> None:
+    """OBB round-trip with a label-less image must not raise ValueError."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        images_dir = os.path.join(tmp_dir, "images")
+        labels_dir = os.path.join(tmp_dir, "labels")
+        os.makedirs(images_dir)
+        os.makedirs(labels_dir)
+
+        Image.new("RGB", (100, 100)).save(os.path.join(images_dir, "annotated.jpg"))
+        Image.new("RGB", (100, 100)).save(os.path.join(images_dir, "background.jpg"))
+        with open(os.path.join(labels_dir, "annotated.txt"), "w") as f:
+            f.write("0 0.5 0.1 0.9 0.5 0.5 0.9 0.1 0.5\n")
+        # No labels/background.txt — background image has no annotations.
+
+        data_yaml_path = os.path.join(tmp_dir, "data.yaml")
+        with open(data_yaml_path, "w") as f:
+            f.write("names: ['object']\n")
+
+        loaded = DetectionDataset.from_yolo(
+            images_directory_path=images_dir,
+            annotations_directory_path=labels_dir,
+            data_yaml_path=data_yaml_path,
+            is_obb=True,
+        )
+
+        out_labels_dir = os.path.join(tmp_dir, "out_labels")
+        out_data_yaml_path = os.path.join(tmp_dir, "out_data.yaml")
+        loaded.as_yolo(
+            annotations_directory_path=out_labels_dir,
+            data_yaml_path=out_data_yaml_path,
+            is_obb=True,
+        )
+
+        bg_label_path = os.path.join(out_labels_dir, "background.txt")
+        assert os.path.exists(bg_label_path), (
+            "Background image must produce a label file"
+        )
+        with open(bg_label_path) as f:
+            assert f.read().strip() == "", "Background image label file must be empty"
+
+
+def test_dataset_as_yolo_obb_without_flag_emits_five_token_lines() -> None:
+    """as_yolo() without is_obb=True on an OBB-loaded dataset emits 5-token lines."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        images_dir = os.path.join(tmp_dir, "images")
+        labels_dir = os.path.join(tmp_dir, "labels")
+        os.makedirs(images_dir)
+        os.makedirs(labels_dir)
+
+        Image.new("RGB", (100, 100)).save(os.path.join(images_dir, "test.jpg"))
+        with open(os.path.join(labels_dir, "test.txt"), "w") as f:
+            f.write("0 0.5 0.1 0.9 0.5 0.5 0.9 0.1 0.5\n")
+
+        data_yaml_path = os.path.join(tmp_dir, "data.yaml")
+        with open(data_yaml_path, "w") as f:
+            f.write("names: ['object']\n")
+
+        loaded = DetectionDataset.from_yolo(
+            images_directory_path=images_dir,
+            annotations_directory_path=labels_dir,
+            data_yaml_path=data_yaml_path,
+            is_obb=True,
+        )
+
+        out_labels_dir = os.path.join(tmp_dir, "out_labels")
+        out_data_yaml_path = os.path.join(tmp_dir, "out_data.yaml")
+        loaded.as_yolo(
+            annotations_directory_path=out_labels_dir,
+            data_yaml_path=out_data_yaml_path,
+        )
+
+        with open(os.path.join(out_labels_dir, "test.txt")) as f:
+            tokens = f.read().split()
+        assert len(tokens) == 5, (
+            f"expected 5-token axis-aligned line, got {len(tokens)}: {tokens}"
         )

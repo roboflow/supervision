@@ -544,6 +544,20 @@ class DetectionDataset(BaseDataset):
                 `from_yolo(..., is_obb=True)`. Masks are ignored when
                 `is_obb=True`.
         """
+        if is_obb and (
+            min_image_area_percentage != 0.0
+            or max_image_area_percentage != 1.0
+            or approximation_percentage != 0.0
+        ):
+            import warnings
+
+            warnings.warn(
+                "`min_image_area_percentage`, `max_image_area_percentage`, and "
+                "`approximation_percentage` have no effect when `is_obb=True`; "
+                "OBB annotations use corner coordinates directly.",
+                UserWarning,
+                stacklevel=2,
+            )
         if images_directory_path is not None:
             save_dataset_images(
                 dataset=self, images_directory_path=images_directory_path
