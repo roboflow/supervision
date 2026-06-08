@@ -11,7 +11,7 @@ from typing import Any, Literal, cast
 import cv2
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated
+from deprecate import TargetMode, deprecated
 from PIL import Image
 
 from supervision.draw.base import ImageType
@@ -276,7 +276,7 @@ def letterbox_image(
 
 
 @deprecated(  # type: ignore[untyped-decorator]
-    target=None,
+    target=TargetMode.NOTIFY,
     deprecated_in="0.27.0",
     remove_in="0.31.0",
 )
@@ -558,7 +558,7 @@ class ImageSink:
 
 
 @deprecated(  # type: ignore[untyped-decorator]
-    target=None,
+    target=TargetMode.NOTIFY,
     deprecated_in="0.27.0",
     remove_in="0.31.0",
 )
