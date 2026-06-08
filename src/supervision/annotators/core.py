@@ -7,6 +7,7 @@ from typing import Any, cast, overload
 import cv2
 import numpy as np
 import numpy.typing as npt
+from deprecate import deprecated, void
 from PIL import Image, ImageDraw, ImageFont
 from scipy.interpolate import splev, splprep
 
@@ -15,6 +16,7 @@ from supervision.annotators.utils import (
     PENDING_TRACK_ID,
     ColorLookup,
     Trace,
+    _validate_labels,
     calculate_dynamic_kernel_size,
     calculate_dynamic_pixel_size,
     get_labels_text,
@@ -22,7 +24,6 @@ from supervision.annotators.utils import (
     resolve_color,
     resolve_text_background_xyxy,
     snap_boxes,
-    validate_labels,
     wrap_text,
 )
 from supervision.config import ORIENTED_BOX_COORDINATES
@@ -1269,7 +1270,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        validate_labels(labels, detections)
+        _validate_labels(labels, detections)
 
         labels = get_labels_text(detections, labels)
         label_properties: npt.NDArray[np.float32] = self._get_label_properties(
@@ -1584,7 +1585,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             ```
         """
         assert isinstance(scene, Image.Image)
-        validate_labels(labels, detections)
+        _validate_labels(labels, detections)
 
         draw = ImageDraw.Draw(scene)
         labels = get_labels_text(detections, labels)
@@ -2640,7 +2641,7 @@ class PercentageBarAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        self.validate_custom_values(custom_values=custom_values, detections=detections)
+        self._validate_custom_values(custom_values=custom_values, detections=detections)
 
         anchors = detections.get_anchors_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
@@ -2715,7 +2716,7 @@ class PercentageBarAnnotator(BaseAnnotator):
             return (cx, cy), (cx + width, cy + height)
 
     @staticmethod
-    def validate_custom_values(
+    def _validate_custom_values(
         custom_values: npt.NDArray[np.float64] | list[float] | None,
         detections: Detections,
     ) -> None:
@@ -2740,6 +2741,18 @@ class PercentageBarAnnotator(BaseAnnotator):
 
             if not all(0 <= value <= 1 for value in custom_values):
                 raise ValueError("All values in custom_values must be between 0 and 1.")
+
+    @staticmethod
+    @deprecated(  # type: ignore[untyped-decorator]
+        target=_validate_custom_values.__func__,  # type: ignore[attr-defined]
+        deprecated_in="0.29.0",
+        remove_in="0.31.0",
+    )
+    def validate_custom_values(
+        custom_values: npt.NDArray[np.float64] | list[float] | None,
+        detections: Detections,
+    ) -> None:
+        void(custom_values, detections)
 
 
 class CropAnnotator(BaseAnnotator):

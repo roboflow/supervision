@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import os
 from contextlib import ExitStack as DoesNotRaise
+from pathlib import Path
 
 import pytest
 
-from supervision.utils.file import read_txt_file
+from supervision.utils.file import list_files_with_extensions, read_txt_file
 
 FILE_1_CONTENT = """Line 1
 Line 2
@@ -67,3 +68,39 @@ def test_read_txt_file(
     with exception:
         result = read_txt_file(file_name, skip_empty)
         assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    ("filenames_to_create", "extension", "expected_names"),
+    [
+        (["image.jpg", "image.png"], ".jpg", {"image.jpg"}),
+        (["image.JPG"], "jpg", {"image.JPG"}),
+        (["archive.tar.gz"], "tar.gz", {"archive.tar.gz"}),
+        (
+            ["archive.backup.tar.gz", "archive.backup.gz"],
+            "tar.gz",
+            {"archive.backup.tar.gz"},
+        ),
+        (["archive.tar.gz", "data.gz"], "gz", {"archive.tar.gz", "data.gz"}),
+    ],
+    ids=[
+        "leading_dot",
+        "case_insensitive",
+        "multi_part_full",
+        "multi_part_filename_tail",
+        "multi_part_suffix",
+    ],
+)
+def test_list_files_with_extensions_normalization(
+    tmp_path: Path,
+    filenames_to_create: list[str],
+    extension: str,
+    expected_names: set[str],
+) -> None:
+    """Extension matching normalizes leading dots, case, and multi-part extensions."""
+    for filename in filenames_to_create:
+        (tmp_path / filename).touch()
+
+    result = list_files_with_extensions(directory=tmp_path, extensions=[extension])
+
+    assert {p.name for p in result} == expected_names

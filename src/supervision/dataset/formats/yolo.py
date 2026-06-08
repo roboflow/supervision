@@ -68,6 +68,25 @@ def _with_seg_mask(lines: list[str]) -> bool:
 
 
 def _extract_class_names(file_path: str) -> list[str]:
+    """Return class names from a YOLO data.yaml file ordered by class index.
+
+    Supports list and dict forms of the ``names`` field. Dict keys that are
+    all int-like (plain ints or digit strings) are sorted numerically so
+    class index 10 follows index 9. All-non-numeric keys are sorted
+    lexicographically. Mixed numeric/non-numeric keys raise ``ValueError``.
+    Boolean YAML keys (``true``/``false``) are excluded from numeric sorting
+    because ``bool`` is a subclass of ``int`` in Python.
+
+    Args:
+        file_path: Path to the data.yaml file.
+
+    Returns:
+        Class names in class-index order.
+
+    Raises:
+        ValueError: If the YAML root is not a mapping, if ``names`` is
+            neither a list nor a dict, or if the dict has mixed key types.
+    """
     data: dict[str, Any] = read_yaml_file(file_path=file_path)
     if not isinstance(data, dict):
         raise ValueError(
@@ -76,7 +95,33 @@ def _extract_class_names(file_path: str) -> list[str]:
         )
     names = data.get("names")
     if isinstance(names, dict):
-        return [str(names[key]) for key in sorted(names.keys())]
+        keys = list(names.keys())
+
+        def _is_int_like(key: Any) -> bool:
+            # bool subclasses int; YAML `true`/`false` must not become class indices
+            if isinstance(key, bool):
+                return False
+            if isinstance(key, int):
+                return True
+            if isinstance(key, str):
+                stripped = key.strip()
+                return stripped.isdigit()
+            return False
+
+        int_like = [_is_int_like(k) for k in keys]
+        if any(int_like) and not all(int_like):
+            mixed_numeric = [k for k, il in zip(keys, int_like) if il][:3]
+            mixed_other = [k for k, il in zip(keys, int_like) if not il][:3]
+            raise ValueError(
+                f"Expected 'names' dict in data.yaml at '{file_path}' to have either "
+                f"all numeric or all non-numeric keys, got a mix: "
+                f"numeric {mixed_numeric} and non-numeric {mixed_other} keys."
+            )
+        if all(int_like):
+            sorted_keys = sorted(keys, key=lambda k: int(k))
+        else:
+            sorted_keys = sorted(keys, key=str)
+        return [str(names[key]) for key in sorted_keys]
     if isinstance(names, list):
         return [str(name) for name in names]
     raise ValueError(

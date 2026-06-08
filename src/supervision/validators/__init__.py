@@ -7,11 +7,11 @@ from supervision.detection.compact_mask import CompactMask
 from supervision.utils.internal import warn_deprecated
 
 
-def validate_xyxy(xyxy: Any) -> None:
+def _validate_xyxy(xyxy: Any) -> None:
     """Validate that xyxy is a 2D np.ndarray with shape (N, 4).
 
     ```pycon
-    >>> validate_xyxy(np.array([[0, 0, 1, 1], [1, 1, 2, 2]]))
+    >>> _validate_xyxy(np.array([[0, 0, 1, 1], [1, 1, 2, 2]]))
 
     ```
     """
@@ -25,7 +25,16 @@ def validate_xyxy(xyxy: Any) -> None:
         )
 
 
-def validate_mask(mask: Any, n: int) -> None:
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_validate_xyxy,
+    deprecated_in="0.29.0",
+    remove_in="0.32.0",
+)
+def validate_xyxy(xyxy: Any) -> None:
+    void(xyxy)
+
+
+def _validate_mask(mask: Any, n: int) -> None:
     if mask is None:
         return
 
@@ -63,7 +72,16 @@ def validate_mask(mask: Any, n: int) -> None:
         )
 
 
-def validate_class_id(class_id: Any, n: int) -> None:
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_validate_mask,
+    deprecated_in="0.29.0",
+    remove_in="0.32.0",
+)
+def validate_mask(mask: Any, n: int) -> None:
+    void(mask, n)
+
+
+def _validate_class_id(class_id: Any, n: int) -> None:
     expected_shape = f"({n},)"
     actual_shape = str(getattr(class_id, "shape", None))
     is_valid = class_id is None or (
@@ -76,7 +94,16 @@ def validate_class_id(class_id: Any, n: int) -> None:
         )
 
 
-def validate_confidence(confidence: Any, n: int) -> None:
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_validate_class_id,
+    deprecated_in="0.29.0",
+    remove_in="0.32.0",
+)
+def validate_class_id(class_id: Any, n: int) -> None:
+    void(class_id, n)
+
+
+def _validate_confidence(confidence: Any, n: int) -> None:
     expected_shape = f"({n},)"
     actual_shape = str(getattr(confidence, "shape", None))
     is_valid = confidence is None or (
@@ -89,21 +116,39 @@ def validate_confidence(confidence: Any, n: int) -> None:
         )
 
 
-def validate_key_point_confidence(confidence: Any, n: int, m: int) -> None:
-    expected_shape = f"({n, m})"
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_validate_confidence,
+    deprecated_in="0.29.0",
+    remove_in="0.32.0",
+)
+def validate_confidence(confidence: Any, n: int) -> None:
+    void(confidence, n)
+
+
+def _validate_keypoint_confidence(confidence: Any, n: int, m: int) -> None:
+    expected_shape = f"({n}, {m})"
     actual_shape = str(getattr(confidence, "shape", None))
 
     if confidence is not None:
         is_valid = isinstance(confidence, np.ndarray) and confidence.shape == (n, m)
         if not is_valid:
             raise ValueError(
-                f"confidence must be a 1D np.ndarray with shape {expected_shape}, but "
+                f"confidence must be a 2D np.ndarray with shape {expected_shape}, but "
                 f"got shape {actual_shape}"
             )
 
 
 @deprecated(  # type: ignore[untyped-decorator]
-    target=validate_key_point_confidence,
+    target=_validate_keypoint_confidence,
+    deprecated_in="0.29.0",
+    remove_in="0.32.0",
+)
+def validate_key_point_confidence(confidence: Any, n: int, m: int) -> None:
+    void(confidence, n, m)
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_validate_keypoint_confidence,
     deprecated_in="0.27.0",
     remove_in="0.31.0",
 )
@@ -111,7 +156,7 @@ def validate_keypoint_confidence(confidence: Any, n: int, m: int) -> None:
     void(confidence, n, m)
 
 
-def validate_tracker_id(tracker_id: Any, n: int) -> None:
+def _validate_tracker_id(tracker_id: Any, n: int) -> None:
     expected_shape = f"({n},)"
     actual_shape = str(getattr(tracker_id, "shape", None))
     is_valid = tracker_id is None or (
@@ -124,7 +169,16 @@ def validate_tracker_id(tracker_id: Any, n: int) -> None:
         )
 
 
-def validate_data(data: dict[str, Any], n: int) -> None:
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_validate_tracker_id,
+    deprecated_in="0.29.0",
+    remove_in="0.31.0",
+)
+def validate_tracker_id(tracker_id: Any, n: int) -> None:
+    void(tracker_id, n)
+
+
+def _validate_data(data: dict[str, Any], n: int) -> None:
     for key, value in data.items():
         if isinstance(value, list):
             if len(value) != n:
@@ -140,8 +194,17 @@ def validate_data(data: dict[str, Any], n: int) -> None:
             raise ValueError(f"Value for key '{key}' must be a list or np.ndarray")
 
 
-def validate_xy(xy: Any, n: int, m: int) -> None:
-    expected_shape = f"({n, m},)"
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_validate_data,
+    deprecated_in="0.29.0",
+    remove_in="0.31.0",
+)
+def validate_data(data: dict[str, Any], n: int) -> None:
+    void(data, n)
+
+
+def _validate_xy(xy: Any, n: int, m: int) -> None:
+    expected_shape = f"({n}, {m}, 2) or ({n}, {m}, 3)"
     actual_shape = str(getattr(xy, "shape", None))
 
     is_valid = isinstance(xy, np.ndarray) and (
@@ -149,11 +212,42 @@ def validate_xy(xy: Any, n: int, m: int) -> None:
     )
     if not is_valid:
         raise ValueError(
-            f"xy must be a 2D np.ndarray with shape {expected_shape}, but got shape "
+            f"xy must be a 3D np.ndarray with shape {expected_shape}, but got shape "
             f"{actual_shape}"
         )
 
 
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_validate_xy,
+    deprecated_in="0.29.0",
+    remove_in="0.31.0",
+)
+def validate_xy(xy: Any, n: int, m: int) -> None:
+    void(xy, n, m)
+
+
+def _validate_detections_fields(
+    xyxy: Any,
+    mask: Any,
+    class_id: Any,
+    confidence: Any,
+    tracker_id: Any,
+    data: dict[str, Any],
+) -> None:
+    _validate_xyxy(xyxy)
+    n = len(xyxy)
+    _validate_mask(mask, n)
+    _validate_class_id(class_id, n)
+    _validate_confidence(confidence, n)
+    _validate_tracker_id(tracker_id, n)
+    _validate_data(data, n)
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_validate_detections_fields,
+    deprecated_in="0.29.0",
+    remove_in="0.31.0",
+)
 def validate_detections_fields(
     xyxy: Any,
     mask: Any,
@@ -162,16 +256,10 @@ def validate_detections_fields(
     tracker_id: Any,
     data: dict[str, Any],
 ) -> None:
-    validate_xyxy(xyxy)
-    n = len(xyxy)
-    validate_mask(mask, n)
-    validate_class_id(class_id, n)
-    validate_confidence(confidence, n)
-    validate_tracker_id(tracker_id, n)
-    validate_data(data, n)
+    void(xyxy, mask, class_id, confidence, tracker_id, data)
 
 
-def validate_key_points_fields(
+def _validate_keypoints_fields(
     xy: Any,
     class_id: Any,
     confidence: Any,
@@ -179,14 +267,25 @@ def validate_key_points_fields(
 ) -> None:
     n = len(xy)
     m = len(xy[0]) if len(xy) > 0 else 0
-    validate_xy(xy, n, m)
-    validate_class_id(class_id, n)
-    validate_key_point_confidence(confidence, n, m)
-    validate_data(data, n)
+    _validate_xy(xy, n, m)
+    _validate_class_id(class_id, n)
+    _validate_keypoint_confidence(confidence, n, m)
+    _validate_data(data, n)
 
 
 @deprecated(  # type: ignore[untyped-decorator]
-    target=validate_key_points_fields,
+    target=_validate_keypoints_fields,
+    deprecated_in="0.29.0",
+    remove_in="0.31.0",
+)
+def validate_key_points_fields(
+    xy: Any, class_id: Any, confidence: Any, data: dict[str, Any]
+) -> None:
+    void(xy, class_id, confidence, data)
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_validate_keypoints_fields,
     deprecated_in="0.27.0",
     remove_in="0.31.0",
 )
@@ -196,7 +295,7 @@ def validate_keypoints_fields(
     void(xy, class_id, confidence, data)
 
 
-def validate_resolution(resolution: Any) -> tuple[int, int]:
+def _validate_resolution(resolution: Any) -> tuple[int, int]:
     if not (isinstance(resolution, tuple) and len(resolution) == 2):
         raise ValueError(
             f"""
@@ -217,3 +316,12 @@ def validate_resolution(resolution: Any) -> tuple[int, int]:
             f"Both dimensions in resolution must be positive. Got ({w}, {h})."
         )
     return w, h
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_validate_resolution,
+    deprecated_in="0.29.0",
+    remove_in="0.31.0",
+)
+def validate_resolution(resolution: Any) -> tuple[int, int]:
+    return void(resolution)  # type: ignore[no-any-return]
