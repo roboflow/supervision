@@ -4,6 +4,7 @@ import os
 import tempfile
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
+from supervision.config import ORIENTED_BOX_COORDINATES
 
 import numpy as np
 import pytest
@@ -538,3 +539,25 @@ def test_yolo_polygon_mask_precision_no_coord_drift_round_trip_iou(
         f"Mask IoU {iou:.6f} too low after YOLO load/save round-trip — "
         "precision regression in polygon mask conversion"
     )
+
+def test_detections_to_yolo_annotations_exports_obb() -> None:
+    image_shape = (100, 100, 3)
+
+    obb = np.array(
+        [[[10, 10], [90, 10], [90, 90], [10, 90]]],
+        dtype=np.float32,
+    )
+
+    detections = Detections(
+        xyxy=np.array([[10, 10, 90, 90]], dtype=np.float32),
+        class_id=np.array([0]),
+        data={ORIENTED_BOX_COORDINATES: obb},
+    )
+
+    lines = detections_to_yolo_annotations(
+        detections=detections,
+        image_shape=image_shape,
+    )
+
+    assert len(lines) == 1
+    assert len(lines[0].split()) == 9

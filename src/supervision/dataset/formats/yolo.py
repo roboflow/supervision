@@ -256,7 +256,7 @@ def detections_to_yolo_annotations(
     approximation_percentage: float = 0.75,
 ) -> list[str]:
     annotation = []
-    for xyxy, mask, _, class_id, _, _ in detections:
+    for xyxy, mask, _, class_id, _, data in detections:
         if class_id is None:
             raise ValueError("Class ID is required for YOLO annotations.")
         if not isinstance(class_id, (int, np.integer)):
@@ -265,6 +265,22 @@ def detections_to_yolo_annotations(
                 f"got {type(class_id)!r}."
             )
         class_id_int = int(class_id)
+        obb = data.get(ORIENTED_BOX_COORDINATES)
+
+        if obb is not None:
+            h, w, _ = image_shape
+
+            polygon_relative = obb / np.array([w, h], dtype=np.float32)
+            polygon_relative = polygon_relative.reshape(-1)
+
+            polygon_parsed = " ".join(
+                f"{value:.5f}" for value in polygon_relative
+            )
+
+            annotation.append(
+                f"{class_id_int} {polygon_parsed}"
+            )
+            continue
 
         if mask is not None:
             polygons = approximate_mask_with_polygons(
