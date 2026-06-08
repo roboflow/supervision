@@ -86,6 +86,13 @@ class OverlapMetric(Enum):
         )
 
 
+# Upper bound on the rasterization canvas used by ``oriented_box_iou_batch``.
+# IoU is invariant under uniform scaling (up to rasterization quantization),
+# so boxes whose extent exceeds this cap are scaled down uniformly. Bounds the
+# memory cost of the ``(N, H, W)`` mask array regardless of source resolution.
+_MAX_IOU_CANVAS_DIM = 1024
+
+
 def box_iou(
     box_true: list[float] | npt.NDArray[np.floating],
     box_detection: list[float] | npt.NDArray[np.floating],
@@ -393,10 +400,32 @@ def oriented_box_iou_batch(
     if len(boxes_true) == 0 or len(boxes_detection) == 0:
         return np.zeros((len(boxes_true), len(boxes_detection)), dtype=np.float64)
 
-    # Axis convention: [..., 0] = x-coordinates → canvas width, [..., 1] = y → height
+    # IoU is invariant under translation and uniform scaling. Shift boxes to
+    # the origin so the canvas only covers their bounding region (avoids dead
+    # space when boxes sit in a corner of the input frame) and shrink them
+    # uniformly when the bounding region exceeds the cap (keeps memory
+    # bounded regardless of input resolution).
+    # Axis convention: [..., 0] = x → canvas width, [..., 1] = y → height.
+    min_x = float(min(boxes_true[:, :, 0].min(), boxes_detection[:, :, 0].min()))
+    min_y = float(min(boxes_true[:, :, 1].min(), boxes_detection[:, :, 1].min()))
+    extent_x = (
+        float(max(boxes_true[:, :, 0].max(), boxes_detection[:, :, 0].max())) - min_x
+    )
+    extent_y = (
+        float(max(boxes_true[:, :, 1].max(), boxes_detection[:, :, 1].max())) - min_y
+    )
+
+    canvas_dim = max(extent_x, extent_y)
+    scale = (
+        _MAX_IOU_CANVAS_DIM / canvas_dim if canvas_dim > _MAX_IOU_CANVAS_DIM else 1.0
+    )
+    offset = np.array([min_x, min_y], dtype=np.float64)
+    boxes_true = (boxes_true - offset) * scale
+    boxes_detection = (boxes_detection - offset) * scale
+
     # adding 1 because we are 0-indexed
-    max_width = int(max(boxes_true[:, :, 0].max(), boxes_detection[:, :, 0].max()) + 1)
-    max_height = int(max(boxes_true[:, :, 1].max(), boxes_detection[:, :, 1].max()) + 1)
+    max_width = int(extent_x * scale + 1)
+    max_height = int(extent_y * scale + 1)
 
     mask_true = np.zeros((boxes_true.shape[0], max_height, max_width), dtype=np.uint8)
     for box_idx, box_true in enumerate(boxes_true):

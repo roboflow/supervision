@@ -1192,6 +1192,38 @@ def test_oriented_box_iou_batch_is_invariant_to_non_square_scaling(
     assert np.allclose(scaled_iou, baseline_iou, rtol=0.03, atol=0.02)
 
 
+@pytest.mark.parametrize(
+    ("scale", "offset"),
+    [
+        (80.0, 0.0),  # HD/4K-scale coords — exercises canvas cap
+        (1.0, 3000.0),  # boxes in a corner of the frame — exercises canvas anchoring
+        (80.0, 3000.0),  # both — large coordinates far from origin
+    ],
+)
+def test_oriented_box_iou_batch_is_invariant_to_canvas_transforms(
+    scale: float, offset: float
+) -> None:
+    """IoU matches the small-coordinate baseline regardless of where in the
+    frame the boxes sit or how large their coordinates are.
+
+    The function must internally translate-and-scale boxes onto a bounded
+    rasterization canvas (IoU is invariant under both), so memory stays
+    roughly constant across input resolutions and box positions."""
+    boxes_true = _rotated_rect(50, 50, 40, 20, 30)[None]
+    boxes_detection = _rotated_rect(52, 48, 40, 20, 35)[None]
+    baseline = oriented_box_iou_batch(boxes_true, boxes_detection)
+
+    transformed = oriented_box_iou_batch(
+        boxes_true * scale + offset,
+        boxes_detection * scale + offset,
+    )
+
+    assert baseline.shape == (1, 1)
+    assert transformed.shape == (1, 1)
+    assert baseline[0, 0] > 0.4
+    assert np.allclose(transformed, baseline, rtol=0.03, atol=0.02)
+
+
 def test_oriented_box_iou_batch_supports_overlap_metric() -> None:
     """`overlap_metric=IOS` divides by the smaller area, so a small box fully
     contained in a larger one scores 1.0, while IoU is smaller."""
