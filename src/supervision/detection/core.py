@@ -2437,8 +2437,10 @@ class Detections:
         overlap_metric: OverlapMetric = OverlapMetric.IOU,
     ) -> Detections:
         """
-        Performs non-max suppression on detection set. If the detections result
-        from a segmentation model, the IoU mask is applied. Otherwise, box IoU is used.
+        Performs non-max suppression on detection set. Dispatch order: (1) if mask
+        data present, IoU mask is used; (2) else if oriented-box coordinates
+        (``data[ORIENTED_BOX_COORDINATES]``) present, oriented-box IoU is used; (3)
+        otherwise, axis-aligned box IoU is used.
 
         Args:
             threshold: The intersection-over-union threshold
@@ -2513,6 +2515,9 @@ class Detections:
     ) -> Detections:
         """
         Perform non-maximum merging on the current set of object detections.
+        Dispatch order: (1) if mask data present, IoU mask is used; (2) else if
+        oriented-box coordinates (``data[ORIENTED_BOX_COORDINATES]``) present,
+        oriented-box IoU is used; (3) otherwise, axis-aligned box IoU is used.
 
         Args:
             threshold: The intersection-over-union threshold
@@ -2566,7 +2571,7 @@ class Detections:
             merge_groups = oriented_box_non_max_merge(
                 predictions=predictions,
                 oriented_boxes=np.asarray(
-                    self.data[ORIENTED_BOX_COORDINATES], dtype=np.float64
+                    self.data[ORIENTED_BOX_COORDINATES], dtype=np.float32
                 ),
                 iou_threshold=threshold,
                 overlap_metric=overlap_metric,
@@ -2584,6 +2589,21 @@ class Detections:
             merged_detections = merge_inner_detections_objects_without_iou(
                 unmerged_detections
             )
+            if (
+                len(merge_group) > 1
+                and ORIENTED_BOX_COORDINATES in merged_detections.data
+            ):
+                obb = merged_detections.data[ORIENTED_BOX_COORDINATES][0]  # (4, 2)
+                merged_detections.xyxy = np.array(
+                    [
+                        [
+                            float(obb[:, 0].min()),
+                            float(obb[:, 1].min()),
+                            float(obb[:, 0].max()),
+                            float(obb[:, 1].max()),
+                        ]
+                    ]
+                )
             result.append(merged_detections)
 
         return Detections.merge(result)
