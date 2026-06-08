@@ -7,6 +7,7 @@ from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
+from deprecate import deprecated, void
 
 from supervision.config import (
     CLASS_NAME_DATA_FIELD,
@@ -45,6 +46,7 @@ from supervision.detection.utils.masks import calculate_masks_centroids
 from supervision.detection.vlm import (
     LMM,
     VLM,
+    _validate_vlm_parameters,
     from_deepseek_vl_2,
     from_florence_2,
     from_google_gemini_2_0,
@@ -53,11 +55,10 @@ from supervision.detection.vlm import (
     from_paligemma,
     from_qwen_2_5_vl,
     from_qwen_3_vl,
-    validate_vlm_parameters,
 )
 from supervision.geometry.core import Position
 from supervision.utils.internal import get_instance_variables, warn_deprecated
-from supervision.validators import validate_detections_fields, validate_resolution
+from supervision.validators import _validate_detections_fields, _validate_resolution
 
 
 @dataclass
@@ -158,7 +159,7 @@ class Detections:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        validate_detections_fields(
+        _validate_detections_fields(
             xyxy=self.xyxy,
             mask=self.mask,
             confidence=self.confidence,
@@ -762,7 +763,7 @@ class Detections:
             )
             ```
         """
-        width, height = validate_resolution(resolution_wh)
+        width, height = _validate_resolution(resolution_wh)
 
         masks = []
         confidences = []
@@ -1876,7 +1877,7 @@ class Detections:
 
         """  # noqa: E501
 
-        vlm = validate_vlm_parameters(vlm, result, kwargs)
+        vlm = _validate_vlm_parameters(vlm, result, kwargs)
 
         if vlm == VLM.PALIGEMMA:
             assert isinstance(result, str)
@@ -2164,7 +2165,7 @@ class Detections:
             return Detections.empty()
 
         for detections in detections_list:
-            validate_detections_fields(
+            _validate_detections_fields(
                 xyxy=detections.xyxy,
                 mask=detections.mask,
                 confidence=detections.confidence,
@@ -2614,7 +2615,7 @@ def merge_inner_detection_object_pair(
     if len(detections_1) != 1 or len(detections_2) != 1:
         raise ValueError("Both Detections should have exactly 1 detected object.")
 
-    validate_fields_both_defined_or_none(detections_1, detections_2)
+    _validate_fields_both_defined_or_none(detections_1, detections_2)
 
     xyxy_1 = detections_1.xyxy[0]
     xyxy_2 = detections_2.xyxy[0]
@@ -2701,7 +2702,7 @@ def merge_inner_detections_objects_without_iou(
     return reduce(merge_inner_detection_object_pair, detections)
 
 
-def validate_fields_both_defined_or_none(
+def _validate_fields_both_defined_or_none(
     detections_1: Detections, detections_2: Detections
 ) -> None:
     """
@@ -2723,3 +2724,14 @@ def validate_fields_both_defined_or_none(
                 f"Field '{attribute}' should be consistently None or not None in both "
                 "Detections."
             )
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_validate_fields_both_defined_or_none,
+    deprecated_in="0.29.0",
+    remove_in="0.31.0",
+)
+def validate_fields_both_defined_or_none(
+    detections_1: Detections, detections_2: Detections
+) -> None:
+    void(detections_1, detections_2)
