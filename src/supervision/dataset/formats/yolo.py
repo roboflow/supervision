@@ -256,7 +256,11 @@ def detections_to_yolo_annotations(
     approximation_percentage: float = 0.75,
     is_obb: bool = False,
 ) -> list[str]:
-    if is_obb and ORIENTED_BOX_COORDINATES not in detections.data:
+    if (
+        is_obb
+        and len(detections) > 0
+        and ORIENTED_BOX_COORDINATES not in detections.data
+    ):
         raise ValueError(
             f"`is_obb=True` requires `'{ORIENTED_BOX_COORDINATES}'` in "
             "`detections.data`. Load OBB datasets via "

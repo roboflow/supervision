@@ -582,6 +582,14 @@ def test_detections_to_yolo_annotations_obb_raises_without_corners() -> None:
         )
 
 
+def test_detections_to_yolo_annotations_obb_empty_emits_no_lines() -> None:
+    """`is_obb=True` on an empty `Detections` must not raise — image had no labels."""
+    lines = detections_to_yolo_annotations(
+        detections=Detections.empty(), image_shape=(100, 100, 3), is_obb=True
+    )
+    assert lines == []
+
+
 def test_dataset_as_yolo_obb_round_trip_preserves_corners() -> None:
     """OBB round-trip via `from_yolo` -> `as_yolo` must preserve the 4 corners."""
     with tempfile.TemporaryDirectory() as tmp_dir:
