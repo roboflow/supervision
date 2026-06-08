@@ -4,12 +4,12 @@ import os
 import tempfile
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
-from supervision.config import ORIENTED_BOX_COORDINATES
 
 import numpy as np
 import pytest
 from PIL import Image
 
+from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.formats.yolo import (
     _image_name_to_annotation_name,
     _with_seg_mask,
@@ -539,6 +539,7 @@ def test_yolo_polygon_mask_precision_no_coord_drift_round_trip_iou(
         f"Mask IoU {iou:.6f} too low after YOLO load/save round-trip — "
         "precision regression in polygon mask conversion"
     )
+
 
 def test_detections_to_yolo_annotations_exports_obb() -> None:
     image_shape = (100, 100, 3)

@@ -273,13 +273,9 @@ def detections_to_yolo_annotations(
             polygon_relative = obb / np.array([w, h], dtype=np.float32)
             polygon_relative = polygon_relative.reshape(-1)
 
-            polygon_parsed = " ".join(
-                f"{value:.5f}" for value in polygon_relative
-            )
+            polygon_parsed = " ".join(f"{value:.5f}" for value in polygon_relative)
 
-            annotation.append(
-                f"{class_id_int} {polygon_parsed}"
-            )
+            annotation.append(f"{class_id_int} {polygon_parsed}")
             continue
 
         if mask is not None:
