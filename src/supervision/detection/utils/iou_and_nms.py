@@ -372,8 +372,10 @@ def oriented_box_iou_batch(
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> npt.NDArray[np.floating]:
     """
-    Compute Intersection over Union (IoU) of two sets of oriented bounding boxes -
-    `boxes_true` and `boxes_detection`. Both sets of boxes are expected to be in
+    Compute pairwise overlap scores between two sets of oriented bounding boxes
+    using the configured `overlap_metric`.
+
+    `boxes_true` and `boxes_detection` are expected to be in
     `((x1, y1), (x2, y2), (x3, y3), (x4, y4))` format.
 
     Args:
@@ -389,10 +391,27 @@ def oriented_box_iou_batch(
             between pairs of oriented boxes (e.g., IoU, IoS).
 
     Returns:
-        Pairwise IoU of boxes from `boxes_true` and `boxes_detection`.
+        Pairwise overlap scores of boxes from `boxes_true` and
+            `boxes_detection`, using the configured :attr:`overlap_metric`.
             `shape = (N, M)` where `N` is number of true objects and
             `M` is number of detected objects.
     """
+
+    for name, arr in (("boxes_true", boxes_true), ("boxes_detection", boxes_detection)):
+        if arr.ndim == 3 and arr.shape[1:] != (4, 2):
+            raise ValueError(
+                f"`{name}` has shape {arr.shape}; expected (N, 4, 2) "
+                f"— each box must have exactly 4 corners with (x, y) coordinates."
+            )
+        elif arr.ndim == 2 and arr.shape[1] != 8:
+            raise ValueError(
+                f"`{name}` has shape {arr.shape}; expected (N, 8) for flat "
+                f"YOLO format or (N, 4, 2) for corner format."
+            )
+        elif arr.ndim not in (2, 3):
+            raise ValueError(
+                f"`{name}` must be 2-D (N, 8) or 3-D (N, 4, 2), got shape {arr.shape}."
+            )
 
     boxes_true = boxes_true.reshape(-1, 4, 2)
     boxes_detection = boxes_detection.reshape(-1, 4, 2)
@@ -1113,12 +1132,57 @@ def oriented_box_non_max_suppression(
         AssertionError: If ``iou_threshold`` is not within the closed
             range from 0 to 1.
         ValueError: If ``predictions`` and ``oriented_boxes`` have
-            mismatched lengths.
+            mismatched lengths or invalid shapes.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        # Two near-identical oriented boxes; the lower-score one should be suppressed.
+        oriented_boxes = np.array([
+            [[10, 10], [50, 10], [50, 30], [10, 30]],  # box A, score 0.9
+            # box B (near-duplicate), score 0.8
+            [[11, 11], [51, 11], [51, 31], [11, 31]],
+        ], dtype=np.float32)
+        predictions = np.array([
+            [10, 10, 50, 30, 0.9, 0],
+            [11, 11, 51, 31, 0.8, 0],
+        ], dtype=np.float32)
+
+        keep = sv.oriented_box_non_max_suppression(
+            predictions=predictions,
+            oriented_boxes=oriented_boxes,
+            iou_threshold=0.5,
+        )
+        # keep[0] == True (higher score kept), keep[1] == False (suppressed)
+        ```
     """
     assert 0 <= iou_threshold <= 1, (
         "Value of `iou_threshold` must be in the closed range from 0 to 1, "
         f"{iou_threshold} given."
     )
+    for name, arr in (("predictions", predictions), ("oriented_boxes", oriented_boxes)):
+        if name == "predictions":
+            if arr.ndim != 2 or arr.shape[1] not in (5, 6):
+                raise ValueError(
+                    f"`{name}` has shape {arr.shape}; expected (N, 5) or (N, 6)."
+                )
+            continue
+        if arr.ndim == 3 and arr.shape[1:] != (4, 2):
+            raise ValueError(
+                f"`{name}` has shape {arr.shape}; expected (N, 4, 2) "
+                f"— each box must have exactly 4 corners with (x, y) coordinates."
+            )
+        elif arr.ndim == 2 and arr.shape[1] != 8:
+            raise ValueError(
+                f"`{name}` has shape {arr.shape}; expected (N, 8) for flat "
+                f"YOLO format or (N, 4, 2) for corner format."
+            )
+        elif arr.ndim not in (2, 3):
+            raise ValueError(
+                f"`{name}` must be 2-D (N, 8) or 3-D (N, 4, 2), got shape {arr.shape}."
+            )
     if len(predictions) != len(oriented_boxes):
         raise ValueError(
             f"`predictions` and `oriented_boxes` must have the same length, "
@@ -1132,8 +1196,8 @@ def oriented_box_non_max_suppression(
 
 
 def _group_overlapping_oriented_boxes(
-    predictions: npt.NDArray[np.float64],
-    oriented_boxes: npt.NDArray[np.float64],
+    predictions: npt.NDArray[np.floating],
+    oriented_boxes: npt.NDArray[np.floating],
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
@@ -1157,8 +1221,8 @@ def _group_overlapping_oriented_boxes(
 
 
 def oriented_box_non_max_merge(
-    predictions: npt.NDArray[np.float64],
-    oriented_boxes: npt.NDArray[np.float64],
+    predictions: npt.NDArray[np.floating],
+    oriented_boxes: npt.NDArray[np.floating],
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
@@ -1188,14 +1252,64 @@ def oriented_box_non_max_merge(
             or more elements.
 
     Raises:
+        AssertionError: If ``iou_threshold`` is not within the closed
+            range from 0 to 1.
         ValueError: If ``predictions`` and ``oriented_boxes`` have
-            mismatched lengths.
+            mismatched lengths or invalid shapes.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+
+        # Two near-identical oriented boxes; they should merge into one group.
+        oriented_boxes = np.array([
+            [[10, 10], [50, 10], [50, 30], [10, 30]],
+            [[11, 11], [51, 11], [51, 31], [11, 31]],
+        ], dtype=np.float32)
+        predictions = np.array([
+            [10, 10, 50, 30, 0.9, 0],
+            [11, 11, 51, 31, 0.8, 0],
+        ], dtype=np.float32)
+
+        groups = sv.oriented_box_non_max_merge(
+            predictions=predictions,
+            oriented_boxes=oriented_boxes,
+            iou_threshold=0.5,
+        )
+        # len(groups) == 1: both boxes merged into one group
+        ```
     """
+    for name, arr in (("predictions", predictions), ("oriented_boxes", oriented_boxes)):
+        if name == "predictions":
+            if arr.ndim != 2 or arr.shape[1] not in (5, 6):
+                raise ValueError(
+                    f"`{name}` has shape {arr.shape}; expected (N, 5) or (N, 6)."
+                )
+            continue
+        if arr.ndim == 3 and arr.shape[1:] != (4, 2):
+            raise ValueError(
+                f"`{name}` has shape {arr.shape}; expected (N, 4, 2) "
+                f"— each box must have exactly 4 corners with (x, y) coordinates."
+            )
+        elif arr.ndim == 2 and arr.shape[1] != 8:
+            raise ValueError(
+                f"`{name}` has shape {arr.shape}; expected (N, 8) for flat "
+                f"YOLO format or (N, 4, 2) for corner format."
+            )
+        elif arr.ndim not in (2, 3):
+            raise ValueError(
+                f"`{name}` must be 2-D (N, 8) or 3-D (N, 4, 2), got shape {arr.shape}."
+            )
     if len(predictions) != len(oriented_boxes):
         raise ValueError(
             f"`predictions` and `oriented_boxes` must have the same length, "
             f"got {len(predictions)} and {len(oriented_boxes)}."
         )
+    assert 0 <= iou_threshold <= 1, (
+        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
+        f"{iou_threshold} given."
+    )
 
     def group_within(global_indices: npt.NDArray[np.int_]) -> list[list[int]]:
         return _group_overlapping_oriented_boxes(
