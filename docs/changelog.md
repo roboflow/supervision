@@ -1,11 +1,13 @@
 ---
 description: "Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version."
-date_modified: 2026-04-30
+date_modified: 2026-06-08
 ---
 
 # Changelog
 
 ### UnReleased
+
+- Fixed [#2289](https://github.com/roboflow/supervision/pull/2289): [`DetectionDataset.as_yolo`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.as_yolo) now accepts `is_obb=True` to round-trip oriented bounding box datasets without losing the rotation. Previously the save path had no OBB option and silently wrote 5-token axis-aligned bbox lines for datasets loaded with `from_yolo(..., is_obb=True)`, dropping the four corners stored in `detections.data["xyxyxyxy"]`. Re-loading those saved files with `is_obb=True` then crashed the validator. Mirrors the existing `from_yolo(..., is_obb=True)` load path.
 
 - Deprecated: public `validate_*` helper functions now delegate to private `_validate_*` implementations via `pydeprecate` shims. Existing imports continue to work with a `FutureWarning`; internal Supervision code uses the private helpers directly.
 
