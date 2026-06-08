@@ -6,6 +6,7 @@ from contextlib import ExitStack as DoesNotRaise
 import numpy as np
 import pytest
 
+from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections, merge_inner_detection_object_pair
 from supervision.geometry.core import Position
 from supervision.utils.internal import SupervisionWarnings
@@ -982,3 +983,71 @@ def test_from_inference_sdk_dict_path_empty_preserves_class_name_dtype() -> None
     detections = Detections.from_inference(_FakeSdkResult())
     assert detections["class_name"] is not None
     assert detections["class_name"].dtype.kind == "U"
+
+
+def _rotated_rect(
+    cx: float, cy: float, w: float, h: float, angle_deg: float
+) -> np.ndarray:
+    angle = np.deg2rad(angle_deg)
+    cos, sin = np.cos(angle), np.sin(angle)
+    rot = np.array([[cos, -sin], [sin, cos]])
+    corners = np.array(
+        [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]]
+    )
+    return (corners @ rot.T + [cx, cy]).astype(np.float32)
+
+
+def _make_obb_detections(
+    quads: list[np.ndarray], scores: list[float], class_ids: list[int]
+) -> Detections:
+    """Build OBB Detections from a list of (4, 2) corner arrays."""
+    oriented_boxes = np.stack(quads)
+    xyxy = np.array(
+        [[q[:, 0].min(), q[:, 1].min(), q[:, 0].max(), q[:, 1].max()] for q in quads],
+        dtype=np.float32,
+    )
+    return Detections(
+        xyxy=xyxy,
+        confidence=np.array(scores, dtype=np.float32),
+        class_id=np.array(class_ids, dtype=int),
+        data={ORIENTED_BOX_COORDINATES: oriented_boxes},
+    )
+
+
+def test_with_nms_uses_obb_iou_when_oriented_box_coordinates_present() -> None:
+    """X-pattern: two crossed OBBs share an AABB but barely overlap.
+    `box_non_max_suppression` (the pre-fix path) would drop one because
+    AABB IoU ≈ 1.0. With OBB-aware NMS both must survive."""
+    quad_a = _rotated_rect(50, 50, 100, 10, +45)
+    quad_b = _rotated_rect(50, 50, 100, 10, -45)
+    detections = _make_obb_detections([quad_a, quad_b], [0.9, 0.85], [0, 0])
+
+    result = detections.with_nms(threshold=0.5)
+
+    assert len(result) == 2
+
+
+def test_with_nms_falls_back_to_box_nms_without_obb_data() -> None:
+    """Regression guard: non-OBB Detections must still use box NMS so two
+    heavily-overlapping AABBs collapse to one."""
+    detections = Detections(
+        xyxy=np.array([[0, 0, 100, 100], [10, 10, 110, 110]], dtype=np.float32),
+        confidence=np.array([0.9, 0.85], dtype=np.float32),
+        class_id=np.array([0, 0], dtype=int),
+    )
+
+    result = detections.with_nms(threshold=0.5)
+
+    assert len(result) == 1
+
+
+def test_with_nmm_uses_obb_iou_when_oriented_box_coordinates_present() -> None:
+    """X-pattern under non-max-merging: the two crossed OBBs should land in
+    separate merge groups (no spurious merge driven by AABB overlap)."""
+    quad_a = _rotated_rect(50, 50, 100, 10, +45)
+    quad_b = _rotated_rect(50, 50, 100, 10, -45)
+    detections = _make_obb_detections([quad_a, quad_b], [0.9, 0.85], [0, 0])
+
+    result = detections.with_nmm(threshold=0.5)
+
+    assert len(result) == 2

@@ -41,6 +41,8 @@ from supervision.detection.utils.iou_and_nms import (
     mask_iou_batch,
     mask_non_max_merge,
     mask_non_max_suppression,
+    oriented_box_non_max_merge,
+    oriented_box_non_max_suppression,
 )
 from supervision.detection.utils.masks import calculate_masks_centroids
 from supervision.detection.vlm import (
@@ -2485,6 +2487,15 @@ class Detections:
                 iou_threshold=threshold,
                 overlap_metric=overlap_metric,
             )
+        elif ORIENTED_BOX_COORDINATES in self.data:
+            indices = oriented_box_non_max_suppression(
+                predictions=predictions,
+                oriented_boxes=np.asarray(
+                    self.data[ORIENTED_BOX_COORDINATES], dtype=np.float32
+                ),
+                iou_threshold=threshold,
+                overlap_metric=overlap_metric,
+            )
         else:
             indices = box_non_max_suppression(
                 predictions=predictions,
@@ -2548,6 +2559,15 @@ class Detections:
             merge_groups = mask_non_max_merge(
                 predictions=predictions,
                 masks=self.mask,
+                iou_threshold=threshold,
+                overlap_metric=overlap_metric,
+            )
+        elif ORIENTED_BOX_COORDINATES in self.data:
+            merge_groups = oriented_box_non_max_merge(
+                predictions=predictions,
+                oriented_boxes=np.asarray(
+                    self.data[ORIENTED_BOX_COORDINATES], dtype=np.float64
+                ),
                 iou_threshold=threshold,
                 overlap_metric=overlap_metric,
             )

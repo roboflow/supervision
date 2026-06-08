@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from enum import Enum
 from typing import Any, cast
 
@@ -359,7 +360,9 @@ def box_iou_batch_with_jaccard(
 
 
 def oriented_box_iou_batch(
-    boxes_true: npt.NDArray[np.number], boxes_detection: npt.NDArray[np.number]
+    boxes_true: npt.NDArray[np.number],
+    boxes_detection: npt.NDArray[np.number],
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> npt.NDArray[np.floating]:
     """
     Compute Intersection over Union (IoU) of two sets of oriented bounding boxes -
@@ -375,6 +378,8 @@ def oriented_box_iou_batch(
             `shape = (M, 4, 2)` where `M` is number of detected objects.
             Last axis convention: `[..., 0]` = x-coordinates,
             `[..., 1]` = y-coordinates.
+        overlap_metric: Metric used to compute the degree of overlap
+            between pairs of oriented boxes (e.g., IoU, IoS).
 
     Returns:
         Pairwise IoU of boxes from `boxes_true` and `boxes_detection`.
@@ -405,7 +410,7 @@ def oriented_box_iou_batch(
             box_detection, (max_width, max_height)
         )
 
-    ious = mask_iou_batch(mask_true, mask_detection)
+    ious = mask_iou_batch(mask_true, mask_detection, overlap_metric)
     return ious
 
 
@@ -704,6 +709,45 @@ def mask_non_max_suppression(
     return cast(npt.NDArray[np.bool_], keep[sort_index.argsort()])
 
 
+def _prepare_predictions_for_nms(
+    predictions: npt.NDArray[np.floating],
+) -> tuple[npt.NDArray[np.int_], npt.NDArray[np.floating], npt.NDArray[np.floating]]:
+    """Add an agnostic class column when missing, sort by descending score.
+
+    Returns the score-descending sort index, the reordered predictions, and the
+    category vector for the loop callers to consume.
+    """
+    rows, columns = predictions.shape
+    if columns == 5:
+        predictions = np.c_[predictions, np.zeros(rows)]
+    sort_index = np.flip(predictions[:, 4].argsort())
+    predictions = predictions[sort_index]
+    categories = predictions[:, 5]
+    return sort_index, predictions, categories
+
+
+def _nms_loop_from_iou_matrix(
+    ious: npt.NDArray[np.floating],
+    categories: npt.NDArray[np.floating],
+    iou_threshold: float,
+) -> npt.NDArray[np.bool_]:
+    """Greedy NMS suppression loop given a precomputed pairwise IoU matrix.
+
+    Assumes `ious` is square with row/column order matching `categories`.
+    Detections sharing a category whose IoU exceeds `iou_threshold` are dropped
+    in favour of the higher-confidence entry.
+    """
+    rows = len(ious)
+    ious = ious - np.eye(rows)
+    keep: npt.NDArray[np.bool_] = np.ones(rows, dtype=bool)
+    for index, (iou, category) in enumerate(zip(ious, categories)):
+        if not keep[index]:
+            continue
+        condition = (iou > iou_threshold) & (categories == category)
+        keep = keep & ~condition
+    return keep
+
+
 def box_non_max_suppression(
     predictions: npt.NDArray[np.floating],
     iou_threshold: float = 0.5,
@@ -733,32 +777,9 @@ def box_non_max_suppression(
         "Value of `iou_threshold` must be in the closed range from 0 to 1, "
         f"{iou_threshold} given."
     )
-    rows, columns = predictions.shape
-
-    # add column #5 - category filled with zeros for agnostic nms
-    if columns == 5:
-        predictions = np.c_[predictions, np.zeros(rows)]
-
-    # sort predictions column #4 - score
-    sort_index = np.flip(predictions[:, 4].argsort())
-    predictions = predictions[sort_index]
-
-    boxes = predictions[:, :4]
-    categories = predictions[:, 5]
-    ious = box_iou_batch(boxes, boxes, overlap_metric)
-    ious = ious - np.eye(rows)
-
-    keep = np.ones(rows, dtype=bool)
-
-    for index, (iou, category) in enumerate(zip(ious, categories)):
-        if not keep[index]:
-            continue
-
-        # drop detections with iou > iou_threshold and
-        # same category as current detections
-        condition = (iou > iou_threshold) & (categories == category)
-        keep = keep & ~condition
-
+    sort_index, predictions, categories = _prepare_predictions_for_nms(predictions)
+    ious = box_iou_batch(predictions[:, :4], predictions[:, :4], overlap_metric)
+    keep = _nms_loop_from_iou_matrix(ious, categories, iou_threshold)
     return cast(npt.NDArray[np.bool_], keep[sort_index.argsort()])
 
 
@@ -894,6 +915,70 @@ def mask_non_max_merge(
     return merge_groups
 
 
+def _greedy_nmm_via_iou_callback(
+    predictions: npt.NDArray[np.float64],
+    iou_against_candidate: Callable[
+        [npt.NDArray[np.int_], int], npt.NDArray[np.floating]
+    ],
+    iou_threshold: float,
+) -> list[list[int]]:
+    """Greedy non-maximum merging loop, independent of how overlap is computed.
+
+    ``iou_against_candidate(order_indices, candidate_idx)`` must return the IoU
+    vector between every prediction in ``order_indices`` and the candidate at
+    ``candidate_idx``. Predictions whose IoU meets ``iou_threshold`` are
+    grouped with the candidate.
+    """
+    merge_groups: list[list[int]] = []
+    scores = predictions[:, 4]
+    order = scores.argsort()
+    while len(order) > 0:
+        idx = int(order[-1])
+        order = order[:-1]
+        if len(order) == 0:
+            merge_groups.append([idx])
+            break
+        ious = iou_against_candidate(order, idx)
+        above_threshold = ious >= iou_threshold
+        merge_group = [idx, *np.flip(order[above_threshold]).tolist()]
+        merge_groups.append(merge_group)
+        order = order[~above_threshold]
+    return merge_groups
+
+
+def _non_max_merge_per_category(
+    predictions: npt.NDArray[np.float64],
+    group_within: Callable[[npt.NDArray[np.int_]], list[list[int]]],
+) -> list[list[int]]:
+    """Dispatch NMM grouping per class, then translate local indices back to
+    the global row positions of ``predictions``.
+
+    ``group_within(global_indices)`` must return merge groups expressed in
+    terms of *positions inside `global_indices`*, not absolute row positions.
+    When ``predictions`` has no class column, a single pass over all rows is
+    performed instead of per-category iteration.
+    """
+    if predictions.shape[1] == 5:
+        global_indices = np.arange(len(predictions), dtype=int)
+        return [
+            global_indices[group].tolist() for group in group_within(global_indices)
+        ]
+
+    category_ids = predictions[:, 5]
+    merge_groups: list[list[int]] = []
+    for category_id in np.unique(category_ids):
+        curr_indices = np.where(category_ids == category_id)[0]
+        for local_group in group_within(curr_indices):
+            merge_groups.append(curr_indices[local_group].tolist())
+
+    for merge_group in merge_groups:
+        if len(merge_group) == 0:
+            raise ValueError(
+                f"Empty group detected when non-max-merging detections: {merge_groups}"
+            )
+    return merge_groups
+
+
 def _group_overlapping_boxes(
     predictions: npt.NDArray[np.float64],
     iou_threshold: float = 0.5,
@@ -916,30 +1001,19 @@ def _group_overlapping_boxes(
         Groups of prediction indices to be merged.
             Each group may have 1 or more elements.
     """
-    merge_groups: list[list[int]] = []
 
-    scores = predictions[:, 4]
-    order = scores.argsort()
+    def iou_against_candidate(
+        order: npt.NDArray[np.int_], idx: int
+    ) -> npt.NDArray[np.floating]:
+        return box_iou_batch(
+            predictions[order][:, :4],
+            predictions[idx : idx + 1, :4],
+            overlap_metric,
+        ).flatten()
 
-    while len(order) > 0:
-        idx = int(order[-1])
-
-        order = order[:-1]
-        if len(order) == 0:
-            merge_groups.append([idx])
-            break
-
-        merge_candidate = np.expand_dims(predictions[idx], axis=0)
-        ious = box_iou_batch(
-            predictions[order][:, :4], merge_candidate[:, :4], overlap_metric
-        )
-        ious = ious.flatten()
-
-        above_threshold = ious >= iou_threshold
-        merge_group = [idx, *np.flip(order[above_threshold]).tolist()]
-        merge_groups.append(merge_group)
-        order = order[~above_threshold]
-    return merge_groups
+    return _greedy_nmm_via_iou_callback(
+        predictions, iou_against_candidate, iou_threshold
+    )
 
 
 def box_non_max_merge(
@@ -965,23 +1039,141 @@ def box_non_max_merge(
         list[list[int]]: Groups of prediction indices be merged.
             Each group may have 1 or more elements.
     """
-    if predictions.shape[1] == 5:
-        return _group_overlapping_boxes(predictions, iou_threshold, overlap_metric)
 
-    category_ids = predictions[:, 5]
-    merge_groups = []
-    for category_id in np.unique(category_ids):
-        curr_indices = np.where(category_ids == category_id)[0]
-        merge_class_groups = _group_overlapping_boxes(
-            predictions[curr_indices], iou_threshold, overlap_metric
+    def group_within(global_indices: npt.NDArray[np.int_]) -> list[list[int]]:
+        return _group_overlapping_boxes(
+            predictions[global_indices], iou_threshold, overlap_metric
         )
 
-        for merge_class_group in merge_class_groups:
-            merge_groups.append(curr_indices[merge_class_group].tolist())
+    return _non_max_merge_per_category(predictions, group_within)
 
-    for merge_group in merge_groups:
-        if len(merge_group) == 0:
-            raise ValueError(
-                f"Empty group detected when non-max-merging detections: {merge_groups}"
-            )
-    return merge_groups
+
+def oriented_box_non_max_suppression(
+    predictions: npt.NDArray[np.floating],
+    oriented_boxes: npt.NDArray[np.floating],
+    iou_threshold: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+) -> npt.NDArray[np.bool_]:
+    """
+    Perform Non-Maximum Suppression on oriented bounding box predictions.
+
+    Overlap is computed via :func:`oriented_box_iou_batch` on the four
+    corners of each box, so detections whose axis-aligned bounding boxes
+    overlap heavily but whose oriented bodies do not are kept — unlike
+    :func:`box_non_max_suppression`, which would suppress them.
+
+    Args:
+        predictions: An array of object detection predictions in the
+            format ``(x_min, y_min, x_max, y_max, score)`` or
+            ``(x_min, y_min, x_max, y_max, score, class)``. Shape ``(N, 5)``
+            or ``(N, 6)``. Only the score (column 4) and optional class
+            (column 5) are read; the axis-aligned coordinates are not used.
+        oriented_boxes: Array of shape ``(N, 4, 2)`` containing the four
+            ``(x, y)`` corners of each oriented box, aligned with
+            ``predictions`` row-by-row.
+        iou_threshold: The intersection-over-union threshold to use for
+            non-maximum suppression.
+        overlap_metric: Metric used to compute the degree of overlap
+            between pairs of oriented boxes (e.g., IoU, IoS).
+
+    Returns:
+        A boolean array of shape ``(N,)`` indicating which predictions
+            to keep after non-maximum suppression.
+
+    Raises:
+        AssertionError: If ``iou_threshold`` is not within the closed
+            range from 0 to 1.
+        ValueError: If ``predictions`` and ``oriented_boxes`` have
+            mismatched lengths.
+    """
+    assert 0 <= iou_threshold <= 1, (
+        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
+        f"{iou_threshold} given."
+    )
+    if len(predictions) != len(oriented_boxes):
+        raise ValueError(
+            f"`predictions` and `oriented_boxes` must have the same length, "
+            f"got {len(predictions)} and {len(oriented_boxes)}."
+        )
+    sort_index, _, categories = _prepare_predictions_for_nms(predictions)
+    oriented_boxes = oriented_boxes[sort_index]
+    ious = oriented_box_iou_batch(oriented_boxes, oriented_boxes, overlap_metric)
+    keep = _nms_loop_from_iou_matrix(ious, categories, iou_threshold)
+    return cast(npt.NDArray[np.bool_], keep[sort_index.argsort()])
+
+
+def _group_overlapping_oriented_boxes(
+    predictions: npt.NDArray[np.float64],
+    oriented_boxes: npt.NDArray[np.float64],
+    iou_threshold: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+) -> list[list[int]]:
+    """
+    Greedy non-maximum merging on oriented boxes. Mirrors
+    :func:`_group_overlapping_boxes` but uses :func:`oriented_box_iou_batch`.
+    """
+
+    def iou_against_candidate(
+        order: npt.NDArray[np.int_], idx: int
+    ) -> npt.NDArray[np.floating]:
+        return oriented_box_iou_batch(
+            oriented_boxes[order],
+            oriented_boxes[idx][None, ...],
+            overlap_metric,
+        ).flatten()
+
+    return _greedy_nmm_via_iou_callback(
+        predictions, iou_against_candidate, iou_threshold
+    )
+
+
+def oriented_box_non_max_merge(
+    predictions: npt.NDArray[np.float64],
+    oriented_boxes: npt.NDArray[np.float64],
+    iou_threshold: float = 0.5,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+) -> list[list[int]]:
+    """
+    Perform Non-Maximum Merging on oriented bounding box predictions,
+    grouped per category.
+
+    Mirrors :func:`box_non_max_merge` but uses oriented-box IoU, so groups
+    of rotated detections sharing the same body — rather than the same
+    axis-aligned bounding box — are merged.
+
+    Args:
+        predictions: An array of shape ``(n, 5)`` or ``(n, 6)`` containing
+            the axis-aligned coordinates ``[x1, y1, x2, y2]``, confidence
+            scores, and optionally class ids. Only the score and optional
+            class are used by the grouping logic; overlap is computed on
+            ``oriented_boxes``.
+        oriented_boxes: Array of shape ``(N, 4, 2)`` containing the four
+            ``(x, y)`` corners of each oriented box.
+        iou_threshold: The intersection-over-union threshold to use for
+            non-maximum merging.
+        overlap_metric: Metric used to compute the degree of overlap
+            between pairs of oriented boxes (e.g., IoU, IoS).
+
+    Returns:
+        Groups of prediction indices to be merged. Each group may have 1
+            or more elements.
+
+    Raises:
+        ValueError: If ``predictions`` and ``oriented_boxes`` have
+            mismatched lengths.
+    """
+    if len(predictions) != len(oriented_boxes):
+        raise ValueError(
+            f"`predictions` and `oriented_boxes` must have the same length, "
+            f"got {len(predictions)} and {len(oriented_boxes)}."
+        )
+
+    def group_within(global_indices: npt.NDArray[np.int_]) -> list[list[int]]:
+        return _group_overlapping_oriented_boxes(
+            predictions[global_indices],
+            oriented_boxes[global_indices],
+            iou_threshold,
+            overlap_metric,
+        )
+
+    return _non_max_merge_per_category(predictions, group_within)
