@@ -1266,16 +1266,24 @@ class TestOrientedBoxNonMaxSuppression:
         )
         assert np.array_equal(keep, np.array([True, True]))
 
-    def test_drops_true_duplicates(self) -> None:
-        """Two near-identical OBBs should be suppressed down to the higher-score
-        one."""
+    @pytest.mark.parametrize(
+        ("class_id_b", "expected_keep"),
+        [
+            pytest.param(0, [True, False], id="same-class"),
+            pytest.param(1, [True, True], id="diff-class"),
+        ],
+    )
+    def test_suppression_is_class_aware(
+        self, class_id_b: int, expected_keep: list[bool]
+    ) -> None:
+        """Same class: lower-score OBB suppressed. Different class: both kept."""
         quad = _rotated_rect(50, 50, 100, 10, 45)
         shifted = _rotated_rect(51, 51, 100, 10, 45)
         oriented_boxes = np.stack([quad, shifted])
         predictions = np.array(
             [
                 [*_aabb_of(quad), 0.9, 0],
-                [*_aabb_of(shifted), 0.85, 0],
+                [*_aabb_of(shifted), 0.85, class_id_b],
             ],
             dtype=np.float32,
         )
@@ -1285,25 +1293,7 @@ class TestOrientedBoxNonMaxSuppression:
         keep = oriented_box_non_max_suppression(
             predictions=predictions, oriented_boxes=oriented_boxes, iou_threshold=0.5
         )
-        assert np.array_equal(keep, np.array([True, False]))
-
-    def test_is_class_aware(self) -> None:
-        """High-OBB-IoU detections from different classes must both be kept."""
-        quad = _rotated_rect(50, 50, 100, 10, 45)
-        shifted = _rotated_rect(51, 51, 100, 10, 45)
-        oriented_boxes = np.stack([quad, shifted])
-        predictions = np.array(
-            [
-                [*_aabb_of(quad), 0.9, 0],
-                [*_aabb_of(shifted), 0.85, 1],
-            ],
-            dtype=np.float32,
-        )
-
-        keep = oriented_box_non_max_suppression(
-            predictions=predictions, oriented_boxes=oriented_boxes, iou_threshold=0.5
-        )
-        assert np.array_equal(keep, np.array([True, True]))
+        assert np.array_equal(keep, np.array(expected_keep))
 
     def test_length_mismatch_raises(self) -> None:
         """Mismatched predictions and oriented_boxes must fail loudly, not
