@@ -2366,20 +2366,50 @@ class Detections:
     def area(self) -> npt.NDArray[np.generic]:
         """
         Calculate the area of each detection in the set of object detections.
-        If masks field is defined property returns are of each mask.
-        If only box is given property return area of each box.
+
+        Selection order:
+
+        1. If ``mask`` is set, return the area of each mask.
+        2. Else, if ``data[ORIENTED_BOX_COORDINATES]`` is set, return the area of
+           the rotated body (shoelace formula on the four corners).
+        3. Otherwise, return the axis-aligned box area (``box_area``).
 
         Returns:
             An array of floats containing the area of each detection
                 in the format of `(area_1, area_2, ..., area_n)`,
                 where n is the number of detections.
+
+        Example:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> from supervision.config import ORIENTED_BOX_COORDINATES
+            >>> corners = np.array(
+            ...     [[[0, 5], [5, 10], [10, 5], [5, 0]]], dtype=np.float32
+            ... )
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            ...     class_id=np.array([0]),
+            ...     data={ORIENTED_BOX_COORDINATES: corners},
+            ... )
+            >>> detections.area
+            array([50.])
         """
         if self.mask is not None:
             if isinstance(self.mask, CompactMask):
                 return self.mask.area
             return np.array([np.sum(mask) for mask in self.mask])
-        else:
-            return self.box_area
+        if ORIENTED_BOX_COORDINATES in self.data:
+            # Shoelace area on the OBB's four corners. The `xyxy` field stores
+            # the AABB of the rotated body and overestimates its area.
+            corners = np.asarray(self.data[ORIENTED_BOX_COORDINATES], dtype=np.float64)
+            x, y = corners[..., 0], corners[..., 1]
+            return 0.5 * np.abs(
+                np.sum(
+                    x * np.roll(y, -1, axis=-1) - np.roll(x, -1, axis=-1) * y,
+                    axis=-1,
+                )
+            )
+        return self.box_area
 
     @property
     def box_area(self) -> npt.NDArray[np.generic]:

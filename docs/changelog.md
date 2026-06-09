@@ -1,11 +1,13 @@
 ---
 description: "Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version."
-date_modified: 2026-06-08
+date_modified: 2026-06-09
 ---
 
 # Changelog
 
 ### UnReleased
+
+- Fixed [#2306](https://github.com/roboflow/supervision/pull/2306): [`sv.Detections.area`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.area) now returns the rotated body's area for detections carrying `data["xyxyxyxy"]` (oriented box corners) instead of the area of the derived axis-aligned bounding box, which overestimates by up to ~2x at 45° rotation. Affects annotator z-ordering inside [`MaskAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.MaskAnnotator) and [`HaloAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.HaloAnnotator), and any user code that filters or sorts OBB detections by area. The mask path and the non-OBB AABB fallback are unchanged.
 
 - Fixed [#2289](https://github.com/roboflow/supervision/pull/2289): [`DetectionDataset.as_yolo`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.as_yolo) now accepts `is_obb=True` to round-trip oriented bounding box datasets without losing the rotation. Previously the save path had no OBB option and silently wrote 5-token axis-aligned bbox lines for datasets loaded with `from_yolo(..., is_obb=True)`, dropping the four corners stored in `detections.data["xyxyxyxy"]`. Re-loading those saved files with `is_obb=True` then crashed the validator. Mirrors the existing `from_yolo(..., is_obb=True)` load path.
 
