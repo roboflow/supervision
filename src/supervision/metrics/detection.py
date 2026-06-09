@@ -112,6 +112,9 @@ def detections_to_tensor(
             box_data = np.empty((0, 8), dtype=np.float32)
         else:
             obb_arr = np.asarray(obb, dtype=np.float32)
+            # Normalize (N, 4, 2) → (N, 8) as produced by from_ultralytics.
+            if obb_arr.ndim == 3 and obb_arr.shape[1:] == (4, 2):
+                obb_arr = obb_arr.reshape(-1, 8)
             if obb_arr.size != len(detections) * 8:
                 raise ValueError(
                     f"Expected {ORIENTED_BOX_COORDINATES} to contain "
@@ -256,7 +259,8 @@ class ConfusionMatrix:
                 `MetricTarget.ORIENTED_BOUNDING_BOXES`, each `Detections`
                 object must include OBB coordinates in
                 `detections.data[ORIENTED_BOX_COORDINATES]` as a float32
-                array of shape `(N, 8)` or `(N, 4, 2)`.
+                array of shape `(N, 8)` (flat) or `(N, 4, 2)` (as stored by
+                `from_ultralytics`); both are normalised to `(N, 8)` internally.
                 `MetricTarget.MASKS` is not supported.
 
         Returns:
