@@ -13,7 +13,7 @@ from supervision.metrics.detection import (
     ConfusionMatrix,
     MeanAveragePrecision,
     detections_to_tensor,
-    validate_input_tensors,
+    _validate_input_tensors,
 )
 from tests.helpers import (
     _create_detections,
@@ -1245,7 +1245,7 @@ class TestDetectionMetrics:
     ):
 
         with exception:
-            validate_input_tensors(predictions, targets, metric_target=metric_target)
+            _validate_input_tensors(predictions, targets, metric_target=metric_target)
 
     def test_confusion_matrix_obb(self):
         """
