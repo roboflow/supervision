@@ -6,6 +6,7 @@ from contextlib import ExitStack as DoesNotRaise
 import numpy as np
 import pytest
 
+from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections, merge_inner_detection_object_pair
 from supervision.geometry.core import Position
 from supervision.utils.internal import SupervisionWarnings
@@ -982,3 +983,230 @@ def test_from_inference_sdk_dict_path_empty_preserves_class_name_dtype() -> None
     detections = Detections.from_inference(_FakeSdkResult())
     assert detections["class_name"] is not None
     assert detections["class_name"].dtype.kind == "U"
+
+
+def _rotated_rect(
+    cx: float, cy: float, w: float, h: float, angle_deg: float
+) -> np.ndarray:
+    angle = np.deg2rad(angle_deg)
+    cos, sin = np.cos(angle), np.sin(angle)
+    rot = np.array([[cos, -sin], [sin, cos]])
+    corners = np.array(
+        [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]]
+    )
+    return (corners @ rot.T + [cx, cy]).astype(np.float32)
+
+
+def _make_obb_detections(
+    quads: list[np.ndarray], scores: list[float], class_ids: list[int]
+) -> Detections:
+    """Build OBB Detections from a list of (4, 2) corner arrays."""
+    oriented_boxes = np.stack(quads)
+    xyxy = np.array(
+        [[q[:, 0].min(), q[:, 1].min(), q[:, 0].max(), q[:, 1].max()] for q in quads],
+        dtype=np.float32,
+    )
+    return Detections(
+        xyxy=xyxy,
+        confidence=np.array(scores, dtype=np.float32),
+        class_id=np.array(class_ids, dtype=int),
+        data={ORIENTED_BOX_COORDINATES: oriented_boxes},
+    )
+
+
+class TestDetectionsObbDispatch:
+    """Shared OBB-aware dispatch behaviour for `with_nms` and `with_nmm`."""
+
+    @pytest.mark.parametrize(
+        "method",
+        [
+            pytest.param("with_nms", id="with_nms"),
+            pytest.param("with_nmm", id="with_nmm"),
+        ],
+    )
+    def test_uses_obb_iou_when_oriented_box_coordinates_present(
+        self, method: str
+    ) -> None:
+        """X-pattern OBBs: both survive under either method because OBB IoU < 0.5."""
+        quad_a = _rotated_rect(50, 50, 100, 10, +45)
+        quad_b = _rotated_rect(50, 50, 100, 10, -45)
+        detections = _make_obb_detections([quad_a, quad_b], [0.9, 0.85], [0, 0])
+
+        result = getattr(detections, method)(threshold=0.5)
+
+        assert len(result) == 2
+
+    @pytest.mark.parametrize(
+        "method",
+        [
+            pytest.param("with_nms", id="with_nms"),
+            pytest.param("with_nmm", id="with_nmm"),
+        ],
+    )
+    def test_falls_back_without_obb_data(self, method: str) -> None:
+        """Non-OBB heavily-overlapping AABBs collapse to one under either method."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 100, 100], [10, 10, 110, 110]], dtype=np.float32),
+            confidence=np.array([0.9, 0.85], dtype=np.float32),
+            class_id=np.array([0, 0], dtype=int),
+        )
+
+        result = getattr(detections, method)(threshold=0.5)
+
+        assert len(result) == 1
+
+
+class TestDetectionsWithNmm:
+    """NMM-specific behaviour tests for `Detections.with_nmm`."""
+
+    def test_obb_merged_xyxy_matches_winner_aabb(self) -> None:
+        """OBB merge group: merged xyxy must equal winner's AABB, not union AABB.
+
+        Two near-identical OBBs merge into one group. The winner (score 0.9) occupies
+        [10, 10, 50, 30]; the lower-score box [20, 20, 60, 40] is offset. Union AABB
+        would be [10, 10, 60, 40]; fix must produce winner's AABB [10, 10, 50, 30].
+        """
+        quad_winner = np.array(
+            [[10, 10], [50, 10], [50, 30], [10, 30]], dtype=np.float32
+        )
+        quad_other = np.array(
+            [[11, 11], [51, 11], [51, 31], [11, 31]], dtype=np.float32
+        )
+        detections = _make_obb_detections(
+            [quad_winner, quad_other], [0.9, 0.85], [0, 0]
+        )
+
+        result = detections.with_nmm(threshold=0.5)
+
+        assert len(result) == 1
+        expected_xyxy = np.array([[10.0, 10.0, 50.0, 30.0]], dtype=np.float32)
+        assert np.allclose(result.xyxy, expected_xyxy, atol=0.5)
+
+
+class TestDetectionsArea:
+    """Selection order for the `area` property: mask → OBB → AABB."""
+
+    @pytest.mark.parametrize(
+        ("width", "height", "angle_deg", "expected_area"),
+        [
+            pytest.param(20, 10, 0, 200.0, id="axis-aligned"),
+            pytest.param(20, 10, 45, 200.0, id="45-deg rotation"),
+            pytest.param(20, 10, 30, 200.0, id="30-deg rotation"),
+            pytest.param(20, 10, -60, 200.0, id="negative rotation"),
+        ],
+    )
+    def test_uses_oriented_box_corners_when_present(
+        self, width: float, height: float, angle_deg: float, expected_area: float
+    ) -> None:
+        """Area equals the rotated body's area regardless of rotation, not the AABB."""
+        quad = _rotated_rect(50, 50, width, height, angle_deg)
+        detections = _make_obb_detections([quad], [0.9], [0])
+
+        assert np.allclose(detections.area, [expected_area])
+
+    def test_falls_back_to_box_area_without_obb_data(self) -> None:
+        """Without ORIENTED_BOX_COORDINATES, area mirrors box_area (AABB)."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 20, 10]], dtype=np.float32),
+            class_id=np.array([0], dtype=int),
+        )
+
+        assert np.allclose(detections.area, [200.0])
+        assert np.allclose(detections.area, detections.box_area)
+
+    def test_mask_takes_precedence_over_oriented_box(self) -> None:
+        """When both `mask` and `ORIENTED_BOX_COORDINATES` are present, area is
+        computed from the mask."""
+        mask = np.zeros((40, 40), dtype=bool)
+        mask[10:30, 10:25] = True  # 20 rows x 15 cols = 300 pixels
+        quad = _rotated_rect(20, 20, 20, 10, 0)  # OBB area = 200
+        detections = Detections(
+            xyxy=np.array([[10, 10, 25, 30]], dtype=np.float32),
+            class_id=np.array([0], dtype=int),
+            mask=mask[None, ...],
+            data={ORIENTED_BOX_COORDINATES: quad[None, ...]},
+        )
+
+        assert np.allclose(detections.area, [300.0])
+
+    def test_empty_detections_with_obb_data_returns_empty_array(self) -> None:
+        """Boundary case: empty Detections carrying an OBB data field must
+        return an empty area array (matches the mask / box_area branches)."""
+        detections = Detections(
+            xyxy=np.empty((0, 4), dtype=np.float32),
+            class_id=np.array([], dtype=int),
+            data={ORIENTED_BOX_COORDINATES: np.empty((0, 4, 2), dtype=np.float32)},
+        )
+
+        assert detections.area.shape == (0,)
+
+    def test_degenerate_oriented_box_has_zero_area(self) -> None:
+        """An OBB whose four corners coincide has zero area — the shoelace
+        formula must not produce NaN or a negative value."""
+        quad = np.full((4, 2), 5.0, dtype=np.float32)
+        detections = _make_obb_detections([quad], [0.9], [0])
+
+        assert np.allclose(detections.area, [0.0])
+
+    def test_handles_batched_oriented_boxes(self) -> None:
+        """Multiple OBBs in one `Detections` each get their own correct area.
+        Guards against the shoelace reduction collapsing across boxes instead
+        of along the per-box corner axis."""
+        quads = [
+            _rotated_rect(50, 50, 20, 10, 0),  # 200
+            _rotated_rect(100, 100, 20, 10, 45),  # 200 (rotation must not change it)
+            _rotated_rect(150, 150, 30, 5, 30),  # 150
+        ]
+        detections = _make_obb_detections(quads, [0.9, 0.9, 0.9], [0, 0, 0])
+
+        assert np.allclose(detections.area, [200.0, 200.0, 150.0])
+
+    @pytest.mark.parametrize(
+        "bad_shape",
+        [
+            pytest.param((1, 8), id="flat-N8"),
+            pytest.param((1, 3, 2), id="triangle"),
+        ],
+    )
+    def test_raises_on_malformed_obb_coordinates_shape(self, bad_shape: tuple) -> None:
+        """ValueError when OBB data shape is wrong for area computation."""
+        bad_corners = np.zeros(bad_shape, dtype=np.float32)
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+            data={ORIENTED_BOX_COORDINATES: bad_corners},
+        )
+
+        with pytest.raises(ValueError, match="must have shape"):
+            _ = detections.area
+
+    @pytest.mark.parametrize(
+        ("branch", "expected_dtype"),
+        [
+            pytest.param("obb", np.float64, id="obb-branch-float64"),
+            pytest.param("aabb", np.float32, id="aabb-branch-preserves-input-dtype"),
+            pytest.param("mask", np.int64, id="mask-branch-int64"),
+        ],
+    )
+    def test_area_return_dtype_per_branch(
+        self, branch: str, expected_dtype: type
+    ) -> None:
+        """Area dtype matches the documented per-branch contract."""
+        if branch == "obb":
+            quad = _rotated_rect(50, 50, 20, 10, 0)
+            detections = _make_obb_detections([quad], [0.9], [0])
+        elif branch == "aabb":
+            detections = Detections(
+                xyxy=np.array([[0, 0, 20, 10]], dtype=np.float32),
+                class_id=np.array([0], dtype=int),
+            )
+        else:
+            mask = np.zeros((1, 40, 40), dtype=bool)
+            mask[0, 10:30, 10:30] = True
+            detections = Detections(
+                xyxy=np.array([[10, 10, 30, 30]], dtype=np.float32),
+                class_id=np.array([0], dtype=int),
+                mask=mask,
+            )
+
+        assert detections.area.dtype == expected_dtype

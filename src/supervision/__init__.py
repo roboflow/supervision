@@ -90,6 +90,8 @@ from supervision.detection.utils.iou_and_nms import (
     mask_non_max_merge,
     mask_non_max_suppression,
     oriented_box_iou_batch,
+    oriented_box_non_max_merge,
+    oriented_box_non_max_suppression,
 )
 from supervision.detection.utils.masks import (
     calculate_masks_centroids,
@@ -253,6 +255,8 @@ __all__ = [
     "move_boxes",
     "move_masks",
     "oriented_box_iou_batch",
+    "oriented_box_non_max_merge",
+    "oriented_box_non_max_suppression",
     "overlay_image",
     "pad_boxes",
     "pillow_to_cv2",

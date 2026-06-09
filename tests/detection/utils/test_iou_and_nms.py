@@ -14,8 +14,36 @@ from supervision.detection.utils.iou_and_nms import (
     mask_non_max_merge,
     mask_non_max_suppression,
     oriented_box_iou_batch,
+    oriented_box_non_max_merge,
+    oriented_box_non_max_suppression,
 )
 from tests.helpers import _generate_random_boxes
+
+
+def _rotated_rect(
+    cx: float, cy: float, w: float, h: float, angle_deg: float
+) -> np.ndarray:
+    """Return the 4 corners of a rotated rectangle as a (4, 2) float32 array."""
+    angle = np.deg2rad(angle_deg)
+    cos, sin = np.cos(angle), np.sin(angle)
+    rot = np.array([[cos, -sin], [sin, cos]])
+    corners = np.array(
+        [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]]
+    )
+    return (corners @ rot.T + [cx, cy]).astype(np.float32)
+
+
+def _aabb_of(corners: np.ndarray) -> np.ndarray:
+    """Axis-aligned bounding box of a (4, 2) OBB corner array."""
+    return np.array(
+        [
+            corners[:, 0].min(),
+            corners[:, 1].min(),
+            corners[:, 0].max(),
+            corners[:, 1].max(),
+        ],
+        dtype=np.float32,
+    )
 
 
 @pytest.mark.parametrize(
@@ -1162,3 +1190,259 @@ def test_oriented_box_iou_batch_is_invariant_to_non_square_scaling(
     # rtol=0.03, atol=0.02: rasterization discretization introduces small
     # coordinate-dependent error; exact equality is not achievable via pixel IoU.
     assert np.allclose(scaled_iou, baseline_iou, rtol=0.03, atol=0.02)
+
+
+class TestOrientedBoxIouBatch:
+    """Tests for `oriented_box_iou_batch`."""
+
+    @pytest.mark.parametrize(
+        ("scale", "offset"),
+        [
+            (80.0, 0.0),  # HD/4K-scale coords — exercises canvas cap
+            (1.0, 3000.0),  # far-corner coords — exercises canvas anchoring
+            (80.0, 3000.0),  # both — large coordinates far from origin
+        ],
+    )
+    def test_is_invariant_to_canvas_transforms(
+        self, scale: float, offset: float
+    ) -> None:
+        """IoU matches the small-coordinate baseline regardless of where in the
+        frame the boxes sit or how large their coordinates are.
+
+        The function must internally translate-and-scale boxes onto a bounded
+        rasterization canvas (IoU is invariant under both), so memory stays
+        roughly constant across input resolutions and box positions."""
+        boxes_true = _rotated_rect(50, 50, 40, 20, 30)[None]
+        boxes_detection = _rotated_rect(52, 48, 40, 20, 35)[None]
+        baseline = oriented_box_iou_batch(boxes_true, boxes_detection)
+
+        transformed = oriented_box_iou_batch(
+            boxes_true * scale + offset,
+            boxes_detection * scale + offset,
+        )
+
+        assert baseline.shape == (1, 1)
+        assert transformed.shape == (1, 1)
+        assert baseline[0, 0] > 0.4
+        assert np.allclose(transformed, baseline, rtol=0.03, atol=0.02)
+
+    def test_supports_overlap_metric(self) -> None:
+        """`overlap_metric=IOS` divides by the smaller area, so a small box fully
+        contained in a larger one scores 1.0, while IoU is smaller."""
+        small = _rotated_rect(50, 50, 20, 20, 0)[None]
+        large = _rotated_rect(50, 50, 60, 60, 0)[None]
+
+        iou = oriented_box_iou_batch(small, large, OverlapMetric.IOU)[0, 0]
+        ios = oriented_box_iou_batch(small, large, OverlapMetric.IOS)[0, 0]
+
+        # Small (~20x20) inside large (~60x60): IoU ≈ 400/3600 ≈ 0.11, IoS = 1.0
+        assert iou < 0.2
+        assert ios > 0.98
+
+
+class TestOrientedBoxNonMaxSuppression:
+    """Tests for `oriented_box_non_max_suppression`."""
+
+    def test_keeps_x_pattern(self) -> None:
+        """X-pattern: two thin rectangles crossing at +/-45° share an AABB but
+        barely overlap as OBBs. AABB-NMS would suppress one; OBB-NMS must keep
+        both."""
+        quad_a = _rotated_rect(50, 50, 100, 10, +45)
+        quad_b = _rotated_rect(50, 50, 100, 10, -45)
+        oriented_boxes = np.stack([quad_a, quad_b])
+        predictions = np.array(
+            [
+                [*_aabb_of(quad_a), 0.9, 0],
+                [*_aabb_of(quad_b), 0.85, 0],
+            ],
+            dtype=np.float32,
+        )
+
+        assert box_iou_batch(predictions[:, :4], predictions[:, :4])[0, 1] > 0.95
+        assert oriented_box_iou_batch(quad_a[None], quad_b[None])[0, 0] < 0.2
+
+        keep = oriented_box_non_max_suppression(
+            predictions=predictions, oriented_boxes=oriented_boxes, iou_threshold=0.5
+        )
+        assert np.array_equal(keep, np.array([True, True]))
+
+    @pytest.mark.parametrize(
+        ("class_id_b", "expected_keep"),
+        [
+            pytest.param(0, [True, False], id="same-class"),
+            pytest.param(1, [True, True], id="diff-class"),
+        ],
+    )
+    def test_suppression_is_class_aware(
+        self, class_id_b: int, expected_keep: list[bool]
+    ) -> None:
+        """Same class: lower-score OBB suppressed. Different class: both kept."""
+        quad = _rotated_rect(50, 50, 100, 10, 45)
+        shifted = _rotated_rect(51, 51, 100, 10, 45)
+        oriented_boxes = np.stack([quad, shifted])
+        predictions = np.array(
+            [
+                [*_aabb_of(quad), 0.9, 0],
+                [*_aabb_of(shifted), 0.85, class_id_b],
+            ],
+            dtype=np.float32,
+        )
+
+        assert oriented_box_iou_batch(quad[None], shifted[None])[0, 0] > 0.9
+
+        keep = oriented_box_non_max_suppression(
+            predictions=predictions, oriented_boxes=oriented_boxes, iou_threshold=0.5
+        )
+        assert np.array_equal(keep, np.array(expected_keep))
+
+    def test_length_mismatch_raises(self) -> None:
+        """Mismatched predictions and oriented_boxes must fail loudly, not
+        silently misalign rows."""
+        predictions = np.zeros((3, 5), dtype=np.float32)
+        oriented_boxes = np.zeros((2, 4, 2), dtype=np.float32)
+        with pytest.raises(ValueError, match="same length"):
+            oriented_box_non_max_suppression(
+                predictions=predictions, oriented_boxes=oriented_boxes
+            )
+
+    def test_empty_predictions(self) -> None:
+        """No OBB predictions should produce an empty boolean keep mask."""
+        predictions = np.empty((0, 5), dtype=np.float32)
+        oriented_boxes = np.empty((0, 4, 2), dtype=np.float32)
+
+        keep = oriented_box_non_max_suppression(
+            predictions=predictions, oriented_boxes=oriented_boxes
+        )
+
+        assert keep.shape == (0,)
+        assert keep.dtype == bool
+
+    @pytest.mark.parametrize("iou_threshold", [0.0, 0.5, 1.0])
+    def test_keeps_single_prediction(self, iou_threshold: float) -> None:
+        """A single OBB prediction is always kept, regardless of threshold."""
+        quad = _rotated_rect(50, 50, 40, 20, 30)
+        oriented_boxes = quad[None]
+        predictions = np.array([[*_aabb_of(quad), 0.9, 0]], dtype=np.float32)
+
+        keep = oriented_box_non_max_suppression(
+            predictions=predictions,
+            oriented_boxes=oriented_boxes,
+            iou_threshold=iou_threshold,
+        )
+
+        assert np.array_equal(keep, np.array([True]))
+
+    @pytest.mark.parametrize(
+        ("iou_threshold", "expected_keep"),
+        [
+            pytest.param(0.0, [True, False], id="threshold-0"),
+            pytest.param(1.0, [True, True], id="threshold-1"),
+        ],
+    )
+    def test_threshold_extremes(
+        self, iou_threshold: float, expected_keep: list[bool]
+    ) -> None:
+        """At threshold extremes, positive-overlap non-identical OBBs suppress at
+        0.0 and are both kept at 1.0."""
+        quad_a = _rotated_rect(50, 50, 40, 40, 0)
+        quad_b = _rotated_rect(55, 50, 40, 40, 0)
+        oriented_boxes = np.stack([quad_a, quad_b])
+        predictions = np.array(
+            [
+                [*_aabb_of(quad_a), 0.9, 0],
+                [*_aabb_of(quad_b), 0.85, 0],
+            ],
+            dtype=np.float32,
+        )
+
+        overlap = oriented_box_iou_batch(quad_a[None], quad_b[None])[0, 0]
+        assert 0.0 < overlap < 1.0
+
+        keep = oriented_box_non_max_suppression(
+            predictions=predictions,
+            oriented_boxes=oriented_boxes,
+            iou_threshold=iou_threshold,
+        )
+
+        assert np.array_equal(keep, np.array(expected_keep))
+
+    @pytest.mark.parametrize(
+        ("overlap_metric", "expected_keep"),
+        [
+            pytest.param(OverlapMetric.IOU, [True, True], id="iou-keeps-both"),
+            pytest.param(OverlapMetric.IOS, [True, False], id="ios-suppresses-small"),
+        ],
+    )
+    def test_overlap_metric_determines_suppression(
+        self, overlap_metric: OverlapMetric, expected_keep: list[bool]
+    ) -> None:
+        """Small box inside large: IOU keeps both; IOS suppresses small."""
+        large = _rotated_rect(50, 50, 60, 60, 0)
+        small = _rotated_rect(50, 50, 20, 20, 0)
+        oriented_boxes = np.stack([large, small])
+        predictions = np.array(
+            [
+                [*_aabb_of(large), 0.9, 0],
+                [*_aabb_of(small), 0.85, 0],
+            ],
+            dtype=np.float32,
+        )
+
+        keep = oriented_box_non_max_suppression(
+            predictions=predictions,
+            oriented_boxes=oriented_boxes,
+            iou_threshold=0.5,
+            overlap_metric=overlap_metric,
+        )
+
+        assert np.array_equal(keep, np.array(expected_keep))
+
+
+class TestOrientedBoxNonMaxMerge:
+    """Tests for `oriented_box_non_max_merge`."""
+
+    def test_empty_predictions_returns_empty_groups(self) -> None:
+        """No OBB predictions should produce no merge groups."""
+        predictions = np.empty((0, 5), dtype=np.float32)
+        oriented_boxes = np.empty((0, 4, 2), dtype=np.float32)
+
+        groups = oriented_box_non_max_merge(
+            predictions=predictions, oriented_boxes=oriented_boxes
+        )
+
+        assert groups == []
+
+    def test_single_prediction_returns_singleton_group(self) -> None:
+        """A single OBB prediction should be returned as one singleton group."""
+        quad = _rotated_rect(50, 50, 40, 20, 30)
+        oriented_boxes = quad[None]
+        predictions = np.array([[*_aabb_of(quad), 0.9, 0]], dtype=np.float32)
+
+        groups = oriented_box_non_max_merge(
+            predictions=predictions, oriented_boxes=oriented_boxes
+        )
+
+        assert groups == [[0]]
+
+    def test_groups_overlapping_oriented_boxes(self) -> None:
+        """Two near-identical OBBs should be merged into one group; an X-pattern
+        pair should produce two separate groups."""
+        quad_dup_a = _rotated_rect(50, 50, 100, 10, 45)
+        quad_dup_b = _rotated_rect(51, 51, 100, 10, 45)
+        quad_x = _rotated_rect(50, 50, 100, 10, -45)
+        oriented_boxes = np.stack([quad_dup_a, quad_dup_b, quad_x])
+        predictions = np.array(
+            [
+                [*_aabb_of(quad_dup_a), 0.90, 0],
+                [*_aabb_of(quad_dup_b), 0.85, 0],
+                [*_aabb_of(quad_x), 0.80, 0],
+            ],
+            dtype=np.float32,
+        )
+
+        groups = oriented_box_non_max_merge(
+            predictions=predictions, oriented_boxes=oriented_boxes, iou_threshold=0.5
+        )
+
+        sorted_groups = sorted(sorted(g) for g in groups)
+        assert sorted_groups == [[0, 1], [2]]

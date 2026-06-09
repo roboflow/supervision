@@ -241,6 +241,34 @@ def move_oriented_boxes(
     return xyxyxyxy + offset
 
 
+def obb_polygon_area(corners: npt.NDArray) -> npt.NDArray[np.float64]:
+    """Compute the area of N oriented bounding boxes using the shoelace formula.
+
+    Args:
+        corners: OBB corner coordinates with shape `(N, 4, 2)`.
+
+    Returns:
+        Area of each box as a 1-D float64 array of shape `(N,)`.
+
+    Raises:
+        ValueError: If `corners` does not have shape `(N, 4, 2)`.
+
+    Examples:
+        >>> import numpy as np
+        >>> from supervision.detection.utils.boxes import obb_polygon_area
+        >>> corners = np.array([[[0, 5], [5, 10], [10, 5], [5, 0]]], dtype=np.float32)
+        >>> obb_polygon_area(corners)
+        array([50.])
+    """
+    corners = np.asarray(corners)
+    if corners.ndim != 3 or corners.shape[-2:] != (4, 2):
+        raise ValueError(f"corners must have shape (N, 4, 2); got {corners.shape}")
+    x = corners[..., 0].astype(np.float64, copy=False)
+    y = corners[..., 1].astype(np.float64, copy=False)
+    cross = x * np.roll(y, -1, axis=-1) - y * np.roll(x, -1, axis=-1)
+    return 0.5 * np.abs(np.sum(cross, axis=-1))
+
+
 def scale_boxes(
     xyxy: npt.NDArray[np.float64], factor: float
 ) -> npt.NDArray[np.float64]:

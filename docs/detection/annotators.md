@@ -196,13 +196,7 @@ Annotators accept detections and apply box or mask visualizations to the detecti
 
         !!! note
 
-            `MaskAnnotator` expects `detections.mask` to contain instance segmentation
-            masks aligned to the image passed to `annotate`. For dense masks, provide a
-            boolean array of shape `(N, H, W)` where `(H, W)` matches the image height
-            and width (it also accepts `sv.CompactMask`). If your model returns
-            framework-specific results, convert them to `sv.Detections` first, for
-            example with `sv.Detections.from_ultralytics(...)` or
-            `sv.Detections.from_inference(...)`.
+            `MaskAnnotator` expects `detections.mask` to contain instance segmentation masks aligned to the image passed to `annotate`. For dense masks, provide a boolean array of shape `(N, H, W)` where `(H, W)` matches the image height and width (it also accepts `sv.CompactMask`). If your model returns framework-specific results, convert them to `sv.Detections` first, for example with `sv.Detections.from_ultralytics(...)` or `sv.Detections.from_inference(...)`.
 
         <div class="result" markdown>
 
