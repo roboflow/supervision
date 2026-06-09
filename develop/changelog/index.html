@@ -3552,6 +3552,9 @@
 <li>
 <p>Added <a href="https://github.com/roboflow/supervision/pull/2267">#2267</a>: <a href="https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.as_coco"><code>DetectionDataset.as_coco</code></a> and <code>save_coco_annotations</code> now accept <code>starting_image_id</code> and <code>starting_annotation_id</code> parameters (both default to <code>1</code>, preserving existing behavior) and return a <code>(next_image_id, next_annotation_id)</code> tuple. Feed the returned values into the next split's call to produce globally unique COCO ids across train/valid/test exports. Fixes id collisions reported in <a href="https://github.com/roboflow/supervision/issues/768">#768</a>. <strong>Note</strong>: the return type changes from <code>None</code> to <code>tuple[int, int]</code> — callers that assert <code>result is None</code> must be updated.</p>
 </li>
+<li>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/2303">#2303</a>: <a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.with_nms"><code>sv.Detections.with_nms</code></a> and <a href="https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.with_nmm"><code>sv.Detections.with_nmm</code></a> now use oriented-box IoU when <code>data["xyxyxyxy"]</code> coordinates are present, fixing silent suppression of crossed/rotated OBB detections (reported in <a href="https://github.com/roboflow/supervision/issues/1679">#1679</a>). Previously, both methods always used axis-aligned bounding-box IoU even for OBB inputs, causing the X-pattern AABB IoU ≈ 1.0 to suppress valid detections at any practical threshold. Callers relying on the old AABB behaviour (e.g. to force AABB suppression on OBB data) should remove <code>data["xyxyxyxy"]</code> before calling these methods. Threshold values calibrated against AABB IoU may need adjustment when OBB IoU is substantially different.</p>
+</li>
 </ul>
 <h3 id="0280-apr-30-2026">0.28.0 <small>Apr 30, 2026</small><a class="headerlink" href="#0280-apr-30-2026" title="Permanent link">&para;</a></h3>
 <ul>
@@ -5408,7 +5411,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 8, 2026 13:31:04 UTC">June 8, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 9, 2026 11:11:09 UTC">June 9, 2026</span>
   </span>
 
     
