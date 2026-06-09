@@ -206,6 +206,9 @@ class ConfusionMatrix:
             Detections with lower IoU will be classified as `FP`.
         metric_target: The type of detection data used for IoU computation.
             Informational metadata set by `from_detections` and `from_tensors`.
+            Excluded from `__eq__` comparisons — two `ConfusionMatrix` instances
+            with identical `matrix`, `classes`, `conf_threshold`, and
+            `iou_threshold` compare as equal regardless of `metric_target`.
     """
 
     matrix: npt.NDArray[np.int32]
@@ -213,6 +216,19 @@ class ConfusionMatrix:
     conf_threshold: float
     iou_threshold: float
     metric_target: MetricTarget = MetricTarget.BOXES
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, ConfusionMatrix):
+            return NotImplemented
+        return (
+            np.array_equal(self.matrix, other.matrix)
+            and self.classes == other.classes
+            and self.conf_threshold == other.conf_threshold
+            and self.iou_threshold == other.iou_threshold
+        )
+
+    def __hash__(self) -> int:
+        return hash((self.conf_threshold, self.iou_threshold, tuple(self.classes)))
 
     @classmethod
     def from_detections(
