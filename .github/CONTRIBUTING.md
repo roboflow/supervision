@@ -323,6 +323,64 @@ To run tests with coverage:
 uv run pytest --cov=supervision
 ```
 
+### Test Structure
+
+Follow **Arrange-Act-Assert (AAA)**: one setup block, one action, one assertion group per
+test. Never put two independent actions in the same test.
+
+**Class grouping:** Group related tests into a class. The class name carries the unit
+under test; method names describe the expected outcome only — not the mechanism.
+
+```python
+class TestDetectionsWithNms:
+    def test_keeps_highest_confidence_detection(self): ...
+    def test_suppresses_lower_score_when_overlap_exceeds_threshold(self): ...
+    def test_raises_when_confidence_missing(self): ...
+```
+
+**Parametrize aggressively:** Three or more structurally identical tests should become a
+single `@pytest.mark.parametrize` case. Use `pytest.param(..., id="slug")` per case —
+not `ids=[...]` on the decorator — so the ID stays co-located with its arguments and
+survives reordering.
+
+```python
+@pytest.mark.parametrize(
+    ("overlap_metric", "expected_keep"),
+    [
+        pytest.param(OverlapMetric.IOU, [True, True], id="iou-keeps-both"),
+        pytest.param(OverlapMetric.IOS, [True, False], id="ios-suppresses-small"),
+    ],
+)
+def test_overlap_metric_determines_suppression(
+    self, overlap_metric: OverlapMetric, expected_keep: list[bool]
+) -> None:
+    """Small box inside large: IOU keeps both; IOS suppresses small."""
+    ...
+```
+
+**Docstrings:** Every test function/method requires at minimum a one-line docstring
+(max 120 chars). Describe the scenario, not the implementation.
+
+### Doctests
+
+Source-file examples (docstrings in `src/**/*.py`) must use `>>>` doctest format when:
+
+- The example is fully self-contained.
+- No optional extras are required (e.g. no `--extra metrics` packages).
+- No external resources are needed (files, network, devices).
+
+Fenced ```` ```python ```` blocks are acceptable when the example cannot reasonably be made
+executable (e.g. imports a third-party model, reads a video file). Do not convert such
+examples.
+
+Doctests run automatically as part of the test suite. `pyproject.toml` enables the
+`ELLIPSIS` and `NORMALIZE_WHITESPACE` flags, so `...` matches any output fragment and
+minor whitespace differences are ignored.
+
+```bash
+uv run pytest --doctest-modules src/
+```
+
 ## 🔍 PR Review Guidelines
 
 These guidelines help reviewers provide consistent, actionable feedback efficiently. Your goals: validate completeness, identify risks, provide actionable feedback, and highlight quality gaps.

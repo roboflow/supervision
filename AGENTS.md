@@ -65,6 +65,24 @@ All work must follow the conventions of the `supervision` library
 
 ---
 
+## 3a. Test Conventions
+
+Full test guidelines are in [CONTRIBUTING.md](.github/CONTRIBUTING.md#-tests). Key rules:
+
+- **AAA structure**: one arrange, one act, one assertion group per test. No second act.
+- **Class grouping**: group related tests into a class. Class name = unit under test.
+    Method names describe the expected outcome only — not the mechanism.
+- **Parametrize**: 3+ structurally identical tests → `@pytest.mark.parametrize`.
+    Use `pytest.param(..., id="slug")` per case (not `ids=[...]` on the decorator).
+- **Docstrings**: every test function/method needs at minimum a one-line docstring
+    (≤120 chars). Describe the scenario, not the implementation.
+- **Doctests**: source-file examples in `src/**/*.py` must use `>>>` doctest format
+    when fully self-contained and requiring no optional extras or external resources.
+    Fenced ```` ```python ```` blocks are acceptable only when the example cannot be made
+    executable (e.g. loads a third-party model, reads a video file).
+
+---
+
 ## 4. Fixing Bugs
 
 1. Reproduce and understand the root cause.
