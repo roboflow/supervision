@@ -3503,71 +3503,71 @@ array([[ 7.5,  7.5, 22.5, 22.5],
 
             <details class="quote">
               <summary>Source code in <code>src/supervision/detection/utils/boxes.py</code></summary>
-              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-244">244</a></span>
-<span class="normal"><a href="#__codelineno-0-245">245</a></span>
-<span class="normal"><a href="#__codelineno-0-246">246</a></span>
-<span class="normal"><a href="#__codelineno-0-247">247</a></span>
-<span class="normal"><a href="#__codelineno-0-248">248</a></span>
-<span class="normal"><a href="#__codelineno-0-249">249</a></span>
-<span class="normal"><a href="#__codelineno-0-250">250</a></span>
-<span class="normal"><a href="#__codelineno-0-251">251</a></span>
-<span class="normal"><a href="#__codelineno-0-252">252</a></span>
-<span class="normal"><a href="#__codelineno-0-253">253</a></span>
-<span class="normal"><a href="#__codelineno-0-254">254</a></span>
-<span class="normal"><a href="#__codelineno-0-255">255</a></span>
-<span class="normal"><a href="#__codelineno-0-256">256</a></span>
-<span class="normal"><a href="#__codelineno-0-257">257</a></span>
-<span class="normal"><a href="#__codelineno-0-258">258</a></span>
-<span class="normal"><a href="#__codelineno-0-259">259</a></span>
-<span class="normal"><a href="#__codelineno-0-260">260</a></span>
-<span class="normal"><a href="#__codelineno-0-261">261</a></span>
-<span class="normal"><a href="#__codelineno-0-262">262</a></span>
-<span class="normal"><a href="#__codelineno-0-263">263</a></span>
-<span class="normal"><a href="#__codelineno-0-264">264</a></span>
-<span class="normal"><a href="#__codelineno-0-265">265</a></span>
-<span class="normal"><a href="#__codelineno-0-266">266</a></span>
-<span class="normal"><a href="#__codelineno-0-267">267</a></span>
-<span class="normal"><a href="#__codelineno-0-268">268</a></span>
-<span class="normal"><a href="#__codelineno-0-269">269</a></span>
-<span class="normal"><a href="#__codelineno-0-270">270</a></span>
-<span class="normal"><a href="#__codelineno-0-271">271</a></span>
-<span class="normal"><a href="#__codelineno-0-272">272</a></span>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-272">272</a></span>
 <span class="normal"><a href="#__codelineno-0-273">273</a></span>
 <span class="normal"><a href="#__codelineno-0-274">274</a></span>
 <span class="normal"><a href="#__codelineno-0-275">275</a></span>
-<span class="normal"><a href="#__codelineno-0-276">276</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-244"><a id="__codelineno-0-244" name="__codelineno-0-244"></a><span class="k">def</span><span class="w"> </span><span class="nf">scale_boxes</span><span class="p">(</span>
-</span><span id="__span-0-245"><a id="__codelineno-0-245" name="__codelineno-0-245"></a>    <span class="n">xyxy</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span>
-</span><span id="__span-0-246"><a id="__codelineno-0-246" name="__codelineno-0-246"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
-</span><span id="__span-0-247"><a id="__codelineno-0-247" name="__codelineno-0-247"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-248"><a id="__codelineno-0-248" name="__codelineno-0-248"></a><span class="sd">    Scale the dimensions of bounding boxes.</span>
-</span><span id="__span-0-249"><a id="__codelineno-0-249" name="__codelineno-0-249"></a>
-</span><span id="__span-0-250"><a id="__codelineno-0-250" name="__codelineno-0-250"></a><span class="sd">    Args:</span>
-</span><span id="__span-0-251"><a id="__codelineno-0-251" name="__codelineno-0-251"></a><span class="sd">        xyxy: An array of shape `(n, 4)` containing the</span>
-</span><span id="__span-0-252"><a id="__codelineno-0-252" name="__codelineno-0-252"></a><span class="sd">            bounding boxes coordinates in format `[x1, y1, x2, y2]`</span>
-</span><span id="__span-0-253"><a id="__codelineno-0-253" name="__codelineno-0-253"></a><span class="sd">        factor: A float value representing the factor by which the box</span>
-</span><span id="__span-0-254"><a id="__codelineno-0-254" name="__codelineno-0-254"></a><span class="sd">            dimensions are scaled. A factor greater than 1 enlarges the boxes, while a</span>
-</span><span id="__span-0-255"><a id="__codelineno-0-255" name="__codelineno-0-255"></a><span class="sd">            factor less than 1 shrinks them.</span>
-</span><span id="__span-0-256"><a id="__codelineno-0-256" name="__codelineno-0-256"></a>
-</span><span id="__span-0-257"><a id="__codelineno-0-257" name="__codelineno-0-257"></a><span class="sd">    Returns:</span>
-</span><span id="__span-0-258"><a id="__codelineno-0-258" name="__codelineno-0-258"></a><span class="sd">        Scaled bounding boxes.</span>
-</span><span id="__span-0-259"><a id="__codelineno-0-259" name="__codelineno-0-259"></a>
-</span><span id="__span-0-260"><a id="__codelineno-0-260" name="__codelineno-0-260"></a><span class="sd">    Examples:</span>
-</span><span id="__span-0-261"><a id="__codelineno-0-261" name="__codelineno-0-261"></a><span class="sd">        ```pycon</span>
-</span><span id="__span-0-262"><a id="__codelineno-0-262" name="__codelineno-0-262"></a><span class="sd">        &gt;&gt;&gt; import numpy as np</span>
-</span><span id="__span-0-263"><a id="__codelineno-0-263" name="__codelineno-0-263"></a><span class="sd">        &gt;&gt;&gt; import supervision as sv</span>
-</span><span id="__span-0-264"><a id="__codelineno-0-264" name="__codelineno-0-264"></a><span class="sd">        &gt;&gt;&gt; xyxy = np.array([</span>
-</span><span id="__span-0-265"><a id="__codelineno-0-265" name="__codelineno-0-265"></a><span class="sd">        ...     [10, 10, 20, 20],</span>
-</span><span id="__span-0-266"><a id="__codelineno-0-266" name="__codelineno-0-266"></a><span class="sd">        ...     [30, 30, 40, 40]</span>
-</span><span id="__span-0-267"><a id="__codelineno-0-267" name="__codelineno-0-267"></a><span class="sd">        ... ])</span>
-</span><span id="__span-0-268"><a id="__codelineno-0-268" name="__codelineno-0-268"></a><span class="sd">        &gt;&gt;&gt; sv.scale_boxes(xyxy=xyxy, factor=1.5)</span>
-</span><span id="__span-0-269"><a id="__codelineno-0-269" name="__codelineno-0-269"></a><span class="sd">        array([[ 7.5,  7.5, 22.5, 22.5],</span>
-</span><span id="__span-0-270"><a id="__codelineno-0-270" name="__codelineno-0-270"></a><span class="sd">               [27.5, 27.5, 42.5, 42.5]])</span>
-</span><span id="__span-0-271"><a id="__codelineno-0-271" name="__codelineno-0-271"></a>
-</span><span id="__span-0-272"><a id="__codelineno-0-272" name="__codelineno-0-272"></a><span class="sd">        ```</span>
-</span><span id="__span-0-273"><a id="__codelineno-0-273" name="__codelineno-0-273"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-0-274"><a id="__codelineno-0-274" name="__codelineno-0-274"></a>    <span class="n">centers</span> <span class="o">=</span> <span class="p">(</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:])</span> <span class="o">/</span> <span class="mi">2</span>
-</span><span id="__span-0-275"><a id="__codelineno-0-275" name="__codelineno-0-275"></a>    <span class="n">new_sizes</span> <span class="o">=</span> <span class="p">(</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:]</span> <span class="o">-</span> <span class="n">xyxy</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">])</span> <span class="o">*</span> <span class="n">factor</span>
-</span><span id="__span-0-276"><a id="__codelineno-0-276" name="__codelineno-0-276"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">centers</span> <span class="o">-</span> <span class="n">new_sizes</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">centers</span> <span class="o">+</span> <span class="n">new_sizes</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-276">276</a></span>
+<span class="normal"><a href="#__codelineno-0-277">277</a></span>
+<span class="normal"><a href="#__codelineno-0-278">278</a></span>
+<span class="normal"><a href="#__codelineno-0-279">279</a></span>
+<span class="normal"><a href="#__codelineno-0-280">280</a></span>
+<span class="normal"><a href="#__codelineno-0-281">281</a></span>
+<span class="normal"><a href="#__codelineno-0-282">282</a></span>
+<span class="normal"><a href="#__codelineno-0-283">283</a></span>
+<span class="normal"><a href="#__codelineno-0-284">284</a></span>
+<span class="normal"><a href="#__codelineno-0-285">285</a></span>
+<span class="normal"><a href="#__codelineno-0-286">286</a></span>
+<span class="normal"><a href="#__codelineno-0-287">287</a></span>
+<span class="normal"><a href="#__codelineno-0-288">288</a></span>
+<span class="normal"><a href="#__codelineno-0-289">289</a></span>
+<span class="normal"><a href="#__codelineno-0-290">290</a></span>
+<span class="normal"><a href="#__codelineno-0-291">291</a></span>
+<span class="normal"><a href="#__codelineno-0-292">292</a></span>
+<span class="normal"><a href="#__codelineno-0-293">293</a></span>
+<span class="normal"><a href="#__codelineno-0-294">294</a></span>
+<span class="normal"><a href="#__codelineno-0-295">295</a></span>
+<span class="normal"><a href="#__codelineno-0-296">296</a></span>
+<span class="normal"><a href="#__codelineno-0-297">297</a></span>
+<span class="normal"><a href="#__codelineno-0-298">298</a></span>
+<span class="normal"><a href="#__codelineno-0-299">299</a></span>
+<span class="normal"><a href="#__codelineno-0-300">300</a></span>
+<span class="normal"><a href="#__codelineno-0-301">301</a></span>
+<span class="normal"><a href="#__codelineno-0-302">302</a></span>
+<span class="normal"><a href="#__codelineno-0-303">303</a></span>
+<span class="normal"><a href="#__codelineno-0-304">304</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-272"><a id="__codelineno-0-272" name="__codelineno-0-272"></a><span class="k">def</span><span class="w"> </span><span class="nf">scale_boxes</span><span class="p">(</span>
+</span><span id="__span-0-273"><a id="__codelineno-0-273" name="__codelineno-0-273"></a>    <span class="n">xyxy</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">],</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span>
+</span><span id="__span-0-274"><a id="__codelineno-0-274" name="__codelineno-0-274"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]:</span>
+</span><span id="__span-0-275"><a id="__codelineno-0-275" name="__codelineno-0-275"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-276"><a id="__codelineno-0-276" name="__codelineno-0-276"></a><span class="sd">    Scale the dimensions of bounding boxes.</span>
+</span><span id="__span-0-277"><a id="__codelineno-0-277" name="__codelineno-0-277"></a>
+</span><span id="__span-0-278"><a id="__codelineno-0-278" name="__codelineno-0-278"></a><span class="sd">    Args:</span>
+</span><span id="__span-0-279"><a id="__codelineno-0-279" name="__codelineno-0-279"></a><span class="sd">        xyxy: An array of shape `(n, 4)` containing the</span>
+</span><span id="__span-0-280"><a id="__codelineno-0-280" name="__codelineno-0-280"></a><span class="sd">            bounding boxes coordinates in format `[x1, y1, x2, y2]`</span>
+</span><span id="__span-0-281"><a id="__codelineno-0-281" name="__codelineno-0-281"></a><span class="sd">        factor: A float value representing the factor by which the box</span>
+</span><span id="__span-0-282"><a id="__codelineno-0-282" name="__codelineno-0-282"></a><span class="sd">            dimensions are scaled. A factor greater than 1 enlarges the boxes, while a</span>
+</span><span id="__span-0-283"><a id="__codelineno-0-283" name="__codelineno-0-283"></a><span class="sd">            factor less than 1 shrinks them.</span>
+</span><span id="__span-0-284"><a id="__codelineno-0-284" name="__codelineno-0-284"></a>
+</span><span id="__span-0-285"><a id="__codelineno-0-285" name="__codelineno-0-285"></a><span class="sd">    Returns:</span>
+</span><span id="__span-0-286"><a id="__codelineno-0-286" name="__codelineno-0-286"></a><span class="sd">        Scaled bounding boxes.</span>
+</span><span id="__span-0-287"><a id="__codelineno-0-287" name="__codelineno-0-287"></a>
+</span><span id="__span-0-288"><a id="__codelineno-0-288" name="__codelineno-0-288"></a><span class="sd">    Examples:</span>
+</span><span id="__span-0-289"><a id="__codelineno-0-289" name="__codelineno-0-289"></a><span class="sd">        ```pycon</span>
+</span><span id="__span-0-290"><a id="__codelineno-0-290" name="__codelineno-0-290"></a><span class="sd">        &gt;&gt;&gt; import numpy as np</span>
+</span><span id="__span-0-291"><a id="__codelineno-0-291" name="__codelineno-0-291"></a><span class="sd">        &gt;&gt;&gt; import supervision as sv</span>
+</span><span id="__span-0-292"><a id="__codelineno-0-292" name="__codelineno-0-292"></a><span class="sd">        &gt;&gt;&gt; xyxy = np.array([</span>
+</span><span id="__span-0-293"><a id="__codelineno-0-293" name="__codelineno-0-293"></a><span class="sd">        ...     [10, 10, 20, 20],</span>
+</span><span id="__span-0-294"><a id="__codelineno-0-294" name="__codelineno-0-294"></a><span class="sd">        ...     [30, 30, 40, 40]</span>
+</span><span id="__span-0-295"><a id="__codelineno-0-295" name="__codelineno-0-295"></a><span class="sd">        ... ])</span>
+</span><span id="__span-0-296"><a id="__codelineno-0-296" name="__codelineno-0-296"></a><span class="sd">        &gt;&gt;&gt; sv.scale_boxes(xyxy=xyxy, factor=1.5)</span>
+</span><span id="__span-0-297"><a id="__codelineno-0-297" name="__codelineno-0-297"></a><span class="sd">        array([[ 7.5,  7.5, 22.5, 22.5],</span>
+</span><span id="__span-0-298"><a id="__codelineno-0-298" name="__codelineno-0-298"></a><span class="sd">               [27.5, 27.5, 42.5, 42.5]])</span>
+</span><span id="__span-0-299"><a id="__codelineno-0-299" name="__codelineno-0-299"></a>
+</span><span id="__span-0-300"><a id="__codelineno-0-300" name="__codelineno-0-300"></a><span class="sd">        ```</span>
+</span><span id="__span-0-301"><a id="__codelineno-0-301" name="__codelineno-0-301"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-0-302"><a id="__codelineno-0-302" name="__codelineno-0-302"></a>    <span class="n">centers</span> <span class="o">=</span> <span class="p">(</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:])</span> <span class="o">/</span> <span class="mi">2</span>
+</span><span id="__span-0-303"><a id="__codelineno-0-303" name="__codelineno-0-303"></a>    <span class="n">new_sizes</span> <span class="o">=</span> <span class="p">(</span><span class="n">xyxy</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:]</span> <span class="o">-</span> <span class="n">xyxy</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">])</span> <span class="o">*</span> <span class="n">factor</span>
+</span><span id="__span-0-304"><a id="__codelineno-0-304" name="__codelineno-0-304"></a>    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">centers</span> <span class="o">-</span> <span class="n">new_sizes</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">centers</span> <span class="o">+</span> <span class="n">new_sizes</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
