@@ -265,10 +265,8 @@ def obb_polygon_area(corners: npt.NDArray) -> npt.NDArray[np.float64]:
         raise ValueError(f"corners must have shape (N, 4, 2); got {corners.shape}")
     x = corners[..., 0].astype(np.float64, copy=False)
     y = corners[..., 1].astype(np.float64, copy=False)
-    return 0.5 * np.abs(
-        (x[..., 0] - x[..., 2]) * (y[..., 1] - y[..., 3])
-        - (x[..., 1] - x[..., 3]) * (y[..., 0] - y[..., 2])
-    )
+    cross = x * np.roll(y, -1, axis=-1) - y * np.roll(x, -1, axis=-1)
+    return 0.5 * np.abs(np.sum(cross, axis=-1))
 
 
 def scale_boxes(
