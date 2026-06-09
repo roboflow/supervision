@@ -270,11 +270,11 @@ prerequisite for any new functions and classes to be added to the library.
 [Google Python docstring style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods).
 Please refer to the style guide while writing docstrings for your contribution.
 
-Every docstring **must** include a usage example. If the example only uses
+Every docstring should include a usage example. When the example only uses
 `supervision`, NumPy, and the standard library — no optional extras, no external files
-or network access — write it as a `>>>` doctest. This makes the example runnable and
-automatically verified by the test suite. See [Doctests](#doctests) below for syntax
-guidance and for when fenced ```` ```python ```` blocks are appropriate instead.
+or network access — strongly prefer `>>>` doctest format so it is automatically
+verified by the test suite. See [Doctests](#doctests) below for syntax guidance and for
+when fenced ```` ```python ```` blocks are appropriate instead.
 
 ### Type checking
 
@@ -372,12 +372,13 @@ def test_overlap_metric_determines_suppression(
 
 ### Doctests
 
-**Rule:** if an example uses only `supervision`, NumPy, and the standard library — no
-optional extras (e.g. no `--extra metrics` packages), no external files, no network,
-no devices — **always write it as a `>>>` doctest**. Fenced ```` ```python ```` blocks
-are reserved for examples that genuinely cannot be executed (e.g. loading a third-party
-model checkpoint, reading a video file). Never leave a self-contained example as a
-fenced block.
+**Guidance:** when an example uses only `supervision`, NumPy, and the standard library
+— no optional extras (e.g. no `--extra metrics` packages), no external files, no
+network, no devices — prefer `>>>` doctest format so it is automatically verified by
+the test suite. Fenced ```` ```python ```` blocks are appropriate when the example
+cannot reasonably be executed (e.g. loading a third-party model, reading a video file)
+or when the primary purpose is demonstrating error/exception behaviour rather than
+return values.
 
 Doctests run automatically as part of the test suite via `--doctest-modules` in
 `pyproject.toml`. The `ELLIPSIS` and `NORMALIZE_WHITESPACE` flags are enabled globally,
