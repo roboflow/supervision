@@ -13,20 +13,11 @@ date_modified: 2026-04-22
 
 # Track Objects
 
-Leverage Supervision's advanced capabilities for enhancing your video analysis by
-seamlessly [tracking](https://supervision.roboflow.com/latest/trackers/) objects recognized by
-a multitude of object detection, segmentation and keypoint models. This comprehensive guide will
-take you through the steps to perform inference using the YOLOv8 model via either the
-[Inference](https://github.com/roboflow/inference) or
-[Ultralytics](https://github.com/ultralytics/ultralytics) packages. Following this,
-you'll discover how to track these objects efficiently and annotate your video content
-for a deeper analysis.
+Leverage Supervision's advanced capabilities for enhancing your video analysis by seamlessly [tracking](https://supervision.roboflow.com/latest/trackers/) objects recognized by a multitude of object detection, segmentation and keypoint models. This comprehensive guide will take you through the steps to perform inference using the YOLOv8 model via either the [Inference](https://github.com/roboflow/inference) or [Ultralytics](https://github.com/ultralytics/ultralytics) packages. Following this, you'll discover how to track these objects efficiently and annotate your video content for a deeper analysis.
 
 ## Object Detection & Segmentation
 
-To make it easier for you to follow our tutorial download the video we will use as an
-example. You can do this using the
-[`supervision.assets`](https://supervision.roboflow.com/latest/assets/) module included in the base package.
+To make it easier for you to follow our tutorial download the video we will use as an example. You can do this using the [`supervision.assets`](https://supervision.roboflow.com/latest/assets/) module included in the base package.
 
 This section demonstrates how to detect and segment objects in video frames using YOLOv8 with either the Inference or Ultralytics package. You will download a sample video, define a per-frame callback function that runs model prediction, and process the entire video to produce an annotated output file.
 
@@ -42,16 +33,9 @@ download_assets(VideoAssets.PEOPLE_WALKING)
 
 ### Run Inference
 
-First, you'll need to obtain predictions from your object detection or segmentation
-model. In this tutorial, we are using the YOLOv8 model as an example. However,
-Supervision is versatile and compatible with various models. Check this
-[link](https://supervision.roboflow.com/latest/how_to/detect_and_annotate/#load-predictions-into-supervision)
-for guidance on how to plug in other models.
+First, you'll need to obtain predictions from your object detection or segmentation model. In this tutorial, we are using the YOLOv8 model as an example. However, Supervision is versatile and compatible with various models. Check this [link](https://supervision.roboflow.com/latest/how_to/detect_and_annotate/#load-predictions-into-supervision) for guidance on how to plug in other models.
 
-We will define a `callback` function, which will process each frame of the video
-by obtaining model predictions and then annotating the frame based on these predictions.
-This `callback` function will be essential in the subsequent steps of the tutorial, as
-it will be modified to include tracking, labeling, and trace annotations.
+We will define a `callback` function, which will process each frame of the video by obtaining model predictions and then annotating the frame based on these predictions. This `callback` function will be essential in the subsequent steps of the tutorial, as it will be modified to include tracking, labeling, and trace annotations.
 
 !!! tip
 
@@ -107,11 +91,7 @@ it will be modified to include tracking, labeling, and trace annotations.
 
 ### Tracking
 
-After running inference and obtaining predictions, the next step is to track the
-detected objects throughout the video. Utilizing Supervision’s
-[`sv.ByteTrack`](https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack)
-functionality, each detected object is assigned a unique tracker ID,
-enabling the continuous following of the object's motion path across different frames.
+After running inference and obtaining predictions, the next step is to track the detected objects throughout the video. Utilizing Supervision’s [`sv.ByteTrack`](https://supervision.roboflow.com/latest/trackers/#supervision.tracker.byte_tracker.core.ByteTrack) functionality, each detected object is assigned a unique tracker ID, enabling the continuous following of the object's motion path across different frames.
 
 === "Ultralytics"
 
@@ -163,11 +143,7 @@ enabling the continuous following of the object's motion path across different f
 
 ### Annotate Video with Tracking IDs
 
-Annotating the video with tracking IDs helps in distinguishing and following each object
-distinctly. With the
-[`sv.LabelAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator)
-in Supervision, we can overlay the tracker IDs and class labels on the detected objects,
-offering a clear visual representation of each object's class and unique identifier.
+Annotating the video with tracking IDs helps in distinguishing and following each object distinctly. With the [`sv.LabelAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator) in Supervision, we can overlay the tracker IDs and class labels on the detected objects, offering a clear visual representation of each object's class and unique identifier.
 
 === "Ultralytics"
 
@@ -245,11 +221,7 @@ offering a clear visual representation of each object's class and unique identif
 
 ### Annotate Video with Traces
 
-Adding traces to the video involves overlaying the historical paths of the detected
-objects. This feature, powered by the
-[`sv.TraceAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.TraceAnnotator),
-allows for visualizing the trajectories of objects, helping in understanding the
-movement patterns and interactions between objects in the video.
+Adding traces to the video involves overlaying the historical paths of the detected objects. This feature, powered by the [`sv.TraceAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.TraceAnnotator), allows for visualizing the trajectories of objects, helping in understanding the movement patterns and interactions between objects in the video.
 
 === "Ultralytics"
 
@@ -335,8 +307,7 @@ movement patterns and interactions between objects in the video.
 
 Models aren't limited to object detection and segmentation. Keypoint detection allows for detailed analysis of body joints and connections, especially valuable for applications like human pose estimation. This section introduces keypoint tracking. We'll walk through the steps of annotating keypoints, converting them into bounding box detections compatible with `ByteTrack`, and applying detection smoothing for enhanced stability.
 
-To make it easier for you to follow our tutorial, let's download the video we will use as an
-example. You can do this using the [`supervision.assets`](https://supervision.roboflow.com/latest/assets/) module included in the base package.
+To make it easier for you to follow our tutorial, let's download the video we will use as an example. You can do this using the [`supervision.assets`](https://supervision.roboflow.com/latest/assets/) module included in the base package.
 
 ```python
 from supervision.assets import download_assets, VideoAssets
@@ -350,8 +321,7 @@ download_assets(VideoAssets.SKIING)
 
 ### Keypoint Detection
 
-First, you'll need to obtain predictions from your keypoint detection model. In this tutorial, we are using the YOLOv8 model as an example. However,
-Supervision is versatile and compatible with various models. Check this [link](https://supervision.roboflow.com/latest/keypoint/core/) for guidance on how to plug in other models.
+First, you'll need to obtain predictions from your keypoint detection model. In this tutorial, we are using the YOLOv8 model as an example. However, Supervision is versatile and compatible with various models. Check this [link](https://supervision.roboflow.com/latest/keypoint/core/) for guidance on how to plug in other models.
 
 We will define a `callback` function, which will process each frame of the video by obtaining model predictions and then annotating the frame based on these predictions.
 

@@ -44,39 +44,12 @@ Before you contribute a new feature, consider submitting an Issue to discuss the
 
 ### API Design Principles
 
-Supervision APIs should remain generic, composable, and predictable across model
-families. Before adding a new integration, annotator option, or data conversion
-method, check the existing `sv.Detections`, `sv.KeyPoints`, and annotator
-patterns and follow these principles:
+Supervision APIs should remain generic, composable, and predictable across model families. Before adding a new integration, annotator option, or data conversion method, check the existing `sv.Detections`, `sv.KeyPoints`, and annotator patterns and follow these principles:
 
-1. **Model integrations normalize raw external outputs into existing Supervision
-    containers.** Use `sv.Detections` for detection, segmentation, and other
-    instance-level predictions that include boxes, masks, class ids, confidence
-    scores, or extra per-instance fields. Use `sv.KeyPoints` for standalone
-    keypoint or pose predictions when keypoints exist independently of detection
-    boxes (e.g. pure pose estimation, landmark detection on pre-cropped images).
-    Use `Detections.keypoints` when keypoints are always co-incident with boxes
-    from the same model — the field stores an `(n, K, 2)` or `(n, K, 3)` array
-    where the optional third channel is per-point confidence in `[0, 1]`.
-2. **Do not add a `from_<model>` method when the model already returns a
-    Supervision object.** `from_*` methods are for converting raw outputs from
-    external packages such as Ultralytics, Transformers, Inference, or MediaPipe.
-    If a model's `predict()` method already returns `sv.Detections`, keep that
-    result type and store additional structured payloads in `detections.data` or
-    `detections.metadata` using documented keys.
-3. **Annotators render data; filtering and visibility are container state.**
-    Filtering by confidence, class id, tracker id, geometry, or custom data should
-    happen before annotation through the container slicing APIs, for example
-    `detections[detections.confidence > 0.7]` or `key_points[key_points.confidence > 0.5]`.
-    Per-point presentation state, such as a `KeyPoints.visible` mask, may
-    live on the container and be honored consistently by annotators.
-4. **Annotator constructor arguments should describe visual presentation, not
-    model-quality gates.** Use constructor arguments for color, thickness,
-    opacity, text, position, style, and generic visualization parameters such as
-    sigma levels. Annotators may skip invalid geometry defensively, including
-    missing points, zero-area boxes, non-finite coordinates, or points marked
-    invisible on the container. They should not introduce confidence thresholds or
-    model-specific quality gates as rendering options.
+1. **Model integrations normalize raw external outputs into existing Supervision containers.** Use `sv.Detections` for detection, segmentation, and other instance-level predictions that include boxes, masks, class ids, confidence scores, or extra per-instance fields. Use `sv.KeyPoints` for standalone keypoint or pose predictions when keypoints exist independently of detection boxes (e.g. pure pose estimation, landmark detection on pre-cropped images). Use `Detections.keypoints` when keypoints are always co-incident with boxes from the same model — the field stores an `(n, K, 2)` or `(n, K, 3)` array where the optional third channel is per-point confidence in `[0, 1]`.
+2. **Do not add a `from_<model>` method when the model already returns a Supervision object.** `from_*` methods are for converting raw outputs from external packages such as Ultralytics, Transformers, Inference, or MediaPipe. If a model's `predict()` method already returns `sv.Detections`, keep that result type and store additional structured payloads in `detections.data` or `detections.metadata` using documented keys.
+3. **Annotators render data; filtering and visibility are container state.** Filtering by confidence, class id, tracker id, geometry, or custom data should happen before annotation through the container slicing APIs, for example `detections[detections.confidence > 0.7]` or `key_points[key_points.confidence > 0.5]`. Per-point presentation state, such as a `KeyPoints.visible` mask, may live on the container and be honored consistently by annotators.
+4. **Annotator constructor arguments should describe visual presentation, not model-quality gates.** Use constructor arguments for color, thickness, opacity, text, position, style, and generic visualization parameters such as sigma levels. Annotators may skip invalid geometry defensively, including missing points, zero-area boxes, non-finite coordinates, or points marked invisible on the container. They should not introduce confidence thresholds or model-specific quality gates as rendering options.
 
 ## How to Contribute Changes
 
@@ -263,18 +236,11 @@ To run the pre-commit tool, follow these steps:
 
 ### Docstrings
 
-All new functions and classes in `supervision` should include docstrings. This is a
-prerequisite for any new functions and classes to be added to the library.
+All new functions and classes in `supervision` should include docstrings. This is a prerequisite for any new functions and classes to be added to the library.
 
-`supervision` adheres to the
-[Google Python docstring style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods).
-Please refer to the style guide while writing docstrings for your contribution.
+`supervision` adheres to the [Google Python docstring style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods). Please refer to the style guide while writing docstrings for your contribution.
 
-Every docstring should include a usage example. When the example only uses
-`supervision`, NumPy, and the standard library — no optional extras, no external files
-or network access — strongly prefer `>>>` doctest format so it is automatically
-verified by the test suite. See [Doctests](#doctests) below for syntax guidance and for
-when fenced ```` ```python ```` blocks are appropriate instead.
+Every docstring should include a usage example. When the example only uses `supervision`, NumPy, and the standard library — no optional extras, no external files or network access — strongly prefer `>>>` doctest format so it is automatically verified by the test suite. See [Doctests](#doctests) below for syntax guidance and for when fenced ```` ```python ```` blocks are appropriate instead.
 
 ### Type checking
 
@@ -304,9 +270,7 @@ You can learn more about mkdocs on the [mkdocs website](https://www.mkdocs.org/)
 
 ## 🧑‍🍳 Cookbooks
 
-We are always looking for new examples and cookbooks to add to the `supervision`
-documentation. If you have a use case that you think would be helpful to others, please
-submit a PR with your example. Here are some guidelines for submitting a new example:
+We are always looking for new examples and cookbooks to add to the `supervision` documentation. If you have a use case that you think would be helpful to others, please submit a PR with your example. Here are some guidelines for submitting a new example:
 
 - Create a new notebook in the [`docs/notebooks`](https://github.com/roboflow/supervision/tree/develop/docs/notebooks) folder.
 - Add a link to the new notebook in [`docs/theme/cookbooks.html`](https://github.com/roboflow/supervision/blob/develop/docs/theme/cookbooks.html). Make sure to add the path to the new notebook, as well as a title, labels, author and supervision version.
@@ -334,11 +298,9 @@ uv run pytest --cov=supervision
 
 ### Test Structure
 
-Follow **Arrange-Act-Assert (AAA)**: one setup block, one action, one assertion group per
-test. Never put two independent actions in the same test.
+Follow **Arrange-Act-Assert (AAA)**: one setup block, one action, one assertion group per test. Never put two independent actions in the same test.
 
-**Class grouping:** Group related tests into a class. The class name carries the unit
-under test; method names describe the expected outcome only — not the mechanism.
+**Class grouping:** Group related tests into a class. The class name carries the unit under test; method names describe the expected outcome only — not the mechanism.
 
 ```python
 class TestDetectionsWithNms:
@@ -347,10 +309,7 @@ class TestDetectionsWithNms:
     def test_raises_when_confidence_missing(self): ...
 ```
 
-**Parametrize aggressively:** Three or more structurally identical tests should become a
-single `@pytest.mark.parametrize` case. Use `pytest.param(..., id="slug")` per case —
-not `ids=[...]` on the decorator — so the ID stays co-located with its arguments and
-survives reordering.
+**Parametrize aggressively:** Three or more structurally identical tests should become a single `@pytest.mark.parametrize` case. Use `pytest.param(..., id="slug")` per case — not `ids=[...]` on the decorator — so the ID stays co-located with its arguments and survives reordering.
 
 ```python
 @pytest.mark.parametrize(
@@ -367,23 +326,13 @@ def test_overlap_metric_determines_suppression(
     ...
 ```
 
-**Docstrings:** Every test function/method requires at minimum a one-line docstring
-(within the project line length configured in `pyproject.toml`). Describe the scenario,
-not the implementation.
+**Docstrings:** Every test function/method requires at minimum a one-line docstring (within the project line length configured in `pyproject.toml`). Describe the scenario, not the implementation.
 
 ### Doctests
 
-**Guidance:** when an example uses only `supervision`, NumPy, and the standard library
-— no optional extras (e.g. no `--extra metrics` packages), no external files, no
-network, no devices — prefer `>>>` doctest format so it is automatically verified by
-the test suite. Fenced ```` ```python ```` blocks are appropriate when the example
-cannot reasonably be executed (e.g. loading a third-party model, reading a video file)
-or when the primary purpose is demonstrating error/exception behaviour rather than
-return values.
+**Guidance:** when an example uses only `supervision`, NumPy, and the standard library — no optional extras (e.g. no `--extra metrics` packages), no external files, no network, no devices — prefer `>>>` doctest format so it is automatically verified by the test suite. Fenced ```` ```python ```` blocks are appropriate when the example cannot reasonably be executed (e.g. loading a third-party model, reading a video file) or when the primary purpose is demonstrating error/exception behaviour rather than return values.
 
-Doctests run automatically as part of the test suite via `--doctest-modules` in
-`pyproject.toml`. The `ELLIPSIS` and `NORMALIZE_WHITESPACE` flags are enabled globally,
-so `...` matches any output fragment and minor whitespace differences are ignored.
+Doctests run automatically as part of the test suite via `--doctest-modules` in `pyproject.toml`. The `ELLIPSIS` and `NORMALIZE_WHITESPACE` flags are enabled globally, so `...` matches any output fragment and minor whitespace differences are ignored.
 
 ```bash
 uv run pytest --doctest-modules src/
@@ -391,9 +340,7 @@ uv run pytest --doctest-modules src/
 
 **Writing a doctest**
 
-Use the `Example:` section of a Google-style docstring. Prefix each input line with
-`>>>` and each continuation line with `...`. Place expected output immediately after
-the last input line with no blank line between them.
+Use the `Example:` section of a Google-style docstring. Prefix each input line with `>>>` and each continuation line with `...`. Place expected output immediately after the last input line with no blank line between them.
 
 ```python
 def clip_boxes(xyxy: np.ndarray, resolution_wh: tuple) -> np.ndarray:
@@ -417,16 +364,12 @@ def clip_boxes(xyxy: np.ndarray, resolution_wh: tuple) -> np.ndarray:
 
 ### Key rules
 
-- **Single-line expression** — write the repr as expected output:
-    `>>> len(result)` → `1`
-- **Multi-line statement** — use `...` continuation:
-    `>>> arr = np.array([` / `...     [1, 2],` / `... ])`
+- **Single-line expression** — write the repr as expected output: `>>> len(result)` → `1`
+- **Multi-line statement** — use `...` continuation: `>>> arr = np.array([` / `...     [1, 2],` / `... ])`
 - **Print output** — write the printed string as expected output (no quotes).
 - **`None` return** — no output line needed (suppress with assignment or `_ =`).
 - **Large/variable arrays** — use `ELLIPSIS`: `array([...])` matches any content.
-- **`# doctest: +SKIP`** — use only as a last resort for genuinely non-runnable lines
-    (e.g. a GPU-only call inside an otherwise runnable example). Prefer splitting the
-    example into two blocks instead.
+- **`# doctest: +SKIP`** — use only as a last resort for genuinely non-runnable lines (e.g. a GPU-only call inside an otherwise runnable example). Prefer splitting the example into two blocks instead.
 
 Fenced ```` ```python ```` blocks remain appropriate for:
 
