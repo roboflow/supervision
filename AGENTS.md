@@ -38,8 +38,9 @@ All work must follow the conventions of the `supervision` library
     currently enforced systematically by pre-commit; see [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md)
     for the latest type-checking expectations.
 - **Docstrings**: Google Python docstring style. Required for all new functions and classes.
-    Docstrings should include usage examples demonstrating the function with primitive values
-    so they serve as runnable documentation.
+    Every docstring must include a usage example. Write it as a `>>>` doctest whenever
+    the example only uses `supervision`, NumPy, and the standard library (no optional
+    extras, no external files or network). See §3a and CONTRIBUTING.md for syntax.
 
 ### API Consistency
 
@@ -76,10 +77,10 @@ Full test guidelines are in [CONTRIBUTING.md](.github/CONTRIBUTING.md#-tests). K
     Use `pytest.param(..., id="slug")` per case (not `ids=[...]` on the decorator).
 - **Docstrings**: every test function/method needs at minimum a one-line docstring
     (≤120 chars). Describe the scenario, not the implementation.
-- **Doctests**: source-file examples in `src/**/*.py` must use `>>>` doctest format
-    when fully self-contained and requiring no optional extras or external resources.
-    Fenced ```` ```python ```` blocks are acceptable only when the example cannot be made
-    executable (e.g. loads a third-party model, reads a video file).
+- **Doctests**: if example uses only `supervision`, NumPy, and stdlib — **always `>>>`
+    doctest, never a fenced block**. Fenced ```` ```python ```` only when genuinely
+    non-runnable (third-party model, video file, optional extra). See CONTRIBUTING.md
+    §Doctests for syntax guide (continuation lines, ELLIPSIS, `+SKIP` rules).
 
 ---
 
