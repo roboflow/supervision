@@ -232,3 +232,13 @@ def test_denormalize_boxes(
             normalization_factor=normalization_factor,
         )
         assert np.allclose(result, expected_result)
+
+
+def test_denormalize_boxes_normalized_xyxy_kwarg_remap() -> None:
+    """Deprecated `normalized_xyxy` kwarg is remapped to `xyxy` with a FutureWarning."""
+    xyxy = np.array([[0.5, 0.25, 0.75, 0.5]])
+    resolution_wh = (100, 100)
+    expected = denormalize_boxes(xyxy=xyxy, resolution_wh=resolution_wh)
+    with pytest.warns(FutureWarning):
+        result = denormalize_boxes(normalized_xyxy=xyxy, resolution_wh=resolution_wh)
+    assert np.allclose(result, expected)
