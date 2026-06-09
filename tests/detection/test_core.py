@@ -1014,72 +1014,81 @@ def _make_obb_detections(
     )
 
 
-def test_with_nms_uses_obb_iou_when_oriented_box_coordinates_present() -> None:
-    """X-pattern: two crossed OBBs share an AABB but barely overlap.
-    `box_non_max_suppression` (the pre-fix path) would drop one because
-    AABB IoU ≈ 1.0. With OBB-aware NMS both must survive."""
-    quad_a = _rotated_rect(50, 50, 100, 10, +45)
-    quad_b = _rotated_rect(50, 50, 100, 10, -45)
-    detections = _make_obb_detections([quad_a, quad_b], [0.9, 0.85], [0, 0])
+class TestDetectionsWithNms:
+    """Tests for `Detections.with_nms` OBB-aware dispatch."""
 
-    result = detections.with_nms(threshold=0.5)
+    def test_uses_obb_iou_when_oriented_box_coordinates_present(self) -> None:
+        """X-pattern: two crossed OBBs share an AABB but barely overlap.
+        `box_non_max_suppression` (the pre-fix path) would drop one because
+        AABB IoU ≈ 1.0. With OBB-aware NMS both must survive."""
+        quad_a = _rotated_rect(50, 50, 100, 10, +45)
+        quad_b = _rotated_rect(50, 50, 100, 10, -45)
+        detections = _make_obb_detections([quad_a, quad_b], [0.9, 0.85], [0, 0])
 
-    assert len(result) == 2
+        result = detections.with_nms(threshold=0.5)
 
+        assert len(result) == 2
 
-def test_with_nms_falls_back_to_box_nms_without_obb_data() -> None:
-    """Regression guard: non-OBB Detections must still use box NMS so two
-    heavily-overlapping AABBs collapse to one."""
-    detections = Detections(
-        xyxy=np.array([[0, 0, 100, 100], [10, 10, 110, 110]], dtype=np.float32),
-        confidence=np.array([0.9, 0.85], dtype=np.float32),
-        class_id=np.array([0, 0], dtype=int),
-    )
+    def test_falls_back_to_box_nms_without_obb_data(self) -> None:
+        """Regression guard: non-OBB Detections must still use box NMS so two
+        heavily-overlapping AABBs collapse to one."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 100, 100], [10, 10, 110, 110]], dtype=np.float32),
+            confidence=np.array([0.9, 0.85], dtype=np.float32),
+            class_id=np.array([0, 0], dtype=int),
+        )
 
-    result = detections.with_nms(threshold=0.5)
+        result = detections.with_nms(threshold=0.5)
 
-    assert len(result) == 1
-
-
-def test_with_nmm_uses_obb_iou_when_oriented_box_coordinates_present() -> None:
-    """X-pattern under non-max-merging: the two crossed OBBs should land in
-    separate merge groups (no spurious merge driven by AABB overlap)."""
-    quad_a = _rotated_rect(50, 50, 100, 10, +45)
-    quad_b = _rotated_rect(50, 50, 100, 10, -45)
-    detections = _make_obb_detections([quad_a, quad_b], [0.9, 0.85], [0, 0])
-
-    result = detections.with_nmm(threshold=0.5)
-
-    assert len(result) == 2
+        assert len(result) == 1
 
 
-def test_with_nmm_falls_back_to_box_nmm_without_obb_data() -> None:
-    """Regression guard: non-OBB Detections must still use box NMM so two
-    heavily-overlapping AABBs are merged into one group."""
-    detections = Detections(
-        xyxy=np.array([[0, 0, 100, 100], [10, 10, 110, 110]], dtype=np.float32),
-        confidence=np.array([0.9, 0.85], dtype=np.float32),
-        class_id=np.array([0, 0], dtype=int),
-    )
+class TestDetectionsWithNmm:
+    """Tests for `Detections.with_nmm` OBB-aware dispatch."""
 
-    result = detections.with_nmm(threshold=0.5)
+    def test_uses_obb_iou_when_oriented_box_coordinates_present(self) -> None:
+        """X-pattern under non-max-merging: the two crossed OBBs should land in
+        separate merge groups (no spurious merge driven by AABB overlap)."""
+        quad_a = _rotated_rect(50, 50, 100, 10, +45)
+        quad_b = _rotated_rect(50, 50, 100, 10, -45)
+        detections = _make_obb_detections([quad_a, quad_b], [0.9, 0.85], [0, 0])
 
-    assert len(result) == 1
+        result = detections.with_nmm(threshold=0.5)
 
+        assert len(result) == 2
 
-def test_with_nmm_obb_merged_xyxy_matches_winner_aabb() -> None:
-    """OBB merge group: merged xyxy must equal winner's AABB, not union AABB.
+    def test_falls_back_to_box_nmm_without_obb_data(self) -> None:
+        """Regression guard: non-OBB Detections must still use box NMM so two
+        heavily-overlapping AABBs are merged into one group."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 100, 100], [10, 10, 110, 110]], dtype=np.float32),
+            confidence=np.array([0.9, 0.85], dtype=np.float32),
+            class_id=np.array([0, 0], dtype=int),
+        )
 
-    Two near-identical OBBs merge into one group. The winner (score 0.9) occupies
-    [10, 10, 50, 30]; the lower-score box [20, 20, 60, 40] is offset. Union AABB
-    would be [10, 10, 60, 40] but the fix must produce winner's AABB [10, 10, 50, 30].
-    """
-    quad_winner = np.array([[10, 10], [50, 10], [50, 30], [10, 30]], dtype=np.float32)
-    quad_other = np.array([[11, 11], [51, 11], [51, 31], [11, 31]], dtype=np.float32)
-    detections = _make_obb_detections([quad_winner, quad_other], [0.9, 0.85], [0, 0])
+        result = detections.with_nmm(threshold=0.5)
 
-    result = detections.with_nmm(threshold=0.5)
+        assert len(result) == 1
 
-    assert len(result) == 1
-    expected_xyxy = np.array([[10.0, 10.0, 50.0, 30.0]], dtype=np.float32)
-    assert np.allclose(result.xyxy, expected_xyxy, atol=0.5)
+    def test_obb_merged_xyxy_matches_winner_aabb(self) -> None:
+        """OBB merge group: merged xyxy must equal winner's AABB, not union AABB.
+
+        Two near-identical OBBs merge into one group. The winner (score 0.9) occupies
+        [10, 10, 50, 30]; the lower-score box [20, 20, 60, 40] is offset. Union AABB
+        would be [10, 10, 60, 40]; fix must produce winner's AABB [10, 10, 50, 30].
+        """
+        quad_winner = np.array(
+            [[10, 10], [50, 10], [50, 30], [10, 30]], dtype=np.float32
+        )
+        quad_other = np.array(
+            [[11, 11], [51, 11], [51, 31], [11, 31]], dtype=np.float32
+        )
+        detections = _make_obb_detections(
+            [quad_winner, quad_other], [0.9, 0.85], [0, 0]
+        )
+
+        result = detections.with_nmm(threshold=0.5)
+
+        assert len(result) == 1
+        expected_xyxy = np.array([[10.0, 10.0, 50.0, 30.0]], dtype=np.float32)
+        assert np.allclose(result.xyxy, expected_xyxy, atol=0.5)
