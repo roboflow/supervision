@@ -1135,28 +1135,23 @@ def oriented_box_non_max_suppression(
             mismatched lengths or invalid shapes.
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
-
-        # Two near-identical oriented boxes; the lower-score one should be suppressed.
-        oriented_boxes = np.array([
-            [[10, 10], [50, 10], [50, 30], [10, 30]],  # box A, score 0.9
-            # box B (near-duplicate), score 0.8
-            [[11, 11], [51, 11], [51, 31], [11, 31]],
-        ], dtype=np.float32)
-        predictions = np.array([
-            [10, 10, 50, 30, 0.9, 0],
-            [11, 11, 51, 31, 0.8, 0],
-        ], dtype=np.float32)
-
-        keep = sv.oriented_box_non_max_suppression(
-            predictions=predictions,
-            oriented_boxes=oriented_boxes,
-            iou_threshold=0.5,
-        )
-        # keep[0] == True (higher score kept), keep[1] == False (suppressed)
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> oriented_boxes = np.array([
+        ...     [[10, 10], [50, 10], [50, 30], [10, 30]],
+        ...     [[11, 11], [51, 11], [51, 31], [11, 31]],
+        ... ], dtype=np.float32)
+        >>> predictions = np.array([
+        ...     [10, 10, 50, 30, 0.9, 0],
+        ...     [11, 11, 51, 31, 0.8, 0],
+        ... ], dtype=np.float32)
+        >>> keep = sv.oriented_box_non_max_suppression(
+        ...     predictions=predictions,
+        ...     oriented_boxes=oriented_boxes,
+        ...     iou_threshold=0.5,
+        ... )
+        >>> keep
+        array([ True, False])
     """
     assert 0 <= iou_threshold <= 1, (
         "Value of `iou_threshold` must be in the closed range from 0 to 1, "
@@ -1258,27 +1253,23 @@ def oriented_box_non_max_merge(
             mismatched lengths or invalid shapes.
 
     Examples:
-        ```python
-        import numpy as np
-        import supervision as sv
-
-        # Two near-identical oriented boxes; they should merge into one group.
-        oriented_boxes = np.array([
-            [[10, 10], [50, 10], [50, 30], [10, 30]],
-            [[11, 11], [51, 11], [51, 31], [11, 31]],
-        ], dtype=np.float32)
-        predictions = np.array([
-            [10, 10, 50, 30, 0.9, 0],
-            [11, 11, 51, 31, 0.8, 0],
-        ], dtype=np.float32)
-
-        groups = sv.oriented_box_non_max_merge(
-            predictions=predictions,
-            oriented_boxes=oriented_boxes,
-            iou_threshold=0.5,
-        )
-        # len(groups) == 1: both boxes merged into one group
-        ```
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> oriented_boxes = np.array([
+        ...     [[10, 10], [50, 10], [50, 30], [10, 30]],
+        ...     [[11, 11], [51, 11], [51, 31], [11, 31]],
+        ... ], dtype=np.float32)
+        >>> predictions = np.array([
+        ...     [10, 10, 50, 30, 0.9, 0],
+        ...     [11, 11, 51, 31, 0.8, 0],
+        ... ], dtype=np.float32)
+        >>> groups = sv.oriented_box_non_max_merge(
+        ...     predictions=predictions,
+        ...     oriented_boxes=oriented_boxes,
+        ...     iou_threshold=0.5,
+        ... )
+        >>> len(groups)
+        1
     """
     for name, arr in (("predictions", predictions), ("oriented_boxes", oriented_boxes)):
         if name == "predictions":
