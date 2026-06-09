@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import json
 from contextlib import ExitStack as DoesNotRaise
+from pathlib import Path
 
+import cv2
 import numpy as np
 import pytest
 
-from supervision import Detections
+from supervision import DetectionDataset, Detections
 from supervision.dataset.formats.coco import (
     build_coco_class_index_mapping,
     classes_to_coco_categories,
@@ -15,6 +17,7 @@ from supervision.dataset.formats.coco import (
     detections_to_coco_annotations,
     group_coco_annotations_by_image_id,
     load_coco_annotations,
+    save_coco_annotations,
 )
 
 
@@ -830,11 +833,11 @@ def test_build_coco_class_index_mapping(
             0,
             [
                 mock_coco_annotation(
-                    category_id=0, bbox=(0, 0, 100, 100), area=100 * 100
+                    category_id=1, bbox=(0, 0, 100, 100), area=100 * 100
                 )
             ],
             DoesNotRaise(),
-        ),  # no segmentation mask
+        ),  # no segmentation mask; internal class_id 0 -> COCO category_id 1
         (
             Detections(
                 xyxy=np.array([[0, 0, 4, 5]], dtype=np.float32),
@@ -856,7 +859,7 @@ def test_build_coco_class_index_mapping(
             0,
             [
                 mock_coco_annotation(
-                    category_id=0,
+                    category_id=1,
                     bbox=(0, 0, 4, 5),
                     area=4 * 5,
                     segmentation=[[0, 0, 0, 4, 3, 4, 3, 0]],
@@ -886,7 +889,7 @@ def test_build_coco_class_index_mapping(
             0,
             [
                 mock_coco_annotation(
-                    category_id=0,
+                    category_id=1,
                     bbox=(0, 0, 5, 5),
                     area=5 * 5,
                     segmentation={
@@ -919,7 +922,7 @@ def test_build_coco_class_index_mapping(
             0,
             [
                 mock_coco_annotation(
-                    category_id=0,
+                    category_id=1,
                     bbox=(0, 0, 5, 5),
                     area=5 * 5,
                     segmentation={
@@ -1329,3 +1332,516 @@ def test_load_coco_annotations_force_masks_handles_missing_segmentation(
     assert image_annotations.mask.shape == (1, 5, 5)
     assert not image_annotations.mask.any()
     assert np.array_equal(image_annotations.xyxy, np.array([[0, 0, 2, 2]], dtype=float))
+
+
+@pytest.fixture
+def coco_data_with_multi_segment_segmentation() -> dict[str, object]:
+    return {
+        "categories": [
+            {
+                "id": 1,
+                "name": "cat_eye",
+                "supercategory": "animal_parts",
+            }
+        ],
+        "images": [
+            {
+                "id": 1,
+                "file_name": "image.jpg",
+                "width": 5,
+                "height": 5,
+            }
+        ],
+        "annotations": [
+            {
+                "id": 1,
+                "image_id": 1,
+                "category_id": 1,
+                # bbox spans both segments; area = sum of two 1x1 polygon areas
+                "bbox": [0, 0, 5, 5],
+                "area": 2,
+                "segmentation": [
+                    [0, 0, 1, 0, 1, 1, 0, 1],
+                    [3, 3, 4, 3, 4, 4, 3, 4],
+                ],
+                "iscrowd": 0,
+            }
+        ],
+    }
+
+
+class TestFromCocoMasks:
+    """Integration: DetectionDataset.from_coco loads multi-segment masks."""
+
+    @pytest.mark.parametrize("force_masks", [False, True])
+    def test_multi_segment_masks_merged(
+        self,
+        tmp_path,
+        coco_data_with_multi_segment_segmentation: dict[str, object],
+        force_masks: bool,
+    ) -> None:
+        """Multi-segment masks merge correctly for both force_masks values."""
+        images_directory = tmp_path / "images"
+        images_directory.mkdir()
+        annotations_path = tmp_path / "annotations.json"
+
+        annotations_path.write_text(
+            json.dumps(coco_data_with_multi_segment_segmentation), encoding="utf-8"
+        )
+
+        dataset = DetectionDataset.from_coco(
+            images_directory_path=str(images_directory),
+            annotations_path=str(annotations_path),
+            force_masks=force_masks,
+        )
+
+        annotation = dataset.annotations[str(images_directory / "image.jpg")]
+        assert annotation.mask is not None
+        assert annotation.mask.shape == (1, 5, 5)
+        np.testing.assert_array_equal(
+            annotation.mask,
+            np.array(
+                [
+                    [
+                        [1, 1, 0, 0, 0],
+                        [1, 1, 0, 0, 0],
+                        [0, 0, 0, 0, 0],
+                        [0, 0, 0, 1, 1],
+                        [0, 0, 0, 1, 1],
+                    ]
+                ],
+                dtype=bool,
+            ),
+        )
+
+    def test_multi_segment_masks_uneven_length_no_value_error(self, tmp_path) -> None:
+        """Uneven-length segments load without ValueError (issue #1209 regression)."""
+        images_directory = tmp_path / "images"
+        images_directory.mkdir()
+        annotations_path = tmp_path / "annotations.json"
+
+        coco_data = {
+            "categories": [
+                {"id": 1, "name": "cat_eye", "supercategory": "animal_parts"}
+            ],
+            "images": [{"id": 1, "file_name": "image.jpg", "width": 5, "height": 5}],
+            "annotations": [
+                {
+                    "id": 1,
+                    "image_id": 1,
+                    "category_id": 1,
+                    "bbox": [0, 0, 5, 5],
+                    "area": 2,
+                    "segmentation": [
+                        [0, 0, 1, 0, 1, 1, 0, 1],  # 4 points (8 coords)
+                        [3, 3, 4, 3, 4, 4, 3, 4, 2, 4],  # 5 points (10 coords)
+                    ],
+                    "iscrowd": 0,
+                }
+            ],
+        }
+        annotations_path.write_text(json.dumps(coco_data), encoding="utf-8")
+
+        dataset = DetectionDataset.from_coco(
+            images_directory_path=str(images_directory),
+            annotations_path=str(annotations_path),
+        )
+
+        annotation = dataset.annotations[str(images_directory / "image.jpg")]
+        assert annotation.mask is not None
+        assert annotation.mask.shape == (1, 5, 5)
+
+
+# --- category_id 1-indexing (regression for #1181) ---
+
+
+@pytest.mark.parametrize(
+    ("classes", "expected_ids"),
+    [
+        ([], []),  # empty classes
+        (["object"], [1]),  # single class starts at 1
+        (["cat", "dog", "bird"], [1, 2, 3]),  # ids are sequential and 1-indexed
+    ],
+)
+def test_classes_to_coco_categories_ids_start_at_one(
+    classes: list[str], expected_ids: list[int]
+) -> None:
+    """COCO categories[].id must be 1-indexed (COCO spec / CVAT requirement)."""
+    categories = classes_to_coco_categories(classes=classes)
+
+    assert [category["id"] for category in categories] == expected_ids
+
+
+def test_detections_to_coco_annotations_category_id_is_one_indexed() -> None:
+    """Internal class_id k must serialize to COCO category_id k + 1."""
+    detections = Detections(
+        xyxy=np.array([[0, 0, 10, 10], [5, 5, 15, 15], [1, 1, 4, 4]], dtype=np.float32),
+        class_id=np.array([0, 1, 2], dtype=int),
+    )
+
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections,
+        image_id=1,
+        annotation_id=1,
+    )
+
+    assert [annotation["category_id"] for annotation in annotations] == [1, 2, 3]
+
+
+def test_coco_round_trip_preserves_class_ids_and_writes_one_indexed_categories(
+    tmp_path,
+) -> None:
+    """as_coco -> from_coco is lossless for internal class_ids while the
+    on-disk COCO category ids are 1-indexed (regression for #1181)."""
+    classes = ["cat", "dog"]
+    image_paths: list[str] = []
+    annotations: dict[str, Detections] = {}
+    expected_class_ids = {}
+    for index, class_id in enumerate([0, 1]):
+        path = str(tmp_path / f"image_{index}.jpg")
+        assert cv2.imwrite(path, np.zeros((10, 10, 3), dtype=np.uint8))
+        image_paths.append(path)
+        detections = Detections(
+            xyxy=np.array([[0, 0, 5, 5]], dtype=np.float32),
+            class_id=np.array([class_id], dtype=int),
+        )
+        annotations[path] = detections
+        expected_class_ids[Path(path).name] = class_id
+    dataset = DetectionDataset(
+        classes=classes, images=image_paths, annotations=annotations
+    )
+
+    annotation_path = tmp_path / "annotations.json"
+    dataset.as_coco(annotations_path=str(annotation_path))
+
+    # On-disk COCO ids are 1-indexed.
+    with open(annotation_path) as f:
+        payload = json.load(f)
+    assert sorted(category["id"] for category in payload["categories"]) == [1, 2]
+    assert sorted(ann["category_id"] for ann in payload["annotations"]) == [1, 2]
+
+    # Reading back preserves internal 0-indexed class_ids losslessly.
+    loaded = DetectionDataset.from_coco(
+        images_directory_path=str(tmp_path),
+        annotations_path=str(annotation_path),
+    )
+    assert loaded.classes == classes
+    for image_path, _, detections in loaded:
+        name = Path(image_path).name
+        assert detections.class_id is not None
+        assert detections.class_id.tolist() == [expected_class_ids[name]]
+
+
+# --- save_coco_annotations: cross-split id chaining (regression for #768) ---
+
+
+def _tiny_detection_dataset(
+    tmp_path, prefix: str, num_images: int, dets_per_image: int
+) -> DetectionDataset:
+    """Build a DetectionDataset of ``num_images`` 10x10 RGB images on disk,
+    each holding ``dets_per_image`` 1x1 detections of class 0. Image content
+    is irrelevant; only the per-image Detections drive the COCO write path."""
+    classes = ["object"]
+    image_paths: list[str] = []
+    annotations: dict[str, Detections] = {}
+    for i in range(num_images):
+        path = str(tmp_path / f"{prefix}_{i}.jpg")
+        assert cv2.imwrite(path, np.zeros((10, 10, 3), dtype=np.uint8))
+        image_paths.append(path)
+        xyxy = np.array(
+            [[float(j), 0.0, float(j) + 1.0, 1.0] for j in range(dets_per_image)],
+            dtype=float,
+        ).reshape(-1, 4)
+        annotations[path] = Detections(
+            xyxy=xyxy,
+            class_id=np.zeros(dets_per_image, dtype=int),
+            confidence=np.ones(dets_per_image, dtype=float),
+        )
+    return DetectionDataset(
+        classes=classes, images=image_paths, annotations=annotations
+    )
+
+
+def _read_ids(annotation_path) -> tuple[list[int], list[int]]:
+    with open(annotation_path) as f:
+        payload = json.load(f)
+    image_ids = [img["id"] for img in payload["images"]]
+    annotation_ids = [ann["id"] for ann in payload["annotations"]]
+    return image_ids, annotation_ids
+
+
+def test_save_coco_annotations_defaults_start_at_one(tmp_path):
+    dataset = _tiny_detection_dataset(tmp_path, "img", num_images=2, dets_per_image=3)
+    annotation_path = tmp_path / "annotations.json"
+
+    next_image_id, next_annotation_id = save_coco_annotations(
+        dataset=dataset, annotation_path=str(annotation_path)
+    )
+
+    image_ids, annotation_ids = _read_ids(annotation_path)
+    assert image_ids == [1, 2]
+    assert annotation_ids == [1, 2, 3, 4, 5, 6]
+    # Returned ids are one greater than the highest written, ready to chain.
+    assert next_image_id == 3
+    assert next_annotation_id == 7
+
+
+def test_save_coco_annotations_respects_starting_ids(tmp_path):
+    dataset = _tiny_detection_dataset(tmp_path, "img", num_images=2, dets_per_image=2)
+    annotation_path = tmp_path / "annotations.json"
+
+    next_image_id, next_annotation_id = save_coco_annotations(
+        dataset=dataset,
+        annotation_path=str(annotation_path),
+        starting_image_id=100,
+        starting_annotation_id=500,
+    )
+
+    image_ids, annotation_ids = _read_ids(annotation_path)
+    assert image_ids == [100, 101]
+    assert annotation_ids == [500, 501, 502, 503]
+    assert next_image_id == 102
+    assert next_annotation_id == 504
+
+
+def test_as_coco_chains_ids_across_splits_without_collision(tmp_path):
+    """Regression for #768: exporting train/valid/test splits with the
+    returned ids fed forward yields globally unique image and annotation ids."""
+    train = _tiny_detection_dataset(tmp_path, "train", num_images=3, dets_per_image=2)
+    valid = _tiny_detection_dataset(tmp_path, "valid", num_images=2, dets_per_image=4)
+    test = _tiny_detection_dataset(tmp_path, "test", num_images=1, dets_per_image=5)
+
+    train_path = tmp_path / "train.json"
+    valid_path = tmp_path / "valid.json"
+    test_path = tmp_path / "test.json"
+
+    next_image_id, next_annotation_id = train.as_coco(annotations_path=str(train_path))
+    next_image_id, next_annotation_id = valid.as_coco(
+        annotations_path=str(valid_path),
+        starting_image_id=next_image_id,
+        starting_annotation_id=next_annotation_id,
+    )
+    test.as_coco(
+        annotations_path=str(test_path),
+        starting_image_id=next_image_id,
+        starting_annotation_id=next_annotation_id,
+    )
+
+    all_image_ids: list[int] = []
+    all_annotation_ids: list[int] = []
+    for path in (train_path, valid_path, test_path):
+        image_ids, annotation_ids = _read_ids(path)
+        all_image_ids.extend(image_ids)
+        all_annotation_ids.extend(annotation_ids)
+
+    assert len(all_image_ids) == len(set(all_image_ids)), (
+        "image ids collide across splits"
+    )
+    assert len(all_annotation_ids) == len(set(all_annotation_ids)), (
+        "annotation ids collide across splits"
+    )
+    # Concrete chained values.
+    assert all_image_ids == [1, 2, 3, 4, 5, 6]
+    assert all_annotation_ids == list(range(1, 6 + 8 + 5 + 1))
+
+
+def test_save_coco_annotations_empty_dataset_returns_starting_ids(tmp_path):
+    """An empty dataset writes a valid (but empty) COCO file and returns
+    the starting ids unchanged so chaining still composes around it."""
+    dataset = DetectionDataset(classes=["object"], images=[], annotations={})
+    annotation_path = tmp_path / "annotations.json"
+
+    next_image_id, next_annotation_id = save_coco_annotations(
+        dataset=dataset,
+        annotation_path=str(annotation_path),
+        starting_image_id=7,
+        starting_annotation_id=42,
+    )
+
+    image_ids, annotation_ids = _read_ids(annotation_path)
+    assert image_ids == []
+    assert annotation_ids == []
+    assert next_image_id == 7
+    assert next_annotation_id == 42
+
+
+def test_as_coco_without_annotations_path_returns_starting_ids(tmp_path):
+    """When only writing images, the starting ids round-trip unchanged so
+    chaining still works in the images-only branch."""
+    dataset = _tiny_detection_dataset(tmp_path, "img", num_images=2, dets_per_image=1)
+    next_image_id, next_annotation_id = dataset.as_coco(
+        images_directory_path=str(tmp_path / "imgs"),
+        starting_image_id=42,
+        starting_annotation_id=99,
+    )
+    assert next_image_id == 42
+    assert next_annotation_id == 99
+
+
+def test_save_coco_annotations_annotation_image_id_references_correct_image(tmp_path):
+    """Every annotation's image_id must reference an image id present in the
+    same file, even when a non-default starting_image_id is used."""
+    dataset = _tiny_detection_dataset(tmp_path, "img", num_images=3, dets_per_image=2)
+    annotation_path = tmp_path / "annotations.json"
+
+    save_coco_annotations(
+        dataset=dataset,
+        annotation_path=str(annotation_path),
+        starting_image_id=100,
+        starting_annotation_id=500,
+    )
+
+    with open(annotation_path) as f:
+        coco = json.load(f)
+    image_id_set = {img["id"] for img in coco["images"]}
+    annotation_image_ids = {ann["image_id"] for ann in coco["annotations"]}
+    assert annotation_image_ids <= image_id_set, (
+        "annotation image_id values reference unknown image ids"
+    )
+
+
+def test_save_coco_annotations_zero_annotation_images(tmp_path):
+    """Dataset with images but zero detections per image: image ids are
+    assigned sequentially but annotation list stays empty."""
+    dataset = _tiny_detection_dataset(tmp_path, "img", num_images=2, dets_per_image=0)
+    annotation_path = tmp_path / "annotations.json"
+
+    next_image_id, next_annotation_id = save_coco_annotations(
+        dataset=dataset, annotation_path=str(annotation_path)
+    )
+
+    image_ids, annotation_ids = _read_ids(annotation_path)
+    assert image_ids == [1, 2]
+    assert annotation_ids == []
+    assert next_image_id == 3
+    assert next_annotation_id == 1
+
+
+# --- Regression: legacy 0-indexed COCO files still load correctly (#1181) ---
+
+
+def test_from_coco_loads_legacy_zero_indexed_category_ids(tmp_path) -> None:
+    """COCO files with 0-indexed category ids (written by supervision <=0.28.x)
+    must still load and produce correct internal 0-indexed class_ids."""
+    images_dir = tmp_path / "images"
+    images_dir.mkdir()
+    img_path = images_dir / "img.jpg"
+    assert cv2.imwrite(str(img_path), np.zeros((10, 10, 3), dtype=np.uint8))
+
+    coco_data = {
+        "categories": [
+            {"id": 0, "name": "cat", "supercategory": "none"},
+            {"id": 1, "name": "dog", "supercategory": "none"},
+        ],
+        "images": [{"id": 1, "file_name": "img.jpg", "width": 10, "height": 10}],
+        "annotations": [
+            {
+                "id": 1,
+                "image_id": 1,
+                "category_id": 0,
+                "bbox": [0, 0, 5, 5],
+                "area": 25,
+                "iscrowd": 0,
+            },
+            {
+                "id": 2,
+                "image_id": 1,
+                "category_id": 1,
+                "bbox": [1, 1, 3, 3],
+                "area": 9,
+                "iscrowd": 0,
+            },
+        ],
+    }
+    annotations_path = tmp_path / "annotations.json"
+    annotations_path.write_text(json.dumps(coco_data), encoding="utf-8")
+
+    dataset = DetectionDataset.from_coco(
+        images_directory_path=str(images_dir),
+        annotations_path=str(annotations_path),
+    )
+
+    assert dataset.classes == ["cat", "dog"]
+    dets = dataset.annotations[str(img_path)]
+    assert dets.class_id is not None
+    assert sorted(dets.class_id.tolist()) == [0, 1]
+
+
+# --- save_coco_annotations ValueError guards ---
+
+
+@pytest.mark.parametrize(
+    ("starting_image_id", "starting_annotation_id"),
+    [
+        (0, 1),
+        (1, 0),
+        (0, 0),
+    ],
+)
+def test_save_coco_annotations_rejects_zero_starting_ids(
+    tmp_path, starting_image_id: int, starting_annotation_id: int
+) -> None:
+    """starting_image_id and starting_annotation_id below 1 must raise ValueError."""
+    dataset = DetectionDataset(classes=["object"], images=[], annotations={})
+    annotation_path = tmp_path / "annotations.json"
+
+    with pytest.raises(ValueError, match="must be >= 1"):
+        save_coco_annotations(
+            dataset=dataset,
+            annotation_path=str(annotation_path),
+            starting_image_id=starting_image_id,
+            starting_annotation_id=starting_annotation_id,
+        )
+
+
+# --- detections_to_coco_annotations: class_id=None guard ---
+
+
+def test_detections_to_coco_annotations_raises_when_class_id_is_none() -> None:
+    """Detections with no class_id must raise ValueError before +1 arithmetic."""
+    detections = Detections(
+        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        class_id=None,
+    )
+
+    with pytest.raises(ValueError, match="class_id"):
+        detections_to_coco_annotations(
+            detections=detections,
+            image_id=1,
+            annotation_id=1,
+        )
+
+
+# --- Round-trip: multi-class-per-image case ---
+
+
+def test_coco_round_trip_multi_class_single_image(tmp_path) -> None:
+    """Single image with two detections of different classes round-trips losslessly."""
+    img_path = str(tmp_path / "img.jpg")
+    assert cv2.imwrite(img_path, np.zeros((10, 10, 3), dtype=np.uint8))
+
+    dataset = DetectionDataset(
+        classes=["cat", "dog"],
+        images=[img_path],
+        annotations={
+            img_path: Detections(
+                xyxy=np.array([[0, 0, 5, 5], [1, 1, 4, 4]], dtype=np.float32),
+                class_id=np.array([0, 1], dtype=int),
+            )
+        },
+    )
+
+    annotation_path = tmp_path / "annotations.json"
+    dataset.as_coco(annotations_path=str(annotation_path))
+
+    with open(annotation_path) as f:
+        payload = json.load(f)
+    assert sorted(ann["category_id"] for ann in payload["annotations"]) == [1, 2]
+
+    loaded = DetectionDataset.from_coco(
+        images_directory_path=str(tmp_path),
+        annotations_path=str(annotation_path),
+    )
+    dets = loaded.annotations[img_path]
+    assert dets.class_id is not None
+    assert sorted(dets.class_id.tolist()) == [0, 1]

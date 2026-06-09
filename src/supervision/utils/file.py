@@ -28,8 +28,12 @@ def list_files_with_extensions(
 
     Args:
         directory: The directory path as a string or Path object.
-        extensions: A list of file extensions to filter.
-            Default is None, which lists all files.
+        extensions: A list of file extensions to filter. Extensions may be
+            supplied with or without a leading dot (e.g. ``'jpg'`` and
+            ``'.jpg'`` are equivalent). Matching is case-insensitive.
+            Multi-part extensions are supported (e.g. ``'tar.gz'``). Pass
+            ``None`` (default) to list all files; pass an empty list to
+            return no files.
 
     Returns:
         A list of Path objects for the matching files.
@@ -50,9 +54,9 @@ def list_files_with_extensions(
         >>> files = sv.list_files_with_extensions(directory=tmpdir)
         >>> len(files)
         3
-        >>> # List only files with '.txt' and '.md' extensions
+        >>> # Leading dot accepted; matching is case-insensitive
         >>> files = sv.list_files_with_extensions(
-        ...     directory=tmpdir, extensions=['txt', 'md'])
+        ...     directory=tmpdir, extensions=['.txt', 'md'])
         >>> len(files)
         2
 
@@ -63,8 +67,22 @@ def list_files_with_extensions(
     files_with_extensions: list[Path] = []
 
     if extensions is not None:
+        candidates = [p for p in directory.glob("*") if p.is_file()]
+        path_index: dict[Path, set[str]] = {}
+        for path in candidates:
+            suffixes = [suffix.lower().lstrip(".") for suffix in path.suffixes]
+            path_index[path] = {
+                ".".join(suffixes[index:]) for index in range(len(suffixes))
+            }
+        seen_paths: set[Path] = set()
         for ext in extensions:
-            files_with_extensions.extend(directory.glob(f"*.{ext}"))
+            normalized_extension = ext.lower().lstrip(".")
+            if not normalized_extension:
+                continue
+            for path, path_extensions in path_index.items():
+                if path not in seen_paths and normalized_extension in path_extensions:
+                    files_with_extensions.append(path)
+                    seen_paths.add(path)
     else:
         files_with_extensions.extend(directory.glob("*"))
 

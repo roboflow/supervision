@@ -3,6 +3,7 @@ from contextlib import nullcontext as DoesNotRaise
 import numpy as np
 import pytest
 
+from supervision.detection.core import Detections
 from supervision.key_points.core import KeyPoints
 from tests.helpers import (
     _create_key_points,
@@ -12,6 +13,31 @@ from tests.helpers import (
     _FakeYoloNasKeyPoint,
     _FakeYoloNasKeyPointResults,
 )
+
+
+@pytest.fixture
+def rfdetr_detections() -> Detections:
+    keypoints = np.array(
+        [
+            [[10.0, 20.0, 0.9], [30.0, 40.0, 0.8]],
+            [[50.0, 60.0, 0.7], [70.0, 80.0, 0.6]],
+        ],
+        dtype=np.float32,
+    )
+    precision_cholesky = np.zeros((2, 2, 3), dtype=np.float32)
+    return Detections(
+        xyxy=np.array(
+            [[0.0, 0.0, 40.0, 50.0], [10.0, 20.0, 90.0, 100.0]], dtype=np.float32
+        ),
+        confidence=np.array([0.95, 0.85], dtype=np.float32),
+        class_id=np.array([1, 1]),
+        data={
+            "keypoints": keypoints,
+            "keypoint_precision_cholesky": precision_cholesky,
+            "source_shape": np.array([[100, 200], [50, 100]], dtype=np.int64),
+        },
+    )
+
 
 KEY_POINTS = _create_key_points(
     xy=[
@@ -26,6 +52,73 @@ KEY_POINTS = _create_key_points(
     ],
     class_id=[0, 1, 2],
 )
+
+
+def test_key_points_from_rfdetr_loads_keypoints_and_covariance(
+    rfdetr_detections: Detections,
+) -> None:
+    key_points = KeyPoints.from_rfdetr(rfdetr_detections)
+
+    assert key_points.xy.shape == (2, 2, 2)
+    np.testing.assert_allclose(
+        key_points.xy, rfdetr_detections.data["keypoints"][:, :, :2]
+    )
+    np.testing.assert_allclose(
+        key_points.confidence, rfdetr_detections.data["keypoints"][:, :, 2]
+    )
+    np.testing.assert_array_equal(key_points.class_id, rfdetr_detections.class_id)
+    assert "covariance" in key_points.data
+    covariance = key_points.data["covariance"]
+    assert covariance.shape == (2, 2, 2, 2)
+    np.testing.assert_allclose(
+        covariance[0, 0], np.diag([200.0**2, 100.0**2]), rtol=1e-4, atol=1e-6
+    )
+    np.testing.assert_allclose(
+        covariance[1, 0], np.diag([100.0**2, 50.0**2]), rtol=1e-4, atol=1e-6
+    )
+
+
+def test_key_points_from_rfdetr_without_precision_omits_covariance(
+    rfdetr_detections: Detections,
+) -> None:
+    del rfdetr_detections.data["keypoint_precision_cholesky"]
+
+    key_points = KeyPoints.from_rfdetr(rfdetr_detections)
+
+    assert key_points.xy.shape == (2, 2, 2)
+    assert "covariance" not in key_points.data
+
+
+def test_key_points_from_rfdetr_missing_keypoints_raises(
+    rfdetr_detections: Detections,
+) -> None:
+    del rfdetr_detections.data["keypoints"]
+
+    with pytest.raises(ValueError, match=r"data\['keypoints'\]"):
+        KeyPoints.from_rfdetr(rfdetr_detections)
+
+
+def test_key_points_from_rfdetr_precision_requires_source_shape(
+    rfdetr_detections: Detections,
+) -> None:
+    del rfdetr_detections.data["source_shape"]
+
+    with pytest.raises(ValueError, match="source_shape"):
+        KeyPoints.from_rfdetr(rfdetr_detections)
+
+
+def test_key_points_from_rfdetr_empty_keypoints_returns_empty(
+    rfdetr_detections: Detections,
+) -> None:
+    rfdetr_detections.xyxy = np.empty((0, 4), dtype=np.float32)
+    rfdetr_detections.confidence = np.empty((0,), dtype=np.float32)
+    rfdetr_detections.class_id = np.empty((0,), dtype=int)
+    rfdetr_detections.data["keypoints"] = np.empty((0, 2, 3), dtype=np.float32)
+    del rfdetr_detections.data["source_shape"]
+
+    key_points = KeyPoints.from_rfdetr(rfdetr_detections)
+
+    assert key_points == KeyPoints.empty()
 
 
 @pytest.mark.parametrize(

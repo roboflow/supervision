@@ -7,6 +7,7 @@ from typing import Any, cast, overload
 import cv2
 import numpy as np
 import numpy.typing as npt
+from deprecate import deprecated, void
 from PIL import Image, ImageDraw, ImageFont
 from scipy.interpolate import splev, splprep
 
@@ -15,6 +16,7 @@ from supervision.annotators.utils import (
     PENDING_TRACK_ID,
     ColorLookup,
     Trace,
+    _validate_labels,
     calculate_dynamic_kernel_size,
     calculate_dynamic_pixel_size,
     get_labels_text,
@@ -22,7 +24,6 @@ from supervision.annotators.utils import (
     resolve_color,
     resolve_text_background_xyxy,
     snap_boxes,
-    validate_labels,
     wrap_text,
 )
 from supervision.config import ORIENTED_BOX_COORDINATES
@@ -1269,7 +1270,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        validate_labels(labels, detections)
+        _validate_labels(labels, detections)
 
         labels = get_labels_text(detections, labels)
         label_properties: npt.NDArray[np.float32] = self._get_label_properties(
@@ -1584,7 +1585,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             ```
         """
         assert isinstance(scene, Image.Image)
-        validate_labels(labels, detections)
+        _validate_labels(labels, detections)
 
         draw = ImageDraw.Draw(scene)
         labels = get_labels_text(detections, labels)
@@ -2095,7 +2096,7 @@ class HeatMapAnnotator(BaseAnnotator):
         position: Position = Position.BOTTOM_CENTER,
         opacity: float = 0.2,
         radius: int = 40,
-        kernel_size: int = 25,
+        kernel_size: int | None = 25,
         top_hue: int = 0,
         low_hue: int = 125,
     ):
@@ -2105,7 +2106,8 @@ class HeatMapAnnotator(BaseAnnotator):
                 `BOTTOM_CENTER`.
             opacity: Opacity of the overlay mask, between 0 and 1.
             radius: Radius of the heat circle.
-            kernel_size: Kernel size for blurring the heatmap.
+            kernel_size: Kernel size for blurring the heatmap. Pass `None`
+                to disable blurring entirely.
             top_hue: Hue at the top of the heatmap. Defaults to 0 (red).
             low_hue: Hue at the bottom of the heatmap. Defaults to 125 (blue).
         """
@@ -2131,6 +2133,10 @@ class HeatMapAnnotator(BaseAnnotator):
         Returns:
             The annotated image, matching the type of `scene` (`numpy.ndarray`
                 or `PIL.Image.Image`)
+
+        Note:
+            When `detections` is empty or no heat has accumulated yet, the
+            scene is returned unchanged without raising a ``RuntimeWarning``.
 
         Example:
             ```python
@@ -2174,7 +2180,9 @@ class HeatMapAnnotator(BaseAnnotator):
             )
         self.heat_mask = mask + self.heat_mask
         temp = self.heat_mask.copy()
-        temp = self.low_hue - temp / temp.max() * (self.low_hue - self.top_hue)
+        max_val = temp.max()
+        if max_val > 0:
+            temp = self.low_hue - temp / max_val * (self.low_hue - self.top_hue)
         temp = temp.astype(np.uint8)
         if self.kernel_size is not None:
             temp = cv2.blur(temp, (self.kernel_size, self.kernel_size))
@@ -2633,7 +2641,7 @@ class PercentageBarAnnotator(BaseAnnotator):
         """
         if not isinstance(scene, np.ndarray):
             return scene
-        self.validate_custom_values(custom_values=custom_values, detections=detections)
+        self._validate_custom_values(custom_values=custom_values, detections=detections)
 
         anchors = detections.get_anchors_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
@@ -2708,7 +2716,7 @@ class PercentageBarAnnotator(BaseAnnotator):
             return (cx, cy), (cx + width, cy + height)
 
     @staticmethod
-    def validate_custom_values(
+    def _validate_custom_values(
         custom_values: npt.NDArray[np.float64] | list[float] | None,
         detections: Detections,
     ) -> None:
@@ -2733,6 +2741,18 @@ class PercentageBarAnnotator(BaseAnnotator):
 
             if not all(0 <= value <= 1 for value in custom_values):
                 raise ValueError("All values in custom_values must be between 0 and 1.")
+
+    @staticmethod
+    @deprecated(  # type: ignore[untyped-decorator]
+        target=_validate_custom_values.__func__,  # type: ignore[attr-defined]
+        deprecated_in="0.29.0",
+        remove_in="0.31.0",
+    )
+    def validate_custom_values(
+        custom_values: npt.NDArray[np.float64] | list[float] | None,
+        detections: Detections,
+    ) -> None:
+        void(custom_values, detections)
 
 
 class CropAnnotator(BaseAnnotator):

@@ -10,11 +10,7 @@ date_modified: 2026-04-22
 
 # Detect Small Objects
 
-This guide shows how to detect small objects
-with the [Inference](https://github.com/roboflow/inference),
-[Ultralytics](https://github.com/ultralytics/ultralytics) or
-[Transformers](https://github.com/huggingface/transformers) packages using
-[`InferenceSlicer`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer).
+This guide shows how to detect small objects with the [Inference](https://github.com/roboflow/inference), [Ultralytics](https://github.com/ultralytics/ultralytics) or [Transformers](https://github.com/huggingface/transformers) packages using [`InferenceSlicer`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer).
 
 <video controls>
     <source src="https://media.roboflow.com/supervision_detect_small_objects_example.mp4" type="video/mp4">
@@ -22,8 +18,7 @@ with the [Inference](https://github.com/roboflow/inference),
 
 ## Baseline Detection
 
-Small object detection in high-resolution images presents challenges due to the objects'
-size relative to the image resolution.
+Small object detection in high-resolution images presents challenges due to the objects' size relative to the image resolution.
 
 Running a standard detection model on the full image establishes a baseline for comparison. Load your chosen model, pass the image through it, and convert the results into a `Detections` object. This baseline reveals how many small objects the model misses at native resolution, motivating the sliced inference approach shown later.
 
@@ -116,9 +111,7 @@ Running a standard detection model on the full image establishes a baseline for 
 
 ## Input Resolution
 
-Modifying the input resolution of images before detection can enhance small object
-identification at the cost of processing speed and increased memory usage. This method
-is less effective for ultra-high-resolution images (4K and above).
+Modifying the input resolution of images before detection can enhance small object identification at the cost of processing speed and increased memory usage. This method is less effective for ultra-high-resolution images (4K and above).
 
 === "Inference"
 
@@ -166,9 +159,7 @@ is less effective for ultra-high-resolution images (4K and above).
 
 ## Inference Slicer
 
-[`InferenceSlicer`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer)
-processes high-resolution images by dividing them into smaller segments, detecting
-objects within each, and aggregating the results.
+[`InferenceSlicer`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer) processes high-resolution images by dividing them into smaller segments, detecting objects within each, and aggregating the results.
 
 <video controls>
     <source src="https://media.roboflow.com/supervision_detect_small_objects_example_2.mp4" type="video/mp4">

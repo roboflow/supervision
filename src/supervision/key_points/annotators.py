@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Literal, cast
 
 import cv2
 import numpy as np
@@ -192,6 +192,207 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         return scene
 
 
+class VertexEllipseAnnotator(BaseKeyPointAnnotator):
+    """
+    A class that draws covariance ellipses around skeleton vertices.
+
+    The annotator expects per-keypoint covariance matrices stored in
+    ``key_points.data[covariance_data_key]`` with shape ``(N, K, 2, 2)`` in pixel
+    coordinates, where ``N`` is the number of keypoint sets and ``K`` is the
+    number of vertices per set.
+    """
+
+    def __init__(
+        self,
+        color: Color = Color.ROBOFLOW,
+        thickness: int = 2,
+        sigma: float = 2.0,
+        covariance_data_key: str = "covariance",
+        confidence_threshold: float = 0.0,
+        max_axis_length: float | None = None,
+        line_style: Literal["solid", "dashed"] = "solid",
+        dash_length: int = 16,
+    ) -> None:
+        """
+        Args:
+            color: The color to use for covariance ellipses.
+            thickness: The line thickness used to draw the ellipses.
+            sigma: Number of standard deviations represented by the ellipse axes.
+            covariance_data_key: Key in ``key_points.data`` containing covariance
+                matrices with shape ``(N, K, 2, 2)``.
+            confidence_threshold: Minimum keypoint confidence required for drawing.
+                Ignored when ``key_points.confidence`` is ``None``.
+            max_axis_length: Optional cap for ellipse semi-axis lengths in pixels.
+                When ``None`` (default), near-singular precision matrices can produce
+                extremely large eigenvalues and frame-spanning ellipses. Set this to
+                ``min(image_height, image_width)`` or a similar bound for production
+                use.
+            line_style: Ellipse line style. Use ``"dashed"`` for less visually
+                dominant uncertainty overlays.
+            dash_length: Arc length in degrees for each dashed segment. Only used
+                when ``line_style="dashed"``.
+        """
+        if sigma <= 0:
+            raise ValueError("sigma must be positive")
+        if thickness <= 0:
+            raise ValueError("thickness must be positive")
+        if max_axis_length is not None and max_axis_length <= 0:
+            raise ValueError("max_axis_length must be positive when provided")
+        if line_style not in {"solid", "dashed"}:
+            raise ValueError("line_style must be 'solid' or 'dashed'")
+        if dash_length <= 0:
+            raise ValueError("dash_length must be positive")
+
+        self.color = color
+        self.thickness = thickness
+        self.sigma = sigma
+        self.covariance_data_key = covariance_data_key
+        self.confidence_threshold = confidence_threshold
+        self.max_axis_length = max_axis_length
+        self.line_style = line_style
+        self.dash_length = dash_length
+
+    @ensure_cv2_image_for_class_method
+    def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
+        """
+        Annotates the given scene with covariance ellipses around keypoints.
+
+        Args:
+            scene: The image where covariance ellipses will be drawn. ``ImageType``
+                accepts either ``numpy.ndarray`` or ``PIL.Image.Image``.
+            key_points: A collection of key points. Covariance matrices must be
+                stored in ``key_points.data[covariance_data_key]``.
+
+        Returns:
+            The annotated image, matching the type of ``scene``.
+
+        Raises:
+            ValueError: If ``key_points.data`` does not contain the key specified
+                by ``covariance_data_key``, or if the covariance array shape does
+                not match ``(N, K, 2, 2)``.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array([[[50, 50], [60, 60]]], dtype=np.float32),
+            ...     data={"covariance": np.array([[[[25, 0], [0, 9]], [[9, 0], [0, 4]]]], dtype=np.float32)}
+            ... )
+            >>> annotator = sv.VertexEllipseAnnotator(color=sv.Color.GREEN)
+            >>> annotated_frame = annotator.annotate(image.copy(), key_points)
+            >>> annotated_frame.shape
+            (100, 100, 3)
+
+            ```
+        """  # noqa: E501 // docs
+        assert isinstance(scene, np.ndarray)
+        if len(key_points) == 0:
+            return scene
+
+        covariances = self._get_covariances(key_points=key_points)
+        for detection_index, xy in enumerate(key_points.xy):
+            for point_index, (x, y) in enumerate(xy):
+                if np.allclose((x, y), 0):
+                    continue
+                if key_points.confidence is not None:
+                    confidence = key_points.confidence[detection_index, point_index]
+                    if not np.isfinite(confidence):
+                        continue
+                    if confidence < self.confidence_threshold:
+                        continue
+                ellipse = self._covariance_to_ellipse(
+                    covariance=covariances[detection_index, point_index]
+                )
+                if ellipse is None:
+                    continue
+                axis_lengths, angle = ellipse
+                self._draw_ellipse(
+                    scene=scene,
+                    center=(round(x), round(y)),
+                    axes=axis_lengths,
+                    angle=angle,
+                )
+
+        return scene
+
+    def _get_covariances(self, key_points: KeyPoints) -> npt.NDArray[np.float32]:
+        covariances = key_points.data.get(self.covariance_data_key)
+        if covariances is None:
+            raise ValueError(
+                f"key_points.data must contain {self.covariance_data_key!r} "
+                "with shape (N, K, 2, 2)."
+            )
+        covariances_array = cast(
+            npt.NDArray[np.float32], np.asarray(covariances, dtype=np.float32)
+        )
+        expected_shape = (*key_points.xy.shape[:2], 2, 2)
+        if covariances_array.shape != expected_shape:
+            raise ValueError(
+                f"Expected covariance shape {expected_shape}, "
+                f"got {covariances_array.shape}."
+            )
+        return covariances_array
+
+    def _covariance_to_ellipse(
+        self, covariance: npt.NDArray[np.float32]
+    ) -> tuple[tuple[int, int], float] | None:
+        if not np.isfinite(covariance).all():
+            return None
+        try:
+            eigenvalues, eigenvectors = np.linalg.eigh(covariance.astype(np.float64))
+        except np.linalg.LinAlgError:
+            return None
+        if not np.isfinite(eigenvalues).all() or np.any(eigenvalues <= 0):
+            return None
+
+        order = np.argsort(eigenvalues)[::-1]
+        eigenvalues = eigenvalues[order]
+        eigenvectors = eigenvectors[:, order]
+        axes = self.sigma * np.sqrt(eigenvalues)
+        if self.max_axis_length is not None:
+            axes = np.minimum(axes, self.max_axis_length)
+        axis_lengths = tuple(max(1, round(axis)) for axis in axes)
+        angle = float(np.degrees(np.arctan2(eigenvectors[1, 0], eigenvectors[0, 0])))
+        return axis_lengths, angle
+
+    def _draw_ellipse(
+        self,
+        scene: npt.NDArray[np.uint8],
+        center: tuple[int, int],
+        axes: tuple[int, int],
+        angle: float,
+    ) -> None:
+        if self.line_style == "solid":
+            cv2.ellipse(
+                img=scene,
+                center=center,
+                axes=axes,
+                angle=angle,
+                startAngle=0,
+                endAngle=360,
+                color=self.color.as_bgr(),
+                thickness=self.thickness,
+                lineType=cv2.LINE_AA,
+            )
+            return
+
+        step = self.dash_length * 2
+        for start_angle in range(0, 360, step):
+            cv2.ellipse(
+                img=scene,
+                center=center,
+                axes=axes,
+                angle=angle,
+                startAngle=start_angle,
+                endAngle=min(start_angle + self.dash_length, 360),
+                color=self.color.as_bgr(),
+                thickness=self.thickness,
+                lineType=cv2.LINE_AA,
+            )
+
+
 class VertexLabelAnnotator:
     """
     A class that draws labels of skeleton vertices on images. It uses specified key
@@ -331,7 +532,10 @@ class VertexLabelAnnotator:
         if skeletons_count == 0:
             return scene
 
-        anchors = key_points.xy.reshape(points_count * skeletons_count, 2).astype(int)
+        anchors = cast(
+            npt.NDArray[np.int_],
+            key_points.xy.reshape(points_count * skeletons_count, 2).astype(int),
+        )
         mask = np.all(anchors != 0, axis=1)
 
         if not np.any(mask):

@@ -4,10 +4,7 @@
 
 ## 👋 hello
 
-Practical demonstration on leveraging computer vision for analyzing wait times and
-monitoring the duration that objects or individuals spend in predefined areas of video
-frames. This example project, perfect for retail analytics or traffic management
-applications.
+Practical demonstration on leveraging computer vision for analyzing wait times and monitoring the duration that objects or individuals spend in predefined areas of video frames. This example project, perfect for retail analytics or traffic management applications.
 
 https://github.com/roboflow/supervision/assets/26109316/d051cc8a-dd15-41d4-aa36-d38b86334c39
 
@@ -59,9 +56,7 @@ python scripts/download_from_youtube.py \
 
 ### `stream_from_file`
 
-This script allows you to stream video files from a directory. It's an awesome way to
-mock a live video stream for local testing. Video will be streamed in a loop under
-`rtsp://localhost:8554/live0.stream` URL. This script requires docker to be installed.
+This script allows you to stream video files from a directory. It's an awesome way to mock a live video stream for local testing. Video will be streamed in a loop under `rtsp://localhost:8554/live0.stream` URL. This script requires docker to be installed.
 
 - `--video_directory`: Directory containing video files to stream.
 - `--number_of_streams`: Number of video files to stream.
@@ -80,10 +75,7 @@ python scripts/stream_from_file.py \
 
 ### `draw_zones`
 
-If you want to test zone time in zone analysis on your own video, you can use this
-script to design custom zones and save results as a JSON file. The script will open a
-window where you can draw polygons on the source image or video file. The polygons will
-be saved as a JSON file.
+If you want to test zone time in zone analysis on your own video, you can use this script to design custom zones and save results as a JSON file. The script will open a window where you can draw polygons on the source image or video file. The polygons will be saved as a JSON file.
 
 - `--source_path`: Path to the source image or video file for drawing polygons.
 - `--zone_configuration_path`: Path where the polygon annotations will be saved as a JSON file.
@@ -324,12 +316,6 @@ python ultralytics_stream_example.py \
 
 This demo integrates two main components, each with its own licensing:
 
-- ultralytics: The object detection model used in this demo, YOLOv8, is distributed
-    under the [AGPL-3.0 license](https://github.com/ultralytics/ultralytics/blob/main/LICENSE).
-    You can find more details about this license here.
+- ultralytics: The object detection model used in this demo, YOLOv8, is distributed under the [AGPL-3.0 license](https://github.com/ultralytics/ultralytics/blob/main/LICENSE). You can find more details about this license here.
 
-- supervision: The analytics code that powers the zone-based analysis in this demo is
-    based on the Supervision library, which is licensed under the
-    [MIT license](https://github.com/roboflow/supervision/blob/develop/LICENSE.md). This
-    makes the Supervision part of the code fully open source and freely usable in your
-    projects.
+- supervision: The analytics code that powers the zone-based analysis in this demo is based on the Supervision library, which is licensed under the [MIT license](https://github.com/roboflow/supervision/blob/develop/LICENSE.md). This makes the Supervision part of the code fully open source and freely usable in your projects.

@@ -7,7 +7,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated_class
+from deprecate import TargetMode, deprecated, deprecated_class, void
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.core import DetectionDataset
@@ -137,7 +137,7 @@ def detections_to_tensor(
     return result
 
 
-def validate_input_tensors(
+def _validate_input_tensors(
     predictions: list[npt.NDArray[np.float32]],
     targets: list[npt.NDArray[np.float32]],
     metric_target: MetricTarget = MetricTarget.BOXES,
@@ -177,6 +177,18 @@ def validate_input_tensors(
                 f"Targets must have shape (N, {expected_target_cols}). "
                 f"Got {targets[0].shape} instead."
             )
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_validate_input_tensors,
+    deprecated_in="0.29.0",
+    remove_in="0.31.0",
+)
+def validate_input_tensors(
+    predictions: list[npt.NDArray[np.float32]],
+    targets: list[npt.NDArray[np.float32]],
+) -> None:
+    void(predictions, targets)
 
 
 @dataclass
@@ -355,7 +367,7 @@ class ConfusionMatrix:
 
             ```
         """
-        validate_input_tensors(predictions, targets, metric_target=metric_target)
+        _validate_input_tensors(predictions, targets, metric_target=metric_target)
 
         num_classes = len(classes)
         matrix = np.zeros((num_classes + 1, num_classes + 1))
@@ -696,7 +708,7 @@ class ConfusionMatrix:
 
 
 @deprecated_class(
-    target=None,
+    target=TargetMode.NOTIFY,
     deprecated_in="0.27.0",
     remove_in="0.31.0",
 )
@@ -880,7 +892,7 @@ class MeanAveragePrecision:
 
             ```
         """
-        validate_input_tensors(predictions, targets)
+        _validate_input_tensors(predictions, targets)
         iou_thresholds = np.linspace(0.5, 0.95, 10)
         stats = []
 

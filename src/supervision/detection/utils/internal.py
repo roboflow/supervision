@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from itertools import chain
-from typing import Any, cast
+from typing import Any, Union, cast
 
 import cv2
 import numpy as np
@@ -61,6 +61,29 @@ def process_roboflow_result(
     npt.NDArray[np.integer] | None,
     dict[str, npt.NDArray[np.generic]],
 ]:
+    """Parse a Roboflow API or Inference package result into detection arrays.
+
+    The returned ``data`` dict always contains ``CLASS_NAME_DATA_FIELD`` as a
+    string-dtype NumPy array. When ``predictions`` is empty, the array has
+    shape ``(0,)`` with ``dtype=str``, preserving dtype contracts for callers
+    that mix empty and non-empty results.
+
+    Args:
+        roboflow_result: Raw dict from the Roboflow REST API or the Inference
+            package (after ``.dict()`` serialisation).
+
+    Returns:
+        A 6-tuple of ``(xyxy, confidence, class_id, masks, tracker_ids, data)``
+        where each array is aligned with the others. ``masks`` and
+        ``tracker_ids`` are ``None`` when absent from the predictions.
+
+    Examples:
+        >>> from supervision.detection.utils.internal import process_roboflow_result
+        >>> result = {"predictions": [], "image": {"width": 100, "height": 100}}
+        >>> _, _, _, _, _, data = process_roboflow_result(result)
+        >>> data["class_name"].dtype.kind
+        'U'
+    """
     if not roboflow_result["predictions"]:
         return (
             np.empty((0, 4), dtype=np.float64),
@@ -133,12 +156,14 @@ def process_roboflow_result(
             polygon = np.array(
                 [[point["x"], point["y"]] for point in prediction["points"]], dtype=int
             )
-            mask = polygon_to_mask(polygon, resolution_wh=(image_width, image_height))
+            mask = polygon_to_mask(
+                polygon, resolution_wh=(image_width, image_height)
+            ).astype(bool)
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
-            masks.append(mask.astype(bool))
+            masks.append(mask)
             if "tracker_id" in prediction:
                 tracker_ids.append(prediction["tracker_id"])
 
@@ -175,8 +200,8 @@ def process_roboflow_result(
 
 
 def is_data_equal(
-    data_a: dict[str, npt.NDArray[np.generic]],
-    data_b: dict[str, npt.NDArray[np.generic]],
+    data_a: dict[str, npt.NDArray[np.generic] | list[Any]],
+    data_b: dict[str, npt.NDArray[np.generic] | list[Any]],
 ) -> bool:
     """
     Compares the data payloads of two Detections instances.
@@ -249,7 +274,7 @@ def merge_data(
                 "All data values within a single object must have equal length."
             )
 
-    merged_data: dict[str, list[Any]] = {key: [] for key in all_keys_sets[0]}
+    merged_data: dict[str, Any] = {key: [] for key in all_keys_sets[0]}
     for data in data_list:
         for key in data:
             merged_data[key].append(data[key])
@@ -271,7 +296,7 @@ def merge_data(
                 f"types are allowed."
             )
 
-    return merged_data
+    return cast(dict[str, Union[npt.NDArray[np.generic], list[Any]]], merged_data)
 
 
 def merge_metadata(metadata_list: list[dict[str, Any]]) -> dict[str, Any]:

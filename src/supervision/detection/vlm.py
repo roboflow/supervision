@@ -10,12 +10,13 @@ from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
+from deprecate import deprecated, void
 from PIL import Image
 
 from supervision.detection.utils.boxes import denormalize_boxes
 from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
 from supervision.utils.internal import warn_deprecated
-from supervision.validators import validate_resolution
+from supervision.validators import _validate_resolution
 
 
 class LMM(Enum):
@@ -159,7 +160,9 @@ SUPPORTED_TASKS_FLORENCE_2 = [
 ]
 
 
-def validate_vlm_parameters(vlm: VLM | str, result: Any, kwargs: dict[str, Any]) -> VLM:
+def _validate_vlm_parameters(
+    vlm: VLM | str, result: Any, kwargs: dict[str, Any]
+) -> VLM:
     """
     Validates the parameters and result type for a given Vision-Language Model (VLM).
 
@@ -200,9 +203,18 @@ def validate_vlm_parameters(vlm: VLM | str, result: Any, kwargs: dict[str, Any])
     return vlm
 
 
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_validate_vlm_parameters,
+    deprecated_in="0.29.0",
+    remove_in="0.31.0",
+)
+def validate_vlm_parameters(vlm: VLM | str, result: Any, kwargs: dict[str, Any]) -> VLM:
+    return void(vlm, result, kwargs)  # type: ignore[no-any-return]
+
+
 def from_paligemma(
     result: str, resolution_wh: tuple[int, int], classes: list[str] | None = None
-) -> tuple[npt.NDArray[Any], npt.NDArray[Any] | None, npt.NDArray[Any]]:
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[Any]]:
     """
     Parse bounding boxes from paligemma-formatted text, scale them to the specified
     resolution, and optionally filter by classes.
@@ -220,7 +232,7 @@ def from_paligemma(
             is an array of shape `(n,)` with class labels.
     """
 
-    w, h = validate_resolution(resolution_wh)
+    w, h = _validate_resolution(resolution_wh)
 
     pattern = re.compile(
         r"(?<!<loc\d{4}>)<loc(\d{4})><loc(\d{4})><loc(\d{4})><loc(\d{4})> ([\w\s\-]+)"
@@ -229,7 +241,7 @@ def from_paligemma(
     matches = np.array(matches) if matches else np.empty((0, 5))
 
     if matches.shape[0] == 0:
-        return np.empty((0, 4)), None, np.empty(0, dtype=str)
+        return np.empty((0, 4)), np.empty((0,), dtype=int), np.empty(0, dtype=str)
 
     xyxy, class_name = matches[:, [1, 0, 3, 2]], matches[:, 4]
     xyxy = xyxy.astype(int) / 1024 * np.array([w, h, w, h])
@@ -322,8 +334,8 @@ def from_qwen_2_5_vl(
             `class_name` is an array of shape `(N,)` with class names.
     """
 
-    in_w, in_h = validate_resolution(input_wh)
-    out_w, out_h = validate_resolution(resolution_wh)
+    in_w, in_h = _validate_resolution(input_wh)
+    out_w, out_h = _validate_resolution(resolution_wh)
 
     text = result.strip()
     text = re.sub(r"^```(json)?", "", text, flags=re.IGNORECASE).strip()
@@ -565,7 +577,7 @@ def from_florence_2(
             f"Expected string to end in location tags, but got {result}"
         )
 
-        w, h = validate_resolution(resolution_wh)
+        w, h = _validate_resolution(resolution_wh)
         xyxy = np.array([match.groups()], dtype=np.float32)
         xyxy *= np.array([w, h, w, h]) / 1000
         result_string = result[: match.start()]
@@ -614,7 +626,7 @@ def from_google_gemini_2_0(
 
     """
 
-    w, h = validate_resolution(resolution_wh)
+    w, h = _validate_resolution(resolution_wh)
 
     lines = result.splitlines()
     for i, line in enumerate(lines):
@@ -626,7 +638,7 @@ def from_google_gemini_2_0(
     try:
         data = json.loads(result)
     except json.JSONDecodeError:
-        return np.empty((0, 4)), None, np.empty((0,), dtype=str)
+        return np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str)
 
     labels = []
     xyxy = []
@@ -640,7 +652,7 @@ def from_google_gemini_2_0(
         xyxy.append([box[1], box[0], box[3], box[2]])
 
     if len(xyxy) == 0:
-        return np.empty((0, 4)), None, np.empty((0,), dtype=str)
+        return np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str)
 
     xyxy = denormalize_boxes(
         np.array(xyxy, dtype=np.float64),
@@ -702,7 +714,7 @@ def from_google_gemini_2_5(
             scores, and `masks` is an optional array of shape `(n, h, w)` with
             segmentation masks.
     """
-    w, h = validate_resolution(resolution_wh)
+    w, h = _validate_resolution(resolution_wh)
 
     lines = result.splitlines()
     for i, line in enumerate(lines):

@@ -36,7 +36,7 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
                 np.empty(0),
                 None,
                 None,
-                {CLASS_NAME_DATA_FIELD: np.empty(0)},
+                {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)},
             ),
             DoesNotRaise(),
         ),  # empty result
@@ -124,7 +124,7 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
                 np.empty(0),
                 None,
                 None,
-                {CLASS_NAME_DATA_FIELD: np.empty(0)},
+                {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)},
             ),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no points
@@ -150,7 +150,7 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
                 np.empty(0),
                 None,
                 None,
-                {CLASS_NAME_DATA_FIELD: np.empty(0)},
+                {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)},
             ),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no enough points
@@ -473,6 +473,11 @@ def test_process_roboflow_result(
             if isinstance(result[5][key], np.ndarray):
                 assert np.array_equal(result[5][key], expected_result[5][key]), (
                     f"Mismatch in arrays for key {key}"
+                )
+                assert result[5][key].dtype == expected_result[5][key].dtype, (
+                    f"dtype mismatch for key {key}: "
+                    f"got {result[5][key].dtype}, "
+                    f"expected {expected_result[5][key].dtype}"
                 )
             else:
                 assert result[5][key] == expected_result[5][key], (
