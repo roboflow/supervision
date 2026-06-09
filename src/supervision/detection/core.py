@@ -2400,13 +2400,14 @@ class Detections:
         if ORIENTED_BOX_COORDINATES in self.data:
             # Shoelace area on the OBB's four corners. The `xyxy` field stores
             # the AABB of the rotated body and overestimates its area.
-            corners = np.asarray(self.data[ORIENTED_BOX_COORDINATES], dtype=np.float64)
+            corners = np.asarray(self.data[ORIENTED_BOX_COORDINATES])
             if corners.ndim != 3 or corners.shape[-2:] != (4, 2):
                 raise ValueError(
                     f"data['{ORIENTED_BOX_COORDINATES}'] must have shape (N, 4, 2);"
                     f" got {corners.shape}"
                 )
-            x, y = corners[..., 0], corners[..., 1]
+            x = corners[..., 0].astype(np.float64, copy=False)
+            y = corners[..., 1].astype(np.float64, copy=False)
             return 0.5 * np.abs(
                 (x[..., 0] - x[..., 2]) * (y[..., 1] - y[..., 3])
                 - (x[..., 1] - x[..., 3]) * (y[..., 0] - y[..., 2])
