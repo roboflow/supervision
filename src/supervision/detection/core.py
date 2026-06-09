@@ -2375,6 +2375,15 @@ class Detections:
            the rotated body (shoelace formula on the four corners).
         3. Otherwise, return the axis-aligned box area (``box_area``).
 
+        **OBB dispatch contract**: presence of ``data[ORIENTED_BOX_COORDINATES]``
+        with shape ``(N, 4, 2)`` is the canonical signal that a detection carries
+        oriented bounding box geometry. The same presence-of-key check governs
+        ``with_nms``, ``with_nmm``, and this property — always store OBB corners
+        under ``config.ORIENTED_BOX_COORDINATES`` with that shape.
+
+        **Return dtype**: ``float64`` (OBB branch), input dtype (AABB fallback),
+        ``int64`` (mask branch).
+
         Returns:
             An array containing the area of each detection
                 in the format of `(area_1, area_2, ..., area_n)`,
