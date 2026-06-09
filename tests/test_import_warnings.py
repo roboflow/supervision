@@ -9,12 +9,13 @@ def test_import_supervision_emits_no_targetmode_future_warning() -> None:
     """Importing supervision must not emit `deprecate` legacy-``target=`` sentinel
     FutureWarnings.
 
-    ``deprecate>=0.9`` deprecated the ``target=True`` / ``target=None`` sentinel
-    form of its ``@deprecated`` / ``@deprecated_class`` decorators in favour of the
-    ``TargetMode`` enum. Those sentinels fire a ``FutureWarning`` at decoration time
-    — i.e. on ``import supervision`` for the affected modules — and become a hard
-    error in ``deprecate`` v1.0. This guards against the sentinel form creeping back
-    in. A fresh subprocess is used because the module is already imported in-process.
+    ``pydeprecate>=0.9`` (``import deprecate``) deprecated the ``target=True`` /
+    ``target=None`` sentinel form of its ``@deprecated`` / ``@deprecated_class``
+    decorators in favour of the ``TargetMode`` enum. Those sentinels fire a
+    ``FutureWarning`` at decoration time — i.e. on ``import supervision`` for the
+    affected modules — and become a hard error in ``pydeprecate`` v1.0. This guards
+    against the sentinel form creeping back in. A fresh subprocess is used because
+    the module is already imported in-process.
     """
     code = textwrap.dedent(
         """
