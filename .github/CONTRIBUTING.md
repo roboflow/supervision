@@ -263,9 +263,18 @@ To run the pre-commit tool, follow these steps:
 
 ### Docstrings
 
-All new functions and classes in `supervision` should include docstrings. This is a prerequisite for any new functions and classes to be added to the library.
+All new functions and classes in `supervision` should include docstrings. This is a
+prerequisite for any new functions and classes to be added to the library.
 
-`supervision` adheres to the [Google Python docstring style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods). Please refer to the style guide while writing docstrings for your contribution.
+`supervision` adheres to the
+[Google Python docstring style](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods).
+Please refer to the style guide while writing docstrings for your contribution.
+
+Every docstring should include a usage example. When the example only uses
+`supervision`, NumPy, and the standard library — no optional extras, no external files
+or network access — strongly prefer `>>>` doctest format so it is automatically
+verified by the test suite. See [Doctests](#doctests) below for syntax guidance and for
+when fenced ```` ```python ```` blocks are appropriate instead.
 
 ### Type checking
 
@@ -322,6 +331,108 @@ To run tests with coverage:
 ```bash
 uv run pytest --cov=supervision
 ```
+
+### Test Structure
+
+Follow **Arrange-Act-Assert (AAA)**: one setup block, one action, one assertion group per
+test. Never put two independent actions in the same test.
+
+**Class grouping:** Group related tests into a class. The class name carries the unit
+under test; method names describe the expected outcome only — not the mechanism.
+
+```python
+class TestDetectionsWithNms:
+    def test_keeps_highest_confidence_detection(self): ...
+    def test_suppresses_lower_score_when_overlap_exceeds_threshold(self): ...
+    def test_raises_when_confidence_missing(self): ...
+```
+
+**Parametrize aggressively:** Three or more structurally identical tests should become a
+single `@pytest.mark.parametrize` case. Use `pytest.param(..., id="slug")` per case —
+not `ids=[...]` on the decorator — so the ID stays co-located with its arguments and
+survives reordering.
+
+```python
+@pytest.mark.parametrize(
+    ("overlap_metric", "expected_keep"),
+    [
+        pytest.param(OverlapMetric.IOU, [True, True], id="iou-keeps-both"),
+        pytest.param(OverlapMetric.IOS, [True, False], id="ios-suppresses-small"),
+    ],
+)
+def test_overlap_metric_determines_suppression(
+    overlap_metric: OverlapMetric, expected_keep: list[bool]
+) -> None:
+    """Small box inside large: IOU keeps both; IOS suppresses small."""
+    ...
+```
+
+**Docstrings:** Every test function/method requires at minimum a one-line docstring
+(within the project line length configured in `pyproject.toml`). Describe the scenario,
+not the implementation.
+
+### Doctests
+
+**Guidance:** when an example uses only `supervision`, NumPy, and the standard library
+— no optional extras (e.g. no `--extra metrics` packages), no external files, no
+network, no devices — prefer `>>>` doctest format so it is automatically verified by
+the test suite. Fenced ```` ```python ```` blocks are appropriate when the example
+cannot reasonably be executed (e.g. loading a third-party model, reading a video file)
+or when the primary purpose is demonstrating error/exception behaviour rather than
+return values.
+
+Doctests run automatically as part of the test suite via `--doctest-modules` in
+`pyproject.toml`. The `ELLIPSIS` and `NORMALIZE_WHITESPACE` flags are enabled globally,
+so `...` matches any output fragment and minor whitespace differences are ignored.
+
+```bash
+uv run pytest --doctest-modules src/
+```
+
+**Writing a doctest**
+
+Use the `Example:` section of a Google-style docstring. Prefix each input line with
+`>>>` and each continuation line with `...`. Place expected output immediately after
+the last input line with no blank line between them.
+
+```python
+def clip_boxes(xyxy: np.ndarray, resolution_wh: tuple) -> np.ndarray:
+    """Clip bounding boxes to frame boundaries.
+
+    Args:
+        xyxy: Box coordinates as (N, 4) float array.
+        resolution_wh: Frame size as (width, height).
+
+    Returns:
+        Clipped boxes as (N, 4) float array.
+
+    Example:
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> boxes = np.array([[-10, -5, 120, 80]], dtype=np.float32)
+        >>> sv.clip_boxes(boxes, resolution_wh=(100, 60))
+        array([[ 0.,  0., 100.,  60.]], dtype=float32)
+    """
+```
+
+### Key rules
+
+- **Single-line expression** — write the repr as expected output:
+    `>>> len(result)` → `1`
+- **Multi-line statement** — use `...` continuation:
+    `>>> arr = np.array([` / `...     [1, 2],` / `... ])`
+- **Print output** — write the printed string as expected output (no quotes).
+- **`None` return** — no output line needed (suppress with assignment or `_ =`).
+- **Large/variable arrays** — use `ELLIPSIS`: `array([...])` matches any content.
+- **`# doctest: +SKIP`** — use only as a last resort for genuinely non-runnable lines
+    (e.g. a GPU-only call inside an otherwise runnable example). Prefer splitting the
+    example into two blocks instead.
+
+Fenced ```` ```python ```` blocks remain appropriate for:
+
+- Examples that import optional extras (`supervision[metrics]`, `torch`, `ultralytics`).
+- Examples that read files, capture video, or require a running service.
+- Illustrative pseudocode that is intentionally incomplete.
 
 ## 🔍 PR Review Guidelines
 

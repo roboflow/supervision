@@ -31,15 +31,21 @@ All work must follow the conventions of the `supervision` library
 
 ### Code Style
 
+- **Heading depth in docs/docstrings**: `###` maximum. `####` and deeper render
+    identically to bold in mkdocs — use `**bold**` instead.
+
 - **Formatting and linting** are enforced by **pre-commit**.
     The hook chain typically includes: ruff-check, ruff-format, codespell, mdformat,
     prettier, pyproject-fmt, and standard pre-commit-hooks (trailing whitespace, YAML, TOML, etc.).
+
 - **Type hints**: required on all new code. Type checking with mypy is encouraged but not
     currently enforced systematically by pre-commit; see [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md)
     for the latest type-checking expectations.
+
 - **Docstrings**: Google Python docstring style. Required for all new functions and classes.
-    Docstrings should include usage examples demonstrating the function with primitive values
-    so they serve as runnable documentation.
+    Every docstring should include a usage example. Prefer `>>>` doctest format when
+    the example only uses `supervision`, NumPy, and stdlib (no optional extras, no
+    external files or network). See §3a and CONTRIBUTING.md for syntax.
 
 ### API Consistency
 
@@ -62,6 +68,25 @@ All work must follow the conventions of the `supervision` library
 - All new functionality must be covered with tests, including edge cases.
 - Add or update documentation (docstrings + mkdocs entries if applicable).
 - Ensure compatibility with core dependencies: NumPy, OpenCV, SciPy.
+
+---
+
+## 3a. Test Conventions
+
+Full test guidelines are in [CONTRIBUTING.md](.github/CONTRIBUTING.md#tests). Key rules:
+
+- **AAA structure**: one arrange, one act, one assertion group per test. No second act.
+- **Class grouping**: group related tests into a class. Class name = unit under test.
+    Method names describe the expected outcome only — not the mechanism.
+- **Parametrize**: 3+ structurally identical tests → `@pytest.mark.parametrize`.
+    Use `pytest.param(..., id="slug")` per case (not `ids=[...]` on the decorator).
+- **Docstrings**: every test function/method needs at minimum a one-line docstring
+    within the project line length (see `pyproject.toml`). Describe the scenario, not the implementation.
+- **Doctests**: prefer `>>>` doctest when example uses only `supervision`, NumPy, and
+    stdlib (no optional extras, no external files). Fenced ```` ```python ```` is fine
+    when non-runnable (third-party model, video file, optional extra) or when the
+    example's purpose is showing exception/error behaviour. See CONTRIBUTING.md
+    §Doctests for syntax guide (continuation lines, ELLIPSIS, `+SKIP` rules).
 
 ---
 
