@@ -31,12 +31,17 @@ All work must follow the conventions of the `supervision` library
 
 ### Code Style
 
+- **Heading depth in docs/docstrings**: `###` maximum. `####` and deeper render
+    identically to bold in mkdocs — use `**bold**` instead.
+
 - **Formatting and linting** are enforced by **pre-commit**.
     The hook chain typically includes: ruff-check, ruff-format, codespell, mdformat,
     prettier, pyproject-fmt, and standard pre-commit-hooks (trailing whitespace, YAML, TOML, etc.).
+
 - **Type hints**: required on all new code. Type checking with mypy is encouraged but not
     currently enforced systematically by pre-commit; see [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md)
     for the latest type-checking expectations.
+
 - **Docstrings**: Google Python docstring style. Required for all new functions and classes.
     Every docstring should include a usage example. Prefer `>>>` doctest format when
     the example only uses `supervision`, NumPy, and stdlib (no optional extras, no
@@ -76,7 +81,7 @@ Full test guidelines are in [CONTRIBUTING.md](.github/CONTRIBUTING.md#tests). Ke
 - **Parametrize**: 3+ structurally identical tests → `@pytest.mark.parametrize`.
     Use `pytest.param(..., id="slug")` per case (not `ids=[...]` on the decorator).
 - **Docstrings**: every test function/method needs at minimum a one-line docstring
-    (≤120 chars). Describe the scenario, not the implementation.
+    within the project line length (see `pyproject.toml`). Describe the scenario, not the implementation.
 - **Doctests**: prefer `>>>` doctest when example uses only `supervision`, NumPy, and
     stdlib (no optional extras, no external files). Fenced ```` ```python ```` is fine
     when non-runnable (third-party model, video file, optional extra) or when the

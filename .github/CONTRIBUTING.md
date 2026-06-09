@@ -368,7 +368,8 @@ def test_overlap_metric_determines_suppression(
 ```
 
 **Docstrings:** Every test function/method requires at minimum a one-line docstring
-(max 120 chars). Describe the scenario, not the implementation.
+(within the project line length configured in `pyproject.toml`). Describe the scenario,
+not the implementation.
 
 ### Doctests
 
@@ -388,7 +389,7 @@ so `...` matches any output fragment and minor whitespace differences are ignore
 uv run pytest --doctest-modules src/
 ```
 
-#### Writing a doctest
+**Writing a doctest**
 
 Use the `Example:` section of a Google-style docstring. Prefix each input line with
 `>>>` and each continuation line with `...`. Place expected output immediately after
@@ -414,7 +415,7 @@ def clip_boxes(xyxy: np.ndarray, resolution_wh: tuple) -> np.ndarray:
     """
 ```
 
-Key rules:
+### Key rules
 
 - **Single-line expression** — write the repr as expected output:
     `>>> len(result)` → `1`
