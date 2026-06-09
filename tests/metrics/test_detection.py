@@ -1187,6 +1187,13 @@ class TestDetectionMetrics:
                 MetricTarget.BOXES,
                 pytest.raises(ValueError, match="Predictions must have shape"),
             ),
+            pytest.param(
+                [np.zeros((1, 10), dtype=np.float32)],
+                [np.zeros((1, 5), dtype=np.float32)],
+                MetricTarget.ORIENTED_BOUNDING_BOXES,
+                pytest.raises(ValueError, match="Targets must have shape"),
+                id="obb-correct-pred-cols-wrong-target-cols",
+            ),
         ],
     )
     def test_validate_input_tensors_obb(
