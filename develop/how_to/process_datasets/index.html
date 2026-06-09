@@ -3135,22 +3135,12 @@
 
   <h1>Process Datasets</h1>
 
-<p>With Supervision, you can load and manipulate classification, object detection, and
-segmentation datasets. This tutorial will walk you through how to load, split, merge,
-visualize, and augment datasets in Supervision.</p>
+<p>With Supervision, you can load and manipulate classification, object detection, and segmentation datasets. This tutorial will walk you through how to load, split, merge, visualize, and augment datasets in Supervision.</p>
 <h2 id="download-dataset">Download Dataset<a class="headerlink" href="#download-dataset" title="Permanent link">&para;</a></h2>
-<p>In this tutorial, we will use a dataset from
-<a href="https://universe.roboflow.com/">Roboflow Universe</a>, a public repository of
-thousands of computer vision datasets. If you already have your dataset in
-<a href="https://roboflow.com/formats/coco-json">COCO</a>,
-<a href="https://roboflow.com/formats/yolov8-pytorch-txt">YOLO</a>,
-or <a href="https://roboflow.com/formats/pascal-voc-xml">Pascal VOC</a> format, you can skip this
-section.</p>
+<p>In this tutorial, we will use a dataset from <a href="https://universe.roboflow.com/">Roboflow Universe</a>, a public repository of thousands of computer vision datasets. If you already have your dataset in <a href="https://roboflow.com/formats/coco-json">COCO</a>, <a href="https://roboflow.com/formats/yolov8-pytorch-txt">YOLO</a>, or <a href="https://roboflow.com/formats/pascal-voc-xml">Pascal VOC</a> format, you can skip this section.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>roboflow
 </span></code></pre></div>
-<p>Next, log into your Roboflow account and download the dataset of your choice in the
-COCO, YOLO, or Pascal VOC format. You can customize the following code snippet with
-your workspace ID, project ID, and version number.</p>
+<p>Next, log into your Roboflow account and download the dataset of your choice in the COCO, YOLO, or Pascal VOC format. You can customize the following code snippet with your workspace ID, project ID, and version number.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">COCO</label><label for="__tabbed_1_2">YOLO</label><label for="__tabbed_1_3">Pascal VOC</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -3186,10 +3176,7 @@ your workspace ID, project ID, and version number.</p>
 </div>
 </div>
 <h2 id="load-dataset">Load Dataset<a class="headerlink" href="#load-dataset" title="Permanent link">&para;</a></h2>
-<p>The Supervision library provides convenient functions to load datasets in various
-formats. If your dataset is already split into train, test, and valid subsets, you can
-load each of those as separate <a href="https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset"><code>sv.DetectionDataset</code></a>
-instances.</p>
+<p>The Supervision library provides convenient functions to load datasets in various formats. If your dataset is already split into train, test, and valid subsets, you can load each of those as separate <a href="https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset"><code>sv.DetectionDataset</code></a> instances.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="2:3"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">COCO</label><label for="__tabbed_2_2">YOLO</label><label for="__tabbed_2_3">Pascal VOC</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -3270,9 +3257,7 @@ instances.</p>
 </div>
 </div>
 <h2 id="split-dataset">Split Dataset<a class="headerlink" href="#split-dataset" title="Permanent link">&para;</a></h2>
-<p>If your dataset is not already split into train, test, and valid subsets, you can
-easily do so using the <a href="https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.split"><code>sv.DetectionDataset.split</code></a>
-method. We can split it as follows, ensuring a random shuffle of the data.</p>
+<p>If your dataset is not already split into train, test, and valid subsets, you can easily do so using the <a href="https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.split"><code>sv.DetectionDataset.split</code></a> method. We can split it as follows, ensuring a random shuffle of the data.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
 </span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">ds</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionDataset</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
@@ -3287,9 +3272,7 @@ method. We can split it as follows, ensuring a random shuffle of the data.</p>
 </span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="c1"># 800, 100, 100</span>
 </span></code></pre></div>
 <h2 id="merge-dataset">Merge Dataset<a class="headerlink" href="#merge-dataset" title="Permanent link">&para;</a></h2>
-<p>If you have multiple datasets that you would like to merge, you can do so using the
-<a href="https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.merge"><code>sv.DetectionDataset.merge</code></a>
-method.</p>
+<p>If you have multiple datasets that you would like to merge, you can do so using the <a href="https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.merge"><code>sv.DetectionDataset.merge</code></a> method.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="3:3"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><input id="__tabbed_3_3" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">COCO</label><label for="__tabbed_3_2">YOLO</label><label for="__tabbed_3_3">Pascal VOC</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -3391,10 +3374,7 @@ method.</p>
 </div>
 </div>
 <h2 id="iterate-over-dataset">Iterate over Dataset<a class="headerlink" href="#iterate-over-dataset" title="Permanent link">&para;</a></h2>
-<p>There are two ways to loop over a <code>sv.DetectionDataset</code>: using a direct
-<a href="https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.__iter__">for loop</a>
-called on the <code>sv.DetectionDataset</code> instance or loading <code>sv.DetectionDataset</code> entries
-<a href="https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.__getitem__">by index</a>.</p>
+<p>There are two ways to loop over a <code>sv.DetectionDataset</code>: using a direct <a href="https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.__iter__">for loop</a> called on the <code>sv.DetectionDataset</code> instance or loading <code>sv.DetectionDataset</code> entries <a href="https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.__getitem__">by index</a>.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
 </span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">ds</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionDataset</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
@@ -3409,13 +3389,7 @@ called on the <code>sv.DetectionDataset</code> instance or loading <code>sv.Dete
 </span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>    <span class="o">...</span>  <span class="c1"># Process the image and annotations at index `idx`</span>
 </span></code></pre></div>
 <h2 id="visualize-dataset">Visualize Dataset<a class="headerlink" href="#visualize-dataset" title="Permanent link">&para;</a></h2>
-<p>The Supervision library provides tools for easily visualizing your detection dataset.
-You can create a grid of annotated images to quickly inspect your data and labels.
-First, initialize the <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator"><code>sv.BoxAnnotator</code></a>
-and <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator"><code>sv.LabelAnnotator</code></a>.
-Then, iterate through a subset of the dataset (e.g., the first 25 images), drawing
-bounding boxes and class labels on each image. Finally, combine the annotated images
-into a grid for display.</p>
+<p>The Supervision library provides tools for easily visualizing your detection dataset. You can create a grid of annotated images to quickly inspect your data and labels. First, initialize the <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.BoxAnnotator"><code>sv.BoxAnnotator</code></a> and <a href="https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.LabelAnnotator"><code>sv.LabelAnnotator</code></a>. Then, iterate through a subset of the dataset (e.g., the first 25 images), drawing bounding boxes and class labels on each image. Finally, combine the annotated images into a grid for display.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
 </span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">ds</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionDataset</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
@@ -3483,19 +3457,10 @@ into a grid for display.</p>
 </div>
 </div>
 <h2 id="augment-dataset">Augment Dataset<a class="headerlink" href="#augment-dataset" title="Permanent link">&para;</a></h2>
-<p>In this section, we'll explore using Supervision in combination with Albumentations to
-augment our dataset. Data augmentation is a common technique in computer vision to
-increase the size and diversity of training datasets, leading to improved model
-performance and generalization.</p>
+<p>In this section, we'll explore using Supervision in combination with Albumentations to augment our dataset. Data augmentation is a common technique in computer vision to increase the size and diversity of training datasets, leading to improved model performance and generalization.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>pip<span class="w"> </span>install<span class="w"> </span>albumentations
 </span></code></pre></div>
-<p>Albumentations provides a flexible and powerful API for image augmentation. The core of
-the library is the <a href="https://albumentations.ai/docs/api-reference/albumentations/core/composition/#Compose"><code>Compose</code></a>
-class, which allows you to chain multiple image transformations together. Each
-transformation is defined using a dedicated class, such as
-<a href="https://albumentations.ai/docs/api-reference/albumentations/augmentations/geometric/flip/#HorizontalFlip"><code>HorizontalFlip</code></a>,
-<a href="https://albumentations.ai/docs/api-reference/albumentations/augmentations/pixel/transforms/#RandomBrightnessContrast"><code>RandomBrightnessContrast</code></a>,
-or <a href="https://albumentations.ai/docs/api-reference/albumentations/augmentations/geometric/transforms/#Perspective"><code>Perspective</code></a>.</p>
+<p>Albumentations provides a flexible and powerful API for image augmentation. The core of the library is the <a href="https://albumentations.ai/docs/api-reference/albumentations/core/composition/#Compose"><code>Compose</code></a> class, which allows you to chain multiple image transformations together. Each transformation is defined using a dedicated class, such as <a href="https://albumentations.ai/docs/api-reference/albumentations/augmentations/geometric/flip/#HorizontalFlip"><code>HorizontalFlip</code></a>, <a href="https://albumentations.ai/docs/api-reference/albumentations/augmentations/pixel/transforms/#RandomBrightnessContrast"><code>RandomBrightnessContrast</code></a>, or <a href="https://albumentations.ai/docs/api-reference/albumentations/augmentations/geometric/transforms/#Perspective"><code>Perspective</code></a>.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">albumentations</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">A</span>
 </span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>
 </span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="n">augmentation</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">Compose</span><span class="p">(</span>
@@ -3510,8 +3475,7 @@ or <a href="https://albumentations.ai/docs/api-reference/albumentations/augmenta
 </span><span id="__span-17-12"><a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a>    <span class="p">),</span>
 </span><span id="__span-17-13"><a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a><span class="p">)</span>
 </span></code></pre></div>
-<p>The key is to set <code>format='pascal_voc'</code>, which corresponds to the
-<code>[x_min, y_min, x_max, y_max]</code> bounding box format used in Supervision.</p>
+<p>The key is to set <code>format='pascal_voc'</code>, which corresponds to the <code>[x_min, y_min, x_max, y_max]</code> bounding box format used in Supervision.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 </span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">replace</span>
@@ -3569,7 +3533,7 @@ or <a href="https://albumentations.ai/docs/api-reference/albumentations/augmenta
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 25, 2026 05:15:59 UTC">April 25, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 9, 2026 14:15:05 UTC">June 9, 2026</span>
   </span>
 
     

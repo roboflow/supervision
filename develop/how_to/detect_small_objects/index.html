@@ -3030,18 +3030,13 @@
 
 
 <h1 id="detect-small-objects">Detect Small Objects<a class="headerlink" href="#detect-small-objects" title="Permanent link">&para;</a></h1>
-<p>This guide shows how to detect small objects
-with the <a href="https://github.com/roboflow/inference">Inference</a>,
-<a href="https://github.com/ultralytics/ultralytics">Ultralytics</a> or
-<a href="https://github.com/huggingface/transformers">Transformers</a> packages using
-<a href="https://supervision.roboflow.com/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer"><code>InferenceSlicer</code></a>.</p>
+<p>This guide shows how to detect small objects with the <a href="https://github.com/roboflow/inference">Inference</a>, <a href="https://github.com/ultralytics/ultralytics">Ultralytics</a> or <a href="https://github.com/huggingface/transformers">Transformers</a> packages using <a href="https://supervision.roboflow.com/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer"><code>InferenceSlicer</code></a>.</p>
 <video controls>
     <source src="https://media.roboflow.com/supervision_detect_small_objects_example.mp4" type="video/mp4">
 </video>
 
 <h2 id="baseline-detection">Baseline Detection<a class="headerlink" href="#baseline-detection" title="Permanent link">&para;</a></h2>
-<p>Small object detection in high-resolution images presents challenges due to the objects'
-size relative to the image resolution.</p>
+<p>Small object detection in high-resolution images presents challenges due to the objects' size relative to the image resolution.</p>
 <p>Running a standard detection model on the full image establishes a baseline for comparison. Load your chosen model, pass the image through it, and convert the results into a <code>Detections</code> object. This baseline reveals how many small objects the model misses at native resolution, motivating the sliced inference approach shown later.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Inference</label><label for="__tabbed_1_2">Ultralytics</label><label for="__tabbed_1_3">Transformers</label></div>
 <div class="tabbed-content">
@@ -3128,9 +3123,7 @@ size relative to the image resolution.</p>
 </div>
 <p><img alt="basic-detection" src="https://media.roboflow.com/supervision_detect_small_objects_example_1.png" /></p>
 <h2 id="input-resolution">Input Resolution<a class="headerlink" href="#input-resolution" title="Permanent link">&para;</a></h2>
-<p>Modifying the input resolution of images before detection can enhance small object
-identification at the cost of processing speed and increased memory usage. This method
-is less effective for ultra-high-resolution images (4K and above).</p>
+<p>Modifying the input resolution of images before detection can enhance small object identification at the cost of processing speed and increased memory usage. This method is less effective for ultra-high-resolution images (4K and above).</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Inference</label><label for="__tabbed_2_2">Ultralytics</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -3175,9 +3168,7 @@ is less effective for ultra-high-resolution images (4K and above).</p>
 </div>
 <p><img alt="detection-with-high-input-resolution" src="https://media.roboflow.com/supervision_detect_small_objects_example_2.png" /></p>
 <h2 id="inference-slicer">Inference Slicer<a class="headerlink" href="#inference-slicer" title="Permanent link">&para;</a></h2>
-<p><a href="https://supervision.roboflow.com/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer"><code>InferenceSlicer</code></a>
-processes high-resolution images by dividing them into smaller segments, detecting
-objects within each, and aggregating the results.</p>
+<p><a href="https://supervision.roboflow.com/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer"><code>InferenceSlicer</code></a> processes high-resolution images by dividing them into smaller segments, detecting objects within each, and aggregating the results.</p>
 <video controls>
     <source src="https://media.roboflow.com/supervision_detect_small_objects_example_2.mp4" type="video/mp4">
 </video>
@@ -3372,7 +3363,7 @@ objects within each, and aggregating the results.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 25, 2026 05:15:59 UTC">April 25, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 9, 2026 14:15:05 UTC">June 9, 2026</span>
   </span>
 
     

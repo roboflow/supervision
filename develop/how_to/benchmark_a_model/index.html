@@ -3308,8 +3308,7 @@
 <li><strong>Validation Set</strong>: This is the set of images used to validate the model during training. Every Nth training epoch, the model is evaluated on the validation set. Often the training is stopped once the validation loss stops improving. Therefore, even while the images aren't used to train the model, it still indirectly influences the training outcome.</li>
 <li><strong>Test Set</strong>: This is the set of images kept aside for model testing. It is exactly the set you should use for benchmarking. If the dataset was split correctly, none of these images would be shown to the model during training.</li>
 </ul>
-<p>Therefore, an unrelated dataset or the <code>test</code> set is the best choice for benchmarking.
-Several other problems may arise:</p>
+<p>Therefore, an unrelated dataset or the <code>test</code> set is the best choice for benchmarking. Several other problems may arise:</p>
 <ul>
 <li><strong>Extra Classes</strong>: An unrelated dataset may contain additional classes which you may need to <a href="https://supervision.roboflow.com/how_to/filter_detections/#by-set-of-classes">filter out</a> before computing metrics.</li>
 <li><strong>Class Mismatch</strong>: In an unrelated dataset, the class names or IDs may be different to what your model produces, you'll need to remap them, which is <a href="#running-a-model">shown in this guide</a>.</li>
@@ -3322,8 +3321,7 @@ Several other problems may arise:</p>
 <li>A dataset of labeled images to evaluate the model.</li>
 <li>A model prepared for benchmarking.</li>
 </ul>
-<p>With these ready, we can now run the model and obtain predictions.
-We'll use <code>supervision</code> to create a dataset iterator, and then run the model on each image.</p>
+<p>With these ready, we can now run the model and obtain predictions. We'll use <code>supervision</code> to create a dataset iterator, and then run the model on each image.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Inference</label><label for="__tabbed_2_2">Ultralytics</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -3373,8 +3371,7 @@ We'll use <code>supervision</code> to create a dataset iterator, and then run th
 </div>
 </div>
 <h2 id="remapping-classes">Remapping classes<a class="headerlink" href="#remapping-classes" title="Permanent link">&para;</a></h2>
-<p>Did you notice an issue in the above logic?
-Since we're using an unrelated dataset, the class names and IDs may be different from what the model was trained on.</p>
+<p>Did you notice an issue in the above logic? Since we're using an unrelated dataset, the class names and IDs may be different from what the model was trained on.</p>
 <p>We need to remap them to match the dataset classes. Here's how to do it:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">remap_classes</span><span class="p">(</span>
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">detections</span><span class="p">:</span> <span class="n">sv</span><span class="o">.</span><span class="n">Detections</span><span class="p">,</span>
@@ -3426,8 +3423,7 @@ Since we're using an unrelated dataset, the class names and IDs may be different
 </div>
 <div class="tabbed-block">
 <p>Dataset class names and IDs can be found in the <code>data.yaml</code> file, or by printing <code>dataset.classes</code>.</p>
-<p>Each model will have a different class mapping, so make sure to check the model's documentation. In this case, the model was trained on the COCO dataset, with a class
-configuration found <a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/datasets/coco8.yaml">here</a>.</p>
+<p>Each model will have a different class mapping, so make sure to check the model's documentation. In this case, the model was trained on the COCO dataset, with a class configuration found <a href="https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/datasets/coco8.yaml">here</a>.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
 </span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">test_set</span> <span class="o">=</span> <span class="n">sv</span><span class="o">.</span><span class="n">DetectionDataset</span><span class="o">.</span><span class="n">from_yolo</span><span class="p">(</span>
@@ -3459,8 +3455,7 @@ configuration found <a href="https://github.com/ultralytics/ultralytics/blob/mai
 </div>
 </div>
 <h2 id="visualizing-predictions">Visualizing Predictions<a class="headerlink" href="#visualizing-predictions" title="Permanent link">&para;</a></h2>
-<p>The first step in evaluating your model’s performance is to visualize its predictions.
-This gives an intuitive sense of how well your model is detecting objects and where it might be failing.</p>
+<p>The first step in evaluating your model’s performance is to visualize its predictions. This gives an intuitive sense of how well your model is detecting objects and where it might be failing.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">supervision</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sv</span>
 </span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
 </span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">N</span> <span class="o">=</span> <span class="mi">9</span>
@@ -3603,7 +3598,7 @@ This gives an intuitive sense of how well your model is detecting objects and wh
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 25, 2026 05:15:59 UTC">April 25, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 9, 2026 14:15:05 UTC">June 9, 2026</span>
   </span>
 
     

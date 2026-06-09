@@ -3162,11 +3162,7 @@
 
 
 <h1 id="filter-detections">Filter Detections<a class="headerlink" href="#filter-detections" title="Permanent link">&para;</a></h1>
-<p>The advanced filtering capabilities of the <code>Detections</code> class offer users a versatile and efficient way to narrow down
-and refine object detections. This section outlines various filtering methods, including filtering by specific class
-or a set of classes, confidence, object area, bounding box area, relative area, box dimensions, and designated zones.
-Each method is demonstrated with concise code examples to provide users with a clear understanding of how to implement
-the filters in their applications.</p>
+<p>The advanced filtering capabilities of the <code>Detections</code> class offer users a versatile and efficient way to narrow down and refine object detections. This section outlines various filtering methods, including filtering by specific class or a set of classes, confidence, object area, bounding box area, relative area, box dimensions, and designated zones. Each method is demonstrated with concise code examples to provide users with a clear understanding of how to implement the filters in their applications.</p>
 <h3 id="by-specific-class">by specific class<a class="headerlink" href="#by-specific-class" title="Permanent link">&para;</a></h3>
 <p>Allows you to select detections that belong only to one selected class.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">After</label><label for="__tabbed_1_2">Before</label></div>
@@ -3250,8 +3246,7 @@ the filters in their applications.</p>
 </div>
 </div>
 <h3 id="by-area">by area<a class="headerlink" href="#by-area" title="Permanent link">&para;</a></h3>
-<p>Allows you to select detections based on their size. We define the area as the number of pixels occupied by the
-detection in the image. In the example below, we have sifted out the detections that are too small.</p>
+<p>Allows you to select detections based on their size. We define the area as the number of pixels occupied by the detection in the image. In the example below, we have sifted out the detections that are too small.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="4:2"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">After</label><label for="__tabbed_4_2">Before</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -3277,10 +3272,7 @@ detection in the image. In the example below, we have sifted out the detections 
 </div>
 </div>
 <h3 id="by-relative-area">by relative area<a class="headerlink" href="#by-relative-area" title="Permanent link">&para;</a></h3>
-<p>Allows you to select detections based on their size in relation to the size of whole image. Sometimes the concept of
-detection size changes depending on the image. Detection occupying 10000 square px can be large on a 1280x720 image
-but small on a 3840x2160 image. In such cases, we can filter out detections based on the percentage of the image area
-occupied by them. In the example below, we remove too large detections.</p>
+<p>Allows you to select detections based on their size in relation to the size of whole image. Sometimes the concept of detection size changes depending on the image. Detection occupying 10000 square px can be large on a 1280x720 image but small on a 3840x2160 image. In such cases, we can filter out detections based on the percentage of the image area occupied by them. In the example below, we remove too large detections.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="5:2"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><input id="__tabbed_5_2" name="__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="__tabbed_5_1">After</label><label for="__tabbed_5_2">Before</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -3314,9 +3306,7 @@ occupied by them. In the example below, we remove too large detections.</p>
 </div>
 </div>
 <h3 id="by-box-dimensions">by box dimensions<a class="headerlink" href="#by-box-dimensions" title="Permanent link">&para;</a></h3>
-<p>Allows you to select detections based on their dimensions. The size of the bounding box, as well as its coordinates,
-can be criteria for rejecting detection. Implementing such filtering requires a bit of custom code but is relatively
-simple and fast.</p>
+<p>Allows you to select detections based on their dimensions. The size of the bounding box, as well as its coordinates, can be criteria for rejecting detection. Implementing such filtering requires a bit of custom code but is relatively simple and fast.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="6:2"><input checked="checked" id="__tabbed_6_1" name="__tabbed_6" type="radio" /><input id="__tabbed_6_2" name="__tabbed_6" type="radio" /><div class="tabbed-labels"><label for="__tabbed_6_1">After</label><label for="__tabbed_6_2">Before</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -3346,8 +3336,7 @@ simple and fast.</p>
 </div>
 </div>
 <h3 id="by-polygonzone">by <code>PolygonZone</code><a class="headerlink" href="#by-polygonzone" title="Permanent link">&para;</a></h3>
-<p>Allows you to use <code>Detections</code> in combination with <code>PolygonZone</code> to weed out bounding boxes that are in and out of the
-zone. In the example below you can see how to filter out all detections located in the lower part of the image.</p>
+<p>Allows you to use <code>Detections</code> in combination with <code>PolygonZone</code> to weed out bounding boxes that are in and out of the zone. In the example below you can see how to filter out all detections located in the lower part of the image.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="7:2"><input checked="checked" id="__tabbed_7_1" name="__tabbed_7" type="radio" /><input id="__tabbed_7_2" name="__tabbed_7" type="radio" /><div class="tabbed-labels"><label for="__tabbed_7_1">After</label><label for="__tabbed_7_2">Before</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -3443,7 +3432,7 @@ zone. In the example below you can see how to filter out all detections located 
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 25, 2026 05:15:59 UTC">April 25, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 9, 2026 14:15:05 UTC">June 9, 2026</span>
   </span>
 
     

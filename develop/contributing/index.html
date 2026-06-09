@@ -3044,39 +3044,12 @@
 <p>For example, counting objects that cross a line anywhere on an image is a common problem in computer vision, but counting objects that cross a line 75% of the way through is less useful.</p>
 <p>Before you contribute a new feature, consider submitting an Issue to discuss the feature so the community can weigh in and assist.</p>
 <h3 id="api-design-principles">API Design Principles<a class="headerlink" href="#api-design-principles" title="Permanent link">&para;</a></h3>
-<p>Supervision APIs should remain generic, composable, and predictable across model
-families. Before adding a new integration, annotator option, or data conversion
-method, check the existing <code>sv.Detections</code>, <code>sv.KeyPoints</code>, and annotator
-patterns and follow these principles:</p>
+<p>Supervision APIs should remain generic, composable, and predictable across model families. Before adding a new integration, annotator option, or data conversion method, check the existing <code>sv.Detections</code>, <code>sv.KeyPoints</code>, and annotator patterns and follow these principles:</p>
 <ol>
-<li><strong>Model integrations normalize raw external outputs into existing Supervision
-    containers.</strong> Use <code>sv.Detections</code> for detection, segmentation, and other
-    instance-level predictions that include boxes, masks, class ids, confidence
-    scores, or extra per-instance fields. Use <code>sv.KeyPoints</code> for standalone
-    keypoint or pose predictions when keypoints exist independently of detection
-    boxes (e.g. pure pose estimation, landmark detection on pre-cropped images).
-    Use <code>Detections.keypoints</code> when keypoints are always co-incident with boxes
-    from the same model — the field stores an <code>(n, K, 2)</code> or <code>(n, K, 3)</code> array
-    where the optional third channel is per-point confidence in <code>[0, 1]</code>.</li>
-<li><strong>Do not add a <code>from_&lt;model&gt;</code> method when the model already returns a
-    Supervision object.</strong> <code>from_*</code> methods are for converting raw outputs from
-    external packages such as Ultralytics, Transformers, Inference, or MediaPipe.
-    If a model's <code>predict()</code> method already returns <code>sv.Detections</code>, keep that
-    result type and store additional structured payloads in <code>detections.data</code> or
-    <code>detections.metadata</code> using documented keys.</li>
-<li><strong>Annotators render data; filtering and visibility are container state.</strong>
-    Filtering by confidence, class id, tracker id, geometry, or custom data should
-    happen before annotation through the container slicing APIs, for example
-    <code>detections[detections.confidence &gt; 0.7]</code> or <code>key_points[key_points.confidence &gt; 0.5]</code>.
-    Per-point presentation state, such as a <code>KeyPoints.visible</code> mask, may
-    live on the container and be honored consistently by annotators.</li>
-<li><strong>Annotator constructor arguments should describe visual presentation, not
-    model-quality gates.</strong> Use constructor arguments for color, thickness,
-    opacity, text, position, style, and generic visualization parameters such as
-    sigma levels. Annotators may skip invalid geometry defensively, including
-    missing points, zero-area boxes, non-finite coordinates, or points marked
-    invisible on the container. They should not introduce confidence thresholds or
-    model-specific quality gates as rendering options.</li>
+<li><strong>Model integrations normalize raw external outputs into existing Supervision containers.</strong> Use <code>sv.Detections</code> for detection, segmentation, and other instance-level predictions that include boxes, masks, class ids, confidence scores, or extra per-instance fields. Use <code>sv.KeyPoints</code> for standalone keypoint or pose predictions when keypoints exist independently of detection boxes (e.g. pure pose estimation, landmark detection on pre-cropped images). Use <code>Detections.keypoints</code> when keypoints are always co-incident with boxes from the same model — the field stores an <code>(n, K, 2)</code> or <code>(n, K, 3)</code> array where the optional third channel is per-point confidence in <code>[0, 1]</code>.</li>
+<li><strong>Do not add a <code>from_&lt;model&gt;</code> method when the model already returns a Supervision object.</strong> <code>from_*</code> methods are for converting raw outputs from external packages such as Ultralytics, Transformers, Inference, or MediaPipe. If a model's <code>predict()</code> method already returns <code>sv.Detections</code>, keep that result type and store additional structured payloads in <code>detections.data</code> or <code>detections.metadata</code> using documented keys.</li>
+<li><strong>Annotators render data; filtering and visibility are container state.</strong> Filtering by confidence, class id, tracker id, geometry, or custom data should happen before annotation through the container slicing APIs, for example <code>detections[detections.confidence &gt; 0.7]</code> or <code>key_points[key_points.confidence &gt; 0.5]</code>. Per-point presentation state, such as a <code>KeyPoints.visible</code> mask, may live on the container and be honored consistently by annotators.</li>
+<li><strong>Annotator constructor arguments should describe visual presentation, not model-quality gates.</strong> Use constructor arguments for color, thickness, opacity, text, position, style, and generic visualization parameters such as sigma levels. Annotators may skip invalid geometry defensively, including missing points, zero-area boxes, non-finite coordinates, or points marked invisible on the container. They should not introduce confidence thresholds or model-specific quality gates as rendering options.</li>
 </ol>
 <h2 id="how-to-contribute-changes">How to Contribute Changes<a class="headerlink" href="#how-to-contribute-changes" title="Permanent link">&para;</a></h2>
 <p>First, fork this repository to your own GitHub account. Click "fork" in the top corner of the <code>supervision</code> repository to get started:</p>
@@ -3215,16 +3188,9 @@ patterns and follow these principles:</p>
 </li>
 </ol>
 <h3 id="docstrings">Docstrings<a class="headerlink" href="#docstrings" title="Permanent link">&para;</a></h3>
-<p>All new functions and classes in <code>supervision</code> should include docstrings. This is a
-prerequisite for any new functions and classes to be added to the library.</p>
-<p><code>supervision</code> adheres to the
-<a href="https://google.github.io/styleguide/pyguide.html#383-functions-and-methods">Google Python docstring style</a>.
-Please refer to the style guide while writing docstrings for your contribution.</p>
-<p>Every docstring should include a usage example. When the example only uses
-<code>supervision</code>, NumPy, and the standard library — no optional extras, no external files
-or network access — strongly prefer <code>&gt;&gt;&gt;</code> doctest format so it is automatically
-verified by the test suite. See <a href="#doctests">Doctests</a> below for syntax guidance and for
-when fenced <code>```python</code> blocks are appropriate instead.</p>
+<p>All new functions and classes in <code>supervision</code> should include docstrings. This is a prerequisite for any new functions and classes to be added to the library.</p>
+<p><code>supervision</code> adheres to the <a href="https://google.github.io/styleguide/pyguide.html#383-functions-and-methods">Google Python docstring style</a>. Please refer to the style guide while writing docstrings for your contribution.</p>
+<p>Every docstring should include a usage example. When the example only uses <code>supervision</code>, NumPy, and the standard library — no optional extras, no external files or network access — strongly prefer <code>&gt;&gt;&gt;</code> doctest format so it is automatically verified by the test suite. See <a href="#doctests">Doctests</a> below for syntax guidance and for when fenced <code>```python</code> blocks are appropriate instead.</p>
 <h3 id="type-checking">Type checking<a class="headerlink" href="#type-checking" title="Permanent link">&para;</a></h3>
 <p>Currently, there is no systematic type checking with mypy implemented in the project. This is a known limitation that may be addressed in future updates.</p>
 <h2 id="documentation">📝 Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h2>
@@ -3247,9 +3213,7 @@ when fenced <code>```python</code> blocks are appropriate instead.</p>
 </ol>
 <p>You can learn more about mkdocs on the <a href="https://www.mkdocs.org/">mkdocs website</a>.</p>
 <h2 id="cookbooks">🧑‍🍳 Cookbooks<a class="headerlink" href="#cookbooks" title="Permanent link">&para;</a></h2>
-<p>We are always looking for new examples and cookbooks to add to the <code>supervision</code>
-documentation. If you have a use case that you think would be helpful to others, please
-submit a PR with your example. Here are some guidelines for submitting a new example:</p>
+<p>We are always looking for new examples and cookbooks to add to the <code>supervision</code> documentation. If you have a use case that you think would be helpful to others, please submit a PR with your example. Here are some guidelines for submitting a new example:</p>
 <ul>
 <li>Create a new notebook in the <a href="https://github.com/roboflow/supervision/tree/develop/docs/notebooks"><code>docs/notebooks</code></a> folder.</li>
 <li>Add a link to the new notebook in <a href="https://github.com/roboflow/supervision/blob/develop/docs/theme/cookbooks.html"><code>docs/theme/cookbooks.html</code></a>. Make sure to add the path to the new notebook, as well as a title, labels, author and supervision version.</li>
@@ -3268,19 +3232,14 @@ submit a PR with your example. Here are some guidelines for submitting a new exa
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>--cov<span class="o">=</span>supervision
 </span></code></pre></div>
 <h3 id="test-structure">Test Structure<a class="headerlink" href="#test-structure" title="Permanent link">&para;</a></h3>
-<p>Follow <strong>Arrange-Act-Assert (AAA)</strong>: one setup block, one action, one assertion group per
-test. Never put two independent actions in the same test.</p>
-<p><strong>Class grouping:</strong> Group related tests into a class. The class name carries the unit
-under test; method names describe the expected outcome only — not the mechanism.</p>
+<p>Follow <strong>Arrange-Act-Assert (AAA)</strong>: one setup block, one action, one assertion group per test. Never put two independent actions in the same test.</p>
+<p><strong>Class grouping:</strong> Group related tests into a class. The class name carries the unit under test; method names describe the expected outcome only — not the mechanism.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestDetectionsWithNms</span><span class="p">:</span>
 </span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_keeps_highest_confidence_detection</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="o">...</span>
 </span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_suppresses_lower_score_when_overlap_exceeds_threshold</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="o">...</span>
 </span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">test_raises_when_confidence_missing</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="o">...</span>
 </span></code></pre></div>
-<p><strong>Parametrize aggressively:</strong> Three or more structurally identical tests should become a
-single <code>@pytest.mark.parametrize</code> case. Use <code>pytest.param(..., id="slug")</code> per case —
-not <code>ids=[...]</code> on the decorator — so the ID stays co-located with its arguments and
-survives reordering.</p>
+<p><strong>Parametrize aggressively:</strong> Three or more structurally identical tests should become a single <code>@pytest.mark.parametrize</code> case. Use <code>pytest.param(..., id="slug")</code> per case — not <code>ids=[...]</code> on the decorator — so the ID stays co-located with its arguments and survives reordering.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="nd">@pytest</span><span class="o">.</span><span class="n">mark</span><span class="o">.</span><span class="n">parametrize</span><span class="p">(</span>
 </span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>    <span class="p">(</span><span class="s2">&quot;overlap_metric&quot;</span><span class="p">,</span> <span class="s2">&quot;expected_keep&quot;</span><span class="p">),</span>
 </span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>    <span class="p">[</span>
@@ -3294,26 +3253,14 @@ survives reordering.</p>
 </span><span id="__span-19-11"><a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Small box inside large: IOU keeps both; IOS suppresses small.&quot;&quot;&quot;</span>
 </span><span id="__span-19-12"><a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a>    <span class="o">...</span>
 </span></code></pre></div>
-<p><strong>Docstrings:</strong> Every test function/method requires at minimum a one-line docstring
-(within the project line length configured in <code>pyproject.toml</code>). Describe the scenario,
-not the implementation.</p>
+<p><strong>Docstrings:</strong> Every test function/method requires at minimum a one-line docstring (within the project line length configured in <code>pyproject.toml</code>). Describe the scenario, not the implementation.</p>
 <h3 id="doctests">Doctests<a class="headerlink" href="#doctests" title="Permanent link">&para;</a></h3>
-<p><strong>Guidance:</strong> when an example uses only <code>supervision</code>, NumPy, and the standard library
-— no optional extras (e.g. no <code>--extra metrics</code> packages), no external files, no
-network, no devices — prefer <code>&gt;&gt;&gt;</code> doctest format so it is automatically verified by
-the test suite. Fenced <code>```python</code> blocks are appropriate when the example
-cannot reasonably be executed (e.g. loading a third-party model, reading a video file)
-or when the primary purpose is demonstrating error/exception behaviour rather than
-return values.</p>
-<p>Doctests run automatically as part of the test suite via <code>--doctest-modules</code> in
-<code>pyproject.toml</code>. The <code>ELLIPSIS</code> and <code>NORMALIZE_WHITESPACE</code> flags are enabled globally,
-so <code>...</code> matches any output fragment and minor whitespace differences are ignored.</p>
+<p><strong>Guidance:</strong> when an example uses only <code>supervision</code>, NumPy, and the standard library — no optional extras (e.g. no <code>--extra metrics</code> packages), no external files, no network, no devices — prefer <code>&gt;&gt;&gt;</code> doctest format so it is automatically verified by the test suite. Fenced <code>```python</code> blocks are appropriate when the example cannot reasonably be executed (e.g. loading a third-party model, reading a video file) or when the primary purpose is demonstrating error/exception behaviour rather than return values.</p>
+<p>Doctests run automatically as part of the test suite via <code>--doctest-modules</code> in <code>pyproject.toml</code>. The <code>ELLIPSIS</code> and <code>NORMALIZE_WHITESPACE</code> flags are enabled globally, so <code>...</code> matches any output fragment and minor whitespace differences are ignored.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>--doctest-modules<span class="w"> </span>src/
 </span></code></pre></div>
 <p><strong>Writing a doctest</strong></p>
-<p>Use the <code>Example:</code> section of a Google-style docstring. Prefix each input line with
-<code>&gt;&gt;&gt;</code> and each continuation line with <code>...</code>. Place expected output immediately after
-the last input line with no blank line between them.</p>
+<p>Use the <code>Example:</code> section of a Google-style docstring. Prefix each input line with <code>&gt;&gt;&gt;</code> and each continuation line with <code>...</code>. Place expected output immediately after the last input line with no blank line between them.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">clip_boxes</span><span class="p">(</span><span class="n">xyxy</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">resolution_wh</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 </span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Clip bounding boxes to frame boundaries.</span>
 </span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>
@@ -3334,16 +3281,12 @@ the last input line with no blank line between them.</p>
 </span></code></pre></div>
 <h3 id="key-rules">Key rules<a class="headerlink" href="#key-rules" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>Single-line expression</strong> — write the repr as expected output:
-    <code>&gt;&gt;&gt; len(result)</code> → <code>1</code></li>
-<li><strong>Multi-line statement</strong> — use <code>...</code> continuation:
-    <code>&gt;&gt;&gt; arr = np.array([</code> / <code>...     [1, 2],</code> / <code>... ])</code></li>
+<li><strong>Single-line expression</strong> — write the repr as expected output: <code>&gt;&gt;&gt; len(result)</code> → <code>1</code></li>
+<li><strong>Multi-line statement</strong> — use <code>...</code> continuation: <code>&gt;&gt;&gt; arr = np.array([</code> / <code>...     [1, 2],</code> / <code>... ])</code></li>
 <li><strong>Print output</strong> — write the printed string as expected output (no quotes).</li>
 <li><strong><code>None</code> return</strong> — no output line needed (suppress with assignment or <code>_ =</code>).</li>
 <li><strong>Large/variable arrays</strong> — use <code>ELLIPSIS</code>: <code>array([...])</code> matches any content.</li>
-<li><strong><code># doctest: +SKIP</code></strong> — use only as a last resort for genuinely non-runnable lines
-    (e.g. a GPU-only call inside an otherwise runnable example). Prefer splitting the
-    example into two blocks instead.</li>
+<li><strong><code># doctest: +SKIP</code></strong> — use only as a last resort for genuinely non-runnable lines (e.g. a GPU-only call inside an otherwise runnable example). Prefer splitting the example into two blocks instead.</li>
 </ul>
 <p>Fenced <code>```python</code> blocks remain appropriate for:</p>
 <ul>
