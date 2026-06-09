@@ -2,14 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated
-
-try:
-    from deprecate import TargetMode
-except ImportError:
-    _DEPRECATE_ARGS_REMAP_TARGET = True
-else:
-    _DEPRECATE_ARGS_REMAP_TARGET = TargetMode.ARGS_REMAP
+from deprecate import TargetMode, deprecated
 
 from supervision.detection.utils.iou_and_nms import box_iou_batch
 
@@ -104,7 +97,7 @@ def pad_boxes(
 
 
 @deprecated(  # type: ignore[untyped-decorator]
-    target=_DEPRECATE_ARGS_REMAP_TARGET,
+    target=TargetMode.ARGS_REMAP,
     deprecated_in="0.27.0",
     remove_in="0.30.0",
     args_mapping={"normalized_xyxy": "xyxy"},

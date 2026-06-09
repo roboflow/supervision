@@ -4,14 +4,7 @@ from typing import cast
 
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated_class
-
-try:
-    from deprecate import TargetMode
-except ImportError:
-    _DEPRECATE_NOTIFY_TARGET = None
-else:
-    _DEPRECATE_NOTIFY_TARGET = TargetMode.NOTIFY
+from deprecate import TargetMode, deprecated_class
 
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import box_iou_batch
@@ -22,7 +15,7 @@ from supervision.tracker.byte_tracker.utils import IdCounter
 
 
 @deprecated_class(
-    target=_DEPRECATE_NOTIFY_TARGET,
+    target=TargetMode.NOTIFY,
     deprecated_in="0.28.0",
     remove_in="0.30.0",
 )

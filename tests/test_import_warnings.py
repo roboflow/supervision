@@ -19,30 +19,24 @@ def test_import_supervision_emits_no_targetmode_future_warning() -> None:
     """
     code = textwrap.dedent(
         """
-        import os
         import warnings
 
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
             import supervision  # noqa: F401
 
-        sv_path = os.path.dirname(os.path.abspath(supervision.__file__))
         offenders = [
             str(w.message)
             for w in caught
-            if w.category is FutureWarning
-            and os.path.abspath(w.filename).startswith(sv_path)
+            if w.category is FutureWarning and "TargetMode" in str(w.message)
         ]
         if offenders:
-            detail = "\\n".join(offenders)
-            raise SystemExit(f"FutureWarning(s) on import:\\n{detail}")
+            raise SystemExit(
+                "legacy target= sentinel warnings on import:\\n" + "\\n".join(offenders)
+            )
         """
     )
     result = subprocess.run(  # noqa: S603 - fixed interpreter + trusted literal code
-        [sys.executable, "-c", code],
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=30,
+        [sys.executable, "-c", code], capture_output=True, text=True, check=False
     )
-    assert result.returncode == 0, f"stdout={result.stdout!r}\nstderr={result.stderr!r}"
+    assert result.returncode == 0, result.stderr

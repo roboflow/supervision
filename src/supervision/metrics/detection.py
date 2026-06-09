@@ -7,14 +7,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated, deprecated_class, void
-
-try:
-    from deprecate import TargetMode
-except ImportError:
-    _DEPRECATE_NOTIFY_TARGET = None
-else:
-    _DEPRECATE_NOTIFY_TARGET = TargetMode.NOTIFY
+from deprecate import TargetMode, deprecated, deprecated_class, void
 
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
@@ -558,7 +551,7 @@ class ConfusionMatrix:
 
 
 @deprecated_class(
-    target=_DEPRECATE_NOTIFY_TARGET,
+    target=TargetMode.NOTIFY,
     deprecated_in="0.27.0",
     remove_in="0.31.0",
 )
