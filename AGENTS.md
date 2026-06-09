@@ -68,7 +68,7 @@ All work must follow the conventions of the `supervision` library
 
 ## 3a. Test Conventions
 
-Full test guidelines are in [CONTRIBUTING.md](.github/CONTRIBUTING.md#-tests). Key rules:
+Full test guidelines are in [CONTRIBUTING.md](.github/CONTRIBUTING.md#tests). Key rules:
 
 - **AAA structure**: one arrange, one act, one assertion group per test. No second act.
 - **Class grouping**: group related tests into a class. Class name = unit under test.
