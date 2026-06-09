@@ -315,6 +315,50 @@ class TestDetectionMetrics:
                 ),
                 DoesNotRaise(),
             ),  # multiple detections; with confidence
+            pytest.param(
+                Detections(
+                    xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                    class_id=np.array([0]),
+                    data={"xyxyxyxy": np.zeros((1, 4), dtype=np.float32)},
+                ),
+                False,
+                MetricTarget.ORIENTED_BOUNDING_BOXES,
+                None,
+                pytest.raises(ValueError, match="Expected xyxyxyxy to contain"),
+                id="obb-malformed-element-count",
+            ),  # OBB data present but wrong element count (4 instead of 8)
+            pytest.param(
+                Detections(
+                    xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                    class_id=np.array([0]),
+                    data={
+                        "xyxyxyxy": np.array(
+                            [[0, 0, 10, 0, 10, 10, 0, 10]], dtype=np.float32
+                        )
+                    },
+                ),
+                True,
+                MetricTarget.ORIENTED_BOUNDING_BOXES,
+                None,
+                pytest.raises(ValueError, match="Detections with confidence"),
+                id="obb-with-confidence-but-confidence-none",
+            ),  # OBB + with_confidence=True but confidence is None
+            pytest.param(
+                Detections(
+                    xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                    class_id=None,
+                    data={
+                        "xyxyxyxy": np.array(
+                            [[0, 0, 10, 0, 10, 10, 0, 10]], dtype=np.float32
+                        )
+                    },
+                ),
+                False,
+                MetricTarget.ORIENTED_BOUNDING_BOXES,
+                None,
+                pytest.raises(ValueError, match="class_id"),
+                id="obb-class-id-none",
+            ),  # OBB + class_id=None
         ],
     )
     def test_detections_to_tensor(
