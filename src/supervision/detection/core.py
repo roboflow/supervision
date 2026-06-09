@@ -2408,10 +2408,8 @@ class Detections:
                 )
             x, y = corners[..., 0], corners[..., 1]
             return 0.5 * np.abs(
-                np.sum(
-                    x * np.roll(y, -1, axis=-1) - np.roll(x, -1, axis=-1) * y,
-                    axis=-1,
-                )
+                (x[..., 0] - x[..., 2]) * (y[..., 1] - y[..., 3])
+                - (x[..., 1] - x[..., 3]) * (y[..., 0] - y[..., 2])
             )
         return self.box_area
 
