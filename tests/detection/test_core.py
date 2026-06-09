@@ -1179,3 +1179,34 @@ class TestDetectionsArea:
 
         with pytest.raises(ValueError, match="must have shape"):
             _ = detections.area
+
+    @pytest.mark.parametrize(
+        ("branch", "expected_dtype"),
+        [
+            pytest.param("obb", np.float64, id="obb-branch-float64"),
+            pytest.param("aabb", np.float32, id="aabb-branch-preserves-input-dtype"),
+            pytest.param("mask", np.int64, id="mask-branch-int64"),
+        ],
+    )
+    def test_area_return_dtype_per_branch(
+        self, branch: str, expected_dtype: type
+    ) -> None:
+        """Area dtype matches the documented per-branch contract."""
+        if branch == "obb":
+            quad = _rotated_rect(50, 50, 20, 10, 0)
+            detections = _make_obb_detections([quad], [0.9], [0])
+        elif branch == "aabb":
+            detections = Detections(
+                xyxy=np.array([[0, 0, 20, 10]], dtype=np.float32),
+                class_id=np.array([0], dtype=int),
+            )
+        else:
+            mask = np.zeros((1, 40, 40), dtype=bool)
+            mask[0, 10:30, 10:30] = True
+            detections = Detections(
+                xyxy=np.array([[10, 10, 30, 30]], dtype=np.float32),
+                class_id=np.array([0], dtype=int),
+                mask=mask,
+            )
+
+        assert detections.area.dtype == expected_dtype
