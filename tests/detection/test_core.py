@@ -1160,3 +1160,22 @@ class TestDetectionsArea:
         detections = _make_obb_detections(quads, [0.9, 0.9, 0.9], [0, 0, 0])
 
         assert np.allclose(detections.area, [200.0, 200.0, 150.0])
+
+    @pytest.mark.parametrize(
+        "bad_shape",
+        [
+            pytest.param((1, 8), id="flat-N8"),
+            pytest.param((1, 3, 2), id="triangle"),
+        ],
+    )
+    def test_raises_on_malformed_obb_coordinates_shape(self, bad_shape: tuple) -> None:
+        """ValueError when OBB data shape is wrong for area computation."""
+        bad_corners = np.zeros(bad_shape, dtype=np.float32)
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+            data={ORIENTED_BOX_COORDINATES: bad_corners},
+        )
+
+        with pytest.raises(ValueError, match="must have shape"):
+            _ = detections.area
