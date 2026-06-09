@@ -2382,14 +2382,13 @@ class Detections:
         Example:
             >>> import numpy as np
             >>> import supervision as sv
-            >>> from supervision.config import ORIENTED_BOX_COORDINATES
             >>> corners = np.array(
             ...     [[[0, 5], [5, 10], [10, 5], [5, 0]]], dtype=np.float32
             ... )
             >>> detections = sv.Detections(
             ...     xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
             ...     class_id=np.array([0]),
-            ...     data={ORIENTED_BOX_COORDINATES: corners},
+            ...     data={"xyxyxyxy": corners},
             ... )
             >>> detections.area
             array([50.])
