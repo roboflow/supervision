@@ -361,7 +361,7 @@ survives reordering.
     ],
 )
 def test_overlap_metric_determines_suppression(
-    self, overlap_metric: OverlapMetric, expected_keep: list[bool]
+    overlap_metric: OverlapMetric, expected_keep: list[bool]
 ) -> None:
     """Small box inside large: IOU keeps both; IOS suppresses small."""
     ...
