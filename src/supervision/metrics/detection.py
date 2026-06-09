@@ -145,7 +145,6 @@ def _validate_input_tensors(
     """
     Checks for shape consistency of input tensors.
     """
-    _assert_supported_target(metric_target)
     if len(predictions) != len(targets):
         raise ValueError(
             f"Number of predictions ({len(predictions)}) and"
@@ -383,6 +382,7 @@ class ConfusionMatrix:
 
             ```
         """
+        _assert_supported_target(metric_target)
         _validate_input_tensors(predictions, targets, metric_target=metric_target)
 
         num_classes = len(classes)
