@@ -1098,8 +1098,7 @@ class TestDetectionsArea:
     def test_uses_oriented_box_corners_when_present(
         self, width: float, height: float, angle_deg: float, expected_area: float
     ) -> None:
-        """Area must equal the rotated body's area regardless of rotation, not
-        the AABB area that grows with rotation."""
+        """Area equals the rotated body's area regardless of rotation, not the AABB."""
         quad = _rotated_rect(50, 50, width, height, angle_deg)
         detections = _make_obb_detections([quad], [0.9], [0])
 
