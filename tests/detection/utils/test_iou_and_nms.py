@@ -1366,8 +1366,17 @@ class TestOrientedBoxNonMaxSuppression:
 
         assert np.array_equal(keep, np.array(expected_keep))
 
-    def test_respects_overlap_metric(self) -> None:
-        """IOS suppresses a contained lower-score OBB where IOU keeps both."""
+    @pytest.mark.parametrize(
+        ("overlap_metric", "expected_keep"),
+        [
+            pytest.param(OverlapMetric.IOU, [True, True], id="iou-keeps-both"),
+            pytest.param(OverlapMetric.IOS, [True, False], id="ios-suppresses-small"),
+        ],
+    )
+    def test_overlap_metric_determines_suppression(
+        self, overlap_metric: OverlapMetric, expected_keep: list[bool]
+    ) -> None:
+        """Small box inside large: IOU keeps both; IOS suppresses small."""
         large = _rotated_rect(50, 50, 60, 60, 0)
         small = _rotated_rect(50, 50, 20, 20, 0)
         oriented_boxes = np.stack([large, small])
@@ -1379,26 +1388,14 @@ class TestOrientedBoxNonMaxSuppression:
             dtype=np.float32,
         )
 
-        iou = oriented_box_iou_batch(large[None], small[None], OverlapMetric.IOU)[0, 0]
-        ios = oriented_box_iou_batch(large[None], small[None], OverlapMetric.IOS)[0, 0]
-        assert iou < 0.5
-        assert ios > 0.5
-
-        keep_iou = oriented_box_non_max_suppression(
+        keep = oriented_box_non_max_suppression(
             predictions=predictions,
             oriented_boxes=oriented_boxes,
             iou_threshold=0.5,
-            overlap_metric=OverlapMetric.IOU,
-        )
-        keep_ios = oriented_box_non_max_suppression(
-            predictions=predictions,
-            oriented_boxes=oriented_boxes,
-            iou_threshold=0.5,
-            overlap_metric=OverlapMetric.IOS,
+            overlap_metric=overlap_metric,
         )
 
-        assert np.array_equal(keep_iou, np.array([True, True]))
-        assert np.array_equal(keep_ios, np.array([True, False]))
+        assert np.array_equal(keep, np.array(expected_keep))
 
 
 class TestOrientedBoxNonMaxMerge:

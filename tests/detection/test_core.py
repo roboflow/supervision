@@ -1014,61 +1014,50 @@ def _make_obb_detections(
     )
 
 
-class TestDetectionsWithNms:
-    """Tests for `Detections.with_nms` OBB-aware dispatch."""
+class TestDetectionsObbDispatch:
+    """Shared OBB-aware dispatch behaviour for `with_nms` and `with_nmm`."""
 
-    def test_uses_obb_iou_when_oriented_box_coordinates_present(self) -> None:
-        """X-pattern: two crossed OBBs share an AABB but barely overlap.
-        `box_non_max_suppression` (the pre-fix path) would drop one because
-        AABB IoU ≈ 1.0. With OBB-aware NMS both must survive."""
+    @pytest.mark.parametrize(
+        "method",
+        [
+            pytest.param("with_nms", id="with_nms"),
+            pytest.param("with_nmm", id="with_nmm"),
+        ],
+    )
+    def test_uses_obb_iou_when_oriented_box_coordinates_present(
+        self, method: str
+    ) -> None:
+        """X-pattern OBBs: both survive under either method because OBB IoU < 0.5."""
         quad_a = _rotated_rect(50, 50, 100, 10, +45)
         quad_b = _rotated_rect(50, 50, 100, 10, -45)
         detections = _make_obb_detections([quad_a, quad_b], [0.9, 0.85], [0, 0])
 
-        result = detections.with_nms(threshold=0.5)
+        result = getattr(detections, method)(threshold=0.5)
 
         assert len(result) == 2
 
-    def test_falls_back_to_box_nms_without_obb_data(self) -> None:
-        """Regression guard: non-OBB Detections must still use box NMS so two
-        heavily-overlapping AABBs collapse to one."""
+    @pytest.mark.parametrize(
+        "method",
+        [
+            pytest.param("with_nms", id="with_nms"),
+            pytest.param("with_nmm", id="with_nmm"),
+        ],
+    )
+    def test_falls_back_without_obb_data(self, method: str) -> None:
+        """Non-OBB heavily-overlapping AABBs collapse to one under either method."""
         detections = Detections(
             xyxy=np.array([[0, 0, 100, 100], [10, 10, 110, 110]], dtype=np.float32),
             confidence=np.array([0.9, 0.85], dtype=np.float32),
             class_id=np.array([0, 0], dtype=int),
         )
 
-        result = detections.with_nms(threshold=0.5)
+        result = getattr(detections, method)(threshold=0.5)
 
         assert len(result) == 1
 
 
 class TestDetectionsWithNmm:
-    """Tests for `Detections.with_nmm` OBB-aware dispatch."""
-
-    def test_uses_obb_iou_when_oriented_box_coordinates_present(self) -> None:
-        """X-pattern under non-max-merging: the two crossed OBBs should land in
-        separate merge groups (no spurious merge driven by AABB overlap)."""
-        quad_a = _rotated_rect(50, 50, 100, 10, +45)
-        quad_b = _rotated_rect(50, 50, 100, 10, -45)
-        detections = _make_obb_detections([quad_a, quad_b], [0.9, 0.85], [0, 0])
-
-        result = detections.with_nmm(threshold=0.5)
-
-        assert len(result) == 2
-
-    def test_falls_back_to_box_nmm_without_obb_data(self) -> None:
-        """Regression guard: non-OBB Detections must still use box NMM so two
-        heavily-overlapping AABBs are merged into one group."""
-        detections = Detections(
-            xyxy=np.array([[0, 0, 100, 100], [10, 10, 110, 110]], dtype=np.float32),
-            confidence=np.array([0.9, 0.85], dtype=np.float32),
-            class_id=np.array([0, 0], dtype=int),
-        )
-
-        result = detections.with_nmm(threshold=0.5)
-
-        assert len(result) == 1
+    """NMM-specific behaviour tests for `Detections.with_nmm`."""
 
     def test_obb_merged_xyxy_matches_winner_aabb(self) -> None:
         """OBB merge group: merged xyxy must equal winner's AABB, not union AABB.
