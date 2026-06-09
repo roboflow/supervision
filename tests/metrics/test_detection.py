@@ -12,8 +12,8 @@ from supervision.metrics.core import MetricTarget
 from supervision.metrics.detection import (
     ConfusionMatrix,
     MeanAveragePrecision,
-    detections_to_tensor,
     _validate_input_tensors,
+    detections_to_tensor,
 )
 from tests.helpers import (
     _create_detections,
