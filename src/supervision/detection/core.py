@@ -2375,7 +2375,7 @@ class Detections:
         3. Otherwise, return the axis-aligned box area (``box_area``).
 
         Returns:
-            An array of floats containing the area of each detection
+            An array containing the area of each detection
                 in the format of `(area_1, area_2, ..., area_n)`,
                 where n is the number of detections.
 
