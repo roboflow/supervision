@@ -24,7 +24,8 @@ src/supervision/
 │   ├── compact_mask.py  — compact mask representation
 │   ├── vlm.py           — VLM connectors (Florence-2, Gemini, Qwen, PaliGemma)
 │   ├── utils/           — pure NumPy helpers: boxes, converters, iou_and_nms, masks, polygons
-│   └── tools/           — InferenceSlicer, PolygonZone, LineZone, CSVSink, JSONSink, DetectionsSmoother
+│   ├── line_zone.py     — LineZone
+│   └── tools/           — InferenceSlicer, PolygonZone, CSVSink, JSONSink, DetectionsSmoother
 ├── annotators/core.py   — BoxAnnotator, MaskAnnotator, LabelAnnotator, … each: .annotate(scene, detections)
 ├── key_points/          — KeyPoints, EdgeAnnotator, VertexAnnotator (use this, NOT keypoint/ — see §4)
 ├── tracker/             — DEPRECATED
@@ -74,7 +75,7 @@ For branching, commit, code style, and API design conventions see [CONTRIBUTING.
 
 ## 5. Deprecating APIs
 
-- Module-level: `supervision.utils.internal.warn_deprecated` in `__init__.py`
+- Module-level: `supervision.utils.internal.warn_deprecated` in the deprecated module's own `__init__.py`
 - Parameter renamed (old→new): `supervision.utils.internal.deprecated_parameter` decorator
 - Public function, method, or class: `@deprecated` from `pydeprecate`
 
@@ -132,7 +133,10 @@ uv run pre-commit run --all-files
 Capture a baseline before changes to avoid introducing new failures:
 
 ```bash
-git stash && uv run pytest -q 2>&1 | tee /tmp/baseline.txt && git stash pop
+STASH_BEFORE=$(git rev-parse refs/stash 2>/dev/null)
+git stash push --include-untracked
+uv run pytest -q 2>&1 | tee /tmp/baseline.txt
+[ "$(git rev-parse refs/stash 2>/dev/null)" != "$STASH_BEFORE" ] && git stash pop
 uv run pytest -q 2>&1 | tee /tmp/after.txt
 diff /tmp/baseline.txt /tmp/after.txt
 ```
