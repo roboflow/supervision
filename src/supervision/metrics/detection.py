@@ -229,8 +229,7 @@ class ConfusionMatrix:
             and self.iou_threshold == other.iou_threshold
         )
 
-    def __hash__(self) -> int:
-        return hash((self.conf_threshold, self.iou_threshold, tuple(self.classes)))
+    __hash__ = None  # type: ignore[assignment]
 
     @classmethod
     def from_detections(
