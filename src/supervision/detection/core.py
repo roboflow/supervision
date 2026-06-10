@@ -7,6 +7,7 @@ from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
+from deprecate import deprecated, void
 
 from supervision.config import (
     CLASS_NAME_DATA_FIELD,
@@ -18,6 +19,7 @@ from supervision.detection.tools.transformers import (
     process_transformers_v4_segmentation_result,
     process_transformers_v5_segmentation_result,
 )
+from supervision.detection.utils.boxes import obb_polygon_area
 from supervision.detection.utils.converters import (
     mask_to_xyxy,
     polygon_to_mask,
@@ -40,11 +42,14 @@ from supervision.detection.utils.iou_and_nms import (
     mask_iou_batch,
     mask_non_max_merge,
     mask_non_max_suppression,
+    oriented_box_non_max_merge,
+    oriented_box_non_max_suppression,
 )
 from supervision.detection.utils.masks import calculate_masks_centroids
 from supervision.detection.vlm import (
     LMM,
     VLM,
+    _validate_vlm_parameters,
     from_deepseek_vl_2,
     from_florence_2,
     from_google_gemini_2_0,
@@ -53,11 +58,10 @@ from supervision.detection.vlm import (
     from_paligemma,
     from_qwen_2_5_vl,
     from_qwen_3_vl,
-    validate_vlm_parameters,
 )
 from supervision.geometry.core import Position
 from supervision.utils.internal import get_instance_variables, warn_deprecated
-from supervision.validators import validate_detections_fields, validate_resolution
+from supervision.validators import _validate_detections_fields, _validate_resolution
 
 
 @dataclass
@@ -158,7 +162,7 @@ class Detections:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        validate_detections_fields(
+        _validate_detections_fields(
             xyxy=self.xyxy,
             mask=self.mask,
             confidence=self.confidence,
@@ -762,7 +766,7 @@ class Detections:
             )
             ```
         """
-        width, height = validate_resolution(resolution_wh)
+        width, height = _validate_resolution(resolution_wh)
 
         masks = []
         confidences = []
@@ -1876,7 +1880,7 @@ class Detections:
 
         """  # noqa: E501
 
-        vlm = validate_vlm_parameters(vlm, result, kwargs)
+        vlm = _validate_vlm_parameters(vlm, result, kwargs)
 
         if vlm == VLM.PALIGEMMA:
             assert isinstance(result, str)
@@ -2164,7 +2168,7 @@ class Detections:
             return Detections.empty()
 
         for detections in detections_list:
-            validate_detections_fields(
+            _validate_detections_fields(
                 xyxy=detections.xyxy,
                 mask=detections.mask,
                 confidence=detections.confidence,
@@ -2363,20 +2367,49 @@ class Detections:
     def area(self) -> npt.NDArray[np.generic]:
         """
         Calculate the area of each detection in the set of object detections.
-        If masks field is defined property returns are of each mask.
-        If only box is given property return area of each box.
+
+        Selection order:
+
+        1. If ``mask`` is set, return the area of each mask.
+        2. Else, if ``data[ORIENTED_BOX_COORDINATES]`` is set, return the area of
+           the rotated body (shoelace formula on the four corners).
+        3. Otherwise, return the axis-aligned box area (``box_area``).
+
+        **OBB dispatch contract**: presence of ``data[ORIENTED_BOX_COORDINATES]``
+        with shape ``(N, 4, 2)`` is the canonical signal that a detection carries
+        oriented bounding box geometry. The same presence-of-key check governs
+        ``with_nms``, ``with_nmm``, and this property — always store OBB corners
+        under ``config.ORIENTED_BOX_COORDINATES`` with that shape.
+
+        **Return dtype**: ``float64`` (OBB branch), input dtype (AABB fallback),
+        ``int64`` (mask branch).
 
         Returns:
-            An array of floats containing the area of each detection
+            An array containing the area of each detection
                 in the format of `(area_1, area_2, ..., area_n)`,
                 where n is the number of detections.
+
+        Example:
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> corners = np.array(
+            ...     [[[0, 5], [5, 10], [10, 5], [5, 0]]], dtype=np.float32
+            ... )
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            ...     class_id=np.array([0]),
+            ...     data={"xyxyxyxy": corners},
+            ... )
+            >>> detections.area
+            array([50.])
         """
         if self.mask is not None:
             if isinstance(self.mask, CompactMask):
                 return self.mask.area
             return np.array([np.sum(mask) for mask in self.mask])
-        else:
-            return self.box_area
+        if ORIENTED_BOX_COORDINATES in self.data:
+            return obb_polygon_area(self.data[ORIENTED_BOX_COORDINATES])
+        return self.box_area
 
     @property
     def box_area(self) -> npt.NDArray[np.generic]:
@@ -2434,8 +2467,10 @@ class Detections:
         overlap_metric: OverlapMetric = OverlapMetric.IOU,
     ) -> Detections:
         """
-        Performs non-max suppression on detection set. If the detections result
-        from a segmentation model, the IoU mask is applied. Otherwise, box IoU is used.
+        Performs non-max suppression on detection set. Dispatch order: (1) if mask
+        data present, IoU mask is used; (2) else if oriented-box coordinates
+        (``data[ORIENTED_BOX_COORDINATES]``) present, oriented-box IoU is used; (3)
+        otherwise, axis-aligned box IoU is used.
 
         Args:
             threshold: The intersection-over-union threshold
@@ -2484,6 +2519,15 @@ class Detections:
                 iou_threshold=threshold,
                 overlap_metric=overlap_metric,
             )
+        elif ORIENTED_BOX_COORDINATES in self.data:
+            indices = oriented_box_non_max_suppression(
+                predictions=predictions,
+                oriented_boxes=np.asarray(
+                    self.data[ORIENTED_BOX_COORDINATES], dtype=np.float32
+                ),
+                iou_threshold=threshold,
+                overlap_metric=overlap_metric,
+            )
         else:
             indices = box_non_max_suppression(
                 predictions=predictions,
@@ -2501,6 +2545,9 @@ class Detections:
     ) -> Detections:
         """
         Perform non-maximum merging on the current set of object detections.
+        Dispatch order: (1) if mask data present, IoU mask is used; (2) else if
+        oriented-box coordinates (``data[ORIENTED_BOX_COORDINATES]``) present,
+        oriented-box IoU is used; (3) otherwise, axis-aligned box IoU is used.
 
         Args:
             threshold: The intersection-over-union threshold
@@ -2550,6 +2597,15 @@ class Detections:
                 iou_threshold=threshold,
                 overlap_metric=overlap_metric,
             )
+        elif ORIENTED_BOX_COORDINATES in self.data:
+            merge_groups = oriented_box_non_max_merge(
+                predictions=predictions,
+                oriented_boxes=np.asarray(
+                    self.data[ORIENTED_BOX_COORDINATES], dtype=np.float32
+                ),
+                iou_threshold=threshold,
+                overlap_metric=overlap_metric,
+            )
         else:
             merge_groups = box_non_max_merge(
                 predictions=predictions,
@@ -2563,6 +2619,21 @@ class Detections:
             merged_detections = merge_inner_detections_objects_without_iou(
                 unmerged_detections
             )
+            if (
+                len(merge_group) > 1
+                and ORIENTED_BOX_COORDINATES in merged_detections.data
+            ):
+                obb = merged_detections.data[ORIENTED_BOX_COORDINATES][0]  # (4, 2)
+                merged_detections.xyxy = np.array(
+                    [
+                        [
+                            float(obb[:, 0].min()),
+                            float(obb[:, 1].min()),
+                            float(obb[:, 0].max()),
+                            float(obb[:, 1].max()),
+                        ]
+                    ]
+                )
             result.append(merged_detections)
 
         return Detections.merge(result)
@@ -2614,7 +2685,7 @@ def merge_inner_detection_object_pair(
     if len(detections_1) != 1 or len(detections_2) != 1:
         raise ValueError("Both Detections should have exactly 1 detected object.")
 
-    validate_fields_both_defined_or_none(detections_1, detections_2)
+    _validate_fields_both_defined_or_none(detections_1, detections_2)
 
     xyxy_1 = detections_1.xyxy[0]
     xyxy_2 = detections_2.xyxy[0]
@@ -2701,7 +2772,7 @@ def merge_inner_detections_objects_without_iou(
     return reduce(merge_inner_detection_object_pair, detections)
 
 
-def validate_fields_both_defined_or_none(
+def _validate_fields_both_defined_or_none(
     detections_1: Detections, detections_2: Detections
 ) -> None:
     """
@@ -2723,3 +2794,14 @@ def validate_fields_both_defined_or_none(
                 f"Field '{attribute}' should be consistently None or not None in both "
                 "Detections."
             )
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_validate_fields_both_defined_or_none,
+    deprecated_in="0.29.0",
+    remove_in="0.31.0",
+)
+def validate_fields_both_defined_or_none(
+    detections_1: Detections, detections_2: Detections
+) -> None:
+    void(detections_1, detections_2)

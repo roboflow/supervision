@@ -509,6 +509,7 @@ class DetectionDataset(BaseDataset):
         min_image_area_percentage: float = 0.0,
         max_image_area_percentage: float = 1.0,
         approximation_percentage: float = 0.0,
+        is_obb: bool = False,
     ) -> None:
         """
         Exports the dataset to YOLO format. This method saves the
@@ -537,7 +538,26 @@ class DetectionDataset(BaseDataset):
                 be removed from the input polygon, in the range [0, 1).
                 This is useful for simplifying the annotations.
                 Argument is used only for segmentation datasets.
+            is_obb: If True, exports annotations in OBB format
+                (`class_id x1 y1 x2 y2 x3 y3 x4 y4`) using the oriented
+                corners stored in `detections.data["xyxyxyxy"]`. Mirrors
+                `from_yolo(..., is_obb=True)`. Masks are ignored when
+                `is_obb=True`.
         """
+        if is_obb and (
+            min_image_area_percentage != 0.0
+            or max_image_area_percentage != 1.0
+            or approximation_percentage != 0.0
+        ):
+            import warnings
+
+            warnings.warn(
+                "`min_image_area_percentage`, `max_image_area_percentage`, and "
+                "`approximation_percentage` have no effect when `is_obb=True`; "
+                "OBB annotations use corner coordinates directly.",
+                UserWarning,
+                stacklevel=2,
+            )
         if images_directory_path is not None:
             save_dataset_images(
                 dataset=self, images_directory_path=images_directory_path
@@ -549,6 +569,7 @@ class DetectionDataset(BaseDataset):
                 min_image_area_percentage=min_image_area_percentage,
                 max_image_area_percentage=max_image_area_percentage,
                 approximation_percentage=approximation_percentage,
+                is_obb=is_obb,
             )
         if data_yaml_path is not None:
             save_data_yaml(data_yaml_path=data_yaml_path, classes=self.classes)

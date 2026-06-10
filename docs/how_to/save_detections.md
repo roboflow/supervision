@@ -10,19 +10,11 @@ date_modified: 2026-04-22
 
 # Save Detections
 
-Supervision enables an easy way to save detections in .CSV and .JSON files for offline
-processing. This guide demonstrates how to perform video inference using the
-[Inference](https://github.com/roboflow/inference),
-[Ultralytics](https://github.com/ultralytics/ultralytics) or
-[Transformers](https://github.com/huggingface/transformers) packages and save their results with
-[`sv.CSVSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink) and
-[`sv.JSONSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.json_sink.JSONSink).
+Supervision enables an easy way to save detections in .CSV and .JSON files for offline processing. This guide demonstrates how to perform video inference using the [Inference](https://github.com/roboflow/inference), [Ultralytics](https://github.com/ultralytics/ultralytics) or [Transformers](https://github.com/huggingface/transformers) packages and save their results with [`sv.CSVSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink) and [`sv.JSONSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.json_sink.JSONSink).
 
 ## Run Detection
 
-First, you'll need to obtain predictions from your object detection or segmentation
-model. You can learn more on this topic in our
-[How to Detect and Annotate](https://supervision.roboflow.com/latest/how_to/detect_and_annotate/) guide.
+First, you'll need to obtain predictions from your object detection or segmentation model. You can learn more on this topic in our [How to Detect and Annotate](https://supervision.roboflow.com/latest/how_to/detect_and_annotate/) guide.
 
 To generate predictions for saving, initialize your model and iterate over video frames using `sv.get_video_frames_generator`. Each frame is passed to the model, and the raw output is converted into a `sv.Detections` object. This detection loop forms the foundation for both CSV and JSON export workflows shown below.
 
@@ -82,11 +74,7 @@ To generate predictions for saving, initialize your model and iterate over video
 
 ## Save Detections as CSV
 
-To save detections to a `.CSV` file, open our
-[`sv.CSVSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink)
-and then pass the
-[`sv.Detections`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections)
-object resulting from the inference to it. Its fields are parsed and saved on disk.
+To save detections to a `.CSV` file, open our [`sv.CSVSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink) and then pass the [`sv.Detections`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections) object resulting from the inference to it. Its fields are parsed and saved on disk.
 
 === "Inference"
 
@@ -158,12 +146,7 @@ object resulting from the inference to it. Its fields are parsed and saved on di
 
 ## Custom Fields
 
-Besides regular fields in
-[`sv.Detections`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections),
-[`sv.CSVSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink)
-also allows you to add custom information to each row, which can be passed via the
-`custom_data` dictionary. Let's utilize this feature to save information about the
-frame index from which the detections originate.
+Besides regular fields in [`sv.Detections`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections), [`sv.CSVSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink) also allows you to add custom information to each row, which can be passed via the `custom_data` dictionary. Let's utilize this feature to save information about the frame index from which the detections originate.
 
 === "Inference"
 
@@ -235,11 +218,7 @@ frame index from which the detections originate.
 
 ## Save Detections as JSON
 
-If you prefer to save the result in a `.JSON` file instead of a `.CSV` file, all you
-need to do is replace
-[`sv.CSVSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink)
-with
-[`sv.JSONSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.json_sink.JSONSink).
+If you prefer to save the result in a `.JSON` file instead of a `.CSV` file, all you need to do is replace [`sv.CSVSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.csv_sink.CSVSink) with [`sv.JSONSink`](https://supervision.roboflow.com/latest/detection/tools/save_detections/#supervision.detection.tools.json_sink.JSONSink).
 
 === "Inference"
 

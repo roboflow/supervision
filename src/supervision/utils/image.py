@@ -11,7 +11,7 @@ from typing import Any, Literal, cast
 import cv2
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated
+from deprecate import TargetMode, deprecated
 from PIL import Image
 
 from supervision.draw.base import ImageType
@@ -217,14 +217,20 @@ def letterbox_image(
     maintaining aspect ratio.
 
     Args:
-        image: The image to resize and pad.
+        image: The image to resize and pad. Accepts BGR arrays of shape
+            ``(H, W, 3)``, BGRA arrays of shape ``(H, W, 4)``, grayscale
+            arrays of shape ``(H, W)``, or a PIL ``Image``.
         resolution_wh: Target resolution as `(width, height)`.
-        color: Padding color. If tuple, should
-            be in BGR format. Defaults to `Color.BLACK`.
+        color: Padding color. If tuple, should be in BGR format.
+            Defaults to `Color.BLACK`.
 
     Returns:
-        Letterboxed image matching input
-            type.
+        Letterboxed image matching input type.
+
+    Note:
+        For BGRA inputs, the alpha channel in the padding region is set to
+        0 (fully transparent). Grayscale inputs receive scalar padding
+        from ``color[0]``.
 
     Examples:
         ```pycon
@@ -238,6 +244,9 @@ def letterbox_image(
         ... )
         >>> letterboxed_image.shape
         (1000, 1000, 3)
+        >>> gray = np.zeros((4, 6), dtype=np.uint8)
+        >>> sv.letterbox_image(image=gray, resolution_wh=(10, 10)).shape
+        (10, 10)
 
         ```
 
@@ -263,17 +272,11 @@ def letterbox_image(
         value=color,
     )
 
-    if image.shape[2] == 4:
-        image[:padding_top, :, 3] = 0
-        image[height_new - padding_bottom :, :, 3] = 0
-        image[:, :padding_left, 3] = 0
-        image[:, width_new - padding_right :, 3] = 0
-
     return image_with_borders
 
 
 @deprecated(  # type: ignore[untyped-decorator]
-    target=None,
+    target=TargetMode.NOTIFY,
     deprecated_in="0.27.0",
     remove_in="0.31.0",
 )
@@ -555,7 +558,7 @@ class ImageSink:
 
 
 @deprecated(  # type: ignore[untyped-decorator]
-    target=None,
+    target=TargetMode.NOTIFY,
     deprecated_in="0.27.0",
     remove_in="0.31.0",
 )
