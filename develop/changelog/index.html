@@ -3589,6 +3589,9 @@
 <p>Added <a href="https://github.com/roboflow/supervision/pull/932">#932</a>: <a href="https://supervision.roboflow.com/latest/assets/"><code>sv.ImageAssets</code></a> for downloading sample images alongside existing video assets, useful for examples and tutorials.</p>
 </li>
 <li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/2247">#2247</a>: <a href="https://supervision.roboflow.com/metrics/detection/#confusionmatrix"><code>sv.ConfusionMatrix</code></a> now accepts <code>metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES</code>, computing IoU via <code>oriented_box_iou_batch</code> over <code>xyxyxyxy</code> coordinates. Previously, OBB inputs silently fell back to axis-aligned bounding-box IoU, producing incorrect match scores for rotated detections.</p>
+</li>
+<li>
 <p>Changed <a href="https://github.com/roboflow/supervision/pull/2169">#2169</a>: <a href="https://supervision.roboflow.com/latest/metrics/mean_average_precision/"><code>sv.MeanAveragePrecisionResult</code></a> and related metric arrays (<code>mAP_scores</code>, <code>ap_per_class</code>, <code>iou_thresholds</code>, precision/recall) are now <code>float32</code> instead of <code>float64</code>. Reduces memory and speeds up computation; numerical results may differ in the last few digits.</p>
 </li>
 <li>
@@ -5414,7 +5417,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 9, 2026 20:20:34 UTC">June 9, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 10, 2026 11:29:33 UTC">June 10, 2026</span>
   </span>
 
     
@@ -5442,9 +5445,9 @@
     
     <nav>
       
-        <a href="https://github.com/kounelisagis" class="md-author" title="@kounelisagis">
+        <a href="https://github.com/Khanz9664" class="md-author" title="@Khanz9664">
           
-          <img src="https://avatars.githubusercontent.com/u/36283973?v=4&size=72" alt="kounelisagis">
+          <img src="https://avatars.githubusercontent.com/u/65996596?v=4&size=72" alt="Khanz9664">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -5452,21 +5455,21 @@
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/kounelisagis" class="md-author" title="@kounelisagis">
+          
+          <img src="https://avatars.githubusercontent.com/u/36283973?v=4&size=72" alt="kounelisagis">
+        </a>
+      
         <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
           <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
-        </a>
-      
-        <a href="https://github.com/RitwijParmar" class="md-author" title="@RitwijParmar">
-          
-          <img src="https://avatars.githubusercontent.com/u/88580521?v=4&size=72" alt="RitwijParmar">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/changelog.md" class="md-author md-author--more">
-            +15
+            +16
           </a>
         
       
