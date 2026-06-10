@@ -448,6 +448,24 @@ class ConfusionMatrix:
             Confusion matrix based on a single image.
         """
         _assert_supported_target(metric_target)
+
+        expected_pred_cols = (
+            10 if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES else 6
+        )
+        expected_target_cols = (
+            9 if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES else 5
+        )
+        if predictions.ndim != 2 or predictions.shape[1] != expected_pred_cols:
+            raise ValueError(
+                f"Predictions must have shape (M, {expected_pred_cols}). "
+                f"Got {predictions.shape} instead."
+            )
+        if targets.ndim != 2 or targets.shape[1] != expected_target_cols:
+            raise ValueError(
+                f"Targets must have shape (N, {expected_target_cols}). "
+                f"Got {targets.shape} instead."
+            )
+
         result_matrix = np.zeros((num_classes + 1, num_classes + 1))
 
         # Filter predictions by confidence threshold
