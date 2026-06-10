@@ -379,6 +379,13 @@ def detections_to_yolo_annotations(
 
         if is_obb:
             corners = np.asarray(data[ORIENTED_BOX_COORDINATES], dtype=np.float32)
+            if corners.shape != (4, 2):
+                raise ValueError(
+                    f"OBB data for each detection must have shape (4, 2), "
+                    f"got {corners.shape}. Ensure "
+                    f"`detections.data['{ORIENTED_BOX_COORDINATES}']` has "
+                    "shape (N, 4, 2) before exporting."
+                )
             next_object = object_to_yolo(
                 xyxy=xyxy,
                 class_id=class_id_int,

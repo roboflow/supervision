@@ -617,6 +617,28 @@ def test_detections_to_yolo_annotations_obb_multiple_detections() -> None:
     )
 
 
+def test_detections_to_yolo_annotations_obb_data_ignored_when_is_obb_false() -> None:
+    """OBB data in detections.data must be silently ignored when is_obb=False."""
+    corners = np.array(
+        [[[50.0, 10.0], [90.0, 50.0], [50.0, 90.0], [10.0, 50.0]]],
+        dtype=np.float32,
+    )
+    detections = Detections(
+        xyxy=np.array([[10.0, 10.0, 90.0, 90.0]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+        data={ORIENTED_BOX_COORDINATES: corners},
+    )
+
+    lines = detections_to_yolo_annotations(
+        detections=detections, image_shape=(100, 100, 3), is_obb=False
+    )
+
+    assert len(lines) == 1
+    assert len(lines[0].split()) == 5, (
+        "Without is_obb=True, OBB data must be ignored and bbox format (5 tokens) used"
+    )
+
+
 @pytest.mark.parametrize(
     ("is_obb_save", "expected_tokens"),
     [
