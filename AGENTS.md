@@ -75,8 +75,8 @@ For branching, commit, code style, and API design conventions see [CONTRIBUTING.
 ## 5. Deprecating APIs
 
 - Module-level: `supervision.utils.internal.warn_deprecated` in `__init__.py`
-- Function/method parameter: `supervision.utils.internal.deprecated_parameter` decorator
-- Public function or class: `@deprecated` from `pydeprecate`
+- Parameter renamed (old→new): `supervision.utils.internal.deprecated_parameter` decorator; also apply `@deprecated` from `pydeprecate` on the function if the function itself is being deprecated
+- Public function, method, or class: `@deprecated` from `pydeprecate`
 
 Always name the version introduced and the removal version:
 
