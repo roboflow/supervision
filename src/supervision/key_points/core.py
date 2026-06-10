@@ -12,7 +12,7 @@ from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.utils.internal import get_data_item, is_data_equal
 from supervision.utils.internal import warn_deprecated
-from supervision.validators import validate_key_points_fields
+from supervision.validators import _validate_keypoints_fields
 
 logger = logging.getLogger(__name__)
 
@@ -208,10 +208,10 @@ class KeyPoints:
     data: dict[str, npt.NDArray[np.generic] | list[Any]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        validate_key_points_fields(
+        _validate_keypoints_fields(
             xy=self.xy,
             class_id=self.class_id,
-            keypoint_confidence=self.keypoint_confidence,
+            confidence=self.keypoint_confidence,
             detection_confidence=self.detection_confidence,
             visible=self.visible,
             data=self.data,

@@ -7,32 +7,130 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated_class
+from deprecate import TargetMode, deprecated, deprecated_class, void
 
+from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
-from supervision.detection.utils.iou_and_nms import box_iou_batch
+from supervision.detection.utils.iou_and_nms import (
+    box_iou_batch,
+    oriented_box_iou_batch,
+)
+from supervision.metrics.core import MetricTarget
+
+
+def _assert_supported_target(metric_target: MetricTarget) -> None:
+    if metric_target == MetricTarget.MASKS:
+        raise ValueError(
+            "MetricTarget.MASKS is not currently supported for ConfusionMatrix."
+        )
 
 
 def detections_to_tensor(
-    detections: Detections, with_confidence: bool = False
+    detections: Detections,
+    with_confidence: bool = False,
+    metric_target: MetricTarget = MetricTarget.BOXES,
 ) -> npt.NDArray[np.float32]:
     """
-    Convert Supervision Detections to numpy tensors for further computation
+    Convert Supervision Detections to a numpy tensor for metric computation.
 
     Args:
-        detections: Detections/Targets in the format of sv.Detections
-        with_confidence: Whether to include confidence in the tensor
+        detections: Detections/Targets in the format of sv.Detections.
+        with_confidence: Whether to include confidence as the last column.
+        metric_target: The type of detection data to use.
+            Supports `MetricTarget.BOXES` and
+            `MetricTarget.ORIENTED_BOUNDING_BOXES`.
 
     Returns:
-        Detections as numpy tensors as in (xyxy, class_id, confidence) order
+        Detections as a float32 numpy array. Shape depends on `metric_target`
+        and `with_confidence`:
+
+        | `metric_target`                        | `with_confidence` | shape     |
+        |----------------------------------------|-------------------|-----------|
+        | `MetricTarget.BOXES`                   | `False`           | `(N, 5)`  |
+        | `MetricTarget.BOXES`                   | `True`            | `(N, 6)`  |
+        | `MetricTarget.ORIENTED_BOUNDING_BOXES` | `False`           | `(N, 9)`  |
+        | `MetricTarget.ORIENTED_BOUNDING_BOXES` | `True`            | `(N, 10)` |
+
+        Column layout:
+
+        - `BOXES`: ``[x_min, y_min, x_max, y_max, class_id [, confidence]]``
+        - `ORIENTED_BOUNDING_BOXES`:
+          ``[x1, y1, x2, y2, x3, y3, x4, y4, class_id [, confidence]]``
+
+    Raises:
+        ValueError: If `metric_target` is `MetricTarget.MASKS`.
+        ValueError: If `detections.class_id` is `None`.
+        ValueError: If `with_confidence=True` and `detections.confidence` is `None`.
+        ValueError: If `metric_target` is `MetricTarget.ORIENTED_BOUNDING_BOXES`
+            and `detections.data` does not contain `ORIENTED_BOX_COORDINATES`,
+            or if the stored array does not have exactly `N * 8` elements.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> from supervision.metrics.core import MetricTarget
+        >>> from supervision.config import ORIENTED_BOX_COORDINATES
+        >>> detections = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        ...     class_id=np.array([0]),
+        ...     confidence=np.array([0.9]),
+        ... )
+        >>> tensor = detections_to_tensor(detections, with_confidence=True)
+        >>> tensor.shape
+        (1, 6)
+        >>> obb_coords = np.array([[0, 0, 10, 0, 10, 10, 0, 10]], dtype=np.float32)
+        >>> det_obb = sv.Detections(
+        ...     xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        ...     class_id=np.array([0]),
+        ...     data={ORIENTED_BOX_COORDINATES: obb_coords},
+        ... )
+        >>> tensor_obb = detections_to_tensor(
+        ...     det_obb, metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES
+        ... )
+        >>> tensor_obb.shape
+        (1, 9)
+
+        ```
     """
+    _assert_supported_target(metric_target)
+
     if detections.class_id is None:
         raise ValueError(
             "ConfusionMatrix can only be calculated for Detections with class_id"
         )
 
-    arrays_to_concat = [detections.xyxy, np.expand_dims(detections.class_id, 1)]
+    if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+        obb = detections.data.get(ORIENTED_BOX_COORDINATES)
+        if obb is None:
+            if len(detections) > 0:
+                raise ValueError(
+                    "ORIENTED_BOUNDING_BOXES requested, but "
+                    f"{ORIENTED_BOX_COORDINATES} is missing from detections.data"
+                )
+            box_data = np.empty((0, 8), dtype=np.float32)
+        else:
+            obb_arr = np.asarray(obb, dtype=np.float32)
+            # Normalize (N, 4, 2) → (N, 8) as produced by from_ultralytics.
+            if obb_arr.ndim == 3 and obb_arr.shape[1:] == (4, 2):
+                obb_arr = obb_arr.reshape(-1, 8)
+            if obb_arr.size != len(detections) * 8:
+                raise ValueError(
+                    f"Expected {ORIENTED_BOX_COORDINATES} to contain "
+                    f"{len(detections) * 8} elements "
+                    f"(N={len(detections)} detections x 8 coordinates), "
+                    f"but got {obb_arr.size}. "
+                    "Each OBB must be stored as [x1, y1, x2, y2, x3, y3, x4, y4]."
+                )
+            box_data = obb_arr.reshape(-1, 8)
+    else:
+        box_data = detections.xyxy
+
+    arrays_to_concat = [
+        box_data,
+        np.expand_dims(detections.class_id.astype(np.float32), 1),
+    ]
 
     if with_confidence:
         if detections.confidence is None:
@@ -45,9 +143,10 @@ def detections_to_tensor(
     return result
 
 
-def validate_input_tensors(
+def _validate_input_tensors(
     predictions: list[npt.NDArray[np.float32]],
     targets: list[npt.NDArray[np.float32]],
+    metric_target: MetricTarget = MetricTarget.BOXES,
 ) -> None:
     """
     Checks for shape consistency of input tensors.
@@ -62,18 +161,39 @@ def validate_input_tensors(
             targets[0], np.ndarray
         ):
             raise ValueError(
-                f"Predictions and targets must be lists of numpy arrays."
+                "Predictions and targets must be lists of numpy arrays. "
                 f"Got {type(predictions[0])} and {type(targets[0])} instead."
             )
-        if predictions[0].shape[1] != 6:
+
+        expected_pred_cols = (
+            10 if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES else 6
+        )
+        expected_target_cols = (
+            9 if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES else 5
+        )
+
+        if predictions[0].shape[1] != expected_pred_cols:
             raise ValueError(
-                f"Predictions must have shape (N, 6)."
+                f"Predictions must have shape (N, {expected_pred_cols}). "
                 f"Got {predictions[0].shape} instead."
             )
-        if targets[0].shape[1] != 5:
+        if targets[0].shape[1] != expected_target_cols:
             raise ValueError(
-                f"Targets must have shape (N, 5). Got {targets[0].shape} instead."
+                f"Targets must have shape (N, {expected_target_cols}). "
+                f"Got {targets[0].shape} instead."
             )
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_validate_input_tensors,
+    deprecated_in="0.29.0",
+    remove_in="0.31.0",
+)
+def validate_input_tensors(
+    predictions: list[npt.NDArray[np.float32]],
+    targets: list[npt.NDArray[np.float32]],
+) -> None:
+    void(predictions, targets)
 
 
 @dataclass
@@ -89,12 +209,30 @@ class ConfusionMatrix:
             Detections with lower confidence will be excluded from the matrix.
         iou_threshold: Detection IoU threshold between `0` and `1`.
             Detections with lower IoU will be classified as `FP`.
+        metric_target: The type of detection data used for IoU computation.
+            Informational metadata set by `from_detections` and `from_tensors`.
+            Excluded from `__eq__` comparisons — two `ConfusionMatrix` instances
+            with identical `matrix`, `classes`, `conf_threshold`, and
+            `iou_threshold` compare as equal regardless of `metric_target`.
     """
 
     matrix: npt.NDArray[np.int32]
     classes: list[str]
     conf_threshold: float
     iou_threshold: float
+    metric_target: MetricTarget = MetricTarget.BOXES
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, ConfusionMatrix):
+            return NotImplemented
+        return (
+            np.array_equal(self.matrix, other.matrix)
+            and self.classes == other.classes
+            and self.conf_threshold == other.conf_threshold
+            and self.iou_threshold == other.iou_threshold
+        )
+
+    __hash__ = None  # type: ignore[assignment]
 
     @classmethod
     def from_detections(
@@ -104,6 +242,7 @@ class ConfusionMatrix:
         classes: list[str],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
+        metric_target: MetricTarget = MetricTarget.BOXES,
     ) -> ConfusionMatrix:
         """
         Calculate confusion matrix based on predicted and ground-truth detections.
@@ -116,6 +255,15 @@ class ConfusionMatrix:
                 Detections with lower confidence will be excluded.
             iou_threshold: Detection IoU threshold between `0` and `1`.
                 Detections with lower IoU will be classified as `FP`.
+            metric_target: The type of detection data to use.
+                Supports `MetricTarget.BOXES` (default) and
+                `MetricTarget.ORIENTED_BOUNDING_BOXES`. When using
+                `MetricTarget.ORIENTED_BOUNDING_BOXES`, each `Detections`
+                object must include OBB coordinates in
+                `detections.data[ORIENTED_BOX_COORDINATES]` as a float32
+                array of shape `(N, 8)` (flat) or `(N, 4, 2)` (as stored by
+                `from_ultralytics`); both are normalised to `(N, 8)` internally.
+                `MetricTarget.MASKS` is not supported.
 
         Returns:
             New instance of ConfusionMatrix.
@@ -126,15 +274,15 @@ class ConfusionMatrix:
             >>> import supervision as sv
             >>> targets = [
             ...     sv.Detections(
-            ...         xyxy=np.array([[0, 0, 10, 10]]),
-            ...         class_id=np.array([0])
+            ...         xyxy=np.array([[0, 0, 10, 10], [50, 50, 60, 60]]),
+            ...         class_id=np.array([0, 0])
             ...     )
             ... ]
             >>> predictions = [
             ...     sv.Detections(
-            ...         xyxy=np.array([[0, 0, 10, 10]]),
-            ...         class_id=np.array([0]),
-            ...         confidence=np.array([0.9])
+            ...         xyxy=np.array([[0, 0, 10, 10], [100, 100, 110, 110]]),
+            ...         class_id=np.array([0, 0]),
+            ...         confidence=np.array([0.9, 0.8])
             ...     )
             ... ]
             >>> confusion_matrix = sv.ConfusionMatrix.from_detections(
@@ -143,8 +291,8 @@ class ConfusionMatrix:
             ...     classes=['person']
             ... )
             >>> confusion_matrix.matrix
-            array([[1., 0.],
-                   [0., 0.]])
+            array([[1., 1.],
+                   [1., 0.]])
 
             ```
         """
@@ -152,15 +300,22 @@ class ConfusionMatrix:
         target_tensors = []
         for prediction, target in zip(predictions, targets):
             prediction_tensors.append(
-                detections_to_tensor(prediction, with_confidence=True)
+                detections_to_tensor(
+                    prediction, with_confidence=True, metric_target=metric_target
+                )
             )
-            target_tensors.append(detections_to_tensor(target, with_confidence=False))
+            target_tensors.append(
+                detections_to_tensor(
+                    target, with_confidence=False, metric_target=metric_target
+                )
+            )
         return cls.from_tensors(
             predictions=prediction_tensors,
             targets=target_tensors,
             classes=classes,
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
+            metric_target=metric_target,
         )
 
     @classmethod
@@ -171,24 +326,34 @@ class ConfusionMatrix:
         classes: list[str],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
+        metric_target: MetricTarget = MetricTarget.BOXES,
     ) -> ConfusionMatrix:
         """
         Calculate confusion matrix based on predicted and ground-truth detections.
 
         Args:
             predictions: Each element of the list describes a single
-                image and has `shape = (M, 6)` where `M` is the number of detected
-                objects. Each row is expected to be in
+                image and has `shape = (M, 6)` or `shape = (M, 10)` depending on
+                `metric_target`.
+                If `MetricTarget.BOXES`, each row is in
                 `(x_min, y_min, x_max, y_max, class, conf)` format.
+                If `MetricTarget.ORIENTED_BOUNDING_BOXES`, each row is in
+                `(x1, y1, x2, y2, x3, y3, x4, y4, class, conf)` format.
             targets: Each element of the list describes a single
-                image and has `shape = (N, 5)` where `N` is the number of
-                ground-truth objects. Each row is expected to be in
+                image and has `shape = (N, 5)` or `shape = (N, 9)` depending on
+                `metric_target`.
+                If `MetricTarget.BOXES`, each row is in
                 `(x_min, y_min, x_max, y_max, class)` format.
+                If `MetricTarget.ORIENTED_BOUNDING_BOXES`, each row is in
+                `(x1, y1, x2, y2, x3, y3, x4, y4, class)` format.
             classes: Model class names.
             conf_threshold: Detection confidence threshold between `0` and `1`.
                 Detections with lower confidence will be excluded.
-            iou_threshold: Detection iou  threshold between `0` and `1`.
+            iou_threshold: Detection iou threshold between `0` and `1`.
                 Detections with lower iou will be classified as `FP`.
+            metric_target: The type of detection data to use.
+                Determines expected tensor shapes (see Args above for column
+                layouts). `MetricTarget.MASKS` is not supported.
 
         Returns:
             New instance of ConfusionMatrix.
@@ -223,7 +388,8 @@ class ConfusionMatrix:
 
             ```
         """
-        validate_input_tensors(predictions, targets)
+        _assert_supported_target(metric_target)
+        _validate_input_tensors(predictions, targets, metric_target=metric_target)
 
         num_classes = len(classes)
         matrix = np.zeros((num_classes + 1, num_classes + 1))
@@ -234,12 +400,14 @@ class ConfusionMatrix:
                 num_classes=num_classes,
                 conf_threshold=conf_threshold,
                 iou_threshold=iou_threshold,
+                metric_target=metric_target,
             )
         return cls(
             matrix=matrix,
             classes=classes,
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
+            metric_target=metric_target,
         )
 
     @staticmethod
@@ -249,38 +417,70 @@ class ConfusionMatrix:
         num_classes: int,
         conf_threshold: float,
         iou_threshold: float,
+        metric_target: MetricTarget = MetricTarget.BOXES,
     ) -> npt.NDArray[np.int32]:
         """
         Calculate confusion matrix for a batch of detections for a single image.
 
         Args:
             predictions: Batch prediction. Describes a single image and
-                has `shape = (M, 6)` where `M` is the number of detected objects.
-                Each row is expected to be in
+                has `shape = (M, 6)` or `shape = (M, 10)` depending on
+                `metric_target`.
+                If `MetricTarget.BOXES`, each row is in
                 `(x_min, y_min, x_max, y_max, class, conf)` format.
+                If `MetricTarget.ORIENTED_BOUNDING_BOXES`, each row is in
+                `(x1, y1, x2, y2, x3, y3, x4, y4, class, conf)` format.
             targets: Batch target labels. Describes a single image and
-                has `shape = (N, 5)` where `N` is the number of ground-truth objects.
-                Each row is expected to be in
+                has `shape = (N, 5)` or `shape = (N, 9)` depending on
+                `metric_target`.
+                If `MetricTarget.BOXES`, each row is in
                 `(x_min, y_min, x_max, y_max, class)` format.
+                If `MetricTarget.ORIENTED_BOUNDING_BOXES`, each row is in
+                `(x1, y1, x2, y2, x3, y3, x4, y4, class)` format.
             num_classes: Number of classes.
             conf_threshold: Detection confidence threshold between `0` and `1`.
                 Detections with lower confidence will be excluded.
-            iou_threshold: Detection iou  threshold between `0` and `1`.
+            iou_threshold: Detection iou threshold between `0` and `1`.
                 Detections with lower iou will be classified as `FP`.
+            metric_target: The type of detection data to use.
+                Determines IoU function (`box_iou_batch` vs
+                `oriented_box_iou_batch`) and coordinate column count.
+                `MetricTarget.MASKS` is not supported.
 
         Returns:
             Confusion matrix based on a single image.
         """
+        _assert_supported_target(metric_target)
+
+        expected_pred_cols = (
+            10 if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES else 6
+        )
+        expected_target_cols = (
+            9 if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES else 5
+        )
+        if predictions.ndim != 2 or predictions.shape[1] != expected_pred_cols:
+            raise ValueError(
+                f"Predictions must have shape (M, {expected_pred_cols}). "
+                f"Got {predictions.shape} instead."
+            )
+        if targets.ndim != 2 or targets.shape[1] != expected_target_cols:
+            raise ValueError(
+                f"Targets must have shape (N, {expected_target_cols}). "
+                f"Got {targets.shape} instead."
+            )
+
         result_matrix = np.zeros((num_classes + 1, num_classes + 1))
 
         # Filter predictions by confidence threshold
-        conf_idx = 5
+        coords_dim = 8 if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES else 4
+        class_id_idx = coords_dim
+        conf_idx = coords_dim + 1
+
         confidence = predictions[:, conf_idx]
         detection_batch_filtered = predictions[confidence >= conf_threshold]
 
         if len(detection_batch_filtered) == 0:
             # No detections pass confidence threshold - all GT are FN
-            class_id_idx = 4
             true_classes = np.array(targets[:, class_id_idx], dtype=np.int16)
             for gt_class in true_classes:
                 result_matrix[gt_class, num_classes] += 1
@@ -288,7 +488,6 @@ class ConfusionMatrix:
 
         if len(targets) == 0:
             # No ground truth - all detections are FP
-            class_id_idx = 4
             detection_classes = np.array(
                 detection_batch_filtered[:, class_id_idx], dtype=np.int16
             )
@@ -296,18 +495,22 @@ class ConfusionMatrix:
                 result_matrix[num_classes, det_class] += 1
             return result_matrix
 
-        class_id_idx = 4
         true_classes = np.array(targets[:, class_id_idx], dtype=np.int16)
         detection_classes = np.array(
             detection_batch_filtered[:, class_id_idx], dtype=np.int16
         )
-        true_boxes = targets[:, :class_id_idx]
-        detection_boxes = detection_batch_filtered[:, :class_id_idx]
+        true_boxes = targets[:, :coords_dim]
+        detection_boxes = detection_batch_filtered[:, :coords_dim]
 
         # Calculate IoU matrix
-        iou_batch = box_iou_batch(
-            boxes_true=true_boxes, boxes_detection=detection_boxes
-        )
+        if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+            iou_batch = oriented_box_iou_batch(
+                boxes_true=true_boxes, boxes_detection=detection_boxes
+            )
+        else:
+            iou_batch = box_iou_batch(
+                boxes_true=true_boxes, boxes_detection=detection_boxes
+            )
 
         # Find all valid matches (IoU > threshold, regardless of class)
         # Use vectorized operations to avoid nested Python loops
@@ -393,6 +596,7 @@ class ConfusionMatrix:
         callback: Callable[[npt.NDArray[np.uint8]], Detections],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
+        metric_target: MetricTarget = MetricTarget.BOXES,
     ) -> ConfusionMatrix:
         """
         Calculate confusion matrix from dataset and callback function.
@@ -405,6 +609,10 @@ class ConfusionMatrix:
                 Detections with lower confidence will be excluded.
             iou_threshold: Detection IoU threshold between `0` and `1`.
                 Detections with lower IoU will be classified as `FP`.
+            metric_target: The type of detection data to use.
+                Supports `MetricTarget.BOXES` and
+                `MetricTarget.ORIENTED_BOUNDING_BOXES`. Passed through to
+                `from_detections`. `MetricTarget.MASKS` is not supported.
 
         Returns:
             New instance of ConfusionMatrix.
@@ -446,6 +654,7 @@ class ConfusionMatrix:
             classes=dataset.classes,
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
+            metric_target=metric_target,
         )
 
     def plot(
@@ -539,7 +748,7 @@ class ConfusionMatrix:
 
 
 @deprecated_class(
-    target=None,
+    target=TargetMode.NOTIFY,
     deprecated_in="0.27.0",
     remove_in="0.31.0",
 )
@@ -723,7 +932,7 @@ class MeanAveragePrecision:
 
             ```
         """
-        validate_input_tensors(predictions, targets)
+        _validate_input_tensors(predictions, targets)
         iou_thresholds = np.linspace(0.5, 0.95, 10)
         stats = []
 
