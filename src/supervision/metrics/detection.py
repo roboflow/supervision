@@ -127,7 +127,10 @@ def detections_to_tensor(
     else:
         box_data = detections.xyxy
 
-    arrays_to_concat = [box_data, np.expand_dims(detections.class_id, 1)]
+    arrays_to_concat = [
+        box_data,
+        np.expand_dims(detections.class_id.astype(np.float32), 1),
+    ]
 
     if with_confidence:
         if detections.confidence is None:
