@@ -27,7 +27,7 @@ src/supervision/
 │   └── tools/           — InferenceSlicer, PolygonZone, LineZone, CSVSink, JSONSink, DetectionsSmoother
 ├── annotators/core.py   — BoxAnnotator, MaskAnnotator, LabelAnnotator, … each: .annotate(scene, detections)
 ├── key_points/          — KeyPoints, EdgeAnnotator, VertexAnnotator (use this, NOT keypoint/ — see §4)
-├── tracker/             — ByteTrack
+├── tracker/             — DEPRECATED
 ├── dataset/core.py      — DetectionDataset / ClassificationDataset (YOLO / COCO / Pascal VOC)
 ├── geometry/core.py     — Point, Rect, Vector, Position
 ├── metrics/             — mAP, confusion matrix (requires --extra metrics)
