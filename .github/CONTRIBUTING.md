@@ -244,7 +244,21 @@ Every docstring should include a usage example. When the example only uses `supe
 
 ### Type checking
 
-Currently, there is no systematic type checking with mypy implemented in the project. This is a known limitation that may be addressed in future updates.
+Type hints are required on all new code. mypy is enforced by the pre-commit hook configured in `.pre-commit-config.yaml` — your PR will fail CI if mypy reports errors.
+
+### Performance
+
+- Avoid unnecessary copies of NumPy arrays.
+- Prefer vectorized operations over Python loops in hot paths.
+- Lazy-import heavy framework dependencies (`torch`, `transformers`, `ultralytics`) inside the function that needs them — never at module top level.
+
+### Deprecated module aliases
+
+`supervision.keypoint` is deprecated since `0.27.0` and will be removed in `0.30.0`. Always import from `supervision.key_points`:
+
+```python
+from supervision.key_points import KeyPoints  # correct
+```
 
 ## 📝 Documentation
 

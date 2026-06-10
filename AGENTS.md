@@ -17,8 +17,6 @@ Behave like a senior contributor: precise, efficient, maintainable. When this fi
 
 **Package root**: `src/supervision/` — all library code. **Tests**: `tests/` — mirrors `src/supervision/`. **Public API**: `src/supervision/__init__.py`.
 
-### Core modules
-
 ```
 src/supervision/
 ├── detection/
@@ -28,7 +26,7 @@ src/supervision/
 │   ├── utils/           — pure NumPy helpers: boxes, converters, iou_and_nms, masks, polygons
 │   └── tools/           — InferenceSlicer, PolygonZone, LineZone, CSVSink, JSONSink, DetectionsSmoother
 ├── annotators/core.py   — BoxAnnotator, MaskAnnotator, LabelAnnotator, … each: .annotate(scene, detections)
-├── key_points/          — KeyPoints, EdgeAnnotator, VertexAnnotator (use this, NOT keypoint/ — see §6)
+├── key_points/          — KeyPoints, EdgeAnnotator, VertexAnnotator (use this, NOT keypoint/ — see §4)
 ├── tracker/             — ByteTrack
 ├── dataset/core.py      — DetectionDataset / ClassificationDataset (YOLO / COCO / Pascal VOC)
 ├── geometry/core.py     — Point, Rect, Vector, Position
@@ -43,59 +41,62 @@ src/supervision/
 - **Annotators are composable** — receive `scene` (BGR `np.ndarray`) + `detections`, return annotated copy.
 - **`data` dict extensibility** — per-detection metadata in `detections.data` as `np.ndarray` aligned with `xyxy`. Keys are constants from `config.py`.
 - **Vectorized throughout** — NumPy arrays, no Python loops in hot paths. Never write `for det in detections`.
+- **Lazy-import heavy deps** — `torch`, `transformers`, `ultralytics` must be imported inside the function that needs them, never at module top level.
 
 ---
 
-## 3. Conventions
+## 3. Agent-Critical Rules
 
-### Branching & Commits
+These supplement [CONTRIBUTING.md](.github/CONTRIBUTING.md) — covering gaps or agent-specific failure modes.
 
-- Branch from `develop`: `feat/`, `fix/`, `docs/`, `refactor/`, `test/`, `chore/`.
-- Conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`, `perf:`, `test:`, `chore:`.
-- PRs target `develop`.
+**Doc headings**: `###` max in docstrings and docs. `####` renders identically to bold in mkdocs — use `**bold**` instead.
 
-### Code Style
+**Type hints**: required on all new code. mypy is enforced by pre-commit (`.pre-commit-config.yaml`).
 
-- Doc headings: `###` max. Use `**bold**` instead of `####`.
-- Formatting/linting via **pre-commit** (`ruff`, `mypy`, `mdformat`, `prettier`, `codespell`).
-- Type hints required on all new code.
-- Docstrings: Google style, usage example required. Use `>>>` doctest when example uses only `supervision`, NumPy, and stdlib. Use fenced ```` ```python ```` for third-party models, files, or intentional exceptions.
+**Doctest determinism** — output must be reproducible across platforms:
 
-### API & Dependencies
+- Use `# doctest: +ELLIPSIS` for floats that vary by platform.
+- Seed any RNG before calling it.
+- Never assert `dict` or `set` iteration order.
+- No network or filesystem access outside `supervision/assets/`.
 
-- Follow existing naming patterns; maintain backward compatibility.
-- Prefer stateless functions in `detection/utils/`; use a class only when state spans ≥2 calls.
-- Runtime deps: `numpy`, `opencv-python`, `pillow`, `pyyaml`, `requests`, `scipy`, `tqdm`, `pydeprecate`, `defusedxml`, `matplotlib`.
-- Lazy-import heavy deps (`torch`, `transformers`, `ultralytics`) inside the function that needs them — never at module top level.
-
-### Performance
-
-- No unnecessary NumPy copies.
-- Vectorize hot paths; use OpenCV efficiently.
+For full branching, commit, code style, API design, and test conventions see [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 
 ---
 
-## 4. Tests
+## 4. Deprecated Module Aliases
 
-- **AAA structure**: one arrange, one act, one assertion group. No second act.
-- Group tests in a class named after the unit under test. Method names describe the outcome.
-- 3+ identical tests → `@pytest.mark.parametrize` with `pytest.param(..., id="slug")`.
-- Every test needs a one-line docstring describing the scenario.
+`supervision.keypoint` deprecated since `0.27.0`, removed in `0.30.0`. Use `supervision.key_points`:
 
-**Doctest rules**: output must be deterministic. Use `# doctest: +ELLIPSIS` for platform floats; seed any RNG; never assert `dict`/`set` order; no network or filesystem outside `supervision/assets/`.
+```python
+from supervision.key_points import KeyPoints  # correct
+```
 
 ---
 
-## 5. Implementing Features
+## 5. Deprecating APIs
 
-- Minimal, clean implementation with type hints and Google docstrings.
-- Tests covering new functionality and edge cases.
+- Module-level: `supervision.utils.internal.warn_deprecated` in `__init__.py`
+- Function/method parameter: `supervision.utils.internal.deprecated_parameter` decorator
+- Public function or class: `@deprecated` from `pydeprecate`
+
+Always name the version introduced and the removal version:
+
+```python
+warn_deprecated("'foo' deprecated in `0.27.0`, removed in `0.30.0`. Use 'bar'.")
+```
+
+---
+
+## 6. Implementing Features
+
+- Minimal implementation; type hints and Google docstrings with usage examples.
+- Tests covering new functionality and edge cases (see [CONTRIBUTING.md §Tests](.github/CONTRIBUTING.md#-tests)).
 - Update docstrings and mkdocs entries as needed.
 
 **Extending `Detections`**: store metadata in `detections.data` as `np.ndarray` aligned with `xyxy`; define the key constant in `config.py`.
 
 ```python
-# config.py
 ORIENTED_BOX_COORDINATES = "xyxyxyxy"
 CLASS_NAME_DATA_FIELD = "class_name"
 ```
@@ -105,7 +106,7 @@ CLASS_NAME_DATA_FIELD = "class_name"
 ```python
 @classmethod
 def from_myframework(cls, result) -> "Detections":
-    import myframework  # noqa: F401
+    import myframework  # noqa: F401 — lazy import
 
     xyxy = ...  # (N, 4)
     return cls(
@@ -120,46 +121,22 @@ VLM connectors go in `detection/vlm.py`, not `core.py`.
 
 ---
 
-## 6. Deprecated Module Aliases
-
-`supervision.keypoint` deprecated since `0.27.0`, removed in `0.30.0`. Use `supervision.key_points`:
-
-```python
-from supervision.key_points import KeyPoints  # correct
-```
-
----
-
-## 7. Deprecating APIs
-
-- Module-level: `supervision.utils.internal.warn_deprecated` in `__init__.py`
-- Function/method parameter: `supervision.utils.internal.deprecated_parameter` decorator
-- Public function or class: `@deprecated` from `pydeprecate`
-
-Always name the version introduced and the removal version:
-
-```python
-warn_deprecated("'foo' deprecated in `0.27.0`, removed in `0.30.0`. Use 'bar'.")
-```
-
----
-
-## 8. Bugs & Refactoring
+## 7. Bugs & Refactoring
 
 **Bugs**: reproduce → write failing test → minimal fix → verify no regressions.
 
-**Refactoring**: preserve behavior and API; reduce duplication; avoid sweeping changes unless requested; apply §7 deprecation when removing public API.
+**Refactoring**: preserve behavior and API; reduce duplication; avoid sweeping changes unless requested; apply §5 deprecation when removing public API.
 
 ---
 
-## 9. Before You Commit
+## 8. Before You Commit
 
 ```bash
 uv run pytest --cov=supervision
 uv run pre-commit run --all-files
 ```
 
-Capture a baseline to avoid introducing new failures:
+Capture a baseline before changes to avoid introducing new failures:
 
 ```bash
 git stash && uv run pytest -q 2>&1 | tee /tmp/baseline.txt && git stash pop
