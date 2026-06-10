@@ -537,7 +537,7 @@ class TestDetectionMetrics:
         [
             (
                 DETECTION_TENSORS[0],
-                CERTAIN_DETECTION_TENSORS[0],
+                TARGET_TENSORS[0],
                 NUM_CLASSES,
                 0.2,
                 0.5,
