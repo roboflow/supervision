@@ -19,19 +19,23 @@ Behave like a senior contributor: precise, efficient, maintainable. When this fi
 
 ### Core modules
 
-- `detection/core.py` — `Detections` dataclass. Fields: `xyxy`, `mask`, `confidence`, `class_id`, `tracker_id`, `data` dict. All model connectors (`from_ultralytics`, `from_inference`, etc.) are classmethods here.
-- `detection/compact_mask.py` — compact mask representation.
-- `detection/vlm.py` — VLM connectors (Florence-2, Gemini, Qwen, PaliGemma, etc.).
-- `detection/utils/` — pure NumPy helpers: `boxes.py`, `converters.py`, `iou_and_nms.py`, `masks.py`, `polygons.py`.
-- `detection/tools/` — higher-level tools: `InferenceSlicer`, `PolygonZone`, `LineZone`, `CSVSink`, `JSONSink`, `DetectionsSmoother`.
-- `annotators/core.py` — all annotators (`BoxAnnotator`, `MaskAnnotator`, `LabelAnnotator`, …). Each implements `.annotate(scene, detections)`.
-- `key_points/` — keypoint structures and annotators. **Use this path, not `keypoint/` — see §6.**
-- `tracker/` — ByteTrack.
-- `dataset/core.py` — `DetectionDataset` / `ClassificationDataset` (YOLO / COCO / Pascal VOC).
-- `geometry/core.py` — `Point`, `Rect`, `Vector`, `Position`.
-- `metrics/` — mAP, confusion matrix. Requires `pandas` (`--extra metrics`).
-- `utils/internal.py` — `warn_deprecated`, `deprecated_parameter`, internal helpers.
-- `config.py` — global string constants. Always import from here, never use string literals.
+```
+src/supervision/
+├── detection/
+│   ├── core.py          — Detections dataclass; all model connectors as classmethods
+│   ├── compact_mask.py  — compact mask representation
+│   ├── vlm.py           — VLM connectors (Florence-2, Gemini, Qwen, PaliGemma)
+│   ├── utils/           — pure NumPy helpers: boxes, converters, iou_and_nms, masks, polygons
+│   └── tools/           — InferenceSlicer, PolygonZone, LineZone, CSVSink, JSONSink, DetectionsSmoother
+├── annotators/core.py   — BoxAnnotator, MaskAnnotator, LabelAnnotator, … each: .annotate(scene, detections)
+├── key_points/          — KeyPoints, EdgeAnnotator, VertexAnnotator (use this, NOT keypoint/ — see §6)
+├── tracker/             — ByteTrack
+├── dataset/core.py      — DetectionDataset / ClassificationDataset (YOLO / COCO / Pascal VOC)
+├── geometry/core.py     — Point, Rect, Vector, Position
+├── metrics/             — mAP, confusion matrix (requires --extra metrics)
+├── utils/internal.py    — warn_deprecated, deprecated_parameter, internal helpers
+└── config.py            — string constants; always import from here, never use literals
+```
 
 ### Key design patterns
 
