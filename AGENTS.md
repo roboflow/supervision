@@ -60,14 +60,9 @@ These supplement [CONTRIBUTING.md](.github/CONTRIBUTING.md) — covering gaps or
 - Never assert `dict` or `set` iteration order.
 - No network or filesystem access outside `supervision/assets/`.
 
-**Test structure** — agents frequently get these wrong:
+**⚠ Test structure** — agents frequently fail here; read [CONTRIBUTING.md §Tests](.github/CONTRIBUTING.md#-tests) carefully: AAA structure, class grouping, parametrize with `pytest.param(..., id="slug")`, one-line docstring per test.
 
-- **AAA**: one arrange, one act, one assertion group per test. No second act.
-- **Class grouping**: class name = unit under test. Method names describe outcome only, not mechanism.
-- **Parametrize**: 3+ structurally identical tests → `@pytest.mark.parametrize` with `pytest.param(..., id="slug")` per case.
-- **Docstrings**: every test function/method needs a one-line docstring describing the scenario.
-
-For full branching, commit, code style, and API design conventions see [CONTRIBUTING.md](.github/CONTRIBUTING.md).
+For branching, commit, code style, and API design conventions see [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 
 ---
 
