@@ -68,11 +68,7 @@ For branching, commit, code style, and API design conventions see [CONTRIBUTING.
 
 ## 4. Deprecated Module Aliases
 
-`supervision.keypoint` deprecated since `0.27.0`, removed in `0.30.0`. Use `supervision.key_points`:
-
-```python
-from supervision.key_points import KeyPoints  # correct
-```
+`supervision.keypoint` deprecated since `0.27.0`, removed in `0.30.0`. Always import from `supervision.key_points`, not `supervision.keypoint`.
 
 ---
 
@@ -96,12 +92,7 @@ warn_deprecated("'foo' deprecated in `0.27.0`, removed in `0.30.0`. Use 'bar'.")
 - Tests covering new functionality and edge cases (see [CONTRIBUTING.md §Tests](.github/CONTRIBUTING.md#-tests)).
 - Update docstrings and mkdocs entries as needed.
 
-**Extending `Detections`**: store metadata in `detections.data` as `np.ndarray` aligned with `xyxy`; define the key constant in `config.py`.
-
-```python
-ORIENTED_BOX_COORDINATES = "xyxyxyxy"
-CLASS_NAME_DATA_FIELD = "class_name"
-```
+**Extending `Detections`**: store metadata in `detections.data` as `np.ndarray` aligned with `xyxy`; define the key as a constant in `config.py` (e.g. `CLASS_NAME_DATA_FIELD`, `ORIENTED_BOX_COORDINATES`).
 
 **New model connector** (`detection/core.py`):
 
