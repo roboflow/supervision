@@ -284,7 +284,7 @@ def load_yolo_annotations(
                     f" but {image_path} mode is '{mode}'."
                 )
 
-            with_masks = force_masks or _with_seg_mask(lines=lines)
+            with_masks = (not is_obb) and (force_masks or _with_seg_mask(lines=lines))
             annotation = yolo_annotations_to_detections(
                 lines=lines,
                 resolution_wh=resolution_wh,
