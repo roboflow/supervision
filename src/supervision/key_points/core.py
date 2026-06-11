@@ -51,17 +51,17 @@ def _normalize_row_index(
 
     Handles:
     - Python int or np.integer scalar  -> np.array([int(i)])
-    - 0-d np.ndarray                   -> reshaped to shape (1,)
-    - boolean np.ndarray               -> np.flatnonzero(i)
+    - boolean np.ndarray (any shape)   -> np.flatnonzero(i.ravel())
+    - non-bool 0-d np.ndarray          -> reshaped to shape (1,)
     - list of bool                     -> np.flatnonzero(np.array(i))
     - slice, list of ints, 1-D ndarray -> returned as-is
     """
     if isinstance(i, (int, np.integer)):
         return cast(_NormalizedRowIndex, np.array([int(i)]))
+    if isinstance(i, np.ndarray) and i.dtype == bool:
+        return cast(_NormalizedRowIndex, np.flatnonzero(i.ravel()))
     if isinstance(i, np.ndarray) and i.ndim == 0:
         return cast(_NormalizedRowIndex, i.reshape(1))
-    if isinstance(i, np.ndarray) and i.dtype == bool:
-        return cast(_NormalizedRowIndex, np.flatnonzero(i))
     if isinstance(i, list) and i and all(isinstance(x, bool) for x in i):
         return cast(_NormalizedRowIndex, np.flatnonzero(np.array(i)))
     return i
@@ -953,7 +953,7 @@ class KeyPoints:
 
         detection_confidence_selected = None
         if self.detection_confidence is not None:
-            detection_confidence_selected = self.detection_confidence[i]
+            detection_confidence_selected = self.detection_confidence[row_i]
 
         visible_selected = None
         if self.visible is not None:

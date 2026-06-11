@@ -481,6 +481,28 @@ KEY_POINTS_WITH_DET_CONF = _create_key_points(
             KEY_POINTS_WITH_DET_CONF,
             id="filter-keeps-all-when-all-pass",
         ),
+        pytest.param(
+            KEY_POINTS_WITH_DET_CONF,
+            np.int64(0),
+            _create_key_points(
+                xy=[[[0, 1], [2, 3], [4, 5]]],
+                confidence=[[0.8, 0.2, 0.6]],
+                class_id=[0],
+                detection_confidence=[0.95],
+            ),
+            id="np-integer-scalar-with-det-conf",
+        ),
+        pytest.param(
+            KEY_POINTS_WITH_DET_CONF,
+            np.array(0),
+            _create_key_points(
+                xy=[[[0, 1], [2, 3], [4, 5]]],
+                confidence=[[0.8, 0.2, 0.6]],
+                class_id=[0],
+                detection_confidence=[0.95],
+            ),
+            id="0d-ndarray-with-det-conf",
+        ),
     ],
 )
 def test_key_points_getitem_detection_level(key_points, index, expected_result):

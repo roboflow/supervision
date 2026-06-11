@@ -648,7 +648,7 @@ class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
             return scene
 
         h, w = scene.shape[:2]
-        composite = scene.astype(np.float32)
+        composite: npt.NDArray[np.float32] = scene.astype(np.float32)
 
         for center, axis_lengths, angle, _sigma, color in self._iter_ellipse_params(
             key_points
