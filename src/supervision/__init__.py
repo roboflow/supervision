@@ -124,6 +124,9 @@ from supervision.key_points.annotators import (
     EdgeAnnotator,
     VertexAnnotator,
     VertexEllipseAnnotator,
+    VertexEllipseAreaAnnotator,
+    VertexEllipseHaloAnnotator,
+    VertexEllipseOutlineAnnotator,
     VertexLabelAnnotator,
 )
 from supervision.key_points.core import KeyPoints
@@ -208,6 +211,9 @@ __all__ = [
     "TriangleAnnotator",
     "VertexAnnotator",
     "VertexEllipseAnnotator",
+    "VertexEllipseAreaAnnotator",
+    "VertexEllipseHaloAnnotator",
+    "VertexEllipseOutlineAnnotator",
     "VertexLabelAnnotator",
     "VideoInfo",
     "VideoSink",

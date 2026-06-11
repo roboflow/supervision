@@ -258,38 +258,19 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         return scene
 
 
-class VertexEllipseAnnotator(BaseKeyPointAnnotator):
-    """
-    Draws concentric covariance ellipses at multiple sigma levels around each
-    keypoint, each ring in a different color.  This produces a bullseye-like
-    uncertainty visualization where inner rings represent higher probability
-    density.
+class _BaseVertexEllipseAnnotator(BaseKeyPointAnnotator):
+    """Private base for ellipse-based keypoint annotators.
 
-    !!! warning
-
-        This annotator uses `key_points.data["covariance"]` with shape
-        `(N, K, 2, 2)` in pixel coordinates.
+    Handles sigma/color validation, sorting, covariance extraction and
+    eigendecomposition shared by all VertexEllipse* variants.
     """
 
     def __init__(
         self,
         sigma: float | Sequence[float] = (1.0, 2.0, 3.0),
         color: Color | Sequence[Color] = (Color.GREEN, Color.YELLOW, Color.RED),
-        opacity: float = 0.4,
         max_axis: float | None = None,
     ) -> None:
-        """
-        Args:
-            sigma: Sigma multipliers for each ring, drawn from outermost to
-                innermost.  Accepts a single float or a sequence of floats.
-                Defaults to ``(1.0, 2.0, 3.0)``.
-            color: The color for each sigma level.  Accepts a single
-                ``Color`` or a sequence of colors (one per sigma level).
-                Defaults to ``(Color.GREEN, Color.YELLOW, Color.RED)``.
-            opacity: Opacity of the overlay mask. Must be between ``0`` and
-                ``1``.
-            max_axis: Optional cap for ellipse semi-axis lengths in pixels.
-        """
         sigma_seq: Sequence[float] = (
             (sigma,) if isinstance(sigma, (int, float)) else sigma
         )
@@ -312,95 +293,7 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
         )
         self.sigma = [sigma_seq[i] for i in sorted_indices]
         self.color = [color_seq[i] for i in sorted_indices]
-        self.opacity = opacity
         self.max_axis = max_axis
-
-    @ensure_cv2_image_for_class_method
-    def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
-        """
-        Draws concentric covariance ellipses around each keypoint.
-
-        Args:
-            scene: The image to annotate. ``ImageType`` accepts either
-                ``numpy.ndarray`` or ``PIL.Image.Image``.
-            key_points: Key points with covariance data in
-                ``key_points.data["covariance"]``.
-
-        Returns:
-            The annotated image, matching the type of ``scene``.
-
-        Example:
-            ```pycon
-            >>> import numpy as np
-            >>> import supervision as sv
-            >>> image = np.zeros((800, 800, 3), dtype=np.uint8)
-            >>> key_points = sv.KeyPoints(
-            ...     xy=np.array(
-            ...         [[[400, 200], [300, 500], [500, 500]]],
-            ...         dtype=np.float32,
-            ...     ),
-            ...     class_id=np.array([0]),
-            ...     visible=np.array([[True, True, True]]),
-            ...     data={
-            ...         "covariance": np.array(
-            ...             [[[[800, 0], [0, 400]],
-            ...               [[400, 0], [0, 800]],
-            ...               [[600, 0], [0, 600]]]],
-            ...             dtype=np.float32,
-            ...         )
-            ...     },
-            ... )
-            >>> annotator = sv.VertexEllipseAnnotator(
-            ...     sigma=[1.0, 2.0],
-            ...     color=[sv.Color.GREEN, sv.Color.RED],
-            ... )
-            >>> result = annotator.annotate(image.copy(), key_points)
-
-            ```
-        """
-        assert isinstance(scene, np.ndarray)
-        if len(key_points) == 0:
-            return scene
-
-        overlay = scene.copy()
-        covariances = self._get_covariances(key_points)
-        for detection_index, xy in enumerate(key_points.xy):
-            for point_index, (x, y) in enumerate(xy):
-                if np.allclose((x, y), 0):
-                    continue
-                if (
-                    key_points.visible is not None
-                    and not key_points.visible[detection_index, point_index]
-                ):
-                    continue
-                covariance = covariances[detection_index, point_index]
-                decomposition = self._decompose_covariance(covariance)
-                if decomposition is None:
-                    continue
-                eigenvalues, eigenvectors = decomposition
-                angle = float(
-                    np.degrees(np.arctan2(eigenvectors[1, 0], eigenvectors[0, 0]))
-                )
-                center = (round(x), round(y))
-                for sigma, color in zip(self.sigma, self.color):
-                    axes = sigma * np.sqrt(eigenvalues)
-                    if self.max_axis is not None:
-                        axes = np.minimum(axes, self.max_axis)
-                    axis_lengths = (max(1, round(axes[0])), max(1, round(axes[1])))
-                    cv2.ellipse(
-                        img=overlay,
-                        center=center,
-                        axes=axis_lengths,
-                        angle=angle,
-                        startAngle=0,
-                        endAngle=360,
-                        color=color.as_bgr(),
-                        thickness=-1,
-                        lineType=cv2.LINE_AA,
-                    )
-
-        cv2.addWeighted(overlay, self.opacity, scene, 1 - self.opacity, 0, dst=scene)
-        return scene
 
     def _get_covariances(self, key_points: KeyPoints) -> npt.NDArray[np.float32]:
         covariances = key_points.data.get("covariance")
@@ -433,6 +326,377 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
             return None
         order = np.argsort(eigenvalues)[::-1]
         return eigenvalues[order], eigenvectors[:, order]
+
+    def _iter_ellipse_params(
+        self, key_points: KeyPoints
+    ) -> list[tuple[tuple[int, int], tuple[int, int], float, float, Color]]:
+        """Yield (center, axis_lengths, angle, sigma, color) for each visible point."""
+        covariances = self._get_covariances(key_points)
+        results: list[tuple[tuple[int, int], tuple[int, int], float, float, Color]] = []
+        for detection_index, xy in enumerate(key_points.xy):
+            for point_index, (x, y) in enumerate(xy):
+                if np.allclose((x, y), 0):
+                    continue
+                if (
+                    key_points.visible is not None
+                    and not key_points.visible[detection_index, point_index]
+                ):
+                    continue
+                covariance = covariances[detection_index, point_index]
+                decomposition = self._decompose_covariance(covariance)
+                if decomposition is None:
+                    continue
+                eigenvalues, eigenvectors = decomposition
+                angle = float(
+                    np.degrees(np.arctan2(eigenvectors[1, 0], eigenvectors[0, 0]))
+                )
+                center = (round(x), round(y))
+                for sigma, color in zip(self.sigma, self.color):
+                    axes = sigma * np.sqrt(eigenvalues)
+                    if self.max_axis is not None:
+                        axes = np.minimum(axes, self.max_axis)
+                    axis_lengths = (
+                        max(1, round(axes[0])),
+                        max(1, round(axes[1])),
+                    )
+                    results.append((center, axis_lengths, angle, sigma, color))
+        return results
+
+
+class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
+    """
+    Draws filled semi-transparent covariance ellipses at multiple sigma levels
+    around each keypoint, each ring in a different color.  This produces a
+    bullseye-like uncertainty visualization where inner rings represent higher
+    probability density.
+
+    !!! warning
+
+        This annotator uses `key_points.data["covariance"]` with shape
+        `(N, K, 2, 2)` in pixel coordinates.
+    """
+
+    def __init__(
+        self,
+        sigma: float | Sequence[float] = (1.0, 2.0, 3.0),
+        color: Color | Sequence[Color] = (Color.GREEN, Color.YELLOW, Color.RED),
+        opacity: float = 0.4,
+        max_axis: float | None = None,
+    ) -> None:
+        """
+        Args:
+            sigma: Sigma multipliers for each ring, drawn from outermost to
+                innermost.  Accepts a single float or a sequence of floats.
+                Defaults to ``(1.0, 2.0, 3.0)``.
+            color: The color for each sigma level.  Accepts a single
+                ``Color`` or a sequence of colors (one per sigma level).
+                Defaults to ``(Color.GREEN, Color.YELLOW, Color.RED)``.
+            opacity: Opacity of the overlay mask. Must be between ``0`` and
+                ``1``.
+            max_axis: Optional cap for ellipse semi-axis lengths in pixels.
+        """
+        super().__init__(sigma=sigma, color=color, max_axis=max_axis)
+        self.opacity = opacity
+
+    @ensure_cv2_image_for_class_method
+    def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
+        """
+        Draws filled semi-transparent covariance ellipses around each keypoint.
+
+        Args:
+            scene: The image to annotate. ``ImageType`` accepts either
+                ``numpy.ndarray`` or ``PIL.Image.Image``.
+            key_points: Key points with covariance data in
+                ``key_points.data["covariance"]``.
+
+        Returns:
+            The annotated image, matching the type of ``scene``.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((800, 800, 3), dtype=np.uint8)
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array(
+            ...         [[[400, 200], [300, 500], [500, 500]]],
+            ...         dtype=np.float32,
+            ...     ),
+            ...     class_id=np.array([0]),
+            ...     visible=np.array([[True, True, True]]),
+            ...     data={
+            ...         "covariance": np.array(
+            ...             [[[[800, 0], [0, 400]],
+            ...               [[400, 0], [0, 800]],
+            ...               [[600, 0], [0, 600]]]],
+            ...             dtype=np.float32,
+            ...         )
+            ...     },
+            ... )
+            >>> annotator = sv.VertexEllipseAreaAnnotator(
+            ...     sigma=[1.0, 2.0],
+            ...     color=[sv.Color.GREEN, sv.Color.RED],
+            ... )
+            >>> result = annotator.annotate(image.copy(), key_points)
+
+            ```
+        """
+        assert isinstance(scene, np.ndarray)
+        if len(key_points) == 0:
+            return scene
+
+        overlay = scene.copy()
+        for center, axis_lengths, angle, _sigma, color in self._iter_ellipse_params(
+            key_points
+        ):
+            cv2.ellipse(
+                img=overlay,
+                center=center,
+                axes=axis_lengths,
+                angle=angle,
+                startAngle=0,
+                endAngle=360,
+                color=color.as_bgr(),
+                thickness=-1,
+                lineType=cv2.LINE_AA,
+            )
+
+        cv2.addWeighted(overlay, self.opacity, scene, 1 - self.opacity, 0, dst=scene)
+        return scene
+
+
+class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
+    """
+    Draws stroke-only concentric covariance ellipse rings at multiple sigma
+    levels around each keypoint.
+
+    !!! warning
+
+        This annotator uses `key_points.data["covariance"]` with shape
+        `(N, K, 2, 2)` in pixel coordinates.
+    """
+
+    def __init__(
+        self,
+        sigma: float | Sequence[float] = (1.0, 2.0, 3.0),
+        color: Color | Sequence[Color] = (Color.GREEN, Color.YELLOW, Color.RED),
+        thickness: int = 2,
+        max_axis: float | None = None,
+    ) -> None:
+        """
+        Args:
+            sigma: Sigma multipliers for each ring, drawn from outermost to
+                innermost.  Accepts a single float or a sequence of floats.
+                Defaults to ``(1.0, 2.0, 3.0)``.
+            color: The color for each sigma level.  Accepts a single
+                ``Color`` or a sequence of colors (one per sigma level).
+                Defaults to ``(Color.GREEN, Color.YELLOW, Color.RED)``.
+            thickness: Line thickness of the ellipse outlines.
+            max_axis: Optional cap for ellipse semi-axis lengths in pixels.
+        """
+        super().__init__(sigma=sigma, color=color, max_axis=max_axis)
+        self.thickness = thickness
+
+    @ensure_cv2_image_for_class_method
+    def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
+        """
+        Draws stroke-only covariance ellipse outlines around each keypoint.
+
+        Args:
+            scene: The image to annotate. ``ImageType`` accepts either
+                ``numpy.ndarray`` or ``PIL.Image.Image``.
+            key_points: Key points with covariance data in
+                ``key_points.data["covariance"]``.
+
+        Returns:
+            The annotated image, matching the type of ``scene``.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((800, 800, 3), dtype=np.uint8)
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array(
+            ...         [[[400, 200], [300, 500], [500, 500]]],
+            ...         dtype=np.float32,
+            ...     ),
+            ...     class_id=np.array([0]),
+            ...     visible=np.array([[True, True, True]]),
+            ...     data={
+            ...         "covariance": np.array(
+            ...             [[[[800, 0], [0, 400]],
+            ...               [[400, 0], [0, 800]],
+            ...               [[600, 0], [0, 600]]]],
+            ...             dtype=np.float32,
+            ...         )
+            ...     },
+            ... )
+            >>> annotator = sv.VertexEllipseOutlineAnnotator(
+            ...     sigma=[1.0, 2.0],
+            ...     color=[sv.Color.GREEN, sv.Color.RED],
+            ...     thickness=2,
+            ... )
+            >>> result = annotator.annotate(image.copy(), key_points)
+
+            ```
+        """
+        assert isinstance(scene, np.ndarray)
+        if len(key_points) == 0:
+            return scene
+
+        for center, axis_lengths, angle, _sigma, color in self._iter_ellipse_params(
+            key_points
+        ):
+            cv2.ellipse(
+                img=scene,
+                center=center,
+                axes=axis_lengths,
+                angle=angle,
+                startAngle=0,
+                endAngle=360,
+                color=color.as_bgr(),
+                thickness=self.thickness,
+                lineType=cv2.LINE_AA,
+            )
+
+        return scene
+
+
+class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
+    """
+    Draws filled covariance ellipses with a radial fade: full opacity at the
+    center, smoothly falling off to zero at the ellipse boundary.  The falloff
+    follows a power curve controlled by ``decay``, producing a soft glow that
+    is strongest near the keypoint.
+
+    !!! warning
+
+        This annotator uses `key_points.data["covariance"]` with shape
+        `(N, K, 2, 2)` in pixel coordinates.
+    """
+
+    _DECAY: float = 2.0
+
+    def __init__(
+        self,
+        sigma: float | Sequence[float] = (1.0, 2.0, 3.0),
+        color: Color | Sequence[Color] = (Color.GREEN, Color.YELLOW, Color.RED),
+        opacity: float = 0.6,
+        max_axis: float | None = None,
+    ) -> None:
+        """
+        Args:
+            sigma: Sigma multipliers for each ring, drawn from outermost to
+                innermost.  Accepts a single float or a sequence of floats.
+                Defaults to ``(1.0, 2.0, 3.0)``.
+            color: The color for each sigma level.  Accepts a single
+                ``Color`` or a sequence of colors (one per sigma level).
+                Defaults to ``(Color.GREEN, Color.YELLOW, Color.RED)``.
+            opacity: Peak opacity at the ellipse center. Must be between ``0``
+                and ``1``.
+            max_axis: Optional cap for ellipse semi-axis lengths in pixels.
+        """
+        super().__init__(sigma=sigma, color=color, max_axis=max_axis)
+        self.opacity = opacity
+
+    @ensure_cv2_image_for_class_method
+    def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
+        """
+        Draws radially-fading covariance ellipses around each keypoint.
+
+        Args:
+            scene: The image to annotate. ``ImageType`` accepts either
+                ``numpy.ndarray`` or ``PIL.Image.Image``.
+            key_points: Key points with covariance data in
+                ``key_points.data["covariance"]``.
+
+        Returns:
+            The annotated image, matching the type of ``scene``.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((800, 800, 3), dtype=np.uint8)
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array(
+            ...         [[[400, 200], [300, 500], [500, 500]]],
+            ...         dtype=np.float32,
+            ...     ),
+            ...     class_id=np.array([0]),
+            ...     visible=np.array([[True, True, True]]),
+            ...     data={
+            ...         "covariance": np.array(
+            ...             [[[[800, 0], [0, 400]],
+            ...               [[400, 0], [0, 800]],
+            ...               [[600, 0], [0, 600]]]],
+            ...             dtype=np.float32,
+            ...         )
+            ...     },
+            ... )
+            >>> annotator = sv.VertexEllipseHaloAnnotator(
+            ...     sigma=[1.0, 2.0],
+            ...     color=[sv.Color.GREEN, sv.Color.RED],
+            ... )
+            >>> result = annotator.annotate(image.copy(), key_points)
+
+            ```
+        """
+        assert isinstance(scene, np.ndarray)
+        if len(key_points) == 0:
+            return scene
+
+        h, w = scene.shape[:2]
+        composite = scene.astype(np.float32)
+
+        for center, axis_lengths, angle, _sigma, color in self._iter_ellipse_params(
+            key_points
+        ):
+            ax, ay = axis_lengths
+            if ax == 0 or ay == 0:
+                continue
+
+            pad = 2
+            roi_half_w = ax + pad
+            roi_half_h = ay + pad
+            cx, cy = center
+
+            x_min = max(cx - roi_half_w, 0)
+            x_max = min(cx + roi_half_w, w)
+            y_min = max(cy - roi_half_h, 0)
+            y_max = min(cy + roi_half_h, h)
+            if x_min >= x_max or y_min >= y_max:
+                continue
+
+            ys = np.arange(y_min, y_max, dtype=np.float32) - cy
+            xs = np.arange(x_min, x_max, dtype=np.float32) - cx
+            grid_x, grid_y = np.meshgrid(xs, ys)
+
+            angle_rad = np.radians(-angle)
+            cos_a = np.cos(angle_rad)
+            sin_a = np.sin(angle_rad)
+            rx = grid_x * cos_a - grid_y * sin_a
+            ry = grid_x * sin_a + grid_y * cos_a
+
+            dist_sq = (rx / ax) ** 2 + (ry / ay) ** 2
+            inside = dist_sq <= 1.0
+
+            falloff = np.zeros_like(dist_sq)
+            falloff[inside] = (1.0 - dist_sq[inside]) ** self._DECAY
+
+            scaled_alpha = falloff * self.opacity
+
+            bgr = np.array(color.as_bgr(), dtype=np.float32)
+            roi = composite[y_min:y_max, x_min:x_max]
+            alpha_3 = scaled_alpha[:, :, np.newaxis]
+            roi[:] = roi * (1 - alpha_3) + bgr * alpha_3
+
+        np.copyto(scene, composite.astype(np.uint8))
+        return scene
+
+
+VertexEllipseAnnotator = VertexEllipseAreaAnnotator
 
 
 class VertexLabelAnnotator:

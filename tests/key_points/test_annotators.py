@@ -293,6 +293,111 @@ class TestVertexEllipseAnnotator:
             sv.VertexEllipseAnnotator(**kwargs)
 
 
+class TestVertexEllipseOutlineAnnotator:
+    """Tests for VertexEllipseOutlineAnnotator (stroke-only rings)."""
+
+    def test_annotate_draws_outlines(self, scene, sample_key_points):
+        covariance = np.tile(
+            np.eye(2, dtype=np.float32),
+            (*sample_key_points.xy.shape[:2], 1, 1),
+        )
+        covariance[..., 0, 0] = 25.0
+        covariance[..., 1, 1] = 9.0
+        sample_key_points.data["covariance"] = covariance
+
+        annotator = sv.VertexEllipseOutlineAnnotator(
+            sigma=[1.0, 2.0],
+            color=[sv.Color.GREEN, sv.Color.RED],
+            thickness=2,
+        )
+        result = annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
+
+        assert result.shape == scene.shape
+        assert not np.array_equal(result, scene)
+
+    def test_annotate_empty_key_points(self, scene, empty_key_points):
+        annotator = sv.VertexEllipseOutlineAnnotator()
+        result = annotator.annotate(scene=scene.copy(), key_points=empty_key_points)
+
+        assert np.array_equal(result, scene)
+
+    def test_visible_false_skips_keypoint(self, scene):
+        cov = np.array([[[[25.0, 0.0], [0.0, 9.0]]]], dtype=np.float32)
+        key_points_hidden = sv.KeyPoints(
+            xy=np.array([[[20.0, 20.0]]], dtype=np.float32),
+            visible=np.array([[False]]),
+            data={"covariance": cov},
+        )
+        key_points_visible = sv.KeyPoints(
+            xy=np.array([[[20.0, 20.0]]], dtype=np.float32),
+            visible=np.array([[True]]),
+            data={"covariance": cov},
+        )
+        annotator = sv.VertexEllipseOutlineAnnotator()
+
+        result_hidden = annotator.annotate(
+            scene=scene.copy(), key_points=key_points_hidden
+        )
+        result_visible = annotator.annotate(
+            scene=scene.copy(), key_points=key_points_visible
+        )
+
+        assert np.array_equal(result_hidden, scene)
+        assert not np.array_equal(result_visible, scene)
+
+
+class TestVertexEllipseHaloAnnotator:
+    """Tests for VertexEllipseHaloAnnotator (blurred glow effect)."""
+
+    def test_annotate_draws_halo(self, scene, sample_key_points):
+        covariance = np.tile(
+            np.eye(2, dtype=np.float32),
+            (*sample_key_points.xy.shape[:2], 1, 1),
+        )
+        covariance[..., 0, 0] = 25.0
+        covariance[..., 1, 1] = 9.0
+        sample_key_points.data["covariance"] = covariance
+
+        annotator = sv.VertexEllipseHaloAnnotator(
+            sigma=[1.0, 2.0],
+            color=[sv.Color.GREEN, sv.Color.RED],
+        )
+        result = annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
+
+        assert result.shape == scene.shape
+        assert not np.array_equal(result, scene)
+
+    def test_annotate_empty_key_points(self, scene, empty_key_points):
+        annotator = sv.VertexEllipseHaloAnnotator()
+        result = annotator.annotate(scene=scene.copy(), key_points=empty_key_points)
+
+        assert np.array_equal(result, scene)
+
+    def test_visible_false_skips_keypoint(self, scene):
+        cov = np.array([[[[25.0, 0.0], [0.0, 9.0]]]], dtype=np.float32)
+        key_points_hidden = sv.KeyPoints(
+            xy=np.array([[[20.0, 20.0]]], dtype=np.float32),
+            visible=np.array([[False]]),
+            data={"covariance": cov},
+        )
+        key_points_visible = sv.KeyPoints(
+            xy=np.array([[[20.0, 20.0]]], dtype=np.float32),
+            visible=np.array([[True]]),
+            data={"covariance": cov},
+        )
+        annotator = sv.VertexEllipseHaloAnnotator()
+
+        result_hidden = annotator.annotate(
+            scene=scene.copy(), key_points=key_points_hidden
+        )
+        result_visible = annotator.annotate(
+            scene=scene.copy(), key_points=key_points_visible
+        )
+
+        assert np.array_equal(result_hidden, scene)
+        assert not np.array_equal(result_visible, scene)
+
+
 class TestVertexLabelAnnotator:
     @pytest.mark.parametrize(
         ("labels", "points_count", "class_id", "expected"),
