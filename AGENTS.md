@@ -1,104 +1,144 @@
 # Agent Guidelines for `supervision`
 
-These instructions define how AI agents (GitHub Copilot, Claude, etc.) should behave when assigned an issue, task, or multi-step problem in this repository.
-
-Behave like a senior contributor: precise, efficient, aligned with the project's philosophy, and focused on maintainability and clarity.
+Behave like a senior contributor: precise, efficient, maintainable. When this file and [CONTRIBUTING.md](.github/CONTRIBUTING.md) conflict, **CONTRIBUTING.md wins**.
 
 ---
 
 ## 1. Before You Code
 
-- Read the task/issue thoroughly before acting.
-- Identify missing information; ask **one targeted clarification question** if needed.
-- Outline a step-by-step plan before making changes.
-- Check whether the feature or fix already exists under a different name.
-- Confirm alignment with the repository's architecture (`src/supervision/`).
+- Read the task thoroughly; group clarifications into one ask.
+- Outline a plan before making changes.
+- Check whether the feature already exists under a different name.
+- Confirm alignment with `src/supervision/` architecture.
 
 ---
 
-## 2. Repository Conventions
+## 2. Repository Architecture
 
-All work must follow the conventions of the `supervision` library (see [CONTRIBUTING.md](.github/CONTRIBUTING.md) for full details).
+**Package root**: `src/supervision/` — all library code. **Tests**: `tests/` — mirrors `src/supervision/`. **Public API**: `src/supervision/__init__.py`.
 
-### Branching & Commits
+```
+src/supervision/
+├── detection/
+│   ├── core.py          — Detections dataclass; all model connectors as classmethods
+│   ├── compact_mask.py  — compact mask representation
+│   ├── vlm.py           — VLM connectors (Florence-2, Gemini, Qwen, PaliGemma)
+│   ├── utils/           — pure NumPy helpers: boxes, converters, iou_and_nms, masks, polygons
+│   ├── line_zone.py     — LineZone
+│   └── tools/           — InferenceSlicer, PolygonZone, CSVSink, JSONSink, DetectionsSmoother
+├── annotators/core.py   — BoxAnnotator, MaskAnnotator, LabelAnnotator, … each: .annotate(scene, detections)
+├── key_points/          — KeyPoints, EdgeAnnotator, VertexAnnotator (use this, NOT keypoint/ — see §4)
+├── tracker/             — DEPRECATED
+├── dataset/core.py      — DetectionDataset / ClassificationDataset (YOLO / COCO / Pascal VOC)
+├── geometry/core.py     — Point, Rect, Vector, Position
+├── metrics/             — mAP, confusion matrix (requires --extra metrics)
+├── utils/internal.py    — warn_deprecated, deprecated_parameter, internal helpers
+└── config.py            — string constants; always import from here, never use literals
+```
 
-- Branch from `develop` using prefixes: `feat/`, `fix/`, `docs/`, `refactor/`, `test/`, `chore/`.
-- Use **conventional commits**: `feat:`, `fix:`, `docs:`, `refactor:`, `perf:`, `test:`, `chore:`.
-- PRs must target the `develop` branch.
+### Key design patterns
 
-### Code Style
-
-- **Heading depth in docs/docstrings**: `###` maximum. `####` and deeper render identically to bold in mkdocs — use `**bold**` instead.
-
-- **Formatting and linting** are enforced by **pre-commit**. The hook chain typically includes: ruff-check, ruff-format, codespell, mdformat, prettier, pyproject-fmt, and standard pre-commit-hooks (trailing whitespace, YAML, TOML, etc.).
-
-- **Type hints**: required on all new code. Type checking with mypy is encouraged but not currently enforced systematically by pre-commit; see [.github/CONTRIBUTING.md](.github/CONTRIBUTING.md) for the latest type-checking expectations.
-
-- **Docstrings**: Google Python docstring style. Required for all new functions and classes. Every docstring should include a usage example. Prefer `>>>` doctest format when the example only uses `supervision`, NumPy, and stdlib (no optional extras, no external files or network). See §3a and CONTRIBUTING.md for syntax.
-
-### API Consistency
-
-- Follow existing naming patterns.
-- Maintain backward compatibility unless explicitly allowed.
-- Prefer functional utilities over complex classes unless justified.
-
-### Performance
-
-- Avoid unnecessary copies of NumPy arrays.
-- Prefer vectorized operations over Python loops in hot paths.
-- Use OpenCV operations efficiently.
-
----
-
-## 3. Implementing Features
-
-- Provide a minimal, clean implementation.
-- Include type hints and Google-style docstrings with usage examples.
-- All new functionality must be covered with tests, including edge cases.
-- Add or update documentation (docstrings + mkdocs entries if applicable).
-- Ensure compatibility with core dependencies: NumPy, OpenCV, SciPy.
+- **`Detections` is the lingua franca** — every connector, tracker, and annotator speaks `Detections`. New connector = `@classmethod from_<framework>(cls, result) -> Detections`.
+- **Annotators are composable** — receive `scene` (BGR `np.ndarray`) + `detections`, return annotated copy.
+- **`data` dict extensibility** — per-detection metadata in `detections.data` as `np.ndarray` aligned with `xyxy`. Keys are constants from `config.py`.
+- **Vectorized throughout** — NumPy arrays, no Python loops in hot paths. Never write `for det in detections`.
+- **Lazy-import heavy deps** — `torch`, `transformers`, `ultralytics` must be imported inside the function that needs them, never at module top level.
 
 ---
 
-## 3a. Test Conventions
+## 3. Agent-Critical Rules
 
-Full test guidelines are in [CONTRIBUTING.md](.github/CONTRIBUTING.md#tests). Key rules:
+These supplement [CONTRIBUTING.md](.github/CONTRIBUTING.md) — covering gaps or agent-specific failure modes.
 
-- **AAA structure**: one arrange, one act, one assertion group per test. No second act.
-- **Class grouping**: group related tests into a class. Class name = unit under test. Method names describe the expected outcome only — not the mechanism.
-- **Parametrize**: 3+ structurally identical tests → `@pytest.mark.parametrize`. Use `pytest.param(..., id="slug")` per case (not `ids=[...]` on the decorator).
-- **Docstrings**: every test function/method needs at minimum a one-line docstring within the project line length (see `pyproject.toml`). Describe the scenario, not the implementation.
-- **Doctests**: prefer `>>>` doctest when example uses only `supervision`, NumPy, and stdlib (no optional extras, no external files). Fenced ```` ```python ```` is fine when non-runnable (third-party model, video file, optional extra) or when the example's purpose is showing exception/error behaviour. See CONTRIBUTING.md §Doctests for syntax guide (continuation lines, ELLIPSIS, `+SKIP` rules).
+**Doc headings**: `###` max in docstrings and docs. `####` renders identically to bold in mkdocs — use `**bold**` instead.
 
----
+**Type hints**: required on all new code. mypy is enforced by pre-commit (`.pre-commit-config.yaml`).
 
-## 4. Fixing Bugs
+**Doctest determinism** — output must be reproducible across platforms:
 
-1. Reproduce and understand the root cause.
-2. Write a test that reproduces the bug (it should fail before the fix).
-3. Apply a minimal, targeted fix.
-4. Verify the test passes and no other components break.
+- Use `# doctest: +ELLIPSIS` for floats that vary by platform.
+- Seed any RNG before calling it.
+- Never assert `dict` or `set` iteration order.
+- No network or filesystem access outside `supervision/assets/`.
 
----
+**⚠ Test structure** — agents frequently fail here; read [CONTRIBUTING.md §Tests](.github/CONTRIBUTING.md#-tests) carefully: AAA structure, class grouping, parametrize with `pytest.param(..., id="slug")`, one-line docstring per test.
 
-## 5. Refactoring
-
-- Preserve behavior and API stability.
-- Improve readability or performance.
-- Reduce duplication.
-- Avoid large, sweeping refactors unless explicitly requested.
+For branching, commit, code style, and API design conventions see [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 
 ---
 
-## 6. Before You Commit
+## 4. Deprecated Module Aliases
 
-Always run these before committing:
+`supervision.keypoint` deprecated since `0.27.0`, removed in `0.30.0`. Always import from `supervision.key_points`, not `supervision.keypoint`.
+
+---
+
+## 5. Deprecating APIs
+
+- Module-level: `supervision.utils.internal.warn_deprecated` in the deprecated module's own `__init__.py`
+- Parameter renamed (old→new): `supervision.utils.internal.deprecated_parameter` decorator
+- Public function, method, or class: `@deprecated` from `pydeprecate`
+
+Always name the version introduced and the removal version:
+
+```python
+warn_deprecated("'foo' deprecated in `0.27.0`, removed in `0.30.0`. Use 'bar'.")
+```
+
+---
+
+## 6. Implementing Features
+
+- Minimal implementation; type hints and Google docstrings with usage examples.
+- Tests covering new functionality and edge cases (see [CONTRIBUTING.md §Tests](.github/CONTRIBUTING.md#-tests)).
+- Update docstrings and mkdocs entries as needed.
+
+**Extending `Detections`**: store metadata in `detections.data` as `np.ndarray` aligned with `xyxy`; define the key as a constant in `config.py` (e.g. `CLASS_NAME_DATA_FIELD`, `ORIENTED_BOX_COORDINATES`).
+
+**New model connector** (`detection/core.py`):
+
+```python
+@classmethod
+def from_myframework(cls, result) -> "Detections":
+    import myframework  # noqa: F401 — lazy import
+
+    xyxy = ...  # (N, 4)
+    return cls(
+        xyxy=xyxy,
+        confidence=...,
+        class_id=...,
+        data={CLASS_NAME_DATA_FIELD: np.array([...])},
+    )
+```
+
+VLM connectors go in `detection/vlm.py`, not `core.py`.
+
+---
+
+## 7. Bugs & Refactoring
+
+**Bugs**: reproduce → write failing test → minimal fix → verify no regressions.
+
+**Refactoring**: preserve behavior and API; reduce duplication; avoid sweeping changes unless requested; apply §5 deprecation when removing public API.
+
+---
+
+## 8. Before You Commit
 
 ```bash
 uv run pytest --cov=supervision
 uv run pre-commit run --all-files
 ```
 
-- All pre-commit hooks must pass (formatting, linting, type checking, spell check, etc.).
-- All tests must pass before opening a PR. Note: some existing tests in the repo may already be failing — your changes must not introduce new failures.
-- Fix any issues reported and re-run until clean.
+Capture a baseline before changes to avoid introducing new failures:
+
+```bash
+STASH_BEFORE=$(git rev-parse refs/stash 2>/dev/null)
+git stash push --include-untracked
+uv run pytest -q 2>&1 | tee /tmp/baseline.txt
+[ "$(git rev-parse refs/stash 2>/dev/null)" != "$STASH_BEFORE" ] && git stash pop
+uv run pytest -q 2>&1 | tee /tmp/after.txt
+diff /tmp/baseline.txt /tmp/after.txt
+```
+
+Any test passing in baseline but failing after = blocker.
