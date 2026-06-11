@@ -243,7 +243,7 @@ def _validate_visible(visible: Any, n: int, m: int) -> None:
     actual_shape = str(getattr(visible, "shape", None))
     if not isinstance(visible, np.ndarray) or visible.ndim != 2:
         raise ValueError(
-            f"visible must be a 2D np.ndarray with shape (n, m), but "
+            "visible must be a 2D np.ndarray with shape (n, m), but "
             f"got shape {actual_shape}"
         )
     if visible.shape[0] != n:
