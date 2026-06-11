@@ -265,9 +265,10 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
     uncertainty visualization where inner rings represent higher probability
     density.
 
-    The annotator expects per-keypoint covariance matrices stored in
-    ``key_points.data["covariance"]`` with shape ``(N, K, 2, 2)`` in
-    pixel coordinates.
+    !!! warning
+
+        This annotator uses `key_points.data["covariance"]` with shape
+        `(N, K, 2, 2)` in pixel coordinates.
     """
 
     def __init__(
@@ -275,7 +276,7 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
         sigma: float | Sequence[float] = (1.0, 2.0, 3.0),
         color: Color | Sequence[Color] = (Color.GREEN, Color.YELLOW, Color.RED),
         opacity: float = 0.4,
-        max_axis_length: float | None = None,
+        max_axis: float | None = None,
     ) -> None:
         """
         Args:
@@ -287,7 +288,7 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
                 Defaults to ``(Color.GREEN, Color.YELLOW, Color.RED)``.
             opacity: Opacity of the overlay mask. Must be between ``0`` and
                 ``1``.
-            max_axis_length: Optional cap for ellipse semi-axis lengths in pixels.
+            max_axis: Optional cap for ellipse semi-axis lengths in pixels.
         """
         sigma_seq: Sequence[float] = (
             (sigma,) if isinstance(sigma, (int, float)) else sigma
@@ -298,8 +299,8 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
             raise ValueError("sigma must contain at least one value")
         if any(s <= 0 for s in sigma_seq):
             raise ValueError("All sigma values must be positive")
-        if max_axis_length is not None and max_axis_length <= 0:
-            raise ValueError("max_axis_length must be positive when provided")
+        if max_axis is not None and max_axis <= 0:
+            raise ValueError("max_axis must be positive when provided")
         if len(color_seq) != len(sigma_seq):
             raise ValueError(
                 f"color length ({len(color_seq)}) must match "
@@ -312,7 +313,7 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
         self.sigma = [sigma_seq[i] for i in sorted_indices]
         self.color = [color_seq[i] for i in sorted_indices]
         self.opacity = opacity
-        self.max_axis_length = max_axis_length
+        self.max_axis = max_axis
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
@@ -383,8 +384,8 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
                 center = (round(x), round(y))
                 for sigma, color in zip(self.sigma, self.color):
                     axes = sigma * np.sqrt(eigenvalues)
-                    if self.max_axis_length is not None:
-                        axes = np.minimum(axes, self.max_axis_length)
+                    if self.max_axis is not None:
+                        axes = np.minimum(axes, self.max_axis)
                     axis_lengths = (max(1, round(axes[0])), max(1, round(axes[1])))
                     cv2.ellipse(
                         img=overlay,

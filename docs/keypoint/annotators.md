@@ -80,22 +80,16 @@ comments: true
 === "VertexEllipseAnnotator"
 
     ```python
-    import numpy as np
     import supervision as sv
 
     image = ...
     key_points = sv.KeyPoints(...)
 
-    # covariance shape: (N, K, 2, 2) — pixel-space covariance per keypoint
-    covariance = np.zeros((len(key_points), key_points.xy.shape[1], 2, 2), dtype=np.float32)
-    key_points.data["covariance"] = covariance
-
-    uncertainty_annotator = sv.VertexEllipseAnnotator(
+    ellipse_annotator = sv.VertexEllipseAnnotator(
         color=sv.Color.GREEN,
-        thickness=2,
         sigma=2.0,
     )
-    annotated_frame = uncertainty_annotator.annotate(
+    annotated_frame = ellipse_annotator.annotate(
         scene=image.copy(),
         key_points=key_points,
     )

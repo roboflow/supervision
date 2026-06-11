@@ -264,14 +264,14 @@ class TestVertexEllipseAnnotator:
         assert np.array_equal(result_hidden, scene)
         assert not np.array_equal(result_visible, scene)
 
-    def test_max_axis_length_caps_large_eigenvalue(self, scene):
-        """Large covariance with max_axis_length still produces a bounded ellipse."""
+    def test_max_axis_caps_large_eigenvalue(self, scene):
+        """Large covariance with max_axis still produces a bounded ellipse."""
         large_cov = np.array([[[[1e6, 0.0], [0.0, 1e6]]]], dtype=np.float32)
         key_points = sv.KeyPoints(
             xy=np.array([[[50.0, 50.0]]], dtype=np.float32),
             data={"covariance": large_cov},
         )
-        annotator = sv.VertexEllipseAnnotator(max_axis_length=10.0)
+        annotator = sv.VertexEllipseAnnotator(max_axis=10.0)
 
         result = annotator.annotate(scene=scene.copy(), key_points=key_points)
 
@@ -281,8 +281,8 @@ class TestVertexEllipseAnnotator:
     @pytest.mark.parametrize(
         ("kwargs", "match"),
         [
-            ({"max_axis_length": 0}, "max_axis_length"),
-            ({"max_axis_length": -1}, "max_axis_length"),
+            ({"max_axis": 0}, "max_axis"),
+            ({"max_axis": -1}, "max_axis"),
             ({"sigma": []}, "sigma"),
             ({"sigma": [-1.0]}, "sigma"),
         ],
