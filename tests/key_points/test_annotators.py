@@ -181,9 +181,9 @@ class TestEdgeAnnotator:
         assert np.array_equal(result, scene)
 
 
-class TestVertexUncertaintyAnnotator:
+class TestVertexEllipseAnnotator:
     """
-    Verify that VertexUncertaintyAnnotator draws filled semi-transparent
+    Verify that VertexEllipseAnnotator draws filled semi-transparent
     covariance ellipses around keypoints.
     """
 
@@ -200,7 +200,7 @@ class TestVertexUncertaintyAnnotator:
         covariance[..., 1, 1] = 9.0
         sample_key_points.data["covariance"] = covariance
 
-        annotator = sv.VertexUncertaintyAnnotator(sigma_levels=[1.0, 2.0])
+        annotator = sv.VertexEllipseAnnotator(sigma=[1.0, 2.0], color=[sv.Color.GREEN, sv.Color.RED])
         result = annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
 
         assert result.shape == scene.shape
@@ -211,7 +211,7 @@ class TestVertexUncertaintyAnnotator:
         Scenario: Annotating a scene with no keypoints.
         Expected: Original scene is returned untouched.
         """
-        annotator = sv.VertexUncertaintyAnnotator()
+        annotator = sv.VertexEllipseAnnotator()
         result = annotator.annotate(scene=scene.copy(), key_points=empty_key_points)
 
         assert np.array_equal(result, scene)
@@ -221,7 +221,7 @@ class TestVertexUncertaintyAnnotator:
         Scenario: Annotating non-empty keypoints without covariance data.
         Expected: Clear error explaining the expected data field.
         """
-        annotator = sv.VertexUncertaintyAnnotator()
+        annotator = sv.VertexEllipseAnnotator()
 
         with pytest.raises(ValueError, match="covariance"):
             annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
@@ -232,7 +232,7 @@ class TestVertexUncertaintyAnnotator:
         Expected: Clear shape validation error.
         """
         sample_key_points.data["covariance"] = np.zeros((1, 1, 2, 2), dtype=np.float32)
-        annotator = sv.VertexUncertaintyAnnotator()
+        annotator = sv.VertexEllipseAnnotator()
 
         with pytest.raises(ValueError, match="Expected covariance shape"):
             annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
@@ -250,7 +250,7 @@ class TestVertexUncertaintyAnnotator:
             visible=np.array([[True]]),
             data={"covariance": cov},
         )
-        annotator = sv.VertexUncertaintyAnnotator()
+        annotator = sv.VertexEllipseAnnotator()
 
         result_hidden = annotator.annotate(
             scene=scene.copy(), key_points=key_points_hidden
@@ -269,7 +269,7 @@ class TestVertexUncertaintyAnnotator:
             xy=np.array([[[50.0, 50.0]]], dtype=np.float32),
             data={"covariance": large_cov},
         )
-        annotator = sv.VertexUncertaintyAnnotator(max_axis_length=10.0)
+        annotator = sv.VertexEllipseAnnotator(max_axis_length=10.0)
 
         result = annotator.annotate(scene=scene.copy(), key_points=key_points)
 
@@ -281,8 +281,8 @@ class TestVertexUncertaintyAnnotator:
         [
             ({"max_axis_length": 0}, "max_axis_length"),
             ({"max_axis_length": -1}, "max_axis_length"),
-            ({"sigma_levels": []}, "sigma_levels"),
-            ({"sigma_levels": [-1.0]}, "sigma_levels"),
+            ({"sigma": []}, "sigma"),
+            ({"sigma": [-1.0]}, "sigma"),
             ({"opacity": 0}, "opacity"),
             ({"opacity": 1.5}, "opacity"),
         ],
@@ -290,7 +290,7 @@ class TestVertexUncertaintyAnnotator:
     def test_constructor_raises_on_invalid_params(self, kwargs, match):
         """Invalid constructor parameters raise ValueError."""
         with pytest.raises(ValueError, match=match):
-            sv.VertexUncertaintyAnnotator(**kwargs)
+            sv.VertexEllipseAnnotator(**kwargs)
 
 
 class TestVertexLabelAnnotator:

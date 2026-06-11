@@ -124,7 +124,7 @@ from supervision.key_points.annotators import (
     EdgeAnnotator,
     VertexAnnotator,
     VertexLabelAnnotator,
-    VertexUncertaintyAnnotator,
+    VertexEllipseAnnotator,
 )
 from supervision.key_points.core import KeyPoints
 from supervision.metrics.detection import ConfusionMatrix, MeanAveragePrecision
@@ -208,7 +208,7 @@ __all__ = [
     "TriangleAnnotator",
     "VertexAnnotator",
     "VertexLabelAnnotator",
-    "VertexUncertaintyAnnotator",
+    "VertexEllipseAnnotator",
     "VideoInfo",
     "VideoSink",
     "approximate_polygon",

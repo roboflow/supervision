@@ -258,7 +258,7 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         return scene
 
 
-class VertexUncertaintyAnnotator(BaseKeyPointAnnotator):
+class VertexEllipseAnnotator(BaseKeyPointAnnotator):
     """
     Draws concentric covariance ellipses at multiple sigma levels around each
     keypoint, each ring in a different color.  This produces a bullseye-like
@@ -266,74 +266,53 @@ class VertexUncertaintyAnnotator(BaseKeyPointAnnotator):
     density.
 
     The annotator expects per-keypoint covariance matrices stored in
-    ``key_points.data[covariance_data_key]`` with shape ``(N, K, 2, 2)`` in
+    ``key_points.data["covariance"]`` with shape ``(N, K, 2, 2)`` in
     pixel coordinates.
     """
 
     def __init__(
         self,
-        sigma_levels: Sequence[float] = (1.0, 2.0, 3.0),
-        colors: Sequence[Color] | None = None,
+        sigma: float | Sequence[float] = (1.0, 2.0, 3.0),
+        color: Color | Sequence[Color] = (Color.GREEN, Color.YELLOW, Color.RED),
         opacity: float = 0.4,
-        covariance_data_key: str = "covariance",
         max_axis_length: float | None = None,
     ) -> None:
         """
         Args:
-            sigma_levels: Sigma multipliers for each ring, drawn from outermost to
-                innermost.  Defaults to ``(1.0, 2.0, 3.0)``.
-            colors: One color per sigma level.  When ``None``, defaults to a
-                green-yellow-red gradient (inner=green, outer=red).
+            sigma: Sigma multipliers for each ring, drawn from outermost to
+                innermost.  Accepts a single float or a sequence of floats.
+                Defaults to ``(1.0, 2.0, 3.0)``.
+            color: The color for each sigma level.  Accepts a single
+                ``Color`` or a sequence of colors (one per sigma level).
+                Defaults to ``(Color.GREEN, Color.YELLOW, Color.RED)``.
             opacity: Opacity of the filled ellipses. Must be between ``0`` and
                 ``1``.
-            covariance_data_key: Key in ``key_points.data`` containing covariance
-                matrices with shape ``(N, K, 2, 2)``.
             max_axis_length: Optional cap for ellipse semi-axis lengths in pixels.
         """
-        if len(sigma_levels) == 0:
-            raise ValueError("sigma_levels must contain at least one value")
-        if any(s <= 0 for s in sigma_levels):
-            raise ValueError("All sigma_levels must be positive")
+        sigma_seq: Sequence[float] = (sigma,) if isinstance(sigma, (int, float)) else sigma
+        color_seq: Sequence[Color] = (color,) if isinstance(color, Color) else color
+
+        if len(sigma_seq) == 0:
+            raise ValueError("sigma must contain at least one value")
+        if any(s <= 0 for s in sigma_seq):
+            raise ValueError("All sigma values must be positive")
         if not 0 < opacity <= 1:
             raise ValueError("opacity must be between 0 (exclusive) and 1 (inclusive)")
         if max_axis_length is not None and max_axis_length <= 0:
             raise ValueError("max_axis_length must be positive when provided")
-
-        self.sigma_levels = sorted(sigma_levels, reverse=True)
-        if colors is not None:
-            if len(colors) != len(sigma_levels):
-                raise ValueError(
-                    f"colors length ({len(colors)}) must match "
-                    f"sigma_levels length ({len(sigma_levels)})"
-                )
-            sorted_indices = sorted(
-                range(len(sigma_levels)),
-                key=lambda i: sigma_levels[i],
-                reverse=True,
+        if len(color_seq) != len(sigma_seq):
+            raise ValueError(
+                f"color length ({len(color_seq)}) must match "
+                f"sigma length ({len(sigma_seq)})"
             )
-            self.colors = [colors[i] for i in sorted_indices]
-        else:
-            self.colors = self._default_colors(len(self.sigma_levels))
-        self.opacity = opacity
-        self.covariance_data_key = covariance_data_key
-        self.max_axis_length = max_axis_length
 
-    @staticmethod
-    def _default_colors(n: int) -> list[Color]:
-        """Red (outer) through bright yellow (middle) to green (inner)."""
-        if n == 1:
-            return [Color.GREEN]
-        colors = []
-        for i in range(n):
-            t = i / (n - 1)
-            if t < 0.5:
-                r = 255
-                g = int(255 * (t / 0.5))
-            else:
-                r = int(255 * ((1.0 - t) / 0.5))
-                g = 255
-            colors.append(Color.from_rgb_tuple((r, g, 0)))
-        return colors
+        sorted_indices = sorted(
+            range(len(sigma_seq)), key=lambda i: sigma_seq[i], reverse=True
+        )
+        self.sigma = [sigma_seq[i] for i in sorted_indices]
+        self.color = [color_seq[i] for i in sorted_indices]
+        self.opacity = opacity
+        self.max_axis_length = max_axis_length
 
     @ensure_cv2_image_for_class_method
     def annotate(self, scene: ImageType, key_points: KeyPoints) -> ImageType:
@@ -344,7 +323,7 @@ class VertexUncertaintyAnnotator(BaseKeyPointAnnotator):
             scene: The image to annotate. ``ImageType`` accepts either
                 ``numpy.ndarray`` or ``PIL.Image.Image``.
             key_points: Key points with covariance data in
-                ``key_points.data[covariance_data_key]``.
+                ``key_points.data["covariance"]``.
 
         Returns:
             The annotated image, matching the type of ``scene``.
@@ -371,8 +350,9 @@ class VertexUncertaintyAnnotator(BaseKeyPointAnnotator):
                     )
                 },
             )
-            annotator = sv.VertexUncertaintyAnnotator(
-                sigma_levels=[1.0, 2.0],
+            annotator = sv.VertexEllipseAnnotator(
+                sigma=[1.0, 2.0],
+                color=[sv.Color.GREEN, sv.Color.RED],
             )
             result = annotator.annotate(image.copy(), key_points)
             ```
@@ -401,7 +381,7 @@ class VertexUncertaintyAnnotator(BaseKeyPointAnnotator):
                     np.degrees(np.arctan2(eigenvectors[1, 0], eigenvectors[0, 0]))
                 )
                 center = (round(x), round(y))
-                for sigma, color in zip(self.sigma_levels, self.colors):
+                for sigma, color in zip(self.sigma, self.color):
                     axes = sigma * np.sqrt(eigenvalues)
                     if self.max_axis_length is not None:
                         axes = np.minimum(axes, self.max_axis_length)
@@ -422,10 +402,10 @@ class VertexUncertaintyAnnotator(BaseKeyPointAnnotator):
         return scene
 
     def _get_covariances(self, key_points: KeyPoints) -> npt.NDArray[np.float32]:
-        covariances = key_points.data.get(self.covariance_data_key)
+        covariances = key_points.data.get("covariance")
         if covariances is None:
             raise ValueError(
-                f"key_points.data must contain {self.covariance_data_key!r} "
+                "key_points.data must contain 'covariance' "
                 "with shape (N, K, 2, 2)."
             )
         covariances_array = cast(
