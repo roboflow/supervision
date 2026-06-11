@@ -123,8 +123,8 @@ from supervision.geometry.utils import get_polygon_center
 from supervision.key_points.annotators import (
     EdgeAnnotator,
     VertexAnnotator,
-    VertexLabelAnnotator,
     VertexEllipseAnnotator,
+    VertexLabelAnnotator,
 )
 from supervision.key_points.core import KeyPoints
 from supervision.metrics.detection import ConfusionMatrix, MeanAveragePrecision
@@ -207,8 +207,8 @@ __all__ = [
     "TraceAnnotator",
     "TriangleAnnotator",
     "VertexAnnotator",
-    "VertexLabelAnnotator",
     "VertexEllipseAnnotator",
+    "VertexLabelAnnotator",
     "VideoInfo",
     "VideoSink",
     "approximate_polygon",

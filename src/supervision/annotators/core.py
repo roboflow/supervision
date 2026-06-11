@@ -2104,7 +2104,7 @@ class HeatMapAnnotator(BaseAnnotator):
         Args:
             position: The position of the heatmap. Defaults to
                 `BOTTOM_CENTER`.
-            opacity: Opacity of the overlay mask, between 0 and 1.
+            opacity: Opacity of the overlay mask. Must be between `0` and `1`.
             radius: Radius of the heat circle.
             kernel_size: Kernel size for blurring the heatmap. Pass `None`
                 to disable blurring entirely.
@@ -3027,7 +3027,7 @@ class ComparisonAnnotator:
             color_2: Color of areas only present in the second set of
                 detections.
             color_overlap: Color of areas present in both sets of detections.
-            opacity: Annotator opacity, from `0` to `1`.
+            opacity: Opacity of the overlay mask. Must be between `0` and `1`.
             label_1: Label for the first set of detections.
             label_2: Label for the second set of detections.
             label_overlap: Label for areas present in both sets of detections.

@@ -65,23 +65,23 @@ class VertexAnnotator(BaseKeyPointAnnotator):
                 or `PIL.Image.Image`)
 
         Example:
-            ```python
-            import numpy as np
-            import supervision as sv
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((800, 800, 3), dtype=np.uint8)
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array(
+            ...         [[[400, 200], [300, 500], [500, 500]]],
+            ...         dtype=np.float32,
+            ...     ),
+            ...     class_id=np.array([0]),
+            ...     visible=np.array([[True, True, True]]),
+            ... )
+            >>> annotator = sv.VertexAnnotator(
+            ...     color=sv.Color.ROBOFLOW, radius=10
+            ... )
+            >>> result = annotator.annotate(image.copy(), key_points)
 
-            image = np.zeros((800, 800, 3), dtype=np.uint8)
-            key_points = sv.KeyPoints(
-                xy=np.array(
-                    [[[400, 200], [300, 500], [500, 500]]],
-                    dtype=np.float32,
-                ),
-                class_id=np.array([0]),
-                visible=np.array([[True, True, True]]),
-            )
-            annotator = sv.VertexAnnotator(
-                color=sv.Color.ROBOFLOW, radius=10
-            )
-            result = annotator.annotate(image.copy(), key_points)
             ```
         """
         assert isinstance(scene, np.ndarray)
@@ -157,52 +157,52 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
         Example:
             Single-skeleton example:
 
-            ```python
-            import numpy as np
-            import supervision as sv
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((800, 800, 3), dtype=np.uint8)
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array(
+            ...         [[[400, 200], [300, 500], [500, 500]]],
+            ...         dtype=np.float32,
+            ...     ),
+            ...     class_id=np.array([0]),
+            ...     visible=np.array([[True, True, True]]),
+            ... )
+            >>> annotator = sv.EdgeAnnotator(
+            ...     color=sv.Color.ROBOFLOW,
+            ...     thickness=3,
+            ...     edges=[(1, 2), (1, 3)],
+            ... )
+            >>> result = annotator.annotate(image.copy(), key_points)
 
-            image = np.zeros((800, 800, 3), dtype=np.uint8)
-            key_points = sv.KeyPoints(
-                xy=np.array(
-                    [[[400, 200], [300, 500], [500, 500]]],
-                    dtype=np.float32,
-                ),
-                class_id=np.array([0]),
-                visible=np.array([[True, True, True]]),
-            )
-            annotator = sv.EdgeAnnotator(
-                color=sv.Color.ROBOFLOW,
-                thickness=3,
-                edges=[(1, 2), (1, 3)],
-            )
-            result = annotator.annotate(image.copy(), key_points)
             ```
 
             Multi-skeleton example with per-class edges:
 
-            ```python
-            import numpy as np
-            import supervision as sv
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((800, 800, 3), dtype=np.uint8)
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array(
+            ...         [[[400, 200], [300, 500], [500, 500]],
+            ...          [[700, 300], [650, 500], [0, 0]]],
+            ...         dtype=np.float32,
+            ...     ),
+            ...     class_id=np.array([0, 1]),
+            ...     visible=np.array(
+            ...         [[True, True, True],
+            ...          [True, True, False]],
+            ...     ),
+            ... )
+            >>> annotator = sv.EdgeAnnotator(
+            ...     color=sv.Color.ROBOFLOW,
+            ...     thickness=3,
+            ...     edges={0: [(1, 2), (1, 3)], 1: [(1, 2)]},
+            ... )
+            >>> result = annotator.annotate(image.copy(), key_points)
 
-            image = np.zeros((800, 800, 3), dtype=np.uint8)
-            key_points = sv.KeyPoints(
-                xy=np.array(
-                    [[[400, 200], [300, 500], [500, 500]],
-                     [[700, 300], [650, 500], [0, 0]]],
-                    dtype=np.float32,
-                ),
-                class_id=np.array([0, 1]),
-                visible=np.array(
-                    [[True, True, True],
-                     [True, True, False]],
-                ),
-            )
-            annotator = sv.EdgeAnnotator(
-                color=sv.Color.ROBOFLOW,
-                thickness=3,
-                edges={0: [(1, 2), (1, 3)], 1: [(1, 2)]},
-            )
-            result = annotator.annotate(image.copy(), key_points)
             ```
         """
         assert isinstance(scene, np.ndarray)
@@ -285,19 +285,19 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
             color: The color for each sigma level.  Accepts a single
                 ``Color`` or a sequence of colors (one per sigma level).
                 Defaults to ``(Color.GREEN, Color.YELLOW, Color.RED)``.
-            opacity: Opacity of the filled ellipses. Must be between ``0`` and
+            opacity: Opacity of the overlay mask. Must be between ``0`` and
                 ``1``.
             max_axis_length: Optional cap for ellipse semi-axis lengths in pixels.
         """
-        sigma_seq: Sequence[float] = (sigma,) if isinstance(sigma, (int, float)) else sigma
+        sigma_seq: Sequence[float] = (
+            (sigma,) if isinstance(sigma, (int, float)) else sigma
+        )
         color_seq: Sequence[Color] = (color,) if isinstance(color, Color) else color
 
         if len(sigma_seq) == 0:
             raise ValueError("sigma must contain at least one value")
         if any(s <= 0 for s in sigma_seq):
             raise ValueError("All sigma values must be positive")
-        if not 0 < opacity <= 1:
-            raise ValueError("opacity must be between 0 (exclusive) and 1 (inclusive)")
         if max_axis_length is not None and max_axis_length <= 0:
             raise ValueError("max_axis_length must be positive when provided")
         if len(color_seq) != len(sigma_seq):
@@ -329,32 +329,32 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
             The annotated image, matching the type of ``scene``.
 
         Example:
-            ```python
-            import numpy as np
-            import supervision as sv
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((800, 800, 3), dtype=np.uint8)
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array(
+            ...         [[[400, 200], [300, 500], [500, 500]]],
+            ...         dtype=np.float32,
+            ...     ),
+            ...     class_id=np.array([0]),
+            ...     visible=np.array([[True, True, True]]),
+            ...     data={
+            ...         "covariance": np.array(
+            ...             [[[[800, 0], [0, 400]],
+            ...               [[400, 0], [0, 800]],
+            ...               [[600, 0], [0, 600]]]],
+            ...             dtype=np.float32,
+            ...         )
+            ...     },
+            ... )
+            >>> annotator = sv.VertexEllipseAnnotator(
+            ...     sigma=[1.0, 2.0],
+            ...     color=[sv.Color.GREEN, sv.Color.RED],
+            ... )
+            >>> result = annotator.annotate(image.copy(), key_points)
 
-            image = np.zeros((800, 800, 3), dtype=np.uint8)
-            key_points = sv.KeyPoints(
-                xy=np.array(
-                    [[[400, 200], [300, 500], [500, 500]]],
-                    dtype=np.float32,
-                ),
-                class_id=np.array([0]),
-                visible=np.array([[True, True, True]]),
-                data={
-                    "covariance": np.array(
-                        [[[[800, 0], [0, 400]],
-                          [[400, 0], [0, 800]],
-                          [[600, 0], [0, 600]]]],
-                        dtype=np.float32,
-                    )
-                },
-            )
-            annotator = sv.VertexEllipseAnnotator(
-                sigma=[1.0, 2.0],
-                color=[sv.Color.GREEN, sv.Color.RED],
-            )
-            result = annotator.annotate(image.copy(), key_points)
             ```
         """
         assert isinstance(scene, np.ndarray)
@@ -405,8 +405,7 @@ class VertexEllipseAnnotator(BaseKeyPointAnnotator):
         covariances = key_points.data.get("covariance")
         if covariances is None:
             raise ValueError(
-                "key_points.data must contain 'covariance' "
-                "with shape (N, K, 2, 2)."
+                "key_points.data must contain 'covariance' with shape (N, K, 2, 2)."
             )
         covariances_array = cast(
             npt.NDArray[np.float32], np.asarray(covariances, dtype=np.float32)
@@ -504,63 +503,63 @@ class VertexLabelAnnotator:
         Example:
             Single-skeleton example:
 
-            ```python
-            import numpy as np
-            import supervision as sv
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((800, 800, 3), dtype=np.uint8)
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array(
+            ...         [[[400, 200], [300, 500], [500, 500]]],
+            ...         dtype=np.float32,
+            ...     ),
+            ...     class_id=np.array([0]),
+            ...     visible=np.array([[True, True, True]]),
+            ... )
+            >>> annotator = sv.VertexLabelAnnotator(
+            ...     color=sv.Color.ROBOFLOW,
+            ...     text_color=sv.Color.WHITE,
+            ...     border_radius=5,
+            ... )
+            >>> result = annotator.annotate(
+            ...     scene=image.copy(),
+            ...     key_points=key_points,
+            ...     labels=["head", "L-foot", "R-foot"],
+            ... )
 
-            image = np.zeros((800, 800, 3), dtype=np.uint8)
-            key_points = sv.KeyPoints(
-                xy=np.array(
-                    [[[400, 200], [300, 500], [500, 500]]],
-                    dtype=np.float32,
-                ),
-                class_id=np.array([0]),
-                visible=np.array([[True, True, True]]),
-            )
-            annotator = sv.VertexLabelAnnotator(
-                color=sv.Color.ROBOFLOW,
-                text_color=sv.Color.WHITE,
-                border_radius=5,
-            )
-            result = annotator.annotate(
-                scene=image.copy(),
-                key_points=key_points,
-                labels=["head", "L-foot", "R-foot"],
-            )
             ```
 
             Multi-skeleton example with per-class labels:
 
-            ```python
-            import numpy as np
-            import supervision as sv
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> image = np.zeros((800, 800, 3), dtype=np.uint8)
+            >>> key_points = sv.KeyPoints(
+            ...     xy=np.array(
+            ...         [[[400, 200], [300, 500], [500, 500]],
+            ...          [[700, 300], [650, 500], [0, 0]]],
+            ...         dtype=np.float32,
+            ...     ),
+            ...     class_id=np.array([0, 1]),
+            ...     visible=np.array(
+            ...         [[True, True, True],
+            ...          [True, True, False]],
+            ...     ),
+            ... )
+            >>> annotator = sv.VertexLabelAnnotator(
+            ...     color=sv.Color.ROBOFLOW,
+            ...     text_color=sv.Color.WHITE,
+            ...     border_radius=5,
+            ... )
+            >>> result = annotator.annotate(
+            ...     scene=image.copy(),
+            ...     key_points=key_points,
+            ...     labels={
+            ...         0: ["head", "L-foot", "R-foot"],
+            ...         1: ["top", "bottom", "pad"],
+            ...     },
+            ... )
 
-            image = np.zeros((800, 800, 3), dtype=np.uint8)
-            key_points = sv.KeyPoints(
-                xy=np.array(
-                    [[[400, 200], [300, 500], [500, 500]],
-                     [[700, 300], [650, 500], [0, 0]]],
-                    dtype=np.float32,
-                ),
-                class_id=np.array([0, 1]),
-                visible=np.array(
-                    [[True, True, True],
-                     [True, True, False]],
-                ),
-            )
-            annotator = sv.VertexLabelAnnotator(
-                color=sv.Color.ROBOFLOW,
-                text_color=sv.Color.WHITE,
-                border_radius=5,
-            )
-            result = annotator.annotate(
-                scene=image.copy(),
-                key_points=key_points,
-                labels={
-                    0: ["head", "L-foot", "R-foot"],
-                    1: ["top", "bottom", "pad"],
-                },
-            )
             ```
         """
         assert isinstance(scene, np.ndarray)

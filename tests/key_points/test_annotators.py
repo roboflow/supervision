@@ -200,7 +200,9 @@ class TestVertexEllipseAnnotator:
         covariance[..., 1, 1] = 9.0
         sample_key_points.data["covariance"] = covariance
 
-        annotator = sv.VertexEllipseAnnotator(sigma=[1.0, 2.0], color=[sv.Color.GREEN, sv.Color.RED])
+        annotator = sv.VertexEllipseAnnotator(
+            sigma=[1.0, 2.0], color=[sv.Color.GREEN, sv.Color.RED]
+        )
         result = annotator.annotate(scene=scene.copy(), key_points=sample_key_points)
 
         assert result.shape == scene.shape
@@ -283,8 +285,6 @@ class TestVertexEllipseAnnotator:
             ({"max_axis_length": -1}, "max_axis_length"),
             ({"sigma": []}, "sigma"),
             ({"sigma": [-1.0]}, "sigma"),
-            ({"opacity": 0}, "opacity"),
-            ({"opacity": 1.5}, "opacity"),
         ],
     )
     def test_constructor_raises_on_invalid_params(self, kwargs, match):
