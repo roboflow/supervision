@@ -452,20 +452,16 @@ class VertexLabelAnnotator:
     ):
         """
         Args:
-            color: The color to use for each keypoint label.
-                If a list is provided, the colors will be used
-                in order for each keypoint.
-            text_color: The color to use for the labels.
-                If a list is provided, the colors will be used
-                in order for each keypoint.
+            color: The color to use for each keypoint label. If a list is
+                provided, the colors will be used in order for each keypoint.
+            text_color: The color to use for the labels. If a list is
+                provided, the colors will be used in order for each keypoint.
             text_scale: The scale of the text.
             text_thickness: The thickness of the text.
             text_padding: The padding around the text.
-            border_radius: The radius of the rounded corners
-                of the boxes. Set to a high value to produce
-                circles.
-            smart_position: Spread out the labels to avoid
-                overlap.
+            border_radius: The radius of the rounded corners of the boxes.
+                Set to a high value to produce circles.
+            smart_position: Spread out the labels to avoid overlap.
         """
         self.border_radius: int = border_radius
         self.color: Color | list[Color] = color
