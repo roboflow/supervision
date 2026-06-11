@@ -25,6 +25,14 @@ Index1D = Union[
     npt.NDArray[np.bool_],
 ]
 Index2D = tuple[Index1D, Index1D]
+_RowIndexInput = Union[
+    int,
+    np.integer[Any],
+    npt.NDArray[np.generic],
+    list[Any],
+    slice,
+]
+_NormalizedRowIndex = Union[npt.NDArray[np.generic], list[Any], slice]
 
 
 def _optional_array_equal(
@@ -34,6 +42,29 @@ def _optional_array_equal(
     if first is None or second is None:
         return first is None and second is None
     return np.array_equal(first, second)
+
+
+def _normalize_row_index(
+    i: _RowIndexInput,
+) -> _NormalizedRowIndex:
+    """Normalise *i* to a 1-D row index for 1-D per-object fields.
+
+    Handles:
+    - Python int or np.integer scalar  -> np.array([int(i)])
+    - 0-d np.ndarray                   -> reshaped to shape (1,)
+    - boolean np.ndarray               -> np.flatnonzero(i)
+    - list of bool                     -> np.flatnonzero(np.array(i))
+    - slice, list of ints, 1-D ndarray -> returned as-is
+    """
+    if isinstance(i, (int, np.integer)):
+        return cast(_NormalizedRowIndex, np.array([int(i)]))
+    if isinstance(i, np.ndarray) and i.ndim == 0:
+        return cast(_NormalizedRowIndex, i.reshape(1))
+    if isinstance(i, np.ndarray) and i.dtype == bool:
+        return cast(_NormalizedRowIndex, np.flatnonzero(i))
+    if isinstance(i, list) and i and all(isinstance(x, bool) for x in i):
+        return cast(_NormalizedRowIndex, np.flatnonzero(np.array(i)))
+    return i
 
 
 @dataclass
@@ -900,6 +931,8 @@ class KeyPoints:
         if isinstance(j, np.ndarray) and j.dtype == bool:
             j = np.flatnonzero(j)
 
+        raw_i = i
+
         if (
             isinstance(i, (list, np.ndarray))
             and isinstance(j, (list, np.ndarray))
@@ -909,6 +942,8 @@ class KeyPoints:
             i_ix, j_ix = np.ix_(cast(Any, i), cast(Any, j))
             i = cast(Any, i_ix)
             j = cast(Any, j_ix)
+
+        row_i = _normalize_row_index(raw_i)
 
         xy_selected = self.xy[i, j]
 
@@ -924,9 +959,9 @@ class KeyPoints:
         if self.visible is not None:
             visible_selected = self.visible[i, j]
 
-        class_id_selected = self.class_id[i] if self.class_id is not None else None
+        class_id_selected = self.class_id[row_i] if self.class_id is not None else None
 
-        data_selected = get_data_item(self.data, cast(Any, i))
+        data_selected = get_data_item(self.data, cast(Any, row_i))
 
         if xy_selected.ndim == 1:
             xy_selected = xy_selected.reshape(1, 1, 2)
