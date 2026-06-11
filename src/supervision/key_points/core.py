@@ -815,15 +815,23 @@ class KeyPoints:
                 ]
             if visible_selected is not None and self.visible is not None:
                 visible_selected[row] = self.visible[row, row_indices]
+        detection_confidence_selected = None
+        if self.detection_confidence is not None:
+            detection_confidence_selected = self.detection_confidence.copy()
+
+        class_id_selected = None
+        if self.class_id is not None:
+            class_id_selected = self.class_id.copy()
+
+        data_selected = get_data_item(self.data, slice(None))
+
         return KeyPoints(
             xy=xy_selected,
             keypoint_confidence=keypoint_confidence_selected,
-            detection_confidence=self.detection_confidence.copy()
-            if self.detection_confidence is not None
-            else None,
+            detection_confidence=detection_confidence_selected,
             visible=visible_selected,
-            class_id=self.class_id.copy() if self.class_id is not None else None,
-            data=get_data_item(self.data, slice(None)),
+            class_id=class_id_selected,
+            data=data_selected,
         )
 
     def __getitem__(
@@ -904,17 +912,17 @@ class KeyPoints:
 
         xy_selected = self.xy[i, j]
 
-        keypoint_confidence_selected = (
-            self.keypoint_confidence[i, j]
-            if self.keypoint_confidence is not None
-            else None
-        )
-        detection_confidence_selected = (
-            self.detection_confidence[i]
-            if self.detection_confidence is not None
-            else None
-        )
-        visible_selected = self.visible[i, j] if self.visible is not None else None
+        keypoint_confidence_selected = None
+        if self.keypoint_confidence is not None:
+            keypoint_confidence_selected = self.keypoint_confidence[i, j]
+
+        detection_confidence_selected = None
+        if self.detection_confidence is not None:
+            detection_confidence_selected = self.detection_confidence[i]
+
+        visible_selected = None
+        if self.visible is not None:
+            visible_selected = self.visible[i, j]
 
         class_id_selected = self.class_id[i] if self.class_id is not None else None
 
