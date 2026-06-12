@@ -2562,6 +2562,17 @@ class Detections:
             A new Detections object containing the subset of detections
                 after non-maximum merging.
 
+        Note:
+            For detections carrying oriented bounding box data
+            (``data[ORIENTED_BOX_COORDINATES]``), each merge group's output OBB
+            is the minimum-area rotated rectangle (``cv2.minAreaRect``) enclosing
+            all corners contributed by every detection in the group. The
+            axis-aligned ``xyxy`` field is updated to the tight bounding box of
+            that rotated rect. This reduction to AABB union holds exactly for
+            zero-rotation OBBs; for rotated OBBs the merged geometry is the
+            MARC (minimum-area rotated rect), which may be smaller than the
+            axis-aligned union. Groups of size 1 keep the original OBB unchanged.
+
         Raises:
             AssertionError: If `confidence` is None or `class_id` is None and
                 class_agnostic is False.
@@ -2627,7 +2638,7 @@ class Detections:
 
                 all_corners = np.concatenate(
                     [
-                        np.asarray(det.data[ORIENTED_BOX_COORDINATES][0])
+                        np.asarray(det.data[ORIENTED_BOX_COORDINATES][0]).reshape(4, 2)
                         for det in unmerged_detections
                     ],
                     axis=0,
@@ -2638,6 +2649,8 @@ class Detections:
                     **merged_detections.data,
                     ORIENTED_BOX_COORDINATES: merged_obb[np.newaxis],  # (1, 4, 2)
                 }
+                # OBB groups: replace AABB-union xyxy (from reduce) with MARC AABB
+                # so xyxy stays consistent with the merged OBB corners.
                 merged_detections.xyxy = np.array(
                     [
                         [
