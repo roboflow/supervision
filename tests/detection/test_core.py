@@ -8,6 +8,7 @@ import pytest
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections, merge_inner_detection_object_pair
+from supervision.detection.utils.iou_and_nms import OverlapMetric
 from supervision.geometry.core import Position
 from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import _create_detections
@@ -1114,6 +1115,92 @@ class TestDetectionsWithNmm:
         assert len(aabb_result) == 1
         assert len(obb_result) == 1
         assert np.allclose(aabb_result.xyxy, obb_result.xyxy, atol=1e-4)
+
+    def test_rotated_obb_merge_produces_marc(self) -> None:
+        """Two overlapping 45-degree OBBs produce a valid MARC with correct shape."""
+        quad_a = _rotated_rect(50, 50, 40, 10, 45)
+        quad_b = _rotated_rect(55, 55, 40, 10, 45)
+        detections = _make_obb_detections([quad_a, quad_b], [0.9, 0.8], [0, 0])
+
+        result = detections.with_nmm(threshold=0.3)
+
+        assert len(result) == 1
+        merged_obb = result.data[ORIENTED_BOX_COORDINATES][0]
+        assert merged_obb.shape == (4, 2)
+        # MARC must encompass all input corners
+        all_corners = np.concatenate([quad_a, quad_b], axis=0)
+        assert float(merged_obb[:, 0].min()) <= float(all_corners[:, 0].min()) + 0.5
+        assert float(merged_obb[:, 0].max()) >= float(all_corners[:, 0].max()) - 0.5
+        assert float(merged_obb[:, 1].min()) <= float(all_corners[:, 1].min()) + 0.5
+        assert float(merged_obb[:, 1].max()) >= float(all_corners[:, 1].max()) - 0.5
+
+    def test_three_detection_group_merge(self) -> None:
+        """Three mutually-overlapping OBBs merge into a single detection."""
+        quads = [
+            np.array([[0, 0], [20, 0], [20, 10], [0, 10]], dtype=np.float32),
+            np.array([[5, 5], [25, 5], [25, 15], [5, 15]], dtype=np.float32),
+            np.array([[10, 0], [30, 0], [30, 10], [10, 10]], dtype=np.float32),
+        ]
+        detections = _make_obb_detections(quads, [0.9, 0.8, 0.7], [0, 0, 0])
+
+        result = detections.with_nmm(threshold=0.2)
+
+        assert len(result) == 1
+        merged_obb = result.data[ORIENTED_BOX_COORDINATES][0]
+        assert merged_obb.shape == (4, 2)
+        # Merged envelope must span all three input boxes
+        assert float(merged_obb[:, 0].min()) <= 0.5  # at or near x=0
+        assert float(merged_obb[:, 0].max()) >= 29.5  # at or near x=30
+
+    def test_single_detection_passthrough_preserves_obb(self) -> None:
+        """A non-overlapping OBB detection passes through with its corners unchanged."""
+        quad = np.array([[10, 10], [50, 10], [50, 30], [10, 30]], dtype=np.float32)
+        detections = _make_obb_detections([quad], [0.9], [0])
+
+        result = detections.with_nmm(threshold=0.5)
+
+        assert len(result) == 1
+        assert np.allclose(result.data[ORIENTED_BOX_COORDINATES][0], quad, atol=1e-5)
+
+    def test_class_agnostic_obb_merge(self) -> None:
+        """class_agnostic=True merges overlapping OBBs regardless of class_id."""
+        quad_a = np.array([[0, 0], [30, 0], [30, 20], [0, 20]], dtype=np.float32)
+        quad_b = np.array([[5, 5], [35, 5], [35, 25], [5, 25]], dtype=np.float32)
+        detections = _make_obb_detections([quad_a, quad_b], [0.9, 0.8], [0, 1])
+
+        result = detections.with_nmm(threshold=0.3, class_agnostic=True)
+
+        assert len(result) == 1
+        assert result.data[ORIENTED_BOX_COORDINATES][0].shape == (4, 2)
+
+    def test_overlap_metric_ios_obb_merge(self) -> None:
+        """overlap_metric=IOS merges a small OBB fully inside a large OBB."""
+        quad_large = np.array([[0, 0], [40, 0], [40, 30], [0, 30]], dtype=np.float32)
+        quad_small = np.array(
+            [[10, 10], [30, 10], [30, 20], [10, 20]], dtype=np.float32
+        )
+        detections = _make_obb_detections([quad_large, quad_small], [0.9, 0.8], [0, 0])
+
+        result = detections.with_nmm(threshold=0.3, overlap_metric=OverlapMetric.IOS)
+
+        assert len(result) == 1
+
+    def test_flat_n8_obb_format_raises_value_error(self) -> None:
+        """Flat (N, 8) OBB format is unsupported — data dict requires (N, 4, 2)."""
+        xyxy = np.array([[0, 0, 30, 20], [5, 5, 35, 25]], dtype=np.float32)
+        flat_corners = np.array(
+            [[0, 0, 30, 0, 30, 20, 0, 20], [5, 5, 35, 5, 35, 25, 5, 25]],
+            dtype=np.float32,
+        )  # (2, 8) — violates canonical (N, 4, 2) contract
+        detections = Detections(
+            xyxy=xyxy,
+            confidence=np.array([0.9, 0.8], dtype=np.float32),
+            class_id=np.array([0, 0]),
+            data={ORIENTED_BOX_COORDINATES: flat_corners},
+        )
+
+        with pytest.raises(ValueError, match="corners must have shape"):
+            detections.with_nmm(threshold=0.4)
 
 
 class TestDetectionsArea:
