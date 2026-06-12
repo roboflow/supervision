@@ -1883,7 +1883,8 @@ class Detections:
         vlm = _validate_vlm_parameters(vlm, result, kwargs)
 
         if vlm == VLM.PALIGEMMA:
-            assert isinstance(result, str)
+            if not isinstance(result, str):
+                raise TypeError(f"Expected string result for {vlm}, got {type(result)}")
             xyxy, class_id, class_name = from_paligemma(result, **kwargs)
             data: dict[str, npt.NDArray[np.generic] | list[Any]] = {
                 CLASS_NAME_DATA_FIELD: class_name,
@@ -1891,7 +1892,8 @@ class Detections:
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
         if vlm == VLM.QWEN_2_5_VL:
-            assert isinstance(result, str)
+            if not isinstance(result, str):
+                raise TypeError(f"Expected string result for {vlm}, got {type(result)}")
             xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             confidence_arr: npt.NDArray[np.floating[Any]] = np.ones(
@@ -1902,7 +1904,8 @@ class Detections:
             )
 
         if vlm == VLM.QWEN_3_VL:
-            assert isinstance(result, str)
+            if not isinstance(result, str):
+                raise TypeError(f"Expected string result for {vlm}, got {type(result)}")
             xyxy, class_id, class_name = from_qwen_3_vl(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             confidence_arr = np.ones(len(xyxy), dtype=float)
@@ -1911,13 +1914,15 @@ class Detections:
             )
 
         if vlm == VLM.DEEPSEEK_VL_2:
-            assert isinstance(result, str)
+            if not isinstance(result, str):
+                raise TypeError(f"Expected string result for {vlm}, got {type(result)}")
             xyxy, class_id, class_name = from_deepseek_vl_2(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
         if vlm == VLM.FLORENCE_2:
-            assert isinstance(result, dict)
+            if not isinstance(result, dict):
+                raise TypeError(f"Expected dict result for {vlm}, got {type(result)}")
             xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
             if len(xyxy) == 0:
                 empty = cls.empty()
@@ -1933,18 +1938,21 @@ class Detections:
             return cls(xyxy=xyxy, mask=mask, data=data)
 
         if vlm == VLM.GOOGLE_GEMINI_2_0:
-            assert isinstance(result, str)
+            if not isinstance(result, str):
+                raise TypeError(f"Expected string result for {vlm}, got {type(result)}")
             xyxy, class_id, class_name = from_google_gemini_2_0(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
         if vlm == VLM.MOONDREAM:
-            assert isinstance(result, dict)
+            if not isinstance(result, dict):
+                raise TypeError(f"Expected dict result for {vlm}, got {type(result)}")
             xyxy = from_moondream(result, **kwargs)
             return cls(xyxy=xyxy)
 
         if vlm == VLM.GOOGLE_GEMINI_2_5:
-            assert isinstance(result, str)
+            if not isinstance(result, str):
+                raise TypeError(f"Expected string result for {vlm}, got {type(result)}")
             gemini_result = from_google_gemini_2_5(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: gemini_result[2]}
             return cls(
@@ -2493,17 +2501,17 @@ class Detections:
         if len(self) == 0:
             return self
 
-        assert self.confidence is not None, (
-            "Detections confidence must be given for NMS to be executed."
-        )
+        if self.confidence is None:
+            raise ValueError("Detections confidence must be given for NMS to be executed.")
 
         if class_agnostic:
             predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
         else:
-            assert self.class_id is not None, (
-                "Detections class_id must be given for NMS to be executed. If you"
-                " intended to perform class agnostic NMS set class_agnostic=True."
-            )
+            if self.class_id is None:
+                raise ValueError(
+                    "Detections class_id must be given for NMS to be executed. If you"
+                    " intended to perform class agnostic NMS set class_agnostic=True."
+                )
             predictions = np.hstack(
                 (
                     self.xyxy,
@@ -2571,17 +2579,17 @@ class Detections:
         if len(self) == 0:
             return self
 
-        assert self.confidence is not None, (
-            "Detections confidence must be given for NMM to be executed."
-        )
+        if self.confidence is None:
+            raise ValueError("Detections confidence must be given for NMM to be executed.")
 
         if class_agnostic:
             predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
         else:
-            assert self.class_id is not None, (
-                "Detections class_id must be given for NMM to be executed. If you"
-                " intended to perform class agnostic NMM set class_agnostic=True."
-            )
+            if self.class_id is None:
+                raise ValueError(
+                    "Detections class_id must be given for NMM to be executed. If you"
+                    " intended to perform class agnostic NMM set class_agnostic=True."
+                )
             predictions = np.hstack(
                 (
                     self.xyxy,
@@ -2692,8 +2700,8 @@ def merge_inner_detection_object_pair(
     if detections_1.confidence is None and detections_2.confidence is None:
         merged_confidence = None
     else:
-        assert detections_1.confidence is not None
-        assert detections_2.confidence is not None
+        if detections_1.confidence is None or detections_2.confidence is None:
+            raise ValueError("Both Detections objects must have confidence scores")
         detection_1_area = (xyxy_1[2] - xyxy_1[0]) * (xyxy_1[3] - xyxy_1[1])
         detections_2_area = (xyxy_2[2] - xyxy_2[0]) * (xyxy_2[3] - xyxy_2[1])
         merged_confidence = (
