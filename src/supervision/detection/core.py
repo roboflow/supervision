@@ -2634,6 +2634,12 @@ class Detections:
                 len(merge_group) > 1
                 and ORIENTED_BOX_COORDINATES in merged_detections.data
             ):
+                for _det in unmerged_detections:
+                    _c = np.asarray(_det.data[ORIENTED_BOX_COORDINATES])
+                    if _c.ndim != 3 or _c.shape[1:] != (4, 2):
+                        raise ValueError(
+                            f"corners must have shape (N, 4, 2); got {_c.shape}"
+                        )
                 all_corners = np.concatenate(
                     [
                         np.asarray(det.data[ORIENTED_BOX_COORDINATES][0]).reshape(4, 2)
