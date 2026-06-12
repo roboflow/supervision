@@ -123,7 +123,7 @@ for path, image, annotation in ds:
     pass
 ```
 
-<details close>
+<details>
 <summary>👉 more dataset utils</summary>
 
 - load
@@ -260,8 +260,6 @@ We love your input! Please see our [contributing guide](.github/CONTRIBUTING.md)
 <br>
 
 <div align="center">
-
-<div align="center">
       <a href="https://youtube.com/roboflow">
           <img
             src="https://media.roboflow.com/notebooks/template/icons/purple/youtube.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949634652"
@@ -295,6 +293,7 @@ We love your input! Please see our [contributing guide](.github/CONTRIBUTING.md)
             src="https://media.roboflow.com/notebooks/template/icons/purple/forum.png?ik-sdk-version=javascript-1.4.3&updatedAt=1672949633584"
             width="3%"
           />
+      </a>
       <img src="https://raw.githubusercontent.com/ultralytics/assets/main/social/logo-transparent.png" width="3%"/>
       <a href="https://blog.roboflow.com">
           <img
@@ -302,6 +301,4 @@ We love your input! Please see our [contributing guide](.github/CONTRIBUTING.md)
             width="3%"
           />
       </a>
-      </a>
   </div>
-</div>
