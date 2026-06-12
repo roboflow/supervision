@@ -2502,7 +2502,9 @@ class Detections:
             return self
 
         if self.confidence is None:
-            raise ValueError("Detections confidence must be given for NMS to be executed.")
+            raise ValueError(
+                "Detections confidence must be given for NMS to be executed."
+            )
 
         if class_agnostic:
             predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
@@ -2580,7 +2582,9 @@ class Detections:
             return self
 
         if self.confidence is None:
-            raise ValueError("Detections confidence must be given for NMM to be executed.")
+            raise ValueError(
+                "Detections confidence must be given for NMM to be executed."
+            )
 
         if class_agnostic:
             predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
