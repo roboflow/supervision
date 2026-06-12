@@ -281,8 +281,10 @@ class LineZone:
                 The third array, `has_any_right_trigger`, indicates if the
                 detection's anchor is on the right side of the line zone.
         """
-        assert len(detections) > 0
-        assert detections.tracker_id is not None
+        if len(detections) == 0:
+            raise ValueError("Detections cannot be empty")
+        if detections.tracker_id is None:
+            raise ValueError("detections.tracker_id cannot be None")
 
         all_anchors = np.array(
             [
@@ -312,7 +314,8 @@ class LineZone:
         Assumes that class_names are only provided when class_ids are.
         """
         class_names = detections.data.get(CLASS_NAME_DATA_FIELD)
-        assert class_names is None or detections.class_id is not None
+        if class_names is not None and detections.class_id is None:
+            raise ValueError("class_names is provided but detections.class_id is None")
 
         if detections.class_id is None:
             return
@@ -618,7 +621,8 @@ class LineZoneAnnotator:
             text_box_color=self.color,
             line_angle_degrees=line_angle_degrees,
         )
-        assert label_image.shape[0] == label_image.shape[1]
+        if label_image.shape[0] != label_image.shape[1]:
+            raise ValueError("label_image must be square")
 
         text_width, text_height = cv2.getTextSize(
             text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
