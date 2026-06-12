@@ -691,8 +691,10 @@ def mask_to_rle(
     ![mask_to_rle](https://media.roboflow.com/supervision-docs/
     mask-to-rle.png){ align=center width="800" }
     """
-    assert mask.ndim == 2, "Input mask must be 2D"
-    assert mask.size != 0, "Input mask cannot be empty"
+    if mask.ndim != 2:
+        raise ValueError("Input mask must be 2D")
+    if mask.size == 0:
+        raise ValueError("Input mask cannot be empty")
 
     counts: list[int] = cast(list[int], _mask_to_rle_counts(mask).tolist())
     if compressed:
