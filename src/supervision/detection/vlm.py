@@ -515,7 +515,8 @@ def from_florence_2(
             `obb_boxes` is an optional array of shape `(n, 4, 2)` with oriented
             bounding boxes.
     """
-    assert len(result) == 1, f"Expected result with a single element. Got: {result}"
+    if len(result) != 1:
+        raise ValueError(f"Expected result with a single element. Got: {result}")
     task = next(iter(result.keys()))
     if task not in SUPPORTED_TASKS_FLORENCE_2:
         raise ValueError(
@@ -564,18 +565,20 @@ def from_florence_2(
         return xyxy, labels, None, None
 
     if task in ["<REGION_TO_CATEGORY>", "<REGION_TO_DESCRIPTION>"]:
-        assert isinstance(result, str), (
-            f"Expected string as <REGION_TO_CATEGORY> result, got {type(result)}"
-        )
+        if not isinstance(result, str):
+            raise TypeError(
+                f"Expected string as <REGION_TO_CATEGORY> result, got {type(result)}"
+            )
 
         if result == "No object detected.":
             return np.empty((0, 4), dtype=np.float32), np.array([]), None, None
 
         pattern = re.compile(r"<loc_(\d+)><loc_(\d+)><loc_(\d+)><loc_(\d+)>")
         match = pattern.search(result)
-        assert match is not None, (
-            f"Expected string to end in location tags, but got {result}"
-        )
+        if match is None:
+            raise ValueError(
+                f"Expected string to end in location tags, but got {result}"
+            )
 
         w, h = _validate_resolution(resolution_wh)
         xyxy = np.array([match.groups()], dtype=np.float32)
