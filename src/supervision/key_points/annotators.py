@@ -84,7 +84,8 @@ class VertexAnnotator(BaseKeyPointAnnotator):
 
             ```
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            raise TypeError("scene must be a numpy.ndarray")
         if len(key_points) == 0:
             return scene
 
@@ -205,7 +206,8 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
 
             ```
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            raise TypeError("scene must be a numpy.ndarray")
         if len(key_points) == 0:
             return scene
 
@@ -441,7 +443,8 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
 
             ```
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            raise TypeError("scene must be a numpy.ndarray")
         if len(key_points) == 0:
             return scene
 
@@ -541,7 +544,8 @@ class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
 
             ```
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            raise TypeError("scene must be a numpy.ndarray")
         if len(key_points) == 0:
             return scene
 
@@ -643,7 +647,8 @@ class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
 
             ```
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            raise TypeError("scene must be a numpy.ndarray")
         if len(key_points) == 0:
             return scene
 
@@ -823,7 +828,8 @@ class VertexLabelAnnotator:
 
             ```
         """
-        assert isinstance(scene, np.ndarray)
+        if not isinstance(scene, np.ndarray):
+            raise TypeError("scene must be a numpy.ndarray")
         font = cv2.FONT_HERSHEY_SIMPLEX
 
         skeletons_count, points_count, _ = key_points.xy.shape
