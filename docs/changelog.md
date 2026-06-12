@@ -7,7 +7,7 @@ date_modified: 2026-06-13
 
 ### UnReleased
 
-- Added: new cookbook [Small Object Detection with Oriented Bounding Boxes](https://supervision.roboflow.com/latest/notebooks/small-object-detection-with-obb/) covering the full aerial OBB pipeline: DOTA-pretrained detection, slicing with [`InferenceSlicer`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/), oriented NMS de-duplication, footprint-based filtering, and YOLO OBB dataset export.
+- Added [#2314](https://github.com/roboflow/supervision/pull/2314): new cookbook **Small Object Detection with Oriented Bounding Boxes** covering the full aerial OBB pipeline: DOTA-pretrained detection, slicing with [`InferenceSlicer`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/), oriented NMS de-duplication, footprint-based filtering, and YOLO OBB dataset export.
 
 - Fixed [#2306](https://github.com/roboflow/supervision/pull/2306): [`sv.Detections.area`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.area) now returns the rotated body's area for detections carrying `data["xyxyxyxy"]` (oriented box corners) instead of the area of the derived axis-aligned bounding box, which overestimates by up to ~2x at 45° rotation. Affects annotator z-ordering inside [`MaskAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.MaskAnnotator) and [`HaloAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.HaloAnnotator), and any user code that filters or sorts OBB detections by area. The mask path and the non-OBB AABB fallback are unchanged.
 
