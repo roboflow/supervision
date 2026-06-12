@@ -2565,13 +2565,13 @@ class Detections:
         Note:
             For detections carrying oriented bounding box data
             (``data[ORIENTED_BOX_COORDINATES]``), each merge group's output OBB
-            is the minimum-area rotated rectangle (``cv2.minAreaRect``) enclosing
-            all corners contributed by every detection in the group. The
-            axis-aligned ``xyxy`` field is updated to the tight bounding box of
-            that rotated rect. This reduction to AABB union holds exactly for
-            zero-rotation OBBs; for rotated OBBs the merged geometry is the
-            MARC (minimum-area rotated rect), which may be smaller than the
-            axis-aligned union. Groups of size 1 keep the original OBB unchanged.
+            is the tightest rectangle at the winner's orientation enclosing all
+            corners contributed by every detection in the group. The winner is
+            the highest-confidence detection in the group. The axis-aligned
+            ``xyxy`` field is updated to the tight bounding box of that rect.
+            For zero-rotation OBBs this equals the axis-aligned union exactly;
+            for rotated OBBs the merged rect inherits the winner's rotation angle.
+            Groups of size 1 keep the original OBB unchanged.
 
         Raises:
             AssertionError: If `confidence` is None or `class_id` is None and
@@ -2634,8 +2634,6 @@ class Detections:
                 len(merge_group) > 1
                 and ORIENTED_BOX_COORDINATES in merged_detections.data
             ):
-                import cv2
-
                 all_corners = np.concatenate(
                     [
                         np.asarray(det.data[ORIENTED_BOX_COORDINATES][0]).reshape(4, 2)
@@ -2643,14 +2641,38 @@ class Detections:
                     ],
                     axis=0,
                 ).astype(np.float32)  # (N*4, 2)
-                rect = cv2.minAreaRect(all_corners)
-                merged_obb = cv2.boxPoints(rect).astype(np.float32)  # (4, 2)
+                # Lock to winner's angle rather than free MARC — cv2.minAreaRect can
+                # pick a tilted rect that overshoots the union for diagonal staircase
+                # arrangements of axis-aligned boxes.
+                # Angle derived from winner's first edge to avoid cv2.minAreaRect
+                # angle-convention surprises (e.g. 90° for wider-than-tall rects).
+                winner_corners = all_corners[:4]
+                edge = winner_corners[1] - winner_corners[0]
+                angle_rad = float(np.arctan2(edge[1], edge[0]))
+                cos_a = float(np.cos(angle_rad))
+                sin_a = float(np.sin(angle_rad))
+                # De-rotate all corners by -angle_rad (row-vector convention)
+                de_rot = np.array([[cos_a, -sin_a], [sin_a, cos_a]], dtype=np.float32)
+                proj = all_corners @ de_rot
+                x_lo = float(proj[:, 0].min())
+                x_hi = float(proj[:, 0].max())
+                y_lo = float(proj[:, 1].min())
+                y_hi = float(proj[:, 1].max())
+                # Back-rotate AABB corners to original frame
+                rot_fwd = np.array([[cos_a, sin_a], [-sin_a, cos_a]], dtype=np.float32)
+                merged_obb = (
+                    np.array(
+                        [[x_lo, y_lo], [x_hi, y_lo], [x_hi, y_hi], [x_lo, y_hi]],
+                        dtype=np.float32,
+                    )
+                    @ rot_fwd
+                )  # (4, 2)
                 merged_detections.data = {
                     **merged_detections.data,
                     ORIENTED_BOX_COORDINATES: merged_obb[np.newaxis],  # (1, 4, 2)
                 }
-                # OBB groups: replace AABB-union xyxy (from reduce) with MARC AABB
-                # so xyxy stays consistent with the merged OBB corners.
+                # OBB groups: replace AABB-union xyxy (from reduce) with winner-angle
+                # rect AABB so xyxy stays consistent with the merged OBB corners.
                 merged_detections.xyxy = np.array(
                     [
                         [

@@ -1060,12 +1060,11 @@ class TestDetectionsObbDispatch:
 class TestDetectionsWithNmm:
     """NMM-specific behaviour tests for `Detections.with_nmm`."""
 
-    def test_obb_merged_xyxy_is_min_area_rotated_rect(self) -> None:
-        """OBB merge group: merged geometry is the min-area rotated rect of all corners.
+    def test_obb_merged_xyxy_uses_winner_orientation(self) -> None:
+        """OBB merge group: merged geometry at winner's angle encompasses all corners.
 
-        Two near-identical OBBs merge into one group. The merged OBB must encompass
-        all corners from both inputs (union semantics), matching axis-aligned NMM.
-        Expected xyxy is the AABB of the MARC: [10, 10, 51, 31].
+        Two near-identical axis-aligned OBBs merge. Winner angle = 0, so result
+        equals AABB union. Expected xyxy: [10, 10, 51, 31].
         """
         quad_winner = np.array(
             [[10, 10], [50, 10], [50, 30], [10, 30]], dtype=np.float32
@@ -1116,8 +1115,26 @@ class TestDetectionsWithNmm:
         assert len(obb_result) == 1
         assert np.allclose(aabb_result.xyxy, obb_result.xyxy, atol=1e-4)
 
-    def test_rotated_obb_merge_produces_marc(self) -> None:
-        """Two overlapping 45-degree OBBs produce a valid MARC with correct shape."""
+    def test_diagonal_staircase_obb_merge_stays_within_union(self) -> None:
+        """Three axis-aligned OBBs in diagonal staircase: merged AABB equals union."""
+        # Middle box is winner (highest confidence) so it overlaps both outer boxes,
+        # pulling all three into one merge group.
+        quads = [
+            np.array([[0, 0], [20, 0], [20, 20], [0, 20]], dtype=np.float32),
+            np.array([[12, 12], [32, 12], [32, 32], [12, 32]], dtype=np.float32),
+            np.array([[24, 24], [44, 24], [44, 44], [24, 44]], dtype=np.float32),
+        ]
+        detections = _make_obb_detections(quads, [0.7, 0.9, 0.8], [0, 0, 0])
+
+        result = detections.with_nmm(threshold=0.05)
+
+        assert len(result) == 1
+        # Merged AABB must equal the axis-aligned union [0, 0, 44, 44]
+        # — not the free MARC which would be ~[-10, -10, 54, 54]
+        assert np.allclose(result.xyxy, [[0.0, 0.0, 44.0, 44.0]], atol=0.5)
+
+    def test_rotated_obb_merge_uses_winner_angle(self) -> None:
+        """Two overlapping 45-degree OBBs merge into a winner-angle rect."""
         quad_a = _rotated_rect(50, 50, 40, 10, 45)
         quad_b = _rotated_rect(55, 55, 40, 10, 45)
         detections = _make_obb_detections([quad_a, quad_b], [0.9, 0.8], [0, 0])
