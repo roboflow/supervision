@@ -2623,14 +2623,28 @@ class Detections:
                 len(merge_group) > 1
                 and ORIENTED_BOX_COORDINATES in merged_detections.data
             ):
-                obb = merged_detections.data[ORIENTED_BOX_COORDINATES][0]  # (4, 2)
+                import cv2
+
+                all_corners = np.concatenate(
+                    [
+                        np.asarray(det.data[ORIENTED_BOX_COORDINATES][0])
+                        for det in unmerged_detections
+                    ],
+                    axis=0,
+                ).astype(np.float32)  # (N*4, 2)
+                rect = cv2.minAreaRect(all_corners)
+                merged_obb = cv2.boxPoints(rect).astype(np.float32)  # (4, 2)
+                merged_detections.data = {
+                    **merged_detections.data,
+                    ORIENTED_BOX_COORDINATES: merged_obb[np.newaxis],  # (1, 4, 2)
+                }
                 merged_detections.xyxy = np.array(
                     [
                         [
-                            float(obb[:, 0].min()),
-                            float(obb[:, 1].min()),
-                            float(obb[:, 0].max()),
-                            float(obb[:, 1].max()),
+                            float(merged_obb[:, 0].min()),
+                            float(merged_obb[:, 1].min()),
+                            float(merged_obb[:, 0].max()),
+                            float(merged_obb[:, 1].max()),
                         ]
                     ]
                 )

@@ -1059,12 +1059,12 @@ class TestDetectionsObbDispatch:
 class TestDetectionsWithNmm:
     """NMM-specific behaviour tests for `Detections.with_nmm`."""
 
-    def test_obb_merged_xyxy_matches_winner_aabb(self) -> None:
-        """OBB merge group: merged xyxy must equal winner's AABB, not union AABB.
+    def test_obb_merged_xyxy_is_min_area_rotated_rect(self) -> None:
+        """OBB merge group: merged geometry is the min-area rotated rect of all corners.
 
-        Two near-identical OBBs merge into one group. The winner (score 0.9) occupies
-        [10, 10, 50, 30]; the lower-score box [20, 20, 60, 40] is offset. Union AABB
-        would be [10, 10, 60, 40]; fix must produce winner's AABB [10, 10, 50, 30].
+        Two near-identical OBBs merge into one group. The merged OBB must encompass
+        all corners from both inputs (union semantics), matching axis-aligned NMM.
+        Expected xyxy is the AABB of the MARC: [10, 10, 51, 31].
         """
         quad_winner = np.array(
             [[10, 10], [50, 10], [50, 30], [10, 30]], dtype=np.float32
@@ -1079,8 +1079,41 @@ class TestDetectionsWithNmm:
         result = detections.with_nmm(threshold=0.5)
 
         assert len(result) == 1
-        expected_xyxy = np.array([[10.0, 10.0, 50.0, 30.0]], dtype=np.float32)
+        expected_xyxy = np.array([[10.0, 10.0, 51.0, 31.0]], dtype=np.float32)
         assert np.allclose(result.xyxy, expected_xyxy, atol=0.5)
+        merged_obb = result.data[ORIENTED_BOX_COORDINATES][0]  # (4, 2)
+        assert merged_obb.shape == (4, 2)
+        assert float(merged_obb[:, 0].min()) == pytest.approx(10.0, abs=0.5)
+        assert float(merged_obb[:, 0].max()) == pytest.approx(51.0, abs=0.5)
+        assert float(merged_obb[:, 1].min()) == pytest.approx(10.0, abs=0.5)
+        assert float(merged_obb[:, 1].max()) == pytest.approx(31.0, abs=0.5)
+
+    def test_obb_nmm_union_matches_aabb_nmm_for_axis_aligned_boxes(self) -> None:
+        """Axis-aligned OBB NMM produces the same union envelope as AABB NMM.
+
+        When OBBs have no rotation their MARC degenerates to the axis-aligned union,
+        so both paths must agree on xyxy.
+        """
+        xyxy = np.array([[0, 0, 30, 20], [5, 5, 35, 25]], dtype=np.float32)
+        conf = np.array([0.9, 0.5], dtype=np.float32)
+        class_id = np.array([0, 0])
+
+        aabb_detections = Detections(xyxy=xyxy, confidence=conf, class_id=class_id)
+        obb_detections = _make_obb_detections(
+            [
+                np.array([[0, 0], [30, 0], [30, 20], [0, 20]], dtype=np.float32),
+                np.array([[5, 5], [35, 5], [35, 25], [5, 25]], dtype=np.float32),
+            ],
+            conf.tolist(),
+            class_id.tolist(),
+        )
+
+        aabb_result = aabb_detections.with_nmm(threshold=0.4)
+        obb_result = obb_detections.with_nmm(threshold=0.4)
+
+        assert len(aabb_result) == 1
+        assert len(obb_result) == 1
+        assert np.allclose(aabb_result.xyxy, obb_result.xyxy, atol=1e-4)
 
 
 class TestDetectionsArea:
