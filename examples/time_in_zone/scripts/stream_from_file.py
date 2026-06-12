@@ -84,7 +84,9 @@ def run_command_in_thread(command: list) -> Thread:
 
 
 def run_command(command: list) -> int:
-    process = subprocess.run(command)  # noqa: S603 # TODO: Validate command input to prevent execution of untrusted input
+    if command[0] not in ["docker", "ffmpeg"]:
+        raise ValueError(f"Command {command[0]} not allowed")
+    process = subprocess.run(command)  # noqa: S603
     return process.returncode
 
 
