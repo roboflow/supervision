@@ -1,4 +1,6 @@
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import Any
 
 import numpy as np
 from deprecate import deprecated, void
@@ -295,7 +297,7 @@ def _validate_keypoints_fields(
     confidence: Any,
     detection_confidence: Any = None,
     visible: Any = None,
-    data: Optional[dict[str, Any]] = None,
+    data: dict[str, Any] | None = None,
 ) -> None:
     n = len(xy)
     m = len(xy[0]) if len(xy) > 0 else 0
