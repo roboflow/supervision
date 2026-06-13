@@ -1266,6 +1266,26 @@ class TestOrientedBoxIouBatch:
         assert iou[0, 0] == pytest.approx(1.0)
         assert iou[1, 1] == pytest.approx(1.0)
 
+    def test_envelope_overlap_without_polygon_overlap_scores_zero(self) -> None:
+        """Parallel rotated bars share an envelope but not a body, so they score 0.
+
+        Exercises the path where a pair passes the axis-aligned gate yet has no
+        exact polygon intersection.
+        """
+        boxes_true = _rotated_rect(50, 50, 100, 4, 45)[None]
+        boxes_detection = _rotated_rect(72, 28, 100, 4, 45)[None]
+
+        iou = oriented_box_iou_batch(boxes_true, boxes_detection)
+
+        assert iou[0, 0] == 0.0
+
+    def test_rejects_unsupported_overlap_metric(self) -> None:
+        """An overlap metric other than IOU or IOS raises ValueError."""
+        boxes = _rotated_rect(50, 50, 20, 20, 0)[None]
+
+        with pytest.raises(ValueError, match="is not supported"):
+            oriented_box_iou_batch(boxes, boxes, "invalid")  # type: ignore[arg-type]
+
 
 class TestOrientedBoxNonMaxSuppression:
     """Tests for `oriented_box_non_max_suppression`."""
