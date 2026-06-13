@@ -2656,7 +2656,8 @@ class PercentageBarAnnotator(BaseAnnotator):
             if custom_values is not None:
                 value = custom_values[detection_idx]
             else:
-                assert detections.confidence is not None  # MyPy type hint
+                if detections.confidence is None:
+                    raise ValueError("detections.confidence cannot be None")
                 value = detections.confidence[detection_idx]
 
             color = resolve_color(
@@ -3127,7 +3128,8 @@ class ComparisonAnnotator:
 
     @staticmethod
     def _use_obb(detections_1: Detections, detections_2: Detections) -> bool:
-        assert not detections_1.is_empty() or not detections_2.is_empty()
+        if detections_1.is_empty() and detections_2.is_empty():
+            raise ValueError("Both detections_1 and detections_2 cannot be empty.")
         is_obb_1 = ORIENTED_BOX_COORDINATES in detections_1.data
         is_obb_2 = ORIENTED_BOX_COORDINATES in detections_2.data
         return (
@@ -3138,7 +3140,8 @@ class ComparisonAnnotator:
 
     @staticmethod
     def _use_mask(detections_1: Detections, detections_2: Detections) -> bool:
-        assert not detections_1.is_empty() or not detections_2.is_empty()
+        if detections_1.is_empty() and detections_2.is_empty():
+            raise ValueError("Both detections_1 and detections_2 cannot be empty.")
         is_mask_1 = detections_1.mask is not None
         is_mask_2 = detections_2.mask is not None
         return (
@@ -3185,7 +3188,8 @@ class ComparisonAnnotator:
         mask = np.zeros(scene.shape[:2], dtype=np.bool_)
         if detections.is_empty():
             return mask
-        assert detections.mask is not None
+        if detections.mask is None:
+            raise ValueError("detections.mask cannot be None")
 
         for detections_mask in detections.mask:
             mask |= detections_mask.astype(np.bool_)
