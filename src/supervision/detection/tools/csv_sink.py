@@ -208,7 +208,7 @@ class CSVSink:
                 and tuples are broadcast unchanged.
         """
         if not self.writer:
-            raise IOError(
+            raise OSError(
                 f"Cannot append to CSV: The file '{self.file_name}' is not open."
             )
         field_names = CSVSink.parse_field_names(detections, custom_data)

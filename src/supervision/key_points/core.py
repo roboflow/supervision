@@ -17,12 +17,7 @@ from supervision.validators import _validate_keypoints_fields
 logger = logging.getLogger(__name__)
 
 Index1D = (
-    int
-    | slice
-    | list[int]
-    | list[bool]
-    | npt.NDArray[np.int_]
-    | npt.NDArray[np.bool_]
+    int | slice | list[int] | list[bool] | npt.NDArray[np.int_] | npt.NDArray[np.bool_]
 )
 Index2D = tuple[Index1D, Index1D]
 _RowIndexInput = int | np.integer[Any] | npt.NDArray[np.generic] | list[Any] | slice
