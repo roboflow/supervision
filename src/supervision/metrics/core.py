@@ -16,21 +16,27 @@ class Metric(ABC):
         Add data to the metric, without computing the result.
         Return the metric itself to allow method chaining.
         """
-        raise NotImplementedError
+        raise NotImplementedError(
+            f"Method 'update' must be implemented by {self.__class__.__name__}."
+        )
 
     @abstractmethod
     def reset(self) -> None:
         """
         Reset internal metric state.
         """
-        raise NotImplementedError
+        raise NotImplementedError(
+            f"Method 'reset' must be implemented by {self.__class__.__name__}."
+        )
 
     @abstractmethod
     def compute(self, *args: Any, **kwargs: Any) -> Any:
         """
         Compute the metric from the internal state and return the result.
         """
-        raise NotImplementedError
+        raise NotImplementedError(
+            f"Method 'compute' must be implemented by {self.__class__.__name__}."
+        )
 
 
 class MetricTarget(Enum):
