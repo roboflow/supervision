@@ -1,7 +1,7 @@
 import warnings
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Union, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -258,7 +258,7 @@ def detections_to_coco_annotations(
         if class_id is None:
             raise ValueError("Detections must include class_id for COCO export.")
         box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
-        segmentation: list[list[float]] | dict[str, list[int]] = []
+        segmentation: Union[list[list[float]], dict[str, list[int]]] = []
         if mask is not None:
             if "iscrowd" in data:
                 iscrowd = int(np.asarray(data["iscrowd"]).item())

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import Any, Union, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -16,12 +16,23 @@ from supervision.validators import _validate_keypoints_fields
 
 logger = logging.getLogger(__name__)
 
-Index1D = (
-    int | slice | list[int] | list[bool] | npt.NDArray[np.int_] | npt.NDArray[np.bool_]
-)
+Index1D = Union[
+    int,
+    slice,
+    list[int],
+    list[bool],
+    npt.NDArray[np.int_],
+    npt.NDArray[np.bool_],
+]
 Index2D = tuple[Index1D, Index1D]
-_RowIndexInput = int | np.integer[Any] | npt.NDArray[np.generic] | list[Any] | slice
-_NormalizedRowIndex = npt.NDArray[np.generic] | list[Any] | slice
+_RowIndexInput = Union[
+    int,
+    np.integer[Any],
+    npt.NDArray[np.generic],
+    list[Any],
+    slice,
+]
+_NormalizedRowIndex = Union[npt.NDArray[np.generic], list[Any], slice]
 
 
 def _optional_array_equal(
