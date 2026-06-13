@@ -59,7 +59,7 @@ class VideoInfo:
     def from_video_path(cls, video_path: str) -> VideoInfo:
         video = cv2.VideoCapture(video_path)
         if not video.isOpened():
-            raise Exception(f"Could not open video at {video_path}")
+            raise IOError(f"Could not open video at {video_path}")
 
         width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -209,10 +209,10 @@ def _validate_and_setup_video(
 ) -> tuple[cv2.VideoCapture, int, int]:
     video = cv2.VideoCapture(source_path)
     if not video.isOpened():
-        raise Exception(f"Could not open video at {source_path}")
+        raise IOError(f"Could not open video at {source_path}")
     total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
     if end is not None and end > total_frames:
-        raise Exception("Requested frames are outbound")
+        raise ValueError("Requested frames are outbound")
     start = max(start, 0)
     end = min(end, total_frames) if end is not None else total_frames
 
