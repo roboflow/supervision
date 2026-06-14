@@ -481,9 +481,8 @@ class EvaluationDataset:
         ids = [pred["image_id"] for pred in predictions]
 
         # Make sure the image ids from predictions exist in the current dataset
-        assert set(ids) == (set(ids) & set(self.get_image_ids())), (
-            "Results do not correspond to current coco set"
-        )
+        if set(ids) != (set(ids) & set(self.get_image_ids())):
+            raise ValueError("Results do not correspond to current coco set")
 
         # Check if the predictions contain any unsupported keys
         if "caption" in predictions[0]:
