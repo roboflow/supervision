@@ -1884,7 +1884,9 @@ class Detections:
 
         if vlm == VLM.PALIGEMMA:
             if not isinstance(result, str):
-                raise TypeError(f"Expected str result for {vlm}, got {type(result).__name__}")
+                raise TypeError(
+                    f"Expected str result for {vlm}, got {type(result).__name__}"
+                )
             xyxy, class_id, class_name = from_paligemma(result, **kwargs)
             data: dict[str, npt.NDArray[np.generic] | list[Any]] = {
                 CLASS_NAME_DATA_FIELD: class_name,
@@ -1893,7 +1895,9 @@ class Detections:
 
         if vlm == VLM.QWEN_2_5_VL:
             if not isinstance(result, str):
-                raise TypeError(f"Expected str result for {vlm}, got {type(result).__name__}")
+                raise TypeError(
+                    f"Expected str result for {vlm}, got {type(result).__name__}"
+                )
             xyxy, class_id, class_name = from_qwen_2_5_vl(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             confidence_arr: npt.NDArray[np.floating[Any]] = np.ones(
@@ -1905,7 +1909,9 @@ class Detections:
 
         if vlm == VLM.QWEN_3_VL:
             if not isinstance(result, str):
-                raise TypeError(f"Expected str result for {vlm}, got {type(result).__name__}")
+                raise TypeError(
+                    f"Expected str result for {vlm}, got {type(result).__name__}"
+                )
             xyxy, class_id, class_name = from_qwen_3_vl(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             confidence_arr = np.ones(len(xyxy), dtype=float)
@@ -1915,14 +1921,18 @@ class Detections:
 
         if vlm == VLM.DEEPSEEK_VL_2:
             if not isinstance(result, str):
-                raise TypeError(f"Expected str result for {vlm}, got {type(result).__name__}")
+                raise TypeError(
+                    f"Expected str result for {vlm}, got {type(result).__name__}"
+                )
             xyxy, class_id, class_name = from_deepseek_vl_2(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
         if vlm == VLM.FLORENCE_2:
             if not isinstance(result, dict):
-                raise TypeError(f"Expected dict result for {vlm}, got {type(result).__name__}")
+                raise TypeError(
+                    f"Expected dict result for {vlm}, got {type(result).__name__}"
+                )
             xyxy, labels, mask, xyxyxyxy = from_florence_2(result, **kwargs)
             if len(xyxy) == 0:
                 empty = cls.empty()
@@ -1939,20 +1949,26 @@ class Detections:
 
         if vlm == VLM.GOOGLE_GEMINI_2_0:
             if not isinstance(result, str):
-                raise TypeError(f"Expected str result for {vlm}, got {type(result).__name__}")
+                raise TypeError(
+                    f"Expected str result for {vlm}, got {type(result).__name__}"
+                )
             xyxy, class_id, class_name = from_google_gemini_2_0(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: class_name}
             return cls(xyxy=xyxy, class_id=class_id, data=data)
 
         if vlm == VLM.MOONDREAM:
             if not isinstance(result, dict):
-                raise TypeError(f"Expected dict result for {vlm}, got {type(result).__name__}")
+                raise TypeError(
+                    f"Expected dict result for {vlm}, got {type(result).__name__}"
+                )
             xyxy = from_moondream(result, **kwargs)
             return cls(xyxy=xyxy)
 
         if vlm == VLM.GOOGLE_GEMINI_2_5:
             if not isinstance(result, str):
-                raise TypeError(f"Expected str result for {vlm}, got {type(result).__name__}")
+                raise TypeError(
+                    f"Expected str result for {vlm}, got {type(result).__name__}"
+                )
             gemini_result = from_google_gemini_2_5(result, **kwargs)
             data = {CLASS_NAME_DATA_FIELD: gemini_result[2]}
             return cls(
@@ -2502,7 +2518,9 @@ class Detections:
             return self
 
         if self.confidence is None:
-            raise ValueError("Non-Maximum Suppression requires `confidence` to be not `None`")
+            raise ValueError(
+                "Non-Maximum Suppression requires `confidence` to be not `None`"
+            )
 
         if class_agnostic:
             predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
@@ -2580,7 +2598,9 @@ class Detections:
             return self
 
         if self.confidence is None:
-            raise ValueError("Detections confidence must be given for NMM to be executed.")
+            raise ValueError(
+                "Detections confidence must be given for NMM to be executed."
+            )
 
         if class_agnostic:
             predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
