@@ -57,6 +57,22 @@ class VideoInfo:
 
     @classmethod
     def from_video_path(cls, video_path: str) -> VideoInfo:
+        """Read video metadata from a file path.
+
+        Args:
+            video_path: Path to the video file.
+
+        Returns:
+            A `VideoInfo` instance with width, height, fps, and total_frames.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            video_info = sv.VideoInfo.from_video_path(video_path="<SOURCE_VIDEO_FILE>")
+            # VideoInfo(width=3840, height=2160, fps=25.0, total_frames=538)
+            ```
+        """
         video = cv2.VideoCapture(video_path)
         if not video.isOpened():
             raise Exception(f"Could not open video at {video_path}")

@@ -96,6 +96,7 @@ def main(
     coordinates = defaultdict(lambda: deque(maxlen=int(video_info.fps)))
 
     with sv.VideoSink(target_video_path, video_info) as sink:
+        window = sv.TkImageWindow("frame")
         for frame in frame_generator:
             results = model.infer(
                 frame, confidence=confidence_threshold, iou=iou_threshold
@@ -136,10 +137,10 @@ def main(
             )
 
             sink.write_frame(annotated_frame)
-            cv2.imshow("frame", annotated_frame)
-            if cv2.waitKey(1) & 0xFF == ord("q"):
+            window.show(annotated_frame)
+            if window.wait_key(1) == "q":
                 break
-        cv2.destroyAllWindows()
+        window.close()
 
 
 if __name__ == "__main__":

@@ -53,6 +53,37 @@ Use `supervision.metrics.mean_average_precision.MeanAveragePrecision` for mAP an
 
 Yes. Supervision is free and open source under the MIT license.
 
+## Why does cv2.imshow stop working after installing supervision?
+
+Supervision depends on `opencv-python-headless`, which does not include desktop GUI functions (`cv2.imshow`, `cv2.waitKey`, `cv2.namedWindow`). To restore them, install the full wheel explicitly:
+
+```bash
+pip install opencv-python
+```
+
+Both wheel families share the `cv2` namespace. Do not install both simultaneously.
+
+## How do I process frames from a webcam with supervision?
+
+Supervision does not support live camera capture. Manage the capture device yourself with `cv2.VideoCapture` (requires `opencv-python`) and pass individual frames to supervision annotators:
+
+```python
+import cv2  # requires: pip install opencv-python
+import supervision as sv
+
+cap = cv2.VideoCapture(0)
+annotator = sv.BoxAnnotator()
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+    # run your detector, then annotate:
+    # annotated = annotator.annotate(frame, detections)
+
+cap.release()
+```
+
 ## Where is the source code?
 
 The source code is available at [github.com/roboflow/supervision](https://github.com/roboflow/supervision).

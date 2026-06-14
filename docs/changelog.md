@@ -7,6 +7,20 @@ date_modified: 2026-06-09
 
 ### UnReleased
 
+#### Breaking change
+
+- Changed: `supervision` now depends on `opencv-python-headless` instead of `opencv-python`. The headless wheel provides the same `cv2` API except for desktop GUI functions (`cv2.imshow`, `cv2.waitKey`, `cv2.namedWindow`, and mouse/keyboard callbacks), which are not available in headless builds. All non-GUI `cv2` behaviour — drawing, text metrics, contour hierarchy, video I/O, affine transforms, image I/O — is unchanged.
+
+  **Who is affected:** users who called `cv2.imshow`, `cv2.waitKey`, or `cv2.namedWindow` in their own scripts alongside `import supervision`, relying on supervision's transitive `opencv-python` dependency to provide those symbols.
+
+  **How to restore GUI support:** install the full wheel explicitly after upgrading supervision:
+  ```bash
+  pip install opencv-python
+  ```
+  Both wheel families share the `cv2` namespace; installing `opencv-python` on top of `opencv-python-headless` is unsafe — install only one.
+
+  **Co-installation conflict:** packages that pin `opencv-python` (e.g. `ultralytics`, `inference-sdk`) cannot be installed alongside `supervision` without a resolver conflict. If you depend on both, pin `opencv-python` explicitly in your environment and the resolver will prefer it over `opencv-python-headless`.
+
 - Fixed [#2306](https://github.com/roboflow/supervision/pull/2306): [`sv.Detections.area`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.area) now returns the rotated body's area for detections carrying `data["xyxyxyxy"]` (oriented box corners) instead of the area of the derived axis-aligned bounding box, which overestimates by up to ~2x at 45° rotation. Affects annotator z-ordering inside [`MaskAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.MaskAnnotator) and [`HaloAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.HaloAnnotator), and any user code that filters or sorts OBB detections by area. The mask path and the non-OBB AABB fallback are unchanged.
 
 - Fixed [#2289](https://github.com/roboflow/supervision/pull/2289): [`DetectionDataset.as_yolo`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.as_yolo) now accepts `is_obb=True` to round-trip oriented bounding box datasets without losing the rotation. Previously the save path had no OBB option and silently wrote 5-token axis-aligned bbox lines for datasets loaded with `from_yolo(..., is_obb=True)`, dropping the four corners stored in `detections.data["xyxyxyxy"]`. Re-loading those saved files with `is_obb=True` then crashed the validator. Mirrors the existing `from_yolo(..., is_obb=True)` load path.
