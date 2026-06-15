@@ -1845,3 +1845,111 @@ def test_coco_round_trip_multi_class_single_image(tmp_path) -> None:
     dets = loaded.annotations[img_path]
     assert dets.class_id is not None
     assert sorted(dets.class_id.tolist()) == [0, 1]
+
+
+# --- Regression: segmentation round-trip (#2285) ---
+
+
+def test_detections_to_coco_annotations_exports_all_polygons() -> None:
+    """All polygons from a multi-component mask must be exported, not just the first."""
+    # Build a mask with two separate rectangles (disjoint components)
+    mask = np.zeros((20, 20), dtype=bool)
+    mask[1:4, 1:4] = True   # top-left component
+    mask[14:18, 14:18] = True  # bottom-right component
+
+    detections = Detections(
+        xyxy=np.array([[1, 1, 4, 4]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+        mask=np.array([mask]),
+    )
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections, image_id=1, annotation_id=1
+    )
+    assert len(annotations) == 1
+    # Both components must appear as separate polygon entries
+    assert len(annotations[0]["segmentation"]) >= 2
+
+
+def test_coco_polygon_segmentation_survives_roundtrip(tmp_path) -> None:
+    """from_coco() -> as_coco() must preserve polygon segmentation (issue #2285)."""
+    images_dir = tmp_path / "images"
+    images_dir.mkdir()
+
+    # Create a small image so as_coco can read it
+    img_path = images_dir / "img.jpg"
+    assert cv2.imwrite(str(img_path), np.zeros((10, 10, 3), dtype=np.uint8))
+
+    coco_data = {
+        "info": {},
+        "licenses": [],
+        "categories": [{"id": 1, "name": "cat", "supercategory": ""}],
+        "images": [{"id": 1, "file_name": "img.jpg", "width": 10, "height": 10}],
+        "annotations": [
+            {
+                "id": 1,
+                "image_id": 1,
+                "category_id": 1,
+                "bbox": [0, 0, 5, 5],
+                "area": 25,
+                "segmentation": [[0, 0, 4, 0, 4, 4, 0, 4]],
+                "iscrowd": 0,
+            }
+        ],
+    }
+
+    ann_path = tmp_path / "annotations.json"
+    ann_path.write_text(json.dumps(coco_data), encoding="utf-8")
+
+    ds = DetectionDataset.from_coco(
+        images_directory_path=str(images_dir),
+        annotations_path=str(ann_path),
+    )
+
+    out_ann_path = tmp_path / "out_annotations.json"
+    ds.as_coco(annotations_path=str(out_ann_path))
+
+    with open(out_ann_path) as f:
+        out = json.load(f)
+
+    assert len(out["annotations"]) == 1
+    seg = out["annotations"][0]["segmentation"]
+    assert seg != [], "segmentation must not be empty after round-trip (issue #2285)"
+    assert isinstance(seg, list) and len(seg) >= 1
+
+
+def test_coco_raw_segmentation_preserved_when_masks_not_decoded(tmp_path) -> None:
+    """When masks are decoded, raw polygon data stored in data['segmentation']
+    is used as a lossless fallback so as_coco() still emits non-empty segmentation."""
+    from supervision.dataset.formats.coco import (
+        coco_annotations_to_detections,
+        detections_to_coco_annotations,
+    )
+
+    image_annotations = [
+        {
+            "id": 1,
+            "image_id": 1,
+            "category_id": 1,
+            "bbox": [0, 0, 5, 5],
+            "area": 25,
+            "segmentation": [[0, 0, 4, 0, 4, 4, 0, 4]],
+            "iscrowd": 0,
+        }
+    ]
+
+    # Load WITHOUT mask decoding — mask must be None
+    detections = coco_annotations_to_detections(
+        image_annotations=image_annotations,
+        resolution_wh=(10, 10),
+        with_masks=False,
+    )
+    assert detections.mask is None
+    # Raw segmentation must be stored in data for fallback
+    assert "segmentation" in detections.data
+
+    # Export must still produce non-empty segmentation via fallback
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections, image_id=1, annotation_id=1
+    )
+    assert len(annotations) == 1
+    assert annotations[0]["segmentation"] != []

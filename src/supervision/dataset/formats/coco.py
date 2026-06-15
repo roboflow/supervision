@@ -195,6 +195,13 @@ def coco_annotations_to_detections(
         )
     else:
         mask = None
+        # Preserve raw polygon/RLE data so as_coco() can round-trip without
+        # binary-mask encoding. Stored as an object array (one entry per detection).
+        raw_segs = np.empty(len(image_annotations), dtype=object)
+        for _k, _ann in enumerate(image_annotations):
+            raw_segs[_k] = _ann.get("segmentation", [])
+        if any(bool(raw_segs[_k]) for _k in range(len(raw_segs))):
+            data["segmentation"] = raw_segs
 
     return Detections(
         class_id=np.asarray(class_ids, dtype=int), xyxy=xyxy, mask=mask, data=data
@@ -282,7 +289,8 @@ def detections_to_coco_annotations(
                 # Small/noisy masks can be filtered out by approximation settings.
                 # Guard against empty output and keep a valid COCO annotation record.
                 if polygons:
-                    segmentation = [list(polygons[0].flatten())]
+                    # Export ALL polygons so disjoint mask components are preserved.
+                    segmentation = [list(p.flatten()) for p in polygons]
                 else:
                     warnings.warn(
                         "Skipping COCO polygon segmentation for annotation "
@@ -292,6 +300,13 @@ def detections_to_coco_annotations(
                     )
         else:
             iscrowd = int(np.asarray(data.get("iscrowd", 0)).item())
+            # When masks were not decoded during loading, fall back to the raw
+            # polygon/RLE stored in data["segmentation"] for a lossless round-trip.
+            raw_seg = data.get("segmentation")
+            if raw_seg is not None and bool(raw_seg):
+                segmentation = (
+                    raw_seg if isinstance(raw_seg, (list, dict)) else list(raw_seg)
+                )
 
         area: float = float(np.asarray(data.get("area", box_width * box_height)).item())
         coco_annotation = {
