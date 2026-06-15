@@ -13,6 +13,7 @@ from supervision.dataset.formats.coco import (
     build_coco_class_index_mapping,
     classes_to_coco_categories,
     coco_annotations_to_detections,
+    coco_annotations_to_masks,
     coco_categories_to_classes,
     detections_to_coco_annotations,
     group_coco_annotations_by_image_id,
@@ -1025,6 +1026,69 @@ def test_detections_to_coco_annotations_preserves_multiple_polygons() -> None:
     assert annotations[0]["iscrowd"] == 0
     assert isinstance(segmentation, list)
     assert len(segmentation) == 2
+    assert all(len(part) >= 6 for part in segmentation)
+    assert all(np.isfinite(c) for part in segmentation for c in part)
+
+
+def test_detections_to_coco_annotations_single_polygon_baseline() -> None:
+    """Single-component non-crowd mask produces segmentation list of length 1."""
+    detections = Detections(
+        xyxy=np.array([[0, 0, 5, 5]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+        mask=np.array(
+            [
+                [
+                    [1, 1, 1, 0, 0],
+                    [1, 1, 1, 0, 0],
+                    [1, 1, 1, 0, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                ]
+            ],
+            dtype=bool,
+        ),
+        data={"iscrowd": np.array([0])},
+    )
+
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections, image_id=0, annotation_id=0
+    )
+
+    segmentation = annotations[0]["segmentation"]
+    assert annotations[0]["iscrowd"] == 0
+    assert isinstance(segmentation, list)
+    assert len(segmentation) == 1
+    assert len(segmentation[0]) >= 6
+
+
+def test_detections_to_coco_annotations_round_trip_disjoint_mask() -> None:
+    """Two-part disjoint mask round-trips through COCO export and import unchanged."""
+    W, H = 5, 5
+    original_mask = np.array(
+        [
+            [
+                [1, 1, 0, 0, 0],
+                [1, 1, 0, 0, 0],
+                [0, 0, 0, 0, 0],
+                [0, 0, 0, 1, 1],
+                [0, 0, 0, 1, 1],
+            ]
+        ],
+        dtype=bool,
+    )
+    detections = Detections(
+        xyxy=np.array([[0, 0, W, H]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+        mask=original_mask,
+        data={"iscrowd": np.array([0])},
+    )
+
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections, image_id=0, annotation_id=0
+    )
+    reloaded = coco_annotations_to_masks([annotations[0]], resolution_wh=(W, H))
+
+    assert np.array_equal(reloaded[0], original_mask[0])
 
 
 def test_detections_to_coco_annotations_preserves_area_from_data() -> None:
