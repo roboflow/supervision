@@ -107,6 +107,7 @@ class TkImageWindow:
         if delay_ms <= 0:
             while not self._key_queue:
                 self._root.update()
+                time.sleep(0.001)
         else:
             deadline = time.monotonic() + delay_ms / 1000.0
             while not self._key_queue and time.monotonic() < deadline:
