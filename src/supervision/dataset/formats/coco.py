@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Union, cast
 import numpy as np
 import numpy.typing as npt
 
+from supervision.config import COCO_RAW_SEGMENTATION
 from supervision.dataset.utils import (
     approximate_mask_with_polygons,
     map_detections_class_id,
@@ -168,6 +169,10 @@ def coco_annotations_to_detections(
     Returns:
         Detections with ``class_id`` set to raw COCO ``category_id`` values.
         Call :func:`map_detections_class_id` on the result before use.
+        When ``with_masks=False``, ``detections.data[COCO_RAW_SEGMENTATION]`` is
+        populated as an object array (shape ``(N,)``) holding the raw polygon list or
+        RLE dict per annotation; consumed by :func:`detections_to_coco_annotations`
+        for a coordinate-preserving round-trip.
     """
     if not image_annotations:
         return Detections.empty()
@@ -179,7 +184,7 @@ def coco_annotations_to_detections(
     xyxy = np.asarray(xyxy, dtype=np.float32)
     xyxy[:, 2:4] += xyxy[:, 0:2]
 
-    data: dict[str, npt.NDArray[np.generic]] = {}
+    data: dict[str, Union[npt.NDArray[np.generic], list[Any]]] = {}
     if use_iscrowd:
         iscrowd = [
             image_annotation["iscrowd"] for image_annotation in image_annotations
@@ -198,10 +203,9 @@ def coco_annotations_to_detections(
         # Preserve raw polygon/RLE data so as_coco() can round-trip without
         # binary-mask encoding. Stored as an object array (one entry per detection).
         raw_segs = np.empty(len(image_annotations), dtype=object)
-        for _k, _ann in enumerate(image_annotations):
-            raw_segs[_k] = _ann.get("segmentation", [])
-        if any(bool(raw_segs[_k]) for _k in range(len(raw_segs))):
-            data["segmentation"] = raw_segs
+        for k, _ann in enumerate(image_annotations):
+            raw_segs[k] = _ann.get("segmentation", [])
+        data[COCO_RAW_SEGMENTATION] = raw_segs
 
     return Detections(
         class_id=np.asarray(class_ids, dtype=int), xyxy=xyxy, mask=mask, data=data
@@ -300,10 +304,10 @@ def detections_to_coco_annotations(
                     )
         else:
             iscrowd = int(np.asarray(data.get("iscrowd", 0)).item())
-            # When masks were not decoded during loading, fall back to the raw
-            # polygon/RLE stored in data["segmentation"] for a lossless round-trip.
-            raw_seg = data.get("segmentation")
-            if raw_seg is not None and bool(raw_seg):
+            # When loading skipped mask decoding (with_masks=False), raw polygon/RLE
+            # coordinates are re-emitted verbatim — no approximation loss.
+            raw_seg = data.get(COCO_RAW_SEGMENTATION)
+            if raw_seg is not None and len(raw_seg) > 0:
                 segmentation = (
                     raw_seg if isinstance(raw_seg, (list, dict)) else list(raw_seg)
                 )

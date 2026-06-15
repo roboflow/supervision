@@ -1913,13 +1913,15 @@ def test_coco_polygon_segmentation_survives_roundtrip(tmp_path) -> None:
 
     assert len(out["annotations"]) == 1
     seg = out["annotations"][0]["segmentation"]
-    assert seg != [], "segmentation must not be empty after round-trip (issue #2285)"
-    assert isinstance(seg, list) and len(seg) >= 1
+    assert isinstance(seg, list)
+    assert len(seg) >= 1, (
+        "segmentation must not be empty after round-trip (issue #2285)"
+    )
 
 
 def test_coco_raw_segmentation_preserved_when_masks_not_decoded(tmp_path) -> None:
-    """When masks are decoded, raw polygon data stored in data['segmentation']
-    is used as a lossless fallback so as_coco() still emits non-empty segmentation."""
+    """When masks are NOT decoded, raw polygon/RLE in data['coco_raw_segmentation']
+    is re-emitted verbatim by as_coco() — no approximation loss."""
     from supervision.dataset.formats.coco import (
         coco_annotations_to_detections,
         detections_to_coco_annotations,
@@ -1945,7 +1947,7 @@ def test_coco_raw_segmentation_preserved_when_masks_not_decoded(tmp_path) -> Non
     )
     assert detections.mask is None
     # Raw segmentation must be stored in data for fallback
-    assert "segmentation" in detections.data
+    assert "coco_raw_segmentation" in detections.data
 
     # Export must still produce non-empty segmentation via fallback
     annotations, _ = detections_to_coco_annotations(
@@ -1953,3 +1955,4 @@ def test_coco_raw_segmentation_preserved_when_masks_not_decoded(tmp_path) -> Non
     )
     assert len(annotations) == 1
     assert annotations[0]["segmentation"] != []
+
