@@ -414,12 +414,12 @@ def _overlapping_envelope_pairs(
         A pair of 1-D index arrays ``(rows, cols)`` identifying the overlapping
         pairs.
     """
-    x_min = np.maximum(envelopes_true[:, None, 0], envelopes_detection[None, :, 0])
-    y_min = np.maximum(envelopes_true[:, None, 1], envelopes_detection[None, :, 1])
-    x_max = np.minimum(envelopes_true[:, None, 2], envelopes_detection[None, :, 2])
-    y_max = np.minimum(envelopes_true[:, None, 3], envelopes_detection[None, :, 3])
-    rows, cols = np.where((x_max > x_min) & (y_max > y_min))
-    return rows, cols
+    et = envelopes_true[:, None, :]
+    ed = envelopes_detection[None, :, :]
+    overlap = (
+        np.minimum(et[..., 2], ed[..., 2]) > np.maximum(et[..., 0], ed[..., 0])
+    ) & (np.minimum(et[..., 3], ed[..., 3]) > np.maximum(et[..., 1], ed[..., 1]))
+    return cast(tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]], np.nonzero(overlap))
 
 
 def oriented_box_iou_batch(
