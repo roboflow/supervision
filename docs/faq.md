@@ -57,8 +57,10 @@ Yes. Supervision is free and open source under the MIT license.
 
 Supervision depends on `opencv-python-headless`, which does not include desktop GUI functions (`cv2.imshow`, `cv2.waitKey`, `cv2.namedWindow`). To restore them, replace the headless wheel with the full one:
 
-    pip uninstall -y opencv-python-headless
-    pip install opencv-python
+```
+pip uninstall -y opencv-python-headless
+pip install opencv-python
+```
 
 Both wheel families share the `cv2` namespace; keep only one installed at a time.
 
