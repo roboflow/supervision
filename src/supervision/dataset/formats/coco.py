@@ -180,8 +180,8 @@ def coco_annotations_to_detections(
     class_ids = [
         image_annotation["category_id"] for image_annotation in image_annotations
     ]
-    xyxy = [image_annotation["bbox"] for image_annotation in image_annotations]
-    xyxy = np.asarray(xyxy, dtype=np.float32)
+    xyxy_list = [image_annotation["bbox"] for image_annotation in image_annotations]
+    xyxy: npt.NDArray[np.float32] = np.asarray(xyxy_list, dtype=np.float32)
     xyxy[:, 2:4] += xyxy[:, 0:2]
 
     data: dict[str, Union[npt.NDArray[np.generic], list[Any]]] = {}
@@ -274,18 +274,22 @@ def detections_to_coco_annotations(
             if "iscrowd" in data:
                 iscrowd = int(np.asarray(data["iscrowd"]).item())
             else:
+                mask_bool = cast(npt.NDArray[np.bool_], mask)
                 iscrowd = int(
-                    contains_holes(mask=mask) or contains_multiple_segments(mask=mask)
+                    contains_holes(mask=mask_bool)
+                    or contains_multiple_segments(mask=mask_bool)
                 )
 
             if iscrowd:
                 segmentation = {
-                    "counts": cast(list[int], mask_to_rle(mask=mask, compressed=False)),
+                    "counts": cast(
+                        list[int], mask_to_rle(mask=mask_bool, compressed=False)
+                    ),
                     "size": list(mask.shape[:2]),
                 }
             else:
                 polygons = approximate_mask_with_polygons(
-                    mask=mask,
+                    mask=mask_bool,
                     min_image_area_percentage=min_image_area_percentage,
                     max_image_area_percentage=max_image_area_percentage,
                     approximation_percentage=approximation_percentage,
