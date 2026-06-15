@@ -306,7 +306,7 @@ def detections_to_coco_annotations(
             iscrowd = int(np.asarray(data.get("iscrowd", 0)).item())
             # When masks were not decoded during loading, fall back to the raw
             # polygon/RLE stored in data["segmentation"] for a lossless round-trip.
-            raw_seg = data.get("segmentation")
+            raw_seg = data.get(COCO_RAW_SEGMENTATION)
             if raw_seg is not None and bool(raw_seg):
                 if isinstance(raw_seg, dict):
                     # RLE format — pass through unchanged
