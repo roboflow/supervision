@@ -55,13 +55,12 @@ Yes. Supervision is free and open source under the MIT license.
 
 ## Why does cv2.imshow stop working after installing supervision?
 
-Supervision depends on `opencv-python-headless`, which does not include desktop GUI functions (`cv2.imshow`, `cv2.waitKey`, `cv2.namedWindow`). To restore them, install the full wheel explicitly:
+Supervision depends on `opencv-python-headless`, which does not include desktop GUI functions (`cv2.imshow`, `cv2.waitKey`, `cv2.namedWindow`). To restore them, replace the headless wheel with the full one:
 
-```bash
-pip install opencv-python
-```
+    pip uninstall -y opencv-python-headless
+    pip install opencv-python
 
-Both wheel families share the `cv2` namespace. Do not install both simultaneously.
+Both wheel families share the `cv2` namespace; keep only one installed at a time.
 
 ## How do I process frames from a webcam with supervision?
 
