@@ -19,7 +19,7 @@ from supervision.detection.tools.transformers import (
     process_transformers_v4_segmentation_result,
     process_transformers_v5_segmentation_result,
 )
-from supervision.detection.utils.boxes import obb_polygon_area
+from supervision.detection.utils.boxes import obb_polygon_area, xyxyxyxy_to_xyxy
 from supervision.detection.utils.converters import (
     mask_to_xyxy,
     polygon_to_mask,
@@ -2679,16 +2679,7 @@ class Detections:
                 }
                 # OBB groups: replace AABB-union xyxy (from reduce) with winner-angle
                 # rect AABB so xyxy stays consistent with the merged OBB corners.
-                merged_detections.xyxy = np.array(
-                    [
-                        [
-                            float(merged_obb[:, 0].min()),
-                            float(merged_obb[:, 1].min()),
-                            float(merged_obb[:, 0].max()),
-                            float(merged_obb[:, 1].max()),
-                        ]
-                    ]
-                )
+                merged_detections.xyxy = xyxyxyxy_to_xyxy(merged_obb[np.newaxis])
             result.append(merged_detections)
 
         return Detections.merge(result)

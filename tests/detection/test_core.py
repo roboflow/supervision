@@ -8,6 +8,7 @@ import pytest
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections, merge_inner_detection_object_pair
+from supervision.detection.utils.boxes import xyxyxyxy_to_xyxy
 from supervision.detection.utils.iou_and_nms import OverlapMetric
 from supervision.geometry.core import Position
 from supervision.utils.internal import SupervisionWarnings
@@ -1003,10 +1004,7 @@ def _make_obb_detections(
 ) -> Detections:
     """Build OBB Detections from a list of (4, 2) corner arrays."""
     oriented_boxes = np.stack(quads)
-    xyxy = np.array(
-        [[q[:, 0].min(), q[:, 1].min(), q[:, 0].max(), q[:, 1].max()] for q in quads],
-        dtype=np.float32,
-    )
+    xyxy = xyxyxyxy_to_xyxy(oriented_boxes)
     return Detections(
         xyxy=xyxy,
         confidence=np.array(scores, dtype=np.float32),
