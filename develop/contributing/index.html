@@ -2819,6 +2819,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#deprecation-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deprecation policy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#deprecated-module-aliases" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3221,6 +3232,15 @@
 <li>Prefer vectorized operations over Python loops in hot paths.</li>
 <li>Lazy-import heavy framework dependencies (<code>torch</code>, <code>transformers</code>, <code>ultralytics</code>) inside the function that needs them — never at module top level.</li>
 </ul>
+<h3 id="deprecation-policy">Deprecation policy<a class="headerlink" href="#deprecation-policy" title="Permanent link">&para;</a></h3>
+<p><strong>Minimum window</strong>: deprecated APIs must remain for at least <strong>3 minor releases</strong> before removal. Example: deprecated in <code>0.29.0</code> → removed in <code>0.32.0</code>.</p>
+<p>Use the appropriate mechanism depending on what is being deprecated:</p>
+<ul>
+<li><strong>Module-level alias</strong>: <code>supervision.utils.internal.warn_deprecated</code> in the deprecated module's <code>__init__.py</code></li>
+<li><strong>Renamed parameter</strong>: <code>supervision.utils.internal.deprecated_parameter</code> decorator</li>
+<li><strong>Public function, method, or class</strong>: <code>@deprecated</code> from <code>pydeprecate</code></li>
+</ul>
+<p>Always specify both the deprecation version and the planned removal version in the message or decorator arguments.</p>
 <h3 id="deprecated-module-aliases">Deprecated module aliases<a class="headerlink" href="#deprecated-module-aliases" title="Permanent link">&para;</a></h3>
 <p><code>supervision.keypoint</code> is deprecated since <code>0.27.0</code> and will be removed in <code>0.30.0</code>. Always import from <code>supervision.key_points</code>:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">supervision.key_points</span><span class="w"> </span><span class="kn">import</span> <span class="n">KeyPoints</span>  <span class="c1"># correct</span>
