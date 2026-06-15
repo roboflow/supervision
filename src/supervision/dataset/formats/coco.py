@@ -282,7 +282,12 @@ def detections_to_coco_annotations(
                 # Small/noisy masks can be filtered out by approximation settings.
                 # Guard against empty output and keep a valid COCO annotation record.
                 if polygons:
-                    segmentation = [list(polygons[0].flatten())]
+                    # A single non-crowd object can be made of several disjoint
+                    # parts (e.g. occlusion splits it in two). COCO represents
+                    # this as a list of polygons, and `coco_annotations_to_masks`
+                    # already merges them back on load, so emit every part here
+                    # instead of only the first to keep the round-trip lossless.
+                    segmentation = [list(polygon.flatten()) for polygon in polygons]
                 else:
                     warnings.warn(
                         "Skipping COCO polygon segmentation for annotation "

@@ -983,6 +983,38 @@ def test_detections_to_coco_annotations_handles_empty_approximated_polygons() ->
     assert annotations[0]["iscrowd"] == 0
 
 
+def test_detections_to_coco_annotations_preserves_multiple_polygons() -> None:
+    """Non-crowd objects split into disjoint parts keep every polygon on export."""
+    # iscrowd=0 forces the polygon (non-RLE) export path even though the mask has
+    # two disjoint components; both parts must survive as separate polygons.
+    detections = Detections(
+        xyxy=np.array([[0, 0, 5, 5]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+        mask=np.array(
+            [
+                [
+                    [1, 1, 0, 0, 0],
+                    [1, 1, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 1, 1],
+                    [0, 0, 0, 1, 1],
+                ]
+            ],
+            dtype=bool,
+        ),
+        data={"iscrowd": np.array([0])},
+    )
+
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections, image_id=0, annotation_id=0
+    )
+
+    segmentation = annotations[0]["segmentation"]
+    assert annotations[0]["iscrowd"] == 0
+    assert isinstance(segmentation, list)
+    assert len(segmentation) == 2
+
+
 def test_detections_to_coco_annotations_preserves_area_from_data() -> None:
     """area stored in detections.data should be used instead of bbox area."""
     detections = Detections(
