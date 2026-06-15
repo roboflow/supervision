@@ -100,15 +100,37 @@ class TestTkImageWindowWaitKey:
         assert result == "q"
         assert window._key_queue == ["Escape"]
 
+    def test_wait_key_blocks_with_tk_event_loop(self):
+        """Blocking wait_key() uses Tk wait_variable instead of update polling."""
+        window = TkImageWindow()
+        mock_root = MagicMock()
+        mock_event = MagicMock()
+        mock_root.wait_variable.side_effect = lambda _: window._key_queue.append("q")
+        window._root = mock_root
+        window._key_event = mock_event
+
+        result = window.wait_key(delay_ms=0)
+
+        assert result == "q"
+        mock_root.wait_variable.assert_called_once_with(mock_event)
+        mock_root.update.assert_not_called()
+
     def test_wait_key_returns_none_on_timeout(self):
         """wait_key() returns None when no key arrives before the deadline."""
         window = TkImageWindow()
         mock_root = MagicMock()
+        mock_event = MagicMock()
+        mock_root.after.return_value = "timeout-id"
         window._root = mock_root
-        # key_queue stays empty — timeout should fire
+        window._key_event = mock_event
+
         result = window.wait_key(delay_ms=1)
+
         assert result is None
-        mock_root.update.assert_called()
+        mock_root.after.assert_called_once_with(1, window._signal_wait)
+        mock_root.wait_variable.assert_called_once_with(mock_event)
+        mock_root.after_cancel.assert_called_once_with("timeout-id")
+        mock_root.update.assert_not_called()
 
 
 class TestTkImageWindowClose:
@@ -127,11 +149,36 @@ class TestTkImageWindowClose:
         assert window._label is None
         assert window._photo is None
 
+    def test_close_signals_waiters_and_clears_key_event(self):
+        """close() wakes wait_key() callers and clears stale Tk references."""
+        window = TkImageWindow()
+        mock_root = MagicMock()
+        mock_event = MagicMock()
+        mock_event.get.return_value = 0
+        window._root = mock_root
+        window._key_event = mock_event
+
+        window.close()
+
+        mock_event.set.assert_called_once_with(1)
+        mock_root.destroy.assert_called_once()
+        assert window._root is None
+        assert window._key_event is None
+
     def test_close_is_idempotent(self):
         """close() on an already-closed window does not raise."""
         window = TkImageWindow()
         window.close()  # no window created
         window.close()  # second call must not raise
+
+    def test_window_exists_returns_false_for_destroyed_root(self):
+        """Destroyed Tk roots are not reused after a window-manager close."""
+        window = TkImageWindow()
+        mock_root = MagicMock()
+        mock_root.winfo_exists.return_value = 0
+        window._root = mock_root
+
+        assert window._window_exists() is False
 
 
 class TestTkImageWindowContextManager:

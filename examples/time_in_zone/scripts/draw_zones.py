@@ -9,7 +9,7 @@ from jsonargparse import auto_cli
 
 import supervision as sv
 
-KEY_ENTER = "Return"
+KEY_ENTER = {"Return", "KP_Enter"}
 KEY_ESCAPE = "Escape"
 KEY_QUIT = "q"
 KEY_SAVE = "s"
@@ -148,7 +148,7 @@ def main(source_path: str, zone_configuration_path: str) -> None:
 
     while True:
         key = window.wait_key(1)
-        if key == KEY_ENTER:
+        if key in KEY_ENTER:
             close_and_finalize_polygon(image, original_image, window)
         elif key == KEY_ESCAPE:
             POLYGONS[-1] = []

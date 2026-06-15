@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import time
 from collections.abc import Callable
+from contextlib import suppress
 from typing import Any
 
 import numpy as np
@@ -55,6 +55,7 @@ class TkImageWindow:
         self._root: Any = None
         self._label: Any = None
         self._photo: Any = None
+        self._key_event: Any = None
         self._key_queue: list[str] = []
 
     # ------------------------------------------------------------------
@@ -104,13 +105,15 @@ class TkImageWindow:
         self._ensure_window()
         if self._key_queue:
             return self._key_queue.pop(0)
+        root = self._root
         if delay_ms <= 0:
-            while not self._key_queue:
-                self._root.update()
+            self._wait_for_key_or_close()
         else:
-            deadline = time.monotonic() + delay_ms / 1000.0
-            while not self._key_queue and time.monotonic() < deadline:
-                self._root.update()
+            timeout_id = root.after(delay_ms, self._signal_wait)
+            self._wait_for_key_or_close()
+            if self._root is not None:
+                with suppress(Exception):
+                    root.after_cancel(timeout_id)
         return self._key_queue.pop(0) if self._key_queue else None
 
     def set_mouse_callback(self, callback: MouseCallback | None) -> None:
@@ -126,10 +129,11 @@ class TkImageWindow:
     def close(self) -> None:
         """Destroy the window and release its resources."""
         if self._root is not None:
-            self._root.destroy()
-            self._root = None
-            self._label = None
-            self._photo = None
+            root = self._root
+            self._signal_wait()
+            with suppress(Exception):
+                root.destroy()
+            self._reset_window_refs()
 
     # ------------------------------------------------------------------
     # Context manager
@@ -146,25 +150,57 @@ class TkImageWindow:
     # ------------------------------------------------------------------
 
     def _ensure_window(self) -> None:
-        if self._root is not None:
+        if self._window_exists():
             return
+        self._reset_window_refs()
         import tkinter as tk
 
         self._root = tk.Tk()
         self._root.title(self.title)
         self._label = tk.Label(self._root)
         self._label.pack()
+        self._key_event = tk.IntVar(master=self._root, value=0)
         self._root.bind("<Key>", self._on_key)
+        self._root.protocol("WM_DELETE_WINDOW", self.close)
         self._label.bind("<Button-1>", lambda e: self._on_mouse(e, "down"))
         self._label.bind("<ButtonRelease-1>", lambda e: self._on_mouse(e, "up"))
         self._label.bind("<Motion>", lambda e: self._on_mouse(e, "move"))
 
     def _on_key(self, event: Any) -> None:
         self._key_queue.append(event.keysym)
+        self._signal_wait()
 
     def _on_mouse(self, event: Any, event_type: str) -> None:
         if self._mouse_callback is not None:
             self._mouse_callback(event.x, event.y, event_type)
+
+    def _signal_wait(self) -> None:
+        if self._key_event is None:
+            return
+        with suppress(Exception):
+            self._key_event.set(self._key_event.get() + 1)
+
+    def _wait_for_key_or_close(self) -> None:
+        if self._root is None or self._key_event is None:
+            return
+        try:
+            self._root.wait_variable(self._key_event)
+        except Exception:
+            self._reset_window_refs()
+
+    def _window_exists(self) -> bool:
+        if self._root is None:
+            return False
+        try:
+            return bool(self._root.winfo_exists())
+        except Exception:
+            return False
+
+    def _reset_window_refs(self) -> None:
+        self._root = None
+        self._label = None
+        self._photo = None
+        self._key_event = None
 
 
 # ------------------------------------------------------------------
