@@ -1075,229 +1075,140 @@ class TestDetectionsWithNmm:
         [
             pytest.param(
                 [
-                    np.array(
-                        [[10, 10], [50, 10], [50, 30], [10, 30]],
-                        dtype=np.float32,
-                    ),
-                    np.array(
-                        [[11, 11], [51, 11], [51, 31], [11, 31]],
-                        dtype=np.float32,
-                    ),
+                    [[10, 10], [50, 10], [50, 30], [10, 30]],
+                    [[11, 11], [51, 11], [51, 31], [11, 31]],
                 ],
                 [0.9, 0.85],
                 [0, 0],
                 0.5,
                 False,
                 OverlapMetric.IOU,
-                np.array(
-                    [[[10, 10], [51, 10], [51, 31], [10, 31]]],
-                    dtype=np.float32,
-                ),
+                [[[10, 10], [51, 10], [51, 31], [10, 31]]],
                 [0.875],
                 DoesNotRaise(),
                 id="axis-aligned-merge",
             ),
             pytest.param(
                 [
-                    _rotated_rect(50, 50, 40, 10, 45),
-                    _rotated_rect(55, 55, 40, 10, 45),
+                    _rotated_rect(50, 50, 40, 10, 45).tolist(),
+                    _rotated_rect(55, 55, 40, 10, 45).tolist(),
                 ],
                 [0.9, 0.8],
                 [0, 0],
                 0.3,
                 False,
                 OverlapMetric.IOU,
-                np.array(
-                    [
-                        [
-                            [39.39, 32.32],
-                            [72.68, 65.61],
-                            [65.61, 72.68],
-                            [32.32, 39.39],
-                        ]
-                    ],
-                    dtype=np.float32,
-                ),
+                [[[39.39, 32.32], [72.68, 65.61], [65.61, 72.68], [32.32, 39.39]]],
                 [0.85],
                 DoesNotRaise(),
                 id="rotated-45deg-merge",
             ),
             pytest.param(
                 [
-                    np.array(
-                        [[0, 0], [20, 0], [20, 10], [0, 10]],
-                        dtype=np.float32,
-                    ),
-                    np.array(
-                        [[5, 5], [25, 5], [25, 15], [5, 15]],
-                        dtype=np.float32,
-                    ),
-                    np.array(
-                        [[10, 0], [30, 0], [30, 10], [10, 10]],
-                        dtype=np.float32,
-                    ),
+                    [[0, 0], [20, 0], [20, 10], [0, 10]],
+                    [[5, 5], [25, 5], [25, 15], [5, 15]],
+                    [[10, 0], [30, 0], [30, 10], [10, 10]],
                 ],
                 [0.9, 0.8, 0.7],
                 [0, 0, 0],
                 0.2,
                 False,
                 OverlapMetric.IOU,
-                np.array(
-                    [[[0, 0], [30, 0], [30, 15], [0, 15]]],
-                    dtype=np.float32,
-                ),
+                [[[0, 0], [30, 0], [30, 15], [0, 15]]],
                 [0.797826],
                 DoesNotRaise(),
                 id="three-group-merge",
             ),
             pytest.param(
                 [
-                    np.array(
-                        [[10, 10], [50, 10], [50, 30], [10, 30]],
-                        dtype=np.float32,
-                    ),
+                    [[10, 10], [50, 10], [50, 30], [10, 30]],
                 ],
                 [0.9],
                 [0],
                 0.5,
                 False,
                 OverlapMetric.IOU,
-                np.array(
-                    [[[10, 10], [50, 10], [50, 30], [10, 30]]],
-                    dtype=np.float32,
-                ),
+                [[[10, 10], [50, 10], [50, 30], [10, 30]]],
                 [0.9],
                 DoesNotRaise(),
                 id="single-passthrough",
             ),
             pytest.param(
                 [
-                    np.array(
-                        [[0, 0], [30, 0], [30, 20], [0, 20]],
-                        dtype=np.float32,
-                    ),
-                    np.array(
-                        [[5, 5], [35, 5], [35, 25], [5, 25]],
-                        dtype=np.float32,
-                    ),
+                    [[0, 0], [30, 0], [30, 20], [0, 20]],
+                    [[5, 5], [35, 5], [35, 25], [5, 25]],
                 ],
                 [0.9, 0.8],
                 [0, 1],
                 0.3,
                 True,
                 OverlapMetric.IOU,
-                np.array(
-                    [[[0, 0], [35, 0], [35, 25], [0, 25]]],
-                    dtype=np.float32,
-                ),
+                [[[0, 0], [35, 0], [35, 25], [0, 25]]],
                 [0.85],
                 DoesNotRaise(),
                 id="class-agnostic",
             ),
             pytest.param(
                 [
-                    np.array(
-                        [[0, 0], [40, 0], [40, 30], [0, 30]],
-                        dtype=np.float32,
-                    ),
-                    np.array(
-                        [[10, 10], [30, 10], [30, 20], [10, 20]],
-                        dtype=np.float32,
-                    ),
+                    [[0, 0], [40, 0], [40, 30], [0, 30]],
+                    [[10, 10], [30, 10], [30, 20], [10, 20]],
                 ],
                 [0.9, 0.8],
                 [0, 0],
                 0.3,
                 False,
                 OverlapMetric.IOS,
-                np.array(
-                    [[[0, 0], [40, 0], [40, 30], [0, 30]]],
-                    dtype=np.float32,
-                ),
+                [[[0, 0], [40, 0], [40, 30], [0, 30]]],
                 [0.885714],
                 DoesNotRaise(),
                 id="ios-metric",
             ),
             pytest.param(
                 [
-                    _rotated_rect(50, 50, 40, 15, 30),
-                    _rotated_rect(55, 50, 40, 15, -15),
+                    _rotated_rect(50, 50, 40, 15, 30).tolist(),
+                    _rotated_rect(55, 50, 40, 15, -15).tolist(),
                 ],
                 [0.9, 0.7],
                 [0, 0],
                 0.2,
                 False,
                 OverlapMetric.IOU,
-                np.array(
-                    [
-                        [
-                            [43.65, 20.99],
-                            [81.56, 42.88],
-                            [62.12, 76.56],
-                            [24.21, 54.68],
-                        ]
-                    ],
-                    dtype=np.float32,
-                ),
+                [[[43.65, 20.99], [81.56, 42.88], [62.12, 76.56], [24.21, 54.68]]],
                 [0.813652],
                 DoesNotRaise(),
                 id="mixed-angle-merge",
             ),
             pytest.param(
                 [
-                    np.array(
-                        [[0, 0], [30, 0], [30, 20], [0, 20]],
-                        dtype=np.float32,
-                    ),
-                    np.array(
-                        [[5, 5], [35, 5], [35, 25], [5, 25]],
-                        dtype=np.float32,
-                    ),
-                    np.array(
-                        [[200, 200], [240, 200], [240, 220], [200, 220]],
-                        dtype=np.float32,
-                    ),
-                    np.array(
-                        [[205, 205], [245, 205], [245, 225], [205, 225]],
-                        dtype=np.float32,
-                    ),
+                    [[0, 0], [30, 0], [30, 20], [0, 20]],
+                    [[5, 5], [35, 5], [35, 25], [5, 25]],
+                    [[200, 200], [240, 200], [240, 220], [200, 220]],
+                    [[205, 205], [245, 205], [245, 225], [205, 225]],
                 ],
                 [0.9, 0.7, 0.85, 0.6],
                 [0, 0, 0, 0],
                 0.2,
                 False,
                 OverlapMetric.IOU,
-                np.array(
-                    [
-                        [[0, 0], [35, 0], [35, 25], [0, 25]],
-                        [[200, 200], [245, 200], [245, 225], [200, 225]],
-                    ],
-                    dtype=np.float32,
-                ),
+                [
+                    [[0, 0], [35, 0], [35, 25], [0, 25]],
+                    [[200, 200], [245, 200], [245, 225], [200, 225]],
+                ],
                 [0.8, 0.725],
                 DoesNotRaise(),
                 id="two-separate-groups",
             ),
             pytest.param(
                 [
-                    np.array(
-                        [[0, 0], [30, 0], [30, 20], [0, 20]],
-                        dtype=np.float32,
-                    ),
-                    np.array(
-                        [[5, 10], [25, 10], [25, 10], [5, 10]],
-                        dtype=np.float32,
-                    ),
+                    [[0, 0], [30, 0], [30, 20], [0, 20]],
+                    [[5, 10], [25, 10], [25, 10], [5, 10]],
                 ],
                 [0.9, 0.7],
                 [0, 0],
                 0.01,
                 False,
                 OverlapMetric.IOU,
-                np.array(
-                    [[[0, 0], [30, 0], [30, 20], [0, 20]]],
-                    dtype=np.float32,
-                ),
+                [[[0, 0], [30, 0], [30, 20], [0, 20]]],
                 [0.9],
                 DoesNotRaise(),
                 id="degenerate-collinear-obb",
@@ -1318,13 +1229,13 @@ class TestDetectionsWithNmm:
     )
     def test_obb_nmm_merge(
         self,
-        corners: list[np.ndarray] | None,
+        corners: list[list[list[float]]] | None,
         confidence: list[float],
         class_ids: list[int],
         iou_threshold: float,
         class_agnostic: bool,
         overlap_metric: OverlapMetric,
-        expected_corners: np.ndarray | None,
+        expected_corners: list[list[list[float]]] | None,
         expected_confidence: list[float] | None,
         exception: DoesNotRaise,
     ) -> None:
@@ -1348,7 +1259,8 @@ class TestDetectionsWithNmm:
                 data={ORIENTED_BOX_COORDINATES: flat},
             )
         else:
-            detections = _make_obb_detections(corners, confidence, class_ids)
+            corner_arrays = [np.array(corner, dtype=np.float32) for corner in corners]
+            detections = _make_obb_detections(corner_arrays, confidence, class_ids)
 
         with exception:
             result = detections.with_nmm(
@@ -1357,13 +1269,16 @@ class TestDetectionsWithNmm:
                 overlap_metric=overlap_metric,
             )
 
+            assert expected_confidence is not None
+            assert expected_corners is not None
             assert len(result) == len(expected_confidence)
             for i, exp_c in enumerate(expected_confidence):
                 assert result.confidence[i] == pytest.approx(exp_c, abs=1e-3)
             result_corners = result.data[ORIENTED_BOX_COORDINATES]
+            expected_corner_array = np.array(expected_corners, dtype=np.float32)
             assert np.allclose(
                 result_corners,
-                expected_corners,
+                expected_corner_array,
                 atol=0.5,
             )
 
