@@ -13,11 +13,11 @@ date_modified: 2026-06-15
 
 - Added [#2303](https://github.com/roboflow/supervision/pull/2303): [`sv.oriented_box_non_max_suppression`](https://supervision.roboflow.com/0.29.0/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.oriented_box_non_max_suppression) and [`sv.oriented_box_non_max_merge`](https://supervision.roboflow.com/0.29.0/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.oriented_box_non_max_merge) for performing NMS and NMM directly on oriented bounding boxes using oriented-box IoU instead of axis-aligned IoU.
 
-- Added [#2247](https://github.com/roboflow/supervision/pull/2247): [`sv.ConfusionMatrix`](https://supervision.roboflow.com/0.29.0/metrics/detection/#supervision.metrics.detection.ConfusionMatrix) now supports `MetricTarget.ORIENTED_BOUNDING_BOXES`, computing IoU via `oriented_box_iou_batch` on `xyxyxyxy` corners.
+- Added [#2247](https://github.com/roboflow/supervision/pull/2247): [`sv.ConfusionMatrix`](https://supervision.roboflow.com/0.29.0/detection/metrics/#supervision.metrics.detection.ConfusionMatrix) now supports `MetricTarget.ORIENTED_BOUNDING_BOXES`, computing IoU via `oriented_box_iou_batch` on `xyxyxyxy` corners.
 
 - Added [#2252](https://github.com/roboflow/supervision/pull/2252): [`sv.process_video`](https://supervision.roboflow.com/0.29.0/utils/video/#supervision.utils.video.process_video) gains a `preserve_audio` parameter. When enabled, the audio stream from the source video is muxed into the output using ffmpeg.
 
-- Added [#2302](https://github.com/roboflow/supervision/pull/2302), [#2289](https://github.com/roboflow/supervision/pull/2289): [`sv.DetectionDataset.as_yolo`](https://supervision.roboflow.com/0.29.0/datasets/#supervision.dataset.core.DetectionDataset.as_yolo) gains an `is_obb` parameter for exporting oriented bounding box annotations in the YOLO OBB format (9-token lines with 4 corner coordinates).
+- Added [#2302](https://github.com/roboflow/supervision/pull/2302), [#2289](https://github.com/roboflow/supervision/pull/2289): [`sv.DetectionDataset.as_yolo`](https://supervision.roboflow.com/0.29.0/datasets/core/#supervision.dataset.core.DetectionDataset.as_yolo) gains an `is_obb` parameter for exporting oriented bounding box annotations in the YOLO OBB format (9-token lines with 4 corner coordinates).
 
 - Changed [#2286](https://github.com/roboflow/supervision/pull/2286): [`sv.KeyPoints`](https://supervision.roboflow.com/0.29.0/keypoint/core/#supervision.key_points.core.KeyPoints) now separates keypoint-level and detection-level confidence into distinct fields: `keypoint_confidence` (shape `(n, m)`) and `detection_confidence` (shape `(n,)`). A new `visible` mask (shape `(n, m)`) controls per-keypoint visibility. The legacy `KeyPoints.confidence` property still works but is deprecated.
 
@@ -41,13 +41,13 @@ date_modified: 2026-06-15
 
 - Fixed [#2270](https://github.com/roboflow/supervision/pull/2270): [`sv.Detections.from_inference`](https://supervision.roboflow.com/0.29.0/detection/core/#supervision.detection.core.Detections.from_inference) now preserves `class_name` as a string-dtype array when predictions are empty.
 
-- Fixed [#2269](https://github.com/roboflow/supervision/pull/2269): [`sv.HeatMapAnnotator`](https://supervision.roboflow.com/0.29.0/annotators/#supervision.annotators.core.HeatMapAnnotator) no longer crashes with a divide-by-zero when called with empty detections.
+- Fixed [#2269](https://github.com/roboflow/supervision/pull/2269): [`sv.HeatMapAnnotator`](https://supervision.roboflow.com/0.29.0/detection/annotators/#supervision.annotators.core.HeatMapAnnotator) no longer crashes with a divide-by-zero when called with empty detections.
 
 - Fixed [#2276](https://github.com/roboflow/supervision/pull/2276): COCO export now emits 1-indexed `category_id` values as required by the COCO specification.
 
 - Fixed [#2267](https://github.com/roboflow/supervision/pull/2267): COCO annotation and image IDs are now sequential across train/val/test splits via `starting_image_id` and `starting_annotation_id` parameters.
 
-- Fixed [#2289](https://github.com/roboflow/supervision/pull/2289): [`sv.DetectionDataset.as_yolo`](https://supervision.roboflow.com/0.29.0/datasets/#supervision.dataset.core.DetectionDataset.as_yolo) no longer loses OBB rotation when exporting oriented bounding boxes.
+- Fixed [#2289](https://github.com/roboflow/supervision/pull/2289): [`sv.DetectionDataset.as_yolo`](https://supervision.roboflow.com/0.29.0/datasets/core/#supervision.dataset.core.DetectionDataset.as_yolo) no longer loses OBB rotation when exporting oriented bounding boxes.
 
 - Fixed [#2296](https://github.com/roboflow/supervision/pull/2296): YOLO dataset loading now sorts class names by numeric keys when `data.yaml` uses integer class IDs.
 
