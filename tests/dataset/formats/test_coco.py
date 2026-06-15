@@ -1854,7 +1854,7 @@ def test_detections_to_coco_annotations_exports_all_polygons() -> None:
     """All polygons from a multi-component mask must be exported, not just the first."""
     # Build a mask with two separate rectangles (disjoint components)
     mask = np.zeros((20, 20), dtype=bool)
-    mask[1:4, 1:4] = True   # top-left component
+    mask[1:4, 1:4] = True  # top-left component
     mask[14:18, 14:18] = True  # bottom-right component
 
     detections = Detections(
