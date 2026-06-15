@@ -269,6 +269,46 @@ def obb_polygon_area(corners: npt.NDArray) -> npt.NDArray[np.float64]:
     return 0.5 * np.abs(np.sum(cross, axis=-1))
 
 
+def xyxyxyxy_to_xyxy(
+    xyxyxyxy: npt.NDArray[np.number],
+) -> npt.NDArray[np.number]:
+    """Convert oriented bounding box corners to axis-aligned bounding boxes.
+
+    Args:
+        xyxyxyxy: OBB corner coordinates with shape `(N, 4, 2)` where each
+            box is represented as `[[x1, y1], [x2, y2], [x3, y3], [x4, y4]]`.
+
+    Returns:
+        Axis-aligned bounding boxes as an array of shape `(N, 4)`
+            in `(x_min, y_min, x_max, y_max)` format.
+
+    Raises:
+        ValueError: If `xyxyxyxy` does not have shape `(N, 4, 2)`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> corners = np.array([
+        ...     [[0, 0], [10, 0], [10, 5], [0, 5]],
+        ...     [[5, 5], [15, 5], [15, 10], [5, 10]],
+        ... ], dtype=np.float32)
+        >>> sv.xyxyxyxy_to_xyxy(corners)
+        array([[ 0.,  0., 10.,  5.],
+               [ 5.,  5., 15., 10.]], dtype=float32)
+
+        ```
+    """
+    xyxyxyxy = np.asarray(xyxyxyxy)
+    if xyxyxyxy.ndim != 3 or xyxyxyxy.shape[-2:] != (4, 2):
+        raise ValueError(f"xyxyxyxy must have shape (N, 4, 2); got {xyxyxyxy.shape}")
+    x_min = xyxyxyxy[..., 0].min(axis=-1)
+    y_min = xyxyxyxy[..., 1].min(axis=-1)
+    x_max = xyxyxyxy[..., 0].max(axis=-1)
+    y_max = xyxyxyxy[..., 1].max(axis=-1)
+    return np.stack([x_min, y_min, x_max, y_max], axis=-1)
+
+
 def scale_boxes(
     xyxy: npt.NDArray[np.float64], factor: float
 ) -> npt.NDArray[np.float64]:

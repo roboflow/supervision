@@ -19,7 +19,7 @@ from supervision.detection.tools.transformers import (
     process_transformers_v4_segmentation_result,
     process_transformers_v5_segmentation_result,
 )
-from supervision.detection.utils.boxes import obb_polygon_area
+from supervision.detection.utils.boxes import obb_polygon_area, xyxyxyxy_to_xyxy
 from supervision.detection.utils.converters import (
     mask_to_xyxy,
     polygon_to_mask,
@@ -2562,6 +2562,17 @@ class Detections:
             A new Detections object containing the subset of detections
                 after non-maximum merging.
 
+        Note:
+            For detections carrying oriented bounding box data
+            (``data[ORIENTED_BOX_COORDINATES]``), each merge group's output OBB
+            is the tightest rectangle at the winner's orientation enclosing all
+            corners contributed by every detection in the group. The winner is
+            the highest-confidence detection in the group. The axis-aligned
+            ``xyxy`` field is updated to the tight bounding box of that rect.
+            For zero-rotation OBBs this equals the axis-aligned union exactly;
+            for rotated OBBs the merged rect inherits the winner's rotation angle.
+            Groups of size 1 keep the original OBB unchanged.
+
         Raises:
             AssertionError: If `confidence` is None or `class_id` is None and
                 class_agnostic is False.
@@ -2615,30 +2626,142 @@ class Detections:
 
         result: list[Detections] = []
         for merge_group in merge_groups:
-            unmerged_detections = [cast(Detections, self[i]) for i in merge_group]
-            merged_detections = merge_inner_detections_objects_without_iou(
-                unmerged_detections
-            )
-            if (
-                len(merge_group) > 1
-                and ORIENTED_BOX_COORDINATES in merged_detections.data
-            ):
-                obb = merged_detections.data[ORIENTED_BOX_COORDINATES][0]  # (4, 2)
-                merged_detections.xyxy = np.array(
-                    [
-                        [
-                            float(obb[:, 0].min()),
-                            float(obb[:, 1].min()),
-                            float(obb[:, 0].max()),
-                            float(obb[:, 1].max()),
-                        ]
-                    ]
-                )
-            result.append(merged_detections)
+            group = [cast(Detections, self[i]) for i in merge_group]
+            result.append(_merge_detection_group(group))
 
         return Detections.merge(result)
 
 
+def _merge_obb_corners(corners_list: list[np.ndarray]) -> npt.NDArray[np.floating]:
+    """Merge multiple OBB corner arrays using winner-angle projection.
+
+    The first entry in *corners_list* is the winner. Its orientation angle
+    (derived from its first edge) defines the local frame in which the
+    tightest enclosing axis-aligned rectangle is computed. That rectangle is
+    then rotated back to produce the merged OBB.
+
+    Args:
+        corners_list: List of (4, 2) corner arrays. First is the winner.
+
+    Returns:
+        Merged OBB corners as a (4, 2) float32 array.
+    """
+    all_corners = np.concatenate(corners_list, axis=0).astype(np.float32)
+    # Use winner's first edge to derive orientation angle -- avoids
+    # cv2.minAreaRect surprises (e.g. 90-degree flip for wide rects).
+    winner_edge = corners_list[0][1] - corners_list[0][0]
+    angle = float(np.arctan2(winner_edge[1], winner_edge[0]))
+    cos, sin = float(np.cos(angle)), float(np.sin(angle))
+
+    # De-rotate all corners into the winner's local frame
+    to_local = np.array([[cos, -sin], [sin, cos]], dtype=np.float32)
+    local_corners = all_corners @ to_local
+    x_min = float(local_corners[:, 0].min())
+    x_max = float(local_corners[:, 0].max())
+    y_min = float(local_corners[:, 1].min())
+    y_max = float(local_corners[:, 1].max())
+
+    # Rotate the enclosing AABB back to world frame
+    to_world = np.array([[cos, sin], [-sin, cos]], dtype=np.float32)
+    merged: npt.NDArray[np.floating] = (
+        np.array(
+            [[x_min, y_min], [x_max, y_min], [x_max, y_max], [x_min, y_max]],
+            dtype=np.float32,
+        )
+        @ to_world
+    )
+    return merged
+
+
+def _merge_detection_group(detections: list[Detections]) -> Detections:
+    """Merge a group of single-object Detections into one merged detection.
+
+    Used internally by :meth:`Detections.with_nmm` to combine each merge group
+    into a single output detection. The highest-confidence detection is the
+    "winner" whose class_id, tracker_id, and data fields are preserved.
+
+    Args:
+        detections: List of Detections, each containing exactly one object.
+
+    Returns:
+        A single merged Detections object of length 1.
+    """
+    if len(detections) == 1:
+        return detections[0]
+
+    confidences = np.array(
+        [d.confidence[0] if d.confidence is not None else 0.0 for d in detections],
+        dtype=np.float64,
+    )
+    winner_idx = int(np.argmax(confidences))
+    winner = detections[winner_idx]
+
+    # Area-weighted confidence: each box contributes proportionally to its
+    # footprint so large overlapping boxes dominate over small slivers.
+    all_xyxy = np.array([d.xyxy[0] for d in detections], dtype=np.float32)
+    areas = (all_xyxy[:, 2] - all_xyxy[:, 0]) * (all_xyxy[:, 3] - all_xyxy[:, 1])
+
+    if winner.confidence is not None:
+        total_area = float(areas.sum())
+        if total_area > 0:
+            confidence = np.array(
+                [float(np.dot(areas, confidences) / total_area)],
+                dtype=np.float32,
+            )
+        else:
+            confidence = winner.confidence
+    else:
+        confidence = None
+
+    # OBB path: merge corners via winner-angle projection, then derive xyxy
+    # from the merged OBB so both stay consistent.
+    has_obb = ORIENTED_BOX_COORDINATES in winner.data
+    if has_obb:
+        corners_list = []
+        for det in detections:
+            c = np.asarray(det.data[ORIENTED_BOX_COORDINATES])
+            if c.ndim != 3 or c.shape[1:] != (4, 2):
+                raise ValueError(f"corners must have shape (N, 4, 2); got {c.shape}")
+            corners_list.append(c[0].reshape(4, 2))
+        merged_corners = _merge_obb_corners(corners_list)
+        xyxy = xyxyxyxy_to_xyxy(merged_corners[np.newaxis])
+        data = {**winner.data, ORIENTED_BOX_COORDINATES: merged_corners[np.newaxis]}
+    else:
+        # AABB path: union bounding box across all group members
+        xyxy = np.array(
+            [
+                [
+                    all_xyxy[:, 0].min(),
+                    all_xyxy[:, 1].min(),
+                    all_xyxy[:, 2].max(),
+                    all_xyxy[:, 3].max(),
+                ]
+            ],
+            dtype=np.float32,
+        )
+        data = winner.data
+
+    # Mask union via logical OR
+    masks = [d.mask for d in detections if d.mask is not None]
+    if masks:
+        mask = np.logical_or.reduce(np.concatenate(masks, axis=0))[np.newaxis]
+    else:
+        mask = None
+
+    metadata = merge_metadata([d.metadata for d in detections])
+
+    return Detections(
+        xyxy=xyxy,
+        mask=mask,
+        confidence=confidence,
+        class_id=winner.class_id,
+        tracker_id=winner.tracker_id,
+        data=data,
+        metadata=metadata,
+    )
+
+
+@deprecated(deprecated_in="0.29.0", remove_in="0.34.0")  # type: ignore[untyped-decorator]
 def merge_inner_detection_object_pair(
     detections_1: Detections, detections_2: Detections
 ) -> Detections:
@@ -2731,6 +2854,7 @@ def merge_inner_detection_object_pair(
     )
 
 
+@deprecated(deprecated_in="0.29.0", remove_in="0.34.0")  # type: ignore[untyped-decorator]
 def merge_inner_detections_objects(
     detections: list[Detections],
     threshold: float = 0.5,
@@ -2758,6 +2882,7 @@ def merge_inner_detections_objects(
     return detections_1
 
 
+@deprecated(deprecated_in="0.29.0", remove_in="0.34.0")  # type: ignore[untyped-decorator]
 def merge_inner_detections_objects_without_iou(
     detections: list[Detections],
 ) -> Detections:
