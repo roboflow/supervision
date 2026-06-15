@@ -307,7 +307,11 @@ def detections_to_coco_annotations(
                 if isinstance(raw_seg, dict):
                     # RLE format — pass through unchanged
                     segmentation = raw_seg
-                elif isinstance(raw_seg, list) and raw_seg and not isinstance(raw_seg[0], (list, tuple)):
+                elif (
+                    isinstance(raw_seg, list)
+                    and raw_seg
+                    and not isinstance(raw_seg[0], (list, tuple))
+                ):
                     # Flat list shorthand [x1,y1,...] — wrap to list-of-lists
                     segmentation = [list(raw_seg)]
                 else:
