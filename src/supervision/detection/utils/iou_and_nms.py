@@ -360,7 +360,14 @@ def box_iou_batch_with_jaccard(
 
 
 def _polygon_areas(polygons: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
-    """Shoelace area of every ``(4, 2)`` polygon in an ``(N, 4, 2)`` batch."""
+    """Compute the area of each oriented-box polygon using the shoelace formula.
+
+    Args:
+        polygons: ``(N, 4, 2)`` array of polygon corners.
+
+    Returns:
+        ``(N,)`` array of polygon areas.
+    """
     x = polygons[:, :, 0]
     y = polygons[:, :, 1]
     cross = x * np.roll(y, -1, axis=1) - np.roll(x, -1, axis=1) * y
@@ -368,7 +375,14 @@ def _polygon_areas(polygons: npt.NDArray[np.floating]) -> npt.NDArray[np.floatin
 
 
 def _aabb_envelopes(polygons: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
-    """Axis-aligned envelope ``(x_min, y_min, x_max, y_max)`` of each oriented box."""
+    """Compute the axis-aligned bounding envelope of each oriented box.
+
+    Args:
+        polygons: ``(N, 4, 2)`` array of polygon corners.
+
+    Returns:
+        ``(N, 4)`` array of ``(x_min, y_min, x_max, y_max)`` envelopes.
+    """
     xs = polygons[:, :, 0]
     ys = polygons[:, :, 1]
     return np.stack(
@@ -382,8 +396,23 @@ def _overlapping_envelope_pairs(
 ) -> tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]]:
     """Return index pairs ``(i, j)`` whose axis-aligned envelopes overlap.
 
-    Vectorized pre-filter: any pair excluded here has zero oriented overlap, so
-    only the survivors need the more expensive exact polygon intersection.
+    Uses a fused boolean evaluation to halve peak transient memory compared to
+    named-intermediate form (4 separate NxM float64 arrays vs 1 boolean array).
+
+    Note:
+        This gate is a correctness guarantee, not an approximation: if two
+        axis-aligned bounding boxes do not overlap, the convex polygons they
+        contain cannot overlap either.
+
+    Args:
+        envelopes_true: ``(N, 4)`` array of ``(x_min, y_min, x_max, y_max)``
+            envelopes for the ground-truth boxes.
+        envelopes_detection: ``(M, 4)`` array of ``(x_min, y_min, x_max, y_max)``
+            envelopes for the detection boxes.
+
+    Returns:
+        A pair of 1-D index arrays ``(rows, cols)`` identifying the overlapping
+        pairs.
     """
     x_min = np.maximum(envelopes_true[:, None, 0], envelopes_detection[None, :, 0])
     y_min = np.maximum(envelopes_true[:, None, 1], envelopes_detection[None, :, 1])
@@ -410,6 +439,19 @@ def oriented_box_iou_batch(
     `boxes_true` and `boxes_detection` are expected to be in
     `((x1, y1), (x2, y2), (x3, y3), (x4, y4))` format.
 
+    Note:
+        Inputs must be **convex** quads with finite coordinates. Self-intersecting
+        or non-convex polygons produce undefined results via
+        ``cv2.intersectConvexConvex``. NaN or Inf coordinates propagate silently
+        as ``0.0`` — validate inputs before calling if needed.
+
+        When ``boxes_true is boxes_detection`` (the same Python object, not just
+        equal values), the function computes only the upper triangle of the
+        matrix and mirrors it. This optimization is used automatically by the
+        NMS/NMM callers that pass the same array twice. A defensive ``.copy()``
+        at the call site would disable the optimization silently — see the
+        NMS caller comment for context.
+
     Args:
         boxes_true: A `np.ndarray` representing ground-truth boxes.
             `shape = (N, 4, 2)` where `N` is number of true objects.
@@ -423,10 +465,27 @@ def oriented_box_iou_batch(
             between pairs of oriented boxes (e.g., IoU, IoS).
 
     Returns:
-        Pairwise overlap scores in the range `[0, 1]` of boxes from
-            `boxes_true` and `boxes_detection`, using the configured
-            :attr:`overlap_metric`. `shape = (N, M)` where `N` is number of
-            true objects and `M` is number of detected objects.
+        Overlap matrix of shape `(N, M)`, where entry `[i, j]` is the overlap
+        score between `boxes_true[i]` and `boxes_detection[j]`, in the range
+        `[0, 1]` under the configured :attr:`overlap_metric`.
+
+    Raises:
+        ValueError: If ``boxes_true`` or ``boxes_detection`` is 3-D with inner
+            dimensions other than ``(4, 2)``.
+        ValueError: If ``boxes_true`` or ``boxes_detection`` is 2-D with a
+            column count other than 8.
+        ValueError: If ``boxes_true`` or ``boxes_detection`` is not 2-D or 3-D.
+        ValueError: If ``overlap_metric`` is not
+            :attr:`~supervision.config.OverlapMetric.IOU` or
+            :attr:`~supervision.config.OverlapMetric.IOS`.
+
+    Examples:
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> a = np.array([[[0, 0], [2, 0], [2, 2], [0, 2]]], dtype=np.float32)
+        >>> b = np.array([[[1, 0], [3, 0], [3, 2], [1, 2]]], dtype=np.float32)
+        >>> sv.oriented_box_iou_batch(a, b)  # doctest: +ELLIPSIS
+        array([[0.333...]])
     """
 
     for name, arr in (("boxes_true", boxes_true), ("boxes_detection", boxes_detection)):
@@ -468,9 +527,11 @@ def oriented_box_iou_batch(
     areas_true = _polygon_areas(boxes_true)
     areas_detection = _polygon_areas(boxes_detection)
 
-    rows, cols = _overlapping_envelope_pairs(
-        _aabb_envelopes(boxes_true), _aabb_envelopes(boxes_detection)
+    envelopes_true = _aabb_envelopes(boxes_true)
+    envelopes_detection = (
+        envelopes_true if is_self_comparison else _aabb_envelopes(boxes_detection)
     )
+    rows, cols = _overlapping_envelope_pairs(envelopes_true, envelopes_detection)
     if is_self_comparison:
         upper = rows <= cols
         rows, cols = rows[upper], cols[upper]
@@ -496,8 +557,11 @@ def oriented_box_iou_batch(
             if is_self_comparison:
                 ious[j, i] = score
 
-    # Exact clipping runs in float32 (OpenCV), so a perfect overlap can round
-    # microscopically above 1.0; IoU and IoS are both bounded by [0, 1].
+    # DO NOT remove this clip. cv2.intersectConvexConvex computes in float32
+    # internally while polygon areas are computed in float64; the intersection
+    # area can exceed the float64 area by ~25 ULP (~1e-7), producing raw IoU
+    # or IoS values microscopically above 1.0 for identical boxes. The clip is
+    # load-bearing, not defensive duplication.
     return cast(npt.NDArray[np.floating], np.clip(ious, 0.0, 1.0))
 
 
@@ -1224,6 +1288,7 @@ def oriented_box_non_max_suppression(
         )
     sort_index, _, categories = _prepare_predictions_for_nms(predictions)
     oriented_boxes = oriented_boxes[sort_index]
+    # same object intentional — triggers upper-triangle optimization
     ious = oriented_box_iou_batch(oriented_boxes, oriented_boxes, overlap_metric)
     keep = _nms_loop_from_iou_matrix(ious, categories, iou_threshold)
     return cast(npt.NDArray[np.bool_], keep[sort_index.argsort()])
