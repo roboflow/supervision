@@ -1873,13 +1873,16 @@ def test_detections_to_coco_annotations_exports_all_polygons() -> None:
         xyxy=np.array([[1, 1, 4, 4]], dtype=np.float32),
         class_id=np.array([0], dtype=int),
         mask=np.array([mask]),
+        data={"iscrowd": np.array([0], dtype=int)},
     )
     annotations, _ = detections_to_coco_annotations(
         detections=detections, image_id=1, annotation_id=1
     )
     assert len(annotations) == 1
-    # Both components must appear as separate polygon entries
-    assert len(annotations[0]["segmentation"]) >= 2
+    seg = annotations[0]["segmentation"]
+    # Both components must appear as separate polygon entries (list of lists)
+    assert isinstance(seg, list), "segmentation must be a list of polygons"
+    assert len(seg) >= 2
 
 
 def test_coco_polygon_segmentation_survives_roundtrip(tmp_path) -> None:
@@ -1932,8 +1935,9 @@ def test_coco_polygon_segmentation_survives_roundtrip(tmp_path) -> None:
 
 
 def test_coco_raw_segmentation_preserved_when_masks_not_decoded(tmp_path) -> None:
-    """When masks are NOT decoded, raw polygon/RLE in data['coco_raw_segmentation']
-    is re-emitted verbatim by as_coco() — no approximation loss."""
+    """When masks are NOT decoded (with_masks=False), raw polygon data stored in
+    data['segmentation'] is used as a lossless fallback so as_coco() still emits
+    non-empty segmentation."""
     from supervision.dataset.formats.coco import (
         coco_annotations_to_detections,
         detections_to_coco_annotations,

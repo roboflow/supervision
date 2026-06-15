@@ -304,13 +304,22 @@ def detections_to_coco_annotations(
                     )
         else:
             iscrowd = int(np.asarray(data.get("iscrowd", 0)).item())
-            # When loading skipped mask decoding (with_masks=False), raw polygon/RLE
-            # coordinates are re-emitted verbatim — no approximation loss.
-            raw_seg = data.get(COCO_RAW_SEGMENTATION)
-            if raw_seg is not None and len(raw_seg) > 0:
-                segmentation = (
-                    raw_seg if isinstance(raw_seg, (list, dict)) else list(raw_seg)
-                )
+            # When masks were not decoded during loading, fall back to the raw
+            # polygon/RLE stored in data["segmentation"] for a lossless round-trip.
+            raw_seg = data.get("segmentation")
+            if raw_seg is not None and bool(raw_seg):
+                if isinstance(raw_seg, dict):
+                    # RLE format — pass through unchanged
+                    segmentation = raw_seg
+                elif (
+                    isinstance(raw_seg, list)
+                    and raw_seg
+                    and not isinstance(raw_seg[0], (list, tuple))
+                ):
+                    # Flat list shorthand [x1,y1,...] — wrap to list-of-lists
+                    segmentation = [list(raw_seg)]
+                else:
+                    segmentation = list(raw_seg)
 
         area: float = float(np.asarray(data.get("area", box_width * box_height)).item())
         coco_annotation = {
