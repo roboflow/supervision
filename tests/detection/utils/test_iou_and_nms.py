@@ -11,6 +11,7 @@ from supervision.detection.utils.iou_and_nms import (
     box_iou,
     box_iou_batch,
     box_non_max_suppression,
+    mask_iou_batch,
     mask_non_max_merge,
     mask_non_max_suppression,
     oriented_box_iou_batch,
@@ -1446,3 +1447,66 @@ class TestOrientedBoxNonMaxMerge:
 
         sorted_groups = sorted(sorted(g) for g in groups)
         assert sorted_groups == [[0, 1], [2]]
+
+
+def _naive_mask_iou(
+    masks_true: np.ndarray,
+    masks_detection: np.ndarray,
+    overlap_metric: OverlapMetric = OverlapMetric.IOU,
+) -> np.ndarray:
+    """Reference IoU that materialises the (N, M, H, W) overlap explicitly."""
+    intersection = np.logical_and(masks_true[:, None], masks_detection).sum(axis=(2, 3))
+    area_true = masks_true.sum(axis=(1, 2))
+    area_detection = masks_detection.sum(axis=(1, 2))
+    if overlap_metric == OverlapMetric.IOU:
+        denominator = area_true[:, None] + area_detection - intersection
+    else:
+        denominator = np.minimum(area_true[:, None], area_detection)
+    return np.divide(
+        intersection,
+        denominator,
+        out=np.zeros((len(masks_true), len(masks_detection)), dtype=float),
+        where=denominator != 0,
+    )
+
+
+class TestMaskIouBatch:
+    """`mask_iou_batch` (matmul intersection) matches the naive boolean reference."""
+
+    @pytest.mark.parametrize(
+        "overlap_metric",
+        [
+            pytest.param(OverlapMetric.IOU, id="iou"),
+            pytest.param(OverlapMetric.IOS, id="ios"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "shape",
+        [
+            pytest.param((1, 20, 24), id="single"),
+            pytest.param((7, 32, 40), id="several"),
+        ],
+    )
+    def test_matches_naive_reference_on_random_masks(
+        self, shape: tuple[int, int, int], overlap_metric: OverlapMetric
+    ) -> None:
+        """Random masks give the same matrix as the explicit (N, M, H, W) reference."""
+        rng = np.random.default_rng(0)
+        masks_true = rng.random(shape) > 0.5
+        masks_detection = rng.random(shape) > 0.5
+
+        result = mask_iou_batch(masks_true, masks_detection, overlap_metric)
+
+        expected = _naive_mask_iou(masks_true, masks_detection, overlap_metric)
+        np.testing.assert_allclose(result, expected)
+
+    def test_identical_disjoint_and_empty(self) -> None:
+        """Identical masks score 1.0, disjoint 0.0; empty input keeps its shape."""
+        mask = np.zeros((1, 10, 10), dtype=bool)
+        mask[0, 2:6, 2:6] = True
+        far = np.zeros((1, 10, 10), dtype=bool)
+        far[0, 7:9, 7:9] = True
+
+        assert mask_iou_batch(mask, mask)[0, 0] == pytest.approx(1.0)
+        assert mask_iou_batch(mask, far)[0, 0] == 0.0
+        assert mask_iou_batch(np.zeros((0, 10, 10), dtype=bool), mask).shape == (0, 1)

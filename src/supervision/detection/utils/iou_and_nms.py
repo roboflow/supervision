@@ -584,9 +584,15 @@ def _mask_iou_batch_split(
     Returns:
         Pairwise IoU of masks from `masks_true` and `masks_detection`.
     """
-    intersection_area = np.logical_and(masks_true[:, None], masks_detection).sum(
-        axis=(2, 3)
+    # The overlap of two binary masks is the dot product of their flattened
+    # pixels, so the whole (N, M) intersection matrix is a single matmul.
+    # Counts are bounded by H*W and stay exact in float32 for masks up to ~4K.
+    pixels = int(np.prod(masks_true.shape[1:]))
+    true_flat = masks_true.reshape(masks_true.shape[0], pixels).astype(np.float32)
+    detection_flat = masks_detection.reshape(masks_detection.shape[0], pixels).astype(
+        np.float32
     )
+    intersection_area = true_flat @ detection_flat.T
 
     masks_true_area = masks_true.sum(axis=(1, 2))  # (area1, area2, ...)
     masks_detection_area = masks_detection.sum(axis=(1, 2))  # (area1)
