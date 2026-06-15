@@ -7,6 +7,8 @@ date_modified: 2026-06-15
 
 ### UnReleased
 
+- Fixed [#2322](https://github.com/roboflow/supervision/pull/2322): COCO export now preserves all polygon parts for multi-component masks. Previously, only the first polygon was written when a non-crowd mask had disjoint segments; all parts are now included.
+
 ### 0.29.0 <small>Jun 15, 2026</small>
 
 - Added [#2277](https://github.com/roboflow/supervision/pull/2277), [#2286](https://github.com/roboflow/supervision/pull/2286): [`sv.VertexEllipseAreaAnnotator`](https://supervision.roboflow.com/0.29.0/keypoint/annotators/#supervision.key_points.annotators.VertexEllipseAreaAnnotator), [`sv.VertexEllipseOutlineAnnotator`](https://supervision.roboflow.com/0.29.0/keypoint/annotators/#supervision.key_points.annotators.VertexEllipseOutlineAnnotator), and [`sv.VertexEllipseHaloAnnotator`](https://supervision.roboflow.com/0.29.0/keypoint/annotators/#supervision.key_points.annotators.VertexEllipseHaloAnnotator) for visualizing keypoint uncertainty as covariance ellipses. Requires models that output keypoint uncertainty (e.g. RF-DETR keypoint models).
@@ -18,6 +20,8 @@ date_modified: 2026-06-15
 - Added [#2252](https://github.com/roboflow/supervision/pull/2252): [`sv.process_video`](https://supervision.roboflow.com/0.29.0/utils/video/#supervision.utils.video.process_video) gains a `preserve_audio` parameter. When enabled, the audio stream from the source video is muxed into the output using ffmpeg.
 
 - Added [#2302](https://github.com/roboflow/supervision/pull/2302), [#2289](https://github.com/roboflow/supervision/pull/2289): [`sv.DetectionDataset.as_yolo`](https://supervision.roboflow.com/0.29.0/datasets/core/#supervision.dataset.core.DetectionDataset.as_yolo) gains an `is_obb` parameter for exporting oriented bounding box annotations in the YOLO OBB format (9-token lines with 4 corner coordinates).
+
+- Added [#2312](https://github.com/roboflow/supervision/pull/2312): [`sv.xyxyxyxy_to_xyxy`](https://supervision.roboflow.com/0.29.0/detection/utils/boxes/#supervision.detection.utils.boxes.xyxyxyxy_to_xyxy) — vectorised utility that converts oriented bounding box corners `(N, 4, 2)` to axis-aligned bounding boxes `(N, 4)`.
 
 - Changed [#2286](https://github.com/roboflow/supervision/pull/2286): [`sv.KeyPoints`](https://supervision.roboflow.com/0.29.0/keypoint/core/#supervision.key_points.core.KeyPoints) now separates keypoint-level and detection-level confidence into distinct fields: `keypoint_confidence` (shape `(n, m)`) and `detection_confidence` (shape `(n,)`). A new `visible` mask (shape `(n, m)`) controls per-keypoint visibility. The legacy `KeyPoints.confidence` property still works but is deprecated.
 
@@ -33,7 +37,13 @@ date_modified: 2026-06-15
 
 - Changed [#2256](https://github.com/roboflow/supervision/pull/2256): [`sv.InferenceSlicer`](https://supervision.roboflow.com/0.29.0/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer) now detects OBB outputs from callbacks and automatically falls back to sequential processing to avoid thread-safety issues when `thread_workers > 1`.
 
+- Changed [#2325](https://github.com/roboflow/supervision/pull/2325): [`sv.EllipseAnnotator`](https://supervision.roboflow.com/0.29.0/detection/annotators/#supervision.annotators.core.EllipseAnnotator) and related ellipse annotators now draw level-by-level instead of point-by-point, eliminating visible aliasing and striping artefacts.
+
+- Changed [#2324](https://github.com/roboflow/supervision/pull/2324): Project-wide deprecation policy unified to a minimum 3-minor-release window. All current deprecations (including `KeyPoints.confidence` and `validate_*` helpers) are scheduled for removal in `0.32.0`.
+
 - Fixed [#2282](https://github.com/roboflow/supervision/pull/2282): [`sv.oriented_box_iou_batch`](https://supervision.roboflow.com/0.29.0/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.oriented_box_iou_batch) now correctly handles non-square canvases. Previously, rasterization assumed square dimensions, leading to incorrect IoU values for tall or wide images.
+
+- Fixed [#2317](https://github.com/roboflow/supervision/pull/2317): [`sv.oriented_box_iou_batch`](https://supervision.roboflow.com/0.29.0/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.oriented_box_iou_batch) now uses an axis-aligned bounding box envelope gate to skip non-overlapping pairs before rasterisation, producing exact IoU values and eliminating quantisation noise.
 
 - Fixed [#2252](https://github.com/roboflow/supervision/pull/2252): [`sv.process_video`](https://supervision.roboflow.com/0.29.0/utils/video/#supervision.utils.video.process_video) audio muxing path now correctly creates temp files on the same filesystem, decodes ffmpeg errors, and avoids muxing incomplete output.
 
@@ -54,6 +64,8 @@ date_modified: 2026-06-15
 - Fixed [#2297](https://github.com/roboflow/supervision/pull/2297): Letterbox utility now supports grayscale images.
 
 - Fixed [#2298](https://github.com/roboflow/supervision/pull/2298): File extension filters now normalize casing (e.g. `.JPG` matches `.jpg`).
+
+- Fixed [#2321](https://github.com/roboflow/supervision/pull/2321): [`sv.DetectionDataset.as_coco()`](https://supervision.roboflow.com/0.29.0/datasets/core/#supervision.dataset.core.DetectionDataset.as_coco) now round-trips polygon and RLE segmentation data. Segmentations loaded from COCO annotations are preserved in `detections.data["coco_raw_segmentation"]` and written back on export, preventing data loss in train/val/test split workflows.
 
 - Deprecated: `KeyPoints.confidence` (use `KeyPoints.keypoint_confidence`), `merge_inner_detection_object_pair`, `merge_inner_detections_objects`, `merge_inner_detections_objects_without_iou`, `validate_detections_fields`, `validate_vlm_parameters`, `validate_fields_both_defined_or_none`, `validate_xyxy`, `validate_mask`, `validate_class_id`, `validate_confidence`, `validate_tracker_id`, `validate_data`, `validate_xy`, `validate_key_point_confidence`, `validate_key_points_fields`, `validate_resolution`, `validate_custom_values`, `validate_input_tensors`, and `validate_labels` are deprecated in `0.29.0` and will be removed in `0.32.0`.
 
@@ -76,8 +88,6 @@ date_modified: 2026-06-15
 - Added [#2154](https://github.com/roboflow/supervision/pull/2154): The library now uses Python's `logging` module instead of `print` for diagnostic output. Messages are emitted under the `supervision` logger so applications can capture, filter, or silence them through standard `logging` configuration.
 
 - Added [#932](https://github.com/roboflow/supervision/pull/932): [`sv.ImageAssets`](https://supervision.roboflow.com/latest/assets/) for downloading sample images alongside existing video assets, useful for examples and tutorials.
-
-- Added [#2247](https://github.com/roboflow/supervision/pull/2247): [`sv.ConfusionMatrix`](https://supervision.roboflow.com/metrics/detection/#confusionmatrix) now accepts `metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES`, computing IoU via `oriented_box_iou_batch` over `xyxyxyxy` coordinates. Previously, OBB inputs silently fell back to axis-aligned bounding-box IoU, producing incorrect match scores for rotated detections.
 
 - Changed [#2169](https://github.com/roboflow/supervision/pull/2169): [`sv.MeanAveragePrecisionResult`](https://supervision.roboflow.com/latest/metrics/mean_average_precision/) and related metric arrays (`mAP_scores`, `ap_per_class`, `iou_thresholds`, precision/recall) are now `float32` instead of `float64`. Reduces memory and speeds up computation; numerical results may differ in the last few digits.
 
