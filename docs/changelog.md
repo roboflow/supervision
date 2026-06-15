@@ -13,11 +13,12 @@ date_modified: 2026-06-09
 
   **Who is affected:** users who called `cv2.imshow`, `cv2.waitKey`, or `cv2.namedWindow` in their own scripts alongside `import supervision`, relying on supervision's transitive `opencv-python` dependency to provide those symbols.
 
-  **How to restore GUI support:** install the full wheel explicitly after upgrading supervision:
+  **How to restore GUI support:** replace the headless wheel with the full one:
   ```bash
+  pip uninstall -y opencv-python-headless
   pip install opencv-python
   ```
-  Both wheel families share the `cv2` namespace; installing `opencv-python` on top of `opencv-python-headless` is unsafe — install only one.
+  Both wheel families share the `cv2` namespace; keep only one installed at a time.
 
   **Co-installation conflict:** packages that pin `opencv-python` (e.g. `ultralytics`, `inference-sdk`) cannot be installed alongside `supervision` without a resolver conflict. If you depend on both, pin `opencv-python` explicitly in your environment and the resolver will prefer it over `opencv-python-headless`.
 
