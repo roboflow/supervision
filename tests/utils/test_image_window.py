@@ -73,10 +73,12 @@ class TestTkImageWindowShow:
         mock_root = MagicMock()
         mock_label = MagicMock()
         mock_photo = MagicMock()
+        fake_imagetk = MagicMock()
+        fake_imagetk.PhotoImage.return_value = mock_photo
 
         with (
             patch("supervision.utils.image_window.TkImageWindow._ensure_window"),
-            patch("PIL.ImageTk.PhotoImage", return_value=mock_photo) as mock_ph,
+            patch.dict("sys.modules", {"PIL.ImageTk": fake_imagetk}),
         ):
             window._root = mock_root
             window._label = mock_label
@@ -84,7 +86,7 @@ class TestTkImageWindowShow:
             frame = np.zeros((4, 4, 3), dtype=np.uint8)
             window.show(frame)
 
-        mock_ph.assert_called_once()
+        fake_imagetk.PhotoImage.assert_called_once()
         mock_label.configure.assert_called_once_with(image=mock_photo)
         mock_root.update_idletasks.assert_called_once()
         mock_root.update.assert_called_once()
