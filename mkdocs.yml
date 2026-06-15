@@ -78,6 +78,7 @@ nav:
       - Utils:
           - Video: utils/video.md
           - Image: utils/image.md
+          - Image Window: utils/image_window.md
           - Iterables: utils/iterables.md
           - Notebook: utils/notebook.md
           - File: utils/file.md
