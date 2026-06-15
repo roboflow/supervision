@@ -1936,14 +1936,20 @@ def test_coco_polygon_segmentation_survives_roundtrip(
     area: float,
     expected_min_polygon_count: int,
 ) -> None:
-    """from_coco() -> as_coco() must preserve polygon segmentation."""
+    """COCO polygon segmentation survives the load/export sequence.
+
+    1. Write source COCO JSON with polygon segmentation.
+    2. Load it through DetectionDataset.from_coco().
+    3. Export it back to COCO JSON with as_coco().
+    4. Assert the exported segmentation keeps the expected polygon component count.
+    """
     images_dir = tmp_path / "images"
     images_dir.mkdir()
 
-    # Create a small image so as_coco can read it
     img_path = images_dir / "img.jpg"
     assert cv2.imwrite(str(img_path), np.zeros((10, 10, 3), dtype=np.uint8))
 
+    # 1. Write source COCO JSON with polygon segmentation.
     ann_path = tmp_path / "annotations.json"
     ann_path.write_text(
         json.dumps(
@@ -1956,17 +1962,20 @@ def test_coco_polygon_segmentation_survives_roundtrip(
         encoding="utf-8",
     )
 
+    # 2. Load it through the internal DetectionDataset representation.
     ds = DetectionDataset.from_coco(
         images_directory_path=str(images_dir),
         annotations_path=str(ann_path),
     )
 
+    # 3. Export it back to COCO JSON.
     out_ann_path = tmp_path / "out_annotations.json"
     ds.as_coco(annotations_path=str(out_ann_path))
 
     with open(out_ann_path) as f:
         out = json.load(f)
 
+    # 4. Assert polygon component count survives the load/export sequence.
     assert len(out["annotations"]) == 1
     seg = out["annotations"][0]["segmentation"]
     assert isinstance(seg, list)
