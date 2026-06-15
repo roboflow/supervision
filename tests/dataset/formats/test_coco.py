@@ -1956,3 +1956,69 @@ def test_coco_raw_segmentation_preserved_when_masks_not_decoded(tmp_path) -> Non
     assert len(annotations) == 1
     assert annotations[0]["segmentation"] != []
 
+
+def test_coco_multi_polygon_survives_roundtrip(tmp_path) -> None:
+    """All polygon components must survive from_coco → as_coco round-trip (#2285)."""
+    images_dir = tmp_path / "images"
+    images_dir.mkdir()
+    img_path = images_dir / "img.jpg"
+    assert cv2.imwrite(str(img_path), np.zeros((10, 10, 3), dtype=np.uint8))
+
+    coco_data = {
+        "info": {},
+        "licenses": [],
+        "categories": [{"id": 1, "name": "cat", "supercategory": ""}],
+        "images": [{"id": 1, "file_name": "img.jpg", "width": 10, "height": 10}],
+        "annotations": [
+            {
+                "id": 1,
+                "image_id": 1,
+                "category_id": 1,
+                "bbox": [0, 0, 9, 9],
+                "area": 32,
+                "segmentation": [
+                    [0, 0, 4, 0, 4, 4, 0, 4],
+                    [6, 6, 9, 6, 9, 9, 6, 9],
+                ],
+                "iscrowd": 0,
+            }
+        ],
+    }
+
+    ann_path = tmp_path / "annotations.json"
+    ann_path.write_text(json.dumps(coco_data), encoding="utf-8")
+    ds = DetectionDataset.from_coco(
+        images_directory_path=str(images_dir),
+        annotations_path=str(ann_path),
+    )
+
+    out_path = tmp_path / "out.json"
+    ds.as_coco(annotations_path=str(out_path))
+
+    with open(out_path) as f:
+        out = json.load(f)
+
+    seg = out["annotations"][0]["segmentation"]
+    assert isinstance(seg, list)
+    assert len(seg) >= 2, "both polygon components must survive the round-trip"
+
+
+def test_coco_iscrowd_mask_exports_as_rle() -> None:
+    """Multi-segment mask exports segmentation as RLE dict (iscrowd inferred as 1)."""
+    mask = np.zeros((10, 10), dtype=bool)
+    mask[1:3, 1:3] = True  # top-left component
+    mask[7:9, 7:9] = True  # bottom-right component (two separate regions)
+
+    detections = Detections(
+        xyxy=np.array([[1, 1, 8, 8]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+        mask=np.array([mask]),
+    )
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections, image_id=1, annotation_id=1
+    )
+    assert len(annotations) == 1
+    seg = annotations[0]["segmentation"]
+    assert isinstance(seg, dict), "multi-segment mask must export as RLE dict, not list"
+    assert "counts" in seg
+    assert "size" in seg
