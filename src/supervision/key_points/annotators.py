@@ -329,10 +329,12 @@ class _BaseVertexEllipseAnnotator(BaseKeyPointAnnotator):
 
     def _iter_ellipse_params(
         self, key_points: KeyPoints
-    ) -> list[tuple[tuple[int, int], tuple[int, int], float, float, Color]]:
-        """Yield (center, axis_lengths, angle, sigma, color) for each visible point."""
+    ) -> list[list[tuple[tuple[int, int], tuple[int, int], float, float, Color]]]:
+        """Return ellipse params grouped by sigma level (outermost first)."""
         covariances = self._get_covariances(key_points)
-        results: list[tuple[tuple[int, int], tuple[int, int], float, float, Color]] = []
+        levels: list[
+            list[tuple[tuple[int, int], tuple[int, int], float, float, Color]]
+        ] = [[] for _ in self.sigma]
         for detection_index, xy in enumerate(key_points.xy):
             for point_index, (x, y) in enumerate(xy):
                 if np.allclose((x, y), 0):
@@ -351,7 +353,7 @@ class _BaseVertexEllipseAnnotator(BaseKeyPointAnnotator):
                     np.degrees(np.arctan2(eigenvectors[1, 0], eigenvectors[0, 0]))
                 )
                 center = (round(x), round(y))
-                for sigma, color in zip(self.sigma, self.color):
+                for level_idx, (sigma, color) in enumerate(zip(self.sigma, self.color)):
                     axes = sigma * np.sqrt(eigenvalues)
                     if self.max_axis is not None:
                         axes = np.minimum(axes, self.max_axis)
@@ -359,8 +361,10 @@ class _BaseVertexEllipseAnnotator(BaseKeyPointAnnotator):
                         max(1, round(axes[0])),
                         max(1, round(axes[1])),
                     )
-                    results.append((center, axis_lengths, angle, sigma, color))
-        return results
+                    levels[level_idx].append(
+                        (center, axis_lengths, angle, sigma, color)
+                    )
+        return levels
 
 
 class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
@@ -446,20 +450,19 @@ class VertexEllipseAreaAnnotator(_BaseVertexEllipseAnnotator):
             return scene
 
         overlay = scene.copy()
-        for center, axis_lengths, angle, _sigma, color in self._iter_ellipse_params(
-            key_points
-        ):
-            cv2.ellipse(
-                img=overlay,
-                center=center,
-                axes=axis_lengths,
-                angle=angle,
-                startAngle=0,
-                endAngle=360,
-                color=color.as_bgr(),
-                thickness=-1,
-                lineType=cv2.LINE_AA,
-            )
+        for level in self._iter_ellipse_params(key_points):
+            for center, axis_lengths, angle, _sigma, color in level:
+                cv2.ellipse(
+                    img=overlay,
+                    center=center,
+                    axes=axis_lengths,
+                    angle=angle,
+                    startAngle=0,
+                    endAngle=360,
+                    color=color.as_bgr(),
+                    thickness=-1,
+                    lineType=cv2.LINE_AA,
+                )
 
         cv2.addWeighted(overlay, self.opacity, scene, 1 - self.opacity, 0, dst=scene)
         return scene
@@ -545,20 +548,19 @@ class VertexEllipseOutlineAnnotator(_BaseVertexEllipseAnnotator):
         if len(key_points) == 0:
             return scene
 
-        for center, axis_lengths, angle, _sigma, color in self._iter_ellipse_params(
-            key_points
-        ):
-            cv2.ellipse(
-                img=scene,
-                center=center,
-                axes=axis_lengths,
-                angle=angle,
-                startAngle=0,
-                endAngle=360,
-                color=color.as_bgr(),
-                thickness=self.thickness,
-                lineType=cv2.LINE_AA,
-            )
+        for level in self._iter_ellipse_params(key_points):
+            for center, axis_lengths, angle, _sigma, color in level:
+                cv2.ellipse(
+                    img=scene,
+                    center=center,
+                    axes=axis_lengths,
+                    angle=angle,
+                    startAngle=0,
+                    endAngle=360,
+                    color=color.as_bgr(),
+                    thickness=self.thickness,
+                    lineType=cv2.LINE_AA,
+                )
 
         return scene
 
@@ -650,47 +652,46 @@ class VertexEllipseHaloAnnotator(_BaseVertexEllipseAnnotator):
         h, w = scene.shape[:2]
         composite: npt.NDArray[np.float32] = scene.astype(np.float32)
 
-        for center, axis_lengths, angle, _sigma, color in self._iter_ellipse_params(
-            key_points
-        ):
-            ax, ay = axis_lengths
-            if ax == 0 or ay == 0:
-                continue
+        for level in self._iter_ellipse_params(key_points):
+            for center, axis_lengths, angle, _sigma, color in level:
+                ax, ay = axis_lengths
+                if ax == 0 or ay == 0:
+                    continue
 
-            pad = 2
-            roi_half_w = ax + pad
-            roi_half_h = ay + pad
-            cx, cy = center
+                pad = 2
+                roi_half_w = ax + pad
+                roi_half_h = ay + pad
+                cx, cy = center
 
-            x_min = max(cx - roi_half_w, 0)
-            x_max = min(cx + roi_half_w, w)
-            y_min = max(cy - roi_half_h, 0)
-            y_max = min(cy + roi_half_h, h)
-            if x_min >= x_max or y_min >= y_max:
-                continue
+                x_min = max(cx - roi_half_w, 0)
+                x_max = min(cx + roi_half_w, w)
+                y_min = max(cy - roi_half_h, 0)
+                y_max = min(cy + roi_half_h, h)
+                if x_min >= x_max or y_min >= y_max:
+                    continue
 
-            ys = np.arange(y_min, y_max, dtype=np.float32) - cy
-            xs = np.arange(x_min, x_max, dtype=np.float32) - cx
-            grid_x, grid_y = np.meshgrid(xs, ys)
+                ys = np.arange(y_min, y_max, dtype=np.float32) - cy
+                xs = np.arange(x_min, x_max, dtype=np.float32) - cx
+                grid_x, grid_y = np.meshgrid(xs, ys)
 
-            angle_rad = np.radians(-angle)
-            cos_a = np.cos(angle_rad)
-            sin_a = np.sin(angle_rad)
-            rx = grid_x * cos_a - grid_y * sin_a
-            ry = grid_x * sin_a + grid_y * cos_a
+                angle_rad = np.radians(-angle)
+                cos_a = np.cos(angle_rad)
+                sin_a = np.sin(angle_rad)
+                rx = grid_x * cos_a - grid_y * sin_a
+                ry = grid_x * sin_a + grid_y * cos_a
 
-            dist_sq = (rx / ax) ** 2 + (ry / ay) ** 2
-            inside = dist_sq <= 1.0
+                dist_sq = (rx / ax) ** 2 + (ry / ay) ** 2
+                inside = dist_sq <= 1.0
 
-            falloff = np.zeros_like(dist_sq)
-            falloff[inside] = (1.0 - dist_sq[inside]) ** self._DECAY
+                falloff = np.zeros_like(dist_sq)
+                falloff[inside] = (1.0 - dist_sq[inside]) ** self._DECAY
 
-            scaled_alpha = falloff * self.opacity
+                scaled_alpha = falloff * self.opacity
 
-            bgr = np.array(color.as_bgr(), dtype=np.float32)
-            roi = composite[y_min:y_max, x_min:x_max]
-            alpha_3 = scaled_alpha[:, :, np.newaxis]
-            roi[:] = roi * (1 - alpha_3) + bgr * alpha_3
+                bgr = np.array(color.as_bgr(), dtype=np.float32)
+                roi = composite[y_min:y_max, x_min:x_max]
+                alpha_3 = scaled_alpha[:, :, np.newaxis]
+                roi[:] = roi * (1 - alpha_3) + bgr * alpha_3
 
         np.copyto(scene, composite.astype(np.uint8))
         return scene
