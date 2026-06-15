@@ -2777,6 +2777,7 @@ def merge_inner_detection_object_pair(
     )
 
 
+@deprecated(deprecated_in="0.29.0", remove_in="0.34.0")  # type: ignore[untyped-decorator]
 def merge_inner_detections_objects(
     detections: list[Detections],
     threshold: float = 0.5,
