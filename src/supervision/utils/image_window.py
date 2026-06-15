@@ -112,6 +112,7 @@ class TkImageWindow:
             deadline = time.monotonic() + delay_ms / 1000.0
             while not self._key_queue and time.monotonic() < deadline:
                 self._root.update()
+                time.sleep(0.001)
         return self._key_queue.pop(0) if self._key_queue else None
 
     def set_mouse_callback(self, callback: MouseCallback | None) -> None:
