@@ -7378,14 +7378,7 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 <span class="normal"><a href="#__codelineno-0-2629">2629</a></span>
 <span class="normal"><a href="#__codelineno-0-2630">2630</a></span>
 <span class="normal"><a href="#__codelineno-0-2631">2631</a></span>
-<span class="normal"><a href="#__codelineno-0-2632">2632</a></span>
-<span class="normal"><a href="#__codelineno-0-2633">2633</a></span>
-<span class="normal"><a href="#__codelineno-0-2634">2634</a></span>
-<span class="normal"><a href="#__codelineno-0-2635">2635</a></span>
-<span class="normal"><a href="#__codelineno-0-2636">2636</a></span>
-<span class="normal"><a href="#__codelineno-0-2637">2637</a></span>
-<span class="normal"><a href="#__codelineno-0-2638">2638</a></span>
-<span class="normal"><a href="#__codelineno-0-2639">2639</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-67"><a id="__codelineno-0-67" name="__codelineno-0-67"></a><span class="nd">@dataclass</span>
+<span class="normal"><a href="#__codelineno-0-2632">2632</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-67"><a id="__codelineno-0-67" name="__codelineno-0-67"></a><span class="nd">@dataclass</span>
 </span><span id="__span-0-68"><a id="__codelineno-0-68" name="__codelineno-0-68"></a><span class="k">class</span><span class="w"> </span><span class="nc">Detections</span><span class="p">:</span>
 </span><span id="__span-0-69"><a id="__codelineno-0-69" name="__codelineno-0-69"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 </span><span id="__span-0-70"><a id="__codelineno-0-70" name="__codelineno-0-70"></a><span class="sd">    The `sv.Detections` class in the Supervision library standardizes results from</span>
@@ -9883,81 +9876,74 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-2562"><a id="__codelineno-0-2562" name="__codelineno-0-2562"></a><span class="sd">            A new Detections object containing the subset of detections</span>
 </span><span id="__span-0-2563"><a id="__codelineno-0-2563" name="__codelineno-0-2563"></a><span class="sd">                after non-maximum merging.</span>
 </span><span id="__span-0-2564"><a id="__codelineno-0-2564" name="__codelineno-0-2564"></a>
-</span><span id="__span-0-2565"><a id="__codelineno-0-2565" name="__codelineno-0-2565"></a><span class="sd">        Raises:</span>
-</span><span id="__span-0-2566"><a id="__codelineno-0-2566" name="__codelineno-0-2566"></a><span class="sd">            AssertionError: If `confidence` is None or `class_id` is None and</span>
-</span><span id="__span-0-2567"><a id="__codelineno-0-2567" name="__codelineno-0-2567"></a><span class="sd">                class_agnostic is False.</span>
-</span><span id="__span-0-2568"><a id="__codelineno-0-2568" name="__codelineno-0-2568"></a>
-</span><span id="__span-0-2569"><a id="__codelineno-0-2569" name="__codelineno-0-2569"></a><span class="sd">        ![non-max-merging](https://media.roboflow.com/supervision-docs/non-max-merging.png){ align=center width=&quot;800&quot; }</span>
-</span><span id="__span-0-2570"><a id="__codelineno-0-2570" name="__codelineno-0-2570"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
-</span><span id="__span-0-2571"><a id="__codelineno-0-2571" name="__codelineno-0-2571"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span><span id="__span-0-2572"><a id="__codelineno-0-2572" name="__codelineno-0-2572"></a>            <span class="k">return</span> <span class="bp">self</span>
-</span><span id="__span-0-2573"><a id="__codelineno-0-2573" name="__codelineno-0-2573"></a>
-</span><span id="__span-0-2574"><a id="__codelineno-0-2574" name="__codelineno-0-2574"></a>        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
-</span><span id="__span-0-2575"><a id="__codelineno-0-2575" name="__codelineno-0-2575"></a>            <span class="s2">&quot;Detections confidence must be given for NMM to be executed.&quot;</span>
-</span><span id="__span-0-2576"><a id="__codelineno-0-2576" name="__codelineno-0-2576"></a>        <span class="p">)</span>
-</span><span id="__span-0-2577"><a id="__codelineno-0-2577" name="__codelineno-0-2577"></a>
-</span><span id="__span-0-2578"><a id="__codelineno-0-2578" name="__codelineno-0-2578"></a>        <span class="k">if</span> <span class="n">class_agnostic</span><span class="p">:</span>
-</span><span id="__span-0-2579"><a id="__codelineno-0-2579" name="__codelineno-0-2579"></a>            <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
-</span><span id="__span-0-2580"><a id="__codelineno-0-2580" name="__codelineno-0-2580"></a>        <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-0-2581"><a id="__codelineno-0-2581" name="__codelineno-0-2581"></a>            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
-</span><span id="__span-0-2582"><a id="__codelineno-0-2582" name="__codelineno-0-2582"></a>                <span class="s2">&quot;Detections class_id must be given for NMM to be executed. If you&quot;</span>
-</span><span id="__span-0-2583"><a id="__codelineno-0-2583" name="__codelineno-0-2583"></a>                <span class="s2">&quot; intended to perform class agnostic NMM set class_agnostic=True.&quot;</span>
-</span><span id="__span-0-2584"><a id="__codelineno-0-2584" name="__codelineno-0-2584"></a>            <span class="p">)</span>
-</span><span id="__span-0-2585"><a id="__codelineno-0-2585" name="__codelineno-0-2585"></a>            <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span>
-</span><span id="__span-0-2586"><a id="__codelineno-0-2586" name="__codelineno-0-2586"></a>                <span class="p">(</span>
-</span><span id="__span-0-2587"><a id="__codelineno-0-2587" name="__codelineno-0-2587"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span>
-</span><span id="__span-0-2588"><a id="__codelineno-0-2588" name="__codelineno-0-2588"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-</span><span id="__span-0-2589"><a id="__codelineno-0-2589" name="__codelineno-0-2589"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-</span><span id="__span-0-2590"><a id="__codelineno-0-2590" name="__codelineno-0-2590"></a>                <span class="p">)</span>
-</span><span id="__span-0-2591"><a id="__codelineno-0-2591" name="__codelineno-0-2591"></a>            <span class="p">)</span>
-</span><span id="__span-0-2592"><a id="__codelineno-0-2592" name="__codelineno-0-2592"></a>
-</span><span id="__span-0-2593"><a id="__codelineno-0-2593" name="__codelineno-0-2593"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-2594"><a id="__codelineno-0-2594" name="__codelineno-0-2594"></a>            <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">mask_non_max_merge</span><span class="p">(</span>
-</span><span id="__span-0-2595"><a id="__codelineno-0-2595" name="__codelineno-0-2595"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
-</span><span id="__span-0-2596"><a id="__codelineno-0-2596" name="__codelineno-0-2596"></a>                <span class="n">masks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
-</span><span id="__span-0-2597"><a id="__codelineno-0-2597" name="__codelineno-0-2597"></a>                <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
-</span><span id="__span-0-2598"><a id="__codelineno-0-2598" name="__codelineno-0-2598"></a>                <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
-</span><span id="__span-0-2599"><a id="__codelineno-0-2599" name="__codelineno-0-2599"></a>            <span class="p">)</span>
-</span><span id="__span-0-2600"><a id="__codelineno-0-2600" name="__codelineno-0-2600"></a>        <span class="k">elif</span> <span class="n">ORIENTED_BOX_COORDINATES</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
-</span><span id="__span-0-2601"><a id="__codelineno-0-2601" name="__codelineno-0-2601"></a>            <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">oriented_box_non_max_merge</span><span class="p">(</span>
-</span><span id="__span-0-2602"><a id="__codelineno-0-2602" name="__codelineno-0-2602"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
-</span><span id="__span-0-2603"><a id="__codelineno-0-2603" name="__codelineno-0-2603"></a>                <span class="n">oriented_boxes</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
-</span><span id="__span-0-2604"><a id="__codelineno-0-2604" name="__codelineno-0-2604"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">ORIENTED_BOX_COORDINATES</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span>
-</span><span id="__span-0-2605"><a id="__codelineno-0-2605" name="__codelineno-0-2605"></a>                <span class="p">),</span>
-</span><span id="__span-0-2606"><a id="__codelineno-0-2606" name="__codelineno-0-2606"></a>                <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
-</span><span id="__span-0-2607"><a id="__codelineno-0-2607" name="__codelineno-0-2607"></a>                <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
-</span><span id="__span-0-2608"><a id="__codelineno-0-2608" name="__codelineno-0-2608"></a>            <span class="p">)</span>
-</span><span id="__span-0-2609"><a id="__codelineno-0-2609" name="__codelineno-0-2609"></a>        <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-0-2610"><a id="__codelineno-0-2610" name="__codelineno-0-2610"></a>            <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">box_non_max_merge</span><span class="p">(</span>
-</span><span id="__span-0-2611"><a id="__codelineno-0-2611" name="__codelineno-0-2611"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
-</span><span id="__span-0-2612"><a id="__codelineno-0-2612" name="__codelineno-0-2612"></a>                <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
-</span><span id="__span-0-2613"><a id="__codelineno-0-2613" name="__codelineno-0-2613"></a>                <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
-</span><span id="__span-0-2614"><a id="__codelineno-0-2614" name="__codelineno-0-2614"></a>            <span class="p">)</span>
-</span><span id="__span-0-2615"><a id="__codelineno-0-2615" name="__codelineno-0-2615"></a>
-</span><span id="__span-0-2616"><a id="__codelineno-0-2616" name="__codelineno-0-2616"></a>        <span class="n">result</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Detections</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span id="__span-0-2617"><a id="__codelineno-0-2617" name="__codelineno-0-2617"></a>        <span class="k">for</span> <span class="n">merge_group</span> <span class="ow">in</span> <span class="n">merge_groups</span><span class="p">:</span>
-</span><span id="__span-0-2618"><a id="__codelineno-0-2618" name="__codelineno-0-2618"></a>            <span class="n">unmerged_detections</span> <span class="o">=</span> <span class="p">[</span><span class="n">cast</span><span class="p">(</span><span class="n">Detections</span><span class="p">,</span> <span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">merge_group</span><span class="p">]</span>
-</span><span id="__span-0-2619"><a id="__codelineno-0-2619" name="__codelineno-0-2619"></a>            <span class="n">merged_detections</span> <span class="o">=</span> <span class="n">merge_inner_detections_objects_without_iou</span><span class="p">(</span>
-</span><span id="__span-0-2620"><a id="__codelineno-0-2620" name="__codelineno-0-2620"></a>                <span class="n">unmerged_detections</span>
-</span><span id="__span-0-2621"><a id="__codelineno-0-2621" name="__codelineno-0-2621"></a>            <span class="p">)</span>
-</span><span id="__span-0-2622"><a id="__codelineno-0-2622" name="__codelineno-0-2622"></a>            <span class="k">if</span> <span class="p">(</span>
-</span><span id="__span-0-2623"><a id="__codelineno-0-2623" name="__codelineno-0-2623"></a>                <span class="nb">len</span><span class="p">(</span><span class="n">merge_group</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
-</span><span id="__span-0-2624"><a id="__codelineno-0-2624" name="__codelineno-0-2624"></a>                <span class="ow">and</span> <span class="n">ORIENTED_BOX_COORDINATES</span> <span class="ow">in</span> <span class="n">merged_detections</span><span class="o">.</span><span class="n">data</span>
-</span><span id="__span-0-2625"><a id="__codelineno-0-2625" name="__codelineno-0-2625"></a>            <span class="p">):</span>
-</span><span id="__span-0-2626"><a id="__codelineno-0-2626" name="__codelineno-0-2626"></a>                <span class="n">obb</span> <span class="o">=</span> <span class="n">merged_detections</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">ORIENTED_BOX_COORDINATES</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># (4, 2)</span>
-</span><span id="__span-0-2627"><a id="__codelineno-0-2627" name="__codelineno-0-2627"></a>                <span class="n">merged_detections</span><span class="o">.</span><span class="n">xyxy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-</span><span id="__span-0-2628"><a id="__codelineno-0-2628" name="__codelineno-0-2628"></a>                    <span class="p">[</span>
-</span><span id="__span-0-2629"><a id="__codelineno-0-2629" name="__codelineno-0-2629"></a>                        <span class="p">[</span>
-</span><span id="__span-0-2630"><a id="__codelineno-0-2630" name="__codelineno-0-2630"></a>                            <span class="nb">float</span><span class="p">(</span><span class="n">obb</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span>
-</span><span id="__span-0-2631"><a id="__codelineno-0-2631" name="__codelineno-0-2631"></a>                            <span class="nb">float</span><span class="p">(</span><span class="n">obb</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span>
-</span><span id="__span-0-2632"><a id="__codelineno-0-2632" name="__codelineno-0-2632"></a>                            <span class="nb">float</span><span class="p">(</span><span class="n">obb</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span>
-</span><span id="__span-0-2633"><a id="__codelineno-0-2633" name="__codelineno-0-2633"></a>                            <span class="nb">float</span><span class="p">(</span><span class="n">obb</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span>
-</span><span id="__span-0-2634"><a id="__codelineno-0-2634" name="__codelineno-0-2634"></a>                        <span class="p">]</span>
-</span><span id="__span-0-2635"><a id="__codelineno-0-2635" name="__codelineno-0-2635"></a>                    <span class="p">]</span>
-</span><span id="__span-0-2636"><a id="__codelineno-0-2636" name="__codelineno-0-2636"></a>                <span class="p">)</span>
-</span><span id="__span-0-2637"><a id="__codelineno-0-2637" name="__codelineno-0-2637"></a>            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">merged_detections</span><span class="p">)</span>
-</span><span id="__span-0-2638"><a id="__codelineno-0-2638" name="__codelineno-0-2638"></a>
-</span><span id="__span-0-2639"><a id="__codelineno-0-2639" name="__codelineno-0-2639"></a>        <span class="k">return</span> <span class="n">Detections</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</span><span id="__span-0-2565"><a id="__codelineno-0-2565" name="__codelineno-0-2565"></a><span class="sd">        Note:</span>
+</span><span id="__span-0-2566"><a id="__codelineno-0-2566" name="__codelineno-0-2566"></a><span class="sd">            For detections carrying oriented bounding box data</span>
+</span><span id="__span-0-2567"><a id="__codelineno-0-2567" name="__codelineno-0-2567"></a><span class="sd">            (``data[ORIENTED_BOX_COORDINATES]``), each merge group&#39;s output OBB</span>
+</span><span id="__span-0-2568"><a id="__codelineno-0-2568" name="__codelineno-0-2568"></a><span class="sd">            is the tightest rectangle at the winner&#39;s orientation enclosing all</span>
+</span><span id="__span-0-2569"><a id="__codelineno-0-2569" name="__codelineno-0-2569"></a><span class="sd">            corners contributed by every detection in the group. The winner is</span>
+</span><span id="__span-0-2570"><a id="__codelineno-0-2570" name="__codelineno-0-2570"></a><span class="sd">            the highest-confidence detection in the group. The axis-aligned</span>
+</span><span id="__span-0-2571"><a id="__codelineno-0-2571" name="__codelineno-0-2571"></a><span class="sd">            ``xyxy`` field is updated to the tight bounding box of that rect.</span>
+</span><span id="__span-0-2572"><a id="__codelineno-0-2572" name="__codelineno-0-2572"></a><span class="sd">            For zero-rotation OBBs this equals the axis-aligned union exactly;</span>
+</span><span id="__span-0-2573"><a id="__codelineno-0-2573" name="__codelineno-0-2573"></a><span class="sd">            for rotated OBBs the merged rect inherits the winner&#39;s rotation angle.</span>
+</span><span id="__span-0-2574"><a id="__codelineno-0-2574" name="__codelineno-0-2574"></a><span class="sd">            Groups of size 1 keep the original OBB unchanged.</span>
+</span><span id="__span-0-2575"><a id="__codelineno-0-2575" name="__codelineno-0-2575"></a>
+</span><span id="__span-0-2576"><a id="__codelineno-0-2576" name="__codelineno-0-2576"></a><span class="sd">        Raises:</span>
+</span><span id="__span-0-2577"><a id="__codelineno-0-2577" name="__codelineno-0-2577"></a><span class="sd">            AssertionError: If `confidence` is None or `class_id` is None and</span>
+</span><span id="__span-0-2578"><a id="__codelineno-0-2578" name="__codelineno-0-2578"></a><span class="sd">                class_agnostic is False.</span>
+</span><span id="__span-0-2579"><a id="__codelineno-0-2579" name="__codelineno-0-2579"></a>
+</span><span id="__span-0-2580"><a id="__codelineno-0-2580" name="__codelineno-0-2580"></a><span class="sd">        ![non-max-merging](https://media.roboflow.com/supervision-docs/non-max-merging.png){ align=center width=&quot;800&quot; }</span>
+</span><span id="__span-0-2581"><a id="__codelineno-0-2581" name="__codelineno-0-2581"></a><span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+</span><span id="__span-0-2582"><a id="__codelineno-0-2582" name="__codelineno-0-2582"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-0-2583"><a id="__codelineno-0-2583" name="__codelineno-0-2583"></a>            <span class="k">return</span> <span class="bp">self</span>
+</span><span id="__span-0-2584"><a id="__codelineno-0-2584" name="__codelineno-0-2584"></a>
+</span><span id="__span-0-2585"><a id="__codelineno-0-2585" name="__codelineno-0-2585"></a>        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+</span><span id="__span-0-2586"><a id="__codelineno-0-2586" name="__codelineno-0-2586"></a>            <span class="s2">&quot;Detections confidence must be given for NMM to be executed.&quot;</span>
+</span><span id="__span-0-2587"><a id="__codelineno-0-2587" name="__codelineno-0-2587"></a>        <span class="p">)</span>
+</span><span id="__span-0-2588"><a id="__codelineno-0-2588" name="__codelineno-0-2588"></a>
+</span><span id="__span-0-2589"><a id="__codelineno-0-2589" name="__codelineno-0-2589"></a>        <span class="k">if</span> <span class="n">class_agnostic</span><span class="p">:</span>
+</span><span id="__span-0-2590"><a id="__codelineno-0-2590" name="__codelineno-0-2590"></a>            <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+</span><span id="__span-0-2591"><a id="__codelineno-0-2591" name="__codelineno-0-2591"></a>        <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-0-2592"><a id="__codelineno-0-2592" name="__codelineno-0-2592"></a>            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+</span><span id="__span-0-2593"><a id="__codelineno-0-2593" name="__codelineno-0-2593"></a>                <span class="s2">&quot;Detections class_id must be given for NMM to be executed. If you&quot;</span>
+</span><span id="__span-0-2594"><a id="__codelineno-0-2594" name="__codelineno-0-2594"></a>                <span class="s2">&quot; intended to perform class agnostic NMM set class_agnostic=True.&quot;</span>
+</span><span id="__span-0-2595"><a id="__codelineno-0-2595" name="__codelineno-0-2595"></a>            <span class="p">)</span>
+</span><span id="__span-0-2596"><a id="__codelineno-0-2596" name="__codelineno-0-2596"></a>            <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span>
+</span><span id="__span-0-2597"><a id="__codelineno-0-2597" name="__codelineno-0-2597"></a>                <span class="p">(</span>
+</span><span id="__span-0-2598"><a id="__codelineno-0-2598" name="__codelineno-0-2598"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span>
+</span><span id="__span-0-2599"><a id="__codelineno-0-2599" name="__codelineno-0-2599"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+</span><span id="__span-0-2600"><a id="__codelineno-0-2600" name="__codelineno-0-2600"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+</span><span id="__span-0-2601"><a id="__codelineno-0-2601" name="__codelineno-0-2601"></a>                <span class="p">)</span>
+</span><span id="__span-0-2602"><a id="__codelineno-0-2602" name="__codelineno-0-2602"></a>            <span class="p">)</span>
+</span><span id="__span-0-2603"><a id="__codelineno-0-2603" name="__codelineno-0-2603"></a>
+</span><span id="__span-0-2604"><a id="__codelineno-0-2604" name="__codelineno-0-2604"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-2605"><a id="__codelineno-0-2605" name="__codelineno-0-2605"></a>            <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">mask_non_max_merge</span><span class="p">(</span>
+</span><span id="__span-0-2606"><a id="__codelineno-0-2606" name="__codelineno-0-2606"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
+</span><span id="__span-0-2607"><a id="__codelineno-0-2607" name="__codelineno-0-2607"></a>                <span class="n">masks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
+</span><span id="__span-0-2608"><a id="__codelineno-0-2608" name="__codelineno-0-2608"></a>                <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+</span><span id="__span-0-2609"><a id="__codelineno-0-2609" name="__codelineno-0-2609"></a>                <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
+</span><span id="__span-0-2610"><a id="__codelineno-0-2610" name="__codelineno-0-2610"></a>            <span class="p">)</span>
+</span><span id="__span-0-2611"><a id="__codelineno-0-2611" name="__codelineno-0-2611"></a>        <span class="k">elif</span> <span class="n">ORIENTED_BOX_COORDINATES</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+</span><span id="__span-0-2612"><a id="__codelineno-0-2612" name="__codelineno-0-2612"></a>            <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">oriented_box_non_max_merge</span><span class="p">(</span>
+</span><span id="__span-0-2613"><a id="__codelineno-0-2613" name="__codelineno-0-2613"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
+</span><span id="__span-0-2614"><a id="__codelineno-0-2614" name="__codelineno-0-2614"></a>                <span class="n">oriented_boxes</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+</span><span id="__span-0-2615"><a id="__codelineno-0-2615" name="__codelineno-0-2615"></a>                    <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">ORIENTED_BOX_COORDINATES</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+</span><span id="__span-0-2616"><a id="__codelineno-0-2616" name="__codelineno-0-2616"></a>                <span class="p">),</span>
+</span><span id="__span-0-2617"><a id="__codelineno-0-2617" name="__codelineno-0-2617"></a>                <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+</span><span id="__span-0-2618"><a id="__codelineno-0-2618" name="__codelineno-0-2618"></a>                <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
+</span><span id="__span-0-2619"><a id="__codelineno-0-2619" name="__codelineno-0-2619"></a>            <span class="p">)</span>
+</span><span id="__span-0-2620"><a id="__codelineno-0-2620" name="__codelineno-0-2620"></a>        <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-0-2621"><a id="__codelineno-0-2621" name="__codelineno-0-2621"></a>            <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">box_non_max_merge</span><span class="p">(</span>
+</span><span id="__span-0-2622"><a id="__codelineno-0-2622" name="__codelineno-0-2622"></a>                <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
+</span><span id="__span-0-2623"><a id="__codelineno-0-2623" name="__codelineno-0-2623"></a>                <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+</span><span id="__span-0-2624"><a id="__codelineno-0-2624" name="__codelineno-0-2624"></a>                <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
+</span><span id="__span-0-2625"><a id="__codelineno-0-2625" name="__codelineno-0-2625"></a>            <span class="p">)</span>
+</span><span id="__span-0-2626"><a id="__codelineno-0-2626" name="__codelineno-0-2626"></a>
+</span><span id="__span-0-2627"><a id="__codelineno-0-2627" name="__codelineno-0-2627"></a>        <span class="n">result</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Detections</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-0-2628"><a id="__codelineno-0-2628" name="__codelineno-0-2628"></a>        <span class="k">for</span> <span class="n">merge_group</span> <span class="ow">in</span> <span class="n">merge_groups</span><span class="p">:</span>
+</span><span id="__span-0-2629"><a id="__codelineno-0-2629" name="__codelineno-0-2629"></a>            <span class="n">group</span> <span class="o">=</span> <span class="p">[</span><span class="n">cast</span><span class="p">(</span><span class="n">Detections</span><span class="p">,</span> <span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">merge_group</span><span class="p">]</span>
+</span><span id="__span-0-2630"><a id="__codelineno-0-2630" name="__codelineno-0-2630"></a>            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_merge_detection_group</span><span class="p">(</span><span class="n">group</span><span class="p">))</span>
+</span><span id="__span-0-2631"><a id="__codelineno-0-2631" name="__codelineno-0-2631"></a>
+</span><span id="__span-0-2632"><a id="__codelineno-0-2632" name="__codelineno-0-2632"></a>        <span class="k">return</span> <span class="n">Detections</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
               </details>
 
@@ -17958,6 +17944,19 @@ after non-maximum merging.</p>
     </table>
 
 
+<details class="note" open>
+  <summary>Note</summary>
+  <p>For detections carrying oriented bounding box data
+(<code>data[ORIENTED_BOX_COORDINATES]</code>), each merge group's output OBB
+is the tightest rectangle at the winner's orientation enclosing all
+corners contributed by every detection in the group. The winner is
+the highest-confidence detection in the group. The axis-aligned
+<code>xyxy</code> field is updated to the tight bounding box of that rect.
+For zero-rotation OBBs this equals the axis-aligned union exactly;
+for rotated OBBs the merged rect inherits the winner's rotation angle.
+Groups of size 1 keep the original OBB unchanged.</p>
+</details>
+
 <p><span class="doc-section-title">Raises:</span></p>
     <table>
       <thead>
@@ -18077,14 +18076,7 @@ class_agnostic is False.</p>
 <span class="normal"><a href="#__codelineno-0-2629">2629</a></span>
 <span class="normal"><a href="#__codelineno-0-2630">2630</a></span>
 <span class="normal"><a href="#__codelineno-0-2631">2631</a></span>
-<span class="normal"><a href="#__codelineno-0-2632">2632</a></span>
-<span class="normal"><a href="#__codelineno-0-2633">2633</a></span>
-<span class="normal"><a href="#__codelineno-0-2634">2634</a></span>
-<span class="normal"><a href="#__codelineno-0-2635">2635</a></span>
-<span class="normal"><a href="#__codelineno-0-2636">2636</a></span>
-<span class="normal"><a href="#__codelineno-0-2637">2637</a></span>
-<span class="normal"><a href="#__codelineno-0-2638">2638</a></span>
-<span class="normal"><a href="#__codelineno-0-2639">2639</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-2540"><a id="__codelineno-0-2540" name="__codelineno-0-2540"></a><span class="k">def</span><span class="w"> </span><span class="nf">with_nmm</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-2632">2632</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-2540"><a id="__codelineno-0-2540" name="__codelineno-0-2540"></a><span class="k">def</span><span class="w"> </span><span class="nf">with_nmm</span><span class="p">(</span>
 </span><span id="__span-0-2541"><a id="__codelineno-0-2541" name="__codelineno-0-2541"></a>    <span class="bp">self</span><span class="p">,</span>
 </span><span id="__span-0-2542"><a id="__codelineno-0-2542" name="__codelineno-0-2542"></a>    <span class="n">threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
 </span><span id="__span-0-2543"><a id="__codelineno-0-2543" name="__codelineno-0-2543"></a>    <span class="n">class_agnostic</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -18109,81 +18101,74 @@ class_agnostic is False.</p>
 </span><span id="__span-0-2562"><a id="__codelineno-0-2562" name="__codelineno-0-2562"></a><span class="sd">        A new Detections object containing the subset of detections</span>
 </span><span id="__span-0-2563"><a id="__codelineno-0-2563" name="__codelineno-0-2563"></a><span class="sd">            after non-maximum merging.</span>
 </span><span id="__span-0-2564"><a id="__codelineno-0-2564" name="__codelineno-0-2564"></a>
-</span><span id="__span-0-2565"><a id="__codelineno-0-2565" name="__codelineno-0-2565"></a><span class="sd">    Raises:</span>
-</span><span id="__span-0-2566"><a id="__codelineno-0-2566" name="__codelineno-0-2566"></a><span class="sd">        AssertionError: If `confidence` is None or `class_id` is None and</span>
-</span><span id="__span-0-2567"><a id="__codelineno-0-2567" name="__codelineno-0-2567"></a><span class="sd">            class_agnostic is False.</span>
-</span><span id="__span-0-2568"><a id="__codelineno-0-2568" name="__codelineno-0-2568"></a>
-</span><span id="__span-0-2569"><a id="__codelineno-0-2569" name="__codelineno-0-2569"></a><span class="sd">    ![non-max-merging](https://media.roboflow.com/supervision-docs/non-max-merging.png){ align=center width=&quot;800&quot; }</span>
-</span><span id="__span-0-2570"><a id="__codelineno-0-2570" name="__codelineno-0-2570"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
-</span><span id="__span-0-2571"><a id="__codelineno-0-2571" name="__codelineno-0-2571"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-</span><span id="__span-0-2572"><a id="__codelineno-0-2572" name="__codelineno-0-2572"></a>        <span class="k">return</span> <span class="bp">self</span>
-</span><span id="__span-0-2573"><a id="__codelineno-0-2573" name="__codelineno-0-2573"></a>
-</span><span id="__span-0-2574"><a id="__codelineno-0-2574" name="__codelineno-0-2574"></a>    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
-</span><span id="__span-0-2575"><a id="__codelineno-0-2575" name="__codelineno-0-2575"></a>        <span class="s2">&quot;Detections confidence must be given for NMM to be executed.&quot;</span>
-</span><span id="__span-0-2576"><a id="__codelineno-0-2576" name="__codelineno-0-2576"></a>    <span class="p">)</span>
-</span><span id="__span-0-2577"><a id="__codelineno-0-2577" name="__codelineno-0-2577"></a>
-</span><span id="__span-0-2578"><a id="__codelineno-0-2578" name="__codelineno-0-2578"></a>    <span class="k">if</span> <span class="n">class_agnostic</span><span class="p">:</span>
-</span><span id="__span-0-2579"><a id="__codelineno-0-2579" name="__codelineno-0-2579"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
-</span><span id="__span-0-2580"><a id="__codelineno-0-2580" name="__codelineno-0-2580"></a>    <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-0-2581"><a id="__codelineno-0-2581" name="__codelineno-0-2581"></a>        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
-</span><span id="__span-0-2582"><a id="__codelineno-0-2582" name="__codelineno-0-2582"></a>            <span class="s2">&quot;Detections class_id must be given for NMM to be executed. If you&quot;</span>
-</span><span id="__span-0-2583"><a id="__codelineno-0-2583" name="__codelineno-0-2583"></a>            <span class="s2">&quot; intended to perform class agnostic NMM set class_agnostic=True.&quot;</span>
-</span><span id="__span-0-2584"><a id="__codelineno-0-2584" name="__codelineno-0-2584"></a>        <span class="p">)</span>
-</span><span id="__span-0-2585"><a id="__codelineno-0-2585" name="__codelineno-0-2585"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span>
-</span><span id="__span-0-2586"><a id="__codelineno-0-2586" name="__codelineno-0-2586"></a>            <span class="p">(</span>
-</span><span id="__span-0-2587"><a id="__codelineno-0-2587" name="__codelineno-0-2587"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span>
-</span><span id="__span-0-2588"><a id="__codelineno-0-2588" name="__codelineno-0-2588"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-</span><span id="__span-0-2589"><a id="__codelineno-0-2589" name="__codelineno-0-2589"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-</span><span id="__span-0-2590"><a id="__codelineno-0-2590" name="__codelineno-0-2590"></a>            <span class="p">)</span>
-</span><span id="__span-0-2591"><a id="__codelineno-0-2591" name="__codelineno-0-2591"></a>        <span class="p">)</span>
-</span><span id="__span-0-2592"><a id="__codelineno-0-2592" name="__codelineno-0-2592"></a>
-</span><span id="__span-0-2593"><a id="__codelineno-0-2593" name="__codelineno-0-2593"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-0-2594"><a id="__codelineno-0-2594" name="__codelineno-0-2594"></a>        <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">mask_non_max_merge</span><span class="p">(</span>
-</span><span id="__span-0-2595"><a id="__codelineno-0-2595" name="__codelineno-0-2595"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
-</span><span id="__span-0-2596"><a id="__codelineno-0-2596" name="__codelineno-0-2596"></a>            <span class="n">masks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
-</span><span id="__span-0-2597"><a id="__codelineno-0-2597" name="__codelineno-0-2597"></a>            <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
-</span><span id="__span-0-2598"><a id="__codelineno-0-2598" name="__codelineno-0-2598"></a>            <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
-</span><span id="__span-0-2599"><a id="__codelineno-0-2599" name="__codelineno-0-2599"></a>        <span class="p">)</span>
-</span><span id="__span-0-2600"><a id="__codelineno-0-2600" name="__codelineno-0-2600"></a>    <span class="k">elif</span> <span class="n">ORIENTED_BOX_COORDINATES</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
-</span><span id="__span-0-2601"><a id="__codelineno-0-2601" name="__codelineno-0-2601"></a>        <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">oriented_box_non_max_merge</span><span class="p">(</span>
-</span><span id="__span-0-2602"><a id="__codelineno-0-2602" name="__codelineno-0-2602"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
-</span><span id="__span-0-2603"><a id="__codelineno-0-2603" name="__codelineno-0-2603"></a>            <span class="n">oriented_boxes</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
-</span><span id="__span-0-2604"><a id="__codelineno-0-2604" name="__codelineno-0-2604"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">ORIENTED_BOX_COORDINATES</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span>
-</span><span id="__span-0-2605"><a id="__codelineno-0-2605" name="__codelineno-0-2605"></a>            <span class="p">),</span>
-</span><span id="__span-0-2606"><a id="__codelineno-0-2606" name="__codelineno-0-2606"></a>            <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
-</span><span id="__span-0-2607"><a id="__codelineno-0-2607" name="__codelineno-0-2607"></a>            <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
-</span><span id="__span-0-2608"><a id="__codelineno-0-2608" name="__codelineno-0-2608"></a>        <span class="p">)</span>
-</span><span id="__span-0-2609"><a id="__codelineno-0-2609" name="__codelineno-0-2609"></a>    <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-0-2610"><a id="__codelineno-0-2610" name="__codelineno-0-2610"></a>        <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">box_non_max_merge</span><span class="p">(</span>
-</span><span id="__span-0-2611"><a id="__codelineno-0-2611" name="__codelineno-0-2611"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
-</span><span id="__span-0-2612"><a id="__codelineno-0-2612" name="__codelineno-0-2612"></a>            <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
-</span><span id="__span-0-2613"><a id="__codelineno-0-2613" name="__codelineno-0-2613"></a>            <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
-</span><span id="__span-0-2614"><a id="__codelineno-0-2614" name="__codelineno-0-2614"></a>        <span class="p">)</span>
-</span><span id="__span-0-2615"><a id="__codelineno-0-2615" name="__codelineno-0-2615"></a>
-</span><span id="__span-0-2616"><a id="__codelineno-0-2616" name="__codelineno-0-2616"></a>    <span class="n">result</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Detections</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span id="__span-0-2617"><a id="__codelineno-0-2617" name="__codelineno-0-2617"></a>    <span class="k">for</span> <span class="n">merge_group</span> <span class="ow">in</span> <span class="n">merge_groups</span><span class="p">:</span>
-</span><span id="__span-0-2618"><a id="__codelineno-0-2618" name="__codelineno-0-2618"></a>        <span class="n">unmerged_detections</span> <span class="o">=</span> <span class="p">[</span><span class="n">cast</span><span class="p">(</span><span class="n">Detections</span><span class="p">,</span> <span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">merge_group</span><span class="p">]</span>
-</span><span id="__span-0-2619"><a id="__codelineno-0-2619" name="__codelineno-0-2619"></a>        <span class="n">merged_detections</span> <span class="o">=</span> <span class="n">merge_inner_detections_objects_without_iou</span><span class="p">(</span>
-</span><span id="__span-0-2620"><a id="__codelineno-0-2620" name="__codelineno-0-2620"></a>            <span class="n">unmerged_detections</span>
-</span><span id="__span-0-2621"><a id="__codelineno-0-2621" name="__codelineno-0-2621"></a>        <span class="p">)</span>
-</span><span id="__span-0-2622"><a id="__codelineno-0-2622" name="__codelineno-0-2622"></a>        <span class="k">if</span> <span class="p">(</span>
-</span><span id="__span-0-2623"><a id="__codelineno-0-2623" name="__codelineno-0-2623"></a>            <span class="nb">len</span><span class="p">(</span><span class="n">merge_group</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
-</span><span id="__span-0-2624"><a id="__codelineno-0-2624" name="__codelineno-0-2624"></a>            <span class="ow">and</span> <span class="n">ORIENTED_BOX_COORDINATES</span> <span class="ow">in</span> <span class="n">merged_detections</span><span class="o">.</span><span class="n">data</span>
-</span><span id="__span-0-2625"><a id="__codelineno-0-2625" name="__codelineno-0-2625"></a>        <span class="p">):</span>
-</span><span id="__span-0-2626"><a id="__codelineno-0-2626" name="__codelineno-0-2626"></a>            <span class="n">obb</span> <span class="o">=</span> <span class="n">merged_detections</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">ORIENTED_BOX_COORDINATES</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># (4, 2)</span>
-</span><span id="__span-0-2627"><a id="__codelineno-0-2627" name="__codelineno-0-2627"></a>            <span class="n">merged_detections</span><span class="o">.</span><span class="n">xyxy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-</span><span id="__span-0-2628"><a id="__codelineno-0-2628" name="__codelineno-0-2628"></a>                <span class="p">[</span>
-</span><span id="__span-0-2629"><a id="__codelineno-0-2629" name="__codelineno-0-2629"></a>                    <span class="p">[</span>
-</span><span id="__span-0-2630"><a id="__codelineno-0-2630" name="__codelineno-0-2630"></a>                        <span class="nb">float</span><span class="p">(</span><span class="n">obb</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span>
-</span><span id="__span-0-2631"><a id="__codelineno-0-2631" name="__codelineno-0-2631"></a>                        <span class="nb">float</span><span class="p">(</span><span class="n">obb</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span>
-</span><span id="__span-0-2632"><a id="__codelineno-0-2632" name="__codelineno-0-2632"></a>                        <span class="nb">float</span><span class="p">(</span><span class="n">obb</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span>
-</span><span id="__span-0-2633"><a id="__codelineno-0-2633" name="__codelineno-0-2633"></a>                        <span class="nb">float</span><span class="p">(</span><span class="n">obb</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()),</span>
-</span><span id="__span-0-2634"><a id="__codelineno-0-2634" name="__codelineno-0-2634"></a>                    <span class="p">]</span>
-</span><span id="__span-0-2635"><a id="__codelineno-0-2635" name="__codelineno-0-2635"></a>                <span class="p">]</span>
-</span><span id="__span-0-2636"><a id="__codelineno-0-2636" name="__codelineno-0-2636"></a>            <span class="p">)</span>
-</span><span id="__span-0-2637"><a id="__codelineno-0-2637" name="__codelineno-0-2637"></a>        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">merged_detections</span><span class="p">)</span>
-</span><span id="__span-0-2638"><a id="__codelineno-0-2638" name="__codelineno-0-2638"></a>
-</span><span id="__span-0-2639"><a id="__codelineno-0-2639" name="__codelineno-0-2639"></a>    <span class="k">return</span> <span class="n">Detections</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</span><span id="__span-0-2565"><a id="__codelineno-0-2565" name="__codelineno-0-2565"></a><span class="sd">    Note:</span>
+</span><span id="__span-0-2566"><a id="__codelineno-0-2566" name="__codelineno-0-2566"></a><span class="sd">        For detections carrying oriented bounding box data</span>
+</span><span id="__span-0-2567"><a id="__codelineno-0-2567" name="__codelineno-0-2567"></a><span class="sd">        (``data[ORIENTED_BOX_COORDINATES]``), each merge group&#39;s output OBB</span>
+</span><span id="__span-0-2568"><a id="__codelineno-0-2568" name="__codelineno-0-2568"></a><span class="sd">        is the tightest rectangle at the winner&#39;s orientation enclosing all</span>
+</span><span id="__span-0-2569"><a id="__codelineno-0-2569" name="__codelineno-0-2569"></a><span class="sd">        corners contributed by every detection in the group. The winner is</span>
+</span><span id="__span-0-2570"><a id="__codelineno-0-2570" name="__codelineno-0-2570"></a><span class="sd">        the highest-confidence detection in the group. The axis-aligned</span>
+</span><span id="__span-0-2571"><a id="__codelineno-0-2571" name="__codelineno-0-2571"></a><span class="sd">        ``xyxy`` field is updated to the tight bounding box of that rect.</span>
+</span><span id="__span-0-2572"><a id="__codelineno-0-2572" name="__codelineno-0-2572"></a><span class="sd">        For zero-rotation OBBs this equals the axis-aligned union exactly;</span>
+</span><span id="__span-0-2573"><a id="__codelineno-0-2573" name="__codelineno-0-2573"></a><span class="sd">        for rotated OBBs the merged rect inherits the winner&#39;s rotation angle.</span>
+</span><span id="__span-0-2574"><a id="__codelineno-0-2574" name="__codelineno-0-2574"></a><span class="sd">        Groups of size 1 keep the original OBB unchanged.</span>
+</span><span id="__span-0-2575"><a id="__codelineno-0-2575" name="__codelineno-0-2575"></a>
+</span><span id="__span-0-2576"><a id="__codelineno-0-2576" name="__codelineno-0-2576"></a><span class="sd">    Raises:</span>
+</span><span id="__span-0-2577"><a id="__codelineno-0-2577" name="__codelineno-0-2577"></a><span class="sd">        AssertionError: If `confidence` is None or `class_id` is None and</span>
+</span><span id="__span-0-2578"><a id="__codelineno-0-2578" name="__codelineno-0-2578"></a><span class="sd">            class_agnostic is False.</span>
+</span><span id="__span-0-2579"><a id="__codelineno-0-2579" name="__codelineno-0-2579"></a>
+</span><span id="__span-0-2580"><a id="__codelineno-0-2580" name="__codelineno-0-2580"></a><span class="sd">    ![non-max-merging](https://media.roboflow.com/supervision-docs/non-max-merging.png){ align=center width=&quot;800&quot; }</span>
+</span><span id="__span-0-2581"><a id="__codelineno-0-2581" name="__codelineno-0-2581"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+</span><span id="__span-0-2582"><a id="__codelineno-0-2582" name="__codelineno-0-2582"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+</span><span id="__span-0-2583"><a id="__codelineno-0-2583" name="__codelineno-0-2583"></a>        <span class="k">return</span> <span class="bp">self</span>
+</span><span id="__span-0-2584"><a id="__codelineno-0-2584" name="__codelineno-0-2584"></a>
+</span><span id="__span-0-2585"><a id="__codelineno-0-2585" name="__codelineno-0-2585"></a>    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+</span><span id="__span-0-2586"><a id="__codelineno-0-2586" name="__codelineno-0-2586"></a>        <span class="s2">&quot;Detections confidence must be given for NMM to be executed.&quot;</span>
+</span><span id="__span-0-2587"><a id="__codelineno-0-2587" name="__codelineno-0-2587"></a>    <span class="p">)</span>
+</span><span id="__span-0-2588"><a id="__codelineno-0-2588" name="__codelineno-0-2588"></a>
+</span><span id="__span-0-2589"><a id="__codelineno-0-2589" name="__codelineno-0-2589"></a>    <span class="k">if</span> <span class="n">class_agnostic</span><span class="p">:</span>
+</span><span id="__span-0-2590"><a id="__codelineno-0-2590" name="__codelineno-0-2590"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+</span><span id="__span-0-2591"><a id="__codelineno-0-2591" name="__codelineno-0-2591"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-0-2592"><a id="__codelineno-0-2592" name="__codelineno-0-2592"></a>        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+</span><span id="__span-0-2593"><a id="__codelineno-0-2593" name="__codelineno-0-2593"></a>            <span class="s2">&quot;Detections class_id must be given for NMM to be executed. If you&quot;</span>
+</span><span id="__span-0-2594"><a id="__codelineno-0-2594" name="__codelineno-0-2594"></a>            <span class="s2">&quot; intended to perform class agnostic NMM set class_agnostic=True.&quot;</span>
+</span><span id="__span-0-2595"><a id="__codelineno-0-2595" name="__codelineno-0-2595"></a>        <span class="p">)</span>
+</span><span id="__span-0-2596"><a id="__codelineno-0-2596" name="__codelineno-0-2596"></a>        <span class="n">predictions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span>
+</span><span id="__span-0-2597"><a id="__codelineno-0-2597" name="__codelineno-0-2597"></a>            <span class="p">(</span>
+</span><span id="__span-0-2598"><a id="__codelineno-0-2598" name="__codelineno-0-2598"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">xyxy</span><span class="p">,</span>
+</span><span id="__span-0-2599"><a id="__codelineno-0-2599" name="__codelineno-0-2599"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">confidence</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+</span><span id="__span-0-2600"><a id="__codelineno-0-2600" name="__codelineno-0-2600"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">class_id</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+</span><span id="__span-0-2601"><a id="__codelineno-0-2601" name="__codelineno-0-2601"></a>            <span class="p">)</span>
+</span><span id="__span-0-2602"><a id="__codelineno-0-2602" name="__codelineno-0-2602"></a>        <span class="p">)</span>
+</span><span id="__span-0-2603"><a id="__codelineno-0-2603" name="__codelineno-0-2603"></a>
+</span><span id="__span-0-2604"><a id="__codelineno-0-2604" name="__codelineno-0-2604"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-0-2605"><a id="__codelineno-0-2605" name="__codelineno-0-2605"></a>        <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">mask_non_max_merge</span><span class="p">(</span>
+</span><span id="__span-0-2606"><a id="__codelineno-0-2606" name="__codelineno-0-2606"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
+</span><span id="__span-0-2607"><a id="__codelineno-0-2607" name="__codelineno-0-2607"></a>            <span class="n">masks</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
+</span><span id="__span-0-2608"><a id="__codelineno-0-2608" name="__codelineno-0-2608"></a>            <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+</span><span id="__span-0-2609"><a id="__codelineno-0-2609" name="__codelineno-0-2609"></a>            <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
+</span><span id="__span-0-2610"><a id="__codelineno-0-2610" name="__codelineno-0-2610"></a>        <span class="p">)</span>
+</span><span id="__span-0-2611"><a id="__codelineno-0-2611" name="__codelineno-0-2611"></a>    <span class="k">elif</span> <span class="n">ORIENTED_BOX_COORDINATES</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+</span><span id="__span-0-2612"><a id="__codelineno-0-2612" name="__codelineno-0-2612"></a>        <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">oriented_box_non_max_merge</span><span class="p">(</span>
+</span><span id="__span-0-2613"><a id="__codelineno-0-2613" name="__codelineno-0-2613"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
+</span><span id="__span-0-2614"><a id="__codelineno-0-2614" name="__codelineno-0-2614"></a>            <span class="n">oriented_boxes</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+</span><span id="__span-0-2615"><a id="__codelineno-0-2615" name="__codelineno-0-2615"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">ORIENTED_BOX_COORDINATES</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span>
+</span><span id="__span-0-2616"><a id="__codelineno-0-2616" name="__codelineno-0-2616"></a>            <span class="p">),</span>
+</span><span id="__span-0-2617"><a id="__codelineno-0-2617" name="__codelineno-0-2617"></a>            <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+</span><span id="__span-0-2618"><a id="__codelineno-0-2618" name="__codelineno-0-2618"></a>            <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
+</span><span id="__span-0-2619"><a id="__codelineno-0-2619" name="__codelineno-0-2619"></a>        <span class="p">)</span>
+</span><span id="__span-0-2620"><a id="__codelineno-0-2620" name="__codelineno-0-2620"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-0-2621"><a id="__codelineno-0-2621" name="__codelineno-0-2621"></a>        <span class="n">merge_groups</span> <span class="o">=</span> <span class="n">box_non_max_merge</span><span class="p">(</span>
+</span><span id="__span-0-2622"><a id="__codelineno-0-2622" name="__codelineno-0-2622"></a>            <span class="n">predictions</span><span class="o">=</span><span class="n">predictions</span><span class="p">,</span>
+</span><span id="__span-0-2623"><a id="__codelineno-0-2623" name="__codelineno-0-2623"></a>            <span class="n">iou_threshold</span><span class="o">=</span><span class="n">threshold</span><span class="p">,</span>
+</span><span id="__span-0-2624"><a id="__codelineno-0-2624" name="__codelineno-0-2624"></a>            <span class="n">overlap_metric</span><span class="o">=</span><span class="n">overlap_metric</span><span class="p">,</span>
+</span><span id="__span-0-2625"><a id="__codelineno-0-2625" name="__codelineno-0-2625"></a>        <span class="p">)</span>
+</span><span id="__span-0-2626"><a id="__codelineno-0-2626" name="__codelineno-0-2626"></a>
+</span><span id="__span-0-2627"><a id="__codelineno-0-2627" name="__codelineno-0-2627"></a>    <span class="n">result</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Detections</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-0-2628"><a id="__codelineno-0-2628" name="__codelineno-0-2628"></a>    <span class="k">for</span> <span class="n">merge_group</span> <span class="ow">in</span> <span class="n">merge_groups</span><span class="p">:</span>
+</span><span id="__span-0-2629"><a id="__codelineno-0-2629" name="__codelineno-0-2629"></a>        <span class="n">group</span> <span class="o">=</span> <span class="p">[</span><span class="n">cast</span><span class="p">(</span><span class="n">Detections</span><span class="p">,</span> <span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">merge_group</span><span class="p">]</span>
+</span><span id="__span-0-2630"><a id="__codelineno-0-2630" name="__codelineno-0-2630"></a>        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_merge_detection_group</span><span class="p">(</span><span class="n">group</span><span class="p">))</span>
+</span><span id="__span-0-2631"><a id="__codelineno-0-2631" name="__codelineno-0-2631"></a>
+</span><span id="__span-0-2632"><a id="__codelineno-0-2632" name="__codelineno-0-2632"></a>    <span class="k">return</span> <span class="n">Detections</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
             </details>
     </div>
