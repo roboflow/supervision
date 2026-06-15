@@ -247,6 +247,18 @@ def detections_to_coco_annotations(
     Raises:
         ValueError: If any detection has ``class_id`` equal to ``None``.
 
+    Note:
+        For ``iscrowd=0`` annotations, ``segmentation`` is a
+        ``list[list[float]]`` where each inner list encodes one polygon
+        part as flat ``[x1, y1, x2, y2, ...]`` coordinates. A single
+        object with *N* disjoint parts produces *N* inner lists.
+
+        When ``iscrowd`` is not in ``detections.data``, masks with holes
+        or multiple disjoint segments are auto-encoded as RLE
+        (``iscrowd=1``); simple single-region masks use polygon format
+        (``iscrowd=0``). Supply ``data={"iscrowd": np.array([0])}`` to
+        force polygon output regardless of mask topology.
+
     Examples:
         ```python
         import numpy as np
