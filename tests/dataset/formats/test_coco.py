@@ -43,6 +43,14 @@ def mock_coco_annotation(
     }
 
 
+def _empty_raw_segs(n: int) -> np.ndarray:
+    """Object-dtype array of n empty lists for coco_raw_segmentation (bbox-only)."""
+    arr = np.empty(n, dtype=object)
+    for i in range(n):
+        arr[i] = []
+    return arr
+
+
 @pytest.fixture
 def coco_data_with_and_without_segmentation() -> dict[str, object]:
     return {
@@ -282,6 +290,7 @@ def test_group_coco_annotations_by_image_id(
             Detections(
                 xyxy=np.array([[0, 0, 100, 100]], dtype=np.float32),
                 class_id=np.array([0], dtype=int),
+                data={"coco_raw_segmentation": _empty_raw_segs(1)},
             ),
             DoesNotRaise(),
         ),  # single image annotations
@@ -300,6 +309,7 @@ def test_group_coco_annotations_by_image_id(
                 data={
                     "iscrowd": np.array([0], dtype=int),
                     "area": np.array([100 * 100]),
+                    "coco_raw_segmentation": _empty_raw_segs(1),
                 },
             ),
             DoesNotRaise(),
@@ -321,6 +331,7 @@ def test_group_coco_annotations_by_image_id(
                     [[0, 0, 100, 100], [100, 100, 200, 200]], dtype=np.float32
                 ),
                 class_id=np.array([0, 0], dtype=int),
+                data={"coco_raw_segmentation": _empty_raw_segs(2)},
             ),
             DoesNotRaise(),
         ),  # two image annotations
@@ -344,6 +355,7 @@ def test_group_coco_annotations_by_image_id(
                 data={
                     "iscrowd": np.array([0, 0], dtype=int),
                     "area": np.array([100 * 100, 100 * 100]),
+                    "coco_raw_segmentation": _empty_raw_segs(2),
                 },
             ),
             DoesNotRaise(),
@@ -1845,3 +1857,173 @@ def test_coco_round_trip_multi_class_single_image(tmp_path) -> None:
     dets = loaded.annotations[img_path]
     assert dets.class_id is not None
     assert sorted(dets.class_id.tolist()) == [0, 1]
+
+
+# --- Regression: segmentation round-trip (#2285) ---
+
+
+def _coco_annotation_with_segmentation(
+    segmentation: list[list[int]],
+    bbox: tuple[float, float, float, float] = (0, 0, 5, 5),
+    area: float = 25,
+) -> dict:
+    return mock_coco_annotation(
+        annotation_id=1,
+        image_id=1,
+        category_id=1,
+        bbox=bbox,
+        area=area,
+        segmentation=segmentation,
+    )
+
+
+def _single_image_coco_data(annotation: dict) -> dict[str, object]:
+    return {
+        "info": {},
+        "licenses": [],
+        "categories": [{"id": 1, "name": "cat", "supercategory": ""}],
+        "images": [{"id": 1, "file_name": "img.jpg", "width": 10, "height": 10}],
+        "annotations": [annotation],
+    }
+
+
+def test_detections_to_coco_annotations_exports_all_polygons() -> None:
+    """All polygons from a multi-component mask must be exported, not just the first."""
+    # Build a mask with two separate rectangles (disjoint components)
+    mask = np.zeros((20, 20), dtype=bool)
+    mask[1:4, 1:4] = True  # top-left component
+    mask[14:18, 14:18] = True  # bottom-right component
+
+    detections = Detections(
+        xyxy=np.array([[1, 1, 4, 4]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+        mask=np.array([mask]),
+        data={"iscrowd": np.array([0], dtype=int)},
+    )
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections, image_id=1, annotation_id=1
+    )
+    assert len(annotations) == 1
+    seg = annotations[0]["segmentation"]
+    # Both components must appear as separate polygon entries (list of lists)
+    assert isinstance(seg, list), "segmentation must be a list of polygons"
+    assert len(seg) >= 2
+
+
+@pytest.mark.parametrize(
+    ("segmentation", "bbox", "area", "expected_min_polygon_count"),
+    [
+        pytest.param(
+            [[0, 0, 4, 0, 4, 4, 0, 4]],
+            (0, 0, 5, 5),
+            25,
+            1,
+            id="single-polygon",
+        ),
+        pytest.param(
+            [[0, 0, 4, 0, 4, 4, 0, 4], [6, 6, 9, 6, 9, 9, 6, 9]],
+            (0, 0, 9, 9),
+            32,
+            2,
+            id="multi-polygon",
+        ),
+    ],
+)
+def test_coco_polygon_segmentation_survives_roundtrip(
+    tmp_path,
+    segmentation: list[list[int]],
+    bbox: tuple[float, float, float, float],
+    area: float,
+    expected_min_polygon_count: int,
+) -> None:
+    """COCO polygon segmentation survives the load/export sequence.
+
+    1. Write source COCO JSON with polygon segmentation.
+    2. Load it through DetectionDataset.from_coco().
+    3. Export it back to COCO JSON with as_coco().
+    4. Assert the exported segmentation keeps the expected polygon component count.
+    """
+    images_dir = tmp_path / "images"
+    images_dir.mkdir()
+
+    img_path = images_dir / "img.jpg"
+    assert cv2.imwrite(str(img_path), np.zeros((10, 10, 3), dtype=np.uint8))
+
+    # 1. Write source COCO JSON with polygon segmentation.
+    ann_path = tmp_path / "annotations.json"
+    ann_path.write_text(
+        json.dumps(
+            _single_image_coco_data(
+                _coco_annotation_with_segmentation(
+                    segmentation=segmentation, bbox=bbox, area=area
+                )
+            )
+        ),
+        encoding="utf-8",
+    )
+
+    # 2. Load it through the internal DetectionDataset representation.
+    ds = DetectionDataset.from_coco(
+        images_directory_path=str(images_dir),
+        annotations_path=str(ann_path),
+    )
+
+    # 3. Export it back to COCO JSON.
+    out_ann_path = tmp_path / "out_annotations.json"
+    ds.as_coco(annotations_path=str(out_ann_path))
+
+    with open(out_ann_path) as f:
+        out = json.load(f)
+
+    # 4. Assert polygon component count survives the load/export sequence.
+    assert len(out["annotations"]) == 1
+    seg = out["annotations"][0]["segmentation"]
+    assert isinstance(seg, list)
+    assert len(seg) >= expected_min_polygon_count
+
+
+def test_coco_raw_segmentation_preserved_when_masks_not_decoded() -> None:
+    """When masks are NOT decoded (with_masks=False), raw polygon data stored in
+    data['segmentation'] is used as a lossless fallback so as_coco() still emits
+    non-empty segmentation."""
+    image_annotations = [
+        _coco_annotation_with_segmentation(segmentation=[[0, 0, 4, 0, 4, 4, 0, 4]])
+    ]
+
+    # Load WITHOUT mask decoding — mask must be None
+    detections = coco_annotations_to_detections(
+        image_annotations=image_annotations,
+        resolution_wh=(10, 10),
+        with_masks=False,
+    )
+    assert detections.mask is None
+    # Raw segmentation must be stored in data for fallback
+    assert "coco_raw_segmentation" in detections.data
+
+    # Export must still produce non-empty segmentation via fallback
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections, image_id=1, annotation_id=1
+    )
+    assert len(annotations) == 1
+    assert annotations[0]["segmentation"] != []
+
+
+def test_coco_iscrowd_mask_exports_as_rle() -> None:
+    """Multi-segment mask exports segmentation as RLE dict (iscrowd inferred as 1)."""
+    mask = np.zeros((10, 10), dtype=bool)
+    mask[1:3, 1:3] = True  # top-left component
+    mask[7:9, 7:9] = True  # bottom-right component (two separate regions)
+
+    detections = Detections(
+        xyxy=np.array([[1, 1, 8, 8]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+        mask=np.array([mask]),
+    )
+    annotations, _ = detections_to_coco_annotations(
+        detections=detections, image_id=1, annotation_id=1
+    )
+    assert len(annotations) == 1
+    seg = annotations[0]["segmentation"]
+    assert isinstance(seg, dict), "multi-segment mask must export as RLE dict, not list"
+    assert "counts" in seg
+    assert "size" in seg
