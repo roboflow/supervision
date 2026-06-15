@@ -1627,8 +1627,14 @@ class TestDetectionsWithNMM:
                 0.01,
                 False,
                 OverlapMetric.IOU,
-                [[[0, 0], [30, 0], [30, 20], [0, 20]]],
-                [0.9],
+                # A zero-area (collinear) OBB scores IoU 0 (see
+                # test_degenerate_boxes_score_zero), so it cannot group and the
+                # two detections are not merged.
+                [
+                    [[0, 0], [30, 0], [30, 20], [0, 20]],
+                    [[5, 10], [25, 10], [25, 10], [5, 10]],
+                ],
+                [0.9, 0.7],
                 DoesNotRaise(),
                 id="degenerate-collinear-obb",
             ),
