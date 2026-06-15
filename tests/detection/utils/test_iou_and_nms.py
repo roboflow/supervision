@@ -1162,34 +1162,30 @@ def test_box_iou_batch_symmetric_large(
 @pytest.mark.parametrize(
     "scale",
     [
-        np.array([[10, 1]], dtype=np.float32),  # x-dominant (wide box)
-        np.array([[1, 10]], dtype=np.float32),  # y-dominant (tall box)
+        pytest.param(np.array([[10, 1]], dtype=np.float32), id="x-dominant"),
+        pytest.param(np.array([[1, 10]], dtype=np.float32), id="y-dominant"),
     ],
 )
 def test_oriented_box_iou_batch_is_invariant_to_non_square_scaling(
     scale: np.ndarray,
 ) -> None:
-    """IoU is stable when boxes are scaled uniformly along one axis.
+    """IoU is invariant under per-axis (anisotropic) scaling.
 
-    Regression guard for the canvas x/y swap bug: before the fix, a 10x
-    x-scale produced an undersized height dimension, truncating the polygon
-    and yielding a different IoU. Tolerance reflects rasterization discretization.
+    An affine map multiplies every area — intersection and union alike — by the
+    same determinant, so exact polygon IoU is unchanged. Equality is exact
+    because the computation is rasterization-free; the analytic IoU of these two
+    rectangles is 0.25.
     """
     boxes_true = np.array([[[1, 0], [0, 1], [3, 4], [4, 3]]], dtype=np.float32)
     boxes_detection = np.array([[[1, 1], [2, 0], [4, 2], [3, 3]]], dtype=np.float32)
 
     baseline_iou = oriented_box_iou_batch(boxes_true, boxes_detection)
-    scaled_iou = oriented_box_iou_batch(
-        boxes_true * scale,
-        boxes_detection * scale,
-    )
+    scaled_iou = oriented_box_iou_batch(boxes_true * scale, boxes_detection * scale)
 
     assert baseline_iou.shape == (1, 1)
     assert scaled_iou.shape == (1, 1)
-    assert baseline_iou[0, 0] > 0.35
-    # rtol=0.03, atol=0.02: rasterization discretization introduces small
-    # coordinate-dependent error; exact equality is not achievable via pixel IoU.
-    assert np.allclose(scaled_iou, baseline_iou, rtol=0.03, atol=0.02)
+    assert baseline_iou[0, 0] == pytest.approx(0.25)
+    assert np.allclose(scaled_iou, baseline_iou, rtol=1e-5, atol=1e-7)
 
 
 class TestOrientedBoxIouBatch:
@@ -1198,20 +1194,19 @@ class TestOrientedBoxIouBatch:
     @pytest.mark.parametrize(
         ("scale", "offset"),
         [
-            (80.0, 0.0),  # HD/4K-scale coords — exercises canvas cap
-            (1.0, 3000.0),  # far-corner coords — exercises canvas anchoring
-            (80.0, 3000.0),  # both — large coordinates far from origin
+            pytest.param(80.0, 0.0, id="large-scale"),
+            pytest.param(1.0, 3000.0, id="far-from-origin"),
+            pytest.param(80.0, 3000.0, id="large-and-far"),
         ],
     )
     def test_is_invariant_to_canvas_transforms(
         self, scale: float, offset: float
     ) -> None:
-        """IoU matches the small-coordinate baseline regardless of where in the
-        frame the boxes sit or how large their coordinates are.
+        """IoU is invariant under uniform scaling and translation.
 
-        The function must internally translate-and-scale boxes onto a bounded
-        rasterization canvas (IoU is invariant under both), so memory stays
-        roughly constant across input resolutions and box positions."""
+        Both are affine maps, so exact polygon IoU matches the small-coordinate
+        baseline exactly — free of the pixel-quantization error that the prior
+        rasterization-based implementation exhibited."""
         boxes_true = _rotated_rect(50, 50, 40, 20, 30)[None]
         boxes_detection = _rotated_rect(52, 48, 40, 20, 35)[None]
         baseline = oriented_box_iou_batch(boxes_true, boxes_detection)
@@ -1224,20 +1219,159 @@ class TestOrientedBoxIouBatch:
         assert baseline.shape == (1, 1)
         assert transformed.shape == (1, 1)
         assert baseline[0, 0] > 0.4
-        assert np.allclose(transformed, baseline, rtol=0.03, atol=0.02)
+        assert np.allclose(transformed, baseline, rtol=1e-5, atol=1e-7)
 
     def test_supports_overlap_metric(self) -> None:
         """`overlap_metric=IOS` divides by the smaller area, so a small box fully
-        contained in a larger one scores 1.0, while IoU is smaller."""
+        contained in a larger one scores exactly 1.0, while IoU is the area ratio."""
         small = _rotated_rect(50, 50, 20, 20, 0)[None]
         large = _rotated_rect(50, 50, 60, 60, 0)[None]
 
         iou = oriented_box_iou_batch(small, large, OverlapMetric.IOU)[0, 0]
         ios = oriented_box_iou_batch(small, large, OverlapMetric.IOS)[0, 0]
 
-        # Small (~20x20) inside large (~60x60): IoU ≈ 400/3600 ≈ 0.11, IoS = 1.0
-        assert iou < 0.2
-        assert ios > 0.98
+        # 20x20 inside 60x60: IoU = 400 / 3600 = 1/9, IoS = 400 / 400 = 1.0.
+        assert iou == pytest.approx(1 / 9, rel=1e-3)
+        assert ios == pytest.approx(1.0)
+
+    def test_half_overlap_matches_analytic_value(self) -> None:
+        """Two unit-height 2x2 squares offset by 1 share half their area: IoU=1/3."""
+        boxes_true = np.array([[[0, 0], [2, 0], [2, 2], [0, 2]]], dtype=np.float32)
+        boxes_detection = np.array([[[1, 0], [3, 0], [3, 2], [1, 2]]], dtype=np.float32)
+
+        iou = oriented_box_iou_batch(boxes_true, boxes_detection)
+
+        # intersection = 2, union = 4 + 4 - 2 = 6, IoU = 2/6 = 1/3.
+        assert iou[0, 0] == pytest.approx(1 / 3)
+
+    def test_disjoint_boxes_score_zero(self) -> None:
+        """Boxes whose envelopes do not overlap are pruned by the gate to 0.0."""
+        boxes_true = _rotated_rect(10, 10, 8, 4, 20)[None]
+        boxes_detection = _rotated_rect(500, 500, 8, 4, 70)[None]
+
+        iou = oriented_box_iou_batch(boxes_true, boxes_detection)
+
+        assert iou[0, 0] == 0.0
+
+    @pytest.mark.parametrize(
+        "boxes",
+        [
+            pytest.param(
+                np.stack([_rotated_rect(10, 10, 8, 4, 20)]),
+                id="n=1",
+            ),
+            pytest.param(
+                np.stack(
+                    [_rotated_rect(10, 10, 8, 4, 20), _rotated_rect(40, 40, 8, 4, 70)]
+                ),
+                id="n=2",
+            ),
+        ],
+    )
+    def test_self_comparison_is_symmetric_with_unit_diagonal(
+        self, boxes: np.ndarray
+    ) -> None:
+        """Comparing a set with itself yields a symmetric matrix and a 1.0 diagonal."""
+        iou = oriented_box_iou_batch(boxes, boxes)
+
+        assert np.allclose(iou, iou.T)
+        for i in range(len(boxes)):
+            assert iou[i, i] == pytest.approx(1.0)
+
+    def test_envelope_overlap_without_polygon_overlap_scores_zero(self) -> None:
+        """Parallel rotated bars share an envelope but not a body, so they score 0.
+
+        Exercises the path where a pair passes the axis-aligned gate yet has no
+        exact polygon intersection.
+        """
+        boxes_true = _rotated_rect(50, 50, 100, 4, 45)[None]
+        boxes_detection = _rotated_rect(72, 28, 100, 4, 45)[None]
+
+        iou = oriented_box_iou_batch(boxes_true, boxes_detection)
+
+        assert iou[0, 0] == 0.0
+
+    def test_rejects_unsupported_overlap_metric(self) -> None:
+        """An overlap metric other than IOU or IOS raises ValueError."""
+        boxes = _rotated_rect(50, 50, 20, 20, 0)[None]
+
+        with pytest.raises(ValueError, match="is not supported"):
+            oriented_box_iou_batch(boxes, boxes, "invalid")  # type: ignore[arg-type]
+
+    @pytest.mark.parametrize(
+        ("boxes_a", "boxes_b", "expected"),
+        [
+            pytest.param(
+                np.array([[[5, 5], [5, 5], [5, 5], [5, 5]]], dtype=np.float32),
+                np.array([[[0, 0], [2, 0], [2, 2], [0, 2]]], dtype=np.float32),
+                0.0,
+                id="collapsed-box-vs-normal",
+            ),
+            pytest.param(
+                np.array([[[0, 0], [1, 0], [2, 0], [3, 0]]], dtype=np.float32),
+                np.array([[[0, 0], [2, 0], [2, 2], [0, 2]]], dtype=np.float32),
+                0.0,
+                id="collinear-box-vs-normal",
+            ),
+            pytest.param(
+                np.array([[[5, 5], [5, 5], [5, 5], [5, 5]]], dtype=np.float32),
+                np.array([[[5, 5], [5, 5], [5, 5], [5, 5]]], dtype=np.float32),
+                0.0,
+                id="self-comparison-zero-area",
+            ),
+        ],
+    )
+    def test_degenerate_boxes_score_zero(
+        self,
+        boxes_a: np.ndarray,
+        boxes_b: np.ndarray,
+        expected: float,
+    ) -> None:
+        """Degenerate boxes (zero-area collapsed or collinear) always score 0.
+
+        Note: self-comparison of a zero-area box returns 0.0, not 1.0 — this
+        diverges from ``box_iou_batch`` which returns 1.0 for degenerate AABB
+        self-comparison.
+        """
+        iou = oriented_box_iou_batch(boxes_a, boxes_b)
+        assert iou[0, 0] == expected
+
+    @pytest.mark.parametrize(
+        ("n", "m"),
+        [
+            pytest.param(0, 3, id="zero-true"),
+            pytest.param(3, 0, id="zero-detection"),
+            pytest.param(0, 0, id="both-zero"),
+        ],
+    )
+    def test_empty_input_returns_correct_shape(self, n: int, m: int) -> None:
+        """Empty inputs trigger the early-return path; result is zero-filled."""
+        boxes_true = np.empty((n, 4, 2), dtype=np.float32)
+        boxes_detection = np.empty((m, 4, 2), dtype=np.float32)
+
+        iou = oriented_box_iou_batch(boxes_true, boxes_detection)
+
+        assert iou.shape == (n, m)
+        assert iou.dtype == np.float64
+        assert np.all(iou == 0.0)
+
+    @pytest.mark.parametrize(
+        ("bad_shape", "match"),
+        [
+            pytest.param((2, 3, 2), r"expected \(N, 4, 2\)", id="3d-wrong-inner-dims"),
+            pytest.param((2, 5), r"expected \(N, 8\)", id="2d-wrong-columns"),
+            pytest.param((8,), r"must be 2-D", id="1d-input"),
+        ],
+    )
+    def test_invalid_shape_raises_value_error(
+        self, bad_shape: tuple, match: str
+    ) -> None:
+        """Inputs with wrong shape raise ValueError before any computation."""
+        boxes_bad = np.zeros(bad_shape, dtype=np.float32)
+        boxes_ok = np.zeros((2, 4, 2), dtype=np.float32)
+
+        with pytest.raises(ValueError, match=match):
+            oriented_box_iou_batch(boxes_bad, boxes_ok)
 
 
 class TestOrientedBoxNonMaxSuppression:

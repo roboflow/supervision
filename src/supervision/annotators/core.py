@@ -2746,7 +2746,7 @@ class PercentageBarAnnotator(BaseAnnotator):
     @deprecated(  # type: ignore[untyped-decorator]
         target=_validate_custom_values.__func__,  # type: ignore[attr-defined]
         deprecated_in="0.29.0",
-        remove_in="0.31.0",
+        remove_in="0.32.0",
     )
     def validate_custom_values(
         custom_values: npt.NDArray[np.float64] | list[float] | None,

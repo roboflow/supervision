@@ -75,6 +75,8 @@ For branching, commit, code style, and API design conventions see [CONTRIBUTING.
 
 ## 5. Deprecating APIs
 
+**Minimum window**: deprecated APIs must remain for at least **3 minor releases** before removal. Example: deprecated in `0.29.0` → removed in `0.32.0`.
+
 - Module-level: `supervision.utils.internal.warn_deprecated` in the deprecated module's own `__init__.py`
 - Parameter renamed (old→new): `supervision.utils.internal.deprecated_parameter` decorator
 - Public function, method, or class: `@deprecated` from `pydeprecate`
@@ -82,7 +84,7 @@ For branching, commit, code style, and API design conventions see [CONTRIBUTING.
 Always name the version introduced and the removal version:
 
 ```python
-warn_deprecated("'foo' deprecated in `0.27.0`, removed in `0.30.0`. Use 'bar'.")
+warn_deprecated("'foo' deprecated in `0.29.0`, removed in `0.32.0`. Use 'bar'.")
 ```
 
 ---
