@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import cv2
 import numpy as np
 from inference import InferencePipeline
 from inference.core.interfaces.camera.entities import VideoFrame
@@ -30,7 +31,7 @@ class CustomSink:
             )
             for polygon in self.polygons
         ]
-        self.window = sv.TkImageWindow("Processed Video")
+        self.window_title = "Processed Video"
 
     def on_prediction(self, detections: sv.Detections, frame: VideoFrame) -> None:
         self.fps_monitor.tick()
@@ -72,8 +73,8 @@ class CustomSink:
                 labels=labels,
                 custom_color_lookup=custom_color_lookup,
             )
-        self.window.show(annotated_frame)
-        self.window.wait_key(1)
+        cv2.imshow(self.window_title, annotated_frame)
+        cv2.waitKey(1)
 
 
 def main(
