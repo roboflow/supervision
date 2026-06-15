@@ -270,6 +270,25 @@ def get_video_frames_generator(
         A generator that yields the
             frames of the video.
 
+    Note:
+        For live camera streams, use `cv2.VideoCapture` with an integer device
+        index directly. `get_video_frames_generator` is designed for file-based
+        sources; `cv2.VideoCapture` must be released by the caller when done:
+
+        ```python
+        import cv2
+
+        cap = cv2.VideoCapture(0)  # 0 = default webcam
+        try:
+            while cap.isOpened():
+                success, frame = cap.read()
+                if not success:
+                    break
+                ...  # process frame
+        finally:
+            cap.release()
+        ```
+
     Examples:
         ```python
         import supervision as sv
