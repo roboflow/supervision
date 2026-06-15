@@ -14,11 +14,24 @@ MouseCallback = Callable[[int, int, str], None]
 class TkImageWindow:
     """Desktop image window backed by stdlib tkinter + pillow.
 
-    Drop-in replacement for `cv2.imshow` / `cv2.waitKey` that works under
+    Functional replacement for `cv2.imshow` / `cv2.waitKey` that works under
     `opencv-python-headless`. Requires tkinter (stdlib) and pillow (already a
-    supervision dependency). On headless servers with no display, instantiation
-    succeeds but `show()` / `wait_key()` will raise `tkinter.TclError` when
-    the window is first created.
+    supervision dependency). Instantiation always succeeds; `show()` raises
+    `AttributeError` (module 'PIL' has no attribute 'ImageTk') on environments
+    where `python3-tk` is absent, and raises `tkinter.TclError` on headless
+    servers where a display is unavailable.
+
+    Differences from cv2:
+        - `wait_key()` returns a tkinter keysym `str` (e.g. ``"q"``,
+          ``"Return"``, ``"Escape"``) or ``None``, not an ``int``. Code
+          relying on ``key == ord("q")`` or ``key & 0xFF == 27`` must be
+          updated to ``key == "q"`` or ``key == "Escape"``.
+        - Mouse callback signature is ``(x: int, y: int, event_type: str)``
+          where ``event_type`` is ``"down"``, ``"up"``, or ``"move"``. This
+          differs from cv2's ``(event: int, x, y, flags, param)`` — existing
+          cv2 mouse callbacks are not compatible without modification.
+        - Only left-button events are captured. Right-button clicks, scroll
+          events, and modifier-key flags (Ctrl, Shift) have no equivalent.
 
     Attributes:
         title: Window title bar text.
