@@ -2761,7 +2761,7 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
     )
 
 
-@deprecated(deprecated_in="0.29.0", remove_in="0.34.0")  # type: ignore[untyped-decorator]
+@deprecated(deprecated_in="0.29.0", remove_in="0.32.0")  # type: ignore[untyped-decorator]
 def merge_inner_detection_object_pair(
     detections_1: Detections, detections_2: Detections
 ) -> Detections:
@@ -2854,7 +2854,7 @@ def merge_inner_detection_object_pair(
     )
 
 
-@deprecated(deprecated_in="0.29.0", remove_in="0.34.0")  # type: ignore[untyped-decorator]
+@deprecated(deprecated_in="0.29.0", remove_in="0.32.0")  # type: ignore[untyped-decorator]
 def merge_inner_detections_objects(
     detections: list[Detections],
     threshold: float = 0.5,
@@ -2882,7 +2882,7 @@ def merge_inner_detections_objects(
     return detections_1
 
 
-@deprecated(deprecated_in="0.29.0", remove_in="0.34.0")  # type: ignore[untyped-decorator]
+@deprecated(deprecated_in="0.29.0", remove_in="0.32.0")  # type: ignore[untyped-decorator]
 def merge_inner_detections_objects_without_iou(
     detections: list[Detections],
 ) -> Detections:
@@ -2924,7 +2924,7 @@ def _validate_fields_both_defined_or_none(
 @deprecated(  # type: ignore[untyped-decorator]
     target=_validate_fields_both_defined_or_none,
     deprecated_in="0.29.0",
-    remove_in="0.31.0",
+    remove_in="0.32.0",
 )
 def validate_fields_both_defined_or_none(
     detections_1: Detections, detections_2: Detections
