@@ -202,7 +202,9 @@ def coco_annotations_to_detections(
         mask = None
         # Preserve raw polygon/RLE data so as_coco() can round-trip without
         # binary-mask encoding. Stored as an object array (one entry per detection).
-        raw_segs = np.empty(len(image_annotations), dtype=object)
+        raw_segs: npt.NDArray[np.object_] = np.empty(
+            len(image_annotations), dtype=object
+        )
         for k, _ann in enumerate(image_annotations):
             raw_segs[k] = _ann.get("segmentation", [])
         data[COCO_RAW_SEGMENTATION] = raw_segs
