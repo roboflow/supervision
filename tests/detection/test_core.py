@@ -1060,51 +1060,336 @@ class TestDetectionsObbDispatch:
 class TestDetectionsWithNmm:
     """NMM-specific behaviour tests for `Detections.with_nmm`."""
 
-    def test_obb_merged_xyxy_uses_winner_orientation(self) -> None:
-        """OBB merge group: merged geometry at winner's angle encompasses all corners.
+    @pytest.mark.parametrize(
+        (
+            "corners",
+            "confidence",
+            "class_ids",
+            "iou_threshold",
+            "class_agnostic",
+            "overlap_metric",
+            "expected_corners",
+            "expected_confidence",
+            "exception",
+        ),
+        [
+            pytest.param(
+                [
+                    np.array(
+                        [[10, 10], [50, 10], [50, 30], [10, 30]],
+                        dtype=np.float32,
+                    ),
+                    np.array(
+                        [[11, 11], [51, 11], [51, 31], [11, 31]],
+                        dtype=np.float32,
+                    ),
+                ],
+                [0.9, 0.85],
+                [0, 0],
+                0.5,
+                False,
+                OverlapMetric.IOU,
+                np.array(
+                    [[[10, 10], [51, 10], [51, 31], [10, 31]]],
+                    dtype=np.float32,
+                ),
+                [0.875],
+                DoesNotRaise(),
+                id="axis-aligned-merge",
+            ),
+            pytest.param(
+                [
+                    _rotated_rect(50, 50, 40, 10, 45),
+                    _rotated_rect(55, 55, 40, 10, 45),
+                ],
+                [0.9, 0.8],
+                [0, 0],
+                0.3,
+                False,
+                OverlapMetric.IOU,
+                np.array(
+                    [
+                        [
+                            [39.39, 32.32],
+                            [72.68, 65.61],
+                            [65.61, 72.68],
+                            [32.32, 39.39],
+                        ]
+                    ],
+                    dtype=np.float32,
+                ),
+                [0.85],
+                DoesNotRaise(),
+                id="rotated-45deg-merge",
+            ),
+            pytest.param(
+                [
+                    np.array(
+                        [[0, 0], [20, 0], [20, 10], [0, 10]],
+                        dtype=np.float32,
+                    ),
+                    np.array(
+                        [[5, 5], [25, 5], [25, 15], [5, 15]],
+                        dtype=np.float32,
+                    ),
+                    np.array(
+                        [[10, 0], [30, 0], [30, 10], [10, 10]],
+                        dtype=np.float32,
+                    ),
+                ],
+                [0.9, 0.8, 0.7],
+                [0, 0, 0],
+                0.2,
+                False,
+                OverlapMetric.IOU,
+                np.array(
+                    [[[0, 0], [30, 0], [30, 15], [0, 15]]],
+                    dtype=np.float32,
+                ),
+                [0.797826],
+                DoesNotRaise(),
+                id="three-group-merge",
+            ),
+            pytest.param(
+                [
+                    np.array(
+                        [[10, 10], [50, 10], [50, 30], [10, 30]],
+                        dtype=np.float32,
+                    ),
+                ],
+                [0.9],
+                [0],
+                0.5,
+                False,
+                OverlapMetric.IOU,
+                np.array(
+                    [[[10, 10], [50, 10], [50, 30], [10, 30]]],
+                    dtype=np.float32,
+                ),
+                [0.9],
+                DoesNotRaise(),
+                id="single-passthrough",
+            ),
+            pytest.param(
+                [
+                    np.array(
+                        [[0, 0], [30, 0], [30, 20], [0, 20]],
+                        dtype=np.float32,
+                    ),
+                    np.array(
+                        [[5, 5], [35, 5], [35, 25], [5, 25]],
+                        dtype=np.float32,
+                    ),
+                ],
+                [0.9, 0.8],
+                [0, 1],
+                0.3,
+                True,
+                OverlapMetric.IOU,
+                np.array(
+                    [[[0, 0], [35, 0], [35, 25], [0, 25]]],
+                    dtype=np.float32,
+                ),
+                [0.85],
+                DoesNotRaise(),
+                id="class-agnostic",
+            ),
+            pytest.param(
+                [
+                    np.array(
+                        [[0, 0], [40, 0], [40, 30], [0, 30]],
+                        dtype=np.float32,
+                    ),
+                    np.array(
+                        [[10, 10], [30, 10], [30, 20], [10, 20]],
+                        dtype=np.float32,
+                    ),
+                ],
+                [0.9, 0.8],
+                [0, 0],
+                0.3,
+                False,
+                OverlapMetric.IOS,
+                np.array(
+                    [[[0, 0], [40, 0], [40, 30], [0, 30]]],
+                    dtype=np.float32,
+                ),
+                [0.885714],
+                DoesNotRaise(),
+                id="ios-metric",
+            ),
+            pytest.param(
+                [
+                    _rotated_rect(50, 50, 40, 15, 30),
+                    _rotated_rect(55, 50, 40, 15, -15),
+                ],
+                [0.9, 0.7],
+                [0, 0],
+                0.2,
+                False,
+                OverlapMetric.IOU,
+                np.array(
+                    [
+                        [
+                            [43.65, 20.99],
+                            [81.56, 42.88],
+                            [62.12, 76.56],
+                            [24.21, 54.68],
+                        ]
+                    ],
+                    dtype=np.float32,
+                ),
+                [0.813652],
+                DoesNotRaise(),
+                id="mixed-angle-merge",
+            ),
+            pytest.param(
+                [
+                    np.array(
+                        [[0, 0], [30, 0], [30, 20], [0, 20]],
+                        dtype=np.float32,
+                    ),
+                    np.array(
+                        [[5, 5], [35, 5], [35, 25], [5, 25]],
+                        dtype=np.float32,
+                    ),
+                    np.array(
+                        [[200, 200], [240, 200], [240, 220], [200, 220]],
+                        dtype=np.float32,
+                    ),
+                    np.array(
+                        [[205, 205], [245, 205], [245, 225], [205, 225]],
+                        dtype=np.float32,
+                    ),
+                ],
+                [0.9, 0.7, 0.85, 0.6],
+                [0, 0, 0, 0],
+                0.2,
+                False,
+                OverlapMetric.IOU,
+                np.array(
+                    [
+                        [[0, 0], [35, 0], [35, 25], [0, 25]],
+                        [[200, 200], [245, 200], [245, 225], [200, 225]],
+                    ],
+                    dtype=np.float32,
+                ),
+                [0.8, 0.725],
+                DoesNotRaise(),
+                id="two-separate-groups",
+            ),
+            pytest.param(
+                [
+                    np.array(
+                        [[0, 0], [30, 0], [30, 20], [0, 20]],
+                        dtype=np.float32,
+                    ),
+                    np.array(
+                        [[5, 10], [25, 10], [25, 10], [5, 10]],
+                        dtype=np.float32,
+                    ),
+                ],
+                [0.9, 0.7],
+                [0, 0],
+                0.01,
+                False,
+                OverlapMetric.IOU,
+                np.array(
+                    [[[0, 0], [30, 0], [30, 20], [0, 20]]],
+                    dtype=np.float32,
+                ),
+                [0.9],
+                DoesNotRaise(),
+                id="degenerate-collinear-obb",
+            ),
+            pytest.param(
+                None,
+                [0.9, 0.8],
+                [0, 0],
+                0.4,
+                False,
+                OverlapMetric.IOU,
+                None,
+                None,
+                pytest.raises(ValueError, match="corners must have shape"),
+                id="flat-n8-raises",
+            ),
+        ],
+    )
+    def test_obb_nmm_merge(
+        self,
+        corners: list[np.ndarray] | None,
+        confidence: list[float],
+        class_ids: list[int],
+        iou_threshold: float,
+        class_agnostic: bool,
+        overlap_metric: OverlapMetric,
+        expected_corners: np.ndarray | None,
+        expected_confidence: list[float] | None,
+        exception: DoesNotRaise,
+    ) -> None:
+        """OBB NMM produces correct geometry and confidence."""
+        if corners is None:
+            xyxy = np.array(
+                [[0, 0, 30, 20], [5, 5, 35, 25]],
+                dtype=np.float32,
+            )
+            flat = np.array(
+                [
+                    [0, 0, 30, 0, 30, 20, 0, 20],
+                    [5, 5, 35, 5, 35, 25, 5, 25],
+                ],
+                dtype=np.float32,
+            )
+            detections = Detections(
+                xyxy=xyxy,
+                confidence=np.array(confidence, dtype=np.float32),
+                class_id=np.array(class_ids),
+                data={ORIENTED_BOX_COORDINATES: flat},
+            )
+        else:
+            detections = _make_obb_detections(corners, confidence, class_ids)
 
-        Two near-identical axis-aligned OBBs merge. Winner angle = 0, so result
-        equals AABB union. Expected xyxy: [10, 10, 51, 31].
-        """
-        quad_winner = np.array(
-            [[10, 10], [50, 10], [50, 30], [10, 30]], dtype=np.float32
-        )
-        quad_other = np.array(
-            [[11, 11], [51, 11], [51, 31], [11, 31]], dtype=np.float32
-        )
-        detections = _make_obb_detections(
-            [quad_winner, quad_other], [0.9, 0.85], [0, 0]
-        )
+        with exception:
+            result = detections.with_nmm(
+                threshold=iou_threshold,
+                class_agnostic=class_agnostic,
+                overlap_metric=overlap_metric,
+            )
 
-        result = detections.with_nmm(threshold=0.5)
+            assert len(result) == len(expected_confidence)
+            for i, exp_c in enumerate(expected_confidence):
+                assert result.confidence[i] == pytest.approx(exp_c, abs=1e-3)
+            result_corners = result.data[ORIENTED_BOX_COORDINATES]
+            assert np.allclose(
+                result_corners,
+                expected_corners,
+                atol=0.5,
+            )
 
-        assert len(result) == 1
-        expected_xyxy = np.array([[10.0, 10.0, 51.0, 31.0]], dtype=np.float32)
-        assert np.allclose(result.xyxy, expected_xyxy, atol=0.5)
-        merged_obb = result.data[ORIENTED_BOX_COORDINATES][0]  # (4, 2)
-        assert merged_obb.shape == (4, 2)
-        assert float(merged_obb[:, 0].min()) == pytest.approx(10.0, abs=0.5)
-        assert float(merged_obb[:, 0].max()) == pytest.approx(51.0, abs=0.5)
-        assert float(merged_obb[:, 1].min()) == pytest.approx(10.0, abs=0.5)
-        assert float(merged_obb[:, 1].max()) == pytest.approx(31.0, abs=0.5)
-
-    def test_obb_nmm_union_matches_aabb_nmm_for_axis_aligned_boxes(self) -> None:
-        """Axis-aligned OBB NMM produces the same union envelope as AABB NMM.
-
-        When OBBs have no rotation their MARC degenerates to the axis-aligned union,
-        so both paths must agree on xyxy.
-        """
+    def test_obb_nmm_matches_aabb_for_axis_aligned(self) -> None:
+        """Axis-aligned OBB NMM produces same envelope as AABB NMM."""
         xyxy = np.array([[0, 0, 30, 20], [5, 5, 35, 25]], dtype=np.float32)
-        conf = np.array([0.9, 0.5], dtype=np.float32)
+        confidence = np.array([0.9, 0.5], dtype=np.float32)
         class_id = np.array([0, 0])
 
-        aabb_detections = Detections(xyxy=xyxy, confidence=conf, class_id=class_id)
+        aabb_detections = Detections(
+            xyxy=xyxy,
+            confidence=confidence,
+            class_id=class_id,
+        )
         obb_detections = _make_obb_detections(
             [
-                np.array([[0, 0], [30, 0], [30, 20], [0, 20]], dtype=np.float32),
-                np.array([[5, 5], [35, 5], [35, 25], [5, 25]], dtype=np.float32),
+                np.array(
+                    [[0, 0], [30, 0], [30, 20], [0, 20]],
+                    dtype=np.float32,
+                ),
+                np.array(
+                    [[5, 5], [35, 5], [35, 25], [5, 25]],
+                    dtype=np.float32,
+                ),
             ],
-            conf.tolist(),
+            confidence.tolist(),
             class_id.tolist(),
         )
 
@@ -1115,109 +1400,41 @@ class TestDetectionsWithNmm:
         assert len(obb_result) == 1
         assert np.allclose(aabb_result.xyxy, obb_result.xyxy, atol=1e-4)
 
-    def test_diagonal_staircase_obb_merge_stays_within_union(self) -> None:
-        """Three axis-aligned OBBs in diagonal staircase: merged AABB equals union."""
-        # Middle box is winner (highest confidence) so it overlaps both outer boxes,
-        # pulling all three into one merge group.
+    def test_staircase_obb_merge_within_union(self) -> None:
+        """Diagonal staircase OBBs: merged AABB equals axis-aligned union."""
         quads = [
-            np.array([[0, 0], [20, 0], [20, 20], [0, 20]], dtype=np.float32),
-            np.array([[12, 12], [32, 12], [32, 32], [12, 32]], dtype=np.float32),
-            np.array([[24, 24], [44, 24], [44, 44], [24, 44]], dtype=np.float32),
+            np.array(
+                [[0, 0], [20, 0], [20, 20], [0, 20]],
+                dtype=np.float32,
+            ),
+            np.array(
+                [[12, 12], [32, 12], [32, 32], [12, 32]],
+                dtype=np.float32,
+            ),
+            np.array(
+                [[24, 24], [44, 24], [44, 44], [24, 44]],
+                dtype=np.float32,
+            ),
         ]
         detections = _make_obb_detections(quads, [0.7, 0.9, 0.8], [0, 0, 0])
 
         result = detections.with_nmm(threshold=0.05)
 
         assert len(result) == 1
-        # Merged AABB must equal the axis-aligned union [0, 0, 44, 44]
-        # — not the free MARC which would be ~[-10, -10, 54, 54]
         assert np.allclose(result.xyxy, [[0.0, 0.0, 44.0, 44.0]], atol=0.5)
 
-    def test_rotated_obb_merge_uses_winner_angle(self) -> None:
-        """Two overlapping 45-degree OBBs merge into a winner-angle rect."""
-        quad_a = _rotated_rect(50, 50, 40, 10, 45)
-        quad_b = _rotated_rect(55, 55, 40, 10, 45)
-        detections = _make_obb_detections([quad_a, quad_b], [0.9, 0.8], [0, 0])
-
-        result = detections.with_nmm(threshold=0.3)
-
-        assert len(result) == 1
-        merged_obb = result.data[ORIENTED_BOX_COORDINATES][0]
-        assert merged_obb.shape == (4, 2)
-        # MARC must encompass all input corners
-        all_corners = np.concatenate([quad_a, quad_b], axis=0)
-        assert float(merged_obb[:, 0].min()) <= float(all_corners[:, 0].min()) + 0.5
-        assert float(merged_obb[:, 0].max()) >= float(all_corners[:, 0].max()) - 0.5
-        assert float(merged_obb[:, 1].min()) <= float(all_corners[:, 1].min()) + 0.5
-        assert float(merged_obb[:, 1].max()) >= float(all_corners[:, 1].max()) - 0.5
-
-    def test_three_detection_group_merge(self) -> None:
-        """Three mutually-overlapping OBBs merge into a single detection."""
-        quads = [
-            np.array([[0, 0], [20, 0], [20, 10], [0, 10]], dtype=np.float32),
-            np.array([[5, 5], [25, 5], [25, 15], [5, 15]], dtype=np.float32),
-            np.array([[10, 0], [30, 0], [30, 10], [10, 10]], dtype=np.float32),
-        ]
-        detections = _make_obb_detections(quads, [0.9, 0.8, 0.7], [0, 0, 0])
-
-        result = detections.with_nmm(threshold=0.2)
-
-        assert len(result) == 1
-        merged_obb = result.data[ORIENTED_BOX_COORDINATES][0]
-        assert merged_obb.shape == (4, 2)
-        # Merged envelope must span all three input boxes
-        assert float(merged_obb[:, 0].min()) <= 0.5  # at or near x=0
-        assert float(merged_obb[:, 0].max()) >= 29.5  # at or near x=30
-
-    def test_single_detection_passthrough_preserves_obb(self) -> None:
-        """A non-overlapping OBB detection passes through with its corners unchanged."""
-        quad = np.array([[10, 10], [50, 10], [50, 30], [10, 30]], dtype=np.float32)
-        detections = _make_obb_detections([quad], [0.9], [0])
-
-        result = detections.with_nmm(threshold=0.5)
-
-        assert len(result) == 1
-        assert np.allclose(result.data[ORIENTED_BOX_COORDINATES][0], quad, atol=1e-5)
-
-    def test_class_agnostic_obb_merge(self) -> None:
-        """class_agnostic=True merges overlapping OBBs regardless of class_id."""
-        quad_a = np.array([[0, 0], [30, 0], [30, 20], [0, 20]], dtype=np.float32)
-        quad_b = np.array([[5, 5], [35, 5], [35, 25], [5, 25]], dtype=np.float32)
-        detections = _make_obb_detections([quad_a, quad_b], [0.9, 0.8], [0, 1])
-
-        result = detections.with_nmm(threshold=0.3, class_agnostic=True)
-
-        assert len(result) == 1
-        assert result.data[ORIENTED_BOX_COORDINATES][0].shape == (4, 2)
-
-    def test_overlap_metric_ios_obb_merge(self) -> None:
-        """overlap_metric=IOS merges a small OBB fully inside a large OBB."""
-        quad_large = np.array([[0, 0], [40, 0], [40, 30], [0, 30]], dtype=np.float32)
-        quad_small = np.array(
-            [[10, 10], [30, 10], [30, 20], [10, 20]], dtype=np.float32
-        )
-        detections = _make_obb_detections([quad_large, quad_small], [0.9, 0.8], [0, 0])
-
-        result = detections.with_nmm(threshold=0.3, overlap_metric=OverlapMetric.IOS)
-
-        assert len(result) == 1
-
-    def test_flat_n8_obb_format_raises_value_error(self) -> None:
-        """Flat (N, 8) OBB format is unsupported — data dict requires (N, 4, 2)."""
-        xyxy = np.array([[0, 0, 30, 20], [5, 5, 35, 25]], dtype=np.float32)
-        flat_corners = np.array(
-            [[0, 0, 30, 0, 30, 20, 0, 20], [5, 5, 35, 5, 35, 25, 5, 25]],
-            dtype=np.float32,
-        )  # (2, 8) — violates canonical (N, 4, 2) contract
-        detections = Detections(
-            xyxy=xyxy,
-            confidence=np.array([0.9, 0.8], dtype=np.float32),
-            class_id=np.array([0, 0]),
-            data={ORIENTED_BOX_COORDINATES: flat_corners},
+    def test_obb_nmm_empty_detections(self) -> None:
+        """Empty OBB detections return empty result."""
+        dets = Detections(
+            xyxy=np.empty((0, 4), dtype=np.float32),
+            confidence=np.array([], dtype=np.float32),
+            class_id=np.array([], dtype=int),
+            data={ORIENTED_BOX_COORDINATES: np.empty((0, 4, 2), dtype=np.float32)},
         )
 
-        with pytest.raises(ValueError, match="corners must have shape"):
-            detections.with_nmm(threshold=0.4)
+        result = dets.with_nmm(threshold=0.5)
+
+        assert len(result) == 0
 
 
 class TestDetectionsArea:
