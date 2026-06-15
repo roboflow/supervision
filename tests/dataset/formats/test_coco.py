@@ -1862,6 +1862,31 @@ def test_coco_round_trip_multi_class_single_image(tmp_path) -> None:
 # --- Regression: segmentation round-trip (#2285) ---
 
 
+def _coco_annotation_with_segmentation(
+    segmentation: list[list[int]],
+    bbox: tuple[float, float, float, float] = (0, 0, 5, 5),
+    area: float = 25,
+) -> dict:
+    return mock_coco_annotation(
+        annotation_id=1,
+        image_id=1,
+        category_id=1,
+        bbox=bbox,
+        area=area,
+        segmentation=segmentation,
+    )
+
+
+def _single_image_coco_data(annotation: dict) -> dict[str, object]:
+    return {
+        "info": {},
+        "licenses": [],
+        "categories": [{"id": 1, "name": "cat", "supercategory": ""}],
+        "images": [{"id": 1, "file_name": "img.jpg", "width": 10, "height": 10}],
+        "annotations": [annotation],
+    }
+
+
 def test_detections_to_coco_annotations_exports_all_polygons() -> None:
     """All polygons from a multi-component mask must be exported, not just the first."""
     # Build a mask with two separate rectangles (disjoint components)
@@ -1885,8 +1910,33 @@ def test_detections_to_coco_annotations_exports_all_polygons() -> None:
     assert len(seg) >= 2
 
 
-def test_coco_polygon_segmentation_survives_roundtrip(tmp_path) -> None:
-    """from_coco() -> as_coco() must preserve polygon segmentation (issue #2285)."""
+@pytest.mark.parametrize(
+    ("segmentation", "bbox", "area", "expected_min_polygon_count"),
+    [
+        pytest.param(
+            [[0, 0, 4, 0, 4, 4, 0, 4]],
+            (0, 0, 5, 5),
+            25,
+            1,
+            id="single-polygon",
+        ),
+        pytest.param(
+            [[0, 0, 4, 0, 4, 4, 0, 4], [6, 6, 9, 6, 9, 9, 6, 9]],
+            (0, 0, 9, 9),
+            32,
+            2,
+            id="multi-polygon",
+        ),
+    ],
+)
+def test_coco_polygon_segmentation_survives_roundtrip(
+    tmp_path,
+    segmentation: list[list[int]],
+    bbox: tuple[float, float, float, float],
+    area: float,
+    expected_min_polygon_count: int,
+) -> None:
+    """from_coco() -> as_coco() must preserve polygon segmentation."""
     images_dir = tmp_path / "images"
     images_dir.mkdir()
 
@@ -1894,26 +1944,17 @@ def test_coco_polygon_segmentation_survives_roundtrip(tmp_path) -> None:
     img_path = images_dir / "img.jpg"
     assert cv2.imwrite(str(img_path), np.zeros((10, 10, 3), dtype=np.uint8))
 
-    coco_data = {
-        "info": {},
-        "licenses": [],
-        "categories": [{"id": 1, "name": "cat", "supercategory": ""}],
-        "images": [{"id": 1, "file_name": "img.jpg", "width": 10, "height": 10}],
-        "annotations": [
-            {
-                "id": 1,
-                "image_id": 1,
-                "category_id": 1,
-                "bbox": [0, 0, 5, 5],
-                "area": 25,
-                "segmentation": [[0, 0, 4, 0, 4, 4, 0, 4]],
-                "iscrowd": 0,
-            }
-        ],
-    }
-
     ann_path = tmp_path / "annotations.json"
-    ann_path.write_text(json.dumps(coco_data), encoding="utf-8")
+    ann_path.write_text(
+        json.dumps(
+            _single_image_coco_data(
+                _coco_annotation_with_segmentation(
+                    segmentation=segmentation, bbox=bbox, area=area
+                )
+            )
+        ),
+        encoding="utf-8",
+    )
 
     ds = DetectionDataset.from_coco(
         images_directory_path=str(images_dir),
@@ -1929,30 +1970,15 @@ def test_coco_polygon_segmentation_survives_roundtrip(tmp_path) -> None:
     assert len(out["annotations"]) == 1
     seg = out["annotations"][0]["segmentation"]
     assert isinstance(seg, list)
-    assert len(seg) >= 1, (
-        "segmentation must not be empty after round-trip (issue #2285)"
-    )
+    assert len(seg) >= expected_min_polygon_count
 
 
-def test_coco_raw_segmentation_preserved_when_masks_not_decoded(tmp_path) -> None:
+def test_coco_raw_segmentation_preserved_when_masks_not_decoded() -> None:
     """When masks are NOT decoded (with_masks=False), raw polygon data stored in
     data['segmentation'] is used as a lossless fallback so as_coco() still emits
     non-empty segmentation."""
-    from supervision.dataset.formats.coco import (
-        coco_annotations_to_detections,
-        detections_to_coco_annotations,
-    )
-
     image_annotations = [
-        {
-            "id": 1,
-            "image_id": 1,
-            "category_id": 1,
-            "bbox": [0, 0, 5, 5],
-            "area": 25,
-            "segmentation": [[0, 0, 4, 0, 4, 4, 0, 4]],
-            "iscrowd": 0,
-        }
+        _coco_annotation_with_segmentation(segmentation=[[0, 0, 4, 0, 4, 4, 0, 4]])
     ]
 
     # Load WITHOUT mask decoding — mask must be None
@@ -1971,52 +1997,6 @@ def test_coco_raw_segmentation_preserved_when_masks_not_decoded(tmp_path) -> Non
     )
     assert len(annotations) == 1
     assert annotations[0]["segmentation"] != []
-
-
-def test_coco_multi_polygon_survives_roundtrip(tmp_path) -> None:
-    """All polygon components must survive from_coco → as_coco round-trip (#2285)."""
-    images_dir = tmp_path / "images"
-    images_dir.mkdir()
-    img_path = images_dir / "img.jpg"
-    assert cv2.imwrite(str(img_path), np.zeros((10, 10, 3), dtype=np.uint8))
-
-    coco_data = {
-        "info": {},
-        "licenses": [],
-        "categories": [{"id": 1, "name": "cat", "supercategory": ""}],
-        "images": [{"id": 1, "file_name": "img.jpg", "width": 10, "height": 10}],
-        "annotations": [
-            {
-                "id": 1,
-                "image_id": 1,
-                "category_id": 1,
-                "bbox": [0, 0, 9, 9],
-                "area": 32,
-                "segmentation": [
-                    [0, 0, 4, 0, 4, 4, 0, 4],
-                    [6, 6, 9, 6, 9, 9, 6, 9],
-                ],
-                "iscrowd": 0,
-            }
-        ],
-    }
-
-    ann_path = tmp_path / "annotations.json"
-    ann_path.write_text(json.dumps(coco_data), encoding="utf-8")
-    ds = DetectionDataset.from_coco(
-        images_directory_path=str(images_dir),
-        annotations_path=str(ann_path),
-    )
-
-    out_path = tmp_path / "out.json"
-    ds.as_coco(annotations_path=str(out_path))
-
-    with open(out_path) as f:
-        out = json.load(f)
-
-    seg = out["annotations"][0]["segmentation"]
-    assert isinstance(seg, list)
-    assert len(seg) >= 2, "both polygon components must survive the round-trip"
 
 
 def test_coco_iscrowd_mask_exports_as_rle() -> None:
