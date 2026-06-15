@@ -43,6 +43,14 @@ def mock_coco_annotation(
     }
 
 
+def _empty_raw_segs(n: int) -> np.ndarray:
+    """Object-dtype array of n empty lists for coco_raw_segmentation (bbox-only)."""
+    arr = np.empty(n, dtype=object)
+    for i in range(n):
+        arr[i] = []
+    return arr
+
+
 @pytest.fixture
 def coco_data_with_and_without_segmentation() -> dict[str, object]:
     return {
@@ -282,6 +290,7 @@ def test_group_coco_annotations_by_image_id(
             Detections(
                 xyxy=np.array([[0, 0, 100, 100]], dtype=np.float32),
                 class_id=np.array([0], dtype=int),
+                data={"coco_raw_segmentation": _empty_raw_segs(1)},
             ),
             DoesNotRaise(),
         ),  # single image annotations
@@ -300,6 +309,7 @@ def test_group_coco_annotations_by_image_id(
                 data={
                     "iscrowd": np.array([0], dtype=int),
                     "area": np.array([100 * 100]),
+                    "coco_raw_segmentation": _empty_raw_segs(1),
                 },
             ),
             DoesNotRaise(),
@@ -321,6 +331,7 @@ def test_group_coco_annotations_by_image_id(
                     [[0, 0, 100, 100], [100, 100, 200, 200]], dtype=np.float32
                 ),
                 class_id=np.array([0, 0], dtype=int),
+                data={"coco_raw_segmentation": _empty_raw_segs(2)},
             ),
             DoesNotRaise(),
         ),  # two image annotations
@@ -344,6 +355,7 @@ def test_group_coco_annotations_by_image_id(
                 data={
                     "iscrowd": np.array([0, 0], dtype=int),
                     "area": np.array([100 * 100, 100 * 100]),
+                    "coco_raw_segmentation": _empty_raw_segs(2),
                 },
             ),
             DoesNotRaise(),
