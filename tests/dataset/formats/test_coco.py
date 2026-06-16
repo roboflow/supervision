@@ -13,6 +13,7 @@ from supervision.dataset.formats.coco import (
     build_coco_class_index_mapping,
     classes_to_coco_categories,
     coco_annotations_to_detections,
+    coco_annotations_to_masks,
     coco_categories_to_classes,
     detections_to_coco_annotations,
     group_coco_annotations_by_image_id,
@@ -993,6 +994,80 @@ def test_detections_to_coco_annotations_handles_empty_approximated_polygons() ->
     assert len(annotations) == 1
     assert annotations[0]["segmentation"] == []
     assert annotations[0]["iscrowd"] == 0
+
+
+_DISJOINT_2X2_MASK = np.array(
+    [
+        [
+            [1, 1, 0, 0, 0],
+            [1, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 1],
+            [0, 0, 0, 1, 1],
+        ]
+    ],
+    dtype=bool,
+)
+
+_SINGLE_COMPONENT_MASK = np.array(
+    [
+        [
+            [1, 1, 1, 0, 0],
+            [1, 1, 1, 0, 0],
+            [1, 1, 1, 0, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+        ]
+    ],
+    dtype=bool,
+)
+
+
+def _make_iscrowd0_detections(mask: np.ndarray) -> Detections:
+    """Build a single-detection Detections with iscrowd=0 from a (1, H, W) mask."""
+    _, h, w = mask.shape
+    return Detections(
+        xyxy=np.array([[0, 0, w, h]], dtype=np.float32),
+        class_id=np.array([0], dtype=int),
+        mask=mask,
+        data={"iscrowd": np.array([0])},
+    )
+
+
+@pytest.mark.parametrize(
+    ("mask", "expected_segment_count"),
+    [
+        pytest.param(_DISJOINT_2X2_MASK, 2, id="disjoint-two-parts"),
+        pytest.param(_SINGLE_COMPONENT_MASK, 1, id="single-component"),
+    ],
+)
+def test_detections_to_coco_annotations_segmentation_count(
+    mask: np.ndarray, expected_segment_count: int
+) -> None:
+    """Non-crowd mask export produces one polygon list entry per connected component."""
+    annotations, _ = detections_to_coco_annotations(
+        detections=_make_iscrowd0_detections(mask), image_id=0, annotation_id=0
+    )
+
+    segmentation = annotations[0]["segmentation"]
+    assert annotations[0]["iscrowd"] == 0
+    assert isinstance(segmentation, list)
+    assert len(segmentation) == expected_segment_count
+    assert all(len(part) >= 6 for part in segmentation)
+    assert all(np.isfinite(c) for part in segmentation for c in part)
+
+
+def test_detections_to_coco_annotations_round_trip_disjoint_mask() -> None:
+    """Two-part disjoint mask round-trips through COCO export and import unchanged."""
+    W, H = 5, 5
+    annotations, _ = detections_to_coco_annotations(
+        detections=_make_iscrowd0_detections(_DISJOINT_2X2_MASK),
+        image_id=0,
+        annotation_id=0,
+    )
+    reloaded = coco_annotations_to_masks([annotations[0]], resolution_wh=(W, H))
+
+    assert np.array_equal(reloaded[0], _DISJOINT_2X2_MASK[0])
 
 
 def test_detections_to_coco_annotations_preserves_area_from_data() -> None:
