@@ -115,6 +115,52 @@ class TestPrecision:
         assert result.precision_at_50 == 0.0
         assert result.precision_at_75 == 0.0
 
+    def test_false_positives_on_background_image_counted(self):
+        """Predictions on an image with no targets must count as false positives."""
+        predictions_with_gt = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+        )
+        targets_with_gt = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        background_predictions = Detections(
+            xyxy=np.array([[20, 0, 25, 5], [40, 0, 45, 5], [60, 0, 65, 5]], np.float32),
+            class_id=np.array([0, 0, 0]),
+            confidence=np.array([0.9, 0.9, 0.9]),
+        )
+
+        metric = Precision(averaging_method=AveragingMethod.MICRO)
+        result = metric.update(
+            [predictions_with_gt, background_predictions],
+            [targets_with_gt, Detections.empty()],
+        ).compute()
+
+        # 1 TP, 3 background FPs -> precision = 1 / (1 + 3) = 0.25
+        assert result.precision_at_50 == 0.25
+
+    def test_false_positives_of_absent_class_counted(self):
+        """Predictions of a class with no ground truth must count as false positives."""
+        predictions = Detections(
+            xyxy=np.array(
+                [[0, 0, 10, 10], [100, 0, 110, 10], [120, 0, 130, 10]], np.float32
+            ),
+            class_id=np.array([0, 1, 1]),  # class 1 never appears in the targets
+            confidence=np.array([0.9, 0.8, 0.7]),
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+
+        metric = Precision(averaging_method=AveragingMethod.MICRO)
+        result = metric.update(predictions, targets).compute()
+
+        # 1 TP (class 0), 2 FPs (class 1, no GT) -> precision = 1 / (1 + 2)
+        assert result.precision_at_50 == pytest.approx(1 / 3)
+
     def test_single_class(self, predictions_confidence_ranking, targets_50_50):
         """Test precision calculation for single class with mixed results"""
         metric = Precision()

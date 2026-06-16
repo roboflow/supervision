@@ -124,6 +124,52 @@ class TestF1Score:
         assert result.f1_50 == 0.0
         assert result.f1_75 == 0.0
 
+    def test_false_positives_on_background_image_counted(self):
+        """Predictions on an image with no targets must count as false positives."""
+        predictions_with_gt = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+        )
+        targets_with_gt = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        background_predictions = Detections(
+            xyxy=np.array([[20, 0, 25, 5], [40, 0, 45, 5], [60, 0, 65, 5]], np.float32),
+            class_id=np.array([0, 0, 0]),
+            confidence=np.array([0.9, 0.9, 0.9]),
+        )
+
+        metric = F1Score(averaging_method=AveragingMethod.MICRO)
+        result = metric.update(
+            [predictions_with_gt, background_predictions],
+            [targets_with_gt, Detections.empty()],
+        ).compute()
+
+        # TP=1, FP=3, FN=0 -> F1 = 2*1 / (2*1 + 3 + 0) = 0.4
+        assert result.f1_50 == pytest.approx(0.4)
+
+    def test_false_positives_of_absent_class_counted(self):
+        """Predictions of a class with no ground truth must count as false positives."""
+        predictions = Detections(
+            xyxy=np.array(
+                [[0, 0, 10, 10], [100, 0, 110, 10], [120, 0, 130, 10]], np.float32
+            ),
+            class_id=np.array([0, 1, 1]),  # class 1 never appears in the targets
+            confidence=np.array([0.9, 0.8, 0.7]),
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+
+        metric = F1Score(averaging_method=AveragingMethod.MICRO)
+        result = metric.update(predictions, targets).compute()
+
+        # TP=1, FP=2, FN=0 -> F1 = 2*1 / (2*1 + 2 + 0) = 0.5
+        assert result.f1_50 == pytest.approx(0.5)
+
     def test_single_class_mixed_results(
         self, predictions_confidence_ranking, targets_50_50
     ):
