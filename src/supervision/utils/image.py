@@ -100,8 +100,7 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
         scale_factor: Factor by which to scale the image.
 
     Returns:
-        Scaled image matching input
-            type.
+        Scaled image matching input type.
 
     Raises:
         ValueError: If scale factor is non-positive.
