@@ -33,3 +33,9 @@ comments: true
 </div>
 
 :::supervision.detection.utils.boxes.denormalize_boxes
+
+<div class="md-typeset">
+  <h2><a href="#supervision.detection.utils.boxes.xyxyxyxy_to_xyxy">xyxyxyxy_to_xyxy</a></h2>
+</div>
+
+:::supervision.detection.utils.boxes.xyxyxyxy_to_xyxy

@@ -4,7 +4,7 @@ requires = [ "setuptools>=61" ]
 
 [project]
 name = "supervision"
-version = "0.29.0.rc0"
+version = "0.29.0"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 readme = "README.md"
 keywords = [

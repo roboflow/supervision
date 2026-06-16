@@ -62,6 +62,7 @@ from supervision.detection.utils.boxes import (
     move_boxes,
     pad_boxes,
     scale_boxes,
+    xyxyxyxy_to_xyxy,
 )
 from supervision.detection.utils.converters import (
     is_compressed_rle,
