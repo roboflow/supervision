@@ -62,10 +62,12 @@ def approximate_polygon(
             and its approximation.
 
     Returns:
-        A new 2D NumPy array of shape `(M, 2)`,
-            where `M <= N * (1 - percentage)`, containing
-            the `x`, `y` coordinates of the
-            approximated polygon's points.
+        A new 2D NumPy array of shape `(M, 2)` containing the `x`, `y`
+            coordinates of the approximated polygon's points. `M` is at most
+            `N * (1 - percentage)` when a valid simplification of that size
+            exists. At least 3 points are always kept, so when further
+            simplification would collapse the polygon below 3 points the last
+            valid approximation is returned and `M` may exceed that bound.
     """
 
     if percentage < 0 or percentage >= 1:
@@ -78,12 +80,13 @@ def approximate_polygon(
 
     epsilon: float = 0
     approximated_points = polygon
-    while True:
+    while len(approximated_points) > target_points:
         epsilon += epsilon_step
-        new_approximated_points = cv2.approxPolyDP(polygon, epsilon, closed=True)
-        if len(new_approximated_points) > target_points:
-            approximated_points = new_approximated_points
-        else:
+        candidate = np.squeeze(cv2.approxPolyDP(polygon, epsilon, closed=True), axis=1)
+        # Stop before the approximation collapses below a valid polygon; keep the
+        # last result with at least three points.
+        if len(candidate) < 3:
             break
+        approximated_points = candidate
 
-    return cast(npt.NDArray[np.number], np.squeeze(approximated_points, axis=1))
+    return cast(npt.NDArray[np.number], approximated_points)
