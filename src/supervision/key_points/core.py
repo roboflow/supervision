@@ -1109,40 +1109,41 @@ class KeyPoints:
         if self.is_empty():
             return Detections.empty()
 
-        detections_list = []
-        for i, xy in enumerate(self.xy):
+        xy = self.xy
+        if selected_keypoint_indices:
+            xy = xy[:, selected_keypoint_indices, :]
+
+        # [0, 0] is used by some frameworks to indicate a missing keypoint; those
+        # points are excluded from each skeleton's bounding box.
+        valid = ~np.all(xy == 0, axis=2)  # (N, M)
+        has_valid = valid.any(axis=1)  # (N,)
+
+        x, y = xy[:, :, 0], xy[:, :, 1]
+        x_min = np.where(valid, x, np.inf).min(axis=1)
+        y_min = np.where(valid, y, np.inf).min(axis=1)
+        x_max = np.where(valid, x, -np.inf).max(axis=1)
+        y_max = np.where(valid, y, -np.inf).max(axis=1)
+
+        xyxy = np.stack((x_min, y_min, x_max, y_max), axis=1).astype(np.float32)
+        # Skeletons with no valid keypoints keep the original empty [0, 0, 0, 0] box.
+        xyxy[~has_valid] = 0.0
+
+        if self.detection_confidence is not None:
+            confidence = self.detection_confidence.astype(np.float32)
+        elif self.keypoint_confidence is not None:
+            keypoint_confidence = self.keypoint_confidence
             if selected_keypoint_indices:
-                xy = xy[selected_keypoint_indices]
-
-            # [0, 0] used by some frameworks to indicate missing keypoints
-            xy = xy[~np.all(xy == 0, axis=1)]
-            if len(xy) == 0:
-                xyxy = np.array([[0, 0, 0, 0]], dtype=np.float32)
-            else:
-                x_min = xy[:, 0].min()
-                x_max = xy[:, 0].max()
-                y_min = xy[:, 1].min()
-                y_max = xy[:, 1].max()
-                xyxy = np.array([[x_min, y_min, x_max, y_max]], dtype=np.float32)
-
-            if self.detection_confidence is not None:
-                confidence = np.array([self.detection_confidence[i]], dtype=np.float32)
-            elif self.keypoint_confidence is not None:
-                confidence = self.keypoint_confidence[i]
-                if selected_keypoint_indices:
-                    confidence = confidence[selected_keypoint_indices]
-                confidence = np.array([confidence.mean()], dtype=np.float32)
-            else:
-                confidence = None
-
-            detections_list.append(
-                Detections(
-                    xyxy=xyxy,
-                    confidence=confidence,
-                )
+                keypoint_confidence = keypoint_confidence[:, selected_keypoint_indices]
+            # Reduce per skeleton rather than with `mean(axis=1)`: NumPy's axis
+            # reduction reorders the float32 summation and would shift results by
+            # an ULP versus the original per-object mean.
+            confidence = np.array(
+                [row.mean() for row in keypoint_confidence], dtype=np.float32
             )
+        else:
+            confidence = None
 
-        detections = Detections.merge(detections_list)
+        detections = Detections(xyxy=xyxy, confidence=confidence)
         detections.class_id = self.class_id
         detections.data = self.data
         detections = cast(Detections, detections[cast(Any, detections.area) > 0])
