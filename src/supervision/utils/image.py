@@ -368,8 +368,7 @@ def tint_image(
             Defaults to `0.5`.
 
     Returns:
-        Tinted image matching input
-            type.
+        Tinted image matching input type.
 
     Raises:
         ValueError: If opacity is outside range [0.0, 1.0].
