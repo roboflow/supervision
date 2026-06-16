@@ -407,8 +407,7 @@ def grayscale_image(image: ImageType) -> ImageType:
     all three channels for compatibility with color-based drawing helpers.
 
     Args:
-        image: The image to convert to
-            grayscale.
+        image: The image to convert to grayscale.
 
     Returns:
         3-channel grayscale image
