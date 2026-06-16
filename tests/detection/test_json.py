@@ -395,6 +395,29 @@ def test_json_sink(
     assert_json_equal(file_name, expected_result)
 
 
+def test_json_sink_serializes_numpy_scalar_custom_data() -> None:
+    """A NumPy scalar in custom_data (e.g. a frame index) is written as a number."""
+    file_name = "test_detections_numpy_scalar_custom_data.json"
+    detections = sv.Detections(
+        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        class_id=np.array([0]),
+        confidence=np.array([0.9]),
+    )
+
+    with sv.JSONSink(file_name) as sink:
+        sink.append(
+            detections,
+            custom_data={"frame": np.int64(7), "score": np.float32(0.5)},
+        )
+
+    with open(file_name) as file:
+        data = json.load(file)
+    os.remove(file_name)
+
+    assert data[0]["frame"] == 7
+    assert data[0]["score"] == pytest.approx(0.5)
+
+
 def assert_json_equal(file_name, expected_rows):
     with open(file_name) as file:
         data = json.load(file)

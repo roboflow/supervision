@@ -79,13 +79,27 @@ class JSONSink:
 
         self.file = open(self.file_name, "w")
 
+    @staticmethod
+    def _json_default(value: Any) -> Any:
+        """Make NumPy scalars/arrays JSON serializable (e.g. a `np.int64` frame
+        index passed through `custom_data`)."""
+        if isinstance(value, np.generic):
+            return value.item()
+        if isinstance(value, np.ndarray):
+            return value.tolist()
+        raise TypeError(
+            f"Object of type {type(value).__name__} is not JSON serializable"
+        )
+
     def write_and_close(self) -> None:
         """
         Write and close the JSON file.
         """
         if self.file:
-            json.dump(self.data, self.file, indent=4)
-            self.file.close()
+            try:
+                json.dump(self.data, self.file, indent=4, default=self._json_default)
+            finally:
+                self.file.close()
 
     @staticmethod
     def _slice_value(value: Any, i: int, n: int) -> Any:
