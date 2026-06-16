@@ -3558,6 +3558,9 @@
 
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
 <h3 id="unreleased">UnReleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Fixed <a href="https://github.com/roboflow/supervision/pull/2322">#2322</a>: COCO export now preserves all polygon parts for multi-component masks. Previously, only the first polygon was written when a non-crowd mask had disjoint segments; all parts are now included.</li>
+</ul>
 <h3 id="0290-jun-15-2026">0.29.0 <small>Jun 15, 2026</small><a class="headerlink" href="#0290-jun-15-2026" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
@@ -3567,13 +3570,16 @@
 <p>Added <a href="https://github.com/roboflow/supervision/pull/2303">#2303</a>: <a href="https://supervision.roboflow.com/0.29.0/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.oriented_box_non_max_suppression"><code>sv.oriented_box_non_max_suppression</code></a> and <a href="https://supervision.roboflow.com/0.29.0/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.oriented_box_non_max_merge"><code>sv.oriented_box_non_max_merge</code></a> for performing NMS and NMM directly on oriented bounding boxes using oriented-box IoU instead of axis-aligned IoU.</p>
 </li>
 <li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/2247">#2247</a>: <a href="https://supervision.roboflow.com/0.29.0/detection/metrics/#supervision.metrics.detection.ConfusionMatrix"><code>sv.ConfusionMatrix</code></a> now supports <code>MetricTarget.ORIENTED_BOUNDING_BOXES</code>, computing IoU via <code>oriented_box_iou_batch</code> on <code>xyxyxyxy</code> corners.</p>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/2247">#2247</a>: <a href="https://supervision.roboflow.com/0.29.0/detection/metrics/#supervision.metrics.detection.ConfusionMatrix"><code>sv.ConfusionMatrix</code></a> now supports <code>MetricTarget.ORIENTED_BOUNDING_BOXES</code>, computing IoU via <code>oriented_box_iou_batch</code> on <code>xyxyxyxy</code> corners. Previously, OBB inputs silently fell back to axis-aligned bounding-box IoU, producing incorrect match scores for rotated detections.</p>
 </li>
 <li>
 <p>Added <a href="https://github.com/roboflow/supervision/pull/2252">#2252</a>: <a href="https://supervision.roboflow.com/0.29.0/utils/video/#supervision.utils.video.process_video"><code>sv.process_video</code></a> gains a <code>preserve_audio</code> parameter. When enabled, the audio stream from the source video is muxed into the output using ffmpeg.</p>
 </li>
 <li>
 <p>Added <a href="https://github.com/roboflow/supervision/pull/2302">#2302</a>, <a href="https://github.com/roboflow/supervision/pull/2289">#2289</a>: <a href="https://supervision.roboflow.com/0.29.0/datasets/core/#supervision.dataset.core.DetectionDataset.as_yolo"><code>sv.DetectionDataset.as_yolo</code></a> gains an <code>is_obb</code> parameter for exporting oriented bounding box annotations in the YOLO OBB format (9-token lines with 4 corner coordinates).</p>
+</li>
+<li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/2312">#2312</a>: <a href="https://supervision.roboflow.com/0.29.0/detection/utils/boxes/#supervision.detection.utils.boxes.xyxyxyxy_to_xyxy"><code>sv.xyxyxyxy_to_xyxy</code></a> — vectorised utility that converts oriented bounding box corners <code>(N, 4, 2)</code> to axis-aligned bounding boxes <code>(N, 4)</code>.</p>
 </li>
 <li>
 <p>Changed <a href="https://github.com/roboflow/supervision/pull/2286">#2286</a>: <a href="https://supervision.roboflow.com/0.29.0/keypoint/core/#supervision.key_points.core.KeyPoints"><code>sv.KeyPoints</code></a> now separates keypoint-level and detection-level confidence into distinct fields: <code>keypoint_confidence</code> (shape <code>(n, m)</code>) and <code>detection_confidence</code> (shape <code>(n,)</code>). A new <code>visible</code> mask (shape <code>(n, m)</code>) controls per-keypoint visibility. The legacy <code>KeyPoints.confidence</code> property still works but is deprecated.</p>
@@ -3585,10 +3591,13 @@
 <p>Changed <a href="https://github.com/roboflow/supervision/pull/2286">#2286</a>: <a href="https://supervision.roboflow.com/0.29.0/keypoint/annotators/#supervision.key_points.annotators.EdgeAnnotator"><code>sv.EdgeAnnotator</code></a> and <a href="https://supervision.roboflow.com/0.29.0/keypoint/annotators/#supervision.key_points.annotators.VertexLabelAnnotator"><code>sv.VertexLabelAnnotator</code></a> now support per-class skeleton definitions, enabling correct rendering when multiple skeleton topologies (e.g. person + animal) coexist in one frame.</p>
 </li>
 <li>
-<p>Changed <a href="https://github.com/roboflow/supervision/pull/2303">#2303</a>: <a href="https://supervision.roboflow.com/0.29.0/detection/core/#supervision.detection.core.Detections.with_nms"><code>sv.Detections.with_nms</code></a> and <a href="https://supervision.roboflow.com/0.29.0/detection/core/#supervision.detection.core.Detections.with_nmm"><code>sv.Detections.with_nmm</code></a> now use oriented-box IoU when <code>data["xyxyxyxy"]</code> coordinates are present, instead of axis-aligned box IoU.</p>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/2303">#2303</a>: <a href="https://supervision.roboflow.com/0.29.0/detection/core/#supervision.detection.core.Detections.with_nms"><code>sv.Detections.with_nms</code></a> and <a href="https://supervision.roboflow.com/0.29.0/detection/core/#supervision.detection.core.Detections.with_nmm"><code>sv.Detections.with_nmm</code></a> now use oriented-box IoU when <code>data["xyxyxyxy"]</code> coordinates are present, instead of axis-aligned box IoU. Callers relying on the previous axis-aligned behaviour should remove <code>data["xyxyxyxy"]</code> before calling, or recalibrate any IoU thresholds.</p>
 </li>
 <li>
 <p>Changed <a href="https://github.com/roboflow/supervision/pull/2312">#2312</a>: <a href="https://supervision.roboflow.com/0.29.0/detection/core/#supervision.detection.core.Detections.with_nmm"><code>sv.Detections.with_nmm</code></a> now computes the merged oriented bounding box as the tightest rectangle at the winner's orientation enclosing all corners from every detection in a merge group.</p>
+</li>
+<li>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/2325">#2325</a>: <a href="https://supervision.roboflow.com/0.29.0/keypoint/annotators/#supervision.key_points.annotators.VertexEllipseAreaAnnotator"><code>sv.VertexEllipseAreaAnnotator</code></a>, <a href="https://supervision.roboflow.com/0.29.0/keypoint/annotators/#supervision.key_points.annotators.VertexEllipseOutlineAnnotator"><code>sv.VertexEllipseOutlineAnnotator</code></a>, and <a href="https://supervision.roboflow.com/0.29.0/keypoint/annotators/#supervision.key_points.annotators.VertexEllipseHaloAnnotator"><code>sv.VertexEllipseHaloAnnotator</code></a> now draw sigma levels level-by-level (outermost first) across all points, ensuring correct visual layering when ellipses overlap.</p>
 </li>
 <li>
 <p>Changed <a href="https://github.com/roboflow/supervision/pull/2306">#2306</a>: <a href="https://supervision.roboflow.com/0.29.0/detection/core/#supervision.detection.core.Detections.area"><code>sv.Detections.area</code></a> now returns the polygon area of the rotated bounding box (via the shoelace formula) when oriented box coordinates are present, instead of the axis-aligned box area.</p>
@@ -3597,10 +3606,13 @@
 <p>Changed <a href="https://github.com/roboflow/supervision/pull/2256">#2256</a>: <a href="https://supervision.roboflow.com/0.29.0/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer"><code>sv.InferenceSlicer</code></a> now detects OBB outputs from callbacks and automatically falls back to sequential processing to avoid thread-safety issues when <code>thread_workers &gt; 1</code>.</p>
 </li>
 <li>
-<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2282">#2282</a>: <a href="https://supervision.roboflow.com/0.29.0/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.oriented_box_iou_batch"><code>sv.oriented_box_iou_batch</code></a> now correctly handles non-square canvases. Previously, rasterization assumed square dimensions, leading to incorrect IoU values for tall or wide images.</p>
+<p>Changed <a href="https://github.com/roboflow/supervision/pull/2324">#2324</a>: Project-wide deprecation policy unified to a minimum 3-minor-release window. All current deprecations (including <code>KeyPoints.confidence</code> and <code>validate_*</code> helpers) are scheduled for removal in <code>0.32.0</code>.</p>
 </li>
 <li>
 <p>Fixed <a href="https://github.com/roboflow/supervision/pull/2252">#2252</a>: <a href="https://supervision.roboflow.com/0.29.0/utils/video/#supervision.utils.video.process_video"><code>sv.process_video</code></a> audio muxing path now correctly creates temp files on the same filesystem, decodes ffmpeg errors, and avoids muxing incomplete output.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2282">#2282</a>, <a href="https://github.com/roboflow/supervision/pull/2317">#2317</a>: <a href="https://supervision.roboflow.com/0.29.0/detection/utils/iou_and_nms/#supervision.detection.utils.iou_and_nms.oriented_box_iou_batch"><code>sv.oriented_box_iou_batch</code></a> now computes exact IoU via convex polygon intersection (<code>cv2.intersectConvexConvex</code>) and uses an axis-aligned bounding box envelope gate to skip pairs that cannot overlap, improving both accuracy and performance. Previously, rasterization on a discrete grid was used, which assumed square dimensions and introduced quantisation noise.</p>
 </li>
 <li>
 <p>Fixed <a href="https://github.com/roboflow/supervision/pull/2239">#2239</a>: <a href="https://supervision.roboflow.com/0.29.0/detection/core/#supervision.detection.core.Detections.from_vlm"><code>sv.Detections.from_vlm</code></a> no longer returns <code>None</code> for <code>class_id</code> on empty VLM parses; now returns an empty int ndarray.</p>
@@ -3628,6 +3640,9 @@
 </li>
 <li>
 <p>Fixed <a href="https://github.com/roboflow/supervision/pull/2298">#2298</a>: File extension filters now normalize casing (e.g. <code>.JPG</code> matches <code>.jpg</code>).</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2321">#2321</a>: <a href="https://supervision.roboflow.com/0.29.0/datasets/core/#supervision.dataset.core.DetectionDataset.as_coco"><code>sv.DetectionDataset.as_coco()</code></a> now round-trips polygon and RLE segmentation data. Segmentations loaded from COCO annotations are preserved in <code>detections.data["coco_raw_segmentation"]</code> and written back on export, preventing data loss in train/val/test split workflows.</p>
 </li>
 <li>
 <p>Deprecated: <code>KeyPoints.confidence</code> (use <code>KeyPoints.keypoint_confidence</code>), <code>merge_inner_detection_object_pair</code>, <code>merge_inner_detections_objects</code>, <code>merge_inner_detections_objects_without_iou</code>, <code>validate_detections_fields</code>, <code>validate_vlm_parameters</code>, <code>validate_fields_both_defined_or_none</code>, <code>validate_xyxy</code>, <code>validate_mask</code>, <code>validate_class_id</code>, <code>validate_confidence</code>, <code>validate_tracker_id</code>, <code>validate_data</code>, <code>validate_xy</code>, <code>validate_key_point_confidence</code>, <code>validate_key_points_fields</code>, <code>validate_resolution</code>, <code>validate_custom_values</code>, <code>validate_input_tensors</code>, and <code>validate_labels</code> are deprecated in <code>0.29.0</code> and will be removed in <code>0.32.0</code>.</p>
@@ -3661,9 +3676,6 @@
 </li>
 <li>
 <p>Added <a href="https://github.com/roboflow/supervision/pull/932">#932</a>: <a href="https://supervision.roboflow.com/latest/assets/"><code>sv.ImageAssets</code></a> for downloading sample images alongside existing video assets, useful for examples and tutorials.</p>
-</li>
-<li>
-<p>Added <a href="https://github.com/roboflow/supervision/pull/2247">#2247</a>: <a href="https://supervision.roboflow.com/metrics/detection/#confusionmatrix"><code>sv.ConfusionMatrix</code></a> now accepts <code>metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES</code>, computing IoU via <code>oriented_box_iou_batch</code> over <code>xyxyxyxy</code> coordinates. Previously, OBB inputs silently fell back to axis-aligned bounding-box IoU, producing incorrect match scores for rotated detections.</p>
 </li>
 <li>
 <p>Changed <a href="https://github.com/roboflow/supervision/pull/2169">#2169</a>: <a href="https://supervision.roboflow.com/latest/metrics/mean_average_precision/"><code>sv.MeanAveragePrecisionResult</code></a> and related metric arrays (<code>mAP_scores</code>, <code>ap_per_class</code>, <code>iou_thresholds</code>, precision/recall) are now <code>float32</code> instead of <code>float64</code>. Reduces memory and speeds up computation; numerical results may differ in the last few digits.</p>
@@ -5491,7 +5503,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 15, 2026 22:16:00 UTC">June 15, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 16, 2026 10:16:38 UTC">June 16, 2026</span>
   </span>
 
     
