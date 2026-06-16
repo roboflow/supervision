@@ -138,7 +138,13 @@ class DetectionsSmoother:
 
         ret = deepcopy(valid[0])
         ret.xyxy = np.mean([d.xyxy for d in valid], axis=0)
-        ret.confidence = np.mean([d.confidence for d in valid], axis=0)
+        # `confidence` is optional on `Detections`; average it only when every
+        # frame in the window carries it, otherwise `np.mean([..., None])` raises.
+        # A window that mixes present and missing confidence yields `None`.
+        if all(d.confidence is not None for d in valid):
+            ret.confidence = np.mean([d.confidence for d in valid], axis=0)
+        else:
+            ret.confidence = None
 
         return ret
 
