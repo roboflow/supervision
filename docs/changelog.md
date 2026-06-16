@@ -1,6 +1,6 @@
 ---
 description: "Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version."
-date_modified: 2026-06-15
+date_modified: 2026-06-16
 ---
 
 # Changelog
@@ -11,9 +11,9 @@ date_modified: 2026-06-15
 
 ### 0.29.0 <small>Jun 15, 2026</small>
 
-- Added [#2314](https://github.com/roboflow/supervision/pull/2314): new cookbook **Oriented Bounding Boxes** showing how an oriented box differs from an axis-aligned one on a marina of boats: DOTA-pretrained detection, the effect on [`with_nms`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.with_nms) and [`Detections.area`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.area), and YOLO OBB dataset export.
+- Added [#2314](https://github.com/roboflow/supervision/pull/2314): new cookbook **Oriented Bounding Boxes** showing how an oriented box differs from an axis-aligned one on a marina of boats: DOTA-pretrained detection, the effect on [`with_nms`](https://supervision.roboflow.com/0.29.0/detection/core/#supervision.detection.core.Detections.with_nms) and [`Detections.area`](https://supervision.roboflow.com/0.29.0/detection/core/#supervision.detection.core.Detections.area), and YOLO OBB dataset export.
 
-- Fixed [#2306](https://github.com/roboflow/supervision/pull/2306): [`sv.Detections.area`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.area) now returns the rotated body's area for detections carrying `data["xyxyxyxy"]` (oriented box corners) instead of the area of the derived axis-aligned bounding box, which overestimates by up to ~2x at 45° rotation. Affects annotator z-ordering inside [`MaskAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.MaskAnnotator) and [`HaloAnnotator`](https://supervision.roboflow.com/latest/detection/annotators/#supervision.annotators.core.HaloAnnotator), and any user code that filters or sorts OBB detections by area. The mask path and the non-OBB AABB fallback are unchanged.
+- Fixed [#2306](https://github.com/roboflow/supervision/pull/2306): [`sv.Detections.area`](https://supervision.roboflow.com/0.29.0/detection/core/#supervision.detection.core.Detections.area) now returns the rotated body's area for detections carrying `data["xyxyxyxy"]` (oriented box corners) instead of the area of the derived axis-aligned bounding box, which overestimates by up to ~2x at 45° rotation. Affects annotator z-ordering inside [`MaskAnnotator`](https://supervision.roboflow.com/0.29.0/detection/annotators/#supervision.annotators.core.MaskAnnotator) and [`HaloAnnotator`](https://supervision.roboflow.com/0.29.0/detection/annotators/#supervision.annotators.core.HaloAnnotator), and any user code that filters or sorts OBB detections by area. The mask path and the non-OBB AABB fallback are unchanged.
 
 - Added [#2277](https://github.com/roboflow/supervision/pull/2277), [#2286](https://github.com/roboflow/supervision/pull/2286): [`sv.VertexEllipseAreaAnnotator`](https://supervision.roboflow.com/0.29.0/keypoint/annotators/#supervision.key_points.annotators.VertexEllipseAreaAnnotator), [`sv.VertexEllipseOutlineAnnotator`](https://supervision.roboflow.com/0.29.0/keypoint/annotators/#supervision.key_points.annotators.VertexEllipseOutlineAnnotator), and [`sv.VertexEllipseHaloAnnotator`](https://supervision.roboflow.com/0.29.0/keypoint/annotators/#supervision.key_points.annotators.VertexEllipseHaloAnnotator) for visualizing keypoint uncertainty as covariance ellipses. Requires models that output keypoint uncertainty (e.g. RF-DETR keypoint models).
 
