@@ -157,8 +157,7 @@ def resize_image(
             Defaults to `False`.
 
     Returns:
-        Resized image matching input
-            type.
+        Resized image matching input type.
 
     Examples:
         ```pycon
