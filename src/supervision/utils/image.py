@@ -44,8 +44,7 @@ def crop_image(
             Bounding box coordinates in `(x_min, y_min, x_max, y_max)` format.
 
     Returns:
-        Cropped image matching input
-            type.
+        Cropped image matching input type.
 
     Examples:
         ```pycon
