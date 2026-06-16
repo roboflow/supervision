@@ -210,17 +210,24 @@ def mask_to_xyxy(masks: npt.NDArray[np.bool_]) -> npt.NDArray[np.int_]:
         A 2D `np.array` of shape `(N, 4)` containing the bounding boxes
             `(x_min, y_min, x_max, y_max)` for each mask.
     """
-    n = masks.shape[0]
-    xyxy = np.zeros((n, 4), dtype=int)
+    n, height, width = masks.shape
+    if masks.size == 0:
+        return np.zeros((n, 4), dtype=int)
 
-    for i, mask in enumerate(masks):
-        rows, cols = np.where(mask)
+    # Reduce the mask stack to per-row / per-column occupancy, then read the
+    # tight bounds straight off those 1D profiles instead of scanning every
+    # pixel of every mask with `np.where`.
+    rows_any = masks.any(axis=2)  # (N, H): row y holds any True pixel
+    cols_any = masks.any(axis=1)  # (N, W): column x holds any True pixel
 
-        if len(rows) > 0 and len(cols) > 0:
-            x_min, x_max = int(np.min(cols)), int(np.max(cols))
-            y_min, y_max = int(np.min(rows)), int(np.max(rows))
-            xyxy[i, :] = [x_min, y_min, x_max, y_max]
+    x_min = cols_any.argmax(axis=1)
+    x_max = width - 1 - cols_any[:, ::-1].argmax(axis=1)
+    y_min = rows_any.argmax(axis=1)
+    y_max = height - 1 - rows_any[:, ::-1].argmax(axis=1)
 
+    xyxy = np.stack((x_min, y_min, x_max, y_max), axis=1).astype(int)
+    # Empty masks have no bounds; keep the original all-zeros box for them.
+    xyxy[~rows_any.any(axis=1)] = 0
     return xyxy
 
 
