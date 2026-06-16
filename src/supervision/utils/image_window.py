@@ -17,9 +17,11 @@ class TkImageWindow:
     Functional replacement for `cv2.imshow` / `cv2.waitKey` that works under
     `opencv-python-headless`. Requires tkinter (stdlib) and pillow (already a
     supervision dependency). Instantiation always succeeds; `show()` raises
-    `AttributeError` (module 'PIL' has no attribute 'ImageTk') on environments
-    where `python3-tk` is absent, and raises `tkinter.TclError` on headless
-    servers where a display is unavailable.
+    `ModuleNotFoundError` (No module named '_tkinter') on environments where
+    `python3-tk` is absent — install with ``sudo apt-get install python3-tk``
+    (Debian/Ubuntu) or ``brew install python-tk`` (macOS with Homebrew/pyenv)
+    — and raises `tkinter.TclError` on headless servers where a display is
+    unavailable.
 
     Differences from cv2:
         - `wait_key()` returns a tkinter keysym `str` (e.g. ``"q"``,
@@ -115,6 +117,8 @@ class TkImageWindow:
             The tkinter keysym string (e.g. ``"q"``, ``"Return"``, ``"Escape"``)
             or ``None`` if the timeout elapsed without a key event.
         """
+        if self._root is None and not self._key_queue:
+            return None
         self._ensure_window()
         if self._key_queue:
             return self._key_queue.pop(0)
@@ -196,6 +200,8 @@ class TkImageWindow:
     def _wait_for_key_or_close(self) -> None:
         if self._root is None or self._key_event is None:
             return
+        if self._key_queue:
+            return
         try:
             self._root.wait_variable(self._key_event)
         except Exception:
@@ -214,6 +220,7 @@ class TkImageWindow:
         self._label = None
         self._photo = None
         self._key_event = None
+        self._key_queue.clear()
 
 
 # ------------------------------------------------------------------
