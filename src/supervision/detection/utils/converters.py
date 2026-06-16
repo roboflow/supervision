@@ -204,7 +204,7 @@ def mask_to_xyxy(masks: npt.NDArray[np.bool_]) -> npt.NDArray[np.int_]:
     Converts a 3D `np.array` of 2D bool masks into a 2D `np.array` of bounding boxes.
 
     Args:
-        masks: A 3D `np.array` of shape `(N, W, H)` containing 2D bool masks.
+        masks: A 3D `np.array` of shape `(N, H, W)` containing 2D bool masks.
 
     Returns:
         A 2D `np.array` of shape `(N, 4)` containing the bounding boxes
