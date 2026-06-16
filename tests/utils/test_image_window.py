@@ -55,17 +55,28 @@ class TestBgrToPil:
 
 
 class TestTkImageWindowShow:
-    def test_show_raises_type_error_for_non_uint8(self):
-        """show() rejects arrays whose dtype is not uint8."""
+    @pytest.mark.parametrize(
+        ("array", "exc_type", "match"),
+        [
+            pytest.param(
+                np.zeros((10, 10, 3), dtype=np.float32),
+                TypeError,
+                "uint8",
+                id="float32-dtype-raises-type-error",
+            ),
+            pytest.param(
+                np.zeros((10, 10, 2), dtype=np.uint8),
+                ValueError,
+                "Expected shape",
+                id="2-channel-raises-value-error",
+            ),
+        ],
+    )
+    def test_show_raises_for_invalid_input(self, array, exc_type, match):
+        """show() rejects arrays with invalid dtype or shape."""
         window = TkImageWindow("test")
-        with pytest.raises(TypeError, match="uint8"):
-            window.show(np.zeros((10, 10, 3), dtype=np.float32))
-
-    def test_show_raises_value_error_for_bad_shape(self):
-        """show() propagates ValueError for unsupported array shapes."""
-        window = TkImageWindow("test")
-        with pytest.raises(ValueError, match="Expected shape"):
-            window.show(np.zeros((10, 10, 2), dtype=np.uint8))
+        with pytest.raises(exc_type, match=match):
+            window.show(array)
 
     def test_show_creates_window_and_updates(self):
         """show() creates a Tk window, sets the PhotoImage, and calls update."""
@@ -93,6 +104,26 @@ class TestTkImageWindowShow:
 
 
 class TestTkImageWindowWaitKey:
+    def test_wait_key_returns_none_when_no_window(self):
+        """wait_key() returns None immediately when no window exists."""
+        window = TkImageWindow()
+        assert window.wait_key(delay_ms=0) is None
+        assert window.wait_key(delay_ms=1) is None
+
+    def test_wait_key_returns_none_when_closed_mid_wait(self):
+        """wait_key(0) returns None when close() fires during blocking wait."""
+        window = TkImageWindow()
+        mock_root = MagicMock()
+        mock_event = MagicMock()
+        mock_root.wait_variable.side_effect = lambda _: window.close()
+        window._root = mock_root
+        window._key_event = mock_event
+
+        result = window.wait_key(delay_ms=0)
+
+        assert result is None
+        assert window._root is None
+
     def test_wait_key_returns_queued_key_immediately(self):
         """wait_key() returns the first queued keysym without calling update."""
         window = TkImageWindow()
@@ -172,6 +203,14 @@ class TestTkImageWindowClose:
         window = TkImageWindow()
         window.close()  # no window created
         window.close()  # second call must not raise
+
+    def test_close_clears_key_queue(self):
+        """close() discards stale keys so they don't fire on next open."""
+        window = TkImageWindow()
+        window._root = MagicMock()
+        window._key_queue = ["q", "Escape"]
+        window.close()
+        assert window._key_queue == []
 
     def test_window_exists_returns_false_for_destroyed_root(self):
         """Destroyed Tk roots are not reused after a window-manager close."""
