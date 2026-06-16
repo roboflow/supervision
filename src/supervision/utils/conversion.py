@@ -147,8 +147,7 @@ def images_to_cv2(images: list[ImageType]) -> list[npt.NDArray[np.uint8]]:
 
 def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
     """
-    Converts Pillow image into OpenCV image, handling RGB -> BGR
-    conversion.
+    Converts Pillow image into OpenCV image, handling RGB -> BGR conversion.
 
     Args:
         image: Pillow image (in RGB format).
