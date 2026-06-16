@@ -593,8 +593,7 @@ def create_tiles(
 
     Args:
         images: Images to create tiles. Elements can be either np.ndarray or
-            PIL.Image, and a common representation will be agreed by the
-            function.
+            PIL.Image, and a common representation will be agreed by the function.
         grid_size: Expected grid size in format (n_rows, n_cols). If not
             given, automated grid placement will be applied. One may also
             provide only one out of two elements of the tuple - then grid
