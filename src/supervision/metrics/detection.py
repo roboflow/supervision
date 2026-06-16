@@ -187,7 +187,7 @@ def _validate_input_tensors(
 @deprecated(  # type: ignore[untyped-decorator]
     target=_validate_input_tensors,
     deprecated_in="0.29.0",
-    remove_in="0.31.0",
+    remove_in="0.32.0",
 )
 def validate_input_tensors(
     predictions: list[npt.NDArray[np.float32]],

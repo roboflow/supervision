@@ -206,7 +206,7 @@ def _validate_vlm_parameters(
 @deprecated(  # type: ignore[untyped-decorator]
     target=_validate_vlm_parameters,
     deprecated_in="0.29.0",
-    remove_in="0.31.0",
+    remove_in="0.32.0",
 )
 def validate_vlm_parameters(vlm: VLM | str, result: Any, kwargs: dict[str, Any]) -> VLM:
     return void(vlm, result, kwargs)  # type: ignore[no-any-return]
