@@ -1014,6 +1014,7 @@ class TestDeprecatedConfidenceConstructor:
             f"Field/init drift: {field_names.symmetric_difference(init_params)}"
         )
 
+
 @pytest.mark.parametrize(
     ("key_points", "threshold", "class_agnostic", "expected_result"),
     [
