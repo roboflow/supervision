@@ -209,6 +209,20 @@ def mask_to_xyxy(masks: npt.NDArray[np.bool_]) -> npt.NDArray[np.int_]:
     Returns:
         A 2D `np.array` of shape `(N, 4)` containing the bounding boxes
             `(x_min, y_min, x_max, y_max)` for each mask.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> masks = np.array([
+        ...     [[False, False, False],
+        ...      [False,  True,  True],
+        ...      [False,  True,  True]],
+        ... ])
+        >>> sv.mask_to_xyxy(masks)
+        array([[1, 1, 2, 2]])
+
+        ```
     """
     n, height, width = masks.shape
     if masks.size == 0:
