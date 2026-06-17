@@ -62,6 +62,7 @@ jobs:
         env:
           MKDOCS_GIT_COMMITTERS_APIKEY: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          mike delete latest || true
           mike deploy --push latest
 
       - name: 🏷️ Determine release deployment metadata
