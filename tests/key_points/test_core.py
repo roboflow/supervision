@@ -930,23 +930,17 @@ def test_from_mediapipe_input(mediapipe_results, resolution_wh, expected_key_poi
 class TestDeprecatedConfidenceConstructor:
     """Tests for backward-compatible `confidence=` kwarg in KeyPoints()."""
 
-    def test_constructor_accepts_deprecated_confidence_kwarg(self):
-        xy = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
-        confidence = np.array([[0.9, 0.8]], dtype=np.float32)
-
-        key_points = KeyPoints(xy=xy, confidence=confidence)
-
-        np.testing.assert_array_equal(key_points.keypoint_confidence, confidence)
-        assert key_points.xy is xy
-
-    def test_constructor_warns_on_deprecated_confidence_kwarg(self):
+    def test_constructor_accepts_and_warns_on_deprecated_confidence_kwarg(self):
         from supervision.utils.internal import SupervisionWarnings
 
         xy = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
         confidence = np.array([[0.9, 0.8]], dtype=np.float32)
 
         with pytest.warns(SupervisionWarnings, match="deprecated since 0.29.0"):
-            KeyPoints(xy=xy, confidence=confidence)
+            key_points = KeyPoints(xy=xy, confidence=confidence)
+
+        np.testing.assert_array_equal(key_points.keypoint_confidence, confidence)
+        assert key_points.xy is xy
 
     def test_constructor_rejects_both_confidence_and_keypoint_confidence(self):
         xy = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
