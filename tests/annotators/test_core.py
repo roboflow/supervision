@@ -30,8 +30,10 @@ from supervision.annotators.core import (
     RoundBoxAnnotator,
     TraceAnnotator,
     TriangleAnnotator,
+    _paint_masks_by_area,
 )
 from supervision.annotators.utils import ColorLookup
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.draw.color import Color
 from supervision.geometry.core import Position
@@ -362,6 +364,56 @@ class TestHaloAnnotator:
             scene=test_image.copy(), detections=detections_uint8
         )
         assert np.array_equal(result_bool, result_uint8)
+
+
+@pytest.mark.parametrize(
+    "annotator_factory",
+    [
+        pytest.param(
+            lambda: MaskAnnotator(opacity=1.0, color_lookup=ColorLookup.INDEX),
+            id="mask",
+        ),
+        pytest.param(
+            lambda: HaloAnnotator(kernel_size=15, color_lookup=ColorLookup.INDEX),
+            id="halo",
+        ),
+    ],
+)
+def test_annotator_compact_mask_matches_dense_mask(annotator_factory):
+    """CompactMask detections annotate identically to dense bool masks."""
+    height, width = 120, 160
+    rng = np.random.default_rng(0)
+    scene = rng.integers(0, 256, (height, width, 3), dtype=np.uint8)
+    boxes = [[10, 10, 70, 60], [40, 30, 150, 110], [90, 70, 140, 115]]
+    masks = []
+    for x1, y1, x2, y2 in boxes:
+        mask = np.zeros((height, width), dtype=bool)
+        mask[y1 : y2 + 1, x1 : x2 + 1] = True
+        masks.append(mask)
+    class_id = [0, 1, 2]
+    xyxy = [[float(value) for value in box] for box in boxes]
+
+    dense = _create_detections(xyxy=xyxy, mask=masks, class_id=class_id)
+    compact = _create_detections(xyxy=xyxy, mask=masks, class_id=class_id)
+    compact.mask = CompactMask.from_dense(
+        np.array(masks), compact.xyxy, (height, width)
+    )
+
+    result_dense = annotator_factory().annotate(scene=scene.copy(), detections=dense)
+    result_compact = annotator_factory().annotate(
+        scene=scene.copy(), detections=compact
+    )
+
+    assert not np.array_equal(result_dense, scene), "annotator painted nothing"
+    assert np.array_equal(result_dense, result_compact)
+
+
+def test_paint_masks_by_area_is_noop_without_masks():
+    """_paint_masks_by_area is a no-op when detections carry no mask."""
+    canvas = np.full((10, 10, 3), 7, dtype=np.uint8)
+    detections = _create_detections(xyxy=[[1, 1, 8, 8]], class_id=[0])
+    _paint_masks_by_area(canvas, detections, Color.RED, ColorLookup.INDEX)
+    assert np.array_equal(canvas, np.full((10, 10, 3), 7, dtype=np.uint8))
 
 
 class TestHeatMapAnnotator:

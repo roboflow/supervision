@@ -361,6 +361,47 @@ class OrientedBoxAnnotator(BaseAnnotator):
         return scene
 
 
+def _paint_masks_by_area(
+    canvas: npt.NDArray[np.uint8],
+    detections: Detections,
+    color: Color | ColorPalette,
+    color_lookup: ColorLookup | npt.NDArray[np.int_],
+    union: npt.NDArray[np.bool_] | None = None,
+) -> None:
+    """Paint each detection's mask into `canvas` in descending-area order, so
+    smaller masks are drawn on top of larger ones.
+
+    `CompactMask` detections are painted into their bounding-box crop only,
+    avoiding a full `(H, W)` allocation per mask; dense masks fall back to
+    full-frame boolean indexing. When `union` is provided, the union of all
+    masks is accumulated into it in place.
+    """
+    masks = detections.mask
+    if masks is None:
+        return
+    compact_mask = masks if isinstance(masks, CompactMask) else None
+    for detection_idx in np.flip(np.argsort(detections.area)):
+        color_bgr = resolve_color(
+            color=color,
+            detections=detections,
+            detection_idx=detection_idx,
+            color_lookup=color_lookup,
+        ).as_bgr()
+        if compact_mask is not None:
+            x1 = int(compact_mask.offsets[detection_idx, 0])
+            y1 = int(compact_mask.offsets[detection_idx, 1])
+            crop_m = compact_mask.crop(detection_idx)
+            crop_h, crop_w = crop_m.shape
+            canvas[y1 : y1 + crop_h, x1 : x1 + crop_w][crop_m] = color_bgr
+            if union is not None:
+                union[y1 : y1 + crop_h, x1 : x1 + crop_w] |= crop_m
+        else:
+            mask = np.asarray(masks[detection_idx], dtype=bool)
+            canvas[mask] = color_bgr
+            if union is not None:
+                union |= mask
+
+
 class MaskAnnotator(BaseAnnotator):
     """
     A class for drawing masks on an image using provided detections.
@@ -437,35 +478,12 @@ class MaskAnnotator(BaseAnnotator):
             return scene
 
         colored_mask = np.array(scene, copy=True, dtype=np.uint8)
-
-        compact_mask = (
-            detections.mask if isinstance(detections.mask, CompactMask) else None
+        _paint_masks_by_area(
+            colored_mask,
+            detections,
+            self.color,
+            self.color_lookup if custom_color_lookup is None else custom_color_lookup,
         )
-        for detection_idx in np.flip(np.argsort(detections.area)):
-            color = resolve_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
-            if compact_mask is not None:
-                # Paint only the bounding-box crop — avoids a full (H, W) alloc.
-                x1 = int(compact_mask.offsets[detection_idx, 0])
-                y1 = int(compact_mask.offsets[detection_idx, 1])
-                crop_m = compact_mask.crop(detection_idx)
-                crop_h, crop_w = crop_m.shape
-                colored_mask[y1 : y1 + crop_h, x1 : x1 + crop_w][crop_m] = (
-                    color.as_bgr()
-                )
-            else:
-                mask = np.asarray(
-                    detections.mask[detection_idx],
-                    dtype=bool,
-                )
-                colored_mask[mask] = color.as_bgr()
-
         cv2.addWeighted(
             colored_mask, self.opacity, scene, 1 - self.opacity, 0, dst=scene
         )
@@ -737,23 +755,14 @@ class HaloAnnotator(BaseAnnotator):
         if detections.mask is None:
             return scene
         colored_mask = np.zeros_like(scene, dtype=np.uint8)
-        fmask = np.array([False] * scene.shape[0] * scene.shape[1]).reshape(
-            scene.shape[0], scene.shape[1]
+        fmask = np.zeros((scene.shape[0], scene.shape[1]), dtype=bool)
+        _paint_masks_by_area(
+            colored_mask,
+            detections,
+            self.color,
+            self.color_lookup if custom_color_lookup is None else custom_color_lookup,
+            union=fmask,
         )
-
-        for detection_idx in np.flip(np.argsort(detections.area)):
-            color = resolve_color(
-                color=self.color,
-                detections=detections,
-                detection_idx=detection_idx,
-                color_lookup=self.color_lookup
-                if custom_color_lookup is None
-                else custom_color_lookup,
-            )
-            mask = np.asarray(detections.mask[detection_idx], dtype=bool)
-            fmask = np.logical_or(fmask, mask)
-            color_bgr = color.as_bgr()
-            colored_mask[mask] = color_bgr
 
         colored_mask = cv2.blur(colored_mask, (self.kernel_size, self.kernel_size))
         colored_mask[fmask] = [0, 0, 0]
