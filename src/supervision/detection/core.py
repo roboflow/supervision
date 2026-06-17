@@ -2632,7 +2632,9 @@ class Detections:
         return Detections.merge(result)
 
 
-def _merge_obb_corners(corners_list: list[np.ndarray]) -> npt.NDArray[np.floating]:
+def _merge_obb_corners(
+    corners_list: list[npt.NDArray[np.floating]],
+) -> npt.NDArray[np.floating]:
     """Merge multiple OBB corner arrays using winner-angle projection.
 
     The first entry in *corners_list* is the winner. Its orientation angle

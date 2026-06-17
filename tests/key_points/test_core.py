@@ -925,3 +925,91 @@ def test_from_mediapipe_input(mediapipe_results, resolution_wh, expected_key_poi
         mediapipe_results, resolution_wh=resolution_wh
     )
     assert key_points == expected_key_points
+
+
+class TestDeprecatedConfidenceConstructor:
+    """Tests for backward-compatible `confidence=` kwarg in KeyPoints()."""
+
+    def test_constructor_accepts_and_warns_on_deprecated_confidence_kwarg(self):
+        """Deprecated confidence= warns and maps value to keypoint_confidence."""
+        from supervision.utils.internal import SupervisionWarnings
+
+        xy = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
+        confidence = np.array([[0.9, 0.8]], dtype=np.float32)
+
+        with pytest.warns(SupervisionWarnings, match="deprecated since"):
+            key_points = KeyPoints(xy=xy, confidence=confidence)
+
+        np.testing.assert_array_equal(key_points.keypoint_confidence, confidence)
+        assert key_points.xy is xy
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            pytest.param(
+                {"confidence": None, "keypoint_confidence": None},
+                id="confidence-first",
+            ),
+            pytest.param(
+                {"keypoint_confidence": None, "confidence": None},
+                id="keypoint-confidence-first",
+            ),
+        ],
+    )
+    def test_constructor_rejects_both_confidence_and_keypoint_confidence(
+        self, kwargs: dict
+    ):
+        """ValueError raised regardless of kwarg order when both are passed."""
+        xy = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
+        confidence_arr = np.array([[0.9, 0.8]], dtype=np.float32)
+        actual_kwargs = {k: confidence_arr for k in kwargs}
+
+        with pytest.raises(ValueError, match="Cannot pass both"):
+            KeyPoints(xy=xy, **actual_kwargs)
+
+    def test_constructor_normal_keypoint_confidence_path(self):
+        """Normal keypoint_confidence= path works and emits no deprecation warning."""
+        import warnings
+
+        xy = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
+        kp_conf = np.array([[0.9, 0.8]], dtype=np.float32)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            kp = KeyPoints(xy=xy, keypoint_confidence=kp_conf)
+
+        np.testing.assert_array_equal(kp.keypoint_confidence, kp_conf)
+        assert kp.data == {}
+
+    def test_constructor_confidence_none_does_not_warn(self):
+        """Explicit confidence=None is silently ignored — no warning emitted."""
+        import warnings
+
+        xy = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            kp = KeyPoints(xy=xy, confidence=None)
+
+        assert kp.keypoint_confidence is None
+
+    def test_constructor_data_none_defaults_to_empty_dict(self):
+        """Explicit data=None normalizes to empty dict, not None."""
+        xy = np.array([[[1.0, 2.0]]], dtype=np.float32)
+
+        assert KeyPoints(xy=xy).data == {}
+        assert KeyPoints(xy=xy, data=None).data == {}
+
+    def test_keypoints_init_covers_all_dataclass_fields(self):
+        """Custom __init__ must assign every dataclass field — guards against drift."""
+        import dataclasses
+        import inspect
+
+        field_names = {f.name for f in dataclasses.fields(KeyPoints)}
+        init_params = set(inspect.signature(KeyPoints.__init__).parameters) - {
+            "self",
+            "confidence",
+        }
+        assert field_names == init_params, (
+            f"Field/init drift: {field_names.symmetric_difference(init_params)}"
+        )
