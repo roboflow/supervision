@@ -165,12 +165,16 @@ class Precision(Metric):
             if len(targets) == 0 and len(predictions) > 0:
                 # Only predictions are present (e.g. a background image); every
                 # prediction is a false positive.
+                if predictions.class_id is None or predictions.confidence is None:
+                    continue
                 stats.append(
                     (
-                        np.zeros((len(predictions), iou_thresholds.size), dtype=bool),
+                        np.zeros(
+                            (len(predictions), iou_thresholds.size), dtype=np.bool_
+                        ),
                         predictions.confidence,
                         predictions.class_id,
-                        np.zeros((0,), dtype=int),
+                        np.zeros((0,), dtype=np.int32),
                     )
                 )
             elif len(targets) > 0:
