@@ -11,6 +11,7 @@ import numpy.typing as npt
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.utils.internal import get_data_item, is_data_equal
+from supervision.detection.utils.iou_and_nms import box_non_max_suppression
 from supervision.utils.internal import warn_deprecated
 from supervision.validators import _validate_keypoints_fields
 
@@ -1075,6 +1076,82 @@ class KeyPoints:
         empty_key_points = KeyPoints.empty()
         empty_key_points.data = self.data
         return self == empty_key_points
+
+    def with_nms(
+        self,
+        threshold: float = 0.5,
+        class_agnostic: bool = False,
+    ) -> KeyPoints:
+        """
+        Performs non-max suppression on the keypoint detections. Bounding boxes
+        are derived from valid (non-zero) keypoints of each skeleton, and
+        standard box NMS is applied.
+
+        Args:
+            threshold: The intersection-over-union threshold
+                to use for non-maximum suppression.
+            class_agnostic: Whether to perform class-agnostic
+                non-maximum suppression. If True, the class_id of each
+                detection will be ignored.
+
+        Returns:
+            A new `sv.KeyPoints` object after non-maximum suppression.
+
+        Raises:
+            AssertionError: If `detection_confidence` is None.
+            AssertionError: If `class_agnostic` is False and `class_id`
+                is None.
+
+        Examples:
+            ```python
+            import cv2
+            import supervision as sv
+            from rfdetr import RFDETRKeypointPreview
+
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
+            model = RFDETRKeypointPreview()
+
+            key_points = model.predict(image)
+            key_points = key_points.with_nms(threshold=0.5)
+            ```
+        """
+        if len(self) == 0:
+            return self
+
+        assert self.detection_confidence is not None, (
+            "KeyPoints detection_confidence must be given for NMS to be executed."
+        )
+
+        if not class_agnostic:
+            assert self.class_id is not None, (
+                "KeyPoints class_id must be given for NMS to be executed. If "
+                "you intended to perform class agnostic NMS set "
+                "class_agnostic=True."
+            )
+
+        xy = self.xy
+        valid = ~np.all(xy == 0, axis=-1)
+        x_min = np.min(np.where(valid, xy[..., 0], np.inf), axis=1)
+        y_min = np.min(np.where(valid, xy[..., 1], np.inf), axis=1)
+        x_max = np.max(np.where(valid, xy[..., 0], -np.inf), axis=1)
+        y_max = np.max(np.where(valid, xy[..., 1], -np.inf), axis=1)
+        xyxy = np.stack([x_min, y_min, x_max, y_max], axis=1).astype(np.float32)
+
+        if class_agnostic:
+            predictions = np.hstack([xyxy, self.detection_confidence.reshape(-1, 1)])
+        else:
+            class_id = cast(npt.NDArray[np.int_], self.class_id)
+            predictions = np.hstack(
+                [
+                    xyxy,
+                    self.detection_confidence.reshape(-1, 1),
+                    class_id.reshape(-1, 1),
+                ]
+            )
+
+        keep = box_non_max_suppression(predictions=predictions, iou_threshold=threshold)
+
+        return cast(KeyPoints, self[keep])
 
     def as_detections(
         self, selected_keypoint_indices: Iterable[int] | None = None
