@@ -24,6 +24,8 @@ class JSONSink:
         When a list or tuple value in custom_data (or detections.data) has the
         same length as the detection count, each element is written to the
         corresponding detection row; any other value is broadcast to all rows.
+        NumPy scalars (e.g. ``np.int64``, ``np.float32``) are serialized as
+        JSON numbers; NumPy arrays are serialized as JSON arrays.
 
     Args:
         file_name: The name of the JSON file where the detections will be stored.
@@ -81,8 +83,21 @@ class JSONSink:
 
     @staticmethod
     def _json_default(value: Any) -> Any:
-        """Make NumPy scalars/arrays JSON serializable (e.g. a `np.int64` frame
-        index passed through `custom_data`)."""
+        """Return a JSON-serializable equivalent of a NumPy scalar or array.
+
+        Called as the ``default`` hook by :func:`json.dump`. Converts
+        :class:`numpy.generic` scalars via ``.item()`` and
+        :class:`numpy.ndarray` instances via ``.tolist()``.
+
+        Args:
+            value: Object the standard JSON encoder could not serialize.
+
+        Returns:
+            A Python scalar or nested list equivalent of ``value``.
+
+        Raises:
+            TypeError: If ``value`` is neither a NumPy scalar nor an ndarray.
+        """
         if isinstance(value, np.generic):
             return value.item()
         if isinstance(value, np.ndarray):
@@ -97,7 +112,9 @@ class JSONSink:
         """
         if self.file:
             try:
-                json.dump(self.data, self.file, indent=4, default=self._json_default)
+                json.dump(
+                    self.data, self.file, indent=4, default=JSONSink._json_default
+                )
             finally:
                 self.file.close()
 
