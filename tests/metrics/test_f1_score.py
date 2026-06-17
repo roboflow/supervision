@@ -124,6 +124,86 @@ class TestF1Score:
         assert result.f1_50 == 0.0
         assert result.f1_75 == 0.0
 
+    def test_false_positives_on_background_image_counted(self):
+        """Predictions on an image with no targets must count as false positives."""
+        predictions_with_gt = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+        )
+        targets_with_gt = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        background_predictions = Detections(
+            xyxy=np.array([[20, 0, 25, 5], [40, 0, 45, 5], [60, 0, 65, 5]], np.float32),
+            class_id=np.array([0, 0, 0]),
+            confidence=np.array([0.9, 0.9, 0.9]),
+        )
+
+        metric = F1Score(averaging_method=AveragingMethod.MICRO)
+        result = metric.update(
+            [predictions_with_gt, background_predictions],
+            [targets_with_gt, Detections.empty()],
+        ).compute()
+
+        # TP=1, FP=3, FN=0 -> F1 = 2*1 / (2*1 + 3 + 0) = 0.4
+        assert result.f1_50 == pytest.approx(0.4)
+        assert 0 in result.matched_classes
+
+    @pytest.mark.parametrize(
+        ("method", "expected"),
+        [
+            pytest.param(
+                AveragingMethod.MICRO, 0.5, id="micro-counts-absent-class-fps"
+            ),
+            pytest.param(
+                AveragingMethod.MACRO, 0.5, id="macro-counts-absent-class-fps"
+            ),
+            pytest.param(
+                AveragingMethod.WEIGHTED,
+                1.0,
+                id="weighted-absent-class-fps-not-counted-by-design",
+            ),
+        ],
+    )
+    def test_false_positives_of_absent_class_counted(self, method, expected):
+        """Predictions of absent class count as FPs under MICRO/MACRO; WEIGHTED
+        excludes them by design (GT support=0 → weight=0, consistent with sklearn)."""
+        predictions = Detections(
+            xyxy=np.array(
+                [[0, 0, 10, 10], [100, 0, 110, 10], [120, 0, 130, 10]], np.float32
+            ),
+            class_id=np.array([0, 1, 1]),  # class 1 never appears in the targets
+            confidence=np.array([0.9, 0.8, 0.7]),
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+
+        metric = F1Score(averaging_method=method)
+        result = metric.update(predictions, targets).compute()
+
+        # MICRO: TP=1, FP=2, FN=0 -> F1 = 2/(2+2) = 0.5
+        # MACRO: mean([F1_class0=1.0, F1_class1=0.0]) = 0.5
+        # WEIGHTED: class_1 weight=0 -> only class 0 contributes -> 1.0
+        assert result.f1_50 == pytest.approx(expected)
+
+    def test_false_positives_on_background_image_weighted_returns_zero(self):
+        """WEIGHTED F1 is 0.0 when all images are background (no GT anywhere)."""
+        background_predictions = Detections(
+            xyxy=np.array([[20, 0, 25, 5], [40, 0, 45, 5]], np.float32),
+            class_id=np.array([0, 0]),
+            confidence=np.array([0.9, 0.8]),
+        )
+
+        metric = F1Score(averaging_method=AveragingMethod.WEIGHTED)
+        result = metric.update(background_predictions, Detections.empty()).compute()
+
+        # No GT support anywhere -> class_counts.sum() == 0 -> returns 0.0
+        assert result.f1_50 == 0.0
+
     def test_single_class_mixed_results(
         self, predictions_confidence_ranking, targets_50_50
     ):
