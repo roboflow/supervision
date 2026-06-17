@@ -55,17 +55,41 @@ def approximate_polygon(
             the `x`, `y` coordinates of the input polygon's points.
         percentage: The percentage of points to be removed from the
             input polygon, in the range `[0, 1)`.
-        epsilon_step: Approximation accuracy step.
+        epsilon_step: Approximation accuracy step, must be positive.
             Epsilon is the maximum distance between the original curve
             and its approximation.
 
     Returns:
         A new 2D NumPy array of shape `(M, 2)` containing the `x`, `y`
             coordinates of the approximated polygon's points. `M` is at most
-            `N * (1 - percentage)` when a valid simplification of that size
-            exists. At least 3 points are always kept, so when further
+            `floor(N * (1 - percentage))` (minimum 3). Because epsilon
+            advances in discrete `epsilon_step` increments, `M` may be
+            noticeably smaller than the budget when a single step crosses
+            the target band. At least 3 points are always kept; when further
             simplification would collapse the polygon below 3 points the last
-            valid approximation is returned and `M` may exceed that bound.
+            valid approximation is returned and `M` may exceed the budget.
+
+    Raises:
+        ValueError: If `percentage` is outside the range `[0, 1)`.
+        ValueError: If `epsilon_step` is not positive.
+
+    Examples:
+        Reduce a polygon to at most half its original point count:
+
+        >>> import numpy as np
+        >>> polygon = np.array([[0, 0], [10, 0], [10, 10], [0, 10],
+        ...                     [5, 10], [5, 5], [3, 7], [1, 9]])
+        >>> result = approximate_polygon(polygon, percentage=0.5)
+        >>> result.shape[1]
+        2
+        >>> len(result) <= max(int(len(polygon) * 0.5), 3)
+        True
+
+        Polygon already at or below target — returned unchanged:
+
+        >>> tiny = np.array([[0, 0], [5, 0], [2, 4]])
+        >>> approximate_polygon(tiny, percentage=0.5) is tiny
+        True
     """
 
     if percentage < 0 or percentage >= 1:

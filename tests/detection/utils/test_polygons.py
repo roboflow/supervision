@@ -119,8 +119,9 @@ class TestApproximatePolygon:
         """The result stays a valid polygon and respects the point budget.
 
         The exception is the 3-point floor: keeping a valid polygon (at least 3
-        points) can leave more points than the budget, since the simplification
-        step may jump straight below 3 points.
+        points) can leave more points than the budget by an arbitrary margin,
+        since a single epsilon step may jump straight from above budget to below
+        3 points.
         """
         polygon = _regular_polygon(num_points)
         target_points = max(int(num_points * (1 - percentage)), 3)
