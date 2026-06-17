@@ -67,7 +67,7 @@ def _normalize_row_index(
     return i
 
 
-@dataclass
+@dataclass(init=False)
 class KeyPoints:
     """
     The `sv.KeyPoints` class in the Supervision library standardizes results from
@@ -237,6 +237,59 @@ class KeyPoints:
     detection_confidence: npt.NDArray[np.float32] | None = None
     visible: npt.NDArray[np.bool_] | None = None
     data: dict[str, npt.NDArray[np.generic] | list[Any]] = field(default_factory=dict)
+
+    def __init__(
+        self,
+        xy: npt.NDArray[np.float32],
+        class_id: npt.NDArray[np.int_] | None = None,
+        keypoint_confidence: npt.NDArray[np.float32] | None = None,
+        detection_confidence: npt.NDArray[np.float32] | None = None,
+        visible: npt.NDArray[np.bool_] | None = None,
+        data: dict[str, npt.NDArray[np.generic] | list[Any]] | None = None,
+        *,
+        confidence: npt.NDArray[np.float32] | None = None,
+    ) -> None:
+        """Initialize KeyPoints.
+
+        Args:
+            xy: Array of shape `(n, m, 2)` with keypoint coordinates.
+            class_id: Array of shape `(n,)` with class IDs. Defaults to None.
+            keypoint_confidence: Array of shape `(n, m)` with per-keypoint
+                confidence scores. Defaults to None.
+            detection_confidence: Array of shape `(n,)` with detection-level
+                confidence scores. Defaults to None.
+            visible: Boolean array of shape `(n, m)` indicating visible
+                keypoints. Defaults to None.
+            data: Dictionary of additional per-detection data arrays.
+                Defaults to an empty dict.
+            confidence: Deprecated since `0.29.0`, removed in `0.32.0`.
+                Use ``keypoint_confidence`` instead. Raises ``ValueError``
+                if passed together with ``keypoint_confidence``.
+
+        Raises:
+            ValueError: If both ``confidence`` and ``keypoint_confidence``
+                are provided.
+        """
+        if confidence is not None:
+            if keypoint_confidence is not None:
+                raise ValueError(
+                    "Cannot pass both 'confidence' and 'keypoint_confidence'. "
+                    "'confidence' is deprecated — use 'keypoint_confidence' only."
+                )
+            warn_deprecated(
+                "'confidence' parameter in `KeyPoints()` is deprecated since "
+                "`0.29.0` and will be removed in `0.32.0`. Use "
+                "'keypoint_confidence' instead."
+            )
+            keypoint_confidence = confidence
+
+        self.xy = xy
+        self.class_id = class_id
+        self.keypoint_confidence = keypoint_confidence
+        self.detection_confidence = detection_confidence
+        self.visible = visible
+        self.data = data if data is not None else {}
+        self.__post_init__()
 
     def __post_init__(self) -> None:
         _validate_keypoints_fields(
