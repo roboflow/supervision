@@ -746,6 +746,21 @@ def test_key_points_as_detections_selected_keypoint_indices():
     assert np.array_equal(detections.xyxy, np.array([[10, 20, 30, 40]]))
 
 
+def test_key_points_as_detections_mixed_valid_invalid_batch():
+    """Batch with one all-zero skeleton: invalid skeleton gets box zeroed."""
+    key_points = _create_key_points(
+        xy=[[[0, 0], [0, 0]], [[10, 20], [30, 40]]],
+        confidence=[[0.0, 0.0], [0.8, 0.6]],
+        class_id=[0, 1],
+    )
+
+    detections = key_points.as_detections()
+
+    # Only the valid skeleton survives the area>0 filter
+    assert len(detections) == 1
+    assert np.array_equal(detections.xyxy, np.array([[10, 20, 30, 40]]))
+
+
 def test_key_points_as_detections_with_data():
     """Test the as_detections method preserves data."""
     key_points = _create_key_points(
