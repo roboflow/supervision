@@ -746,6 +746,20 @@ def test_key_points_as_detections_selected_keypoint_indices():
     assert np.array_equal(detections.xyxy, np.array([[10, 20, 30, 40]]))
 
 
+def test_key_points_as_detections_confidence_over_selected_indices():
+    """Confidence mean uses only the selected keypoint columns, not all."""
+    key_points = _create_key_points(
+        xy=[[[0, 0], [10, 20], [30, 40], [100, 100]]],
+        confidence=[[0.5, 0.8, 0.6, 0.9]],
+        class_id=[0],
+    )
+
+    detections = key_points.as_detections(selected_keypoint_indices=[1, 2])
+
+    expected_confidence = np.mean([0.8, 0.6], dtype=np.float32)
+    assert np.isclose(detections.confidence[0], expected_confidence)
+
+
 def test_key_points_as_detections_mixed_valid_invalid_batch():
     """Batch with one all-zero skeleton: invalid skeleton gets box zeroed."""
     key_points = _create_key_points(
