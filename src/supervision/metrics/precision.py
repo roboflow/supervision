@@ -155,6 +155,14 @@ class Precision(Metric):
     def _compute(
         self, predictions_list: list[Detections], targets_list: list[Detections]
     ) -> PrecisionResult:
+        """Build per-image stats tuples and delegate to class-level computation.
+
+        Each stats tuple is ``(matches, confidence, class_ids, true_class_ids)``:
+        - Both empty: skip (no information).
+        - Targets empty, predictions present: all predictions are FPs; true_class_ids
+          is ``zeros((0,))``.
+        - Targets present: IoU matching produces ``matches`` array.
+        """
         iou_thresholds = np.linspace(0.5, 0.95, 10)
         stats: list[Any] = []
 
@@ -262,6 +270,11 @@ class Precision(Metric):
         npt.NDArray[np.float64],
         npt.NDArray[np.int32],
     ]:
+        """Compute precision scores from concatenated stats across all images.
+
+        ``unique_classes`` is the union of GT and predicted classes so that
+        predictions of classes absent from GT still count as false positives.
+        """
         sorted_indices = np.argsort(-prediction_confidence)
         matches = matches[sorted_indices]
         prediction_class_ids = prediction_class_ids[sorted_indices]
@@ -457,8 +470,6 @@ class Precision(Metric):
 
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
-        raise ValueError(f"Invalid metric target: {self._metric_target}")
-
     def _filter_detections_by_size(
         self, detections: Detections, size_category: ObjectSizeCategory
     ) -> Detections:
@@ -523,10 +534,12 @@ class PrecisionResult:
         precision_scores: the precision scores at each IoU threshold.
             Shape: `(num_iou_thresholds,)`
         precision_per_class: the precision scores per class and
-            IoU threshold. Shape: `(num_target_classes, num_iou_thresholds)`
+            IoU threshold. Shape: `(num_classes, num_iou_thresholds)`
         iou_thresholds: the IoU thresholds used in the calculations.
-        matched_classes: the class IDs of all matched classes.
-            Corresponds to the rows of `precision_per_class`.
+        matched_classes: the class IDs present in either predictions or ground
+            truth. Corresponds to the rows of `precision_per_class`. Classes
+            that appear only in predictions (no ground-truth instances) are
+            included; their per-threshold precision values will be `0.0`.
         small_objects: the Precision metric results
             for small objects (area < 32²).
         medium_objects: the Precision metric results
