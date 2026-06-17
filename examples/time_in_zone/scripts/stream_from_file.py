@@ -86,7 +86,9 @@ def run_command_in_thread(command: list) -> Thread:
 def run_command(command: list) -> int:
     allowed_commands = ["docker", "ffmpeg"]
     if not command or command[0] not in allowed_commands:
-        raise ValueError(f"Command '{command[0] if command else ''}' is not allowed. Only {allowed_commands} are permitted.")
+        raise ValueError(
+            f"Command '{command[0] if command else ''}' is not allowed. Only {allowed_commands} are permitted."
+        )
     process = subprocess.run(command)  # noqa: S603
     return process.returncode
 
