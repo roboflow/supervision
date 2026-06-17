@@ -1088,7 +1088,9 @@ class KeyPoints:
             selected_keypoint_indices: The
                 indices of the key points to include in the bounding box
                 calculation. This helps focus on a subset of key points,
-                e.g. when some are occluded. Captures all key points by default.
+                e.g. when some are occluded. Captures all key points by
+                default. An empty sequence (`[]`) is treated the same as
+                `None` and selects all key points.
 
         Returns:
             detections: The converted detections object.
