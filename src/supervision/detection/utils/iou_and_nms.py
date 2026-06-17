@@ -586,11 +586,15 @@ def _mask_iou_batch_split(
     """
     # The overlap of two binary masks is the dot product of their flattened
     # pixels, so the whole (N, M) intersection matrix is a single matmul.
-    # Counts are bounded by H*W and stay exact in float32 for masks up to ~4K.
+    # float32 counts pixels exactly up to 2**24; for larger masks (beyond
+    # ~4096x4096) we promote to float64 so the counts stay exact.
     pixels = int(np.prod(masks_true.shape[1:]))
-    true_flat = masks_true.reshape(masks_true.shape[0], pixels).astype(np.float32)
+    count_dtype = np.float32 if pixels <= 2**24 else np.float64
+    true_flat = masks_true.reshape(masks_true.shape[0], pixels).astype(
+        count_dtype, copy=False
+    )
     detection_flat = masks_detection.reshape(masks_detection.shape[0], pixels).astype(
-        np.float32
+        count_dtype, copy=False
     )
     intersection_area = true_flat @ detection_flat.T
 
@@ -661,29 +665,20 @@ def mask_iou_batch(
     if isinstance(masks_detection, CompactMask):
         masks_detection = np.asarray(masks_detection)
 
-    memory = (
-        masks_true.shape[0]
-        * masks_true.shape[1]
-        * masks_true.shape[2]
-        * masks_detection.shape[0]
-        / 1024
-        / 1024
-    )
-    if memory <= memory_limit:
+    # Peak memory of a single matmul pass: the two flattened mask sets plus the
+    # (N, M) float result. (The previous estimate used the old (N, M, H, W)
+    # intermediate, which overcounted by a factor of M and forced needless
+    # chunking now that the intersection is a matmul.)
+    pixels = masks_true.shape[1] * masks_true.shape[2]
+    itemsize = 4 if pixels <= 2**24 else 8
+    limit_bytes = memory_limit * 1024 * 1024
+    detection_bytes = masks_detection.shape[0] * pixels * itemsize
+    per_true_row = pixels * itemsize + masks_detection.shape[0] * 8
+    if detection_bytes + masks_true.shape[0] * per_true_row <= limit_bytes:
         return _mask_iou_batch_split(masks_true, masks_detection, overlap_metric)
 
     ious = []
-    step = max(
-        memory_limit
-        * 1024
-        * 1024
-        // (
-            masks_detection.shape[0]
-            * masks_detection.shape[1]
-            * masks_detection.shape[2]
-        ),
-        1,
-    )
+    step = max((limit_bytes - detection_bytes) // per_true_row, 1)
     for chunk_start in range(0, masks_true.shape[0], step):
         ious.append(
             _mask_iou_batch_split(

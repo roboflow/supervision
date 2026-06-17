@@ -1481,24 +1481,41 @@ class TestMaskIouBatch:
         ],
     )
     @pytest.mark.parametrize(
-        "shape",
+        ("n_true", "n_detection", "height", "width"),
         [
-            pytest.param((1, 20, 24), id="single"),
-            pytest.param((7, 32, 40), id="several"),
+            pytest.param(1, 1, 20, 24, id="single"),
+            pytest.param(7, 7, 32, 40, id="several-square"),
+            pytest.param(5, 9, 28, 36, id="rectangular"),
         ],
     )
     def test_matches_naive_reference_on_random_masks(
-        self, shape: tuple[int, int, int], overlap_metric: OverlapMetric
+        self,
+        n_true: int,
+        n_detection: int,
+        height: int,
+        width: int,
+        overlap_metric: OverlapMetric,
     ) -> None:
         """Random masks give the same matrix as the explicit (N, M, H, W) reference."""
         rng = np.random.default_rng(0)
-        masks_true = rng.random(shape) > 0.5
-        masks_detection = rng.random(shape) > 0.5
+        masks_true = rng.random((n_true, height, width)) > 0.5
+        masks_detection = rng.random((n_detection, height, width)) > 0.5
 
         result = mask_iou_batch(masks_true, masks_detection, overlap_metric)
 
         expected = _naive_mask_iou(masks_true, masks_detection, overlap_metric)
         np.testing.assert_allclose(result, expected)
+
+    def test_chunking_matches_single_pass(self) -> None:
+        """A tiny memory_limit forces chunking yet returns the same matrix."""
+        rng = np.random.default_rng(1)
+        masks_true = rng.random((6, 16, 16)) > 0.5
+        masks_detection = rng.random((4, 16, 16)) > 0.5
+
+        single_pass = mask_iou_batch(masks_true, masks_detection)
+        chunked = mask_iou_batch(masks_true, masks_detection, memory_limit=0)
+
+        np.testing.assert_array_equal(single_pass, chunked)
 
     def test_identical_disjoint_and_empty(self) -> None:
         """Identical masks score 1.0, disjoint 0.0; empty input keeps its shape."""
