@@ -141,3 +141,31 @@ class TestApproximatePolygon:
         result = approximate_polygon(polygon, percentage=0.0)
 
         assert len(result) == len(polygon)
+
+    @pytest.mark.parametrize(
+        "percentage",
+        [
+            pytest.param(-0.001, id="just-below-zero"),
+            pytest.param(-1.0, id="negative-one"),
+            pytest.param(1.0, id="exactly-one"),
+            pytest.param(1.5, id="above-one"),
+        ],
+    )
+    def test_raises_on_out_of_range_percentage(self, percentage: float) -> None:
+        """Percentage outside [0, 1) must raise ValueError."""
+        polygon = _regular_polygon(20)
+        with pytest.raises(ValueError, match="Percentage must be in the range"):
+            approximate_polygon(polygon, percentage=percentage)
+
+    @pytest.mark.parametrize(
+        "epsilon_step",
+        [
+            pytest.param(0.0, id="zero"),
+            pytest.param(-0.05, id="negative"),
+        ],
+    )
+    def test_raises_on_non_positive_epsilon_step(self, epsilon_step: float) -> None:
+        """Non-positive epsilon_step must raise ValueError."""
+        polygon = _regular_polygon(20)
+        with pytest.raises(ValueError, match="epsilon_step must be positive"):
+            approximate_polygon(polygon, percentage=0.5, epsilon_step=epsilon_step)
