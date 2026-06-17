@@ -706,6 +706,75 @@ def test_key_points_as_detections_empty():
     assert empty_detections.is_empty()
 
 
+def test_key_points_as_detections_ignores_missing_keypoints():
+    """A [0, 0] keypoint is treated as missing and excluded from the box."""
+    key_points = _create_key_points(
+        xy=[[[0, 0], [10, 20], [30, 40]]],
+        confidence=[[0.0, 0.8, 0.6]],
+        class_id=[0],
+    )
+
+    detections = key_points.as_detections()
+
+    assert np.array_equal(detections.xyxy, np.array([[10, 20, 30, 40]]))
+
+
+def test_key_points_as_detections_uses_detection_confidence():
+    """detection_confidence is preferred over the keypoint-confidence mean."""
+    key_points = _create_key_points(
+        xy=[[[10, 20], [30, 40]]],
+        confidence=[[0.1, 0.2]],
+        class_id=[0],
+        detection_confidence=[0.95],
+    )
+
+    detections = key_points.as_detections()
+
+    assert np.allclose(detections.confidence, np.array([0.95], dtype=np.float32))
+
+
+def test_key_points_as_detections_selected_keypoint_indices():
+    """Only the selected keypoints contribute to the bounding box."""
+    key_points = _create_key_points(
+        xy=[[[0, 0], [10, 20], [30, 40], [100, 100]]],
+        confidence=[[0.5, 0.8, 0.6, 0.9]],
+        class_id=[0],
+    )
+
+    detections = key_points.as_detections(selected_keypoint_indices=[1, 2])
+
+    assert np.array_equal(detections.xyxy, np.array([[10, 20, 30, 40]]))
+
+
+def test_key_points_as_detections_confidence_over_selected_indices():
+    """Confidence mean uses only the selected keypoint columns, not all."""
+    key_points = _create_key_points(
+        xy=[[[0, 0], [10, 20], [30, 40], [100, 100]]],
+        confidence=[[0.5, 0.8, 0.6, 0.9]],
+        class_id=[0],
+    )
+
+    detections = key_points.as_detections(selected_keypoint_indices=[1, 2])
+
+    expected_confidence = np.mean([0.8, 0.6], dtype=np.float32)
+    assert np.isclose(detections.confidence[0], expected_confidence)
+
+
+def test_key_points_as_detections_mixed_valid_invalid_batch():
+    """Batch with one all-zero skeleton: invalid skeleton gets box zeroed."""
+    key_points = _create_key_points(
+        xy=[[[0, 0], [0, 0]], [[10, 20], [30, 40]]],
+        confidence=[[0.0, 0.0], [0.8, 0.6]],
+        class_id=[0, 1],
+    )
+
+    detections = key_points.as_detections()
+
+    # Only the valid skeleton survives the area>0 filter
+    assert len(detections) == 1
+    assert np.array_equal(detections.xyxy, np.array([[10, 20, 30, 40]]))
+
+
 def test_key_points_as_detections_with_data():
     """Test the as_detections method preserves data."""
     key_points = _create_key_points(

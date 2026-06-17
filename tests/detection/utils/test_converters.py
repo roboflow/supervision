@@ -15,6 +15,7 @@ from supervision.detection.utils.converters import (
     _rle_counts_to_mask,
     is_compressed_rle,
     mask_to_rle,
+    mask_to_xyxy,
     rle_to_mask,
     xcycwh_to_xyxy,
     xywh_to_xyxy,
@@ -313,6 +314,86 @@ def test_xyxy_to_mask(boxes: np.ndarray, resolution_wh, expected: np.ndarray) ->
     assert result.dtype == np.bool_
     assert result.shape == expected.shape
     np.testing.assert_array_equal(result, expected)
+
+
+def _mask_to_xyxy_reference(masks: np.ndarray) -> np.ndarray:
+    """Per-mask `np.where` loop used as a ground-truth oracle."""
+    xyxy = np.zeros((masks.shape[0], 4), dtype=int)
+    for i, mask in enumerate(masks):
+        rows, cols = np.where(mask)
+        if len(rows) > 0 and len(cols) > 0:
+            xyxy[i, :] = [
+                int(cols.min()),
+                int(rows.min()),
+                int(cols.max()),
+                int(rows.max()),
+            ]
+    return xyxy
+
+
+class TestMaskToXyxy:
+    @pytest.mark.parametrize(
+        ("masks", "expected"),
+        [
+            pytest.param(
+                np.zeros((0, 5, 5), dtype=bool),
+                np.zeros((0, 4), dtype=int),
+                id="no-masks",
+            ),
+            pytest.param(
+                np.zeros((2, 5, 5), dtype=bool),
+                np.zeros((2, 4), dtype=int),
+                id="all-empty-masks",
+            ),
+            pytest.param(
+                np.array([[[False, False], [False, True]]], dtype=bool),
+                np.array([[1, 1, 1, 1]], dtype=int),
+                id="single-pixel-bottom-right",
+            ),
+            pytest.param(
+                np.array([[[True, False], [False, False]]], dtype=bool),
+                np.array([[0, 0, 0, 0]], dtype=int),
+                id="single-pixel-top-left",
+            ),
+            pytest.param(
+                np.array([[[False, True], [False, False]]], dtype=bool),
+                np.array([[1, 0, 1, 0]], dtype=int),
+                id="single-pixel-top-right",
+            ),
+            pytest.param(
+                np.array([[[False, False], [True, False]]], dtype=bool),
+                np.array([[0, 1, 0, 1]], dtype=int),
+                id="single-pixel-bottom-left",
+            ),
+            pytest.param(
+                np.ones((1, 4, 6), dtype=bool),
+                np.array([[0, 0, 5, 3]], dtype=int),
+                id="full-mask",
+            ),
+        ],
+    )
+    def test_mask_to_xyxy_known_values(
+        self, masks: np.ndarray, expected: np.ndarray
+    ) -> None:
+        """Known boxes for empty, single-pixel, and full masks."""
+        result = mask_to_xyxy(masks)
+
+        assert result.dtype == expected.dtype
+        assert result.shape == expected.shape
+        np.testing.assert_array_equal(result, expected)
+
+    @pytest.mark.parametrize("seed", [0, 1, 2, 3, 4])
+    def test_mask_to_xyxy_matches_reference(self, seed: int) -> None:
+        """Vectorized output is bit-identical to the per-mask scalar loop."""
+        rng = np.random.default_rng(seed)
+        masks = rng.random((6, 30, 40)) < 0.1
+        masks[0] = False  # include an empty mask in the batch
+
+        result = mask_to_xyxy(masks)
+        reference = _mask_to_xyxy_reference(masks)
+
+        assert result.dtype == reference.dtype
+        np.testing.assert_array_equal(result, reference)
 
 
 @pytest.mark.parametrize(
