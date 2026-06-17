@@ -767,7 +767,11 @@ class HaloAnnotator(BaseAnnotator):
         colored_mask = cv2.blur(colored_mask, (self.kernel_size, self.kernel_size))
         colored_mask[fmask] = [0, 0, 0]
         gray = cv2.cvtColor(colored_mask, cv2.COLOR_BGR2GRAY)
-        alpha = self.opacity * gray / gray.max()
+        gray_max = gray.max()
+        if gray_max == 0:
+            # no halo to draw (e.g. empty masks); leave the scene untouched
+            return scene
+        alpha = self.opacity * gray / gray_max
         alpha_mask = alpha[:, :, np.newaxis]
         blended_scene = np.uint8(scene * (1 - alpha_mask) + colored_mask * self.opacity)
         np.copyto(scene, blended_scene)

@@ -365,6 +365,16 @@ class TestHaloAnnotator:
         )
         assert np.array_equal(result_bool, result_uint8)
 
+    def test_annotate_with_empty_masks_preserves_scene(self):
+        """Test that empty masks leave the scene unchanged instead of corrupting it."""
+        scene = np.full((100, 100, 3), 127, dtype=np.uint8)
+        masks = [np.zeros((100, 100), dtype=bool)]
+        detections = _create_detections(
+            xyxy=[[10, 10, 90, 90]], mask=masks, class_id=[0]
+        )
+        result = HaloAnnotator().annotate(scene=scene.copy(), detections=detections)
+        assert np.array_equal(result, scene)
+
 
 @pytest.mark.parametrize(
     "annotator_factory",
