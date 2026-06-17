@@ -11,7 +11,10 @@ import numpy.typing as npt
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from supervision.detection.utils.internal import get_data_item, is_data_equal
-from supervision.detection.utils.iou_and_nms import box_non_max_suppression
+from supervision.detection.utils.iou_and_nms import (
+    OverlapMetric,
+    box_non_max_suppression,
+)
 from supervision.utils.internal import warn_deprecated
 from supervision.validators import _validate_keypoints_fields
 
@@ -1134,18 +1137,23 @@ class KeyPoints:
         self,
         threshold: float = 0.5,
         class_agnostic: bool = False,
+        overlap_metric: OverlapMetric = OverlapMetric.IOU,
     ) -> KeyPoints:
         """
         Performs non-max suppression on the keypoint detections. Bounding boxes
-        are derived from valid (non-zero) keypoints of each skeleton, and
-        standard box NMS is applied.
+        are derived from valid keypoints of each skeleton, and standard box NMS
+        is applied. A keypoint is considered valid when its coordinates are not
+        all-zero and its `visible` flag is `True` (if `visible` is set).
 
         Args:
-            threshold: The intersection-over-union threshold
-                to use for non-maximum suppression.
-            class_agnostic: Whether to perform class-agnostic
-                non-maximum suppression. If True, the class_id of each
-                detection will be ignored.
+            threshold: The intersection-over-union threshold to use for
+                non-maximum suppression. Must be in [0, 1]. Defaults to 0.5.
+            class_agnostic: Whether to perform class-agnostic non-maximum
+                suppression. If True, the class_id of each detection will be
+                ignored. Defaults to False.
+            overlap_metric: Metric used to compute the degree of overlap
+                between pairs of bounding boxes. Defaults to
+                `OverlapMetric.IOU`.
 
         Returns:
             A new `sv.KeyPoints` object after non-maximum suppression.
@@ -1184,6 +1192,8 @@ class KeyPoints:
 
         xy = self.xy
         valid = ~np.all(xy == 0, axis=-1)
+        if self.visible is not None:
+            valid = valid & self.visible
         x_min = np.min(np.where(valid, xy[..., 0], np.inf), axis=1)
         y_min = np.min(np.where(valid, xy[..., 1], np.inf), axis=1)
         x_max = np.max(np.where(valid, xy[..., 0], -np.inf), axis=1)
@@ -1202,7 +1212,11 @@ class KeyPoints:
                 ]
             )
 
-        keep = box_non_max_suppression(predictions=predictions, iou_threshold=threshold)
+        keep = box_non_max_suppression(
+            predictions=predictions,
+            iou_threshold=threshold,
+            overlap_metric=overlap_metric,
+        )
 
         return cast(KeyPoints, self[keep])
 

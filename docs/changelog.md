@@ -7,6 +7,8 @@ date_modified: 2026-06-15
 
 ### UnReleased
 
+- Added [#2338](https://github.com/roboflow/supervision/pull/2338): [`sv.KeyPoints.with_nms`](https://supervision.roboflow.com/latest/keypoint/core/#supervision.key_points.core.KeyPoints.with_nms) — non-maximum suppression for keypoint detections. Derives axis-aligned bounding boxes from valid (non-zero and visible) keypoints and applies `box_non_max_suppression`. Requires `detection_confidence`; supports class-aware and class-agnostic modes via `threshold`, `class_agnostic`, and `overlap_metric`.
+
 - Fixed [#2335](https://github.com/roboflow/supervision/pull/2335): `sv.KeyPoints(confidence=...)` now works again. The `0.29.0` refactor accidentally dropped the deprecated `confidence` constructor kwarg; it is now accepted and mapped to `keypoint_confidence` with a deprecation warning.
 
 - Fixed [#2322](https://github.com/roboflow/supervision/pull/2322): COCO export now preserves all polygon parts for multi-component masks. Previously, only the first polygon was written when a non-crowd mask had disjoint segments; all parts are now included.

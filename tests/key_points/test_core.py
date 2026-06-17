@@ -1218,6 +1218,110 @@ class TestDeprecatedConfidenceConstructor:
             ),
             id="multi-skeleton-schema-class-agnostic",
         ),
+        pytest.param(
+            _create_key_points(
+                xy=[
+                    [[0, 0], [0, 0]],
+                    [[100, 100], [200, 200]],
+                ],
+                detection_confidence=[0.9, 0.8],
+                class_id=[0, 0],
+            ),
+            0.5,
+            False,
+            _create_key_points(
+                xy=[
+                    [[0, 0], [0, 0]],
+                    [[100, 100], [200, 200]],
+                ],
+                detection_confidence=[0.9, 0.8],
+                class_id=[0, 0],
+            ),
+            id="all-zero-skeleton-passes-through",
+        ),
+        pytest.param(
+            _create_key_points(
+                xy=[
+                    [[100, 100], [200, 200]],
+                    [[110, 110], [210, 210]],
+                ],
+                detection_confidence=[0.9, 0.7],
+                class_id=[0, 0],
+                visible=[[True, False], [False, True]],
+            ),
+            0.3,
+            False,
+            _create_key_points(
+                xy=[
+                    [[100, 100], [200, 200]],
+                    [[110, 110], [210, 210]],
+                ],
+                detection_confidence=[0.9, 0.7],
+                class_id=[0, 0],
+                visible=[[True, False], [False, True]],
+            ),
+            id="visible-mask-excludes-keypoints-from-bbox",
+        ),
+        pytest.param(
+            _create_key_points(
+                xy=[
+                    [[100, 100], [0, 0]],
+                    [[300, 300], [0, 0]],
+                ],
+                detection_confidence=[0.9, 0.8],
+                class_id=[0, 0],
+            ),
+            0.3,
+            False,
+            _create_key_points(
+                xy=[
+                    [[100, 100], [0, 0]],
+                    [[300, 300], [0, 0]],
+                ],
+                detection_confidence=[0.9, 0.8],
+                class_id=[0, 0],
+            ),
+            id="single-valid-keypoint-zero-area-bbox",
+        ),
+        pytest.param(
+            _create_key_points(
+                xy=[
+                    [[100, 100], [200, 200]],
+                    [[110, 110], [210, 210]],
+                ],
+                detection_confidence=[0.9, 0.7],
+                class_id=[0, 0],
+            ),
+            0.0,
+            False,
+            _create_key_points(
+                xy=[[[100, 100], [200, 200]]],
+                detection_confidence=[0.9],
+                class_id=[0],
+            ),
+            id="threshold-zero-suppresses-any-overlap",
+        ),
+        pytest.param(
+            _create_key_points(
+                xy=[
+                    [[100, 100], [200, 200]],
+                    [[110, 110], [210, 210]],
+                ],
+                detection_confidence=[0.9, 0.7],
+                class_id=[0, 0],
+            ),
+            1.0,
+            False,
+            _create_key_points(
+                xy=[
+                    [[100, 100], [200, 200]],
+                    [[110, 110], [210, 210]],
+                ],
+                detection_confidence=[0.9, 0.7],
+                class_id=[0, 0],
+            ),
+            id="threshold-one-keeps-all",
+        ),
     ],
 )
 def test_with_nms(key_points, threshold, class_agnostic, expected_result):
@@ -1246,6 +1350,15 @@ def test_with_nms(key_points, threshold, class_agnostic, expected_result):
             0.5,
             False,
             id="no-class-id-class-aware",
+        ),
+        pytest.param(
+            _create_key_points(
+                xy=[[[10, 20], [30, 40]]],
+                class_id=[0],
+            ),
+            0.5,
+            True,
+            id="no-detection-confidence-class-agnostic",
         ),
     ],
 )
