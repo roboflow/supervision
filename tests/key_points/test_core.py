@@ -706,6 +706,75 @@ def test_key_points_as_detections_empty():
     assert empty_detections.is_empty()
 
 
+def test_key_points_as_detections_ignores_missing_keypoints():
+    """A [0, 0] keypoint is treated as missing and excluded from the box."""
+    key_points = _create_key_points(
+        xy=[[[0, 0], [10, 20], [30, 40]]],
+        confidence=[[0.0, 0.8, 0.6]],
+        class_id=[0],
+    )
+
+    detections = key_points.as_detections()
+
+    assert np.array_equal(detections.xyxy, np.array([[10, 20, 30, 40]]))
+
+
+def test_key_points_as_detections_uses_detection_confidence():
+    """detection_confidence is preferred over the keypoint-confidence mean."""
+    key_points = _create_key_points(
+        xy=[[[10, 20], [30, 40]]],
+        confidence=[[0.1, 0.2]],
+        class_id=[0],
+        detection_confidence=[0.95],
+    )
+
+    detections = key_points.as_detections()
+
+    assert np.allclose(detections.confidence, np.array([0.95], dtype=np.float32))
+
+
+def test_key_points_as_detections_selected_keypoint_indices():
+    """Only the selected keypoints contribute to the bounding box."""
+    key_points = _create_key_points(
+        xy=[[[0, 0], [10, 20], [30, 40], [100, 100]]],
+        confidence=[[0.5, 0.8, 0.6, 0.9]],
+        class_id=[0],
+    )
+
+    detections = key_points.as_detections(selected_keypoint_indices=[1, 2])
+
+    assert np.array_equal(detections.xyxy, np.array([[10, 20, 30, 40]]))
+
+
+def test_key_points_as_detections_confidence_over_selected_indices():
+    """Confidence mean uses only the selected keypoint columns, not all."""
+    key_points = _create_key_points(
+        xy=[[[0, 0], [10, 20], [30, 40], [100, 100]]],
+        confidence=[[0.5, 0.8, 0.6, 0.9]],
+        class_id=[0],
+    )
+
+    detections = key_points.as_detections(selected_keypoint_indices=[1, 2])
+
+    expected_confidence = np.mean([0.8, 0.6], dtype=np.float32)
+    assert np.isclose(detections.confidence[0], expected_confidence)
+
+
+def test_key_points_as_detections_mixed_valid_invalid_batch():
+    """Batch with one all-zero skeleton: invalid skeleton gets box zeroed."""
+    key_points = _create_key_points(
+        xy=[[[0, 0], [0, 0]], [[10, 20], [30, 40]]],
+        confidence=[[0.0, 0.0], [0.8, 0.6]],
+        class_id=[0, 1],
+    )
+
+    detections = key_points.as_detections()
+
+    # Only the valid skeleton survives the area>0 filter
+    assert len(detections) == 1
+    assert np.array_equal(detections.xyxy, np.array([[10, 20, 30, 40]]))
+
+
 def test_key_points_as_detections_with_data():
     """Test the as_detections method preserves data."""
     key_points = _create_key_points(
@@ -925,3 +994,91 @@ def test_from_mediapipe_input(mediapipe_results, resolution_wh, expected_key_poi
         mediapipe_results, resolution_wh=resolution_wh
     )
     assert key_points == expected_key_points
+
+
+class TestDeprecatedConfidenceConstructor:
+    """Tests for backward-compatible `confidence=` kwarg in KeyPoints()."""
+
+    def test_constructor_accepts_and_warns_on_deprecated_confidence_kwarg(self):
+        """Deprecated confidence= warns and maps value to keypoint_confidence."""
+        from supervision.utils.internal import SupervisionWarnings
+
+        xy = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
+        confidence = np.array([[0.9, 0.8]], dtype=np.float32)
+
+        with pytest.warns(SupervisionWarnings, match="deprecated since"):
+            key_points = KeyPoints(xy=xy, confidence=confidence)
+
+        np.testing.assert_array_equal(key_points.keypoint_confidence, confidence)
+        assert key_points.xy is xy
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            pytest.param(
+                {"confidence": None, "keypoint_confidence": None},
+                id="confidence-first",
+            ),
+            pytest.param(
+                {"keypoint_confidence": None, "confidence": None},
+                id="keypoint-confidence-first",
+            ),
+        ],
+    )
+    def test_constructor_rejects_both_confidence_and_keypoint_confidence(
+        self, kwargs: dict
+    ):
+        """ValueError raised regardless of kwarg order when both are passed."""
+        xy = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
+        confidence_arr = np.array([[0.9, 0.8]], dtype=np.float32)
+        actual_kwargs = {k: confidence_arr for k in kwargs}
+
+        with pytest.raises(ValueError, match="Cannot pass both"):
+            KeyPoints(xy=xy, **actual_kwargs)
+
+    def test_constructor_normal_keypoint_confidence_path(self):
+        """Normal keypoint_confidence= path works and emits no deprecation warning."""
+        import warnings
+
+        xy = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
+        kp_conf = np.array([[0.9, 0.8]], dtype=np.float32)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            kp = KeyPoints(xy=xy, keypoint_confidence=kp_conf)
+
+        np.testing.assert_array_equal(kp.keypoint_confidence, kp_conf)
+        assert kp.data == {}
+
+    def test_constructor_confidence_none_does_not_warn(self):
+        """Explicit confidence=None is silently ignored — no warning emitted."""
+        import warnings
+
+        xy = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            kp = KeyPoints(xy=xy, confidence=None)
+
+        assert kp.keypoint_confidence is None
+
+    def test_constructor_data_none_defaults_to_empty_dict(self):
+        """Explicit data=None normalizes to empty dict, not None."""
+        xy = np.array([[[1.0, 2.0]]], dtype=np.float32)
+
+        assert KeyPoints(xy=xy).data == {}
+        assert KeyPoints(xy=xy, data=None).data == {}
+
+    def test_keypoints_init_covers_all_dataclass_fields(self):
+        """Custom __init__ must assign every dataclass field — guards against drift."""
+        import dataclasses
+        import inspect
+
+        field_names = {f.name for f in dataclasses.fields(KeyPoints)}
+        init_params = set(inspect.signature(KeyPoints.__init__).parameters) - {
+            "self",
+            "confidence",
+        }
+        assert field_names == init_params, (
+            f"Field/init drift: {field_names.symmetric_difference(init_params)}"
+        )

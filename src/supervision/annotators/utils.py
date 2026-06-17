@@ -226,7 +226,7 @@ def _validate_labels(labels: list[str] | None, detections: Detections) -> None:
 @deprecated(  # type: ignore[untyped-decorator]
     target=_validate_labels,
     deprecated_in="0.29.0",
-    remove_in="0.31.0",
+    remove_in="0.32.0",
 )
 def validate_labels(labels: list[str] | None, detections: Detections) -> None:
     void(labels, detections)

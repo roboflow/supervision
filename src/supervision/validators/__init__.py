@@ -182,7 +182,7 @@ def _validate_tracker_id(tracker_id: Any, n: int) -> None:
 @deprecated(  # type: ignore[untyped-decorator]
     target=_validate_tracker_id,
     deprecated_in="0.29.0",
-    remove_in="0.31.0",
+    remove_in="0.32.0",
 )
 def validate_tracker_id(tracker_id: Any, n: int) -> None:
     void(tracker_id, n)
@@ -207,7 +207,7 @@ def _validate_data(data: dict[str, Any], n: int) -> None:
 @deprecated(  # type: ignore[untyped-decorator]
     target=_validate_data,
     deprecated_in="0.29.0",
-    remove_in="0.31.0",
+    remove_in="0.32.0",
 )
 def validate_data(data: dict[str, Any], n: int) -> None:
     void(data, n)
@@ -227,7 +227,7 @@ def _validate_xy(xy: Any, n: int, m: int) -> None:
 @deprecated(  # type: ignore[untyped-decorator]
     target=_validate_xy,
     deprecated_in="0.29.0",
-    remove_in="0.31.0",
+    remove_in="0.32.0",
 )
 def validate_xy(xy: Any, n: int, m: int) -> None:
     void(xy, n, m)
@@ -276,7 +276,7 @@ def _validate_detections_fields(
 @deprecated(  # type: ignore[untyped-decorator]
     target=_validate_detections_fields,
     deprecated_in="0.29.0",
-    remove_in="0.31.0",
+    remove_in="0.32.0",
 )
 def validate_detections_fields(
     xyxy: Any,
@@ -312,7 +312,7 @@ def _validate_keypoints_fields(
 @deprecated(  # type: ignore[untyped-decorator]
     target=_validate_keypoints_fields,
     deprecated_in="0.29.0",
-    remove_in="0.31.0",
+    remove_in="0.32.0",
 )
 def validate_key_points_fields(
     xy: Any, class_id: Any, confidence: Any, data: dict[str, Any]
@@ -357,7 +357,7 @@ def _validate_resolution(resolution: Any) -> tuple[int, int]:
 @deprecated(  # type: ignore[untyped-decorator]
     target=_validate_resolution,
     deprecated_in="0.29.0",
-    remove_in="0.31.0",
+    remove_in="0.32.0",
 )
 def validate_resolution(resolution: Any) -> tuple[int, int]:
     return void(resolution)  # type: ignore[no-any-return]

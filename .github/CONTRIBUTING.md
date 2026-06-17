@@ -252,6 +252,18 @@ Type hints are required on all new code. mypy is enforced by the pre-commit hook
 - Prefer vectorized operations over Python loops in hot paths.
 - Lazy-import heavy framework dependencies (`torch`, `transformers`, `ultralytics`) inside the function that needs them — never at module top level.
 
+### Deprecation policy
+
+**Minimum window**: deprecated APIs must remain for at least **3 minor releases** before removal. Example: deprecated in `0.29.0` → removed in `0.32.0`.
+
+Use the appropriate mechanism depending on what is being deprecated:
+
+- **Module-level alias**: `supervision.utils.internal.warn_deprecated` in the deprecated module's `__init__.py`
+- **Renamed parameter**: `supervision.utils.internal.deprecated_parameter` decorator
+- **Public function, method, or class**: `@deprecated` from `pydeprecate`
+
+Always specify both the deprecation version and the planned removal version in the message or decorator arguments.
+
 ### Deprecated module aliases
 
 `supervision.keypoint` is deprecated since `0.27.0` and will be removed in `0.30.0`. Always import from `supervision.key_points`:
