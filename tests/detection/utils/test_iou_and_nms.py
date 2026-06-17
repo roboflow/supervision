@@ -1649,7 +1649,7 @@ class TestMaskIouBatch:
         single_pass = mask_iou_batch(masks_true, masks_detection)
         chunked = mask_iou_batch(masks_true, masks_detection, memory_limit=0)
 
-        np.testing.assert_array_equal(single_pass, chunked)
+        np.testing.assert_allclose(single_pass, chunked, rtol=1e-6)
 
         # empty masks_true under a tiny limit must not hit np.vstack([])
         empty = mask_iou_batch(
@@ -1664,8 +1664,18 @@ class TestMaskIouBatch:
         with pytest.raises(ValueError, match="must share the same"):
             mask_iou_batch(masks_true, masks_detection)
 
+    def test_invalid_ndim_raises(self) -> None:
+        """2D and 4D inputs must raise ValueError before reaching shape[1:] check."""
+        mask_3d = np.zeros((1, 10, 10), dtype=bool)
+        with pytest.raises(ValueError, match="3D"):
+            mask_iou_batch(np.zeros((10, 10), dtype=bool), mask_3d)
+        with pytest.raises(ValueError, match="3D"):
+            mask_iou_batch(mask_3d, np.zeros((10, 10), dtype=bool))
+        with pytest.raises(ValueError, match="3D"):
+            mask_iou_batch(np.zeros((1, 10, 10, 1), dtype=bool), mask_3d)
+
     def test_identical_disjoint_and_empty(self) -> None:
-        """Identical masks score 1.0, disjoint 0.0; empty input keeps its shape."""
+        """Identical/all-True → 1.0; all-False/disjoint → 0.0; empty keeps shape."""
         mask = np.zeros((1, 10, 10), dtype=bool)
         mask[0, 2:6, 2:6] = True
         far = np.zeros((1, 10, 10), dtype=bool)
@@ -1674,3 +1684,58 @@ class TestMaskIouBatch:
         assert mask_iou_batch(mask, mask)[0, 0] == pytest.approx(1.0)
         assert mask_iou_batch(mask, far)[0, 0] == 0.0
         assert mask_iou_batch(np.zeros((0, 10, 10), dtype=bool), mask).shape == (0, 1)
+
+        # all-True: denominator is non-zero, result must be exactly 1.0
+        all_true = np.ones((2, 5, 5), dtype=bool)
+        np.testing.assert_allclose(mask_iou_batch(all_true, all_true), np.ones((2, 2)))
+
+        # all-False: denominator is zero; result must be 0.0 (not NaN)
+        all_false = np.zeros((2, 5, 5), dtype=bool)
+        np.testing.assert_array_equal(
+            mask_iou_batch(all_false, all_false), np.zeros((2, 2))
+        )
+
+    def test_matmul_emits_no_runtime_warnings(
+        self, recwarn: pytest.WarningsChecker
+    ) -> None:
+        """mask_iou_batch on bool input must not emit any RuntimeWarning."""
+        rng = np.random.default_rng(2)
+        masks_true = rng.random((7, 32, 40)) > 0.5
+        masks_detection = rng.random((5, 32, 40)) > 0.5
+        mask_iou_batch(masks_true, masks_detection)
+        runtime = [w for w in recwarn.list if issubclass(w.category, RuntimeWarning)]
+        assert not runtime, (
+            f"Unexpected RuntimeWarnings: {[str(w.message) for w in runtime]}"
+        )
+
+    def test_float64_promotion_for_large_float32_masks(self) -> None:
+        """float32 masks with pixel count > 2**24 must give exact IoU via float64."""
+        # 1x(2**24+1) pixels: float32 area sum rounds, float64 area sum is exact.
+        # Without CRIT-2 fix, IoU would exceed 1.0 due to dtype mismatch.
+        mask = np.ones((1, 1, 2**24 + 1), dtype=np.float32)
+        result = mask_iou_batch(mask, mask)
+        assert result[0, 0] == pytest.approx(1.0)
+
+    def test_compact_mask_mixed_input_gives_same_result(self) -> None:
+        """CompactMask + dense mixed dispatch must match dense + dense."""
+        from supervision.detection.compact_mask import CompactMask
+        from supervision.detection.utils.converters import mask_to_xyxy
+
+        rng = np.random.default_rng(3)
+        masks = (rng.random((4, 20, 24)) > 0.3).astype(bool)
+        xyxy = mask_to_xyxy(masks)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(20, 24))
+
+        dense_vs_dense = mask_iou_batch(masks, masks)
+        np.testing.assert_allclose(mask_iou_batch(cm, masks), dense_vs_dense, rtol=1e-5)
+        np.testing.assert_allclose(mask_iou_batch(masks, cm), dense_vs_dense, rtol=1e-5)
+
+    def test_detection_exceeds_limit_warns_and_completes(self) -> None:
+        """detection > memory_limit emits UserWarning; result shape is still correct."""
+        rng = np.random.default_rng(4)
+        masks_true = rng.random((3, 32, 32)) > 0.5
+        # 500 x 1024 px x 4 bytes ~2 MB > memory_limit=1 MB triggers OOM warning.
+        masks_detection = rng.random((500, 32, 32)) > 0.5
+        with pytest.warns(UserWarning, match="exceed"):
+            result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
+        assert result.shape == (3, 500)

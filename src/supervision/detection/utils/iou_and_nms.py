@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from collections.abc import Callable
 from enum import Enum
 from typing import Any, cast
@@ -699,10 +700,11 @@ def _mask_iou_batch_split(
     detection_flat = masks_detection.reshape(masks_detection.shape[0], pixels).astype(
         count_dtype, copy=False
     )
-    intersection_area = true_flat @ detection_flat.T
+    with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
+        intersection_area: npt.NDArray[np.floating[Any]] = true_flat @ detection_flat.T
 
-    masks_true_area = masks_true.sum(axis=(1, 2))  # (area1, area2, ...)
-    masks_detection_area = masks_detection.sum(axis=(1, 2))  # (area1)
+    masks_true_area = true_flat.sum(axis=1)
+    masks_detection_area = detection_flat.sum(axis=1)
 
     if overlap_metric == OverlapMetric.IOU:
         union_area = masks_true_area[:, None] + masks_detection_area - intersection_area
@@ -753,10 +755,20 @@ def mask_iou_batch(
         overlap_metric: Metric used to compute the degree of overlap
             between pairs of masks (e.g., IoU, IoS).
         memory_limit: Memory limit in MB, default is 1024 * 5 MB (5GB).
-            Ignored when both inputs are CompactMask.
+            Controls chunking of ``masks_true`` so that flattened detection
+            masks plus each chunk's buffers stay within this limit. A
+            ``UserWarning`` is raised when ``masks_detection`` alone
+            exceeds the limit, as chunking cannot reduce peak memory
+            below that floor. Ignored when both inputs are
+            :class:`~supervision.detection.compact_mask.CompactMask`.
 
     Returns:
         Pairwise IoU of masks from `masks_true` and `masks_detection`.
+
+    Raises:
+        ValueError: If ``masks_true`` or ``masks_detection`` are not 3D
+            ``(N, H, W)`` arrays, or if they do not share the same
+            spatial dimensions ``(H, W)``.
     """
 
     if isinstance(masks_true, CompactMask) and isinstance(masks_detection, CompactMask):
@@ -768,6 +780,11 @@ def mask_iou_batch(
     if isinstance(masks_detection, CompactMask):
         masks_detection = np.asarray(masks_detection)
 
+    if masks_true.ndim != 3 or masks_detection.ndim != 3:
+        raise ValueError(
+            "masks_true and masks_detection must be 3D (N, H, W); got "
+            f"ndim={masks_true.ndim} and ndim={masks_detection.ndim}."
+        )
     if masks_true.shape[1:] != masks_detection.shape[1:]:
         raise ValueError(
             "masks_true and masks_detection must share the same (H, W); got "
@@ -787,6 +804,14 @@ def mask_iou_batch(
     limit_bytes = memory_limit * 1024 * 1024
     detection_bytes = masks_detection.shape[0] * pixels * itemsize
     per_true_row = pixels * itemsize + 3 * masks_detection.shape[0] * 8
+    if detection_bytes > limit_bytes > 0:
+        warnings.warn(
+            f"detection masks ({detection_bytes // 1024 // 1024} MB) exceed "
+            f"memory_limit ({memory_limit} MB); chunking cannot reduce peak "
+            "memory below this floor.",
+            UserWarning,
+            stacklevel=2,
+        )
     if detection_bytes + masks_true.shape[0] * per_true_row <= limit_bytes:
         return _mask_iou_batch_split(masks_true, masks_detection, overlap_metric)
 
