@@ -1651,6 +1651,19 @@ class TestMaskIouBatch:
 
         np.testing.assert_array_equal(single_pass, chunked)
 
+        # empty masks_true under a tiny limit must not hit np.vstack([])
+        empty = mask_iou_batch(
+            np.zeros((0, 16, 16), dtype=bool), masks_detection, memory_limit=0
+        )
+        assert empty.shape == (0, 4)
+
+    def test_mismatched_spatial_shape_raises(self) -> None:
+        """Equal pixel counts but different (H, W) must raise, not silently mismatch."""
+        masks_true = np.zeros((1, 4, 9), dtype=bool)
+        masks_detection = np.zeros((1, 6, 6), dtype=bool)  # 36 px, different (H, W)
+        with pytest.raises(ValueError, match="must share the same"):
+            mask_iou_batch(masks_true, masks_detection)
+
     def test_identical_disjoint_and_empty(self) -> None:
         """Identical masks score 1.0, disjoint 0.0; empty input keeps its shape."""
         mask = np.zeros((1, 10, 10), dtype=bool)

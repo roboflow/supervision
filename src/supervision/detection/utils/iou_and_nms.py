@@ -768,15 +768,25 @@ def mask_iou_batch(
     if isinstance(masks_detection, CompactMask):
         masks_detection = np.asarray(masks_detection)
 
-    # Peak memory of a single matmul pass: the two flattened mask sets plus the
-    # (N, M) float result. (The previous estimate used the old (N, M, H, W)
-    # intermediate, which overcounted by a factor of M and forced needless
-    # chunking now that the intersection is a matmul.)
+    if masks_true.shape[1:] != masks_detection.shape[1:]:
+        raise ValueError(
+            "masks_true and masks_detection must share the same (H, W); got "
+            f"{masks_true.shape[1:]} and {masks_detection.shape[1:]}."
+        )
+    # A single pass already handles empty inputs and avoids np.vstack([]) below.
+    if masks_true.shape[0] == 0 or masks_detection.shape[0] == 0:
+        return _mask_iou_batch_split(masks_true, masks_detection, overlap_metric)
+
+    # Peak memory of a single matmul pass: the flattened detection masks (shared
+    # across chunks) plus, per true-mask row, its flattened pixels and the three
+    # (N, M) matrices it touches (intersection, denominator and output). The
+    # previous (N, M, H, W) estimate overcounted by a factor of M and forced
+    # needless chunking now that the intersection is a matmul.
     pixels = masks_true.shape[1] * masks_true.shape[2]
     itemsize = 4 if pixels <= 2**24 else 8
     limit_bytes = memory_limit * 1024 * 1024
     detection_bytes = masks_detection.shape[0] * pixels * itemsize
-    per_true_row = pixels * itemsize + masks_detection.shape[0] * 8
+    per_true_row = pixels * itemsize + 3 * masks_detection.shape[0] * 8
     if detection_bytes + masks_true.shape[0] * per_true_row <= limit_bytes:
         return _mask_iou_batch_split(masks_true, masks_detection, overlap_metric)
 
