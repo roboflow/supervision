@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import cast
-
 import cv2
 import numpy as np
 import numpy.typing as npt
@@ -72,6 +70,8 @@ def approximate_polygon(
 
     if percentage < 0 or percentage >= 1:
         raise ValueError("Percentage must be in the range [0, 1).")
+    if epsilon_step <= 0:
+        raise ValueError("epsilon_step must be positive.")
 
     target_points = max(int(len(polygon) * (1 - percentage)), 3)
 
@@ -89,4 +89,4 @@ def approximate_polygon(
             break
         approximated_points = candidate
 
-    return cast(npt.NDArray[np.number], approximated_points)
+    return approximated_points
