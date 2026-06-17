@@ -7,7 +7,11 @@ date_modified: 2026-06-15
 
 ### UnReleased
 
+- Fixed [#2335](https://github.com/roboflow/supervision/pull/2335): `sv.KeyPoints(confidence=...)` now works again. The `0.29.0` refactor accidentally dropped the deprecated `confidence` constructor kwarg; it is now accepted and mapped to `keypoint_confidence` with a deprecation warning.
+
 - Fixed [#2322](https://github.com/roboflow/supervision/pull/2322): COCO export now preserves all polygon parts for multi-component masks. Previously, only the first polygon was written when a non-crowd mask had disjoint segments; all parts are now included.
+
+- Fixed [#2331](https://github.com/roboflow/supervision/pull/2331): `sv.Precision` and `sv.F1Score` now count predictions on background images (empty target set) as false positives, and count predictions of classes absent from ground truth as false positives under `MICRO` and `MACRO` averaging. Previously both edge cases were silently ignored, inflating scores. `WEIGHTED` averaging is unchanged — absent classes retain weight 0, consistent with scikit-learn. Users relying on previous scores should re-evaluate after upgrading; no API change is required.
 
 ### 0.29.0 <small>Jun 15, 2026</small>
 

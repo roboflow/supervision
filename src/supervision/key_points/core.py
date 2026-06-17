@@ -67,7 +67,7 @@ def _normalize_row_index(
     return i
 
 
-@dataclass
+@dataclass(init=False)
 class KeyPoints:
     """
     The `sv.KeyPoints` class in the Supervision library standardizes results from
@@ -237,6 +237,59 @@ class KeyPoints:
     detection_confidence: npt.NDArray[np.float32] | None = None
     visible: npt.NDArray[np.bool_] | None = None
     data: dict[str, npt.NDArray[np.generic] | list[Any]] = field(default_factory=dict)
+
+    def __init__(
+        self,
+        xy: npt.NDArray[np.float32],
+        class_id: npt.NDArray[np.int_] | None = None,
+        keypoint_confidence: npt.NDArray[np.float32] | None = None,
+        detection_confidence: npt.NDArray[np.float32] | None = None,
+        visible: npt.NDArray[np.bool_] | None = None,
+        data: dict[str, npt.NDArray[np.generic] | list[Any]] | None = None,
+        *,
+        confidence: npt.NDArray[np.float32] | None = None,
+    ) -> None:
+        """Initialize KeyPoints.
+
+        Args:
+            xy: Array of shape `(n, m, 2)` with keypoint coordinates.
+            class_id: Array of shape `(n,)` with class IDs. Defaults to None.
+            keypoint_confidence: Array of shape `(n, m)` with per-keypoint
+                confidence scores. Defaults to None.
+            detection_confidence: Array of shape `(n,)` with detection-level
+                confidence scores. Defaults to None.
+            visible: Boolean array of shape `(n, m)` indicating visible
+                keypoints. Defaults to None.
+            data: Dictionary of additional per-detection data arrays.
+                Defaults to an empty dict.
+            confidence: Deprecated since `0.29.0`, removed in `0.32.0`.
+                Use ``keypoint_confidence`` instead. Raises ``ValueError``
+                if passed together with ``keypoint_confidence``.
+
+        Raises:
+            ValueError: If both ``confidence`` and ``keypoint_confidence``
+                are provided.
+        """
+        if confidence is not None:
+            if keypoint_confidence is not None:
+                raise ValueError(
+                    "Cannot pass both 'confidence' and 'keypoint_confidence'. "
+                    "'confidence' is deprecated — use 'keypoint_confidence' only."
+                )
+            warn_deprecated(
+                "'confidence' parameter in `KeyPoints()` is deprecated since "
+                "`0.29.0` and will be removed in `0.32.0`. Use "
+                "'keypoint_confidence' instead."
+            )
+            keypoint_confidence = confidence
+
+        self.xy = xy
+        self.class_id = class_id
+        self.keypoint_confidence = keypoint_confidence
+        self.detection_confidence = detection_confidence
+        self.visible = visible
+        self.data = data if data is not None else {}
+        self.__post_init__()
 
     def __post_init__(self) -> None:
         _validate_keypoints_fields(
@@ -1088,7 +1141,9 @@ class KeyPoints:
             selected_keypoint_indices: The
                 indices of the key points to include in the bounding box
                 calculation. This helps focus on a subset of key points,
-                e.g. when some are occluded. Captures all key points by default.
+                e.g. when some are occluded. Captures all key points by
+                default. An empty sequence (`[]`) is treated the same as
+                `None` and selects all key points.
 
         Returns:
             detections: The converted detections object.
@@ -1109,40 +1164,37 @@ class KeyPoints:
         if self.is_empty():
             return Detections.empty()
 
-        detections_list = []
-        for i, xy in enumerate(self.xy):
+        xy = self.xy
+        if selected_keypoint_indices:
+            indices = np.asarray(list(selected_keypoint_indices), dtype=np.intp)
+            xy = xy[:, indices, :]
+
+        # [0, 0] is used by some frameworks to indicate a missing keypoint; those
+        # points are excluded from each skeleton's bounding box.
+        valid = ~np.all(xy == 0, axis=2)  # (N, M)
+        has_valid = valid.any(axis=1)  # (N,)
+
+        x, y = xy[:, :, 0], xy[:, :, 1]
+        x_min = np.where(valid, x, np.inf).min(axis=1)
+        y_min = np.where(valid, y, np.inf).min(axis=1)
+        x_max = np.where(valid, x, -np.inf).max(axis=1)
+        y_max = np.where(valid, y, -np.inf).max(axis=1)
+
+        xyxy = np.stack((x_min, y_min, x_max, y_max), axis=1).astype(np.float32)
+        # Skeletons with no valid keypoints keep the original empty [0, 0, 0, 0] box.
+        xyxy[~has_valid] = 0.0
+
+        if self.detection_confidence is not None:
+            confidence = self.detection_confidence.astype(np.float32)
+        elif self.keypoint_confidence is not None:
+            keypoint_confidence = self.keypoint_confidence
             if selected_keypoint_indices:
-                xy = xy[selected_keypoint_indices]
+                keypoint_confidence = keypoint_confidence[:, indices]
+            confidence = keypoint_confidence.mean(axis=1).astype(np.float32)
+        else:
+            confidence = None
 
-            # [0, 0] used by some frameworks to indicate missing keypoints
-            xy = xy[~np.all(xy == 0, axis=1)]
-            if len(xy) == 0:
-                xyxy = np.array([[0, 0, 0, 0]], dtype=np.float32)
-            else:
-                x_min = xy[:, 0].min()
-                x_max = xy[:, 0].max()
-                y_min = xy[:, 1].min()
-                y_max = xy[:, 1].max()
-                xyxy = np.array([[x_min, y_min, x_max, y_max]], dtype=np.float32)
-
-            if self.detection_confidence is not None:
-                confidence = np.array([self.detection_confidence[i]], dtype=np.float32)
-            elif self.keypoint_confidence is not None:
-                confidence = self.keypoint_confidence[i]
-                if selected_keypoint_indices:
-                    confidence = confidence[selected_keypoint_indices]
-                confidence = np.array([confidence.mean()], dtype=np.float32)
-            else:
-                confidence = None
-
-            detections_list.append(
-                Detections(
-                    xyxy=xyxy,
-                    confidence=confidence,
-                )
-            )
-
-        detections = Detections.merge(detections_list)
+        detections = Detections(xyxy=xyxy, confidence=confidence)
         detections.class_id = self.class_id
         detections.data = self.data
         detections = cast(Detections, detections[cast(Any, detections.area) > 0])
