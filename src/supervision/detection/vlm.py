@@ -369,7 +369,7 @@ def from_qwen_2_5_vl(
     labels_list = []
 
     for item in data:
-        if "bbox_2d" not in item or "label" not in item:
+        if not isinstance(item, dict) or "bbox_2d" not in item or "label" not in item:
             continue
         boxes_list.append(item["bbox_2d"])
         labels_list.append(item["label"])
@@ -640,11 +640,14 @@ def from_google_gemini_2_0(
     except json.JSONDecodeError:
         return np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str)
 
+    if not isinstance(data, list):
+        return np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str)
+
     labels = []
     xyxy = []
 
     for item in data:
-        if "box_2d" not in item or "label" not in item:
+        if not isinstance(item, dict) or "box_2d" not in item or "label" not in item:
             continue
         labels.append(item["label"])
         box = item["box_2d"]
@@ -734,13 +737,22 @@ def from_google_gemini_2_5(
             None,
         )
 
+    if not isinstance(data, list):
+        return (
+            np.empty((0, 4)),
+            np.array([], dtype=int),
+            np.array([], dtype=str),
+            np.array([], dtype=float),
+            None,
+        )
+
     boxes_list: list[Any] = []
     labels_list: list[str] = []
     confidence_list: list[float] | None = []
     masks_list: list[npt.NDArray[Any]] | None = []
 
     for item in data:
-        if "box_2d" not in item or "label" not in item:
+        if not isinstance(item, dict) or "box_2d" not in item or "label" not in item:
             continue
         labels_list.append(item["label"])
         box = item["box_2d"]
@@ -756,28 +768,31 @@ def from_google_gemini_2_5(
             if masks_list is not None:
                 png_str = item["mask"]
                 if not png_str.startswith("data:image/png;base64,"):
+                    # Malformed mask: keep an empty mask but still fall through to
+                    # the confidence handling below, so the per-item arrays stay
+                    # aligned (a `continue` here desynced confidence vs boxes).
                     masks_list.append(np.zeros((h, w), dtype=bool))
-                    continue
-
-                png_str = png_str.removeprefix("data:image/png;base64,")
-                png_str = base64.b64decode(png_str)
-                mask_img = Image.open(io.BytesIO(png_str))
-
-                y_min, y_max = int(absolute_bbox[1]), int(absolute_bbox[3])
-                x_min, x_max = int(absolute_bbox[0]), int(absolute_bbox[2])
-
-                bbox_height = y_max - y_min
-                bbox_width = x_max - x_min
-
-                if bbox_height > 0 and bbox_width > 0:
-                    mask_img = mask_img.resize(
-                        (bbox_width, bbox_height), resample=Image.Resampling.BILINEAR
-                    )
-                    np_mask: npt.NDArray[np.bool_] = np.zeros((h, w), dtype=bool)
-                    np_mask[y_min:y_max, x_min:x_max] = np.array(mask_img) > 0
-                    masks_list.append(np_mask)
                 else:
-                    masks_list.append(np.zeros((h, w), dtype=bool))
+                    png_str = png_str.removeprefix("data:image/png;base64,")
+                    png_str = base64.b64decode(png_str)
+                    mask_img = Image.open(io.BytesIO(png_str))
+
+                    y_min, y_max = int(absolute_bbox[1]), int(absolute_bbox[3])
+                    x_min, x_max = int(absolute_bbox[0]), int(absolute_bbox[2])
+
+                    bbox_height = y_max - y_min
+                    bbox_width = x_max - x_min
+
+                    if bbox_height > 0 and bbox_width > 0:
+                        mask_img = mask_img.resize(
+                            (bbox_width, bbox_height),
+                            resample=Image.Resampling.BILINEAR,
+                        )
+                        np_mask: npt.NDArray[np.bool_] = np.zeros((h, w), dtype=bool)
+                        np_mask[y_min:y_max, x_min:x_max] = np.array(mask_img) > 0
+                        masks_list.append(np_mask)
+                    else:
+                        masks_list.append(np.zeros((h, w), dtype=bool))
         else:
             masks_list = None
 
