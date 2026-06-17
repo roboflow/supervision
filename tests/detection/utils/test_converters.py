@@ -348,7 +348,22 @@ class TestMaskToXyxy:
             pytest.param(
                 np.array([[[False, False], [False, True]]], dtype=bool),
                 np.array([[1, 1, 1, 1]], dtype=int),
-                id="single-pixel",
+                id="single-pixel-bottom-right",
+            ),
+            pytest.param(
+                np.array([[[True, False], [False, False]]], dtype=bool),
+                np.array([[0, 0, 0, 0]], dtype=int),
+                id="single-pixel-top-left",
+            ),
+            pytest.param(
+                np.array([[[False, True], [False, False]]], dtype=bool),
+                np.array([[1, 0, 1, 0]], dtype=int),
+                id="single-pixel-top-right",
+            ),
+            pytest.param(
+                np.array([[[False, False], [True, False]]], dtype=bool),
+                np.array([[0, 1, 0, 1]], dtype=int),
+                id="single-pixel-bottom-left",
             ),
             pytest.param(
                 np.ones((1, 4, 6), dtype=bool),
