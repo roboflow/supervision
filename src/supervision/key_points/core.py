@@ -1111,7 +1111,8 @@ class KeyPoints:
 
         xy = self.xy
         if selected_keypoint_indices:
-            xy = xy[:, selected_keypoint_indices, :]
+            indices = np.asarray(list(selected_keypoint_indices), dtype=np.intp)
+            xy = xy[:, indices, :]
 
         # [0, 0] is used by some frameworks to indicate a missing keypoint; those
         # points are excluded from each skeleton's bounding box.
@@ -1133,7 +1134,7 @@ class KeyPoints:
         elif self.keypoint_confidence is not None:
             keypoint_confidence = self.keypoint_confidence
             if selected_keypoint_indices:
-                keypoint_confidence = keypoint_confidence[:, selected_keypoint_indices]
+                keypoint_confidence = keypoint_confidence[:, indices]
             confidence = keypoint_confidence.mean(axis=1).astype(np.float32)
         else:
             confidence = None

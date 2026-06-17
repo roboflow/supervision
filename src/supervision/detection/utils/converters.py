@@ -217,8 +217,8 @@ def mask_to_xyxy(masks: npt.NDArray[np.bool_]) -> npt.NDArray[np.int_]:
     # Reduce the mask stack to per-row / per-column occupancy, then read the
     # tight bounds straight off those 1D profiles instead of scanning every
     # pixel of every mask with `np.where`.
-    rows_any = masks.any(axis=2)  # (N, H): row y holds any True pixel
-    cols_any = masks.any(axis=1)  # (N, W): column x holds any True pixel
+    rows_any = cast(npt.NDArray[np.bool_], masks.any(axis=2))  # (N, H)
+    cols_any = cast(npt.NDArray[np.bool_], masks.any(axis=1))  # (N, W)
 
     x_min = cols_any.argmax(axis=1)
     x_max = width - 1 - cols_any[:, ::-1].argmax(axis=1)
