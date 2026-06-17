@@ -8,6 +8,7 @@ from defusedxml import ElementTree
 
 from supervision.dataset.formats.pascal_voc import (
     detections_from_xml_obj,
+    detections_to_pascal_voc,
     object_to_pascal_voc,
     parse_polygon_points,
 )
@@ -70,6 +71,35 @@ def test_object_to_pascal_voc(
     with exception:
         result = object_to_pascal_voc(xyxy=xyxy, name=name, polygon=polygon)
         assert are_xml_elements_equal(result, expected_result)
+
+
+def test_object_to_pascal_voc_does_not_mutate_inputs():
+    """Serializing an object must not write the 1-index offset back into the inputs."""
+    xyxy = np.array([10, 20, 30, 40], dtype=np.float32)
+    polygon = np.array([[0, 0], [10, 0], [10, 10], [0, 10]], dtype=np.float32)
+
+    object_to_pascal_voc(xyxy=xyxy, name="test", polygon=polygon)
+
+    assert np.array_equal(xyxy, np.array([10, 20, 30, 40], dtype=np.float32))
+    assert np.array_equal(
+        polygon, np.array([[0, 0], [10, 0], [10, 10], [0, 10]], dtype=np.float32)
+    )
+
+
+def test_detections_to_pascal_voc_does_not_mutate_detections():
+    """Exporting detections must not shift the source xyxy, and must be repeatable."""
+    detections = _create_detections(xyxy=[[10, 20, 30, 40]], class_id=[0])
+    expected_xyxy = detections.xyxy.copy()
+
+    first = detections_to_pascal_voc(
+        detections, classes=["test"], filename="image.jpg", image_shape=(100, 100, 3)
+    )
+    second = detections_to_pascal_voc(
+        detections, classes=["test"], filename="image.jpg", image_shape=(100, 100, 3)
+    )
+
+    assert np.array_equal(detections.xyxy, expected_xyxy)
+    assert first == second
 
 
 @pytest.mark.parametrize(

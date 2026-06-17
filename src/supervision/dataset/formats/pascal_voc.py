@@ -26,8 +26,11 @@ def object_to_pascal_voc(
     object_name = SubElement(root, "name")
     object_name.text = name
 
-    # https://github.com/roboflow/supervision/issues/144
-    xyxy += 1
+    # Pascal VOC coordinates are 1-indexed (https://github.com/roboflow/supervision/issues/144).
+    # Rebind to a new array instead of `+= 1`: `xyxy` is a view into the source
+    # `Detections.xyxy` (yielded by `Detections.__iter__`), so an in-place add
+    # would corrupt the caller's detections by +1 on every export.
+    xyxy = xyxy + 1
 
     bndbox = SubElement(root, "bndbox")
     xmin = SubElement(bndbox, "xmin")
@@ -40,8 +43,8 @@ def object_to_pascal_voc(
     ymax.text = str(int(xyxy[3]))
 
     if polygon is not None:
-        # https://github.com/roboflow/supervision/issues/144
-        polygon += 1
+        # 1-indexed, rebound to avoid mutating the caller's array (see above).
+        polygon = polygon + 1
         object_polygon = SubElement(root, "polygon")
         for index, point in enumerate(polygon, start=1):
             x_coordinate, y_coordinate = point
