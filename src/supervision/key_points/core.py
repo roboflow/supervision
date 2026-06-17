@@ -249,15 +249,38 @@ class KeyPoints:
         *,
         confidence: npt.NDArray[np.float32] | None = None,
     ) -> None:
+        """Initialize KeyPoints.
+
+        Args:
+            xy: Array of shape `(n, m, 2)` with keypoint coordinates.
+            class_id: Array of shape `(n,)` with class IDs. Defaults to None.
+            keypoint_confidence: Array of shape `(n, m)` with per-keypoint
+                confidence scores. Defaults to None.
+            detection_confidence: Array of shape `(n,)` with detection-level
+                confidence scores. Defaults to None.
+            visible: Boolean array of shape `(n, m)` indicating visible
+                keypoints. Defaults to None.
+            data: Dictionary of additional per-detection data arrays.
+                Defaults to an empty dict.
+            confidence: Deprecated since `0.29.0`, removed in `0.32.0`.
+                Use ``keypoint_confidence`` instead. Raises ``ValueError``
+                if passed together with ``keypoint_confidence``.
+
+        Raises:
+            ValueError: If both ``confidence`` and ``keypoint_confidence``
+                are provided.
+        """
         if confidence is not None:
-            warn_deprecated(
-                "'confidence' parameter in KeyPoints() is deprecated since 0.29.0 "
-                "and will be removed in 0.32.0. Use 'keypoint_confidence' instead."
-            )
             if keypoint_confidence is not None:
                 raise ValueError(
-                    "Cannot pass both 'confidence' and 'keypoint_confidence'."
+                    "Cannot pass both 'confidence' and 'keypoint_confidence'. "
+                    "'confidence' is deprecated — use 'keypoint_confidence' only."
                 )
+            warn_deprecated(
+                "'confidence' parameter in `KeyPoints()` is deprecated since "
+                "`0.29.0` and will be removed in `0.32.0`. Use "
+                "'keypoint_confidence' instead."
+            )
             keypoint_confidence = confidence
 
         self.xy = xy
