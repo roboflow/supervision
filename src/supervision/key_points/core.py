@@ -1134,12 +1134,7 @@ class KeyPoints:
             keypoint_confidence = self.keypoint_confidence
             if selected_keypoint_indices:
                 keypoint_confidence = keypoint_confidence[:, selected_keypoint_indices]
-            # Reduce per skeleton rather than with `mean(axis=1)`: NumPy's axis
-            # reduction reorders the float32 summation and would shift results by
-            # an ULP versus the original per-object mean.
-            confidence = np.array(
-                [row.mean() for row in keypoint_confidence], dtype=np.float32
-            )
+            confidence = keypoint_confidence.mean(axis=1).astype(np.float32)
         else:
             confidence = None
 
