@@ -1159,8 +1159,8 @@ class KeyPoints:
             A new `sv.KeyPoints` object after non-maximum suppression.
 
         Raises:
-            AssertionError: If `detection_confidence` is None.
-            AssertionError: If `class_agnostic` is False and `class_id`
+            ValueError: If `detection_confidence` is None.
+            ValueError: If `class_agnostic` is False and `class_id`
                 is None.
 
         Examples:
@@ -1179,12 +1179,13 @@ class KeyPoints:
         if len(self) == 0:
             return self
 
-        assert self.detection_confidence is not None, (
-            "KeyPoints detection_confidence must be given for NMS to be executed."
-        )
+        if self.detection_confidence is None:
+            raise ValueError(
+                "KeyPoints detection_confidence must be given for NMS to be executed."
+            )
 
-        if not class_agnostic:
-            assert self.class_id is not None, (
+        if not class_agnostic and self.class_id is None:
+            raise ValueError(
                 "KeyPoints class_id must be given for NMS to be executed. If "
                 "you intended to perform class agnostic NMS set "
                 "class_agnostic=True."

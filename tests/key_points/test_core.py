@@ -1400,7 +1400,7 @@ def test_with_nms(key_points, threshold, class_agnostic, expected_result):
 
 
 @pytest.mark.parametrize(
-    ("key_points", "threshold", "class_agnostic"),
+    ("key_points", "threshold", "class_agnostic", "match"),
     [
         pytest.param(
             _create_key_points(
@@ -1409,6 +1409,7 @@ def test_with_nms(key_points, threshold, class_agnostic, expected_result):
             ),
             0.5,
             False,
+            "detection_confidence",
             id="no-detection-confidence",
         ),
         pytest.param(
@@ -1418,6 +1419,7 @@ def test_with_nms(key_points, threshold, class_agnostic, expected_result):
             ),
             0.5,
             False,
+            "class_id",
             id="no-class-id-class-aware",
         ),
         pytest.param(
@@ -1427,11 +1429,12 @@ def test_with_nms(key_points, threshold, class_agnostic, expected_result):
             ),
             0.5,
             True,
+            "detection_confidence",
             id="no-detection-confidence-class-agnostic",
         ),
     ],
 )
-def test_with_nms_raises(key_points, threshold, class_agnostic):
+def test_with_nms_raises(key_points, threshold, class_agnostic, match):
     """NMS raises when required fields are missing."""
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError, match=match):
         key_points.with_nms(threshold=threshold, class_agnostic=class_agnostic)
