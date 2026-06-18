@@ -16,12 +16,12 @@ from supervision.annotators.utils import (
     PENDING_TRACK_ID,
     ColorLookup,
     Trace,
+    _resolve_detection_color,
     _validate_labels,
     calculate_dynamic_kernel_size,
     calculate_dynamic_pixel_size,
     get_labels_text,
     hex_to_rgba,
-    resolve_color,
     resolve_text_background_xyxy,
     snap_boxes,
     wrap_text,
@@ -256,7 +256,7 @@ class BoxAnnotator(BaseAnnotator):
             return scene
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            color = resolve_color(
+            color = _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
@@ -347,7 +347,7 @@ class OrientedBoxAnnotator(BaseAnnotator):
 
         for detection_idx in range(len(detections)):
             obb = obb_boxes[detection_idx]
-            color = resolve_color(
+            color = _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
@@ -398,7 +398,7 @@ def _paint_masks_by_area(
     )
     compact_mask = masks if isinstance(masks, CompactMask) else None
     for detection_idx in np.flip(np.argsort(detections.area)):
-        color_bgr = resolve_color(
+        color_bgr = _resolve_detection_color(
             color=color,
             detections=detections,
             detection_idx=detection_idx,
@@ -584,7 +584,7 @@ class PolygonAnnotator(BaseAnnotator):
 
         for detection_idx in range(len(detections)):
             mask = detections.mask[detection_idx]
-            color = resolve_color(
+            color = _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
@@ -673,7 +673,7 @@ class ColorAnnotator(BaseAnnotator):
         scene_with_boxes = scene.copy()
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            color = resolve_color(
+            color = _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
@@ -872,7 +872,7 @@ class EllipseAnnotator(BaseAnnotator):
             return scene
         for detection_idx in range(len(detections)):
             x1, _y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            color = resolve_color(
+            color = _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
@@ -968,7 +968,7 @@ class BoxCornerAnnotator(BaseAnnotator):
             return scene
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            color = resolve_color(
+            color = _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
@@ -1064,7 +1064,7 @@ class CircleAnnotator(BaseAnnotator):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
             center = ((x1 + x2) // 2, (y1 + y2) // 2)
             distance = sqrt((x1 - center[0]) ** 2 + (y1 - center[1]) ** 2)
-            color = resolve_color(
+            color = _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
@@ -1164,7 +1164,7 @@ class DotAnnotator(BaseAnnotator):
             return scene
         xy = detections.get_anchors_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
-            color = resolve_color(
+            color = _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
@@ -1176,7 +1176,7 @@ class DotAnnotator(BaseAnnotator):
 
             cv2.circle(scene, center, self.radius, color.as_bgr(), -1)
             if self.outline_thickness:
-                outline_color = resolve_color(
+                outline_color = _resolve_detection_color(
                     color=self.outline_color,
                     detections=detections,
                     detection_idx=detection_idx,
@@ -1405,13 +1405,13 @@ class LabelAnnotator(_BaseLabelAnnotator):
         )
 
         for idx, label_property in enumerate(label_properties):
-            background_color = resolve_color(
+            background_color = _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=idx,
                 color_lookup=color_lookup,
             )
-            text_color = resolve_color(
+            text_color = _resolve_detection_color(
                 color=self.text_color,
                 detections=detections,
                 detection_idx=idx,
@@ -1718,13 +1718,13 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         )
 
         for idx, label_property in enumerate(label_properties):
-            background_color = resolve_color(
+            background_color = _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=idx,
                 color_lookup=color_lookup,
             )
-            text_color = resolve_color(
+            text_color = _resolve_detection_color(
                 color=self.text_color,
                 detections=detections,
                 detection_idx=idx,
@@ -2079,7 +2079,7 @@ class TraceAnnotator(BaseAnnotator):
             if tracker_id_val is None:
                 continue
             tracker_id = int(tracker_id_val)
-            color = resolve_color(
+            color = _resolve_detection_color(
                 color=self.color,
                 detections=filtered_detections,
                 detection_idx=detection_idx,
@@ -2406,7 +2406,7 @@ class TriangleAnnotator(BaseAnnotator):
             return scene
         xy = detections.get_anchors_coordinates(anchor=self.position)
         for detection_idx in range(len(detections)):
-            color = resolve_color(
+            color = _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
@@ -2426,7 +2426,7 @@ class TriangleAnnotator(BaseAnnotator):
 
             cv2.fillPoly(scene, [vertices], color.as_bgr())
             if self.outline_thickness:
-                outline_color = resolve_color(
+                outline_color = _resolve_detection_color(
                     color=self.outline_color,
                     detections=detections,
                     detection_idx=detection_idx,
@@ -2523,7 +2523,7 @@ class RoundBoxAnnotator(BaseAnnotator):
             return scene
         for detection_idx in range(len(detections)):
             x1, y1, x2, y2 = detections.xyxy[detection_idx].astype(int)
-            color = resolve_color(
+            color = _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
@@ -2691,7 +2691,7 @@ class PercentageBarAnnotator(BaseAnnotator):
                 assert detections.confidence is not None  # MyPy type hint
                 value = detections.confidence[detection_idx]
 
-            color = resolve_color(
+            color = _resolve_detection_color(
                 color=self.color,
                 detections=detections,
                 detection_idx=detection_idx,
@@ -2882,7 +2882,7 @@ class CropAnnotator(BaseAnnotator):
                 anchor=anchor, crop_wh=crop_wh, position=self.position
             )
             scene = overlay_image(image=scene, overlay=resized_crop, anchor=(x1, y1))
-            color = resolve_color(
+            color = _resolve_detection_color(
                 color=self.border_color,
                 detections=detections,
                 detection_idx=idx,
