@@ -87,8 +87,8 @@ def run_command(command: list) -> int:
     allowed_commands = ["docker", "ffmpeg"]
     if not command or command[0] not in allowed_commands:
         raise ValueError(
-            f"Command '{command[0] if command else ''}' is not allowed. "
-            f"Only {allowed_commands} are permitted."
+            f"Invalid command '{command[0] if command else ''}'. "
+            f"Allowed: {allowed_commands}"
         )
     process = subprocess.run(command)  # noqa: S603
     return process.returncode
