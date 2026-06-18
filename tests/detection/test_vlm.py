@@ -1331,6 +1331,7 @@ def test_from_google_gemini_2_5_malformed_mask_keeps_confidence_aligned():
         ),
         pytest.param(from_google_gemini_2_5, "42", id="gemini_2_5_non_list"),
         pytest.param(from_qwen_2_5_vl, "[1, 2, 3]", id="qwen_2_5_non_dict_items"),
+        pytest.param(from_qwen_2_5_vl, "42", id="qwen_2_5_non_list"),
     ],
 )
 def test_vlm_parsers_degrade_on_malformed_json(parser, result):

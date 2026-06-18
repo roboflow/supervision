@@ -214,7 +214,7 @@ def validate_vlm_parameters(vlm: VLM | str, result: Any, kwargs: dict[str, Any])
 
 def from_paligemma(
     result: str, resolution_wh: tuple[int, int], classes: list[str] | None = None
-) -> tuple[npt.NDArray[Any], npt.NDArray[Any], npt.NDArray[Any]]:
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any] | None, npt.NDArray[Any]]:
     """
     Parse bounding boxes from paligemma-formatted text, scale them to the specified
     resolution, and optionally filter by classes.
@@ -238,23 +238,23 @@ def from_paligemma(
         r"(?<!<loc\d{4}>)<loc(\d{4})><loc(\d{4})><loc(\d{4})><loc(\d{4})> ([\w\s\-]+)"
     )
     matches = pattern.findall(result)
-    matches = np.array(matches) if matches else np.empty((0, 5))
+    matches_arr: npt.NDArray[Any] = np.array(matches) if matches else np.empty((0, 5))
 
-    if matches.shape[0] == 0:
+    if matches_arr.shape[0] == 0:
         return np.empty((0, 4)), np.empty((0,), dtype=int), np.empty(0, dtype=str)
 
-    xyxy, class_name = matches[:, [1, 0, 3, 2]], matches[:, 4]
-    xyxy = xyxy.astype(int) / 1024 * np.array([w, h, w, h])
-    class_name = np.char.strip(class_name.astype(str))
-    class_id = None
+    xyxy_arr = np.array(matches_arr[:, [1, 0, 3, 2]], dtype=float)
+    xyxy_arr = xyxy_arr.astype(int) / 1024 * np.array([w, h, w, h])
+    class_name = np.char.strip(matches_arr[:, 4].astype(str))
+    class_id: npt.NDArray[Any] | None = None
 
     if classes is not None:
         mask = np.array([name in classes for name in class_name], dtype=bool)
-        xyxy = xyxy[mask]
+        xyxy_arr = xyxy_arr[mask]
         class_name = class_name[mask]
         class_id = np.array([classes.index(name) for name in class_name])
 
-    return xyxy, class_id, class_name
+    return xyxy_arr, class_id, class_name
 
 
 def recover_truncated_qwen_2_5_vl_response(text: str) -> Any | None:
@@ -460,12 +460,13 @@ def from_deepseek_vl_2(
             f"and det tags ({len(detection_segments)}) in the result must be equal."
         )
 
-    xyxy, class_name_list = [], []
+    xyxy_list: list[list[float]] = []
+    class_name_list: list[str] = []
     for label, detection_blob in zip(label_segments, detection_segments):
         current_class_name = label.strip()
         for box in re.findall(r"\[(.*?)\]", detection_blob):
             x1, y1, x2, y2 = map(float, box.strip("[]").split(","))
-            xyxy.append(
+            xyxy_list.append(
                 [
                     (x1 / 999 * width),
                     (y1 / 999 * height),
@@ -475,7 +476,7 @@ def from_deepseek_vl_2(
             )
             class_name_list.append(current_class_name)
 
-    xyxy = np.array(xyxy, dtype=np.float32)
+    xyxy = np.array(xyxy_list, dtype=np.float32)
     class_name = np.array(class_name_list)
 
     if classes is not None:
@@ -541,15 +542,15 @@ def from_florence_2(
         return xyxy, labels, None, xyxyxyxy
 
     if task in ["<REFERRING_EXPRESSION_SEGMENTATION>", "<REGION_TO_SEGMENTATION>"]:
-        xyxy_list = []
-        masks_list = []
+        xyxy_list: list[npt.NDArray[Any]] = []
+        masks_list: list[npt.NDArray[Any]] = []
         for polygons_of_same_class in result["polygons"]:
             for polygon in polygons_of_same_class:
                 polygon = np.reshape(polygon, (-1, 2)).astype(np.int32)
                 mask = polygon_to_mask(polygon, resolution_wh).astype(bool)
                 masks_list.append(mask)
-                xyxy = polygon_to_xyxy(polygon)
-                xyxy_list.append(xyxy)
+                xyxy_box = polygon_to_xyxy(polygon)
+                xyxy_list.append(xyxy_box)
             # per-class labels also provided, but they are ["", "", "", ...]
             # when we figure out how to set class names, we can do
             # zip(result["labels"], result["polygons"])
@@ -767,32 +768,39 @@ def from_google_gemini_2_5(
         if "mask" in item:
             if masks_list is not None:
                 png_str = item["mask"]
-                if not png_str.startswith("data:image/png;base64,"):
+                if not isinstance(png_str, str) or not png_str.startswith(
+                    "data:image/png;base64,"
+                ):
                     # Malformed mask: keep an empty mask but still fall through to
                     # the confidence handling below, so the per-item arrays stay
                     # aligned (a `continue` here desynced confidence vs boxes).
                     masks_list.append(np.zeros((h, w), dtype=bool))
                 else:
                     png_str = png_str.removeprefix("data:image/png;base64,")
-                    png_str = base64.b64decode(png_str)
-                    mask_img = Image.open(io.BytesIO(png_str))
-
-                    y_min, y_max = int(absolute_bbox[1]), int(absolute_bbox[3])
-                    x_min, x_max = int(absolute_bbox[0]), int(absolute_bbox[2])
-
-                    bbox_height = y_max - y_min
-                    bbox_width = x_max - x_min
-
-                    if bbox_height > 0 and bbox_width > 0:
-                        mask_img = mask_img.resize(
-                            (bbox_width, bbox_height),
-                            resample=Image.Resampling.BILINEAR,
-                        )
-                        np_mask: npt.NDArray[np.bool_] = np.zeros((h, w), dtype=bool)
-                        np_mask[y_min:y_max, x_min:x_max] = np.array(mask_img) > 0
-                        masks_list.append(np_mask)
-                    else:
+                    try:
+                        png_bytes = base64.b64decode(png_str)
+                        mask_img = Image.open(io.BytesIO(png_bytes)).convert("L")
+                    except Exception:
                         masks_list.append(np.zeros((h, w), dtype=bool))
+                    else:
+                        y_min, y_max = int(absolute_bbox[1]), int(absolute_bbox[3])
+                        x_min, x_max = int(absolute_bbox[0]), int(absolute_bbox[2])
+
+                        bbox_height = y_max - y_min
+                        bbox_width = x_max - x_min
+
+                        if bbox_height > 0 and bbox_width > 0:
+                            mask_img = mask_img.resize(
+                                (bbox_width, bbox_height),
+                                resample=Image.Resampling.BILINEAR,
+                            )
+                            np_mask: npt.NDArray[np.bool_] = np.zeros(
+                                (h, w), dtype=bool
+                            )
+                            np_mask[y_min:y_max, x_min:x_max] = np.array(mask_img) > 0
+                            masks_list.append(np_mask)
+                        else:
+                            masks_list.append(np.zeros((h, w), dtype=bool))
         else:
             masks_list = None
 
