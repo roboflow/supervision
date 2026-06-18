@@ -3560,6 +3560,9 @@
 <h3 id="unreleased">UnReleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p>Added <a href="https://github.com/roboflow/supervision/pull/2338">#2338</a>: <a href="https://supervision.roboflow.com/latest/keypoint/core/#supervision.key_points.core.KeyPoints.with_nms"><code>sv.KeyPoints.with_nms</code></a> — non-maximum suppression for keypoint detections. Derives axis-aligned bounding boxes from valid (non-zero and visible) keypoints and applies <code>box_non_max_suppression</code>. Requires <code>detection_confidence</code>; supports class-aware and class-agnostic modes via <code>threshold</code>, <code>class_agnostic</code>, and <code>overlap_metric</code>.</p>
+</li>
+<li>
 <p>Fixed <a href="https://github.com/roboflow/supervision/pull/2334">#2334</a>: <code>sv.JSONSink</code> now serializes NumPy scalars (e.g. <code>np.int64</code> frame indices) in <code>custom_data</code> as JSON numbers instead of raising <code>TypeError</code> at close time. File handle is now guaranteed to close even when serialization fails.</p>
 </li>
 <li>
@@ -5517,7 +5520,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 17, 2026 20:41:17 UTC">June 17, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 18, 2026 08:42:43 UTC">June 18, 2026</span>
   </span>
 
     
@@ -5545,6 +5548,16 @@
     
     <nav>
       
+        <a href="https://github.com/SkalskiP" class="md-author" title="@SkalskiP">
+          
+          <img src="https://avatars.githubusercontent.com/u/26109316?v=4&size=72" alt="SkalskiP">
+        </a>
+      
+        <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
+          
+          <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
+        </a>
+      
         <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
           <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
@@ -5553,16 +5566,6 @@
         <a href="https://github.com/RubenHaisma" class="md-author" title="@RubenHaisma">
           
           <img src="https://avatars.githubusercontent.com/u/74268046?v=4&size=72" alt="RubenHaisma">
-        </a>
-      
-        <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
-          
-          <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
-        </a>
-      
-        <a href="https://github.com/SkalskiP" class="md-author" title="@SkalskiP">
-          
-          <img src="https://avatars.githubusercontent.com/u/26109316?v=4&size=72" alt="SkalskiP">
         </a>
       
       
