@@ -345,9 +345,8 @@ def box_iou_batch_with_jaccard(
 
         ```
     """
-    assert len(is_crowd) == len(boxes_true), (
-        "`is_crowd` must have the same length as `boxes_true`"
-    )
+    if len(is_crowd) != len(boxes_true):
+        raise ValueError("`is_crowd` must have the same length as `boxes_true`")
     if len(boxes_detection) == 0 or len(boxes_true) == 0:
         return cast(npt.NDArray[np.float64], np.array([]))
     ious: npt.NDArray[np.float64] = np.zeros(
@@ -828,13 +827,14 @@ def mask_non_max_suppression(
             non-maximum suppression.
 
     Raises:
-        AssertionError: If `iou_threshold` is not within the closed
+        ValueError: If `iou_threshold` is not within the closed
             range from `0` to `1`.
     """
-    assert 0 <= iou_threshold <= 1, (
-        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
-        f"{iou_threshold} given."
-    )
+    if not (0 <= iou_threshold <= 1):
+        raise ValueError(
+            "Value of `iou_threshold` must be in the closed range from 0 to 1, "
+            f"{iou_threshold} given."
+        )
     rows, columns = predictions.shape
 
     if columns == 5:
@@ -921,13 +921,14 @@ def box_non_max_suppression(
             non-maximum suppression.
 
     Raises:
-        AssertionError: If `iou_threshold` is not within the
+        ValueError: If `iou_threshold` is not within the
             closed range from `0` to `1`.
     """
-    assert 0 <= iou_threshold <= 1, (
-        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
-        f"{iou_threshold} given."
-    )
+    if not (0 <= iou_threshold <= 1):
+        raise ValueError(
+            "Value of `iou_threshold` must be in the closed range from 0 to 1, "
+            f"{iou_threshold} given."
+        )
     sort_index, predictions, categories = _prepare_predictions_for_nms(predictions)
     ious = box_iou_batch(predictions[:, :4], predictions[:, :4], overlap_metric)
     keep = _nms_loop_from_iou_matrix(ious, categories, iou_threshold)
@@ -1256,10 +1257,11 @@ def oriented_box_non_max_suppression(
         >>> keep
         array([ True, False])
     """
-    assert 0 <= iou_threshold <= 1, (
-        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
-        f"{iou_threshold} given."
-    )
+    if not (0 <= iou_threshold <= 1):
+        raise ValueError(
+            "Value of `iou_threshold` must be in the closed range from 0 to 1, "
+            f"{iou_threshold} given."
+        )
     for name, arr in (("predictions", predictions), ("oriented_boxes", oriented_boxes)):
         if name == "predictions":
             if arr.ndim != 2 or arr.shape[1] not in (5, 6):
@@ -1401,10 +1403,11 @@ def oriented_box_non_max_merge(
             f"`predictions` and `oriented_boxes` must have the same length, "
             f"got {len(predictions)} and {len(oriented_boxes)}."
         )
-    assert 0 <= iou_threshold <= 1, (
-        "Value of `iou_threshold` must be in the closed range from 0 to 1, "
-        f"{iou_threshold} given."
-    )
+    if not (0 <= iou_threshold <= 1):
+        raise ValueError(
+            "Value of `iou_threshold` must be in the closed range from 0 to 1, "
+            f"{iou_threshold} given."
+        )
 
     def group_within(global_indices: npt.NDArray[np.int_]) -> list[list[int]]:
         return _group_overlapping_oriented_boxes(

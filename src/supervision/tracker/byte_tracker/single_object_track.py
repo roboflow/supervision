@@ -49,9 +49,8 @@ class STrack:
         self.external_track_id = self.external_id_counter.NO_ID
 
     def predict(self) -> None:
-        assert self.mean is not None
-        assert self.covariance is not None
-        assert self.kalman_filter is not None
+        if self.mean is None or self.covariance is None or self.kalman_filter is None:
+            raise ValueError("mean, covariance, and kalman_filter must not be None")
         mean_state = self.mean.copy()
         if self.state != TrackState.Tracked:
             mean_state[7] = 0
@@ -65,8 +64,8 @@ class STrack:
             multi_mean = []
             multi_covariance = []
             for i, st in enumerate(stracks):
-                assert st.mean is not None
-                assert st.covariance is not None
+                if st.mean is None or st.covariance is None:
+                    raise ValueError("st.mean and st.covariance must not be None")
                 multi_mean.append(st.mean.copy())
                 multi_covariance.append(st.covariance)
                 if st.state != TrackState.Tracked:
@@ -98,9 +97,8 @@ class STrack:
         self.start_frame = frame_id
 
     def re_activate(self, new_track: STrack, frame_id: int) -> None:
-        assert self.kalman_filter is not None
-        assert self.mean is not None
-        assert self.covariance is not None
+        if self.kalman_filter is None or self.mean is None or self.covariance is None:
+            raise ValueError("kalman_filter, mean, and covariance must not be None")
         self.mean, self.covariance = self.kalman_filter.update(
             self.mean, self.covariance, self.tlwh_to_xyah(new_track.tlwh)
         )
@@ -118,9 +116,8 @@ class STrack:
             new_track: The new track data.
             frame_id: The current frame ID.
         """
-        assert self.kalman_filter is not None
-        assert self.mean is not None
-        assert self.covariance is not None
+        if self.kalman_filter is None or self.mean is None or self.covariance is None:
+            raise ValueError("kalman_filter, mean, and covariance must not be None")
         self.frame_id = frame_id
         self.tracklet_len += 1
 

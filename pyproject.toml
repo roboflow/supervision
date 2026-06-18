@@ -158,9 +158,7 @@ lint.per-file-ignores."notebooks/**" = [
   "PT018", # Assertion should be broken down into multiple parts
   "S101",  # Use of `assert` detected
 ]
-lint.per-file-ignores."src/**" = [
-  "S101", # TODO: Replace asserts with proper error handling
-]
+
 lint.per-file-ignores."tests/**" = [
   "S101", # Use of `assert` detected
 ]

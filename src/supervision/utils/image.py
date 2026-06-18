@@ -132,7 +132,8 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
 
     ![scale-image](https://media.roboflow.com/supervision-docs/supervision-docs-scale-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
-    assert isinstance(image, np.ndarray)
+    if not isinstance(image, np.ndarray):
+        raise TypeError("image must be a np.ndarray")
     if scale_factor <= 0:
         raise ValueError("Scale factor must be positive.")
 
@@ -190,7 +191,8 @@ def resize_image(
 
     ![resize-image](https://media.roboflow.com/supervision-docs/supervision-docs-resize-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
-    assert isinstance(image, np.ndarray)
+    if not isinstance(image, np.ndarray):
+        raise TypeError("image must be a np.ndarray")
     if keep_aspect_ratio:
         image_ratio = image.shape[1] / image.shape[0]
         target_ratio = resolution_wh[0] / resolution_wh[1]
@@ -252,7 +254,8 @@ def letterbox_image(
 
     ![letterbox-image](https://media.roboflow.com/supervision-docs/supervision-docs-letterbox-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
-    assert isinstance(image, np.ndarray)
+    if not isinstance(image, np.ndarray):
+        raise TypeError("image must be a np.ndarray")
     color = unify_to_bgr(color=color)
     resized_image = resize_image(
         image=image, resolution_wh=resolution_wh, keep_aspect_ratio=True
@@ -389,7 +392,8 @@ def tint_image(
 
     ![tint-image](https://media.roboflow.com/supervision-docs/supervision-docs-tint-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
-    assert isinstance(image, np.ndarray)
+    if not isinstance(image, np.ndarray):
+        raise TypeError("image must be a np.ndarray")
     if not 0.0 <= opacity <= 1.0:
         raise ValueError("opacity must be between 0.0 and 1.0")
 
@@ -744,11 +748,13 @@ def _establish_grid_size(
         return _negotiate_grid_size(images=images)
     if grid_size[0] is None:
         columns = grid_size[1]
-        assert columns is not None
+        if columns is None:
+            raise ValueError("columns must be provided if grid_size is None")
         return math.ceil(len(images) / columns), columns
     if grid_size[1] is None:
         rows = grid_size[0]
-        assert rows is not None
+        if rows is None:
+            raise ValueError("rows must be provided if grid_size is None")
         return rows, math.ceil(len(images) / rows)
     return cast(tuple[int, int], grid_size)
 

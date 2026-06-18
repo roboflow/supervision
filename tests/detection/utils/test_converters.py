@@ -375,14 +375,14 @@ def test_xyxy_to_mask(boxes: np.ndarray, resolution_wh, expected: np.ndarray) ->
             np.array([[[]]]).astype(bool),
             False,
             None,
-            pytest.raises(AssertionError, match="Input mask must be 2D"),
-        ),  # raises AssertionError because mask dimensionality is not 2D
+            pytest.raises(ValueError, match="Input mask must be 2D"),
+        ),  # raises ValueError because mask dimensionality is not 2D
         (
             np.array([[]]).astype(bool),
             False,
             None,
-            pytest.raises(AssertionError, match="Input mask cannot be empty"),
-        ),  # raises AssertionError because mask is empty
+            pytest.raises(ValueError, match="Input mask cannot be empty"),
+        ),  # raises ValueError because mask is empty
     ],
 )
 def test_mask_to_rle(
