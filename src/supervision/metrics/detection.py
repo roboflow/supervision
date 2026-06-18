@@ -13,14 +13,8 @@ import numpy as np
 import numpy.typing as npt
 from deprecate import TargetMode, deprecated, deprecated_class, void
 
-
 from supervision.annotators.core import BoxAnnotator, LabelAnnotator
 from supervision.annotators.utils import ColorLookup
-from supervision.dataset.core import DetectionDataset
-from supervision.detection.core import Detections
-from supervision.detection.utils.iou_and_nms import box_iou_batch
-from supervision.draw.color import ColorPalette
-
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
@@ -28,6 +22,7 @@ from supervision.detection.utils.iou_and_nms import (
     box_iou_batch,
     oriented_box_iou_batch,
 )
+from supervision.draw.color import ColorPalette
 from supervision.metrics.core import MetricTarget
 
 
@@ -522,7 +517,6 @@ def validate_input_tensors(
     targets: list[npt.NDArray[np.float32]],
 ) -> None:
     void(predictions, targets)
-
 
 
 @dataclass

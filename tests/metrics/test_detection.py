@@ -1211,7 +1211,6 @@ class TestDetectionMetrics:
             f"wrong-class preds with high IoU might incorrectly match GTs."
         )
 
-
     def test_confusion_matrix_benchmark_saves_validation_visualizations(
         self,
         tmp_path,
@@ -1269,7 +1268,6 @@ class TestDetectionMetrics:
         assert not np.array_equal(fp_panel, fn_panel)
 
         assert confusion_matrix.matrix.shape == (3, 3)
-
 
     @pytest.mark.parametrize(
         ("predictions", "targets", "metric_target", "exception"),
