@@ -7,7 +7,17 @@ date_modified: 2026-06-16
 
 ### UnReleased
 
+- Added [#2338](https://github.com/roboflow/supervision/pull/2338): [`sv.KeyPoints.with_nms`](https://supervision.roboflow.com/latest/keypoint/core/#supervision.key_points.core.KeyPoints.with_nms) — non-maximum suppression for keypoint detections. Derives axis-aligned bounding boxes from valid (non-zero and visible) keypoints and applies `box_non_max_suppression`. Requires `detection_confidence`; supports class-aware and class-agnostic modes via `threshold`, `class_agnostic`, and `overlap_metric`.
+
+- Fixed [#2334](https://github.com/roboflow/supervision/pull/2334): `sv.JSONSink` now serializes NumPy scalars (e.g. `np.int64` frame indices) in `custom_data` as JSON numbers instead of raising `TypeError` at close time. File handle is now guaranteed to close even when serialization fails.
+
+- Fixed [#2335](https://github.com/roboflow/supervision/pull/2335): `sv.KeyPoints(confidence=...)` now works again. The `0.29.0` refactor accidentally dropped the deprecated `confidence` constructor kwarg; it is now accepted and mapped to `keypoint_confidence` with a deprecation warning.
+
 - Fixed [#2322](https://github.com/roboflow/supervision/pull/2322): COCO export now preserves all polygon parts for multi-component masks. Previously, only the first polygon was written when a non-crowd mask had disjoint segments; all parts are now included.
+
+- Fixed [#2333](https://github.com/roboflow/supervision/pull/2333): [`sv.DetectionsSmoother`](https://supervision.roboflow.com/latest/detection/tools/smoother/#supervision.detection.tools.smoother.DetectionsSmoother) no longer raises when smoothing detections without `confidence`. Confidence is now averaged over the frames that carry it; when tracks in the same frame disagree on confidence presence, `confidence` is set to `None` for all smoothed detections.
+
+- Fixed [#2331](https://github.com/roboflow/supervision/pull/2331): `sv.Precision` and `sv.F1Score` now count predictions on background images (empty target set) as false positives, and count predictions of classes absent from ground truth as false positives under `MICRO` and `MACRO` averaging. Previously both edge cases were silently ignored, inflating scores. `WEIGHTED` averaging is unchanged — absent classes retain weight 0, consistent with scikit-learn. Users relying on previous scores should re-evaluate after upgrading; no API change is required.
 
 ### 0.29.0 <small>Jun 15, 2026</small>
 
