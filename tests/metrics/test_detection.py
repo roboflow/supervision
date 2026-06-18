@@ -1083,10 +1083,18 @@ class TestDetectionMetrics:
         fp_panel = saved_image[32:, :32]
         fn_panel = saved_image[32:, 32:]
 
+        # Assert boxes are rendered in the expected panels, away from borders/dividers.
+        assert np.any(gt_panel[2:13, 2:13] != 0)
+        assert np.any(tp_panel[2:13, 2:13] != 0)
+        assert np.any(fp_panel[18:29, 0:9] != 0)
+        assert np.any(fn_panel[18:29, 18:29] != 0)
+
+        # Basic sanity that panels differ.
         assert not np.array_equal(gt_panel, tp_panel)
         assert not np.array_equal(gt_panel, fp_panel)
         assert not np.array_equal(gt_panel, fn_panel)
-
         assert not np.array_equal(tp_panel, fp_panel)
         assert not np.array_equal(tp_panel, fn_panel)
+        assert not np.array_equal(fp_panel, fn_panel)
+
         assert confusion_matrix.matrix.shape == (3, 3)
