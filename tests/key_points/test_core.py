@@ -342,7 +342,7 @@ KEY_POINTS = _create_key_points(
             np.array([[False, False], [False, False]]),
             KeyPoints(
                 xy=np.zeros((2, 0, 2), dtype=np.float32),
-                confidence=np.zeros((2, 0), dtype=np.float32),
+                keypoint_confidence=np.zeros((2, 0), dtype=np.float32),
                 class_id=np.array([0, 1]),
             ),
             DoesNotRaise(),
@@ -357,7 +357,7 @@ KEY_POINTS = _create_key_points(
                 xy=[[[0, 1], [2, 3], [4, 5]]],
                 confidence=[[0.8, 0.2, 0.6]],
                 class_id=[0],
-            ).confidence
+            ).keypoint_confidence
             > 0.5,
             _create_key_points(
                 xy=[[[0, 1], [4, 5]]],
@@ -372,6 +372,258 @@ def test_key_points_getitem(key_points, index, expected_result, exception):
     with exception:
         result = key_points[index]
         assert result == expected_result
+
+
+KEY_POINTS_WITH_DET_CONF = _create_key_points(
+    xy=[
+        [[0, 1], [2, 3], [4, 5]],
+        [[10, 11], [12, 13], [14, 15]],
+        [[20, 21], [22, 23], [24, 25]],
+    ],
+    confidence=[
+        [0.8, 0.2, 0.6],
+        [0.7, 0.9, 0.3],
+        [0.1, 0.6, 0.8],
+    ],
+    class_id=[0, 1, 0],
+    detection_confidence=[0.95, 0.40, 0.85],
+)
+
+
+@pytest.mark.parametrize(
+    ("key_points", "index", "expected_result"),
+    [
+        pytest.param(
+            KEY_POINTS_WITH_DET_CONF,
+            KEY_POINTS_WITH_DET_CONF.detection_confidence > 0.5,
+            _create_key_points(
+                xy=[
+                    [[0, 1], [2, 3], [4, 5]],
+                    [[20, 21], [22, 23], [24, 25]],
+                ],
+                confidence=[[0.8, 0.2, 0.6], [0.1, 0.6, 0.8]],
+                class_id=[0, 0],
+                detection_confidence=[0.95, 0.85],
+            ),
+            id="filter-by-detection-confidence-threshold",
+        ),
+        pytest.param(
+            KEY_POINTS_WITH_DET_CONF,
+            KEY_POINTS_WITH_DET_CONF.class_id == 0,
+            _create_key_points(
+                xy=[
+                    [[0, 1], [2, 3], [4, 5]],
+                    [[20, 21], [22, 23], [24, 25]],
+                ],
+                confidence=[[0.8, 0.2, 0.6], [0.1, 0.6, 0.8]],
+                class_id=[0, 0],
+                detection_confidence=[0.95, 0.85],
+            ),
+            id="filter-by-class-id",
+        ),
+        pytest.param(
+            KEY_POINTS_WITH_DET_CONF,
+            KEY_POINTS_WITH_DET_CONF.class_id == 1,
+            _create_key_points(
+                xy=[[[10, 11], [12, 13], [14, 15]]],
+                confidence=[[0.7, 0.9, 0.3]],
+                class_id=[1],
+                detection_confidence=[0.40],
+            ),
+            id="filter-by-class-id-single-result",
+        ),
+        pytest.param(
+            KEY_POINTS_WITH_DET_CONF,
+            (KEY_POINTS_WITH_DET_CONF.detection_confidence > 0.5)
+            & (KEY_POINTS_WITH_DET_CONF.class_id == 0),
+            _create_key_points(
+                xy=[
+                    [[0, 1], [2, 3], [4, 5]],
+                    [[20, 21], [22, 23], [24, 25]],
+                ],
+                confidence=[[0.8, 0.2, 0.6], [0.1, 0.6, 0.8]],
+                class_id=[0, 0],
+                detection_confidence=[0.95, 0.85],
+            ),
+            id="filter-by-detection-confidence-and-class-id",
+        ),
+        pytest.param(
+            KEY_POINTS_WITH_DET_CONF,
+            KEY_POINTS_WITH_DET_CONF.detection_confidence > 0.99,
+            KeyPoints(
+                xy=np.zeros((0, 3, 2), dtype=np.float32),
+                keypoint_confidence=np.zeros((0, 3), dtype=np.float32),
+                detection_confidence=np.array([], dtype=np.float32),
+                class_id=np.array([], dtype=int),
+            ),
+            id="filter-all-out-returns-empty",
+        ),
+        pytest.param(
+            KEY_POINTS_WITH_DET_CONF,
+            KEY_POINTS_WITH_DET_CONF.class_id == 99,
+            KeyPoints(
+                xy=np.zeros((0, 3, 2), dtype=np.float32),
+                keypoint_confidence=np.zeros((0, 3), dtype=np.float32),
+                detection_confidence=np.array([], dtype=np.float32),
+                class_id=np.array([], dtype=int),
+            ),
+            id="filter-by-nonexistent-class-returns-empty",
+        ),
+        pytest.param(
+            KeyPoints.empty(),
+            np.array([], dtype=bool),
+            KeyPoints.empty(),
+            id="filter-empty-keypoints-stays-empty",
+        ),
+        pytest.param(
+            KEY_POINTS_WITH_DET_CONF,
+            KEY_POINTS_WITH_DET_CONF.detection_confidence > 0.0,
+            KEY_POINTS_WITH_DET_CONF,
+            id="filter-keeps-all-when-all-pass",
+        ),
+        pytest.param(
+            KEY_POINTS_WITH_DET_CONF,
+            np.int64(0),
+            _create_key_points(
+                xy=[[[0, 1], [2, 3], [4, 5]]],
+                confidence=[[0.8, 0.2, 0.6]],
+                class_id=[0],
+                detection_confidence=[0.95],
+            ),
+            id="np-integer-scalar-with-det-conf",
+        ),
+        pytest.param(
+            KEY_POINTS_WITH_DET_CONF,
+            np.array(0),
+            _create_key_points(
+                xy=[[[0, 1], [2, 3], [4, 5]]],
+                confidence=[[0.8, 0.2, 0.6]],
+                class_id=[0],
+                detection_confidence=[0.95],
+            ),
+            id="0d-ndarray-with-det-conf",
+        ),
+    ],
+)
+def test_key_points_getitem_detection_level(key_points, index, expected_result):
+    """Detection-level filtering mirrors Detections API patterns."""
+    result = key_points[index]
+    assert result == expected_result
+
+
+class TestKeyPointsVisible:
+    """Tests for the `visible` mask field on KeyPoints."""
+
+    def test_visible_defaults_to_none(self):
+        kp = _create_key_points(
+            xy=[[[0, 1], [2, 3]]],
+            confidence=[[0.9, 0.8]],
+            class_id=[0],
+        )
+        assert kp.visible is None
+
+    def test_visible_set_from_confidence_threshold(self):
+        kp = _create_key_points(
+            xy=[[[0, 1], [2, 3], [4, 5]]],
+            confidence=[[0.9, 0.1, 0.6]],
+            class_id=[0],
+        )
+        kp.visible = kp.keypoint_confidence > 0.5
+        expected = np.array([[True, False, True]])
+        np.testing.assert_array_equal(kp.visible, expected)
+
+    def test_visible_preserved_on_skeleton_filter(self):
+        kp = _create_key_points(
+            xy=[
+                [[0, 1], [2, 3]],
+                [[10, 11], [12, 13]],
+            ],
+            confidence=[[0.9, 0.1], [0.3, 0.8]],
+            class_id=[0, 1],
+            detection_confidence=[0.95, 0.40],
+            visible=[[True, False], [False, True]],
+        )
+        result = kp[kp.detection_confidence > 0.5]
+        assert result.visible is not None
+        np.testing.assert_array_equal(result.visible, np.array([[True, False]]))
+
+    def test_visible_preserved_on_int_index(self):
+        kp = _create_key_points(
+            xy=[[[0, 1], [2, 3]], [[10, 11], [12, 13]]],
+            confidence=[[0.9, 0.1], [0.3, 0.8]],
+            class_id=[0, 1],
+            visible=[[True, False], [False, True]],
+        )
+        result = kp[0]
+        assert result.visible is not None
+        np.testing.assert_array_equal(result.visible, np.array([[True, False]]))
+
+    def test_visible_preserved_on_anchor_slice(self):
+        kp = _create_key_points(
+            xy=[[[0, 1], [2, 3], [4, 5]]],
+            confidence=[[0.9, 0.1, 0.6]],
+            class_id=[0],
+            visible=[[True, False, True]],
+        )
+        result = kp[:, [0, 2]]
+        assert result.visible is not None
+        np.testing.assert_array_equal(result.visible, np.array([[True, True]]))
+
+    def test_visible_preserved_on_2d_bool_mask(self):
+        kp = _create_key_points(
+            xy=[
+                [[0, 1], [2, 3], [4, 5]],
+                [[10, 11], [12, 13], [14, 15]],
+            ],
+            confidence=[[0.9, 0.1, 0.6], [0.7, 0.2, 0.8]],
+            class_id=[0, 1],
+            visible=[[True, False, True], [True, False, True]],
+        )
+        mask = np.array([[True, False, True], [True, False, True]])
+        result = kp[mask]
+        assert result.visible is not None
+        np.testing.assert_array_equal(
+            result.visible, np.array([[True, True], [True, True]])
+        )
+
+    def test_visible_none_stays_none_on_filter(self):
+        kp = _create_key_points(
+            xy=[[[0, 1], [2, 3]], [[10, 11], [12, 13]]],
+            class_id=[0, 1],
+        )
+        result = kp[0]
+        assert result.visible is None
+
+    def test_equality_with_visible(self):
+        kp1 = _create_key_points(
+            xy=[[[0, 1], [2, 3]]],
+            class_id=[0],
+            visible=[[True, False]],
+        )
+        kp2 = _create_key_points(
+            xy=[[[0, 1], [2, 3]]],
+            class_id=[0],
+            visible=[[True, False]],
+        )
+        kp3 = _create_key_points(
+            xy=[[[0, 1], [2, 3]]],
+            class_id=[0],
+            visible=[[False, True]],
+        )
+        assert kp1 == kp2
+        assert kp1 != kp3
+
+    def test_equality_visible_none_vs_set(self):
+        kp1 = _create_key_points(
+            xy=[[[0, 1], [2, 3]]],
+            class_id=[0],
+        )
+        kp2 = _create_key_points(
+            xy=[[[0, 1], [2, 3]]],
+            class_id=[0],
+            visible=[[True, True]],
+        )
+        assert kp1 != kp2
 
 
 def test_key_points_empty():
@@ -454,6 +706,75 @@ def test_key_points_as_detections_empty():
     assert empty_detections.is_empty()
 
 
+def test_key_points_as_detections_ignores_missing_keypoints():
+    """A [0, 0] keypoint is treated as missing and excluded from the box."""
+    key_points = _create_key_points(
+        xy=[[[0, 0], [10, 20], [30, 40]]],
+        confidence=[[0.0, 0.8, 0.6]],
+        class_id=[0],
+    )
+
+    detections = key_points.as_detections()
+
+    assert np.array_equal(detections.xyxy, np.array([[10, 20, 30, 40]]))
+
+
+def test_key_points_as_detections_uses_detection_confidence():
+    """detection_confidence is preferred over the keypoint-confidence mean."""
+    key_points = _create_key_points(
+        xy=[[[10, 20], [30, 40]]],
+        confidence=[[0.1, 0.2]],
+        class_id=[0],
+        detection_confidence=[0.95],
+    )
+
+    detections = key_points.as_detections()
+
+    assert np.allclose(detections.confidence, np.array([0.95], dtype=np.float32))
+
+
+def test_key_points_as_detections_selected_keypoint_indices():
+    """Only the selected keypoints contribute to the bounding box."""
+    key_points = _create_key_points(
+        xy=[[[0, 0], [10, 20], [30, 40], [100, 100]]],
+        confidence=[[0.5, 0.8, 0.6, 0.9]],
+        class_id=[0],
+    )
+
+    detections = key_points.as_detections(selected_keypoint_indices=[1, 2])
+
+    assert np.array_equal(detections.xyxy, np.array([[10, 20, 30, 40]]))
+
+
+def test_key_points_as_detections_confidence_over_selected_indices():
+    """Confidence mean uses only the selected keypoint columns, not all."""
+    key_points = _create_key_points(
+        xy=[[[0, 0], [10, 20], [30, 40], [100, 100]]],
+        confidence=[[0.5, 0.8, 0.6, 0.9]],
+        class_id=[0],
+    )
+
+    detections = key_points.as_detections(selected_keypoint_indices=[1, 2])
+
+    expected_confidence = np.mean([0.8, 0.6], dtype=np.float32)
+    assert np.isclose(detections.confidence[0], expected_confidence)
+
+
+def test_key_points_as_detections_mixed_valid_invalid_batch():
+    """Batch with one all-zero skeleton: invalid skeleton gets box zeroed."""
+    key_points = _create_key_points(
+        xy=[[[0, 0], [0, 0]], [[10, 20], [30, 40]]],
+        confidence=[[0.0, 0.0], [0.8, 0.6]],
+        class_id=[0, 1],
+    )
+
+    detections = key_points.as_detections()
+
+    # Only the valid skeleton survives the area>0 filter
+    assert len(detections) == 1
+    assert np.array_equal(detections.xyxy, np.array([[10, 20, 30, 40]]))
+
+
 def test_key_points_as_detections_with_data():
     """Test the as_detections method preserves data."""
     key_points = _create_key_points(
@@ -476,10 +797,10 @@ def test_key_points_iteration():
     )
 
     iterations = 0
-    for i, (xy, confidence, class_id, data) in enumerate(key_points):
+    for i, (xy, kp_confidence, class_id, data) in enumerate(key_points):
         iterations += 1
         assert xy.shape == (2, 2)
-        assert confidence.shape == (2,)
+        assert kp_confidence.shape == (2,)
         assert class_id in [0, 1]
         assert isinstance(data, dict)
     assert iterations == 2
@@ -492,8 +813,8 @@ def test_key_points_iteration_no_confidence():
         confidence=None,
         class_id=[0],
     )
-    for xy, confidence, class_id, data in key_points_no_conf:
-        assert confidence is None
+    for xy, kp_confidence, class_id, data in key_points_no_conf:
+        assert kp_confidence is None
 
 
 @pytest.mark.parametrize(
@@ -673,3 +994,91 @@ def test_from_mediapipe_input(mediapipe_results, resolution_wh, expected_key_poi
         mediapipe_results, resolution_wh=resolution_wh
     )
     assert key_points == expected_key_points
+
+
+class TestDeprecatedConfidenceConstructor:
+    """Tests for backward-compatible `confidence=` kwarg in KeyPoints()."""
+
+    def test_constructor_accepts_and_warns_on_deprecated_confidence_kwarg(self):
+        """Deprecated confidence= warns and maps value to keypoint_confidence."""
+        from supervision.utils.internal import SupervisionWarnings
+
+        xy = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
+        confidence = np.array([[0.9, 0.8]], dtype=np.float32)
+
+        with pytest.warns(SupervisionWarnings, match="deprecated since"):
+            key_points = KeyPoints(xy=xy, confidence=confidence)
+
+        np.testing.assert_array_equal(key_points.keypoint_confidence, confidence)
+        assert key_points.xy is xy
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            pytest.param(
+                {"confidence": None, "keypoint_confidence": None},
+                id="confidence-first",
+            ),
+            pytest.param(
+                {"keypoint_confidence": None, "confidence": None},
+                id="keypoint-confidence-first",
+            ),
+        ],
+    )
+    def test_constructor_rejects_both_confidence_and_keypoint_confidence(
+        self, kwargs: dict
+    ):
+        """ValueError raised regardless of kwarg order when both are passed."""
+        xy = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
+        confidence_arr = np.array([[0.9, 0.8]], dtype=np.float32)
+        actual_kwargs = {k: confidence_arr for k in kwargs}
+
+        with pytest.raises(ValueError, match="Cannot pass both"):
+            KeyPoints(xy=xy, **actual_kwargs)
+
+    def test_constructor_normal_keypoint_confidence_path(self):
+        """Normal keypoint_confidence= path works and emits no deprecation warning."""
+        import warnings
+
+        xy = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
+        kp_conf = np.array([[0.9, 0.8]], dtype=np.float32)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            kp = KeyPoints(xy=xy, keypoint_confidence=kp_conf)
+
+        np.testing.assert_array_equal(kp.keypoint_confidence, kp_conf)
+        assert kp.data == {}
+
+    def test_constructor_confidence_none_does_not_warn(self):
+        """Explicit confidence=None is silently ignored — no warning emitted."""
+        import warnings
+
+        xy = np.array([[[1.0, 2.0], [3.0, 4.0]]], dtype=np.float32)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            kp = KeyPoints(xy=xy, confidence=None)
+
+        assert kp.keypoint_confidence is None
+
+    def test_constructor_data_none_defaults_to_empty_dict(self):
+        """Explicit data=None normalizes to empty dict, not None."""
+        xy = np.array([[[1.0, 2.0]]], dtype=np.float32)
+
+        assert KeyPoints(xy=xy).data == {}
+        assert KeyPoints(xy=xy, data=None).data == {}
+
+    def test_keypoints_init_covers_all_dataclass_fields(self):
+        """Custom __init__ must assign every dataclass field — guards against drift."""
+        import dataclasses
+        import inspect
+
+        field_names = {f.name for f in dataclasses.fields(KeyPoints)}
+        init_params = set(inspect.signature(KeyPoints.__init__).parameters) - {
+            "self",
+            "confidence",
+        }
+        assert field_names == init_params, (
+            f"Field/init drift: {field_names.symmetric_difference(init_params)}"
+        )
