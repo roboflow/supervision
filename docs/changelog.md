@@ -15,6 +15,8 @@ date_modified: 2026-06-16
 
 - Fixed [#2322](https://github.com/roboflow/supervision/pull/2322): COCO export now preserves all polygon parts for multi-component masks. Previously, only the first polygon was written when a non-crowd mask had disjoint segments; all parts are now included.
 
+- Fixed [#2342](https://github.com/roboflow/supervision/pull/2342): `sv.Detections.from_vlm` with `sv.VLM.GOOGLE_GEMINI_2_0`, `sv.VLM.GOOGLE_GEMINI_2_5`, and `sv.VLM.QWEN_2_5_VL` no longer raises when the model returns valid JSON of the wrong shape (non-list top-level or non-dict elements). A non-string or malformed `"mask"` value in Gemini 2.5 output no longer triggers `AttributeError`; invalid base64 or non-PNG mask data falls back to an empty mask, keeping `xyxy`, `confidence`, and `masks` arrays aligned.
+
 - Fixed [#2333](https://github.com/roboflow/supervision/pull/2333): [`sv.DetectionsSmoother`](https://supervision.roboflow.com/latest/detection/tools/smoother/#supervision.detection.tools.smoother.DetectionsSmoother) no longer raises when smoothing detections without `confidence`. Confidence is now averaged over the frames that carry it; when tracks in the same frame disagree on confidence presence, `confidence` is set to `None` for all smoothed detections.
 
 - Fixed [#2341](https://github.com/roboflow/supervision/pull/2341): `sv.DetectionDataset.as_pascal_voc` no longer mutates the source `Detections.xyxy` by the 1-index offset on every call. Previously, repeated exports accumulated a `+1` shift in the caller's bounding boxes.
