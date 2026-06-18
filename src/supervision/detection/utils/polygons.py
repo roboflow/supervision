@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import cast
-
 import cv2
 import numpy as np
 import numpy.typing as npt
@@ -57,19 +55,47 @@ def approximate_polygon(
             the `x`, `y` coordinates of the input polygon's points.
         percentage: The percentage of points to be removed from the
             input polygon, in the range `[0, 1)`.
-        epsilon_step: Approximation accuracy step.
+        epsilon_step: Approximation accuracy step, must be positive.
             Epsilon is the maximum distance between the original curve
             and its approximation.
 
     Returns:
-        A new 2D NumPy array of shape `(M, 2)`,
-            where `M <= N * (1 - percentage)`, containing
-            the `x`, `y` coordinates of the
-            approximated polygon's points.
+        A new 2D NumPy array of shape `(M, 2)` containing the `x`, `y`
+            coordinates of the approximated polygon's points. `M` is at most
+            `floor(N * (1 - percentage))` (minimum 3). Because epsilon
+            advances in discrete `epsilon_step` increments, `M` may be
+            noticeably smaller than the budget when a single step crosses
+            the target band. At least 3 points are always kept; when further
+            simplification would collapse the polygon below 3 points the last
+            valid approximation is returned and `M` may exceed the budget.
+
+    Raises:
+        ValueError: If `percentage` is outside the range `[0, 1)`.
+        ValueError: If `epsilon_step` is not positive.
+
+    Examples:
+        Reduce a polygon to at most half its original point count:
+
+        >>> import numpy as np
+        >>> polygon = np.array([[0, 0], [10, 0], [10, 10], [0, 10],
+        ...                     [5, 10], [5, 5], [3, 7], [1, 9]])
+        >>> result = approximate_polygon(polygon, percentage=0.5)
+        >>> result.shape[1]
+        2
+        >>> len(result) <= max(int(len(polygon) * 0.5), 3)
+        True
+
+        Polygon already at or below target — returned unchanged:
+
+        >>> tiny = np.array([[0, 0], [5, 0], [2, 4]])
+        >>> approximate_polygon(tiny, percentage=0.5) is tiny
+        True
     """
 
     if percentage < 0 or percentage >= 1:
         raise ValueError("Percentage must be in the range [0, 1).")
+    if epsilon_step <= 0:
+        raise ValueError("epsilon_step must be positive.")
 
     target_points = max(int(len(polygon) * (1 - percentage)), 3)
 
@@ -78,12 +104,13 @@ def approximate_polygon(
 
     epsilon: float = 0
     approximated_points = polygon
-    while True:
+    while len(approximated_points) > target_points:
         epsilon += epsilon_step
-        new_approximated_points = cv2.approxPolyDP(polygon, epsilon, closed=True)
-        if len(new_approximated_points) > target_points:
-            approximated_points = new_approximated_points
-        else:
+        candidate = np.squeeze(cv2.approxPolyDP(polygon, epsilon, closed=True), axis=1)
+        # Stop before the approximation collapses below a valid polygon; keep the
+        # last result with at least three points.
+        if len(candidate) < 3:
             break
+        approximated_points = candidate
 
-    return cast(npt.NDArray[np.number], np.squeeze(approximated_points, axis=1))
+    return approximated_points

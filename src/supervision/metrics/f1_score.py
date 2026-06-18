@@ -152,6 +152,14 @@ class F1Score(Metric):
     def _compute(
         self, predictions_list: list[Detections], targets_list: list[Detections]
     ) -> F1ScoreResult:
+        """Build per-image stats tuples and delegate to class-level computation.
+
+        Each stats tuple is ``(matches, confidence, class_ids, true_class_ids)``:
+        - Both empty: skip (no information).
+        - Targets empty, predictions present: all predictions are FPs; true_class_ids
+          is ``zeros((0,))``.
+        - Targets present: IoU matching produces ``matches`` array.
+        """
         iou_thresholds = np.linspace(0.5, 0.95, 10)
         stats: list[Any] = []
 
@@ -159,7 +167,22 @@ class F1Score(Metric):
             prediction_contents = self._detections_content(predictions)
             target_contents = self._detections_content(targets)
 
-            if len(targets) > 0:
+            if len(targets) == 0 and len(predictions) > 0:
+                # Only predictions are present (e.g. a background image); every
+                # prediction is a false positive.
+                if predictions.class_id is None or predictions.confidence is None:
+                    continue
+                stats.append(
+                    (
+                        np.zeros(
+                            (len(predictions), iou_thresholds.size), dtype=np.bool_
+                        ),
+                        predictions.confidence,
+                        predictions.class_id,
+                        np.zeros((0,), dtype=np.int32),
+                    )
+                )
+            elif len(targets) > 0:
                 if len(predictions) == 0:
                     stats.append(
                         (
@@ -244,10 +267,23 @@ class F1Score(Metric):
         npt.NDArray[np.float64],
         npt.NDArray[np.int32],
     ]:
+        """Compute F1 scores from concatenated stats across all images.
+
+        ``unique_classes`` is the union of GT and predicted classes so that
+        predictions of classes absent from GT still count as false positives.
+        """
         sorted_indices = np.argsort(-prediction_confidence)
         matches = matches[sorted_indices]
         prediction_class_ids = prediction_class_ids[sorted_indices]
-        unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
+        # Predictions whose class never appears in the ground truth are still
+        # false positives, so include those classes in the confusion matrix
+        # (their true-instance count is zero).
+        unique_classes = np.unique(
+            np.concatenate((true_class_ids, prediction_class_ids))
+        )
+        true_classes, true_counts = np.unique(true_class_ids, return_counts=True)
+        class_counts = np.zeros(unique_classes.shape[0], dtype=int)
+        class_counts[np.searchsorted(unique_classes, true_classes)] = true_counts
 
         # Shape: PxTh,P,C,C -> CxThx3
         confusion_matrix = self._compute_confusion_matrix(
@@ -265,7 +301,13 @@ class F1Score(Metric):
             f1_scores = self._compute_f1(confusion_matrix_merged)
         elif self.averaging_method == AveragingMethod.WEIGHTED:
             class_counts = class_counts.astype(np.float32)
-            f1_scores = np.average(f1_per_class, axis=0, weights=class_counts)
+            if class_counts.sum() == 0:
+                # No ground-truth support (e.g. only false-positive classes, or a
+                # size bucket with predictions but no targets): weighting is
+                # undefined, so report 0 as the empty case did before.
+                f1_scores = np.zeros(f1_per_class.shape[1])
+            else:
+                f1_scores = np.average(f1_per_class, axis=0, weights=class_counts)
 
         return f1_scores, f1_per_class, unique_classes
 
@@ -483,10 +525,12 @@ class F1ScoreResult:
         f1_scores: the F1 scores at each IoU threshold.
             Shape: `(num_iou_thresholds,)`
         f1_per_class: the F1 scores per class and IoU threshold.
-            Shape: `(num_target_classes, num_iou_thresholds)`
+            Shape: `(num_classes, num_iou_thresholds)`
         iou_thresholds: the IoU thresholds used in the calculations.
-        matched_classes: the class IDs of all matched classes.
-            Corresponds to the rows of `f1_per_class`.
+        matched_classes: the class IDs present in either predictions or ground
+            truth. Corresponds to the rows of `f1_per_class`. Classes that
+            appear only in predictions (no ground-truth instances) are
+            included; their per-threshold F1 values will be `0.0`.
         small_objects: the F1 metric results
             for small objects (area < 32²).
         medium_objects: the F1 metric results
