@@ -1,11 +1,13 @@
 ---
 description: "Full version history of the supervision Python library — release notes, breaking changes, new features, and deprecations for every version."
-date_modified: 2026-06-15
+date_modified: 2026-06-16
 ---
 
 # Changelog
 
 ### UnReleased
+
+- Added [#2338](https://github.com/roboflow/supervision/pull/2338): [`sv.KeyPoints.with_nms`](https://supervision.roboflow.com/latest/keypoint/core/#supervision.key_points.core.KeyPoints.with_nms) — non-maximum suppression for keypoint detections. Derives axis-aligned bounding boxes from valid (non-zero and visible) keypoints and applies `box_non_max_suppression`. Requires `detection_confidence`; supports class-aware and class-agnostic modes via `threshold`, `class_agnostic`, and `overlap_metric`.
 
 - Fixed [#2334](https://github.com/roboflow/supervision/pull/2334): `sv.JSONSink` now serializes NumPy scalars (e.g. `np.int64` frame indices) in `custom_data` as JSON numbers instead of raising `TypeError` at close time. File handle is now guaranteed to close even when serialization fails.
 
@@ -18,6 +20,10 @@ date_modified: 2026-06-15
 - Fixed [#2331](https://github.com/roboflow/supervision/pull/2331): `sv.Precision` and `sv.F1Score` now count predictions on background images (empty target set) as false positives, and count predictions of classes absent from ground truth as false positives under `MICRO` and `MACRO` averaging. Previously both edge cases were silently ignored, inflating scores. `WEIGHTED` averaging is unchanged — absent classes retain weight 0, consistent with scikit-learn. Users relying on previous scores should re-evaluate after upgrading; no API change is required.
 
 ### 0.29.0 <small>Jun 15, 2026</small>
+
+- Added [#2314](https://github.com/roboflow/supervision/pull/2314): new cookbook **Oriented Bounding Boxes** showing how an oriented box differs from an axis-aligned one on a marina of boats: DOTA-pretrained detection, the effect on [`with_nms`](https://supervision.roboflow.com/0.29.0/detection/core/#supervision.detection.core.Detections.with_nms) and [`Detections.area`](https://supervision.roboflow.com/0.29.0/detection/core/#supervision.detection.core.Detections.area), and YOLO OBB dataset export.
+
+- Fixed [#2306](https://github.com/roboflow/supervision/pull/2306): [`sv.Detections.area`](https://supervision.roboflow.com/0.29.0/detection/core/#supervision.detection.core.Detections.area) now returns the rotated body's area for detections carrying `data["xyxyxyxy"]` (oriented box corners) instead of the area of the derived axis-aligned bounding box, which overestimates by up to ~2x at 45° rotation. Affects annotator z-ordering inside [`MaskAnnotator`](https://supervision.roboflow.com/0.29.0/detection/annotators/#supervision.annotators.core.MaskAnnotator) and [`HaloAnnotator`](https://supervision.roboflow.com/0.29.0/detection/annotators/#supervision.annotators.core.HaloAnnotator), and any user code that filters or sorts OBB detections by area. The mask path and the non-OBB AABB fallback are unchanged.
 
 - Added [#2277](https://github.com/roboflow/supervision/pull/2277), [#2286](https://github.com/roboflow/supervision/pull/2286): [`sv.VertexEllipseAreaAnnotator`](https://supervision.roboflow.com/0.29.0/keypoint/annotators/#supervision.key_points.annotators.VertexEllipseAreaAnnotator), [`sv.VertexEllipseOutlineAnnotator`](https://supervision.roboflow.com/0.29.0/keypoint/annotators/#supervision.key_points.annotators.VertexEllipseOutlineAnnotator), and [`sv.VertexEllipseHaloAnnotator`](https://supervision.roboflow.com/0.29.0/keypoint/annotators/#supervision.key_points.annotators.VertexEllipseHaloAnnotator) for visualizing keypoint uncertainty as covariance ellipses. Requires models that output keypoint uncertainty (e.g. RF-DETR keypoint models).
 
@@ -42,8 +48,6 @@ date_modified: 2026-06-15
 - Changed [#2312](https://github.com/roboflow/supervision/pull/2312): [`sv.Detections.with_nmm`](https://supervision.roboflow.com/0.29.0/detection/core/#supervision.detection.core.Detections.with_nmm) now computes the merged oriented bounding box as the tightest rectangle at the winner's orientation enclosing all corners from every detection in a merge group.
 
 - Changed [#2325](https://github.com/roboflow/supervision/pull/2325): [`sv.VertexEllipseAreaAnnotator`](https://supervision.roboflow.com/0.29.0/keypoint/annotators/#supervision.key_points.annotators.VertexEllipseAreaAnnotator), [`sv.VertexEllipseOutlineAnnotator`](https://supervision.roboflow.com/0.29.0/keypoint/annotators/#supervision.key_points.annotators.VertexEllipseOutlineAnnotator), and [`sv.VertexEllipseHaloAnnotator`](https://supervision.roboflow.com/0.29.0/keypoint/annotators/#supervision.key_points.annotators.VertexEllipseHaloAnnotator) now draw sigma levels level-by-level (outermost first) across all points, ensuring correct visual layering when ellipses overlap.
-
-- Changed [#2306](https://github.com/roboflow/supervision/pull/2306): [`sv.Detections.area`](https://supervision.roboflow.com/0.29.0/detection/core/#supervision.detection.core.Detections.area) now returns the polygon area of the rotated bounding box (via the shoelace formula) when oriented box coordinates are present, instead of the axis-aligned box area.
 
 - Changed [#2256](https://github.com/roboflow/supervision/pull/2256): [`sv.InferenceSlicer`](https://supervision.roboflow.com/0.29.0/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer) now detects OBB outputs from callbacks and automatically falls back to sequential processing to avoid thread-safety issues when `thread_workers > 1`.
 
