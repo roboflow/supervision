@@ -86,6 +86,18 @@ def test_object_to_pascal_voc_does_not_mutate_inputs():
     )
 
 
+def test_object_to_pascal_voc_does_not_mutate_view_input():
+    """Mutation guard holds when xyxy is a NumPy row-view (the actual bug scenario)."""
+    base = np.array([[10, 20, 30, 40]], dtype=np.float32)
+    xyxy_view = base[0]  # row-view, shares memory with base
+
+    object_to_pascal_voc(xyxy=xyxy_view, name="test", polygon=None)
+
+    assert np.array_equal(base[0], np.array([10, 20, 30, 40], dtype=np.float32)), (
+        "object_to_pascal_voc mutated the source array via a view"
+    )
+
+
 def test_detections_to_pascal_voc_does_not_mutate_detections():
     """Exporting detections must not shift the source xyxy, and must be repeatable."""
     detections = _create_detections(xyxy=[[10, 20, 30, 40]], class_id=[0])

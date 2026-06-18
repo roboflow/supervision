@@ -21,6 +21,31 @@ def object_to_pascal_voc(
     name: str,
     polygon: npt.NDArray[np.number] | None = None,
 ) -> Element:
+    """Build a Pascal VOC ``<object>`` XML element for one detection.
+
+    Coordinates are converted to 1-indexed Pascal VOC convention before writing.
+    The input arrays are never mutated; new arrays are allocated for the offset.
+
+    Args:
+        xyxy: Bounding box in zero-indexed pixel coordinates ``[x1, y1, x2, y2]``.
+            Shape ``(4,)``.
+        name: Class label string written to the ``<name>`` child element.
+        polygon: Optional segmentation polygon in zero-indexed pixel coordinates.
+            Shape ``(N, 2)``.
+
+    Returns:
+        An XML ``Element`` rooted at ``<object>`` containing ``<name>``,
+        ``<bndbox>``, and optionally ``<polygon>`` children.
+
+    Examples:
+        >>> import numpy as np
+        >>> from supervision.dataset.formats.pascal_voc import object_to_pascal_voc
+        >>> elem = object_to_pascal_voc(np.array([0, 0, 9, 9]), name="cat")
+        >>> elem.find("bndbox/xmin").text
+        '1'
+        >>> elem.find("bndbox/xmax").text
+        '10'
+    """
     root = Element("object")
 
     object_name = SubElement(root, "name")
@@ -84,6 +109,11 @@ def detections_to_pascal_voc(
             polygon points to be removed from the input polygon, in the range [0, 1).
     Returns:
         An XML string in Pascal VOC format representing the detections.
+
+    Note:
+        ``detections`` is never mutated by this function; the source ``xyxy``
+        array is unchanged after the call. The function is therefore safe to
+        call multiple times on the same ``Detections`` object.
     """
     height, width, depth = image_shape
 
