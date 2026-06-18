@@ -781,7 +781,8 @@ class HaloAnnotator(BaseAnnotator):
             self.color_lookup if custom_color_lookup is None else custom_color_lookup,
             collect_union=True,
         )
-        assert fmask is not None  # collect_union=True always returns an array
+        if fmask is None:
+            raise ValueError("fmask cannot be None when collect_union=True")
 
         colored_mask = cv2.blur(colored_mask, (self.kernel_size, self.kernel_size))
         colored_mask[fmask] = [0, 0, 0]
