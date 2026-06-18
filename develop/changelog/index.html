@@ -3572,7 +3572,13 @@
 <p>Fixed <a href="https://github.com/roboflow/supervision/pull/2322">#2322</a>: COCO export now preserves all polygon parts for multi-component masks. Previously, only the first polygon was written when a non-crowd mask had disjoint segments; all parts are now included.</p>
 </li>
 <li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2342">#2342</a>: <code>sv.Detections.from_vlm</code> with <code>sv.VLM.GOOGLE_GEMINI_2_0</code>, <code>sv.VLM.GOOGLE_GEMINI_2_5</code>, and <code>sv.VLM.QWEN_2_5_VL</code> no longer raises when the model returns valid JSON of the wrong shape (non-list top-level or non-dict elements). A non-string or malformed <code>"mask"</code> value in Gemini 2.5 output no longer triggers <code>AttributeError</code>; invalid base64 or non-PNG mask data falls back to an empty mask, keeping <code>xyxy</code>, <code>confidence</code>, and <code>masks</code> arrays aligned.</p>
+</li>
+<li>
 <p>Fixed <a href="https://github.com/roboflow/supervision/pull/2333">#2333</a>: <a href="https://supervision.roboflow.com/latest/detection/tools/smoother/#supervision.detection.tools.smoother.DetectionsSmoother"><code>sv.DetectionsSmoother</code></a> no longer raises when smoothing detections without <code>confidence</code>. Confidence is now averaged over the frames that carry it; when tracks in the same frame disagree on confidence presence, <code>confidence</code> is set to <code>None</code> for all smoothed detections.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2341">#2341</a>: <code>sv.DetectionDataset.as_pascal_voc</code> no longer mutates the source <code>Detections.xyxy</code> by the 1-index offset on every call. Previously, repeated exports accumulated a <code>+1</code> shift in the caller's bounding boxes.</p>
 </li>
 <li>
 <p>Fixed <a href="https://github.com/roboflow/supervision/pull/2331">#2331</a>: <code>sv.Precision</code> and <code>sv.F1Score</code> now count predictions on background images (empty target set) as false positives, and count predictions of classes absent from ground truth as false positives under <code>MICRO</code> and <code>MACRO</code> averaging. Previously both edge cases were silently ignored, inflating scores. <code>WEIGHTED</code> averaging is unchanged — absent classes retain weight 0, consistent with scikit-learn. Users relying on previous scores should re-evaluate after upgrading; no API change is required.</p>
@@ -5523,7 +5529,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 18, 2026 11:33:30 UTC">June 18, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 18, 2026 13:31:31 UTC">June 18, 2026</span>
   </span>
 
     
@@ -5551,9 +5557,9 @@
     
     <nav>
       
-        <a href="https://github.com/kounelisagis" class="md-author" title="@kounelisagis">
+        <a href="https://github.com/RubenHaisma" class="md-author" title="@RubenHaisma">
           
-          <img src="https://avatars.githubusercontent.com/u/36283973?v=4&size=72" alt="kounelisagis">
+          <img src="https://avatars.githubusercontent.com/u/74268046?v=4&size=72" alt="RubenHaisma">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -5561,14 +5567,14 @@
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/kounelisagis" class="md-author" title="@kounelisagis">
+          
+          <img src="https://avatars.githubusercontent.com/u/36283973?v=4&size=72" alt="kounelisagis">
+        </a>
+      
         <a href="https://github.com/SkalskiP" class="md-author" title="@SkalskiP">
           
           <img src="https://avatars.githubusercontent.com/u/26109316?v=4&size=72" alt="SkalskiP">
-        </a>
-      
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
-          
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
       
