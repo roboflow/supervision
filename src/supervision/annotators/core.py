@@ -361,24 +361,41 @@ class OrientedBoxAnnotator(BaseAnnotator):
         return scene
 
 
+# --- Shared mask-painting utilities ---
 def _paint_masks_by_area(
     canvas: npt.NDArray[np.uint8],
     detections: Detections,
     color: Color | ColorPalette,
     color_lookup: ColorLookup | npt.NDArray[np.int_],
-    union: npt.NDArray[np.bool_] | None = None,
-) -> None:
-    """Paint each detection's mask into `canvas` in descending-area order, so
-    smaller masks are drawn on top of larger ones.
+    collect_union: bool = False,
+) -> npt.NDArray[np.bool_] | None:
+    """Paint each detection's mask into `canvas` in descending-area order.
 
-    `CompactMask` detections are painted into their bounding-box crop only,
-    avoiding a full `(H, W)` allocation per mask; dense masks fall back to
-    full-frame boolean indexing. When `union` is provided, the union of all
-    masks is accumulated into it in place.
+    Smaller masks are drawn on top of larger ones. `CompactMask` detections
+    are painted into their bounding-box crop only, avoiding a full `(H, W)`
+    allocation per mask; dense masks fall back to full-frame boolean indexing.
+
+    Args:
+        canvas: BGR image array painted in place. Shape ``(H, W, 3)``.
+        detections: Detections whose masks to paint. Returns immediately
+            without modifying `canvas` when ``detections.mask`` is ``None``.
+        color: Single color or palette used to resolve each detection's color.
+        color_lookup: Strategy for mapping colors to detection indices.
+        collect_union: When ``True``, allocate and return a ``(H, W)``
+            boolean array that accumulates the union of all painted masks
+            (useful for callers like `HaloAnnotator` that need the combined
+            mask footprint). When ``False`` (default), returns ``None``.
+
+    Returns:
+        A ``(H, W)`` boolean union array when ``collect_union=True``,
+        otherwise ``None``.
     """
     masks = detections.mask
     if masks is None:
-        return
+        return None
+    union: npt.NDArray[np.bool_] | None = (
+        np.zeros(canvas.shape[:2], dtype=bool) if collect_union else None
+    )
     compact_mask = masks if isinstance(masks, CompactMask) else None
     for detection_idx in np.flip(np.argsort(detections.area)):
         color_bgr = resolve_color(
@@ -400,6 +417,7 @@ def _paint_masks_by_area(
             canvas[mask] = color_bgr
             if union is not None:
                 union |= mask
+    return union
 
 
 class MaskAnnotator(BaseAnnotator):
@@ -719,7 +737,7 @@ class HaloAnnotator(BaseAnnotator):
         Annotates the given scene with halos based on the provided detections.
 
         Args:
-            scene: The image where masks will be drawn.
+            scene: The image where the halo effect will be applied.
                 `ImageType` is a flexible type, accepting either `numpy.ndarray`
                 or `PIL.Image.Image`.
             detections: Object detections to annotate.
@@ -737,6 +755,7 @@ class HaloAnnotator(BaseAnnotator):
             >>> image = np.zeros((100, 100, 3), dtype=np.uint8)
             >>> detections = sv.Detections(
             ...     xyxy=np.array([[20, 20, 80, 80]]),
+            ...     mask=np.zeros((1, 100, 100), dtype=bool),
             ...     class_id=np.array([0])
             ... )
             >>> halo_annotator = sv.HaloAnnotator()
@@ -755,14 +774,14 @@ class HaloAnnotator(BaseAnnotator):
         if detections.mask is None:
             return scene
         colored_mask = np.zeros_like(scene, dtype=np.uint8)
-        fmask = np.zeros((scene.shape[0], scene.shape[1]), dtype=bool)
-        _paint_masks_by_area(
+        fmask = _paint_masks_by_area(
             colored_mask,
             detections,
             self.color,
             self.color_lookup if custom_color_lookup is None else custom_color_lookup,
-            union=fmask,
+            collect_union=True,
         )
+        assert fmask is not None  # collect_union=True always returns an array
 
         colored_mask = cv2.blur(colored_mask, (self.kernel_size, self.kernel_size))
         colored_mask[fmask] = [0, 0, 0]
