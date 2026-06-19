@@ -1,5 +1,3 @@
-from contextlib import ExitStack as DoesNotRaise
-
 import numpy as np
 import pytest
 
