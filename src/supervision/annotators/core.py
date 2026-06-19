@@ -89,7 +89,7 @@ class _BaseLabelAnnotator(BaseAnnotator):
         color_lookup: The method used to determine the color of the label.
         text_color: The color to use for the label text.
         text_padding: The padding around the label text, in pixels.
-        text_anchor: The position of the text relative to the detection
+        text_position: The position of the text relative to the detection
             bounding box.
         text_offset: A tuple of 2D coordinates `(x, y)` to
             offset the text position from the anchor point, in pixels.
@@ -444,6 +444,8 @@ class MaskAnnotator(BaseAnnotator):
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Color | ColorPalette = _normalize_color_input(color)
+        if not 0.0 <= opacity <= 1.0:
+            raise ValueError("Opacity must be between 0.0 and 1.0")
         self.opacity = opacity
         self.color_lookup: ColorLookup = color_lookup
 
@@ -624,6 +626,8 @@ class ColorAnnotator(BaseAnnotator):
         """
         self.color: Color | ColorPalette = _normalize_color_input(color)
         self.color_lookup: ColorLookup = color_lookup
+        if not 0.0 <= opacity <= 1.0:
+            raise ValueError("Opacity must be between 0.0 and 1.0")
         self.opacity = opacity
 
     @ensure_cv2_image_for_class_method
@@ -722,6 +726,8 @@ class HaloAnnotator(BaseAnnotator):
                 Options are `INDEX`, `CLASS`, `TRACK`.
         """
         self.color: Color | ColorPalette = _normalize_color_input(color)
+        if not 0.0 <= opacity <= 1.0:
+            raise ValueError("Opacity must be between 0.0 and 1.0")
         self.opacity = opacity
         self.color_lookup: ColorLookup = color_lookup
         self.kernel_size: int = kernel_size
