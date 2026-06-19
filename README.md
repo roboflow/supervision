@@ -24,7 +24,8 @@
 
 </div>
 
-## 📑 Table of Contents
+<details>
+<summary><strong>📑 Table of Contents</strong></summary>
 
 - [👋 Hello](#-hello)
 - [💻 Install](#-install)
@@ -36,6 +37,8 @@
 - [💜 Built with Supervision](#-built-with-supervision)
 - [📚 Documentation](#-documentation)
 - [🏆 Contribution](#-contribution)
+
+</details>
 
 ## 👋 Hello
 
