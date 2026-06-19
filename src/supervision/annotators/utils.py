@@ -207,8 +207,15 @@ def _get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
     return color
 
 
-def get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
-    return _get_color_by_index(color=color, idx=idx)
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_get_color_by_index,
+    deprecated_in="0.30.0",
+    remove_in="0.33.0",
+)
+def get_color_by_index(  # type: ignore[return]
+    color: Color | ColorPalette, idx: int
+) -> Color:
+    void(color, idx)
 
 
 def _resolve_detection_color(

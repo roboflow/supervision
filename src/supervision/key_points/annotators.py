@@ -74,7 +74,7 @@ class VertexAnnotator(BaseKeyPointAnnotator):
         Args:
             color: The color or color palette to use for
                 annotating key points.
-            radius: The radius of the circles used to represent the key points.
+            radius: Radius of the drawn key point circles.
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX` (per-skeleton index), `CLASS`
                 (per class_id), and `KEYPOINT` (per keypoint index within
@@ -169,8 +169,9 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
     ) -> None:
         """
         Args:
-            color: The color or color palette to use for the edges.
-            thickness: The thickness of the edges.
+            color: The color or color palette to use for
+                annotating edges.
+            thickness: Thickness of the edge lines.
             edges: The edges to draw. If set to ``None``, will attempt to
                 auto-detect the skeleton by vertex count. A
                 ``Sequence[tuple[int, int]]`` applies a single skeleton to
@@ -773,7 +774,7 @@ class VertexLabelAnnotator:
         border_radius: int = 0,
         smart_position: bool = False,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-    ):
+    ) -> None:
         """
         Args:
             color: The color to use for each keypoint label. A single
@@ -785,12 +786,14 @@ class VertexLabelAnnotator:
             text_color: The color to use for the label text. Accepts the
                 same types as ``color``. Passing a ``list[Color]`` is
                 **deprecated since 0.30.0** (removed in 0.33.0).
-            text_scale: The scale of the text.
-            text_thickness: The thickness of the text.
-            text_padding: The padding around the text.
-            border_radius: The radius of the rounded corners of the boxes.
-                Set to a high value to produce circles.
-            smart_position: Spread out the labels to avoid overlap.
+            text_scale: Font scale for the text.
+            text_thickness: Thickness of the text characters.
+            text_padding: Padding around the text within its
+                background box.
+            border_radius: The radius to apply round edges. If the
+                selected value is higher than the lower dimension,
+                width or height, is clipped.
+            smart_position: Spread out the labels to avoid overlapping.
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX` (per-skeleton index), `CLASS`
                 (per class_id), and `KEYPOINT` (per keypoint index within
@@ -936,12 +939,12 @@ class VertexLabelAnnotator:
                 all_anchors.append(anchor)
                 all_labels.append(instance_labels[j])
                 all_colors.append(
-                    self._resolve_single_color(
+                    self._resolve_label_color_legacy(
                         self.color, key_points, i, j, points_count
                     )
                 )
                 all_text_colors.append(
-                    self._resolve_single_color(
+                    self._resolve_label_color_legacy(
                         self.text_color, key_points, i, j, points_count
                     )
                 )
@@ -1041,7 +1044,7 @@ class VertexLabelAnnotator:
             )
         return resolved
 
-    def _resolve_single_color(
+    def _resolve_label_color_legacy(
         self,
         color_input: Color | list[Color] | ColorPalette,
         key_points: KeyPoints,
@@ -1049,7 +1052,29 @@ class VertexLabelAnnotator:
         keypoint_idx: int,
         points_count: int,
     ) -> Color:
-        """Return the resolved color for a single keypoint label."""
+        """Backward-compatibility shim for resolving a label color.
+
+        Handles the deprecated ``list[Color]`` input type by indexing
+        directly into the list. For ``Color`` and ``ColorPalette`` inputs,
+        delegates to ``_resolve_keypoint_color``.
+
+        .. deprecated:: 0.30.0
+            When ``list[Color]`` support is removed in 0.33.0, delete this
+            method and call ``_resolve_keypoint_color`` directly. The call
+            sites in ``annotate()`` should change from::
+
+                self._resolve_label_color_legacy(self.color, ...)
+
+            to::
+
+                _resolve_keypoint_color(
+                    color=self.color,
+                    color_lookup=self.color_lookup,
+                    key_points=key_points,
+                    instance_idx=i,
+                    keypoint_idx=keypoint_idx,
+                )
+        """
         if isinstance(color_input, list):
             if len(color_input) != points_count:
                 raise ValueError(

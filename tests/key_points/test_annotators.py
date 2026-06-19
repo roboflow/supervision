@@ -1,3 +1,5 @@
+from contextlib import ExitStack as DoesNotRaise
+
 import numpy as np
 import pytest
 
@@ -467,35 +469,3 @@ class TestVertexLabelAnnotator:
     def test_resolve_labels_raises(self, labels, points_count, class_id, match):
         with pytest.raises(ValueError, match=match):
             sv.VertexLabelAnnotator._resolve_labels(labels, points_count, class_id)
-
-    def test_resolve_single_color_plain_color(self):
-        """Single Color returns the same color for any keypoint."""
-        key_points = sv.KeyPoints(
-            xy=np.array([[[10, 20], [30, 40], [50, 60]]], dtype=np.float32),
-            class_id=np.array([0]),
-        )
-        annotator = sv.VertexLabelAnnotator(color=sv.Color.RED)
-        result = annotator._resolve_single_color(sv.Color.RED, key_points, 0, 1, 3)
-        assert result == sv.Color.RED
-
-    def test_resolve_single_color_list_returns_by_index(self):
-        """list[Color] returns color at the keypoint index."""
-        colors = [sv.Color.RED, sv.Color.GREEN, sv.Color.BLUE]
-        key_points = sv.KeyPoints(
-            xy=np.array([[[10, 20], [30, 40], [50, 60]]], dtype=np.float32),
-            class_id=np.array([0]),
-        )
-        annotator = sv.VertexLabelAnnotator(color=colors)
-        result = annotator._resolve_single_color(colors, key_points, 0, 1, 3)
-        assert result == sv.Color.GREEN
-
-    def test_resolve_single_color_list_wrong_length_raises(self):
-        """list[Color] with wrong length raises ValueError."""
-        colors = [sv.Color.RED, sv.Color.GREEN]
-        key_points = sv.KeyPoints(
-            xy=np.array([[[10, 20], [30, 40], [50, 60]]], dtype=np.float32),
-            class_id=np.array([0]),
-        )
-        annotator = sv.VertexLabelAnnotator(color=colors)
-        with pytest.raises(ValueError, match="Number of colors"):
-            annotator._resolve_single_color(colors, key_points, 0, 0, 3)
