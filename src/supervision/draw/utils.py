@@ -133,6 +133,18 @@ def draw_rounded_rectangle(
     width, height = x2 - x1, y2 - y1
     border_radius = min(border_radius, min(width, height) // 2)
 
+    if border_radius <= 0:
+        # square corners: a single fill rectangle (the common default), rather
+        # than two rectangles plus four zero-radius corner circles
+        cv2.rectangle(
+            img=scene,
+            pt1=(x1, y1),
+            pt2=(x2, y2),
+            color=color.as_bgr(),
+            thickness=-1,
+        )
+        return scene
+
     rectangle_coordinates = [
         ((x1 + border_radius, y1), (x2 - border_radius, y2)),
         ((x1, y1 + border_radius), (x2, y2 - border_radius)),

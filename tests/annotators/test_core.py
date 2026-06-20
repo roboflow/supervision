@@ -665,6 +665,24 @@ class TestDotAnnotator:
 class TestLabelAnnotator:
     """Tests for LabelAnnotator class"""
 
+    @pytest.mark.parametrize("border_radius", [0, -3])
+    def test_draw_rounded_rectangle_square_matches_plain_rectangle(
+        self, border_radius: int
+    ) -> None:
+        """A non-positive radius fills the same pixels as a plain rectangle."""
+        scene = np.full((100, 120, 3), 9, dtype=np.uint8)
+
+        result = LabelAnnotator.draw_rounded_rectangle(
+            scene=scene.copy(),
+            xyxy=(10, 20, 90, 70),
+            color=(0, 0, 255),
+            border_radius=border_radius,
+        )
+
+        expected = scene.copy()
+        expected[20:71, 10:91] = (0, 0, 255)
+        assert np.array_equal(result, expected)
+
     def test_annotate_with_no_detections(self, test_image):
         """Test that annotate method returns unmodified image when no detections"""
         detections = Detections.empty()
