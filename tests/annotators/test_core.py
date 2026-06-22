@@ -672,7 +672,7 @@ class TestLabelAnnotator:
             pytest.param(-3, id="radius-negative"),
         ],
     )
-    def test_draw_rounded_rectangle_square_matches_plain_rectangle(
+    def testdraw_rounded_rectangle_square_matches_plain_rectangle(
         self, border_radius: int
     ) -> None:
         """Non-positive radius fills the same pixels as a plain rectangle.
@@ -682,7 +682,7 @@ class TestLabelAnnotator:
         """
         scene = np.full((100, 120, 3), 9, dtype=np.uint8)
 
-        result = LabelAnnotator._draw_rounded_rectangle(
+        result = LabelAnnotator.draw_rounded_rectangle(
             scene=scene.copy(),
             xyxy=(10, 20, 90, 70),
             color=(0, 0, 255),
@@ -693,7 +693,7 @@ class TestLabelAnnotator:
         expected[20:71, 10:91] = (0, 0, 255)
         assert np.array_equal(result, expected)
 
-    def test_draw_rounded_rectangle_clamped_to_zero_acts_as_square(self) -> None:
+    def testdraw_rounded_rectangle_clamped_to_zero_acts_as_square(self) -> None:
         """Positive border_radius clamped to 0 by a degenerate box draws square corners.
 
         1px-wide box: min(10, 1 // 2) = min(10, 0) = 0 → fast path fires even
@@ -701,7 +701,7 @@ class TestLabelAnnotator:
         """
         scene = np.full((100, 120, 3), 9, dtype=np.uint8)
 
-        result = LabelAnnotator._draw_rounded_rectangle(
+        result = LabelAnnotator.draw_rounded_rectangle(
             scene=scene.copy(),
             xyxy=(10, 20, 11, 70),
             color=(0, 0, 255),

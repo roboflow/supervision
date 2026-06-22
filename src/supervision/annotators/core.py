@@ -1420,7 +1420,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
 
             box_xyxy = label_property[:4].astype(int)
 
-            self._draw_rounded_rectangle(
+            self.draw_rounded_rectangle(
                 scene=scene,
                 xyxy=box_xyxy,
                 color=background_color.as_bgr(),
@@ -1467,7 +1467,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
                 current_y += text_h + self.text_padding  # Move to next line position
 
     @staticmethod
-    def _draw_rounded_rectangle(
+    def draw_rounded_rectangle(
         scene: npt.NDArray[np.uint8],
         xyxy: tuple[int, int, int, int],
         color: tuple[int, int, int],
