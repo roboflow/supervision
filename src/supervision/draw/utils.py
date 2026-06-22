@@ -124,7 +124,9 @@ def draw_rounded_rectangle(
         scene: The image on which the rounded rectangle will be drawn.
         rect: The rectangle to be drawn.
         color: The color of the rounded rectangle.
-        border_radius: The radius of the corner rounding.
+        border_radius: The radius of the corner rounding in pixels. Values <= 0
+            (or values clamped to 0 when the rectangle is too small) draw a
+            plain filled rectangle with square corners as a fast path.
 
     Returns:
         The image with the rounded rectangle drawn on it.
