@@ -94,12 +94,12 @@ build = [
 ]
 
 [tool.setuptools]
-include-package-data = false
-package-data.supervision = [ "py.typed" ]
 packages.find.where = [ "src" ]
 packages.find.include = [ "supervision*" ]
-
+include-package-data = false
+package-data.supervision = [ "py.typed" ]
 # exclude = [ "docs*", "tests*", "examples*" ]
+
 [tool.ruff]
 target-version = "py39"
 line-length = 88
@@ -178,17 +178,17 @@ lint.pydocstyle.convention = "google"
 lint.pylint.max-args = 20
 
 [tool.codespell]
+ignore-words-list = "STrack,sTrack,strack"
 skip = "*.ipynb"
 count = true
 quiet-level = 3
-ignore-words-list = "STrack,sTrack,strack"
 
 [tool.mypy]
-python_version = "3.9"
-ignore_missing_imports = false
-explicit_package_bases = true
-strict = true
 mypy_path = "src"
+explicit_package_bases = true
+ignore_missing_imports = false
+python_version = "3.9"
+strict = true
 overrides = [
   # exclude = [
   #  "docs",
@@ -197,18 +197,18 @@ overrides = [
   #  "setup.py",
   # ]
   { module = [
-    "tests.*",
     "examples.*",
+    "tests.*",
   ], ignore_errors = true },
 ]
 
 [tool.pytest]
+ini_options.norecursedirs = [ ".git", ".venv", "build", "dist", "docs", "examples", "notebooks" ]
 ini_options.addopts = [
   "--doctest-modules",
   "--color=yes",
 ]
 ini_options.doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE"
-ini_options.norecursedirs = [ "examples", "docs", "notebooks", ".venv", ".git", "dist", "build" ]
 
 [tool.autoflake]
 check = true
