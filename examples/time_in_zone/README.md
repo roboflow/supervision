@@ -4,10 +4,7 @@
 
 ## 👋 hello
 
-Practical demonstration on leveraging computer vision for analyzing wait times and
-monitoring the duration that objects or individuals spend in predefined areas of video
-frames. This example project, perfect for retail analytics or traffic management
-applications.
+Practical demonstration on leveraging computer vision for analyzing wait times and monitoring the duration that objects or individuals spend in predefined areas of video frames. This example project, perfect for retail analytics or traffic management applications.
 
 https://github.com/roboflow/supervision/assets/26109316/d051cc8a-dd15-41d4-aa36-d38b86334c39
 
@@ -20,17 +17,17 @@ https://github.com/roboflow/supervision/assets/26109316/d051cc8a-dd15-41d4-aa36-
     cd supervision/examples/time_in_zone
     ```
 
-- setup python environment and activate it \[optional\]
+- setup python environment and activate it [optional]
 
     ```bash
-    python3 -m venv venv
-    source venv/bin/activate
+    uv venv
+    source .venv/bin/activate
     ```
 
 - install required dependencies
 
     ```bash
-    pip install -r requirements.txt
+    uv pip install -r requirements.txt
     ```
 
 ## 🛠 scripts
@@ -59,9 +56,7 @@ python scripts/download_from_youtube.py \
 
 ### `stream_from_file`
 
-This script allows you to stream video files from a directory. It's an awesome way to
-mock a live video stream for local testing. Video will be streamed in a loop under
-`rtsp://localhost:8554/live0.stream` URL. This script requires docker to be installed.
+This script allows you to stream video files from a directory. It's an awesome way to mock a live video stream for local testing. Video will be streamed in a loop under `rtsp://localhost:8554/live0.stream` URL. This script requires docker to be installed.
 
 - `--video_directory`: Directory containing video files to stream.
 - `--number_of_streams`: Number of video files to stream.
@@ -80,21 +75,13 @@ python scripts/stream_from_file.py \
 
 ### `draw_zones`
 
-If you want to test zone time in zone analysis on your own video, you can use this
-script to design custom zones and save results as a JSON file. The script will open a
-window where you can draw polygons on the source image or video file. The polygons will
-be saved as a JSON file.
+If you want to test zone time in zone analysis on your own video, you can use this script to design custom zones and save results as a JSON file. The script will open a window where you can draw polygons on the source image or video file. The polygons will be saved as a JSON file.
 
 - `--source_path`: Path to the source image or video file for drawing polygons.
-
 - `--zone_configuration_path`: Path where the polygon annotations will be saved as a JSON file.
-
 - `enter` - finish drawing the current polygon.
-
 - `escape` - cancel drawing the current polygon.
-
 - `q` - quit the drawing window.
-
 - `s` - save zone configuration to a JSON file.
 
 ```bash
@@ -128,10 +115,11 @@ Script to run object detection on a video file using the Roboflow Inference mode
 python inference_file_example.py \
     --zone_configuration_path "data/checkout/config.json" \
     --source_video_path "data/checkout/video.mp4" \
-    --model_id "yolov8x-640" \
-    --classes 0 \
+    --model_id "rfdetr-medium" \
+    --classes "[0]" \
     --confidence_threshold 0.3 \
-    --iou_threshold 0.7
+    --iou_threshold 0.7 \
+    --roboflow_api_key "ROBOFLOWS_API_KEY"
 ```
 
 https://github.com/roboflow/supervision/assets/26109316/d051cc8a-dd15-41d4-aa36-d38b86334c39
@@ -140,17 +128,18 @@ https://github.com/roboflow/supervision/assets/26109316/d051cc8a-dd15-41d4-aa36-
 python inference_file_example.py \
     --zone_configuration_path "data/traffic/config.json" \
     --source_video_path "data/traffic/video.mp4" \
-    --model_id "yolov8x-640" \
-    --classes 2 5 6 7 \
+    --model_id "rfdetr-medium" \
+    --classes "[2, 5, 6, 7]" \
     --confidence_threshold 0.3 \
-    --iou_threshold 0.7
+    --iou_threshold 0.7 \
+    --roboflow_api_key "ROBOFLOWS_API_KEY"
 ```
 
 https://github.com/roboflow/supervision/assets/26109316/5ec896d7-4b39-4426-8979-11e71666878b
 
 ### `inference_stream_example`
 
-Script to run object detection on a video stream using the Roboflow Inference model.
+Script to run object detection on an RTSP stream using Roboflow Inference model.
 
 - `--zone_configuration_path`: Path to the zone configuration JSON file.
 - `--rtsp_url`: Complete RTSP URL for the video stream.
@@ -163,8 +152,8 @@ Script to run object detection on a video stream using the Roboflow Inference mo
 python inference_stream_example.py \
     --zone_configuration_path "data/checkout/config.json" \
     --rtsp_url "rtsp://localhost:8554/live0.stream" \
-    --model_id "yolov8x-640" \
-    --classes 0 \
+    --model_id "rfdetr-medium" \
+    --classes "[0]" \
     --confidence_threshold 0.3 \
     --iou_threshold 0.7
 ```
@@ -173,14 +162,85 @@ python inference_stream_example.py \
 python inference_stream_example.py \
     --zone_configuration_path "data/traffic/config.json" \
     --rtsp_url "rtsp://localhost:8554/live0.stream" \
-    --model_id "yolov8x-640" \
-    --classes 2 5 6 7 \
+    --model_id "rfdetr-medium" \
+    --classes "[2, 5, 6, 7]" \
     --confidence_threshold 0.3 \
     --iou_threshold 0.7
 ```
 
-<details>
-<summary>👉 show ultralytics examples</summary>
+### `rfdeter_file_example`
+
+Script to run object detection on a video file using the RF-DETR model.
+
+- `--zone_configuration_path`: Path to the zone configuration JSON file.
+- `--source_video_path`: Path to the source video file.
+- `--model_size`: Size of RF-DETR model ('nano', 'small', 'medium', 'base' or 'large'). Default is 'medium'.
+- `--device`: Computation device ('cpu', 'mps' or 'cuda'). Default is 'cpu'.
+- `--classes`: List of class IDs to track. If empty, all classes are tracked.
+- `--confidence_threshold`: Confidence level for detections (`0` to `1`). Default is `0.3`.
+- `--iou_threshold`: IOU threshold for non-max suppression. Default is `0.7`.
+- `--resolution`: Resolution for the model input. Default is `640`.
+
+```bash
+python rfdetr_file_example.py \
+    --zone_configuration_path "data/checkout/config.json" \
+    --source_video_path "data/checkout/video.mp4" \
+    --model_size "medium" \
+    --device="cpu" \
+    --classes "[1]" \
+    --confidence_threshold 0.3 \
+    --iou_threshold 0.7 \
+    --resolution 640
+```
+
+```bash
+python rfdetr_file_example.py \
+    --zone_configuration_path "data/traffic/config.json" \
+    --source_video_path "data/traffic/video.mp4" \
+    --model_size "medium" \
+    --device="cpu" \
+    --classes "[3, 6, 7, 8]" \
+    --confidence_threshold 0.3 \
+    --iou_threshold 0.7 \
+    --resolution 640
+```
+
+### `rfdeter_stream_example`
+
+Script to run object detection on an RTSP stream using the RF-DETR model.
+
+- `--zone_configuration_path`: Path to the zone-configuration JSON file defining the polygons.
+- `--rtsp_url`: Complete RTSP URL of the live video stream.
+- `--model_size`: RF-DETR backbone size to load — choose from 'nano', 'small', 'medium', 'base', or 'large' (default 'medium').
+- `--device`: Compute device to run the model on ('cpu', 'mps', or 'cuda'; default 'cpu').
+- `--classes`: Space-separated list of class IDs to track. Leave empty to track all classes.
+- `--confidence_threshold`: Minimum confidence score for a detection to be kept, range 0-1 (default 0.3).
+- `--iou_threshold`: IOU threshold applied during non-max suppression (default 0.7).
+- `--resolution`: Shortest-side input resolution supplied to the model. The script will round it to the nearest valid multiple (default 640).
+
+```bash
+python rfdetr_stream_example.py \
+    --zone_configuration_path "data/checkout/config.json" \
+    --rtsp_url "rtsp://localhost:8554/live0.stream" \
+    --model_size "medium" \
+    --device "cpu" \
+    --classes "[1]" \
+    --confidence_threshold 0.3 \
+    --iou_threshold 0.7 \
+    --resolution 640
+```
+
+```bash
+python rfdetr_stream_example.py \
+    --zone_configuration_path "data/traffic/config.json" \
+    --rtsp_url "rtsp://localhost:8554/live0.stream" \
+    --model_size "medium" \
+    --device "cpu" \
+    --classes "[3, 6, 7, 8]" \
+    --confidence_threshold 0.3 \
+    --iou_threshold 0.7 \
+    --resolution 640
+```
 
 ### `ultralytics_file_example`
 
@@ -200,7 +260,7 @@ python ultralytics_file_example.py \
     --source_video_path "data/checkout/video.mp4" \
     --weights "yolov8x.pt" \
     --device "cpu" \
-    --classes 0 \
+    --classes "[0]" \
     --confidence_threshold 0.3 \
     --iou_threshold 0.7
 ```
@@ -211,7 +271,7 @@ python ultralytics_file_example.py \
     --source_video_path "data/traffic/video.mp4" \
     --weights "yolov8x.pt" \
     --device "cpu" \
-    --classes 2 5 6 7 \
+    --classes "[2, 5, 6, 7]" \
     --confidence_threshold 0.3 \
     --iou_threshold 0.7
 ```
@@ -234,7 +294,7 @@ python ultralytics_stream_example.py \
     --rtsp_url "rtsp://localhost:8554/live0.stream" \
     --weights "yolov8x.pt" \
     --device "cpu" \
-    --classes 0 \
+    --classes "[0]" \
     --confidence_threshold 0.3 \
     --iou_threshold 0.7
 ```
@@ -245,7 +305,7 @@ python ultralytics_stream_example.py \
     --rtsp_url "rtsp://localhost:8554/live0.stream" \
     --weights "yolov8x.pt" \
     --device "cpu" \
-    --classes 2 5 6 7 \
+    --classes "[2, 5, 6, 7]" \
     --confidence_threshold 0.3 \
     --iou_threshold 0.7
 ```
@@ -256,12 +316,6 @@ python ultralytics_stream_example.py \
 
 This demo integrates two main components, each with its own licensing:
 
-- ultralytics: The object detection model used in this demo, YOLOv8, is distributed
-    under the [AGPL-3.0 license](https://github.com/ultralytics/ultralytics/blob/main/LICENSE).
-    You can find more details about this license here.
+- ultralytics: The object detection model used in this demo, YOLOv8, is distributed under the [AGPL-3.0 license](https://github.com/ultralytics/ultralytics/blob/main/LICENSE). You can find more details about this license here.
 
-- supervision: The analytics code that powers the zone-based analysis in this demo is
-    based on the Supervision library, which is licensed under the
-    [MIT license](https://github.com/roboflow/supervision/blob/develop/LICENSE.md). This
-    makes the Supervision part of the code fully open source and freely usable in your
-    projects.
+- supervision: The analytics code that powers the zone-based analysis in this demo is based on the Supervision library, which is licensed under the [MIT license](https://github.com/roboflow/supervision/blob/develop/LICENSE.md). This makes the Supervision part of the code fully open source and freely usable in your projects.
