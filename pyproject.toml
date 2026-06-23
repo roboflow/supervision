@@ -4,7 +4,7 @@ requires = [ "setuptools>=61" ]
 
 [project]
 name = "supervision"
-version = "0.29.0.dev"
+version = "0.29.1"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 readme = "README.md"
 keywords = [
@@ -53,7 +53,7 @@ dependencies = [
   "numpy>=1.21.2",
   "opencv-python>=4.5.5.64",
   "pillow>=9.4",
-  "pydeprecate>=0.7,<0.9",
+  "pydeprecate>=0.9,<0.10",
   "pyyaml>=5.3",
   "requests>=2.26",
   "scipy>=1.10",

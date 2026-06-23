@@ -10,6 +10,7 @@ from supervision.detection.utils.boxes import (
     denormalize_boxes,
     move_boxes,
     scale_boxes,
+    xyxyxyxy_to_xyxy,
 )
 
 
@@ -232,3 +233,40 @@ def test_denormalize_boxes(
             normalization_factor=normalization_factor,
         )
         assert np.allclose(result, expected_result)
+
+
+@pytest.mark.parametrize(
+    ("corners", "expected"),
+    [
+        pytest.param(
+            np.array([[[0, 0], [10, 0], [10, 5], [0, 5]]], dtype=np.float32),
+            np.array([[0, 0, 10, 5]], dtype=np.float32),
+            id="single-axis-aligned",
+        ),
+        pytest.param(
+            np.array(
+                [
+                    [[0, 0], [10, 0], [10, 5], [0, 5]],
+                    [[5, 5], [15, 5], [15, 10], [5, 10]],
+                ],
+                dtype=np.float32,
+            ),
+            np.array([[0, 0, 10, 5], [5, 5, 15, 10]], dtype=np.float32),
+            id="batch-axis-aligned",
+        ),
+        pytest.param(
+            np.array([[[5, 0], [10, 5], [5, 10], [0, 5]]], dtype=np.float32),
+            np.array([[0, 0, 10, 10]], dtype=np.float32),
+            id="rotated-diamond",
+        ),
+        pytest.param(
+            np.empty((0, 4, 2), dtype=np.float32),
+            np.empty((0, 4), dtype=np.float32),
+            id="empty-input",
+        ),
+    ],
+)
+def test_xyxyxyxy_to_xyxy(corners: np.ndarray, expected: np.ndarray) -> None:
+    """Converts OBB corners to axis-aligned bounding boxes."""
+    result = xyxyxyxy_to_xyxy(corners)
+    assert np.allclose(result, expected, atol=1e-5)

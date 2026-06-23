@@ -395,6 +395,53 @@ def test_json_sink(
     assert_json_equal(file_name, expected_result)
 
 
+@pytest.mark.parametrize(
+    ("scalar", "expected"),
+    [
+        pytest.param(np.int64(7), 7, id="np_int64"),
+        pytest.param(np.float32(0.5), pytest.approx(0.5), id="np_float32"),
+        pytest.param(np.float64(1.5), pytest.approx(1.5), id="np_float64"),
+        pytest.param(np.int32(3), 3, id="np_int32"),
+        pytest.param(np.bool_(True), True, id="np_bool"),
+    ],
+)
+def test_json_sink_serializes_numpy_scalar_custom_data(
+    tmp_path: Any, scalar: Any, expected: Any
+) -> None:
+    """NumPy scalar in custom_data serializes as a JSON number or boolean."""
+    file_name = str(tmp_path / "test_numpy_scalar.json")
+    detections = sv.Detections(
+        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        class_id=np.array([0]),
+        confidence=np.array([0.9]),
+    )
+    with sv.JSONSink(file_name) as sink:
+        sink.append(detections, custom_data={"value": scalar})
+    with open(file_name) as f:
+        data = json.load(f)
+    assert data[0]["value"] == expected
+
+
+def test_json_sink_serializes_nested_numpy_array_custom_data(tmp_path: Any) -> None:
+    """NumPy array nested inside a custom_data dict value serializes as a JSON array."""
+    file_name = str(tmp_path / "test_nested_array.json")
+    detections = sv.Detections(
+        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+        class_id=np.array([0]),
+    )
+    with sv.JSONSink(file_name) as sink:
+        sink.append(detections, custom_data={"meta": {"arr": np.array([1, 2, 3])}})
+    with open(file_name) as f:
+        data = json.load(f)
+    assert data[0]["meta"]["arr"] == [1, 2, 3]
+
+
+def test_json_default_raises_for_unserializable_type() -> None:
+    """_json_default raises TypeError for non-numpy objects."""
+    with pytest.raises(TypeError, match="is not JSON serializable"):
+        sv.JSONSink._json_default(object())
+
+
 def assert_json_equal(file_name, expected_rows):
     with open(file_name) as file:
         data = json.load(file)

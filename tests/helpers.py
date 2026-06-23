@@ -80,6 +80,8 @@ def _create_key_points(
     xy: list[list[list[float]]],
     confidence: list[list[float]] | None = None,
     class_id: list[int] | None = None,
+    detection_confidence: list[float] | None = None,
+    visible: list[list[bool]] | None = None,
     data: dict[str, list[Any]] | None = None,
 ) -> KeyPoints:
     """
@@ -91,8 +93,9 @@ def _create_key_points(
     Args:
         xy: Keypoint coordinates in `(x, y)` format for
             each detection.
-        confidence: Confidence scores for each keypoint.
+        confidence: Per-keypoint confidence scores.
         class_id: Class identifiers for each keypoint set.
+        detection_confidence: Detection-level confidence scores.
         data: Additional data to be associated with
             each keypoint set.
 
@@ -112,7 +115,7 @@ def _create_key_points(
         <BLANKLINE>
                [[20., 20.],
                 [30., 30.]]], dtype=float32)
-        >>> key_points.confidence
+        >>> key_points.keypoint_confidence
         array([[0.5, 0.8],
                [0.9, 0.1]], dtype=float32)
         >>> key_points.class_id
@@ -124,9 +127,15 @@ def _create_key_points(
 
     return KeyPoints(
         xy=np.array(xy, dtype=np.float32),
-        confidence=(
+        keypoint_confidence=(
             confidence if confidence is None else np.array(confidence, dtype=np.float32)
         ),
+        detection_confidence=(
+            detection_confidence
+            if detection_confidence is None
+            else np.array(detection_confidence, dtype=np.float32)
+        ),
+        visible=(visible if visible is None else np.array(visible, dtype=bool)),
         class_id=(class_id if class_id is None else np.array(class_id, dtype=int)),
         data=convert_data(data) if data else {},
     )

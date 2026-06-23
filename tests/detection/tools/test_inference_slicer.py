@@ -9,6 +9,7 @@ import pytest
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.tools.inference_slicer import InferenceSlicer
+from supervision.detection.utils.iou_and_nms import OverlapFilter
 from supervision.utils.internal import SupervisionWarnings
 
 
@@ -431,3 +432,68 @@ def test_obb_callbacks_run_sequentially_even_with_multiple_workers() -> None:
     assert max_active_calls == 1
     assert concurrent_callbacks == 0
     assert len(detections) == 4
+
+
+def _rotated_rect(
+    cx: float, cy: float, w: float, h: float, angle_deg: float
+) -> np.ndarray:
+    angle = np.deg2rad(angle_deg)
+    cos, sin = np.cos(angle), np.sin(angle)
+    rot = np.array([[cos, -sin], [sin, cos]])
+    corners = np.array(
+        [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]]
+    )
+    return (corners @ rot.T + [cx, cy]).astype(np.float32)
+
+
+@pytest.mark.parametrize(
+    "overlap_filter",
+    [OverlapFilter.NON_MAX_SUPPRESSION, OverlapFilter.NON_MAX_MERGE],
+)
+def test_inference_slicer_keeps_crossed_obb_detections(
+    overlap_filter: OverlapFilter,
+) -> None:
+    """Regression for issue #1679: the SAHI workflow with OBB detections
+    dropped valid detections at the merge step because `with_nms`/`with_nmm`
+    historically used axis-aligned IoU. For crossed thin rectangles the AABBs
+    are nearly identical (IoU ≈ 1.0) while the OBBs barely overlap (IoU ≈ 0.06)
+    — so AABB-NMS suppressed one of them.
+
+    Both crossed OBBs must survive end-to-end through `InferenceSlicer`.
+    """
+    quad_a = _rotated_rect(50, 50, 80, 8, +45)
+    quad_b = _rotated_rect(50, 50, 80, 8, -45)
+    aabb_a = [
+        quad_a[:, 0].min(),
+        quad_a[:, 1].min(),
+        quad_a[:, 0].max(),
+        quad_a[:, 1].max(),
+    ]
+    aabb_b = [
+        quad_b[:, 0].min(),
+        quad_b[:, 1].min(),
+        quad_b[:, 0].max(),
+        quad_b[:, 1].max(),
+    ]
+
+    def callback(_: np.ndarray) -> Detections:
+        return Detections(
+            xyxy=np.array([aabb_a, aabb_b], dtype=np.float32),
+            confidence=np.array([0.9, 0.85], dtype=np.float32),
+            class_id=np.array([0, 0], dtype=int),
+            data={ORIENTED_BOX_COORDINATES: np.stack([quad_a, quad_b])},
+        )
+
+    image = np.zeros((100, 100, 3), dtype=np.uint8)
+    slicer = InferenceSlicer(
+        callback=callback,
+        slice_wh=100,
+        overlap_wh=0,
+        thread_workers=1,
+        overlap_filter=overlap_filter,
+        iou_threshold=0.5,
+    )
+
+    detections = slicer(image)
+
+    assert len(detections) == 2

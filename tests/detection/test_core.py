@@ -6,7 +6,15 @@ from contextlib import ExitStack as DoesNotRaise
 import numpy as np
 import pytest
 
-from supervision.detection.core import Detections, merge_inner_detection_object_pair
+from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection.core import (
+    Detections,
+    _merge_detection_group,
+    _merge_obb_corners,
+    merge_inner_detection_object_pair,
+)
+from supervision.detection.utils.boxes import xyxyxyxy_to_xyxy
+from supervision.detection.utils.iou_and_nms import OverlapMetric
 from supervision.geometry.core import Position
 from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import _create_detections
@@ -982,3 +990,917 @@ def test_from_inference_sdk_dict_path_empty_preserves_class_name_dtype() -> None
     detections = Detections.from_inference(_FakeSdkResult())
     assert detections["class_name"] is not None
     assert detections["class_name"].dtype.kind == "U"
+
+
+def _rotated_rect(
+    cx: float, cy: float, w: float, h: float, angle_deg: float
+) -> np.ndarray:
+    angle = np.deg2rad(angle_deg)
+    cos, sin = np.cos(angle), np.sin(angle)
+    rot = np.array([[cos, -sin], [sin, cos]])
+    corners = np.array(
+        [[-w / 2, -h / 2], [w / 2, -h / 2], [w / 2, h / 2], [-w / 2, h / 2]]
+    )
+    return (corners @ rot.T + [cx, cy]).astype(np.float32)
+
+
+def _make_obb_detections(
+    quads: list[np.ndarray], scores: list[float], class_ids: list[int]
+) -> Detections:
+    """Build OBB Detections from a list of (4, 2) corner arrays."""
+    oriented_boxes = np.stack(quads)
+    xyxy = xyxyxyxy_to_xyxy(oriented_boxes)
+    return Detections(
+        xyxy=xyxy,
+        confidence=np.array(scores, dtype=np.float32),
+        class_id=np.array(class_ids, dtype=int),
+        data={ORIENTED_BOX_COORDINATES: oriented_boxes},
+    )
+
+
+class TestDetectionsObbDispatch:
+    """Shared OBB-aware dispatch behaviour for `with_nms` and `with_nmm`."""
+
+    @pytest.mark.parametrize(
+        "method",
+        [
+            pytest.param("with_nms", id="with_nms"),
+            pytest.param("with_nmm", id="with_nmm"),
+        ],
+    )
+    def test_uses_obb_iou_when_oriented_box_coordinates_present(
+        self, method: str
+    ) -> None:
+        """X-pattern OBBs: both survive under either method because OBB IoU < 0.5."""
+        quad_a = _rotated_rect(50, 50, 100, 10, +45)
+        quad_b = _rotated_rect(50, 50, 100, 10, -45)
+        detections = _make_obb_detections([quad_a, quad_b], [0.9, 0.85], [0, 0])
+
+        result = getattr(detections, method)(threshold=0.5)
+
+        assert len(result) == 2
+
+    @pytest.mark.parametrize(
+        "method",
+        [
+            pytest.param("with_nms", id="with_nms"),
+            pytest.param("with_nmm", id="with_nmm"),
+        ],
+    )
+    def test_falls_back_without_obb_data(self, method: str) -> None:
+        """Non-OBB heavily-overlapping AABBs collapse to one under either method."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 100, 100], [10, 10, 110, 110]], dtype=np.float32),
+            confidence=np.array([0.9, 0.85], dtype=np.float32),
+            class_id=np.array([0, 0], dtype=int),
+        )
+
+        result = getattr(detections, method)(threshold=0.5)
+
+        assert len(result) == 1
+
+
+class TestMergeObbCorners:
+    """_merge_obb_corners"""
+
+    @pytest.mark.parametrize(
+        ("corners_list", "expected"),
+        [
+            pytest.param(
+                [np.array([[0, 0], [10, 0], [10, 5], [0, 5]], dtype=np.float32)],
+                np.array([[0, 0], [10, 0], [10, 5], [0, 5]], dtype=np.float32),
+                id="single-box-passthrough",
+            ),
+            pytest.param(
+                [
+                    np.array([[0, 0], [10, 0], [10, 5], [0, 5]], dtype=np.float32),
+                    np.array([[2, 2], [12, 2], [12, 7], [2, 7]], dtype=np.float32),
+                ],
+                np.array([[0, 0], [12, 0], [12, 7], [0, 7]], dtype=np.float32),
+                id="two-axis-aligned",
+            ),
+            pytest.param(
+                [
+                    _rotated_rect(50, 50, 40, 10, 45),
+                    _rotated_rect(55, 55, 40, 10, 45),
+                ],
+                None,
+                id="two-same-angle",
+            ),
+            pytest.param(
+                [
+                    _rotated_rect(50, 50, 40, 10, 30),
+                    _rotated_rect(55, 50, 40, 10, -15),
+                ],
+                None,
+                id="two-different-angles",
+            ),
+            pytest.param(
+                [
+                    np.array([[0, 0], [20, 0], [20, 10], [0, 10]], dtype=np.float32),
+                    np.array([[5, 5], [25, 5], [25, 15], [5, 15]], dtype=np.float32),
+                    np.array([[10, 0], [30, 0], [30, 10], [10, 10]], dtype=np.float32),
+                ],
+                np.array([[0, 0], [30, 0], [30, 15], [0, 15]], dtype=np.float32),
+                id="three-boxes-axis-aligned",
+            ),
+            pytest.param(
+                [
+                    np.array([[0, 0], [10, 0], [10, 5], [0, 5]], dtype=np.float32),
+                    np.array([[0, 0], [10, 0], [10, 5], [0, 5]], dtype=np.float32),
+                ],
+                np.array([[0, 0], [10, 0], [10, 5], [0, 5]], dtype=np.float32),
+                id="identical-boxes",
+            ),
+            pytest.param(
+                [
+                    np.array([[0, 0], [10, 0], [10, 5], [0, 5]], dtype=np.float32),
+                    np.array([[3, 3], [7, 3], [7, 3], [3, 3]], dtype=np.float32),
+                ],
+                np.array([[0, 0], [10, 0], [10, 5], [0, 5]], dtype=np.float32),
+                id="degenerate-collinear",
+            ),
+        ],
+    )
+    def test_merge(
+        self, corners_list: list[np.ndarray], expected: np.ndarray | None
+    ) -> None:
+        """Produces correct merged OBB corners."""
+        result = _merge_obb_corners(corners_list)
+        assert result.shape == (4, 2)
+        if expected is not None:
+            assert np.allclose(result, expected, atol=0.5)
+        else:
+            assert result.dtype == np.float32
+
+
+class TestMergeDetectionGroup:
+    """_merge_detection_group"""
+
+    @pytest.mark.parametrize(
+        ("detections", "expected_detections"),
+        [
+            pytest.param(
+                [
+                    Detections(
+                        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                        confidence=np.array([0.9], dtype=np.float32),
+                        class_id=np.array([1]),
+                    ),
+                ],
+                Detections(
+                    xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                    confidence=np.array([0.9], dtype=np.float32),
+                    class_id=np.array([1]),
+                ),
+                id="single-passthrough",
+            ),
+            pytest.param(
+                [
+                    Detections(
+                        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                        confidence=np.array([0.9], dtype=np.float32),
+                        class_id=np.array([0]),
+                    ),
+                    Detections(
+                        xyxy=np.array([[5, 5, 15, 15]], dtype=np.float32),
+                        confidence=np.array([0.7], dtype=np.float32),
+                        class_id=np.array([0]),
+                    ),
+                ],
+                Detections(
+                    xyxy=np.array([[0, 0, 15, 15]], dtype=np.float32),
+                    confidence=np.array([0.8], dtype=np.float32),
+                    class_id=np.array([0]),
+                ),
+                id="two-aabb-merge",
+            ),
+            pytest.param(
+                [
+                    Detections(
+                        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                        confidence=np.array([0.9], dtype=np.float32),
+                        class_id=np.array([0]),
+                    ),
+                    Detections(
+                        xyxy=np.array([[5, 5, 15, 15]], dtype=np.float32),
+                        confidence=np.array([0.8], dtype=np.float32),
+                        class_id=np.array([0]),
+                    ),
+                    Detections(
+                        xyxy=np.array([[10, 10, 20, 20]], dtype=np.float32),
+                        confidence=np.array([0.7], dtype=np.float32),
+                        class_id=np.array([0]),
+                    ),
+                ],
+                Detections(
+                    xyxy=np.array([[0, 0, 20, 20]], dtype=np.float32),
+                    confidence=np.array([0.8], dtype=np.float32),
+                    class_id=np.array([0]),
+                ),
+                id="three-aabb-merge",
+            ),
+            pytest.param(
+                [
+                    Detections(
+                        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                        confidence=np.array([0.9], dtype=np.float32),
+                        class_id=np.array([0]),
+                        mask=np.array([[[True, False], [False, False]]], dtype=bool),
+                    ),
+                    Detections(
+                        xyxy=np.array([[5, 5, 15, 15]], dtype=np.float32),
+                        confidence=np.array([0.7], dtype=np.float32),
+                        class_id=np.array([0]),
+                        mask=np.array([[[False, True], [False, False]]], dtype=bool),
+                    ),
+                ],
+                Detections(
+                    xyxy=np.array([[0, 0, 15, 15]], dtype=np.float32),
+                    confidence=np.array([0.8], dtype=np.float32),
+                    class_id=np.array([0]),
+                    mask=np.array([[[True, True], [False, False]]], dtype=bool),
+                ),
+                id="two-aabb-with-mask",
+            ),
+            pytest.param(
+                [
+                    _make_obb_detections(
+                        [
+                            np.array(
+                                [[0, 0], [10, 0], [10, 5], [0, 5]],
+                                dtype=np.float32,
+                            )
+                        ],
+                        [0.9],
+                        [0],
+                    ),
+                    _make_obb_detections(
+                        [
+                            np.array(
+                                [[2, 2], [12, 2], [12, 7], [2, 7]],
+                                dtype=np.float32,
+                            )
+                        ],
+                        [0.7],
+                        [0],
+                    ),
+                ],
+                Detections(
+                    xyxy=np.array([[0, 0, 12, 7]], dtype=np.float32),
+                    confidence=np.array([0.8], dtype=np.float32),
+                    class_id=np.array([0]),
+                ),
+                id="two-obb-axis-aligned",
+            ),
+            pytest.param(
+                [
+                    _make_obb_detections(
+                        [_rotated_rect(50, 50, 40, 10, 45)], [0.9], [0]
+                    ),
+                    _make_obb_detections(
+                        [_rotated_rect(55, 55, 40, 10, 45)], [0.8], [0]
+                    ),
+                ],
+                Detections(
+                    xyxy=np.array([[32.32, 32.32, 72.68, 72.68]], dtype=np.float32),
+                    confidence=np.array([0.85], dtype=np.float32),
+                    class_id=np.array([0]),
+                ),
+                id="two-obb-rotated",
+            ),
+            pytest.param(
+                [
+                    Detections(
+                        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                        confidence=np.array([0.9], dtype=np.float32),
+                        class_id=np.array([1]),
+                    ),
+                    Detections(
+                        xyxy=np.array([[5, 5, 15, 15]], dtype=np.float32),
+                        confidence=np.array([0.5], dtype=np.float32),
+                        class_id=np.array([2]),
+                    ),
+                ],
+                Detections(
+                    xyxy=np.array([[0, 0, 15, 15]], dtype=np.float32),
+                    confidence=np.array([0.7], dtype=np.float32),
+                    class_id=np.array([1]),
+                ),
+                id="winner-takes-class-id",
+            ),
+            pytest.param(
+                [
+                    Detections(
+                        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                        confidence=np.array([0.9], dtype=np.float32),
+                        class_id=np.array([0]),
+                        tracker_id=np.array([42]),
+                    ),
+                    Detections(
+                        xyxy=np.array([[5, 5, 15, 15]], dtype=np.float32),
+                        confidence=np.array([0.5], dtype=np.float32),
+                        class_id=np.array([0]),
+                        tracker_id=np.array([99]),
+                    ),
+                ],
+                Detections(
+                    xyxy=np.array([[0, 0, 15, 15]], dtype=np.float32),
+                    confidence=np.array([0.7], dtype=np.float32),
+                    class_id=np.array([0]),
+                    tracker_id=np.array([42]),
+                ),
+                id="winner-takes-tracker-id",
+            ),
+            pytest.param(
+                [
+                    Detections(
+                        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                        confidence=np.array([0.9], dtype=np.float32),
+                        class_id=np.array([0]),
+                        data={"class_name": np.array(["cat"])},
+                    ),
+                    Detections(
+                        xyxy=np.array([[5, 5, 15, 15]], dtype=np.float32),
+                        confidence=np.array([0.5], dtype=np.float32),
+                        class_id=np.array([1]),
+                        data={"class_name": np.array(["dog"])},
+                    ),
+                ],
+                Detections(
+                    xyxy=np.array([[0, 0, 15, 15]], dtype=np.float32),
+                    confidence=np.array([0.7], dtype=np.float32),
+                    class_id=np.array([0]),
+                    data={"class_name": np.array(["cat"])},
+                ),
+                id="winner-takes-data",
+            ),
+            pytest.param(
+                [
+                    Detections(
+                        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                        confidence=None,
+                        class_id=np.array([0]),
+                    ),
+                    Detections(
+                        xyxy=np.array([[5, 5, 15, 15]], dtype=np.float32),
+                        confidence=None,
+                        class_id=np.array([0]),
+                    ),
+                ],
+                Detections(
+                    xyxy=np.array([[0, 0, 15, 15]], dtype=np.float32),
+                    confidence=None,
+                    class_id=np.array([0]),
+                ),
+                id="no-confidence",
+            ),
+            pytest.param(
+                [
+                    Detections(
+                        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                        confidence=np.array([0.9], dtype=np.float32),
+                        class_id=None,
+                    ),
+                    Detections(
+                        xyxy=np.array([[5, 5, 15, 15]], dtype=np.float32),
+                        confidence=np.array([0.7], dtype=np.float32),
+                        class_id=None,
+                    ),
+                ],
+                Detections(
+                    xyxy=np.array([[0, 0, 15, 15]], dtype=np.float32),
+                    confidence=np.array([0.8], dtype=np.float32),
+                    class_id=None,
+                ),
+                id="no-class-id",
+            ),
+            pytest.param(
+                [
+                    Detections(
+                        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                        confidence=np.array([0.9], dtype=np.float32),
+                        class_id=np.array([0]),
+                        data={"score": np.array([1.5])},
+                    ),
+                    Detections(
+                        xyxy=np.array([[5, 5, 15, 15]], dtype=np.float32),
+                        confidence=np.array([0.5], dtype=np.float32),
+                        class_id=np.array([0]),
+                        data={"score": np.array([2.5])},
+                    ),
+                ],
+                Detections(
+                    xyxy=np.array([[0, 0, 15, 15]], dtype=np.float32),
+                    confidence=np.array([0.7], dtype=np.float32),
+                    class_id=np.array([0]),
+                    data={"score": np.array([1.5])},
+                ),
+                id="custom-data-field-preserved",
+            ),
+            pytest.param(
+                [
+                    Detections(
+                        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                        confidence=np.array([0.9], dtype=np.float32),
+                        class_id=np.array([0]),
+                    ),
+                    Detections(
+                        xyxy=np.array([[5, 5, 5, 5]], dtype=np.float32),
+                        confidence=np.array([0.7], dtype=np.float32),
+                        class_id=np.array([0]),
+                    ),
+                ],
+                Detections(
+                    xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                    confidence=np.array([0.9], dtype=np.float32),
+                    class_id=np.array([0]),
+                ),
+                id="zero-area-box-in-group",
+            ),
+            pytest.param(
+                [
+                    Detections(
+                        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                        confidence=np.array([0.9], dtype=np.float32),
+                        class_id=np.array([0]),
+                        metadata={"source": "model_a"},
+                    ),
+                    Detections(
+                        xyxy=np.array([[5, 5, 15, 15]], dtype=np.float32),
+                        confidence=np.array([0.7], dtype=np.float32),
+                        class_id=np.array([0]),
+                        metadata={"source": "model_a"},
+                    ),
+                ],
+                Detections(
+                    xyxy=np.array([[0, 0, 15, 15]], dtype=np.float32),
+                    confidence=np.array([0.8], dtype=np.float32),
+                    class_id=np.array([0]),
+                ),
+                id="metadata-merge",
+            ),
+        ],
+    )
+    def test_merge(
+        self,
+        detections: list[Detections],
+        expected_detections: Detections,
+    ) -> None:
+        """Merges detection group correctly."""
+        result = _merge_detection_group(detections)
+        assert len(result) == 1
+        assert np.allclose(result.xyxy, expected_detections.xyxy, atol=0.5)
+        if expected_detections.confidence is not None:
+            assert np.allclose(
+                result.confidence, expected_detections.confidence, atol=1e-3
+            )
+        else:
+            assert result.confidence is None
+        if expected_detections.class_id is not None:
+            assert np.array_equal(result.class_id, expected_detections.class_id)
+        else:
+            assert result.class_id is None
+        if expected_detections.tracker_id is not None:
+            assert np.array_equal(result.tracker_id, expected_detections.tracker_id)
+        else:
+            assert result.tracker_id is None
+        if expected_detections.mask is not None:
+            assert np.array_equal(result.mask, expected_detections.mask)
+        else:
+            assert result.mask is None
+        for key, val in expected_detections.data.items():
+            assert np.array_equal(result.data[key], val)
+        if ORIENTED_BOX_COORDINATES in result.data:
+            corners = result.data[ORIENTED_BOX_COORDINATES]
+            assert np.allclose(result.xyxy, xyxyxyxy_to_xyxy(corners), atol=1e-5)
+
+
+class TestDetectionsWithNMM:
+    """NMM-specific behaviour tests for `Detections.with_nmm`."""
+
+    @pytest.mark.parametrize(
+        (
+            "corners",
+            "confidence",
+            "class_ids",
+            "iou_threshold",
+            "class_agnostic",
+            "overlap_metric",
+            "expected_corners",
+            "expected_confidence",
+            "exception",
+        ),
+        [
+            pytest.param(
+                [
+                    [[10, 10], [50, 10], [50, 30], [10, 30]],
+                    [[11, 11], [51, 11], [51, 31], [11, 31]],
+                ],
+                [0.9, 0.85],
+                [0, 0],
+                0.5,
+                False,
+                OverlapMetric.IOU,
+                [[[10, 10], [51, 10], [51, 31], [10, 31]]],
+                [0.875],
+                DoesNotRaise(),
+                id="axis-aligned-merge",
+            ),
+            pytest.param(
+                [
+                    _rotated_rect(50, 50, 40, 10, 45).tolist(),
+                    _rotated_rect(55, 55, 40, 10, 45).tolist(),
+                ],
+                [0.9, 0.8],
+                [0, 0],
+                0.3,
+                False,
+                OverlapMetric.IOU,
+                [[[39.39, 32.32], [72.68, 65.61], [65.61, 72.68], [32.32, 39.39]]],
+                [0.85],
+                DoesNotRaise(),
+                id="rotated-45deg-merge",
+            ),
+            pytest.param(
+                [
+                    [[0, 0], [20, 0], [20, 10], [0, 10]],
+                    [[5, 5], [25, 5], [25, 15], [5, 15]],
+                    [[10, 0], [30, 0], [30, 10], [10, 10]],
+                ],
+                [0.9, 0.8, 0.7],
+                [0, 0, 0],
+                0.2,
+                False,
+                OverlapMetric.IOU,
+                [[[0, 0], [30, 0], [30, 15], [0, 15]]],
+                [0.8],
+                DoesNotRaise(),
+                id="three-group-merge",
+            ),
+            pytest.param(
+                [
+                    [[10, 10], [50, 10], [50, 30], [10, 30]],
+                ],
+                [0.9],
+                [0],
+                0.5,
+                False,
+                OverlapMetric.IOU,
+                [[[10, 10], [50, 10], [50, 30], [10, 30]]],
+                [0.9],
+                DoesNotRaise(),
+                id="single-passthrough",
+            ),
+            pytest.param(
+                [
+                    [[0, 0], [30, 0], [30, 20], [0, 20]],
+                    [[5, 5], [35, 5], [35, 25], [5, 25]],
+                ],
+                [0.9, 0.8],
+                [0, 1],
+                0.3,
+                True,
+                OverlapMetric.IOU,
+                [[[0, 0], [35, 0], [35, 25], [0, 25]]],
+                [0.85],
+                DoesNotRaise(),
+                id="class-agnostic",
+            ),
+            pytest.param(
+                [
+                    [[0, 0], [40, 0], [40, 30], [0, 30]],
+                    [[10, 10], [30, 10], [30, 20], [10, 20]],
+                ],
+                [0.9, 0.8],
+                [0, 0],
+                0.3,
+                False,
+                OverlapMetric.IOS,
+                [[[0, 0], [40, 0], [40, 30], [0, 30]]],
+                [0.885714],
+                DoesNotRaise(),
+                id="ios-metric",
+            ),
+            pytest.param(
+                [
+                    _rotated_rect(50, 50, 40, 15, 30).tolist(),
+                    _rotated_rect(55, 50, 40, 15, -15).tolist(),
+                ],
+                [0.9, 0.7],
+                [0, 0],
+                0.2,
+                False,
+                OverlapMetric.IOU,
+                [[[43.65, 20.99], [81.56, 42.88], [62.12, 76.56], [24.21, 54.68]]],
+                [0.813652],
+                DoesNotRaise(),
+                id="mixed-angle-merge",
+            ),
+            pytest.param(
+                [
+                    [[0, 0], [30, 0], [30, 20], [0, 20]],
+                    [[5, 5], [35, 5], [35, 25], [5, 25]],
+                    [[200, 200], [240, 200], [240, 220], [200, 220]],
+                    [[205, 205], [245, 205], [245, 225], [205, 225]],
+                ],
+                [0.9, 0.7, 0.85, 0.6],
+                [0, 0, 0, 0],
+                0.2,
+                False,
+                OverlapMetric.IOU,
+                [
+                    [[0, 0], [35, 0], [35, 25], [0, 25]],
+                    [[200, 200], [245, 200], [245, 225], [200, 225]],
+                ],
+                [0.8, 0.725],
+                DoesNotRaise(),
+                id="two-separate-groups",
+            ),
+            pytest.param(
+                [
+                    [[0, 0], [30, 0], [30, 20], [0, 20]],
+                    [[5, 10], [25, 10], [25, 10], [5, 10]],
+                ],
+                [0.9, 0.7],
+                [0, 0],
+                0.01,
+                False,
+                OverlapMetric.IOU,
+                # A zero-area (collinear) OBB scores IoU 0 (see
+                # test_degenerate_boxes_score_zero), so it cannot group and the
+                # two detections are not merged.
+                [
+                    [[0, 0], [30, 0], [30, 20], [0, 20]],
+                    [[5, 10], [25, 10], [25, 10], [5, 10]],
+                ],
+                [0.9, 0.7],
+                DoesNotRaise(),
+                id="degenerate-collinear-obb",
+            ),
+            pytest.param(
+                None,
+                [0.9, 0.8],
+                [0, 0],
+                0.4,
+                False,
+                OverlapMetric.IOU,
+                None,
+                None,
+                pytest.raises(ValueError, match="corners must have shape"),
+                id="flat-n8-raises",
+            ),
+        ],
+    )
+    def test_obb_nmm_merge(
+        self,
+        corners: list[list[list[float]]] | None,
+        confidence: list[float],
+        class_ids: list[int],
+        iou_threshold: float,
+        class_agnostic: bool,
+        overlap_metric: OverlapMetric,
+        expected_corners: list[list[list[float]]] | None,
+        expected_confidence: list[float] | None,
+        exception: DoesNotRaise,
+    ) -> None:
+        """OBB NMM produces correct geometry and confidence."""
+        if corners is None:
+            xyxy = np.array(
+                [[0, 0, 30, 20], [5, 5, 35, 25]],
+                dtype=np.float32,
+            )
+            flat = np.array(
+                [
+                    [0, 0, 30, 0, 30, 20, 0, 20],
+                    [5, 5, 35, 5, 35, 25, 5, 25],
+                ],
+                dtype=np.float32,
+            )
+            detections = Detections(
+                xyxy=xyxy,
+                confidence=np.array(confidence, dtype=np.float32),
+                class_id=np.array(class_ids),
+                data={ORIENTED_BOX_COORDINATES: flat},
+            )
+        else:
+            corner_arrays = [np.array(corner, dtype=np.float32) for corner in corners]
+            detections = _make_obb_detections(corner_arrays, confidence, class_ids)
+
+        with exception:
+            result = detections.with_nmm(
+                threshold=iou_threshold,
+                class_agnostic=class_agnostic,
+                overlap_metric=overlap_metric,
+            )
+
+            assert expected_confidence is not None
+            assert expected_corners is not None
+            assert len(result) == len(expected_confidence)
+            for i, exp_c in enumerate(expected_confidence):
+                assert result.confidence[i] == pytest.approx(exp_c, abs=1e-3)
+            result_corners = result.data[ORIENTED_BOX_COORDINATES]
+            expected_corner_array = np.array(expected_corners, dtype=np.float32)
+            assert np.allclose(
+                result_corners,
+                expected_corner_array,
+                atol=0.5,
+            )
+
+    def test_obb_nmm_matches_aabb_for_axis_aligned(self) -> None:
+        """Axis-aligned OBB NMM produces same envelope as AABB NMM."""
+        xyxy = np.array([[0, 0, 30, 20], [5, 5, 35, 25]], dtype=np.float32)
+        confidence = np.array([0.9, 0.5], dtype=np.float32)
+        class_id = np.array([0, 0])
+
+        aabb_detections = Detections(
+            xyxy=xyxy,
+            confidence=confidence,
+            class_id=class_id,
+        )
+        obb_detections = _make_obb_detections(
+            [
+                np.array(
+                    [[0, 0], [30, 0], [30, 20], [0, 20]],
+                    dtype=np.float32,
+                ),
+                np.array(
+                    [[5, 5], [35, 5], [35, 25], [5, 25]],
+                    dtype=np.float32,
+                ),
+            ],
+            confidence.tolist(),
+            class_id.tolist(),
+        )
+
+        aabb_result = aabb_detections.with_nmm(threshold=0.4)
+        obb_result = obb_detections.with_nmm(threshold=0.4)
+
+        assert len(aabb_result) == 1
+        assert len(obb_result) == 1
+        assert np.allclose(aabb_result.xyxy, obb_result.xyxy, atol=1e-4)
+
+    def test_staircase_obb_merge_within_union(self) -> None:
+        """Diagonal staircase OBBs: merged AABB equals axis-aligned union."""
+        quads = [
+            np.array(
+                [[0, 0], [20, 0], [20, 20], [0, 20]],
+                dtype=np.float32,
+            ),
+            np.array(
+                [[12, 12], [32, 12], [32, 32], [12, 32]],
+                dtype=np.float32,
+            ),
+            np.array(
+                [[24, 24], [44, 24], [44, 44], [24, 44]],
+                dtype=np.float32,
+            ),
+        ]
+        detections = _make_obb_detections(quads, [0.7, 0.9, 0.8], [0, 0, 0])
+
+        result = detections.with_nmm(threshold=0.05)
+
+        assert len(result) == 1
+        assert np.allclose(result.xyxy, [[0.0, 0.0, 44.0, 44.0]], atol=0.5)
+
+    def test_obb_nmm_empty_detections(self) -> None:
+        """Empty OBB detections return empty result."""
+        dets = Detections(
+            xyxy=np.empty((0, 4), dtype=np.float32),
+            confidence=np.array([], dtype=np.float32),
+            class_id=np.array([], dtype=int),
+            data={ORIENTED_BOX_COORDINATES: np.empty((0, 4, 2), dtype=np.float32)},
+        )
+
+        result = dets.with_nmm(threshold=0.5)
+
+        assert len(result) == 0
+
+
+class TestDetectionsArea:
+    """Selection order for the `area` property: mask → OBB → AABB."""
+
+    @pytest.mark.parametrize(
+        ("width", "height", "angle_deg", "expected_area"),
+        [
+            pytest.param(20, 10, 0, 200.0, id="axis-aligned"),
+            pytest.param(20, 10, 45, 200.0, id="45-deg rotation"),
+            pytest.param(20, 10, 30, 200.0, id="30-deg rotation"),
+            pytest.param(20, 10, -60, 200.0, id="negative rotation"),
+        ],
+    )
+    def test_uses_oriented_box_corners_when_present(
+        self, width: float, height: float, angle_deg: float, expected_area: float
+    ) -> None:
+        """Area equals the rotated body's area regardless of rotation, not the AABB."""
+        quad = _rotated_rect(50, 50, width, height, angle_deg)
+        detections = _make_obb_detections([quad], [0.9], [0])
+
+        assert np.allclose(detections.area, [expected_area])
+
+    def test_falls_back_to_box_area_without_obb_data(self) -> None:
+        """Without ORIENTED_BOX_COORDINATES, area mirrors box_area (AABB)."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 20, 10]], dtype=np.float32),
+            class_id=np.array([0], dtype=int),
+        )
+
+        assert np.allclose(detections.area, [200.0])
+        assert np.allclose(detections.area, detections.box_area)
+
+    def test_mask_takes_precedence_over_oriented_box(self) -> None:
+        """When both `mask` and `ORIENTED_BOX_COORDINATES` are present, area is
+        computed from the mask."""
+        mask = np.zeros((40, 40), dtype=bool)
+        mask[10:30, 10:25] = True  # 20 rows x 15 cols = 300 pixels
+        quad = _rotated_rect(20, 20, 20, 10, 0)  # OBB area = 200
+        detections = Detections(
+            xyxy=np.array([[10, 10, 25, 30]], dtype=np.float32),
+            class_id=np.array([0], dtype=int),
+            mask=mask[None, ...],
+            data={ORIENTED_BOX_COORDINATES: quad[None, ...]},
+        )
+
+        assert np.allclose(detections.area, [300.0])
+
+    def test_empty_detections_with_obb_data_returns_empty_array(self) -> None:
+        """Boundary case: empty Detections carrying an OBB data field must
+        return an empty area array (matches the mask / box_area branches)."""
+        detections = Detections(
+            xyxy=np.empty((0, 4), dtype=np.float32),
+            class_id=np.array([], dtype=int),
+            data={ORIENTED_BOX_COORDINATES: np.empty((0, 4, 2), dtype=np.float32)},
+        )
+
+        assert detections.area.shape == (0,)
+
+    def test_degenerate_oriented_box_has_zero_area(self) -> None:
+        """An OBB whose four corners coincide has zero area — the shoelace
+        formula must not produce NaN or a negative value."""
+        quad = np.full((4, 2), 5.0, dtype=np.float32)
+        detections = _make_obb_detections([quad], [0.9], [0])
+
+        assert np.allclose(detections.area, [0.0])
+
+    def test_handles_batched_oriented_boxes(self) -> None:
+        """Multiple OBBs in one `Detections` each get their own correct area.
+        Guards against the shoelace reduction collapsing across boxes instead
+        of along the per-box corner axis."""
+        quads = [
+            _rotated_rect(50, 50, 20, 10, 0),  # 200
+            _rotated_rect(100, 100, 20, 10, 45),  # 200 (rotation must not change it)
+            _rotated_rect(150, 150, 30, 5, 30),  # 150
+        ]
+        detections = _make_obb_detections(quads, [0.9, 0.9, 0.9], [0, 0, 0])
+
+        assert np.allclose(detections.area, [200.0, 200.0, 150.0])
+
+    @pytest.mark.parametrize(
+        "bad_shape",
+        [
+            pytest.param((1, 8), id="flat-N8"),
+            pytest.param((1, 3, 2), id="triangle"),
+        ],
+    )
+    def test_raises_on_malformed_obb_coordinates_shape(self, bad_shape: tuple) -> None:
+        """ValueError when OBB data shape is wrong for area computation."""
+        bad_corners = np.zeros(bad_shape, dtype=np.float32)
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+            data={ORIENTED_BOX_COORDINATES: bad_corners},
+        )
+
+        with pytest.raises(ValueError, match="must have shape"):
+            _ = detections.area
+
+    @pytest.mark.parametrize(
+        ("branch", "expected_dtype"),
+        [
+            pytest.param("obb", np.float64, id="obb-branch-float64"),
+            pytest.param("aabb", np.float32, id="aabb-branch-preserves-input-dtype"),
+            pytest.param("mask", np.int64, id="mask-branch-int64"),
+        ],
+    )
+    def test_area_return_dtype_per_branch(
+        self, branch: str, expected_dtype: type
+    ) -> None:
+        """Area dtype matches the documented per-branch contract."""
+        if branch == "obb":
+            quad = _rotated_rect(50, 50, 20, 10, 0)
+            detections = _make_obb_detections([quad], [0.9], [0])
+        elif branch == "aabb":
+            detections = Detections(
+                xyxy=np.array([[0, 0, 20, 10]], dtype=np.float32),
+                class_id=np.array([0], dtype=int),
+            )
+        else:
+            mask = np.zeros((1, 40, 40), dtype=bool)
+            mask[0, 10:30, 10:30] = True
+            detections = Detections(
+                xyxy=np.array([[10, 10, 30, 30]], dtype=np.float32),
+                class_id=np.array([0], dtype=int),
+                mask=mask,
+            )
+
+        assert detections.area.dtype == expected_dtype
