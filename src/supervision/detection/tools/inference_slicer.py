@@ -4,7 +4,10 @@ import threading
 import warnings
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Protocol, cast
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+
+if TYPE_CHECKING:
+    from typing_extensions import TypeGuard
 
 import numpy as np
 import numpy.typing as npt
@@ -20,22 +23,23 @@ from supervision.utils.image import crop_image, get_image_resolution_wh
 from supervision.utils.internal import SupervisionWarnings
 
 
+@runtime_checkable
 class WindowedRasterDataset(Protocol):
     """Structural type for a rasterio-style dataset read window-by-window.
 
-    Matched structurally (see [`_is_windowed_raster`][]) rather than by import so
+    Matched structurally by `_is_windowed_raster` rather than by import so
     `rasterio` stays an optional dependency — any object exposing these members
     works. `rasterio.io.DatasetReader` satisfies this protocol.
     """
 
     width: int
     height: int
-    crs: Any
+    crs: object | None
 
     def read(self, window: Any) -> npt.NDArray[Any]: ...
 
 
-def _is_windowed_raster(image: object) -> bool:
+def _is_windowed_raster(image: object) -> TypeGuard[WindowedRasterDataset]:
     """Duck-type check for a rasterio-style dataset that supports windowed reads.
 
     Avoids importing rasterio so it remains an optional dependency. numpy arrays
@@ -54,7 +58,8 @@ def move_detections(
     offset: npt.NDArray[Any],
     resolution_wh: tuple[int, int] | None = None,
 ) -> Detections:
-    """
+    """Translate detections by a pixel offset, repositioning boxes and masks.
+
     Args:
         detections: Detections object to be moved.
         offset: An array of shape `(2,)` containing offset values in the
@@ -117,7 +122,10 @@ class InferenceSlicer:
             bounding boxes (OBB), Supervision probes additional slices until a
             non-empty result is found, then falls back to sequential processing
             for all remaining slices to avoid thread-safety issues in common OBB
-            inference backends. Note: the first slice always runs synchronously
+            inference backends. When passing a rasterio-style dataset, tile reads
+            are serialized via an internal lock regardless of this setting —
+            model inference runs in parallel, but ``raster.read()`` is protected.
+            Note: the first slice always runs synchronously
             regardless of this setting, so for grids with few slices
             (e.g. two-slice images) effective parallelism is reduced.
         compact_masks: If ``True``, dense ``(N, H, W)`` boolean mask
@@ -214,13 +222,14 @@ class InferenceSlicer:
         self.iou_threshold = iou_threshold
         self.overlap_metric = OverlapMetric.from_value(overlap_metric)
         self.overlap_filter = OverlapFilter.from_value(overlap_filter)
-        self.callback: Callable[[ImageType], Detections] = callback
+        self.callback: Callable[[npt.NDArray[Any]], Detections] = callback
         self.thread_workers = thread_workers
         self.compact_masks = compact_masks
         self._out_of_slice_bounds_warned: bool = False
         self._out_of_slice_bounds_lock = threading.Lock()
         self._obb_thread_workers_warned: bool = False
         self._obb_thread_workers_lock = threading.Lock()
+        self._raster_read_lock = threading.Lock()
 
     def __call__(self, image: ImageType | WindowedRasterDataset) -> Detections:
         """
@@ -246,21 +255,14 @@ class InferenceSlicer:
 
         Returns:
             Merged detections across all slices.
+
+        Raises:
+            ValueError: If ``image`` is a rasterio-style dataset whose CRS is
+                geographic (non-projected). Reproject to a projected CRS
+                (e.g. with ``gdalwarp``) before calling.
         """
         detections_list: list[Detections] = []
-        if _is_windowed_raster(image):
-            raster = cast(WindowedRasterDataset, image)
-            crs = raster.crs
-            if crs is not None and not crs.is_projected:
-                raise ValueError(
-                    "InferenceSlicer requires a projected coordinate reference "
-                    "system for pixel-space tiled inference on a raster dataset. "
-                    f"The provided dataset uses a geographic CRS ({crs}). Reproject "
-                    "it to a projected CRS (e.g. with `gdalwarp`) before slicing."
-                )
-            resolution_wh = (raster.width, raster.height)
-        else:
-            resolution_wh = get_image_resolution_wh(image)
+        resolution_wh = self._get_resolution_wh(image)
 
         offsets = self._generate_offset(
             resolution_wh=resolution_wh,
@@ -319,6 +321,26 @@ class InferenceSlicer:
                     detections_list.append(future.result())
 
         merged = Detections.merge(detections_list=detections_list)
+        return self._apply_overlap_filter(merged)
+
+    def _get_resolution_wh(
+        self, image: ImageType | WindowedRasterDataset
+    ) -> tuple[int, int]:
+        """Return ``(width, height)`` for the image, validating CRS for rasters."""
+        if _is_windowed_raster(image):
+            crs = image.crs
+            if crs is not None and not getattr(crs, "is_projected", True):
+                raise ValueError(
+                    "InferenceSlicer requires a projected coordinate reference "
+                    "system for pixel-space tiled inference on a raster dataset. "
+                    f"The provided dataset uses a geographic CRS ({crs}). Reproject "
+                    "it to a projected CRS (e.g. with `gdalwarp`) before slicing."
+                )
+            return (image.width, image.height)
+        return get_image_resolution_wh(image)
+
+    def _apply_overlap_filter(self, merged: Detections) -> Detections:
+        """Apply the configured overlap filter strategy to merged detections."""
         if self.overlap_filter == OverlapFilter.NONE:
             return merged
         if self.overlap_filter == OverlapFilter.NON_MAX_SUPPRESSION:
@@ -331,7 +353,6 @@ class InferenceSlicer:
                 threshold=self.iou_threshold,
                 overlap_metric=self.overlap_metric,
             )
-
         warnings.warn(
             f"Invalid overlap filter strategy: {self.overlap_filter}",
             category=SupervisionWarnings,
@@ -353,16 +374,15 @@ class InferenceSlicer:
             Detections adjusted to the full image coordinate system.
         """
         if _is_windowed_raster(image):
-            raster = cast(WindowedRasterDataset, image)
             x_min, y_min, x_max, y_max = (int(v) for v in offset)
-            # rasterio tuple window:
-            # ((row_start, row_stop), (col_start, col_stop))
+            # rasterio tuple window: ((row_start, row_stop), (col_start, col_stop))
             window = ((y_min, y_max), (x_min, x_max))
-            bands = raster.read(window=window)  # shape (channels, height, width)
+            with self._raster_read_lock:
+                bands = image.read(window=window)  # shape (channels, height, width)
             image_slice = np.ascontiguousarray(
                 np.transpose(bands, (1, 2, 0))
             )  # -> (H, W, C)
-            resolution_wh = (raster.width, raster.height)
+            resolution_wh = (image.width, image.height)
         else:
             image_slice = crop_image(image=image, xyxy=offset)
             resolution_wh = get_image_resolution_wh(image)
