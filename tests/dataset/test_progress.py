@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 import cv2
 import numpy as np
+import pytest
 from tqdm.auto import tqdm as _real_tqdm
 
 from supervision import DetectionDataset
@@ -108,310 +109,280 @@ def _create_dummy_pascal_voc_dataset(root: str, num_images: int = 3) -> tuple[st
     return images_dir, annotations_dir
 
 
+# ---------------------------------------------------------------------------
+# Fixtures — raw file trees (used by from_* tests that call the loader under patch)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def yolo_dir(tmp_path: Path) -> tuple[str, str, str]:
+    """YOLO images, labels, and data.yaml on disk."""
+    return _create_dummy_yolo_dataset(str(tmp_path))
+
+
+@pytest.fixture
+def coco_dir(tmp_path: Path) -> tuple[str, str]:
+    """COCO images directory and annotations JSON on disk."""
+    return _create_dummy_coco_dataset(str(tmp_path))
+
+
+@pytest.fixture
+def pascal_voc_dir(tmp_path: Path) -> tuple[str, str]:
+    """Pascal VOC images and XML annotations on disk."""
+    return _create_dummy_pascal_voc_dataset(str(tmp_path))
+
+
+# ---------------------------------------------------------------------------
+# Fixtures — pre-loaded DetectionDataset (used by as_* and backward-compat tests)
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def yolo_dataset(yolo_dir: tuple[str, str, str]) -> DetectionDataset:
+    """DetectionDataset loaded from a dummy YOLO dataset."""
+    images_dir, labels_dir, data_yaml = yolo_dir
+    return DetectionDataset.from_yolo(
+        images_directory_path=images_dir,
+        annotations_directory_path=labels_dir,
+        data_yaml_path=data_yaml,
+    )
+
+
+@pytest.fixture
+def coco_dataset(coco_dir: tuple[str, str]) -> DetectionDataset:
+    """DetectionDataset loaded from a dummy COCO dataset."""
+    images_dir, annotations_path = coco_dir
+    return DetectionDataset.from_coco(
+        images_directory_path=images_dir,
+        annotations_path=annotations_path,
+    )
+
+
+@pytest.fixture
+def pascal_voc_dataset(pascal_voc_dir: tuple[str, str]) -> DetectionDataset:
+    """DetectionDataset loaded from a dummy Pascal VOC dataset."""
+    images_dir, annotations_dir = pascal_voc_dir
+    return DetectionDataset.from_pascal_voc(
+        images_directory_path=images_dir,
+        annotations_directory_path=annotations_dir,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+
+_YOLO_TQDM = "supervision.dataset.formats.yolo.tqdm"
+_COCO_TQDM = "supervision.dataset.formats.coco.tqdm"
+_PASCAL_TQDM = "supervision.dataset.formats.pascal_voc.tqdm"
+_CORE_TQDM = "supervision.dataset.core.tqdm"
+_UTILS_TQDM = "supervision.dataset.utils.tqdm"
+
+
 class TestYoloProgress:
-    def test_from_yolo_no_progress_by_default(self, tmp_path: Path):
+    @patch(_YOLO_TQDM, wraps=_real_tqdm)
+    def test_from_yolo_no_progress_by_default(
+        self, mock_tqdm: object, yolo_dir: tuple[str, str, str]
+    ):
         """YOLO load does not show progress bar by default."""
-        tmpdir = str(tmp_path)
-        images_dir, labels_dir, data_yaml = _create_dummy_yolo_dataset(tmpdir)
-        with patch(
-            "supervision.dataset.formats.yolo.tqdm",
-            wraps=_real_tqdm,
-        ) as mock_tqdm:
-            ds = DetectionDataset.from_yolo(
-                images_directory_path=images_dir,
-                annotations_directory_path=labels_dir,
-                data_yaml_path=data_yaml,
-            )
-            call_kwargs = mock_tqdm.call_args
-            assert call_kwargs[1]["disable"] is True
+        images_dir, labels_dir, data_yaml = yolo_dir
+        ds = DetectionDataset.from_yolo(
+            images_directory_path=images_dir,
+            annotations_directory_path=labels_dir,
+            data_yaml_path=data_yaml,
+        )
+        assert mock_tqdm.call_args[1]["disable"] is True
         assert len(ds) == 3
 
-    def test_from_yolo_with_progress(self, tmp_path: Path):
+    @patch(_YOLO_TQDM, wraps=_real_tqdm)
+    def test_from_yolo_with_progress(
+        self, mock_tqdm: object, yolo_dir: tuple[str, str, str]
+    ):
         """YOLO load shows progress bar when show_progress=True."""
-        tmpdir = str(tmp_path)
-        images_dir, labels_dir, data_yaml = _create_dummy_yolo_dataset(tmpdir)
-        with patch(
-            "supervision.dataset.formats.yolo.tqdm",
-            wraps=_real_tqdm,
-        ) as mock_tqdm:
-            ds = DetectionDataset.from_yolo(
-                images_directory_path=images_dir,
-                annotations_directory_path=labels_dir,
-                data_yaml_path=data_yaml,
-                show_progress=True,
-            )
-            call_kwargs = mock_tqdm.call_args
-            assert call_kwargs[1]["disable"] is False
+        images_dir, labels_dir, data_yaml = yolo_dir
+        ds = DetectionDataset.from_yolo(
+            images_directory_path=images_dir,
+            annotations_directory_path=labels_dir,
+            data_yaml_path=data_yaml,
+            show_progress=True,
+        )
+        assert mock_tqdm.call_args[1]["disable"] is False
         assert len(ds) == 3
 
-    def test_as_yolo_with_progress(self, tmp_path: Path):
+    @patch(_YOLO_TQDM, wraps=_real_tqdm)
+    def test_as_yolo_with_progress(
+        self, mock_tqdm: object, yolo_dataset: DetectionDataset, tmp_path: Path
+    ):
         """YOLO save shows progress bar when show_progress=True."""
-        tmpdir = str(tmp_path)
-        images_dir, labels_dir, data_yaml = _create_dummy_yolo_dataset(tmpdir)
-        ds = DetectionDataset.from_yolo(
-            images_directory_path=images_dir,
-            annotations_directory_path=labels_dir,
-            data_yaml_path=data_yaml,
+        out = tmp_path / "output"
+        yolo_dataset.as_yolo(
+            images_directory_path=str(out / "images"),
+            annotations_directory_path=str(out / "labels"),
+            data_yaml_path=str(out / "data.yaml"),
+            show_progress=True,
         )
+        assert mock_tqdm.call_args[1]["disable"] is False
 
-        out_dir = os.path.join(tmpdir, "output")
-        out_images = os.path.join(out_dir, "images")
-        out_labels = os.path.join(out_dir, "labels")
-
-        with patch(
-            "supervision.dataset.formats.yolo.tqdm",
-            wraps=_real_tqdm,
-        ) as mock_tqdm:
-            ds.as_yolo(
-                images_directory_path=out_images,
-                annotations_directory_path=out_labels,
-                data_yaml_path=os.path.join(out_dir, "data.yaml"),
-                show_progress=True,
-            )
-            call_kwargs = mock_tqdm.call_args
-            assert call_kwargs[1]["disable"] is False
-
-    def test_as_yolo_no_progress_by_default(self, tmp_path: Path):
+    @patch(_YOLO_TQDM, wraps=_real_tqdm)
+    def test_as_yolo_no_progress_by_default(
+        self, mock_tqdm: object, yolo_dataset: DetectionDataset, tmp_path: Path
+    ):
         """Saving YOLO annotations does not show progress bar by default."""
-        tmpdir = str(tmp_path)
-        images_dir, labels_dir, data_yaml = _create_dummy_yolo_dataset(tmpdir)
-        ds = DetectionDataset.from_yolo(
-            images_directory_path=images_dir,
-            annotations_directory_path=labels_dir,
-            data_yaml_path=data_yaml,
+        yolo_dataset.as_yolo(
+            annotations_directory_path=str(tmp_path / "output" / "labels")
         )
-        out_labels = os.path.join(tmpdir, "output", "labels")
-        with patch(
-            "supervision.dataset.formats.yolo.tqdm",
-            wraps=_real_tqdm,
-        ) as mock_tqdm:
-            ds.as_yolo(annotations_directory_path=out_labels)
-            call_kwargs = mock_tqdm.call_args
-            assert call_kwargs[1]["disable"] is True
+        assert mock_tqdm.call_args[1]["disable"] is True
 
 
 class TestCocoProgress:
-    def test_from_coco_no_progress_by_default(self, tmp_path: Path):
+    @patch(_COCO_TQDM, wraps=_real_tqdm)
+    def test_from_coco_no_progress_by_default(
+        self, mock_tqdm: object, coco_dir: tuple[str, str]
+    ):
         """COCO load does not show progress bar by default."""
-        tmpdir = str(tmp_path)
-        images_dir, annotations_path = _create_dummy_coco_dataset(tmpdir)
-        with patch(
-            "supervision.dataset.formats.coco.tqdm",
-            wraps=_real_tqdm,
-        ) as mock_tqdm:
-            ds = DetectionDataset.from_coco(
-                images_directory_path=images_dir,
-                annotations_path=annotations_path,
-            )
-            call_kwargs = mock_tqdm.call_args
-            assert call_kwargs[1]["disable"] is True
+        images_dir, annotations_path = coco_dir
+        ds = DetectionDataset.from_coco(
+            images_directory_path=images_dir,
+            annotations_path=annotations_path,
+        )
+        assert mock_tqdm.call_args[1]["disable"] is True
         assert len(ds) == 3
 
-    def test_from_coco_with_progress(self, tmp_path: Path):
+    @patch(_COCO_TQDM, wraps=_real_tqdm)
+    def test_from_coco_with_progress(
+        self, mock_tqdm: object, coco_dir: tuple[str, str]
+    ):
         """COCO load shows progress bar when show_progress=True."""
-        tmpdir = str(tmp_path)
-        images_dir, annotations_path = _create_dummy_coco_dataset(tmpdir)
-        with patch(
-            "supervision.dataset.formats.coco.tqdm",
-            wraps=_real_tqdm,
-        ) as mock_tqdm:
-            ds = DetectionDataset.from_coco(
-                images_directory_path=images_dir,
-                annotations_path=annotations_path,
-                show_progress=True,
-            )
-            call_kwargs = mock_tqdm.call_args
-            assert call_kwargs[1]["disable"] is False
+        images_dir, annotations_path = coco_dir
+        ds = DetectionDataset.from_coco(
+            images_directory_path=images_dir,
+            annotations_path=annotations_path,
+            show_progress=True,
+        )
+        assert mock_tqdm.call_args[1]["disable"] is False
         assert len(ds) == 3
 
-    def test_as_coco_with_progress(self, tmp_path: Path):
+    @patch(_COCO_TQDM, wraps=_real_tqdm)
+    def test_as_coco_with_progress(
+        self, mock_tqdm: object, coco_dataset: DetectionDataset, tmp_path: Path
+    ):
         """COCO save shows progress bar when show_progress=True."""
-        tmpdir = str(tmp_path)
-        images_dir, annotations_path = _create_dummy_coco_dataset(tmpdir)
-        ds = DetectionDataset.from_coco(
-            images_directory_path=images_dir,
-            annotations_path=annotations_path,
+        out = tmp_path / "output"
+        coco_dataset.as_coco(
+            images_directory_path=str(out / "images"),
+            annotations_path=str(out / "annotations.json"),
+            show_progress=True,
         )
+        assert mock_tqdm.call_args[1]["disable"] is False
 
-        out_dir = os.path.join(tmpdir, "output")
-        with patch(
-            "supervision.dataset.formats.coco.tqdm",
-            wraps=_real_tqdm,
-        ) as mock_tqdm:
-            ds.as_coco(
-                images_directory_path=os.path.join(out_dir, "images"),
-                annotations_path=os.path.join(out_dir, "annotations.json"),
-                show_progress=True,
-            )
-            call_kwargs = mock_tqdm.call_args
-            assert call_kwargs[1]["disable"] is False
-
-    def test_as_coco_no_progress_by_default(self, tmp_path: Path):
+    @patch(_COCO_TQDM, wraps=_real_tqdm)
+    def test_as_coco_no_progress_by_default(
+        self, mock_tqdm: object, coco_dataset: DetectionDataset, tmp_path: Path
+    ):
         """Saving COCO annotations does not show progress bar by default."""
-        tmpdir = str(tmp_path)
-        images_dir, annotations_path = _create_dummy_coco_dataset(tmpdir)
-        ds = DetectionDataset.from_coco(
-            images_directory_path=images_dir,
-            annotations_path=annotations_path,
+        coco_dataset.as_coco(
+            annotations_path=str(tmp_path / "output" / "annotations.json")
         )
-        out_annotations = os.path.join(tmpdir, "output", "annotations.json")
-        with patch(
-            "supervision.dataset.formats.coco.tqdm",
-            wraps=_real_tqdm,
-        ) as mock_tqdm:
-            ds.as_coco(annotations_path=out_annotations)
-            call_kwargs = mock_tqdm.call_args
-            assert call_kwargs[1]["disable"] is True
+        assert mock_tqdm.call_args[1]["disable"] is True
 
 
 class TestPascalVocProgress:
-    def test_from_pascal_voc_no_progress_by_default(self, tmp_path: Path):
+    @patch(_PASCAL_TQDM, wraps=_real_tqdm)
+    def test_from_pascal_voc_no_progress_by_default(
+        self, mock_tqdm: object, pascal_voc_dir: tuple[str, str]
+    ):
         """Pascal VOC load does not show progress bar by default."""
-        tmpdir = str(tmp_path)
-        images_dir, annotations_dir = _create_dummy_pascal_voc_dataset(tmpdir)
-        with patch(
-            "supervision.dataset.formats.pascal_voc.tqdm",
-            wraps=_real_tqdm,
-        ) as mock_tqdm:
-            ds = DetectionDataset.from_pascal_voc(
-                images_directory_path=images_dir,
-                annotations_directory_path=annotations_dir,
-            )
-            call_kwargs = mock_tqdm.call_args
-            assert call_kwargs[1]["disable"] is True
+        images_dir, annotations_dir = pascal_voc_dir
+        ds = DetectionDataset.from_pascal_voc(
+            images_directory_path=images_dir,
+            annotations_directory_path=annotations_dir,
+        )
+        assert mock_tqdm.call_args[1]["disable"] is True
         assert len(ds) == 3
 
-    def test_from_pascal_voc_with_progress(self, tmp_path: Path):
+    @patch(_PASCAL_TQDM, wraps=_real_tqdm)
+    def test_from_pascal_voc_with_progress(
+        self, mock_tqdm: object, pascal_voc_dir: tuple[str, str]
+    ):
         """Pascal VOC load shows progress bar when show_progress=True."""
-        tmpdir = str(tmp_path)
-        images_dir, annotations_dir = _create_dummy_pascal_voc_dataset(tmpdir)
-        with patch(
-            "supervision.dataset.formats.pascal_voc.tqdm",
-            wraps=_real_tqdm,
-        ) as mock_tqdm:
-            ds = DetectionDataset.from_pascal_voc(
-                images_directory_path=images_dir,
-                annotations_directory_path=annotations_dir,
-                show_progress=True,
-            )
-            call_kwargs = mock_tqdm.call_args
-            assert call_kwargs[1]["disable"] is False
+        images_dir, annotations_dir = pascal_voc_dir
+        ds = DetectionDataset.from_pascal_voc(
+            images_directory_path=images_dir,
+            annotations_directory_path=annotations_dir,
+            show_progress=True,
+        )
+        assert mock_tqdm.call_args[1]["disable"] is False
         assert len(ds) == 3
 
-    def test_as_pascal_voc_with_progress(self, tmp_path: Path):
+    def test_as_pascal_voc_with_progress(
+        self, pascal_voc_dataset: DetectionDataset, tmp_path: Path
+    ):
         """Pascal VOC save shows progress bar when show_progress=True."""
-        tmpdir = str(tmp_path)
-        images_dir, annotations_dir = _create_dummy_pascal_voc_dataset(tmpdir)
-        ds = DetectionDataset.from_pascal_voc(
-            images_directory_path=images_dir,
-            annotations_directory_path=annotations_dir,
-        )
-
-        out_dir = os.path.join(tmpdir, "output")
+        out = tmp_path / "output"
         with (
-            patch("supervision.dataset.core.tqdm", wraps=_real_tqdm) as mock_tqdm,
-            patch("supervision.dataset.utils.tqdm", wraps=_real_tqdm),
+            patch(_CORE_TQDM, wraps=_real_tqdm) as mock_tqdm,
+            patch(_UTILS_TQDM, wraps=_real_tqdm),
         ):
-            ds.as_pascal_voc(
-                images_directory_path=os.path.join(out_dir, "images"),
-                annotations_directory_path=os.path.join(out_dir, "annotations"),
+            pascal_voc_dataset.as_pascal_voc(
+                images_directory_path=str(out / "images"),
+                annotations_directory_path=str(out / "annotations"),
                 show_progress=True,
             )
-            call_kwargs = mock_tqdm.call_args
-            assert call_kwargs[1]["disable"] is False
+            assert mock_tqdm.call_args[1]["disable"] is False
 
-    def test_as_pascal_voc_no_progress_by_default(self, tmp_path: Path):
+    @patch(_CORE_TQDM, wraps=_real_tqdm)
+    def test_as_pascal_voc_no_progress_by_default(
+        self, mock_tqdm: object, pascal_voc_dataset: DetectionDataset, tmp_path: Path
+    ):
         """Saving Pascal VOC annotations does not show progress bar by default."""
-        tmpdir = str(tmp_path)
-        images_dir, annotations_dir = _create_dummy_pascal_voc_dataset(tmpdir)
-        ds = DetectionDataset.from_pascal_voc(
-            images_directory_path=images_dir,
-            annotations_directory_path=annotations_dir,
+        pascal_voc_dataset.as_pascal_voc(
+            annotations_directory_path=str(tmp_path / "output" / "annotations")
         )
-        out_annotations = os.path.join(tmpdir, "output", "annotations")
-        with patch(
-            "supervision.dataset.core.tqdm",
-            wraps=_real_tqdm,
-        ) as mock_tqdm:
-            ds.as_pascal_voc(annotations_directory_path=out_annotations)
-            call_kwargs = mock_tqdm.call_args
-            assert call_kwargs[1]["disable"] is True
+        assert mock_tqdm.call_args[1]["disable"] is True
 
 
 class TestSaveImagesProgress:
-    def test_save_images_with_progress(self, tmp_path: Path):
+    @patch(_UTILS_TQDM, wraps=_real_tqdm)
+    def test_save_images_with_progress(
+        self, mock_tqdm: object, yolo_dataset: DetectionDataset, tmp_path: Path
+    ):
         """save_dataset_images shows progress bar when show_progress=True."""
-        tmpdir = str(tmp_path)
-        images_dir, labels_dir, data_yaml = _create_dummy_yolo_dataset(tmpdir)
-        ds = DetectionDataset.from_yolo(
-            images_directory_path=images_dir,
-            annotations_directory_path=labels_dir,
-            data_yaml_path=data_yaml,
-        )
-
-        out_images = os.path.join(tmpdir, "output_images")
-        with patch("supervision.dataset.utils.tqdm", wraps=_real_tqdm) as mock_tqdm:
-            from supervision.dataset.utils import save_dataset_images
-
-            save_dataset_images(
-                dataset=ds,
-                images_directory_path=out_images,
-                show_progress=True,
-            )
-            call_kwargs = mock_tqdm.call_args
-            assert call_kwargs[1]["disable"] is False
-
-        saved_files = os.listdir(out_images)
-        assert len(saved_files) == 3
-
-    def test_save_dataset_images_no_progress_by_default(self, tmp_path: Path):
-        """save_dataset_images does not show progress bar by default."""
-        tmpdir = str(tmp_path)
-        images_dir, labels_dir, data_yaml = _create_dummy_yolo_dataset(tmpdir)
-        ds = DetectionDataset.from_yolo(
-            images_directory_path=images_dir,
-            annotations_directory_path=labels_dir,
-            data_yaml_path=data_yaml,
-        )
         from supervision.dataset.utils import save_dataset_images
 
-        out_images = os.path.join(tmpdir, "output_images_default")
-        with patch("supervision.dataset.utils.tqdm", wraps=_real_tqdm) as mock_tqdm:
-            save_dataset_images(dataset=ds, images_directory_path=out_images)
-            call_kwargs = mock_tqdm.call_args
-            assert call_kwargs[1]["disable"] is True
+        out_images = str(tmp_path / "output_images")
+        save_dataset_images(
+            dataset=yolo_dataset,
+            images_directory_path=out_images,
+            show_progress=True,
+        )
+        assert mock_tqdm.call_args[1]["disable"] is False
+        assert len(os.listdir(out_images)) == 3
+
+    @patch(_UTILS_TQDM, wraps=_real_tqdm)
+    def test_save_dataset_images_no_progress_by_default(
+        self, mock_tqdm: object, yolo_dataset: DetectionDataset, tmp_path: Path
+    ):
+        """save_dataset_images does not show progress bar by default."""
+        from supervision.dataset.utils import save_dataset_images
+
+        save_dataset_images(
+            dataset=yolo_dataset,
+            images_directory_path=str(tmp_path / "output_images_default"),
+        )
+        assert mock_tqdm.call_args[1]["disable"] is True
 
 
 class TestBackwardCompatibility:
     """Ensure show_progress=False (default) doesn't change behavior."""
 
-    def test_from_yolo_default_works(self, tmp_path: Path):
+    def test_from_yolo_default_works(self, yolo_dataset: DetectionDataset):
         """YOLO load with default args returns correct dataset size."""
-        tmpdir = str(tmp_path)
-        images_dir, labels_dir, data_yaml = _create_dummy_yolo_dataset(tmpdir)
-        ds = DetectionDataset.from_yolo(
-            images_directory_path=images_dir,
-            annotations_directory_path=labels_dir,
-            data_yaml_path=data_yaml,
-        )
-        assert len(ds) == 3
+        assert len(yolo_dataset) == 3
 
-    def test_from_coco_default_works(self, tmp_path: Path):
+    def test_from_coco_default_works(self, coco_dataset: DetectionDataset):
         """COCO load with default args returns correct dataset size."""
-        tmpdir = str(tmp_path)
-        images_dir, annotations_path = _create_dummy_coco_dataset(tmpdir)
-        ds = DetectionDataset.from_coco(
-            images_directory_path=images_dir,
-            annotations_path=annotations_path,
-        )
-        assert len(ds) == 3
+        assert len(coco_dataset) == 3
 
-    def test_from_pascal_voc_default_works(self, tmp_path: Path):
+    def test_from_pascal_voc_default_works(self, pascal_voc_dataset: DetectionDataset):
         """Pascal VOC load with default args returns correct dataset size."""
-        tmpdir = str(tmp_path)
-        images_dir, annotations_dir = _create_dummy_pascal_voc_dataset(tmpdir)
-        ds = DetectionDataset.from_pascal_voc(
-            images_directory_path=images_dir,
-            annotations_directory_path=annotations_dir,
-        )
-        assert len(ds) == 3
+        assert len(pascal_voc_dataset) == 3
