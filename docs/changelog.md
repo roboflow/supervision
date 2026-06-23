@@ -5,23 +5,33 @@ date_modified: 2026-06-16
 
 # Changelog
 
-### UnReleased
+### 0.29.1 <small>Jun 23, 2026</small>
 
 - Added [#2338](https://github.com/roboflow/supervision/pull/2338): [`sv.KeyPoints.with_nms`](https://supervision.roboflow.com/latest/keypoint/core/#supervision.key_points.core.KeyPoints.with_nms) — non-maximum suppression for keypoint detections. Derives axis-aligned bounding boxes from valid (non-zero and visible) keypoints and applies `box_non_max_suppression`. Requires `detection_confidence`; supports class-aware and class-agnostic modes via `threshold`, `class_agnostic`, and `overlap_metric`.
 
-- Fixed [#2334](https://github.com/roboflow/supervision/pull/2334): `sv.JSONSink` now serializes NumPy scalars (e.g. `np.int64` frame indices) in `custom_data` as JSON numbers instead of raising `TypeError` at close time. File handle is now guaranteed to close even when serialization fails.
-
-- Fixed [#2335](https://github.com/roboflow/supervision/pull/2335): `sv.KeyPoints(confidence=...)` now works again. The `0.29.0` refactor accidentally dropped the deprecated `confidence` constructor kwarg; it is now accepted and mapped to `keypoint_confidence` with a deprecation warning.
-
-- Fixed [#2322](https://github.com/roboflow/supervision/pull/2322): COCO export now preserves all polygon parts for multi-component masks. Previously, only the first polygon was written when a non-crowd mask had disjoint segments; all parts are now included.
-
 - Fixed [#2342](https://github.com/roboflow/supervision/pull/2342): `sv.Detections.from_vlm` with `sv.VLM.GOOGLE_GEMINI_2_0`, `sv.VLM.GOOGLE_GEMINI_2_5`, and `sv.VLM.QWEN_2_5_VL` no longer raises when the model returns valid JSON of the wrong shape (non-list top-level or non-dict elements). A non-string or malformed `"mask"` value in Gemini 2.5 output no longer triggers `AttributeError`; invalid base64 or non-PNG mask data falls back to an empty mask, keeping `xyxy`, `confidence`, and `masks` arrays aligned.
-
-- Fixed [#2333](https://github.com/roboflow/supervision/pull/2333): [`sv.DetectionsSmoother`](https://supervision.roboflow.com/latest/detection/tools/smoother/#supervision.detection.tools.smoother.DetectionsSmoother) no longer raises when smoothing detections without `confidence`. Confidence is now averaged over the frames that carry it; when tracks in the same frame disagree on confidence presence, `confidence` is set to `None` for all smoothed detections.
 
 - Fixed [#2341](https://github.com/roboflow/supervision/pull/2341): `sv.DetectionDataset.as_pascal_voc` no longer mutates the source `Detections.xyxy` by the 1-index offset on every call. Previously, repeated exports accumulated a `+1` shift in the caller's bounding boxes.
 
+- Fixed [#2334](https://github.com/roboflow/supervision/pull/2334): `sv.JSONSink` now serializes NumPy scalars (e.g. `np.int64` frame indices) in `custom_data` as JSON numbers instead of raising `TypeError` at close time. File handle is now guaranteed to close even when serialization fails.
+
+- Fixed [#2333](https://github.com/roboflow/supervision/pull/2333): [`sv.DetectionsSmoother`](https://supervision.roboflow.com/latest/detection/tools/smoother/#supervision.detection.tools.smoother.DetectionsSmoother) no longer raises when smoothing detections without `confidence`. Confidence is now averaged over the frames that carry it; when tracks in the same frame disagree on confidence presence, `confidence` is set to `None` for all smoothed detections.
+
+- Fixed [#2332](https://github.com/roboflow/supervision/pull/2332): `sv.approximate_polygon` now returns a polygon within the requested point-count budget (at most `floor(N * (1 - percentage))` points, minimum 3). The function now also validates that `epsilon_step > 0`.
+
 - Fixed [#2331](https://github.com/roboflow/supervision/pull/2331): `sv.Precision` and `sv.F1Score` now count predictions on background images (empty target set) as false positives, and count predictions of classes absent from ground truth as false positives under `MICRO` and `MACRO` averaging. Previously both edge cases were silently ignored, inflating scores. `WEIGHTED` averaging is unchanged — absent classes retain weight 0, consistent with scikit-learn. Users relying on previous scores should re-evaluate after upgrading; no API change is required.
+
+- Fixed [#2322](https://github.com/roboflow/supervision/pull/2322): COCO export now preserves all polygon parts for multi-component masks. Previously, only the first polygon was written when a non-crowd mask had disjoint segments; all parts are now included.
+
+- Performance [#2339](https://github.com/roboflow/supervision/pull/2339): `sv.HaloAnnotator` now uses the same CompactMask painting path as `sv.MaskAnnotator` via a shared `_paint_masks_by_area` helper. On a 1080p frame with 30 CompactMask detections, `HaloAnnotator` runs approximately 4× faster; annotated output is unchanged.
+
+- Performance [#2330](https://github.com/roboflow/supervision/pull/2330): `sv.mask_to_xyxy` and `sv.KeyPoints.as_detections` are now vectorized. `mask_to_xyxy` uses batched occupancy-profile reductions instead of per-mask pixel scans; `KeyPoints.as_detections` computes all bounding boxes in a single batch operation. Both produce bit-identical results.
+
+- Performance [#2323](https://github.com/roboflow/supervision/pull/2323): Mask IoU computation now uses matrix multiplication on flattened masks instead of an explicit `(N, M, H, W)` intersection tensor, reducing peak memory for large mask sets. For masks larger than 4096×4096 pixels, computation automatically promotes to float64 to preserve exact pixel counts. Results are numerically identical.
+
+### 0.29.0.post0 <small>Jun 17, 2026</small>
+
+- Fixed [#2335](https://github.com/roboflow/supervision/pull/2335): `sv.KeyPoints(confidence=...)` now works again. The `0.29.0` refactor accidentally dropped the deprecated `confidence` constructor kwarg; it is now accepted and mapped to `keypoint_confidence` with a deprecation warning.
 
 ### 0.29.0 <small>Jun 15, 2026</small>
 
