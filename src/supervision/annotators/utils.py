@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import textwrap
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -44,8 +44,8 @@ def _resolve_color_idx(
     instance_idx: int,
     color_lookup: ColorLookup,
     count: int,
-    class_id: npt.NDArray[np.int_] | None = None,
-    tracker_id: npt.NDArray[np.int_] | None = None,
+    class_id: npt.NDArray[np.generic] | None = None,
+    tracker_id: npt.NDArray[np.generic] | None = None,
     keypoint_idx: int | None = None,
 ) -> int:
     """Resolve a palette index from raw field arrays.
@@ -63,6 +63,14 @@ def _resolve_color_idx(
 
     Returns:
         An integer index suitable for ``ColorPalette.by_idx()``.
+
+    Raises:
+        ValueError: If ``instance_idx`` is out of bounds for the given ``count``.
+        ValueError: If ``color_lookup`` is ``CLASS`` and ``class_id`` is ``None``.
+        ValueError: If ``color_lookup`` is ``TRACK`` and ``tracker_id`` is ``None``.
+        ValueError: If ``color_lookup`` is ``KEYPOINT`` and ``keypoint_idx`` is
+            ``None``.
+        ValueError: If ``color_lookup`` is an unsupported strategy.
     """
     if instance_idx >= count:
         raise ValueError(
@@ -74,17 +82,15 @@ def _resolve_color_idx(
     elif color_lookup == ColorLookup.CLASS:
         if class_id is None:
             raise ValueError(
-                "Could not resolve color by class because "
-                "class_id is not available. Try setting "
-                "color_lookup to sv.ColorLookup.INDEX."
+                "Could not resolve color by class because class_id is not available. "
+                "Try setting color_lookup to sv.ColorLookup.INDEX."
             )
         return int(class_id[instance_idx])
     elif color_lookup == ColorLookup.TRACK:
         if tracker_id is None:
             raise ValueError(
-                "Could not resolve color by track because "
-                "tracker_id is not available. Make sure that the "
-                "Detections object contains tracker_id data."
+                "Could not resolve color by track because tracker_id is not available. "
+                "Make sure tracker_id is set on the input object."
             )
         return int(tracker_id[instance_idx])
     elif color_lookup == ColorLookup.KEYPOINT:
@@ -434,7 +440,7 @@ def snap_boxes(
     bottom_shift = height - result[bottom_overflow, 3]
     result[bottom_overflow, 1:4:2] += bottom_shift[:, np.newaxis]
 
-    return result.astype(np.float32)  # type: ignore
+    return cast(np.ndarray[Any, np.dtype[np.float32]], result.astype(np.float32))
 
 
 class Trace:

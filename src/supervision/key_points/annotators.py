@@ -78,7 +78,8 @@ class VertexAnnotator(BaseKeyPointAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX` (per-skeleton index), `CLASS`
                 (per class_id), and `KEYPOINT` (per keypoint index within
-                each skeleton).
+                each skeleton). Note: ``TRACK`` is not supported for
+                keypoint annotators.
         """
         self.color = color
         self.radius = radius
@@ -181,7 +182,8 @@ class EdgeAnnotator(BaseKeyPointAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX` (per-skeleton index), `CLASS`
                 (per class_id), and `KEYPOINT` (per keypoint index —
-                edge inherits the color of its first endpoint).
+                edge inherits the color of its first endpoint). Note:
+                ``TRACK`` is not supported for keypoint annotators.
         """
         self.color = color
         self.thickness = thickness
@@ -797,7 +799,8 @@ class VertexLabelAnnotator:
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX` (per-skeleton index), `CLASS`
                 (per class_id), and `KEYPOINT` (per keypoint index within
-                each skeleton).
+                each skeleton). Note: ``TRACK`` is not supported for
+                keypoint annotators.
         """
         if isinstance(color, list):
             warn_deprecated(

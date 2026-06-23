@@ -467,3 +467,164 @@ class TestVertexLabelAnnotator:
     def test_resolve_labels_raises(self, labels, points_count, class_id, match):
         with pytest.raises(ValueError, match=match):
             sv.VertexLabelAnnotator._resolve_labels(labels, points_count, class_id)
+
+
+class TestVertexAnnotatorColorLookup:
+    """Verify VertexAnnotator respects each ColorLookup strategy with a ColorPalette."""
+
+    @pytest.fixture
+    def key_points_with_class(self) -> sv.KeyPoints:
+        """Two-instance, three-keypoint set with class_id set."""
+        return sv.KeyPoints(
+            xy=np.array(
+                [
+                    [[20.0, 20.0], [40.0, 40.0], [60.0, 60.0]],
+                    [[25.0, 25.0], [45.0, 45.0], [65.0, 65.0]],
+                ],
+                dtype=np.float32,
+            ),
+            class_id=np.array([0, 1], dtype=int),
+        )
+
+    @pytest.mark.parametrize(
+        "color_lookup",
+        [
+            pytest.param(sv.ColorLookup.INDEX, id="index"),
+            pytest.param(sv.ColorLookup.CLASS, id="class"),
+            pytest.param(sv.ColorLookup.KEYPOINT, id="keypoint"),
+        ],
+    )
+    def test_annotate_with_color_palette_returns_ndarray(
+        self, scene, key_points_with_class, color_lookup
+    ):
+        """ColorPalette + each ColorLookup produces a modified ndarray output."""
+        annotator = sv.VertexAnnotator(
+            color=sv.ColorPalette.DEFAULT,
+            radius=5,
+            color_lookup=color_lookup,
+        )
+        result = annotator.annotate(
+            scene=scene.copy(), key_points=key_points_with_class
+        )
+
+        assert isinstance(result, np.ndarray)
+        assert result.shape == scene.shape
+        assert not np.array_equal(result, scene)
+
+    def test_annotate_class_lookup_raises_when_class_id_none(self, scene):
+        """CLASS strategy raises ValueError when key_points.class_id is None."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[30.0, 30.0], [50.0, 50.0]]], dtype=np.float32),
+        )
+        annotator = sv.VertexAnnotator(
+            color=sv.ColorPalette.DEFAULT,
+            color_lookup=sv.ColorLookup.CLASS,
+        )
+
+        with pytest.raises(ValueError, match="class_id"):
+            annotator.annotate(scene=scene.copy(), key_points=key_points)
+
+
+class TestEdgeAnnotatorColorLookup:
+    """Verify EdgeAnnotator respects each ColorLookup strategy with a ColorPalette."""
+
+    @pytest.fixture
+    def key_points_triangle(self) -> sv.KeyPoints:
+        """Single-instance, three-vertex triangle useful with explicit edges."""
+        return sv.KeyPoints(
+            xy=np.array(
+                [[[10.0, 10.0], [80.0, 10.0], [45.0, 80.0]]],
+                dtype=np.float32,
+            ),
+            class_id=np.array([0], dtype=int),
+        )
+
+    @pytest.mark.parametrize(
+        "color_lookup",
+        [
+            pytest.param(sv.ColorLookup.INDEX, id="index"),
+            pytest.param(sv.ColorLookup.CLASS, id="class"),
+            pytest.param(sv.ColorLookup.KEYPOINT, id="keypoint"),
+        ],
+    )
+    def test_annotate_with_color_palette_returns_ndarray(
+        self, scene, key_points_triangle, color_lookup
+    ):
+        """ColorPalette + each ColorLookup produces a modified ndarray output."""
+        annotator = sv.EdgeAnnotator(
+            color=sv.ColorPalette.DEFAULT,
+            thickness=2,
+            edges=[(1, 2), (2, 3), (1, 3)],
+            color_lookup=color_lookup,
+        )
+        result = annotator.annotate(scene=scene.copy(), key_points=key_points_triangle)
+
+        assert isinstance(result, np.ndarray)
+        assert result.shape == scene.shape
+        assert not np.array_equal(result, scene)
+
+    def test_annotate_class_lookup_raises_when_class_id_none(self, scene):
+        """CLASS strategy raises ValueError when key_points.class_id is None."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[10.0, 10.0], [80.0, 10.0]]], dtype=np.float32),
+        )
+        annotator = sv.EdgeAnnotator(
+            color=sv.ColorPalette.DEFAULT,
+            edges=[(1, 2)],
+            color_lookup=sv.ColorLookup.CLASS,
+        )
+
+        with pytest.raises(ValueError, match="class_id"):
+            annotator.annotate(scene=scene.copy(), key_points=key_points)
+
+
+class TestVertexLabelAnnotatorColorLookup:
+    """Verify VertexLabelAnnotator respects each ColorLookup strategy."""
+
+    @pytest.fixture
+    def key_points_with_class(self) -> sv.KeyPoints:
+        """Two-instance, two-keypoint set with class_id set."""
+        return sv.KeyPoints(
+            xy=np.array(
+                [[[20.0, 20.0], [60.0, 60.0]], [[25.0, 25.0], [65.0, 65.0]]],
+                dtype=np.float32,
+            ),
+            class_id=np.array([0, 1], dtype=int),
+        )
+
+    @pytest.mark.parametrize(
+        "color_lookup",
+        [
+            pytest.param(sv.ColorLookup.INDEX, id="index"),
+            pytest.param(sv.ColorLookup.CLASS, id="class"),
+            pytest.param(sv.ColorLookup.KEYPOINT, id="keypoint"),
+        ],
+    )
+    def test_annotate_with_color_palette_returns_ndarray(
+        self, scene, key_points_with_class, color_lookup
+    ):
+        """ColorPalette + each ColorLookup produces a modified ndarray output."""
+        annotator = sv.VertexLabelAnnotator(
+            color=sv.ColorPalette.DEFAULT,
+            color_lookup=color_lookup,
+        )
+        result = annotator.annotate(
+            scene=scene.copy(), key_points=key_points_with_class
+        )
+
+        assert isinstance(result, np.ndarray)
+        assert result.shape == scene.shape
+        assert not np.array_equal(result, scene)
+
+    def test_annotate_class_lookup_raises_when_class_id_none(self, scene):
+        """CLASS strategy raises ValueError when key_points.class_id is None."""
+        key_points = sv.KeyPoints(
+            xy=np.array([[[30.0, 30.0], [50.0, 50.0]]], dtype=np.float32),
+        )
+        annotator = sv.VertexLabelAnnotator(
+            color=sv.ColorPalette.DEFAULT,
+            color_lookup=sv.ColorLookup.CLASS,
+        )
+
+        with pytest.raises(ValueError, match="class_id"):
+            annotator.annotate(scene=scene.copy(), key_points=key_points)
