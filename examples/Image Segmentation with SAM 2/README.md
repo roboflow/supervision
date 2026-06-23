@@ -1,7 +1,6 @@
 # Text-Driven Image Segmentation with SAM 2
 
-This example demonstrates **image segmentation** using the **Segment Anything Model 2**.
-You can specify an object in the image via a **Points or Boxes*, and the model automatically segments that region.
+This example demonstrates **image segmentation** using the **Segment Anything Model 2**. You can specify an object in the image via a \**Points or Boxes*, and the model automatically segments that region.
 
 ---
 
@@ -66,12 +65,11 @@ examples/
 
 ## 💡 Notes
 
-* The accuracy depends on the grounding model and SAM’s segmentation mask quality.
-* For better results, ensure images are clear and objects are well-separated.
-
+- The accuracy depends on the grounding model and SAM’s segmentation mask quality.
+- For better results, ensure images are clear and objects are well-separated.
 
 This example builds on:
 
-* [Segment Anything Model (SAM 2)](https://github.com/facebookresearch/segment-anything)
-* [GroundingDINO](https://github.com/IDEA-Research/GroundingDINO)
-* [Supervision](https://github.com/roboflow/supervision)
+- [Segment Anything Model (SAM 2)](https://github.com/facebookresearch/segment-anything)
+- [GroundingDINO](https://github.com/IDEA-Research/GroundingDINO)
+- [Supervision](https://github.com/roboflow/supervision)
