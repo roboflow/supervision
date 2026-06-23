@@ -215,6 +215,7 @@ def load_pascal_voc_annotations(
 
     for image_path in tqdm(
         image_paths,
+        total=len(image_paths),
         desc="Loading Pascal VOC annotations",
         disable=not show_progress,
     ):

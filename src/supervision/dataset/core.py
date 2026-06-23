@@ -432,7 +432,7 @@ class DetectionDataset(BaseDataset):
             ds = sv.DetectionDataset.from_pascal_voc(
                 images_directory_path=f"{dataset.location}/train/images",
                 annotations_directory_path=f"{dataset.location}/train/labels",
-                show_progress=True
+                # pass show_progress=True to enable a tqdm progress bar
             )
 
             ds.classes
@@ -499,7 +499,7 @@ class DetectionDataset(BaseDataset):
                 images_directory_path=f"{dataset.location}/train/images",
                 annotations_directory_path=f"{dataset.location}/train/labels",
                 data_yaml_path=f"{dataset.location}/data.yaml",
-                show_progress=True
+                # pass show_progress=True to enable a tqdm progress bar
             )
 
             ds.classes
@@ -634,7 +634,7 @@ class DetectionDataset(BaseDataset):
             ds = sv.DetectionDataset.from_coco(
                 images_directory_path=f"{dataset.location}/train",
                 annotations_path=f"{dataset.location}/train/_annotations.coco.json",
-                show_progress=True
+                # pass show_progress=True to enable a tqdm progress bar
             )
 
             ds.classes
@@ -925,20 +925,28 @@ class ClassificationDataset(BaseDataset):
 
         return train_dataset, test_dataset
 
-    def as_folder_structure(self, root_directory_path: str) -> None:
+    def as_folder_structure(
+        self, root_directory_path: str, show_progress: bool = False
+    ) -> None:
         """
         Saves the dataset as a multi-class folder structure.
 
         Args:
             root_directory_path: The path to the directory
                 where the dataset will be saved.
+            show_progress: If True, display a progress bar during saving.
         """
         os.makedirs(root_directory_path, exist_ok=True)
 
         for class_name in self.classes:
             os.makedirs(os.path.join(root_directory_path, class_name), exist_ok=True)
 
-        for image_save_path, image, annotation in self:
+        for image_save_path, image, annotation in tqdm(
+            self,
+            total=len(self),
+            desc="Saving classification images",
+            disable=not show_progress,
+        ):
             image_name = Path(image_save_path).name
             class_id = (
                 annotation.class_id[0]
@@ -950,12 +958,15 @@ class ClassificationDataset(BaseDataset):
             cv2.imwrite(image_save_path, image)
 
     @classmethod
-    def from_folder_structure(cls, root_directory_path: str) -> ClassificationDataset:
+    def from_folder_structure(
+        cls, root_directory_path: str, show_progress: bool = False
+    ) -> ClassificationDataset:
         """
         Load data from a multiclass folder structure into a ClassificationDataset.
 
         Args:
             root_directory_path: The path to the dataset directory.
+            show_progress: If True, display a progress bar during loading.
 
         Returns:
             The dataset.
@@ -974,6 +985,7 @@ class ClassificationDataset(BaseDataset):
 
             cd = sv.ClassificationDataset.from_folder_structure(
                 root_directory_path=f"{dataset.location}/train"
+                # pass show_progress=True to enable a tqdm progress bar
             )
             ```
         """
@@ -983,7 +995,12 @@ class ClassificationDataset(BaseDataset):
         image_paths = []
         annotations = {}
 
-        for class_name in classes:
+        for class_name in tqdm(
+            classes,
+            total=len(classes),
+            desc="Loading classification dataset",
+            disable=not show_progress,
+        ):
             class_id = classes.index(class_name)
 
             for image in os.listdir(os.path.join(root_directory_path, class_name)):

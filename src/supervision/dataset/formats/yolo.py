@@ -247,6 +247,7 @@ def load_yolo_annotations(
 
     for image_path in tqdm(
         image_paths,
+        total=len(image_paths),
         desc="Loading YOLO annotations",
         disable=not show_progress,
     ):

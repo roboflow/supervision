@@ -449,6 +449,7 @@ def load_coco_annotations(
 
     for coco_image in tqdm(
         coco_images,
+        total=len(coco_images),
         desc="Loading COCO annotations",
         disable=not show_progress,
     ):
