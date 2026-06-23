@@ -2661,10 +2661,21 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#unreleased" class="md-nav__link">
+  <a href="#0291-jun-23-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
-        UnReleased
+        0.29.1 Jun 23, 2026
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0290post0-jun-17-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.29.0.post0 Jun 17, 2026
       
     </span>
   </a>
@@ -3134,10 +3145,21 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#unreleased" class="md-nav__link">
+  <a href="#0291-jun-23-2026" class="md-nav__link">
     <span class="md-ellipsis">
       
-        UnReleased
+        0.29.1 Jun 23, 2026
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#0290post0-jun-17-2026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.29.0.post0 Jun 17, 2026
       
     </span>
   </a>
@@ -3557,32 +3579,45 @@
 
 
 <h1 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h1>
-<h3 id="unreleased">UnReleased<a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h3>
+<h3 id="0291-jun-23-2026">0.29.1 <small>Jun 23, 2026</small><a class="headerlink" href="#0291-jun-23-2026" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
 <p>Added <a href="https://github.com/roboflow/supervision/pull/2338">#2338</a>: <a href="https://supervision.roboflow.com/latest/keypoint/core/#supervision.key_points.core.KeyPoints.with_nms"><code>sv.KeyPoints.with_nms</code></a> — non-maximum suppression for keypoint detections. Derives axis-aligned bounding boxes from valid (non-zero and visible) keypoints and applies <code>box_non_max_suppression</code>. Requires <code>detection_confidence</code>; supports class-aware and class-agnostic modes via <code>threshold</code>, <code>class_agnostic</code>, and <code>overlap_metric</code>.</p>
 </li>
 <li>
-<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2334">#2334</a>: <code>sv.JSONSink</code> now serializes NumPy scalars (e.g. <code>np.int64</code> frame indices) in <code>custom_data</code> as JSON numbers instead of raising <code>TypeError</code> at close time. File handle is now guaranteed to close even when serialization fails.</p>
-</li>
-<li>
-<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2335">#2335</a>: <code>sv.KeyPoints(confidence=...)</code> now works again. The <code>0.29.0</code> refactor accidentally dropped the deprecated <code>confidence</code> constructor kwarg; it is now accepted and mapped to <code>keypoint_confidence</code> with a deprecation warning.</p>
-</li>
-<li>
-<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2322">#2322</a>: COCO export now preserves all polygon parts for multi-component masks. Previously, only the first polygon was written when a non-crowd mask had disjoint segments; all parts are now included.</p>
-</li>
-<li>
 <p>Fixed <a href="https://github.com/roboflow/supervision/pull/2342">#2342</a>: <code>sv.Detections.from_vlm</code> with <code>sv.VLM.GOOGLE_GEMINI_2_0</code>, <code>sv.VLM.GOOGLE_GEMINI_2_5</code>, and <code>sv.VLM.QWEN_2_5_VL</code> no longer raises when the model returns valid JSON of the wrong shape (non-list top-level or non-dict elements). A non-string or malformed <code>"mask"</code> value in Gemini 2.5 output no longer triggers <code>AttributeError</code>; invalid base64 or non-PNG mask data falls back to an empty mask, keeping <code>xyxy</code>, <code>confidence</code>, and <code>masks</code> arrays aligned.</p>
-</li>
-<li>
-<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2333">#2333</a>: <a href="https://supervision.roboflow.com/latest/detection/tools/smoother/#supervision.detection.tools.smoother.DetectionsSmoother"><code>sv.DetectionsSmoother</code></a> no longer raises when smoothing detections without <code>confidence</code>. Confidence is now averaged over the frames that carry it; when tracks in the same frame disagree on confidence presence, <code>confidence</code> is set to <code>None</code> for all smoothed detections.</p>
 </li>
 <li>
 <p>Fixed <a href="https://github.com/roboflow/supervision/pull/2341">#2341</a>: <code>sv.DetectionDataset.as_pascal_voc</code> no longer mutates the source <code>Detections.xyxy</code> by the 1-index offset on every call. Previously, repeated exports accumulated a <code>+1</code> shift in the caller's bounding boxes.</p>
 </li>
 <li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2334">#2334</a>: <code>sv.JSONSink</code> now serializes NumPy scalars (e.g. <code>np.int64</code> frame indices) in <code>custom_data</code> as JSON numbers instead of raising <code>TypeError</code> at close time. File handle is now guaranteed to close even when serialization fails.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2333">#2333</a>: <a href="https://supervision.roboflow.com/latest/detection/tools/smoother/#supervision.detection.tools.smoother.DetectionsSmoother"><code>sv.DetectionsSmoother</code></a> no longer raises when smoothing detections without <code>confidence</code>. Confidence is now averaged over the frames that carry it; when tracks in the same frame disagree on confidence presence, <code>confidence</code> is set to <code>None</code> for all smoothed detections.</p>
+</li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2332">#2332</a>: <code>sv.approximate_polygon</code> now returns a polygon within the requested point-count budget (at most <code>floor(N * (1 - percentage))</code> points, minimum 3). The function now also validates that <code>epsilon_step &gt; 0</code>.</p>
+</li>
+<li>
 <p>Fixed <a href="https://github.com/roboflow/supervision/pull/2331">#2331</a>: <code>sv.Precision</code> and <code>sv.F1Score</code> now count predictions on background images (empty target set) as false positives, and count predictions of classes absent from ground truth as false positives under <code>MICRO</code> and <code>MACRO</code> averaging. Previously both edge cases were silently ignored, inflating scores. <code>WEIGHTED</code> averaging is unchanged — absent classes retain weight 0, consistent with scikit-learn. Users relying on previous scores should re-evaluate after upgrading; no API change is required.</p>
 </li>
+<li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2322">#2322</a>: COCO export now preserves all polygon parts for multi-component masks. Previously, only the first polygon was written when a non-crowd mask had disjoint segments; all parts are now included.</p>
+</li>
+<li>
+<p>Performance <a href="https://github.com/roboflow/supervision/pull/2339">#2339</a>: <code>sv.HaloAnnotator</code> now uses the same CompactMask painting path as <code>sv.MaskAnnotator</code> via a shared <code>_paint_masks_by_area</code> helper. On a 1080p frame with 30 CompactMask detections, <code>HaloAnnotator</code> runs approximately 4× faster; annotated output is unchanged.</p>
+</li>
+<li>
+<p>Performance <a href="https://github.com/roboflow/supervision/pull/2330">#2330</a>: <code>sv.mask_to_xyxy</code> and <code>sv.KeyPoints.as_detections</code> are now vectorized. <code>mask_to_xyxy</code> uses batched occupancy-profile reductions instead of per-mask pixel scans; <code>KeyPoints.as_detections</code> computes all bounding boxes in a single batch operation. Both produce bit-identical results.</p>
+</li>
+<li>
+<p>Performance <a href="https://github.com/roboflow/supervision/pull/2323">#2323</a>: Mask IoU computation now uses matrix multiplication on flattened masks instead of an explicit <code>(N, M, H, W)</code> intersection tensor, reducing peak memory for large mask sets. For masks larger than 4096×4096 pixels, computation automatically promotes to float64 to preserve exact pixel counts. Results are numerically identical.</p>
+</li>
+</ul>
+<h3 id="0290post0-jun-17-2026">0.29.0.post0 <small>Jun 17, 2026</small><a class="headerlink" href="#0290post0-jun-17-2026" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Fixed <a href="https://github.com/roboflow/supervision/pull/2335">#2335</a>: <code>sv.KeyPoints(confidence=...)</code> now works again. The <code>0.29.0</code> refactor accidentally dropped the deprecated <code>confidence</code> constructor kwarg; it is now accepted and mapped to <code>keypoint_confidence</code> with a deprecation warning.</li>
 </ul>
 <h3 id="0290-jun-15-2026">0.29.0 <small>Jun 15, 2026</small><a class="headerlink" href="#0290-jun-15-2026" title="Permanent link">&para;</a></h3>
 <ul>
@@ -5529,7 +5564,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 18, 2026 13:31:31 UTC">June 18, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 23, 2026 13:03:07 UTC">June 23, 2026</span>
   </span>
 
     
@@ -5557,9 +5592,9 @@
     
     <nav>
       
-        <a href="https://github.com/RubenHaisma" class="md-author" title="@RubenHaisma">
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
-          <img src="https://avatars.githubusercontent.com/u/74268046?v=4&size=72" alt="RubenHaisma">
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -5567,14 +5602,14 @@
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/RubenHaisma" class="md-author" title="@RubenHaisma">
+          
+          <img src="https://avatars.githubusercontent.com/u/74268046?v=4&size=72" alt="RubenHaisma">
+        </a>
+      
         <a href="https://github.com/kounelisagis" class="md-author" title="@kounelisagis">
           
           <img src="https://avatars.githubusercontent.com/u/36283973?v=4&size=72" alt="kounelisagis">
-        </a>
-      
-        <a href="https://github.com/SkalskiP" class="md-author" title="@SkalskiP">
-          
-          <img src="https://avatars.githubusercontent.com/u/26109316?v=4&size=72" alt="SkalskiP">
         </a>
       
       
