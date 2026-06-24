@@ -151,7 +151,7 @@ def resolve_color_idx(  # type: ignore[return]
     detection_idx: int,
     color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
 ) -> int:
-    void(detections, detection_idx, color_lookup)
+    return void(detections, detection_idx, color_lookup)
 
 
 def resolve_text_background_xyxy(
