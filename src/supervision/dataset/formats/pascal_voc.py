@@ -9,6 +9,7 @@ import numpy as np
 import numpy.typing as npt
 from defusedxml.ElementTree import parse, tostring
 from defusedxml.minidom import parseString
+from tqdm.auto import tqdm
 
 from supervision.dataset.utils import approximate_mask_with_polygons
 from supervision.detection.core import Detections
@@ -182,6 +183,7 @@ def load_pascal_voc_annotations(
     images_directory_path: str,
     annotations_directory_path: str,
     force_masks: bool = False,
+    show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
     """
     Loads PASCAL VOC XML annotations and returns the image name,
@@ -193,6 +195,7 @@ def load_pascal_voc_annotations(
             PASCAL VOC annotation files.
         force_masks: If True, forces masks to be loaded for all
             annotations, regardless of whether they are present.
+        show_progress: If True, display a progress bar during loading.
 
     Returns:
         A tuple with a list
@@ -210,7 +213,12 @@ def load_pascal_voc_annotations(
     classes: list[str] = []
     annotations = {}
 
-    for image_path in image_paths:
+    for image_path in tqdm(
+        image_paths,
+        total=len(image_paths),
+        desc="Loading Pascal VOC annotations",
+        disable=not show_progress,
+    ):
         image_stem = Path(image_path).stem
         annotation_path = os.path.join(annotations_directory_path, f"{image_stem}.xml")
         if not os.path.exists(annotation_path):
