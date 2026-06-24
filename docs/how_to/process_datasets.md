@@ -424,7 +424,7 @@ augmented_annotations = replace(
 
 ### What dataset formats does supervision support?
 
-For detection datasets, supervision supports YOLO, COCO JSON, and Pascal VOC. Use `DetectionDataset.from_yolo()`, `from_coco()`, or `from_pascal_voc()` to load, and `as_yolo()`, `as_coco()`, or `as_pascal_voc()` to save. Classification datasets use `ClassificationDataset.from_folder_structure()` and `as_folder_structure()`.
+For detection datasets, supervision supports YOLO, COCO JSON, Pascal VOC, and CreateML. Use `DetectionDataset.from_yolo()`, `from_coco()`, `from_pascal_voc()`, or `from_createml()` to load, and `as_yolo()`, `as_coco()`, `as_pascal_voc()`, or `as_createml()` to save. Classification datasets use `ClassificationDataset.from_folder_structure()` and `as_folder_structure()`.
 
 ### Can I split a dataset into train/val/test sets?
 
