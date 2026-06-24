@@ -11,6 +11,7 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 from deprecate import deprecated, void
+from tqdm.auto import tqdm
 
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import mask_to_polygons
@@ -125,9 +126,35 @@ def map_detections_class_id(
     return detections_copy
 
 
-def save_dataset_images(dataset: DetectionDataset, images_directory_path: str) -> None:
+def save_dataset_images(
+    dataset: DetectionDataset,
+    images_directory_path: str,
+    show_progress: bool = False,
+) -> None:
+    """Save all images from a dataset to a directory.
+
+    Images already in memory are written with ``cv2.imwrite``; images stored
+    only as file paths are copied with ``shutil.copyfile``.
+
+    Args:
+        dataset: The dataset whose images are saved.
+        images_directory_path: Destination directory path; created
+            automatically if it does not exist.
+        show_progress: If ``True``, display a tqdm progress bar while
+            saving images.
+
+    Examples:
+        >>> from supervision.dataset.core import DetectionDataset
+        >>> from supervision.dataset.utils import save_dataset_images
+        >>> dataset = DetectionDataset(classes=["cat"], images={}, annotations={})
+        >>> save_dataset_images(dataset, "/tmp/images")
+    """
     Path(images_directory_path).mkdir(parents=True, exist_ok=True)
-    for image_path in dataset.image_paths:
+    for image_path in tqdm(
+        dataset.image_paths,
+        desc="Saving images",
+        disable=not show_progress,
+    ):
         final_path = os.path.join(images_directory_path, Path(image_path).name)
         if image_path in dataset._images_in_memory:
             image = dataset._images_in_memory[image_path]

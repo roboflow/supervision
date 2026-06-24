@@ -45,17 +45,13 @@ We write your reusable computer vision tools. Whether you need to load your data
 
 ## 💻 Install
 
-You can install `supervision` in a
-[**Python>=3.9**](https://www.python.org/) environment.
+You can install `supervision` in a [**Python>=3.9**](https://www.python.org/) environment.
 
 !!! example "Installation"
 
     === "pip (recommended)"
 
-        [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
-        [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
-        [![license](https://img.shields.io/pypi/l/supervision)](../LICENSE.md)
-        [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
+        [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision) [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision) [![license](https://img.shields.io/pypi/l/supervision)](../LICENSE.md) [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 
         ```bash
         pip install supervision
@@ -63,10 +59,7 @@ You can install `supervision` in a
 
     === "poetry"
 
-        [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
-        [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
-        [![license](https://img.shields.io/pypi/l/supervision)](../LICENSE.md)
-        [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
+        [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision) [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision) [![license](https://img.shields.io/pypi/l/supervision)](../LICENSE.md) [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 
         ```bash
         poetry add supervision
@@ -74,10 +67,7 @@ You can install `supervision` in a
 
     === "uv"
 
-        [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
-        [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
-        [![license](https://img.shields.io/pypi/l/supervision)](../LICENSE.md)
-        [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
+        [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision) [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision) [![license](https://img.shields.io/pypi/l/supervision)](../LICENSE.md) [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 
         ```bash
         uv pip install supervision
@@ -91,10 +81,7 @@ You can install `supervision` in a
 
     === "rye"
 
-        [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision)
-        [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision)
-        [![license](https://img.shields.io/pypi/l/supervision)](../LICENSE.md)
-        [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
+        [![version](https://badge.fury.io/py/supervision.svg)](https://badge.fury.io/py/supervision) [![downloads](https://img.shields.io/pypi/dm/supervision)](https://pypistats.org/packages/supervision) [![license](https://img.shields.io/pypi/l/supervision)](../LICENSE.md) [![python-version](https://img.shields.io/pypi/pyversions/supervision)](https://badge.fury.io/py/supervision)
 
         ```bash
         rye add supervision

@@ -5,7 +5,9 @@ from typing import TYPE_CHECKING, Any, Union, cast
 
 import numpy as np
 import numpy.typing as npt
+from tqdm.auto import tqdm
 
+from supervision.config import COCO_RAW_SEGMENTATION
 from supervision.dataset.utils import (
     approximate_mask_with_polygons,
     map_detections_class_id,
@@ -168,6 +170,10 @@ def coco_annotations_to_detections(
     Returns:
         Detections with ``class_id`` set to raw COCO ``category_id`` values.
         Call :func:`map_detections_class_id` on the result before use.
+        When ``with_masks=False``, ``detections.data[COCO_RAW_SEGMENTATION]`` is
+        populated as an object array (shape ``(N,)``) holding the raw polygon list or
+        RLE dict per annotation; consumed by :func:`detections_to_coco_annotations`
+        for a coordinate-preserving round-trip.
     """
     if not image_annotations:
         return Detections.empty()
@@ -175,11 +181,11 @@ def coco_annotations_to_detections(
     class_ids = [
         image_annotation["category_id"] for image_annotation in image_annotations
     ]
-    xyxy = [image_annotation["bbox"] for image_annotation in image_annotations]
-    xyxy = np.asarray(xyxy, dtype=np.float32)
+    xyxy_list = [image_annotation["bbox"] for image_annotation in image_annotations]
+    xyxy: npt.NDArray[np.float32] = np.asarray(xyxy_list, dtype=np.float32)
     xyxy[:, 2:4] += xyxy[:, 0:2]
 
-    data: dict[str, npt.NDArray[np.generic]] = {}
+    data: dict[str, Union[npt.NDArray[np.generic], list[Any]]] = {}
     if use_iscrowd:
         iscrowd = [
             image_annotation["iscrowd"] for image_annotation in image_annotations
@@ -195,6 +201,14 @@ def coco_annotations_to_detections(
         )
     else:
         mask = None
+        # Preserve raw polygon/RLE data so as_coco() can round-trip without
+        # binary-mask encoding. Stored as an object array (one entry per detection).
+        raw_segs: npt.NDArray[np.object_] = np.empty(
+            len(image_annotations), dtype=object
+        )
+        for k, _ann in enumerate(image_annotations):
+            raw_segs[k] = _ann.get("segmentation", [])
+        data[COCO_RAW_SEGMENTATION] = raw_segs
 
     return Detections(
         class_id=np.asarray(class_ids, dtype=int), xyxy=xyxy, mask=mask, data=data
@@ -234,6 +248,18 @@ def detections_to_coco_annotations(
     Raises:
         ValueError: If any detection has ``class_id`` equal to ``None``.
 
+    Note:
+        For ``iscrowd=0`` annotations, ``segmentation`` is a
+        ``list[list[float]]`` where each inner list encodes one polygon
+        part as flat ``[x1, y1, x2, y2, ...]`` coordinates. A single
+        object with *N* disjoint parts produces *N* inner lists.
+
+        When ``iscrowd`` is not in ``detections.data``, masks with holes
+        or multiple disjoint segments are auto-encoded as RLE
+        (``iscrowd=1``); simple single-region masks use polygon format
+        (``iscrowd=0``). Supply ``data={"iscrowd": np.array([0])}`` to
+        force polygon output regardless of mask topology.
+
     Examples:
         ```python
         import numpy as np
@@ -260,21 +286,25 @@ def detections_to_coco_annotations(
         box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
         segmentation: Union[list[list[float]], dict[str, list[int]]] = []
         if mask is not None:
+            mask_bool = cast(npt.NDArray[np.bool_], mask)
             if "iscrowd" in data:
                 iscrowd = int(np.asarray(data["iscrowd"]).item())
             else:
                 iscrowd = int(
-                    contains_holes(mask=mask) or contains_multiple_segments(mask=mask)
+                    contains_holes(mask=mask_bool)
+                    or contains_multiple_segments(mask=mask_bool)
                 )
 
             if iscrowd:
                 segmentation = {
-                    "counts": cast(list[int], mask_to_rle(mask=mask, compressed=False)),
+                    "counts": cast(
+                        list[int], mask_to_rle(mask=mask_bool, compressed=False)
+                    ),
                     "size": list(mask.shape[:2]),
                 }
             else:
                 polygons = approximate_mask_with_polygons(
-                    mask=mask,
+                    mask=mask_bool,
                     min_image_area_percentage=min_image_area_percentage,
                     max_image_area_percentage=max_image_area_percentage,
                     approximation_percentage=approximation_percentage,
@@ -282,7 +312,8 @@ def detections_to_coco_annotations(
                 # Small/noisy masks can be filtered out by approximation settings.
                 # Guard against empty output and keep a valid COCO annotation record.
                 if polygons:
-                    segmentation = [list(polygons[0].flatten())]
+                    # Export ALL polygons so disjoint mask components are preserved.
+                    segmentation = [list(p.flatten()) for p in polygons]
                 else:
                     warnings.warn(
                         "Skipping COCO polygon segmentation for annotation "
@@ -292,6 +323,22 @@ def detections_to_coco_annotations(
                     )
         else:
             iscrowd = int(np.asarray(data.get("iscrowd", 0)).item())
+            # When masks were not decoded during loading, fall back to the raw
+            # polygon/RLE stored in data["segmentation"] for a lossless round-trip.
+            raw_seg = data.get(COCO_RAW_SEGMENTATION)
+            if raw_seg is not None and bool(raw_seg):
+                if isinstance(raw_seg, dict):
+                    # RLE format — pass through unchanged
+                    segmentation = raw_seg
+                elif (
+                    isinstance(raw_seg, list)
+                    and raw_seg
+                    and not isinstance(raw_seg[0], (list, tuple))
+                ):
+                    # Flat list shorthand [x1,y1,...] — wrap to list-of-lists
+                    segmentation = [list(raw_seg)]
+                else:
+                    segmentation = list(raw_seg)
 
         area: float = float(np.asarray(data.get("area", box_width * box_height)).item())
         coco_annotation = {
@@ -352,6 +399,7 @@ def load_coco_annotations(
     annotations_path: str,
     force_masks: bool = False,
     use_iscrowd: bool = True,
+    show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
     """
     Load COCO annotations and convert them to `Detections`.
@@ -365,6 +413,7 @@ def load_coco_annotations(
         annotations_path: Path to COCO JSON annotations.
         force_masks: If `True`, always attempt to load masks.
         use_iscrowd: If `True`, include `iscrowd` and `area` in detection data.
+        show_progress: If `True`, display a progress bar during loading.
 
     Returns:
         A tuple of `(classes, image_paths, annotations)`.
@@ -398,7 +447,12 @@ def load_coco_annotations(
     annotations = {}
     images_directory_resolved = Path(images_directory_path).resolve()
 
-    for coco_image in coco_images:
+    for coco_image in tqdm(
+        coco_images,
+        total=len(coco_images),
+        desc="Loading COCO annotations",
+        disable=not show_progress,
+    ):
         image_name, image_width, image_height = (
             coco_image["file_name"],
             coco_image["width"],
@@ -466,6 +520,7 @@ def save_coco_annotations(
     approximation_percentage: float = 0.0,
     starting_image_id: int = 1,
     starting_annotation_id: int = 1,
+    show_progress: bool = False,
 ) -> tuple[int, int]:
     """Save a DetectionDataset to a COCO-format ``annotations.json`` file.
 
@@ -484,6 +539,7 @@ def save_coco_annotations(
         starting_annotation_id: First annotation id to assign in the exported
             file. Defaults to ``1``. Override for the same multi-split reason
             as ``starting_image_id``.
+        show_progress: If ``True``, display a progress bar during saving.
 
     Returns:
         A ``(next_image_id, next_annotation_id)`` tuple. The returned values
@@ -539,7 +595,12 @@ def save_coco_annotations(
     coco_categories = classes_to_coco_categories(classes=dataset.classes)
 
     image_id, annotation_id = starting_image_id, starting_annotation_id
-    for image_path, image, annotation in dataset:
+    for image_path, image, annotation in tqdm(
+        dataset,
+        total=len(dataset),
+        desc="Saving COCO annotations",
+        disable=not show_progress,
+    ):
         image_height, image_width, _ = image.shape
         image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"
         coco_image = {

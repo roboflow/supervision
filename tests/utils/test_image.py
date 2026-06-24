@@ -72,6 +72,41 @@ def test_letterbox_image_for_opencv_image() -> None:
     )
 
 
+def test_letterbox_image_for_grayscale_opencv_image() -> None:
+    image = np.zeros((4, 6), dtype=np.uint8)
+    expected_result = np.concatenate(
+        [
+            np.ones((2, 10), dtype=np.uint8) * 255,
+            np.zeros((6, 10), dtype=np.uint8),
+            np.ones((2, 10), dtype=np.uint8) * 255,
+        ],
+        axis=0,
+    )
+
+    result = letterbox_image(image=image, resolution_wh=(10, 10), color=(255, 255, 255))
+
+    assert result.shape == (10, 10)
+    assert np.array_equal(result, expected_result)
+
+
+def test_letterbox_image_for_rgba_opencv_image() -> None:
+    """RGBA input: padded alpha=0, interior alpha preserved, input array not mutated."""
+    # given
+    image = np.zeros((4, 6, 4), dtype=np.uint8)
+    image[:, :, 3] = 128
+    image_before = image.copy()
+
+    # when
+    result = letterbox_image(image=image, resolution_wh=(10, 10), color=(0, 0, 0))
+
+    # then
+    assert result.shape == (10, 10, 4)
+    assert np.all(result[:2, :, 3] == 0), "padded top rows must have alpha=0"
+    assert np.all(result[8:, :, 3] == 0), "padded bottom rows must have alpha=0"
+    assert np.all(result[2:8, :, 3] == 128), "interior rows must preserve alpha"
+    assert np.array_equal(image, image_before), "input must not be mutated"
+
+
 def test_letterbox_image_for_pillow_image() -> None:
     # given
     image = Image.new(mode="RGB", size=(640, 480), color=(0, 0, 0))

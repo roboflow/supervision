@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated
+from deprecate import TargetMode, deprecated
 
 from supervision.detection.utils.iou_and_nms import box_iou_batch
 
@@ -97,7 +97,7 @@ def pad_boxes(
 
 
 @deprecated(  # type: ignore[untyped-decorator]
-    target=True,
+    target=TargetMode.ARGS_REMAP,
     deprecated_in="0.27.0",
     remove_in="0.30.0",
     args_mapping={"normalized_xyxy": "xyxy"},
@@ -239,6 +239,74 @@ def move_oriented_boxes(
         ```
     """
     return xyxyxyxy + offset
+
+
+def obb_polygon_area(corners: npt.NDArray) -> npt.NDArray[np.float64]:
+    """Compute the area of N oriented bounding boxes using the shoelace formula.
+
+    Args:
+        corners: OBB corner coordinates with shape `(N, 4, 2)`.
+
+    Returns:
+        Area of each box as a 1-D float64 array of shape `(N,)`.
+
+    Raises:
+        ValueError: If `corners` does not have shape `(N, 4, 2)`.
+
+    Examples:
+        >>> import numpy as np
+        >>> from supervision.detection.utils.boxes import obb_polygon_area
+        >>> corners = np.array([[[0, 5], [5, 10], [10, 5], [5, 0]]], dtype=np.float32)
+        >>> obb_polygon_area(corners)
+        array([50.])
+    """
+    corners = np.asarray(corners)
+    if corners.ndim != 3 or corners.shape[-2:] != (4, 2):
+        raise ValueError(f"corners must have shape (N, 4, 2); got {corners.shape}")
+    x = corners[..., 0].astype(np.float64, copy=False)
+    y = corners[..., 1].astype(np.float64, copy=False)
+    cross = x * np.roll(y, -1, axis=-1) - y * np.roll(x, -1, axis=-1)
+    return 0.5 * np.abs(np.sum(cross, axis=-1))
+
+
+def xyxyxyxy_to_xyxy(
+    xyxyxyxy: npt.NDArray[np.number],
+) -> npt.NDArray[np.number]:
+    """Convert oriented bounding box corners to axis-aligned bounding boxes.
+
+    Args:
+        xyxyxyxy: OBB corner coordinates with shape `(N, 4, 2)` where each
+            box is represented as `[[x1, y1], [x2, y2], [x3, y3], [x4, y4]]`.
+
+    Returns:
+        Axis-aligned bounding boxes as an array of shape `(N, 4)`
+            in `(x_min, y_min, x_max, y_max)` format.
+
+    Raises:
+        ValueError: If `xyxyxyxy` does not have shape `(N, 4, 2)`.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> corners = np.array([
+        ...     [[0, 0], [10, 0], [10, 5], [0, 5]],
+        ...     [[5, 5], [15, 5], [15, 10], [5, 10]],
+        ... ], dtype=np.float32)
+        >>> sv.xyxyxyxy_to_xyxy(corners)
+        array([[ 0.,  0., 10.,  5.],
+               [ 5.,  5., 15., 10.]], dtype=float32)
+
+        ```
+    """
+    xyxyxyxy = np.asarray(xyxyxyxy)
+    if xyxyxyxy.ndim != 3 or xyxyxyxy.shape[-2:] != (4, 2):
+        raise ValueError(f"xyxyxyxy must have shape (N, 4, 2); got {xyxyxyxy.shape}")
+    x_min = xyxyxyxy[..., 0].min(axis=-1)
+    y_min = xyxyxyxy[..., 1].min(axis=-1)
+    x_max = xyxyxyxy[..., 0].max(axis=-1)
+    y_max = xyxyxyxy[..., 1].max(axis=-1)
+    return np.stack([x_min, y_min, x_max, y_max], axis=-1)
 
 
 def scale_boxes(

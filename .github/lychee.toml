@@ -19,6 +19,7 @@ exclude = [
     "http://127.0.0.1:8000",  # hint for local docs server
     "https://sam2.metademolab.com/",  # returns 403 Forbidden
     "https://snyk.io/advisor/python/supervision/badge.svg",  # badge URL
+    "https://trendshift.io",  # badge API times out in CI
     "https://universe.roboflow.com/",
     "https://universe.roboflow.com/model-examples/segmented-animals-basic",
     # fixme: this page returns 401 Unauthorized when accessed and 404 Not Found when accessed with browser,

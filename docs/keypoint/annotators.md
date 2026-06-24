@@ -77,25 +77,56 @@ comments: true
 
     </div>
 
-=== "VertexEllipseAnnotator"
+=== "VertexEllipseAreaAnnotator"
 
     ```python
-    import numpy as np
     import supervision as sv
 
     image = ...
     key_points = sv.KeyPoints(...)
 
-    # covariance shape: (N, K, 2, 2) — pixel-space covariance per keypoint
-    covariance = np.zeros((len(key_points), key_points.xy.shape[1], 2, 2), dtype=np.float32)
-    key_points.data["covariance"] = covariance
-
-    ellipse_annotator = sv.VertexEllipseAnnotator(
+    area_annotator = sv.VertexEllipseAreaAnnotator(
         color=sv.Color.GREEN,
-        thickness=2,
         sigma=2.0,
     )
-    annotated_frame = ellipse_annotator.annotate(
+    annotated_frame = area_annotator.annotate(
+        scene=image.copy(),
+        key_points=key_points,
+    )
+    ```
+
+=== "VertexEllipseOutlineAnnotator"
+
+    ```python
+    import supervision as sv
+
+    image = ...
+    key_points = sv.KeyPoints(...)
+
+    outline_annotator = sv.VertexEllipseOutlineAnnotator(
+        color=sv.Color.GREEN,
+        sigma=2.0,
+        thickness=2,
+    )
+    annotated_frame = outline_annotator.annotate(
+        scene=image.copy(),
+        key_points=key_points,
+    )
+    ```
+
+=== "VertexEllipseHaloAnnotator"
+
+    ```python
+    import supervision as sv
+
+    image = ...
+    key_points = sv.KeyPoints(...)
+
+    halo_annotator = sv.VertexEllipseHaloAnnotator(
+        color=sv.Color.GREEN,
+        sigma=2.0,
+    )
+    annotated_frame = halo_annotator.annotate(
         scene=image.copy(),
         key_points=key_points,
     )
@@ -120,7 +151,19 @@ comments: true
 :::supervision.key_points.annotators.VertexLabelAnnotator
 
 <div class="md-typeset">
-  <h2><a href="#supervision.key_points.annotators.VertexEllipseAnnotator">VertexEllipseAnnotator</a></h2>
+  <h2><a href="#supervision.key_points.annotators.VertexEllipseAreaAnnotator">VertexEllipseAreaAnnotator</a></h2>
 </div>
 
-:::supervision.key_points.annotators.VertexEllipseAnnotator
+:::supervision.key_points.annotators.VertexEllipseAreaAnnotator
+
+<div class="md-typeset">
+  <h2><a href="#supervision.key_points.annotators.VertexEllipseOutlineAnnotator">VertexEllipseOutlineAnnotator</a></h2>
+</div>
+
+:::supervision.key_points.annotators.VertexEllipseOutlineAnnotator
+
+<div class="md-typeset">
+  <h2><a href="#supervision.key_points.annotators.VertexEllipseHaloAnnotator">VertexEllipseHaloAnnotator</a></h2>
+</div>
+
+:::supervision.key_points.annotators.VertexEllipseHaloAnnotator

@@ -16,6 +16,7 @@ These features are phased out due to better alternatives or potential issues in 
 - `supervision.dataset.utils` import path for [`sv.rle_to_mask`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.rle_to_mask) and [`sv.mask_to_rle`](https://supervision.roboflow.com/latest/detection/utils/converters/#supervision.detection.utils.converters.mask_to_rle) is deprecated. These functions moved to `supervision.detection.utils.converters`. Will be removed in `supervision-0.30.0`.
 - `sv.LMM` enum is deprecated and will be removed in `supervision-0.31.0`. Use `sv.VLM` instead.
 - [`sv.Detections.from_lmm`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_lmm) property is deprecated and will be removed in `supervision-0.31.0`. Use [`sv.Detections.from_vlm`](https://supervision.roboflow.com/latest/detection/core/#supervision.detection.core.Detections.from_vlm) instead.
+- Public `validate_*` helper functions are deprecated and will be removed in `supervision-0.31.0`. Supervision internals now use private `_validate_*` helpers.
 
 # Removed
 

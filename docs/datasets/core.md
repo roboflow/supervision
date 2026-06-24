@@ -7,8 +7,7 @@ description: API reference for supervision's DetectionDataset and Classification
 
 !!! warning
 
-    Dataset API is still fluid and may change. If you use Dataset API in your project until further notice, freeze the
-    `supervision` version in your `requirements.txt` or `setup.py`.
+    Dataset API is still fluid and may change. If you use Dataset API in your project until further notice, freeze the `supervision` version in your `requirements.txt` or `setup.py`.
 
 <div class="md-typeset">
   <h2>DetectionDataset</h2>

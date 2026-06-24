@@ -158,7 +158,9 @@ def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
     """
     scene = np.array(image)
     scene = cv2.cvtColor(scene, cv2.COLOR_RGB2BGR)
-    return scene.astype(np.uint8)
+    # cvtColor already returns uint8 here, so astype is a no-op other than the
+    # full-image copy it forces; copy=False keeps the dtype guard without it.
+    return scene.astype(np.uint8, copy=False)
 
 
 def cv2_to_pillow(image: npt.NDArray[np.uint8]) -> Image.Image:

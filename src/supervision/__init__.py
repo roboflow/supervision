@@ -62,6 +62,7 @@ from supervision.detection.utils.boxes import (
     move_boxes,
     pad_boxes,
     scale_boxes,
+    xyxyxyxy_to_xyxy,
 )
 from supervision.detection.utils.converters import (
     is_compressed_rle,
@@ -90,6 +91,8 @@ from supervision.detection.utils.iou_and_nms import (
     mask_non_max_merge,
     mask_non_max_suppression,
     oriented_box_iou_batch,
+    oriented_box_non_max_merge,
+    oriented_box_non_max_suppression,
 )
 from supervision.detection.utils.masks import (
     calculate_masks_centroids,
@@ -122,6 +125,9 @@ from supervision.key_points.annotators import (
     EdgeAnnotator,
     VertexAnnotator,
     VertexEllipseAnnotator,
+    VertexEllipseAreaAnnotator,
+    VertexEllipseHaloAnnotator,
+    VertexEllipseOutlineAnnotator,
     VertexLabelAnnotator,
 )
 from supervision.key_points.core import KeyPoints
@@ -206,6 +212,9 @@ __all__ = [
     "TriangleAnnotator",
     "VertexAnnotator",
     "VertexEllipseAnnotator",
+    "VertexEllipseAreaAnnotator",
+    "VertexEllipseHaloAnnotator",
+    "VertexEllipseOutlineAnnotator",
     "VertexLabelAnnotator",
     "VideoInfo",
     "VideoSink",
@@ -253,6 +262,8 @@ __all__ = [
     "move_boxes",
     "move_masks",
     "oriented_box_iou_batch",
+    "oriented_box_non_max_merge",
+    "oriented_box_non_max_suppression",
     "overlay_image",
     "pad_boxes",
     "pillow_to_cv2",
