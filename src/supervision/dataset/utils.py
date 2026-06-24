@@ -133,6 +133,9 @@ def save_dataset_images(
 ) -> None:
     """Save all images from a dataset to a directory.
 
+    Images already in memory are written with ``cv2.imwrite``; images stored
+    only as file paths are copied with ``shutil.copyfile``.
+
     Args:
         dataset: The dataset whose images are saved.
         images_directory_path: Destination directory path; created
@@ -141,12 +144,10 @@ def save_dataset_images(
             saving images.
 
     Examples:
-        ```python
-        import supervision as sv
-
-        dataset = sv.DetectionDataset(classes=["cat"], images=[], annotations={})
-        sv.save_dataset_images(dataset, "/tmp/images")
-        ```
+        >>> from supervision.dataset.core import DetectionDataset
+        >>> from supervision.dataset.utils import save_dataset_images
+        >>> dataset = DetectionDataset(classes=["cat"], images={}, annotations={})
+        >>> save_dataset_images(dataset, "/tmp/images")
     """
     Path(images_directory_path).mkdir(parents=True, exist_ok=True)
     for image_path in tqdm(
