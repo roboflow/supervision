@@ -446,6 +446,7 @@ class DetectionDataset(BaseDataset):
         data_yaml_path: str,
         force_masks: bool = False,
         is_obb: bool = False,
+        show_progress: bool = False,
     ) -> DetectionDataset:
         """
         Creates a Dataset instance from YOLO formatted data.
@@ -463,6 +464,7 @@ class DetectionDataset(BaseDataset):
             is_obb: If True, loads the annotations in OBB format.
                 OBB annotations are defined as `[class_id, x, y, x, y, x, y, x, y]`,
                 where pairs of [x, y] are box corners.
+            show_progress: If True, displays a progress bar during loading.
 
         Returns:
             A DetectionDataset instance
@@ -496,6 +498,7 @@ class DetectionDataset(BaseDataset):
             data_yaml_path=data_yaml_path,
             force_masks=force_masks,
             is_obb=is_obb,
+            show_progress=show_progress,
         )
         return DetectionDataset(
             classes=classes, images=image_paths, annotations=annotations

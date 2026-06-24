@@ -190,6 +190,7 @@ def load_yolo_annotations(
     data_yaml_path: str,
     force_masks: bool = False,
     is_obb: bool = False,
+    show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
     """
     Loads YOLO annotations and returns class names, images,
@@ -208,6 +209,7 @@ def load_yolo_annotations(
         is_obb: If True, loads the annotations in OBB format.
             OBB annotations are defined as `[class_id, x, y, x, y, x, y, x, y]`,
             where pairs of [x, y] are box corners.
+        show_progress: If True, displays a progress bar during loading.
 
     Returns:
         A tuple containing a list of class names, a dictionary with
@@ -242,7 +244,14 @@ def load_yolo_annotations(
     classes = _extract_class_names(file_path=data_yaml_path)
     annotations = {}
 
-    for image_path in image_paths:
+    # Lazy import tqdm to avoid hard dependency
+    if show_progress:
+        from tqdm import tqdm
+        iterator = tqdm(image_paths, desc="Loading YOLO annotations")
+    else:
+        iterator = image_paths
+
+    for image_path in iterator:
         image_stem = Path(image_path).stem
         annotation_path = os.path.join(annotations_directory_path, f"{image_stem}.txt")
         if not os.path.exists(annotation_path):
