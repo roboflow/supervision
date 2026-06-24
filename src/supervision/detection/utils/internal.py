@@ -143,15 +143,13 @@ def process_roboflow_result(
             class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
             masks.append(mask)
-            if "tracker_id" in prediction:
-                tracker_ids.append(prediction["tracker_id"])
+            tracker_ids.append(prediction.get("tracker_id"))
         elif "points" not in prediction:
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
-            if "tracker_id" in prediction:
-                tracker_ids.append(prediction["tracker_id"])
+            tracker_ids.append(prediction.get("tracker_id"))
         elif len(prediction["points"]) >= 3:
             polygon = np.array(
                 [[point["x"], point["y"]] for point in prediction["points"]], dtype=int
@@ -164,8 +162,7 @@ def process_roboflow_result(
             class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
             masks.append(mask)
-            if "tracker_id" in prediction:
-                tracker_ids.append(prediction["tracker_id"])
+            tracker_ids.append(prediction.get("tracker_id"))
 
     xyxy_arr: npt.NDArray[np.floating] = (
         np.array(xyxy, dtype=np.float64) if len(xyxy) > 0 else np.empty((0, 4))
@@ -185,7 +182,9 @@ def process_roboflow_result(
         np.array(masks, dtype=bool) if len(masks) > 0 else None
     )
     tracker_id_arr: npt.NDArray[np.integer] | None = (
-        np.array(tracker_ids, dtype=np.int64) if len(tracker_ids) > 0 else None
+        np.array(tracker_ids, dtype=np.int64)
+        if tracker_ids and None not in tracker_ids
+        else None
     )
     data: dict[str, npt.NDArray[np.generic]] = {CLASS_NAME_DATA_FIELD: class_name_arr}
 
