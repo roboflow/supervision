@@ -23,7 +23,7 @@ def _resolve_image_path(images_directory_path: str, image_name: str) -> str:
     mirroring the protection used by the COCO loader.
     """
     images_directory_resolved = Path(images_directory_path).resolve()
-    image_path = Path(images_directory_path) / image_name
+    image_path = Path(images_directory_path) / Path(image_name)
     try:
         resolved_image_path = image_path.resolve()
     except (OSError, ValueError) as exc:
@@ -149,9 +149,9 @@ def load_createml_annotations(
 
         - ``classes`` (``list[str]``): globally sorted class names inferred from
           all labels present in the file.
-        - ``image_paths`` (``list[str]``): resolved path for every entry in the
-          JSON, in file order.
-        - ``annotations`` (``dict[str, Detections]``): mapping from resolved image
+        - ``image_paths`` (``list[str]``): joined (but not fully resolved) path
+          for every entry in the JSON, in file order.
+        - ``annotations`` (``dict[str, Detections]``): mapping from joined image
           path to its ``Detections``.
 
     Raises:
@@ -172,13 +172,19 @@ def load_createml_annotations(
             f"got {type(createml_data).__name__}."
         )
 
-    classes = sorted(
-        {
-            annotation["label"]
-            for entry in createml_data
-            for annotation in entry.get("annotations", [])
-        }
-    )
+    try:
+        classes = sorted(
+            {
+                annotation["label"]
+                for entry in createml_data
+                for annotation in (entry.get("annotations") or [])
+            }
+        )
+    except (KeyError, TypeError) as exc:
+        raise ValueError(
+            f"Malformed CreateML annotation entry "
+            f"(missing or non-string 'label'): {exc}"
+        ) from exc
     class_to_index = {class_name: index for index, class_name in enumerate(classes)}
 
     image_paths: list[str] = []
@@ -203,7 +209,7 @@ def load_createml_annotations(
                 f"{image_name!r}. Each image must appear at most once."
             )
         annotations[image_path] = createml_annotations_to_detections(
-            image_annotations=entry.get("annotations", []),
+            image_annotations=entry.get("annotations") or [],
             class_to_index=class_to_index,
         )
         image_paths.append(image_path)
