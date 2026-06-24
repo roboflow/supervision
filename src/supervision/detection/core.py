@@ -2071,11 +2071,10 @@ class Detections:
             An empty Detections object.
 
         Example:
-            ```python
-            from supervision import Detections
-
-            empty_detections = Detections.empty()
-            ```
+            >>> from supervision import Detections
+            >>> empty_detections = Detections.empty()
+            >>> empty_detections.xyxy.shape
+            (0, 4)
         """
         return cls(
             xyxy=np.empty((0, 4), dtype=np.float32),
@@ -2130,35 +2129,27 @@ class Detections:
             A single Detections object containing the merged data from the input list.
 
         Example:
-            ```python
-            import numpy as np
-            import supervision as sv
-
-            detections_1 = sv.Detections(
-                xyxy=np.array([[15, 15, 100, 100], [200, 200, 300, 300]]),
-                class_id=np.array([1, 2]),
-                data={'feature_vector': np.array([0.1, 0.2])}
-            )
-
-            detections_2 = sv.Detections(
-                xyxy=np.array([[30, 30, 120, 120]]),
-                class_id=np.array([1]),
-                data={'feature_vector': np.array([0.3])}
-            )
-
-            merged_detections = sv.Detections.merge([detections_1, detections_2])
-
-            merged_detections.xyxy
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections_1 = sv.Detections(
+            ...     xyxy=np.array([[15, 15, 100, 100], [200, 200, 300, 300]]),
+            ...     class_id=np.array([1, 2]),
+            ...     data={'feature_vector': np.array([0.1, 0.2])}
+            ... )
+            >>> detections_2 = sv.Detections(
+            ...     xyxy=np.array([[30, 30, 120, 120]]),
+            ...     class_id=np.array([1]),
+            ...     data={'feature_vector': np.array([0.3])}
+            ... )
+            >>> merged_detections = sv.Detections.merge([detections_1, detections_2])
+            >>> merged_detections.xyxy
             array([[ 15,  15, 100, 100],
                    [200, 200, 300, 300],
                    [ 30,  30, 120, 120]])
-
-            merged_detections.class_id
+            >>> merged_detections.class_id
             array([1, 2, 1])
-
-            merged_detections.data['feature_vector']
+            >>> merged_detections.data['feature_vector']
             array([0.1, 0.2, 0.3])
-            ```
         """
         detections_list = [
             detections for detections in detections_list if not detections.is_empty()
