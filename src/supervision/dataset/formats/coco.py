@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Union, cast
 
 import numpy as np
 import numpy.typing as npt
+from tqdm.auto import tqdm
 
 from supervision.config import COCO_RAW_SEGMENTATION
 from supervision.dataset.utils import (
@@ -398,6 +399,7 @@ def load_coco_annotations(
     annotations_path: str,
     force_masks: bool = False,
     use_iscrowd: bool = True,
+    show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
     """
     Load COCO annotations and convert them to `Detections`.
@@ -411,6 +413,7 @@ def load_coco_annotations(
         annotations_path: Path to COCO JSON annotations.
         force_masks: If `True`, always attempt to load masks.
         use_iscrowd: If `True`, include `iscrowd` and `area` in detection data.
+        show_progress: If `True`, display a progress bar during loading.
 
     Returns:
         A tuple of `(classes, image_paths, annotations)`.
@@ -444,7 +447,12 @@ def load_coco_annotations(
     annotations = {}
     images_directory_resolved = Path(images_directory_path).resolve()
 
-    for coco_image in coco_images:
+    for coco_image in tqdm(
+        coco_images,
+        total=len(coco_images),
+        desc="Loading COCO annotations",
+        disable=not show_progress,
+    ):
         image_name, image_width, image_height = (
             coco_image["file_name"],
             coco_image["width"],
@@ -512,6 +520,7 @@ def save_coco_annotations(
     approximation_percentage: float = 0.0,
     starting_image_id: int = 1,
     starting_annotation_id: int = 1,
+    show_progress: bool = False,
 ) -> tuple[int, int]:
     """Save a DetectionDataset to a COCO-format ``annotations.json`` file.
 
@@ -530,6 +539,7 @@ def save_coco_annotations(
         starting_annotation_id: First annotation id to assign in the exported
             file. Defaults to ``1``. Override for the same multi-split reason
             as ``starting_image_id``.
+        show_progress: If ``True``, display a progress bar during saving.
 
     Returns:
         A ``(next_image_id, next_annotation_id)`` tuple. The returned values
@@ -585,7 +595,12 @@ def save_coco_annotations(
     coco_categories = classes_to_coco_categories(classes=dataset.classes)
 
     image_id, annotation_id = starting_image_id, starting_annotation_id
-    for image_path, image, annotation in dataset:
+    for image_path, image, annotation in tqdm(
+        dataset,
+        total=len(dataset),
+        desc="Saving COCO annotations",
+        disable=not show_progress,
+    ):
         image_height, image_width, _ = image.shape
         image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"
         coco_image = {
