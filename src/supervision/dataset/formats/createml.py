@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
+from tqdm.auto import tqdm
 
 from supervision.detection.core import Detections
 from supervision.utils.file import read_json_file, save_json_file
@@ -58,6 +59,38 @@ def createml_annotations_to_detections(
 
     CreateML stores each box as a pixel-space centre point plus width/height
     (``{"x", "y", "width", "height"}``); they are converted to ``xyxy`` corners.
+
+    Args:
+        image_annotations: List of annotation dicts for one image, each containing
+            a ``"label"`` key and a ``"coordinates"`` dict with ``"x"``, ``"y"``,
+            ``"width"``, and ``"height"`` keys.
+        class_to_index: Mapping from class name to zero-based integer id.
+
+    Returns:
+        A ``Detections`` instance with ``xyxy`` boxes and ``class_id`` set.
+        Returns ``Detections.empty()`` when ``image_annotations`` is empty.
+
+    Raises:
+        ValueError: If an annotation is missing required keys (``"coordinates"``,
+            ``"label"``, or any coordinate sub-key), or if a coordinate value
+            cannot be converted to float.
+
+    Examples:
+        ```python
+        import supervision as sv
+        from supervision.dataset.formats.createml import (
+            createml_annotations_to_detections,
+        )
+
+        annotations = [
+            {
+                "label": "dog",
+                "coordinates": {"x": 50, "y": 50, "width": 20, "height": 20},
+            }
+        ]
+        detections = createml_annotations_to_detections(annotations, {"dog": 0})
+        # detections.xyxy → [[40, 40, 60, 60]]
+        ```
     """
     if not image_annotations:
         return Detections.empty()
@@ -65,11 +98,17 @@ def createml_annotations_to_detections(
     xyxy = []
     class_ids = []
     for annotation in image_annotations:
-        coordinates = annotation["coordinates"]
-        x_center = float(coordinates["x"])
-        y_center = float(coordinates["y"])
-        width = float(coordinates["width"])
-        height = float(coordinates["height"])
+        try:
+            coordinates = annotation["coordinates"]
+            x_center = float(coordinates["x"])
+            y_center = float(coordinates["y"])
+            width = float(coordinates["width"])
+            height = float(coordinates["height"])
+            label = annotation["label"]
+        except (KeyError, TypeError) as exc:
+            raise ValueError(
+                f"Malformed CreateML annotation entry {annotation!r}: {exc}"
+            ) from exc
         xyxy.append(
             [
                 x_center - width / 2,
@@ -78,7 +117,7 @@ def createml_annotations_to_detections(
                 y_center + height / 2,
             ]
         )
-        class_ids.append(class_to_index[annotation["label"]])
+        class_ids.append(class_to_index[label])
 
     return Detections(
         xyxy=np.array(xyxy, dtype=np.float32),
@@ -89,6 +128,7 @@ def createml_annotations_to_detections(
 def load_createml_annotations(
     images_directory_path: str,
     annotations_path: str,
+    show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
     """Load CreateML object-detection annotations and convert them to ``Detections``.
 
@@ -101,11 +141,24 @@ def load_createml_annotations(
     Args:
         images_directory_path: Path to the directory containing the images.
         annotations_path: Path to the CreateML JSON annotation file.
+        show_progress: If ``True``, display a tqdm progress bar while loading
+            annotations.
 
     Returns:
-        A tuple of ``(classes, image_paths, annotations)``.
+        A tuple of three elements:
+
+        - ``classes`` (``list[str]``): globally sorted class names inferred from
+          all labels present in the file.
+        - ``image_paths`` (``list[str]``): resolved path for every entry in the
+          JSON, in file order.
+        - ``annotations`` (``dict[str, Detections]``): mapping from resolved image
+          path to its ``Detections``.
 
     Raises:
+        ValueError: If the JSON root is not a list.
+        ValueError: If an entry is missing the required ``"image"`` key.
+        ValueError: If an annotation is missing required coordinate or label keys.
+        ValueError: If the same image filename appears more than once in the file.
         ValueError: If an annotation's ``image`` field resolves to the images
             directory itself or to a path outside it (e.g. via ``..`` traversal
             or an absolute path).
@@ -113,6 +166,11 @@ def load_createml_annotations(
     createml_data = cast(
         "list[CreateMLDict]", read_json_file(file_path=annotations_path)
     )
+    if not isinstance(createml_data, list):
+        raise ValueError(
+            f"CreateML annotation file must contain a JSON list at the root, "
+            f"got {type(createml_data).__name__}."
+        )
 
     classes = sorted(
         {
@@ -125,10 +183,25 @@ def load_createml_annotations(
 
     image_paths: list[str] = []
     annotations: dict[str, Detections] = {}
-    for entry in createml_data:
+    for entry in tqdm(
+        createml_data,
+        desc="Loading CreateML annotations",
+        disable=not show_progress,
+    ):
+        image_name = entry.get("image")
+        if image_name is None:
+            raise ValueError(
+                f"CreateML annotation entry is missing the required 'image' key: "
+                f"{entry!r}"
+            )
         image_path = _resolve_image_path(
-            images_directory_path=images_directory_path, image_name=entry["image"]
+            images_directory_path=images_directory_path, image_name=image_name
         )
+        if image_path in annotations:
+            raise ValueError(
+                f"CreateML annotation file contains duplicate entries for image "
+                f"{image_name!r}. Each image must appear at most once."
+            )
         annotations[image_path] = createml_annotations_to_detections(
             image_annotations=entry.get("annotations", []),
             class_to_index=class_to_index,
@@ -141,7 +214,40 @@ def load_createml_annotations(
 def detections_to_createml_annotations(
     detections: Detections, classes: list[str]
 ) -> list[CreateMLDict]:
-    """Convert ``Detections`` into a list of CreateML annotation dicts."""
+    """Convert ``Detections`` into a list of CreateML annotation dicts.
+
+    Each bounding box is stored as a pixel-space centre point plus width and
+    height, which is the CreateML object-detection convention.
+
+    Args:
+        detections: The detections to convert. ``class_id`` must not be ``None``.
+        classes: Ordered list of class names; ``detections.class_id`` values are
+            used as indices into this list.
+
+    Returns:
+        A list of dicts, each with a ``"label"`` key (class name) and a
+        ``"coordinates"`` dict containing ``"x"``, ``"y"``, ``"width"``, and
+        ``"height"`` in pixel space.
+
+    Raises:
+        ValueError: If ``detections.class_id`` is ``None``.
+
+    Examples:
+        ```python
+        import numpy as np
+        import supervision as sv
+        from supervision.dataset.formats.createml import (
+            detections_to_createml_annotations,
+        )
+
+        detections = sv.Detections(
+            xyxy=np.array([[40, 40, 60, 60]], dtype=np.float32),
+            class_id=np.array([0], dtype=int),
+        )
+        detections_to_createml_annotations(detections, classes=["dog"])
+        # [{"label": "dog", "coordinates": {"x": 50.0, "y": 50.0, ...}}]
+        ```
+    """
     class_ids = detections.class_id
     if class_ids is None:
         raise ValueError(
@@ -171,10 +277,26 @@ def save_createml_annotations(
 ) -> None:
     """Export a ``DetectionDataset`` to a CreateML object-detection JSON file.
 
+    Only the filename component of each image path is stored in the JSON (e.g.
+    ``"img.jpg"`` rather than ``"/data/train/img.jpg"``). This matches CreateML
+    convention and means the loader reconstructs paths relative to
+    ``images_directory_path``. As a consequence, two images with the same
+    basename from different directories will produce duplicate ``"image"`` keys
+    in the output and cannot be round-tripped correctly.
+
     Args:
         dataset: The ``DetectionDataset`` to write.
         annotations_path: Output path for the CreateML JSON file. Parent
             directories are created if they do not already exist.
+
+    Examples:
+        ```python
+        import supervision as sv
+        from supervision.dataset.formats.createml import save_createml_annotations
+
+        dataset = sv.DetectionDataset(classes=["dog"], images=[], annotations={})
+        save_createml_annotations(dataset, "/tmp/annotations.json")
+        ```
     """
     Path(annotations_path).parent.mkdir(parents=True, exist_ok=True)
     createml_data: list[CreateMLDict] = [
@@ -187,5 +309,6 @@ def save_createml_annotations(
         for image_path in dataset.image_paths
     ]
     save_json_file(
-        data=cast("dict[str, Any]", createml_data), file_path=annotations_path
+        data=createml_data,  # type: ignore[arg-type]  # save_json_file accepts list at runtime
+        file_path=annotations_path,
     )
