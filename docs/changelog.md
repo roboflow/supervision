@@ -7,6 +7,10 @@ date_modified: 2026-06-16
 
 ### 0.29.1 <small>Jun 23, 2026</small>
 
+- Added [#2275](https://github.com/roboflow/supervision/pull/2275): `show_progress: bool = False` parameter to all `sv.DetectionDataset` load and save methods — `from_coco`, `from_yolo`, `from_pascal_voc`, `as_coco`, `as_yolo`, `as_pascal_voc`, and `save_dataset_images`. When `True`, a `tqdm.auto` progress bar is shown (works in terminal and Jupyter). Defaults to `False` for full backward compatibility; no new dependencies.
+
+### 0.29.1 <small>Jun 23, 2026</small>
+
 - Added [#2338](https://github.com/roboflow/supervision/pull/2338): [`sv.KeyPoints.with_nms`](https://supervision.roboflow.com/latest/keypoint/core/#supervision.key_points.core.KeyPoints.with_nms) — non-maximum suppression for keypoint detections. Derives axis-aligned bounding boxes from valid (non-zero and visible) keypoints and applies `box_non_max_suppression`. Requires `detection_confidence`; supports class-aware and class-agnostic modes via `threshold`, `class_agnostic`, and `overlap_metric`.
 
 - Fixed [#2342](https://github.com/roboflow/supervision/pull/2342): `sv.Detections.from_vlm` with `sv.VLM.GOOGLE_GEMINI_2_0`, `sv.VLM.GOOGLE_GEMINI_2_5`, and `sv.VLM.QWEN_2_5_VL` no longer raises when the model returns valid JSON of the wrong shape (non-list top-level or non-dict elements). A non-string or malformed `"mask"` value in Gemini 2.5 output no longer triggers `AttributeError`; invalid base64 or non-PNG mask data falls back to an empty mask, keeping `xyxy`, `confidence`, and `masks` arrays aligned.
