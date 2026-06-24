@@ -23,8 +23,11 @@ if TYPE_CHECKING:
     from supervision.dataset.core import DetectionDataset
 
 LabelMeDict = dict[str, Any]
-LABELME_VERSION = "5.5.0"
+# Written to every exported JSON; never read back on import.
+_LABELME_EXPORT_VERSION = "5.5.0"
 SUPPORTED_SHAPE_TYPES = ("rectangle", "polygon")
+
+__all__ = ["load_labelme_annotations", "save_labelme_annotations"]
 
 
 def _rectangle_to_xyxy(points: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
@@ -59,6 +62,26 @@ def labelme_shapes_to_detections(
 
     Only ``rectangle`` and ``polygon`` shapes are imported; other shape types
     (``circle``, ``line``, ``point``, ``linestrip``) are skipped with a warning.
+    When ``with_masks`` is ``True``, both ``rectangle`` and ``polygon`` shapes
+    produce masks: rectangles via a four-corner polygon fill.
+
+    Args:
+        shapes: List of LabelMe shape dicts for one image.
+        class_to_index: Mapping from class name to integer class ID.
+        resolution_wh: Image ``(width, height)`` used to rasterise masks.
+        with_masks: If ``True``, produce a binary mask for every detection.
+
+    Returns:
+        A :class:`Detections` instance with ``xyxy``, ``class_id``, and
+        optionally ``mask`` populated.
+
+    Raises:
+        ValueError: If a shape is missing its ``label`` or ``points`` field,
+            if a ``polygon`` has fewer than 3 points, or a ``rectangle`` has
+            fewer than 2 points.
+
+    Warns:
+        UserWarning: When unsupported shape types are encountered and skipped.
     """
     xyxy_list: list[npt.NDArray[np.float32]] = []
     class_ids: list[int] = []
@@ -79,10 +102,26 @@ def labelme_shapes_to_detections(
                 f"required {missing!r} field."
             )
         points = np.array(points_raw, dtype=np.float32)
+        if points.ndim != 2 or points.shape[1] != 2:
+            raise ValueError(
+                f"LabelMe shape of type {shape_type!r} (label={label!r}) has "
+                f"malformed points: expected an (N, 2) array, got shape "
+                f"{points.shape}."
+            )
         if shape_type == "rectangle":
+            if len(points) < 2:
+                raise ValueError(
+                    f"LabelMe rectangle shape (label={label!r}) has "
+                    f"{len(points)} point(s); expected at least 2."
+                )
             xyxy = _rectangle_to_xyxy(points)
             polygon = _xyxy_to_polygon(xyxy)
         else:
+            if len(points) < 3:
+                raise ValueError(
+                    f"LabelMe polygon shape (label={label!r}) has "
+                    f"{len(points)} point(s); expected at least 3."
+                )
             xyxy = polygon_to_xyxy(polygon=points).astype(np.float32)
             polygon = points
         xyxy_list.append(xyxy)
@@ -149,8 +188,10 @@ def load_labelme_annotations(
         A tuple of ``(classes, image_paths, annotations)``.
 
     Raises:
-        ValueError: If an annotation's ``imagePath`` is empty, or if a polygon
-            mask is requested for a file missing ``imageWidth`` / ``imageHeight``.
+        ValueError: If an annotation's ``imagePath`` is missing, empty, or
+            resolves to ``..`` or ``.``; if two annotation files reference the
+            same image basename; or if a polygon mask is requested for a file
+            missing ``imageWidth`` / ``imageHeight``.
     """
     annotation_paths = sorted(
         str(path)
@@ -159,6 +200,8 @@ def load_labelme_annotations(
         )
     )
 
+    # Two-pass design (collect all class labels first, then assign IDs) requires
+    # materialising all annotation dicts upfront.
     entries: list[LabelMeDict] = [
         read_json_file(file_path=annotation_path)
         for annotation_path in annotation_paths
@@ -179,12 +222,24 @@ def load_labelme_annotations(
     annotations: dict[str, Detections] = {}
     for entry in entries:
         shapes = entry.get("shapes", [])
-        image_name = Path(entry["imagePath"]).name
-        if not image_name or image_name == "..":
+        raw_image_path = entry.get("imagePath")
+        if not raw_image_path:
             raise ValueError(
-                f"LabelMe annotation has an invalid 'imagePath' {entry['imagePath']!r}."
+                "A LabelMe annotation file is missing the required "
+                "'imagePath' field or it is empty."
+            )
+        image_name = Path(raw_image_path).name
+        if not image_name or image_name in ("..", "."):
+            raise ValueError(
+                f"LabelMe annotation has an invalid 'imagePath' {raw_image_path!r}."
             )
         image_path = str(Path(images_directory_path) / image_name)
+        if image_path in annotations:
+            raise ValueError(
+                f"Duplicate image basename {image_name!r} resolved from multiple "
+                "annotation files. All annotation files must reference unique "
+                "image basenames."
+            )
         with_masks = force_masks or any(
             shape.get("shape_type") == "polygon" for shape in shapes
         )
@@ -229,6 +284,17 @@ def detections_to_labelme_shapes(
     component); box-only detections — and masked detections whose mask yields no
     polygon contour (e.g. an empty or sub-pixel mask) — are exported as
     ``rectangle`` shapes, so no detection is silently dropped.
+
+    Args:
+        detections: The detections to export.
+        classes: List of class names indexed by ``class_id``.
+
+    Returns:
+        A list of LabelMe shape dicts ready to embed in a ``.json`` annotation.
+
+    Raises:
+        ValueError: If ``detections.class_id`` is ``None`` or if any
+            ``class_id`` value is out of range for ``classes``.
     """
     class_ids = detections.class_id
     if class_ids is None:
@@ -239,8 +305,18 @@ def detections_to_labelme_shapes(
     masks = detections.mask
     shapes: list[LabelMeDict] = []
     for index in range(len(detections)):
-        label = classes[int(class_ids[index])]
-        polygons = mask_to_polygons(masks[index]) if masks is not None else []
+        class_index = int(class_ids[index])
+        if class_index >= len(classes):
+            raise ValueError(
+                f"class_id {class_index} at detection index {index} is out of "
+                f"range for classes list of length {len(classes)}."
+            )
+        label = classes[class_index]
+        if masks is not None:
+            mask_arr = np.asarray(masks[index], dtype=np.bool_)
+            polygons = mask_to_polygons(mask_arr)
+        else:
+            polygons = []
         if polygons:
             for polygon in polygons:
                 points = [[float(x), float(y)] for x, y in polygon]
@@ -269,7 +345,7 @@ def save_labelme_annotations(
     for image_path, image, detections in dataset:
         image_height, image_width, _ = image.shape
         labelme_dict: LabelMeDict = {
-            "version": LABELME_VERSION,
+            "version": _LABELME_EXPORT_VERSION,
             "flags": {},
             "shapes": detections_to_labelme_shapes(
                 detections=detections, classes=dataset.classes
