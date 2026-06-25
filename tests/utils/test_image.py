@@ -7,6 +7,8 @@ from supervision.utils.image import (
     get_image_resolution_wh,
     letterbox_image,
     resize_image,
+    scale_image,
+    tint_image,
 )
 
 
@@ -193,3 +195,18 @@ def test_crop_image(image, xyxy, expected_size):
 def test_get_image_resolution_wh(image, expected):
     resolution = get_image_resolution_wh(image)
     assert resolution == expected
+
+
+@pytest.mark.parametrize(
+    "func, kwargs",
+    [
+        (scale_image, {"scale_factor": 1.0}),
+        (resize_image, {"resolution_wh": (10, 10)}),
+        (letterbox_image, {"resolution_wh": (10, 10)}),
+        (tint_image, {}),
+    ],
+)
+def test_image_utils_invalid_image_type_raises(func, kwargs):
+    with pytest.raises(TypeError, match="image must be a numpy.ndarray"):
+        func.__wrapped__(image="not_an_image", **kwargs)
+
