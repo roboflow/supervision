@@ -10,3 +10,4 @@ For more information and examples, visit our [documentation](https://supervision
 - [speed estimation](./speed_estimation) by [@SkalskiP](https://github.com/SkalskiP)
 - [time in zone](./time_in_zone) by [@SkalskiP](https://github.com/SkalskiP)
 - [heatmap and track](./heatmap_and_track/) by [@HinePo](https://github.com/HinePo)
+- [twelvelabs video understanding](./twelvelabs_video_understanding/) by [@mohit-twelvelabs](https://github.com/mohit-twelvelabs)
