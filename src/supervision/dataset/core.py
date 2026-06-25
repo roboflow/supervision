@@ -18,6 +18,10 @@ from supervision.dataset.formats.coco import (
     load_coco_annotations,
     save_coco_annotations,
 )
+from supervision.dataset.formats.createml import (
+    load_createml_annotations,
+    save_createml_annotations,
+)
 from supervision.dataset.formats.labelme import (
     load_labelme_annotations,
     save_labelme_annotations,
@@ -689,6 +693,104 @@ class DetectionDataset(BaseDataset):
             save_labelme_annotations(
                 dataset=self,
                 annotations_directory_path=annotations_directory_path,
+            )
+
+    @classmethod
+    def from_createml(
+        cls,
+        images_directory_path: str,
+        annotations_path: str,
+        show_progress: bool = False,
+    ) -> DetectionDataset:
+        """
+        Creates a Dataset instance from CreateML formatted data.
+
+        CreateML stores object-detection annotations in a single JSON file as a
+        list of per-image entries, with each box expressed as a pixel-space
+        centre point plus width and height. Class names are inferred from the
+        labels present in the file.
+
+        Args:
+            images_directory_path: The path to the directory containing the
+                images.
+            annotations_path: The path to the CreateML json annotation file.
+            show_progress: If True, display a progress bar during loading.
+
+        Returns:
+            A DetectionDataset instance containing the loaded images and
+            annotations.
+
+        Examples:
+            ```python
+            import roboflow
+            from roboflow import Roboflow
+            import supervision as sv
+
+            roboflow.login()
+            rf = Roboflow()
+
+            project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)
+            dataset = project.version(PROJECT_VERSION).download("createml")
+
+            ds = sv.DetectionDataset.from_createml(
+                images_directory_path=f"{dataset.location}/train",
+                annotations_path=f"{dataset.location}/train/_annotations.createml.json",
+            )
+
+            ds.classes
+            # ['dog', 'person']
+            ```
+        """
+        classes, image_paths, annotations = load_createml_annotations(
+            images_directory_path=images_directory_path,
+            annotations_path=annotations_path,
+            show_progress=show_progress,
+        )
+        return DetectionDataset(
+            classes=classes, images=image_paths, annotations=annotations
+        )
+
+    def as_createml(
+        self,
+        images_directory_path: str | None = None,
+        annotations_path: str | None = None,
+        show_progress: bool = False,
+    ) -> None:
+        """
+        Exports the dataset to CreateML format. This method saves the
+        images and their corresponding annotations in CreateML format.
+
+        Args:
+            images_directory_path: The path to the directory where the images
+                should be saved. If not provided, images will not be saved.
+            annotations_path: The path to the CreateML json annotation file.
+                If not provided, the annotations will not be saved.
+            show_progress: If True, display a progress bar while saving images.
+
+        Returns:
+            None. Side-effects only: writes images and/or annotation file.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            ds = sv.DetectionDataset(classes=["dog"], images=[], annotations={})
+            ds.as_createml(
+                images_directory_path="/tmp/images",
+                annotations_path="/tmp/annotations.json",
+            )
+            ```
+        """
+        if images_directory_path is not None:
+            save_dataset_images(
+                dataset=self,
+                images_directory_path=images_directory_path,
+                show_progress=show_progress,
+            )
+        if annotations_path is not None:
+            save_createml_annotations(
+                dataset=self,
+                annotations_path=annotations_path,
             )
 
     @classmethod

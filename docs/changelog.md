@@ -9,6 +9,8 @@ date_modified: 2026-06-24
 
 - Added [#2275](https://github.com/roboflow/supervision/pull/2275): `show_progress: bool = False` parameter to all `sv.DetectionDataset` load and save methods — `from_coco`, `from_yolo`, `from_pascal_voc`, `as_coco`, `as_yolo`, `as_pascal_voc`, and `save_dataset_images`. When `True`, a `tqdm.auto` progress bar is shown (works in terminal and Jupyter). Defaults to `False` for full backward compatibility; no new dependencies.
 
+- Added [#2027](https://github.com/roboflow/supervision/issues/2027): [`sv.InferenceSlicer`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer) now accepts an open rasterio-style dataset in addition to in-memory images. Each tile is read lazily via a windowed read instead of loading the whole image, enabling tiled inference on multi-GB aerial/drone GeoTIFFs without running out of memory. Detection is duck-typed, so `rasterio` stays an optional dependency installable via `pip install "supervision[geotiff]"` and the core library imports no rasterio symbols. A geographic (non-projected) CRS raises `ValueError`.
+
 ### 0.29.1 <small>Jun 23, 2026</small>
 
 - Added [#2338](https://github.com/roboflow/supervision/pull/2338): [`sv.KeyPoints.with_nms`](https://supervision.roboflow.com/latest/keypoint/core/#supervision.key_points.core.KeyPoints.with_nms) — non-maximum suppression for keypoint detections. Derives axis-aligned bounding boxes from valid (non-zero and visible) keypoints and applies `box_non_max_suppression`. Requires `detection_confidence`; supports class-aware and class-agnostic modes via `threshold`, `class_agnostic`, and `overlap_metric`.
@@ -30,6 +32,8 @@ date_modified: 2026-06-24
 - Fixed [#2322](https://github.com/roboflow/supervision/pull/2322): COCO export now preserves all polygon parts for multi-component masks. Previously, only the first polygon was written when a non-crowd mask had disjoint segments; all parts are now included.
 
 - Performance [#2339](https://github.com/roboflow/supervision/pull/2339): `sv.HaloAnnotator` now uses the same CompactMask painting path as `sv.MaskAnnotator` via a shared `_paint_masks_by_area` helper. On a 1080p frame with 30 CompactMask detections, `HaloAnnotator` runs approximately 4× faster; annotated output is unchanged.
+
+- Added [#2284](https://github.com/roboflow/supervision/pull/2284): [`DetectionDataset.from_createml`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.from_createml) and [`DetectionDataset.as_createml`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.as_createml) add load and export support for the CreateML object-detection JSON format, alongside the existing COCO, YOLO, and Pascal VOC formats.
 
 - Performance [#2330](https://github.com/roboflow/supervision/pull/2330): `sv.mask_to_xyxy` and `sv.KeyPoints.as_detections` are now vectorized. `mask_to_xyxy` uses batched occupancy-profile reductions instead of per-mask pixel scans; `KeyPoints.as_detections` computes all bounding boxes in a single batch operation. Both produce bit-identical results.
 
