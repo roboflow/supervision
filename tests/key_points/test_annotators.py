@@ -505,7 +505,7 @@ class TestVertexLabelAnnotator:
 
 
 @pytest.mark.parametrize(
-    "annotator_class, kwargs",
+    ("annotator_class", "kwargs"),
     [
         (sv.VertexAnnotator, {}),
         (sv.EdgeAnnotator, {}),
@@ -519,10 +519,11 @@ def test_all_annotators_invalid_scene_type_raises(
     annotator_class, kwargs, sample_key_points
 ):
     annotator = annotator_class(**kwargs)
-    with pytest.raises(TypeError, match="scene must be a numpy.ndarray"):
-        if hasattr(annotator.annotate, "__wrapped__"):
+    if hasattr(annotator.annotate, "__wrapped__"):
+        with pytest.raises(TypeError, match=r"scene must be a numpy\.ndarray"):
             annotator.annotate.__wrapped__(
                 annotator, scene="not_an_image", key_points=sample_key_points
             )
-        else:
+    else:
+        with pytest.raises(TypeError, match=r"scene must be a numpy\.ndarray"):
             annotator.annotate(scene="not_an_image", key_points=sample_key_points)
