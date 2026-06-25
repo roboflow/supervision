@@ -646,8 +646,8 @@ class DetectionDataset(BaseDataset):
             import supervision as sv
 
             ds = sv.DetectionDataset.from_labelme(
-                images_directory_path=f"{dataset_location}/images",
-                annotations_directory_path=f"{dataset_location}/annotations",
+                images_directory_path="<IMAGES_DIRECTORY_PATH>",
+                annotations_directory_path="<ANNOTATIONS_DIRECTORY_PATH>",
             )
 
             ds.classes
@@ -684,6 +684,18 @@ class DetectionDataset(BaseDataset):
             annotations_directory_path: The path to the directory where the
                 LabelMe ``.json`` files should be saved.
                 If not provided, annotations will not be saved.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            ds = sv.DetectionDataset(...)
+
+            ds.as_labelme(
+                images_directory_path="<IMAGES_DIRECTORY_PATH>",
+                annotations_directory_path="<ANNOTATIONS_DIRECTORY_PATH>",
+            )
+            ```
         """
         if images_directory_path is not None:
             save_dataset_images(

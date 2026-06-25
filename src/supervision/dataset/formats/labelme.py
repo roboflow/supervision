@@ -27,7 +27,12 @@ LabelMeDict = dict[str, Any]
 _LABELME_EXPORT_VERSION = "5.5.0"
 SUPPORTED_SHAPE_TYPES = ("rectangle", "polygon")
 
-__all__ = ["load_labelme_annotations", "save_labelme_annotations"]
+__all__ = [
+    "detections_to_labelme_shapes",
+    "labelme_shapes_to_detections",
+    "load_labelme_annotations",
+    "save_labelme_annotations",
+]
 
 
 def _rectangle_to_xyxy(points: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
@@ -166,11 +171,12 @@ def load_labelme_annotations(
     """Load LabelMe annotations and convert them to ``Detections``.
 
     LabelMe stores one JSON file per image, each containing a list of ``shapes``.
-    ``rectangle`` shapes become bounding boxes and ``polygon`` shapes become
-    masks (and their bounding boxes); other shape types are skipped. Masks are
-    loaded for any image whose file contains a ``polygon`` shape, or for every
-    image when ``force_masks`` is ``True``. Class names are inferred from the
-    labels present across all files and assigned sorted, zero-based ids.
+    ``rectangle`` shapes become bounding boxes; ``polygon`` shapes become masks
+    (and their bounding boxes); other shape types are skipped with a warning.
+    When any polygon is present in a file or when ``force_masks`` is ``True``,
+    both ``rectangle`` and ``polygon`` shapes produce masks: rectangles via a
+    four-corner polygon fill. Class names are inferred from the labels present
+    across all files and assigned sorted, zero-based ids.
 
     Each image is located by the basename of the JSON's ``imagePath`` joined to
     ``images_directory_path``; the directory portion of ``imagePath`` (which
@@ -192,6 +198,19 @@ def load_labelme_annotations(
             resolves to ``..`` or ``.``; if two annotation files reference the
             same image basename; or if a polygon mask is requested for a file
             missing ``imageWidth`` / ``imageHeight``.
+
+    Examples:
+        ```python
+        from supervision.dataset.formats.labelme import load_labelme_annotations
+
+        classes, image_paths, annotations = load_labelme_annotations(
+            images_directory_path="<IMAGES_DIRECTORY_PATH>",
+            annotations_directory_path="<ANNOTATIONS_DIRECTORY_PATH>",
+        )
+
+        classes
+        # ['dog', 'person']
+        ```
     """
     annotation_paths = sorted(
         str(path)
@@ -228,6 +247,9 @@ def load_labelme_annotations(
                 "A LabelMe annotation file is missing the required "
                 "'imagePath' field or it is empty."
             )
+        # ponytail: basename-only, no symlink resolution — images_directory_path
+        # is trusted; annotation-driven traversal is neutralised by .name.
+        # See createml._resolve_image_path for the full .resolve()+parents pattern.
         image_name = Path(raw_image_path).name
         if not image_name or image_name in ("..", "."):
             raise ValueError(
@@ -306,7 +328,7 @@ def detections_to_labelme_shapes(
     shapes: list[LabelMeDict] = []
     for index in range(len(detections)):
         class_index = int(class_ids[index])
-        if class_index >= len(classes):
+        if class_index < 0 or class_index >= len(classes):
             raise ValueError(
                 f"class_id {class_index} at detection index {index} is out of "
                 f"range for classes list of length {len(classes)}."
@@ -340,6 +362,18 @@ def save_labelme_annotations(
         dataset: The ``DetectionDataset`` to write.
         annotations_directory_path: Directory where the LabelMe ``.json`` files
             are written (created if it does not exist).
+
+    Examples:
+        ```python
+        import supervision as sv
+        from supervision.dataset.formats.labelme import save_labelme_annotations
+
+        dataset = sv.DetectionDataset(classes=["dog"], images=[], annotations={})
+        save_labelme_annotations(
+            dataset=dataset,
+            annotations_directory_path="<ANNOTATIONS_DIRECTORY_PATH>",
+        )
+        ```
     """
     Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
     for image_path, image, detections in dataset:

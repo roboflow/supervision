@@ -365,6 +365,23 @@ class TestLoadLabelmeAnnotations:
                 annotations_directory_path=str(tmp_path),
             )
 
+    def test_annotation_path_traversal_is_stripped(self, tmp_path: Path) -> None:
+        """Annotation-driven path traversal is neutralised: only basename is used."""
+        _write_labelme(
+            tmp_path / "evil.json",
+            "../../../evil.jpg",
+            [_rectangle("dog", 0, 0, 10, 10)],
+        )
+
+        classes, image_paths, _ = load_labelme_annotations(
+            images_directory_path=str(tmp_path),
+            annotations_directory_path=str(tmp_path),
+        )
+
+        assert classes == ["dog"]
+        assert len(image_paths) == 1
+        assert image_paths[0] == str(tmp_path / "evil.jpg")
+
 
 class TestDetectionsToLabelmeShapes:
     """Unit tests for ``detections_to_labelme_shapes``."""
@@ -396,6 +413,30 @@ class TestDetectionsToLabelmeShapes:
         detections = Detections(xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32))
 
         with pytest.raises(ValueError, match="class_id"):
+            detections_to_labelme_shapes(detections=detections, classes=["dog"])
+
+    @pytest.mark.parametrize(
+        "class_id",
+        [pytest.param(-1, id="minus-one"), pytest.param(-99, id="large-negative")],
+    )
+    def test_negative_class_id_raises(self, class_id: int) -> None:
+        """Negative class_id must raise ValueError, not wrap via Python indexing."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([class_id], dtype=int),
+        )
+
+        with pytest.raises(ValueError, match="class_id"):
+            detections_to_labelme_shapes(detections=detections, classes=["dog"])
+
+    def test_out_of_range_class_id_raises(self) -> None:
+        """class_id exceeding classes length raises ValueError."""
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([5], dtype=int),
+        )
+
+        with pytest.raises(ValueError, match="out of range"):
             detections_to_labelme_shapes(detections=detections, classes=["dog"])
 
     def test_multi_component_mask(self) -> None:
