@@ -13,9 +13,7 @@ pip install "supervision[geotiff]"
 wget -O RGB.byte.tif https://raw.githubusercontent.com/rasterio/rasterio/main/tests/data/RGB.byte.tif
 ```
 
-`InferenceSlicer` can read an open `rasterio` dataset window-by-window. This keeps
-large GeoTIFFs out of memory while passing each tile to the callback as an
-`(H, W, C)` NumPy array.
+`InferenceSlicer` can read an open `rasterio` dataset window-by-window. This keeps large GeoTIFFs out of memory while passing each tile to the callback as an `(H, W, C)` NumPy array.
 
 ```python
 import numpy as np
@@ -45,7 +43,6 @@ with rasterio.open("RGB.byte.tif") as dataset:
 print(len(detections))
 ```
 
-GeoTIFF inputs must use a projected coordinate reference system. Reproject
-geographic rasters before passing them to `InferenceSlicer`.
+GeoTIFF inputs must use a projected coordinate reference system. Reproject geographic rasters before passing them to `InferenceSlicer`.
 
 :::supervision.detection.tools.inference_slicer.InferenceSlicer
