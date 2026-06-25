@@ -53,7 +53,7 @@ Zone-based counting. `PolygonZone.trigger(detections)` returns a boolean mask fo
 
 ### sv.DetectionDataset and sv.ClassificationDataset
 
-For detection datasets, load, merge, split, and convert between YOLO, COCO JSON, and Pascal VOC formats. Classification datasets use folder-structure import and export via `ClassificationDataset.from_folder_structure()` and `as_folder_structure()`.
+For detection datasets, load, merge, split, and convert between YOLO, COCO JSON, Pascal VOC, and LabelMe formats. Classification datasets use folder-structure import and export via `ClassificationDataset.from_folder_structure()` and `as_folder_structure()`.
 
 ### sv.InferenceSlicer
 
@@ -133,7 +133,7 @@ Install with `pip install supervision`. For optional metric dependencies use `pi
 
 ### What can I do with supervision?
 
-Annotate images and video with bounding boxes, masks, and labels; track objects across frames with persistent IDs; count detections inside polygon zones or line crossings; filter and query detection results; load, split, and convert detection datasets between YOLO, COCO, and Pascal VOC formats; manage classification datasets with folder structures; and benchmark model performance with mAP and confusion matrices.
+Annotate images and video with bounding boxes, masks, and labels; track objects across frames with persistent IDs; count detections inside polygon zones or line crossings; filter and query detection results; load, split, and convert detection datasets between YOLO, COCO, Pascal VOC, and LabelMe formats; manage classification datasets with folder structures; and benchmark model performance with mAP and confusion matrices.
 
 ### Is supervision free to use?
 
@@ -153,7 +153,7 @@ Use a tracker to assign persistent IDs. The built-in `sv.ByteTrack` wrapper acce
 
 ### What dataset formats does supervision support?
 
-For detection datasets, supervision supports YOLO, COCO JSON, and Pascal VOC. Use `DetectionDataset.from_yolo()`, `from_coco()`, or `from_pascal_voc()` to load, and `as_yolo()`, `as_coco()`, or `as_pascal_voc()` to save. For classification datasets, use `ClassificationDataset.from_folder_structure()` and `as_folder_structure()`.
+For detection datasets, supervision supports YOLO, COCO JSON, Pascal VOC, and LabelMe. Use `DetectionDataset.from_yolo()`, `from_coco()`, `from_pascal_voc()`, or `from_labelme()` to load, and `as_yolo()`, `as_coco()`, `as_pascal_voc()`, or `as_labelme()` to save. For classification datasets, use `ClassificationDataset.from_folder_structure()` and `as_folder_structure()`.
 
 ### How do I count objects in a zone?
 
