@@ -1,24 +1,24 @@
 ---
 comments: true
-description: Load, split, merge, and convert computer vision datasets between YOLO, COCO, and Pascal VOC formats using supervision's DetectionDataset.
+description: Load, split, merge, and convert computer vision datasets between YOLO, COCO, Pascal VOC, and CreateML formats using supervision's DetectionDataset.
 authors:
   - name: Piotr Skalski
     role: Computer Vision Engineer, Roboflow
     github: https://github.com/SkalskiP
-date_modified: 2026-04-22
+date_modified: 2026-06-25
 ---
 
 With Supervision, you can load and manipulate classification, object detection, and segmentation datasets. This tutorial will walk you through how to load, split, merge, visualize, and augment datasets in Supervision.
 
 ## Download Dataset
 
-In this tutorial, we will use a dataset from [Roboflow Universe](https://universe.roboflow.com/), a public repository of thousands of computer vision datasets. If you already have your dataset in [COCO](https://roboflow.com/formats/coco-json), [YOLO](https://roboflow.com/formats/yolov8-pytorch-txt), or [Pascal VOC](https://roboflow.com/formats/pascal-voc-xml) format, you can skip this section.
+In this tutorial, we will use a dataset from [Roboflow Universe](https://universe.roboflow.com/), a public repository of thousands of computer vision datasets. If you already have your dataset in [COCO](https://roboflow.com/formats/coco-json), [YOLO](https://roboflow.com/formats/yolov8-pytorch-txt), [Pascal VOC](https://roboflow.com/formats/pascal-voc-xml), or [CreateML](https://roboflow.com/formats/createml-json) format, you can skip this section.
 
 ```bash
 pip install roboflow
 ```
 
-Next, log into your Roboflow account and download the dataset of your choice in the COCO, YOLO, or Pascal VOC format. You can customize the following code snippet with your workspace ID, project ID, and version number.
+Next, log into your Roboflow account and download the dataset of your choice in the COCO, YOLO, Pascal VOC, or CreateML format. You can customize the following code snippet with your workspace ID, project ID, and version number.
 
 === "COCO"
 
@@ -54,6 +54,18 @@ Next, log into your Roboflow account and download the dataset of your choice in 
     rf = roboflow.Roboflow()
     project = rf.workspace("<WORKSPACE_ID>").project("<PROJECT_ID>")
     dataset = project.version("<PROJECT_VERSION>").download("voc")
+    ```
+
+=== "CreateML"
+
+    ```python
+    import roboflow
+
+    roboflow.login()
+
+    rf = roboflow.Roboflow()
+    project = rf.workspace("<WORKSPACE_ID>").project("<PROJECT_ID>")
+    dataset = project.version("<PROJECT_VERSION>").download("createml")
     ```
 
 ## Load Dataset
@@ -135,6 +147,33 @@ The Supervision library provides convenient functions to load datasets in variou
     ds_test = sv.DetectionDataset.from_pascal_voc(
         images_directory_path=f"{dataset.location}/test/images",
         annotations_directory_path=f"{dataset.location}/test/labels",
+    )
+
+    ds_train.classes
+    # ['person', 'bicycle', 'car', ...]
+
+    len(ds_train), len(ds_valid), len(ds_test)
+    # 800, 100, 100
+    ```
+
+=== "CreateML"
+
+    We can do so using the [`sv.DetectionDataset.from_createml`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.from_createml) to load annotations in [CreateML](https://roboflow.com/formats/createml-json) format.
+
+    ```python
+    import supervision as sv
+
+    ds_train = sv.DetectionDataset.from_createml(
+        images_directory_path=f"{dataset.location}/train",
+        annotations_path=f"{dataset.location}/train/_annotations.createml.json",
+    )
+    ds_valid = sv.DetectionDataset.from_createml(
+        images_directory_path=f"{dataset.location}/valid",
+        annotations_path=f"{dataset.location}/valid/_annotations.createml.json",
+    )
+    ds_test = sv.DetectionDataset.from_createml(
+        images_directory_path=f"{dataset.location}/test",
+        annotations_path=f"{dataset.location}/test/_annotations.createml.json",
     )
 
     ds_train.classes
@@ -269,6 +308,39 @@ If you have multiple datasets that you would like to merge, you can do so using 
     # 1000
     ```
 
+=== "CreateML"
+
+    ```{ .py hl_lines="22-28" }
+    import supervision as sv
+
+    ds_train = sv.DetectionDataset.from_createml(
+        images_directory_path=f'{dataset.location}/train',
+        annotations_path=f'{dataset.location}/train/_annotations.createml.json',
+    )
+    ds_valid = sv.DetectionDataset.from_createml(
+        images_directory_path=f'{dataset.location}/valid',
+        annotations_path=f'{dataset.location}/valid/_annotations.createml.json',
+    )
+    ds_test = sv.DetectionDataset.from_createml(
+        images_directory_path=f'{dataset.location}/test',
+        annotations_path=f'{dataset.location}/test/_annotations.createml.json',
+    )
+
+    ds_train.classes
+    # ['person', 'bicycle', 'car', ...]
+
+    len(ds_train), len(ds_valid), len(ds_test)
+    # 800, 100, 100
+
+    ds = sv.DetectionDataset.merge([ds_train, ds_valid, ds_test])
+
+    ds.classes
+    # ['person', 'bicycle', 'car', ...]
+
+    len(ds)
+    # 1000
+    ```
+
 ## Iterate over Dataset
 
 There are two ways to loop over a `sv.DetectionDataset`: using a direct [for loop](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.__iter__) called on the `sv.DetectionDataset` instance or loading `sv.DetectionDataset` entries [by index](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.__getitem__).
@@ -364,6 +436,21 @@ sv.plot_images_grid(
     ds.as_pascal_voc(
         images_directory_path="<IMAGE_DIRECTORY_PATH>",
         annotations_directory_path="<ANNOTATIONS_DIRECTORY_PATH>",
+    )
+    ```
+
+=== "CreateML"
+
+    We can do so using the [`sv.DetectionDataset.as_createml`](https://supervision.roboflow.com/latest/datasets/core/#supervision.dataset.core.DetectionDataset.as_createml) method to save annotations in [CreateML](https://roboflow.com/formats/createml-json) format.
+
+    ```python
+    import supervision as sv
+
+    ds = sv.DetectionDataset(...)
+
+    ds.as_createml(
+        images_directory_path="<IMAGE_DIRECTORY_PATH>",
+        annotations_path="<ANNOTATIONS_PATH>",
     )
     ```
 
