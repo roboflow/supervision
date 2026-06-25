@@ -521,6 +521,8 @@ def test_all_annotators_invalid_scene_type_raises(
     annotator = annotator_class(**kwargs)
     with pytest.raises(TypeError, match="scene must be a numpy.ndarray"):
         if hasattr(annotator.annotate, "__wrapped__"):
-            annotator.annotate.__wrapped__(annotator, scene="not_an_image", key_points=sample_key_points)
+            annotator.annotate.__wrapped__(
+                annotator, scene="not_an_image", key_points=sample_key_points
+            )
         else:
             annotator.annotate(scene="not_an_image", key_points=sample_key_points)

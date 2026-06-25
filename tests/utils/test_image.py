@@ -209,4 +209,3 @@ def test_get_image_resolution_wh(image, expected):
 def test_image_utils_invalid_image_type_raises(func, kwargs):
     with pytest.raises(TypeError, match="image must be a numpy.ndarray"):
         func.__wrapped__(image="not_an_image", **kwargs)
-
