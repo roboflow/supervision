@@ -3086,7 +3086,7 @@
 <h2 id="how-do-i-track-objects-across-video-frames">How do I track objects across video frames?<a class="headerlink" href="#how-do-i-track-objects-across-video-frames" title="Permanent link">&para;</a></h2>
 <p>Assign persistent tracker IDs before visualization. The built-in <code>sv.ByteTrack</code> wrapper accepts <code>Detections</code> through <code>update_with_detections()</code>. After tracking, combine the output with annotators such as <code>sv.TraceAnnotator</code>, <code>sv.BoxAnnotator</code>, and <code>sv.LabelAnnotator</code>.</p>
 <h2 id="what-dataset-formats-does-supervision-support">What dataset formats does Supervision support?<a class="headerlink" href="#what-dataset-formats-does-supervision-support" title="Permanent link">&para;</a></h2>
-<p>For detection datasets, Supervision supports YOLO, COCO JSON, and Pascal VOC. Use <code>DetectionDataset.from_yolo()</code>, <code>DetectionDataset.from_coco()</code>, or <code>DetectionDataset.from_pascal_voc()</code> to load datasets, and the matching <code>as_*</code> methods to export them.</p>
+<p>For detection datasets, Supervision supports YOLO, COCO JSON, Pascal VOC, CreateML, and LabelMe. Use <code>DetectionDataset.from_yolo()</code>, <code>DetectionDataset.from_coco()</code>, <code>DetectionDataset.from_pascal_voc()</code>, <code>DetectionDataset.from_createml()</code>, or <code>DetectionDataset.from_labelme()</code> to load datasets, and the matching <code>as_*</code> methods to export them.</p>
 <h2 id="how-do-i-count-objects-in-a-zone">How do I count objects in a zone?<a class="headerlink" href="#how-do-i-count-objects-in-a-zone" title="Permanent link">&para;</a></h2>
 <p>Use <code>sv.PolygonZone</code> for arbitrary polygon regions and <code>sv.LineZone</code> for line-crossing counts. Line crossing requires <code>detections.tracker_id</code>, so run a tracker before calling the line zone trigger.</p>
 <h2 id="how-do-i-benchmark-a-model">How do I benchmark a model?<a class="headerlink" href="#how-do-i-benchmark-a-model" title="Permanent link">&para;</a></h2>
@@ -3117,7 +3117,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 24, 2026 21:39:22 UTC">April 24, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 25, 2026 15:07:39 UTC">June 25, 2026</span>
   </span>
 
     
@@ -3145,9 +3145,9 @@
     
     <nav>
       
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
+        <a href="https://github.com/madhavcodez" class="md-author" title="@madhavcodez">
           
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
+          <img src="https://avatars.githubusercontent.com/u/171856020?v=4&size=72" alt="madhavcodez">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -3155,21 +3155,21 @@
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
-        <a href="https://github.com/codex" class="md-author" title="@codex">
+        <a href="https://github.com/Borda" class="md-author" title="@Borda">
           
-          <img src="https://avatars.githubusercontent.com/u/267193182?u=8d933ea4ecf726d71bfa940532b8cf8f04ee0ab3&v=4&size=72" alt="Codex">
+          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
-        <a href="https://github.com/Copilot" class="md-author" title="@Copilot">
+        <a href="https://github.com/claude%5Bbot%5D" class="md-author" title="@claude[bot]">
           
-          <img src="https://avatars.githubusercontent.com/in/946600?v=4&size=72" alt="GitHub user">
+          <img src="https://avatars.githubusercontent.com/in/1236702?v=4&size=72" alt="GitHub user">
         </a>
       
       
       
         
           <a href="https://github.com/roboflow/supervision/tree/main/docs/faq.md" class="md-author md-author--more">
-            +1
+            +3
           </a>
         
       
