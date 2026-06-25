@@ -1,0 +1,421 @@
+[
+  {
+    "arquivo": "src\\supervision\\annotators\\core.py",
+    "convention": 6,
+    "total": 135,
+    "error": 50,
+    "refactor": 57,
+    "warning": 22
+  },
+  {
+    "arquivo": "src\\supervision\\validators\\__init__.py",
+    "convention": 14,
+    "total": 66,
+    "refactor": 52
+  },
+  {
+    "arquivo": "src\\supervision\\detection\\core.py",
+    "convention": 39,
+    "total": 61,
+    "refactor": 9,
+    "warning": 1,
+    "error": 12
+  },
+  {
+    "arquivo": "src\\supervision\\detection\\line_zone.py",
+    "convention": 8,
+    "total": 45,
+    "refactor": 14,
+    "error": 23
+  },
+  {
+    "arquivo": "src\\supervision\\metrics\\mean_average_precision.py",
+    "convention": 20,
+    "total": 41,
+    "refactor": 17,
+    "error": 1,
+    "warning": 3
+  },
+  {
+    "arquivo": "src\\supervision\\utils\\image.py",
+    "convention": 8,
+    "total": 37,
+    "error": 19,
+    "refactor": 10
+  },
+  {
+    "arquivo": "src\\supervision\\__init__.py",
+    "convention": 34,
+    "total": 34
+  },
+  {
+    "arquivo": "src\\supervision\\draw\\color.py",
+    "convention": 22,
+    "total": 34,
+    "refactor": 1,
+    "error": 11
+  },
+  {
+    "arquivo": "src\\supervision\\detection\\vlm.py",
+    "convention": 9,
+    "total": 27,
+    "warning": 5,
+    "refactor": 9,
+    "error": 4
+  },
+  {
+    "arquivo": "src\\supervision\\key_points\\annotators.py",
+    "convention": 4,
+    "total": 27,
+    "refactor": 12,
+    "error": 11
+  },
+  {
+    "arquivo": "src\\supervision\\utils\\video.py",
+    "convention": 3,
+    "total": 26,
+    "error": 11,
+    "warning": 8,
+    "refactor": 4
+  },
+  {
+    "arquivo": "src\\supervision\\key_points\\core.py",
+    "convention": 14,
+    "total": 24,
+    "refactor": 8,
+    "error": 1,
+    "warning": 1
+  },
+  {
+    "arquivo": "src\\supervision\\detection\\utils\\iou_and_nms.py",
+    "convention": 10,
+    "total": 23,
+    "warning": 3,
+    "refactor": 9,
+    "error": 1
+  },
+  {
+    "arquivo": "src\\supervision\\draw\\utils.py",
+    "convention": 1,
+    "total": 23,
+    "error": 20,
+    "refactor": 2
+  },
+  {
+    "arquivo": "src\\supervision\\assets\\list.py",
+    "convention": 19,
+    "total": 19
+  },
+  {
+    "arquivo": "src\\supervision\\dataset\\core.py",
+    "convention": 4,
+    "total": 17,
+    "error": 3,
+    "warning": 4,
+    "refactor": 6
+  },
+  {
+    "arquivo": "src\\supervision\\dataset\\formats\\yolo.py",
+    "convention": 5,
+    "total": 17,
+    "refactor": 10,
+    "warning": 1,
+    "error": 1
+  },
+  {
+    "arquivo": "src\\supervision\\annotators\\utils.py",
+    "convention": 11,
+    "total": 16,
+    "refactor": 5
+  },
+  {
+    "arquivo": "src\\supervision\\metrics\\detection.py",
+    "convention": 3,
+    "total": 16,
+    "refactor": 11,
+    "warning": 2
+  },
+  {
+    "arquivo": "src\\supervision\\tracker\\byte_tracker\\core.py",
+    "convention": 3,
+    "total": 16,
+    "refactor": 5,
+    "warning": 8
+  },
+  {
+    "arquivo": "src\\supervision\\tracker\\byte_tracker\\single_object_track.py",
+    "convention": 13,
+    "total": 16,
+    "refactor": 3
+  },
+  {
+    "arquivo": "src\\supervision\\detection\\compact_mask.py",
+    "convention": 3,
+    "total": 15,
+    "error": 2,
+    "refactor": 4,
+    "warning": 6
+  },
+  {
+    "arquivo": "src\\supervision\\detection\\utils\\masks.py",
+    "convention": 3,
+    "total": 15,
+    "refactor": 4,
+    "error": 8
+  },
+  {
+    "arquivo": "src\\supervision\\metrics\\mean_average_recall.py",
+    "convention": 9,
+    "total": 15,
+    "refactor": 3,
+    "warning": 3
+  },
+  {
+    "arquivo": "src\\supervision\\dataset\\formats\\coco.py",
+    "convention": 5,
+    "total": 14,
+    "refactor": 9
+  },
+  {
+    "arquivo": "src\\supervision\\metrics\\recall.py",
+    "convention": 5,
+    "total": 12,
+    "warning": 4,
+    "error": 1,
+    "refactor": 2
+  },
+  {
+    "arquivo": "src\\supervision\\metrics\\f1_score.py",
+    "convention": 5,
+    "total": 11,
+    "warning": 3,
+    "error": 1,
+    "refactor": 2
+  },
+  {
+    "arquivo": "src\\supervision\\metrics\\precision.py",
+    "convention": 5,
+    "total": 11,
+    "warning": 3,
+    "error": 1,
+    "refactor": 2
+  },
+  {
+    "arquivo": "src\\supervision\\dataset\\utils.py",
+    "convention": 7,
+    "total": 10,
+    "warning": 2,
+    "error": 1
+  },
+  {
+    "arquivo": "src\\supervision\\detection\\tools\\inference_slicer.py",
+    "convention": 1,
+    "total": 9,
+    "refactor": 8
+  },
+  {
+    "arquivo": "src\\supervision\\utils\\file.py",
+    "convention": 2,
+    "total": 9,
+    "warning": 7
+  },
+  {
+    "arquivo": "src\\supervision\\dataset\\formats\\pascal_voc.py",
+    "convention": 2,
+    "total": 8,
+    "refactor": 5,
+    "error": 1
+  },
+  {
+    "arquivo": "src\\supervision\\detection\\tools\\csv_sink.py",
+    "convention": 4,
+    "total": 8,
+    "refactor": 2,
+    "warning": 2
+  },
+  {
+    "arquivo": "src\\supervision\\detection\\utils\\internal.py",
+    "convention": 2,
+    "total": 8,
+    "error": 3,
+    "refactor": 3
+  },
+  {
+    "arquivo": "src\\supervision\\utils\\conversion.py",
+    "convention": 4,
+    "total": 8,
+    "error": 4
+  },
+  {
+    "arquivo": "src\\supervision\\detection\\tools\\polygon_zone.py",
+    "convention": 1,
+    "total": 7,
+    "refactor": 5,
+    "error": 1
+  },
+  {
+    "arquivo": "src\\supervision\\detection\\tools\\transformers.py",
+    "convention": 1,
+    "total": 7,
+    "refactor": 6
+  },
+  {
+    "arquivo": "src\\supervision\\geometry\\core.py",
+    "convention": 7,
+    "total": 7
+  },
+  {
+    "arquivo": "src\\supervision\\metrics\\utils\\object_size.py",
+    "convention": 7,
+    "total": 7
+  },
+  {
+    "arquivo": "src\\supervision\\utils\\internal.py",
+    "convention": 2,
+    "total": 7,
+    "warning": 4,
+    "refactor": 1
+  },
+  {
+    "arquivo": "src\\supervision\\keypoint\\annotators.py",
+    "convention": 2,
+    "total": 6,
+    "warning": 4
+  },
+  {
+    "arquivo": "src\\supervision\\detection\\tools\\smoother.py",
+    "convention": 4,
+    "total": 5,
+    "refactor": 1
+  },
+  {
+    "arquivo": "src\\supervision\\detection\\utils\\converters.py",
+    "convention": 1,
+    "total": 5,
+    "error": 4
+  },
+  {
+    "arquivo": "src\\supervision\\metrics\\utils\\utils.py",
+    "convention": 3,
+    "total": 5,
+    "warning": 2
+  },
+  {
+    "arquivo": "src\\supervision\\tracker\\byte_tracker\\matching.py",
+    "convention": 5,
+    "total": 5
+  },
+  {
+    "arquivo": "src\\supervision\\utils\\notebook.py",
+    "convention": 1,
+    "total": 5,
+    "error": 4
+  },
+  {
+    "arquivo": "src\\supervision\\annotators\\base.py",
+    "convention": 3,
+    "total": 4,
+    "refactor": 1
+  },
+  {
+    "arquivo": "src\\supervision\\tracker\\byte_tracker\\utils.py",
+    "convention": 4,
+    "total": 4
+  },
+  {
+    "arquivo": "src\\supervision\\detection\\tools\\json_sink.py",
+    "convention": 1,
+    "total": 3,
+    "warning": 1,
+    "refactor": 1
+  },
+  {
+    "arquivo": "src\\supervision\\detection\\utils\\boxes.py",
+    "convention": 1,
+    "total": 3,
+    "error": 1,
+    "warning": 1
+  },
+  {
+    "arquivo": "src\\supervision\\detection\\utils\\polygons.py",
+    "convention": 1,
+    "total": 3,
+    "error": 2
+  },
+  {
+    "arquivo": "src\\supervision\\keypoint\\core.py",
+    "convention": 2,
+    "total": 3,
+    "warning": 1
+  },
+  {
+    "arquivo": "src\\supervision\\keypoint\\__init__.py",
+    "convention": 3,
+    "total": 3
+  },
+  {
+    "arquivo": "src\\supervision\\key_points\\skeletons.py",
+    "convention": 3,
+    "total": 3
+  },
+  {
+    "arquivo": "src\\supervision\\classification\\core.py",
+    "convention": 2,
+    "total": 2
+  },
+  {
+    "arquivo": "src\\supervision\\draw\\base.py",
+    "convention": 2,
+    "total": 2
+  },
+  {
+    "arquivo": "src\\supervision\\config.py",
+    "convention": 1,
+    "total": 1
+  },
+  {
+    "arquivo": "src\\supervision\\assets\\downloader.py",
+    "convention": 1,
+    "total": 1
+  },
+  {
+    "arquivo": "src\\supervision\\assets\\__init__.py",
+    "convention": 1,
+    "total": 1
+  },
+  {
+    "arquivo": "src\\supervision\\detection\\utils\\vlms.py",
+    "convention": 1,
+    "total": 1
+  },
+  {
+    "arquivo": "src\\supervision\\geometry\\utils.py",
+    "convention": 1,
+    "total": 1
+  },
+  {
+    "arquivo": "src\\supervision\\metrics\\core.py",
+    "convention": 1,
+    "total": 1
+  },
+  {
+    "arquivo": "src\\supervision\\metrics\\__init__.py",
+    "convention": 1,
+    "total": 1
+  },
+  {
+    "arquivo": "src\\supervision\\tracker\\byte_tracker\\kalman_filter.py",
+    "convention": 1,
+    "total": 1
+  },
+  {
+    "arquivo": "src\\supervision\\utils\\iterables.py",
+    "convention": 1,
+    "total": 1
+  },
+  {
+    "arquivo": "src\\supervision\\utils\\logger.py",
+    "convention": 1,
+    "total": 1
+  }
+]

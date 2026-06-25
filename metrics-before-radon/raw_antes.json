@@ -1,0 +1,722 @@
+{
+  "src\\supervision\\config.py": {
+    "loc": 13,
+    "lloc": 6,
+    "sloc": 3,
+    "comments": 10,
+    "multi": 0,
+    "blank": 0,
+    "single_comments": 10
+  },
+  "src\\supervision\\__init__.py": {
+    "loc": 287,
+    "lloc": 39,
+    "sloc": 283,
+    "comments": 1,
+    "multi": 0,
+    "blank": 3,
+    "single_comments": 1
+  },
+  "src\\supervision\\annotators\\base.py": {
+    "loc": 12,
+    "lloc": 7,
+    "sloc": 9,
+    "comments": 0,
+    "multi": 0,
+    "blank": 3,
+    "single_comments": 0
+  },
+  "src\\supervision\\annotators\\core.py": {
+    "loc": 3294,
+    "lloc": 1020,
+    "sloc": 1730,
+    "comments": 28,
+    "multi": 1141,
+    "blank": 405,
+    "single_comments": 18
+  },
+  "src\\supervision\\annotators\\utils.py": {
+    "loc": 487,
+    "lloc": 195,
+    "sloc": 266,
+    "comments": 5,
+    "multi": 129,
+    "blank": 90,
+    "single_comments": 2
+  },
+  "src\\supervision\\annotators\\__init__.py": {
+    "loc": 0,
+    "lloc": 0,
+    "sloc": 0,
+    "comments": 0,
+    "multi": 0,
+    "blank": 0,
+    "single_comments": 0
+  },
+  "src\\supervision\\assets\\downloader.py": {
+    "loc": 95,
+    "lloc": 42,
+    "sloc": 46,
+    "comments": 0,
+    "multi": 25,
+    "blank": 24,
+    "single_comments": 0
+  },
+  "src\\supervision\\assets\\list.py": {
+    "loc": 82,
+    "lloc": 35,
+    "sloc": 66,
+    "comments": 2,
+    "multi": 0,
+    "blank": 16,
+    "single_comments": 0
+  },
+  "src\\supervision\\assets\\__init__.py": {
+    "loc": 4,
+    "lloc": 3,
+    "sloc": 3,
+    "comments": 0,
+    "multi": 0,
+    "blank": 1,
+    "single_comments": 0
+  },
+  "src\\supervision\\classification\\core.py": {
+    "loc": 200,
+    "lloc": 64,
+    "sloc": 60,
+    "comments": 0,
+    "multi": 94,
+    "blank": 46,
+    "single_comments": 0
+  },
+  "src\\supervision\\classification\\__init__.py": {
+    "loc": 0,
+    "lloc": 0,
+    "sloc": 0,
+    "comments": 0,
+    "multi": 0,
+    "blank": 0,
+    "single_comments": 0
+  },
+  "src\\supervision\\dataset\\core.py": {
+    "loc": 969,
+    "lloc": 267,
+    "sloc": 448,
+    "comments": 2,
+    "multi": 389,
+    "blank": 128,
+    "single_comments": 4
+  },
+  "src\\supervision\\dataset\\utils.py": {
+    "loc": 164,
+    "lloc": 80,
+    "sloc": 117,
+    "comments": 3,
+    "multi": 10,
+    "blank": 34,
+    "single_comments": 3
+  },
+  "src\\supervision\\dataset\\__init__.py": {
+    "loc": 0,
+    "lloc": 0,
+    "sloc": 0,
+    "comments": 0,
+    "multi": 0,
+    "blank": 0,
+    "single_comments": 0
+  },
+  "src\\supervision\\dataset\\formats\\coco.py": {
+    "loc": 621,
+    "lloc": 194,
+    "sloc": 339,
+    "comments": 13,
+    "multi": 187,
+    "blank": 82,
+    "single_comments": 13
+  },
+  "src\\supervision\\dataset\\formats\\pascal_voc.py": {
+    "loc": 355,
+    "lloc": 155,
+    "sloc": 197,
+    "comments": 15,
+    "multi": 88,
+    "blank": 55,
+    "single_comments": 15
+  },
+  "src\\supervision\\dataset\\formats\\yolo.py": {
+    "loc": 477,
+    "lloc": 185,
+    "sloc": 319,
+    "comments": 2,
+    "multi": 99,
+    "blank": 57,
+    "single_comments": 2
+  },
+  "src\\supervision\\dataset\\formats\\__init__.py": {
+    "loc": 0,
+    "lloc": 0,
+    "sloc": 0,
+    "comments": 0,
+    "multi": 0,
+    "blank": 0,
+    "single_comments": 0
+  },
+  "src\\supervision\\detection\\compact_mask.py": {
+    "loc": 1306,
+    "lloc": 434,
+    "sloc": 477,
+    "comments": 68,
+    "multi": 545,
+    "blank": 224,
+    "single_comments": 60
+  },
+  "src\\supervision\\detection\\core.py": {
+    "loc": 2934,
+    "lloc": 612,
+    "sloc": 1748,
+    "comments": 21,
+    "multi": 640,
+    "blank": 534,
+    "single_comments": 12
+  },
+  "src\\supervision\\detection\\line_zone.py": {
+    "loc": 873,
+    "lloc": 307,
+    "sloc": 525,
+    "comments": 2,
+    "multi": 224,
+    "blank": 122,
+    "single_comments": 2
+  },
+  "src\\supervision\\detection\\vlm.py": {
+    "loc": 918,
+    "lloc": 415,
+    "sloc": 565,
+    "comments": 13,
+    "multi": 190,
+    "blank": 153,
+    "single_comments": 10
+  },
+  "src\\supervision\\detection\\__init__.py": {
+    "loc": 0,
+    "lloc": 0,
+    "sloc": 0,
+    "comments": 0,
+    "multi": 0,
+    "blank": 0,
+    "single_comments": 0
+  },
+  "src\\supervision\\detection\\tools\\csv_sink.py": {
+    "loc": 241,
+    "lloc": 85,
+    "sloc": 116,
+    "comments": 0,
+    "multi": 88,
+    "blank": 37,
+    "single_comments": 0
+  },
+  "src\\supervision\\detection\\tools\\inference_slicer.py": {
+    "loc": 471,
+    "lloc": 191,
+    "sloc": 295,
+    "comments": 4,
+    "multi": 107,
+    "blank": 65,
+    "single_comments": 4
+  },
+  "src\\supervision\\detection\\tools\\json_sink.py": {
+    "loc": 215,
+    "lloc": 71,
+    "sloc": 87,
+    "comments": 0,
+    "multi": 92,
+    "blank": 36,
+    "single_comments": 0
+  },
+  "src\\supervision\\detection\\tools\\polygon_zone.py": {
+    "loc": 203,
+    "lloc": 61,
+    "sloc": 105,
+    "comments": 0,
+    "multi": 70,
+    "blank": 28,
+    "single_comments": 0
+  },
+  "src\\supervision\\detection\\tools\\smoother.py": {
+    "loc": 184,
+    "lloc": 57,
+    "sloc": 58,
+    "comments": 6,
+    "multi": 82,
+    "blank": 38,
+    "single_comments": 6
+  },
+  "src\\supervision\\detection\\tools\\transformers.py": {
+    "loc": 250,
+    "lloc": 68,
+    "sloc": 109,
+    "comments": 0,
+    "multi": 100,
+    "blank": 41,
+    "single_comments": 0
+  },
+  "src\\supervision\\detection\\tools\\__init__.py": {
+    "loc": 0,
+    "lloc": 0,
+    "sloc": 0,
+    "comments": 0,
+    "multi": 0,
+    "blank": 0,
+    "single_comments": 0
+  },
+  "src\\supervision\\detection\\utils\\boxes.py": {
+    "loc": 417,
+    "lloc": 100,
+    "sloc": 108,
+    "comments": 5,
+    "multi": 234,
+    "blank": 71,
+    "single_comments": 4
+  },
+  "src\\supervision\\detection\\utils\\converters.py": {
+    "loc": 738,
+    "lloc": 195,
+    "sloc": 189,
+    "comments": 6,
+    "multi": 399,
+    "blank": 146,
+    "single_comments": 4
+  },
+  "src\\supervision\\detection\\utils\\internal.py": {
+    "loc": 417,
+    "lloc": 202,
+    "sloc": 274,
+    "comments": 1,
+    "multi": 78,
+    "blank": 64,
+    "single_comments": 1
+  },
+  "src\\supervision\\detection\\utils\\iou_and_nms.py": {
+    "loc": 1453,
+    "lloc": 527,
+    "sloc": 700,
+    "comments": 40,
+    "multi": 502,
+    "blank": 215,
+    "single_comments": 36
+  },
+  "src\\supervision\\detection\\utils\\masks.py": {
+    "loc": 426,
+    "lloc": 153,
+    "sloc": 304,
+    "comments": 7,
+    "multi": 54,
+    "blank": 64,
+    "single_comments": 4
+  },
+  "src\\supervision\\detection\\utils\\polygons.py": {
+    "loc": 116,
+    "lloc": 29,
+    "sloc": 37,
+    "comments": 2,
+    "multi": 57,
+    "blank": 20,
+    "single_comments": 2
+  },
+  "src\\supervision\\detection\\utils\\vlms.py": {
+    "loc": 100,
+    "lloc": 26,
+    "sloc": 33,
+    "comments": 0,
+    "multi": 51,
+    "blank": 16,
+    "single_comments": 0
+  },
+  "src\\supervision\\detection\\utils\\__init__.py": {
+    "loc": 0,
+    "lloc": 0,
+    "sloc": 0,
+    "comments": 0,
+    "multi": 0,
+    "blank": 0,
+    "single_comments": 0
+  },
+  "src\\supervision\\draw\\base.py": {
+    "loc": 14,
+    "lloc": 6,
+    "sloc": 5,
+    "comments": 0,
+    "multi": 6,
+    "blank": 3,
+    "single_comments": 0
+  },
+  "src\\supervision\\draw\\color.py": {
+    "loc": 572,
+    "lloc": 166,
+    "sloc": 217,
+    "comments": 3,
+    "multi": 237,
+    "blank": 118,
+    "single_comments": 0
+  },
+  "src\\supervision\\draw\\utils.py": {
+    "loc": 420,
+    "lloc": 94,
+    "sloc": 209,
+    "comments": 6,
+    "multi": 140,
+    "blank": 65,
+    "single_comments": 6
+  },
+  "src\\supervision\\draw\\__init__.py": {
+    "loc": 0,
+    "lloc": 0,
+    "sloc": 0,
+    "comments": 0,
+    "multi": 0,
+    "blank": 0,
+    "single_comments": 0
+  },
+  "src\\supervision\\geometry\\core.py": {
+    "loc": 202,
+    "lloc": 82,
+    "sloc": 77,
+    "comments": 0,
+    "multi": 86,
+    "blank": 39,
+    "single_comments": 0
+  },
+  "src\\supervision\\geometry\\utils.py": {
+    "loc": 51,
+    "lloc": 15,
+    "sloc": 14,
+    "comments": 2,
+    "multi": 23,
+    "blank": 12,
+    "single_comments": 2
+  },
+  "src\\supervision\\geometry\\__init__.py": {
+    "loc": 0,
+    "lloc": 0,
+    "sloc": 0,
+    "comments": 0,
+    "multi": 0,
+    "blank": 0,
+    "single_comments": 0
+  },
+  "src\\supervision\\keypoint\\annotators.py": {
+    "loc": 13,
+    "lloc": 3,
+    "sloc": 11,
+    "comments": 1,
+    "multi": 0,
+    "blank": 2,
+    "single_comments": 0
+  },
+  "src\\supervision\\keypoint\\core.py": {
+    "loc": 8,
+    "lloc": 3,
+    "sloc": 6,
+    "comments": 1,
+    "multi": 0,
+    "blank": 2,
+    "single_comments": 0
+  },
+  "src\\supervision\\keypoint\\__init__.py": {
+    "loc": 13,
+    "lloc": 4,
+    "sloc": 11,
+    "comments": 0,
+    "multi": 0,
+    "blank": 2,
+    "single_comments": 0
+  },
+  "src\\supervision\\key_points\\annotators.py": {
+    "loc": 972,
+    "lloc": 332,
+    "sloc": 471,
+    "comments": 0,
+    "multi": 380,
+    "blank": 117,
+    "single_comments": 4
+  },
+  "src\\supervision\\key_points\\core.py": {
+    "loc": 1294,
+    "lloc": 367,
+    "sloc": 702,
+    "comments": 11,
+    "multi": 359,
+    "blank": 227,
+    "single_comments": 6
+  },
+  "src\\supervision\\key_points\\skeletons.py": {
+    "loc": 2646,
+    "lloc": 15,
+    "sloc": 2636,
+    "comments": 0,
+    "multi": 0,
+    "blank": 10,
+    "single_comments": 0
+  },
+  "src\\supervision\\key_points\\__init__.py": {
+    "loc": 0,
+    "lloc": 0,
+    "sloc": 0,
+    "comments": 0,
+    "multi": 0,
+    "blank": 0,
+    "single_comments": 0
+  },
+  "src\\supervision\\metrics\\core.py": {
+    "loc": 72,
+    "lloc": 28,
+    "sloc": 22,
+    "comments": 0,
+    "multi": 35,
+    "blank": 15,
+    "single_comments": 0
+  },
+  "src\\supervision\\metrics\\detection.py": {
+    "loc": 1120,
+    "lloc": 359,
+    "sloc": 546,
+    "comments": 27,
+    "multi": 415,
+    "blank": 134,
+    "single_comments": 25
+  },
+  "src\\supervision\\metrics\\f1_score.py": {
+    "loc": 722,
+    "lloc": 334,
+    "sloc": 442,
+    "comments": 12,
+    "multi": 166,
+    "blank": 100,
+    "single_comments": 14
+  },
+  "src\\supervision\\metrics\\mean_average_precision.py": {
+    "loc": 1520,
+    "lloc": 660,
+    "sloc": 954,
+    "comments": 138,
+    "multi": 222,
+    "blank": 204,
+    "single_comments": 140
+  },
+  "src\\supervision\\metrics\\mean_average_recall.py": {
+    "loc": 706,
+    "lloc": 321,
+    "sloc": 439,
+    "comments": 4,
+    "multi": 158,
+    "blank": 103,
+    "single_comments": 6
+  },
+  "src\\supervision\\metrics\\precision.py": {
+    "loc": 735,
+    "lloc": 333,
+    "sloc": 450,
+    "comments": 11,
+    "multi": 170,
+    "blank": 102,
+    "single_comments": 13
+  },
+  "src\\supervision\\metrics\\recall.py": {
+    "loc": 689,
+    "lloc": 322,
+    "sloc": 428,
+    "comments": 3,
+    "multi": 155,
+    "blank": 101,
+    "single_comments": 5
+  },
+  "src\\supervision\\metrics\\__init__.py": {
+    "loc": 40,
+    "lloc": 8,
+    "sloc": 39,
+    "comments": 0,
+    "multi": 0,
+    "blank": 1,
+    "single_comments": 0
+  },
+  "src\\supervision\\metrics\\utils\\object_size.py": {
+    "loc": 241,
+    "lloc": 85,
+    "sloc": 86,
+    "comments": 1,
+    "multi": 110,
+    "blank": 44,
+    "single_comments": 1
+  },
+  "src\\supervision\\metrics\\utils\\utils.py": {
+    "loc": 9,
+    "lloc": 5,
+    "sloc": 9,
+    "comments": 1,
+    "multi": 0,
+    "blank": 0,
+    "single_comments": 0
+  },
+  "src\\supervision\\metrics\\utils\\__init__.py": {
+    "loc": 0,
+    "lloc": 0,
+    "sloc": 0,
+    "comments": 0,
+    "multi": 0,
+    "blank": 0,
+    "single_comments": 0
+  },
+  "src\\supervision\\tracker\\__init__.py": {
+    "loc": 0,
+    "lloc": 0,
+    "sloc": 0,
+    "comments": 0,
+    "multi": 0,
+    "blank": 0,
+    "single_comments": 0
+  },
+  "src\\supervision\\tracker\\byte_tracker\\core.py": {
+    "loc": 405,
+    "lloc": 199,
+    "sloc": 264,
+    "comments": 5,
+    "multi": 63,
+    "blank": 66,
+    "single_comments": 12
+  },
+  "src\\supervision\\tracker\\byte_tracker\\kalman_filter.py": {
+    "loc": 193,
+    "lloc": 65,
+    "sloc": 113,
+    "comments": 0,
+    "multi": 49,
+    "blank": 31,
+    "single_comments": 0
+  },
+  "src\\supervision\\tracker\\byte_tracker\\matching.py": {
+    "loc": 75,
+    "lloc": 45,
+    "sloc": 58,
+    "comments": 0,
+    "multi": 0,
+    "blank": 17,
+    "single_comments": 0
+  },
+  "src\\supervision\\tracker\\byte_tracker\\single_object_track.py": {
+    "loc": 186,
+    "lloc": 137,
+    "sloc": 140,
+    "comments": 0,
+    "multi": 15,
+    "blank": 30,
+    "single_comments": 1
+  },
+  "src\\supervision\\tracker\\byte_tracker\\utils.py": {
+    "loc": 37,
+    "lloc": 19,
+    "sloc": 16,
+    "comments": 0,
+    "multi": 12,
+    "blank": 8,
+    "single_comments": 1
+  },
+  "src\\supervision\\tracker\\byte_tracker\\__init__.py": {
+    "loc": 0,
+    "lloc": 0,
+    "sloc": 0,
+    "comments": 0,
+    "multi": 0,
+    "blank": 0,
+    "single_comments": 0
+  },
+  "src\\supervision\\utils\\conversion.py": {
+    "loc": 178,
+    "lloc": 74,
+    "sloc": 92,
+    "comments": 5,
+    "multi": 41,
+    "blank": 43,
+    "single_comments": 2
+  },
+  "src\\supervision\\utils\\file.py": {
+    "loc": 211,
+    "lloc": 72,
+    "sloc": 67,
+    "comments": 2,
+    "multi": 104,
+    "blank": 40,
+    "single_comments": 0
+  },
+  "src\\supervision\\utils\\image.py": {
+    "loc": 924,
+    "lloc": 280,
+    "sloc": 653,
+    "comments": 8,
+    "multi": 145,
+    "blank": 126,
+    "single_comments": 0
+  },
+  "src\\supervision\\utils\\internal.py": {
+    "loc": 208,
+    "lloc": 57,
+    "sloc": 77,
+    "comments": 0,
+    "multi": 90,
+    "blank": 41,
+    "single_comments": 0
+  },
+  "src\\supervision\\utils\\iterables.py": {
+    "loc": 103,
+    "lloc": 30,
+    "sloc": 28,
+    "comments": 0,
+    "multi": 56,
+    "blank": 19,
+    "single_comments": 0
+  },
+  "src\\supervision\\utils\\logger.py": {
+    "loc": 63,
+    "lloc": 24,
+    "sloc": 25,
+    "comments": 0,
+    "multi": 23,
+    "blank": 15,
+    "single_comments": 0
+  },
+  "src\\supervision\\utils\\notebook.py": {
+    "loc": 117,
+    "lloc": 36,
+    "sloc": 45,
+    "comments": 0,
+    "multi": 50,
+    "blank": 22,
+    "single_comments": 0
+  },
+  "src\\supervision\\utils\\video.py": {
+    "loc": 509,
+    "lloc": 206,
+    "sloc": 295,
+    "comments": 10,
+    "multi": 136,
+    "blank": 70,
+    "single_comments": 8
+  },
+  "src\\supervision\\utils\\__init__.py": {
+    "loc": 0,
+    "lloc": 0,
+    "sloc": 0,
+    "comments": 0,
+    "multi": 0,
+    "blank": 0,
+    "single_comments": 0
+  },
+  "src\\supervision\\validators\\__init__.py": {
+    "loc": 363,
+    "lloc": 151,
+    "sloc": 291,
+    "comments": 15,
+    "multi": 8,
+    "blank": 61,
+    "single_comments": 3
+  }
+}
