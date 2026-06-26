@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import textwrap
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -22,26 +22,102 @@ class ColorLookup(Enum):
     """
     Enumeration class to define strategies for mapping colors to annotations.
 
-    This enum supports three different lookup strategies:
+    This enum supports four different lookup strategies:
         - `INDEX`: Colors are determined by the index of the detection within the scene.
         - `CLASS`: Colors are determined by the class label of the detected object.
         - `TRACK`: Colors are determined by the tracking identifier of the object.
+        - `KEYPOINT`: Colors are determined by the keypoint index within each skeleton.
+            Only valid for keypoint annotators.
     """
 
     INDEX = "index"
     CLASS = "class"
     TRACK = "track"
+    KEYPOINT = "keypoint"
 
     @classmethod
     def list(cls) -> list[str]:
         return list(map(lambda c: c.value, cls))
 
 
-def resolve_color_idx(
+def _resolve_color_idx(
+    instance_idx: int,
+    color_lookup: ColorLookup,
+    count: int,
+    class_id: npt.NDArray[np.generic] | None = None,
+    tracker_id: npt.NDArray[np.generic] | None = None,
+    keypoint_idx: int | None = None,
+) -> int:
+    """Resolve a palette index from raw field arrays.
+
+    Low-level helper used by both detection and keypoint annotators.
+
+    Args:
+        instance_idx: Index of the current detection or skeleton.
+        color_lookup: Strategy for mapping colors.
+        count: Total number of detections or skeletons.
+        class_id: Per-instance class IDs, required for ``CLASS``.
+        tracker_id: Per-instance tracker IDs, required for ``TRACK``.
+        keypoint_idx: Index of a keypoint within a skeleton, required for
+            ``KEYPOINT``.
+
+    Returns:
+        An integer index suitable for ``ColorPalette.by_idx()``.
+
+    Raises:
+        ValueError: If ``instance_idx`` is out of bounds for the given ``count``.
+        ValueError: If ``color_lookup`` is ``CLASS`` and ``class_id`` is ``None``.
+        ValueError: If ``color_lookup`` is ``TRACK`` and ``tracker_id`` is ``None``.
+        ValueError: If ``color_lookup`` is ``KEYPOINT`` and ``keypoint_idx`` is
+            ``None``.
+        ValueError: If ``color_lookup`` is an unsupported strategy.
+    """
+    if instance_idx >= count:
+        raise ValueError(
+            f"Instance index {instance_idx} is out of bounds for length {count}"
+        )
+
+    if color_lookup == ColorLookup.INDEX:
+        return instance_idx
+    elif color_lookup == ColorLookup.CLASS:
+        if class_id is None:
+            raise ValueError(
+                "Could not resolve color by class because class_id is not available. "
+                "Try setting color_lookup to sv.ColorLookup.INDEX."
+            )
+        return int(class_id[instance_idx])
+    elif color_lookup == ColorLookup.TRACK:
+        if tracker_id is None:
+            raise ValueError(
+                "Could not resolve color by track because tracker_id is not available. "
+                "Make sure tracker_id is set on the input object."
+            )
+        return int(tracker_id[instance_idx])
+    elif color_lookup == ColorLookup.KEYPOINT:
+        if keypoint_idx is None:
+            raise ValueError(
+                "ColorLookup.KEYPOINT is only valid for keypoint annotators."
+            )
+        return keypoint_idx
+    raise ValueError(f"Unsupported color lookup strategy: {color_lookup}")
+
+
+def _resolve_detection_color_idx(
     detections: Detections,
     detection_idx: int,
     color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
 ) -> int:
+    """Resolve a palette index for a single detection.
+
+    Args:
+        detections: The detections object.
+        detection_idx: Index of the current detection.
+        color_lookup: Strategy for mapping colors. Also accepts a custom
+            ``np.ndarray`` of integer indices.
+
+    Returns:
+        An integer index suitable for ``ColorPalette.by_idx()``.
+    """
     if detection_idx >= len(detections):
         raise ValueError(
             f"Detection index {detection_idx} "
@@ -55,26 +131,27 @@ def resolve_color_idx(
                 f"does not match length of detections {len(detections)}"
             )
         return int(color_lookup[detection_idx])
-    elif color_lookup == ColorLookup.INDEX:
-        return detection_idx
-    elif color_lookup == ColorLookup.CLASS:
-        if detections.class_id is None:
-            raise ValueError(
-                "Could not resolve color by class because "
-                "Detections do not have class_id. If using an annotator, "
-                "try setting color_lookup to sv.ColorLookup.INDEX or "
-                "sv.ColorLookup.TRACK."
-            )
-        return int(detections.class_id[detection_idx])
-    elif color_lookup == ColorLookup.TRACK:
-        if detections.tracker_id is None:
-            raise ValueError(
-                "Could not resolve color by track because "
-                "Detections do not have tracker_id. Did you call "
-                "tracker.update_with_detections(...) before annotating?"
-            )
-        return int(detections.tracker_id[detection_idx])
-    raise ValueError(f"Unsupported color lookup strategy: {color_lookup}")
+
+    return _resolve_color_idx(
+        instance_idx=detection_idx,
+        color_lookup=color_lookup,
+        count=len(detections),
+        class_id=detections.class_id,
+        tracker_id=detections.tracker_id,
+    )
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_resolve_detection_color_idx,
+    deprecated_in="0.30.0",
+    remove_in="0.33.0",
+)
+def resolve_color_idx(  # type: ignore[return]
+    detections: Detections,
+    detection_idx: int,
+    color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
+) -> int:
+    return void(detections, detection_idx, color_lookup)
 
 
 def resolve_text_background_xyxy(
@@ -130,19 +207,42 @@ def resolve_text_background_xyxy(
         )
 
 
-def get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
+def _get_color_by_index(color: Color | ColorPalette, idx: int) -> Color:
     if isinstance(color, ColorPalette):
         return color.by_idx(idx)
     return color
 
 
-def resolve_color(
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_get_color_by_index,
+    deprecated_in="0.30.0",
+    remove_in="0.33.0",
+)
+def get_color_by_index(  # type: ignore[return]
+    color: Color | ColorPalette, idx: int
+) -> Color:
+    void(color, idx)
+
+
+def _resolve_detection_color(
     color: Color | ColorPalette,
     detections: Detections,
     detection_idx: int,
     color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
 ) -> Color:
-    idx = resolve_color_idx(
+    """Resolve the color for a single detection.
+
+    Args:
+        color: A single color or a palette to pick from.
+        detections: The detections object.
+        detection_idx: Index of the current detection.
+        color_lookup: Strategy for mapping colors. Also accepts a custom
+            ``np.ndarray`` of integer indices.
+
+    Returns:
+        The resolved ``Color``.
+    """
+    idx = _resolve_detection_color_idx(
         detections=detections,
         detection_idx=detection_idx,
         color_lookup=color_lookup,
@@ -153,7 +253,21 @@ def resolve_color(
         and idx == PENDING_TRACK_ID
     ):
         return PENDING_TRACK_COLOR
-    return get_color_by_index(color=color, idx=idx)
+    return _get_color_by_index(color=color, idx=idx)
+
+
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_resolve_detection_color,
+    deprecated_in="0.30.0",
+    remove_in="0.33.0",
+)
+def resolve_color(  # type: ignore[return]
+    color: Color | ColorPalette,
+    detections: Detections,
+    detection_idx: int,
+    color_lookup: ColorLookup | npt.NDArray[np.int_] = ColorLookup.CLASS,
+) -> Color:
+    void(color, detections, detection_idx, color_lookup)
 
 
 def wrap_text(text: Any, max_line_length: int | None = None) -> list[str]:
@@ -326,7 +440,7 @@ def snap_boxes(
     bottom_shift = height - result[bottom_overflow, 3]
     result[bottom_overflow, 1:4:2] += bottom_shift[:, np.newaxis]
 
-    return result.astype(np.float32)  # type: ignore
+    return cast(np.ndarray[Any, np.dtype[np.float32]], result.astype(np.float32))
 
 
 class Trace:
