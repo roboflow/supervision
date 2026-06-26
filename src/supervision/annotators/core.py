@@ -7,7 +7,7 @@ from typing import Any, cast, overload
 import cv2
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated, void
+from deprecate import deprecated, void  # type: ignore[import-untyped]
 from PIL import Image, ImageDraw, ImageFont
 from scipy.interpolate import splev, splprep
 
@@ -1886,11 +1886,8 @@ class IconAnnotator(BaseAnnotator):
             raise FileNotFoundError(
                 f"Error: Couldn't load the icon image from {icon_path}"
             )
-        icon = cast(
-            npt.NDArray[np.uint8],
-            letterbox_image(image=icon, resolution_wh=self.icon_resolution_wh),
-        )
-        return icon
+        icon_array = cast(npt.NDArray[np.uint8], icon)
+        return letterbox_image(image=icon_array, resolution_wh=self.icon_resolution_wh)
 
 
 class BlurAnnotator(BaseAnnotator):

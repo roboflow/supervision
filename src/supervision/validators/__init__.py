@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
-from deprecate import deprecated, void
+from deprecate import deprecated, void  # type: ignore[import-untyped]
 
 from supervision.detection.compact_mask import CompactMask
 from supervision.utils.internal import warn_deprecated

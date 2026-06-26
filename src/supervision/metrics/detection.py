@@ -10,7 +10,12 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
-from deprecate import TargetMode, deprecated, deprecated_class, void
+from deprecate import (  # type: ignore[import-untyped]
+    TargetMode,
+    deprecated,
+    deprecated_class,
+    void,
+)
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.core import DetectionDataset

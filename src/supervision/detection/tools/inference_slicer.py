@@ -4,10 +4,7 @@ import threading
 import warnings
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
-
-if TYPE_CHECKING:
-    from typing_extensions import TypeGuard
+from typing import Any, Protocol, TypeGuard, runtime_checkable
 
 import numpy as np
 import numpy.typing as npt
