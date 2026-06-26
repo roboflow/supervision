@@ -2230,11 +2230,12 @@ class Detections:
         Raises:
             ValueError: If the provided `anchor` is not supported.
         """
+        xyxy = cast(npt.NDArray[np.number], self.xyxy)
         if anchor == Position.CENTER:
             return np.array(
                 [
-                    (self.xyxy[:, 0] + self.xyxy[:, 2]) / 2,
-                    (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
+                    (xyxy[:, 0] + xyxy[:, 2]) / 2,
+                    (xyxy[:, 1] + xyxy[:, 3]) / 2,
                 ]
             ).transpose()
         elif anchor == Position.CENTER_OF_MASS:
@@ -2246,33 +2247,29 @@ class Detections:
         elif anchor == Position.CENTER_LEFT:
             return np.array(
                 [
-                    self.xyxy[:, 0],
-                    (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
+                    xyxy[:, 0],
+                    (xyxy[:, 1] + xyxy[:, 3]) / 2,
                 ]
             ).transpose()
         elif anchor == Position.CENTER_RIGHT:
             return np.array(
                 [
-                    self.xyxy[:, 2],
-                    (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
+                    xyxy[:, 2],
+                    (xyxy[:, 1] + xyxy[:, 3]) / 2,
                 ]
             ).transpose()
         elif anchor == Position.BOTTOM_CENTER:
-            return np.array(
-                [(self.xyxy[:, 0] + self.xyxy[:, 2]) / 2, self.xyxy[:, 3]]
-            ).transpose()
+            return np.array([(xyxy[:, 0] + xyxy[:, 2]) / 2, xyxy[:, 3]]).transpose()
         elif anchor == Position.BOTTOM_LEFT:
-            return np.array([self.xyxy[:, 0], self.xyxy[:, 3]]).transpose()
+            return np.array([xyxy[:, 0], xyxy[:, 3]]).transpose()
         elif anchor == Position.BOTTOM_RIGHT:
-            return np.array([self.xyxy[:, 2], self.xyxy[:, 3]]).transpose()
+            return np.array([xyxy[:, 2], xyxy[:, 3]]).transpose()
         elif anchor == Position.TOP_CENTER:
-            return np.array(
-                [(self.xyxy[:, 0] + self.xyxy[:, 2]) / 2, self.xyxy[:, 1]]
-            ).transpose()
+            return np.array([(xyxy[:, 0] + xyxy[:, 2]) / 2, xyxy[:, 1]]).transpose()
         elif anchor == Position.TOP_LEFT:
-            return np.array([self.xyxy[:, 0], self.xyxy[:, 1]]).transpose()
+            return np.array([xyxy[:, 0], xyxy[:, 1]]).transpose()
         elif anchor == Position.TOP_RIGHT:
-            return np.array([self.xyxy[:, 2], self.xyxy[:, 1]]).transpose()
+            return np.array([xyxy[:, 2], xyxy[:, 1]]).transpose()
 
         raise ValueError(f"{anchor} is not supported.")
 

@@ -112,6 +112,15 @@ def coco_annotations_to_masks(
             continue
 
         if image_annotation.get("iscrowd", 0):
+            if "counts" not in segmentation:
+                warnings.warn(
+                    "Skipping annotation "
+                    f"{image_annotation.get('id', '?')}: segmentation is a dict but "
+                    "missing 'counts' key (expected RLE format)",
+                    stacklevel=2,
+                )
+                masks.append(empty_mask.copy())
+                continue
             masks.append(
                 rle_to_mask(rle=segmentation["counts"], resolution_wh=resolution_wh)
             )

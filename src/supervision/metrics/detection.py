@@ -4,7 +4,7 @@ import warnings
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -109,6 +109,7 @@ def detections_to_tensor(
             "ConfusionMatrix can only be calculated for Detections with class_id"
         )
 
+    box_data: npt.NDArray[np.float32]
     if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
         obb = detections.data.get(ORIENTED_BOX_COORDINATES)
         if obb is None:
@@ -133,7 +134,7 @@ def detections_to_tensor(
                 )
             box_data = obb_arr.reshape(-1, 8)
     else:
-        box_data = detections.xyxy
+        box_data = np.asarray(detections.xyxy, dtype=np.float32)
 
     arrays_to_concat = [
         box_data,
@@ -237,9 +238,10 @@ def _split_detections_by_outcome(
     if predictions.confidence is None:
         filtered_predictions = predictions
     else:
+        prediction_confidence = np.asarray(predictions.confidence, dtype=np.float32)
         filtered_predictions = cast(
             Detections,
-            predictions[predictions.confidence >= conf_threshold],
+            predictions[prediction_confidence >= conf_threshold],
         )
 
     filtered_prediction_class_ids = filtered_predictions.class_id
@@ -281,8 +283,8 @@ def _split_detections_by_outcome(
         )
     else:
         iou_matrix = box_iou_batch(
-            boxes_true=targets.xyxy,
-            boxes_detection=filtered_predictions.xyxy,
+            boxes_true=cast(npt.NDArray[np.number], targets.xyxy),
+            boxes_detection=cast(npt.NDArray[np.number], filtered_predictions.xyxy),
         )
 
     target_candidate_indices, prediction_candidate_indices = np.where(
@@ -453,7 +455,10 @@ def _annotate_detection_panel(
         )
         labels = _build_error_labels(detections, class_names)
         panel = box_annotator.annotate(panel, detections)
-        panel = label_annotator.annotate(panel, detections, labels=labels)
+        panel = cast(
+            npt.NDArray[np.uint8],
+            label_annotator.annotate(cast(Any, panel), detections, labels=labels),
+        )
 
     title_scale = float(max(1.0, font_size / 18.0))
     title_thickness = max(2, round(font_size / 8))
@@ -803,7 +808,9 @@ class ConfusionMatrix:
         _validate_input_tensors(predictions, targets, metric_target=metric_target)
 
         num_classes = len(classes)
-        matrix = np.zeros((num_classes + 1, num_classes + 1))
+        matrix: npt.NDArray[np.int32] = np.zeros(
+            (num_classes + 1, num_classes + 1), dtype=np.int32
+        )
         for true_batch, detection_batch in zip(targets, predictions):
             matrix += cls.evaluate_detection_batch(
                 predictions=detection_batch,
@@ -880,7 +887,9 @@ class ConfusionMatrix:
                 f"Got {targets.shape} instead."
             )
 
-        result_matrix = np.zeros((num_classes + 1, num_classes + 1))
+        result_matrix: npt.NDArray[np.int32] = np.zeros(
+            (num_classes + 1, num_classes + 1), dtype=np.int32
+        )
 
         # Filter predictions by confidence threshold
         coords_dim = 8 if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES else 4
@@ -1155,7 +1164,7 @@ class ConfusionMatrix:
         im = ax.imshow(array, cmap="Blues")
 
         cbar = ax.figure.colorbar(im, ax=ax)
-        cbar.mappable.set_clim(vmin=0, vmax=np.nanmax(array))
+        cbar.mappable.set_clim(vmin=0, vmax=float(np.nanmax(array)))
 
         if x_tick_labels is None:
             tick_interval = 2
@@ -1384,7 +1393,7 @@ class MeanAveragePrecision:
             ```
         """
         _validate_input_tensors(predictions, targets)
-        iou_thresholds = np.linspace(0.5, 0.95, 10)
+        iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
         stats = []
 
         # Gather matching stats for predictions and targets
@@ -1416,7 +1425,12 @@ class MeanAveragePrecision:
         # Compute average precisions if any matches exist
         if stats:
             concatenated_stats = [np.concatenate(items, 0) for items in zip(*stats)]
-            average_precisions = cls._average_precisions_per_class(*concatenated_stats)
+            average_precisions = cls._average_precisions_per_class(
+                cast(npt.NDArray[np.bool_], concatenated_stats[0]),
+                cast(npt.NDArray[np.float32], concatenated_stats[1]),
+                cast(npt.NDArray[np.int32], concatenated_stats[2]),
+                cast(npt.NDArray[np.int32], concatenated_stats[3]),
+            )
             map50 = average_precisions[:, 0].mean()
             map75 = average_precisions[:, 5].mean()
             map50_95 = average_precisions.mean()
