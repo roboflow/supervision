@@ -23,6 +23,9 @@ def analyze_video(
     Generate a natural-language understanding of a whole video with TwelveLabs
     Pegasus.
 
+    This example base64-encodes the entire video file in memory before sending it to
+    the API, so keep clips short to avoid high memory usage.
+
     Args:
         source_video_path: Path to the source video file to analyze.
         prompt: Instruction passed to Pegasus, e.g. "Summarize this video".
