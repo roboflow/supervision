@@ -10,7 +10,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
-from deprecate import (  # type: ignore[import-untyped]
+from deprecate import (  # type: ignore[import-untyped,unused-ignore]
     TargetMode,
     deprecated,
     deprecated_class,
