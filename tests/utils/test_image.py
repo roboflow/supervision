@@ -7,6 +7,8 @@ from supervision.utils.image import (
     get_image_resolution_wh,
     letterbox_image,
     resize_image,
+    scale_image,
+    tint_image,
 )
 
 
@@ -193,3 +195,20 @@ def test_crop_image(image, xyxy, expected_size):
 def test_get_image_resolution_wh(image, expected):
     resolution = get_image_resolution_wh(image)
     assert resolution == expected
+
+
+@pytest.mark.parametrize(
+    ("func", "kwargs"),
+    [
+        pytest.param(scale_image, {"scale_factor": 1.0}, id="scale_image"),
+        pytest.param(resize_image, {"resolution_wh": (10, 10)}, id="resize_image"),
+        pytest.param(
+            letterbox_image, {"resolution_wh": (10, 10)}, id="letterbox_image"
+        ),
+        pytest.param(tint_image, {}, id="tint_image"),
+    ],
+)
+def test_image_utils_wrong_type_raises(func, kwargs):
+    """Wrong image type raises TypeError via decorator."""
+    with pytest.raises(TypeError, match="Unsupported image type"):
+        func(image="not_an_image", **kwargs)

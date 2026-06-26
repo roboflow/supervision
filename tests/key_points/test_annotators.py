@@ -502,3 +502,30 @@ class TestVertexLabelAnnotator:
     def test_resolve_color_list_wrong_length_raises(self, colors, points_count):
         with pytest.raises(ValueError, match="Number of colors"):
             sv.VertexLabelAnnotator._resolve_color_list(colors, points_count)
+
+
+class TestAnnotatorInputValidation:
+    """Verify that all keypoint annotators reject invalid scene types."""
+
+    @pytest.mark.parametrize(
+        ("annotator_class", "kwargs"),
+        [
+            pytest.param(sv.VertexAnnotator, {}, id="VertexAnnotator"),
+            pytest.param(sv.EdgeAnnotator, {}, id="EdgeAnnotator"),
+            pytest.param(sv.VertexEllipseAnnotator, {}, id="VertexEllipseAnnotator"),
+            pytest.param(
+                sv.VertexEllipseOutlineAnnotator, {}, id="VertexEllipseOutlineAnnotator"
+            ),
+            pytest.param(
+                sv.VertexEllipseHaloAnnotator, {}, id="VertexEllipseHaloAnnotator"
+            ),
+            pytest.param(sv.VertexLabelAnnotator, {}, id="VertexLabelAnnotator"),
+        ],
+    )
+    def test_annotate_wrong_scene_type_raises(
+        self, annotator_class, kwargs, sample_key_points
+    ):
+        """Wrong scene type raises TypeError."""
+        annotator = annotator_class(**kwargs)
+        with pytest.raises(TypeError, match="Unsupported image type"):
+            annotator.annotate(scene="not_an_image", key_points=sample_key_points)

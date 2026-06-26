@@ -635,7 +635,13 @@ class Detections:
                 `detections.data["class_name"]` is always present as a
                 string-dtype NumPy array aligned with the detections; it is
                 empty (shape `(0,)`, dtype str) when `predictions` is empty
-                or absent.
+                or absent. `detections.tracker_id` is `None` when no
+                predictions carry a tracker ID, or when only a subset do
+                (mixed batch) — in that case all tracker IDs are dropped to
+                preserve alignment with the bounding boxes. Note: mixed
+                batches containing both RLE/polygon predictions and box-only
+                predictions may misalign the `mask` array; this is a
+                pre-existing limitation not addressed by this fix.
 
         Example:
             ```python
