@@ -11,7 +11,10 @@ from typing import Any, Literal, cast
 import cv2
 import numpy as np
 import numpy.typing as npt
-from deprecate import TargetMode, deprecated  # type: ignore[import-untyped,unused-ignore]
+from deprecate import (  # type: ignore[import-untyped,unused-ignore]
+    TargetMode,
+    deprecated,
+)
 from PIL import Image
 
 from supervision.draw.base import ImageType
