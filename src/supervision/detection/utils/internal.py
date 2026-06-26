@@ -99,7 +99,7 @@ def process_roboflow_result(
     class_id: list[int] = []
     class_name: list[str] = []
     masks: list[npt.NDArray[np.bool_]] = []
-    tracker_ids: list[int] = []
+    tracker_ids: list[int | None] = []
 
     image_width = int(roboflow_result["image"]["width"])
     image_height = int(roboflow_result["image"]["height"])
