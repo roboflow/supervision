@@ -4,8 +4,9 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
+from PIL import Image
 
-from supervision.utils.image_window import TkImageWindow, _bgr_to_pil
+from supervision.utils.image_window import TkImageWindow, _bgr_to_pil, _fit_image
 
 
 class TestBgrToPil:
@@ -52,6 +53,50 @@ class TestBgrToPil:
         arr = np.zeros(shape, dtype=np.uint8)
         with pytest.raises(ValueError, match="Expected shape"):
             _bgr_to_pil(arr)
+
+
+class TestFitImage:
+    def test_scale_down_width_limited(self):
+        """Width-constrained image is scaled so width fits exactly."""
+        img = Image.new("RGB", (200, 100))
+        result = _fit_image(img, 100, 200)
+        assert result.size == (100, 50)
+
+    def test_scale_down_height_limited(self):
+        """Height-constrained image is scaled so height fits exactly."""
+        img = Image.new("RGB", (100, 200))
+        result = _fit_image(img, 200, 100)
+        assert result.size == (50, 100)
+
+    def test_scale_up(self):
+        """Image smaller than the window is scaled up to fill it."""
+        img = Image.new("RGB", (50, 50))
+        result = _fit_image(img, 200, 200)
+        assert result.size == (200, 200)
+
+    def test_same_size_returns_original(self):
+        """Image already matching the window is returned unchanged."""
+        img = Image.new("RGB", (100, 100))
+        result = _fit_image(img, 100, 100)
+        assert result is img
+
+    def test_aspect_ratio_preserved_by_default(self):
+        """Non-square image keeps its aspect ratio when scaled."""
+        img = Image.new("RGB", (400, 200))
+        result = _fit_image(img, 100, 100)
+        assert result.size == (100, 50)
+
+    def test_free_form_stretches_to_exact_size(self):
+        """keep_aspect_ratio=False stretches the image to the exact window size."""
+        img = Image.new("RGB", (400, 200))
+        result = _fit_image(img, 100, 100, keep_aspect_ratio=False)
+        assert result.size == (100, 100)
+
+    def test_free_form_same_size_returns_original(self):
+        """keep_aspect_ratio=False with matching size returns the original."""
+        img = Image.new("RGB", (100, 100))
+        result = _fit_image(img, 100, 100, keep_aspect_ratio=False)
+        assert result is img
 
 
 class TestTkImageWindowShow:
@@ -101,6 +146,153 @@ class TestTkImageWindowShow:
         mock_label.configure.assert_called_once_with(image=mock_photo)
         mock_root.update_idletasks.assert_called_once()
         mock_root.update.assert_called_once()
+
+
+class TestTkImageWindowUpdateDisplay:
+    def test_no_op_without_pil_image(self):
+        """_update_display() is a no-op when no image has been shown yet."""
+        window = TkImageWindow()
+        window._label = MagicMock()
+        window._update_display()
+        window._label.configure.assert_not_called()
+
+    def test_no_op_without_label(self):
+        """_update_display() does not raise when the window has no label."""
+        window = TkImageWindow()
+        window._pil_image = Image.new("RGB", (10, 10))
+        window._update_display()  # must not raise
+
+    def test_uses_native_size_when_window_size_unknown(self):
+        """Native resolution is used when _win_w/_win_h are still 0."""
+        window = TkImageWindow()
+        window._pil_image = Image.new("RGB", (80, 60))
+        mock_label = MagicMock()
+        window._label = mock_label
+        fake_imagetk = MagicMock()
+
+        with patch.dict("sys.modules", {"PIL.ImageTk": fake_imagetk}):
+            window._update_display()
+
+        displayed = fake_imagetk.PhotoImage.call_args[0][0]
+        assert displayed.size == (80, 60)
+
+    def test_scales_image_to_window_size(self):
+        """Image is rescaled to fit _win_w x _win_h when dimensions are known."""
+        window = TkImageWindow()
+        window._pil_image = Image.new("RGB", (400, 200))
+        window._win_w = 200
+        window._win_h = 200
+        window._label = MagicMock()
+        fake_imagetk = MagicMock()
+
+        with patch.dict("sys.modules", {"PIL.ImageTk": fake_imagetk}):
+            window._update_display()
+
+        # 400x200 into 200x200, width-constrained, gives 200x100
+        displayed = fake_imagetk.PhotoImage.call_args[0][0]
+        assert displayed.size == (200, 100)
+
+    def test_stretches_image_when_keep_aspect_ratio_false(self):
+        """Image is stretched to fill window when keep_aspect_ratio=False."""
+        window = TkImageWindow(keep_aspect_ratio=False)
+        window._pil_image = Image.new("RGB", (400, 200))
+        window._win_w = 200
+        window._win_h = 200
+        window._label = MagicMock()
+        fake_imagetk = MagicMock()
+
+        with patch.dict("sys.modules", {"PIL.ImageTk": fake_imagetk}):
+            window._update_display()
+
+        displayed = fake_imagetk.PhotoImage.call_args[0][0]
+        assert displayed.size == (200, 200)
+
+
+class TestTkImageWindowOnConfigure:
+    def test_non_root_widget_is_ignored(self):
+        """<Configure> events from child widgets do not update dimensions."""
+        window = TkImageWindow()
+        mock_root = MagicMock()
+        window._root = mock_root
+        event = MagicMock()
+        event.widget = MagicMock()  # different object, not root
+        event.width = 200
+        event.height = 100
+
+        with patch.object(window, "_update_display") as mock_update:
+            window._on_configure(event)
+
+        assert window._win_w == 0
+        assert window._win_h == 0
+        mock_update.assert_not_called()
+
+    def test_same_size_event_is_ignored(self):
+        """<Configure> with unchanged dimensions does not trigger a redraw."""
+        window = TkImageWindow()
+        mock_root = MagicMock()
+        window._root = mock_root
+        window._win_w = 200
+        window._win_h = 100
+        event = MagicMock()
+        event.widget = mock_root
+        event.width = 200
+        event.height = 100
+
+        with patch.object(window, "_update_display") as mock_update:
+            window._on_configure(event)
+
+        mock_update.assert_not_called()
+
+    def test_degenerate_size_is_ignored(self):
+        """<Configure> with width or height <= 1 (pre-geometry) is skipped."""
+        window = TkImageWindow()
+        mock_root = MagicMock()
+        window._root = mock_root
+        event = MagicMock()
+        event.widget = mock_root
+        event.width = 1
+        event.height = 100
+
+        with patch.object(window, "_update_display") as mock_update:
+            window._on_configure(event)
+
+        assert window._win_w == 0
+        mock_update.assert_not_called()
+
+    def test_new_size_updates_dimensions_and_redraws(self):
+        """<Configure> with new dimensions updates _win_w/_win_h and redraws."""
+        window = TkImageWindow()
+        mock_root = MagicMock()
+        window._root = mock_root
+        window._pil_image = Image.new("RGB", (100, 100))
+        event = MagicMock()
+        event.widget = mock_root
+        event.width = 320
+        event.height = 240
+
+        with patch.object(window, "_update_display") as mock_update:
+            window._on_configure(event)
+
+        assert window._win_w == 320
+        assert window._win_h == 240
+        mock_update.assert_called_once()
+
+    def test_new_size_without_image_skips_redraw(self):
+        """<Configure> with new dimensions but no image updates dims only."""
+        window = TkImageWindow()
+        mock_root = MagicMock()
+        window._root = mock_root
+        event = MagicMock()
+        event.widget = mock_root
+        event.width = 320
+        event.height = 240
+
+        with patch.object(window, "_update_display") as mock_update:
+            window._on_configure(event)
+
+        assert window._win_w == 320
+        assert window._win_h == 240
+        mock_update.assert_not_called()
 
 
 class TestTkImageWindowWaitKey:

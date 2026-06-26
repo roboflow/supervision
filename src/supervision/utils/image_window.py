@@ -35,8 +35,11 @@ class TkImageWindow:
         - Only left-button events are captured. Right-button clicks, scroll
           events, and modifier-key flags (Ctrl, Shift) have no equivalent.
 
-    Attributes:
+    Args:
         title: Window title bar text.
+        keep_aspect_ratio: If ``True`` (default), frames are scaled to fit
+            inside the window while preserving aspect ratio (letterboxed). If
+            ``False``, frames are stretched to fill the window exactly.
 
     Examples:
         ```python
@@ -64,14 +67,20 @@ class TkImageWindow:
         ```
     """
 
-    def __init__(self, title: str = "supervision") -> None:
+    def __init__(
+        self, title: str = "supervision", keep_aspect_ratio: bool = True
+    ) -> None:
         self.title = title
+        self.keep_aspect_ratio = keep_aspect_ratio
         self._mouse_callback: MouseCallback | None = None
         self._root: Any = None
         self._label: Any = None
         self._photo: Any = None
         self._key_event: Any = None
         self._key_queue: list[str] = []
+        self._pil_image: Image.Image | None = None
+        self._win_w: int = 0
+        self._win_h: int = 0
 
     # ------------------------------------------------------------------
     # Public API
@@ -79,6 +88,9 @@ class TkImageWindow:
 
     def show(self, image: npt.NDArray[np.uint8]) -> None:
         """Display a BGR, grayscale, or BGRA frame in the window.
+
+        The image is scaled to fill the current window dimensions while
+        preserving aspect ratio. Resizing the window rescales live.
 
         Args:
             image: uint8 numpy array. Accepted shapes:
@@ -96,12 +108,9 @@ class TkImageWindow:
                 f"image must be uint8, got {image.dtype}. "
                 "Convert with image.astype(np.uint8) before calling show()."
             )
-        pil_image = _bgr_to_pil(image)
+        self._pil_image = _bgr_to_pil(image)
         self._ensure_window()
-        from PIL import ImageTk
-
-        self._photo = ImageTk.PhotoImage(pil_image)
-        self._label.configure(image=self._photo)
+        self._update_display()
         self._root.update_idletasks()
         self._root.update()
 
@@ -175,13 +184,34 @@ class TkImageWindow:
         self._root = tk.Tk()
         self._root.title(self.title)
         self._label = tk.Label(self._root)
-        self._label.pack()
+        self._label.pack(expand=True, fill="both")
         self._key_event = tk.IntVar(master=self._root, value=0)
         self._root.bind("<Key>", self._on_key)
+        self._root.bind("<Configure>", self._on_configure)
         self._root.protocol("WM_DELETE_WINDOW", self.close)
         self._label.bind("<Button-1>", lambda e: self._on_mouse(e, "down"))
         self._label.bind("<ButtonRelease-1>", lambda e: self._on_mouse(e, "up"))
         self._label.bind("<Motion>", lambda e: self._on_mouse(e, "move"))
+
+    def _on_configure(self, event: Any) -> None:
+        if event.widget is not self._root:
+            return
+        w, h = event.width, event.height
+        if w > 1 and h > 1 and (w, h) != (self._win_w, self._win_h):
+            self._win_w, self._win_h = w, h
+            if self._pil_image is not None:
+                self._update_display()
+
+    def _update_display(self) -> None:
+        if self._pil_image is None or self._label is None:
+            return
+        from PIL import ImageTk
+
+        img = self._pil_image
+        if self._win_w > 1 and self._win_h > 1:
+            img = _fit_image(img, self._win_w, self._win_h, self.keep_aspect_ratio)
+        self._photo = ImageTk.PhotoImage(img)
+        self._label.configure(image=self._photo)
 
     def _on_key(self, event: Any) -> None:
         self._key_queue.append(event.keysym)
@@ -226,6 +256,20 @@ class TkImageWindow:
 # ------------------------------------------------------------------
 # Module-level helper
 # ------------------------------------------------------------------
+
+
+def _fit_image(
+    image: Image.Image, width: int, height: int, keep_aspect_ratio: bool = True
+) -> Image.Image:
+    iw, ih = image.size
+    if keep_aspect_ratio:
+        scale = min(width / iw, height / ih)
+        new_w, new_h = max(1, round(iw * scale)), max(1, round(ih * scale))
+    else:
+        new_w, new_h = width, height
+    if (new_w, new_h) == (iw, ih):
+        return image
+    return image.resize((new_w, new_h), Image.Resampling.LANCZOS)
 
 
 def _bgr_to_pil(image: npt.NDArray[np.uint8]) -> Image.Image:
