@@ -158,9 +158,12 @@ Desktop.ini
 data/
 
 # Claude working scratchpad (plans, lessons, ephemeral artefacts)
-.claude/logs
+.claude/logs/
 .claude/state/
+.claude/worktrees/
+.developments/
 .plans/
+.notes/
 .reports/
 .temp/
 .tmp/
@@ -169,4 +172,7 @@ _resolutions/
 _reviews/
 tasks/
 *.local.md
-scripts/test_multi_skeleton.py
+
+output/
+notebooks/
+releases/
