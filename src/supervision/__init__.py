@@ -52,7 +52,10 @@ from supervision.detection.line_zone import (
     LineZoneAnnotatorMulticlass,
 )
 from supervision.detection.tools.csv_sink import CSVSink
-from supervision.detection.tools.inference_slicer import InferenceSlicer
+from supervision.detection.tools.inference_slicer import (
+    InferenceSlicer,
+    WindowedRasterDataset,
+)
 from supervision.detection.tools.json_sink import JSONSink
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
 from supervision.detection.tools.smoother import DetectionsSmoother
@@ -218,6 +221,7 @@ __all__ = [
     "VertexLabelAnnotator",
     "VideoInfo",
     "VideoSink",
+    "WindowedRasterDataset",
     "approximate_polygon",
     "box_iou",
     "box_iou_batch",

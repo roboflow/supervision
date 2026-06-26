@@ -943,6 +943,46 @@ def test_is_empty(detections: Detections, expected: bool) -> None:
     assert detections.is_empty() == expected
 
 
+def test_from_inference_partial_tracker_id_does_not_crash() -> None:
+    """Results where only some predictions carry a tracker_id must not raise."""
+    result = {
+        "image": {"width": 200, "height": 200},
+        "predictions": [
+            {
+                "x": 50,
+                "y": 50,
+                "width": 20,
+                "height": 20,
+                "confidence": 0.9,
+                "class": "a",
+                "class_id": 0,
+                "tracker_id": 7,
+            },
+            {
+                "x": 120,
+                "y": 120,
+                "width": 20,
+                "height": 20,
+                "confidence": 0.8,
+                "class": "b",
+                "class_id": 1,
+            },
+        ],
+    }
+
+    detections = Detections.from_inference(result)
+
+    # all detections are kept; tracker_id is dropped rather than misaligned
+    assert len(detections) == 2
+    assert detections.tracker_id is None
+    assert detections.class_id is not None
+    assert np.array_equal(detections.class_id, np.array([0, 1]))
+    assert detections.confidence is not None
+    assert np.array_equal(detections.confidence, np.array([0.9, 0.8]))
+    assert detections.xyxy.shape == (2, 4)
+    assert detections["class_name"] is not None
+
+
 def test_from_inference_empty_class_name_dtype_matches_non_empty() -> None:
     """Empty and non-empty results should produce string-kind class_name arrays."""
     empty_result = {"predictions": [], "image": {"width": 100, "height": 100}}

@@ -39,7 +39,7 @@ Assign persistent tracker IDs before visualization. The built-in `sv.ByteTrack` 
 
 ## What dataset formats does Supervision support?
 
-For detection datasets, Supervision supports YOLO, COCO JSON, and Pascal VOC. Use `DetectionDataset.from_yolo()`, `DetectionDataset.from_coco()`, or `DetectionDataset.from_pascal_voc()` to load datasets, and the matching `as_*` methods to export them.
+For detection datasets, Supervision supports YOLO, COCO JSON, Pascal VOC, CreateML, and LabelMe. Use `DetectionDataset.from_yolo()`, `DetectionDataset.from_coco()`, `DetectionDataset.from_pascal_voc()`, `DetectionDataset.from_createml()`, or `DetectionDataset.from_labelme()` to load datasets, and the matching `as_*` methods to export them.
 
 ## How do I count objects in a zone?
 

@@ -22,6 +22,9 @@ def ensure_cv2_image_for_class_method(
     is complete.
 
     Assumes the annotators modify the scene in-place.
+
+    Raises:
+        TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
     """
 
     @functools.wraps(annotate_func)
@@ -35,7 +38,7 @@ def ensure_cv2_image_for_class_method(
             scene.paste(cv2_to_pillow(annotated_np))
             return scene
 
-        raise ValueError(f"Unsupported image type: {type(scene)}")
+        raise TypeError(f"Unsupported image type: {type(scene)}")
 
     return cast(F, wrapper)
 
@@ -59,6 +62,9 @@ def ensure_cv2_image_for_standalone_function(
     np.ndarray, converts back when processing is complete.
 
     Assumes the annotators do NOT modify the scene in-place.
+
+    Raises:
+        TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
     """
 
     @functools.wraps(image_processing_fun)
@@ -71,7 +77,7 @@ def ensure_cv2_image_for_standalone_function(
             annotated = image_processing_fun(scene, *args, **kwargs)
             return cv2_to_pillow(annotated)
 
-        raise ValueError(f"Unsupported image type: {type(image)}")
+        raise TypeError(f"Unsupported image type: {type(image)}")
 
     return cast(F, wrapper)
 
@@ -84,6 +90,9 @@ def ensure_pil_image_for_class_method(
     PIL image, converts back when processing is complete.
 
     Assumes the annotators modify the scene in-place.
+
+    Raises:
+        TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
     """
 
     @functools.wraps(annotate_func)
@@ -97,7 +106,7 @@ def ensure_pil_image_for_class_method(
         if isinstance(scene, Image.Image):
             return cast(ImageType, annotate_func(self, scene, *args, **kwargs))
 
-        raise ValueError(f"Unsupported image type: {type(scene)}")
+        raise TypeError(f"Unsupported image type: {type(scene)}")
 
     return cast(F, wrapper)
 
@@ -158,7 +167,9 @@ def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
     """
     scene = np.array(image)
     scene = cv2.cvtColor(scene, cv2.COLOR_RGB2BGR)
-    return scene.astype(np.uint8)
+    # cvtColor already returns uint8 here, so astype is a no-op other than the
+    # full-image copy it forces; copy=False keeps the dtype guard without it.
+    return scene.astype(np.uint8, copy=False)
 
 
 def cv2_to_pillow(image: npt.NDArray[np.uint8]) -> Image.Image:
