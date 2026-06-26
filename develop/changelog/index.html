@@ -3582,6 +3582,9 @@
 <h3 id="0291-jun-23-2026">0.29.1 <small>Jun 23, 2026</small><a class="headerlink" href="#0291-jun-23-2026" title="Permanent link">&para;</a></h3>
 <ul>
 <li>
+<p>Fixed <a href="https://github.com/roboflow/supervision/pull/2353">#2353</a>: <code>sv.Detections.from_inference</code> no longer raises <code>TypeError</code> when the Inference package returns a mixed batch where only some predictions carry a <code>tracker_id</code>. <code>detections.tracker_id</code> is <code>None</code> for the full result in that case; fully-tracked and fully-untracked batches are unchanged.</p>
+</li>
+<li>
 <p>Added <a href="https://github.com/roboflow/supervision/pull/2275">#2275</a>: <code>show_progress: bool = False</code> parameter to all <code>sv.DetectionDataset</code> load and save methods — <code>from_coco</code>, <code>from_yolo</code>, <code>from_pascal_voc</code>, <code>as_coco</code>, <code>as_yolo</code>, <code>as_pascal_voc</code>, and <code>save_dataset_images</code>. When <code>True</code>, a <code>tqdm.auto</code> progress bar is shown (works in terminal and Jupyter). Defaults to <code>False</code> for full backward compatibility; no new dependencies.</p>
 </li>
 <li>
@@ -5576,7 +5579,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 25, 2026 15:07:39 UTC">June 25, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 26, 2026 14:58:52 UTC">June 26, 2026</span>
   </span>
 
     
@@ -5604,9 +5607,9 @@
     
     <nav>
       
-        <a href="https://github.com/madhavcodez" class="md-author" title="@madhavcodez">
+        <a href="https://github.com/kounelisagis" class="md-author" title="@kounelisagis">
           
-          <img src="https://avatars.githubusercontent.com/u/171856020?v=4&size=72" alt="madhavcodez">
+          <img src="https://avatars.githubusercontent.com/u/36283973?v=4&size=72" alt="kounelisagis">
         </a>
       
         <a href="https://github.com/web-flow" class="md-author" title="@web-flow">
@@ -5614,14 +5617,14 @@
           <img src="https://avatars.githubusercontent.com/u/19864447?v=4&size=72" alt="web-flow">
         </a>
       
+        <a href="https://github.com/madhavcodez" class="md-author" title="@madhavcodez">
+          
+          <img src="https://avatars.githubusercontent.com/u/171856020?v=4&size=72" alt="madhavcodez">
+        </a>
+      
         <a href="https://github.com/dylanparsons" class="md-author" title="@dylanparsons">
           
           <img src="https://avatars.githubusercontent.com/u/17061193?v=4&size=72" alt="dylanparsons">
-        </a>
-      
-        <a href="https://github.com/Borda" class="md-author" title="@Borda">
-          
-          <img src="https://avatars.githubusercontent.com/u/6035284?v=4&size=72" alt="Borda">
         </a>
       
       
