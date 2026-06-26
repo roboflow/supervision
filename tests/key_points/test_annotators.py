@@ -504,26 +504,28 @@ class TestVertexLabelAnnotator:
             sv.VertexLabelAnnotator._resolve_color_list(colors, points_count)
 
 
-@pytest.mark.parametrize(
-    ("annotator_class", "kwargs"),
-    [
-        (sv.VertexAnnotator, {}),
-        (sv.EdgeAnnotator, {}),
-        (sv.VertexEllipseAnnotator, {}),
-        (sv.VertexEllipseOutlineAnnotator, {}),
-        (sv.VertexEllipseHaloAnnotator, {}),
-        (sv.VertexLabelAnnotator, {}),
-    ],
-)
-def test_all_annotators_invalid_scene_type_raises(
-    annotator_class, kwargs, sample_key_points
-):
-    annotator = annotator_class(**kwargs)
-    if hasattr(annotator.annotate, "__wrapped__"):
-        with pytest.raises(TypeError, match=r"scene must be a numpy\.ndarray"):
-            annotator.annotate.__wrapped__(
-                annotator, scene="not_an_image", key_points=sample_key_points
-            )
-    else:
-        with pytest.raises(TypeError, match=r"scene must be a numpy\.ndarray"):
+class TestAnnotatorInputValidation:
+    """Verify that all keypoint annotators reject invalid scene types."""
+
+    @pytest.mark.parametrize(
+        ("annotator_class", "kwargs"),
+        [
+            pytest.param(sv.VertexAnnotator, {}, id="VertexAnnotator"),
+            pytest.param(sv.EdgeAnnotator, {}, id="EdgeAnnotator"),
+            pytest.param(sv.VertexEllipseAnnotator, {}, id="VertexEllipseAnnotator"),
+            pytest.param(
+                sv.VertexEllipseOutlineAnnotator, {}, id="VertexEllipseOutlineAnnotator"
+            ),
+            pytest.param(
+                sv.VertexEllipseHaloAnnotator, {}, id="VertexEllipseHaloAnnotator"
+            ),
+            pytest.param(sv.VertexLabelAnnotator, {}, id="VertexLabelAnnotator"),
+        ],
+    )
+    def test_annotate_wrong_scene_type_raises(
+        self, annotator_class, kwargs, sample_key_points
+    ):
+        """Wrong scene type raises TypeError."""
+        annotator = annotator_class(**kwargs)
+        with pytest.raises(TypeError, match="Unsupported image type"):
             annotator.annotate(scene="not_an_image", key_points=sample_key_points)

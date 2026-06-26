@@ -1616,7 +1616,6 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
 
             ```
         """
-        assert isinstance(scene, Image.Image)
         _validate_labels(labels, detections)
 
         draw = ImageDraw.Draw(scene)
