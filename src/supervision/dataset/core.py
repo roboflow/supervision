@@ -18,6 +18,14 @@ from supervision.dataset.formats.coco import (
     load_coco_annotations,
     save_coco_annotations,
 )
+from supervision.dataset.formats.createml import (
+    load_createml_annotations,
+    save_createml_annotations,
+)
+from supervision.dataset.formats.labelme import (
+    load_labelme_annotations,
+    save_labelme_annotations,
+)
 from supervision.dataset.formats.pascal_voc import (
     detections_to_pascal_voc,
     load_pascal_voc_annotations,
@@ -595,6 +603,207 @@ class DetectionDataset(BaseDataset):
             )
         if data_yaml_path is not None:
             save_data_yaml(data_yaml_path=data_yaml_path, classes=self.classes)
+
+    @classmethod
+    def from_labelme(
+        cls,
+        images_directory_path: str,
+        annotations_directory_path: str,
+        force_masks: bool = False,
+    ) -> DetectionDataset:
+        """
+        Creates a Dataset instance from LabelMe formatted data.
+
+        LabelMe stores one JSON file per image, each containing a list of
+        ``shapes``. ``rectangle`` shapes are loaded as bounding boxes and
+        ``polygon`` shapes as masks (with their bounding boxes); other shape
+        types are skipped. Class names are inferred from the labels present in
+        the files. When an image file contains a ``polygon`` shape, or when
+        ``force_masks=True`` is set, both ``rectangle`` and ``polygon`` shapes
+        produce masks: rectangles via a four-corner polygon fill.
+
+        Args:
+            images_directory_path: The path to the
+                directory containing the images.
+            annotations_directory_path: The path to the directory
+                containing the LabelMe ``.json`` annotation files.
+            force_masks: If True, forces masks to be loaded for all
+                annotations, regardless of whether polygon shapes are present.
+                Requires ``imageWidth`` and ``imageHeight`` in every JSON file.
+
+        Returns:
+            A DetectionDataset instance containing
+                the loaded images and annotations.
+
+        Raises:
+            ValueError: If an annotation is malformed - for example
+                ``imagePath`` is empty or resolves to ``..``, a shape is
+                missing its ``label`` or ``points``, or a mask is required but
+                ``imageWidth`` / ``imageHeight`` are missing or zero.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            ds = sv.DetectionDataset.from_labelme(
+                images_directory_path="<IMAGES_DIRECTORY_PATH>",
+                annotations_directory_path="<ANNOTATIONS_DIRECTORY_PATH>",
+            )
+
+            ds.classes
+            # ['dog', 'person']
+            ```
+        """
+        classes, image_paths, annotations = load_labelme_annotations(
+            images_directory_path=images_directory_path,
+            annotations_directory_path=annotations_directory_path,
+            force_masks=force_masks,
+        )
+        return DetectionDataset(
+            classes=classes, images=image_paths, annotations=annotations
+        )
+
+    def as_labelme(
+        self,
+        images_directory_path: str | None = None,
+        annotations_directory_path: str | None = None,
+    ) -> None:
+        """
+        Exports the dataset to LabelMe format. This method saves the images and
+        their corresponding annotations as per-image LabelMe ``.json`` files.
+        Masked detections are written as ``polygon`` shapes whose vertices
+        approximate the mask contour, so masks are not bit-exact on round-trip.
+        Because the bounding box is recomputed from the quantized polygon contour
+        on re-import, bounding boxes for masked detections may also shift by
+        approximately one pixel after a save-load cycle.
+
+        Args:
+            images_directory_path: The path to the directory
+                where the images should be saved.
+                If not provided, images will not be saved.
+            annotations_directory_path: The path to the directory where the
+                LabelMe ``.json`` files should be saved.
+                If not provided, annotations will not be saved.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            ds = sv.DetectionDataset(...)
+
+            ds.as_labelme(
+                images_directory_path="<IMAGES_DIRECTORY_PATH>",
+                annotations_directory_path="<ANNOTATIONS_DIRECTORY_PATH>",
+            )
+            ```
+        """
+        if images_directory_path is not None:
+            save_dataset_images(
+                dataset=self, images_directory_path=images_directory_path
+            )
+        if annotations_directory_path is not None:
+            save_labelme_annotations(
+                dataset=self,
+                annotations_directory_path=annotations_directory_path,
+            )
+
+    @classmethod
+    def from_createml(
+        cls,
+        images_directory_path: str,
+        annotations_path: str,
+        show_progress: bool = False,
+    ) -> DetectionDataset:
+        """
+        Creates a Dataset instance from CreateML formatted data.
+
+        CreateML stores object-detection annotations in a single JSON file as a
+        list of per-image entries, with each box expressed as a pixel-space
+        centre point plus width and height. Class names are inferred from the
+        labels present in the file.
+
+        Args:
+            images_directory_path: The path to the directory containing the
+                images.
+            annotations_path: The path to the CreateML json annotation file.
+            show_progress: If True, display a progress bar during loading.
+
+        Returns:
+            A DetectionDataset instance containing the loaded images and
+            annotations.
+
+        Examples:
+            ```python
+            import roboflow
+            from roboflow import Roboflow
+            import supervision as sv
+
+            roboflow.login()
+            rf = Roboflow()
+
+            project = rf.workspace(WORKSPACE_ID).project(PROJECT_ID)
+            dataset = project.version(PROJECT_VERSION).download("createml")
+
+            ds = sv.DetectionDataset.from_createml(
+                images_directory_path=f"{dataset.location}/train",
+                annotations_path=f"{dataset.location}/train/_annotations.createml.json",
+            )
+
+            ds.classes
+            # ['dog', 'person']
+            ```
+        """
+        classes, image_paths, annotations = load_createml_annotations(
+            images_directory_path=images_directory_path,
+            annotations_path=annotations_path,
+            show_progress=show_progress,
+        )
+        return DetectionDataset(
+            classes=classes, images=image_paths, annotations=annotations
+        )
+
+    def as_createml(
+        self,
+        images_directory_path: str | None = None,
+        annotations_path: str | None = None,
+        show_progress: bool = False,
+    ) -> None:
+        """
+        Exports the dataset to CreateML format. This method saves the
+        images and their corresponding annotations in CreateML format.
+
+        Args:
+            images_directory_path: The path to the directory where the images
+                should be saved. If not provided, images will not be saved.
+            annotations_path: The path to the CreateML json annotation file.
+                If not provided, the annotations will not be saved.
+            show_progress: If True, display a progress bar while saving images.
+
+        Returns:
+            None. Side-effects only: writes images and/or annotation file.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            ds = sv.DetectionDataset(classes=["dog"], images=[], annotations={})
+            ds.as_createml(
+                images_directory_path="/tmp/images",
+                annotations_path="/tmp/annotations.json",
+            )
+            ```
+        """
+        if images_directory_path is not None:
+            save_dataset_images(
+                dataset=self,
+                images_directory_path=images_directory_path,
+                show_progress=show_progress,
+            )
+        if annotations_path is not None:
+            save_createml_annotations(
+                dataset=self,
+                annotations_path=annotations_path,
+            )
 
     @classmethod
     def from_coco(
