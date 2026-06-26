@@ -74,8 +74,11 @@ def process_roboflow_result(
 
     Returns:
         A 6-tuple of ``(xyxy, confidence, class_id, masks, tracker_ids, data)``
-        where each array is aligned with the others. ``masks`` and
-        ``tracker_ids`` are ``None`` when absent from the predictions.
+        where each array is aligned with the others. ``masks`` is ``None``
+        when no predictions include mask data. ``tracker_ids`` is ``None``
+        when no predictions carry a tracker ID, or when only a subset do
+        (mixed batch) — in that case all tracker IDs are dropped to preserve
+        alignment with ``xyxy``.
 
     Examples:
         >>> from supervision.detection.utils.internal import process_roboflow_result
@@ -181,6 +184,11 @@ def process_roboflow_result(
     masks_arr: npt.NDArray[np.bool_] | None = (
         np.array(masks, dtype=bool) if len(masks) > 0 else None
     )
+    if tracker_ids and 0 < tracker_ids.count(None) < len(tracker_ids):
+        logger.warning(
+            "Partial tracker_id in batch; dropping all tracker_ids to preserve "
+            "alignment with xyxy."
+        )
     tracker_id_arr: npt.NDArray[np.integer] | None = (
         np.array(tracker_ids, dtype=np.int64)
         if tracker_ids and None not in tracker_ids

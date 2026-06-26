@@ -975,6 +975,12 @@ def test_from_inference_partial_tracker_id_does_not_crash() -> None:
     # all detections are kept; tracker_id is dropped rather than misaligned
     assert len(detections) == 2
     assert detections.tracker_id is None
+    assert detections.class_id is not None
+    assert np.array_equal(detections.class_id, np.array([0, 1]))
+    assert detections.confidence is not None
+    assert np.array_equal(detections.confidence, np.array([0.9, 0.8]))
+    assert detections.xyxy.shape == (2, 4)
+    assert detections["class_name"] is not None
 
 
 def test_from_inference_empty_class_name_dtype_matches_non_empty() -> None:
