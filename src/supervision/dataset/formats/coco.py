@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import warnings
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Union, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -185,7 +187,7 @@ def coco_annotations_to_detections(
     xyxy: npt.NDArray[np.float32] = np.asarray(xyxy_list, dtype=np.float32)
     xyxy[:, 2:4] += xyxy[:, 0:2]
 
-    data: dict[str, Union[npt.NDArray[np.generic], list[Any]]] = {}
+    data: dict[str, npt.NDArray[np.generic] | list[Any]] = {}
     if use_iscrowd:
         iscrowd = [
             image_annotation["iscrowd"] for image_annotation in image_annotations
@@ -284,7 +286,7 @@ def detections_to_coco_annotations(
         if class_id is None:
             raise ValueError("Detections must include class_id for COCO export.")
         box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
-        segmentation: Union[list[list[float]], dict[str, list[int]]] = []
+        segmentation: list[list[float]] | dict[str, list[int]] = []
         if mask is not None:
             mask_bool = cast(npt.NDArray[np.bool_], mask)
             if "iscrowd" in data:
@@ -513,7 +515,7 @@ def _with_seg_mask(annotation: dict[str, Any]) -> bool:
 
 
 def save_coco_annotations(
-    dataset: "DetectionDataset",
+    dataset: DetectionDataset,
     annotation_path: str,
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
