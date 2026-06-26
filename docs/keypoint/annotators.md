@@ -14,11 +14,11 @@ comments: true
 
     vertex_annotator = sv.VertexAnnotator(
         color=sv.Color.GREEN,
-        radius=10
+        radius=10,
     )
     annotated_frame = vertex_annotator.annotate(
         scene=image.copy(),
-        key_points=key_points
+        key_points=key_points,
     )
     ```
 
@@ -38,11 +38,11 @@ comments: true
 
     edge_annotator = sv.EdgeAnnotator(
         color=sv.Color.GREEN,
-        thickness=5
+        thickness=5,
     )
     annotated_frame = edge_annotator.annotate(
         scene=image.copy(),
-        key_points=key_points
+        key_points=key_points,
     )
     ```
 
@@ -63,11 +63,11 @@ comments: true
     vertex_label_annotator = sv.VertexLabelAnnotator(
         color=sv.Color.GREEN,
         text_color=sv.Color.BLACK,
-        border_radius=5
+        border_radius=5,
     )
     annotated_frame = vertex_label_annotator.annotate(
         scene=image.copy(),
-        key_points=key_points
+        key_points=key_points,
     )
     ```
 
@@ -77,20 +77,93 @@ comments: true
 
     </div>
 
+=== "VertexEllipseAreaAnnotator"
+
+    ```python
+    import supervision as sv
+
+    image = ...
+    key_points = sv.KeyPoints(...)
+
+    area_annotator = sv.VertexEllipseAreaAnnotator(
+        color=sv.Color.GREEN,
+        sigma=2.0,
+    )
+    annotated_frame = area_annotator.annotate(
+        scene=image.copy(),
+        key_points=key_points,
+    )
+    ```
+
+=== "VertexEllipseOutlineAnnotator"
+
+    ```python
+    import supervision as sv
+
+    image = ...
+    key_points = sv.KeyPoints(...)
+
+    outline_annotator = sv.VertexEllipseOutlineAnnotator(
+        color=sv.Color.GREEN,
+        sigma=2.0,
+        thickness=2,
+    )
+    annotated_frame = outline_annotator.annotate(
+        scene=image.copy(),
+        key_points=key_points,
+    )
+    ```
+
+=== "VertexEllipseHaloAnnotator"
+
+    ```python
+    import supervision as sv
+
+    image = ...
+    key_points = sv.KeyPoints(...)
+
+    halo_annotator = sv.VertexEllipseHaloAnnotator(
+        color=sv.Color.GREEN,
+        sigma=2.0,
+    )
+    annotated_frame = halo_annotator.annotate(
+        scene=image.copy(),
+        key_points=key_points,
+    )
+    ```
+
 <div class="md-typeset">
-  <h2><a href="#supervision.keypoint.annotators.VertexAnnotator">VertexAnnotator</a></h2>
+  <h2><a href="#supervision.key_points.annotators.VertexAnnotator">VertexAnnotator</a></h2>
 </div>
 
-:::supervision.keypoint.annotators.VertexAnnotator
+:::supervision.key_points.annotators.VertexAnnotator
 
 <div class="md-typeset">
-  <h2><a href="#supervision.keypoint.annotators.EdgeAnnotator">EdgeAnnotator</a></h2>
+  <h2><a href="#supervision.key_points.annotators.EdgeAnnotator">EdgeAnnotator</a></h2>
 </div>
 
-:::supervision.keypoint.annotators.EdgeAnnotator
+:::supervision.key_points.annotators.EdgeAnnotator
 
 <div class="md-typeset">
-  <h2><a href="#supervision.keypoint.annotators.VertexLabelAnnotator">VertexLabelAnnotator</a></h2>
+  <h2><a href="#supervision.key_points.annotators.VertexLabelAnnotator">VertexLabelAnnotator</a></h2>
 </div>
 
-:::supervision.keypoint.annotators.VertexLabelAnnotator
+:::supervision.key_points.annotators.VertexLabelAnnotator
+
+<div class="md-typeset">
+  <h2><a href="#supervision.key_points.annotators.VertexEllipseAreaAnnotator">VertexEllipseAreaAnnotator</a></h2>
+</div>
+
+:::supervision.key_points.annotators.VertexEllipseAreaAnnotator
+
+<div class="md-typeset">
+  <h2><a href="#supervision.key_points.annotators.VertexEllipseOutlineAnnotator">VertexEllipseOutlineAnnotator</a></h2>
+</div>
+
+:::supervision.key_points.annotators.VertexEllipseOutlineAnnotator
+
+<div class="md-typeset">
+  <h2><a href="#supervision.key_points.annotators.VertexEllipseHaloAnnotator">VertexEllipseHaloAnnotator</a></h2>
+</div>
+
+:::supervision.key_points.annotators.VertexEllipseHaloAnnotator
