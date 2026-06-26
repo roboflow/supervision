@@ -707,8 +707,8 @@ class ConfusionMatrix:
             ...     classes=['person']
             ... )
             >>> confusion_matrix.matrix
-            array([[1., 1.],
-                   [1., 0.]])
+            array([[1, 1],
+                   [1, 0]], dtype=int32)
 
             ```
         """
@@ -798,9 +798,9 @@ class ConfusionMatrix:
             ...     classes=['person', 'dog']
             ... )
             >>> confusion_matrix.matrix
-            array([[1., 0., 1.],
-                   [0., 1., 0.],
-                   [1., 0., 0.]])
+            array([[1, 0, 1],
+                   [0, 1, 0],
+                   [1, 0, 0]], dtype=int32)
 
             ```
         """
