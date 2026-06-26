@@ -6,15 +6,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
 
-import cv2
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 from deprecate import TargetMode, deprecated, deprecated_class, void
 
-from supervision.annotators.core import BoxAnnotator, LabelAnnotator
-from supervision.annotators.utils import ColorLookup
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.dataset.core import DetectionDataset
 from supervision.detection.core import Detections
@@ -22,7 +19,6 @@ from supervision.detection.utils.iou_and_nms import (
     box_iou_batch,
     oriented_box_iou_batch,
 )
-from supervision.draw.color import ColorPalette
 from supervision.metrics.core import MetricTarget
 
 
@@ -196,6 +192,7 @@ def _split_detections_by_outcome(
     targets: Detections,
     conf_threshold: float,
     iou_threshold: float,
+    metric_target: MetricTarget = MetricTarget.BOXES,
 ) -> tuple[Detections, Detections, Detections]:
     """
     Split detections into true positives, false positives, and false negatives.
@@ -210,6 +207,18 @@ def _split_detections_by_outcome(
     Cross-class spatial matches are treated as:
     - false positives for the prediction
     - false negatives for the target
+
+    Args:
+        predictions: Predicted detections for a single image.
+        targets: Ground-truth detections for a single image.
+        conf_threshold: Confidence threshold; predictions below this are excluded.
+        iou_threshold: IoU threshold; candidate pairs below this are not matched.
+        metric_target: Coordinate representation to use for IoU computation.
+            Use ``MetricTarget.ORIENTED_BOUNDING_BOXES`` for rotated-box datasets.
+
+    Returns:
+        A 3-tuple ``(true_positives, false_positives, false_negatives)`` where
+        each element is a ``Detections`` instance sliced from the input arrays.
     """
 
     if predictions.class_id is None:
@@ -218,10 +227,7 @@ def _split_detections_by_outcome(
     if targets.class_id is None:
         raise ValueError("Targets must contain class_id values.")
 
-    prediction_class_ids = predictions.class_id
     target_class_ids = targets.class_id
-    if prediction_class_ids is None or target_class_ids is None:
-        raise ValueError("Predictions and targets must contain class_id values.")
 
     if predictions.confidence is None:
         filtered_predictions = predictions
@@ -258,10 +264,21 @@ def _split_detections_by_outcome(
             cast(Detections, targets[fn_indices]),
         )
 
-    iou_matrix = box_iou_batch(
-        boxes_true=targets.xyxy,
-        boxes_detection=filtered_predictions.xyxy,
-    )
+    # IoU computation mirrors evaluate_detection_batch — keep in sync if either changes.
+    if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+        iou_matrix = oriented_box_iou_batch(
+            boxes_true=np.asarray(
+                targets.data[ORIENTED_BOX_COORDINATES], dtype=np.float32
+            ).reshape(len(targets), 8),
+            boxes_detection=np.asarray(
+                filtered_predictions.data[ORIENTED_BOX_COORDINATES], dtype=np.float32
+            ).reshape(len(filtered_predictions), 8),
+        )
+    else:
+        iou_matrix = box_iou_batch(
+            boxes_true=targets.xyxy,
+            boxes_detection=filtered_predictions.xyxy,
+        )
 
     target_candidate_indices, prediction_candidate_indices = np.where(
         iou_matrix > iou_threshold
@@ -327,6 +344,19 @@ def _build_error_labels(
     detections: Detections,
     class_names: list[str] | None,
 ) -> list[str]:
+    """Build per-detection label strings for annotation panels.
+
+    Produces labels like ``"cat 0.95"`` (class name + confidence when available)
+    or numeric class-id strings when ``class_names`` is ``None``.
+
+    Args:
+        detections: Detections whose labels to build.
+        class_names: Optional list mapping class integer ids to name strings.
+
+    Returns:
+        List of label strings, one per detection. Returns empty strings when
+        ``detections.class_id`` is ``None``.
+    """
     if detections.class_id is None:
         return [""] * len(detections)
 
@@ -349,6 +379,15 @@ def _build_error_labels(
 def _get_annotation_parameters(
     scene: npt.NDArray[np.uint8],
 ) -> tuple[int, float, int, int, int]:
+    """Compute adaptive annotation parameters scaled to the panel size.
+
+    Args:
+        scene: The image panel for which to compute parameters.
+
+    Returns:
+        A 5-tuple ``(box_thickness, text_scale, text_thickness, text_padding,
+        font_size)`` where all values are ``int`` except ``text_scale`` (``float``).
+    """
     height, width = scene.shape[:2]
     panel_size = max(min(height, width), 1)
     grid_factor = 2
@@ -369,6 +408,25 @@ def _annotate_detection_panel(
     class_names: list[str] | None,
     annotation_parameters: tuple[int, float, int, int, int],
 ) -> npt.NDArray[np.uint8]:
+    """Render detections onto a copy of ``scene`` with a title overlay.
+
+    Args:
+        scene: Source image panel (not mutated).
+        detections: Detections to annotate on the panel.
+        title: Text label rendered in the top-left corner of the panel.
+        class_names: Optional list mapping class integer ids to name strings.
+        annotation_parameters: Pre-computed parameters from
+            ``_get_annotation_parameters``.
+
+    Returns:
+        Annotated copy of ``scene`` as a ``np.uint8`` array.
+    """
+    import cv2  # lazy: only needed when save_directory_path is set
+
+    from supervision.annotators.core import BoxAnnotator, LabelAnnotator
+    from supervision.annotators.utils import ColorLookup
+    from supervision.draw.color import ColorPalette
+
     panel = scene.copy()
 
     box_thickness, text_scale, text_thickness, text_padding, font_size = (
@@ -426,12 +484,37 @@ def _save_detection_validation_visualization(
     conf_threshold: float,
     iou_threshold: float,
     class_names: list[str] | None,
+    metric_target: MetricTarget = MetricTarget.BOXES,
 ) -> None:
+    """Build and save a 2x2 GT/TP/FP/FN mosaic for one image.
+
+    Splits ``predictions`` into true-positive, false-positive, and false-negative
+    groups using the same matching logic as
+    ``ConfusionMatrix.evaluate_detection_batch``, renders four annotation panels,
+    concatenates them into a 2x2 grid, and writes the result to ``save_path``.
+
+    A ``UserWarning`` is emitted if ``cv2.imwrite`` fails (e.g. unsupported
+    extension or permission error); the benchmark loop continues regardless.
+
+    Args:
+        scene: The original image for this dataset entry.
+        predictions: Raw model predictions for ``scene``.
+        targets: Ground-truth annotations for ``scene``.
+        save_path: Destination file path for the mosaic image.
+        conf_threshold: Confidence threshold forwarded to
+            ``_split_detections_by_outcome``.
+        iou_threshold: IoU threshold forwarded to ``_split_detections_by_outcome``.
+        class_names: Optional list mapping class integer ids to name strings.
+        metric_target: Coordinate representation used for IoU matching.
+    """
+    import cv2  # lazy: only needed when save_directory_path is set
+
     tp_predictions, fp_predictions, fn_targets = _split_detections_by_outcome(
         predictions=predictions,
         targets=targets,
         conf_threshold=conf_threshold,
         iou_threshold=iou_threshold,
+        metric_target=metric_target,
     )
 
     annotation_parameters = _get_annotation_parameters(scene)
@@ -919,9 +1002,9 @@ class ConfusionMatrix:
         callback: Callable[[npt.NDArray[np.uint8]], Detections],
         conf_threshold: float = 0.3,
         iou_threshold: float = 0.5,
-        save_directory_path: str | Path | None = None,
-        save_result_images: bool = False,
         metric_target: MetricTarget = MetricTarget.BOXES,
+        *,
+        save_directory_path: str | Path | None = None,
     ) -> ConfusionMatrix:
         """
         Calculate confusion matrix from dataset and callback function.
@@ -935,10 +1018,9 @@ class ConfusionMatrix:
             iou_threshold: Detection IoU threshold between `0` and `1`.
                 Detections with lower IoU will be classified as `FP`.
             save_directory_path: Optional directory where per-image validation
-                result grids are saved under a `result/` subdirectory using the
-                original image filenames.
-            save_result_images: When `True`, save the per-image validation result
-                grids. The existing benchmark workflow is unchanged when `False`.
+                result grids are saved using the original image filenames. Images
+                are written directly to this directory (no subdirectory is added).
+                When ``None`` (default), no images are saved.
             metric_target: The type of detection data to use.
                 Supports `MetricTarget.BOXES` and
                 `MetricTarget.ORIENTED_BOUNDING_BOXES`. Passed through to
@@ -973,13 +1055,8 @@ class ConfusionMatrix:
             # ])
             ```
         """
-        if save_result_images:
-            save_directory = (
-                Path(save_directory_path)
-                if save_directory_path is not None
-                else Path.cwd()
-            )
-            save_directory = save_directory / "result"
+        if save_directory_path is not None:
+            save_directory = Path(save_directory_path)
             save_directory.mkdir(parents=True, exist_ok=True)
 
         predictions, targets = [], []
@@ -988,7 +1065,7 @@ class ConfusionMatrix:
             predictions.append(predictions_batch)
             targets.append(annotation)
 
-            if save_result_images:
+            if save_directory_path is not None:
                 if isinstance(image_name, Path):
                     image_filename = image_name.name
                 elif isinstance(image_name, str):
@@ -1000,6 +1077,13 @@ class ConfusionMatrix:
                     image_filename = f"{image_filename}.jpg"
 
                 save_path = save_directory / image_filename
+                if save_path.exists():
+                    warnings.warn(
+                        f"Validation image '{image_filename}' already exists at "
+                        f"'{save_path}' and will be overwritten.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
                 _save_detection_validation_visualization(
                     scene=image,
                     predictions=predictions_batch,
@@ -1008,6 +1092,7 @@ class ConfusionMatrix:
                     conf_threshold=conf_threshold,
                     iou_threshold=iou_threshold,
                     class_names=dataset.classes,
+                    metric_target=metric_target,
                 )
         return cls.from_detections(
             predictions=predictions,
