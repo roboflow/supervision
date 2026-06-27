@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 
 from supervision.config import ORIENTED_BOX_COORDINATES
