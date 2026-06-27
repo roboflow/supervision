@@ -133,7 +133,7 @@ def main(
     target_video_path: str | None = None,
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
-):
+) -> None:
     """
     Counting people in zones with YOLO and Supervision.
 
