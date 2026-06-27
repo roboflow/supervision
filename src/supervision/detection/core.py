@@ -404,9 +404,11 @@ class Detections:
             ```
         """
 
+        # Tensorflow returns normalized boxes as [ymin, xmin, ymax, xmax], so the
+        # y coordinates (cols 0, 2) scale by height and x (cols 1, 3) by width.
         boxes = tensorflow_results["detection_boxes"][0].numpy()
-        boxes[:, [0, 2]] *= resolution_wh[0]
-        boxes[:, [1, 3]] *= resolution_wh[1]
+        boxes[:, [0, 2]] *= resolution_wh[1]
+        boxes[:, [1, 3]] *= resolution_wh[0]
         boxes = boxes[:, [1, 0, 3, 2]]
         return cls(
             xyxy=boxes,
