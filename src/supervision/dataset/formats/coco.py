@@ -111,7 +111,7 @@ def coco_annotations_to_masks(
             masks.append(empty_mask.copy())
             continue
 
-        if image_annotation.get("iscrowd", 0):
+        if isinstance(segmentation, dict):
             if "counts" not in segmentation:
                 warnings.warn(
                     "Skipping annotation "
