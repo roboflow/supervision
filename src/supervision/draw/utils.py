@@ -333,6 +333,9 @@ def draw_image(
     else:
         image_np = image
 
+    if image_np.ndim != 3 or image_np.shape[2] not in (3, 4):
+        raise ValueError("Image must have 3 or 4 channels.")
+
     # Validate opacity
     if not 0.0 <= opacity <= 1.0:
         raise ValueError("Opacity must be between 0.0 and 1.0.")
