@@ -2400,7 +2400,16 @@ class Detections:
         if self.mask is not None:
             if isinstance(self.mask, CompactMask):
                 return self.mask.area
-            return np.array([np.sum(mask) for mask in self.mask])
+            # `np.count_nonzero` (no axis) uses NumPy's SIMD popcount over the
+            # bool buffer; both `np.sum(..., axis=(1, 2))` and the axis form of
+            # `count_nonzero` fall back to a slower generic reduction, so this
+            # per-mask loop is several times faster. `dtype=np.int64` keeps the
+            # documented int64 area dtype on every platform.
+            return np.fromiter(
+                (np.count_nonzero(mask) for mask in self.mask),
+                dtype=np.int64,
+                count=len(self.mask),
+            )
         if ORIENTED_BOX_COORDINATES in self.data:
             return obb_polygon_area(self.data[ORIENTED_BOX_COORDINATES])
         return self.box_area

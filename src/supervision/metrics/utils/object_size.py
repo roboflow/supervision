@@ -155,7 +155,12 @@ def get_mask_size_category(
     else:
         if len(mask.shape) != 3:
             raise ValueError("Masks must be shaped (N, H, W)")
-        areas = np.sum(mask, axis=(1, 2))
+        # `np.count_nonzero` (no axis) uses NumPy's SIMD popcount over the bool
+        # buffer; `np.sum(..., axis=(1, 2))` falls back to a slower generic
+        # reduction, so this per-mask loop is several times faster.
+        areas = np.fromiter(
+            (np.count_nonzero(m) for m in mask), dtype=np.int64, count=len(mask)
+        )
 
     result = np.full(areas.shape, ObjectSizeCategory.ANY.value)
     SM, LG = SIZE_THRESHOLDS

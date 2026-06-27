@@ -1944,3 +1944,18 @@ class TestDetectionsArea:
             )
 
         assert detections.area.dtype == expected_dtype
+
+    def test_dense_mask_area_matches_pixel_sum(self) -> None:
+        """Dense-mask area equals the per-mask true-pixel count, as int64."""
+        rng = np.random.default_rng(0)
+        masks = rng.random((5, 30, 40)) < 0.4
+        detections = Detections(
+            xyxy=np.zeros((len(masks), 4), dtype=np.float32),
+            class_id=np.zeros(len(masks), dtype=int),
+            mask=masks,
+        )
+
+        expected = np.array([np.count_nonzero(m) for m in masks])
+        np.testing.assert_array_equal(detections.area, expected)
+        np.testing.assert_array_equal(detections.area, masks.sum(axis=(1, 2)))
+        assert detections.area.dtype == np.int64
