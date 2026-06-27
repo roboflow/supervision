@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from supervision.key_points.skeletons import (
     SKELETONS_BY_EDGE_COUNT,
     SKELETONS_BY_VERTEX_COUNT,

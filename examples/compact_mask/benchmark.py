@@ -12,8 +12,6 @@ Mask complexity is controlled by ``num_vertices``: random polygons with more
 vertices produce jaggier boundaries and more RLE runs per row.
 """
 
-from __future__ import annotations
-
 import dataclasses
 import gc
 import json

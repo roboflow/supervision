@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from contextlib import ExitStack as DoesNotRaise
 from typing import ClassVar
 
@@ -1306,7 +1304,6 @@ class TestDetectionMetrics:
     def test_validate_input_tensors_obb(
         self, predictions, targets, metric_target, exception
     ):
-
         with exception:
             _validate_input_tensors(predictions, targets, metric_target=metric_target)
 

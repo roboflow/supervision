@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import numpy as np
 import pytest
 
@@ -365,7 +363,9 @@ def three_class_single_image_detections():
     "missing_attribute",
     ["predictions_class_id", "targets_class_id", "predictions_confidence"],
 )
-def test_compute_value_error_for_missing_required_fields(missing_attribute) -> None:
+def test_compute_value_error_for_missing_required_fields_after_update(
+    missing_attribute,
+) -> None:
     """Raises ValueError when required detection fields are missing."""
     metric = MeanAverageRecall()
     boxes = np.array([[10, 10, 50, 50]], dtype=np.float32)

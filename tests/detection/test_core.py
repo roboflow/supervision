@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import warnings
 from contextlib import ExitStack as DoesNotRaise
 

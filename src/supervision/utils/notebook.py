@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np

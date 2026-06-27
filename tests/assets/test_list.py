@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from supervision.assets.list import (
     BASE_IMAGE_URL,
     BASE_VIDEO_URL,

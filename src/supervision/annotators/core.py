@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from functools import lru_cache
 from math import sqrt
 from typing import Any, cast, overload

@@ -1,10 +1,8 @@
 """Tests for windowed GeoTIFF reads in InferenceSlicer."""
 
-from __future__ import annotations
-
 import threading
 import time
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 import pytest
