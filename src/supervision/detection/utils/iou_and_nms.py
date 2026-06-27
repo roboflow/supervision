@@ -261,46 +261,6 @@ def box_iou_batch(
     return out
 
 
-def _jaccard(box_a: list[float], box_b: list[float], is_crowd: bool) -> float:
-    """
-    Calculate the Jaccard index (intersection over union) between two bounding boxes.
-    If a gt object is marked as "iscrowd", a dt is allowed to match any subregion
-    of the gt. Choosing gt'=intersect(dt,gt). Since by definition union(gt',dt)=dt, computing
-    iou(gt,dt,iscrowd) = iou(gt',dt) = area(intersect(gt,dt)) / area(dt)
-
-    Args:
-        box_a: Box coordinates in the format [x, y, width, height].
-        box_b: Box coordinates in the format [x, y, width, height].
-        iscrowd: Flag indicating if the second box is a crowd region or not.
-
-    Returns:
-        Jaccard index between the two bounding boxes.
-    """  # noqa: E501
-    # Smallest number to avoid division by zero
-    EPS = np.spacing(1)
-
-    xa, ya, x2a, y2a = box_a[0], box_a[1], box_a[0] + box_a[2], box_a[1] + box_a[3]
-    xb, yb, x2b, y2b = box_b[0], box_b[1], box_b[0] + box_b[2], box_b[1] + box_b[3]
-
-    # Innermost left x
-    xi = max(xa, xb)
-    # Innermost right x
-    x2i = min(x2a, x2b)
-    # Same for y
-    yi = max(ya, yb)
-    y2i = min(y2a, y2b)
-
-    # Calculate areas
-    Aa = max(x2a - xa, 0.0) * max(y2a - ya, 0.0)
-    Ab = max(x2b - xb, 0.0) * max(y2b - yb, 0.0)
-    Ai = max(x2i - xi, 0.0) * max(y2i - yi, 0.0)
-
-    if is_crowd:
-        return float(Ai / (Aa + EPS))
-
-    return float(Ai / (Aa + Ab - Ai + EPS))
-
-
 def box_iou_batch_with_jaccard(
     boxes_true: list[list[float]],
     boxes_detection: list[list[float]],
@@ -351,13 +311,39 @@ def box_iou_batch_with_jaccard(
     )
     if len(boxes_detection) == 0 or len(boxes_true) == 0:
         return cast(npt.NDArray[np.float64], np.array([]))
-    ious: npt.NDArray[np.float64] = np.zeros(
-        (len(boxes_detection), len(boxes_true)), dtype=np.float64
+
+    # Smallest number to avoid division by zero.
+    eps = np.spacing(1)
+    gt = np.asarray(boxes_true, dtype=np.float64)
+    dt = np.asarray(boxes_detection, dtype=np.float64)
+    crowd = np.asarray(is_crowd, dtype=bool)
+
+    # Boxes are [x, y, w, h]. Build the far corners as `x2 = x + w` (rather than
+    # reusing `w`) so that the area/intersection arithmetic is bit-identical to
+    # the per-pair reference it replaces.
+    gt_x2, gt_y2 = gt[:, 0] + gt[:, 2], gt[:, 1] + gt[:, 3]
+    dt_x2, dt_y2 = dt[:, 0] + dt[:, 2], dt[:, 1] + dt[:, 3]
+
+    # Pairwise intersection: rows index detections, columns index ground truth.
+    inter_x1 = np.maximum(dt[:, 0][:, None], gt[:, 0][None, :])
+    inter_y1 = np.maximum(dt[:, 1][:, None], gt[:, 1][None, :])
+    inter_x2 = np.minimum(dt_x2[:, None], gt_x2[None, :])
+    inter_y2 = np.minimum(dt_y2[:, None], gt_y2[None, :])
+    area_inter = np.maximum(inter_x2 - inter_x1, 0.0) * np.maximum(
+        inter_y2 - inter_y1, 0.0
     )
-    for gt_idx, gt_box in enumerate(boxes_true):
-        for det_idx, det_box in enumerate(boxes_detection):
-            ious[det_idx, gt_idx] = _jaccard(det_box, gt_box, is_crowd[gt_idx])
-    return ious
+
+    area_det = np.maximum(dt_x2 - dt[:, 0], 0.0) * np.maximum(dt_y2 - dt[:, 1], 0.0)
+    area_gt = np.maximum(gt_x2 - gt[:, 0], 0.0) * np.maximum(gt_y2 - gt[:, 1], 0.0)
+
+    # For a crowd ground truth a detection may match any subregion, so its union
+    # collapses to the detection area; otherwise use the standard box union.
+    area_norm = np.where(
+        crowd[None, :],
+        area_det[:, None] + eps,
+        area_det[:, None] + area_gt[None, :] - area_inter + eps,
+    )
+    return cast(npt.NDArray[np.float64], area_inter / area_norm)
 
 
 def _polygon_areas(polygons: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
