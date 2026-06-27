@@ -5,8 +5,7 @@ description: API reference for supervision's assets module — download sample v
 
 # Assets
 
-Supervision offers an assets download utility that allows you to download image and video files
-that you can use in your demos.
+Supervision offers an assets download utility that allows you to download image and video files that you can use in your demos.
 
 <div class="md-typeset">
     <h2><a href="#supervision.assets.downloader.download_assets.download_assets">download_assets</a></h2>

@@ -76,7 +76,7 @@ The built-in `sv.ByteTrack` wrapper assigns persistent IDs across video frames t
 
 ### Datasets
 
-`sv.DetectionDataset` loads, merges, splits, and converts object detection datasets. Supported formats include YOLO, COCO JSON, and Pascal VOC. `sv.ClassificationDataset` supports folder-structured classification datasets.
+`sv.DetectionDataset` loads, merges, splits, and converts object detection datasets. Supported formats include YOLO, COCO JSON, Pascal VOC, and LabelMe. `sv.ClassificationDataset` supports folder-structured classification datasets.
 
 ### Metrics
 
@@ -162,7 +162,7 @@ No. Supervision is model agnostic. It is designed to normalize model outputs int
 
 ### What dataset formats are supported?
 
-For object detection datasets, Supervision supports YOLO, COCO JSON, and Pascal VOC import and export. For classification datasets, it supports folder-structure import and export.
+For object detection datasets, Supervision supports YOLO, COCO JSON, Pascal VOC, and LabelMe import and export. For classification datasets, it supports folder-structure import and export.
 
 ### How do I detect small objects?
 

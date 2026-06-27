@@ -12,7 +12,10 @@ from typing import Literal, cast
 import cv2
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated
+from deprecate import (  # type: ignore[import-untyped,unused-ignore]
+    TargetMode,
+    deprecated,
+)
 from PIL import Image
 
 from supervision.draw.base import ImageType
@@ -103,6 +106,7 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
             type.
 
     Raises:
+        TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
         ValueError: If scale factor is non-positive.
 
     Examples:
@@ -130,7 +134,6 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
 
     ![scale-image](https://media.roboflow.com/supervision-docs/supervision-docs-scale-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
-    assert isinstance(image, np.ndarray)
     if scale_factor <= 0:
         raise ValueError("Scale factor must be positive.")
 
@@ -162,6 +165,9 @@ def resize_image(
         Resized image matching input
             type.
 
+    Raises:
+        TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
+
     Examples:
         ```pycon
         >>> import numpy as np
@@ -191,7 +197,6 @@ def resize_image(
 
     ![resize-image](https://media.roboflow.com/supervision-docs/supervision-docs-resize-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
-    assert isinstance(image, np.ndarray)
     if keep_aspect_ratio:
         image_ratio = image.shape[1] / image.shape[0]
         target_ratio = resolution_wh[0] / resolution_wh[1]
@@ -221,14 +226,23 @@ def letterbox_image(
     maintaining aspect ratio.
 
     Args:
-        image: The image to resize and pad.
+        image: The image to resize and pad. Accepts BGR arrays of shape
+            ``(H, W, 3)``, BGRA arrays of shape ``(H, W, 4)``, grayscale
+            arrays of shape ``(H, W)``, or a PIL ``Image``.
         resolution_wh: Target resolution as `(width, height)`.
-        color: Padding color. If tuple, should
-            be in BGR format. Defaults to `Color.BLACK`.
+        color: Padding color. If tuple, should be in BGR format.
+            Defaults to `Color.BLACK`.
 
     Returns:
-        Letterboxed image matching input
-            type.
+        Letterboxed image matching input type.
+
+    Raises:
+        TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
+
+    Note:
+        For BGRA inputs, the alpha channel in the padding region is set to
+        0 (fully transparent). Grayscale inputs receive scalar padding
+        from ``color[0]``.
 
     Examples:
         ```pycon
@@ -242,12 +256,14 @@ def letterbox_image(
         ... )
         >>> letterboxed_image.shape
         (1000, 1000, 3)
+        >>> gray = np.zeros((4, 6), dtype=np.uint8)
+        >>> sv.letterbox_image(image=gray, resolution_wh=(10, 10)).shape
+        (10, 10)
 
         ```
 
     ![letterbox-image](https://media.roboflow.com/supervision-docs/supervision-docs-letterbox-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
-    assert isinstance(image, np.ndarray)
     color = unify_to_bgr(color=color)
     resized_image = resize_image(
         image=image, resolution_wh=resolution_wh, keep_aspect_ratio=True
@@ -270,17 +286,11 @@ def letterbox_image(
         ),
     )
 
-    if image.shape[2] == 4:
-        image[:padding_top, :, 3] = 0
-        image[height_new - padding_bottom :, :, 3] = 0
-        image[:, :padding_left, 3] = 0
-        image[:, width_new - padding_right :, 3] = 0
-
     return image_with_borders
 
 
 @deprecated(  # type: ignore[untyped-decorator]
-    target=None,
+    target=TargetMode.NOTIFY,
     deprecated_in="0.27.0",
     remove_in="0.31.0",
 )
@@ -376,6 +386,7 @@ def tint_image(
             type.
 
     Raises:
+        TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
         ValueError: If opacity is outside range [0.0, 1.0].
 
     Examples:
@@ -393,7 +404,6 @@ def tint_image(
 
     ![tint-image](https://media.roboflow.com/supervision-docs/supervision-docs-tint-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
-    assert isinstance(image, np.ndarray)
     if not 0.0 <= opacity <= 1.0:
         raise ValueError("opacity must be between 0.0 and 1.0")
 
@@ -563,7 +573,7 @@ class ImageSink:
 
 
 @deprecated(  # type: ignore[untyped-decorator]
-    target=None,
+    target=TargetMode.NOTIFY,
     deprecated_in="0.27.0",
     remove_in="0.31.0",
 )

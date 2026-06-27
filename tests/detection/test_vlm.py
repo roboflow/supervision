@@ -1297,3 +1297,49 @@ def test_from_deepseek_vl_2(
             detections.data[CLASS_NAME_DATA_FIELD],
             expected_detections.data[CLASS_NAME_DATA_FIELD],
         )
+
+
+def test_from_google_gemini_2_5_malformed_mask_keeps_confidence_aligned():
+    """A non-data-URI mask must not skip the item's confidence and desync arrays."""
+    result = (
+        '[{"box_2d": [10, 10, 100, 100], "label": "cat", "mask": "bad", '
+        '"confidence": 0.8}, {"box_2d": [20, 20, 120, 120], "label": "dog", '
+        '"mask": "bad", "confidence": 0.9}]'
+    )
+
+    xyxy, _, _, confidence, masks = from_google_gemini_2_5(
+        result=result, resolution_wh=(640, 480)
+    )
+
+    assert xyxy.shape == (2, 4)
+    assert confidence is not None
+    assert confidence.shape == (2,)
+    assert np.allclose(confidence, [0.8, 0.9])
+    assert masks is not None
+    assert masks.shape == (2, 480, 640)
+
+
+@pytest.mark.parametrize(
+    ("parser", "result"),
+    [
+        pytest.param(
+            from_google_gemini_2_0, "[1, 2, 3]", id="gemini_2_0_non_dict_items"
+        ),
+        pytest.param(from_google_gemini_2_0, "42", id="gemini_2_0_non_list"),
+        pytest.param(
+            from_google_gemini_2_5, "[1, 2, 3]", id="gemini_2_5_non_dict_items"
+        ),
+        pytest.param(from_google_gemini_2_5, "42", id="gemini_2_5_non_list"),
+        pytest.param(from_qwen_2_5_vl, "[1, 2, 3]", id="qwen_2_5_non_dict_items"),
+        pytest.param(from_qwen_2_5_vl, "42", id="qwen_2_5_non_list"),
+    ],
+)
+def test_vlm_parsers_degrade_on_malformed_json(parser, result):
+    """Valid JSON of the wrong shape should yield empty results, not raise."""
+    kwargs: dict = {"resolution_wh": (640, 480)}
+    if parser is from_qwen_2_5_vl:
+        kwargs["input_wh"] = (640, 480)
+
+    xyxy = parser(result=result, **kwargs)[0]
+
+    assert xyxy.shape == (0, 4)

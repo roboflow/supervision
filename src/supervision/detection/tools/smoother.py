@@ -3,6 +3,7 @@ from __future__ import annotations
 import warnings
 from collections import defaultdict, deque
 from copy import deepcopy
+from typing import cast
 
 import numpy as np
 
@@ -28,6 +29,9 @@ class DetectionsSmoother:
           [Roboflow Trackers](/latest/trackers/) for
           information on integrating tracking into your inference pipeline.
         - This class is not compatible with segmentation models.
+        - When detections in a frame disagree on confidence presence — some tracks
+          carry confidence scores and others do not — `confidence` is set to `None`
+          for all smoothed detections in that frame.
 
     Example:
         ```pycon
@@ -114,7 +118,7 @@ class DetectionsSmoother:
             tracker_id_value = detections.tracker_id[detection_idx]
             tracker_id = int(tracker_id_value)
 
-            self.tracks[tracker_id].append(detections[detection_idx])
+            self.tracks[tracker_id].append(cast(Detections, detections[detection_idx]))
 
         for track_id in self.tracks.keys():
             if track_id not in detections.tracker_id:
@@ -127,6 +131,20 @@ class DetectionsSmoother:
         return self.get_smoothed_detections()
 
     def get_track(self, track_id: int) -> Detections | None:
+        """Return the smoothed `Detections` for a single track.
+
+        Averages `xyxy` over all valid (non-`None`) frames in the track window.
+        `confidence` is averaged only over frames that carry it; frames with
+        `confidence=None` are excluded. Returns `None` when the track is unknown
+        or its entire window is empty.
+
+        Args:
+            track_id: The tracker ID whose smoothed detection to retrieve.
+
+        Returns:
+            Smoothed `Detections` for the track, or `None` if the track is
+            unknown or all frames in its window are empty.
+        """
         track = self.tracks.get(track_id, None)
         if track is None:
             return None
@@ -136,16 +154,12 @@ class DetectionsSmoother:
             return None
 
         ret = deepcopy(valid[0])
-        xyxy_stack = np.stack([d.xyxy for d in valid], axis=0)
-        ret.xyxy = xyxy_stack.mean(axis=0)
-
-        if all(d.confidence is not None for d in valid):
-            confidence_stack = np.stack(
-                [d.confidence for d in valid if d.confidence is not None], axis=0
-            )
-            ret.confidence = confidence_stack.mean(axis=0)
-        else:
-            ret.confidence = None
+        ret.xyxy = np.mean([d.xyxy for d in valid], axis=0)
+        # Average confidence only over frames that carry it; frames with
+        # confidence=None contribute nothing to the mean. Retain None when
+        # no frame in the window carries confidence.
+        confidences = [d.confidence for d in valid if d.confidence is not None]
+        ret.confidence = np.mean(np.array(confidences), axis=0) if confidences else None
 
         return ret
 
@@ -155,6 +169,13 @@ class DetectionsSmoother:
             track = self.get_track(track_id)
             if track is not None:
                 tracked_detections.append(track)
+
+        # Detections.merge requires all-or-none for optional fields.
+        # When tracks disagree on confidence presence, drop it from all to
+        # prevent ValueError inside Detections.merge (stack_or_none invariant).
+        if tracked_detections and any(d.confidence is None for d in tracked_detections):
+            for d in tracked_detections:
+                d.confidence = None
 
         detections = Detections.merge(tracked_detections)
         if len(detections) == 0:

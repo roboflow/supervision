@@ -2,6 +2,10 @@
 Tests for supervision/annotators/core.py
 """
 
+from __future__ import annotations
+
+import warnings
+
 import numpy as np
 import pytest
 
@@ -17,6 +21,7 @@ from supervision.annotators.core import (
     DotAnnotator,
     EllipseAnnotator,
     HaloAnnotator,
+    HeatMapAnnotator,
     LabelAnnotator,
     MaskAnnotator,
     OrientedBoxAnnotator,
@@ -27,8 +32,10 @@ from supervision.annotators.core import (
     RoundBoxAnnotator,
     TraceAnnotator,
     TriangleAnnotator,
+    _paint_masks_by_area,
 )
 from supervision.annotators.utils import ColorLookup
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.draw.color import Color
 from supervision.geometry.core import Position
@@ -359,6 +366,216 @@ class TestHaloAnnotator:
             scene=test_image.copy(), detections=detections_uint8
         )
         assert np.array_equal(result_bool, result_uint8)
+
+    def test_annotate_with_all_false_mask_preserves_scene(self):
+        """Test that an all-False mask leaves the scene unchanged, not corrupted."""
+        scene = np.full((100, 100, 3), 127, dtype=np.uint8)
+        masks = [np.zeros((100, 100), dtype=bool)]
+        detections = _create_detections(
+            xyxy=[[10, 10, 90, 90]], mask=masks, class_id=[0]
+        )
+        result = HaloAnnotator().annotate(scene=scene.copy(), detections=detections)
+        assert np.array_equal(result, scene)
+
+
+class TestPaintMasksByArea:
+    """Tests for the _paint_masks_by_area helper function."""
+
+    def test_paint_masks_by_area_is_noop_without_masks(self):
+        """_paint_masks_by_area is a no-op when detections carry no mask."""
+        canvas = np.full((10, 10, 3), 7, dtype=np.uint8)
+        detections = _create_detections(xyxy=[[1, 1, 8, 8]], class_id=[0])
+        _paint_masks_by_area(canvas, detections, Color.RED, ColorLookup.INDEX)
+        assert np.array_equal(canvas, np.full((10, 10, 3), 7, dtype=np.uint8))
+
+    def test_union_accumulation_dense(self):
+        """Dense path: collect_union=True returns array covering all painted pixels."""
+        height, width = 50, 60
+        canvas = np.zeros((height, width, 3), dtype=np.uint8)
+        masks = [np.zeros((height, width), dtype=bool)]
+        masks[0][5:20, 10:40] = True
+        detections = _create_detections(
+            xyxy=[[10.0, 5.0, 40.0, 20.0]], mask=masks, class_id=[0]
+        )
+        result_union = _paint_masks_by_area(
+            canvas, detections, Color.RED, ColorLookup.INDEX, collect_union=True
+        )
+        assert result_union is not None
+        # every painted pixel must be in the union (RED is BGR (0, 0, 255),
+        # so detect painted pixels via any non-zero channel)
+        painted = canvas.any(axis=-1)
+        assert np.array_equal(painted, result_union)
+
+    def test_union_accumulation_compact(self):
+        """CompactMask path: collect_union=True returns array matching dense."""
+        height, width = 50, 60
+        mask = np.zeros((height, width), dtype=bool)
+        mask[5:20, 10:40] = True
+        xyxy = np.array([[10.0, 5.0, 40.0, 20.0]])
+
+        canvas_dense = np.zeros((height, width, 3), dtype=np.uint8)
+        dense = _create_detections(xyxy=xyxy.tolist(), mask=[mask], class_id=[0])
+        union_dense = _paint_masks_by_area(
+            canvas_dense, dense, Color.RED, ColorLookup.INDEX, collect_union=True
+        )
+
+        canvas_compact = np.zeros((height, width, 3), dtype=np.uint8)
+        compact = _create_detections(xyxy=xyxy.tolist(), mask=[mask], class_id=[0])
+        compact.mask = CompactMask.from_dense(
+            np.array([mask]), compact.xyxy, (height, width)
+        )
+        union_compact = _paint_masks_by_area(
+            canvas_compact, compact, Color.RED, ColorLookup.INDEX, collect_union=True
+        )
+
+        assert union_dense is not None
+        assert union_compact is not None
+        # compact union must cover exactly the same pixels as dense union
+        assert np.array_equal(union_dense, union_compact)
+
+    def test_compact_mask_drops_pixels_outside_bbox(self):
+        """CompactMask is lossy: True pixels outside xyxy bbox are silently dropped.
+
+        This test documents that compact and dense paths diverge when a mask has
+        True pixels outside its bounding box — the 'bit-identical' claim holds
+        only for bbox-contained masks.
+        """
+        height, width = 50, 60
+        mask = np.zeros((height, width), dtype=bool)
+        mask[5:25, 10:40] = True  # mask extends 5 rows beyond bbox bottom
+
+        bbox = [[10.0, 5.0, 40.0, 20.0]]  # y2=20 clips the mask at row 20
+
+        canvas_dense = np.zeros((height, width, 3), dtype=np.uint8)
+        dense = _create_detections(xyxy=bbox, mask=[mask], class_id=[0])
+        _paint_masks_by_area(canvas_dense, dense, Color.RED, ColorLookup.INDEX)
+
+        canvas_compact = np.zeros((height, width, 3), dtype=np.uint8)
+        compact = _create_detections(xyxy=bbox, mask=[mask], class_id=[0])
+        compact.mask = CompactMask.from_dense(
+            np.array([mask]), compact.xyxy, (height, width)
+        )
+        _paint_masks_by_area(canvas_compact, compact, Color.RED, ColorLookup.INDEX)
+
+        # Dense paints all True pixels incl. rows 21-24; compact only within bbox.
+        assert not np.array_equal(canvas_dense, canvas_compact), (
+            "Expected divergence: compact mask drops True pixels outside bbox"
+        )
+        # Compact subset: every pixel painted by compact is also painted by dense.
+        compact_painted = canvas_compact.any(axis=-1)
+        dense_painted = canvas_dense.any(axis=-1)
+        assert np.all(dense_painted[compact_painted])
+
+
+class TestCompactMaskParity:
+    """Tests that CompactMask and dense mask produce identical annotator output."""
+
+    @pytest.mark.parametrize(
+        "annotator_factory",
+        [
+            pytest.param(
+                lambda: MaskAnnotator(opacity=1.0, color_lookup=ColorLookup.INDEX),
+                id="mask",
+            ),
+            pytest.param(
+                lambda: HaloAnnotator(kernel_size=15, color_lookup=ColorLookup.INDEX),
+                id="halo",
+            ),
+        ],
+    )
+    def test_annotator_compact_mask_matches_dense_mask(self, annotator_factory):
+        """CompactMask detections annotate identically to dense bool masks."""
+        height, width = 120, 160
+        rng = np.random.default_rng(0)
+        scene = rng.integers(0, 256, (height, width, 3), dtype=np.uint8)
+        boxes = [[10, 10, 70, 60], [40, 30, 150, 110], [90, 70, 140, 115]]
+        masks = []
+        for x1, y1, x2, y2 in boxes:
+            mask = np.zeros((height, width), dtype=bool)
+            mask[y1 : y2 + 1, x1 : x2 + 1] = True
+            masks.append(mask)
+        class_id = [0, 1, 2]
+        xyxy = [[float(value) for value in box] for box in boxes]
+
+        dense = _create_detections(xyxy=xyxy, mask=masks, class_id=class_id)
+        compact = _create_detections(xyxy=xyxy, mask=masks, class_id=class_id)
+        compact.mask = CompactMask.from_dense(
+            np.array(masks), compact.xyxy, (height, width)
+        )
+
+        result_dense = annotator_factory().annotate(
+            scene=scene.copy(), detections=dense
+        )
+        result_compact = annotator_factory().annotate(
+            scene=scene.copy(), detections=compact
+        )
+
+        assert not np.array_equal(result_dense, scene), "annotator painted nothing"
+        assert np.array_equal(result_dense, result_compact)
+
+    def test_annotator_compact_mask_handles_edge_clipping(self):
+        """CompactMask detection straddling image edge paints via NumPy clip."""
+        height, width = 50, 60
+        rng = np.random.default_rng(42)
+        scene = rng.integers(0, 256, (height, width, 3), dtype=np.uint8)
+
+        # Box extends 10 pixels beyond right/bottom edges
+        mask = np.zeros((height, width), dtype=bool)
+        mask[40:height, 50:width] = True
+        bbox = [[50.0, 40.0, width + 10.0, height + 10.0]]
+
+        detections = _create_detections(xyxy=bbox, mask=[mask], class_id=[0])
+        detections.mask = CompactMask.from_dense(
+            np.array([mask]), detections.xyxy, (height, width)
+        )
+
+        annotator = MaskAnnotator(opacity=1.0, color_lookup=ColorLookup.INDEX)
+        result = annotator.annotate(scene=scene.copy(), detections=detections)
+        # Result must differ from scene (something was painted) and must not raise
+        assert not np.array_equal(result, scene), "Expected pixels to be painted"
+
+
+class TestHeatMapAnnotator:
+    """Tests for HeatMapAnnotator class"""
+
+    def test_annotate_with_no_detections_does_not_warn(
+        self, test_image: np.ndarray
+    ) -> None:
+        """Empty detections must not trigger a divide-by-zero RuntimeWarning."""
+        detections = Detections.empty()
+        annotator = HeatMapAnnotator()
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            result = annotator.annotate(scene=test_image.copy(), detections=detections)
+        assert np.array_equal(test_image, result)
+
+    def test_annotate_with_single_detection(self, test_image: np.ndarray) -> None:
+        """Single detection must produce visible heat — result differs from input."""
+        annotator = HeatMapAnnotator()
+        detections = _create_detections(xyxy=[[20, 20, 60, 60]])
+        result = annotator.annotate(scene=test_image.copy(), detections=detections)
+        assert not np.array_equal(test_image, result)
+
+    def test_annotate_state_preserved_after_empty_call(
+        self, test_image: np.ndarray
+    ) -> None:
+        """Empty call must not poison accumulated heat."""
+        annotator = HeatMapAnnotator()
+        detections = _create_detections(xyxy=[[20, 20, 60, 60]])
+        annotator.annotate(scene=test_image.copy(), detections=Detections.empty())
+        result = annotator.annotate(scene=test_image.copy(), detections=detections)
+        assert not np.array_equal(test_image, result)
+
+    def test_annotate_empty_after_real_does_not_warn(
+        self, test_image: np.ndarray
+    ) -> None:
+        """Empty call after heat accumulated must not trigger RuntimeWarning."""
+        annotator = HeatMapAnnotator()
+        detections = _create_detections(xyxy=[[20, 20, 60, 60]])
+        annotator.annotate(scene=test_image.copy(), detections=detections)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", RuntimeWarning)
+            annotator.annotate(scene=test_image.copy(), detections=Detections.empty())
 
 
 class TestEllipseAnnotator:

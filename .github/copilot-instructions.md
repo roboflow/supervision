@@ -141,6 +141,6 @@ Quick checklist:
 
 ## 🎯 Context-Aware Behavior
 
-**For general development tasks**: Follow [AGENTS.md](../AGENTS.md)
-**For pull request reviews**: Follow [PR Review Guidelines](CONTRIBUTING.md#pr-review-guidelines)
-**For detailed processes**: Consult [CONTRIBUTING.md](CONTRIBUTING.md)
+- **For general development tasks**: Follow [AGENTS.md](../AGENTS.md)
+- **For pull request reviews**: Follow [PR Review Guidelines](CONTRIBUTING.md#pr-review-guidelines)
+- **For detailed processes**: Consult [CONTRIBUTING.md](CONTRIBUTING.md)

@@ -6,16 +6,17 @@ import io
 import json
 import re
 from enum import Enum
-from typing import cast
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
+from deprecate import deprecated, void
 from PIL import Image
 
 from supervision.detection.utils.boxes import denormalize_boxes
 from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
 from supervision.utils.internal import warn_deprecated
-from supervision.validators import validate_resolution
+from supervision.validators import _validate_resolution
 
 
 class LMM(Enum):
@@ -159,8 +160,8 @@ SUPPORTED_TASKS_FLORENCE_2 = [
 ]
 
 
-def validate_vlm_parameters(
-    vlm: VLM | str, result: object, kwargs: dict[str, object]
+def _validate_vlm_parameters(
+    vlm: VLM | str, result: Any, kwargs: dict[str, Any]
 ) -> VLM:
     """
     Validates the parameters and result type for a given Vision-Language Model (VLM).
@@ -202,9 +203,18 @@ def validate_vlm_parameters(
     return vlm
 
 
+@deprecated(  # type: ignore[untyped-decorator]
+    target=_validate_vlm_parameters,
+    deprecated_in="0.29.0",
+    remove_in="0.32.0",
+)
+def validate_vlm_parameters(vlm: VLM | str, result: Any, kwargs: dict[str, Any]) -> VLM:
+    return void(vlm, result, kwargs)  # type: ignore[no-any-return]
+
+
 def from_paligemma(
     result: str, resolution_wh: tuple[int, int], classes: list[str] | None = None
-) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64] | None, npt.NDArray[np.str_]]:
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any] | None, npt.NDArray[Any]]:
     """
     Parse bounding boxes from paligemma-formatted text, scale them to the specified
     resolution, and optionally filter by classes.
@@ -222,49 +232,32 @@ def from_paligemma(
             is an array of shape `(n,)` with class labels.
     """
 
-    w, h = validate_resolution(resolution_wh)
+    w, h = _validate_resolution(resolution_wh)
 
     pattern = re.compile(
         r"(?<!<loc\d{4}>)<loc(\d{4})><loc(\d{4})><loc(\d{4})><loc(\d{4})> ([\w\s\-]+)"
     )
     matches = pattern.findall(result)
-    matches_arr = (
-        np.array(matches, dtype=object) if matches else np.empty((0, 5), dtype=object)
-    )
+    matches_arr: npt.NDArray[Any] = np.array(matches) if matches else np.empty((0, 5))
 
     if matches_arr.shape[0] == 0:
-        return (
-            np.empty((0, 4), dtype=np.float32),
-            np.empty((0,), dtype=np.int64),
-            np.empty(0, dtype=str),
-        )
+        return np.empty((0, 4)), np.empty((0,), dtype=int), np.empty(0, dtype=str)
 
-    xyxy_arr: npt.NDArray[np.float32] = np.asarray(
-        matches_arr[:, [1, 0, 3, 2]].astype(np.float32)
-        / np.float32(1024)
-        * np.array([w, h, w, h], dtype=np.float32),
-        dtype=np.float32,
-    )
-    class_name_arr: npt.NDArray[np.str_] = np.asarray(
-        np.char.strip(matches_arr[:, 4].astype(str)),
-        dtype=str,
-    )
-    class_id_arr: npt.NDArray[np.int64] | None = None
+    xyxy_arr = np.array(matches_arr[:, [1, 0, 3, 2]], dtype=float)
+    xyxy_arr = xyxy_arr.astype(int) / 1024 * np.array([w, h, w, h])
+    class_name = np.char.strip(matches_arr[:, 4].astype(str))
+    class_id: npt.NDArray[Any] | None = None
 
     if classes is not None:
-        mask_arr = np.array([name in classes for name in class_name_arr], dtype=bool)
-        xyxy_arr = xyxy_arr[mask_arr]
-        class_name_arr = class_name_arr[mask_arr]
-        class_id_arr = np.array(
-            [classes.index(name) for name in class_name_arr], dtype=np.int64
-        )
+        mask = np.array([name in classes for name in class_name], dtype=bool)
+        xyxy_arr = xyxy_arr[mask]
+        class_name = class_name[mask]
+        class_id = np.array([classes.index(name) for name in class_name])
 
-    return xyxy_arr, class_id_arr, class_name_arr
+    return xyxy_arr, class_id, class_name
 
 
-def recover_truncated_qwen_2_5_vl_response(
-    text: str,
-) -> list[dict[str, object]] | None:
+def recover_truncated_qwen_2_5_vl_response(text: str) -> Any | None:
     """
     Attempt to recover and parse a truncated or malformed JSON snippet from Qwen-2.5-VL
     output.
@@ -304,10 +297,7 @@ def recover_truncated_qwen_2_5_vl_response(
 
         repaired = prefix + body + "]"
 
-        recovered = json.loads(repaired)
-        if isinstance(recovered, list):
-            return cast(list[dict[str, object]], recovered)
-        return None
+        return json.loads(repaired)
     except Exception:
         return None
 
@@ -317,7 +307,7 @@ def from_qwen_2_5_vl(
     input_wh: tuple[int, int],
     resolution_wh: tuple[int, int],
     classes: list[str] | None = None,
-) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.int64] | None, npt.NDArray[np.str_]]:
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any] | None, npt.NDArray[Any]]:
     """
     Parse and rescale bounding boxes and class labels from Qwen-2.5-VL JSON output.
 
@@ -344,8 +334,8 @@ def from_qwen_2_5_vl(
             `class_name` is an array of shape `(N,)` with class names.
     """
 
-    in_w, in_h = validate_resolution(input_wh)
-    out_w, out_h = validate_resolution(resolution_wh)
+    in_w, in_h = _validate_resolution(input_wh)
+    out_w, out_h = _validate_resolution(resolution_wh)
 
     text = result.strip()
     text = re.sub(r"^```(json)?", "", text, flags=re.IGNORECASE).strip()
@@ -356,7 +346,6 @@ def from_qwen_2_5_vl(
     if start != -1 and end != -1 and end > start:
         text = text[start : end + 1].strip()
 
-    data: object
     try:
         data = json.loads(text)
     except json.JSONDecodeError:
@@ -369,33 +358,24 @@ def from_qwen_2_5_vl(
             except (ValueError, SyntaxError, TypeError):
                 return (
                     np.empty((0, 4)),
-                    np.empty((0,), dtype=np.int64),
+                    np.empty((0,), dtype=int),
                     np.empty((0,), dtype=str),
                 )
 
     if not isinstance(data, list):
-        return (
-            np.empty((0, 4)),
-            np.empty((0,), dtype=np.int64),
-            np.empty((0,), dtype=str),
-        )
+        return (np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str))
 
-    data = cast(list[dict[str, object]], data)
-    boxes_list: list[list[float]] = []
-    labels_list: list[str] = []
+    boxes_list = []
+    labels_list = []
 
     for item in data:
-        if "bbox_2d" not in item or "label" not in item:
+        if not isinstance(item, dict) or "bbox_2d" not in item or "label" not in item:
             continue
-        boxes_list.append(cast(list[float], item["bbox_2d"]))
-        labels_list.append(cast(str, item["label"]))
+        boxes_list.append(item["bbox_2d"])
+        labels_list.append(item["label"])
 
     if not boxes_list:
-        return (
-            np.empty((0, 4)),
-            np.empty((0,), dtype=np.int64),
-            np.empty((0,), dtype=str),
-        )
+        return (np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str))
 
     xyxy = np.array(boxes_list, dtype=float)
     class_name = np.array(labels_list, dtype=str)
@@ -409,9 +389,7 @@ def from_qwen_2_5_vl(
         mask = np.array([label in classes for label in class_name], dtype=bool)
         xyxy = xyxy[mask]
         class_name = class_name[mask]
-        class_id = np.array(
-            [classes.index(label) for label in class_name], dtype=np.int64
-        )
+        class_id = np.array([classes.index(label) for label in class_name], dtype=int)
 
     return xyxy, class_id, class_name
 
@@ -420,7 +398,7 @@ def from_qwen_3_vl(
     result: str,
     resolution_wh: tuple[int, int],
     classes: list[str] | None = None,
-) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.int64] | None, npt.NDArray[np.str_]]:
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any] | None, npt.NDArray[Any]]:
     """
     Parse and scale bounding boxes from Qwen-3-VL style JSON output.
 
@@ -445,7 +423,7 @@ def from_qwen_3_vl(
 
 def from_deepseek_vl_2(
     result: str, resolution_wh: tuple[int, int], classes: list[str] | None = None
-) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.int64] | None, npt.NDArray[np.str_]]:
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any] | None, npt.NDArray[Any]]:
     """
     Parse bounding boxes from deepseek-vl2-formatted text, scale them to the specified
     resolution, and optionally filter by classes.
@@ -498,33 +476,29 @@ def from_deepseek_vl_2(
             )
             class_name_list.append(current_class_name)
 
-    xyxy_arr = np.array(xyxy_list, dtype=np.float32)
-    class_name_arr = np.array(class_name_list, dtype=str)
+    xyxy = np.array(xyxy_list, dtype=np.float32)
+    class_name = np.array(class_name_list)
 
     if classes is not None:
-        mask_arr = np.array([name in classes for name in class_name_arr], dtype=bool)
-        xyxy_arr = xyxy_arr[mask_arr]
-        class_name_arr = class_name_arr[mask_arr]
-        class_id_arr = np.array(
-            [classes.index(name) for name in class_name_arr], dtype=np.int64
-        )
+        mask = np.array([name in classes for name in class_name], dtype=bool)
+        xyxy = xyxy[mask]
+        class_name = class_name[mask]
+        class_id = np.array([classes.index(name) for name in class_name])
     else:
-        unique_classes = sorted(list(set(class_name_arr)))
+        unique_classes = sorted(list(set(class_name)))
         class_to_id = {name: i for i, name in enumerate(unique_classes)}
-        class_id_arr = np.array(
-            [class_to_id[name] for name in class_name_arr], dtype=np.int64
-        )
+        class_id = np.array([class_to_id[name] for name in class_name])
 
-    return xyxy_arr, class_id_arr, class_name_arr
+    return xyxy, class_id, class_name
 
 
 def from_florence_2(
-    result: dict[str, object], resolution_wh: tuple[int, int]
+    result: dict[str, Any], resolution_wh: tuple[int, int]
 ) -> tuple[
-    npt.NDArray[np.float32],
-    npt.NDArray[np.str_] | None,
-    npt.NDArray[np.bool_] | None,
-    npt.NDArray[np.float32] | None,
+    npt.NDArray[Any],
+    npt.NDArray[Any] | None,
+    npt.NDArray[Any] | None,
+    npt.NDArray[Any] | None,
 ]:
     """
     Parse results from the Florence 2 multi-model model.
@@ -548,94 +522,66 @@ def from_florence_2(
         raise ValueError(
             f"{task} not supported. Supported tasks are: {SUPPORTED_TASKS_FLORENCE_2}"
         )
-    task_result = result[task]
+    result = result[task]
 
     if task in ["<OD>", "<CAPTION_TO_PHRASE_GROUNDING>", "<DENSE_REGION_CAPTION>"]:
-        task_result = cast(dict[str, object], task_result)
-        xyxy = np.array(
-            cast(list[list[float]], task_result["bboxes"]), dtype=np.float32
-        )
-        labels = np.array(cast(list[str], task_result["labels"]), dtype=str)
+        xyxy = np.array(result["bboxes"], dtype=np.float32)
+        labels = np.array(result["labels"])
         return xyxy, labels, None, None
 
     if task == "<REGION_PROPOSAL>":
-        task_result = cast(dict[str, object], task_result)
-        xyxy = np.array(
-            cast(list[list[float]], task_result["bboxes"]), dtype=np.float32
-        )
+        xyxy = np.array(result["bboxes"], dtype=np.float32)
         # provides labels, but they are ["", "", "", ...]
         return xyxy, None, None, None
 
     if task == "<OCR_WITH_REGION>":
-        task_result = cast(dict[str, object], task_result)
-        xyxyxyxy = np.array(
-            cast(list[list[float]], task_result["quad_boxes"]), dtype=np.float32
-        )
+        xyxyxyxy = np.array(result["quad_boxes"], dtype=np.float32)
         xyxyxyxy = xyxyxyxy.reshape(-1, 4, 2)
-        xyxy = np.array(
-            [polygon_to_xyxy(polygon) for polygon in xyxyxyxy], dtype=np.float32
-        )
-        labels = np.array(cast(list[str], task_result["labels"]), dtype=str)
+        xyxy = np.array([polygon_to_xyxy(polygon) for polygon in xyxyxyxy])
+        labels = np.array(result["labels"])
         return xyxy, labels, None, xyxyxyxy
 
     if task in ["<REFERRING_EXPRESSION_SEGMENTATION>", "<REGION_TO_SEGMENTATION>"]:
-        task_result = cast(dict[str, object], task_result)
-        xyxy_list: list[npt.NDArray[np.float32]] = []
-        masks_list: list[npt.NDArray[np.bool_]] = []
-        for polygons_of_same_class in cast(
-            list[list[list[float]]], task_result["polygons"]
-        ):
+        xyxy_list: list[npt.NDArray[Any]] = []
+        masks_list: list[npt.NDArray[Any]] = []
+        for polygons_of_same_class in result["polygons"]:
             for polygon in polygons_of_same_class:
-                polygon_arr = np.reshape(polygon, (-1, 2)).astype(np.int32)
-                mask = cast(
-                    npt.NDArray[np.bool_],
-                    polygon_to_mask(polygon_arr, resolution_wh).astype(bool),
-                )
+                polygon = np.reshape(polygon, (-1, 2)).astype(np.int32)
+                mask = polygon_to_mask(polygon, resolution_wh).astype(bool)
                 masks_list.append(mask)
-                xyxy_box = cast(
-                    npt.NDArray[np.float32],
-                    np.asarray(polygon_to_xyxy(polygon_arr), dtype=np.float32),
-                )
+                xyxy_box = polygon_to_xyxy(polygon)
                 xyxy_list.append(xyxy_box)
             # per-class labels also provided, but they are ["", "", "", ...]
             # when we figure out how to set class names, we can do
             # zip(result["labels"], result["polygons"])
         xyxy = np.array(xyxy_list, dtype=np.float32)
-        masks = np.stack(masks_list, axis=0)
+        masks = np.array(masks_list)
         return xyxy, None, masks, None
 
     if task == "<OPEN_VOCABULARY_DETECTION>":
-        task_result = cast(dict[str, object], task_result)
-        xyxy = np.array(
-            cast(list[list[float]], task_result["bboxes"]), dtype=np.float32
-        )
-        labels = np.array(cast(list[str], task_result["bboxes_labels"]), dtype=str)
+        xyxy = np.array(result["bboxes"], dtype=np.float32)
+        labels = np.array(result["bboxes_labels"])
         # Also has "polygons" and "polygons_labels", but they don't seem to be used
         return xyxy, labels, None, None
 
     if task in ["<REGION_TO_CATEGORY>", "<REGION_TO_DESCRIPTION>"]:
-        assert isinstance(task_result, str), (
-            f"Expected string as <REGION_TO_CATEGORY> result, got {type(task_result)}"
+        assert isinstance(result, str), (
+            f"Expected string as <REGION_TO_CATEGORY> result, got {type(result)}"
         )
 
-        if task_result == "No object detected.":
-            return (
-                np.empty((0, 4), dtype=np.float32),
-                np.empty(0, dtype=str),
-                None,
-                None,
-            )
+        if result == "No object detected.":
+            return np.empty((0, 4), dtype=np.float32), np.array([]), None, None
 
         pattern = re.compile(r"<loc_(\d+)><loc_(\d+)><loc_(\d+)><loc_(\d+)>")
-        match = pattern.search(task_result)
+        match = pattern.search(result)
         assert match is not None, (
-            f"Expected string to end in location tags, but got {task_result}"
+            f"Expected string to end in location tags, but got {result}"
         )
 
-        w, h = validate_resolution(resolution_wh)
+        w, h = _validate_resolution(resolution_wh)
         xyxy = np.array([match.groups()], dtype=np.float32)
         xyxy *= np.array([w, h, w, h]) / 1000
-        result_string = task_result[: match.start()]
+        result_string = result[: match.start()]
         labels = np.array([result_string])
         return xyxy, labels, None, None
 
@@ -646,7 +592,7 @@ def from_google_gemini_2_0(
     result: str,
     resolution_wh: tuple[int, int],
     classes: list[str] | None = None,
-) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.int64] | None, npt.NDArray[np.str_]]:
+) -> tuple[npt.NDArray[Any], npt.NDArray[Any] | None, npt.NDArray[Any]]:
     """
     Parse and scale bounding boxes from Google Gemini style
     [JSON output](https://ai.google.dev/gemini-api/docs/vision?lang=python).
@@ -681,7 +627,7 @@ def from_google_gemini_2_0(
 
     """
 
-    w, h = validate_resolution(resolution_wh)
+    w, h = _validate_resolution(resolution_wh)
 
     lines = result.splitlines()
     for i, line in enumerate(lines):
@@ -693,57 +639,40 @@ def from_google_gemini_2_0(
     try:
         data = json.loads(result)
     except json.JSONDecodeError:
-        return (
-            np.empty((0, 4), dtype=np.float64),
-            np.empty((0,), dtype=np.int64),
-            np.empty((0,), dtype=str),
-        )
-    if not isinstance(data, list):
-        return (
-            np.empty((0, 4), dtype=np.float64),
-            np.empty((0,), dtype=np.int64),
-            np.empty((0,), dtype=str),
-        )
+        return np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str)
 
-    labels: list[str] = []
-    xyxy_list: list[list[float]] = []
+    if not isinstance(data, list):
+        return np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str)
+
+    labels = []
+    xyxy = []
 
     for item in data:
-        if not isinstance(item, dict):
+        if not isinstance(item, dict) or "box_2d" not in item or "label" not in item:
             continue
-        label = item.get("label")
-        box_2d = item.get("box_2d")
-        if not isinstance(label, str) or not isinstance(box_2d, list):
-            continue
-        labels.append(label)
-        box = [float(value) for value in box_2d]
+        labels.append(item["label"])
+        box = item["box_2d"]
         # Gemini bbox order is [y_min, x_min, y_max, x_max]
-        xyxy_list.append([box[1], box[0], box[3], box[2]])
+        xyxy.append([box[1], box[0], box[3], box[2]])
 
-    if len(xyxy_list) == 0:
-        return (
-            np.empty((0, 4), dtype=np.float64),
-            np.empty((0,), dtype=np.int64),
-            np.empty((0,), dtype=str),
-        )
+    if len(xyxy) == 0:
+        return np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str)
 
-    xyxy_arr: npt.NDArray[np.float64] = denormalize_boxes(
-        np.array(xyxy_list, dtype=np.float64),
+    xyxy = denormalize_boxes(
+        np.array(xyxy, dtype=np.float64),
         resolution_wh=(w, h),
         normalization_factor=1000,
     )
-    class_name_arr: npt.NDArray[np.str_] = np.array(labels, dtype=str)
-    class_id_arr: npt.NDArray[np.int64] | None = None
+    class_name = np.array(labels)
+    class_id = None
 
     if classes is not None:
-        mask = np.array([name in classes for name in class_name_arr], dtype=bool)
-        xyxy_arr = xyxy_arr[mask]
-        class_name_arr = class_name_arr[mask]
-        class_id_arr = np.array(
-            [classes.index(name) for name in class_name_arr], dtype=np.int64
-        )
+        mask = np.array([name in classes for name in class_name], dtype=bool)
+        xyxy = xyxy[mask]
+        class_name = class_name[mask]
+        class_id = np.array([classes.index(name) for name in class_name])
 
-    return xyxy_arr, class_id_arr, class_name_arr
+    return xyxy, class_id, class_name
 
 
 def from_google_gemini_2_5(
@@ -751,11 +680,11 @@ def from_google_gemini_2_5(
     resolution_wh: tuple[int, int],
     classes: list[str] | None = None,
 ) -> tuple[
-    npt.NDArray[np.float64],
-    npt.NDArray[np.int64] | None,
-    npt.NDArray[np.str_],
-    npt.NDArray[np.float64] | None,
-    npt.NDArray[np.bool_] | None,
+    npt.NDArray[Any],
+    npt.NDArray[Any] | None,
+    npt.NDArray[Any],
+    npt.NDArray[Any] | None,
+    npt.NDArray[Any] | None,
 ]:
     """
     Parse and scale bounding boxes and masks from Google Gemini 2.5 style
@@ -789,7 +718,7 @@ def from_google_gemini_2_5(
             scores, and `masks` is an optional array of shape `(n, h, w)` with
             segmentation masks.
     """
-    w, h = validate_resolution(resolution_wh)
+    w, h = _validate_resolution(resolution_wh)
 
     lines = result.splitlines()
     for i, line in enumerate(lines):
@@ -799,90 +728,106 @@ def from_google_gemini_2_5(
             break
 
     try:
-        data = cast(list[dict[str, object]], json.loads(result))
+        data = json.loads(result)
     except json.JSONDecodeError:
         return (
-            np.empty((0, 4), dtype=np.float64),
-            np.array([], dtype=np.int64),
+            np.empty((0, 4)),
+            np.array([], dtype=int),
             np.array([], dtype=str),
-            np.array([], dtype=np.float64),
+            np.array([], dtype=float),
             None,
         )
 
-    boxes_list: list[npt.NDArray[np.float64]] = []
+    if not isinstance(data, list):
+        return (
+            np.empty((0, 4)),
+            np.array([], dtype=int),
+            np.array([], dtype=str),
+            np.array([], dtype=float),
+            None,
+        )
+
+    boxes_list: list[Any] = []
     labels_list: list[str] = []
     confidence_list: list[float] | None = []
-    masks_list: list[npt.NDArray[np.bool_]] | None = []
+    masks_list: list[npt.NDArray[Any]] | None = []
 
     for item in data:
-        if "box_2d" not in item or "label" not in item:
+        if not isinstance(item, dict) or "box_2d" not in item or "label" not in item:
             continue
-        labels_list.append(cast(str, item["label"]))
-        box = cast(list[float], item["box_2d"])
+        labels_list.append(item["label"])
+        box = item["box_2d"]
         # Gemini bbox order is [y_min, x_min, y_max, x_max]
         absolute_bbox = denormalize_boxes(
             np.array([[box[1], box[0], box[3], box[2]]]).astype(np.float64),
             resolution_wh=(w, h),
             normalization_factor=1000,
         )[0]
-        absolute_bbox = cast(npt.NDArray[np.float64], absolute_bbox)
         boxes_list.append(absolute_bbox)
 
         if "mask" in item:
             if masks_list is not None:
-                png_str = cast(str, item["mask"])
-                if not png_str.startswith("data:image/png;base64,"):
+                png_str = item["mask"]
+                if not isinstance(png_str, str) or not png_str.startswith(
+                    "data:image/png;base64,"
+                ):
+                    # Malformed mask: keep an empty mask but still fall through to
+                    # the confidence handling below, so the per-item arrays stay
+                    # aligned (a `continue` here desynced confidence vs boxes).
                     masks_list.append(np.zeros((h, w), dtype=bool))
-                    continue
-
-                png_payload = png_str.removeprefix("data:image/png;base64,")
-                png_bytes = base64.b64decode(png_payload)
-                mask_img = Image.open(io.BytesIO(png_bytes))
-
-                y_min, y_max = int(absolute_bbox[1]), int(absolute_bbox[3])
-                x_min, x_max = int(absolute_bbox[0]), int(absolute_bbox[2])
-
-                bbox_height = y_max - y_min
-                bbox_width = x_max - x_min
-
-                if bbox_height > 0 and bbox_width > 0:
-                    mask_img_resized = mask_img.resize(
-                        (bbox_width, bbox_height), resample=Image.Resampling.BILINEAR
-                    )
-                    np_mask: npt.NDArray[np.bool_] = np.zeros((h, w), dtype=bool)
-                    np_mask[y_min:y_max, x_min:x_max] = np.array(mask_img_resized) > 0
-                    masks_list.append(np_mask)
                 else:
-                    masks_list.append(np.zeros((h, w), dtype=bool))
+                    png_str = png_str.removeprefix("data:image/png;base64,")
+                    try:
+                        png_bytes = base64.b64decode(png_str)
+                        mask_img = Image.open(io.BytesIO(png_bytes)).convert("L")
+                    except Exception:
+                        masks_list.append(np.zeros((h, w), dtype=bool))
+                    else:
+                        y_min, y_max = int(absolute_bbox[1]), int(absolute_bbox[3])
+                        x_min, x_max = int(absolute_bbox[0]), int(absolute_bbox[2])
+
+                        bbox_height = y_max - y_min
+                        bbox_width = x_max - x_min
+
+                        if bbox_height > 0 and bbox_width > 0:
+                            mask_img = mask_img.resize(
+                                (bbox_width, bbox_height),
+                                resample=Image.Resampling.BILINEAR,
+                            )
+                            np_mask: npt.NDArray[np.bool_] = np.zeros(
+                                (h, w), dtype=bool
+                            )
+                            np_mask[y_min:y_max, x_min:x_max] = np.array(mask_img) > 0
+                            masks_list.append(np_mask)
+                        else:
+                            masks_list.append(np.zeros((h, w), dtype=bool))
         else:
             masks_list = None
 
         if "confidence" in item:
             if confidence_list is not None:
-                confidence_list.append(cast(float, item["confidence"]))
+                confidence_list.append(item["confidence"])
         else:
             confidence_list = None
 
     if not boxes_list:
         return (
-            np.empty((0, 4), dtype=np.float64),
-            np.array([], dtype=np.int64),
+            np.empty((0, 4)),
+            np.array([], dtype=int),
             np.array([], dtype=str),
-            np.array([], dtype=np.float64),
+            np.array([], dtype=float),
             None,
         )
 
-    xyxy = np.array(boxes_list, dtype=np.float64)
-    class_name = np.array(labels_list, dtype=str)
-    class_id: npt.NDArray[np.int64]
+    xyxy = np.array(boxes_list, dtype=float)
+    class_name = np.array(labels_list)
+    class_id: npt.NDArray[Any]
 
     if classes is not None:
         mask = np.array([name in classes for name in class_name], dtype=bool)
         xyxy = xyxy[mask]
         class_name = class_name[mask]
-        class_id = np.array(
-            [classes.index(name) for name in class_name], dtype=np.int64
-        )
+        class_id = np.array([classes.index(name) for name in class_name])
         if masks_list is not None:
             masks_list = [m for m, keep in zip(masks_list, mask) if keep]
 
@@ -891,14 +836,12 @@ def from_google_gemini_2_5(
     else:
         unique_labels = sorted(list(set(class_name)))
         label_to_id = {label: i for i, label in enumerate(unique_labels)}
-        class_id = np.array([label_to_id[name] for name in class_name], dtype=np.int64)
+        class_id = np.array([label_to_id[name] for name in class_name])
 
     confidence = (
-        np.array(confidence_list, dtype=np.float64)
-        if confidence_list is not None
-        else None
+        np.array(confidence_list, dtype=float) if confidence_list is not None else None
     )
-    masks = np.array(masks_list, dtype=bool) if masks_list is not None else None
+    masks = np.array(masks_list) if masks_list is not None else None
 
     return (
         xyxy,
@@ -910,9 +853,9 @@ def from_google_gemini_2_5(
 
 
 def from_moondream(
-    result: dict[str, object],
+    result: dict[str, Any],
     resolution_wh: tuple[int, int],
-) -> npt.NDArray[np.float64]:
+) -> npt.NDArray[Any]:
     """
     Parse and scale bounding boxes from moondream JSON output.
 
@@ -948,27 +891,28 @@ def from_moondream(
         )
 
     if "objects" not in result or not isinstance(result["objects"], list):
-        return np.empty((0, 4), dtype=np.float64)
+        return np.empty((0, 4), dtype=float)
 
-    xyxy: list[list[float]] = []
-    objects = cast(list[object], result["objects"])
+    xyxy = []
 
-    for item in objects:
-        item = cast(dict[str, object], item)
+    for item in result["objects"]:
         if not all(k in item for k in ["x_min", "y_min", "x_max", "y_max"]):
             continue
 
-        x_min = cast(float, item["x_min"])
-        y_min = cast(float, item["y_min"])
-        x_max = cast(float, item["x_max"])
-        y_max = cast(float, item["y_max"])
+        x_min = item["x_min"]
+        y_min = item["y_min"]
+        x_max = item["x_max"]
+        y_max = item["y_max"]
 
         xyxy.append([x_min, y_min, x_max, y_max])
 
     if len(xyxy) == 0:
-        return np.empty((0, 4), dtype=np.float64)
+        return cast(npt.NDArray[Any], np.empty((0, 4)))
 
     return cast(
-        npt.NDArray[np.float64],
-        denormalize_boxes(np.array(xyxy, dtype=np.float64), resolution_wh=(w, h)),
+        npt.NDArray[Any],
+        denormalize_boxes(
+            np.array(xyxy).astype(np.float64),
+            resolution_wh=(w, h),
+        ),
     )

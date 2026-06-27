@@ -1,16 +1,18 @@
+from __future__ import annotations
+
 import functools
 from collections.abc import Callable
-from typing import TypeVar, cast
+from typing import Any, TypeVar, cast
 
 import cv2
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated, void
+from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
 from PIL import Image
 
 from supervision.draw.base import ImageType
 
-F = TypeVar("F", bound=Callable[..., object])
+F = TypeVar("F", bound=Callable[..., Any])
 
 
 def ensure_cv2_image_for_class_method(
@@ -22,32 +24,23 @@ def ensure_cv2_image_for_class_method(
     is complete.
 
     Assumes the annotators modify the scene in-place.
+
+    Raises:
+        TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
     """
 
     @functools.wraps(annotate_func)
-    def wrapper(
-        self: object,
-        scene: ImageType,
-        *args: object,
-        **kwargs: object,
-    ) -> object:
+    def wrapper(self: Any, scene: ImageType, *args: Any, **kwargs: Any) -> ImageType:
         if isinstance(scene, np.ndarray):
-            annotated_np = cast(
-                npt.NDArray[np.uint8],
-                annotate_func(self, scene, *args, **kwargs),
-            )
-            return annotated_np
+            return annotate_func(self, scene, *args, **kwargs)
 
         if isinstance(scene, Image.Image):
             scene_np = pillow_to_cv2(scene)
-            annotated_np = cast(
-                npt.NDArray[np.uint8],
-                annotate_func(self, scene_np, *args, **kwargs),
-            )
+            annotated_np = annotate_func(self, scene_np, *args, **kwargs)
             scene.paste(cv2_to_pillow(annotated_np))
             return scene
 
-        raise ValueError(f"Unsupported image type: {type(scene)}")
+        raise TypeError(f"Unsupported image type: {type(scene)}")
 
     return cast(F, wrapper)
 
@@ -71,26 +64,22 @@ def ensure_cv2_image_for_standalone_function(
     np.ndarray, converts back when processing is complete.
 
     Assumes the annotators do NOT modify the scene in-place.
+
+    Raises:
+        TypeError: If `image` is not a `numpy.ndarray` or `PIL.Image.Image`.
     """
 
     @functools.wraps(image_processing_fun)
-    def wrapper(image: ImageType, *args: object, **kwargs: object) -> object:
+    def wrapper(image: ImageType, *args: Any, **kwargs: Any) -> ImageType:
         if isinstance(image, np.ndarray):
-            annotated_np = cast(
-                npt.NDArray[np.uint8],
-                image_processing_fun(image, *args, **kwargs),
-            )
-            return annotated_np
+            return image_processing_fun(image, *args, **kwargs)
 
         if isinstance(image, Image.Image):
             scene = pillow_to_cv2(image)
-            annotated = cast(
-                npt.NDArray[np.uint8],
-                image_processing_fun(scene, *args, **kwargs),
-            )
+            annotated = image_processing_fun(scene, *args, **kwargs)
             return cv2_to_pillow(annotated)
 
-        raise ValueError(f"Unsupported image type: {type(image)}")
+        raise TypeError(f"Unsupported image type: {type(image)}")
 
     return cast(F, wrapper)
 
@@ -103,27 +92,23 @@ def ensure_pil_image_for_class_method(
     PIL image, converts back when processing is complete.
 
     Assumes the annotators modify the scene in-place.
+
+    Raises:
+        TypeError: If `scene` is not a `numpy.ndarray` or `PIL.Image.Image`.
     """
 
     @functools.wraps(annotate_func)
-    def wrapper(
-        self: object,
-        scene: ImageType,
-        *args: object,
-        **kwargs: object,
-    ) -> object:
+    def wrapper(self: Any, scene: ImageType, *args: Any, **kwargs: Any) -> ImageType:
         if isinstance(scene, np.ndarray):
             scene_pil = cv2_to_pillow(scene)
-            annotated_pil = cast(
-                Image.Image, annotate_func(self, scene_pil, *args, **kwargs)
-            )
+            annotated_pil = annotate_func(self, scene_pil, *args, **kwargs)
             np.copyto(scene, pillow_to_cv2(annotated_pil))
             return scene
 
         if isinstance(scene, Image.Image):
-            return cast(Image.Image, annotate_func(self, scene, *args, **kwargs))
+            return cast(ImageType, annotate_func(self, scene, *args, **kwargs))
 
-        raise ValueError(f"Unsupported image type: {type(scene)}")
+        raise TypeError(f"Unsupported image type: {type(scene)}")
 
     return cast(F, wrapper)
 
@@ -163,12 +148,11 @@ def images_to_cv2(images: list[ImageType]) -> list[npt.NDArray[np.uint8]]:
             (with order preserved).
 
     """
-    result: list[npt.NDArray[np.uint8]] = []
+    result = []
     for image in images:
-        if isinstance(image, Image.Image):
-            result.append(pillow_to_cv2(image))
-        else:
-            result.append(image)
+        if issubclass(type(image), Image.Image):
+            image = pillow_to_cv2(image)
+        result.append(image)
     return result
 
 
@@ -183,9 +167,11 @@ def pillow_to_cv2(image: Image.Image) -> npt.NDArray[np.uint8]:
     Returns:
         Input image converted to OpenCV format.
     """
-    scene: npt.NDArray[np.uint8] = cast(npt.NDArray[np.uint8], np.array(image))
-    scene = cast(npt.NDArray[np.uint8], cv2.cvtColor(scene, cv2.COLOR_RGB2BGR))
-    return cast(npt.NDArray[np.uint8], scene.astype(np.uint8))
+    scene = np.array(image)
+    scene = cv2.cvtColor(scene, cv2.COLOR_RGB2BGR)
+    # cvtColor already returns uint8 here, so astype is a no-op other than the
+    # full-image copy it forces; copy=False keeps the dtype guard without it.
+    return scene.astype(np.uint8, copy=False)
 
 
 def cv2_to_pillow(image: npt.NDArray[np.uint8]) -> Image.Image:
@@ -199,5 +185,5 @@ def cv2_to_pillow(image: npt.NDArray[np.uint8]) -> Image.Image:
     Returns:
         Input image converted to Pillow format.
     """
-    converted = cast(npt.NDArray[np.uint8], cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-    return Image.fromarray(converted)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    return Image.fromarray(image)

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import cast
 
 import numpy as np
 import numpy.typing as npt
@@ -26,7 +25,7 @@ class STrack:
         shared_kalman: KalmanFilter,
         internal_id_counter: IdCounter,
         external_id_counter: IdCounter,
-    ) -> None:
+    ):
         self.state = TrackState.New
         self.is_activated = False
         self.start_frame = 0
@@ -63,20 +62,20 @@ class STrack:
     @staticmethod
     def multi_predict(stracks: list[STrack], shared_kalman: KalmanFilter) -> None:
         if len(stracks) > 0:
-            multi_mean: list[npt.NDArray[np.float32]] = []
-            multi_covariance: list[npt.NDArray[np.float32]] = []
+            multi_mean_states = []
+            multi_covariance = []
             for i, st in enumerate(stracks):
                 assert st.mean is not None
                 assert st.covariance is not None
-                multi_mean.append(st.mean.copy())
+                multi_mean_states.append(st.mean.copy())
                 multi_covariance.append(st.covariance)
                 if st.state != TrackState.Tracked:
-                    multi_mean[i][7] = 0
+                    multi_mean_states[i][7] = 0
 
-            multi_mean_arr, multi_covariance_arr = shared_kalman.multi_predict(
-                np.asarray(multi_mean), np.asarray(multi_covariance)
+            predicted_mean, predicted_covariance = shared_kalman.multi_predict(
+                np.asarray(multi_mean_states), np.asarray(multi_covariance)
             )
-            for i, (mean, cov) in enumerate(zip(multi_mean_arr, multi_covariance_arr)):
+            for i, (mean, cov) in enumerate(zip(predicted_mean, predicted_covariance)):
                 stracks[i].mean = mean
                 stracks[i].covariance = cov
 
@@ -143,14 +142,11 @@ class STrack:
         width, height)`.
         """
         if self.mean is None:
-            return cast(
-                npt.NDArray[np.float32],
-                np.asarray(self._tlwh.copy(), dtype=np.float32),
-            )
+            return self._tlwh.copy()
         ret = self.mean[:4].copy()
         ret[2] *= ret[3]
         ret[:2] -= ret[2:] / 2
-        return cast(npt.NDArray[np.float32], np.asarray(ret, dtype=np.float32))
+        return ret
 
     @property
     def tlbr(self) -> npt.NDArray[np.float32]:
@@ -159,7 +155,7 @@ class STrack:
         """
         ret = self.tlwh.copy()
         ret[2:] += ret[:2]
-        return cast(npt.NDArray[np.float32], np.asarray(ret, dtype=np.float32))
+        return ret
 
     @staticmethod
     def tlwh_to_xyah(tlwh: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
@@ -169,7 +165,7 @@ class STrack:
         ret = np.asarray(tlwh).copy()
         ret[:2] += ret[2:] / 2
         ret[2] /= ret[3]
-        return cast(npt.NDArray[np.float32], np.asarray(ret, dtype=np.float32))
+        return ret
 
     def to_xyah(self) -> npt.NDArray[np.float32]:
         return self.tlwh_to_xyah(self.tlwh)
@@ -178,13 +174,13 @@ class STrack:
     def tlbr_to_tlwh(tlbr: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         ret = np.asarray(tlbr).copy()
         ret[2:] -= ret[:2]
-        return cast(npt.NDArray[np.float32], np.asarray(ret, dtype=np.float32))
+        return ret
 
     @staticmethod
     def tlwh_to_tlbr(tlwh: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
         ret = np.asarray(tlwh).copy()
         ret[2:] += ret[:2]
-        return cast(npt.NDArray[np.float32], np.asarray(ret, dtype=np.float32))
+        return ret
 
     def __repr__(self) -> str:
         return f"OT_{self.internal_track_id}_({self.start_frame}-{self.frame_id})"

@@ -52,7 +52,10 @@ from supervision.detection.line_zone import (
     LineZoneAnnotatorMulticlass,
 )
 from supervision.detection.tools.csv_sink import CSVSink
-from supervision.detection.tools.inference_slicer import InferenceSlicer
+from supervision.detection.tools.inference_slicer import (
+    InferenceSlicer,
+    WindowedRasterDataset,
+)
 from supervision.detection.tools.json_sink import JSONSink
 from supervision.detection.tools.polygon_zone import PolygonZone, PolygonZoneAnnotator
 from supervision.detection.tools.smoother import DetectionsSmoother
@@ -62,6 +65,7 @@ from supervision.detection.utils.boxes import (
     move_boxes,
     pad_boxes,
     scale_boxes,
+    xyxyxyxy_to_xyxy,
 )
 from supervision.detection.utils.converters import (
     is_compressed_rle,
@@ -90,6 +94,8 @@ from supervision.detection.utils.iou_and_nms import (
     mask_non_max_merge,
     mask_non_max_suppression,
     oriented_box_iou_batch,
+    oriented_box_non_max_merge,
+    oriented_box_non_max_suppression,
 )
 from supervision.detection.utils.masks import (
     calculate_masks_centroids,
@@ -121,6 +127,10 @@ from supervision.geometry.utils import get_polygon_center
 from supervision.key_points.annotators import (
     EdgeAnnotator,
     VertexAnnotator,
+    VertexEllipseAnnotator,
+    VertexEllipseAreaAnnotator,
+    VertexEllipseHaloAnnotator,
+    VertexEllipseOutlineAnnotator,
     VertexLabelAnnotator,
 )
 from supervision.key_points.core import KeyPoints
@@ -204,9 +214,14 @@ __all__ = [
     "TraceAnnotator",
     "TriangleAnnotator",
     "VertexAnnotator",
+    "VertexEllipseAnnotator",
+    "VertexEllipseAreaAnnotator",
+    "VertexEllipseHaloAnnotator",
+    "VertexEllipseOutlineAnnotator",
     "VertexLabelAnnotator",
     "VideoInfo",
     "VideoSink",
+    "WindowedRasterDataset",
     "approximate_polygon",
     "box_iou",
     "box_iou_batch",
@@ -251,6 +266,8 @@ __all__ = [
     "move_boxes",
     "move_masks",
     "oriented_box_iou_batch",
+    "oriented_box_non_max_merge",
+    "oriented_box_non_max_suppression",
     "overlay_image",
     "pad_boxes",
     "pillow_to_cv2",

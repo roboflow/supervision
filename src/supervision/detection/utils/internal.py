@@ -2,92 +2,27 @@ from __future__ import annotations
 
 import logging
 from itertools import chain
-from typing import Protocol, TypedDict, cast
+from typing import Any, Union, cast
 
 import cv2
 import numpy as np
 import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
-from supervision.detection.utils._typing import (
-    DetectionDataType,
-    DetectionDataValueType,
-    MetadataType,
-)
 from supervision.detection.utils.converters import polygon_to_mask, rle_to_mask
 from supervision.geometry.core import Vector
 
 logger = logging.getLogger(__name__)
 
 
-class _TypeUltralyticsMaskData(Protocol):
-    shape: tuple[int, ...]
-
-    def cpu(self) -> _TypeUltralyticsMaskData:
-        """Return the mask data on CPU."""
-
-    def numpy(self) -> npt.NDArray[np.generic]:
-        """Convert the mask data to a NumPy array."""
-
-
-class _TypeUltralyticsMasks(Protocol):
-    data: _TypeUltralyticsMaskData
-
-
-class _TypeUltralyticsResult(Protocol):
-    masks: _TypeUltralyticsMasks | None
-    orig_shape: tuple[int, int]
-
-
-class _TypeRoboflowImage(TypedDict):
-    width: int
-    height: int
-
-
-class _TypeRoboflowPoint(TypedDict):
-    x: float
-    y: float
-
-
-class _TypeRoboflowRLE(TypedDict):
-    size: tuple[int, int] | list[int]
-    counts: npt.NDArray[np.integer] | list[int] | str | bytes
-
-
-_TypeRoboflowPrediction = TypedDict(
-    "_TypeRoboflowPrediction",
-    {
-        "x": float,
-        "y": float,
-        "width": float,
-        "height": float,
-        "class_id": int,
-        "class": str,
-        "confidence": float,
-        "tracker_id": int,
-        "rle": _TypeRoboflowRLE,
-        "rle_mask": _TypeRoboflowRLE,
-        "points": list[_TypeRoboflowPoint],
-    },
-    total=False,
-)
-
-
-class _TypeRoboflowResult(TypedDict):
-    predictions: list[_TypeRoboflowPrediction]
-    image: _TypeRoboflowImage
-
-
-def extract_ultralytics_masks(
-    yolov8_results: _TypeUltralyticsResult,
-) -> npt.NDArray[np.bool_] | None:
-    if yolov8_results.masks is None:
+def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | None:
+    if not yolov8_results.masks:
         return None
 
     orig_shape = yolov8_results.orig_shape
     inference_shape = tuple(yolov8_results.masks.data.shape[1:])
 
-    pad: tuple[float, float] = (0.0, 0.0)
+    pad = (0, 0)
 
     if inference_shape != orig_shape:
         gain = min(
@@ -117,15 +52,41 @@ def extract_ultralytics_masks(
 
 
 def process_roboflow_result(
-    roboflow_result: _TypeRoboflowResult,
+    roboflow_result: dict[str, Any],
 ) -> tuple[
-    npt.NDArray[np.float64],
-    npt.NDArray[np.float64],
-    npt.NDArray[np.int64],
+    npt.NDArray[np.floating],
+    npt.NDArray[np.floating],
+    npt.NDArray[np.integer],
     npt.NDArray[np.bool_] | None,
-    npt.NDArray[np.int64] | None,
-    DetectionDataType,
+    npt.NDArray[np.integer] | None,
+    dict[str, npt.NDArray[np.generic]],
 ]:
+    """Parse a Roboflow API or Inference package result into detection arrays.
+
+    The returned ``data`` dict always contains ``CLASS_NAME_DATA_FIELD`` as a
+    string-dtype NumPy array. When ``predictions`` is empty, the array has
+    shape ``(0,)`` with ``dtype=str``, preserving dtype contracts for callers
+    that mix empty and non-empty results.
+
+    Args:
+        roboflow_result: Raw dict from the Roboflow REST API or the Inference
+            package (after ``.dict()`` serialisation).
+
+    Returns:
+        A 6-tuple of ``(xyxy, confidence, class_id, masks, tracker_ids, data)``
+        where each array is aligned with the others. ``masks`` is ``None``
+        when no predictions include mask data. ``tracker_ids`` is ``None``
+        when no predictions carry a tracker ID, or when only a subset do
+        (mixed batch) — in that case all tracker IDs are dropped to preserve
+        alignment with ``xyxy``.
+
+    Examples:
+        >>> from supervision.detection.utils.internal import process_roboflow_result
+        >>> result = {"predictions": [], "image": {"width": 100, "height": 100}}
+        >>> _, _, _, _, _, data = process_roboflow_result(result)
+        >>> data["class_name"].dtype.kind
+        'U'
+    """
     if not roboflow_result["predictions"]:
         return (
             np.empty((0, 4), dtype=np.float64),
@@ -141,7 +102,7 @@ def process_roboflow_result(
     class_id: list[int] = []
     class_name: list[str] = []
     masks: list[npt.NDArray[np.bool_]] = []
-    tracker_ids: list[int] = []
+    tracker_ids: list[int | None] = []
 
     image_width = int(roboflow_result["image"]["width"])
     image_height = int(roboflow_result["image"]["height"])
@@ -185,60 +146,55 @@ def process_roboflow_result(
             class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
             masks.append(mask)
-            if "tracker_id" in prediction:
-                tracker_ids.append(prediction["tracker_id"])
+            tracker_ids.append(prediction.get("tracker_id"))
         elif "points" not in prediction:
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
-            if "tracker_id" in prediction:
-                tracker_ids.append(prediction["tracker_id"])
+            tracker_ids.append(prediction.get("tracker_id"))
         elif len(prediction["points"]) >= 3:
             polygon = np.array(
                 [[point["x"], point["y"]] for point in prediction["points"]], dtype=int
             )
-            polygon_mask = cast(
-                npt.NDArray[np.bool_],
-                polygon_to_mask(
-                    polygon, resolution_wh=(image_width, image_height)
-                ).astype(bool),
-            )
+            mask = polygon_to_mask(
+                polygon, resolution_wh=(image_width, image_height)
+            ).astype(bool)
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
-            masks.append(polygon_mask)
-            if "tracker_id" in prediction:
-                tracker_ids.append(prediction["tracker_id"])
+            masks.append(mask)
+            tracker_ids.append(prediction.get("tracker_id"))
 
-    xyxy_arr: npt.NDArray[np.float64] = (
-        np.array(xyxy, dtype=np.float64)
-        if len(xyxy) > 0
-        else np.empty((0, 4), dtype=np.float64)
+    xyxy_arr: npt.NDArray[np.floating] = (
+        np.array(xyxy, dtype=np.float64) if len(xyxy) > 0 else np.empty((0, 4))
     )
-    confidence_arr: npt.NDArray[np.float64] = (
-        np.array(confidence, dtype=np.float64)
-        if len(confidence) > 0
-        else np.empty(0, dtype=np.float64)
+    confidence_arr: npt.NDArray[np.floating] = (
+        np.array(confidence, dtype=np.float64) if len(confidence) > 0 else np.empty(0)
     )
-    class_id_arr: npt.NDArray[np.int64] = (
+    class_id_arr: npt.NDArray[np.integer] = (
         np.array(class_id, dtype=np.int64)
         if len(class_id) > 0
         else np.empty(0, dtype=np.int64)
     )
     class_name_arr: npt.NDArray[np.str_] = (
-        np.array(class_name)
-        if len(class_name) > 0
-        else cast(npt.NDArray[np.str_], np.empty(0, dtype=str))
+        np.array(class_name) if len(class_name) > 0 else np.empty(0, dtype=str)
     )
     masks_arr: npt.NDArray[np.bool_] | None = (
-        cast(npt.NDArray[np.bool_], np.stack(masks, axis=0)) if len(masks) > 0 else None
+        np.array(masks, dtype=bool) if len(masks) > 0 else None
     )
-    tracker_id_arr: npt.NDArray[np.int64] | None = (
-        np.array(tracker_ids, dtype=np.int64) if len(tracker_ids) > 0 else None
+    if tracker_ids and 0 < tracker_ids.count(None) < len(tracker_ids):
+        logger.warning(
+            "Partial tracker_id in batch; dropping all tracker_ids to preserve "
+            "alignment with xyxy."
+        )
+    tracker_id_arr: npt.NDArray[np.integer] | None = (
+        np.array(tracker_ids, dtype=np.int64)
+        if tracker_ids and None not in tracker_ids
+        else None
     )
-    data: DetectionDataType = {CLASS_NAME_DATA_FIELD: class_name_arr}
+    data: dict[str, npt.NDArray[np.generic]] = {CLASS_NAME_DATA_FIELD: class_name_arr}
 
     return (
         xyxy_arr,
@@ -251,8 +207,8 @@ def process_roboflow_result(
 
 
 def is_data_equal(
-    data_a: DetectionDataType,
-    data_b: DetectionDataType,
+    data_a: dict[str, npt.NDArray[np.generic] | list[Any]],
+    data_b: dict[str, npt.NDArray[np.generic] | list[Any]],
 ) -> bool:
     """
     Compares the data payloads of two Detections instances.
@@ -263,25 +219,12 @@ def is_data_equal(
     Returns:
         True if the data payloads are equal, False otherwise.
     """
-    if set(data_a.keys()) != set(data_b.keys()):
-        return False
-
-    for key in data_a:
-        value_a = data_a[key]
-        value_b = data_b[key]
-
-        if isinstance(value_a, np.ndarray) or isinstance(value_b, np.ndarray):
-            array_a = cast(npt.NDArray[np.generic], np.asarray(value_a))
-            array_b = cast(npt.NDArray[np.generic], np.asarray(value_b))
-            if not np.array_equal(array_a, array_b):
-                return False
-        elif value_a != value_b:
-            return False
-
-    return True
+    return set(data_a.keys()) == set(data_b.keys()) and all(
+        np.array_equal(data_a[key], data_b[key]) for key in data_a
+    )
 
 
-def is_metadata_equal(metadata_a: MetadataType, metadata_b: MetadataType) -> bool:
+def is_metadata_equal(metadata_a: dict[str, Any], metadata_b: dict[str, Any]) -> bool:
     """
     Compares the metadata payloads of two Detections instances.
 
@@ -291,25 +234,20 @@ def is_metadata_equal(metadata_a: MetadataType, metadata_b: MetadataType) -> boo
     Returns:
         True if the metadata payloads are equal, False otherwise.
     """
-    if set(metadata_a.keys()) != set(metadata_b.keys()):
-        return False
-
-    for key in metadata_a:
-        value_a = metadata_a[key]
-        value_b = metadata_b[key]
-
-        if isinstance(value_a, np.ndarray) or isinstance(value_b, np.ndarray):
-            array_a = cast(npt.NDArray[np.generic], np.asarray(value_a))
-            array_b = cast(npt.NDArray[np.generic], np.asarray(value_b))
-            if not np.array_equal(array_a, array_b):
-                return False
-        elif value_a != value_b:
-            return False
-
-    return True
+    return set(metadata_a.keys()) == set(metadata_b.keys()) and all(
+        np.array_equal(metadata_a[key], metadata_b[key])
+        if (
+            isinstance(metadata_a[key], np.ndarray)
+            and isinstance(metadata_b[key], np.ndarray)
+        )
+        else metadata_a[key] == metadata_b[key]
+        for key in metadata_a
+    )
 
 
-def merge_data(data_list: list[DetectionDataType]) -> DetectionDataType:
+def merge_data(
+    data_list: list[dict[str, npt.NDArray[np.generic] | list[Any]]],
+) -> dict[str, npt.NDArray[np.generic] | list[Any]]:
     """
     Merges the data payloads of a list of Detections instances.
 
@@ -343,25 +281,20 @@ def merge_data(data_list: list[DetectionDataType]) -> DetectionDataType:
                 "All data values within a single object must have equal length."
             )
 
-    merged_data_values: dict[str, list[DetectionDataValueType]] = {
-        key: [] for key in all_keys_sets[0]
-    }
+    merged_data: dict[str, Any] = {key: [] for key in all_keys_sets[0]}
     for data in data_list:
-        for key, value in data.items():
-            merged_data_values[key].append(value)
+        for key in data:
+            merged_data[key].append(data[key])
 
-    merged_data: DetectionDataType = {}
-    for key, values in merged_data_values.items():
-        if all(isinstance(item, list) for item in values):
-            list_values = cast(list[list[object]], values)
-            merged_data[key] = list(chain.from_iterable(list_values))
-        elif all(isinstance(item, np.ndarray) for item in values):
-            array_values = cast(list[npt.NDArray[np.generic]], values)
-            ndim = array_values[0].ndim
+    for key in merged_data:
+        if all(isinstance(item, list) for item in merged_data[key]):
+            merged_data[key] = list(chain.from_iterable(merged_data[key]))
+        elif all(isinstance(item, np.ndarray) for item in merged_data[key]):
+            ndim = merged_data[key][0].ndim
             if ndim == 1:
-                merged_data[key] = np.hstack(array_values)
+                merged_data[key] = np.hstack(merged_data[key])
             elif ndim > 1:
-                merged_data[key] = np.vstack(array_values)
+                merged_data[key] = np.vstack(merged_data[key])
             else:
                 raise ValueError(f"Unexpected array dimension for key '{key}'.")
         else:
@@ -370,10 +303,10 @@ def merge_data(data_list: list[DetectionDataType]) -> DetectionDataType:
                 f"types are allowed."
             )
 
-    return merged_data
+    return cast(dict[str, Union[npt.NDArray[np.generic], list[Any]]], merged_data)
 
 
-def merge_metadata(metadata_list: list[MetadataType]) -> MetadataType:
+def merge_metadata(metadata_list: list[dict[str, Any]]) -> dict[str, Any]:
     """
     Merge metadata from a list of metadata dictionaries.
 
@@ -400,7 +333,7 @@ def merge_metadata(metadata_list: list[MetadataType]) -> MetadataType:
     if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
         raise ValueError("All metadata dictionaries must have the same keys to merge.")
 
-    merged_metadata: MetadataType = {}
+    merged_metadata: dict[str, Any] = {}
     for metadata in metadata_list:
         for key, value in metadata.items():
             if key not in merged_metadata:
@@ -409,9 +342,7 @@ def merge_metadata(metadata_list: list[MetadataType]) -> MetadataType:
 
             other_value = merged_metadata[key]
             if isinstance(value, np.ndarray) and isinstance(other_value, np.ndarray):
-                array_a = cast(npt.NDArray[np.generic], merged_metadata[key])
-                array_b = cast(npt.NDArray[np.generic], value)
-                if not np.array_equal(array_a, array_b):
+                if not np.array_equal(merged_metadata[key], value):
                     raise ValueError(
                         f"Conflicting metadata for key: '{key}': "
                         "{type(value)}, {type(other_value)}."
@@ -430,14 +361,9 @@ def merge_metadata(metadata_list: list[MetadataType]) -> MetadataType:
 
 
 def get_data_item(
-    data: DetectionDataType,
-    index: int
-    | slice
-    | list[int]
-    | list[bool]
-    | npt.NDArray[np.int_]
-    | npt.NDArray[np.bool_],
-) -> DetectionDataType:
+    data: dict[str, npt.NDArray[np.generic] | list[Any]],
+    index: int | slice | list[int] | npt.NDArray[np.integer | np.bool_],
+) -> dict[str, npt.NDArray[np.generic] | list[Any]]:
     """
     Retrieve a subset of the data dictionary based on the given index.
 
@@ -448,14 +374,12 @@ def get_data_item(
     Returns:
         A subset of the data dictionary corresponding to the specified index.
     """
-    subset_data: DetectionDataType = {}
+    subset_data: dict[str, npt.NDArray[np.generic] | list[Any]] = {}
     for key, value in data.items():
         if isinstance(value, np.ndarray):
             subset_data[key] = value[index]
         elif isinstance(value, list):
-            if isinstance(index, int):
-                subset_data[key] = [value[index]]
-            elif isinstance(index, slice):
+            if isinstance(index, slice):
                 subset_data[key] = value[index]
             elif isinstance(index, list):
                 subset_data[key] = [value[i] for i in index]
@@ -466,6 +390,8 @@ def get_data_item(
                     ]
                 else:
                     subset_data[key] = [value[i] for i in index]
+            elif isinstance(index, int):
+                subset_data[key] = [value[index]]
             else:
                 raise TypeError(f"Unsupported index type: {type(index)}")
         else:

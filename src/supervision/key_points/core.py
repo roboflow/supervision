@@ -1,123 +1,93 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Iterator, Sequence
+import logging
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
-from typing import Protocol, TypedDict, cast, overload
+from typing import Any, Union, cast
 
 import numpy as np
 import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
-from supervision.detection.utils._typing import DetectionDataType
-from supervision.detection.utils.internal import (
-    get_data_item,
-    is_data_equal,
+from supervision.detection.utils.internal import get_data_item, is_data_equal
+from supervision.detection.utils.iou_and_nms import (
+    OverlapMetric,
+    box_non_max_suppression,
 )
-from supervision.validators import validate_key_points_fields
+from supervision.utils.internal import warn_deprecated
+from supervision.validators import _validate_keypoints_fields
+
+logger = logging.getLogger(__name__)
+
+Index1D = Union[
+    int, slice, list[int], list[bool], npt.NDArray[np.int_], npt.NDArray[np.bool_]
+]
+Index2D = tuple[Index1D, Index1D]
+_RowIndexInput = Union[int, np.integer[Any], npt.NDArray[np.generic], list[Any], slice]
+_NormalizedRowIndex = Union[
+    npt.NDArray[np.generic],
+    list[Any],
+    slice,
+]
 
 
-class _TypeTensorLike(Protocol):
-    def cpu(self) -> _TypeTensorLike:
-        """Return the tensor on CPU."""
-
-    def numpy(self) -> npt.NDArray[np.generic]:
-        """Convert the tensor to a NumPy array."""
-
-    def numel(self) -> int:
-        """Return the number of elements in the tensor."""
+def _optional_array_equal(
+    first: npt.NDArray[np.generic] | None,
+    second: npt.NDArray[np.generic] | None,
+) -> bool:
+    if first is None or second is None:
+        return first is None and second is None
+    return np.array_equal(first, second)
 
 
-class _TypeInferenceKeypoint(TypedDict):
-    x: float
-    y: float
-    confidence: float
+def _normalize_row_index(
+    i: _RowIndexInput,
+) -> _NormalizedRowIndex:
+    """Normalise *i* to a 1-D row index for 1-D per-object fields.
+
+    Handles:
+    - Python int or np.integer scalar  -> np.array([int(i)])
+    - boolean np.ndarray (any shape)   -> np.flatnonzero(i.ravel())
+    - non-bool 0-d np.ndarray          -> reshaped to shape (1,)
+    - list of bool                     -> np.flatnonzero(np.array(i))
+    - slice, list of ints, 1-D ndarray -> returned as-is
+    """
+    if isinstance(i, (int, np.integer)):
+        return cast(_NormalizedRowIndex, np.array([int(i)]))
+    if isinstance(i, np.ndarray) and i.dtype == bool:
+        return cast(_NormalizedRowIndex, np.flatnonzero(i.ravel()))
+    if isinstance(i, np.ndarray) and i.ndim == 0:
+        return cast(_NormalizedRowIndex, i.reshape(1))
+    if isinstance(i, list) and i and all(isinstance(x, bool) for x in i):
+        return cast(_NormalizedRowIndex, np.flatnonzero(np.array(i)))
+    return i
 
 
-_TypeInferencePrediction = TypedDict(
-    "_TypeInferencePrediction",
-    {
-        "keypoints": list[_TypeInferenceKeypoint],
-        "class_id": int,
-        "class": str,
-    },
-)
-
-
-class _TypeInferenceResult(TypedDict):
-    predictions: list[_TypeInferencePrediction]
-
-
-class _TypeMediapipeLandmark(Protocol):
-    x: float
-    y: float
-    visibility: float
-
-
-class _TypeMediapipeLandmarkList(Protocol):
-    landmark: list[_TypeMediapipeLandmark]
-
-
-class _TypeMediapipeResults(Protocol):
-    pose_landmarks: (
-        list[list[_TypeMediapipeLandmark]] | _TypeMediapipeLandmarkList | None
-    )
-    face_landmarks: list[list[_TypeMediapipeLandmark]]
-    multi_face_landmarks: list[_TypeMediapipeLandmarkList] | None
-
-
-class _TypeUltralyticsKeypoints(Protocol):
-    xy: _TypeTensorLike
-    conf: _TypeTensorLike
-
-
-class _TypeUltralyticsBoxes(Protocol):
-    cls: _TypeTensorLike
-
-
-class _TypeUltralyticsResults(Protocol):
-    keypoints: _TypeUltralyticsKeypoints
-    boxes: _TypeUltralyticsBoxes
-    names: dict[int, str]
-
-
-class _TypeYoloNasPrediction(Protocol):
-    poses: npt.NDArray[np.float32]
-    labels: npt.NDArray[np.int_] | None
-
-
-class _TypeYoloNasResults(Protocol):
-    prediction: _TypeYoloNasPrediction
-    class_names: Sequence[str] | None
-
-
-class _TypeDetectron2Instances(Protocol):
-    pred_keypoints: _TypeTensorLike
-    pred_classes: _TypeTensorLike
-
-
-class _TypeDetectron2Results(Protocol):
-    instances: _TypeDetectron2Instances
-
-
-class _TypeTransformersResult(Protocol):
-    keypoints: _TypeTensorLike
-    scores: _TypeTensorLike
-
-
-_TypeIndex1D = (
-    int | slice | list[int] | list[bool] | npt.NDArray[np.int_] | npt.NDArray[np.bool_]
-)
-_TypeIndex2D = tuple[_TypeIndex1D, _TypeIndex1D]
-
-
-@dataclass
+@dataclass(init=False)
 class KeyPoints:
     """
     The `sv.KeyPoints` class in the Supervision library standardizes results from
     various keypoint detection and pose estimation models into a consistent format. This
     class simplifies data manipulation and filtering, providing a uniform API for
     integration with Supervision [keypoints annotators](/latest/keypoint/annotators).
+
+    === "RF-DETR"
+
+        [RF-DETR](https://github.com/roboflow/rf-detr) keypoint models return
+        `sv.KeyPoints` directly from `model.predict()` — no additional
+        conversion is needed.
+
+        ```python
+        import cv2
+        import supervision as sv
+        from rfdetr import RFDETRKeypointPreview
+
+        image = cv2.imread("<SOURCE_IMAGE_PATH>")
+        model = RFDETRKeypointPreview()
+
+        key_points = model.predict(image)
+        ```
 
     === "Ultralytics"
 
@@ -244,8 +214,14 @@ class KeyPoints:
             sets of key points, where each point is `[x, y]`.
         class_id: An array of shape
             `(n,)` containing the class ids of the detected objects.
-        confidence: An array of shape
+        keypoint_confidence: An array of shape
             `(n, m)` containing the confidence scores of each keypoint.
+        detection_confidence: An array of shape
+            `(n,)` containing the detection-level confidence scores.
+        visible: An optional boolean array of shape
+            `(n, m)` indicating which keypoints are visible. When ``None``,
+            all keypoints are treated as visible. Set this to filter anchors
+            without removing data: ``key_points.visible = key_points.keypoint_confidence > 0.3``.
         data: A dictionary containing additional
             data where each key is a string representing the data type, and the value
             is either a NumPy array or a list of corresponding data of length `n`
@@ -254,16 +230,90 @@ class KeyPoints:
 
     xy: npt.NDArray[np.float32]
     class_id: npt.NDArray[np.int_] | None = None
-    confidence: npt.NDArray[np.float32] | None = None
-    data: DetectionDataType = field(default_factory=dict)
+    keypoint_confidence: npt.NDArray[np.float32] | None = None
+    detection_confidence: npt.NDArray[np.float32] | None = None
+    visible: npt.NDArray[np.bool_] | None = None
+    data: dict[str, npt.NDArray[np.generic] | list[Any]] = field(default_factory=dict)
+
+    def __init__(
+        self,
+        xy: npt.NDArray[np.float32],
+        class_id: npt.NDArray[np.int_] | None = None,
+        keypoint_confidence: npt.NDArray[np.float32] | None = None,
+        detection_confidence: npt.NDArray[np.float32] | None = None,
+        visible: npt.NDArray[np.bool_] | None = None,
+        data: dict[str, npt.NDArray[np.generic] | list[Any]] | None = None,
+        *,
+        confidence: npt.NDArray[np.float32] | None = None,
+    ) -> None:
+        """Initialize KeyPoints.
+
+        Args:
+            xy: Array of shape `(n, m, 2)` with keypoint coordinates.
+            class_id: Array of shape `(n,)` with class IDs. Defaults to None.
+            keypoint_confidence: Array of shape `(n, m)` with per-keypoint
+                confidence scores. Defaults to None.
+            detection_confidence: Array of shape `(n,)` with detection-level
+                confidence scores. Defaults to None.
+            visible: Boolean array of shape `(n, m)` indicating visible
+                keypoints. Defaults to None.
+            data: Dictionary of additional per-detection data arrays.
+                Defaults to an empty dict.
+            confidence: Deprecated since `0.29.0`, removed in `0.32.0`.
+                Use ``keypoint_confidence`` instead. Raises ``ValueError``
+                if passed together with ``keypoint_confidence``.
+
+        Raises:
+            ValueError: If both ``confidence`` and ``keypoint_confidence``
+                are provided.
+        """
+        if confidence is not None:
+            if keypoint_confidence is not None:
+                raise ValueError(
+                    "Cannot pass both 'confidence' and 'keypoint_confidence'. "
+                    "'confidence' is deprecated — use 'keypoint_confidence' only."
+                )
+            warn_deprecated(
+                "'confidence' parameter in `KeyPoints()` is deprecated since "
+                "`0.29.0` and will be removed in `0.32.0`. Use "
+                "'keypoint_confidence' instead."
+            )
+            keypoint_confidence = confidence
+
+        self.xy = xy
+        self.class_id = class_id
+        self.keypoint_confidence = keypoint_confidence
+        self.detection_confidence = detection_confidence
+        self.visible = visible
+        self.data = data if data is not None else {}
+        self.__post_init__()
 
     def __post_init__(self) -> None:
-        validate_key_points_fields(
+        _validate_keypoints_fields(
             xy=self.xy,
-            confidence=self.confidence,
             class_id=self.class_id,
+            confidence=self.keypoint_confidence,
+            detection_confidence=self.detection_confidence,
+            visible=self.visible,
             data=self.data,
         )
+
+    @property
+    def confidence(self) -> npt.NDArray[np.float32] | None:
+        """Deprecated since 0.29.0. Use ``keypoint_confidence`` instead."""
+        warn_deprecated(
+            "'KeyPoints.confidence' is deprecated since 0.29.0 and will be "
+            "removed in 0.32.0. Use 'KeyPoints.keypoint_confidence' instead."
+        )
+        return self.keypoint_confidence
+
+    @confidence.setter
+    def confidence(self, value: npt.NDArray[np.float32] | None) -> None:
+        warn_deprecated(
+            "'KeyPoints.confidence' is deprecated since 0.29.0 and will be "
+            "removed in 0.32.0. Use 'KeyPoints.keypoint_confidence' instead."
+        )
+        self.keypoint_confidence = value
 
     def __len__(self) -> int:
         """
@@ -290,52 +340,45 @@ class KeyPoints:
     ) -> Iterator[
         tuple[
             npt.NDArray[np.float32],
-            np.float32 | None,
-            np.integer | None,
-            DetectionDataType,
+            npt.NDArray[np.float32] | None,
+            npt.NDArray[np.int_] | None,
+            dict[str, npt.NDArray[np.generic] | list[Any]],
         ]
     ]:
         """
         Iterates over the Keypoint object and yield a tuple of
-        `(xy, confidence, class_id, data)` for each object detection.
+        `(xy, keypoint_confidence, class_id, data)` for each object detection.
         """
         for i in range(len(self.xy)):
-            confidence = (
-                cast(np.float32, self.confidence[i])
-                if self.confidence is not None
-                else None
-            )
-            class_id = (
-                cast(np.integer, self.class_id[i])
-                if self.class_id is not None
-                else None
-            )
             yield (
                 self.xy[i],
-                confidence,
-                class_id,
+                self.keypoint_confidence[i]
+                if self.keypoint_confidence is not None
+                else None,
+                self.class_id[i] if self.class_id is not None else None,
                 get_data_item(self.data, i),
             )
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, KeyPoints):
             return NotImplemented
-        if not np.array_equal(self.xy, other.xy):
-            return False
-        if self.class_id is None or other.class_id is None:
-            if self.class_id is not other.class_id:
-                return False
-        elif not np.array_equal(self.class_id, other.class_id):
-            return False
-        if self.confidence is None or other.confidence is None:
-            if self.confidence is not other.confidence:
-                return False
-        elif not np.array_equal(self.confidence, other.confidence):
-            return False
-        return is_data_equal(self.data, other.data)
+        return all(
+            [
+                np.array_equal(self.xy, other.xy),
+                _optional_array_equal(self.class_id, other.class_id),
+                _optional_array_equal(
+                    self.keypoint_confidence, other.keypoint_confidence
+                ),
+                _optional_array_equal(
+                    self.detection_confidence, other.detection_confidence
+                ),
+                _optional_array_equal(self.visible, other.visible),
+                is_data_equal(self.data, other.data),
+            ]
+        )
 
     @classmethod
-    def from_inference(cls, inference_result: object) -> KeyPoints:
+    def from_inference(cls, inference_result: Any) -> KeyPoints:
         """
         Create a `sv.KeyPoints` object from the [Roboflow](https://roboflow.com/)
         API inference result or the [Inference](https://inference.roboflow.com/)
@@ -384,26 +427,20 @@ class KeyPoints:
             )
 
         if hasattr(inference_result, "dict"):
-            inference_result = cast(
-                _TypeInferenceResult,
-                inference_result.dict(exclude_none=True, by_alias=True),
-            )
+            inference_result = inference_result.dict(exclude_none=True, by_alias=True)
         elif hasattr(inference_result, "json"):
-            inference_result = cast(_TypeInferenceResult, inference_result.json())
-        else:
-            inference_result = cast(_TypeInferenceResult, inference_result)
-
+            inference_result = inference_result.json()
         if not inference_result.get("predictions"):
             return cls.empty()
 
-        xy: list[list[list[float]]] = []
-        confidence: list[list[float]] = []
-        class_id: list[int] = []
-        class_names: list[str] = []
+        xy = []
+        confidence = []
+        class_id = []
+        class_names = []
 
         for prediction in inference_result["predictions"]:
-            prediction_xy: list[list[float]] = []
-            prediction_confidence: list[float] = []
+            prediction_xy = []
+            prediction_confidence = []
             for keypoint in prediction["keypoints"]:
                 prediction_xy.append([keypoint["x"], keypoint["y"]])
                 prediction_confidence.append(keypoint["confidence"])
@@ -413,20 +450,20 @@ class KeyPoints:
             class_id.append(prediction["class_id"])
             class_names.append(prediction["class"])
 
-        data: DetectionDataType = {
-            CLASS_NAME_DATA_FIELD: np.array(class_names, dtype=str)
+        data: dict[str, npt.NDArray[np.generic] | list[Any]] = {
+            CLASS_NAME_DATA_FIELD: np.array(class_names)
         }
 
         return cls(
             xy=np.array(xy, dtype=np.float32),
-            confidence=np.array(confidence, dtype=np.float32),
-            class_id=np.array(class_id, dtype=np.int_),
+            keypoint_confidence=np.array(confidence, dtype=np.float32),
+            class_id=np.array(class_id, dtype=int),
             data=data,
         )
 
     @classmethod
     def from_mediapipe(
-        cls, mediapipe_results: _TypeMediapipeResults, resolution_wh: tuple[int, int]
+        cls, mediapipe_results: Any, resolution_wh: tuple[int, int]
     ) -> KeyPoints:
         """
         Creates a `sv.KeyPoints` instance from a
@@ -503,15 +540,18 @@ class KeyPoints:
             ```
 
         """
-        results: Sequence[Sequence[_TypeMediapipeLandmark]] = []
         if hasattr(mediapipe_results, "pose_landmarks"):
-            pose_landmarks = mediapipe_results.pose_landmarks
-            if pose_landmarks is None:
-                results = []
-            elif isinstance(pose_landmarks, list):
-                results = pose_landmarks
-            else:
-                results = [pose_landmarks.landmark]
+            results = mediapipe_results.pose_landmarks
+            if not isinstance(mediapipe_results.pose_landmarks, list):
+                if mediapipe_results.pose_landmarks is None:
+                    results = []
+                else:
+                    results = [
+                        [
+                            landmark
+                            for landmark in mediapipe_results.pose_landmarks.landmark
+                        ]
+                    ]
         elif hasattr(mediapipe_results, "face_landmarks"):
             results = mediapipe_results.face_landmarks
         elif hasattr(mediapipe_results, "multi_face_landmarks"):
@@ -526,11 +566,11 @@ class KeyPoints:
         if len(results) == 0:
             return cls.empty()
 
-        xy: list[list[list[float]]] = []
-        confidence: list[list[float]] = []
+        xy = []
+        confidence = []
         for pose in results:
-            prediction_xy: list[list[float]] = []
-            prediction_confidence: list[float] = []
+            prediction_xy = []
+            prediction_confidence = []
             for landmark in pose:
                 keypoint_xy = [
                     landmark.x * resolution_wh[0],
@@ -544,13 +584,11 @@ class KeyPoints:
 
         return cls(
             xy=np.array(xy, dtype=np.float32),
-            confidence=np.array(confidence, dtype=np.float32),
+            keypoint_confidence=np.array(confidence, dtype=np.float32),
         )
 
     @classmethod
-    def from_ultralytics(
-        cls, ultralytics_results: _TypeUltralyticsResults
-    ) -> KeyPoints:
+    def from_ultralytics(cls, ultralytics_results: Any) -> KeyPoints:
         """
         Creates a `sv.KeyPoints` instance from a
         [YOLOv8](https://github.com/ultralytics/ultralytics) pose inference result.
@@ -578,18 +616,18 @@ class KeyPoints:
         if ultralytics_results.keypoints.xy.numel() == 0:
             return cls.empty()
 
-        xy = ultralytics_results.keypoints.xy.cpu().numpy().astype(np.float32)
-        class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(np.int_)
-        class_names = np.array(
-            [ultralytics_results.names[int(i)] for i in class_id], dtype=str
-        )
+        xy = ultralytics_results.keypoints.xy.cpu().numpy()
+        class_id = ultralytics_results.boxes.cls.cpu().numpy().astype(int)
+        class_names = np.array([ultralytics_results.names[i] for i in class_id])
 
-        confidence = ultralytics_results.keypoints.conf.cpu().numpy().astype(np.float32)
-        data: DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
-        return cls(xy, class_id, confidence, data)
+        confidence = ultralytics_results.keypoints.conf.cpu().numpy()
+        data: dict[str, npt.NDArray[np.generic] | list[Any]] = {
+            CLASS_NAME_DATA_FIELD: class_names
+        }
+        return cls(xy=xy, class_id=class_id, keypoint_confidence=confidence, data=data)
 
     @classmethod
-    def from_yolo_nas(cls, yolo_nas_results: _TypeYoloNasResults) -> KeyPoints:
+    def from_yolo_nas(cls, yolo_nas_results: Any) -> KeyPoints:
         """
         Create a `sv.KeyPoints` instance from a [YOLO-NAS](https://github.com/Deci-AI/super-gradients/blob/master/YOLONAS-POSE.md)
         pose inference results.
@@ -631,7 +669,7 @@ class KeyPoints:
         else:
             class_id = None
 
-        data: DetectionDataType = {}
+        data: dict[str, npt.NDArray[np.generic] | list[Any]] = {}
         if class_id is not None and yolo_nas_results.class_names is not None:
             class_names = []
             for c_id in class_id:
@@ -641,13 +679,13 @@ class KeyPoints:
 
         return cls(
             xy=xy,
-            confidence=confidence,
+            keypoint_confidence=confidence,
             class_id=class_id,
             data=data,
         )
 
     @classmethod
-    def from_detectron2(cls, detectron2_results: dict[str, object]) -> KeyPoints:
+    def from_detectron2(cls, detectron2_results: Any) -> KeyPoints:
         """
         Create a `sv.KeyPoints` object from the
         [Detectron2](https://github.com/facebookresearch/detectron2) inference result.
@@ -679,24 +717,26 @@ class KeyPoints:
             ```
         """
 
-        instances = cast(_TypeDetectron2Instances, detectron2_results["instances"])
-        if hasattr(instances, "pred_keypoints"):
-            if instances.pred_keypoints.cpu().numpy().size == 0:
+        if hasattr(detectron2_results["instances"], "pred_keypoints"):
+            if detectron2_results["instances"].pred_keypoints.cpu().numpy().size == 0:
                 return cls.empty()
             return cls(
-                xy=instances.pred_keypoints.cpu().numpy()[:, :, :2].astype(np.float32),
-                confidence=instances.pred_keypoints.cpu()
-                .numpy()[:, :, 2]
-                .astype(np.float32),
-                class_id=instances.pred_classes.cpu().numpy().astype(np.int_),
+                xy=detectron2_results["instances"]
+                .pred_keypoints.cpu()
+                .numpy()[:, :, :2],
+                keypoint_confidence=detectron2_results["instances"]
+                .pred_keypoints.cpu()
+                .numpy()[:, :, 2],
+                class_id=detectron2_results["instances"]
+                .pred_classes.cpu()
+                .numpy()
+                .astype(int),
             )
         else:
             return cls.empty()
 
     @classmethod
-    def from_transformers(
-        cls, transformers_results: list[dict[str, _TypeTensorLike]]
-    ) -> KeyPoints:
+    def from_transformers(cls, transformers_results: Any) -> KeyPoints:
         """
         Create a `sv.KeyPoints` object from the
         [Transformers](https://github.com/huggingface/transformers) inference result.
@@ -774,8 +814,8 @@ class KeyPoints:
 
             return cls(
                 xy=np.stack(xy).astype(np.float32),
-                confidence=np.stack(scores).astype(np.float32),
-                class_id=np.arange(len(xy)).astype(np.int_),
+                keypoint_confidence=np.stack(scores).astype(np.float32),
+                class_id=np.arange(len(xy)).astype(int),
             )
         else:
             return cls.empty()
@@ -835,33 +875,88 @@ class KeyPoints:
             )
         k = int(counts[0]) if n > 0 else 0
         xy_selected = np.zeros((n, k, self.xy.shape[2]), dtype=self.xy.dtype)
-        conf_selected: npt.NDArray[np.float32] | None = None
-        if self.confidence is not None:
-            conf_selected = cast(
+        keypoint_confidence_selected: npt.NDArray[np.float32] | None = None
+        if self.keypoint_confidence is not None:
+            keypoint_confidence_selected = cast(
                 npt.NDArray[np.float32],
-                np.zeros((n, k), dtype=self.confidence.dtype),
+                np.zeros((n, k), dtype=self.keypoint_confidence.dtype),
             )
+        visible_selected: npt.NDArray[np.bool_] | None = None
+        if self.visible is not None:
+            visible_selected = np.zeros((n, k), dtype=bool)
         for row in range(n):
             row_indices = np.flatnonzero(mask[row])
             xy_selected[row] = self.xy[row, row_indices]
-            if conf_selected is not None and self.confidence is not None:
-                conf_selected[row] = self.confidence[row, row_indices]
+            if (
+                keypoint_confidence_selected is not None
+                and self.keypoint_confidence is not None
+            ):
+                keypoint_confidence_selected[row] = self.keypoint_confidence[
+                    row, row_indices
+                ]
+            if visible_selected is not None and self.visible is not None:
+                visible_selected[row] = self.visible[row, row_indices]
+        detection_confidence_selected = None
+        if self.detection_confidence is not None:
+            detection_confidence_selected = self.detection_confidence.copy()
+
+        class_id_selected = None
+        if self.class_id is not None:
+            class_id_selected = self.class_id.copy()
+
+        data_selected = get_data_item(self.data, slice(None))
+
         return KeyPoints(
             xy=xy_selected,
-            confidence=conf_selected,
-            class_id=self.class_id.copy() if self.class_id is not None else None,
-            data=get_data_item(self.data, slice(None)),
+            keypoint_confidence=keypoint_confidence_selected,
+            detection_confidence=detection_confidence_selected,
+            visible=visible_selected,
+            class_id=class_id_selected,
+            data=data_selected,
         )
 
-    @overload
-    def __getitem__(self, index: str) -> object: ...
-
-    @overload
-    def __getitem__(self, index: _TypeIndex1D | _TypeIndex2D) -> KeyPoints: ...
-
     def __getitem__(
-        self, index: _TypeIndex1D | _TypeIndex2D | str
-    ) -> KeyPoints | object | None:
+        self,
+        index: Index1D | Index2D | str,
+    ) -> KeyPoints | npt.NDArray[np.generic] | list[Any] | None:
+        """
+        Get a subset of the KeyPoints object or access an item from its data field.
+
+        Supports detection-level (skeleton) filtering, keypoint-level (anchor)
+        filtering, combined tuple indexing, and data field access by string key.
+
+        Args:
+            index: The index, indices, or key to access a subset of the KeyPoints
+                or an item from the data.
+
+        Returns:
+            A subset of the KeyPoints object or an item from the data field.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            key_points = sv.KeyPoints(...)
+
+            # detection-level filtering (returns KeyPoints)
+            high_conf = key_points[key_points.detection_confidence > 0.5]
+            class_0 = key_points[key_points.class_id == 0]
+
+            # keypoint-level filtering (returns KeyPoints)
+            visible = key_points[key_points.keypoint_confidence > 0.3]
+
+            # indexing
+            first = key_points[0]
+            first_two = key_points[0:2]
+            subset = key_points[[0, 2]]
+
+            # anchor selection (uniform across all skeletons)
+            nose_and_eyes = key_points[:, [0, 1, 2]]
+
+            # data field access
+            class_names = key_points['class_name']
+            ```
+        """
         if isinstance(index, str):
             return self.data.get(index)
 
@@ -886,56 +981,84 @@ class KeyPoints:
         if isinstance(j, np.ndarray) and j.dtype == bool:
             j = np.flatnonzero(j)
 
+        raw_i = i
+
         if (
             isinstance(i, (list, np.ndarray))
             and isinstance(j, (list, np.ndarray))
             and not np.isscalar(i)
             and not np.isscalar(j)
         ):
-            i, j = np.ix_(np.asarray(i), np.asarray(j))
+            i_ix, j_ix = np.ix_(cast(Any, i), cast(Any, j))
+            i = cast(Any, i_ix)
+            j = cast(Any, j_ix)
+
+        row_i = _normalize_row_index(raw_i)
 
         xy_selected = self.xy[i, j]
 
-        conf_selected = self.confidence[i, j] if self.confidence is not None else None
+        keypoint_confidence_selected = None
+        if self.keypoint_confidence is not None:
+            keypoint_confidence_selected = self.keypoint_confidence[i, j]
 
-        class_id_selected = self.class_id[i] if self.class_id is not None else None
+        detection_confidence_selected = None
+        if self.detection_confidence is not None:
+            detection_confidence_selected = self.detection_confidence[row_i]
 
-        data_selected = get_data_item(self.data, i)
+        visible_selected = None
+        if self.visible is not None:
+            visible_selected = self.visible[i, j]
+
+        class_id_selected = self.class_id[row_i] if self.class_id is not None else None
+
+        data_selected = get_data_item(self.data, cast(Any, row_i))
 
         if xy_selected.ndim == 1:
             xy_selected = xy_selected.reshape(1, 1, 2)
-            if conf_selected is not None:
-                conf_selected = conf_selected.reshape(1, 1)
+            if keypoint_confidence_selected is not None:
+                keypoint_confidence_selected = keypoint_confidence_selected.reshape(
+                    1, 1
+                )
+            if visible_selected is not None:
+                visible_selected = visible_selected.reshape(1, 1)
         elif xy_selected.ndim == 2:
             if np.isscalar(index[0]) or (
                 isinstance(index[0], np.ndarray) and index[0].ndim == 0
             ):
                 xy_selected = xy_selected[np.newaxis, ...]
-                if conf_selected is not None:
-                    conf_selected = conf_selected[np.newaxis, ...]
+                if keypoint_confidence_selected is not None:
+                    keypoint_confidence_selected = keypoint_confidence_selected[
+                        np.newaxis, ...
+                    ]
+                if visible_selected is not None:
+                    visible_selected = visible_selected[np.newaxis, ...]
             elif np.isscalar(index[1]) or (
                 isinstance(index[1], np.ndarray) and index[1].ndim == 0
             ):
                 xy_selected = xy_selected[:, np.newaxis, :]
-                if conf_selected is not None:
-                    conf_selected = conf_selected[:, np.newaxis]
+                if keypoint_confidence_selected is not None:
+                    keypoint_confidence_selected = keypoint_confidence_selected[
+                        :, np.newaxis
+                    ]
+                if visible_selected is not None:
+                    visible_selected = visible_selected[:, np.newaxis]
 
         return KeyPoints(
             xy=xy_selected,
-            confidence=conf_selected,
+            keypoint_confidence=keypoint_confidence_selected,
+            detection_confidence=detection_confidence_selected,
+            visible=visible_selected,
             class_id=class_id_selected,
             data=data_selected,
         )
 
-    def __setitem__(
-        self, key: str, value: npt.NDArray[np.generic] | list[object]
-    ) -> None:
+    def __setitem__(self, key: str, value: npt.NDArray[np.generic] | list[Any]) -> None:
         """
         Set a value in the data dictionary of the `sv.KeyPoints` object.
 
         Args:
             key: The key in the data dictionary to set.
-            value: The value to set for the key. Must be a np.ndarray or list.
+            value: The value to set for the key.
 
         Examples:
             ```python
@@ -1003,6 +1126,94 @@ class KeyPoints:
         empty_key_points.data = self.data
         return self == empty_key_points
 
+    def with_nms(
+        self,
+        threshold: float = 0.5,
+        class_agnostic: bool = False,
+        overlap_metric: OverlapMetric = OverlapMetric.IOU,
+    ) -> KeyPoints:
+        """
+        Performs non-max suppression on the keypoint detections. Bounding boxes
+        are derived from valid keypoints of each skeleton, and standard box NMS
+        is applied. A keypoint is considered valid when its coordinates are not
+        all-zero and its `visible` flag is `True` (if `visible` is set).
+
+        Args:
+            threshold: The intersection-over-union threshold to use for
+                non-maximum suppression. Must be in [0, 1]. Defaults to 0.5.
+            class_agnostic: Whether to perform class-agnostic non-maximum
+                suppression. If True, the class_id of each detection will be
+                ignored. Defaults to False.
+            overlap_metric: Metric used to compute the degree of overlap
+                between pairs of bounding boxes. Defaults to
+                `OverlapMetric.IOU`.
+
+        Returns:
+            A new `sv.KeyPoints` object after non-maximum suppression.
+
+        Raises:
+            ValueError: If `detection_confidence` is None.
+            ValueError: If `class_agnostic` is False and `class_id`
+                is None.
+
+        Examples:
+            ```python
+            import cv2
+            import supervision as sv
+            from rfdetr import RFDETRKeypointPreview
+
+            image = cv2.imread("<SOURCE_IMAGE_PATH>")
+            model = RFDETRKeypointPreview()
+
+            key_points = model.predict(image)
+            key_points = key_points.with_nms(threshold=0.5)
+            ```
+        """
+        if len(self) == 0:
+            return self
+
+        if self.detection_confidence is None:
+            raise ValueError(
+                "KeyPoints detection_confidence must be given for NMS to be executed."
+            )
+
+        if not class_agnostic and self.class_id is None:
+            raise ValueError(
+                "KeyPoints class_id must be given for NMS to be executed. If "
+                "you intended to perform class agnostic NMS set "
+                "class_agnostic=True."
+            )
+
+        xy = self.xy
+        valid = ~np.all(xy == 0, axis=-1)
+        if self.visible is not None:
+            valid = valid & self.visible
+        x_min = np.min(np.where(valid, xy[..., 0], np.inf), axis=1)
+        y_min = np.min(np.where(valid, xy[..., 1], np.inf), axis=1)
+        x_max = np.max(np.where(valid, xy[..., 0], -np.inf), axis=1)
+        y_max = np.max(np.where(valid, xy[..., 1], -np.inf), axis=1)
+        xyxy = np.stack([x_min, y_min, x_max, y_max], axis=1).astype(np.float32)
+
+        if class_agnostic:
+            predictions = np.hstack([xyxy, self.detection_confidence.reshape(-1, 1)])
+        else:
+            class_id = cast(npt.NDArray[np.int_], self.class_id)
+            predictions = np.hstack(
+                [
+                    xyxy,
+                    self.detection_confidence.reshape(-1, 1),
+                    class_id.reshape(-1, 1),
+                ]
+            )
+
+        keep = box_non_max_suppression(
+            predictions=predictions,
+            iou_threshold=threshold,
+            overlap_metric=overlap_metric,
+        )
+
+        return cast(KeyPoints, self[keep])
+
     def as_detections(
         self, selected_keypoint_indices: Iterable[int] | None = None
     ) -> Detections:
@@ -1015,7 +1226,9 @@ class KeyPoints:
             selected_keypoint_indices: The
                 indices of the key points to include in the bounding box
                 calculation. This helps focus on a subset of key points,
-                e.g. when some are occluded. Captures all key points by default.
+                e.g. when some are occluded. Captures all key points by
+                default. An empty sequence (`[]`) is treated the same as
+                `None` and selects all key points.
 
         Returns:
             detections: The converted detections object.
@@ -1036,41 +1249,39 @@ class KeyPoints:
         if self.is_empty():
             return Detections.empty()
 
-        detections_list = []
-        for i, xy in enumerate(self.xy):
+        xy = self.xy
+        if selected_keypoint_indices:
+            indices = np.asarray(list(selected_keypoint_indices), dtype=np.intp)
+            xy = xy[:, indices, :]
+
+        # [0, 0] is used by some frameworks to indicate a missing keypoint; those
+        # points are excluded from each skeleton's bounding box.
+        valid = ~np.all(xy == 0, axis=2)  # (N, M)
+        has_valid = valid.any(axis=1)  # (N,)
+
+        x, y = xy[:, :, 0], xy[:, :, 1]
+        x_min = np.where(valid, x, np.inf).min(axis=1)
+        y_min = np.where(valid, y, np.inf).min(axis=1)
+        x_max = np.where(valid, x, -np.inf).max(axis=1)
+        y_max = np.where(valid, y, -np.inf).max(axis=1)
+
+        xyxy = np.stack((x_min, y_min, x_max, y_max), axis=1).astype(np.float32)
+        # Skeletons with no valid keypoints keep the original empty [0, 0, 0, 0] box.
+        xyxy[~has_valid] = 0.0
+
+        if self.detection_confidence is not None:
+            confidence = self.detection_confidence.astype(np.float32)
+        elif self.keypoint_confidence is not None:
+            keypoint_confidence = self.keypoint_confidence
             if selected_keypoint_indices:
-                xy = xy[selected_keypoint_indices]
+                keypoint_confidence = keypoint_confidence[:, indices]
+            confidence = keypoint_confidence.mean(axis=1).astype(np.float32)
+        else:
+            confidence = None
 
-            # [0, 0] used by some frameworks to indicate missing keypoints
-            xy = xy[~np.all(xy == 0, axis=1)]
-            if len(xy) == 0:
-                xyxy = np.array([[0, 0, 0, 0]], dtype=np.float32)
-            else:
-                x_min = xy[:, 0].min()
-                x_max = xy[:, 0].max()
-                y_min = xy[:, 1].min()
-                y_max = xy[:, 1].max()
-                xyxy = np.array([[x_min, y_min, x_max, y_max]], dtype=np.float32)
-
-            if self.confidence is None:
-                confidence = None
-            else:
-                confidence = self.confidence[i]
-                if selected_keypoint_indices:
-                    confidence = confidence[selected_keypoint_indices]
-                confidence = np.array([confidence.mean()], dtype=np.float32)
-
-            detections_list.append(
-                Detections(
-                    xyxy=xyxy,
-                    confidence=confidence,
-                )
-            )
-
-        detections = Detections.merge(detections_list)
+        detections = Detections(xyxy=xyxy, confidence=confidence)
         detections.class_id = self.class_id
         detections.data = self.data
-        area = detections.area
-        detections = detections[area > 0]
+        detections = cast(Detections, detections[cast(Any, detections.area) > 0])
 
         return detections

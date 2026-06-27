@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 import numpy as np
 
+from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
+from supervision.metrics.core import MetricTarget
 from supervision.metrics.mean_average_precision import MeanAveragePrecision
 
 
 class TestMeanAveragePrecision:
-    def test_single_perfect_detection(self, detections_50_50, targets_50_50) -> None:
+    def test_single_perfect_detection(self, detections_50_50, targets_50_50):
         """Test that single perfect detection gets 1.0 mAP (not 0.0 due to ID=0 bug)"""
         metric = MeanAveragePrecision()
         metric.update([detections_50_50], [targets_50_50])
@@ -14,7 +18,7 @@ class TestMeanAveragePrecision:
         # Should be perfect 1.0 mAP, not 0.0 due to ID=0 bug
         assert abs(result.map50_95 - 1.0) < 1e-6
 
-    def test_multiple_perfect_detections(self) -> None:
+    def test_multiple_perfect_detections(self):
         """Test that multiple perfect detections get 1.0 mAP"""
         # Multiple perfect detections in one image
         detections = Detections(
@@ -33,9 +37,40 @@ class TestMeanAveragePrecision:
         # Should be perfect 1.0 mAP
         assert abs(result.map50_95 - 1.0) < 1e-6
 
-    def test_batch_updates_perfect_detections(
-        self, detections_50_50, targets_50_50
-    ) -> None:
+    def test_perfect_non_square_oriented_boxes_get_full_map(self):
+        """Smoke test: MeanAveragePrecision accepts non-square OBB inputs without error.
+
+        NOTE: MeanAveragePrecision uses the COCO evaluator path
+        (box_iou_batch_with_jaccard) and does not route through
+        oriented_box_iou_batch regardless of metric_target.
+        This test verifies API acceptance and map50_95=1.0 via
+        xyxy COCO IoU, not OBB IoU.
+        """
+        obb = np.array(
+            [[[10, 0], [0, 1], [30, 4], [40, 3]]],
+            dtype=np.float32,
+        )
+        detections = Detections(
+            xyxy=np.array([[0, 0, 40, 4]], dtype=np.float64),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+            data={ORIENTED_BOX_COORDINATES: obb},
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 40, 4]], dtype=np.float64),
+            class_id=np.array([0]),
+            data={ORIENTED_BOX_COORDINATES: obb},
+        )
+
+        metric = MeanAveragePrecision(
+            metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES
+        )
+        metric.update([detections], [targets])
+        result = metric.compute()
+
+        assert abs(result.map50_95 - 1.0) < 1e-6
+
+    def test_batch_updates_perfect_detections(self, detections_50_50, targets_50_50):
         """Test that batch updates with perfect detections get 1.0 mAP"""
         metric = MeanAveragePrecision()
         # Add 3 batch updates
@@ -47,7 +82,7 @@ class TestMeanAveragePrecision:
         # Should be perfect 1.0 mAP across all batches
         assert abs(result.map50_95 - 1.0) < 1e-6
 
-    def test_scenario_1_success_case_imperfect_match(self) -> None:
+    def test_scenario_1_success_case_imperfect_match(self):
         """Scenario 1: Success Case with imperfect match"""
         # Small object (class 0) - area = 30*30 = 900 < 1024
         small_perfect = Detections(
@@ -101,7 +136,7 @@ class TestMeanAveragePrecision:
             result.medium_objects.map50_95 < 1.0
         )  # Medium should be less than perfect
 
-    def test_scenario_2_missed_detection(self) -> None:
+    def test_scenario_2_missed_detection(self):
         """Scenario 2: GT Present, No Prediction (Missed Detection)"""
         # Small object - area = 30*30 = 900 < 1024
         small_detection = Detections(
@@ -139,7 +174,7 @@ class TestMeanAveragePrecision:
         # Medium objects should have 0.0 mAP (missed detection)
         assert abs(result.medium_objects.map50_95 - 0.0) < 1e-6
 
-    def test_scenario_3_false_positive(self) -> None:
+    def test_scenario_3_false_positive(self):
         """Scenario 3: No GT, Prediction Present (False Positive)"""
         # Small object - area = 30*30 = 900 < 1024
         small_detection = Detections(
@@ -178,7 +213,7 @@ class TestMeanAveragePrecision:
         # Medium objects should have -1 mAP (false positive, matching pycocotools)
         assert result.medium_objects.map50_95 == -1
 
-    def test_scenario_4_no_data(self) -> None:
+    def test_scenario_4_no_data(self):
         """Scenario 4: No GT, No Prediction (Category has no data)"""
         # Small object - area = 30*30 = 900 < 1024
         small_detection = Detections(
@@ -228,7 +263,7 @@ class TestMeanAveragePrecision:
         # Medium objects should have -1 mAP (no data, matching pycocotools)
         assert result.medium_objects.map50_95 == -1
 
-    def test_scenario_5_only_one_class_present(self) -> None:
+    def test_scenario_5_only_one_class_present(self):
         """Scenario 5: Only 1 of 3 Classes Present (Perfect Match)"""
         # Only class 0 objects with perfect matches
         detections_class_0 = [
@@ -257,7 +292,7 @@ class TestMeanAveragePrecision:
 
     def test_mixed_classes_with_missing_detections(
         self, detections_50_50, targets_50_50
-    ) -> None:
+    ):
         """Test mixed scenario with some classes having no detections"""
         # Class 1: GT exists but no prediction
         class_1_target = Detections(
@@ -285,7 +320,7 @@ class TestMeanAveragePrecision:
         # Should be less than 1.0 due to missed detection and false positive
         assert result.map50_95 < 1.0
 
-    def test_empty_predictions_and_targets(self) -> None:
+    def test_empty_predictions_and_targets(self):
         """Test completely empty predictions and targets"""
         metric = MeanAveragePrecision()
         metric.update([Detections.empty()], [Detections.empty()])

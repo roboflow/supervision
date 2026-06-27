@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import numpy.typing as npt
@@ -25,13 +25,6 @@ from supervision.metrics.utils.utils import ensure_pandas_installed
 
 if TYPE_CHECKING:
     import pandas as pd
-
-MeanAverageRecallStats = tuple[
-    npt.NDArray[np.bool_],
-    npt.NDArray[np.int32],
-    npt.NDArray[np.int32],
-    npt.NDArray[np.int32],
-]
 
 
 @dataclass
@@ -168,7 +161,7 @@ class MeanAverageRecallResult:
         ensure_pandas_installed()
         import pandas as pd
 
-        pandas_data: dict[str, object] = {
+        pandas_data = {
             "mAR @ 1": self.mAR_at_1,
             "mAR @ 10": self.mAR_at_10,
             "mAR @ 100": self.mAR_at_100,
@@ -263,12 +256,7 @@ class MeanAverageRecallResult:
         plt.show()
 
 
-class MeanAverageRecall(
-    Metric[
-        [Detections | list[Detections], Detections | list[Detections]],
-        MeanAverageRecallResult,
-    ]
-):
+class MeanAverageRecall(Metric):
     """
     Mean Average Recall (mAR) measures how well the model detects
     and retrieves relevant objects by averaging recall over multiple
@@ -309,7 +297,7 @@ class MeanAverageRecall(
     def __init__(
         self,
         metric_target: MetricTarget = MetricTarget.BOXES,
-    ) -> None:
+    ):
         """
         Initialize the Mean Average Recall metric.
 
@@ -393,8 +381,8 @@ class MeanAverageRecall(
     def _compute(
         self, predictions_list: list[Detections], targets_list: list[Detections]
     ) -> MeanAverageRecallResult:
-        iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
-        stats: list[MeanAverageRecallStats] = []
+        iou_thresholds = np.linspace(0.5, 0.95, 10)
+        stats: list[Any] = []
 
         for predictions, targets in zip(predictions_list, targets_list):
             prediction_contents = self._detections_content(predictions)
@@ -410,9 +398,9 @@ class MeanAverageRecall(
                     stats.append(
                         (
                             np.zeros((0, iou_thresholds.size), dtype=bool),
-                            np.zeros((0,), dtype=np.int32),
-                            np.zeros((0,), dtype=np.int32),
-                            np.asarray(targets.class_id, dtype=np.int32),
+                            np.zeros((0,), dtype=int),
+                            np.zeros((0,), dtype=int),
+                            targets.class_id,
                         )
                     )
 
@@ -426,29 +414,16 @@ class MeanAverageRecall(
                         predictions.class_id, dtype=np.int32
                     )
                     target_class_ids = np.asarray(targets.class_id, dtype=np.int32)
+                    prediction_confidence = np.asarray(
+                        predictions.confidence, dtype=np.float32
+                    )
                     if self._metric_target == MetricTarget.BOXES:
-                        iou: npt.NDArray[np.float64] = np.asarray(
-                            box_iou_batch(
-                                np.asarray(target_contents, dtype=np.float32),
-                                np.asarray(prediction_contents, dtype=np.float32),
-                            ),
-                            dtype=np.float64,
-                        )
+                        iou = box_iou_batch(target_contents, prediction_contents)
                     elif self._metric_target == MetricTarget.MASKS:
-                        iou = np.asarray(
-                            mask_iou_batch(
-                                np.asarray(target_contents, dtype=bool),
-                                np.asarray(prediction_contents, dtype=bool),
-                            ),
-                            dtype=np.float64,
-                        )
+                        iou = mask_iou_batch(target_contents, prediction_contents)
                     elif self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-                        iou = np.asarray(
-                            oriented_box_iou_batch(
-                                np.asarray(target_contents, dtype=np.float32),
-                                np.asarray(prediction_contents, dtype=np.float32),
-                            ),
-                            dtype=np.float64,
+                        iou = oriented_box_iou_batch(
+                            target_contents, prediction_contents
                         )
                     else:
                         raise ValueError(
@@ -462,13 +437,11 @@ class MeanAverageRecall(
                         iou_thresholds,
                     )
 
-                    sorted_indices = np.argsort(
-                        -np.asarray(predictions.confidence, dtype=np.float32)
-                    )
+                    sorted_indices = np.argsort(-prediction_confidence)
                     stats.append(
                         (
                             matches[sorted_indices],
-                            np.arange(len(predictions), dtype=np.int32),
+                            np.arange(len(predictions)),
                             prediction_class_ids[sorted_indices],
                             target_class_ids,
                         )
@@ -481,7 +454,7 @@ class MeanAverageRecall(
                 recall_per_class=np.zeros((0, iou_thresholds.shape[0])),
                 max_detections=self.max_detections,
                 iou_thresholds=iou_thresholds,
-                matched_classes=np.array([], dtype=np.int32),
+                matched_classes=np.array([], dtype=int),
                 small_objects=None,
                 medium_objects=None,
                 large_objects=None,
@@ -516,10 +489,8 @@ class MeanAverageRecall(
         npt.NDArray[np.int32],
     ]:
         unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
-        unique_classes = np.asarray(unique_classes, dtype=np.int32)
-        class_counts = np.asarray(class_counts, dtype=np.int32)
 
-        recalls_at_k_list: list[npt.NDArray[np.float64]] = []
+        recalls_at_k = []
         for max_detections in self.max_detections:
             # Shape: PxTh,P,C,C -> CxThx3
             confusion_matrix = self._compute_confusion_matrix(
@@ -531,10 +502,10 @@ class MeanAverageRecall(
 
             # Shape: CxThx3 -> CxTh
             recall_per_class = self._compute_recall(confusion_matrix)
-            recalls_at_k_list.append(recall_per_class)
+            recalls_at_k.append(recall_per_class)
 
         # Shape: KxCxTh -> KxC
-        recalls_at_k = np.array(recalls_at_k_list, dtype=np.float64)
+        recalls_at_k = np.array(recalls_at_k)
         average_recall_per_class = np.mean(recalls_at_k, axis=2)
 
         # Shape: KxC -> K
@@ -546,7 +517,7 @@ class MeanAverageRecall(
     def _match_detection_batch(
         predictions_classes: npt.NDArray[np.int32],
         target_classes: npt.NDArray[np.int32],
-        iou: npt.NDArray[np.floating],
+        iou: npt.NDArray[np.float32],
         iou_thresholds: npt.NDArray[np.float32],
     ) -> npt.NDArray[np.bool_]:
         num_predictions, num_iou_levels = (
@@ -576,9 +547,9 @@ class MeanAverageRecall(
     @staticmethod
     def _compute_confusion_matrix(
         sorted_matches: npt.NDArray[np.bool_],
-        sorted_prediction_class_ids: npt.NDArray[np.integer],
-        unique_classes: npt.NDArray[np.integer],
-        class_counts: npt.NDArray[np.integer],
+        sorted_prediction_class_ids: npt.NDArray[np.int32],
+        unique_classes: npt.NDArray[np.int32],
+        class_counts: npt.NDArray[np.int32],
     ) -> npt.NDArray[np.float64]:
         """
         Compute the confusion matrix for each class and IoU threshold.
@@ -615,15 +586,13 @@ class MeanAverageRecall(
             num_predictions = is_class.sum()
 
             if num_predictions == 0:
-                true_positives = np.zeros(num_thresholds, dtype=np.float64)
-                false_positives = np.zeros(num_thresholds, dtype=np.float64)
-                false_negatives = np.full(num_thresholds, num_true, dtype=np.float64)
+                true_positives = np.zeros(num_thresholds)
+                false_positives = np.zeros(num_thresholds)
+                false_negatives = np.full(num_thresholds, num_true)
             elif num_true == 0:
-                true_positives = np.zeros(num_thresholds, dtype=np.float64)
-                false_positives = np.full(
-                    num_thresholds, num_predictions, dtype=np.float64
-                )
-                false_negatives = np.zeros(num_thresholds, dtype=np.float64)
+                true_positives = np.zeros(num_thresholds)
+                false_positives = np.full(num_thresholds, num_predictions)
+                false_negatives = np.zeros(num_thresholds)
             else:
                 limited_matches = sorted_matches[is_class]
                 true_positives = limited_matches.sum(0)
@@ -666,18 +635,14 @@ class MeanAverageRecall(
         result_recall: npt.NDArray[np.float64] = recall
         return result_recall
 
-    def _detections_content(self, detections: Detections) -> npt.NDArray[np.generic]:
+    def _detections_content(self, detections: Detections) -> npt.NDArray[Any]:
         """Return boxes, masks or oriented bounding boxes from detections."""
         if self._metric_target == MetricTarget.BOXES:
-            result_boxes: npt.NDArray[np.float32] = np.asarray(
-                detections.xyxy, dtype=np.float32
-            )
+            result_boxes: npt.NDArray[np.float32] = detections.xyxy
             return result_boxes
         if self._metric_target == MetricTarget.MASKS:
             if detections.mask is not None:
-                result_masks: npt.NDArray[np.bool_] = np.asarray(
-                    detections.mask, dtype=bool
-                )
+                result_masks: npt.NDArray[np.bool_] = detections.mask
                 return result_masks
             return self._make_empty_content()
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
@@ -688,7 +653,7 @@ class MeanAverageRecall(
             return self._make_empty_content()
         raise ValueError(f"Invalid metric target: {self._metric_target}")
 
-    def _make_empty_content(self) -> npt.NDArray[np.generic]:
+    def _make_empty_content(self) -> npt.NDArray[Any]:
         if self._metric_target == MetricTarget.BOXES:
             empty_boxes: npt.NDArray[np.float32] = np.empty((0, 4), dtype=np.float32)
             return empty_boxes
@@ -714,30 +679,18 @@ class MeanAverageRecall(
         sizes = get_detection_size_category(new_detections, self._metric_target)
         size_mask = sizes == size_category.value
 
-        new_detections.xyxy = cast(
-            npt.NDArray[np.number], new_detections.xyxy[size_mask]
-        )
+        new_detections.xyxy = new_detections.xyxy[size_mask]
         if new_detections.mask is not None:
-            new_detections.mask = cast(
-                npt.NDArray[np.bool_], new_detections.mask[size_mask]
-            )
+            new_detections.mask = new_detections.mask[size_mask]
         if new_detections.class_id is not None:
-            new_detections.class_id = cast(
-                npt.NDArray[np.int32], new_detections.class_id[size_mask]
-            )
+            new_detections.class_id = new_detections.class_id[size_mask]
         if new_detections.confidence is not None:
-            new_detections.confidence = cast(
-                npt.NDArray[np.float32], new_detections.confidence[size_mask]
-            )
+            new_detections.confidence = new_detections.confidence[size_mask]
         if new_detections.tracker_id is not None:
-            new_detections.tracker_id = cast(
-                npt.NDArray[np.int32], new_detections.tracker_id[size_mask]
-            )
+            new_detections.tracker_id = new_detections.tracker_id[size_mask]
         if new_detections.data is not None:
             for key, value in new_detections.data.items():
-                new_detections.data[key] = cast(
-                    npt.NDArray[np.generic], np.array(value)[size_mask]
-                )
+                new_detections.data[key] = np.array(value)[size_mask]
 
         return new_detections
 

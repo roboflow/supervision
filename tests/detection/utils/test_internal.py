@@ -36,7 +36,7 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
                 np.empty(0),
                 None,
                 None,
-                {CLASS_NAME_DATA_FIELD: np.empty(0)},
+                {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)},
             ),
             DoesNotRaise(),
         ),  # empty result
@@ -124,7 +124,7 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
                 np.empty(0),
                 None,
                 None,
-                {CLASS_NAME_DATA_FIELD: np.empty(0)},
+                {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)},
             ),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no points
@@ -150,7 +150,7 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
                 np.empty(0),
                 None,
                 None,
-                {CLASS_NAME_DATA_FIELD: np.empty(0)},
+                {CLASS_NAME_DATA_FIELD: np.empty(0, dtype=str)},
             ),
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no enough points
@@ -449,6 +449,80 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
             ),
             DoesNotRaise(),
         ),  # mixed RLE + box-only batch — masks misaligned with xyxy (known limitation)
+        pytest.param(
+            {
+                "predictions": [
+                    {
+                        "x": 1.5,
+                        "y": 1.5,
+                        "width": 2.0,
+                        "height": 2.0,
+                        "confidence": 0.9,
+                        "class_id": 0,
+                        "class": "person",
+                        "tracker_id": 7,
+                    },
+                    {
+                        "x": 3.0,
+                        "y": 3.0,
+                        "width": 2.0,
+                        "height": 2.0,
+                        "confidence": 0.8,
+                        "class_id": 1,
+                        "class": "car",
+                    },
+                ],
+                "image": {"width": 4, "height": 4},
+            },
+            (
+                np.array([[0.5, 0.5, 2.5, 2.5], [2.0, 2.0, 4.0, 4.0]]),
+                np.array([0.9, 0.8]),
+                np.array([0, 1]),
+                None,
+                # tracker_id is None when only some detections carry one, rather
+                # than an array misaligned with xyxy that would raise ValueError.
+                None,
+                {CLASS_NAME_DATA_FIELD: np.array(["person", "car"])},
+            ),
+            DoesNotRaise(),
+            id="mixed_tracker_id_batch_drops_to_none",
+        ),
+        pytest.param(
+            {
+                "predictions": [
+                    {
+                        "x": 1.5,
+                        "y": 1.5,
+                        "width": 2.0,
+                        "height": 2.0,
+                        "confidence": 0.9,
+                        "class_id": 0,
+                        "class": "person",
+                    },
+                    {
+                        "x": 3.0,
+                        "y": 3.0,
+                        "width": 2.0,
+                        "height": 2.0,
+                        "confidence": 0.8,
+                        "class_id": 1,
+                        "class": "car",
+                    },
+                ],
+                "image": {"width": 4, "height": 4},
+            },
+            (
+                np.array([[0.5, 0.5, 2.5, 2.5], [2.0, 2.0, 4.0, 4.0]]),
+                np.array([0.9, 0.8]),
+                np.array([0, 1]),
+                None,
+                # None not in tracker_ids prevents np.array([None, None], dtype=int64)
+                None,
+                {CLASS_NAME_DATA_FIELD: np.array(["person", "car"])},
+            ),
+            DoesNotRaise(),
+            id="all_absent_tracker_id_no_raise",
+        ),
     ],
 )
 def test_process_roboflow_result(
@@ -473,6 +547,11 @@ def test_process_roboflow_result(
             if isinstance(result[5][key], np.ndarray):
                 assert np.array_equal(result[5][key], expected_result[5][key]), (
                     f"Mismatch in arrays for key {key}"
+                )
+                assert result[5][key].dtype == expected_result[5][key].dtype, (
+                    f"dtype mismatch for key {key}: "
+                    f"got {result[5][key].dtype}, "
+                    f"expected {expected_result[5][key].dtype}"
                 )
             else:
                 assert result[5][key] == expected_result[5][key], (
