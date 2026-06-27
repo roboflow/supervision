@@ -8,7 +8,7 @@ seed = 6
 &gt;       masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-tests\detection\test_compact_mask.py:808: 
+tests\detection\test_compact_mask.py:808:
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 rng = Generator(PCG64) at 0x1FBC64111C0, num_masks = 5, img_h = 1080
@@ -22,7 +22,7 @@ img_w = 1920, fill_prob = 0.3
         fill_prob: float = 0.3,
     ) -&gt; tuple[np.ndarray, np.ndarray]:
         """Generate *num_masks* random boolean masks with matching tight xyxy boxes.
-    
+
         Each mask is built by filling a random sub-rectangle with Bernoulli noise at
         ``fill_prob``, then computing tight bounding boxes via ``mask_to_xyxy``.
         This guarantees every mask has at least one True pixel (for non-degenerate
@@ -42,7 +42,7 @@ seed = 7
 &gt;       masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-tests\detection\test_compact_mask.py:808: 
+tests\detection\test_compact_mask.py:808:
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 rng = Generator(PCG64) at 0x1FBC6411FC0, num_masks = 1, img_h = 1080
@@ -56,7 +56,7 @@ img_w = 1920, fill_prob = 0.3
         fill_prob: float = 0.3,
     ) -&gt; tuple[np.ndarray, np.ndarray]:
         """Generate *num_masks* random boolean masks with matching tight xyxy boxes.
-    
+
         Each mask is built by filling a random sub-rectangle with Bernoulli noise at
         ``fill_prob``, then computing tight bounding boxes via ``mask_to_xyxy``.
         This guarantees every mask has at least one True pixel (for non-degenerate
@@ -76,7 +76,7 @@ seed = 8
 &gt;       masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-tests\detection\test_compact_mask.py:808: 
+tests\detection\test_compact_mask.py:808:
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 rng = Generator(PCG64) at 0x1FBC6412B20, num_masks = 20, img_h = 480
@@ -90,7 +90,7 @@ img_w = 640, fill_prob = 0.3
         fill_prob: float = 0.3,
     ) -&gt; tuple[np.ndarray, np.ndarray]:
         """Generate *num_masks* random boolean masks with matching tight xyxy boxes.
-    
+
         Each mask is built by filling a random sub-rectangle with Bernoulli noise at
         ``fill_prob``, then computing tight bounding boxes via ``mask_to_xyxy``.
         This guarantees every mask has at least one True pixel (for non-degenerate
@@ -111,7 +111,7 @@ seed = 6
 &gt;       masks, xyxy = _random_masks_and_xyxy(rng, num_masks, img_h, img_w)
                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-tests\detection\test_compact_mask.py:824: 
+tests\detection\test_compact_mask.py:824:
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
 rng = Generator(PCG64) at 0x1FBC6411E00, num_masks = 5, img_h = 1080
@@ -125,7 +125,7 @@ img_w = 1920, fill_prob = 0.3
         fill_prob: float = 0.3,
     ) -&gt; tuple[np.ndarray, np.ndarray]:
         """Generate *num_masks* random boolean masks with matching tight xyxy boxes.
-    
+
         Each mask is built by filling a random sub-rectangle with Bernoulli noise at
         ``fill_prob``, then computing tight bounding boxes via ``mask_to_xyxy``.
         This guarantees every mask has at least one True pixel (for non-degenerate
