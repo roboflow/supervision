@@ -3162,9 +3162,7 @@ member has a filename and hash of the video. File names and links can be seen be
 
               <details class="quote">
                 <summary>Source code in <code>src/supervision/assets/list.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-23">23</a></span>
-<span class="normal"><a href="#__codelineno-0-24">24</a></span>
-<span class="normal"><a href="#__codelineno-0-25">25</a></span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-25">25</a></span>
 <span class="normal"><a href="#__codelineno-0-26">26</a></span>
 <span class="normal"><a href="#__codelineno-0-27">27</a></span>
 <span class="normal"><a href="#__codelineno-0-28">28</a></span>
@@ -3193,38 +3191,40 @@ member has a filename and hash of the video. File names and links can be seen be
 <span class="normal"><a href="#__codelineno-0-51">51</a></span>
 <span class="normal"><a href="#__codelineno-0-52">52</a></span>
 <span class="normal"><a href="#__codelineno-0-53">53</a></span>
-<span class="normal"><a href="#__codelineno-0-54">54</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="k">class</span><span class="w"> </span><span class="nc">VideoAssets</span><span class="p">(</span><span class="n">Assets</span><span class="p">):</span>
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="sd">    Each member of this class represents a video asset. The value associated with each</span>
-</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="sd">    member has a filename and hash of the video. File names and links can be seen below.</span>
-</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a>
-</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="sd">    | Asset                  | Video Filename             | Video URL                                                                             |</span>
-</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="sd">    |------------------------|----------------------------|---------------------------------------------------------------------------------------|</span>
-</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a><span class="sd">    | `VEHICLES`             | `vehicles.mp4`             | [Link](https://media.roboflow.com/supervision/video-examples/vehicles.mp4)            |</span>
-</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="sd">    | `MILK_BOTTLING_PLANT`  | `milk-bottling-plant.mp4`  | [Link](https://media.roboflow.com/supervision/video-examples/milk-bottling-plant.mp4) |</span>
-</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="sd">    | `VEHICLES_2`           | `vehicles-2.mp4`           | [Link](https://media.roboflow.com/supervision/video-examples/vehicles-2.mp4)          |</span>
-</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="sd">    | `GROCERY_STORE`        | `grocery-store.mp4`        | [Link](https://media.roboflow.com/supervision/video-examples/grocery-store.mp4)       |</span>
-</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="sd">    | `SUBWAY`               | `subway.mp4`               | [Link](https://media.roboflow.com/supervision/video-examples/subway.mp4)              |</span>
-</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="sd">    | `MARKET_SQUARE`        | `market-square.mp4`        | [Link](https://media.roboflow.com/supervision/video-examples/market-square.mp4)       |</span>
-</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a><span class="sd">    | `PEOPLE_WALKING`       | `people-walking.mp4`       | [Link](https://media.roboflow.com/supervision/video-examples/people-walking.mp4)      |</span>
-</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a><span class="sd">    | `BEACH`                | `beach-1.mp4`              | [Link](https://media.roboflow.com/supervision/video-examples/beach-1.mp4)             |</span>
-</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a><span class="sd">    | `BASKETBALL`           | `basketball-1.mp4`         | [Link](https://media.roboflow.com/supervision/video-examples/basketball-1.mp4)        |</span>
-</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a><span class="sd">    | `SKIING`               | `skiing.mp4`               | [Link](https://media.roboflow.com/supervision/video-examples/skiing.mp4)              |</span>
-</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
-</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41"></a>
-</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42"></a>    <span class="n">VEHICLES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;vehicles.mp4&quot;</span><span class="p">,</span> <span class="s2">&quot;8155ff4e4de08cfa25f39de96483f918&quot;</span><span class="p">)</span>
-</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43"></a>    <span class="n">MILK_BOTTLING_PLANT</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44"></a>        <span class="s2">&quot;milk-bottling-plant.mp4&quot;</span><span class="p">,</span>
-</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45"></a>        <span class="s2">&quot;9e8fb6e883f842a38b3d34267290bdc7&quot;</span><span class="p">,</span>
-</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46"></a>    <span class="p">)</span>
-</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47"></a>    <span class="n">VEHICLES_2</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;vehicles-2.mp4&quot;</span><span class="p">,</span> <span class="s2">&quot;830af6fba21ffbf14867a7fea595937b&quot;</span><span class="p">)</span>
-</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48"></a>    <span class="n">GROCERY_STORE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;grocery-store.mp4&quot;</span><span class="p">,</span> <span class="s2">&quot;48608fb4a8981f1c2469fa492adeec9c&quot;</span><span class="p">)</span>
-</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49"></a>    <span class="n">SUBWAY</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;subway.mp4&quot;</span><span class="p">,</span> <span class="s2">&quot;453475750691fb23c56a0cffef089194&quot;</span><span class="p">)</span>
-</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50"></a>    <span class="n">MARKET_SQUARE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;market-square.mp4&quot;</span><span class="p">,</span> <span class="s2">&quot;859179bf4a21f80a8baabfdb2ed716dc&quot;</span><span class="p">)</span>
-</span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51"></a>    <span class="n">PEOPLE_WALKING</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;people-walking.mp4&quot;</span><span class="p">,</span> <span class="s2">&quot;0574c053c8686c3f1dc0aa3743e45cb9&quot;</span><span class="p">)</span>
-</span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52"></a>    <span class="n">BEACH</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;beach-1.mp4&quot;</span><span class="p">,</span> <span class="s2">&quot;4175d42fec4d450ed081523fd39e0cf8&quot;</span><span class="p">)</span>
-</span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53"></a>    <span class="n">BASKETBALL</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;basketball-1.mp4&quot;</span><span class="p">,</span> <span class="s2">&quot;60d94a3c7c47d16f09d342b088012ecc&quot;</span><span class="p">)</span>
-</span><span id="__span-0-54"><a id="__codelineno-0-54" name="__codelineno-0-54"></a>    <span class="n">SKIING</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;skiing.mp4&quot;</span><span class="p">,</span> <span class="s2">&quot;d30987cbab1bbc5934199cdd1b293119&quot;</span><span class="p">)</span>
+<span class="normal"><a href="#__codelineno-0-54">54</a></span>
+<span class="normal"><a href="#__codelineno-0-55">55</a></span>
+<span class="normal"><a href="#__codelineno-0-56">56</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="k">class</span><span class="w"> </span><span class="nc">VideoAssets</span><span class="p">(</span><span class="n">Assets</span><span class="p">):</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="sd">    Each member of this class represents a video asset. The value associated with each</span>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="sd">    member has a filename and hash of the video. File names and links can be seen below.</span>
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29"></a>
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30"></a><span class="sd">    | Asset                  | Video Filename             | Video URL                                                                             |</span>
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="sd">    |------------------------|----------------------------|---------------------------------------------------------------------------------------|</span>
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="sd">    | `VEHICLES`             | `vehicles.mp4`             | [Link](https://media.roboflow.com/supervision/video-examples/vehicles.mp4)            |</span>
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="sd">    | `MILK_BOTTLING_PLANT`  | `milk-bottling-plant.mp4`  | [Link](https://media.roboflow.com/supervision/video-examples/milk-bottling-plant.mp4) |</span>
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34"></a><span class="sd">    | `VEHICLES_2`           | `vehicles-2.mp4`           | [Link](https://media.roboflow.com/supervision/video-examples/vehicles-2.mp4)          |</span>
+</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="sd">    | `GROCERY_STORE`        | `grocery-store.mp4`        | [Link](https://media.roboflow.com/supervision/video-examples/grocery-store.mp4)       |</span>
+</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36"></a><span class="sd">    | `SUBWAY`               | `subway.mp4`               | [Link](https://media.roboflow.com/supervision/video-examples/subway.mp4)              |</span>
+</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37"></a><span class="sd">    | `MARKET_SQUARE`        | `market-square.mp4`        | [Link](https://media.roboflow.com/supervision/video-examples/market-square.mp4)       |</span>
+</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38"></a><span class="sd">    | `PEOPLE_WALKING`       | `people-walking.mp4`       | [Link](https://media.roboflow.com/supervision/video-examples/people-walking.mp4)      |</span>
+</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39"></a><span class="sd">    | `BEACH`                | `beach-1.mp4`              | [Link](https://media.roboflow.com/supervision/video-examples/beach-1.mp4)             |</span>
+</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40"></a><span class="sd">    | `BASKETBALL`           | `basketball-1.mp4`         | [Link](https://media.roboflow.com/supervision/video-examples/basketball-1.mp4)        |</span>
+</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41"></a><span class="sd">    | `SKIING`               | `skiing.mp4`               | [Link](https://media.roboflow.com/supervision/video-examples/skiing.mp4)              |</span>
+</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43"></a>
+</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44"></a>    <span class="n">VEHICLES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;vehicles.mp4&quot;</span><span class="p">,</span> <span class="s2">&quot;8155ff4e4de08cfa25f39de96483f918&quot;</span><span class="p">)</span>
+</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45"></a>    <span class="n">MILK_BOTTLING_PLANT</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46"></a>        <span class="s2">&quot;milk-bottling-plant.mp4&quot;</span><span class="p">,</span>
+</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47"></a>        <span class="s2">&quot;9e8fb6e883f842a38b3d34267290bdc7&quot;</span><span class="p">,</span>
+</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48"></a>    <span class="p">)</span>
+</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49"></a>    <span class="n">VEHICLES_2</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;vehicles-2.mp4&quot;</span><span class="p">,</span> <span class="s2">&quot;830af6fba21ffbf14867a7fea595937b&quot;</span><span class="p">)</span>
+</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50"></a>    <span class="n">GROCERY_STORE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;grocery-store.mp4&quot;</span><span class="p">,</span> <span class="s2">&quot;48608fb4a8981f1c2469fa492adeec9c&quot;</span><span class="p">)</span>
+</span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51"></a>    <span class="n">SUBWAY</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;subway.mp4&quot;</span><span class="p">,</span> <span class="s2">&quot;453475750691fb23c56a0cffef089194&quot;</span><span class="p">)</span>
+</span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52"></a>    <span class="n">MARKET_SQUARE</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;market-square.mp4&quot;</span><span class="p">,</span> <span class="s2">&quot;859179bf4a21f80a8baabfdb2ed716dc&quot;</span><span class="p">)</span>
+</span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53"></a>    <span class="n">PEOPLE_WALKING</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;people-walking.mp4&quot;</span><span class="p">,</span> <span class="s2">&quot;0574c053c8686c3f1dc0aa3743e45cb9&quot;</span><span class="p">)</span>
+</span><span id="__span-0-54"><a id="__codelineno-0-54" name="__codelineno-0-54"></a>    <span class="n">BEACH</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;beach-1.mp4&quot;</span><span class="p">,</span> <span class="s2">&quot;4175d42fec4d450ed081523fd39e0cf8&quot;</span><span class="p">)</span>
+</span><span id="__span-0-55"><a id="__codelineno-0-55" name="__codelineno-0-55"></a>    <span class="n">BASKETBALL</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;basketball-1.mp4&quot;</span><span class="p">,</span> <span class="s2">&quot;60d94a3c7c47d16f09d342b088012ecc&quot;</span><span class="p">)</span>
+</span><span id="__span-0-56"><a id="__codelineno-0-56" name="__codelineno-0-56"></a>    <span class="n">SKIING</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;skiing.mp4&quot;</span><span class="p">,</span> <span class="s2">&quot;d30987cbab1bbc5934199cdd1b293119&quot;</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
               </details>
 
@@ -3300,9 +3300,7 @@ member is the filename of the image.</p>
 
               <details class="quote">
                 <summary>Source code in <code>src/supervision/assets/list.py</code></summary>
-                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-57">57</a></span>
-<span class="normal"><a href="#__codelineno-0-58">58</a></span>
-<span class="normal"><a href="#__codelineno-0-59">59</a></span>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-59">59</a></span>
 <span class="normal"><a href="#__codelineno-0-60">60</a></span>
 <span class="normal"><a href="#__codelineno-0-61">61</a></span>
 <span class="normal"><a href="#__codelineno-0-62">62</a></span>
@@ -3313,20 +3311,22 @@ member is the filename of the image.</p>
 <span class="normal"><a href="#__codelineno-0-67">67</a></span>
 <span class="normal"><a href="#__codelineno-0-68">68</a></span>
 <span class="normal"><a href="#__codelineno-0-69">69</a></span>
-<span class="normal"><a href="#__codelineno-0-70">70</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-57"><a id="__codelineno-0-57" name="__codelineno-0-57"></a><span class="k">class</span><span class="w"> </span><span class="nc">ImageAssets</span><span class="p">(</span><span class="n">Assets</span><span class="p">):</span>
-</span><span id="__span-0-58"><a id="__codelineno-0-58" name="__codelineno-0-58"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="sd">    Each member of this enum represents a image asset. The value associated with each</span>
-</span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60"></a><span class="sd">    member is the filename of the image.</span>
-</span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a>
-</span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62"></a><span class="sd">    | Asset              | Image Filename         | Video URL                                                                             |</span>
-</span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63"></a><span class="sd">    |--------------------|------------------------|---------------------------------------------------------------------------------------|</span>
-</span><span id="__span-0-64"><a id="__codelineno-0-64" name="__codelineno-0-64"></a><span class="sd">    | `PEOPLE_WALKING`   | `people-walking.jpg`   | [Link](https://media.roboflow.com/supervision/image-examples/people-walking.jpg)      |</span>
-</span><span id="__span-0-65"><a id="__codelineno-0-65" name="__codelineno-0-65"></a><span class="sd">    | `SOCCER`           | `soccer.jpg`           | [Link](https://media.roboflow.com/supervision/image-examples/soccer.jpg)              |</span>
-</span><span id="__span-0-66"><a id="__codelineno-0-66" name="__codelineno-0-66"></a>
-</span><span id="__span-0-67"><a id="__codelineno-0-67" name="__codelineno-0-67"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+<span class="normal"><a href="#__codelineno-0-70">70</a></span>
+<span class="normal"><a href="#__codelineno-0-71">71</a></span>
+<span class="normal"><a href="#__codelineno-0-72">72</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="k">class</span><span class="w"> </span><span class="nc">ImageAssets</span><span class="p">(</span><span class="n">Assets</span><span class="p">):</span>
+</span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61"></a><span class="sd">    Each member of this enum represents a image asset. The value associated with each</span>
+</span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62"></a><span class="sd">    member is the filename of the image.</span>
+</span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63"></a>
+</span><span id="__span-0-64"><a id="__codelineno-0-64" name="__codelineno-0-64"></a><span class="sd">    | Asset              | Image Filename         | Video URL                                                                             |</span>
+</span><span id="__span-0-65"><a id="__codelineno-0-65" name="__codelineno-0-65"></a><span class="sd">    |--------------------|------------------------|---------------------------------------------------------------------------------------|</span>
+</span><span id="__span-0-66"><a id="__codelineno-0-66" name="__codelineno-0-66"></a><span class="sd">    | `PEOPLE_WALKING`   | `people-walking.jpg`   | [Link](https://media.roboflow.com/supervision/image-examples/people-walking.jpg)      |</span>
+</span><span id="__span-0-67"><a id="__codelineno-0-67" name="__codelineno-0-67"></a><span class="sd">    | `SOCCER`           | `soccer.jpg`           | [Link](https://media.roboflow.com/supervision/image-examples/soccer.jpg)              |</span>
 </span><span id="__span-0-68"><a id="__codelineno-0-68" name="__codelineno-0-68"></a>
-</span><span id="__span-0-69"><a id="__codelineno-0-69" name="__codelineno-0-69"></a>    <span class="n">PEOPLE_WALKING</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;people-walking.jpg&quot;</span><span class="p">,</span> <span class="s2">&quot;e6bda00b47f2908eeae7df86ef995dcd&quot;</span><span class="p">)</span>
-</span><span id="__span-0-70"><a id="__codelineno-0-70" name="__codelineno-0-70"></a>    <span class="n">SOCCER</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;soccer.jpg&quot;</span><span class="p">,</span> <span class="s2">&quot;0f5a4b98abf3e3973faf9e9260a7d876&quot;</span><span class="p">)</span>
+</span><span id="__span-0-69"><a id="__codelineno-0-69" name="__codelineno-0-69"></a><span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: E501 // docs</span>
+</span><span id="__span-0-70"><a id="__codelineno-0-70" name="__codelineno-0-70"></a>
+</span><span id="__span-0-71"><a id="__codelineno-0-71" name="__codelineno-0-71"></a>    <span class="n">PEOPLE_WALKING</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;people-walking.jpg&quot;</span><span class="p">,</span> <span class="s2">&quot;e6bda00b47f2908eeae7df86ef995dcd&quot;</span><span class="p">)</span>
+</span><span id="__span-0-72"><a id="__codelineno-0-72" name="__codelineno-0-72"></a>    <span class="n">SOCCER</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;soccer.jpg&quot;</span><span class="p">,</span> <span class="s2">&quot;0f5a4b98abf3e3973faf9e9260a7d876&quot;</span><span class="p">)</span>
 </span></code></pre></div></td></tr></table></div>
               </details>
 
