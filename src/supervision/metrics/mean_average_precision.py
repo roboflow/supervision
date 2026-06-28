@@ -671,6 +671,22 @@ class COCOEvaluatorParameters:
         ]
 
 
+@dataclass
+class COCOEvaluatorState:
+    """Mutable state collected during COCO evaluation."""
+
+    eval_imgs: Any = field(default_factory=lambda: defaultdict(list))
+    results: dict[str, Any] = field(default_factory=dict)
+    targets: defaultdict[tuple[int, int], list[Any]] = field(
+        default_factory=lambda: defaultdict(list)
+    )
+    predictions: defaultdict[tuple[int, int], list[Any]] = field(
+        default_factory=lambda: defaultdict(list)
+    )
+    stats: list[Any] = field(default_factory=list)
+    ious: dict[tuple[int, int], Any] = field(default_factory=dict)
+
+
 class COCOEvaluator:
     """
     Evaluator class to compute COCO metrics.
@@ -693,24 +709,40 @@ class COCOEvaluator:
 
         self.coco_targets = coco_targets
         self.coco_predictions = coco_predictions
-        # List of dictionaries containing the evaluation results
-        # len(eval_imgs) = (categories) * (area_ranges) * (images)
-        # For COCO 2017: len(eval_images) = 80 * 4 * 5000 = 1600000
-        self.eval_imgs: Any = defaultdict(list)
-        # Dictionary of accumulated results
-        self.results: dict[str, Any] = {}
-        # Dictionary of targets for evaluation
-        self._targets: defaultdict[tuple[int, int], list[Any]] = defaultdict(list)
-        self._predictions: defaultdict[tuple[int, int], list[Any]] = defaultdict(list)
         # Parameters for evaluation
         self.params = COCOEvaluatorParameters()
-        # List of results summarization
-        self.stats: list[Any] = []
-        # Dictionary of IOUs between all targets and predictions
-        self.ious: dict[tuple[int, int], Any] = {}
+        self._state = COCOEvaluatorState()
         # Set image and category ids
         self.params.img_ids = sorted(self.coco_targets.get_image_ids())
         self.params.cat_ids = sorted(self.coco_targets.get_category_ids())
+
+    @property
+    def eval_imgs(self) -> Any:
+        """Per-image evaluation results."""
+        return self._state.eval_imgs
+
+    @property
+    def results(self) -> dict[str, Any]:
+        """Accumulated evaluation results."""
+        return self._state.results
+
+    @property
+    def stats(self) -> list[Any]:
+        """Summary statistics for the evaluation."""
+        return self._state.stats
+
+    @property
+    def ious(self) -> dict[tuple[int, int], Any]:
+        """Cached IoU values."""
+        return self._state.ious
+
+    @property
+    def _targets(self) -> defaultdict[tuple[int, int], list[Any]]:
+        return self._state.targets
+
+    @property
+    def _predictions(self) -> defaultdict[tuple[int, int], list[Any]]:
+        return self._state.predictions
 
     def _prepare_targets_and_predictions(self) -> None:
         """
@@ -733,18 +765,18 @@ class COCOEvaluator:
             gt["ignore"] = "iscrowd" in gt and gt["iscrowd"]
 
         # Select targets
-        self._targets = defaultdict(list)
+        self._state.targets = defaultdict(list)
         for gt in targets:
-            self._targets[gt["image_id"], gt["category_id"]].append(gt)
+            self._state.targets[gt["image_id"], gt["category_id"]].append(gt)
 
         # Select predictions
-        self._predictions = defaultdict(list)
+        self._state.predictions = defaultdict(list)
         for dt in predictions:
-            self._predictions[dt["image_id"], dt["category_id"]].append(dt)
+            self._state.predictions[dt["image_id"], dt["category_id"]].append(dt)
 
         # Initialize evaluation results
-        self.eval_imgs = defaultdict(list)
-        self.results = {}
+        self._state.eval_imgs = defaultdict(list)
+        self._state.results = {}
 
     def _compute_iou(self, img_id: int, cat_id: int) -> npt.NDArray[np.float32]:
         """
@@ -759,8 +791,8 @@ class COCOEvaluator:
             The IoU between the targets and predictions.
         """
 
-        gt = self._targets[img_id, cat_id]
-        dt = self._predictions[img_id, cat_id]
+        gt = self._state.targets[img_id, cat_id]
+        dt = self._state.predictions[img_id, cat_id]
 
         # If there is nothing to evaluate
         if len(gt) == 0 and len(dt) == 0:
@@ -806,8 +838,8 @@ class COCOEvaluator:
             The evaluation results.
         """
         # Get targets (gt) and predictions (dt) for the given image and category
-        gt: list[dict[str, Any]] = self._targets[img_id, cat_id]
-        dt: list[dict[str, Any]] = self._predictions[img_id, cat_id]
+        gt: list[dict[str, Any]] = self._state.targets[img_id, cat_id]
+        dt: list[dict[str, Any]] = self._state.predictions[img_id, cat_id]
 
         # If there is nothing to evaluate
         if len(gt) == 0 and len(dt) == 0:
@@ -833,9 +865,9 @@ class COCOEvaluator:
 
         # Load computed ious for the given image and category
         ious = (
-            self.ious[img_id, cat_id][:, gt_sorted]
-            if len(self.ious[img_id, cat_id]) > 0
-            else self.ious[img_id, cat_id]
+            self._state.ious[img_id, cat_id][:, gt_sorted]
+            if len(self._state.ious[img_id, cat_id]) > 0
+            else self._state.ious[img_id, cat_id]
         )
 
         # Get the number of thresholds, ground truths and detections
@@ -992,7 +1024,8 @@ class COCOEvaluator:
                 # Loop through max detections
                 for max_det_idx, max_det in enumerate(selected_max_detections):
                     eval_img_data = [
-                        self.eval_imgs[cat_offset + area_offset + i] for i in image_inds
+                        self._state.eval_imgs[cat_offset + area_offset + i]
+                        for i in image_inds
                     ]
                     eval_img_data = [e for e in eval_img_data if e is not None]
 
@@ -1081,7 +1114,7 @@ class COCOEvaluator:
                             np.array(score_at_recall, dtype=np.float32)
                         )
 
-        self.results = {
+        self._state.results = {
             "params": self.params,
             "counts": [
                 num_iou_thresholds,
@@ -1161,7 +1194,7 @@ class COCOEvaluator:
             average_precision_large
         )
 
-        self.results = {
+        self._state.results = {
             "params": self.params,
             "counts": [
                 num_iou_thresholds,
@@ -1209,7 +1242,7 @@ class COCOEvaluator:
             if use_ap:
                 # Dimension of precision:
                 # threshold x recall x classes x areas x max detections
-                s = self.results["precision"]
+                s = self._state.results["precision"]
                 # IOU
                 if iou_thr is not None:
                     t = np.where(iou_thr == self.params.iou_thrs)[0]
@@ -1218,7 +1251,7 @@ class COCOEvaluator:
             else:
                 # Dimension of recall:
                 # threshold x classes x areas x max detections
-                s = self.results["recall"]
+                s = self._state.results["recall"]
                 if iou_thr is not None:
                     t = np.where(iou_thr == self.params.iou_thrs)[0]
                     s = s[t]
@@ -1276,8 +1309,8 @@ class COCOEvaluator:
             )
             return stats
 
-        if len(self.results) != 0:
-            self.stats = _summarize_predictions().tolist()
+        if len(self._state.results) != 0:
+            self._state.stats = _summarize_predictions().tolist()
 
     def evaluate(self) -> None:
         """
@@ -1292,7 +1325,7 @@ class COCOEvaluator:
         self._prepare_targets_and_predictions()
 
         # Compute IOUs between all targets and predictions for all images and categories
-        self.ious = {
+        self._state.ious = {
             (img_id, cat_id): self._compute_iou(img_id, cat_id)
             for img_id in self.params.img_ids
             for cat_id in self.params.cat_ids
@@ -1302,7 +1335,7 @@ class COCOEvaluator:
         max_det = self.params.max_dets[-1]
 
         # Evaluate each image with all categories, area range and max detections
-        self.eval_imgs = [
+        self._state.eval_imgs = [
             self._evaluate_image(img_id, cat_id, area_range, max_det)
             for cat_id in self.params.cat_ids
             for area_range in self.params.area_range
