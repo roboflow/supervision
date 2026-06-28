@@ -234,9 +234,6 @@ class F1Score(Metric):
                 f1_per_class=np.zeros((0, iou_thresholds.shape[0])),
                 iou_thresholds=iou_thresholds,
                 matched_classes=np.array([], dtype=int),
-                small_objects=None,
-                medium_objects=None,
-                large_objects=None,
             )
 
         concatenated_stats = [np.concatenate(items, 0) for items in zip(*stats)]
@@ -251,9 +248,6 @@ class F1Score(Metric):
             f1_per_class=f1_per_class,
             iou_thresholds=iou_thresholds,
             matched_classes=unique_classes,
-            small_objects=None,
-            medium_objects=None,
-            large_objects=None,
         )
 
     def _compute_f1_for_classes(
@@ -509,6 +503,15 @@ class F1Score(Metric):
 
 
 @dataclass
+class F1ScoreSizeResults:
+    """Grouped F1 results split by object size."""
+
+    small_objects: F1ScoreResult | None = None
+    medium_objects: F1ScoreResult | None = None
+    large_objects: F1ScoreResult | None = None
+
+
+@dataclass(init=False)
 class F1ScoreResult:
     """
     The results of the F1 score metric calculation.
@@ -554,10 +557,78 @@ class F1ScoreResult:
     f1_per_class: npt.NDArray[np.float64]
     iou_thresholds: npt.NDArray[np.float32]
     matched_classes: npt.NDArray[np.int32]
+    size_results: F1ScoreSizeResults | None
 
-    small_objects: F1ScoreResult | None
-    medium_objects: F1ScoreResult | None
-    large_objects: F1ScoreResult | None
+    def __init__(
+        self,
+        metric_target: MetricTarget,
+        averaging_method: AveragingMethod,
+        f1_scores: npt.NDArray[np.float64],
+        f1_per_class: npt.NDArray[np.float64],
+        iou_thresholds: npt.NDArray[np.float32],
+        matched_classes: npt.NDArray[np.int32],
+        size_results: F1ScoreSizeResults | None = None,
+        small_objects: F1ScoreResult | None = None,
+        medium_objects: F1ScoreResult | None = None,
+        large_objects: F1ScoreResult | None = None,
+    ) -> None:
+        self.metric_target = metric_target
+        self.averaging_method = averaging_method
+        self.f1_scores = f1_scores
+        self.f1_per_class = f1_per_class
+        self.iou_thresholds = iou_thresholds
+        self.matched_classes = matched_classes
+
+        if size_results is not None:
+            self.size_results = size_results
+        elif (
+            small_objects is not None
+            or medium_objects is not None
+            or large_objects is not None
+        ):
+            self.size_results = F1ScoreSizeResults(
+                small_objects=small_objects,
+                medium_objects=medium_objects,
+                large_objects=large_objects,
+            )
+        else:
+            self.size_results = None
+
+    def _ensure_size_results(self) -> F1ScoreSizeResults:
+        if self.size_results is None:
+            self.size_results = F1ScoreSizeResults()
+
+        return self.size_results
+
+    @property
+    def small_objects(self) -> F1ScoreResult | None:
+        if self.size_results is None:
+            return None
+        return self.size_results.small_objects
+
+    @small_objects.setter
+    def small_objects(self, value: F1ScoreResult | None) -> None:
+        self._ensure_size_results().small_objects = value
+
+    @property
+    def medium_objects(self) -> F1ScoreResult | None:
+        if self.size_results is None:
+            return None
+        return self.size_results.medium_objects
+
+    @medium_objects.setter
+    def medium_objects(self, value: F1ScoreResult | None) -> None:
+        self._ensure_size_results().medium_objects = value
+
+    @property
+    def large_objects(self) -> F1ScoreResult | None:
+        if self.size_results is None:
+            return None
+        return self.size_results.large_objects
+
+    @large_objects.setter
+    def large_objects(self, value: F1ScoreResult | None) -> None:
+        self._ensure_size_results().large_objects = value
 
     def __str__(self) -> str:
         """

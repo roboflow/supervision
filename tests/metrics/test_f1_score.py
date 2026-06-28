@@ -3,7 +3,7 @@ import pytest
 
 from supervision.detection.core import Detections
 from supervision.metrics.core import AveragingMethod, MetricTarget
-from supervision.metrics.f1_score import F1Score
+from supervision.metrics.f1_score import F1Score, F1ScoreResult
 from tests.helpers import assert_almost_equal
 
 
@@ -52,6 +52,34 @@ class TestF1Score:
         )
         assert metric._metric_target == MetricTarget.MASKS
         assert metric.averaging_method == AveragingMethod.MACRO
+
+    def test_size_specific_results_are_grouped_compatibly(self):
+        """Test that size-specific subresults stay accessible via properties."""
+        nested_result = F1ScoreResult(
+            metric_target=MetricTarget.BOXES,
+            averaging_method=AveragingMethod.WEIGHTED,
+            f1_scores=np.zeros(10, dtype=np.float64),
+            f1_per_class=np.zeros((0, 10), dtype=np.float64),
+            iou_thresholds=np.linspace(0.5, 0.95, 10).astype(np.float32),
+            matched_classes=np.array([], dtype=np.int32),
+        )
+
+        result = F1ScoreResult(
+            metric_target=MetricTarget.BOXES,
+            averaging_method=AveragingMethod.WEIGHTED,
+            f1_scores=np.zeros(10, dtype=np.float64),
+            f1_per_class=np.zeros((0, 10), dtype=np.float64),
+            iou_thresholds=np.linspace(0.5, 0.95, 10).astype(np.float32),
+            matched_classes=np.array([], dtype=np.int32),
+            small_objects=nested_result,
+        )
+
+        assert result.small_objects is nested_result
+        assert result.medium_objects is None
+
+        result.medium_objects = nested_result
+        assert result.medium_objects is nested_result
+        assert result.size_results is not None
 
     def test_reset(self, dummy_prediction):
         """Test that reset() clears all stored data"""
