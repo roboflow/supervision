@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
@@ -28,7 +28,61 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class MeanAverageRecallResult:
+class MeanAverageRecallSizeResults:
+    """Mean Average Recall results split by object size."""
+
+    small_objects: MeanAverageRecallResult | None = None
+    medium_objects: MeanAverageRecallResult | None = None
+    large_objects: MeanAverageRecallResult | None = None
+
+
+class _MeanAverageRecallSizeResultsMixin:
+    """Shared accessors for nested object-size results."""
+
+    size_results: MeanAverageRecallSizeResults | None
+
+    def _ensure_size_results(self) -> MeanAverageRecallSizeResults:
+        if self.size_results is None:
+            self.size_results = MeanAverageRecallSizeResults()
+
+        return self.size_results
+
+    @property
+    def small_objects(self) -> MeanAverageRecallResult | None:
+        if self.size_results is None:
+            return None
+
+        return self.size_results.small_objects
+
+    @small_objects.setter
+    def small_objects(self, value: MeanAverageRecallResult | None) -> None:
+        self._ensure_size_results().small_objects = value
+
+    @property
+    def medium_objects(self) -> MeanAverageRecallResult | None:
+        if self.size_results is None:
+            return None
+
+        return self.size_results.medium_objects
+
+    @medium_objects.setter
+    def medium_objects(self, value: MeanAverageRecallResult | None) -> None:
+        self._ensure_size_results().medium_objects = value
+
+    @property
+    def large_objects(self) -> MeanAverageRecallResult | None:
+        if self.size_results is None:
+            return None
+
+        return self.size_results.large_objects
+
+    @large_objects.setter
+    def large_objects(self, value: MeanAverageRecallResult | None) -> None:
+        self._ensure_size_results().large_objects = value
+
+
+@dataclass(init=False)
+class MeanAverageRecallResult(_MeanAverageRecallSizeResultsMixin):  # pylint: disable=too-many-instance-attributes
     """
     The results of the Mean Average Recall metric calculation.
 
@@ -59,6 +113,49 @@ class MeanAverageRecallResult:
     """
 
     metric_target: MetricTarget
+    recall_scores: npt.NDArray[np.float64]
+    recall_per_class: npt.NDArray[np.float64]
+    max_detections: npt.NDArray[np.int32]
+    iou_thresholds: npt.NDArray[np.float32]
+    matched_classes: npt.NDArray[np.int32]
+    size_results: MeanAverageRecallSizeResults | None = field(
+        default=None, repr=False, compare=False
+    )
+
+    def __init__(
+        self,
+        metric_target: MetricTarget,
+        recall_scores: npt.NDArray[np.float64],
+        recall_per_class: npt.NDArray[np.float64],
+        max_detections: npt.NDArray[np.int32],
+        iou_thresholds: npt.NDArray[np.float32],
+        matched_classes: npt.NDArray[np.int32],
+        size_results: MeanAverageRecallSizeResults | None = None,
+        small_objects: MeanAverageRecallResult | None = None,
+        medium_objects: MeanAverageRecallResult | None = None,
+        large_objects: MeanAverageRecallResult | None = None,
+    ) -> None:
+        self.metric_target = metric_target
+        self.recall_scores = recall_scores
+        self.recall_per_class = recall_per_class
+        self.max_detections = max_detections
+        self.iou_thresholds = iou_thresholds
+        self.matched_classes = matched_classes
+
+        if size_results is not None:
+            self.size_results = size_results
+        elif (
+            small_objects is not None
+            or medium_objects is not None
+            or large_objects is not None
+        ):
+            self.size_results = MeanAverageRecallSizeResults(
+                small_objects=small_objects,
+                medium_objects=medium_objects,
+                large_objects=large_objects,
+            )
+        else:
+            self.size_results = None
 
     @property
     def mAR_at_1(self) -> float:
@@ -71,16 +168,6 @@ class MeanAverageRecallResult:
     @property
     def mAR_at_100(self) -> float:
         return float(self.recall_scores[2])
-
-    recall_scores: npt.NDArray[np.float64]
-    recall_per_class: npt.NDArray[np.float64]
-    max_detections: npt.NDArray[np.int32]
-    iou_thresholds: npt.NDArray[np.float32]
-    matched_classes: npt.NDArray[np.int32]
-
-    small_objects: MeanAverageRecallResult | None
-    medium_objects: MeanAverageRecallResult | None
-    large_objects: MeanAverageRecallResult | None
 
     def __str__(self) -> str:
         """
