@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from supervision.detection.utils.vlms import edit_distance, fuzzy_match_index

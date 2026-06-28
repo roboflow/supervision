@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 
 BASE_VIDEO_URL = "https://media.roboflow.com/supervision/video-examples/"
@@ -8,7 +10,7 @@ class Assets(Enum):
     filename: str
     md5_hash: str
 
-    def __new__(cls, filename: str, md5_hash: str) -> "Assets":
+    def __new__(cls, filename: str, md5_hash: str) -> Assets:
         obj = object.__new__(cls)
         obj._value_ = filename
         obj.filename = filename

@@ -635,7 +635,13 @@ class Detections:
                 `detections.data["class_name"]` is always present as a
                 string-dtype NumPy array aligned with the detections; it is
                 empty (shape `(0,)`, dtype str) when `predictions` is empty
-                or absent.
+                or absent. `detections.tracker_id` is `None` when no
+                predictions carry a tracker ID, or when only a subset do
+                (mixed batch) — in that case all tracker IDs are dropped to
+                preserve alignment with the bounding boxes. Note: mixed
+                batches containing both RLE/polygon predictions and box-only
+                predictions may misalign the `mask` array; this is a
+                pre-existing limitation not addressed by this fix.
 
         Example:
             ```python
@@ -2071,11 +2077,10 @@ class Detections:
             An empty Detections object.
 
         Example:
-            ```python
-            from supervision import Detections
-
-            empty_detections = Detections.empty()
-            ```
+            >>> from supervision import Detections
+            >>> empty_detections = Detections.empty()
+            >>> empty_detections.xyxy.shape
+            (0, 4)
         """
         return cls(
             xyxy=np.empty((0, 4), dtype=np.float32),
@@ -2130,35 +2135,27 @@ class Detections:
             A single Detections object containing the merged data from the input list.
 
         Example:
-            ```python
-            import numpy as np
-            import supervision as sv
-
-            detections_1 = sv.Detections(
-                xyxy=np.array([[15, 15, 100, 100], [200, 200, 300, 300]]),
-                class_id=np.array([1, 2]),
-                data={'feature_vector': np.array([0.1, 0.2])}
-            )
-
-            detections_2 = sv.Detections(
-                xyxy=np.array([[30, 30, 120, 120]]),
-                class_id=np.array([1]),
-                data={'feature_vector': np.array([0.3])}
-            )
-
-            merged_detections = sv.Detections.merge([detections_1, detections_2])
-
-            merged_detections.xyxy
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections_1 = sv.Detections(
+            ...     xyxy=np.array([[15, 15, 100, 100], [200, 200, 300, 300]]),
+            ...     class_id=np.array([1, 2]),
+            ...     data={'feature_vector': np.array([0.1, 0.2])}
+            ... )
+            >>> detections_2 = sv.Detections(
+            ...     xyxy=np.array([[30, 30, 120, 120]]),
+            ...     class_id=np.array([1]),
+            ...     data={'feature_vector': np.array([0.3])}
+            ... )
+            >>> merged_detections = sv.Detections.merge([detections_1, detections_2])
+            >>> merged_detections.xyxy
             array([[ 15,  15, 100, 100],
                    [200, 200, 300, 300],
                    [ 30,  30, 120, 120]])
-
-            merged_detections.class_id
+            >>> merged_detections.class_id
             array([1, 2, 1])
-
-            merged_detections.data['feature_vector']
+            >>> merged_detections.data['feature_vector']
             array([0.1, 0.2, 0.3])
-            ```
         """
         detections_list = [
             detections for detections in detections_list if not detections.is_empty()
@@ -2233,11 +2230,12 @@ class Detections:
         Raises:
             ValueError: If the provided `anchor` is not supported.
         """
+        xyxy = cast(npt.NDArray[np.number], self.xyxy)
         if anchor == Position.CENTER:
             return np.array(
                 [
-                    (self.xyxy[:, 0] + self.xyxy[:, 2]) / 2,
-                    (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
+                    (xyxy[:, 0] + xyxy[:, 2]) / 2,
+                    (xyxy[:, 1] + xyxy[:, 3]) / 2,
                 ]
             ).transpose()
         elif anchor == Position.CENTER_OF_MASS:
@@ -2249,33 +2247,29 @@ class Detections:
         elif anchor == Position.CENTER_LEFT:
             return np.array(
                 [
-                    self.xyxy[:, 0],
-                    (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
+                    xyxy[:, 0],
+                    (xyxy[:, 1] + xyxy[:, 3]) / 2,
                 ]
             ).transpose()
         elif anchor == Position.CENTER_RIGHT:
             return np.array(
                 [
-                    self.xyxy[:, 2],
-                    (self.xyxy[:, 1] + self.xyxy[:, 3]) / 2,
+                    xyxy[:, 2],
+                    (xyxy[:, 1] + xyxy[:, 3]) / 2,
                 ]
             ).transpose()
         elif anchor == Position.BOTTOM_CENTER:
-            return np.array(
-                [(self.xyxy[:, 0] + self.xyxy[:, 2]) / 2, self.xyxy[:, 3]]
-            ).transpose()
+            return np.array([(xyxy[:, 0] + xyxy[:, 2]) / 2, xyxy[:, 3]]).transpose()
         elif anchor == Position.BOTTOM_LEFT:
-            return np.array([self.xyxy[:, 0], self.xyxy[:, 3]]).transpose()
+            return np.array([xyxy[:, 0], xyxy[:, 3]]).transpose()
         elif anchor == Position.BOTTOM_RIGHT:
-            return np.array([self.xyxy[:, 2], self.xyxy[:, 3]]).transpose()
+            return np.array([xyxy[:, 2], xyxy[:, 3]]).transpose()
         elif anchor == Position.TOP_CENTER:
-            return np.array(
-                [(self.xyxy[:, 0] + self.xyxy[:, 2]) / 2, self.xyxy[:, 1]]
-            ).transpose()
+            return np.array([(xyxy[:, 0] + xyxy[:, 2]) / 2, xyxy[:, 1]]).transpose()
         elif anchor == Position.TOP_LEFT:
-            return np.array([self.xyxy[:, 0], self.xyxy[:, 1]]).transpose()
+            return np.array([xyxy[:, 0], xyxy[:, 1]]).transpose()
         elif anchor == Position.TOP_RIGHT:
-            return np.array([self.xyxy[:, 2], self.xyxy[:, 1]]).transpose()
+            return np.array([xyxy[:, 2], xyxy[:, 1]]).transpose()
 
         raise ValueError(f"{anchor} is not supported.")
 

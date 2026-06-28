@@ -4,7 +4,7 @@ requires = [ "setuptools>=61" ]
 
 [project]
 name = "supervision"
-version = "0.29.0"
+version = "0.30.0.dev"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 readme = "README.md"
 keywords = [
@@ -58,6 +58,9 @@ dependencies = [
   "requests>=2.26",
   "scipy>=1.10",
   "tqdm>=4.62.3"
+]
+optional-dependencies.geotiff = [
+  "rasterio>=1.3", # 1.3 introduced stable window-read API and CRS.is_projected
 ]
 optional-dependencies.metrics = [
   "pandas>=2",

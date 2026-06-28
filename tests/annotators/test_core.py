@@ -2,6 +2,8 @@
 Tests for supervision/annotators/core.py
 """
 
+from __future__ import annotations
+
 import warnings
 
 import numpy as np

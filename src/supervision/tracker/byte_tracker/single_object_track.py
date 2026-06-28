@@ -62,20 +62,20 @@ class STrack:
     @staticmethod
     def multi_predict(stracks: list[STrack], shared_kalman: KalmanFilter) -> None:
         if len(stracks) > 0:
-            multi_mean = []
+            multi_mean_states = []
             multi_covariance = []
             for i, st in enumerate(stracks):
                 assert st.mean is not None
                 assert st.covariance is not None
-                multi_mean.append(st.mean.copy())
+                multi_mean_states.append(st.mean.copy())
                 multi_covariance.append(st.covariance)
                 if st.state != TrackState.Tracked:
-                    multi_mean[i][7] = 0
+                    multi_mean_states[i][7] = 0
 
-            multi_mean, multi_covariance = shared_kalman.multi_predict(
-                np.asarray(multi_mean), np.asarray(multi_covariance)
+            predicted_mean, predicted_covariance = shared_kalman.multi_predict(
+                np.asarray(multi_mean_states), np.asarray(multi_covariance)
             )
-            for i, (mean, cov) in enumerate(zip(multi_mean, multi_covariance)):
+            for i, (mean, cov) in enumerate(zip(predicted_mean, predicted_covariance)):
                 stracks[i].mean = mean
                 stracks[i].covariance = cov
 

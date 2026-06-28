@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import numpy as np
 import numpy.typing as npt
-from deprecate import TargetMode, deprecated
+from deprecate import (  # type: ignore[import-untyped,unused-ignore]
+    TargetMode,
+    deprecated,
+)
 
 from supervision.detection.utils.iou_and_nms import box_iou_batch
 
