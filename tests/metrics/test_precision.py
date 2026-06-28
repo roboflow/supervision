@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 import pytest
 
@@ -263,6 +265,45 @@ class TestPrecision:
         # Should raise ValueError for mismatched lengths
         with pytest.raises(ValueError, match="number of predictions"):
             metric.update([detections_50_50], [targets_50_50, targets_50_50])
+
+    @pytest.mark.parametrize(
+        "missing_attribute",
+        ["predictions_class_id", "targets_class_id", "predictions_confidence"],
+    )
+    def test_compute_value_error_for_missing_required_fields(
+        self, missing_attribute
+    ) -> None:
+        """Test compute raises ValueError when required fields are missing."""
+        metric = Precision()
+        boxes = np.array([[10, 10, 50, 50]], dtype=np.float32)
+        class_id = np.array([0], dtype=np.int32)
+        confidence = np.array([0.9], dtype=np.float32)
+
+        predictions = Detections(
+            xyxy=boxes,
+            confidence=confidence,
+            class_id=class_id,
+        )
+        targets = Detections(
+            xyxy=boxes,
+            class_id=class_id,
+        )
+
+        if missing_attribute == "predictions_class_id":
+            predictions = Detections(
+                xyxy=boxes,
+                confidence=confidence,
+            )
+        elif missing_attribute == "targets_class_id":
+            targets = Detections(xyxy=boxes)
+        else:
+            predictions = Detections(
+                xyxy=boxes,
+                class_id=class_id,
+            )
+
+        with pytest.raises(ValueError, match="Precision metric requires"):
+            metric.update(predictions, targets).compute()
 
     @pytest.mark.parametrize(
         "averaging_method",

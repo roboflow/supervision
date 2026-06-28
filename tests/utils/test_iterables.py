@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from supervision.utils.iterables import create_batches, fill

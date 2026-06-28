@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import numpy.typing as npt
@@ -389,6 +389,11 @@ class MeanAverageRecall(Metric):
             target_contents = self._detections_content(targets)
 
             if len(targets) > 0:
+                if predictions.class_id is None or targets.class_id is None:
+                    raise ValueError(
+                        "MeanAverageRecall metric requires `class_id` on both "
+                        "predictions and targets."
+                    )
                 if len(predictions) == 0:
                     stats.append(
                         (
@@ -400,6 +405,18 @@ class MeanAverageRecall(Metric):
                     )
 
                 else:
+                    if predictions.confidence is None:
+                        raise ValueError(
+                            "MeanAverageRecall metric requires `confidence` on "
+                            "predictions."
+                        )
+                    prediction_class_ids = np.asarray(
+                        predictions.class_id, dtype=np.int32
+                    )
+                    target_class_ids = np.asarray(targets.class_id, dtype=np.int32)
+                    prediction_confidence = np.asarray(
+                        predictions.confidence, dtype=np.float32
+                    )
                     if self._metric_target == MetricTarget.BOXES:
                         iou = box_iou_batch(target_contents, prediction_contents)
                     elif self._metric_target == MetricTarget.MASKS:
@@ -414,27 +431,19 @@ class MeanAverageRecall(Metric):
                         )
 
                     matches = self._match_detection_batch(
-                        predictions.class_id
-                        if predictions.class_id is not None
-                        else np.array([]),
-                        targets.class_id
-                        if targets.class_id is not None
-                        else np.array([]),
+                        prediction_class_ids,
+                        target_class_ids,
                         iou,
                         iou_thresholds,
                     )
 
-                    sorted_indices = np.argsort(
-                        -cast(npt.NDArray[np.float32], predictions.confidence)
-                    )
+                    sorted_indices = np.argsort(-prediction_confidence)
                     stats.append(
                         (
                             matches[sorted_indices],
                             np.arange(len(predictions)),
-                            cast(npt.NDArray[np.int32], predictions.class_id)[
-                                sorted_indices
-                            ],
-                            cast(npt.NDArray[np.int32], targets.class_id),
+                            prediction_class_ids[sorted_indices],
+                            target_class_ids,
                         )
                     )
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import ExitStack as DoesNotRaise
 from typing import ClassVar
 
+import cv2
 import numpy as np
 import pytest
 
@@ -12,6 +13,7 @@ from supervision.metrics.core import MetricTarget
 from supervision.metrics.detection import (
     ConfusionMatrix,
     MeanAveragePrecision,
+    _split_detections_by_outcome,
     _validate_input_tensors,
     detections_to_tensor,
 )
@@ -1210,6 +1212,67 @@ class TestDetectionMetrics:
             f"wrong-class preds with high IoU might incorrectly match GTs."
         )
 
+    def test_confusion_matrix_benchmark_saves_validation_visualizations(
+        self,
+        tmp_path,
+    ):
+        image = np.zeros((32, 32, 3), dtype=np.uint8)
+        targets = Detections(
+            xyxy=np.array([[2, 2, 12, 12], [18, 18, 28, 28]], dtype=np.float32),
+            class_id=np.array([0, 1]),
+        )
+        predictions = Detections(
+            xyxy=np.array([[2, 2, 12, 12], [4, 18, 12, 28]], dtype=np.float32),
+            confidence=np.array([0.95, 0.88]),
+            class_id=np.array([0, 1]),
+        )
+
+        class Dataset:
+            classes: ClassVar[list[str]] = ["cat", "dog"]
+
+            def __iter__(self):
+                yield "sample.jpg", image, targets
+
+        def callback(_: np.ndarray) -> Detections:
+            return predictions
+
+        confusion_matrix = ConfusionMatrix.benchmark(
+            dataset=Dataset(),
+            callback=callback,
+            save_directory_path=tmp_path,
+        )
+
+        saved_image_path = tmp_path / "sample.jpg"
+        assert saved_image_path.exists()
+
+        saved_image = cv2.imread(str(saved_image_path))
+        assert saved_image is not None
+        assert saved_image.shape[:2] == (64, 64)
+        gt_panel = saved_image[:32, :32]
+        tp_panel = saved_image[:32, 32:]
+        fp_panel = saved_image[32:, :32]
+        fn_panel = saved_image[32:, 32:]
+
+        # Assert boxes are rendered in the expected panels, away from borders/dividers.
+        assert np.any(gt_panel[2:13, 2:13] != 0)
+        assert np.any(tp_panel[2:13, 2:13] != 0)
+        # Rows 25-28 are below the panel title text; cols 4-9 are at the left edge
+        # of the FP box [4,18,12,28] — non-zero only if the box is rendered.
+        assert np.any(fp_panel[25:29, 4:9] != 0)
+        # Rows 25-28 are below the panel title text; cols 18-23 are at the left
+        # edge of the FN target box [18,18,28,28] — non-zero only if box rendered.
+        assert np.any(fn_panel[25:29, 18:23] != 0)
+
+        # Basic sanity that panels differ.
+        assert not np.array_equal(gt_panel, tp_panel)
+        assert not np.array_equal(gt_panel, fp_panel)
+        assert not np.array_equal(gt_panel, fn_panel)
+        assert not np.array_equal(tp_panel, fp_panel)
+        assert not np.array_equal(tp_panel, fn_panel)
+        assert not np.array_equal(fp_panel, fn_panel)
+
+        assert confusion_matrix.matrix.shape == (3, 3)
+
     @pytest.mark.parametrize(
         ("predictions", "targets", "metric_target", "exception"),
         [
@@ -1552,3 +1615,124 @@ class TestDetectionMetrics:
             metric_target=MetricTarget.BOXES,
         )
         assert cm.metric_target == MetricTarget.BOXES
+
+
+class TestSplitDetectionsByOutcome:
+    """Tests for _split_detections_by_outcome matching and filtering logic."""
+
+    def test_confidence_none_all_survive(self):
+        """Predictions with no confidence score pass threshold regardless."""
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            confidence=None,
+            class_id=np.array([0]),
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+
+        tp, fp, fn = _split_detections_by_outcome(predictions, targets, 0.5, 0.5)
+
+        assert len(tp) == 1
+        assert len(fp) == 0
+        assert len(fn) == 0
+
+    def test_all_below_threshold_returns_zero_tp(self):
+        """Predictions below conf_threshold are excluded, leaving only FN."""
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            confidence=np.array([0.2]),
+            class_id=np.array([0]),
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+
+        tp, fp, fn = _split_detections_by_outcome(predictions, targets, 0.5, 0.5)
+
+        assert len(tp) == 0
+        assert len(fp) == 0
+        assert len(fn) == 1
+
+    def test_cross_class_spatial_match(self):
+        """Spatially overlapping but class-mismatched pair → FP + FN."""
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            confidence=np.array([0.9]),
+            class_id=np.array([0]),
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([1]),
+        )
+
+        tp, fp, fn = _split_detections_by_outcome(predictions, targets, 0.5, 0.0)
+
+        assert len(tp) == 0
+        assert len(fp) == 1
+        assert len(fn) == 1
+
+    def test_empty_predictions_all_fn(self):
+        """Zero predictions → every target becomes a false negative."""
+        predictions = Detections.empty()
+        predictions.class_id = np.array([], dtype=np.int64)
+        targets = Detections(
+            xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]], dtype=np.float32),
+            class_id=np.array([0, 1]),
+        )
+
+        tp, fp, fn = _split_detections_by_outcome(predictions, targets, 0.5, 0.5)
+
+        assert len(tp) == 0
+        assert len(fp) == 0
+        assert len(fn) == 2
+
+    def test_empty_targets_all_fp(self):
+        """Zero targets → every prediction becomes a false positive."""
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            confidence=np.array([0.9]),
+            class_id=np.array([0]),
+        )
+        targets = Detections.empty()
+        targets.class_id = np.array([], dtype=np.int64)
+
+        tp, fp, fn = _split_detections_by_outcome(predictions, targets, 0.5, 0.5)
+
+        assert len(tp) == 0
+        assert len(fp) == 1
+        assert len(fn) == 0
+
+    @pytest.mark.parametrize(
+        ("predictions", "targets"),
+        [
+            pytest.param(
+                Detections(
+                    xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                    class_id=None,
+                ),
+                Detections(
+                    xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                    class_id=np.array([0]),
+                ),
+                id="predictions-class-id-none",
+            ),
+            pytest.param(
+                Detections(
+                    xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                    class_id=np.array([0]),
+                ),
+                Detections(
+                    xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                    class_id=None,
+                ),
+                id="targets-class-id-none",
+            ),
+        ],
+    )
+    def test_class_id_none_raises_value_error(self, predictions, targets):
+        """Missing class_id on either input raises ValueError."""
+        with pytest.raises(ValueError, match="class_id"):
+            _split_detections_by_outcome(predictions, targets, 0.5, 0.5)

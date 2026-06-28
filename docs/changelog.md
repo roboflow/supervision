@@ -7,6 +7,8 @@ date_modified: 2026-06-25
 
 ### 0.29.1 <small>Jun 23, 2026</small>
 
+- Fixed [#2353](https://github.com/roboflow/supervision/pull/2353): `sv.Detections.from_inference` no longer raises `TypeError` when the Inference package returns a mixed batch where only some predictions carry a `tracker_id`. `detections.tracker_id` is `None` for the full result in that case; fully-tracked and fully-untracked batches are unchanged.
+
 - Added [#2275](https://github.com/roboflow/supervision/pull/2275): `show_progress: bool = False` parameter to all `sv.DetectionDataset` load and save methods — `from_coco`, `from_yolo`, `from_pascal_voc`, `as_coco`, `as_yolo`, `as_pascal_voc`, and `save_dataset_images`. When `True`, a `tqdm.auto` progress bar is shown (works in terminal and Jupyter). Defaults to `False` for full backward compatibility; no new dependencies.
 
 - Added [#2027](https://github.com/roboflow/supervision/issues/2027): [`sv.InferenceSlicer`](https://supervision.roboflow.com/latest/detection/tools/inference_slicer/#supervision.detection.tools.inference_slicer.InferenceSlicer) now accepts an open rasterio-style dataset in addition to in-memory images. Each tile is read lazily via a windowed read instead of loading the whole image, enabling tiled inference on multi-GB aerial/drone GeoTIFFs without running out of memory. Detection is duck-typed, so `rasterio` stays an optional dependency installable via `pip install "supervision[geotiff]"` and the core library imports no rasterio symbols. A geographic (non-projected) CRS raises `ValueError`.

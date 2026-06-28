@@ -24,7 +24,7 @@ class ModelSize(Enum):
     LARGE = "large"
 
     @classmethod
-    def list(cls):
+    def list(cls) -> list[str]:
         return list(map(lambda c: c.value, cls))
 
     @classmethod
@@ -43,7 +43,9 @@ class ModelSize(Enum):
         )
 
 
-def load_model(checkpoint: ModelSize | str, device: str, resolution: int):
+def load_model(
+    checkpoint: ModelSize | str, device: str, resolution: int
+) -> RFDETRBase | RFDETRLarge | RFDETRMedium | RFDETRNano | RFDETRSmall:
     checkpoint = ModelSize.from_value(checkpoint)
 
     if checkpoint == ModelSize.NANO:

@@ -44,7 +44,7 @@ def main(
     roboflow_api_key: str | None = None,
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
-):
+) -> None:
     """
     Vehicle Speed Estimation using Inference and Supervision.
 

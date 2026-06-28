@@ -4,7 +4,10 @@ from typing import cast
 
 import numpy as np
 import numpy.typing as npt
-from deprecate import TargetMode, deprecated_class
+from deprecate import (  # type: ignore[import-untyped,unused-ignore]
+    TargetMode,
+    deprecated_class,
+)
 
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import box_iou_batch
