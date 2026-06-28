@@ -229,7 +229,6 @@ class ByteTrack:
                     STrack.tlbr_to_tlwh(tlbr),
                     score_keep,
                     self.config.minimum_consecutive_frames,
-                    self.state.resources.shared_kalman,
                     self.state.resources.internal_id_counter,
                     self.state.resources.external_id_counter,
                 )
@@ -278,7 +277,6 @@ class ByteTrack:
                     STrack.tlbr_to_tlwh(tlbr),
                     score_second,
                     self.config.minimum_consecutive_frames,
-                    self.state.resources.shared_kalman,
                     self.state.resources.internal_id_counter,
                     self.state.resources.external_id_counter,
                 )
