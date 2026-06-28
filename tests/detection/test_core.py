@@ -983,6 +983,46 @@ def test_from_inference_partial_tracker_id_does_not_crash() -> None:
     assert detections["class_name"] is not None
 
 
+def test_from_inference_partial_mask_does_not_crash() -> None:
+    """Results where only some predictions carry a mask must not raise."""
+    result = {
+        "image": {"width": 100, "height": 100},
+        "predictions": [
+            {
+                "x": 20,
+                "y": 20,
+                "width": 20,
+                "height": 20,
+                "confidence": 0.9,
+                "class": "a",
+                "class_id": 0,
+                "points": [
+                    {"x": 10, "y": 10},
+                    {"x": 30, "y": 10},
+                    {"x": 30, "y": 30},
+                    {"x": 10, "y": 30},
+                ],
+            },
+            {
+                "x": 70,
+                "y": 70,
+                "width": 20,
+                "height": 20,
+                "confidence": 0.8,
+                "class": "b",
+                "class_id": 1,
+            },
+        ],
+    }
+
+    detections = Detections.from_inference(result)
+
+    # all detections are kept; masks are dropped rather than misaligned
+    assert len(detections) == 2
+    assert detections.mask is None
+    assert detections.xyxy.shape == (2, 4)
+
+
 def test_from_inference_empty_class_name_dtype_matches_non_empty() -> None:
     """Empty and non-empty results should produce string-kind class_name arrays."""
     empty_result = {"predictions": [], "image": {"width": 100, "height": 100}}

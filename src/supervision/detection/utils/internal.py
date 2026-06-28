@@ -101,7 +101,7 @@ def process_roboflow_result(
     confidence: list[float] = []
     class_id: list[int] = []
     class_name: list[str] = []
-    masks: list[npt.NDArray[np.bool_]] = []
+    masks: list[npt.NDArray[np.bool_] | None] = []
     tracker_ids: list[int | None] = []
 
     image_width = int(roboflow_result["image"]["width"])
@@ -152,6 +152,7 @@ def process_roboflow_result(
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
+            masks.append(None)
             tracker_ids.append(prediction.get("tracker_id"))
         elif len(prediction["points"]) >= 3:
             polygon = np.array(
@@ -181,8 +182,16 @@ def process_roboflow_result(
     class_name_arr: npt.NDArray[np.str_] = (
         np.array(class_name) if len(class_name) > 0 else np.empty(0, dtype=str)
     )
+    # `masks` holds numpy arrays, so test for missing entries by identity
+    # (`array is None`) rather than `None in masks`, which would compare
+    # element-wise and raise on the ambiguous truth value.
+    missing_masks = sum(mask is None for mask in masks)
+    if 0 < missing_masks < len(masks):
+        logger.warning(
+            "Partial mask in batch; dropping all masks to preserve alignment with xyxy."
+        )
     masks_arr: npt.NDArray[np.bool_] | None = (
-        np.array(masks, dtype=bool) if len(masks) > 0 else None
+        np.array(masks, dtype=bool) if masks and missing_masks == 0 else None
     )
     if tracker_ids and 0 < tracker_ids.count(None) < len(tracker_ids):
         logger.warning(
