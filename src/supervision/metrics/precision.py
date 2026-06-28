@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -25,6 +25,314 @@ from supervision.metrics.utils.utils import ensure_pandas_installed
 
 if TYPE_CHECKING:
     import pandas as pd
+
+
+@dataclass
+class PrecisionSizeResults:
+    """Precision results split by object size."""
+
+    small_objects: PrecisionResult | None = None
+    medium_objects: PrecisionResult | None = None
+    large_objects: PrecisionResult | None = None
+
+
+@dataclass(init=False)
+class PrecisionResult:
+    """
+    The results of the precision metric calculation.
+
+    Defaults to `0` if no detections or targets were provided.
+
+    Attributes:
+        metric_target: the type of data used for the metric -
+            boxes, masks or oriented bounding boxes.
+        averaging_method: the averaging method used to compute the
+            precision. Determines how the precision is aggregated across classes.
+        precision_at_50: the precision at IoU threshold of `0.5`.
+        precision_at_75: the precision at IoU threshold of `0.75`.
+        precision_scores: the precision scores at each IoU threshold.
+            Shape: `(num_iou_thresholds,)`
+        precision_per_class: the precision scores per class and
+            IoU threshold. Shape: `(num_classes, num_iou_thresholds)`
+        iou_thresholds: the IoU thresholds used in the calculations.
+        matched_classes: the class IDs present in either predictions or ground
+            truth. Corresponds to the rows of `precision_per_class`. Classes
+            that appear only in predictions (no ground-truth instances) are
+            included; their per-threshold precision values will be `0.0`.
+        small_objects: the Precision metric results
+            for small objects (area < 32²).
+        medium_objects: the Precision metric results
+            for medium objects (32² ≤ area < 96²).
+        large_objects: the Precision metric results
+            for large objects (area ≥ 96²).
+    """
+
+    metric_target: MetricTarget
+    averaging_method: AveragingMethod
+
+    precision_scores: npt.NDArray[np.float64]
+    precision_per_class: npt.NDArray[np.float64]
+    iou_thresholds: npt.NDArray[np.float32]
+    matched_classes: npt.NDArray[np.int32]
+    _size_results: PrecisionSizeResults | None = field(
+        default=None, repr=False, compare=False
+    )
+
+    def __init__(
+        self,
+        metric_target: MetricTarget,
+        averaging_method: AveragingMethod,
+        precision_scores: npt.NDArray[np.float64],
+        precision_per_class: npt.NDArray[np.float64],
+        iou_thresholds: npt.NDArray[np.float32],
+        matched_classes: npt.NDArray[np.int32],
+        small_objects: PrecisionResult | None = None,
+        medium_objects: PrecisionResult | None = None,
+        large_objects: PrecisionResult | None = None,
+    ) -> None:
+        self.metric_target = metric_target
+        self.averaging_method = averaging_method
+        self.precision_scores = precision_scores
+        self.precision_per_class = precision_per_class
+        self.iou_thresholds = iou_thresholds
+        self.matched_classes = matched_classes
+        self._size_results = None
+
+        if (
+            small_objects is not None
+            or medium_objects is not None
+            or large_objects is not None
+        ):
+            self._size_results = PrecisionSizeResults(
+                small_objects=small_objects,
+                medium_objects=medium_objects,
+                large_objects=large_objects,
+            )
+
+    @property
+    def precision_at_50(self) -> float:
+        return float(self.precision_scores[0])
+
+    @property
+    def precision_at_75(self) -> float:
+        return float(self.precision_scores[5])
+
+    @property
+    def small_objects(self) -> PrecisionResult | None:
+        """The precision results for small objects."""
+        if self._size_results is None:
+            return None
+
+        return self._size_results.small_objects
+
+    @small_objects.setter
+    def small_objects(self, value: PrecisionResult | None) -> None:
+        if self._size_results is None and value is None:
+            return
+
+        if self._size_results is None:
+            self._size_results = PrecisionSizeResults()
+
+        self._size_results.small_objects = value
+
+    @property
+    def medium_objects(self) -> PrecisionResult | None:
+        """The precision results for medium objects."""
+        if self._size_results is None:
+            return None
+
+        return self._size_results.medium_objects
+
+    @medium_objects.setter
+    def medium_objects(self, value: PrecisionResult | None) -> None:
+        if self._size_results is None and value is None:
+            return
+
+        if self._size_results is None:
+            self._size_results = PrecisionSizeResults()
+
+        self._size_results.medium_objects = value
+
+    @property
+    def large_objects(self) -> PrecisionResult | None:
+        """The precision results for large objects."""
+        if self._size_results is None:
+            return None
+
+        return self._size_results.large_objects
+
+    @large_objects.setter
+    def large_objects(self, value: PrecisionResult | None) -> None:
+        if self._size_results is None and value is None:
+            return
+
+        if self._size_results is None:
+            self._size_results = PrecisionSizeResults()
+
+        self._size_results.large_objects = value
+
+    def __str__(self) -> str:
+        """
+        Format as a pretty string.
+
+        Example:
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> from supervision.metrics import Precision
+            >>> predictions = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 10, 10]]),
+            ...     class_id=np.array([0]),
+            ...     confidence=np.array([0.9])
+            ... )
+            >>> targets = sv.Detections(
+            ...     xyxy=np.array([[0, 0, 10, 10]]),
+            ...     class_id=np.array([0])
+            ... )
+            >>> precision_metric = Precision()
+            >>> precision_result = precision_metric.update(predictions, targets).compute()
+            >>> print(precision_result)  # doctest: +ELLIPSIS
+            PrecisionResult:
+            Metric target:    MetricTarget.BOXES
+            Averaging method: AveragingMethod.WEIGHTED
+            P @ 50:     1.0000
+            P @ 75:     1.0000
+            P @ thresh: [1. ... 1.]
+            IoU thresh: [0.5  0.55 ... 0.95]
+            Precision per class:
+              0: [1. ... 1.]
+            ...
+            Medium objects:
+              PrecisionResult:
+              Metric target:    MetricTarget.BOXES
+              Averaging method: AveragingMethod.WEIGHTED
+              P @ 50:     0.0000
+              ...
+
+            ```
+        """
+        out_str = (
+            f"{self.__class__.__name__}:\n"
+            f"Metric target:    {self.metric_target}\n"
+            f"Averaging method: {self.averaging_method}\n"
+            f"P @ 50:     {self.precision_at_50:.4f}\n"
+            f"P @ 75:     {self.precision_at_75:.4f}\n"
+            f"P @ thresh: {self.precision_scores}\n"
+            f"IoU thresh: {self.iou_thresholds}\n"
+            f"Precision per class:\n"
+        )
+        if self.precision_per_class.size == 0:
+            out_str += "  No results\n"
+        for class_id, precision_of_class in zip(
+            self.matched_classes, self.precision_per_class
+        ):
+            out_str += f"  {class_id}: {precision_of_class}\n"
+
+        indent = "  "
+        if self.small_objects is not None:
+            indented = indent + str(self.small_objects).replace("\n", f"\n{indent}")
+            out_str += f"\nSmall objects:\n{indented}"
+        if self.medium_objects is not None:
+            indented = indent + str(self.medium_objects).replace("\n", f"\n{indent}")
+            out_str += f"\nMedium objects:\n{indented}"
+        if self.large_objects is not None:
+            indented = indent + str(self.large_objects).replace("\n", f"\n{indent}")
+            out_str += f"\nLarge objects:\n{indented}"
+
+        return out_str
+
+    def to_pandas(self) -> pd.DataFrame:
+        """
+        Convert the result to a pandas DataFrame.
+
+        Returns:
+            The result as a DataFrame.
+        """
+        ensure_pandas_installed()
+        import pandas as pd
+
+        pandas_data = {
+            "P@50": self.precision_at_50,
+            "P@75": self.precision_at_75,
+        }
+
+        if self.small_objects is not None:
+            small_objects_df = self.small_objects.to_pandas()
+            for key, value in small_objects_df.items():
+                pandas_data[f"small_objects_{key}"] = value
+        if self.medium_objects is not None:
+            medium_objects_df = self.medium_objects.to_pandas()
+            for key, value in medium_objects_df.items():
+                pandas_data[f"medium_objects_{key}"] = value
+        if self.large_objects is not None:
+            large_objects_df = self.large_objects.to_pandas()
+            for key, value in large_objects_df.items():
+                pandas_data[f"large_objects_{key}"] = value
+
+        return pd.DataFrame(pandas_data, index=[0])
+
+    def plot(self) -> None:
+        """
+        Plot the precision results.
+
+        ![example_plot](
+            https://media.roboflow.com/supervision-docs/metrics/precision_plot_example.png
+        ){ align=center width="800" }
+        """
+        labels = ["Precision@50", "Precision@75"]
+        values = [self.precision_at_50, self.precision_at_75]
+        colors = [LEGACY_COLOR_PALETTE[0]] * 2
+
+        if self.small_objects is not None:
+            small_objects = self.small_objects
+            labels += ["Small: P@50", "Small: P@75"]
+            values += [small_objects.precision_at_50, small_objects.precision_at_75]
+            colors += [LEGACY_COLOR_PALETTE[3]] * 2
+
+        if self.medium_objects is not None:
+            medium_objects = self.medium_objects
+            labels += ["Medium: P@50", "Medium: P@75"]
+            values += [medium_objects.precision_at_50, medium_objects.precision_at_75]
+            colors += [LEGACY_COLOR_PALETTE[2]] * 2
+
+        if self.large_objects is not None:
+            large_objects = self.large_objects
+            labels += ["Large: P@50", "Large: P@75"]
+            values += [large_objects.precision_at_50, large_objects.precision_at_75]
+            colors += [LEGACY_COLOR_PALETTE[4]] * 2
+
+        plt.rcParams["font.family"] = "monospace"
+
+        _, ax = plt.subplots(figsize=(10, 6))
+        ax.set_ylim(0, 1)
+        ax.set_ylabel("Value", fontweight="bold")
+        title = (
+            f"Precision, by Object Size"
+            f"\n(target: {self.metric_target.value},"
+            f" averaging: {self.averaging_method.value})"
+        )
+        ax.set_title(title, fontweight="bold")
+
+        x_positions = range(len(labels))
+        bars = ax.bar(x_positions, values, color=colors, align="center")
+
+        ax.set_xticks(x_positions)
+        ax.set_xticklabels(labels, rotation=45, ha="right")
+
+        for bar in bars:
+            y_value = bar.get_height()
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                y_value + 0.02,
+                f"{y_value:.2f}",
+                ha="center",
+                va="bottom",
+            )
+
+        plt.rcParams["font.family"] = "sans-serif"
+
+        plt.tight_layout()
+        plt.show()
 
 
 class Precision(Metric):
@@ -516,220 +824,3 @@ class Precision(Metric):
             )
         return new_predictions_list, new_targets_list
 
-
-@dataclass
-class PrecisionResult:
-    """
-    The results of the precision metric calculation.
-
-    Defaults to `0` if no detections or targets were provided.
-
-    Attributes:
-        metric_target: the type of data used for the metric -
-            boxes, masks or oriented bounding boxes.
-        averaging_method: the averaging method used to compute the
-            precision. Determines how the precision is aggregated across classes.
-        precision_at_50: the precision at IoU threshold of `0.5`.
-        precision_at_75: the precision at IoU threshold of `0.75`.
-        precision_scores: the precision scores at each IoU threshold.
-            Shape: `(num_iou_thresholds,)`
-        precision_per_class: the precision scores per class and
-            IoU threshold. Shape: `(num_classes, num_iou_thresholds)`
-        iou_thresholds: the IoU thresholds used in the calculations.
-        matched_classes: the class IDs present in either predictions or ground
-            truth. Corresponds to the rows of `precision_per_class`. Classes
-            that appear only in predictions (no ground-truth instances) are
-            included; their per-threshold precision values will be `0.0`.
-        small_objects: the Precision metric results
-            for small objects (area < 32²).
-        medium_objects: the Precision metric results
-            for medium objects (32² ≤ area < 96²).
-        large_objects: the Precision metric results
-            for large objects (area ≥ 96²).
-    """
-
-    metric_target: MetricTarget
-    averaging_method: AveragingMethod
-
-    @property
-    def precision_at_50(self) -> float:
-        return float(self.precision_scores[0])
-
-    @property
-    def precision_at_75(self) -> float:
-        return float(self.precision_scores[5])
-
-    precision_scores: npt.NDArray[np.float64]
-    precision_per_class: npt.NDArray[np.float64]
-    iou_thresholds: npt.NDArray[np.float32]
-    matched_classes: npt.NDArray[np.int32]
-
-    small_objects: PrecisionResult | None
-    medium_objects: PrecisionResult | None
-    large_objects: PrecisionResult | None
-
-    def __str__(self) -> str:
-        """
-        Format as a pretty string.
-
-        Example:
-            ```pycon
-            >>> import numpy as np
-            >>> import supervision as sv
-            >>> from supervision.metrics import Precision
-            >>> predictions = sv.Detections(
-            ...     xyxy=np.array([[0, 0, 10, 10]]),
-            ...     class_id=np.array([0]),
-            ...     confidence=np.array([0.9])
-            ... )
-            >>> targets = sv.Detections(
-            ...     xyxy=np.array([[0, 0, 10, 10]]),
-            ...     class_id=np.array([0])
-            ... )
-            >>> precision_metric = Precision()
-            >>> precision_result = precision_metric.update(
-            ...     predictions, targets
-            ... ).compute()
-            >>> print(precision_result)  # doctest: +ELLIPSIS
-            PrecisionResult:
-            Metric target:    MetricTarget.BOXES
-            Averaging method: AveragingMethod.WEIGHTED
-            P @ 50:     1.0000
-            P @ 75:     1.0000
-            P @ thresh: [1. ... 1.]
-            IoU thresh: [0.5  0.55 ... 0.95]
-            Precision per class:
-              0: [1. ... 1.]
-            ...
-            Medium objects:
-              PrecisionResult:
-              Metric target:    MetricTarget.BOXES
-              Averaging method: AveragingMethod.WEIGHTED
-              P @ 50:     0.0000
-              ...
-
-            ```
-        """
-        out_str = (
-            f"{self.__class__.__name__}:\n"
-            f"Metric target:    {self.metric_target}\n"
-            f"Averaging method: {self.averaging_method}\n"
-            f"P @ 50:     {self.precision_at_50:.4f}\n"
-            f"P @ 75:     {self.precision_at_75:.4f}\n"
-            f"P @ thresh: {self.precision_scores}\n"
-            f"IoU thresh: {self.iou_thresholds}\n"
-            f"Precision per class:\n"
-        )
-        if self.precision_per_class.size == 0:
-            out_str += "  No results\n"
-        for class_id, precision_of_class in zip(
-            self.matched_classes, self.precision_per_class
-        ):
-            out_str += f"  {class_id}: {precision_of_class}\n"
-
-        indent = "  "
-        if self.small_objects is not None:
-            indented = indent + str(self.small_objects).replace("\n", f"\n{indent}")
-            out_str += f"\nSmall objects:\n{indented}"
-        if self.medium_objects is not None:
-            indented = indent + str(self.medium_objects).replace("\n", f"\n{indent}")
-            out_str += f"\nMedium objects:\n{indented}"
-        if self.large_objects is not None:
-            indented = indent + str(self.large_objects).replace("\n", f"\n{indent}")
-            out_str += f"\nLarge objects:\n{indented}"
-
-        return out_str
-
-    def to_pandas(self) -> pd.DataFrame:
-        """
-        Convert the result to a pandas DataFrame.
-
-        Returns:
-            The result as a DataFrame.
-        """
-        ensure_pandas_installed()
-        import pandas as pd
-
-        pandas_data = {
-            "P@50": self.precision_at_50,
-            "P@75": self.precision_at_75,
-        }
-
-        if self.small_objects is not None:
-            small_objects_df = self.small_objects.to_pandas()
-            for key, value in small_objects_df.items():
-                pandas_data[f"small_objects_{key}"] = value
-        if self.medium_objects is not None:
-            medium_objects_df = self.medium_objects.to_pandas()
-            for key, value in medium_objects_df.items():
-                pandas_data[f"medium_objects_{key}"] = value
-        if self.large_objects is not None:
-            large_objects_df = self.large_objects.to_pandas()
-            for key, value in large_objects_df.items():
-                pandas_data[f"large_objects_{key}"] = value
-
-        return pd.DataFrame(pandas_data, index=[0])
-
-    def plot(self) -> None:
-        """
-        Plot the precision results.
-
-        ![example_plot](
-            https://media.roboflow.com/supervision-docs/metrics/precision_plot_example.png
-        ){ align=center width="800" }
-        """
-
-        labels = ["Precision@50", "Precision@75"]
-        values = [self.precision_at_50, self.precision_at_75]
-        colors = [LEGACY_COLOR_PALETTE[0]] * 2
-
-        if self.small_objects is not None:
-            small_objects = self.small_objects
-            labels += ["Small: P@50", "Small: P@75"]
-            values += [small_objects.precision_at_50, small_objects.precision_at_75]
-            colors += [LEGACY_COLOR_PALETTE[3]] * 2
-
-        if self.medium_objects is not None:
-            medium_objects = self.medium_objects
-            labels += ["Medium: P@50", "Medium: P@75"]
-            values += [medium_objects.precision_at_50, medium_objects.precision_at_75]
-            colors += [LEGACY_COLOR_PALETTE[2]] * 2
-
-        if self.large_objects is not None:
-            large_objects = self.large_objects
-            labels += ["Large: P@50", "Large: P@75"]
-            values += [large_objects.precision_at_50, large_objects.precision_at_75]
-            colors += [LEGACY_COLOR_PALETTE[4]] * 2
-
-        plt.rcParams["font.family"] = "monospace"
-
-        _, ax = plt.subplots(figsize=(10, 6))
-        ax.set_ylim(0, 1)
-        ax.set_ylabel("Value", fontweight="bold")
-        title = (
-            f"Precision, by Object Size"
-            f"\n(target: {self.metric_target.value},"
-            f" averaging: {self.averaging_method.value})"
-        )
-        ax.set_title(title, fontweight="bold")
-
-        x_positions = range(len(labels))
-        bars = ax.bar(x_positions, values, color=colors, align="center")
-
-        ax.set_xticks(x_positions)
-        ax.set_xticklabels(labels, rotation=45, ha="right")
-
-        for bar in bars:
-            y_value = bar.get_height()
-            ax.text(
-                bar.get_x() + bar.get_width() / 2,
-                y_value + 0.02,
-                f"{y_value:.2f}",
-                ha="center",
-                va="bottom",
-            )
-
-        plt.rcParams["font.family"] = "sans-serif"
-
-        plt.tight_layout()
-        plt.show()

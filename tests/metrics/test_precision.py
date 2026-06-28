@@ -3,10 +3,38 @@ import pytest
 
 from supervision.detection.core import Detections
 from supervision.metrics.core import AveragingMethod, MetricTarget
-from supervision.metrics.precision import Precision
+from supervision.metrics.precision import Precision, PrecisionResult
 
 
 class TestPrecision:
+    def test_result_preserves_size_specific_accessors(self):
+        """Test that size-specific precision results remain accessible."""
+        nested = PrecisionResult(
+            metric_target=MetricTarget.BOXES,
+            averaging_method=AveragingMethod.WEIGHTED,
+            precision_scores=np.array([0.1], dtype=np.float64),
+            precision_per_class=np.array([[0.1]], dtype=np.float64),
+            iou_thresholds=np.array([0.5], dtype=np.float32),
+            matched_classes=np.array([0], dtype=np.int32),
+        )
+        result = PrecisionResult(
+            metric_target=MetricTarget.BOXES,
+            averaging_method=AveragingMethod.WEIGHTED,
+            precision_scores=np.array([0.2], dtype=np.float64),
+            precision_per_class=np.array([[0.2]], dtype=np.float64),
+            iou_thresholds=np.array([0.5], dtype=np.float32),
+            matched_classes=np.array([0], dtype=np.int32),
+            small_objects=nested,
+        )
+
+        assert result.small_objects is nested
+        assert result.medium_objects is None
+        assert result.large_objects is None
+
+        result.medium_objects = nested
+
+        assert result.medium_objects is nested
+
     @pytest.fixture
     def predictions_multiple_classes(self):
         return Detections(
