@@ -51,6 +51,33 @@ def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | No
     return cast(npt.NDArray[np.bool_], np.asarray(mask_maps, dtype=bool))
 
 
+def _decode_rle_mask(
+    prediction: dict[str, Any],
+    image_height: int,
+    image_width: int,
+) -> npt.NDArray[np.bool_] | None:
+    rle_data = prediction.get("rle") or prediction.get("rle_mask")
+    if not isinstance(rle_data, dict) or not {"size", "counts"}.issubset(rle_data):
+        return None
+    try:
+        h, w = rle_data["size"]
+        mask = rle_to_mask(rle_data["counts"], (w, h))
+        if (h, w) != (image_height, image_width):
+            mask = cv2.resize(
+                mask.astype(np.uint8),
+                (image_width, image_height),
+                interpolation=cv2.INTER_NEAREST,
+            ).astype(bool)
+        return mask
+    except (ValueError, AssertionError, KeyError, TypeError) as exc:
+        logger.warning(
+            "Failed to decode RLE mask payload; falling back to box-only "
+            "detection. Reason: %s",
+            exc,
+        )
+        return None
+
+
 def process_roboflow_result(
     roboflow_result: dict[str, Any],
 ) -> tuple[
@@ -114,58 +141,28 @@ def process_roboflow_result(
         x_max = x_min + width
         y_max = y_min + height
 
-        rle_data = prediction.get("rle") or prediction.get("rle_mask")
-        if not isinstance(rle_data, dict) or not {
-            "size",
-            "counts",
-        }.issubset(rle_data):
-            rle_data = None
-        if rle_data is not None:
-            try:
-                h, w = rle_data["size"]
-                mask = rle_to_mask(rle_data["counts"], (w, h))
-                if (h, w) != (image_height, image_width):
-                    mask = cv2.resize(
-                        mask.astype(np.uint8),
-                        (image_width, image_height),
-                        interpolation=cv2.INTER_NEAREST,
-                    ).astype(bool)
-            except (ValueError, AssertionError, KeyError, TypeError) as exc:
-                logger.warning(
-                    "Failed to decode RLE mask payload; falling back to box-only "
-                    "detection. Reason: %s",
-                    exc,
+        mask = _decode_rle_mask(prediction, image_height, image_width)
+
+        if mask is None and "points" in prediction:
+            if len(prediction["points"]) >= 3:
+                polygon = np.array(
+                    [[point["x"], point["y"]] for point in prediction["points"]],
+                    dtype=int,
                 )
-                rle_data = None
-        if rle_data is not None:
-            xyxy.append([x_min, y_min, x_max, y_max])
-            class_id.append(prediction["class_id"])
-            class_name.append(prediction["class"])
-            confidence.append(prediction["confidence"])
+                mask = polygon_to_mask(
+                    polygon, resolution_wh=(image_width, image_height)
+                ).astype(bool)
+            else:
+                continue
+
+        xyxy.append([x_min, y_min, x_max, y_max])
+        class_id.append(prediction["class_id"])
+        class_name.append(prediction["class"])
+        confidence.append(prediction["confidence"])
+        if mask is not None:
             masks.append(mask)
-            if "tracker_id" in prediction:
-                tracker_ids.append(prediction["tracker_id"])
-        elif "points" not in prediction:
-            xyxy.append([x_min, y_min, x_max, y_max])
-            class_id.append(prediction["class_id"])
-            class_name.append(prediction["class"])
-            confidence.append(prediction["confidence"])
-            if "tracker_id" in prediction:
-                tracker_ids.append(prediction["tracker_id"])
-        elif len(prediction["points"]) >= 3:
-            polygon = np.array(
-                [[point["x"], point["y"]] for point in prediction["points"]], dtype=int
-            )
-            mask = polygon_to_mask(
-                polygon, resolution_wh=(image_width, image_height)
-            ).astype(bool)
-            xyxy.append([x_min, y_min, x_max, y_max])
-            class_id.append(prediction["class_id"])
-            class_name.append(prediction["class"])
-            confidence.append(prediction["confidence"])
-            masks.append(mask)
-            if "tracker_id" in prediction:
-                tracker_ids.append(prediction["tracker_id"])
+        if "tracker_id" in prediction:
+            tracker_ids.append(prediction["tracker_id"])
 
     xyxy_arr: npt.NDArray[np.floating] = (
         np.array(xyxy, dtype=np.float64) if len(xyxy) > 0 else np.empty((0, 4))
@@ -238,6 +235,48 @@ def is_metadata_equal(metadata_a: dict[str, Any], metadata_b: dict[str, Any]) ->
     )
 
 
+def _validate_data_list_keys(
+    data_list: list[dict[str, npt.NDArray[np.generic] | list[Any]]],
+) -> set[str]:
+    all_keys_sets = [set(data.keys()) for data in data_list]
+    if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
+        raise ValueError("All data dictionaries must have the same keys to merge.")
+
+    return all_keys_sets[0]
+
+
+def _validate_data_value_lengths(
+    data_list: list[dict[str, npt.NDArray[np.generic] | list[Any]]],
+) -> None:
+    for data in data_list:
+        lengths = {len(value) for value in data.values()}
+        if len(lengths) > 1:
+            raise ValueError(
+                "All data values within a single object must have equal length."
+            )
+
+
+def _merge_data_values(
+    values: list[npt.NDArray[np.generic] | list[Any]],
+    key: str,
+) -> npt.NDArray[np.generic] | list[Any]:
+    if all(isinstance(item, list) for item in values):
+        return list(chain.from_iterable(values))
+
+    if all(isinstance(item, np.ndarray) for item in values):
+        ndim = values[0].ndim
+        if ndim == 1:
+            return np.hstack(values)
+        if ndim > 1:
+            return np.vstack(values)
+        raise ValueError(f"Unexpected array dimension for key '{key}'.")
+
+    raise ValueError(
+        f"Inconsistent data types for key '{key}'. Only np.ndarray and list types "
+        f"are allowed."
+    )
+
+
 def merge_data(
     data_list: list[dict[str, npt.NDArray[np.generic] | list[Any]]],
 ) -> dict[str, npt.NDArray[np.generic] | list[Any]]:
@@ -263,38 +302,13 @@ def merge_data(
     if not data_list:
         return {}
 
-    all_keys_sets = [set(data.keys()) for data in data_list]
-    if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
-        raise ValueError("All data dictionaries must have the same keys to merge.")
+    keys = _validate_data_list_keys(data_list)
+    _validate_data_value_lengths(data_list)
 
-    for data in data_list:
-        lengths = [len(value) for value in data.values()]
-        if len(set(lengths)) > 1:
-            raise ValueError(
-                "All data values within a single object must have equal length."
-            )
-
-    merged_data: dict[str, Any] = {key: [] for key in all_keys_sets[0]}
-    for data in data_list:
-        for key in data:
-            merged_data[key].append(data[key])
-
-    for key in merged_data:
-        if all(isinstance(item, list) for item in merged_data[key]):
-            merged_data[key] = list(chain.from_iterable(merged_data[key]))
-        elif all(isinstance(item, np.ndarray) for item in merged_data[key]):
-            ndim = merged_data[key][0].ndim
-            if ndim == 1:
-                merged_data[key] = np.hstack(merged_data[key])
-            elif ndim > 1:
-                merged_data[key] = np.vstack(merged_data[key])
-            else:
-                raise ValueError(f"Unexpected array dimension for key '{key}'.")
-        else:
-            raise ValueError(
-                f"Inconsistent data types for key '{key}'. Only np.ndarray and list "
-                f"types are allowed."
-            )
+    merged_data: dict[str, Any] = {
+        key: _merge_data_values([data[key] for data in data_list], key)
+        for key in keys
+    }
 
     return cast(dict[str, Union[npt.NDArray[np.generic], list[Any]]], merged_data)
 

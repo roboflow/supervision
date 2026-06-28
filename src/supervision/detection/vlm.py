@@ -588,6 +588,179 @@ def from_florence_2(
     raise RuntimeError(f"Unimplemented task: {task}")
 
 
+def _extract_json_from_backticks(result: str) -> list | None:
+    lines = result.splitlines()
+    for i, line in enumerate(lines):
+        if line == "```json":
+            result = "\n".join(lines[i + 1 :])
+            result = result.split("```")[0]
+            break
+    try:
+        data = json.loads(result)
+    except json.JSONDecodeError:
+        return None
+    return data if isinstance(data, list) else None
+
+
+def _build_empty_gemini_2_5_result() -> tuple[
+    npt.NDArray[Any],
+    npt.NDArray[Any],
+    npt.NDArray[Any],
+    npt.NDArray[Any],
+    None,
+]:
+    return (
+        np.empty((0, 4)),
+        np.array([], dtype=int),
+        np.array([], dtype=str),
+        np.array([], dtype=float),
+        None,
+    )
+
+
+def _parse_gemini_2_5_item(
+    item: Any,
+    w: int,
+    h: int,
+) -> tuple[
+    npt.NDArray[Any],
+    str,
+    float | None,
+    npt.NDArray[np.bool_] | None,
+] | None:
+    if not isinstance(item, dict) or "box_2d" not in item or "label" not in item:
+        return None
+
+    box = item["box_2d"]
+    # Gemini reports boxes as [y_min, x_min, y_max, x_max].
+    absolute_bbox = denormalize_boxes(
+        np.array([[box[1], box[0], box[3], box[2]]], dtype=np.float64),
+        resolution_wh=(w, h),
+        normalization_factor=1000,
+    )[0]
+
+    mask = (
+        _decode_mask_for_item(item, absolute_bbox, h, w) if "mask" in item else None
+    )
+    confidence = (
+        cast(float | None, item["confidence"]) if "confidence" in item else None
+    )
+
+    return absolute_bbox, cast(str, item["label"]), confidence, mask
+
+
+def _collect_gemini_2_5_items(
+    data: list[Any],
+    w: int,
+    h: int,
+) -> tuple[
+    list[npt.NDArray[Any]],
+    list[str],
+    list[float],
+    list[npt.NDArray[np.bool_]],
+    bool,
+    bool,
+]:
+    boxes_list: list[npt.NDArray[Any]] = []
+    labels_list: list[str] = []
+    confidence_list: list[float] = []
+    masks_list: list[npt.NDArray[np.bool_]] = []
+    has_confidence = True
+    has_masks = True
+
+    for item in data:
+        parsed_item = _parse_gemini_2_5_item(item, w, h)
+        if parsed_item is None:
+            continue
+
+        absolute_bbox, label, confidence, mask = parsed_item
+        boxes_list.append(absolute_bbox)
+        labels_list.append(label)
+
+        if mask is None:
+            has_masks = False
+        elif has_masks:
+            masks_list.append(mask)
+
+        if confidence is None:
+            has_confidence = False
+        elif has_confidence:
+            confidence_list.append(confidence)
+
+    return boxes_list, labels_list, confidence_list, masks_list, has_confidence, has_masks
+
+
+def _filter_gemini_2_5_results(
+    xyxy: npt.NDArray[Any],
+    class_name: npt.NDArray[Any],
+    confidence: npt.NDArray[Any] | None,
+    masks: npt.NDArray[Any] | None,
+    classes: list[str],
+) -> tuple[
+    npt.NDArray[Any],
+    npt.NDArray[Any],
+    npt.NDArray[Any] | None,
+    npt.NDArray[Any] | None,
+    npt.NDArray[Any],
+]:
+    mask = np.array([name in classes for name in class_name], dtype=bool)
+    xyxy = xyxy[mask]
+    class_name = class_name[mask]
+    class_id = np.array([classes.index(name) for name in class_name])
+
+    if confidence is not None:
+        confidence = confidence[mask]
+
+    if masks is not None:
+        masks = masks[mask]
+
+    return xyxy, class_name, confidence, masks, class_id
+
+
+def _build_gemini_2_5_class_id(
+    class_name: npt.NDArray[Any],
+) -> npt.NDArray[Any]:
+    unique_labels = sorted(list(set(class_name)))
+    label_to_id = {label: i for i, label in enumerate(unique_labels)}
+    return np.array([label_to_id[name] for name in class_name])
+
+
+def _decode_mask_for_item(
+    item: dict[str, Any],
+    absolute_bbox: npt.NDArray[Any],
+    h: int,
+    w: int,
+) -> npt.NDArray[np.bool_]:
+    png_str = item["mask"]
+    if not isinstance(png_str, str) or not png_str.startswith(
+        "data:image/png;base64,"
+    ):
+        return np.zeros((h, w), dtype=bool)
+
+    png_str = png_str.removeprefix("data:image/png;base64,")
+    try:
+        png_bytes = base64.b64decode(png_str)
+        mask_img = Image.open(io.BytesIO(png_bytes)).convert("L")
+    except Exception:
+        return np.zeros((h, w), dtype=bool)
+
+    y_min, y_max = int(absolute_bbox[1]), int(absolute_bbox[3])
+    x_min, x_max = int(absolute_bbox[0]), int(absolute_bbox[2])
+    bbox_height = y_max - y_min
+    bbox_width = x_max - x_min
+
+    if bbox_height > 0 and bbox_width > 0:
+        mask_img = mask_img.resize(
+            (bbox_width, bbox_height),
+            resample=Image.Resampling.BILINEAR,
+        )
+        np_mask: npt.NDArray[np.bool_] = np.zeros((h, w), dtype=bool)
+        np_mask[y_min:y_max, x_min:x_max] = np.array(mask_img) > 0
+        return np_mask
+
+    return np.zeros((h, w), dtype=bool)
+
+
 def from_google_gemini_2_0(
     result: str,
     resolution_wh: tuple[int, int],
@@ -629,19 +802,8 @@ def from_google_gemini_2_0(
 
     w, h = _validate_resolution(resolution_wh)
 
-    lines = result.splitlines()
-    for i, line in enumerate(lines):
-        if line == "```json":
-            result = "\n".join(lines[i + 1 :])
-            result = result.split("```")[0]
-            break
-
-    try:
-        data = json.loads(result)
-    except json.JSONDecodeError:
-        return np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str)
-
-    if not isinstance(data, list):
+    data = _extract_json_from_backticks(result)
+    if data is None:
         return np.empty((0, 4)), np.empty((0,), dtype=int), np.empty((0,), dtype=str)
 
     labels = []
@@ -720,136 +882,42 @@ def from_google_gemini_2_5(
     """
     w, h = _validate_resolution(resolution_wh)
 
-    lines = result.splitlines()
-    for i, line in enumerate(lines):
-        if line == "```json":
-            result = "\n".join(lines[i + 1 :])
-            result = result.split("```")[0]
-            break
+    data = _extract_json_from_backticks(result)
+    if data is None:
+        return _build_empty_gemini_2_5_result()
 
-    try:
-        data = json.loads(result)
-    except json.JSONDecodeError:
-        return (
-            np.empty((0, 4)),
-            np.array([], dtype=int),
-            np.array([], dtype=str),
-            np.array([], dtype=float),
-            None,
-        )
-
-    if not isinstance(data, list):
-        return (
-            np.empty((0, 4)),
-            np.array([], dtype=int),
-            np.array([], dtype=str),
-            np.array([], dtype=float),
-            None,
-        )
-
-    boxes_list: list[Any] = []
-    labels_list: list[str] = []
-    confidence_list: list[float] | None = []
-    masks_list: list[npt.NDArray[Any]] | None = []
-
-    for item in data:
-        if not isinstance(item, dict) or "box_2d" not in item or "label" not in item:
-            continue
-        labels_list.append(item["label"])
-        box = item["box_2d"]
-        # Gemini bbox order is [y_min, x_min, y_max, x_max]
-        absolute_bbox = denormalize_boxes(
-            np.array([[box[1], box[0], box[3], box[2]]]).astype(np.float64),
-            resolution_wh=(w, h),
-            normalization_factor=1000,
-        )[0]
-        boxes_list.append(absolute_bbox)
-
-        if "mask" in item:
-            if masks_list is not None:
-                png_str = item["mask"]
-                if not isinstance(png_str, str) or not png_str.startswith(
-                    "data:image/png;base64,"
-                ):
-                    # Malformed mask: keep an empty mask but still fall through to
-                    # the confidence handling below, so the per-item arrays stay
-                    # aligned (a `continue` here desynced confidence vs boxes).
-                    masks_list.append(np.zeros((h, w), dtype=bool))
-                else:
-                    png_str = png_str.removeprefix("data:image/png;base64,")
-                    try:
-                        png_bytes = base64.b64decode(png_str)
-                        mask_img = Image.open(io.BytesIO(png_bytes)).convert("L")
-                    except Exception:
-                        masks_list.append(np.zeros((h, w), dtype=bool))
-                    else:
-                        y_min, y_max = int(absolute_bbox[1]), int(absolute_bbox[3])
-                        x_min, x_max = int(absolute_bbox[0]), int(absolute_bbox[2])
-
-                        bbox_height = y_max - y_min
-                        bbox_width = x_max - x_min
-
-                        if bbox_height > 0 and bbox_width > 0:
-                            mask_img = mask_img.resize(
-                                (bbox_width, bbox_height),
-                                resample=Image.Resampling.BILINEAR,
-                            )
-                            np_mask: npt.NDArray[np.bool_] = np.zeros(
-                                (h, w), dtype=bool
-                            )
-                            np_mask[y_min:y_max, x_min:x_max] = np.array(mask_img) > 0
-                            masks_list.append(np_mask)
-                        else:
-                            masks_list.append(np.zeros((h, w), dtype=bool))
-        else:
-            masks_list = None
-
-        if "confidence" in item:
-            if confidence_list is not None:
-                confidence_list.append(item["confidence"])
-        else:
-            confidence_list = None
+    (
+        boxes_list,
+        labels_list,
+        confidence_list,
+        masks_list,
+        has_confidence,
+        has_masks,
+    ) = _collect_gemini_2_5_items(data, w, h)
 
     if not boxes_list:
-        return (
-            np.empty((0, 4)),
-            np.array([], dtype=int),
-            np.array([], dtype=str),
-            np.array([], dtype=float),
-            None,
-        )
+        return _build_empty_gemini_2_5_result()
 
     xyxy = np.array(boxes_list, dtype=float)
     class_name = np.array(labels_list)
+    confidence = (
+        np.array(confidence_list, dtype=float) if has_confidence else None
+    )
+    masks = np.array(masks_list) if has_masks else None
     class_id: npt.NDArray[Any]
 
     if classes is not None:
-        mask = np.array([name in classes for name in class_name], dtype=bool)
-        xyxy = xyxy[mask]
-        class_name = class_name[mask]
-        class_id = np.array([classes.index(name) for name in class_name])
-        if masks_list is not None:
-            masks_list = [m for m, keep in zip(masks_list, mask) if keep]
-
-        if confidence_list is not None:
-            confidence_list = [c for c, keep in zip(confidence_list, mask) if keep]
+        xyxy, class_name, confidence, masks, class_id = _filter_gemini_2_5_results(
+            xyxy=xyxy,
+            class_name=class_name,
+            confidence=confidence,
+            masks=masks,
+            classes=classes,
+        )
     else:
-        unique_labels = sorted(list(set(class_name)))
-        label_to_id = {label: i for i, label in enumerate(unique_labels)}
-        class_id = np.array([label_to_id[name] for name in class_name])
+        class_id = _build_gemini_2_5_class_id(class_name)
 
-    confidence = (
-        np.array(confidence_list, dtype=float) if confidence_list is not None else None
-    )
-    masks = np.array(masks_list) if masks_list is not None else None
-
-    return (
-        xyxy,
-        class_id,
-        class_name,
-        confidence,
-        masks,
-    )
+    return (xyxy, class_id, class_name, confidence, masks)
 
 
 def from_moondream(

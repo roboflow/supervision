@@ -1319,6 +1319,33 @@ def test_from_google_gemini_2_5_malformed_mask_keeps_confidence_aligned():
     assert masks.shape == (2, 480, 640)
 
 
+def test_from_google_gemini_2_5_filters_classes_and_keeps_arrays_aligned():
+    """Class filtering must keep confidence and masks aligned with the kept items."""
+    result = (
+        '[{"box_2d": [10, 10, 100, 100], "label": "cat", '
+        '"mask": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACoWZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXpjAAAAAElFTkSuQmCC", '
+        '"confidence": 0.8}, '
+        '{"box_2d": [20, 20, 120, 120], "label": "dog", '
+        '"mask": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAAAAACoWZBhAAAADElEQVR4nGNgoCcAAABuAAFIXXpjAAAAAElFTkSuQmCC", '
+        '"confidence": 0.9}]'
+    )
+
+    xyxy, class_id, class_name, confidence, masks = from_google_gemini_2_5(
+        result=result,
+        resolution_wh=(640, 480),
+        classes=["dog"],
+    )
+
+    assert xyxy.shape == (1, 4)
+    assert np.allclose(xyxy, np.array([[12.8, 9.6, 76.8, 57.6]]))
+    assert np.array_equal(class_id, np.array([0]))
+    assert np.array_equal(class_name, np.array(["dog"]))
+    assert confidence is not None
+    assert np.allclose(confidence, np.array([0.9]))
+    assert masks is not None
+    assert masks.shape == (1, 480, 640)
+
+
 @pytest.mark.parametrize(
     ("parser", "result"),
     [

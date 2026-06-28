@@ -944,11 +944,19 @@ class COCOEvaluator:
             "dtIgnore": dt_ignore,
         }
 
-    def _accumulate(self) -> None:
-        """
-        Accumulate per image evaluation results and store the result in self.results
-        """
-        # Get the number of thresholds, categories, area ranges, and max detections
+    def _initialize_accumulation(
+        self,
+    ) -> tuple[
+        int,
+        int,
+        int,
+        int,
+        int,
+        int,
+        npt.NDArray[np.float32],
+        npt.NDArray[np.float32],
+        npt.NDArray[np.float32],
+    ]:
         num_iou_thresholds = len(self.params.iou_thrs)
         num_recall_thresholds = len(self.params.rec_thrs)
         num_categories = len(self.params.cat_ids)
@@ -956,8 +964,6 @@ class COCOEvaluator:
         num_max_detections = len(self.params.max_dets)
         num_imgs = len(self.params.img_ids)
 
-        # Initialize precision, recall, and scores arrays
-        # -1 means absent categories
         precision = -np.ones(
             (
                 num_iou_thresholds,
@@ -983,7 +989,21 @@ class COCOEvaluator:
             dtype=np.float32,
         )
 
-        # Create sets for indexing
+        return (
+            num_iou_thresholds,
+            num_recall_thresholds,
+            num_categories,
+            num_area_ranges,
+            num_max_detections,
+            num_imgs,
+            precision,
+            recall,
+            scores,
+        )
+
+    def _select_evaluation_indices(
+        self,
+    ) -> tuple[list[int], list[int], list[int], list[int]]:
         set_categories = set(self.params.cat_ids)
         set_area_ranges: set[tuple[float, ...]] = {
             tuple(a) for a in self.params.area_range
@@ -991,56 +1011,64 @@ class COCOEvaluator:
         set_max_detections = set(self.params.max_dets)
         set_image_ids = set(self.params.img_ids)
 
-        # Select category indexes to evaluate
         selected_category_ids = [
             n for n, k in enumerate(self.params.cat_ids) if k in set_categories
         ]
-        # Select max detections to evaluate
         selected_max_detections = [
             m for m in self.params.max_dets if m in set_max_detections
         ]
-        # Select area ranges to evaluate
         selected_area_ranges_ids = [
             idx
             for idx, area in enumerate(self.params.area_range)
             if tuple(area) in set_area_ranges
         ]
-        # Select image indexes to evaluate
         image_inds = [
             n for n, i in enumerate(self.params.img_ids) if i in set_image_ids
         ]
 
-        # Evaluating at all categories, area ranges, max number of detections, and
-        # IoU thresholds
+        return (
+            selected_category_ids,
+            selected_max_detections,
+            selected_area_ranges_ids,
+            image_inds,
+        )
 
-        # Loop through categories
+    def _compute_raw_metrics(
+        self,
+        precision: npt.NDArray[np.float32],
+        recall: npt.NDArray[np.float32],
+        scores: npt.NDArray[np.float32],
+        selected_category_ids: list[int],
+        selected_max_detections: list[int],
+        selected_area_ranges_ids: list[int],
+        image_inds: list[int],
+        num_area_ranges: int,
+        num_imgs: int,
+        num_recall_thresholds: int,
+    ) -> None:
         for cat_idx, cat_eval_idx in enumerate(selected_category_ids):
             cat_offset = cat_eval_idx * num_area_ranges * num_imgs
 
-            # Loop through area ranges
             for area_idx, area_eval_idx in enumerate(selected_area_ranges_ids):
                 area_offset = area_eval_idx * num_imgs
 
-                # Loop through max detections
                 for max_det_idx, max_det in enumerate(selected_max_detections):
                     eval_img_data = [
                         self._state.eval_imgs[cat_offset + area_offset + i]
+                        self.eval_imgs[cat_offset + area_offset + i]
                         for i in image_inds
                     ]
                     eval_img_data = [e for e in eval_img_data if e is not None]
 
-                    # No image to evaluate
                     if len(eval_img_data) == 0:
                         continue
 
-                    # Sort detected scores in descending order
                     dt_scores = np.concatenate(
                         [e["dtScores"][0:max_det] for e in eval_img_data]
                     )
                     inds = np.argsort(-dt_scores, kind="stable")
                     dt_scores_sorted = dt_scores[inds]
 
-                    # Get matches and ignored matches
                     dt_matches = np.concatenate(
                         [e["dtMatches"][:, 0:max_det] for e in eval_img_data], axis=1
                     )[:, inds]
@@ -1048,15 +1076,14 @@ class COCOEvaluator:
                         [e["dtIgnore"][:, 0:max_det] for e in eval_img_data], axis=1
                     )[:, inds]
 
-                    # Get ignored ground truth objects
-                    gt_ignored = np.concatenate([e["gtIgnore"] for e in eval_img_data])
+                    gt_ignored = np.concatenate(
+                        [e["gtIgnore"] for e in eval_img_data]
+                    )
                     num_non_ignored_gt = np.count_nonzero(gt_ignored == 0)
 
-                    # No ground truth objects to evaluate
                     if num_non_ignored_gt == 0:
                         continue
 
-                    # Compute true positives and false positives
                     true_positives = np.logical_and(
                         dt_matches, np.logical_not(dt_ignored)
                     )
@@ -1064,30 +1091,26 @@ class COCOEvaluator:
                         np.logical_not(dt_matches), np.logical_not(dt_ignored)
                     )
 
-                    tp_sum = np.cumsum(true_positives, axis=1).astype(dtype=np.float32)
-                    fp_sum = np.cumsum(false_positives, axis=1).astype(dtype=np.float32)
+                    tp_sum = np.cumsum(true_positives, axis=1).astype(
+                        dtype=np.float32
+                    )
+                    fp_sum = np.cumsum(false_positives, axis=1).astype(
+                        dtype=np.float32
+                    )
 
-                    # Loop through thresholds
                     for iou_thresh_idx, (tp, fp) in enumerate(zip(tp_sum, fp_sum)):
                         tp = np.array(tp)
                         fp = np.array(fp)
                         num_tps = len(tp)
-                        # Recall: TP / Total number of ground truth objects
                         rc = tp / np.float32(num_non_ignored_gt)
-                        # Precision: TP / (FP + TP)
                         pr = (tp / (fp + tp + EPS)).tolist()
-                        # List to compute the precision at each recall threshold
                         precision_at_recall = [0.0] * num_recall_thresholds
-                        # List to compute the score at each recall threshold
                         score_at_recall = [0.0] * num_recall_thresholds
 
-                        # Set recall to either the final recall value or 0 (when there
-                        # is no TP)
                         recall[iou_thresh_idx, cat_idx, area_idx, max_det_idx] = (
                             rc[-1] if num_tps else 0
                         )
 
-                        # Loop through precision values
                         for i in range(num_tps - 1, 0, -1):
                             if pr[i] > pr[i - 1]:
                                 pr[i - 1] = pr[i]
@@ -1097,7 +1120,6 @@ class COCOEvaluator:
                         )
                         recall_inds_list: list[int] = recall_inds.tolist()
                         for ri, pos_idx_value in enumerate(recall_inds_list):
-                            # Ensure pi is within the range of both arrays
                             pos_idx_int: int = int(pos_idx_value)
                             if 0 <= pos_idx_int < len(pr) and 0 <= pos_idx_int < len(
                                 dt_scores_sorted
@@ -1105,14 +1127,32 @@ class COCOEvaluator:
                                 precision_at_recall[ri] = pr[pos_idx_int]
                                 score_at_recall[ri] = dt_scores_sorted[pos_idx_int]
 
-                        # Convert precision to numpy array
-                        precision[iou_thresh_idx, :, cat_idx, area_idx, max_det_idx] = (
-                            np.array(precision_at_recall, dtype=np.float32)
-                        )
-                        # Convert scores to numpy array
-                        scores[iou_thresh_idx, :, cat_idx, area_idx, max_det_idx] = (
-                            np.array(score_at_recall, dtype=np.float32)
-                        )
+                        precision[
+                            iou_thresh_idx, :, cat_idx, area_idx, max_det_idx
+                        ] = np.array(precision_at_recall, dtype=np.float32)
+                        scores[
+                            iou_thresh_idx, :, cat_idx, area_idx, max_det_idx
+                        ] = np.array(score_at_recall, dtype=np.float32)
+
+    @staticmethod
+    def _compute_average_precision(
+        precision_slice: npt.NDArray[np.float32],
+    ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
+        valid_mask = precision_slice != -1
+        valid_precision = np.where(valid_mask, precision_slice, np.float32(0.0))
+
+        def mean_with_mask(
+            axis: int | tuple[int, ...],
+        ) -> npt.NDArray[np.float32]:
+            sums = valid_precision.sum(axis=axis, dtype=np.float64)
+            counts = valid_mask.sum(axis=axis)
+            means = np.divide(
+                sums,
+                counts,
+                out=np.full(sums.shape, -1.0, dtype=np.float64),
+                where=counts > 0,
+            )
+            return means.astype(np.float32)
 
         self._state.results = {
             "params": self.params,
@@ -1128,73 +1168,96 @@ class COCOEvaluator:
             "recall": recall,
             "scores": scores,
         }
+        mAP_scores = mean_with_mask((1, 2))
+        ap_per_class = mean_with_mask(1).transpose(1, 0)
+        return mAP_scores, ap_per_class
 
-        # Helper function to compute average precision while handling -1 sentinel values
-        def compute_average_precision(
-            precision_slice: npt.NDArray[np.float32],
-        ) -> tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]:
-            """Compute average precision while handling -1 sentinel values."""
-            valid_mask = precision_slice != -1
-            valid_precision = np.where(valid_mask, precision_slice, np.float32(0.0))
-
-            def mean_with_mask(
-                axis: int | tuple[int, ...],
-            ) -> npt.NDArray[np.float32]:
-                sums = valid_precision.sum(axis=axis, dtype=np.float64)
-                counts = valid_mask.sum(axis=axis)
-                means = np.divide(
-                    sums,
-                    counts,
-                    out=np.full(sums.shape, -1.0, dtype=np.float64),
-                    where=counts > 0,
-                )
-                return means.astype(np.float32)
-
-            mAP_scores = mean_with_mask((1, 2))
-            ap_per_class = mean_with_mask(1).transpose(1, 0)
-            return mAP_scores, ap_per_class
-
-        # Average precision over all sizes, 100 max detections
-        area_range_idx = list(ObjectSize).index(ObjectSize.ALL)
+    def _compute_average_precision_by_size(
+        self,
+        precision: npt.NDArray[np.float32],
+    ) -> dict[str, npt.NDArray[np.float32]]:
         max_100_dets_idx = self.params.max_dets.index(100)
-        # Average precision  [threshold, recall, classes]
+
+        area_range_idx = list(ObjectSize).index(ObjectSize.ALL)
         average_precision_all_sizes = precision[
             :, :, :, area_range_idx, max_100_dets_idx
         ]
-        # mAP over thresholds (dimension=num_thresholds)
-        # Exclude -1 sentinel values when computing mean
-        mAP_scores_all_sizes, ap_per_class_all_sizes = compute_average_precision(
-            average_precision_all_sizes
+        mAP_scores_all_sizes, ap_per_class_all_sizes = (
+            self._compute_average_precision(average_precision_all_sizes)
         )
 
-        # Average precision for SMALL objects and 100 max detections
         small_area_range_idx = list(ObjectSize).index(ObjectSize.SMALL)
         average_precision_small = precision[
             :, :, :, small_area_range_idx, max_100_dets_idx
         ]
-        mAP_scores_small, ap_per_class_small = compute_average_precision(
-            average_precision_small
+        mAP_scores_small, ap_per_class_small = (
+            self._compute_average_precision(average_precision_small)
         )
 
-        # Average precision for MEDIUM objects and 100 max detections
         medium_area_range_idx = list(ObjectSize).index(ObjectSize.MEDIUM)
         average_precision_medium = precision[
             :, :, :, medium_area_range_idx, max_100_dets_idx
         ]
-        mAP_scores_medium, ap_per_class_medium = compute_average_precision(
-            average_precision_medium
+        mAP_scores_medium, ap_per_class_medium = (
+            self._compute_average_precision(average_precision_medium)
         )
 
-        # Average precision for LARGE objects and 100 max detections
         large_area_range_idx = list(ObjectSize).index(ObjectSize.LARGE)
         average_precision_large = precision[
             :, :, :, large_area_range_idx, max_100_dets_idx
         ]
-        mAP_scores_large, ap_per_class_large = compute_average_precision(
-            average_precision_large
+        mAP_scores_large, ap_per_class_large = (
+            self._compute_average_precision(average_precision_large)
         )
 
         self._state.results = {
+        return {
+            "mAP_scores_all_sizes": mAP_scores_all_sizes,
+            "ap_per_class_all_sizes": ap_per_class_all_sizes,
+            "mAP_scores_small": mAP_scores_small,
+            "ap_per_class_small": ap_per_class_small,
+            "mAP_scores_medium": mAP_scores_medium,
+            "ap_per_class_medium": ap_per_class_medium,
+            "mAP_scores_large": mAP_scores_large,
+            "ap_per_class_large": ap_per_class_large,
+        }
+
+    def _accumulate(self) -> None:
+        (
+            num_iou_thresholds,
+            num_recall_thresholds,
+            num_categories,
+            num_area_ranges,
+            num_max_detections,
+            num_imgs,
+            precision,
+            recall,
+            scores,
+        ) = self._initialize_accumulation()
+
+        (
+            selected_category_ids,
+            selected_max_detections,
+            selected_area_ranges_ids,
+            image_inds,
+        ) = self._select_evaluation_indices()
+
+        self._compute_raw_metrics(
+            precision,
+            recall,
+            scores,
+            selected_category_ids,
+            selected_max_detections,
+            selected_area_ranges_ids,
+            image_inds,
+            num_area_ranges,
+            num_imgs,
+            num_recall_thresholds,
+        )
+
+        ap_results = self._compute_average_precision_by_size(precision)
+
+        self.results = {
             "params": self.params,
             "counts": [
                 num_iou_thresholds,
@@ -1207,14 +1270,7 @@ class COCOEvaluator:
             "precision": precision,
             "recall": recall,
             "scores": scores,
-            "mAP_scores_all_sizes": mAP_scores_all_sizes,
-            "ap_per_class_all_sizes": ap_per_class_all_sizes,
-            "mAP_scores_small": mAP_scores_small,
-            "ap_per_class_small": ap_per_class_small,
-            "mAP_scores_medium": mAP_scores_medium,
-            "ap_per_class_medium": ap_per_class_medium,
-            "mAP_scores_large": mAP_scores_large,
-            "ap_per_class_large": ap_per_class_large,
+            **ap_results,
         }
 
     def _pycocotools_summarize(self) -> None:

@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from supervision.dataset.core import DetectionDataset
 
 CocoDict = dict[str, Any]
+CocoSegmentation = Union[list[list[float]], dict[str, list[int]]]
 
 
 def coco_categories_to_classes(coco_categories: list[CocoDict]) -> list[str]:
@@ -214,6 +215,71 @@ def coco_annotations_to_detections(
     )
 
 
+def _build_coco_segmentation_from_mask(
+    mask: npt.NDArray[np.bool_],
+    data: dict[str, Any],
+    min_image_area_percentage: float,
+    max_image_area_percentage: float,
+    approximation_percentage: float,
+    annotation_id: int,
+) -> tuple[CocoSegmentation, int]:
+    if "iscrowd" in data:
+        iscrowd = int(np.asarray(data["iscrowd"]).item())
+    else:
+        iscrowd = int(
+            contains_holes(mask=mask) or contains_multiple_segments(mask=mask)
+        )
+
+    if iscrowd:
+        return (
+            {
+                "counts": cast(list[int], mask_to_rle(mask=mask, compressed=False)),
+                "size": list(mask.shape[:2]),
+            },
+            iscrowd,
+        )
+
+    polygons = approximate_mask_with_polygons(
+        mask=mask,
+        min_image_area_percentage=min_image_area_percentage,
+        max_image_area_percentage=max_image_area_percentage,
+        approximation_percentage=approximation_percentage,
+    )
+    # Small/noisy masks can be filtered out by approximation settings.
+    # Guard against empty output and keep a valid COCO annotation record.
+    if polygons:
+        # Export ALL polygons so disjoint mask components are preserved.
+        segmentation: CocoSegmentation = [list(p.flatten()) for p in polygons]
+    else:
+        warnings.warn(
+            "Skipping COCO polygon segmentation for annotation "
+            f"id={annotation_id} because mask approximation "
+            "returned no polygons.",
+            stacklevel=2,
+        )
+        segmentation = cast(CocoSegmentation, [])
+
+    return segmentation, iscrowd
+
+
+def _build_coco_segmentation_from_raw_data(data: dict[str, Any]) -> CocoSegmentation:
+    raw_seg = data.get(COCO_RAW_SEGMENTATION)
+    if raw_seg is None or not bool(raw_seg):
+        return cast(CocoSegmentation, [])
+
+    if isinstance(raw_seg, dict):
+        # RLE format - pass through unchanged.
+        return raw_seg
+
+    if isinstance(raw_seg, list) and raw_seg and not isinstance(
+        raw_seg[0], (list, tuple)
+    ):
+        # Flat list shorthand [x1,y1,...] - wrap to list-of-lists.
+        return [list(raw_seg)]
+
+    return list(raw_seg)
+
+
 def detections_to_coco_annotations(
     detections: Detections,
     image_id: int,
@@ -283,61 +349,22 @@ def detections_to_coco_annotations(
         if class_id is None:
             raise ValueError("Detections must include class_id for COCO export.")
         box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
-        segmentation: Union[list[list[float]], dict[str, list[int]]] = []
+        segmentation: CocoSegmentation = cast(CocoSegmentation, [])
         if mask is not None:
             mask_bool = cast(npt.NDArray[np.bool_], mask)
-            if "iscrowd" in data:
-                iscrowd = int(np.asarray(data["iscrowd"]).item())
-            else:
-                iscrowd = int(
-                    contains_holes(mask=mask_bool)
-                    or contains_multiple_segments(mask=mask_bool)
-                )
-
-            if iscrowd:
-                segmentation = {
-                    "counts": cast(
-                        list[int], mask_to_rle(mask=mask_bool, compressed=False)
-                    ),
-                    "size": list(mask.shape[:2]),
-                }
-            else:
-                polygons = approximate_mask_with_polygons(
-                    mask=mask_bool,
-                    min_image_area_percentage=min_image_area_percentage,
-                    max_image_area_percentage=max_image_area_percentage,
-                    approximation_percentage=approximation_percentage,
-                )
-                # Small/noisy masks can be filtered out by approximation settings.
-                # Guard against empty output and keep a valid COCO annotation record.
-                if polygons:
-                    # Export ALL polygons so disjoint mask components are preserved.
-                    segmentation = [list(p.flatten()) for p in polygons]
-                else:
-                    warnings.warn(
-                        "Skipping COCO polygon segmentation for annotation "
-                        f"id={annotation_id} because mask approximation "
-                        "returned no polygons.",
-                        stacklevel=2,
-                    )
+            segmentation, iscrowd = _build_coco_segmentation_from_mask(
+                mask=mask_bool,
+                data=data,
+                min_image_area_percentage=min_image_area_percentage,
+                max_image_area_percentage=max_image_area_percentage,
+                approximation_percentage=approximation_percentage,
+                annotation_id=annotation_id,
+            )
         else:
             iscrowd = int(np.asarray(data.get("iscrowd", 0)).item())
             # When masks were not decoded during loading, fall back to the raw
             # polygon/RLE stored in data["segmentation"] for a lossless round-trip.
-            raw_seg = data.get(COCO_RAW_SEGMENTATION)
-            if raw_seg is not None and bool(raw_seg):
-                if isinstance(raw_seg, dict):
-                    # RLE format — pass through unchanged
-                    segmentation = raw_seg
-                elif (
-                    isinstance(raw_seg, list)
-                    and raw_seg
-                    and not isinstance(raw_seg[0], (list, tuple))
-                ):
-                    # Flat list shorthand [x1,y1,...] — wrap to list-of-lists
-                    segmentation = [list(raw_seg)]
-                else:
-                    segmentation = list(raw_seg)
+            segmentation = _build_coco_segmentation_from_raw_data(data=data)
 
         area: float = float(np.asarray(data.get("area", box_width * box_height)).item())
         coco_annotation = {

@@ -288,6 +288,59 @@ def resize_masks(masks: npt.NDArray[Any], max_dimension: int = 640) -> npt.NDArr
     return resized_masks.reshape(masks.shape[0], new_height, new_width)
 
 
+def _resolve_distance_threshold(
+    height: int,
+    width: int,
+    absolute_distance: float | None,
+    relative_distance: float | None,
+) -> float:
+    """Resolve the distance threshold from absolute or relative input."""
+    if relative_distance is not None:
+        diagonal = float(np.hypot(height, width))
+        return float(relative_distance) * diagonal
+    if absolute_distance is not None:
+        return float(absolute_distance)
+    raise ValueError("Either absolute_distance or relative_distance must be set.")
+
+
+def _filter_labels_by_centroid_distance(
+    keep_labels: npt.NDArray[np.bool_],
+    centroids: npt.NDArray[np.float64],
+    main_label: int,
+    threshold: float,
+) -> None:
+    """Mark labels whose centroids are within the provided threshold."""
+    differences = centroids[1:] - centroids[main_label]
+    distances = np.sqrt(np.sum(differences**2, axis=1))
+    nearby = 1 + np.where(distances <= threshold)[0]
+    keep_labels[nearby] = True
+
+
+def _filter_labels_by_edge_distance(
+    keep_labels: npt.NDArray[np.bool_],
+    labels: npt.NDArray[np.int32],
+    main_label: int,
+    num_labels: int,
+    threshold: float,
+) -> None:
+    """Mark labels whose edge distance to the main component is within threshold."""
+    main_mask = (labels == main_label).astype(np.uint8)
+    inverse = 1 - main_mask
+    distance_transform = cv2.distanceTransform(inverse, cv2.DIST_L2, 3)
+
+    for label in range(1, num_labels):
+        if label == main_label:
+            continue
+
+        component = labels == label
+        if not np.any(component):
+            continue
+
+        min_distance = float(distance_transform[component].min())
+        if min_distance <= threshold:
+            keep_labels[label] = True
+
+
 def filter_segments_by_distance(
     mask: npt.NDArray[np.bool_],
     absolute_distance: float | None = 100.0,
@@ -391,35 +444,31 @@ def filter_segments_by_distance(
     areas = stats[1:, cv2.CC_STAT_AREA]
     main_label = 1 + int(np.argmax(areas))
 
-    if relative_distance is not None:
-        diagonal = float(np.hypot(height, width))
-        threshold = float(relative_distance) * diagonal
-    elif absolute_distance is not None:
-        threshold = float(absolute_distance)
-    else:
-        raise ValueError("Either absolute_distance or relative_distance must be set.")
+    threshold = _resolve_distance_threshold(
+        height=height,
+        width=width,
+        absolute_distance=absolute_distance,
+        relative_distance=relative_distance,
+    )
 
     keep_labels: npt.NDArray[np.bool_] = np.zeros(num_labels, dtype=bool)
     keep_labels[main_label] = True
 
     if mode == "centroid":
-        differences = centroids[1:] - centroids[main_label]
-        distances = np.sqrt(np.sum(differences**2, axis=1))
-        nearby = 1 + np.where(distances <= threshold)[0]
-        keep_labels[nearby] = True
+        _filter_labels_by_centroid_distance(
+            keep_labels=keep_labels,
+            centroids=centroids,
+            main_label=main_label,
+            threshold=threshold,
+        )
     elif mode == "edge":
-        main_mask = (labels == main_label).astype(np.uint8)
-        inverse = 1 - main_mask
-        distance_transform = cv2.distanceTransform(inverse, cv2.DIST_L2, 3)
-        for label in range(1, num_labels):
-            if label == main_label:
-                continue
-            component = labels == label
-            if not np.any(component):
-                continue
-            min_distance = float(distance_transform[component].min())
-            if min_distance <= threshold:
-                keep_labels[label] = True
+        _filter_labels_by_edge_distance(
+            keep_labels=keep_labels,
+            labels=labels,
+            main_label=main_label,
+            num_labels=num_labels,
+            threshold=threshold,
+        )
     else:
         raise ValueError("mode must be 'edge' or 'centroid'")
 

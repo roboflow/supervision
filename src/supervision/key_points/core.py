@@ -922,6 +922,140 @@ class KeyPoints:
             data=data_selected,
         )
 
+    def _normalize_getitem_index(
+        self, index: Index1D | Index2D
+    ) -> tuple[
+        Index1D | Index2D, Any, Any, _NormalizedRowIndex
+    ]:
+        if not isinstance(index, tuple):
+            index = (index, slice(None))
+        i, j = cast(Any, index[0]), cast(Any, index[1])
+
+        if isinstance(i, (int, np.integer)):
+            i = [int(i)]
+
+        if isinstance(i, list) and all(isinstance(x, bool) for x in i):
+            i = np.array(i)
+        if isinstance(j, list) and all(isinstance(x, bool) for x in j):
+            j = np.array(j)
+
+        if isinstance(i, np.ndarray) and i.dtype == bool:
+            i = np.flatnonzero(i)
+        if isinstance(j, np.ndarray) and j.dtype == bool:
+            j = np.flatnonzero(j)
+
+        raw_i = i
+
+        if (
+            isinstance(i, (list, np.ndarray))
+            and isinstance(j, (list, np.ndarray))
+            and not np.isscalar(i)
+            and not np.isscalar(j)
+        ):
+            i_ix, j_ix = np.ix_(cast(Any, i), cast(Any, j))
+            i = cast(Any, i_ix)
+            j = cast(Any, j_ix)
+
+        return index, i, j, _normalize_row_index(raw_i)
+
+    def _select_fields(
+        self, i: Any, j: Any, row_i: _NormalizedRowIndex
+    ) -> tuple[
+        npt.NDArray[np.float32],
+        npt.NDArray[np.float32] | None,
+        npt.NDArray[np.float32] | None,
+        npt.NDArray[np.bool_] | None,
+        npt.NDArray[np.int_] | None,
+        Any,
+    ]:
+        xy_selected = self.xy[i, j]
+        keypoint_confidence_selected = (
+            self.keypoint_confidence[i, j]
+            if self.keypoint_confidence is not None
+            else None
+        )
+        detection_confidence_selected = (
+            self.detection_confidence[row_i]
+            if self.detection_confidence is not None
+            else None
+        )
+        visible_selected = (
+            self.visible[i, j] if self.visible is not None else None
+        )
+        class_id_selected = (
+            self.class_id[row_i] if self.class_id is not None else None
+        )
+        data_selected = get_data_item(self.data, cast(Any, row_i))
+        return (
+            xy_selected,
+            keypoint_confidence_selected,
+            detection_confidence_selected,
+            visible_selected,
+            class_id_selected,
+            data_selected,
+        )
+
+    def _reshape_selected(
+        self,
+        xy_selected: npt.NDArray[np.float32],
+        keypoint_confidence_selected: npt.NDArray[np.float32] | None,
+        visible_selected: npt.NDArray[np.bool_] | None,
+        index: Index1D | Index2D,
+    ) -> tuple[
+        npt.NDArray[np.float32],
+        npt.NDArray[np.float32] | None,
+        npt.NDArray[np.bool_] | None,
+    ]:
+        if xy_selected.ndim == 1:
+            xy_selected = xy_selected.reshape(1, 1, 2)
+            if keypoint_confidence_selected is not None:
+                keypoint_confidence_selected = keypoint_confidence_selected.reshape(
+                    1, 1
+                )
+            if visible_selected is not None:
+                visible_selected = visible_selected.reshape(1, 1)
+        elif xy_selected.ndim == 2:
+            if np.isscalar(index[0]) or (
+                isinstance(index[0], np.ndarray) and index[0].ndim == 0
+            ):
+                xy_selected = xy_selected[np.newaxis, ...]
+                if keypoint_confidence_selected is not None:
+                    keypoint_confidence_selected = keypoint_confidence_selected[
+                        np.newaxis, ...
+                    ]
+                if visible_selected is not None:
+                    visible_selected = visible_selected[np.newaxis, ...]
+            elif np.isscalar(index[1]) or (
+                isinstance(index[1], np.ndarray) and index[1].ndim == 0
+            ):
+                xy_selected = xy_selected[:, np.newaxis, :]
+                if keypoint_confidence_selected is not None:
+                    keypoint_confidence_selected = keypoint_confidence_selected[
+                        :, np.newaxis
+                    ]
+                if visible_selected is not None:
+                    visible_selected = visible_selected[:, np.newaxis]
+        return xy_selected, keypoint_confidence_selected, visible_selected
+
+    def _getitem_by_normalized_index(
+        self,
+        index: Index1D | Index2D,
+        i: Any,
+        j: Any,
+        row_i: _NormalizedRowIndex,
+    ) -> KeyPoints:
+        xy, kconf, dconf, visible, class_id, data = self._select_fields(i, j, row_i)
+        xy, kconf, visible = self._reshape_selected(xy, kconf, visible, index)
+
+        return KeyPoints(
+            xy=xy,
+            keypoint_confidence=kconf,
+            detection_confidence=dconf,
+            visible=visible,
+            class_id=class_id,
+            data=data,
+        )
+
     def __getitem__(
         self,
         index: Index1D | Index2D | str,
@@ -970,94 +1104,8 @@ class KeyPoints:
         if isinstance(index, np.ndarray) and index.ndim == 2 and index.dtype == bool:
             return self._get_by_2d_bool_mask(cast(npt.NDArray[np.bool_], index))
 
-        if not isinstance(index, tuple):
-            index = (index, slice(None))
-
-        i, j = index
-
-        if isinstance(i, int):
-            i = [i]
-
-        if isinstance(i, list) and all(isinstance(x, bool) for x in i):
-            i = np.array(i)
-        if isinstance(j, list) and all(isinstance(x, bool) for x in j):
-            j = np.array(j)
-
-        if isinstance(i, np.ndarray) and i.dtype == bool:
-            i = np.flatnonzero(i)
-        if isinstance(j, np.ndarray) and j.dtype == bool:
-            j = np.flatnonzero(j)
-
-        raw_i = i
-
-        if (
-            isinstance(i, (list, np.ndarray))
-            and isinstance(j, (list, np.ndarray))
-            and not np.isscalar(i)
-            and not np.isscalar(j)
-        ):
-            i_ix, j_ix = np.ix_(cast(Any, i), cast(Any, j))
-            i = cast(Any, i_ix)
-            j = cast(Any, j_ix)
-
-        row_i = _normalize_row_index(raw_i)
-
-        xy_selected = self.xy[i, j]
-
-        keypoint_confidence_selected = None
-        if self.keypoint_confidence is not None:
-            keypoint_confidence_selected = self.keypoint_confidence[i, j]
-
-        detection_confidence_selected = None
-        if self.detection_confidence is not None:
-            detection_confidence_selected = self.detection_confidence[row_i]
-
-        visible_selected = None
-        if self.visible is not None:
-            visible_selected = self.visible[i, j]
-
-        class_id_selected = self.class_id[row_i] if self.class_id is not None else None
-
-        data_selected = get_data_item(self.data, cast(Any, row_i))
-
-        if xy_selected.ndim == 1:
-            xy_selected = xy_selected.reshape(1, 1, 2)
-            if keypoint_confidence_selected is not None:
-                keypoint_confidence_selected = keypoint_confidence_selected.reshape(
-                    1, 1
-                )
-            if visible_selected is not None:
-                visible_selected = visible_selected.reshape(1, 1)
-        elif xy_selected.ndim == 2:
-            if np.isscalar(index[0]) or (
-                isinstance(index[0], np.ndarray) and index[0].ndim == 0
-            ):
-                xy_selected = xy_selected[np.newaxis, ...]
-                if keypoint_confidence_selected is not None:
-                    keypoint_confidence_selected = keypoint_confidence_selected[
-                        np.newaxis, ...
-                    ]
-                if visible_selected is not None:
-                    visible_selected = visible_selected[np.newaxis, ...]
-            elif np.isscalar(index[1]) or (
-                isinstance(index[1], np.ndarray) and index[1].ndim == 0
-            ):
-                xy_selected = xy_selected[:, np.newaxis, :]
-                if keypoint_confidence_selected is not None:
-                    keypoint_confidence_selected = keypoint_confidence_selected[
-                        :, np.newaxis
-                    ]
-                if visible_selected is not None:
-                    visible_selected = visible_selected[:, np.newaxis]
-
-        return KeyPoints(
-            xy=xy_selected,
-            keypoint_confidence=keypoint_confidence_selected,
-            detection_confidence=detection_confidence_selected,
-            visible=visible_selected,
-            class_id=class_id_selected,
-            data=data_selected,
-        )
+        index, i, j, row_i = self._normalize_getitem_index(index)
+        return self._getitem_by_normalized_index(index, i, j, row_i)
 
     def __setitem__(self, key: str, value: npt.NDArray[np.generic] | list[Any]) -> None:
         """

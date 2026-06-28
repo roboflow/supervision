@@ -772,55 +772,25 @@ class Detections:
         confidences = []
         class_ids = []
 
-        if isinstance(sam3_result, dict):
-            prompt_results = sam3_result.get("prompt_results", [])
-            if not prompt_results and "predictions" in sam3_result:
-                prompt_results = [
-                    {"predictions": sam3_result["predictions"], "prompt_index": 0}
-                ]
-        else:
-            prompt_results = getattr(sam3_result, "prompt_results", [])
-            if not prompt_results and hasattr(sam3_result, "predictions"):
-                prompt_results = [
-                    {
-                        "predictions": getattr(sam3_result, "predictions"),
-                        "prompt_index": 0,
-                    }
-                ]
+        prompt_results = _normalize_sam3_prompt_results(sam3_result)
 
         for i, prompt_result in enumerate(prompt_results):
-            if isinstance(prompt_result, dict):
-                predictions = prompt_result.get("predictions", [])
-                prompt_index = prompt_result.get("prompt_index", i)
-            else:
-                predictions = getattr(prompt_result, "predictions", [])
-                prompt_index = getattr(prompt_result, "prompt_index", i)
+            predictions, prompt_index = _normalize_sam3_prompt_result(
+                prompt_result=prompt_result,
+                fallback_index=i,
+            )
 
             for prediction in predictions:
-                if isinstance(prediction, dict):
-                    prediction_format = prediction.get("format")
-                    if prediction_format and prediction_format != "polygon":
-                        continue
-                    pred_masks = prediction.get("masks", [])
-                    confidence = prediction.get("confidence", 1.0)
-                else:
-                    prediction_format = getattr(prediction, "format", None)
-                    if prediction_format and prediction_format != "polygon":
-                        continue
-                    pred_masks = getattr(prediction, "masks", [])
-                    confidence = getattr(prediction, "confidence", 1.0)
-
-                if not pred_masks:
+                prediction_payload = _normalize_sam3_prediction(prediction)
+                if prediction_payload is None:
                     continue
 
-                full_mask: npt.NDArray[np.bool_] = np.zeros((height, width), dtype=bool)
-                for poly in pred_masks:
-                    polygon = np.array(poly, dtype=np.int32)
-                    mask = polygon_to_mask(
-                        polygon=polygon, resolution_wh=(width, height)
-                    )
-                    mask = mask.astype(bool, copy=False)
-                    np.logical_or(full_mask, mask, out=full_mask)
+                pred_masks, confidence = prediction_payload
+
+                full_mask = _build_sam3_mask(
+                    pred_masks=pred_masks,
+                    resolution_wh=(width, height),
+                )
 
                 masks.append(full_mask)
                 confidences.append(confidence)
@@ -2897,6 +2867,62 @@ def merge_inner_detections_objects_without_iou(
     etc.
     """
     return reduce(merge_inner_detection_object_pair, detections)
+
+
+def _get_sam3_value(source: dict[str, Any] | Any, key: str, default: Any) -> Any:
+    if isinstance(source, dict):
+        return source.get(key, default)
+    return getattr(source, key, default)
+
+
+def _normalize_sam3_prompt_results(sam3_result: dict[str, Any] | Any) -> list[Any]:
+    prompt_results = _get_sam3_value(sam3_result, "prompt_results", [])
+    if prompt_results:
+        return list(prompt_results)
+
+    predictions = _get_sam3_value(sam3_result, "predictions", [])
+    if predictions:
+        return [{"predictions": predictions, "prompt_index": 0}]
+
+    return []
+
+
+def _normalize_sam3_prompt_result(
+    prompt_result: dict[str, Any] | Any, fallback_index: int
+) -> tuple[list[Any], int]:
+    predictions = _get_sam3_value(prompt_result, "predictions", [])
+    prompt_index = _get_sam3_value(prompt_result, "prompt_index", fallback_index)
+    return list(predictions), prompt_index
+
+
+def _normalize_sam3_prediction(
+    prediction: dict[str, Any] | Any,
+) -> tuple[list[Any], float] | None:
+    prediction_format = _get_sam3_value(prediction, "format", None)
+    if prediction_format and prediction_format != "polygon":
+        return None
+
+    pred_masks = _get_sam3_value(prediction, "masks", [])
+    if pred_masks is None or len(pred_masks) == 0:
+        return None
+
+    confidence = _get_sam3_value(prediction, "confidence", 1.0)
+    return list(pred_masks), confidence
+
+
+def _build_sam3_mask(
+    pred_masks: list[Any], resolution_wh: tuple[int, int]
+) -> npt.NDArray[np.bool_]:
+    width, height = resolution_wh
+    full_mask: npt.NDArray[np.bool_] = np.zeros((height, width), dtype=bool)
+
+    for poly in pred_masks:
+        polygon = np.asarray(poly, dtype=np.int32)
+        mask = polygon_to_mask(polygon=polygon, resolution_wh=(width, height))
+        mask = mask.astype(bool, copy=False)
+        np.logical_or(full_mask, mask, out=full_mask)
+
+    return full_mask
 
 
 def _validate_fields_both_defined_or_none(
