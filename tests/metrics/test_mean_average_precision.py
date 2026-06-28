@@ -3,10 +3,41 @@ import numpy as np
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.metrics.core import MetricTarget
-from supervision.metrics.mean_average_precision import MeanAveragePrecision
+from supervision.metrics.mean_average_precision import (
+    MeanAveragePrecision,
+    MeanAveragePrecisionResult,
+)
 
 
 class TestMeanAveragePrecision:
+    def test_result_preserves_size_specific_accessors(self):
+        """Test that size-specific results remain accessible."""
+        nested = MeanAveragePrecisionResult(
+            metric_target=MetricTarget.BOXES,
+            is_class_agnostic=False,
+            mAP_scores=np.array([0.1], dtype=np.float64),
+            ap_per_class=np.array([[0.1]], dtype=np.float64),
+            iou_thresholds=np.array([0.5], dtype=np.float64),
+            matched_classes=np.array([0], dtype=np.int32),
+        )
+        result = MeanAveragePrecisionResult(
+            metric_target=MetricTarget.BOXES,
+            is_class_agnostic=False,
+            mAP_scores=np.array([0.2], dtype=np.float64),
+            ap_per_class=np.array([[0.2]], dtype=np.float64),
+            iou_thresholds=np.array([0.5], dtype=np.float64),
+            matched_classes=np.array([0], dtype=np.int32),
+            small_objects=nested,
+        )
+
+        assert result.small_objects is nested
+        assert result.medium_objects is None
+        assert result.large_objects is None
+
+        result.medium_objects = nested
+
+        assert result.medium_objects is nested
+
     def test_single_perfect_detection(self, detections_50_50, targets_50_50):
         """Test that single perfect detection gets 1.0 mAP (not 0.0 due to ID=0 bug)"""
         metric = MeanAveragePrecision()

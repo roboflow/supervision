@@ -5,7 +5,7 @@ import datetime
 import itertools
 from collections import defaultdict
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
@@ -27,6 +27,15 @@ if TYPE_CHECKING:
 
 
 @dataclass
+class MeanAveragePrecisionSizeResults:
+    """Mean Average Precision results split by object size."""
+
+    small_objects: MeanAveragePrecisionResult | None = None
+    medium_objects: MeanAveragePrecisionResult | None = None
+    large_objects: MeanAveragePrecisionResult | None = None
+
+
+@dataclass(init=False)
 class MeanAveragePrecisionResult:
     """
     The result of the Mean Average Precision calculation.
@@ -45,16 +54,51 @@ class MeanAveragePrecisionResult:
         iou_thresholds: the IoU thresholds used in the calculations.
         matched_classes: the class IDs of all matched classes.
             Corresponds to the rows of `ap_per_class`.
-        small_objects: the mAP results
-            for small objects (area < 32²).
-        medium_objects: the mAP results
-            for medium objects (32² ≤ area < 96²).
-        large_objects: the mAP results
-            for large objects (area ≥ 96²).
+        small_objects: the mAP results for small objects (area < 32²).
+        medium_objects: the mAP results for medium objects (32² ≤ area < 96²).
+        large_objects: the mAP results for large objects (area ≥ 96²).
     """
 
     metric_target: MetricTarget
     is_class_agnostic: bool
+    mAP_scores: npt.NDArray[np.float64]
+    ap_per_class: npt.NDArray[np.float64]
+    iou_thresholds: npt.NDArray[np.float64]
+    matched_classes: npt.NDArray[np.int32]
+    _size_results: MeanAveragePrecisionSizeResults | None = field(
+        default=None, repr=False, compare=False
+    )
+
+    def __init__(
+        self,
+        metric_target: MetricTarget,
+        is_class_agnostic: bool,
+        mAP_scores: npt.NDArray[np.float64],
+        ap_per_class: npt.NDArray[np.float64],
+        iou_thresholds: npt.NDArray[np.float64],
+        matched_classes: npt.NDArray[np.int32],
+        small_objects: MeanAveragePrecisionResult | None = None,
+        medium_objects: MeanAveragePrecisionResult | None = None,
+        large_objects: MeanAveragePrecisionResult | None = None,
+    ) -> None:
+        self.metric_target = metric_target
+        self.is_class_agnostic = is_class_agnostic
+        self.mAP_scores = mAP_scores
+        self.ap_per_class = ap_per_class
+        self.iou_thresholds = iou_thresholds
+        self.matched_classes = matched_classes
+        self._size_results = None
+
+        if (
+            small_objects is not None
+            or medium_objects is not None
+            or large_objects is not None
+        ):
+            self._size_results = MeanAveragePrecisionSizeResults(
+                small_objects=small_objects,
+                medium_objects=medium_objects,
+                large_objects=large_objects,
+            )
 
     @property
     def map50_95(self) -> float:
@@ -75,13 +119,59 @@ class MeanAveragePrecisionResult:
         """the mAP score at IoU threshold of `0.75`."""
         return float(self.mAP_scores[5])
 
-    mAP_scores: npt.NDArray[np.float64]
-    ap_per_class: npt.NDArray[np.float64]
-    iou_thresholds: npt.NDArray[np.float64]
-    matched_classes: npt.NDArray[np.int32]
-    small_objects: MeanAveragePrecisionResult | None = None
-    medium_objects: MeanAveragePrecisionResult | None = None
-    large_objects: MeanAveragePrecisionResult | None = None
+    @property
+    def small_objects(self) -> MeanAveragePrecisionResult | None:
+        """The mAP results for small objects."""
+        if self._size_results is None:
+            return None
+
+        return self._size_results.small_objects
+
+    @small_objects.setter
+    def small_objects(self, value: MeanAveragePrecisionResult | None) -> None:
+        if self._size_results is None and value is None:
+            return
+
+        if self._size_results is None:
+            self._size_results = MeanAveragePrecisionSizeResults()
+
+        self._size_results.small_objects = value
+
+    @property
+    def medium_objects(self) -> MeanAveragePrecisionResult | None:
+        """The mAP results for medium objects."""
+        if self._size_results is None:
+            return None
+
+        return self._size_results.medium_objects
+
+    @medium_objects.setter
+    def medium_objects(self, value: MeanAveragePrecisionResult | None) -> None:
+        if self._size_results is None and value is None:
+            return
+
+        if self._size_results is None:
+            self._size_results = MeanAveragePrecisionSizeResults()
+
+        self._size_results.medium_objects = value
+
+    @property
+    def large_objects(self) -> MeanAveragePrecisionResult | None:
+        """The mAP results for large objects."""
+        if self._size_results is None:
+            return None
+
+        return self._size_results.large_objects
+
+    @large_objects.setter
+    def large_objects(self, value: MeanAveragePrecisionResult | None) -> None:
+        if self._size_results is None and value is None:
+            return
+
+        if self._size_results is None:
+            self._size_results = MeanAveragePrecisionSizeResults()
+
+        self._size_results.large_objects = value
 
     def __str__(self) -> str:
         """
