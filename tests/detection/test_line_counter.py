@@ -893,6 +893,9 @@ def test_line_zone_annotator_multiclass_supports_none_class_id() -> None:
 
     frame = np.zeros((100, 100, 3), dtype=np.uint8)
     annotator = LineZoneAnnotatorMulticlass(force_draw_class_ids=False)
+    assert annotator.table_position == Position.TOP_RIGHT
+    annotator.table_margin = 12
+    assert annotator.table_margin == 12
     annotated_frame = annotator.annotate(frame=frame.copy(), line_zones=[line_zone])
 
     assert annotated_frame.shape == frame.shape

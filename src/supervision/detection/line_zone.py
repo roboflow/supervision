@@ -42,6 +42,34 @@ class LineZoneAnnotatorConfig:
     text_centered: bool = True
 
 
+@dataclass(slots=True)
+class LineZoneAnnotatorMulticlassConfig:
+    table_position: Literal[
+        Position.TOP_LEFT,
+        Position.TOP_RIGHT,
+        Position.BOTTOM_LEFT,
+        Position.BOTTOM_RIGHT,
+    ] = Position.TOP_RIGHT
+    table_color: Color = Color.WHITE
+    table_margin: int = 10
+    table_padding: int = 10
+    table_max_width: int = 400
+    text_color: Color = Color.BLACK
+    text_scale: float = 0.75
+    text_thickness: int = 1
+    force_draw_class_ids: bool = False
+
+
+def _multiclass_config_property(field_name: str) -> property:
+    def getter(self: "LineZoneAnnotatorMulticlass") -> Any:
+        return getattr(self._config, field_name)
+
+    def setter(self: "LineZoneAnnotatorMulticlass", value: Any) -> None:
+        setattr(self._config, field_name, value)
+
+    return property(getter, setter)
+
+
 class LineZone:
     """
     This class is responsible for counting the number of objects that cross a
@@ -742,6 +770,16 @@ class LineZoneAnnotator:
 
 
 class LineZoneAnnotatorMulticlass:
+    table_position = _multiclass_config_property("table_position")
+    table_color = _multiclass_config_property("table_color")
+    table_margin = _multiclass_config_property("table_margin")
+    table_padding = _multiclass_config_property("table_padding")
+    table_max_width = _multiclass_config_property("table_max_width")
+    text_color = _multiclass_config_property("text_color")
+    text_scale = _multiclass_config_property("text_scale")
+    text_thickness = _multiclass_config_property("text_thickness")
+    force_draw_class_ids = _multiclass_config_property("force_draw_class_ids")
+
     def __init__(
         self,
         *,
@@ -787,15 +825,17 @@ class LineZoneAnnotatorMulticlass:
                 " TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT."
             )
 
-        self.table_position = table_position
-        self.table_color = table_color
-        self.table_margin = table_margin
-        self.table_padding = table_padding
-        self.table_max_width = table_max_width
-        self.text_color = text_color
-        self.text_scale = text_scale
-        self.text_thickness = text_thickness
-        self.force_draw_class_ids = force_draw_class_ids
+        self._config = LineZoneAnnotatorMulticlassConfig(
+            table_position=table_position,
+            table_color=table_color,
+            table_margin=table_margin,
+            table_padding=table_padding,
+            table_max_width=table_max_width,
+            text_color=text_color,
+            text_scale=text_scale,
+            text_thickness=text_thickness,
+            force_draw_class_ids=force_draw_class_ids,
+        )
 
     def annotate(
         self,
