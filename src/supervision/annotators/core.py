@@ -3102,6 +3102,18 @@ class BackgroundOverlayAnnotator(BaseAnnotator):
         return scene
 
 
+@dataclass(frozen=True)
+class _ComparisonAnnotatorConfig:
+    color_1: Color
+    color_2: Color
+    color_overlap: Color
+    opacity: float
+    label_1: str
+    label_2: str
+    label_overlap: str
+    label_scale: float
+
+
 class ComparisonAnnotator:
     """
     Highlights the differences between two sets of detections.
@@ -3139,16 +3151,16 @@ class ComparisonAnnotator:
             label_scale: Controls how large the labels are.
         """
 
-        self.color_1 = color_1
-        self.color_2 = color_2
-        self.color_overlap = color_overlap
-
-        self.opacity = opacity
-        self.label_1 = label_1
-        self.label_2 = label_2
-        self.label_overlap = label_overlap
-        self.label_scale = label_scale
-        self.text_thickness = int(self.label_scale + 1.2)
+        self.config = _ComparisonAnnotatorConfig(
+            color_1=color_1,
+            color_2=color_2,
+            color_overlap=color_overlap,
+            opacity=opacity,
+            label_1=label_1,
+            label_2=label_2,
+            label_overlap=label_overlap,
+            label_scale=label_scale,
+        )
 
     @ensure_cv2_image_for_class_method
     def annotate(
@@ -3212,19 +3224,19 @@ class ComparisonAnnotator:
         mask_2 = mask_2 & ~mask_overlap
 
         color_layer = np.zeros_like(scene, dtype=np.uint8)
-        color_layer[mask_overlap] = self.color_overlap.as_bgr()
-        color_layer[mask_1] = self.color_1.as_bgr()
-        color_layer[mask_2] = self.color_2.as_bgr()
+        color_layer[mask_overlap] = self.config.color_overlap.as_bgr()
+        color_layer[mask_1] = self.config.color_1.as_bgr()
+        color_layer[mask_2] = self.config.color_2.as_bgr()
 
-        scene[mask_overlap] = (1 - self.opacity) * scene[
+        scene[mask_overlap] = (1 - self.config.opacity) * scene[
             mask_overlap
-        ] + self.opacity * color_layer[mask_overlap]
-        scene[mask_1] = (1 - self.opacity) * scene[mask_1] + self.opacity * color_layer[
-            mask_1
-        ]
-        scene[mask_2] = (1 - self.opacity) * scene[mask_2] + self.opacity * color_layer[
-            mask_2
-        ]
+        ] + self.config.opacity * color_layer[mask_overlap]
+        scene[mask_1] = (1 - self.config.opacity) * scene[mask_1] + (
+            self.config.opacity * color_layer[mask_1]
+        )
+        scene[mask_2] = (1 - self.config.opacity) * scene[mask_2] + (
+            self.config.opacity * color_layer[mask_2]
+        )
 
         self._draw_labels(scene)
 
@@ -3304,21 +3316,24 @@ class ComparisonAnnotator:
         Args:
             scene: The image where the labels will be drawn.
         """
-        margin = int(50 * self.label_scale)
-        gap = int(40 * self.label_scale)
-        y0 = int(50 * self.label_scale)
-        height = int(50 * self.label_scale)
+        label_scale = self.config.label_scale
+        text_thickness = int(label_scale + 1.2)
 
-        marker_size = int(20 * self.label_scale)
-        padding = int(10 * self.label_scale)
-        text_box_corner_radius = int(10 * self.label_scale)
-        marker_corner_radius = int(4 * self.label_scale)
-        text_scale = self.label_scale
+        margin = int(50 * label_scale)
+        gap = int(40 * label_scale)
+        y0 = int(50 * label_scale)
+        height = int(50 * label_scale)
+
+        marker_size = int(20 * label_scale)
+        padding = int(10 * label_scale)
+        text_box_corner_radius = int(10 * label_scale)
+        marker_corner_radius = int(4 * label_scale)
+        text_scale = label_scale
 
         label_color_pairs = [
-            (self.label_1, self.color_1),
-            (self.label_2, self.color_2),
-            (self.label_overlap, self.color_overlap),
+            (self.config.label_1, self.config.color_1),
+            (self.config.label_2, self.config.color_2),
+            (self.config.label_overlap, self.config.color_overlap),
         ]
 
         x0 = margin
@@ -3329,8 +3344,8 @@ class ComparisonAnnotator:
             (text_w, _) = cv2.getTextSize(
                 text=text,
                 fontFace=CV2_FONT,
-                fontScale=self.label_scale,
-                thickness=self.text_thickness,
+                fontScale=label_scale,
+                thickness=text_thickness,
             )[0]
 
             width = text_w + marker_size + padding * 4
@@ -3361,7 +3376,7 @@ class ComparisonAnnotator:
                 text,
                 text_anchor=Point(x=center_x + marker_size, y=center_y),
                 text_scale=text_scale,
-                text_thickness=self.text_thickness,
+                text_thickness=text_thickness,
             )
 
             x0 += width + gap
