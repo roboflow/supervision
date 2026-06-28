@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from functools import lru_cache
 from math import sqrt
 from typing import Any, cast, overload
@@ -80,24 +81,22 @@ def _normalize_color_input(color: Color | ColorPalette | str) -> Color | ColorPa
 CV2_FONT = cv2.FONT_HERSHEY_SIMPLEX
 
 
+@dataclass
+class _LabelAnnotatorConfig:
+    color: Color | ColorPalette
+    color_lookup: ColorLookup
+    text_color: Color | ColorPalette
+    text_padding: int
+    text_anchor: Position
+    text_offset: tuple[int, int]
+    border_radius: int
+    smart_position: bool
+    max_line_length: int | None
+
+
 class _BaseLabelAnnotator(BaseAnnotator):
     """
     Base class for annotators that add labels to detections.
-
-    Attributes:
-        color: The color to use for the label background.
-        color_lookup: The method used to determine the color of the label.
-        text_color: The color to use for the label text.
-        text_padding: The padding around the label text, in pixels.
-        text_anchor: The position of the text relative to the detection
-            bounding box.
-        text_offset: A tuple of 2D coordinates `(x, y)` to
-            offset the text position from the anchor point, in pixels.
-        border_radius: The radius of the label background corners, in pixels.
-        smart_position: Whether to intelligently adjust the label position to
-            avoid overlapping with other elements.
-        max_line_length: Maximum number of characters per line before
-            wrapping the text. None means no wrapping.
     """
 
     def __init__(
@@ -134,15 +133,89 @@ class _BaseLabelAnnotator(BaseAnnotator):
             max_line_length: Maximum number of characters per
                 line before wrapping the text. None means no wrapping.
         """
-        self.color: Color | ColorPalette = _normalize_color_input(color)
-        self.color_lookup: ColorLookup = color_lookup
-        self.text_color: Color | ColorPalette = _normalize_color_input(text_color)
-        self.text_padding: int = text_padding
-        self.text_anchor: Position = text_position
-        self.text_offset: tuple[int, int] = text_offset
-        self.border_radius: int = border_radius
-        self.smart_position = smart_position
-        self.max_line_length: int | None = max_line_length
+        self._config: _LabelAnnotatorConfig = _LabelAnnotatorConfig(
+            color=_normalize_color_input(color),
+            color_lookup=color_lookup,
+            text_color=_normalize_color_input(text_color),
+            text_padding=text_padding,
+            text_anchor=text_position,
+            text_offset=text_offset,
+            border_radius=border_radius,
+            smart_position=smart_position,
+            max_line_length=max_line_length,
+        )
+
+    @property
+    def color(self) -> Color | ColorPalette:
+        return self._config.color
+
+    @color.setter
+    def color(self, value: Color | ColorPalette | str) -> None:
+        self._config.color = _normalize_color_input(value)
+
+    @property
+    def color_lookup(self) -> ColorLookup:
+        return self._config.color_lookup
+
+    @color_lookup.setter
+    def color_lookup(self, value: ColorLookup) -> None:
+        self._config.color_lookup = value
+
+    @property
+    def text_color(self) -> Color | ColorPalette:
+        return self._config.text_color
+
+    @text_color.setter
+    def text_color(self, value: Color | ColorPalette | str) -> None:
+        self._config.text_color = _normalize_color_input(value)
+
+    @property
+    def text_padding(self) -> int:
+        return self._config.text_padding
+
+    @text_padding.setter
+    def text_padding(self, value: int) -> None:
+        self._config.text_padding = value
+
+    @property
+    def text_anchor(self) -> Position:
+        return self._config.text_anchor
+
+    @text_anchor.setter
+    def text_anchor(self, value: Position) -> None:
+        self._config.text_anchor = value
+
+    @property
+    def text_offset(self) -> tuple[int, int]:
+        return self._config.text_offset
+
+    @text_offset.setter
+    def text_offset(self, value: tuple[int, int]) -> None:
+        self._config.text_offset = value
+
+    @property
+    def border_radius(self) -> int:
+        return self._config.border_radius
+
+    @border_radius.setter
+    def border_radius(self, value: int) -> None:
+        self._config.border_radius = value
+
+    @property
+    def smart_position(self) -> bool:
+        return self._config.smart_position
+
+    @smart_position.setter
+    def smart_position(self, value: bool) -> None:
+        self._config.smart_position = value
+
+    @property
+    def max_line_length(self) -> int | None:
+        return self._config.max_line_length
+
+    @max_line_length.setter
+    def max_line_length(self, value: int | None) -> None:
+        self._config.max_line_length = value
 
     def _adjust_labels_in_frame(
         self,
@@ -1309,7 +1382,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
             detections, labels
         )
 
-        if self.smart_position:
+        if self._config.smart_position:
             xyxy = label_properties[:, :4]
             xyxy = spread_out_boxes(xyxy)
             label_properties[:, :4] = xyxy
@@ -1337,16 +1410,16 @@ class LabelAnnotator(_BaseLabelAnnotator):
     ) -> Any:
         label_properties = []
         anchors_coordinates: npt.NDArray[np.int32] = detections.get_anchors_coordinates(
-            anchor=self.text_anchor
+            anchor=self._config.text_anchor
         ).astype(int)
 
         for label, center_coordinates in zip(labels, anchors_coordinates):
             center_coordinates = (
-                center_coordinates[0] + self.text_offset[0],
-                center_coordinates[1] + self.text_offset[1],
+                center_coordinates[0] + self._config.text_offset[0],
+                center_coordinates[1] + self._config.text_offset[1],
             )
 
-            wrapped_lines = wrap_text(label, self.max_line_length)
+            wrapped_lines = wrap_text(label, self._config.max_line_length)
             line_heights = []
             line_widths = []
 
@@ -1363,17 +1436,17 @@ class LabelAnnotator(_BaseLabelAnnotator):
             # Get the maximum width and total height
             max_width = max(line_widths) if line_widths else 0
             total_height = (
-                sum(line_heights) + (len(line_heights) - 1) * self.text_padding
+                sum(line_heights) + (len(line_heights) - 1) * self._config.text_padding
             )
 
             # Add padding around all sides
-            width_padded = max_width + 2 * self.text_padding
-            height_padded = total_height + 2 * self.text_padding
+            width_padded = max_width + 2 * self._config.text_padding
+            height_padded = total_height + 2 * self._config.text_padding
 
             text_background_xyxy = resolve_text_background_xyxy(
                 center_coordinates=center_coordinates,
                 text_wh=(width_padded, height_padded),
-                position=self.text_anchor,
+                position=self._config.text_anchor,
             )
 
             label_properties.append(
@@ -1401,18 +1474,18 @@ class LabelAnnotator(_BaseLabelAnnotator):
         color_lookup = (
             custom_color_lookup
             if custom_color_lookup is not None
-            else self.color_lookup
+            else self._config.color_lookup
         )
 
         for idx, label_property in enumerate(label_properties):
             background_color = resolve_color(
-                color=self.color,
+                color=self._config.color,
                 detections=detections,
                 detection_idx=idx,
                 color_lookup=color_lookup,
             )
             text_color = resolve_color(
-                color=self.text_color,
+                color=self._config.text_color,
                 detections=detections,
                 detection_idx=idx,
                 color_lookup=color_lookup,
@@ -1424,12 +1497,12 @@ class LabelAnnotator(_BaseLabelAnnotator):
                 scene=scene,
                 xyxy=box_xyxy,
                 color=background_color.as_bgr(),
-                border_radius=self.border_radius,
+                border_radius=self._config.border_radius,
             )
 
             # Handle multiline text
-            wrapped_lines = wrap_text(labels[idx], self.max_line_length)
-            current_y = box_xyxy[1] + self.text_padding  # Start y position
+            wrapped_lines = wrap_text(labels[idx], self._config.max_line_length)
+            current_y = box_xyxy[1] + self._config.text_padding  # Start y position
 
             for line in wrapped_lines:
                 if not line:
@@ -1440,7 +1513,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
                         fontScale=self.text_scale,
                         thickness=self.text_thickness,
                     )[0]
-                    current_y += text_h + self.text_padding
+                    current_y += text_h + self._config.text_padding
                     continue
 
                 (_, text_h) = cv2.getTextSize(
@@ -1450,7 +1523,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
                     thickness=self.text_thickness,
                 )[0]
 
-                text_x = box_xyxy[0] + self.text_padding
+                text_x = box_xyxy[0] + self._config.text_padding
                 text_y = current_y + text_h  # Add height to get to text baseline
 
                 cv2.putText(
@@ -1464,7 +1537,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
                     lineType=cv2.LINE_AA,
                 )
 
-                current_y += text_h + self.text_padding  # Move to next line position
+                current_y += text_h + self._config.text_padding  # Move to next line position
 
     @staticmethod
     def draw_rounded_rectangle(
@@ -1625,7 +1698,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             draw, detections, labels
         )
 
-        if self.smart_position:
+        if self._config.smart_position:
             xyxy = label_properties[:, :4]
             xyxy = spread_out_boxes(xyxy)
             label_properties[:, :4] = xyxy
@@ -1652,16 +1725,16 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         label_properties = []
 
         anchor_coordinates: npt.NDArray[np.int32] = detections.get_anchors_coordinates(
-            anchor=self.text_anchor
+            anchor=self._config.text_anchor
         ).astype(int)
 
         for label, center_coordinates in zip(labels, anchor_coordinates):
             center_coordinates = (
-                center_coordinates[0] + self.text_offset[0],
-                center_coordinates[1] + self.text_offset[1],
+                center_coordinates[0] + self._config.text_offset[0],
+                center_coordinates[1] + self._config.text_offset[1],
             )
 
-            wrapped_lines = wrap_text(label, self.max_line_length)
+            wrapped_lines = wrap_text(label, self._config.max_line_length)
 
             # Calculate the total text height and maximum width
             max_width = 0.0
@@ -1677,15 +1750,15 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
 
             # Add inter-line spacing
             if len(wrapped_lines) > 1:
-                total_height += (len(wrapped_lines) - 1) * self.text_padding
+                total_height += (len(wrapped_lines) - 1) * self._config.text_padding
 
-            width_padded = int(max_width + 2 * self.text_padding)
-            height_padded = int(total_height + 2 * self.text_padding)
+            width_padded = int(max_width + 2 * self._config.text_padding)
+            height_padded = int(total_height + 2 * self._config.text_padding)
 
             text_background_xyxy = resolve_text_background_xyxy(
                 center_coordinates=center_coordinates,
                 text_wh=(width_padded, height_padded),
-                position=self.text_anchor,
+                position=self._config.text_anchor,
             )
 
             # Get the text origin offsets
@@ -1714,18 +1787,18 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
         color_lookup = (
             custom_color_lookup
             if custom_color_lookup is not None
-            else self.color_lookup
+            else self._config.color_lookup
         )
 
         for idx, label_property in enumerate(label_properties):
             background_color = resolve_color(
-                color=self.color,
+                color=self._config.color,
                 detections=detections,
                 detection_idx=idx,
                 color_lookup=color_lookup,
             )
             text_color = resolve_color(
-                color=self.text_color,
+                color=self._config.text_color,
                 detections=detections,
                 detection_idx=idx,
                 color_lookup=color_lookup,
@@ -1738,15 +1811,15 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
             # Draw the rounded rectangle background
             draw.rounded_rectangle(
                 tuple(box_xyxy),
-                radius=self.border_radius,
+                radius=self._config.border_radius,
                 fill=background_color.as_rgb(),
                 outline=None,
             )
 
             # Draw each line of text
-            wrapped_lines = wrap_text(labels[idx], self.max_line_length)
-            x_position = box_xyxy[0] + self.text_padding - text_left
-            y_position = box_xyxy[1] + self.text_padding - text_top
+            wrapped_lines = wrap_text(labels[idx], self._config.max_line_length)
+            x_position = box_xyxy[0] + self._config.text_padding - text_left
+            y_position = box_xyxy[1] + self._config.text_padding - text_top
 
             for line in wrapped_lines:
                 draw.text(
@@ -1759,7 +1832,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
                 # Move to the next line position
                 _left, top, _right, bottom = draw.textbbox((0, 0), line, font=self.font)
                 line_height = bottom - top
-                y_position += line_height + self.text_padding
+                y_position += line_height + self._config.text_padding
 
     @staticmethod
     def _load_font(
