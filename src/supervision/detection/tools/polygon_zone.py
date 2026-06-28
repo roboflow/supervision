@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from dataclasses import dataclass
 from typing import Any, cast
 
 import cv2
@@ -11,8 +12,22 @@ from supervision import Detections
 from supervision.detection.utils.converters import polygon_to_mask
 from supervision.draw.color import Color
 from supervision.draw.utils import draw_filled_polygon, draw_polygon, draw_text
-from supervision.geometry.core import Position
+from supervision.geometry.core import Point, Position
 from supervision.geometry.utils import get_polygon_center
+
+CV2_FONT = cv2.FONT_HERSHEY_SIMPLEX
+
+
+@dataclass(slots=True)
+class _PolygonZoneAnnotatorConfig:
+    color: Color = Color.WHITE
+    thickness: int = 2
+    text_color: Color = Color.BLACK
+    text_scale: float = 0.5
+    text_thickness: int = 1
+    text_padding: int = 10
+    display_in_zone_count: bool = True
+    opacity: float = 0
 
 
 class PolygonZone:
@@ -141,16 +156,88 @@ class PolygonZoneAnnotator:
         opacity: float = 0,
     ):
         self.zone = zone
-        self.color = color
-        self.thickness = thickness
-        self.text_color = text_color
-        self.text_scale = text_scale
-        self.text_thickness = text_thickness
-        self.text_padding = text_padding
-        self.font = cv2.FONT_HERSHEY_SIMPLEX
-        self.center = get_polygon_center(polygon=zone.polygon)
-        self.display_in_zone_count = display_in_zone_count
-        self.opacity = opacity
+        self._config = _PolygonZoneAnnotatorConfig(
+            color=color,
+            thickness=thickness,
+            text_color=text_color,
+            text_scale=text_scale,
+            text_thickness=text_thickness,
+            text_padding=text_padding,
+            display_in_zone_count=display_in_zone_count,
+            opacity=opacity,
+        )
+
+    @property
+    def color(self) -> Color:
+        return self._config.color
+
+    @color.setter
+    def color(self, value: Color) -> None:
+        self._config.color = value
+
+    @property
+    def thickness(self) -> int:
+        return self._config.thickness
+
+    @thickness.setter
+    def thickness(self, value: int) -> None:
+        self._config.thickness = value
+
+    @property
+    def text_color(self) -> Color:
+        return self._config.text_color
+
+    @text_color.setter
+    def text_color(self, value: Color) -> None:
+        self._config.text_color = value
+
+    @property
+    def text_scale(self) -> float:
+        return self._config.text_scale
+
+    @text_scale.setter
+    def text_scale(self, value: float) -> None:
+        self._config.text_scale = value
+
+    @property
+    def text_thickness(self) -> int:
+        return self._config.text_thickness
+
+    @text_thickness.setter
+    def text_thickness(self, value: int) -> None:
+        self._config.text_thickness = value
+
+    @property
+    def text_padding(self) -> int:
+        return self._config.text_padding
+
+    @text_padding.setter
+    def text_padding(self, value: int) -> None:
+        self._config.text_padding = value
+
+    @property
+    def display_in_zone_count(self) -> bool:
+        return self._config.display_in_zone_count
+
+    @display_in_zone_count.setter
+    def display_in_zone_count(self, value: bool) -> None:
+        self._config.display_in_zone_count = value
+
+    @property
+    def opacity(self) -> float:
+        return self._config.opacity
+
+    @opacity.setter
+    def opacity(self, value: float) -> None:
+        self._config.opacity = value
+
+    @property
+    def font(self) -> int:
+        return CV2_FONT
+
+    @property
+    def center(self) -> Point:
+        return get_polygon_center(polygon=self.zone.polygon)
 
     def annotate(
         self, scene: npt.NDArray[Any], label: str | None = None
