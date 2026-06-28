@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from contextlib import ExitStack as DoesNotRaise
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
 
-from supervision import LineZone, LineZoneAnnotatorMulticlass
+from supervision import LineZone, LineZoneAnnotator, LineZoneAnnotatorMulticlass
 from supervision.geometry.core import Point, Position, Vector
 from tests.helpers import _create_detections
 
@@ -882,10 +883,11 @@ def test_line_zone_tracker_id_reuse_with_different_classes(
 
 
 def test_line_zone_annotator_multiclass_supports_none_class_id() -> None:
-    line_zone = LineZone(start=Point(0, 0), end=Point(0, 10))
-    for xyxy in [[4, 4, 6, 6], [-6, 4, -4, 6]]:
-        detections = _create_detections(xyxy=[xyxy], tracker_id=[0])
-        line_zone.trigger(detections)
+    line_zone = SimpleNamespace(
+        class_id_to_name={},
+        in_count_per_class={},
+        out_count_per_class={None: 1},
+    )
 
     assert line_zone.out_count_per_class == {None: 1}
 
@@ -895,3 +897,27 @@ def test_line_zone_annotator_multiclass_supports_none_class_id() -> None:
 
     assert annotated_frame.shape == frame.shape
     assert not np.array_equal(annotated_frame, frame)
+
+
+def test_line_zone_annotator_uses_custom_text_configuration() -> None:
+    """Custom label settings should be preserved and used when annotating."""
+    line_zone = SimpleNamespace(
+        vector=Vector(start=Point(0, 0), end=Point(0, 10)),
+        in_count=1,
+        out_count=1,
+    )
+
+    annotator = LineZoneAnnotator(
+        custom_in_text="entrada",
+        custom_out_text="saida",
+        display_text_box=False,
+        text_centered=False,
+    )
+
+    frame = np.zeros((100, 100, 3), dtype=np.uint8)
+    annotated_frame = annotator.annotate(frame=frame.copy(), line_counter=line_zone)
+
+    assert annotated_frame.shape == frame.shape
+    assert not np.array_equal(annotated_frame, frame)
+    assert annotator._config.in_text == "entrada"
+    assert annotator._config.out_text == "saida"

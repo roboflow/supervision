@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import warnings
+from dataclasses import dataclass
 from collections import Counter, defaultdict, deque
 from collections.abc import Iterable
 from functools import lru_cache
@@ -21,6 +22,24 @@ from supervision.utils.image import overlay_image
 from supervision.utils.internal import SupervisionWarnings
 
 TEXT_MARGIN = 10
+
+
+@dataclass(slots=True)
+class LineZoneAnnotatorConfig:
+    thickness: int = 2
+    color: Color = Color.WHITE
+    text_thickness: int = 2
+    text_color: Color = Color.BLACK
+    text_scale: float = 0.5
+    text_offset: float = 1.5
+    text_padding: int = 10
+    in_text: str = "in"
+    out_text: str = "out"
+    display_in_count: bool = True
+    display_out_count: bool = True
+    display_text_box: bool = True
+    text_orient_to_line: bool = False
+    text_centered: bool = True
 
 
 class LineZone:
@@ -371,20 +390,22 @@ class LineZoneAnnotator:
                 when the label overlaps something important.
 
         """
-        self.thickness: int = thickness
-        self.color: Color = color
-        self.text_thickness: int = text_thickness
-        self.text_color: Color = text_color
-        self.text_scale: float = text_scale
-        self.text_offset: float = text_offset
-        self.text_padding: int = text_padding
-        self.in_text: str = custom_in_text if custom_in_text else "in"
-        self.out_text: str = custom_out_text if custom_out_text else "out"
-        self.display_in_count: bool = display_in_count
-        self.display_out_count: bool = display_out_count
-        self.display_text_box: bool = display_text_box
-        self.text_orient_to_line: bool = text_orient_to_line
-        self.text_centered: bool = text_centered
+        self._config = LineZoneAnnotatorConfig(
+            thickness=thickness,
+            color=color,
+            text_thickness=text_thickness,
+            text_color=text_color,
+            text_scale=text_scale,
+            text_offset=text_offset,
+            text_padding=text_padding,
+            in_text=custom_in_text if custom_in_text else "in",
+            out_text=custom_out_text if custom_out_text else "out",
+            display_in_count=display_in_count,
+            display_out_count=display_out_count,
+            display_text_box=display_text_box,
+            text_orient_to_line=text_orient_to_line,
+            text_centered=text_centered,
+        )
 
     def annotate(
         self, frame: npt.NDArray[np.uint8], line_counter: LineZone
@@ -402,12 +423,13 @@ class LineZoneAnnotator:
         """
         line_start = line_counter.vector.start.as_xy_int_tuple()
         line_end = line_counter.vector.end.as_xy_int_tuple()
+        config = self._config
         cv2.line(
             frame,
             line_start,
             line_end,
-            self.color.as_bgr(),
-            self.thickness,
+            config.color.as_bgr(),
+            config.thickness,
             lineType=cv2.LINE_AA,
             shift=0,
         )
@@ -415,7 +437,7 @@ class LineZoneAnnotator:
             frame,
             line_start,
             radius=5,
-            color=self.text_color.as_bgr(),
+            color=config.text_color.as_bgr(),
             thickness=-1,
             lineType=cv2.LINE_AA,
         )
@@ -423,23 +445,23 @@ class LineZoneAnnotator:
             frame,
             line_end,
             radius=5,
-            color=self.text_color.as_bgr(),
+            color=config.text_color.as_bgr(),
             thickness=-1,
             lineType=cv2.LINE_AA,
         )
 
-        in_text = f"{self.in_text}: {line_counter.in_count}"
-        out_text = f"{self.out_text}: {line_counter.out_count}"
+        in_text = f"{config.in_text}: {line_counter.in_count}"
+        out_text = f"{config.out_text}: {line_counter.out_count}"
         line_angle_degrees = self._get_line_angle(line_counter)
 
         for text, is_shown, is_in_count in [
-            (in_text, self.display_in_count, True),
-            (out_text, self.display_out_count, False),
+            (in_text, config.display_in_count, True),
+            (out_text, config.display_out_count, False),
         ]:
             if not is_shown:
                 continue
 
-            if line_angle_degrees == 0 or not self.text_orient_to_line:
+            if line_angle_degrees == 0 or not config.text_orient_to_line:
                 self._draw_basic_label(
                     frame=frame,
                     line_center=line_counter.vector.center,
@@ -505,7 +527,7 @@ class LineZoneAnnotator:
         """
         line_angle = self._get_line_angle(line_zone)
 
-        if self.text_centered:
+        if self._config.text_centered:
             mid_point = Vector(
                 start=line_zone.vector.start, end=line_zone.vector.end
             ).center.as_xy_int_tuple()
@@ -516,21 +538,21 @@ class LineZoneAnnotator:
 
             move_along_x = int(
                 math.cos(math.radians(line_angle))
-                * (text_width / 2 + self.text_padding)
+                * (text_width / 2 + self._config.text_padding)
             )
             move_along_y = int(
                 math.sin(math.radians(line_angle))
-                * (text_width / 2 + self.text_padding)
+                * (text_width / 2 + self._config.text_padding)
             )
 
             anchor[0] -= move_along_x
             anchor[1] -= move_along_y
 
         move_perpendicular_x = int(
-            math.sin(math.radians(line_angle)) * (self.text_offset * text_height)
+            math.sin(math.radians(line_angle)) * (self._config.text_offset * text_height)
         )
         move_perpendicular_y = int(
-            math.cos(math.radians(line_angle)) * (self.text_offset * text_height)
+            math.cos(math.radians(line_angle)) * (self._config.text_offset * text_height)
         )
 
         if is_in_count:
@@ -567,23 +589,26 @@ class LineZoneAnnotator:
             The scene with the label drawn on it.
         """
         _, text_height = cv2.getTextSize(
-            text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
+            text,
+            cv2.FONT_HERSHEY_SIMPLEX,
+            self._config.text_scale,
+            self._config.text_thickness,
         )[0]
 
         if is_in_count:
-            line_center.y -= int(self.text_offset * text_height)
+            line_center.y -= int(self._config.text_offset * text_height)
         else:
-            line_center.y += int(self.text_offset * text_height)
+            line_center.y += int(self._config.text_offset * text_height)
 
         draw_text(
             scene=frame,
             text=text,
             text_anchor=line_center,
-            text_color=self.text_color,
-            text_scale=self.text_scale,
-            text_thickness=self.text_thickness,
-            text_padding=self.text_padding,
-            background_color=self.color if self.display_text_box else None,
+            text_color=self._config.text_color,
+            text_scale=self._config.text_scale,
+            text_thickness=self._config.text_thickness,
+            text_padding=self._config.text_padding,
+            background_color=self._config.color if self._config.display_text_box else None,
         )
 
         return frame
@@ -613,18 +638,21 @@ class LineZoneAnnotator:
         line_angle_degrees = self._get_line_angle(line_zone)
         label_image = self._make_label_image(
             text,
-            text_scale=self.text_scale,
-            text_thickness=self.text_thickness,
-            text_padding=self.text_padding,
-            text_color=self.text_color,
-            text_box_show=self.display_text_box,
-            text_box_color=self.color,
+            text_scale=self._config.text_scale,
+            text_thickness=self._config.text_thickness,
+            text_padding=self._config.text_padding,
+            text_color=self._config.text_color,
+            text_box_show=self._config.display_text_box,
+            text_box_color=self._config.color,
             line_angle_degrees=line_angle_degrees,
         )
         assert label_image.shape[0] == label_image.shape[1]
 
         text_width, text_height = cv2.getTextSize(
-            text, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness
+            text,
+            cv2.FONT_HERSHEY_SIMPLEX,
+            self._config.text_scale,
+            self._config.text_thickness,
         )[0]
 
         label_anchor = self._calculate_anchor_in_frame(
