@@ -193,7 +193,6 @@ class InferenceSlicer:
         Returns:
             Merged detections across all slices.
         """
-        detections_list: list[Detections] = []
         resolution_wh = get_image_resolution_wh(image)
 
         offsets = self._generate_offset(
@@ -202,8 +201,19 @@ class InferenceSlicer:
             overlap_wh=self.overlap_wh,
         )
 
-        first_offset = offsets[0]
-        first_detections = self._run_callback(image, first_offset)
+        detections_list = self._collect_detections(image=image, offsets=offsets)
+
+        merged = Detections.merge(detections_list=detections_list)
+        return self._apply_overlap_filter(merged)
+
+    def _collect_detections(
+        self,
+        image: ImageType,
+        offsets: npt.NDArray[Any],
+    ) -> list[Detections]:
+        detections_list: list[Detections] = []
+
+        first_detections = self._run_callback(image, offsets[0])
         detections_list.append(first_detections)
 
         remaining_offsets = offsets[1:]
@@ -212,56 +222,99 @@ class InferenceSlicer:
 
         probe_index = 0
         if not should_run_sequentially and len(first_detections) == 0:
-            while probe_index < len(remaining_offsets):
-                probe_offset = remaining_offsets[probe_index]
-                probe_detections = self._run_callback(image, probe_offset)
-                detections_list.append(probe_detections)
-                probe_index += 1
-
-                if ORIENTED_BOX_COORDINATES in probe_detections.data:
-                    obb_detected = True
-                    should_run_sequentially = True
-                    break
-
-                if len(probe_detections) > 0:
-                    break
+            probe_index, obb_detected, should_run_sequentially = (
+                self._probe_remaining_offsets(
+                    image=image,
+                    offsets=remaining_offsets,
+                    detections_list=detections_list,
+                )
+            )
 
         remaining_offsets = remaining_offsets[probe_index:]
 
         if should_run_sequentially:
-            if self.thread_workers > 1 and obb_detected:
-                with self._obb_thread_workers_lock:
-                    if not self._obb_thread_workers_warned:
-                        self._obb_thread_workers_warned = True
-                        warnings.warn(
-                            "InferenceSlicer detected oriented bounding boxes while "
-                            "`thread_workers > 1`. Remaining slices will be processed "
-                            "sequentially because many OBB inference backends are not "
-                            "thread-safe and can crash when shared across threads.",
-                            category=SupervisionWarnings,
-                            stacklevel=2,
-                        )
-            for offset in remaining_offsets:
-                detections_list.append(self._run_callback(image, offset))
-        else:
-            with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
-                futures = [
-                    executor.submit(self._run_callback, image, offset)
-                    for offset in remaining_offsets
-                ]
-                for future in as_completed(futures):
-                    detections_list.append(future.result())
+            self._warn_obb_sequential_fallback(obb_detected=obb_detected)
+            detections_list.extend(
+                self._run_sequential_inference(image=image, offsets=remaining_offsets)
+            )
+            return detections_list
 
-        merged = Detections.merge(detections_list=detections_list)
+        detections_list.extend(
+            self._run_parallel_inference(image=image, offsets=remaining_offsets)
+        )
+        return detections_list
+
+    def _probe_remaining_offsets(
+        self,
+        image: ImageType,
+        offsets: npt.NDArray[Any],
+        detections_list: list[Detections],
+    ) -> tuple[int, bool, bool]:
+        probe_index = 0
+        obb_detected = False
+
+        while probe_index < len(offsets):
+            probe_offset = offsets[probe_index]
+            probe_detections = self._run_callback(image, probe_offset)
+            detections_list.append(probe_detections)
+            probe_index += 1
+
+            if ORIENTED_BOX_COORDINATES in probe_detections.data:
+                obb_detected = True
+                return probe_index, obb_detected, True
+
+            if len(probe_detections) > 0:
+                return probe_index, obb_detected, False
+
+        return probe_index, obb_detected, False
+
+    def _run_sequential_inference(
+        self,
+        image: ImageType,
+        offsets: npt.NDArray[Any],
+    ) -> list[Detections]:
+        return [self._run_callback(image, offset) for offset in offsets]
+
+    def _run_parallel_inference(
+        self,
+        image: ImageType,
+        offsets: npt.NDArray[Any],
+    ) -> list[Detections]:
+        with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
+            futures = [
+                executor.submit(self._run_callback, image, offset)
+                for offset in offsets
+            ]
+            return [future.result() for future in as_completed(futures)]
+
+    def _warn_obb_sequential_fallback(self, obb_detected: bool) -> None:
+        if self.thread_workers <= 1 or not obb_detected:
+            return
+
+        with self._obb_thread_workers_lock:
+            if self._obb_thread_workers_warned:
+                return
+
+            self._obb_thread_workers_warned = True
+            warnings.warn(
+                "InferenceSlicer detected oriented bounding boxes while "
+                "`thread_workers > 1`. Remaining slices will be processed "
+                "sequentially because many OBB inference backends are not "
+                "thread-safe and can crash when shared across threads.",
+                category=SupervisionWarnings,
+                stacklevel=2,
+            )
+
+    def _apply_overlap_filter(self, detections: Detections) -> Detections:
         if self.overlap_filter == OverlapFilter.NONE:
-            return merged
+            return detections
         if self.overlap_filter == OverlapFilter.NON_MAX_SUPPRESSION:
-            return merged.with_nms(
+            return detections.with_nms(
                 threshold=self.iou_threshold,
                 overlap_metric=self.overlap_metric,
             )
         if self.overlap_filter == OverlapFilter.NON_MAX_MERGE:
-            return merged.with_nmm(
+            return detections.with_nmm(
                 threshold=self.iou_threshold,
                 overlap_metric=self.overlap_metric,
             )
@@ -270,7 +323,7 @@ class InferenceSlicer:
             f"Invalid overlap filter strategy: {self.overlap_filter}",
             category=SupervisionWarnings,
         )
-        return merged
+        return detections
 
     def _run_callback(self, image: ImageType, offset: npt.NDArray[Any]) -> Detections:
         """
