@@ -280,6 +280,147 @@ def get_video_frames_generator(
     video.release()
 
 
+class _VideoProcessor:
+    def __init__(
+        self,
+        source_path: str,
+        target_path: str,
+        callback: Callable[[npt.NDArray[np.uint8], int], npt.NDArray[np.uint8]],
+        *,
+        max_frames: int | None = None,
+        prefetch: int = 32,
+        writer_buffer: int = 32,
+        show_progress: bool = False,
+        progress_message: str = "Processing video",
+        preserve_audio: bool = False,
+    ):
+        self.source_path = source_path
+        self.target_path = target_path
+        self.callback = callback
+        self.max_frames = max_frames
+        self.prefetch = prefetch
+        self.writer_buffer = writer_buffer
+        self.show_progress = show_progress
+        self.progress_message = progress_message
+        self.preserve_audio = preserve_audio
+
+        self.frame_read_queue: Queue[
+            tuple[int, npt.NDArray[np.uint8]] | None
+        ] = Queue(maxsize=prefetch)
+        self.frame_write_queue: Queue[npt.NDArray[np.uint8] | None] = Queue(
+            maxsize=writer_buffer
+        )
+
+        self.reader_worker: threading.Thread | None = None
+        self.writer_worker: threading.Thread | None = None
+        self.progress_bar: tqdm | None = None
+        self.exception_in_worker: Exception | None = None
+        self.read_finished = False
+
+    def _reader_thread(self) -> None:
+        frame_generator = get_video_frames_generator(
+            source_path=self.source_path,
+            end=self.max_frames,
+        )
+        for frame_index, frame in enumerate(frame_generator):
+            self.frame_read_queue.put((frame_index, frame))
+        self.frame_read_queue.put(None)
+
+    def _writer_thread(self, video_sink: VideoSink) -> None:
+        while True:
+            frame = self.frame_write_queue.get()
+            if frame is None:
+                break
+            video_sink.write_frame(frame=frame)
+
+    def _drain_and_cleanup(self) -> None:
+        try:
+            self.frame_write_queue.put(None, timeout=1)
+        except Full:
+            pass
+        if not self.read_finished:
+            while True:
+                try:
+                    read_item = self.frame_read_queue.get(timeout=1)
+                    if read_item is None:
+                        break
+                except Empty:
+                    if not self.reader_worker.is_alive():
+                        break
+                    continue
+        self.reader_worker.join(timeout=10)
+        self.writer_worker.join(timeout=10)
+        self.progress_bar.close()
+        if self.exception_in_worker is not None:
+            raise self.exception_in_worker
+
+    def _mux_audio_if_needed(self) -> None:
+        if self.writer_worker.is_alive():
+            logger.warning(
+                "Writer thread did not finish in time; skipping audio mux "
+                "to avoid reading an incomplete output file."
+            )
+        else:
+            _mux_audio(source_path=self.source_path, video_path=self.target_path)
+
+    def _total_frames(self, video_info: VideoInfo) -> int:
+        if self.max_frames is not None:
+            return min(video_info.total_frames or 0, self.max_frames)
+        return video_info.total_frames or 0
+
+    def _start_workers(self) -> None:
+        self.reader_worker.start()
+        self.writer_worker.start()
+
+    def _setup_progress_bar(self, total_frames: int) -> None:
+        self.progress_bar = tqdm(
+            total=total_frames,
+            disable=not self.show_progress,
+            desc=self.progress_message,
+        )
+
+    def _process_frames(self) -> None:
+        self.exception_in_worker = None
+        self.read_finished = False
+
+        while True:
+            read_item = self.frame_read_queue.get()
+            if read_item is None:
+                self.read_finished = True
+                break
+
+            frame_index, frame = read_item
+            try:
+                processed_frame = self.callback(frame, frame_index)
+                self.frame_write_queue.put(processed_frame)
+                self.progress_bar.update(1)
+            except Exception as exc:
+                self.exception_in_worker = exc
+                break
+
+    def run(self) -> None:
+        video_info = VideoInfo.from_video_path(video_path=self.source_path)
+        total_frames = self._total_frames(video_info)
+
+        self.reader_worker = threading.Thread(target=self._reader_thread, daemon=True)
+        with VideoSink(target_path=self.target_path, video_info=video_info) as video_sink:
+            self.writer_worker = threading.Thread(
+                target=self._writer_thread,
+                args=(video_sink,),
+                daemon=True,
+            )
+
+            self._start_workers()
+            self._setup_progress_bar(total_frames)
+            try:
+                self._process_frames()
+            finally:
+                self._drain_and_cleanup()
+
+        if self.preserve_audio:
+            self._mux_audio_if_needed()
+
+
 def process_video(
     source_path: str,
     target_path: str,
@@ -352,108 +493,18 @@ def process_video(
         )
         ```
     """
-    video_info = VideoInfo.from_video_path(video_path=source_path)
-    total_frames = (
-        min(video_info.total_frames or 0, max_frames)
-        if max_frames is not None
-        else video_info.total_frames or 0
+    processor = _VideoProcessor(
+        source_path=source_path,
+        target_path=target_path,
+        callback=callback,
+        max_frames=max_frames,
+        prefetch=prefetch,
+        writer_buffer=writer_buffer,
+        show_progress=show_progress,
+        progress_message=progress_message,
+        preserve_audio=preserve_audio,
     )
-
-    frame_read_queue: Queue[tuple[int, npt.NDArray[np.uint8]] | None] = Queue(
-        maxsize=prefetch
-    )
-    frame_write_queue: Queue[npt.NDArray[np.uint8] | None] = Queue(
-        maxsize=writer_buffer
-    )
-
-    def reader_thread() -> None:
-        frame_generator = get_video_frames_generator(
-            source_path=source_path,
-            end=max_frames,
-        )
-        for frame_index, frame in enumerate(frame_generator):
-            frame_read_queue.put((frame_index, frame))
-        frame_read_queue.put(None)
-
-    def writer_thread(video_sink: VideoSink) -> None:
-        while True:
-            frame = frame_write_queue.get()
-            if frame is None:
-                break
-            video_sink.write_frame(frame=frame)
-
-    reader_worker = threading.Thread(target=reader_thread, daemon=True)
-    with VideoSink(target_path=target_path, video_info=video_info) as video_sink:
-        writer_worker = threading.Thread(
-            target=writer_thread,
-            args=(video_sink,),
-            daemon=True,
-        )
-
-        reader_worker.start()
-        writer_worker.start()
-
-        progress_bar = tqdm(
-            total=total_frames,
-            disable=not show_progress,
-            desc=progress_message,
-        )
-
-        exception_in_worker: Exception | None = None
-        read_finished = False
-
-        try:
-            while True:
-                read_item = frame_read_queue.get()
-                if read_item is None:
-                    read_finished = True
-                    break
-
-                frame_index, frame = read_item
-                try:
-                    processed_frame = callback(frame, frame_index)
-                    frame_write_queue.put(processed_frame)
-                    progress_bar.update(1)
-                except Exception as exc:
-                    exception_in_worker = exc
-                    break
-        finally:
-            try:
-                frame_write_queue.put(None, timeout=1)
-            except Full:
-                # Queue is full; this is a best-effort attempt to enqueue the sentinel.
-                # If we cannot enqueue it, the writer thread will still complete based
-                # on previously queued frames or other shutdown conditions.
-                pass
-            if not read_finished:
-                while True:
-                    # Use timeout to prevent indefinite blocking if reader thread fails
-                    try:
-                        read_item = frame_read_queue.get(timeout=1)
-                        if read_item is None:
-                            break
-                    # If we timeout waiting for a frame, only assume failure if reader
-                    # thread is no longer alive. Otherwise, keep waiting as the reader
-                    # may simply be slow (for example, due to a slow source).
-                    except Empty:
-                        if not reader_worker.is_alive():
-                            break
-                        # Reader is still alive; continue waiting for frames.
-                        continue
-            reader_worker.join(timeout=10)
-            writer_worker.join(timeout=10)
-            progress_bar.close()
-            if exception_in_worker is not None:
-                raise exception_in_worker
-
-    if preserve_audio:
-        if writer_worker.is_alive():
-            logger.warning(
-                "Writer thread did not finish in time; skipping audio mux "
-                "to avoid reading an incomplete output file."
-            )
-        else:
-            _mux_audio(source_path=source_path, video_path=target_path)
+    processor.run()
 
 
 class FPSMonitor:

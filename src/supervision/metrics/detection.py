@@ -184,6 +184,127 @@ def _validate_input_tensors(
             )
 
 
+def _get_coordinate_metadata(
+    metric_target: MetricTarget,
+) -> tuple[int, int, int]:
+    """Return (coords_dim, class_id_idx, conf_idx) for the given metric target."""
+    coords_dim = 8 if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES else 4
+    return (coords_dim, coords_dim, coords_dim + 1)
+
+
+def _validate_detection_batch_shapes(
+    predictions: npt.NDArray[np.float32],
+    targets: npt.NDArray[np.float32],
+    metric_target: MetricTarget,
+) -> None:
+    """Validate input tensor shapes for a single detection batch."""
+    expected_pred_cols = (
+        10 if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES else 6
+    )
+    expected_target_cols = (
+        9 if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES else 5
+    )
+    if predictions.ndim != 2 or predictions.shape[1] != expected_pred_cols:
+        raise ValueError(
+            f"Predictions must have shape (M, {expected_pred_cols}). "
+            f"Got {predictions.shape} instead."
+        )
+    if targets.ndim != 2 or targets.shape[1] != expected_target_cols:
+        raise ValueError(
+            f"Targets must have shape (N, {expected_target_cols}). "
+            f"Got {targets.shape} instead."
+        )
+
+
+def _try_early_exit(
+    result_matrix: npt.NDArray[np.int32],
+    predictions_filtered: npt.NDArray[np.float32],
+    targets: npt.NDArray[np.float32],
+    class_id_idx: int,
+    num_classes: int,
+) -> npt.NDArray[np.int32] | None:
+    """Fill matrix for edge cases and return it, or None if normal path needed."""
+    if len(predictions_filtered) == 0:
+        true_classes = np.array(targets[:, class_id_idx], dtype=np.int16)
+        for gt_class in true_classes:
+            result_matrix[gt_class, num_classes] += 1
+        return result_matrix
+    if len(targets) == 0:
+        detection_classes = np.array(
+            predictions_filtered[:, class_id_idx], dtype=np.int16
+        )
+        for det_class in detection_classes:
+            result_matrix[num_classes, det_class] += 1
+        return result_matrix
+    return None
+
+
+def _get_iou_batch(
+    true_boxes: npt.NDArray[np.float32],
+    detection_boxes: npt.NDArray[np.float32],
+    metric_target: MetricTarget,
+) -> npt.NDArray[np.float32]:
+    """Return the IoU matrix for the requested metric target."""
+    if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+        return oriented_box_iou_batch(
+            boxes_true=true_boxes, boxes_detection=detection_boxes
+        )
+    return box_iou_batch(boxes_true=true_boxes, boxes_detection=detection_boxes)
+
+
+def _fill_confusion_matrix_from_iou(
+    result_matrix: npt.NDArray[np.int32],
+    true_classes: npt.NDArray[np.int16],
+    detection_classes: npt.NDArray[np.int16],
+    true_boxes: npt.NDArray[np.float32],
+    detection_boxes: npt.NDArray[np.float32],
+    iou_threshold: float,
+    num_classes: int,
+    metric_target: MetricTarget,
+) -> None:
+    """Compute IoU, find valid matches, greedily assign, and fill the matrix."""
+    iou_batch = _get_iou_batch(true_boxes, detection_boxes, metric_target)
+    iou_mask = iou_batch > iou_threshold
+    gt_indices, det_indices = np.nonzero(iou_mask)
+
+    if gt_indices.size == 0:
+        valid_matches = []
+    else:
+        ious = iou_batch[gt_indices, det_indices]
+        gt_match_classes = true_classes[gt_indices]
+        det_match_classes = detection_classes[det_indices]
+        class_matches = gt_match_classes == det_match_classes
+        sort_indices = np.lexsort((-ious, ~class_matches))
+        valid_matches = [
+            (
+                int(gt_indices[idx]),
+                int(det_indices[idx]),
+                float(ious[idx]),
+                bool(class_matches[idx]),
+            )
+            for idx in sort_indices
+        ]
+
+    matched_gt_idx = set()
+    matched_det_idx = set()
+
+    for gt_idx, det_idx, _iou, _class_match in valid_matches:
+        if gt_idx not in matched_gt_idx and det_idx not in matched_det_idx:
+            gt_class = true_classes[gt_idx]
+            det_class = detection_classes[det_idx]
+            result_matrix[gt_class, det_class] += 1
+            matched_gt_idx.add(gt_idx)
+            matched_det_idx.add(det_idx)
+
+    for gt_idx, gt_class in enumerate(true_classes):
+        if gt_idx not in matched_gt_idx:
+            result_matrix[gt_class, num_classes] += 1
+
+    for det_idx, det_class in enumerate(detection_classes):
+        if det_idx not in matched_det_idx:
+            result_matrix[num_classes, det_class] += 1
+
+
 @deprecated(  # type: ignore[untyped-decorator]
     target=_validate_input_tensors,
     deprecated_in="0.29.0",
@@ -451,126 +572,33 @@ class ConfusionMatrix:
             Confusion matrix based on a single image.
         """
         _assert_supported_target(metric_target)
-
-        expected_pred_cols = (
-            10 if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES else 6
-        )
-        expected_target_cols = (
-            9 if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES else 5
-        )
-        if predictions.ndim != 2 or predictions.shape[1] != expected_pred_cols:
-            raise ValueError(
-                f"Predictions must have shape (M, {expected_pred_cols}). "
-                f"Got {predictions.shape} instead."
-            )
-        if targets.ndim != 2 or targets.shape[1] != expected_target_cols:
-            raise ValueError(
-                f"Targets must have shape (N, {expected_target_cols}). "
-                f"Got {targets.shape} instead."
-            )
+        _validate_detection_batch_shapes(predictions, targets, metric_target)
 
         result_matrix = np.zeros((num_classes + 1, num_classes + 1))
+        coords_dim, class_id_idx, conf_idx = _get_coordinate_metadata(metric_target)
+        filtered = predictions[predictions[:, conf_idx] >= conf_threshold]
 
-        # Filter predictions by confidence threshold
-        coords_dim = 8 if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES else 4
-        class_id_idx = coords_dim
-        conf_idx = coords_dim + 1
-
-        confidence = predictions[:, conf_idx]
-        detection_batch_filtered = predictions[confidence >= conf_threshold]
-
-        if len(detection_batch_filtered) == 0:
-            # No detections pass confidence threshold - all GT are FN
-            true_classes = np.array(targets[:, class_id_idx], dtype=np.int16)
-            for gt_class in true_classes:
-                result_matrix[gt_class, num_classes] += 1
-            return result_matrix
-
-        if len(targets) == 0:
-            # No ground truth - all detections are FP
-            detection_classes = np.array(
-                detection_batch_filtered[:, class_id_idx], dtype=np.int16
-            )
-            for det_class in detection_classes:
-                result_matrix[num_classes, det_class] += 1
-            return result_matrix
+        early = _try_early_exit(
+            result_matrix, filtered, targets, class_id_idx, num_classes
+        )
+        if early is not None:
+            return early
 
         true_classes = np.array(targets[:, class_id_idx], dtype=np.int16)
-        detection_classes = np.array(
-            detection_batch_filtered[:, class_id_idx], dtype=np.int16
-        )
+        detection_classes = np.array(filtered[:, class_id_idx], dtype=np.int16)
         true_boxes = targets[:, :coords_dim]
-        detection_boxes = detection_batch_filtered[:, :coords_dim]
+        detection_boxes = filtered[:, :coords_dim]
 
-        # Calculate IoU matrix
-        if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-            iou_batch = oriented_box_iou_batch(
-                boxes_true=true_boxes, boxes_detection=detection_boxes
-            )
-        else:
-            iou_batch = box_iou_batch(
-                boxes_true=true_boxes, boxes_detection=detection_boxes
-            )
-
-        # Find all valid matches (IoU > threshold, regardless of class)
-        # Use vectorized operations to avoid nested Python loops
-        iou_mask = iou_batch > iou_threshold
-        gt_indices, det_indices = np.nonzero(iou_mask)
-
-        # If no pairs exceed the IoU threshold, skip matching
-        if gt_indices.size == 0:
-            valid_matches = []
-        else:
-            ious = iou_batch[gt_indices, det_indices]
-            gt_match_classes = true_classes[gt_indices]
-            det_match_classes = detection_classes[det_indices]
-            class_matches = gt_match_classes == det_match_classes
-
-            # Sort matches by class match first (True before False),
-            # then by IoU descending.
-            # np.lexsort sorts by the last key first, in ascending order.
-            # We use ~class_matches so that True becomes 0
-            # and False becomes 1 (True first),
-            # and -ious so that larger IoUs come first.
-            sort_indices = np.lexsort((-ious, ~class_matches))
-
-            # Build list of matches in the same format as before:
-            # (gt_idx, det_idx, iou, class_match)
-            valid_matches = [
-                (
-                    int(gt_indices[idx]),
-                    int(det_indices[idx]),
-                    float(ious[idx]),
-                    bool(class_matches[idx]),
-                )
-                for idx in sort_indices
-            ]
-        # Greedily assign matches, ensuring each GT
-        # and detection is matched at most once
-        matched_gt_idx = set()
-        matched_det_idx = set()
-
-        for gt_idx, det_idx, iou, class_match in valid_matches:
-            if gt_idx not in matched_gt_idx and det_idx not in matched_det_idx:
-                # Valid spatial match - record the class prediction
-                gt_class = true_classes[gt_idx]
-                det_class = detection_classes[det_idx]
-
-                # This handles both correct classification (TP) and misclassification
-                result_matrix[gt_class, det_class] += 1
-                matched_gt_idx.add(gt_idx)
-                matched_det_idx.add(det_idx)
-
-        # Count unmatched ground truth as FN
-        for gt_idx, gt_class in enumerate(true_classes):
-            if gt_idx not in matched_gt_idx:
-                result_matrix[gt_class, num_classes] += 1
-
-        # Count unmatched detections as FP
-        for det_idx, det_class in enumerate(detection_classes):
-            if det_idx not in matched_det_idx:
-                result_matrix[num_classes, det_class] += 1
-
+        _fill_confusion_matrix_from_iou(
+            result_matrix,
+            true_classes,
+            detection_classes,
+            true_boxes,
+            detection_boxes,
+            iou_threshold,
+            num_classes,
+            metric_target,
+        )
         return result_matrix
 
     @staticmethod

@@ -1,0 +1,322 @@
+{
+  "src\\supervision\\config.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\__init__.py": {
+    "mi": 63.74014936937565,
+    "rank": "A"
+  },
+  "src\\supervision\\annotators\\base.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\annotators\\core.py": {
+    "mi": 0.5164146998336829,
+    "rank": "C"
+  },
+  "src\\supervision\\annotators\\utils.py": {
+    "mi": 48.682299587593235,
+    "rank": "A"
+  },
+  "src\\supervision\\annotators\\__init__.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\assets\\downloader.py": {
+    "mi": 81.65419137342202,
+    "rank": "A"
+  },
+  "src\\supervision\\assets\\list.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\assets\\__init__.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\classification\\core.py": {
+    "mi": 58.06429475373086,
+    "rank": "A"
+  },
+  "src\\supervision\\classification\\__init__.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\dataset\\core.py": {
+    "mi": 41.66201117496284,
+    "rank": "A"
+  },
+  "src\\supervision\\dataset\\utils.py": {
+    "mi": 59.65711155220216,
+    "rank": "A"
+  },
+  "src\\supervision\\dataset\\__init__.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\dataset\\formats\\coco.py": {
+    "mi": 53.87729296809499,
+    "rank": "A"
+  },
+  "src\\supervision\\dataset\\formats\\pascal_voc.py": {
+    "mi": 60.165233236403246,
+    "rank": "A"
+  },
+  "src\\supervision\\dataset\\formats\\yolo.py": {
+    "mi": 50.12873587118398,
+    "rank": "A"
+  },
+  "src\\supervision\\dataset\\formats\\__init__.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\detection\\compact_mask.py": {
+    "mi": 25.26843613160484,
+    "rank": "A"
+  },
+  "src\\supervision\\detection\\core.py": {
+    "mi": 15.237819770001131,
+    "rank": "B"
+  },
+  "src\\supervision\\detection\\line_zone.py": {
+    "mi": 41.436056464248445,
+    "rank": "A"
+  },
+  "src\\supervision\\detection\\vlm.py": {
+    "mi": 30.819235233015647,
+    "rank": "A"
+  },
+  "src\\supervision\\detection\\__init__.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\detection\\tools\\csv_sink.py": {
+    "mi": 65.84774008907647,
+    "rank": "A"
+  },
+  "src\\supervision\\detection\\tools\\inference_slicer.py": {
+    "mi": 48.797899939958214,
+    "rank": "A"
+  },
+  "src\\supervision\\detection\\tools\\json_sink.py": {
+    "mi": 66.2655996887249,
+    "rank": "A"
+  },
+  "src\\supervision\\detection\\tools\\polygon_zone.py": {
+    "mi": 72.02688936120569,
+    "rank": "A"
+  },
+  "src\\supervision\\detection\\tools\\smoother.py": {
+    "mi": 58.7494965444356,
+    "rank": "A"
+  },
+  "src\\supervision\\detection\\tools\\transformers.py": {
+    "mi": 70.0376428384057,
+    "rank": "A"
+  },
+  "src\\supervision\\detection\\tools\\__init__.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\detection\\utils\\boxes.py": {
+    "mi": 35.682912967703025,
+    "rank": "A"
+  },
+  "src\\supervision\\detection\\utils\\converters.py": {
+    "mi": 26.896168601464833,
+    "rank": "A"
+  },
+  "src\\supervision\\detection\\utils\\internal.py": {
+    "mi": 44.26394876975708,
+    "rank": "A"
+  },
+  "src\\supervision\\detection\\utils\\iou_and_nms.py": {
+    "mi": 27.21117341874286,
+    "rank": "A"
+  },
+  "src\\supervision\\detection\\utils\\masks.py": {
+    "mi": 50.86542248256843,
+    "rank": "A"
+  },
+  "src\\supervision\\detection\\utils\\polygons.py": {
+    "mi": 63.29136737707571,
+    "rank": "A"
+  },
+  "src\\supervision\\detection\\utils\\vlms.py": {
+    "mi": 67.2801534822581,
+    "rank": "A"
+  },
+  "src\\supervision\\detection\\utils\\__init__.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\draw\\base.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\draw\\color.py": {
+    "mi": 45.50893596792294,
+    "rank": "A"
+  },
+  "src\\supervision\\draw\\utils.py": {
+    "mi": 62.74342158480082,
+    "rank": "A"
+  },
+  "src\\supervision\\draw\\__init__.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\geometry\\core.py": {
+    "mi": 61.798795509769285,
+    "rank": "A"
+  },
+  "src\\supervision\\geometry\\utils.py": {
+    "mi": 71.90618369506942,
+    "rank": "A"
+  },
+  "src\\supervision\\geometry\\__init__.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\keypoint\\annotators.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\keypoint\\core.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\keypoint\\__init__.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\key_points\\annotators.py": {
+    "mi": 35.96042639704176,
+    "rank": "A"
+  },
+  "src\\supervision\\key_points\\core.py": {
+    "mi": 31.50113985312914,
+    "rank": "A"
+  },
+  "src\\supervision\\key_points\\skeletons.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\key_points\\__init__.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\metrics\\core.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\metrics\\detection.py": {
+    "mi": 36.88635140244115,
+    "rank": "A"
+  },
+  "src\\supervision\\metrics\\f1_score.py": {
+    "mi": 39.18733465418227,
+    "rank": "A"
+  },
+  "src\\supervision\\metrics\\mean_average_precision.py": {
+    "mi": 11.372199326424749,
+    "rank": "B"
+  },
+  "src\\supervision\\metrics\\mean_average_recall.py": {
+    "mi": 40.35567038143837,
+    "rank": "A"
+  },
+  "src\\supervision\\metrics\\precision.py": {
+    "mi": 39.36348041973617,
+    "rank": "A"
+  },
+  "src\\supervision\\metrics\\recall.py": {
+    "mi": 40.19381802268339,
+    "rank": "A"
+  },
+  "src\\supervision\\metrics\\__init__.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\metrics\\utils\\object_size.py": {
+    "mi": 55.24992048623798,
+    "rank": "A"
+  },
+  "src\\supervision\\metrics\\utils\\utils.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\metrics\\utils\\__init__.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\tracker\\__init__.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\tracker\\byte_tracker\\core.py": {
+    "mi": 49.8551182058887,
+    "rank": "A"
+  },
+  "src\\supervision\\tracker\\byte_tracker\\kalman_filter.py": {
+    "mi": 67.80339634909727,
+    "rank": "A"
+  },
+  "src\\supervision\\tracker\\byte_tracker\\matching.py": {
+    "mi": 45.303415801323766,
+    "rank": "A"
+  },
+  "src\\supervision\\tracker\\byte_tracker\\single_object_track.py": {
+    "mi": 47.71094969688634,
+    "rank": "A"
+  },
+  "src\\supervision\\tracker\\byte_tracker\\utils.py": {
+    "mi": 90.14540124941266,
+    "rank": "A"
+  },
+  "src\\supervision\\tracker\\byte_tracker\\__init__.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\utils\\conversion.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\utils\\file.py": {
+    "mi": 58.74379408220088,
+    "rank": "A"
+  },
+  "src\\supervision\\utils\\image.py": {
+    "mi": 40.17591006834741,
+    "rank": "A"
+  },
+  "src\\supervision\\utils\\internal.py": {
+    "mi": 68.84898914903948,
+    "rank": "A"
+  },
+  "src\\supervision\\utils\\iterables.py": {
+    "mi": 61.66267771103371,
+    "rank": "A"
+  },
+  "src\\supervision\\utils\\logger.py": {
+    "mi": 86.56239735560584,
+    "rank": "A"
+  },
+  "src\\supervision\\utils\\notebook.py": {
+    "mi": 74.31672637457959,
+    "rank": "A"
+  },
+  "src\\supervision\\utils\\video.py": {
+    "mi": 51.64693640752495,
+    "rank": "A"
+  },
+  "src\\supervision\\utils\\__init__.py": {
+    "mi": 100.0,
+    "rank": "A"
+  },
+  "src\\supervision\\validators\\__init__.py": {
+    "mi": 39.7549289317202,
+    "rank": "A"
+  }
+}
