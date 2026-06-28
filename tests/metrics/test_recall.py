@@ -3,11 +3,41 @@ import pytest
 
 from supervision.detection.core import Detections
 from supervision.metrics.core import AveragingMethod, MetricTarget
-from supervision.metrics.recall import Recall
+from supervision.metrics.recall import Recall, RecallResult
 from tests.helpers import assert_almost_equal
 
 
 class TestRecall:
+    def test_result_preserves_size_specific_accessors(self) -> None:
+        """RecallResult keeps size-specific subresults accessible."""
+        nested = RecallResult(
+            metric_target=MetricTarget.BOXES,
+            averaging_method=AveragingMethod.WEIGHTED,
+            recall_scores=np.zeros(10, dtype=np.float64),
+            recall_per_class=np.zeros((0, 10), dtype=np.float64),
+            iou_thresholds=np.linspace(0.5, 0.95, 10, dtype=np.float32),
+            matched_classes=np.array([], dtype=np.int32),
+        )
+
+        result = RecallResult(
+            metric_target=MetricTarget.BOXES,
+            averaging_method=AveragingMethod.WEIGHTED,
+            recall_scores=np.zeros(10, dtype=np.float64),
+            recall_per_class=np.zeros((0, 10), dtype=np.float64),
+            iou_thresholds=np.linspace(0.5, 0.95, 10, dtype=np.float32),
+            matched_classes=np.array([], dtype=np.int32),
+            small_objects=nested,
+        )
+
+        assert result.small_objects is nested
+        assert result.medium_objects is None
+        assert result.large_objects is None
+
+        result.medium_objects = nested
+
+        assert result.medium_objects is nested
+        assert result.size_results is not None
+
     @pytest.fixture
     def predictions_multiple_classes(self):
         return Detections(

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import threading
 import warnings
+from dataclasses import dataclass, field
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
@@ -18,6 +19,26 @@ from supervision.detection.utils.masks import move_masks
 from supervision.draw.base import ImageType
 from supervision.utils.image import crop_image, get_image_resolution_wh
 from supervision.utils.internal import SupervisionWarnings
+
+
+@dataclass(slots=True)
+class _InferenceSlicerConfig:
+    callback: Callable[[ImageType], Detections]
+    slice_wh: tuple[int, int]
+    overlap_wh: tuple[int, int]
+    overlap_filter: OverlapFilter
+    iou_threshold: float
+    overlap_metric: OverlapMetric
+    thread_workers: int
+    compact_masks: bool
+
+
+@dataclass(slots=True)
+class _InferenceSlicerState:
+    out_of_slice_bounds_warned: bool = False
+    out_of_slice_bounds_lock: Any = field(default_factory=threading.Lock)
+    obb_thread_workers_warned: bool = False
+    obb_thread_workers_lock: Any = field(default_factory=threading.Lock)
 
 
 def move_detections(
@@ -140,6 +161,8 @@ class InferenceSlicer:
         ```
     """
 
+    __slots__ = ("_config", "_state")
+
     def __init__(
         self,
         callback: Callable[[ImageType], Detections],
@@ -162,18 +185,88 @@ class InferenceSlicer:
                 f"Received: {thread_workers}"
             )
 
-        self.slice_wh = slice_wh_norm
-        self.overlap_wh = overlap_wh_norm
-        self.iou_threshold = iou_threshold
-        self.overlap_metric = OverlapMetric.from_value(overlap_metric)
-        self.overlap_filter = OverlapFilter.from_value(overlap_filter)
-        self.callback: Callable[[ImageType], Detections] = callback
-        self.thread_workers = thread_workers
-        self.compact_masks = compact_masks
-        self._out_of_slice_bounds_warned: bool = False
-        self._out_of_slice_bounds_lock = threading.Lock()
-        self._obb_thread_workers_warned: bool = False
-        self._obb_thread_workers_lock = threading.Lock()
+        self._config = _InferenceSlicerConfig(
+            callback=callback,
+            slice_wh=slice_wh_norm,
+            overlap_wh=overlap_wh_norm,
+            overlap_filter=OverlapFilter.from_value(overlap_filter),
+            iou_threshold=iou_threshold,
+            overlap_metric=OverlapMetric.from_value(overlap_metric),
+            thread_workers=thread_workers,
+            compact_masks=compact_masks,
+        )
+        self._state = _InferenceSlicerState()
+
+    @property
+    def callback(self) -> Callable[[ImageType], Detections]:
+        return self._config.callback
+
+    @callback.setter
+    def callback(self, value: Callable[[ImageType], Detections]) -> None:
+        self._config.callback = value
+
+    @property
+    def slice_wh(self) -> tuple[int, int]:
+        return self._config.slice_wh
+
+    @slice_wh.setter
+    def slice_wh(self, value: tuple[int, int]) -> None:
+        self._validate_overlap(slice_wh=value, overlap_wh=self.overlap_wh)
+        self._config.slice_wh = value
+
+    @property
+    def overlap_wh(self) -> tuple[int, int]:
+        return self._config.overlap_wh
+
+    @overlap_wh.setter
+    def overlap_wh(self, value: tuple[int, int]) -> None:
+        self._validate_overlap(slice_wh=self.slice_wh, overlap_wh=value)
+        self._config.overlap_wh = value
+
+    @property
+    def iou_threshold(self) -> float:
+        return self._config.iou_threshold
+
+    @iou_threshold.setter
+    def iou_threshold(self, value: float) -> None:
+        self._config.iou_threshold = value
+
+    @property
+    def overlap_metric(self) -> OverlapMetric:
+        return self._config.overlap_metric
+
+    @overlap_metric.setter
+    def overlap_metric(self, value: OverlapMetric) -> None:
+        self._config.overlap_metric = OverlapMetric.from_value(value)
+
+    @property
+    def overlap_filter(self) -> OverlapFilter:
+        return self._config.overlap_filter
+
+    @overlap_filter.setter
+    def overlap_filter(self, value: OverlapFilter) -> None:
+        self._config.overlap_filter = OverlapFilter.from_value(value)
+
+    @property
+    def thread_workers(self) -> int:
+        return self._config.thread_workers
+
+    @thread_workers.setter
+    def thread_workers(self, value: int) -> None:
+        if value < 1:
+            raise ValueError(
+                "`thread_workers` must be a positive integer. "
+                f"Received: {value}"
+            )
+        self._config.thread_workers = value
+
+    @property
+    def compact_masks(self) -> bool:
+        return self._config.compact_masks
+
+    @compact_masks.setter
+    def compact_masks(self, value: bool) -> None:
+        self._config.compact_masks = value
 
     def __call__(self, image: ImageType) -> Detections:
         """
@@ -233,6 +326,28 @@ class InferenceSlicer:
         remaining_offsets = remaining_offsets[probe_index:]
 
         if should_run_sequentially:
+            if self.thread_workers > 1 and obb_detected:
+                with self._state.obb_thread_workers_lock:
+                    if not self._state.obb_thread_workers_warned:
+                        self._state.obb_thread_workers_warned = True
+                        warnings.warn(
+                            "InferenceSlicer detected oriented bounding boxes while "
+                            "`thread_workers > 1`. Remaining slices will be processed "
+                            "sequentially because many OBB inference backends are not "
+                            "thread-safe and can crash when shared across threads.",
+                            category=SupervisionWarnings,
+                            stacklevel=2,
+                        )
+            for offset in remaining_offsets:
+                detections_list.append(self._run_callback(image, offset))
+        else:
+            with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
+                futures = [
+                    executor.submit(self._run_callback, image, offset)
+                    for offset in remaining_offsets
+                ]
+                for future in as_completed(futures):
+                    detections_list.append(future.result())
             self._warn_obb_sequential_fallback(obb_detected=obb_detected)
             detections_list.extend(
                 self._run_sequential_inference(image=image, offsets=remaining_offsets)
@@ -356,13 +471,13 @@ class InferenceSlicer:
         # Fast-path: skip locking and bounds checking when the warning has already
         # been emitted or when there are no detections to inspect.
         needs_warning_check = (
-            not self._out_of_slice_bounds_warned and len(detections) > 0
+            not self._state.out_of_slice_bounds_warned and len(detections) > 0
         )
 
         if needs_warning_check:
-            with self._out_of_slice_bounds_lock:
+            with self._state.out_of_slice_bounds_lock:
                 # Re-check under the lock to ensure correctness with multiple threads.
-                if not self._out_of_slice_bounds_warned and len(detections) > 0:
+                if not self._state.out_of_slice_bounds_warned and len(detections) > 0:
                     slice_width = offset[2] - offset[0]
                     slice_height = offset[3] - offset[1]
                     x_exceeds = np.any(detections.xyxy[:, [0, 2]] > slice_width)
@@ -370,7 +485,7 @@ class InferenceSlicer:
                     x_negative = np.any(detections.xyxy[:, [0, 2]] < 0)
                     y_negative = np.any(detections.xyxy[:, [1, 3]] < 0)
                     if x_exceeds or y_exceeds or x_negative or y_negative:
-                        self._out_of_slice_bounds_warned = True
+                        self._state.out_of_slice_bounds_warned = True
                         msg = (
                             "Detections returned by the callback have coordinates "
                             "outside the slice bounds. This may be caused by the "

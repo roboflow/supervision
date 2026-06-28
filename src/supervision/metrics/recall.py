@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
@@ -25,6 +25,136 @@ from supervision.metrics.utils.utils import ensure_pandas_installed
 
 if TYPE_CHECKING:
     import pandas as pd
+
+
+@dataclass
+class RecallSizeResults:
+    """Recall results split by object size."""
+
+    small_objects: RecallResult | None = None
+    medium_objects: RecallResult | None = None
+    large_objects: RecallResult | None = None
+
+
+@dataclass(init=False)
+class RecallResult:
+    """
+    The results of the recall metric calculation.
+
+    Defaults to `0` if no detections or targets were provided.
+
+    Attributes:
+        metric_target: the type of data used for the metric -
+            boxes, masks or oriented bounding boxes.
+        averaging_method: the averaging method used to compute the
+            recall. Determines how the recall is aggregated across classes.
+        recall_at_50: the recall at IoU threshold of `0.5`.
+        recall_at_75: the recall at IoU threshold of `0.75`.
+        recall_scores: the recall scores at each IoU threshold.
+            Shape: `(num_iou_thresholds,)`
+        recall_per_class: the recall scores per class and IoU threshold.
+            Shape: `(num_target_classes, num_iou_thresholds)`
+        iou_thresholds: the IoU thresholds used in the calculations.
+        matched_classes: the class IDs of all matched classes.
+            Corresponds to the rows of `recall_per_class`.
+        small_objects: the Recall metric results
+            for small objects (area < 32²).
+        medium_objects: the Recall metric results
+            for medium objects (32² ≤ area < 96²).
+        large_objects: the Recall metric results
+            for large objects (area ≥ 96²).
+    """
+
+    metric_target: MetricTarget
+    averaging_method: AveragingMethod
+
+    @property
+    def recall_at_50(self) -> float:
+        return float(self.recall_scores[0])
+
+    @property
+    def recall_at_75(self) -> float:
+        return float(self.recall_scores[5])
+
+    recall_scores: npt.NDArray[np.float64]
+    recall_per_class: npt.NDArray[np.float64]
+    iou_thresholds: npt.NDArray[np.float32]
+    matched_classes: npt.NDArray[np.int32]
+    size_results: RecallSizeResults | None = field(default=None, repr=False, compare=False)
+
+    def __init__(
+        self,
+        metric_target: MetricTarget,
+        averaging_method: AveragingMethod,
+        recall_scores: npt.NDArray[np.float64],
+        recall_per_class: npt.NDArray[np.float64],
+        iou_thresholds: npt.NDArray[np.float32],
+        matched_classes: npt.NDArray[np.int32],
+        size_results: RecallSizeResults | None = None,
+        small_objects: RecallResult | None = None,
+        medium_objects: RecallResult | None = None,
+        large_objects: RecallResult | None = None,
+    ) -> None:
+        self.metric_target = metric_target
+        self.averaging_method = averaging_method
+        self.recall_scores = recall_scores
+        self.recall_per_class = recall_per_class
+        self.iou_thresholds = iou_thresholds
+        self.matched_classes = matched_classes
+
+        if size_results is not None:
+            self.size_results = size_results
+        elif (
+            small_objects is not None
+            or medium_objects is not None
+            or large_objects is not None
+        ):
+            self.size_results = RecallSizeResults(
+                small_objects=small_objects,
+                medium_objects=medium_objects,
+                large_objects=large_objects,
+            )
+        else:
+            self.size_results = None
+
+    def _ensure_size_results(self) -> RecallSizeResults:
+        if self.size_results is None:
+            self.size_results = RecallSizeResults()
+
+        return self.size_results
+
+    @property
+    def small_objects(self) -> RecallResult | None:
+        if self.size_results is None:
+            return None
+
+        return self.size_results.small_objects
+
+    @small_objects.setter
+    def small_objects(self, value: RecallResult | None) -> None:
+        self._ensure_size_results().small_objects = value
+
+    @property
+    def medium_objects(self) -> RecallResult | None:
+        if self.size_results is None:
+            return None
+
+        return self.size_results.medium_objects
+
+    @medium_objects.setter
+    def medium_objects(self, value: RecallResult | None) -> None:
+        self._ensure_size_results().medium_objects = value
+
+    @property
+    def large_objects(self) -> RecallResult | None:
+        if self.size_results is None:
+            return None
+
+        return self.size_results.large_objects
+
+    @large_objects.setter
+    def large_objects(self, value: RecallResult | None) -> None:
+        self._ensure_size_results().large_objects = value
 
 
 class Recall(Metric):
@@ -473,57 +603,6 @@ class Recall(Metric):
                 self._filter_detections_by_size(targets, size_category)
             )
         return new_predictions_list, new_targets_list
-
-
-@dataclass
-class RecallResult:
-    """
-    The results of the recall metric calculation.
-
-    Defaults to `0` if no detections or targets were provided.
-
-    Attributes:
-        metric_target: the type of data used for the metric -
-            boxes, masks or oriented bounding boxes.
-        averaging_method: the averaging method used to compute the
-            recall. Determines how the recall is aggregated across classes.
-        recall_at_50: the recall at IoU threshold of `0.5`.
-        recall_at_75: the recall at IoU threshold of `0.75`.
-        recall_scores: the recall scores at each IoU threshold.
-            Shape: `(num_iou_thresholds,)`
-        recall_per_class: the recall scores per class and IoU threshold.
-            Shape: `(num_target_classes, num_iou_thresholds)`
-        iou_thresholds: the IoU thresholds used in the calculations.
-        matched_classes: the class IDs of all matched classes.
-            Corresponds to the rows of `recall_per_class`.
-        small_objects: the Recall metric results
-            for small objects (area < 32²).
-        medium_objects: the Recall metric results
-            for medium objects (32² ≤ area < 96²).
-        large_objects: the Recall metric results
-            for large objects (area ≥ 96²).
-    """
-
-    metric_target: MetricTarget
-    averaging_method: AveragingMethod
-
-    @property
-    def recall_at_50(self) -> float:
-        return float(self.recall_scores[0])
-
-    @property
-    def recall_at_75(self) -> float:
-        return float(self.recall_scores[5])
-
-    recall_scores: npt.NDArray[np.float64]
-    recall_per_class: npt.NDArray[np.float64]
-    iou_thresholds: npt.NDArray[np.float32]
-    matched_classes: npt.NDArray[np.int32]
-
-    small_objects: RecallResult | None
-    medium_objects: RecallResult | None
-    large_objects: RecallResult | None
-
     def __str__(self) -> str:
         """
         Format as a pretty string.

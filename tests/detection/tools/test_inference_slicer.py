@@ -9,7 +9,7 @@ import pytest
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.detection.tools.inference_slicer import InferenceSlicer
-from supervision.detection.utils.iou_and_nms import OverlapFilter
+from supervision.detection.utils.iou_and_nms import OverlapFilter, OverlapMetric
 from supervision.utils.internal import SupervisionWarnings
 
 
@@ -21,6 +21,39 @@ def mock_callback():
         return Detections(xyxy=np.array([[0, 0, 10, 10]]))
 
     return callback
+
+
+def test_inference_slicer_configuration_properties() -> None:
+    """Test that public configuration properties remain accessible and mutable."""
+
+    def callback(_: np.ndarray) -> Detections:
+        return Detections(xyxy=np.array([[0, 0, 10, 10]]))
+
+    slicer = InferenceSlicer(
+        callback=callback,
+        slice_wh=64,
+        overlap_wh=0,
+        overlap_filter=OverlapFilter.NONE,
+        iou_threshold=0.25,
+        overlap_metric=OverlapMetric.IOU,
+        thread_workers=2,
+        compact_masks=True,
+    )
+
+    assert slicer.callback is callback
+    assert slicer.slice_wh == (64, 64)
+    assert slicer.overlap_wh == (0, 0)
+    assert slicer.overlap_filter == OverlapFilter.NONE
+    assert slicer.overlap_metric == OverlapMetric.IOU
+    assert slicer.iou_threshold == 0.25
+    assert slicer.thread_workers == 2
+    assert slicer.compact_masks is True
+
+    slicer.thread_workers = 3
+    slicer.overlap_filter = OverlapFilter.NON_MAX_MERGE
+
+    assert slicer.thread_workers == 3
+    assert slicer.overlap_filter == OverlapFilter.NON_MAX_MERGE
 
 
 @pytest.mark.parametrize(

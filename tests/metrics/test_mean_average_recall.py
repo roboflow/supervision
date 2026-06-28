@@ -3,6 +3,7 @@ import pytest
 
 from supervision.detection.core import Detections
 from supervision.metrics import MeanAverageRecall, MetricTarget
+from supervision.metrics.mean_average_recall import MeanAverageRecallResult
 
 
 @pytest.fixture
@@ -357,6 +358,34 @@ def three_class_single_image_detections():
     ]
 
     return predictions, targets
+
+
+def test_mean_average_recall_result_preserves_size_subresults() -> None:
+    """MeanAverageRecallResult exposes size subresults via properties."""
+    nested_result = MeanAverageRecallResult(
+        metric_target=MetricTarget.BOXES,
+        recall_scores=np.zeros(3, dtype=np.float64),
+        recall_per_class=np.zeros((0, 10), dtype=np.float64),
+        max_detections=np.array([1, 10, 100], dtype=np.int32),
+        iou_thresholds=np.linspace(0.5, 0.95, 10, dtype=np.float32),
+        matched_classes=np.array([], dtype=np.int32),
+    )
+    result = MeanAverageRecallResult(
+        metric_target=MetricTarget.BOXES,
+        recall_scores=np.array([0.1, 0.2, 0.3], dtype=np.float64),
+        recall_per_class=np.zeros((1, 10), dtype=np.float64),
+        max_detections=np.array([1, 10, 100], dtype=np.int32),
+        iou_thresholds=np.linspace(0.5, 0.95, 10, dtype=np.float32),
+        matched_classes=np.array([0], dtype=np.int32),
+        small_objects=nested_result,
+    )
+
+    assert result.small_objects is nested_result
+    assert result.medium_objects is None
+    assert result.large_objects is None
+
+    result.medium_objects = nested_result
+    assert result.medium_objects is nested_result
 
 
 def test_single_perfect_detection():

@@ -5,7 +5,7 @@ import datetime
 import itertools
 from collections import defaultdict
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
@@ -27,6 +27,15 @@ if TYPE_CHECKING:
 
 
 @dataclass
+class MeanAveragePrecisionSizeResults:
+    """Mean Average Precision results split by object size."""
+
+    small_objects: MeanAveragePrecisionResult | None = None
+    medium_objects: MeanAveragePrecisionResult | None = None
+    large_objects: MeanAveragePrecisionResult | None = None
+
+
+@dataclass(init=False)
 class MeanAveragePrecisionResult:
     """
     The result of the Mean Average Precision calculation.
@@ -45,16 +54,51 @@ class MeanAveragePrecisionResult:
         iou_thresholds: the IoU thresholds used in the calculations.
         matched_classes: the class IDs of all matched classes.
             Corresponds to the rows of `ap_per_class`.
-        small_objects: the mAP results
-            for small objects (area < 32²).
-        medium_objects: the mAP results
-            for medium objects (32² ≤ area < 96²).
-        large_objects: the mAP results
-            for large objects (area ≥ 96²).
+        small_objects: the mAP results for small objects (area < 32²).
+        medium_objects: the mAP results for medium objects (32² ≤ area < 96²).
+        large_objects: the mAP results for large objects (area ≥ 96²).
     """
 
     metric_target: MetricTarget
     is_class_agnostic: bool
+    mAP_scores: npt.NDArray[np.float64]
+    ap_per_class: npt.NDArray[np.float64]
+    iou_thresholds: npt.NDArray[np.float64]
+    matched_classes: npt.NDArray[np.int32]
+    _size_results: MeanAveragePrecisionSizeResults | None = field(
+        default=None, repr=False, compare=False
+    )
+
+    def __init__(
+        self,
+        metric_target: MetricTarget,
+        is_class_agnostic: bool,
+        mAP_scores: npt.NDArray[np.float64],
+        ap_per_class: npt.NDArray[np.float64],
+        iou_thresholds: npt.NDArray[np.float64],
+        matched_classes: npt.NDArray[np.int32],
+        small_objects: MeanAveragePrecisionResult | None = None,
+        medium_objects: MeanAveragePrecisionResult | None = None,
+        large_objects: MeanAveragePrecisionResult | None = None,
+    ) -> None:
+        self.metric_target = metric_target
+        self.is_class_agnostic = is_class_agnostic
+        self.mAP_scores = mAP_scores
+        self.ap_per_class = ap_per_class
+        self.iou_thresholds = iou_thresholds
+        self.matched_classes = matched_classes
+        self._size_results = None
+
+        if (
+            small_objects is not None
+            or medium_objects is not None
+            or large_objects is not None
+        ):
+            self._size_results = MeanAveragePrecisionSizeResults(
+                small_objects=small_objects,
+                medium_objects=medium_objects,
+                large_objects=large_objects,
+            )
 
     @property
     def map50_95(self) -> float:
@@ -75,13 +119,59 @@ class MeanAveragePrecisionResult:
         """the mAP score at IoU threshold of `0.75`."""
         return float(self.mAP_scores[5])
 
-    mAP_scores: npt.NDArray[np.float64]
-    ap_per_class: npt.NDArray[np.float64]
-    iou_thresholds: npt.NDArray[np.float64]
-    matched_classes: npt.NDArray[np.int32]
-    small_objects: MeanAveragePrecisionResult | None = None
-    medium_objects: MeanAveragePrecisionResult | None = None
-    large_objects: MeanAveragePrecisionResult | None = None
+    @property
+    def small_objects(self) -> MeanAveragePrecisionResult | None:
+        """The mAP results for small objects."""
+        if self._size_results is None:
+            return None
+
+        return self._size_results.small_objects
+
+    @small_objects.setter
+    def small_objects(self, value: MeanAveragePrecisionResult | None) -> None:
+        if self._size_results is None and value is None:
+            return
+
+        if self._size_results is None:
+            self._size_results = MeanAveragePrecisionSizeResults()
+
+        self._size_results.small_objects = value
+
+    @property
+    def medium_objects(self) -> MeanAveragePrecisionResult | None:
+        """The mAP results for medium objects."""
+        if self._size_results is None:
+            return None
+
+        return self._size_results.medium_objects
+
+    @medium_objects.setter
+    def medium_objects(self, value: MeanAveragePrecisionResult | None) -> None:
+        if self._size_results is None and value is None:
+            return
+
+        if self._size_results is None:
+            self._size_results = MeanAveragePrecisionSizeResults()
+
+        self._size_results.medium_objects = value
+
+    @property
+    def large_objects(self) -> MeanAveragePrecisionResult | None:
+        """The mAP results for large objects."""
+        if self._size_results is None:
+            return None
+
+        return self._size_results.large_objects
+
+    @large_objects.setter
+    def large_objects(self, value: MeanAveragePrecisionResult | None) -> None:
+        if self._size_results is None and value is None:
+            return
+
+        if self._size_results is None:
+            self._size_results = MeanAveragePrecisionSizeResults()
+
+        self._size_results.large_objects = value
 
     def __str__(self) -> str:
         """
@@ -581,6 +671,22 @@ class COCOEvaluatorParameters:
         ]
 
 
+@dataclass
+class COCOEvaluatorState:
+    """Mutable state collected during COCO evaluation."""
+
+    eval_imgs: Any = field(default_factory=lambda: defaultdict(list))
+    results: dict[str, Any] = field(default_factory=dict)
+    targets: defaultdict[tuple[int, int], list[Any]] = field(
+        default_factory=lambda: defaultdict(list)
+    )
+    predictions: defaultdict[tuple[int, int], list[Any]] = field(
+        default_factory=lambda: defaultdict(list)
+    )
+    stats: list[Any] = field(default_factory=list)
+    ious: dict[tuple[int, int], Any] = field(default_factory=dict)
+
+
 class COCOEvaluator:
     """
     Evaluator class to compute COCO metrics.
@@ -603,24 +709,40 @@ class COCOEvaluator:
 
         self.coco_targets = coco_targets
         self.coco_predictions = coco_predictions
-        # List of dictionaries containing the evaluation results
-        # len(eval_imgs) = (categories) * (area_ranges) * (images)
-        # For COCO 2017: len(eval_images) = 80 * 4 * 5000 = 1600000
-        self.eval_imgs: Any = defaultdict(list)
-        # Dictionary of accumulated results
-        self.results: dict[str, Any] = {}
-        # Dictionary of targets for evaluation
-        self._targets: defaultdict[tuple[int, int], list[Any]] = defaultdict(list)
-        self._predictions: defaultdict[tuple[int, int], list[Any]] = defaultdict(list)
         # Parameters for evaluation
         self.params = COCOEvaluatorParameters()
-        # List of results summarization
-        self.stats: list[Any] = []
-        # Dictionary of IOUs between all targets and predictions
-        self.ious: dict[tuple[int, int], Any] = {}
+        self._state = COCOEvaluatorState()
         # Set image and category ids
         self.params.img_ids = sorted(self.coco_targets.get_image_ids())
         self.params.cat_ids = sorted(self.coco_targets.get_category_ids())
+
+    @property
+    def eval_imgs(self) -> Any:
+        """Per-image evaluation results."""
+        return self._state.eval_imgs
+
+    @property
+    def results(self) -> dict[str, Any]:
+        """Accumulated evaluation results."""
+        return self._state.results
+
+    @property
+    def stats(self) -> list[Any]:
+        """Summary statistics for the evaluation."""
+        return self._state.stats
+
+    @property
+    def ious(self) -> dict[tuple[int, int], Any]:
+        """Cached IoU values."""
+        return self._state.ious
+
+    @property
+    def _targets(self) -> defaultdict[tuple[int, int], list[Any]]:
+        return self._state.targets
+
+    @property
+    def _predictions(self) -> defaultdict[tuple[int, int], list[Any]]:
+        return self._state.predictions
 
     def _prepare_targets_and_predictions(self) -> None:
         """
@@ -643,18 +765,18 @@ class COCOEvaluator:
             gt["ignore"] = "iscrowd" in gt and gt["iscrowd"]
 
         # Select targets
-        self._targets = defaultdict(list)
+        self._state.targets = defaultdict(list)
         for gt in targets:
-            self._targets[gt["image_id"], gt["category_id"]].append(gt)
+            self._state.targets[gt["image_id"], gt["category_id"]].append(gt)
 
         # Select predictions
-        self._predictions = defaultdict(list)
+        self._state.predictions = defaultdict(list)
         for dt in predictions:
-            self._predictions[dt["image_id"], dt["category_id"]].append(dt)
+            self._state.predictions[dt["image_id"], dt["category_id"]].append(dt)
 
         # Initialize evaluation results
-        self.eval_imgs = defaultdict(list)
-        self.results = {}
+        self._state.eval_imgs = defaultdict(list)
+        self._state.results = {}
 
     def _compute_iou(self, img_id: int, cat_id: int) -> npt.NDArray[np.float32]:
         """
@@ -669,8 +791,8 @@ class COCOEvaluator:
             The IoU between the targets and predictions.
         """
 
-        gt = self._targets[img_id, cat_id]
-        dt = self._predictions[img_id, cat_id]
+        gt = self._state.targets[img_id, cat_id]
+        dt = self._state.predictions[img_id, cat_id]
 
         # If there is nothing to evaluate
         if len(gt) == 0 and len(dt) == 0:
@@ -716,8 +838,8 @@ class COCOEvaluator:
             The evaluation results.
         """
         # Get targets (gt) and predictions (dt) for the given image and category
-        gt: list[dict[str, Any]] = self._targets[img_id, cat_id]
-        dt: list[dict[str, Any]] = self._predictions[img_id, cat_id]
+        gt: list[dict[str, Any]] = self._state.targets[img_id, cat_id]
+        dt: list[dict[str, Any]] = self._state.predictions[img_id, cat_id]
 
         # If there is nothing to evaluate
         if len(gt) == 0 and len(dt) == 0:
@@ -743,9 +865,9 @@ class COCOEvaluator:
 
         # Load computed ious for the given image and category
         ious = (
-            self.ious[img_id, cat_id][:, gt_sorted]
-            if len(self.ious[img_id, cat_id]) > 0
-            else self.ious[img_id, cat_id]
+            self._state.ious[img_id, cat_id][:, gt_sorted]
+            if len(self._state.ious[img_id, cat_id]) > 0
+            else self._state.ious[img_id, cat_id]
         )
 
         # Get the number of thresholds, ground truths and detections
@@ -932,6 +1054,7 @@ class COCOEvaluator:
 
                 for max_det_idx, max_det in enumerate(selected_max_detections):
                     eval_img_data = [
+                        self._state.eval_imgs[cat_offset + area_offset + i]
                         self.eval_imgs[cat_offset + area_offset + i]
                         for i in image_inds
                     ]
@@ -1031,6 +1154,20 @@ class COCOEvaluator:
             )
             return means.astype(np.float32)
 
+        self._state.results = {
+            "params": self.params,
+            "counts": [
+                num_iou_thresholds,
+                num_recall_thresholds,
+                num_categories,
+                num_area_ranges,
+                num_max_detections,
+            ],
+            "date": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "precision": precision,
+            "recall": recall,
+            "scores": scores,
+        }
         mAP_scores = mean_with_mask((1, 2))
         ap_per_class = mean_with_mask(1).transpose(1, 0)
         return mAP_scores, ap_per_class
@@ -1073,6 +1210,7 @@ class COCOEvaluator:
             self._compute_average_precision(average_precision_large)
         )
 
+        self._state.results = {
         return {
             "mAP_scores_all_sizes": mAP_scores_all_sizes,
             "ap_per_class_all_sizes": ap_per_class_all_sizes,
@@ -1160,7 +1298,7 @@ class COCOEvaluator:
             if use_ap:
                 # Dimension of precision:
                 # threshold x recall x classes x areas x max detections
-                s = self.results["precision"]
+                s = self._state.results["precision"]
                 # IOU
                 if iou_thr is not None:
                     t = np.where(iou_thr == self.params.iou_thrs)[0]
@@ -1169,7 +1307,7 @@ class COCOEvaluator:
             else:
                 # Dimension of recall:
                 # threshold x classes x areas x max detections
-                s = self.results["recall"]
+                s = self._state.results["recall"]
                 if iou_thr is not None:
                     t = np.where(iou_thr == self.params.iou_thrs)[0]
                     s = s[t]
@@ -1227,8 +1365,8 @@ class COCOEvaluator:
             )
             return stats
 
-        if len(self.results) != 0:
-            self.stats = _summarize_predictions().tolist()
+        if len(self._state.results) != 0:
+            self._state.stats = _summarize_predictions().tolist()
 
     def evaluate(self) -> None:
         """
@@ -1243,7 +1381,7 @@ class COCOEvaluator:
         self._prepare_targets_and_predictions()
 
         # Compute IOUs between all targets and predictions for all images and categories
-        self.ious = {
+        self._state.ious = {
             (img_id, cat_id): self._compute_iou(img_id, cat_id)
             for img_id in self.params.img_ids
             for cat_id in self.params.cat_ids
@@ -1253,7 +1391,7 @@ class COCOEvaluator:
         max_det = self.params.max_dets[-1]
 
         # Evaluate each image with all categories, area range and max detections
-        self.eval_imgs = [
+        self._state.eval_imgs = [
             self._evaluate_image(img_id, cat_id, area_range, max_det)
             for cat_id in self.params.cat_ids
             for area_range in self.params.area_range
