@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 
@@ -78,6 +80,20 @@ SERVERLESS_SAM3_PVS_DICT = {
     ],
     "time": 0.07825545498053543,
 }
+OBJECT_SAM3_RESULT = SimpleNamespace(
+    prompt_results=[
+        SimpleNamespace(
+            prompt_index=2,
+            predictions=[
+                SimpleNamespace(
+                    masks=[[[10, 10], [20, 10], [20, 20], [10, 20]]],
+                    confidence=0.75,
+                    format="polygon",
+                )
+            ],
+        )
+    ]
+)
 
 
 @pytest.mark.parametrize(
@@ -174,10 +190,17 @@ def test_from_sam(
             np.array([0.00257821], dtype=np.float32),
             np.array([0], dtype=int),
         ),
+        (
+            OBJECT_SAM3_RESULT,
+            (100, 100),
+            np.array([[10.0, 10.0, 20.0, 20.0]], dtype=np.float32),
+            np.array([0.75], dtype=np.float32),
+            np.array([2], dtype=int),
+        ),
     ],
 )
 def test_from_sam3(
-    sam3_result: dict,
+    sam3_result: dict | SimpleNamespace,
     resolution_wh: tuple[int, int],
     expected_xyxy: np.ndarray,
     expected_confidence: np.ndarray,

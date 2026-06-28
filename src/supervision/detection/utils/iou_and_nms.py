@@ -423,6 +423,36 @@ def _overlapping_envelope_pairs(
     return cast(tuple[npt.NDArray[np.intp], npt.NDArray[np.intp]], np.nonzero(overlap))
 
 
+def _validate_oriented_box_batch(name: str, arr: npt.NDArray[np.number]) -> None:
+    """Validate the shape of an oriented-box batch."""
+    if arr.ndim == 3 and arr.shape[1:] != (4, 2):
+        raise ValueError(
+            f"`{name}` has shape {arr.shape}; expected (N, 4, 2) "
+            f"— each box must have exactly 4 corners with (x, y) coordinates."
+        )
+    if arr.ndim == 2 and arr.shape[1] != 8:
+        raise ValueError(
+            f"`{name}` has shape {arr.shape}; expected (N, 8) for flat "
+            f"YOLO format or (N, 4, 2) for corner format."
+        )
+    if arr.ndim not in (2, 3):
+        raise ValueError(
+            f"`{name}` must be 2-D (N, 8) or 3-D (N, 4, 2), got shape {arr.shape}."
+        )
+
+
+def _normalize_oriented_overlap_metric(overlap_metric: OverlapMetric) -> bool:
+    """Return whether oriented-box overlap should be normalized by union."""
+    if overlap_metric == OverlapMetric.IOU:
+        return True
+    if overlap_metric == OverlapMetric.IOS:
+        return False
+    raise ValueError(
+        f"overlap_metric {overlap_metric} is not supported, "
+        "only 'IOU' and 'IOS' are supported"
+    )
+
+
 def oriented_box_iou_batch(
     boxes_true: npt.NDArray[np.number],
     boxes_detection: npt.NDArray[np.number],
@@ -489,31 +519,9 @@ def oriented_box_iou_batch(
         array([[0.333...]])
     """
 
-    for name, arr in (("boxes_true", boxes_true), ("boxes_detection", boxes_detection)):
-        if arr.ndim == 3 and arr.shape[1:] != (4, 2):
-            raise ValueError(
-                f"`{name}` has shape {arr.shape}; expected (N, 4, 2) "
-                f"— each box must have exactly 4 corners with (x, y) coordinates."
-            )
-        elif arr.ndim == 2 and arr.shape[1] != 8:
-            raise ValueError(
-                f"`{name}` has shape {arr.shape}; expected (N, 8) for flat "
-                f"YOLO format or (N, 4, 2) for corner format."
-            )
-        elif arr.ndim not in (2, 3):
-            raise ValueError(
-                f"`{name}` must be 2-D (N, 8) or 3-D (N, 4, 2), got shape {arr.shape}."
-            )
-
-    if overlap_metric == OverlapMetric.IOU:
-        normalize_by_union = True
-    elif overlap_metric == OverlapMetric.IOS:
-        normalize_by_union = False
-    else:
-        raise ValueError(
-            f"overlap_metric {overlap_metric} is not supported, "
-            "only 'IOU' and 'IOS' are supported"
-        )
+    _validate_oriented_box_batch("boxes_true", boxes_true)
+    _validate_oriented_box_batch("boxes_detection", boxes_detection)
+    normalize_by_union = _normalize_oriented_overlap_metric(overlap_metric)
 
     # Capture identity before reshape: NMS / NMM pass the same array twice, so
     # the matrix is symmetric and we can compute only its upper triangle.
