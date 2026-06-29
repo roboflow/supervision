@@ -527,6 +527,42 @@ Run on any machine — no GPU or real model required:
 uv run python examples/compact_mask/benchmark.py
 ```
 
+For a focused benchmark of the Roboflow inference-result parser API, run:
+
+```bash
+uv run python examples/compact_mask/bench_inference_api.py
+```
+
+This script downloads all supervision image assets plus the middle frame from every
+supervision video asset by default, synthesizes RF-DETR-like segmentation predictions
+as Roboflow `rle_mask` payloads for each source image, and compares:
+
+```python
+sv.Detections.from_inference(result)
+sv.Detections.from_inference(result, compact_masks=True)
+```
+
+Use `--reps` and `--warmup` for repeated timing:
+
+```bash
+uv run python examples/compact_mask/bench_inference_api.py --reps 50 --warmup 5
+```
+
+The synthetic segmentation count is estimated from source identity and resolution,
+so small images naturally benchmark fewer masks and all generated masks are used.
+
+Run one specific supervision image or video asset with `--asset`:
+
+```bash
+uv run python examples/compact_mask/bench_inference_api.py --asset people-walking --reps 20 --warmup 3
+uv run python examples/compact_mask/bench_inference_api.py --asset soccer --reps 20 --warmup 3
+uv run python examples/compact_mask/bench_inference_api.py --asset vehicles --reps 20 --warmup 3
+uv run python examples/compact_mask/bench_inference_api.py --asset people-walking-video --reps 20 --warmup 3
+```
+
+The output reports image size, segmented objects, median parser time, peak traced
+allocations, mask storage, and dense-to-compact speedup.
+
 Six image tiers x three fill fractions (5 / 20 / 50 %) x three vertex counts (8 / 128 / 600):
 
 | Tier    | Resolution | Objects | Dense array | Notes                                |
@@ -588,4 +624,5 @@ All non-skipped scenarios pass: pixel-perfect annotation, exact area, lossless `
 | File           | Description                                      |
 | -------------- | ------------------------------------------------ |
 | `benchmark.py` | Full benchmark across FHD / 4K / satellite tiers |
+| `bench_inference_api.py` | Focused dense vs compact `from_inference` benchmark |
 | `README.md`    | This file                                        |
