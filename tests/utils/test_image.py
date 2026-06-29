@@ -6,6 +6,7 @@ from supervision.utils.image import (
     crop_image,
     get_image_resolution_wh,
     letterbox_image,
+    overlay_image,
     resize_image,
     scale_image,
     tint_image,
@@ -137,6 +138,42 @@ def test_letterbox_image_for_pillow_image() -> None:
     assert difference.getbbox() is None, (
         "Expected padding to be added top and bottom with padding added top and bottom"
     )
+
+
+def test_overlay_image_blends_rgba_with_float32_rounding() -> None:
+    """RGBA overlay uses current float32 blend semantics."""
+    # given
+    image = np.full((1, 1, 3), 22, dtype=np.uint8)
+    overlay = np.array([[[39, 39, 39, 60]]], dtype=np.uint8)
+    expected = np.full((1, 1, 3), 26, dtype=np.uint8)
+
+    # when
+    result = overlay_image(image=image, overlay=overlay, anchor=(0, 0))
+
+    # then
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_overlay_image_crops_rgba_overlay_at_scene_boundary() -> None:
+    """RGBA overlay is cropped when anchored outside scene bounds."""
+    # given
+    image = np.zeros((3, 3, 3), dtype=np.uint8)
+    overlay = np.array(
+        [
+            [[1, 11, 21, 255], [2, 12, 22, 255], [3, 13, 23, 255]],
+            [[4, 14, 24, 255], [5, 15, 25, 255], [6, 16, 26, 255]],
+            [[7, 17, 27, 255], [8, 18, 28, 255], [9, 19, 29, 255]],
+        ],
+        dtype=np.uint8,
+    )
+    expected = np.zeros((3, 3, 3), dtype=np.uint8)
+    expected[:2, :2] = overlay[1:, 1:, :3]
+
+    # when
+    result = overlay_image(image=image, overlay=overlay, anchor=(-1, -1))
+
+    # then
+    np.testing.assert_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(
