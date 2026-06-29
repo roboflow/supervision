@@ -24,12 +24,13 @@ from supervision.detection.utils._typing import (
     _DetectionDataValueType,
     _MetadataType,
 )
-from supervision.detection.utils.boxes import obb_polygon_area, xyxyxyxy_to_xyxy
+from supervision.detection.utils.boxes import xyxyxyxy_to_xyxy
 from supervision.detection.utils.converters import (
     mask_to_xyxy,
     polygon_to_mask,
     xywh_to_xyxy,
 )
+from supervision.detection.utils.geometry import detection_area
 from supervision.detection.utils.internal import (
     extract_ultralytics_masks,
     get_data_item,
@@ -2481,15 +2482,7 @@ class Detections:
             >>> detections.area
             array([50.])
         """
-        if self.mask is not None:
-            if isinstance(self.mask, CompactMask):
-                return self.mask.area
-            return np.array([np.sum(mask) for mask in self.mask])
-        if ORIENTED_BOX_COORDINATES in self.data:
-            return obb_polygon_area(
-                cast(npt.NDArray[np.number], self.data[ORIENTED_BOX_COORDINATES])
-            )
-        return self.box_area
+        return detection_area(self)
 
     @property
     def box_area(self) -> npt.NDArray[np.generic]:
