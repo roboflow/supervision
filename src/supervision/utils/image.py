@@ -57,13 +57,13 @@ def load_image_from_url(
         requests.RequestException: If the request fails or returns an error status.
 
     Examples:
-        ```pycon
-        >>> import supervision as sv
-        >>> image = sv.load_image_from_url(
-        ...     "https://media.roboflow.com/notebooks/examples/dog-9.jpeg"
-        ... )  # doctest: +SKIP
-        >>> image.shape  # doctest: +SKIP
-        (576, 768, 3)
+        ```python
+        import supervision as sv
+
+        image = sv.load_image_from_url(
+            "https://media.roboflow.com/notebooks/examples/dog-9.jpeg"
+        )
+        image.shape
 
         ```
     """
