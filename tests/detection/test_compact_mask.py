@@ -253,6 +253,71 @@ class TestFromCocoRle:
         with pytest.raises(ValueError, match="RLE size"):
             CompactMask.from_coco_rle(rles=rles, xyxy=xyxy, image_shape=(3, 2))
 
+    @pytest.mark.parametrize(
+        ("rles", "xyxy_arr", "image_shape", "err_match"),
+        [
+            pytest.param(
+                [{"size": [0, 4], "counts": [0]}],
+                np.array([[0, 0, 3, 3]], dtype=np.float32),
+                (0, 4),
+                "positive",
+                id="zero-height",
+            ),
+            pytest.param(
+                [{"size": [4, 0], "counts": [0]}],
+                np.array([[0, 0, 3, 3]], dtype=np.float32),
+                (4, 0),
+                "positive",
+                id="zero-width",
+            ),
+            pytest.param(
+                [{"size": [4, 4], "counts": [16]}],
+                np.array([[0, 0, 3, 3, 0]], dtype=np.float32),
+                (4, 4),
+                "shape",
+                id="xyxy-shape-mismatch",
+            ),
+            pytest.param(
+                [42],
+                np.array([[0, 0, 3, 3]], dtype=np.float32),
+                (4, 4),
+                "mapping",
+                id="non-mapping-rle-item",
+            ),
+            pytest.param(
+                [{"size": [4, 4]}],
+                np.array([[0, 0, 3, 3]], dtype=np.float32),
+                (4, 4),
+                "'size' and 'counts'",
+                id="missing-counts-key",
+            ),
+            pytest.param(
+                [{"size": [4, 4], "counts": [1, 2, 3]}],
+                np.array([[0, 0, 3, 3]], dtype=np.float32),
+                (4, 4),
+                "sum",
+                id="counts-sum-mismatch",
+            ),
+            pytest.param(
+                [],
+                np.empty((0, 4), dtype=np.float32),
+                (32769, 4),
+                "maximum",
+                id="max-image-dimension-exceeded",
+            ),
+        ],
+    )
+    def test_raises_on_invalid_input(
+        self,
+        rles: list,
+        xyxy_arr: np.ndarray,
+        image_shape: tuple,
+        err_match: str,
+    ) -> None:
+        """from_coco_rle raises ValueError for each documented invalid-input path."""
+        with pytest.raises(ValueError, match=err_match):
+            CompactMask.from_coco_rle(rles=rles, xyxy=xyxy_arr, image_shape=image_shape)
+
     def test_transcodes_without_dense_decode_helpers(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -275,6 +340,25 @@ class TestFromCocoRle:
         compact = CompactMask.from_coco_rle(rles=rles, xyxy=xyxy, image_shape=(4, 4))
 
         assert compact.shape == (1, 4, 4)
+
+
+class TestCcoRleCountsToArray:
+    """Tests for _coco_rle_counts_to_array input-format decoding."""
+
+    @pytest.mark.parametrize(
+        "counts",
+        [
+            pytest.param("52203", id="str-input"),
+            pytest.param(b"52203", id="bytes-input"),
+        ],
+    )
+    def test_str_and_bytes_decode_identically(self, counts: object) -> None:
+        """str and bytes inputs decode to the same run-length array."""
+        from supervision.detection.compact_mask import _coco_rle_counts_to_array
+
+        result = _coco_rle_counts_to_array(counts)
+        assert result.dtype == np.int32
+        assert result.sum() == 16  # total pixels in a 4x4 image
 
 
 class TestGetItem:

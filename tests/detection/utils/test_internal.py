@@ -635,6 +635,81 @@ def test_process_roboflow_result_compact_masks_invalid_rle_is_box_only() -> None
     np.testing.assert_array_equal(result[0], np.array([[0.5, 0.5, 2.5, 2.5]]))
 
 
+def test_polygon_prediction_compact_masks_true() -> None:
+    """polygon prediction with compact_masks=True returns a CompactMask."""
+    roboflow_result = {
+        "predictions": [
+            {
+                "x": 2.5,
+                "y": 2.5,
+                "width": 4.0,
+                "height": 4.0,
+                "confidence": 0.75,
+                "class_id": 0,
+                "class": "dog",
+                "points": [
+                    {"x": 1, "y": 1},
+                    {"x": 4, "y": 1},
+                    {"x": 4, "y": 4},
+                    {"x": 1, "y": 4},
+                ],
+            }
+        ],
+        "image": {"width": 6, "height": 6},
+    }
+    _, _, _, masks, _, _ = process_roboflow_result(roboflow_result, compact_masks=True)
+
+    assert isinstance(masks, CompactMask)
+    assert len(masks) == 1
+
+
+def test_box_only_compact_masks_true_returns_none_mask() -> None:
+    """box-only predictions with compact_masks=True yield None mask."""
+    roboflow_result = {
+        "predictions": [
+            {
+                "x": 2.0,
+                "y": 2.0,
+                "width": 3.0,
+                "height": 3.0,
+                "confidence": 0.9,
+                "class_id": 0,
+                "class": "cat",
+            }
+        ],
+        "image": {"width": 5, "height": 5},
+    }
+    _, _, _, masks, _, _ = process_roboflow_result(roboflow_result, compact_masks=True)
+
+    assert masks is None
+
+
+def test_rle_size_mismatch_resizes_dense_mask() -> None:
+    """Dense path resizes mask when RLE size differs from image dimensions."""
+    # counts=[0, 4]: 0 False runs then 4 True runs — all-True 2x2 mask.
+    # Image is 4x4, so cv2.resize must expand the decoded 2x2 to 4x4.
+    roboflow_result = {
+        "predictions": [
+            {
+                "x": 2.0,
+                "y": 2.0,
+                "width": 4.0,
+                "height": 4.0,
+                "confidence": 0.9,
+                "class_id": 0,
+                "class": "cat",
+                "rle_mask": {"size": [2, 2], "counts": [0, 4]},
+            }
+        ],
+        "image": {"width": 4, "height": 4},
+    }
+    _, _, _, masks, _, _ = process_roboflow_result(roboflow_result, compact_masks=False)
+
+    assert masks is not None
+    assert masks.shape == (1, 4, 4)
+    assert masks[0].sum() > 0
+
+
 @pytest.mark.parametrize(
     ("data_list", "expected_result", "exception"),
     [
