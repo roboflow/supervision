@@ -187,9 +187,9 @@ quiet-level = 3
 
 [tool.mypy]
 mypy_path = "src"
-python_version = "3.10"
-ignore_missing_imports = false
 explicit_package_bases = true
+ignore_missing_imports = false
+python_version = "3.10"
 strict = true
 overrides = [
   # exclude = [
