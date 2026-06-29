@@ -374,6 +374,36 @@ def test_key_points_getitem(key_points, index, expected_result, exception):
         assert result == expected_result
 
 
+def test_key_points_select_returns_subset() -> None:
+    """Select returns a typed KeyPoints subset for row indexes."""
+    result = KEY_POINTS.select([0, 2])
+
+    assert result == _create_key_points(
+        xy=[
+            [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]],
+            [[20, 21], [22, 23], [24, 25], [26, 27], [28, 29]],
+        ],
+        confidence=[
+            [0.8, 0.2, 0.6, 0.1, 0.5],
+            [0.1, 0.6, 0.8, 0.2, 0.7],
+        ],
+        class_id=[0, 2],
+    )
+
+
+def test_key_points_get_data_returns_data_value() -> None:
+    """Get data returns the stored data value or None."""
+    key_points = _create_key_points(
+        xy=[[[0, 1], [2, 3]]],
+        confidence=[[0.8, 0.2]],
+        class_id=[0],
+    )
+    key_points["custom_data"] = ["value1"]
+
+    assert key_points.get_data("custom_data") == ["value1"]
+    assert key_points.get_data("missing") is None
+
+
 KEY_POINTS_WITH_DET_CONF = _create_key_points(
     xy=[
         [[0, 1], [2, 3], [4, 5]],

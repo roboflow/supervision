@@ -10,7 +10,10 @@ import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
-from supervision.detection.utils._typing import _DetectionDataType
+from supervision.detection.utils._typing import (
+    _DetectionDataType,
+    _DetectionDataValueType,
+)
 from supervision.detection.utils.internal import get_data_item, is_data_equal
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
@@ -908,51 +911,49 @@ class KeyPoints:
             data=data_selected,
         )
 
-    def __getitem__(
-        self,
-        index: Index1D | Index2D | str,
-    ) -> KeyPoints | npt.NDArray[np.generic] | list[Any] | None:
-        """
-        Get a subset of the KeyPoints object or access an item from its data field.
-
-        Supports detection-level (skeleton) filtering, keypoint-level (anchor)
-        filtering, combined tuple indexing, and data field access by string key.
+    def get_data(self, key: str) -> _DetectionDataValueType | None:
+        """Get a value from the keypoint data dictionary.
 
         Args:
-            index: The index, indices, or key to access a subset of the KeyPoints
-                or an item from the data.
+            key: Data field name.
 
         Returns:
-            A subset of the KeyPoints object or an item from the data field.
+            The stored data value, or `None` when the key is absent.
 
-        Examples:
-            ```python
-            import supervision as sv
-
-            key_points = sv.KeyPoints(...)
-
-            # detection-level filtering (returns KeyPoints)
-            high_conf = key_points[key_points.detection_confidence > 0.5]
-            class_0 = key_points[key_points.class_id == 0]
-
-            # keypoint-level filtering (returns KeyPoints)
-            visible = key_points[key_points.keypoint_confidence > 0.3]
-
-            # indexing
-            first = key_points[0]
-            first_two = key_points[0:2]
-            subset = key_points[[0, 2]]
-
-            # anchor selection (uniform across all skeletons)
-            nose_and_eyes = key_points[:, [0, 1, 2]]
-
-            # data field access
-            class_names = key_points['class_name']
-            ```
+        Example:
+            >>> import numpy as np
+            >>> from supervision import KeyPoints
+            >>> key_points = KeyPoints(
+            ...     xy=np.array([[[0, 0]]]),
+            ...     data={"class_name": np.array(["person"])},
+            ... )
+            >>> key_points.get_data("class_name").tolist()
+            ['person']
         """
-        if isinstance(index, str):
-            return self.data.get(index)
+        return self.data.get(key)
 
+    def select(
+        self,
+        index: Index1D | Index2D,
+    ) -> KeyPoints:
+        """Get a subset of the KeyPoints object.
+
+        Supports detection-level (skeleton) filtering, keypoint-level (anchor)
+        filtering, and combined tuple indexing.
+
+        Args:
+            index: Index, indices, slice, or boolean mask selecting key points.
+
+        Returns:
+            A new `KeyPoints` instance containing the selected rows or anchors.
+
+        Example:
+            >>> import numpy as np
+            >>> from supervision import KeyPoints
+            >>> key_points = KeyPoints(xy=np.array([[[0, 1]], [[2, 3]]]))
+            >>> key_points.select([1]).xy.tolist()
+            [[[2, 3]]]
+        """
         if isinstance(index, np.ndarray) and index.ndim == 2 and index.dtype == bool:
             return self._get_by_2d_bool_mask(cast(npt.NDArray[np.bool_], index))
 
@@ -1044,6 +1045,52 @@ class KeyPoints:
             class_id=class_id_selected,
             data=data_selected,
         )
+
+    def __getitem__(
+        self,
+        index: Index1D | Index2D | str,
+    ) -> KeyPoints | npt.NDArray[np.generic] | list[Any] | None:
+        """
+        Get a subset of the KeyPoints object or access an item from its data field.
+
+        Supports detection-level (skeleton) filtering, keypoint-level (anchor)
+        filtering, combined tuple indexing, and data field access by string key.
+
+        Args:
+            index: The index, indices, or key to access a subset of the KeyPoints
+                or an item from the data.
+
+        Returns:
+            A subset of the KeyPoints object or an item from the data field.
+
+        Examples:
+            ```python
+            import supervision as sv
+
+            key_points = sv.KeyPoints(...)
+
+            # detection-level filtering (returns KeyPoints)
+            high_conf = key_points[key_points.detection_confidence > 0.5]
+            class_0 = key_points[key_points.class_id == 0]
+
+            # keypoint-level filtering (returns KeyPoints)
+            visible = key_points[key_points.keypoint_confidence > 0.3]
+
+            # indexing
+            first = key_points[0]
+            first_two = key_points[0:2]
+            subset = key_points[[0, 2]]
+
+            # anchor selection (uniform across all skeletons)
+            nose_and_eyes = key_points[:, [0, 1, 2]]
+
+            # data field access
+            class_names = key_points['class_name']
+            ```
+        """
+        if isinstance(index, str):
+            return self.get_data(index)
+        return self.select(index)
 
     def __setitem__(self, key: str, value: npt.NDArray[np.generic] | list[Any]) -> None:
         """
@@ -1205,7 +1252,7 @@ class KeyPoints:
             overlap_metric=overlap_metric,
         )
 
-        return cast(KeyPoints, self[keep])
+        return self.select(keep)
 
     def as_detections(
         self, selected_keypoint_indices: Iterable[int] | None = None
@@ -1275,6 +1322,6 @@ class KeyPoints:
         detections = Detections(xyxy=xyxy, confidence=confidence)
         detections.class_id = self.class_id
         detections.data = self.data
-        detections = cast(Detections, detections[cast(Any, detections.area) > 0])
+        detections = detections.select(cast(Any, detections.area) > 0)
 
         return detections

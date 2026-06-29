@@ -19,7 +19,11 @@ from supervision.detection.tools.transformers import (
     process_transformers_v4_segmentation_result,
     process_transformers_v5_segmentation_result,
 )
-from supervision.detection.utils._typing import _DetectionDataType, _MetadataType
+from supervision.detection.utils._typing import (
+    _DetectionDataType,
+    _DetectionDataValueType,
+    _MetadataType,
+)
 from supervision.detection.utils.boxes import obb_polygon_area, xyxyxyxy_to_xyxy
 from supervision.detection.utils.converters import (
     mask_to_xyxy,
@@ -2297,8 +2301,76 @@ class Detections:
 
         raise ValueError(f"{anchor} is not supported.")
 
+    def get_data(self, key: str) -> _DetectionDataValueType | None:
+        """Get a value from the detection data dictionary.
+
+        Args:
+            key: Data field name.
+
+        Returns:
+            The stored data value, or `None` when the key is absent.
+
+        Example:
+            >>> import numpy as np
+            >>> from supervision import Detections
+            >>> detections = Detections(
+            ...     xyxy=np.array([[0, 0, 1, 1]]),
+            ...     data={"class_name": np.array(["cat"])},
+            ... )
+            >>> detections.get_data("class_name").tolist()
+            ['cat']
+        """
+        return self.data.get(key)
+
+    def select(
+        self,
+        index: int | np.integer[Any] | slice | list[int] | npt.NDArray[np.generic],
+    ) -> Detections:
+        """Get a subset of the Detections object.
+
+        Args:
+            index: Row index, indices, slice, or boolean mask selecting detections.
+
+        Returns:
+            A `Detections` instance containing the selected rows. Empty detections
+            are returned unchanged.
+
+        Example:
+            >>> import numpy as np
+            >>> from supervision import Detections
+            >>> detections = Detections(xyxy=np.array([[0, 0, 1, 1], [1, 1, 2, 2]]))
+            >>> detections.select([1]).xyxy.tolist()
+            [[1, 1, 2, 2]]
+        """
+        if len(self) == 0:
+            return self
+        if isinstance(index, (int, np.integer)):
+            index = [int(index)]
+        array_index = cast(
+            slice | list[int] | npt.NDArray[np.integer | np.bool_], index
+        )
+        return Detections(
+            xyxy=self.xyxy[array_index],
+            mask=self.mask[cast(Any, array_index)] if self.mask is not None else None,
+            confidence=(
+                self.confidence[array_index] if self.confidence is not None else None
+            ),
+            class_id=self.class_id[array_index] if self.class_id is not None else None,
+            tracker_id=(
+                self.tracker_id[array_index] if self.tracker_id is not None else None
+            ),
+            data=get_data_item(self.data, array_index),
+            metadata=self.metadata,
+        )
+
     def __getitem__(
-        self, index: int | slice | list[int] | npt.NDArray[np.generic] | str
+        self,
+        index: int
+        | np.integer[Any]
+        | slice
+        | list[int]
+        | npt.NDArray[np.generic]
+        | str,
     ) -> Detections | list[Any] | npt.NDArray[np.generic] | None:
         """
         Get a subset of the Detections object or access an item from its data field.
@@ -2331,27 +2403,8 @@ class Detections:
             ```
         """
         if isinstance(index, str):
-            return self.data.get(index)
-        if len(self) == 0:
-            return self
-        if isinstance(index, int):
-            index = [index]
-        array_index = cast(
-            slice | list[int] | npt.NDArray[np.integer | np.bool_], index
-        )
-        return Detections(
-            xyxy=self.xyxy[array_index],
-            mask=self.mask[cast(Any, array_index)] if self.mask is not None else None,
-            confidence=(
-                self.confidence[array_index] if self.confidence is not None else None
-            ),
-            class_id=self.class_id[array_index] if self.class_id is not None else None,
-            tracker_id=(
-                self.tracker_id[array_index] if self.tracker_id is not None else None
-            ),
-            data=get_data_item(self.data, array_index),
-            metadata=self.metadata,
-        )
+            return self.get_data(index)
+        return self.select(index)
 
     def __setitem__(self, key: str, value: npt.NDArray[np.generic] | list[Any]) -> None:
         """
@@ -2568,7 +2621,7 @@ class Detections:
                 overlap_metric=overlap_metric,
             )
 
-        return cast(Detections, self[indices])
+        return self.select(indices)
 
     def with_nmm(
         self,
@@ -2665,7 +2718,7 @@ class Detections:
 
         result: list[Detections] = []
         for merge_group in merge_groups:
-            group = [cast(Detections, self[i]) for i in merge_group]
+            group = [self.select(i) for i in merge_group]
             result.append(_merge_detection_group(group))
 
         return Detections.merge(result)

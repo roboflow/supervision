@@ -239,9 +239,8 @@ def _split_detections_by_outcome(
         filtered_predictions = predictions
     else:
         prediction_confidence = np.asarray(predictions.confidence, dtype=np.float32)
-        filtered_predictions = cast(
-            Detections,
-            predictions[prediction_confidence >= conf_threshold],
+        filtered_predictions = predictions.select(
+            prediction_confidence >= conf_threshold
         )
 
     filtered_prediction_class_ids = filtered_predictions.class_id
@@ -258,17 +257,17 @@ def _split_detections_by_outcome(
     if prediction_count == 0:
         fn_indices = list(range(target_count))
         return (
-            cast(Detections, filtered_predictions[tp_indices]),
-            cast(Detections, filtered_predictions[fp_indices]),
-            cast(Detections, targets[fn_indices]),
+            filtered_predictions.select(tp_indices),
+            filtered_predictions.select(fp_indices),
+            targets.select(fn_indices),
         )
 
     if target_count == 0:
         fp_indices = list(range(prediction_count))
         return (
-            cast(Detections, filtered_predictions[tp_indices]),
-            cast(Detections, filtered_predictions[fp_indices]),
-            cast(Detections, targets[fn_indices]),
+            filtered_predictions.select(tp_indices),
+            filtered_predictions.select(fp_indices),
+            targets.select(fn_indices),
         )
 
     # IoU computation mirrors evaluate_detection_batch — keep in sync if either changes.
@@ -341,9 +340,9 @@ def _split_detections_by_outcome(
     fn_indices.extend(cross_class_target_indices)
 
     return (
-        cast(Detections, filtered_predictions[tp_indices]),
-        cast(Detections, filtered_predictions[fp_indices]),
-        cast(Detections, targets[fn_indices]),
+        filtered_predictions.select(tp_indices),
+        filtered_predictions.select(fp_indices),
+        targets.select(fn_indices),
     )
 
 
@@ -483,7 +482,8 @@ def _annotate_detection_panel(
         title_thickness,
         cv2.LINE_AA,
     )
-    return cast(npt.NDArray[np.uint8], panel)
+    panel_array: npt.NDArray[np.uint8] = panel
+    return panel_array
 
 
 def _save_detection_validation_visualization(
