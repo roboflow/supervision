@@ -6,8 +6,6 @@ import warnings
 from collections.abc import Callable
 from typing import Any, Generic, TypeVar
 
-import requests
-
 
 class SupervisionWarnings(Warning):
     """Supervision warning category.
@@ -64,6 +62,8 @@ def prepare_url(value: str) -> str:
     Raises:
         ValueError: If the URL is invalid or uses an unsupported scheme.
     """
+    import requests
+
     try:
         original_parsed_url = urllib.parse.urlparse(value)
         if "\\" in original_parsed_url.netloc:
