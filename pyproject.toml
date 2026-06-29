@@ -191,18 +191,6 @@ explicit_package_bases = true
 ignore_missing_imports = false
 python_version = "3.10"
 strict = true
-overrides = [
-  # exclude = [
-  #  "docs",
-  #  "test",
-  #  "examples",
-  #  "setup.py",
-  # ]
-  { module = [
-    "examples.*",
-    "tests.*",
-  ], ignore_errors = true },
-  { module = "deprecate", ignore_missing_imports = true },
 ]
 
 [tool.pytest]
