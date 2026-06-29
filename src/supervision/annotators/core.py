@@ -1,6 +1,6 @@
 from functools import lru_cache
 from math import sqrt
-from typing import Any, cast, overload
+from typing import Any, cast
 
 import cv2
 import numpy as np
@@ -50,16 +50,6 @@ from supervision.utils.image import (
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
-
-
-@overload
-def _normalize_color_input(color: Color | str) -> Color: ...
-
-
-@overload
-def _normalize_color_input(
-    color: Color | ColorPalette | str,
-) -> Color | ColorPalette: ...
 
 
 def _normalize_color_input(color: Color | ColorPalette | str) -> Color | ColorPalette:
@@ -2633,7 +2623,7 @@ class PercentageBarAnnotator(BaseAnnotator):
         self.height: int = height
         self.width: int = width
         self.color: Color | ColorPalette = _normalize_color_input(color)
-        self.border_color: Color = _normalize_color_input(border_color)
+        self.border_color = cast(Color, _normalize_color_input(border_color))
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
 

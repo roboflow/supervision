@@ -256,7 +256,7 @@ class MeanAverageRecallResult:
         plt.show()
 
 
-class MeanAverageRecall(Metric[..., "MeanAverageRecallResult"]):
+class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
     """
     Mean Average Recall (mAR) measures how well the model detects
     and retrieves relevant objects by averaging recall over multiple

@@ -2,19 +2,18 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any, Generic, ParamSpec, TypeVar
+from typing import Any, Generic, TypeVar
 
-P = ParamSpec("P")
 R = TypeVar("R")
 
 
-class Metric(ABC, Generic[P, R]):
+class Metric(ABC, Generic[R]):
     """
     The base class for all supervision metrics.
     """
 
     @abstractmethod
-    def update(self, *args: P.args, **kwargs: P.kwargs) -> Metric[P, R]:
+    def update(self, *args: Any, **kwargs: Any) -> Metric[R]:
         """
         Add data to the metric, without computing the result.
         Return the metric itself to allow method chaining.

@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-class Recall(Metric[..., "RecallResult"]):
+class Recall(Metric["RecallResult"]):
     """
     Recall is a metric used to evaluate object detection models. It is the ratio of
     true positive detections to the total number of ground truth instances. We calculate

@@ -7,7 +7,7 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
-from supervision.detection.utils._typing import DetectionDataType, MetadataType
+from supervision.detection.utils._typing import _DetectionDataType, _MetadataType
 from supervision.detection.utils.converters import polygon_to_mask, rle_to_mask
 from supervision.geometry.core import Vector
 
@@ -58,7 +58,7 @@ def process_roboflow_result(
     npt.NDArray[np.integer],
     npt.NDArray[np.bool_] | None,
     npt.NDArray[np.integer] | None,
-    DetectionDataType,
+    _DetectionDataType,
 ]:
     """Parse a Roboflow API or Inference package result into detection arrays.
 
@@ -193,7 +193,7 @@ def process_roboflow_result(
         if tracker_ids and None not in tracker_ids
         else None
     )
-    data: DetectionDataType = {CLASS_NAME_DATA_FIELD: class_name_arr}
+    data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_name_arr}
 
     return (
         xyxy_arr,
@@ -206,8 +206,8 @@ def process_roboflow_result(
 
 
 def is_data_equal(
-    data_a: DetectionDataType,
-    data_b: DetectionDataType,
+    data_a: _DetectionDataType,
+    data_b: _DetectionDataType,
 ) -> bool:
     """
     Compares the data payloads of two Detections instances.
@@ -223,7 +223,7 @@ def is_data_equal(
     )
 
 
-def is_metadata_equal(metadata_a: MetadataType, metadata_b: MetadataType) -> bool:
+def is_metadata_equal(metadata_a: _MetadataType, metadata_b: _MetadataType) -> bool:
     """
     Compares the metadata payloads of two Detections instances.
 
@@ -245,8 +245,8 @@ def is_metadata_equal(metadata_a: MetadataType, metadata_b: MetadataType) -> boo
 
 
 def merge_data(
-    data_list: list[DetectionDataType],
-) -> DetectionDataType:
+    data_list: list[_DetectionDataType],
+) -> _DetectionDataType:
     """
     Merges the data payloads of a list of Detections instances.
 
@@ -302,10 +302,10 @@ def merge_data(
                 f"types are allowed."
             )
 
-    return cast(DetectionDataType, merged_data)
+    return cast(_DetectionDataType, merged_data)
 
 
-def merge_metadata(metadata_list: list[MetadataType]) -> MetadataType:
+def merge_metadata(metadata_list: list[_MetadataType]) -> _MetadataType:
     """
     Merge metadata from a list of metadata dictionaries.
 
@@ -332,7 +332,7 @@ def merge_metadata(metadata_list: list[MetadataType]) -> MetadataType:
     if not all(keys_set == all_keys_sets[0] for keys_set in all_keys_sets):
         raise ValueError("All metadata dictionaries must have the same keys to merge.")
 
-    merged_metadata: MetadataType = {}
+    merged_metadata: _MetadataType = {}
     for metadata in metadata_list:
         for key, value in metadata.items():
             if key not in merged_metadata:
@@ -360,9 +360,9 @@ def merge_metadata(metadata_list: list[MetadataType]) -> MetadataType:
 
 
 def get_data_item(
-    data: DetectionDataType,
+    data: _DetectionDataType,
     index: int | slice | list[int] | npt.NDArray[np.integer | np.bool_],
-) -> DetectionDataType:
+) -> _DetectionDataType:
     """
     Retrieve a subset of the data dictionary based on the given index.
 
@@ -373,7 +373,7 @@ def get_data_item(
     Returns:
         A subset of the data dictionary corresponding to the specified index.
     """
-    subset_data: DetectionDataType = {}
+    subset_data: _DetectionDataType = {}
     for key, value in data.items():
         if isinstance(value, np.ndarray):
             subset_data[key] = value[index]

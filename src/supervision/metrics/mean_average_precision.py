@@ -1268,12 +1268,7 @@ class COCOEvaluator:
         self._accumulate()
 
 
-class MeanAveragePrecision(
-    Metric[
-        [Detections | list[Detections], Detections | list[Detections]],
-        MeanAveragePrecisionResult,
-    ]
-):
+class MeanAveragePrecision(Metric[MeanAveragePrecisionResult]):
     """
     Mean Average Precision (mAP) is a metric used to evaluate object detection models.
     It is the average of the precision-recall curves at different IoU thresholds.

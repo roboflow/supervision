@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-class Precision(Metric[..., "PrecisionResult"]):
+class Precision(Metric["PrecisionResult"]):
     """
     Precision is a metric used to evaluate object detection models. It is the ratio of
     true positive detections to the total number of predicted detections. We calculate

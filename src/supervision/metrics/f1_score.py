@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-class F1Score(Metric[..., "F1ScoreResult"]):
+class F1Score(Metric["F1ScoreResult"]):
     """
     F1 Score is a metric used to evaluate object detection models. It is the harmonic
     mean of precision and recall, calculated at different IoU thresholds.

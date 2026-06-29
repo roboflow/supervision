@@ -10,7 +10,7 @@ import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
-from supervision.detection.utils._typing import DetectionDataType
+from supervision.detection.utils._typing import _DetectionDataType
 from supervision.detection.utils.internal import get_data_item, is_data_equal
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
@@ -230,7 +230,7 @@ class KeyPoints:
     keypoint_confidence: npt.NDArray[np.float32] | None = None
     detection_confidence: npt.NDArray[np.float32] | None = None
     visible: npt.NDArray[np.bool_] | None = None
-    data: DetectionDataType = field(default_factory=dict)
+    data: _DetectionDataType = field(default_factory=dict)
 
     def __init__(
         self,
@@ -239,7 +239,7 @@ class KeyPoints:
         keypoint_confidence: npt.NDArray[np.float32] | None = None,
         detection_confidence: npt.NDArray[np.float32] | None = None,
         visible: npt.NDArray[np.bool_] | None = None,
-        data: DetectionDataType | None = None,
+        data: _DetectionDataType | None = None,
         *,
         confidence: npt.NDArray[np.float32] | None = None,
     ) -> None:
@@ -339,7 +339,7 @@ class KeyPoints:
             npt.NDArray[np.float32],
             npt.NDArray[np.float32] | None,
             npt.NDArray[np.int_] | None,
-            DetectionDataType,
+            _DetectionDataType,
         ]
     ]:
         """
@@ -447,7 +447,7 @@ class KeyPoints:
             class_id.append(prediction["class_id"])
             class_names.append(prediction["class"])
 
-        data: DetectionDataType = {CLASS_NAME_DATA_FIELD: np.array(class_names)}
+        data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: np.array(class_names)}
 
         return cls(
             xy=np.array(xy, dtype=np.float32),
@@ -616,7 +616,7 @@ class KeyPoints:
         class_names = np.array([ultralytics_results.names[i] for i in class_id])
 
         confidence = ultralytics_results.keypoints.conf.cpu().numpy()
-        data: DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
+        data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
         return cls(xy=xy, class_id=class_id, keypoint_confidence=confidence, data=data)
 
     @classmethod
@@ -662,7 +662,7 @@ class KeyPoints:
         else:
             class_id = None
 
-        data: DetectionDataType = {}
+        data: _DetectionDataType = {}
         if class_id is not None and yolo_nas_results.class_names is not None:
             class_names = []
             for c_id in class_id:

@@ -19,7 +19,7 @@ from supervision.detection.tools.transformers import (
     process_transformers_v4_segmentation_result,
     process_transformers_v5_segmentation_result,
 )
-from supervision.detection.utils._typing import DetectionDataType, MetadataType
+from supervision.detection.utils._typing import _DetectionDataType, _MetadataType
 from supervision.detection.utils.boxes import obb_polygon_area, xyxyxyxy_to_xyxy
 from supervision.detection.utils.converters import (
     mask_to_xyxy,
@@ -159,8 +159,8 @@ class Detections:
     confidence: npt.NDArray[np.floating] | None = None
     class_id: npt.NDArray[np.integer] | None = None
     tracker_id: npt.NDArray[np.integer] | None = None
-    data: DetectionDataType = field(default_factory=dict)
-    metadata: MetadataType = field(default_factory=dict)
+    data: _DetectionDataType = field(default_factory=dict)
+    metadata: _MetadataType = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         _validate_detections_fields(
@@ -187,7 +187,7 @@ class Detections:
             np.generic | None,
             np.generic | None,
             np.generic | None,
-            DetectionDataType,
+            _DetectionDataType,
         ]
     ]:
         """
@@ -1915,7 +1915,7 @@ class Detections:
         if vlm == VLM.PALIGEMMA:
             assert isinstance(result, str)
             xyxy, class_id, class_name = from_paligemma(result, **kwargs)
-            data: DetectionDataType = {
+            data: _DetectionDataType = {
                 CLASS_NAME_DATA_FIELD: class_name,
             }
             return cls(xyxy=xyxy, class_id=class_id, data=data)
