@@ -112,7 +112,7 @@ def load_image_from_url(
         import supervision as sv
 
         image = sv.load_image_from_url(
-            "https://media.roboflow.com/notebooks/examples/dog-9.jpeg"
+            "https://media.roboflow.com/quickstart/dog.jpeg"
         )
         image.shape
 

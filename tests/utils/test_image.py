@@ -34,13 +34,13 @@ class TestLoadImageFromUrl:
             "supervision.utils.image.requests.get", return_value=response
         ) as get:
             result = load_image_from_url(
-                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg",
+                "https://media.roboflow.com/quickstart/dog.jpeg",
                 cache_dir=tmp_path,
             )
 
         # then
         get.assert_called_once_with(
-            "https://media.roboflow.com/notebooks/examples/dog-9.jpeg",
+            "https://media.roboflow.com/quickstart/dog.jpeg",
             timeout=30.0,
         )
         assert result.shape == image.shape
@@ -61,11 +61,11 @@ class TestLoadImageFromUrl:
             "supervision.utils.image.requests.get", return_value=response
         ) as get:
             first_result = load_image_from_url(
-                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg",
+                "https://media.roboflow.com/quickstart/dog.jpeg",
                 cache_dir=tmp_path,
             )
             second_result = load_image_from_url(
-                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg",
+                "https://media.roboflow.com/quickstart/dog.jpeg",
                 cache_dir=tmp_path,
             )
 
@@ -92,11 +92,11 @@ class TestLoadImageFromUrl:
             side_effect=[first_response, second_response],
         ) as get:
             cached_result = load_image_from_url(
-                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg",
+                "https://media.roboflow.com/quickstart/dog.jpeg",
                 cache_dir=tmp_path,
             )
             refreshed_result = load_image_from_url(
-                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg",
+                "https://media.roboflow.com/quickstart/dog.jpeg",
                 cache_dir=tmp_path,
                 force_reload=True,
             )
@@ -123,13 +123,13 @@ class TestLoadImageFromUrl:
             side_effect=[first_response, second_response],
         ) as get:
             load_image_from_url(
-                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg",
+                "https://media.roboflow.com/quickstart/dog.jpeg",
                 cache_dir=tmp_path,
             )
             for cache_file in tmp_path.iterdir():
                 cache_file.write_bytes(b"not an image")
             result = load_image_from_url(
-                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg",
+                "https://media.roboflow.com/quickstart/dog.jpeg",
                 cache_dir=tmp_path,
             )
 
@@ -150,7 +150,7 @@ class TestLoadImageFromUrl:
             pytest.raises(ValueError, match="could not be decoded into image"),
         ):
             load_image_from_url(
-                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg",
+                "https://media.roboflow.com/quickstart/dog.jpeg",
                 cache_dir=tmp_path,
             )
         response.close.assert_called_once()
@@ -166,7 +166,7 @@ class TestLoadImageFromUrl:
             pytest.raises(requests.RequestException, match="boom"),
         ):
             load_image_from_url(
-                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg",
+                "https://media.roboflow.com/quickstart/dog.jpeg",
                 cache_dir=tmp_path,
             )
 
