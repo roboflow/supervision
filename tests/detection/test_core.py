@@ -249,6 +249,16 @@ def test_detections_non_bool_mask_warns_with_migration_path() -> None:
             ),
             DoesNotRaise(),
         ),
+        # Scenario: Select a single detection using a NumPy integer index.
+        # Expected: A Detections object containing only that element.
+        (
+            DETECTIONS,
+            np.int64(0),
+            _create_detections(
+                xyxy=[[2254, 906, 2447, 1353]], confidence=[0.90538], class_id=[0]
+            ),
+            DoesNotRaise(),
+        ),
         # Scenario: Select a range of detections using a slice.
         # Expected: Detections within the slice range are returned.
         (
@@ -296,7 +306,7 @@ def test_detections_non_bool_mask_warns_with_migration_path() -> None:
 )
 def test_getitem(
     detections: Detections,
-    index: int | slice | list[int] | np.ndarray,
+    index: int | np.integer | slice | list[int] | np.ndarray,
     expected_result: Detections | None,
     exception: Exception,
 ) -> None:

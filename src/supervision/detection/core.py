@@ -2332,7 +2332,8 @@ class Detections:
             index: Row index, indices, slice, or boolean mask selecting detections.
 
         Returns:
-            A new `Detections` instance containing the selected rows.
+            A `Detections` instance containing the selected rows. Empty detections
+            are returned unchanged.
 
         Example:
             >>> import numpy as np
@@ -2363,7 +2364,13 @@ class Detections:
         )
 
     def __getitem__(
-        self, index: int | slice | list[int] | npt.NDArray[np.generic] | str
+        self,
+        index: int
+        | np.integer[Any]
+        | slice
+        | list[int]
+        | npt.NDArray[np.generic]
+        | str,
     ) -> Detections | list[Any] | npt.NDArray[np.generic] | None:
         """
         Get a subset of the Detections object or access an item from its data field.
