@@ -297,7 +297,7 @@ def detections_to_coco_annotations(
         box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
         segmentation: list[list[float]] | dict[str, list[int]] = []
         if mask is not None:
-            mask_bool = cast(npt.NDArray[np.bool_], mask)
+            mask_bool = mask
             if "iscrowd" in data:
                 iscrowd = int(np.asarray(data["iscrowd"]).item())
             else:

@@ -132,10 +132,10 @@ plugins:
       default_handler: python
       handlers:
         python:
+          paths: [supervision]
+          load_external_modules: true
           options:
             parameter_headings: true
-            paths: [supervision]
-            load_external_modules: true
             allow_inspection: true
             show_bases: true
             group_by_category: true

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import pytest
 
 from supervision.detection.utils.vlms import edit_distance, fuzzy_match_index
@@ -62,7 +60,7 @@ from supervision.detection.utils.vlms import edit_distance, fuzzy_match_index
         ("123ABC!", "123abc!", False, 0),
     ],
 )
-def test_edit_distance(string_1, string_2, case_sensitive, expected_result):
+def test_edit_distance(string_1, string_2, case_sensitive, expected_result) -> None:
     assert (
         edit_distance(string_1, string_2, case_sensitive=case_sensitive)
         == expected_result
@@ -107,7 +105,7 @@ def test_edit_distance(string_1, string_2, case_sensitive, expected_result):
 )
 def test_fuzzy_match_index(
     candidates, query, threshold, case_sensitive, expected_result
-):
+) -> None:
     assert (
         fuzzy_match_index(
             candidates=candidates,

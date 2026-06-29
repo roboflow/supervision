@@ -518,8 +518,13 @@ def oriented_box_iou_batch(
     # Capture identity before reshape: NMS / NMM pass the same array twice, so
     # the matrix is symmetric and we can compute only its upper triangle.
     is_self_comparison = boxes_true is boxes_detection
-    boxes_true = boxes_true.reshape(-1, 4, 2).astype(np.float64)
-    boxes_detection = boxes_detection.reshape(-1, 4, 2).astype(np.float64)
+    boxes_true = cast(
+        npt.NDArray[np.floating], boxes_true.reshape(-1, 4, 2).astype(np.float64)
+    )
+    boxes_detection = cast(
+        npt.NDArray[np.floating],
+        boxes_detection.reshape(-1, 4, 2).astype(np.float64),
+    )
 
     n, m = len(boxes_true), len(boxes_detection)
     if n == 0 or m == 0:
@@ -694,11 +699,15 @@ def _mask_iou_batch_split(
     # ~4096x4096) we promote to float64 so the counts stay exact.
     pixels = int(np.prod(masks_true.shape[1:]))
     count_dtype = np.float32 if pixels <= 2**24 else np.float64
-    true_flat = masks_true.reshape(masks_true.shape[0], pixels).astype(
-        count_dtype, copy=False
+    true_flat = cast(
+        npt.NDArray[np.floating],
+        masks_true.reshape(masks_true.shape[0], pixels).astype(count_dtype, copy=False),
     )
-    detection_flat = masks_detection.reshape(masks_detection.shape[0], pixels).astype(
-        count_dtype, copy=False
+    detection_flat = cast(
+        npt.NDArray[np.floating],
+        masks_detection.reshape(masks_detection.shape[0], pixels).astype(
+            count_dtype, copy=False
+        ),
     )
     with np.errstate(divide="ignore", over="ignore", invalid="ignore"):
         intersection_area: npt.NDArray[np.floating[Any]] = true_flat @ detection_flat.T
@@ -734,8 +743,8 @@ def _mask_iou_batch_split(
 
 
 def mask_iou_batch(
-    masks_true: npt.NDArray[Any],
-    masks_detection: npt.NDArray[Any],
+    masks_true: npt.NDArray[Any] | CompactMask,
+    masks_detection: npt.NDArray[Any] | CompactMask,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
     memory_limit: int = 1024 * 5,
 ) -> npt.NDArray[np.floating]:
@@ -831,7 +840,7 @@ def mask_iou_batch(
 
 def mask_non_max_suppression(
     predictions: npt.NDArray[np.floating],
-    masks: npt.NDArray[Any],
+    masks: npt.NDArray[Any] | CompactMask,
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
     mask_dimension: int = 640,
@@ -893,7 +902,7 @@ def mask_non_max_suppression(
                 condition[row_idx + 1 :], False, keep[row_idx + 1 :]
             )
 
-    return cast(npt.NDArray[np.bool_], keep[sort_index.argsort()])
+    return keep[sort_index.argsort()]
 
 
 def _prepare_predictions_for_nms(
@@ -967,12 +976,12 @@ def box_non_max_suppression(
     sort_index, predictions, categories = _prepare_predictions_for_nms(predictions)
     ious = box_iou_batch(predictions[:, :4], predictions[:, :4], overlap_metric)
     keep = _nms_loop_from_iou_matrix(ious, categories, iou_threshold)
-    return cast(npt.NDArray[np.bool_], keep[sort_index.argsort()])
+    return keep[sort_index.argsort()]
 
 
 def _group_overlapping_masks(
-    predictions: npt.NDArray[np.float64],
-    masks: npt.NDArray[np.float64],
+    predictions: npt.NDArray[np.floating],
+    masks: npt.NDArray[np.bool_],
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
@@ -1029,7 +1038,7 @@ def _group_overlapping_masks(
 
 def mask_non_max_merge(
     predictions: npt.NDArray[np.floating],
-    masks: npt.NDArray[Any],
+    masks: npt.NDArray[Any] | CompactMask,
     iou_threshold: float = 0.5,
     mask_dimension: int = 640,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
@@ -1103,7 +1112,7 @@ def mask_non_max_merge(
 
 
 def _greedy_nmm_via_iou_callback(
-    predictions: npt.NDArray[np.float64],
+    predictions: npt.NDArray[np.floating],
     iou_against_candidate: Callable[
         [npt.NDArray[np.int_], int], npt.NDArray[np.floating]
     ],
@@ -1134,7 +1143,7 @@ def _greedy_nmm_via_iou_callback(
 
 
 def _non_max_merge_per_category(
-    predictions: npt.NDArray[np.float64],
+    predictions: npt.NDArray[np.floating],
     group_within: Callable[[npt.NDArray[np.int_]], list[list[int]]],
 ) -> list[list[int]]:
     """Dispatch NMM grouping per class, then translate local indices back to
@@ -1167,7 +1176,7 @@ def _non_max_merge_per_category(
 
 
 def _group_overlapping_boxes(
-    predictions: npt.NDArray[np.float64],
+    predictions: npt.NDArray[np.floating],
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
@@ -1204,7 +1213,7 @@ def _group_overlapping_boxes(
 
 
 def box_non_max_merge(
-    predictions: npt.NDArray[np.float64],
+    predictions: npt.NDArray[np.floating],
     iou_threshold: float = 0.5,
     overlap_metric: OverlapMetric = OverlapMetric.IOU,
 ) -> list[list[int]]:
@@ -1327,7 +1336,7 @@ def oriented_box_non_max_suppression(
     # same object intentional — triggers upper-triangle optimization
     ious = oriented_box_iou_batch(oriented_boxes, oriented_boxes, overlap_metric)
     keep = _nms_loop_from_iou_matrix(ious, categories, iou_threshold)
-    return cast(npt.NDArray[np.bool_], keep[sort_index.argsort()])
+    return keep[sort_index.argsort()]
 
 
 def _group_overlapping_oriented_boxes(

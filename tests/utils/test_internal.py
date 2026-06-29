@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from contextlib import ExitStack as DoesNotRaise
 from dataclasses import dataclass, field
 from typing import Any
@@ -12,30 +10,30 @@ from supervision.utils.internal import get_instance_variables
 
 
 class MockClass:
-    def __init__(self):
+    def __init__(self) -> None:
         self.public = 0
         self._protected = 1
         self.__private = 2
 
-    def public_method(self):
+    def public_method(self) -> None:
         pass
 
-    def _protected_method(self):
+    def _protected_method(self) -> None:
         pass
 
-    def __private_method(self):
+    def __private_method(self) -> None:
         pass
 
     @property
-    def public_property(self):
+    def public_property(self) -> int:
         return 0
 
     @property
-    def _protected_property(self):
+    def _protected_property(self) -> int:
         return 1
 
     @property
-    def __private_property(self):
+    def __private_property(self) -> int:
         return 2
 
 
@@ -53,25 +51,25 @@ class MockDataclass:
     _protected_field_with_factory: dict = field(default_factory=dict)
     __private_field_with_factory: dict = field(default_factory=dict)
 
-    def public_method(self):
+    def public_method(self) -> None:
         pass
 
-    def _protected_method(self):
+    def _protected_method(self) -> None:
         pass
 
-    def __private_method(self):
+    def __private_method(self) -> None:
         pass
 
     @property
-    def public_property(self):
+    def public_property(self) -> int:
         return 0
 
     @property
-    def _protected_property(self):
+    def _protected_property(self) -> int:
         return 1
 
     @property
-    def __private_property(self):
+    def __private_property(self) -> int:
         return 2
 
 
