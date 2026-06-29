@@ -813,7 +813,7 @@ class COCOEvaluator:
                     for g_idx, g in enumerate(gt):
                         # If current gt is already matched, and not a crowd, continue
                         # if gt_matches[tresh_idx, g_idx] > 0 and not iscrowd[g_idx]:
-                        iscrowd = g["iscrowd"]
+                        iscrowd = int(g.get("iscrowd", 0))
                         if gt_matches[tresh_idx, g_idx] > 0 and not iscrowd:
                             continue
                         # Stop searching the ground truths
