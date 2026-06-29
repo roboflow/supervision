@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Iterable
 from typing import Any, cast
 
@@ -57,7 +55,7 @@ class PolygonZone:
         self,
         polygon: npt.NDArray[np.int64],
         triggering_anchors: Iterable[Position] = (Position.BOTTOM_CENTER,),
-    ):
+    ) -> None:
         self.polygon = polygon.astype(int)
         self.triggering_anchors = triggering_anchors
         if not list(self.triggering_anchors):
@@ -89,7 +87,7 @@ class PolygonZone:
         """
         if len(detections) == 0:
             self.current_count = 0
-            return np.array([], dtype=bool)
+            return cast(npt.NDArray[np.bool_], np.array([], dtype=bool))
 
         all_anchors = np.array(
             [
@@ -105,7 +103,7 @@ class PolygonZone:
         y_safe = np.clip(y, 0, mask_h - 1)
         is_in_zone = np.all(in_bounds & self.mask[y_safe, x_safe], axis=0)
         self.current_count = int(np.sum(is_in_zone))
-        return is_in_zone.astype(bool)
+        return cast(npt.NDArray[np.bool_], is_in_zone.astype(bool))
 
 
 class PolygonZoneAnnotator:
@@ -139,7 +137,7 @@ class PolygonZoneAnnotator:
         text_padding: int = 10,
         display_in_zone_count: bool = True,
         opacity: float = 0,
-    ):
+    ) -> None:
         self.zone = zone
         self.color = color
         self.thickness = thickness

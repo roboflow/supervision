@@ -1,7 +1,3 @@
-from __future__ import annotations
-
-from typing import cast
-
 import numpy as np
 import numpy.typing as npt
 from deprecate import (  # type: ignore[import-untyped,unused-ignore]
@@ -63,7 +59,7 @@ class ByteTrack:
         minimum_matching_threshold: float = 0.8,
         frame_rate: float = 30,
         minimum_consecutive_frames: int = 1,
-    ):
+    ) -> None:
         self.track_activation_threshold = track_activation_threshold
         self.minimum_matching_threshold = minimum_matching_threshold
 
@@ -148,8 +144,7 @@ class ByteTrack:
                     tracks[i_track].external_track_id
                 )
 
-            filtered = detections[detections.tracker_id != -1]
-            return cast(Detections, filtered)
+            return detections.select(detections.tracker_id != -1)
 
         else:
             detections = Detections.empty()

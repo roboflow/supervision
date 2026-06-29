@@ -6,7 +6,8 @@ import os
 import shutil
 from collections.abc import Callable
 from functools import partial
-from typing import Any, Literal, cast
+from types import TracebackType
+from typing import Literal, cast
 
 import cv2
 import numpy as np
@@ -36,7 +37,7 @@ MAX_COLUMNS_FOR_SINGLE_ROW_GRID = 3
 @ensure_cv2_image_for_standalone_function
 def crop_image(
     image: ImageType,
-    xyxy: npt.NDArray[int] | list[int] | tuple[int, int, int, int],
+    xyxy: npt.NDArray[np.number] | list[int] | tuple[int, int, int, int],
 ) -> ImageType:
     """
     Crop image based on bounding box coordinates.
@@ -77,17 +78,14 @@ def crop_image(
 
     ![crop-image](https://media.roboflow.com/supervision-docs/supervision-docs-crop-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
-    if isinstance(xyxy, (list, tuple)):
-        xyxy = np.array(xyxy)
-
-    xyxy = np.round(xyxy).astype(int)
-    x_min, y_min, x_max, y_max = xyxy.flatten()
+    xyxy_arr = np.asarray(xyxy, dtype=np.float64).round().astype(np.int32)
+    x_min, y_min, x_max, y_max = xyxy_arr.flatten()
 
     if isinstance(image, np.ndarray):
         return image[y_min:y_max, x_min:x_max]
 
     if isinstance(image, Image.Image):
-        return image.crop((x_min, y_min, x_max, y_max))
+        return image.crop((float(x_min), float(y_min), float(x_max), float(y_max)))
 
     raise TypeError(
         f"`image` must be a numpy.ndarray or PIL.Image.Image. Received {type(image)}"
@@ -142,7 +140,10 @@ def scale_image(image: ImageType, scale_factor: float) -> ImageType:
     width_old, height_old = image.shape[1], image.shape[0]
     width_new = int(width_old * scale_factor)
     height_new = int(height_old * scale_factor)
-    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
+    return cast(
+        npt.NDArray[np.uint8],
+        cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR),
+    )
 
 
 @ensure_cv2_image_for_standalone_function
@@ -208,7 +209,10 @@ def resize_image(
     else:
         width_new, height_new = resolution_wh
 
-    return cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR)
+    return cast(
+        npt.NDArray[np.uint8],
+        cv2.resize(image, (width_new, height_new), interpolation=cv2.INTER_LINEAR),
+    )
 
 
 @ensure_cv2_image_for_standalone_function
@@ -269,14 +273,17 @@ def letterbox_image(
     padding_bottom = resolution_wh[1] - height_new - padding_top
     padding_left = (resolution_wh[0] - width_new) // 2
     padding_right = resolution_wh[0] - width_new - padding_left
-    image_with_borders = cv2.copyMakeBorder(
-        resized_image,
-        padding_top,
-        padding_bottom,
-        padding_left,
-        padding_right,
-        cv2.BORDER_CONSTANT,
-        value=color,
+    image_with_borders = cast(
+        npt.NDArray[np.uint8],
+        cv2.copyMakeBorder(
+            resized_image,
+            padding_top,
+            padding_bottom,
+            padding_left,
+            padding_right,
+            cv2.BORDER_CONSTANT,
+            value=color,
+        ),
     )
 
     return image_with_borders
@@ -345,12 +352,12 @@ def overlay_image(
         b, g, r, alpha = cv2.split(
             overlay[crop_y_min:crop_y_max, crop_x_min:crop_x_max]
         )
-        alpha = alpha[:, :, None] / 255.0
-        overlay_color = cv2.merge((b, g, r))
+        alpha_f32 = alpha[:, :, None].astype(np.float32) / 255.0
+        overlay_color = cv2.merge((b, g, r)).astype(np.float32)
 
-        roi = image[y_min:y_max, x_min:x_max]
-        roi[:] = roi * (1 - alpha) + overlay_color * alpha
-        image[y_min:y_max, x_min:x_max] = roi
+        roi = image[y_min:y_max, x_min:x_max].astype(np.float32)
+        blended = roi * (1 - alpha_f32) + overlay_color * alpha_f32
+        image[y_min:y_max, x_min:x_max] = np.clip(blended, 0, 255).astype(np.uint8)
     else:
         image[y_min:y_max, x_min:x_max] = overlay[
             crop_y_min:crop_y_max, crop_x_min:crop_x_max
@@ -434,8 +441,9 @@ def grayscale_image(image: ImageType) -> ImageType:
 
     ![grayscale-image](https://media.roboflow.com/supervision-docs/supervision-docs-grayscale-image-2.png){ align=center width="1000" }
     """  # noqa E501 // docs
-    grayscaled = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    return cv2.cvtColor(grayscaled, cv2.COLOR_GRAY2BGR)
+    assert isinstance(image, np.ndarray)
+    grayscaled = cast(npt.NDArray[np.uint8], cv2.cvtColor(image, cv2.COLOR_BGR2GRAY))
+    return cast(npt.NDArray[np.uint8], cv2.cvtColor(grayscaled, cv2.COLOR_GRAY2BGR))
 
 
 def get_image_resolution_wh(image: ImageType) -> tuple[int, int]:
@@ -491,7 +499,7 @@ class ImageSink:
         target_dir_path: str,
         overwrite: bool = False,
         image_name_pattern: str = "image_{:05d}.png",
-    ):
+    ) -> None:
         """
         Initialize context manager for saving images to directory.
 
@@ -559,7 +567,7 @@ class ImageSink:
         self,
         exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
-        exc_traceback: Any,
+        exc_traceback: TracebackType | None,
     ) -> None:
         pass
 
@@ -663,32 +671,32 @@ def create_tiles(
         return_type = _negotiate_tiles_format(images=images)
     tile_padding_color = unify_to_bgr(color=tile_padding_color)
     tile_margin_color = unify_to_bgr(color=tile_margin_color)
-    images = images_to_cv2(images=images)
+    images_cv2 = images_to_cv2(images=images)
     if single_tile_size is None:
-        single_tile_size = _aggregate_images_shape(images=images, mode=tile_scaling)
+        single_tile_size = _aggregate_images_shape(images=images_cv2, mode=tile_scaling)
     resized_images = [
         letterbox_image(
             image=i, resolution_wh=single_tile_size, color=tile_padding_color
         )
-        for i in images
+        for i in images_cv2
     ]
-    grid_size = _establish_grid_size(images=images, grid_size=grid_size)
-    if len(images) > grid_size[0] * grid_size[1]:
+    grid_size = _establish_grid_size(images=images_cv2, grid_size=grid_size)
+    if len(images_cv2) > grid_size[0] * grid_size[1]:
         raise ValueError(
-            f"Could not place {len(images)} in grid with size: {grid_size}."
+            f"Could not place {len(images_cv2)} in grid with size: {grid_size}."
         )
     if titles is not None:
-        titles = fill(sequence=titles, desired_size=len(images), content=None)
+        titles = fill(sequence=titles, desired_size=len(images_cv2), content=None)
     if isinstance(titles_anchors, list):
         titles_anchors_sequence = titles_anchors
     else:
         titles_anchors_sequence = [titles_anchors]
     titles_anchors = fill(
-        sequence=titles_anchors_sequence, desired_size=len(images), content=None
+        sequence=titles_anchors_sequence, desired_size=len(images_cv2), content=None
     )
     titles_color = unify_to_bgr(color=titles_color)
     titles_background_color = unify_to_bgr(color=titles_background_color)
-    tiles = _generate_tiles(
+    tiles_image = _generate_tiles(
         images=resized_images,
         grid_size=grid_size,
         single_tile_size=single_tile_size,
@@ -706,8 +714,10 @@ def create_tiles(
         default_title_placement=default_title_placement,
     )
     if return_type == "pillow":
-        tiles = cv2_to_pillow(image=tiles)
-    return cast(ImageType, tiles)
+        tiles_image_pillow: object = cv2_to_pillow(image=tiles_image)
+        return cast(ImageType, tiles_image_pillow)
+    tiles_image_cv2: object = tiles_image
+    return cast(ImageType, tiles_image_cv2)
 
 
 def _negotiate_tiles_format(images: list[ImageType]) -> Literal["cv2", "pillow"]:
@@ -890,9 +900,10 @@ def _merge_tiles_elements(
     tile_margin: int,
     tile_margin_color: tuple[int, int, int],
 ) -> npt.NDArray[np.uint8]:
-    vertical_padding: npt.NDArray[np.uint8] = (
-        np.ones((single_tile_size[1], tile_margin, 3), dtype=np.uint8)
-        * tile_margin_color
+    vertical_padding: npt.NDArray[np.uint8] = np.full(
+        (single_tile_size[1], tile_margin, 3),
+        tile_margin_color,
+        dtype=np.uint8,
     )
     merged_rows = [
         np.concatenate(
@@ -906,26 +917,19 @@ def _merge_tiles_elements(
         for row in tiles_elements
     ]
     row_width = merged_rows[0].shape[1]
-    horizontal_padding = (
-        np.ones((tile_margin, row_width, 3), dtype=np.uint8) * tile_margin_color
+    horizontal_padding: npt.NDArray[np.uint8] = np.full(
+        (tile_margin, row_width, 3),
+        tile_margin_color,
+        dtype=np.uint8,
     )
-    rows_with_paddings = []
+    rows_with_paddings: list[npt.NDArray[np.uint8]] = []
     for row in merged_rows:
         rows_with_paddings.append(row)
         rows_with_paddings.append(horizontal_padding)
-    return cast(
-        npt.NDArray[np.uint8],
-        np.concatenate(
-            rows_with_paddings[:-1],
-            axis=0,
-        ).astype(np.uint8),
-    )
+    return np.concatenate(rows_with_paddings[:-1], axis=0).astype(np.uint8, copy=False)
 
 
 def _generate_color_image(
     shape: tuple[int, int], color: tuple[int, int, int]
 ) -> npt.NDArray[np.uint8]:
-    return cast(
-        npt.NDArray[np.uint8],
-        np.ones((*shape[::-1], 3), dtype=np.uint8) * color,
-    )
+    return np.full((*shape[::-1], 3), color, dtype=np.uint8)

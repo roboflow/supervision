@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import os
 from hashlib import md5
 from pathlib import Path
