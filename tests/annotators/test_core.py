@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import warnings
 
+import cv2
 import numpy as np
 import pytest
 
@@ -261,6 +262,89 @@ class TestMaskAnnotator:
             scene=test_image.copy(), detections=detections_uint8
         )
         assert np.array_equal(result_bool, result_uint8)
+
+    def test_annotate_blends_only_dense_mask_roi(self, monkeypatch):
+        """Dense mask annotation should blend only the touched ROI."""
+        height, width = 80, 90
+        scene = np.random.default_rng(1).integers(
+            0, 256, (height, width, 3), dtype=np.uint8
+        )
+        mask = np.zeros((height, width), dtype=bool)
+        mask[10:20, 15:25] = True
+        mask[45:55, 60:75] = True
+        detections = _create_detections(
+            xyxy=[[0.0, 0.0, 80.0, 70.0]], mask=[mask], class_id=[0]
+        )
+        original_add_weighted = cv2.addWeighted
+        blended_shapes = []
+
+        def add_weighted_spy(src1, alpha, src2, beta, gamma, dst=None, dtype=None):
+            blended_shapes.append(src1.shape)
+            return original_add_weighted(src1, alpha, src2, beta, gamma, dst, dtype)
+
+        monkeypatch.setattr(cv2, "addWeighted", add_weighted_spy)
+
+        result = MaskAnnotator(
+            opacity=0.5, color=Color.RED, color_lookup=ColorLookup.INDEX
+        ).annotate(scene=scene.copy(), detections=detections)
+
+        assert not np.array_equal(result, scene)
+        assert blended_shapes == [(45, 60, 3)]
+
+    def test_annotate_blends_only_compact_mask_roi(self, monkeypatch):
+        """CompactMask annotation should blend only the touched ROI."""
+        height, width = 80, 90
+        scene = np.random.default_rng(2).integers(
+            0, 256, (height, width, 3), dtype=np.uint8
+        )
+        masks = np.zeros((2, height, width), dtype=bool)
+        masks[0, 10:20, 15:25] = True
+        masks[1, 45:55, 60:75] = True
+        xyxy = np.array([[15.0, 10.0, 24.0, 19.0], [60.0, 45.0, 74.0, 54.0]])
+        detections = _create_detections(xyxy=xyxy.tolist(), mask=masks, class_id=[0, 1])
+        detections.mask = CompactMask.from_dense(
+            masks, detections.xyxy, (height, width)
+        )
+        original_add_weighted = cv2.addWeighted
+        blended_shapes = []
+
+        def add_weighted_spy(src1, alpha, src2, beta, gamma, dst=None, dtype=None):
+            blended_shapes.append(src1.shape)
+            return original_add_weighted(src1, alpha, src2, beta, gamma, dst, dtype)
+
+        monkeypatch.setattr(cv2, "addWeighted", add_weighted_spy)
+
+        result = MaskAnnotator(opacity=0.5, color_lookup=ColorLookup.INDEX).annotate(
+            scene=scene.copy(), detections=detections
+        )
+
+        assert not np.array_equal(result, scene)
+        assert blended_shapes == [(45, 60, 3)]
+
+    def test_annotate_skips_all_false_mask_blend(self, monkeypatch):
+        """All-false masks should return an unchanged image without blending."""
+        height, width = 30, 40
+        scene = np.random.default_rng(3).integers(
+            0, 256, (height, width, 3), dtype=np.uint8
+        )
+        mask = np.zeros((height, width), dtype=bool)
+        detections = _create_detections(
+            xyxy=[[5.0, 5.0, 20.0, 20.0]], mask=[mask], class_id=[0]
+        )
+        blended_shapes = []
+
+        def add_weighted_spy(src1, alpha, src2, beta, gamma, dst=None, dtype=None):
+            blended_shapes.append(src1.shape)
+            return src2
+
+        monkeypatch.setattr(cv2, "addWeighted", add_weighted_spy)
+
+        result = MaskAnnotator(
+            opacity=0.5, color=Color.RED, color_lookup=ColorLookup.INDEX
+        ).annotate(scene=scene.copy(), detections=detections)
+
+        assert np.array_equal(result, scene)
+        assert blended_shapes == []
 
 
 class TestPolygonAnnotator:

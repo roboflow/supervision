@@ -371,6 +371,7 @@ def _paint_masks_by_area(
     color: Color | ColorPalette,
     color_lookup: ColorLookup | npt.NDArray[np.int_],
     collect_union: bool = False,
+    canvas_origin: tuple[int, int] = (0, 0),
 ) -> npt.NDArray[np.bool_] | None:
     """Paint each detection's mask into `canvas` in descending-area order.
 
@@ -388,6 +389,8 @@ def _paint_masks_by_area(
             boolean array that accumulates the union of all painted masks
             (useful for callers like `HaloAnnotator` that need the combined
             mask footprint). When ``False`` (default), returns ``None``.
+        canvas_origin: Absolute ``(x, y)`` origin of `canvas` within the source
+            image. Use the default for full-frame painting.
 
     Returns:
         A ``(H, W)`` boolean union array when ``collect_union=True``,
@@ -400,6 +403,8 @@ def _paint_masks_by_area(
         np.zeros(canvas.shape[:2], dtype=bool) if collect_union else None
     )
     compact_mask = masks if isinstance(masks, CompactMask) else None
+    origin_x, origin_y = canvas_origin
+    canvas_h, canvas_w = canvas.shape[:2]
     for detection_idx in np.flip(np.argsort(detections.area)):
         color_bgr = resolve_color(
             color=color,
@@ -412,15 +417,89 @@ def _paint_masks_by_area(
             y1 = int(compact_mask.offsets[detection_idx, 1])
             crop_m = compact_mask.crop(detection_idx)
             crop_h, crop_w = crop_m.shape
-            canvas[y1 : y1 + crop_h, x1 : x1 + crop_w][crop_m] = color_bgr
+            crop_x1 = max(0, origin_x - x1)
+            crop_y1 = max(0, origin_y - y1)
+            canvas_x1 = max(0, x1 - origin_x)
+            canvas_y1 = max(0, y1 - origin_y)
+            paint_w = min(crop_w - crop_x1, canvas_w - canvas_x1)
+            paint_h = min(crop_h - crop_y1, canvas_h - canvas_y1)
+            if paint_w <= 0 or paint_h <= 0:
+                continue
+            crop_slice = crop_m[
+                crop_y1 : crop_y1 + paint_h, crop_x1 : crop_x1 + paint_w
+            ]
+            canvas_slice = canvas[
+                canvas_y1 : canvas_y1 + paint_h,
+                canvas_x1 : canvas_x1 + paint_w,
+            ]
+            canvas_slice[crop_slice] = color_bgr
             if union is not None:
-                union[y1 : y1 + crop_h, x1 : x1 + crop_w] |= crop_m
+                union[
+                    canvas_y1 : canvas_y1 + paint_h,
+                    canvas_x1 : canvas_x1 + paint_w,
+                ] |= crop_slice
         else:
             mask = np.asarray(masks[detection_idx], dtype=bool)
+            mask = mask[origin_y : origin_y + canvas_h, origin_x : origin_x + canvas_w]
             canvas[mask] = color_bgr
             if union is not None:
                 union |= mask
     return union
+
+
+def _mask_to_roi(mask: npt.NDArray[np.bool_]) -> tuple[int, int, int, int] | None:
+    """Return exclusive ``(x1, y1, x2, y2)`` bounds for true mask pixels."""
+    rows = np.flatnonzero(np.any(mask, axis=1))
+    if len(rows) == 0:
+        return None
+    cols = np.flatnonzero(np.any(mask, axis=0))
+    return int(cols[0]), int(rows[0]), int(cols[-1]) + 1, int(rows[-1]) + 1
+
+
+def _compact_masks_to_roi(
+    masks: CompactMask,
+    image_shape: tuple[int, int],
+) -> tuple[int, int, int, int] | None:
+    """Return exclusive true-pixel bounds for compact masks."""
+    image_h, image_w = image_shape
+    x_min, y_min = image_w, image_h
+    x_max, y_max = 0, 0
+    for detection_idx in range(len(masks)):
+        crop_roi = _mask_to_roi(masks.crop(detection_idx))
+        if crop_roi is None:
+            continue
+        crop_x1, crop_y1, crop_x2, crop_y2 = crop_roi
+        offset_x = int(masks.offsets[detection_idx, 0])
+        offset_y = int(masks.offsets[detection_idx, 1])
+        x_min = min(x_min, offset_x + crop_x1)
+        y_min = min(y_min, offset_y + crop_y1)
+        x_max = max(x_max, offset_x + crop_x2)
+        y_max = max(y_max, offset_y + crop_y2)
+    if x_min >= x_max or y_min >= y_max:
+        return None
+    return (
+        max(0, x_min),
+        max(0, y_min),
+        min(image_w, x_max),
+        min(image_h, y_max),
+    )
+
+
+def _masks_to_roi(
+    masks: CompactMask | npt.NDArray[Any],
+    image_shape: tuple[int, int],
+) -> tuple[int, int, int, int] | None:
+    """Return exclusive true-pixel bounds for dense or compact masks."""
+    if isinstance(masks, CompactMask):
+        return _compact_masks_to_roi(masks=masks, image_shape=image_shape)
+    mask_array = np.asarray(masks, dtype=bool)
+    if mask_array.size == 0:
+        return None
+    if mask_array.ndim == 2:
+        union = mask_array
+    else:
+        union = np.any(mask_array, axis=0)
+    return _mask_to_roi(union)
 
 
 class MaskAnnotator(BaseAnnotator):
@@ -498,15 +577,23 @@ class MaskAnnotator(BaseAnnotator):
         if detections.mask is None:
             return scene
 
-        colored_mask = np.array(scene, copy=True, dtype=np.uint8)
+        image_shape = (int(scene.shape[0]), int(scene.shape[1]))
+        roi = _masks_to_roi(detections.mask, image_shape)
+        if roi is None:
+            return scene
+
+        x1, y1, x2, y2 = roi
+        scene_roi = scene[y1:y2, x1:x2]
+        colored_mask = np.array(scene_roi, copy=True, dtype=np.uint8)
         _paint_masks_by_area(
             colored_mask,
             detections,
             self.color,
             self.color_lookup if custom_color_lookup is None else custom_color_lookup,
+            canvas_origin=(x1, y1),
         )
         cv2.addWeighted(
-            colored_mask, self.opacity, scene, 1 - self.opacity, 0, dst=scene
+            colored_mask, self.opacity, scene_roi, 1 - self.opacity, 0, dst=scene_roi
         )
         return scene
 
