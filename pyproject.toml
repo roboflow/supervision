@@ -88,13 +88,16 @@ docs = [
   "mkdocs-jupyter>=0.24.3",
   "mkdocs-material[imaging]>=9.7",
   "mkdocstrings>=1,<1.1",
-  "mkdocstrings-python>=2.0,<3",  # todo: breaking changes in 2.x
+  "mkdocstrings-python>=2.0,<3",
 ]
 build = [
   "build>=1,<1.6",
   "twine>=5.1.1,<7",
   "wheel>=0.40,<0.48",
 ]
+
+[tool.uv.dependency-groups]
+docs = { requires-python = ">=3.10" }
 
 [tool.setuptools]
 include-package-data = false
