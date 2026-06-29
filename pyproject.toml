@@ -87,7 +87,7 @@ docs = [
   "mkdocs-git-revision-date-localized-plugin>=1.2.4",
   "mkdocs-jupyter>=0.24.3",
   "mkdocs-material[imaging]>=9.7",
-  "mkdocstrings>=0.25.2,<1.1",
+  "mkdocstrings>=1.0,<1.1",
   "mkdocstrings-python>=1.10.9,<2",                                                      # todo: breaking changes in 2.x
 ]
 build = [
