@@ -310,6 +310,28 @@ def test_getitem(
         assert result == expected_result
 
 
+def test_select_returns_detection_subset() -> None:
+    """Select returns a typed Detections subset for row indexes."""
+    result = TEST_DET_1.select([0, 2])
+
+    assert result == Detections(
+        xyxy=np.array([[10, 10, 20, 20], [50, 50, 60, 60]]),
+        mask=np.array([TEST_MASK, TEST_MASK]),
+        confidence=np.array([0.1, 0.3]),
+        class_id=np.array([1, 3]),
+        tracker_id=np.array([1, 3]),
+        data={"some_key": [1, 3], "other_key": [["1", "2"], ["5", "6"]]},
+    )
+
+
+def test_get_data_returns_detection_data_value() -> None:
+    """Get data returns the stored data value or None."""
+    result = TEST_DET_1.get_data("some_key")
+
+    assert result == [1, 2, 3]
+    assert TEST_DET_1.get_data("missing") is None
+
+
 @pytest.mark.parametrize(
     ("detections_list", "expected_result", "exception"),
     [

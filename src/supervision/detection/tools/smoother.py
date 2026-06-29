@@ -1,7 +1,6 @@
 import warnings
 from collections import defaultdict, deque
 from copy import deepcopy
-from typing import cast
 
 import numpy as np
 
@@ -116,7 +115,7 @@ class DetectionsSmoother:
             tracker_id_value = detections.tracker_id[detection_idx]
             tracker_id = int(tracker_id_value)
 
-            self.tracks[tracker_id].append(cast(Detections, detections[detection_idx]))
+            self.tracks[tracker_id].append(detections.select(detection_idx))
 
         for track_id in self.tracks.keys():
             if track_id not in detections.tracker_id:
@@ -152,7 +151,7 @@ class DetectionsSmoother:
             return None
 
         ret = deepcopy(valid[0])
-        ret.xyxy = np.mean([d.xyxy for d in valid], axis=0)
+        ret.xyxy = np.mean(np.stack([d.xyxy for d in valid], axis=0), axis=0)
         # Average confidence only over frames that carry it; frames with
         # confidence=None contribute nothing to the mean. Retain None when
         # no frame in the window carries confidence.
