@@ -42,7 +42,7 @@ jobs:
           activate-environment: true
 
       - name: 🚀 Install Packages
-        run: uv sync --frozen --group dev --group docs --extra metrics
+        run: uv sync --frozen --group dev --extra metrics
 
       - name: 📦 Run the Import test
         run: python -c "import supervision; from supervision import assets; from supervision import metrics; print(supervision.__version__)"
