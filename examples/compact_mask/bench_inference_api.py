@@ -28,17 +28,29 @@ from rich.table import Table
 
 import supervision as sv
 from supervision.assets import ImageAssets, VideoAssets, download_assets
+from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.compact_mask import CompactMask
 
 console = Console(width=120, force_terminal=True)
 
-MODEL_ID = "yolov8l-seg-640"
+# Default segmentation model; use an rfdetr-seg-* id so masks are returned.
+MODEL_ID = "rfdetr-seg-large"
+# Environment variable that can override MODEL_ID without adding CLI noise.
 MODEL_ID_ENV = "BENCH_INFERENCE_MODEL_ID"
+# Optional Roboflow API key for models that require authentication.
 API_KEY_ENV = "ROBOFLOW_API_KEY"
-CONFIDENCE = 0.3
+# Model confidence threshold used only for the one inference call per source.
+CONFIDENCE = 0.2
+# Model IoU threshold used only for the one inference call per source.
 IOU = 0.5
-REPETITIONS = 20
+# Request native RLE masks so the benchmark measures RLE parser ingestion.
+RESPONSE_MASK_FORMAT = "rle"
+# Parser timing repetitions; inference itself is not repeated.
+REPETITIONS = 50
+# Untimed parser warmup calls before measurements.
 WARMUP = 3
+# Visual segmentation overlays for manual validation.
+ARTIFACT_DIR = Path("examples/compact_mask/outputs")
 
 ASSETS = {Path(asset.filename).stem: asset for asset in ImageAssets}
 for video_asset in VideoAssets:
@@ -113,57 +125,93 @@ def count_rle_predictions(result: dict[str, Any]) -> int:
     )
 
 
-def _prediction_points_to_polygon(prediction: dict[str, Any]) -> np.ndarray | None:
-    """Return polygon coordinates from a Roboflow segmentation prediction."""
-    points = prediction.get("points")
-    if not points:
-        return None
-    polygon = np.array(
-        [
-            [point["x"], point["y"]] if isinstance(point, dict) else [point.x, point.y]
-            for point in points
-        ],
-        dtype=np.int32,
-    )
-    return polygon if len(polygon) >= 3 else None
-
-
-def normalize_to_rle_masks(result: dict[str, Any]) -> dict[str, Any]:
-    """Ensure real segmentation predictions carry Roboflow ``rle_mask`` payloads."""
-    if count_rle_predictions(result) > 0:
-        return result
-
-    image = result["image"]
-    image_width = int(image["width"])
-    image_height = int(image["height"])
+def derive_boxes_from_rle_masks(result: dict[str, Any]) -> dict[str, Any]:
+    """Set prediction boxes from native RLE segmentation masks."""
     predictions = []
     for prediction in result.get("predictions", []):
-        polygon = _prediction_points_to_polygon(prediction)
-        if polygon is None:
+        rle = prediction.get("rle") or prediction.get("rle_mask")
+        if not isinstance(rle, dict):
             predictions.append(prediction)
             continue
-        mask = sv.polygon_to_mask(
-            polygon=polygon, resolution_wh=(image_width, image_height)
-        ).astype(bool)
-        if mask.any():
-            x1, y1, x2, y2 = sv.mask_to_xyxy(mask[np.newaxis, ...])[0]
-            prediction = {
+
+        height, width = rle["size"]
+        mask = sv.rle_to_mask(rle["counts"], resolution_wh=(int(width), int(height)))
+        if not mask.any():
+            predictions.append(prediction)
+            continue
+
+        x1, y1, x2, y2 = sv.mask_to_xyxy(mask[np.newaxis, ...])[0]
+        predictions.append(
+            {
                 **prediction,
                 "x": float((x1 + x2) / 2),
                 "y": float((y1 + y2) / 2),
                 "width": float(x2 - x1),
                 "height": float(y2 - y1),
             }
-        predictions.append(
-            {
-                **prediction,
-                "rle_mask": {
-                    "size": [image_height, image_width],
-                    "counts": sv.mask_to_rle(mask, compressed=True),
-                },
-            }
         )
     return {**result, "predictions": predictions}
+
+
+def artifact_path(source: str) -> Path:
+    """Return the segmentation validation artifact path for a source."""
+    source_path, separator, frame = source.partition("#")
+    stem = Path(source_path).stem
+    suffix = f"_frame_{frame}" if separator else ""
+    return ARTIFACT_DIR / f"{stem}{suffix}_segmentations.jpg"
+
+
+def detection_labels(detections: sv.Detections) -> list[str]:
+    """Return compact class/confidence labels for validation artifacts."""
+    raw_class_names = detections.get_data(CLASS_NAME_DATA_FIELD)
+    class_names = (
+        raw_class_names.astype(str).tolist()
+        if isinstance(raw_class_names, np.ndarray)
+        else [""] * len(detections)
+    )
+
+    labels = []
+    for index in range(len(detections)):
+        class_name = class_names[index] if index < len(class_names) else ""
+        confidence = (
+            ""
+            if detections.confidence is None
+            else f" {detections.confidence[index]:.2f}"
+        )
+        labels.append(f"{class_name}{confidence}".strip() or str(index))
+    return labels
+
+
+def save_segmentation_artifact(
+    image: np.ndarray,
+    result: dict[str, Any],
+    source: str,
+) -> Path | None:
+    """Draw parsed segmentation masks and save a validation artifact."""
+    detections = sv.Detections.from_inference(result)
+    if detections.mask is None:
+        return None
+
+    annotated = image.copy()
+    annotated = sv.MaskAnnotator(
+        color_lookup=sv.ColorLookup.INDEX,
+        opacity=0.45,
+    ).annotate(scene=annotated, detections=detections)
+    annotated = sv.LabelAnnotator(
+        color_lookup=sv.ColorLookup.INDEX,
+        text_scale=0.35,
+        text_padding=4,
+    ).annotate(
+        scene=annotated,
+        detections=detections,
+        labels=detection_labels(detections),
+    )
+
+    path = artifact_path(source)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not cv2.imwrite(str(path), annotated):
+        raise OSError(f"Could not write segmentation artifact: {path}")
+    return path
 
 
 def load_inference_model(model_id: str, api_key: str | None) -> Any:
@@ -187,14 +235,24 @@ def run_inference_once(
     iou: float,
 ) -> dict[str, Any] | None:
     """Run one real segmentation inference and return a frozen result."""
-    result = normalize_to_rle_masks(
-        freeze_result(model.infer(image, confidence=confidence, iou=iou)[0])
+    # Inference still serializes instance segmentations with x/y/width/height.
+    # Derive those fields from the RLE masks so the benchmark uses segmentations,
+    # not the model-reported detector boxes, as the source of truth.
+    result = derive_boxes_from_rle_masks(
+        freeze_result(
+            model.infer(
+                image,
+                confidence=confidence,
+                iou=iou,
+                response_mask_format=RESPONSE_MASK_FORMAT,
+            )[0]
+        )
     )
     rle_count = count_rle_predictions(result)
     if rle_count == 0:
         console.print(
-            f"[yellow]skipped[/yellow] {model_id}: no RLE or polygon segmentation "
-            "predictions"
+            f"[yellow]skipped[/yellow] {model_id}: no native RLE segmentation "
+            f"predictions for response_mask_format={RESPONSE_MASK_FORMAT!r}"
         )
         return None
     return result
@@ -372,6 +430,13 @@ def main() -> None:
             f"[dim]captured {count_rle_predictions(inference_result)} RLE masks "
             f"from {model_id}[/dim]"
         )
+        artifact = save_segmentation_artifact(
+            image=image,
+            result=inference_result,
+            source=source,
+        )
+        if artifact is not None:
+            console.print(f"[dim]saved segmentation artifact: {artifact}[/dim]")
         results.append(
             run_benchmark(
                 source=source,
