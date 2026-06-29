@@ -533,31 +533,43 @@ For a focused benchmark of the Roboflow inference-result parser API, run:
 uv run python examples/compact_mask/bench_inference_api.py
 ```
 
-This script downloads all supervision image assets plus the middle frame from every supervision video asset by default, synthesizes RF-DETR-like segmentation predictions as Roboflow `rle_mask` payloads for each source image, and compares:
+This script downloads all supervision image assets plus the middle frame from every
+supervision video asset by default, runs one real segmentation inference per source
+image, normalizes the real segmentation masks to `rle_mask`, freezes that result,
+and then compares parser performance:
 
 ```python
 sv.Detections.from_inference(result)
 sv.Detections.from_inference(result, compact_masks=True)
 ```
 
-Use `--reps` and `--warmup` for repeated timing:
+Timing repetitions, warmups, confidence, IoU, and the default model live as
+constants in `bench_inference_api.py`:
 
 ```bash
-uv run python examples/compact_mask/bench_inference_api.py --reps 50 --warmup 5
+uv run python examples/compact_mask/bench_inference_api.py
 ```
 
-The synthetic segmentation count is estimated from source identity and resolution, so small images naturally benchmark fewer masks and all generated masks are used.
+Inference runs and polygon-to-RLE normalization are outside the timed benchmark
+loop. By default the script uses `yolov8l-seg-640`; set
+`BENCH_INFERENCE_MODEL_ID` to override it. Set `ROBOFLOW_API_KEY` when your
+model requires authentication. Sources where the model returns no segmentation
+masks are skipped because there is no mask parser work to benchmark.
+`rfdetr-large` is a valid local Inference model id, but it returns boxes without
+segmentation masks in this path, so it is not useful for this compact-mask
+benchmark.
 
 Run one specific supervision image or video asset with `--asset`:
 
 ```bash
-uv run python examples/compact_mask/bench_inference_api.py --asset people-walking --reps 20 --warmup 3
-uv run python examples/compact_mask/bench_inference_api.py --asset soccer --reps 20 --warmup 3
-uv run python examples/compact_mask/bench_inference_api.py --asset vehicles --reps 20 --warmup 3
-uv run python examples/compact_mask/bench_inference_api.py --asset people-walking-video --reps 20 --warmup 3
+uv run python examples/compact_mask/bench_inference_api.py --asset people-walking
+uv run python examples/compact_mask/bench_inference_api.py --asset soccer
+uv run python examples/compact_mask/bench_inference_api.py --asset vehicles
+uv run python examples/compact_mask/bench_inference_api.py --asset people-walking-video
 ```
 
-The output reports image size, segmented objects, median parser time, peak traced allocations, mask storage, and dense-to-compact speedup.
+The output reports image size, segmented objects, median parser time, peak traced
+allocations, mask storage, and dense-to-compact speedup.
 
 Six image tiers x three fill fractions (5 / 20 / 50 %) x three vertex counts (8 / 128 / 600):
 

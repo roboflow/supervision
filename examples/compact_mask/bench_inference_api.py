@@ -3,19 +3,18 @@
 Run with:
     uv run python examples/compact_mask/bench_inference_api.py
 
-The benchmark downloads a supervision image asset, then builds
-RF-DETR-like segmentation predictions encoded as Roboflow ``rle_mask`` payloads.
-No model download is required.
+The benchmark downloads supervision assets, runs one segmentation inference per
+source image, then times dense vs compact parsing of that fixed inference result.
 """
 
 from __future__ import annotations
 
 import argparse
 import gc
+import os
 import statistics
 import time
 import tracemalloc
-import zlib
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -33,10 +32,13 @@ from supervision.detection.compact_mask import CompactMask
 
 console = Console(width=120, force_terminal=True)
 
+MODEL_ID = "yolov8l-seg-640"
+MODEL_ID_ENV = "BENCH_INFERENCE_MODEL_ID"
+API_KEY_ENV = "ROBOFLOW_API_KEY"
+CONFIDENCE = 0.3
+IOU = 0.5
 REPETITIONS = 20
 WARMUP = 3
-FHD_AREA = 1920 * 1080
-FHD_OBJECTS = 16
 
 ASSETS = {Path(asset.filename).stem: asset for asset in ImageAssets}
 for video_asset in VideoAssets:
@@ -60,13 +62,13 @@ class ApiBenchmarkResult:
     pixel_perfect: bool
 
 
-def image_shape_from_asset(path: Path | None, asset: str) -> tuple[int, int, str]:
-    """Return ``(height, width, label)`` for an image or video middle frame."""
+def load_image_from_asset(path: Path | None, asset: str) -> tuple[np.ndarray, str]:
+    """Return ``(image, label)`` for an image or video middle frame."""
     if path is not None:
         image = cv2.imread(str(path))
         if image is None:
             raise FileNotFoundError(f"Could not read image: {path}")
-        return int(image.shape[0]), int(image.shape[1]), str(path)
+        return image, str(path)
 
     asset_obj = ASSETS[asset]
     asset_path = Path(download_assets(asset_obj))
@@ -74,7 +76,7 @@ def image_shape_from_asset(path: Path | None, asset: str) -> tuple[int, int, str
         image = cv2.imread(str(asset_path))
         if image is None:
             raise FileNotFoundError(f"Could not read image: {asset_path}")
-        return int(image.shape[0]), int(image.shape[1]), str(asset_path)
+        return image, str(asset_path)
 
     video = cv2.VideoCapture(str(asset_path))
     if not video.isOpened():
@@ -87,71 +89,115 @@ def image_shape_from_asset(path: Path | None, asset: str) -> tuple[int, int, str
     video.release()
     if not ok or frame is None:
         raise FileNotFoundError(f"Could not read middle frame: {asset_path}")
-    return int(frame.shape[0]), int(frame.shape[1]), f"{asset_path}#{frame_index}"
+    return frame, f"{asset_path}#{frame_index}"
 
 
-def make_rfdetr_like_result(
-    image_height: int,
-    image_width: int,
-    object_count: int,
-) -> dict[str, Any]:
-    """Build a Roboflow result with person-like RLE segmentation predictions."""
-    rng = np.random.default_rng(0)
-    cols = max(1, int(np.ceil(np.sqrt(object_count * image_width / image_height))))
-    rows = max(1, int(np.ceil(object_count / cols)))
-    cell_w = image_width / cols
-    cell_h = image_height / rows
-    predictions: list[dict[str, Any]] = []
+def freeze_result(inference_result: Any) -> dict[str, Any]:
+    """Convert one Inference result to a reusable dictionary."""
+    if isinstance(inference_result, dict):
+        return inference_result
+    if hasattr(inference_result, "model_dump"):
+        return inference_result.model_dump(exclude_none=True, by_alias=True)
+    if hasattr(inference_result, "dict"):
+        return inference_result.dict(exclude_none=True, by_alias=True)
+    raise TypeError(
+        f"Expected dict-like Inference result, got {type(inference_result).__name__}"
+    )
 
-    for index in range(object_count):
-        col = index % cols
-        row = index // cols
-        cx = int((col + 0.5) * cell_w + rng.integers(-8, 9))
-        cy = int((row + 0.5) * cell_h + rng.integers(-8, 9))
-        box_w = max(16, int(cell_w * 0.34))
-        box_h = max(32, int(cell_h * 0.58))
-        x1 = max(0, cx - box_w // 2)
-        y1 = max(0, cy - box_h // 2)
-        x2 = min(image_width - 1, cx + box_w // 2)
-        y2 = min(image_height - 1, cy + box_h // 2)
 
-        mask = np.zeros((image_height, image_width), dtype=np.uint8)
-        center = ((x1 + x2) // 2, (y1 + y2) // 2)
-        axes = (max(4, (x2 - x1) // 3), max(8, (y2 - y1) // 3))
-        cv2.ellipse(mask, center, axes, 0, 0, 360, 1, -1)
+def count_rle_predictions(result: dict[str, Any]) -> int:
+    """Return the number of predictions carrying Roboflow RLE masks."""
+    return sum(
+        isinstance(prediction.get("rle") or prediction.get("rle_mask"), dict)
+        for prediction in result.get("predictions", [])
+    )
 
+
+def _prediction_points_to_polygon(prediction: dict[str, Any]) -> np.ndarray | None:
+    """Return polygon coordinates from a Roboflow segmentation prediction."""
+    points = prediction.get("points")
+    if not points:
+        return None
+    polygon = np.array(
+        [
+            [point["x"], point["y"]] if isinstance(point, dict) else [point.x, point.y]
+            for point in points
+        ],
+        dtype=np.int32,
+    )
+    return polygon if len(polygon) >= 3 else None
+
+
+def normalize_to_rle_masks(result: dict[str, Any]) -> dict[str, Any]:
+    """Ensure real segmentation predictions carry Roboflow ``rle_mask`` payloads."""
+    if count_rle_predictions(result) > 0:
+        return result
+
+    image = result["image"]
+    image_width = int(image["width"])
+    image_height = int(image["height"])
+    predictions = []
+    for prediction in result.get("predictions", []):
+        polygon = _prediction_points_to_polygon(prediction)
+        if polygon is None:
+            predictions.append(prediction)
+            continue
+        mask = sv.polygon_to_mask(
+            polygon=polygon, resolution_wh=(image_width, image_height)
+        ).astype(bool)
+        if mask.any():
+            x1, y1, x2, y2 = sv.mask_to_xyxy(mask[np.newaxis, ...])[0]
+            prediction = {
+                **prediction,
+                "x": float((x1 + x2) / 2),
+                "y": float((y1 + y2) / 2),
+                "width": float(x2 - x1),
+                "height": float(y2 - y1),
+            }
         predictions.append(
             {
-                "x": (x1 + x2) / 2,
-                "y": (y1 + y2) / 2,
-                "width": x2 - x1,
-                "height": y2 - y1,
-                "confidence": 0.9,
-                "class_id": 0,
-                "class": "person",
+                **prediction,
                 "rle_mask": {
                     "size": [image_height, image_width],
-                    "counts": sv.mask_to_rle(mask.astype(bool), compressed=True),
+                    "counts": sv.mask_to_rle(mask, compressed=True),
                 },
             }
         )
-
-    return {
-        "image": {"width": image_width, "height": image_height},
-        "predictions": predictions,
-    }
+    return {**result, "predictions": predictions}
 
 
-def estimate_object_count(
-    source: str,
-    image_height: int,
-    image_width: int,
-) -> int:
-    """Estimate deterministic synthetic detections from source and image size."""
-    area_scale = image_height * image_width / FHD_AREA
-    base_count = max(1, round(FHD_OBJECTS * area_scale))
-    source_scale = 0.65 + (zlib.crc32(source.encode()) % 36) / 100
-    return max(1, round(base_count * source_scale))
+def load_inference_model(model_id: str, api_key: str | None) -> Any:
+    """Load the requested Inference model."""
+    try:
+        from inference import get_model
+    except ImportError as exc:
+        raise ImportError(
+            "Install the `inference` package to run this benchmark."
+        ) from exc
+
+    model_kwargs = {"api_key": api_key} if api_key is not None else {}
+    return get_model(model_id=model_id, **model_kwargs)
+
+
+def run_inference_once(
+    image: np.ndarray,
+    model: Any,
+    model_id: str,
+    confidence: float,
+    iou: float,
+) -> dict[str, Any] | None:
+    """Run one real segmentation inference and return a frozen result."""
+    result = normalize_to_rle_masks(
+        freeze_result(model.infer(image, confidence=confidence, iou=iou)[0])
+    )
+    rle_count = count_rle_predictions(result)
+    if rle_count == 0:
+        console.print(
+            f"[yellow]skipped[/yellow] {model_id}: no RLE or polygon segmentation "
+            "predictions"
+        )
+        return None
+    return result
 
 
 def median_seconds(fn: Callable[[], object], reps: int, warmup: int) -> float:
@@ -208,14 +254,12 @@ def _fmt_mb(num_bytes: int) -> str:
 
 def run_benchmark(
     source: str,
-    image_height: int,
-    image_width: int,
+    image: np.ndarray,
+    result: dict[str, Any],
     reps: int,
     warmup: int,
 ) -> ApiBenchmarkResult:
     """Run one dense-vs-compact parser benchmark."""
-    synthetic_objects = estimate_object_count(source, image_height, image_width)
-    result = make_rfdetr_like_result(image_height, image_width, synthetic_objects)
 
     # Benchmark the public Roboflow/Inference adapter; RLE masks enter through
     # the result payload and should stay compact when compact_masks=True.
@@ -240,7 +284,7 @@ def run_benchmark(
 
     return ApiBenchmarkResult(
         source=source,
-        resolution=f"{image_width}x{image_height}",
+        resolution=f"{image.shape[1]}x{image.shape[0]}",
         segmented_objects=len(dense_once),
         dense_s=dense_s,
         compact_s=compact_s,
@@ -303,8 +347,6 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--asset", choices=ASSETS.keys(), default=None)
     parser.add_argument("--image", type=Path, default=None)
-    parser.add_argument("--reps", type=int, default=REPETITIONS)
-    parser.add_argument("--warmup", type=int, default=WARMUP)
     args = parser.parse_args()
 
     assets = [args.asset] if args.asset is not None else list(ASSETS)
@@ -312,19 +354,36 @@ def main() -> None:
         assets = ["custom"]
 
     results = []
+    model_id = os.getenv(MODEL_ID_ENV, MODEL_ID)
+    model = load_inference_model(model_id=model_id, api_key=os.getenv(API_KEY_ENV))
     for asset in assets:
-        image_height, image_width, source = image_shape_from_asset(args.image, asset)
-        console.rule(f"[bold]{source}[/bold] | {image_width}x{image_height}")
+        image, source = load_image_from_asset(args.image, asset)
+        console.rule(f"[bold]{source}[/bold] | {image.shape[1]}x{image.shape[0]}")
+        inference_result = run_inference_once(
+            image=image,
+            model=model,
+            model_id=model_id,
+            confidence=CONFIDENCE,
+            iou=IOU,
+        )
+        if inference_result is None:
+            continue
+        console.print(
+            f"[dim]captured {count_rle_predictions(inference_result)} RLE masks "
+            f"from {model_id}[/dim]"
+        )
         results.append(
             run_benchmark(
                 source=source,
-                image_height=image_height,
-                image_width=image_width,
-                reps=args.reps,
-                warmup=args.warmup,
+                image=image,
+                result=inference_result,
+                reps=REPETITIONS,
+                warmup=WARMUP,
             )
         )
-    print_summary(results, reps=args.reps, warmup=args.warmup)
+    if not results:
+        raise ValueError(f"Model {model_id!r} returned no segmentation masks.")
+    print_summary(results, reps=REPETITIONS, warmup=WARMUP)
 
 
 if __name__ == "__main__":
