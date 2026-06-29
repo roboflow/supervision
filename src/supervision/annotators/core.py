@@ -585,8 +585,15 @@ class PolygonAnnotator(BaseAnnotator):
         if detections.mask is None:
             return scene
 
+        masks = detections.mask
+        compact_mask = masks if isinstance(masks, CompactMask) else None
         for detection_idx in range(len(detections)):
-            mask = cast(npt.NDArray[np.bool_], detections.mask[detection_idx])
+            if compact_mask is None:
+                mask = cast(npt.NDArray[np.bool_], masks[detection_idx])
+                offset = None
+            else:
+                mask = compact_mask.crop(detection_idx)
+                offset = compact_mask.offsets[detection_idx]
             color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -596,6 +603,8 @@ class PolygonAnnotator(BaseAnnotator):
                 else custom_color_lookup,
             )
             for polygon in mask_to_polygons(mask=mask):
+                if offset is not None:
+                    polygon = polygon + offset
                 scene = draw_polygon(
                     scene=scene,
                     polygon=cast(npt.NDArray[np.int_], polygon),

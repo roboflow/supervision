@@ -291,6 +291,43 @@ class TestPolygonAnnotator:
         result = annotator.annotate(scene=test_image.copy(), detections=detections)
         assert_image_mostly_same(test_image, result, similarity_threshold=0.85)
 
+    def test_compact_mask_uses_crops_and_matches_dense_mask(self, monkeypatch):
+        """CompactMask polygons use crops without full-frame mask indexing."""
+        height, width = 80, 90
+        scene = np.zeros((height, width, 3), dtype=np.uint8)
+        masks = np.zeros((3, height, width), dtype=bool)
+        masks[0, 10:20, 15:30] = True
+        masks[0, 32:45, 40:55] = True
+        masks[1] = False
+        masks[2, 50:70, 5:25] = True
+        xyxy = np.array(
+            [[15, 10, 54, 44], [60, 5, 70, 15], [5, 50, 24, 69]],
+            dtype=np.float32,
+        )
+        dense = Detections(xyxy=xyxy, mask=masks, class_id=np.array([0, 1, 2]))
+        compact = Detections(
+            xyxy=xyxy,
+            mask=CompactMask.from_dense(masks, xyxy, (height, width)),
+            class_id=np.array([0, 1, 2]),
+        )
+        annotator = PolygonAnnotator(
+            color=Color.WHITE, thickness=1, color_lookup=ColorLookup.INDEX
+        )
+        expected = annotator.annotate(scene=scene.copy(), detections=dense)
+
+        original_getitem = CompactMask.__getitem__
+
+        def fail_int_index(self, index):
+            if isinstance(index, (int, np.integer)):
+                raise AssertionError("PolygonAnnotator must use CompactMask.crop")
+            return original_getitem(self, index)
+
+        monkeypatch.setattr(CompactMask, "__getitem__", fail_int_index)
+        result = annotator.annotate(scene=scene.copy(), detections=compact)
+
+        assert not np.array_equal(result, scene), "annotator painted nothing"
+        np.testing.assert_array_equal(result, expected)
+
 
 class TestColorAnnotator:
     """Tests for ColorAnnotator class"""
