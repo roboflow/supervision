@@ -20,7 +20,7 @@ from supervision.utils.image import (
 
 
 class TestLoadImageFromUrl:
-    def test_returns_decoded_image(self) -> None:
+    def test_returns_decoded_image(self, tmp_path) -> None:
         """Valid image URL returns an OpenCV image."""
         # given
         image = np.full((10, 20, 3), 127, dtype=np.uint8)
@@ -34,7 +34,8 @@ class TestLoadImageFromUrl:
             "supervision.utils.image.requests.get", return_value=response
         ) as get:
             result = load_image_from_url(
-                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg"
+                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg",
+                cache_dir=tmp_path,
             )
 
         # then
@@ -46,7 +47,97 @@ class TestLoadImageFromUrl:
         assert result.dtype == np.uint8
         response.close.assert_called_once()
 
-    def test_raises_when_bytes_are_not_image(self) -> None:
+    def test_uses_cached_image_on_repeated_calls(self, tmp_path) -> None:
+        """Repeated image URL loads use the local cache."""
+        # given
+        image = np.full((10, 20, 3), 127, dtype=np.uint8)
+        encoded = cv2.imencode(".jpg", image)[1]
+        response = Mock()
+        response.content = encoded.tobytes()
+        response.raise_for_status.return_value = None
+
+        # when
+        with patch(
+            "supervision.utils.image.requests.get", return_value=response
+        ) as get:
+            first_result = load_image_from_url(
+                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg",
+                cache_dir=tmp_path,
+            )
+            second_result = load_image_from_url(
+                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg",
+                cache_dir=tmp_path,
+            )
+
+        # then
+        get.assert_called_once()
+        assert first_result.shape == image.shape
+        assert second_result.shape == image.shape
+
+    def test_force_reload_refreshes_cached_image(self, tmp_path) -> None:
+        """Force reload bypasses the cached image and refreshes it."""
+        # given
+        first_image = np.zeros((10, 20, 3), dtype=np.uint8)
+        second_image = np.full((12, 22, 3), 127, dtype=np.uint8)
+        first_response = Mock()
+        first_response.content = cv2.imencode(".jpg", first_image)[1].tobytes()
+        first_response.raise_for_status.return_value = None
+        second_response = Mock()
+        second_response.content = cv2.imencode(".jpg", second_image)[1].tobytes()
+        second_response.raise_for_status.return_value = None
+
+        # when
+        with patch(
+            "supervision.utils.image.requests.get",
+            side_effect=[first_response, second_response],
+        ) as get:
+            cached_result = load_image_from_url(
+                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg",
+                cache_dir=tmp_path,
+            )
+            refreshed_result = load_image_from_url(
+                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg",
+                cache_dir=tmp_path,
+                force_reload=True,
+            )
+
+        # then
+        assert get.call_count == 2
+        assert cached_result.shape == first_image.shape
+        assert refreshed_result.shape == second_image.shape
+
+    def test_redownloads_when_cached_image_is_invalid(self, tmp_path) -> None:
+        """Invalid cached image bytes are discarded and downloaded again."""
+        # given
+        image = np.full((10, 20, 3), 127, dtype=np.uint8)
+        first_response = Mock()
+        first_response.content = cv2.imencode(".jpg", image)[1].tobytes()
+        first_response.raise_for_status.return_value = None
+        second_response = Mock()
+        second_response.content = cv2.imencode(".jpg", image)[1].tobytes()
+        second_response.raise_for_status.return_value = None
+
+        # when
+        with patch(
+            "supervision.utils.image.requests.get",
+            side_effect=[first_response, second_response],
+        ) as get:
+            load_image_from_url(
+                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg",
+                cache_dir=tmp_path,
+            )
+            for cache_file in tmp_path.iterdir():
+                cache_file.write_bytes(b"not an image")
+            result = load_image_from_url(
+                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg",
+                cache_dir=tmp_path,
+            )
+
+        # then
+        assert get.call_count == 2
+        assert result.shape == image.shape
+
+    def test_raises_when_bytes_are_not_image(self, tmp_path) -> None:
         """Invalid image bytes raise ValueError."""
         # given
         response = Mock()
@@ -59,11 +150,12 @@ class TestLoadImageFromUrl:
             pytest.raises(ValueError, match="could not be decoded into image"),
         ):
             load_image_from_url(
-                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg"
+                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg",
+                cache_dir=tmp_path,
             )
         response.close.assert_called_once()
 
-    def test_raises_for_request_error(self) -> None:
+    def test_raises_for_request_error(self, tmp_path) -> None:
         """Request failures are propagated."""
         # given
         request_error = requests.RequestException("boom")
@@ -74,7 +166,8 @@ class TestLoadImageFromUrl:
             pytest.raises(requests.RequestException, match="boom"),
         ):
             load_image_from_url(
-                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg"
+                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg",
+                cache_dir=tmp_path,
             )
 
     def test_rejects_non_http_url(self) -> None:
