@@ -283,8 +283,8 @@ def _split_detections_by_outcome(
         )
     else:
         iou_matrix = box_iou_batch(
-            boxes_true=cast(npt.NDArray[np.number], targets.xyxy),
-            boxes_detection=cast(npt.NDArray[np.number], filtered_predictions.xyxy),
+            boxes_true=targets.xyxy,
+            boxes_detection=filtered_predictions.xyxy,
         )
 
     target_candidate_indices, prediction_candidate_indices = np.where(
@@ -483,7 +483,7 @@ def _annotate_detection_panel(
         title_thickness,
         cv2.LINE_AA,
     )
-    return panel
+    return cast(npt.NDArray[np.uint8], panel)
 
 
 def _save_detection_validation_visualization(

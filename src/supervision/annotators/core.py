@@ -1956,7 +1956,7 @@ class BlurAnnotator(BaseAnnotator):
             return scene
         image_height, image_width = scene.shape[:2]
         clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
-            xyxy=cast(npt.NDArray[np.number], detections.xyxy),
+            xyxy=detections.xyxy,
             resolution_wh=(image_width, image_height),
         ).astype(int)
 
@@ -2309,7 +2309,7 @@ class PixelateAnnotator(BaseAnnotator):
             return scene
         image_height, image_width = scene.shape[:2]
         clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
-            xyxy=cast(npt.NDArray[np.number], detections.xyxy),
+            xyxy=detections.xyxy,
             resolution_wh=(image_width, image_height),
         ).astype(int)
 
@@ -3211,7 +3211,7 @@ class ComparisonAnnotator:
             return mask
 
         resolution_wh = scene.shape[1], scene.shape[0]
-        polygons = xyxy_to_polygons(cast(npt.NDArray[np.number], detections.xyxy))
+        polygons = xyxy_to_polygons(detections.xyxy)
 
         for polygon in polygons:
             polygon_mask = polygon_to_mask(polygon, resolution_wh=resolution_wh)
