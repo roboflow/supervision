@@ -11,6 +11,7 @@ from typing import Any, Literal, cast
 import cv2
 import numpy as np
 import numpy.typing as npt
+import requests
 from deprecate import TargetMode, deprecated
 from PIL import Image
 
@@ -23,11 +24,62 @@ from supervision.utils.conversion import (
     ensure_cv2_image_for_standalone_function,
     images_to_cv2,
 )
+from supervision.utils.internal import prepare_url
 from supervision.utils.iterables import create_batches, fill
 
 RelativePosition = Literal["top", "bottom"]
 
 MAX_COLUMNS_FOR_SINGLE_ROW_GRID = 3
+
+
+def load_image_from_url(
+    value: str,
+    cv_imread_flags: int = cv2.IMREAD_COLOR,
+    timeout: float = 30.0,
+) -> npt.NDArray[np.uint8]:
+    """
+    Load an image from a URL as an OpenCV image.
+
+    Args:
+        value: HTTP(S) URL of the image.
+        cv_imread_flags: OpenCV image read flag passed to `cv2.imdecode`.
+            Defaults to `cv2.IMREAD_COLOR`.
+        timeout: Request timeout in seconds. Defaults to `30.0`.
+
+    Returns:
+        Image as a NumPy array in the format selected by `cv_imread_flags`.
+
+    Raises:
+        ValueError: If the URL is invalid or the downloaded bytes cannot be decoded.
+        requests.RequestException: If the request fails or returns an error status.
+
+    Examples:
+        ```pycon
+        >>> import supervision as sv
+        >>> image = sv.load_image_from_url(
+        ...     "https://media.roboflow.com/notebooks/examples/dog-9.jpeg"
+        ... )  # doctest: +SKIP
+        >>> image.shape  # doctest: +SKIP
+        (576, 768, 3)
+
+        ```
+    """
+    prepared_url = prepare_url(value=value)
+    response = requests.get(prepared_url, timeout=timeout)
+    image: npt.NDArray[np.uint8] | None = None
+    try:
+        response.raise_for_status()
+
+        image = cv2.imdecode(
+            np.frombuffer(response.content, dtype=np.uint8),
+            cv_imread_flags,
+        )
+    finally:
+        response.close()
+    if image is None:
+        raise ValueError("Data pointed by URL could not be decoded into image.")
+
+    return image
 
 
 @ensure_cv2_image_for_standalone_function

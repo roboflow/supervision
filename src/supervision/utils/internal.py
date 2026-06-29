@@ -3,9 +3,12 @@ from __future__ import annotations
 import functools
 import inspect
 import os
+import urllib.parse
 import warnings
 from collections.abc import Callable
 from typing import Any, Generic, TypeVar
+
+import requests
 
 
 class SupervisionWarnings(Warning):
@@ -48,6 +51,41 @@ def warn_deprecated(message: str) -> None:
         message: The message to display when the function is called.
     """
     warnings.warn(message, category=SupervisionWarnings, stacklevel=2)
+
+
+def prepare_url(value: str) -> str:
+    """
+    Validate and normalize an HTTP(S) URL.
+
+    Args:
+        value: URL to validate.
+
+    Returns:
+        Prepared URL string.
+
+    Raises:
+        ValueError: If the URL is invalid or uses an unsupported scheme.
+    """
+    try:
+        original_parsed_url = urllib.parse.urlparse(value)
+        if "\\" in original_parsed_url.netloc:
+            raise ValueError("URL authority contains a backslash")
+
+        prepared_request = requests.Request(method="GET", url=value).prepare()
+        prepared_url = prepared_request.url
+        if prepared_url is None:
+            raise ValueError("Prepared URL is empty")
+
+        parsed_url = urllib.parse.urlparse(prepared_url)
+    except (requests.RequestException, ValueError) as error:
+        raise ValueError("Provided URL is invalid") from error
+
+    if parsed_url.scheme not in {"http", "https"}:
+        raise ValueError("Only HTTP(S) URLs are supported")
+    if parsed_url.hostname is None:
+        raise ValueError("Provided URL is invalid")
+
+    return prepared_url
 
 
 def deprecated_parameter(

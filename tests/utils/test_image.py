@@ -1,15 +1,89 @@
+from unittest.mock import Mock, patch
+
+import cv2
 import numpy as np
 import pytest
+import requests
 from PIL import Image, ImageChops
 
 from supervision.utils.image import (
     crop_image,
     get_image_resolution_wh,
     letterbox_image,
+    load_image_from_url,
     resize_image,
     scale_image,
     tint_image,
 )
+
+
+class TestLoadImageFromUrl:
+    def test_returns_decoded_image(self) -> None:
+        """Valid image URL returns an OpenCV image."""
+        # given
+        image = np.full((10, 20, 3), 127, dtype=np.uint8)
+        encoded = cv2.imencode(".jpg", image)[1]
+        response = Mock()
+        response.content = encoded.tobytes()
+        response.raise_for_status.return_value = None
+
+        # when
+        with patch(
+            "supervision.utils.image.requests.get", return_value=response
+        ) as get:
+            result = load_image_from_url(
+                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg"
+            )
+
+        # then
+        get.assert_called_once_with(
+            "https://media.roboflow.com/notebooks/examples/dog-9.jpeg",
+            timeout=30.0,
+        )
+        assert result.shape == image.shape
+        assert result.dtype == np.uint8
+        response.close.assert_called_once()
+
+    def test_raises_when_bytes_are_not_image(self) -> None:
+        """Invalid image bytes raise ValueError."""
+        # given
+        response = Mock()
+        response.content = b"not an image"
+        response.raise_for_status.return_value = None
+
+        # when / then
+        with (
+            patch("supervision.utils.image.requests.get", return_value=response),
+            pytest.raises(ValueError, match="could not be decoded into image"),
+        ):
+            load_image_from_url(
+                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg"
+            )
+        response.close.assert_called_once()
+
+    def test_raises_for_request_error(self) -> None:
+        """Request failures are propagated."""
+        # given
+        request_error = requests.RequestException("boom")
+
+        # when / then
+        with (
+            patch("supervision.utils.image.requests.get", side_effect=request_error),
+            pytest.raises(requests.RequestException, match="boom"),
+        ):
+            load_image_from_url(
+                "https://media.roboflow.com/notebooks/examples/dog-9.jpeg"
+            )
+
+    def test_rejects_non_http_url(self) -> None:
+        """Non-HTTP URLs are rejected before making a request."""
+        # given
+        with patch("supervision.utils.image.requests.get") as get:
+            # when / then
+            with pytest.raises(ValueError, match="HTTP"):
+                load_image_from_url("file:///tmp/image.jpg")
+
+        get.assert_not_called()
 
 
 def test_resize_image_for_opencv_image() -> None:
