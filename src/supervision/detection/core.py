@@ -2591,6 +2591,7 @@ class Detections:
             class_id=self.class_id,
             tracker_id=self.tracker_id,
             data=self.data,
+            metadata=self.metadata,
         )
         return new
 
