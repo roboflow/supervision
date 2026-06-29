@@ -5,11 +5,11 @@ date_modified: 2026-06-25
 
 # Changelog
 
-### UnReleased <small>upcoming</small>
+### Unreleased <small>upcoming</small>
 
 !!! failure "Python 3.9 Support Terminated"
 
-    With the `supervision-0.29.0` release, we are terminating official support for Python 3.9, which reached end-of-life in October 2025. The minimum supported Python version is now **3.10**.
+    With the upcoming `supervision-0.30.0` release, we are terminating official support for Python 3.9, which reached end-of-life in October 2025. The minimum supported Python version is now **3.10**.
 
     Users on Python 3.9 should upgrade their environment before updating supervision.
 
