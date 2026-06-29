@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -92,11 +92,11 @@ def pad_boxes(
     if py is None:
         py = px
 
-    result = xyxy.copy()
+    result = cast(npt.NDArray[Any], xyxy.copy())
     result[:, [0, 1]] -= [px, py]
     result[:, [2, 3]] += [px, py]
 
-    return result
+    return cast(npt.NDArray[np.number], result)
 
 
 @deprecated(  # type: ignore[untyped-decorator]
@@ -156,17 +156,17 @@ def denormalize_boxes(
         ```
     """
     width, height = resolution_wh
-    result = xyxy.copy()
+    result = cast(npt.NDArray[Any], xyxy.copy())
 
     result[:, [0, 2]] = (result[:, [0, 2]] * width) / normalization_factor
     result[:, [1, 3]] = (result[:, [1, 3]] * height) / normalization_factor
 
-    return result
+    return cast(npt.NDArray[np.number], result)
 
 
 def move_boxes(
-    xyxy: npt.NDArray[np.float64], offset: npt.NDArray[np.int32]
-) -> npt.NDArray[np.float64]:
+    xyxy: npt.NDArray[np.number], offset: npt.NDArray[np.integer]
+) -> npt.NDArray[np.number]:
     """
     Args:
         xyxy: An array of shape `(n, 4)` containing the
@@ -196,8 +196,8 @@ def move_boxes(
 
 
 def move_oriented_boxes(
-    xyxyxyxy: npt.NDArray[np.float64], offset: npt.NDArray[np.int32]
-) -> npt.NDArray[np.float64]:
+    xyxyxyxy: npt.NDArray[np.number], offset: npt.NDArray[np.integer]
+) -> npt.NDArray[np.number]:
     """
     Args:
         xyxyxyxy: An array of shape `(n, 4, 2)` containing the
@@ -244,7 +244,7 @@ def move_oriented_boxes(
     return xyxyxyxy + offset
 
 
-def obb_polygon_area(corners: npt.NDArray) -> npt.NDArray[np.float64]:
+def obb_polygon_area(corners: npt.NDArray[np.number]) -> npt.NDArray[np.float64]:
     """Compute the area of N oriented bounding boxes using the shoelace formula.
 
     Args:
@@ -263,13 +263,13 @@ def obb_polygon_area(corners: npt.NDArray) -> npt.NDArray[np.float64]:
         >>> obb_polygon_area(corners)
         array([50.])
     """
-    corners = np.asarray(corners)
+    corners = cast(npt.NDArray[np.number], np.asarray(corners))
     if corners.ndim != 3 or corners.shape[-2:] != (4, 2):
         raise ValueError(f"corners must have shape (N, 4, 2); got {corners.shape}")
     x = corners[..., 0].astype(np.float64, copy=False)
     y = corners[..., 1].astype(np.float64, copy=False)
     cross = x * np.roll(y, -1, axis=-1) - y * np.roll(x, -1, axis=-1)
-    return 0.5 * np.abs(np.sum(cross, axis=-1))
+    return cast(npt.NDArray[np.float64], 0.5 * np.abs(np.sum(cross, axis=-1)))
 
 
 def xyxyxyxy_to_xyxy(
@@ -302,14 +302,14 @@ def xyxyxyxy_to_xyxy(
 
         ```
     """
-    xyxyxyxy = np.asarray(xyxyxyxy)
+    xyxyxyxy = cast(npt.NDArray[np.number], np.asarray(xyxyxyxy))
     if xyxyxyxy.ndim != 3 or xyxyxyxy.shape[-2:] != (4, 2):
         raise ValueError(f"xyxyxyxy must have shape (N, 4, 2); got {xyxyxyxy.shape}")
     x_min = xyxyxyxy[..., 0].min(axis=-1)
     y_min = xyxyxyxy[..., 1].min(axis=-1)
     x_max = xyxyxyxy[..., 0].max(axis=-1)
     y_max = xyxyxyxy[..., 1].max(axis=-1)
-    return np.stack([x_min, y_min, x_max, y_max], axis=-1)
+    return cast(npt.NDArray[np.number], np.stack([x_min, y_min, x_max, y_max], axis=-1))
 
 
 def scale_boxes(
@@ -378,7 +378,7 @@ def spread_out_boxes(
     if len(xyxy) == 0:
         return xyxy
 
-    xyxy_padded = pad_boxes(xyxy, px=1)
+    xyxy_padded = cast(npt.NDArray[Any], pad_boxes(xyxy, px=1))
     for _ in range(max_iterations):
         # NxN
         iou = box_iou_batch(xyxy_padded, xyxy_padded)

@@ -1,7 +1,5 @@
 """Tests for CreateML object-detection annotation load/save and conversion helpers."""
 
-from __future__ import annotations
-
 import json
 from collections.abc import Callable
 from pathlib import Path

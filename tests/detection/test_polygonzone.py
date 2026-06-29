@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from contextlib import ExitStack as DoesNotRaise
 
 import numpy as np
@@ -42,7 +40,7 @@ class TestPolygonZoneInit:
             ),
         ],
     )
-    def test_empty_anchors_raises(self, polygon, triggering_anchors, exception):
+    def test_empty_anchors_raises(self, polygon, triggering_anchors, exception) -> None:
         with exception:
             sv.PolygonZone(polygon, triggering_anchors=triggering_anchors)
 
