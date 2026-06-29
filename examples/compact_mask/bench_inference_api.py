@@ -367,7 +367,7 @@ def print_summary(results: list[ApiBenchmarkResult], reps: int, warmup: int) -> 
     table.add_column("seg", justify="right")
     table.add_column("dense ms", justify="right")
     table.add_column("CM ms", justify="right", style="green")
-    table.add_column("x", justify="right")
+    table.add_column("gain", justify="right")
     table.add_column("peak MB", justify="right", style="cyan")
     table.add_column("mask MB", justify="right")
     table.add_column("ok", justify="center")
