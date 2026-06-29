@@ -7,6 +7,13 @@ bounding-box crop, reducing typical usage to tens of MB.
 
 The bounding boxes (``xyxy``) already present in ``Detections`` serve as the
 crop boundaries, so no extra metadata is required from the caller.
+
+.. note::
+    :class:`CompactMask` reduces **memory footprint** but does not improve
+    computational speed.  The ingestion path (base48 decode, column split,
+    RLE trim) is Python-level and is typically slower than the dense NumPy
+    path.  The primary benefit is memory savings for large images with many
+    sparse masks.
 """
 
 from __future__ import annotations
@@ -18,6 +25,9 @@ from typing import Any, cast, overload
 import numpy as np
 import numpy.typing as npt
 
+# _base48_decode and _delta_decode are private to the COCO RLE codec.
+# They live in converters.py but are only used here; move them to this
+# module if converters.py is ever split or these symbols need versioning.
 from supervision.detection.utils.converters import (
     _base48_decode,
     _delta_decode,
@@ -52,6 +62,8 @@ def _rle_split_cols(
     rle: npt.NDArray[np.int32],
     crop_h: int,
     crop_w: int,
+    x_start: int = 0,
+    x_stop: int | None = None,
 ) -> list[list[int]]:
     """Split a flat F-order RLE into per-column run lists.
 
@@ -63,15 +75,26 @@ def _rle_split_cols(
     returned list starts with a ``False``-run count (possibly 0), matching
     the convention of :func:`_mask_to_rle_counts`.
 
+    When ``x_start`` and ``x_stop`` are provided, only columns in the closed
+    range ``[x_start, x_stop]`` are collected.  Pixels in skipped columns
+    are consumed without being stored, which avoids O(W) allocation when
+    only a small crop of a wide image is needed.
+
     Args:
         rle: int32 run-length array as produced by
             :func:`~supervision.detection.utils.converters._mask_to_rle_counts`.
         crop_h: Number of rows (pixels per column).
         crop_w: Number of columns.
+        x_start: First column to collect (0-indexed, inclusive).  Columns
+            before ``x_start`` are skipped.  Defaults to ``0``.
+        x_stop: Last column to collect (0-indexed, inclusive).  Processing
+            stops after column ``x_stop`` is complete.  Defaults to
+            ``crop_w - 1`` (collect all columns).
 
     Returns:
-        List of ``crop_w`` run lists, one per column.  Each list sums to
-        ``crop_h``.
+        List of ``x_stop - x_start + 1`` run lists.  Index ``i`` in the
+        returned list corresponds to column ``x_start + i``.  Each list
+        sums to ``crop_h``.
 
     Examples:
         ```pycon
@@ -84,43 +107,59 @@ def _rle_split_cols(
         [0, 2, 1, 1]
         >>> _rle_split_cols(rle, 2, 2)
         [[0, 2], [1, 1]]
+        >>> _rle_split_cols(rle, 2, 2, x_start=1)
+        [[1, 1]]
 
         ```
     """
-    per_col: list[list[int]] = [[] for _ in range(crop_w)]
+    if x_stop is None:
+        x_stop = crop_w - 1
+
+    # Convert numpy int32 array to Python ints to avoid scalar boxing overhead
+    # in the inner loop (np.int32 boxing/unboxing slows pure-Python loops).
+    rle_list: list[int] = rle.tolist()
+
+    n_cols = x_stop - x_start + 1
+    per_col: list[list[int]] = [[] for _ in range(n_cols)]
     col = 0
     row = 0
 
-    for run_idx, run_len in enumerate(rle):
+    for run_idx, run_len in enumerate(rle_list):
         is_true = run_idx % 2 == 1
-        remaining = int(run_len)
+        remaining = run_len
         while remaining > 0:
+            # Past the requested range — stop early.
+            if col > x_stop:
+                remaining = 0
+                break
             space_in_col = crop_h - row
             take = min(remaining, space_in_col)
-            if len(per_col[col]) == 0:
-                if is_true:
-                    per_col[col].append(0)  # leading False count = 0
-            # Check if last run has same parity (True/False) as current chunk.
-            # Last element's parity: index (len-1) odd → True, even → False.
-            elif is_true == ((len(per_col[col]) - 1) % 2 == 1):
-                per_col[col][-1] += take
-                remaining -= take
-                row += take
-                if row >= crop_h:
-                    row = 0
-                    col += 1
-                continue
-            per_col[col].append(take)
+            if col >= x_start:
+                local_col = col - x_start
+                if len(per_col[local_col]) == 0:
+                    if is_true:
+                        per_col[local_col].append(0)  # leading False count = 0
+                # Check if last run has same parity (True/False) as current chunk.
+                # Last element's parity: index (len-1) odd → True, even → False.
+                elif is_true == ((len(per_col[local_col]) - 1) % 2 == 1):
+                    per_col[local_col][-1] += take
+                    remaining -= take
+                    row += take
+                    if row >= crop_h:
+                        row = 0
+                        col += 1
+                    continue
+                per_col[local_col].append(take)
             remaining -= take
             row += take
             if row >= crop_h:
                 row = 0
                 col += 1
-        if col >= crop_w:
+        if col > x_stop:
             break
 
     # Fill any empty columns (all-False).
-    for c in range(crop_w):
+    for c in range(n_cols):
         if not per_col[c]:
             per_col[c] = [crop_h]
 
@@ -665,6 +704,7 @@ class CompactMask:
             ```pycon
             >>> import numpy as np
             >>> from supervision.detection.compact_mask import CompactMask
+            >>> # "52203": 4x4 mask, 2x2 True block at top-left (COCO F-order RLE)
             >>> rles = [{"size": [4, 4], "counts": "52203"}]
             >>> xyxy = np.array([[0, 0, 3, 3]], dtype=np.float32)
             >>> cm = CompactMask.from_coco_rle(rles, xyxy, image_shape=(4, 4))
@@ -741,11 +781,8 @@ class CompactMask:
 
             crop_h = y2c - y1c + 1
             crop_w = x2c - x1c + 1
-            columns = _rle_split_cols(counts, img_h, img_w)
-            selected_columns = [
-                _rle_trim_col_runs(columns[col_idx], y1c, y2c)
-                for col_idx in range(x1c, x2c + 1)
-            ]
+            cols = _rle_split_cols(counts, img_h, img_w, x_start=x1c, x_stop=x2c)
+            selected_columns = [_rle_trim_col_runs(col, y1c, y2c) for col in cols]
             crop_rles.append(_rle_join_cols(selected_columns, crop_h * crop_w))
             crop_shapes_list.append((crop_h, crop_w))
             offsets_list.append((x1c, y1c))

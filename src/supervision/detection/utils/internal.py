@@ -51,6 +51,60 @@ def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | No
     return cast(npt.NDArray[np.bool_], np.asarray(mask_maps, dtype=bool))
 
 
+def _resolve_rle_mask(
+    rle_data: dict[str, Any],
+    image_height: int,
+    image_width: int,
+    compact_masks: bool,
+) -> tuple[npt.NDArray[np.bool_] | None, dict[str, Any] | None]:
+    """Decode one RLE prediction into (dense_mask, compact_pending).
+
+    Returns ``(dense_mask, None)`` when ``compact_masks=False`` or when the
+    RLE size does not match the image size (fall back to dense decode).
+    Returns ``(None, rle_data)`` when ``compact_masks=True`` and the RLE size
+    matches, deferring the item to the post-loop batch call.
+    Returns ``(None, None)`` on decode failure (caller should skip mask).
+
+    Args:
+        rle_data: Validated COCO RLE dict with ``"size"`` and ``"counts"`` keys.
+        image_height: Full-image height in pixels.
+        image_width: Full-image width in pixels.
+        compact_masks: Whether to return a deferred item for batch processing.
+
+    Returns:
+        A 2-tuple ``(dense_mask, pending)`` where at most one element is
+        non-``None``.
+    """
+    try:
+        h, w = rle_data["size"]
+        if compact_masks and (h, w) == (image_height, image_width):
+            # Sizes match; defer to the post-loop CompactMask.from_coco_rle call.
+            return None, rle_data
+        if compact_masks and (h, w) != (image_height, image_width):
+            logger.debug(
+                "compact_masks=True: RLE size %s does not match image "
+                "size (%d, %d); falling back to dense decode.",
+                (h, w),
+                image_height,
+                image_width,
+            )
+        mask: npt.NDArray[np.bool_] = rle_to_mask(rle_data["counts"], (w, h))
+        if (h, w) != (image_height, image_width):
+            mask = cv2.resize(
+                mask.astype(np.uint8),
+                (image_width, image_height),
+                interpolation=cv2.INTER_NEAREST,
+            ).astype(bool)
+        return mask, None
+    except (ValueError, AssertionError, KeyError, TypeError) as exc:
+        logger.warning(
+            "Failed to decode RLE mask payload; falling back to box-only "
+            "detection. Reason: %s",
+            exc,
+        )
+        return None, None
+
+
 def process_roboflow_result(
     roboflow_result: dict[str, Any],
     *,
@@ -136,40 +190,22 @@ def process_roboflow_result(
         mask: npt.NDArray[np.bool_] | None = None
         compact_mask: CompactMask | None = None
         if rle_data is not None:
-            try:
-                h, w = rle_data["size"]
-                if compact_masks and (h, w) == (image_height, image_width):
-                    # Defer to post-loop batch call; compact_mask stays None.
-                    pass
-                else:
-                    if compact_masks and (h, w) != (image_height, image_width):
-                        logger.debug(
-                            "compact_masks=True: RLE size %s does not match image "
-                            "size (%d, %d); falling back to dense decode.",
-                            (h, w),
-                            image_height,
-                            image_width,
-                        )
-                    mask = rle_to_mask(rle_data["counts"], (w, h))
-                if mask is not None and (h, w) != (image_height, image_width):
-                    mask = cv2.resize(
-                        mask.astype(np.uint8),
-                        (image_width, image_height),
-                        interpolation=cv2.INTER_NEAREST,
-                    ).astype(bool)
-                if compact_masks and compact_mask is None and mask is not None:
+            _dense, _pending = _resolve_rle_mask(
+                rle_data, image_height, image_width, compact_masks
+            )
+            if _dense is None and _pending is None:
+                # Decode failed; treat as no-mask prediction.
+                rle_data = None
+            elif _pending is None:
+                # Dense result: compact_masks=False, or size-mismatch fallback.
+                mask = _dense
+                if compact_masks and mask is not None:
                     compact_mask = CompactMask.from_dense(
                         masks=mask[np.newaxis, ...],
                         xyxy=np.array([[x_min, y_min, x_max, y_max]], dtype=np.float64),
                         image_shape=(image_height, image_width),
                     )
-            except (ValueError, AssertionError, KeyError, TypeError) as exc:
-                logger.warning(
-                    "Failed to decode RLE mask payload; falling back to box-only "
-                    "detection. Reason: %s",
-                    exc,
-                )
-                rle_data = None
+            # else: _pending set → deferred to batch; mask and compact_mask stay None
         if rle_data is not None:
             xyxy_idx = len(xyxy)
             xyxy.append([x_min, y_min, x_max, y_max])
@@ -179,7 +215,6 @@ def process_roboflow_result(
             if compact_masks:
                 if compact_mask is not None:
                     # Fallback dense path (size mismatch): compact_mask always set.
-                    assert compact_mask is not None
                     _polygon_compact_map[xyxy_idx] = compact_mask
                 else:
                     # Main COCO-RLE path: (h, w) == image size; defer to batch.

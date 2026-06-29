@@ -2551,6 +2551,49 @@ class Detections:
         np.divide(widths, heights, out=aspect_ratios, where=heights != 0)
         return aspect_ratios
 
+    def to_compact_masks(self) -> Detections:
+        """Return a copy of this Detections with masks converted to CompactMask.
+
+        The dense :attr:`mask` field (``NDArray[np.bool_]``) is converted to a
+        :class:`~supervision.detection.compact_mask.CompactMask` using the
+        detection bounding boxes as crop regions. When :attr:`mask` is already a
+        :class:`~supervision.detection.compact_mask.CompactMask` or is ``None``,
+        the instance is returned unchanged.
+
+        Returns:
+            A new :class:`Detections` instance with ``mask`` set to a
+            :class:`~supervision.detection.compact_mask.CompactMask`, or ``self``
+            when conversion is not needed.
+
+        Example:
+            ```python
+            import numpy as np
+            import supervision as sv
+            detections = sv.Detections(
+                xyxy=np.array([[0, 0, 10, 10]]),
+                mask=np.ones((1, 20, 20), dtype=bool),
+            )
+            compact = detections.to_compact_masks()
+            ```
+        """
+        from supervision.detection.compact_mask import CompactMask
+
+        if self.mask is None or isinstance(self.mask, CompactMask):
+            return self
+        new = self.__class__(
+            xyxy=self.xyxy,
+            mask=CompactMask.from_dense(
+                masks=self.mask,
+                xyxy=self.xyxy.astype(np.float64),
+                image_shape=self.mask.shape[1:],
+            ),
+            confidence=self.confidence,
+            class_id=self.class_id,
+            tracker_id=self.tracker_id,
+            data=self.data,
+        )
+        return new
+
     def with_nms(
         self,
         threshold: float = 0.5,
