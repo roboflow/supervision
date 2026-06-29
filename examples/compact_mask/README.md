@@ -533,31 +533,20 @@ For a focused benchmark of the Roboflow inference-result parser API, run:
 uv run python examples/compact_mask/bench_inference_api.py
 ```
 
-This script downloads all supervision image assets plus the middle frame from every
-supervision video asset by default, runs one real segmentation inference per source
-image, requests native RLE masks from Inference, freezes that result, and then
-compares parser performance:
+This script downloads all supervision image assets plus the middle frame from every supervision video asset by default, runs one real segmentation inference per source image, requests native RLE masks from Inference, freezes that result, and then compares parser performance:
 
 ```python
 sv.Detections.from_inference(result)
 sv.Detections.from_inference(result, compact_masks=True)
 ```
 
-Timing repetitions, warmups, confidence, IoU, response mask format, and the
-default model live as constants in `bench_inference_api.py`:
+Timing repetitions, warmups, confidence, IoU, response mask format, and the default model live as constants in `bench_inference_api.py`:
 
 ```bash
 uv run python examples/compact_mask/bench_inference_api.py
 ```
 
-Inference runs and segmentation-derived box fields are outside the timed
-benchmark loop. By default the script uses `rfdetr-seg-large` with
-`response_mask_format="rle"`; set `BENCH_INFERENCE_MODEL_ID` to override the
-model. Set `ROBOFLOW_API_KEY` when your model requires authentication. Sources
-where the model returns no native RLE segmentation masks are skipped because
-there is no RLE parser work to benchmark. `rfdetr-large` is a valid local
-Inference model id, but it is object detection only; use an `rfdetr-seg-*` model
-for instance segmentation.
+Inference runs and segmentation-derived box fields are outside the timed benchmark loop. By default the script uses `rfdetr-seg-large` with `response_mask_format="rle"`; set `BENCH_INFERENCE_MODEL_ID` to override the model. Set `ROBOFLOW_API_KEY` when your model requires authentication. Sources where the model returns no native RLE segmentation masks are skipped because there is no RLE parser work to benchmark. `rfdetr-large` is a valid local Inference model id, but it is object detection only; use an `rfdetr-seg-*` model for instance segmentation.
 
 Run one specific supervision image or video asset with `--asset`:
 
@@ -568,10 +557,7 @@ uv run python examples/compact_mask/bench_inference_api.py --asset vehicles
 uv run python examples/compact_mask/bench_inference_api.py --asset people-walking-video
 ```
 
-The output reports image size, segmented objects, median parser time, peak traced
-allocations, mask storage, and dense-to-compact speedup.
-For each source with segmentation masks, the script also writes a validation
-overlay to `.reports/compact_mask/bench_inference_api/*_segmentations.jpg`.
+The output reports image size, segmented objects, median parser time, peak traced allocations, mask storage, and dense-to-compact speedup. For each source with segmentation masks, the script also writes a validation overlay to `.reports/compact_mask/bench_inference_api/*_segmentations.jpg`.
 
 Six image tiers x three fill fractions (5 / 20 / 50 %) x three vertex counts (8 / 128 / 600):
 
