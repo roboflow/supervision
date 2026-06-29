@@ -140,9 +140,7 @@ class TestDetectionArea:
                 Detections(
                     xyxy=np.empty((0, 4), dtype=np.float32),
                     data={
-                        ORIENTED_BOX_COORDINATES: np.empty(
-                            (0, 4, 2), dtype=np.float32
-                        )
+                        ORIENTED_BOX_COORDINATES: np.empty((0, 4, 2), dtype=np.float32)
                     },
                 ),
                 id="empty-obb",
@@ -188,9 +186,7 @@ class TestDetectionArea:
         axis_aligned = _detections_from_quads([_rotated_rect(30, 30, 20, 10, 0)])
         rotated = _detections_from_quads([_rotated_rect(30, 30, 20, 10, 45)])
 
-        areas = np.concatenate(
-            [detection_area(axis_aligned), detection_area(rotated)]
-        )
+        areas = np.concatenate([detection_area(axis_aligned), detection_area(rotated)])
 
         np.testing.assert_allclose(areas, np.array([200.0, 200.0]))
         assert axis_aligned.box_area[0] != pytest.approx(rotated.box_area[0])
@@ -256,9 +252,7 @@ class TestDetectionIou:
         detections_a = Detections(
             xyxy=np.array([[0, 0, 10, 10], [20, 20, 30, 30]], dtype=np.float32)
         )
-        detections_b = Detections(
-            xyxy=np.array([[5, 5, 15, 15]], dtype=np.float32)
-        )
+        detections_b = Detections(xyxy=np.array([[5, 5, 15, 15]], dtype=np.float32))
 
         iou = detection_iou(detections_a, detections_b, OverlapMetric.IOS)
 
