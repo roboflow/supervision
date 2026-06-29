@@ -482,7 +482,8 @@ def _annotate_detection_panel(
         title_thickness,
         cv2.LINE_AA,
     )
-    return panel
+    panel_array: npt.NDArray[np.uint8] = panel
+    return panel_array
 
 
 def _save_detection_validation_visualization(

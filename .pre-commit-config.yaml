@@ -40,6 +40,8 @@ repos:
     rev: v2.25.0
     hooks:
       - id: pyproject-fmt
+        additional_dependencies:
+          - "tomli>=2.0.1"
 
   - repo: https://github.com/abravalheri/validate-pyproject
     rev: v0.25
