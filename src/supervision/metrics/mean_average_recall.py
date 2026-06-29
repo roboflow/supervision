@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -256,7 +256,7 @@ class MeanAverageRecallResult:
         plt.show()
 
 
-class MeanAverageRecall(Metric):
+class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
     """
     Mean Average Recall (mAR) measures how well the model detects
     and retrieves relevant objects by averaging recall over multiple
@@ -381,7 +381,7 @@ class MeanAverageRecall(Metric):
     def _compute(
         self, predictions_list: list[Detections], targets_list: list[Detections]
     ) -> MeanAverageRecallResult:
-        iou_thresholds = np.linspace(0.5, 0.95, 10)
+        iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
         stats: list[Any] = []
 
         for predictions, targets in zip(predictions_list, targets_list):
@@ -490,7 +490,7 @@ class MeanAverageRecall(Metric):
     ]:
         unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
 
-        recalls_at_k = []
+        recalls_at_k: list[npt.NDArray[np.float64]] = []
         for max_detections in self.max_detections:
             # Shape: PxTh,P,C,C -> CxThx3
             confusion_matrix = self._compute_confusion_matrix(
@@ -505,8 +505,8 @@ class MeanAverageRecall(Metric):
             recalls_at_k.append(recall_per_class)
 
         # Shape: KxCxTh -> KxC
-        recalls_at_k = np.array(recalls_at_k)
-        average_recall_per_class = np.mean(recalls_at_k, axis=2)
+        recalls_at_k_array = np.array(recalls_at_k)
+        average_recall_per_class = np.mean(recalls_at_k_array, axis=2)
 
         # Shape: KxC -> K
         recall_scores = np.mean(average_recall_per_class, axis=1)
@@ -548,8 +548,8 @@ class MeanAverageRecall(Metric):
     def _compute_confusion_matrix(
         sorted_matches: npt.NDArray[np.bool_],
         sorted_prediction_class_ids: npt.NDArray[np.int32],
-        unique_classes: npt.NDArray[np.int32],
-        class_counts: npt.NDArray[np.int32],
+        unique_classes: npt.NDArray[np.integer],
+        class_counts: npt.NDArray[np.integer],
     ) -> npt.NDArray[np.float64]:
         """
         Compute the confusion matrix for each class and IoU threshold.
@@ -638,12 +638,10 @@ class MeanAverageRecall(Metric):
     def _detections_content(self, detections: Detections) -> npt.NDArray[Any]:
         """Return boxes, masks or oriented bounding boxes from detections."""
         if self._metric_target == MetricTarget.BOXES:
-            result_boxes: npt.NDArray[np.float32] = detections.xyxy
-            return result_boxes
+            return cast(npt.NDArray[Any], detections.xyxy)
         if self._metric_target == MetricTarget.MASKS:
             if detections.mask is not None:
-                result_masks: npt.NDArray[np.bool_] = detections.mask
-                return result_masks
+                return cast(npt.NDArray[Any], detections.mask)
             return self._make_empty_content()
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             obb = detections.data.get(ORIENTED_BOX_COORDINATES)

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from supervision.key_points.skeletons import (
     SKELETONS_BY_EDGE_COUNT,
     SKELETONS_BY_VERTEX_COUNT,
@@ -8,7 +6,7 @@ from supervision.key_points.skeletons import (
 
 
 class TestSkeletons:
-    def test_skeleton_enum_values(self):
+    def test_skeleton_enum_values(self) -> None:
         """Test skeleton enum has correct structure."""
         for skeleton in Skeleton:
             assert isinstance(skeleton.value, tuple)
@@ -16,7 +14,7 @@ class TestSkeletons:
                 isinstance(edge, tuple) and len(edge) == 2 for edge in skeleton.value
             )
 
-    def test_skeletons_by_vertex_count(self):
+    def test_skeletons_by_vertex_count(self) -> None:
         """Test SKELETONS_BY_VERTEX_COUNT dictionary population."""
         # Test that the dictionary is populated
         assert len(SKELETONS_BY_VERTEX_COUNT) > 0
@@ -26,7 +24,7 @@ class TestSkeletons:
         assert 17 in SKELETONS_BY_VERTEX_COUNT  # COCO has 17 keypoints
         assert SKELETONS_BY_VERTEX_COUNT[17] == coco_skeleton
 
-    def test_skeletons_by_edge_count(self):
+    def test_skeletons_by_edge_count(self) -> None:
         """Test SKELETONS_BY_EDGE_COUNT dictionary mapping."""
         # Test that the dictionary is populated
         assert len(SKELETONS_BY_EDGE_COUNT) > 0
@@ -40,13 +38,13 @@ class TestSkeletons:
 
         assert SKELETONS_BY_EDGE_COUNT == expected
 
-    def test_unique_vertices_calculation(self):
+    def test_unique_vertices_calculation(self) -> None:
         """Test unique vertices calculation from skeleton edges."""
         coco_skeleton = Skeleton.COCO.value
         unique_vertices = {vertex for edge in coco_skeleton for vertex in edge}
         assert len(unique_vertices) == 17  # COCO has 17 keypoints
 
-    def test_skeletons_by_vertex_count_mapping_behaviour(self):
+    def test_skeletons_by_vertex_count_mapping_behaviour(self) -> None:
         """Test SKELETONS_BY_VERTEX_COUNT uses last-in-wins for duplicate counts."""
         expected_mapping = {}
         for skeleton in Skeleton:

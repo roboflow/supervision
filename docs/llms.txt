@@ -120,7 +120,7 @@ Supervision is an open-source Python library by Roboflow for computer vision wor
 
 ### How do I install supervision?
 
-Install with `pip install supervision`. For optional metric dependencies use `pip install supervision[metrics]`. Sample asset utilities are included in the base package under `supervision.assets`. The current package metadata requires Python 3.9+.
+Install with `pip install supervision`. For optional metric dependencies use `pip install supervision[metrics]`. Sample asset utilities are included in the base package under `supervision.assets`. The current package metadata requires Python 3.10+.
 
 ### What can I do with supervision?
 
