@@ -280,7 +280,9 @@ def process_roboflow_result(
                     _rle_dicts, _batch_xyxy, (image_height, image_width)
                 )
                 for _local_idx, (_xyxy_idx, _, _) in enumerate(_coco_rle_pending):
-                    _coco_compact_map[_xyxy_idx] = _batch_cm[[_local_idx]]
+                    _coco_compact_map[_xyxy_idx] = _batch_cm[
+                        _local_idx : _local_idx + 1
+                    ]
             except (ValueError, AssertionError, KeyError, TypeError) as exc:
                 logger.warning(
                     "Batched compact RLE decode failed; dropping %d masks. Reason: %s",

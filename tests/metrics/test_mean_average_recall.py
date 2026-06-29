@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.metrics import MeanAverageRecall, MetricTarget
 
@@ -397,6 +398,22 @@ def test_compute_value_error_for_missing_required_fields_after_update(
 
     with pytest.raises(ValueError, match="MeanAverageRecall metric requires"):
         metric.update(predictions, targets).compute()
+
+
+def test_mask_content_preserves_compact_mask() -> None:
+    """CompactMask inputs stay compact for mask IoU."""
+    dense_mask = np.zeros((1, 4, 5), dtype=bool)
+    dense_mask[0, 1:3, 1:4] = True
+    xyxy = np.array([[1, 1, 4, 3]], dtype=np.float64)
+    compact_mask = CompactMask.from_dense(
+        dense_mask, xyxy=xyxy, image_shape=dense_mask.shape[1:]
+    )
+    detections = Detections(xyxy=xyxy, mask=compact_mask)
+    metric = MeanAverageRecall(metric_target=MetricTarget.MASKS)
+
+    content = metric._detections_content(detections)
+
+    assert content is compact_mask
 
 
 def test_single_perfect_detection() -> None:

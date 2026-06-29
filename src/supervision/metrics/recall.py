@@ -411,10 +411,7 @@ class Recall(Metric["RecallResult"]):
             return cast(npt.NDArray[Any], detections.xyxy)
         if self._metric_target == MetricTarget.MASKS:
             if detections.mask is not None:
-                mask = detections.mask
-                if hasattr(mask, "to_dense"):
-                    mask = mask.to_dense()
-                return cast(npt.NDArray[Any], mask)
+                return cast(npt.NDArray[Any], detections.mask)
             return self._make_empty_content()
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             obb = detections.data.get(ORIENTED_BOX_COORDINATES)
@@ -617,7 +614,7 @@ class RecallResult:
         ensure_pandas_installed()
         import pandas as pd
 
-        pandas_data = {
+        pandas_data: dict[str, Any] = {
             "R@50": self.recall_at_50,
             "R@75": self.recall_at_75,
         }

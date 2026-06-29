@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.metrics.core import AveragingMethod, MetricTarget
 from supervision.metrics.f1_score import F1Score
@@ -52,6 +53,21 @@ class TestF1Score:
         )
         assert metric._metric_target == MetricTarget.MASKS
         assert metric.averaging_method == AveragingMethod.MACRO
+
+    def test_mask_content_preserves_compact_mask(self) -> None:
+        """CompactMask inputs stay compact for mask IoU."""
+        dense_mask = np.zeros((1, 4, 5), dtype=bool)
+        dense_mask[0, 1:3, 1:4] = True
+        xyxy = np.array([[1, 1, 4, 3]], dtype=np.float64)
+        compact_mask = CompactMask.from_dense(
+            dense_mask, xyxy=xyxy, image_shape=dense_mask.shape[1:]
+        )
+        detections = Detections(xyxy=xyxy, mask=compact_mask)
+        metric = F1Score(metric_target=MetricTarget.MASKS)
+
+        content = metric._detections_content(detections)
+
+        assert content is compact_mask
 
     def test_reset(self, dummy_prediction):
         """Test that reset() clears all stored data"""

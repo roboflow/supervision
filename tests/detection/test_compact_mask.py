@@ -342,7 +342,7 @@ class TestFromCocoRle:
         assert compact.shape == (1, 4, 4)
 
 
-class TestCcoRleCountsToArray:
+class TestCocoRleCountsToArray:
     """Tests for _coco_rle_counts_to_array input-format decoding."""
 
     @pytest.mark.parametrize(

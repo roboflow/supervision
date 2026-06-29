@@ -1166,6 +1166,46 @@ def test_from_inference_compact_masks_empty_preserves_data_contract() -> None:
     assert detections["class_name"].dtype.kind == "U"
 
 
+class TestDetectionsToCompactMasks:
+    """Tests for Detections.to_compact_masks."""
+
+    def test_dense_mask_converts_to_compact_mask(self) -> None:
+        """Dense masks are converted to bbox-cropped CompactMask instances."""
+        mask = np.zeros((1, 4, 5), dtype=bool)
+        mask[0, 1:3, 1:4] = True
+        mask[0, 0, 0] = True
+        xyxy = np.array([[1, 1, 4, 3]], dtype=np.float64)
+        detections = Detections(xyxy=xyxy, mask=mask)
+        expected_dense = np.zeros_like(mask)
+        expected_dense[0, 1:3, 1:4] = True
+
+        result = detections.to_compact_masks()
+
+        assert isinstance(result.mask, CompactMask)
+        np.testing.assert_array_equal(result.mask.to_dense(), expected_dense)
+        np.testing.assert_array_equal(result.xyxy, detections.xyxy)
+
+    def test_compact_mask_returns_same_instance(self) -> None:
+        """CompactMask input is already compact and returns the same instance."""
+        mask = np.zeros((1, 4, 5), dtype=bool)
+        mask[0, 1:3, 1:4] = True
+        xyxy = np.array([[1, 1, 4, 3]], dtype=np.float64)
+        compact = CompactMask.from_dense(mask, xyxy=xyxy, image_shape=mask.shape[1:])
+        detections = Detections(xyxy=xyxy, mask=compact)
+
+        result = detections.to_compact_masks()
+
+        assert result is detections
+
+    def test_none_mask_returns_same_instance(self) -> None:
+        """None mask cannot be compacted and returns the same instance."""
+        detections = Detections(xyxy=np.array([[1, 1, 4, 3]], dtype=np.float64))
+
+        result = detections.to_compact_masks()
+
+        assert result is detections
+
+
 def _rotated_rect(
     cx: float, cy: float, w: float, h: float, angle_deg: float
 ) -> np.ndarray:
