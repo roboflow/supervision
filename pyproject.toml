@@ -96,14 +96,14 @@ build = [
   "wheel>=0.40,<0.48",
 ]
 
-[tool.uv.dependency-groups]
-docs = { requires-python = ">=3.10" }
-
 [tool.setuptools]
 include-package-data = false
 package-data.supervision = [ "py.typed" ]
 packages.find.where = [ "src" ]
 packages.find.include = [ "supervision*" ]
+
+[tool.uv]
+dependency-groups.docs = { requires-python = ">=3.10" }
 
 # exclude = [ "docs*", "tests*", "examples*" ]
 [tool.ruff]
