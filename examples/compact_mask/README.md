@@ -557,7 +557,7 @@ uv run python examples/compact_mask/bench_inference_api.py --asset vehicles
 uv run python examples/compact_mask/bench_inference_api.py --asset people-walking-video
 ```
 
-The output reports image size, segmented objects, median parser time, peak traced allocations, mask storage, and dense-to-compact speedup. For each source with segmentation masks, the script also writes a validation overlay to `.reports/compact_mask/bench_inference_api/*_segmentations.jpg`.
+The output reports image size, segmented objects, median parser time, peak traced allocations, mask storage, and dense-to-compact speedup. For each source with segmentation masks, the script also writes a validation overlay to `examples/compact_mask/outputs/*_segmentations.jpg`.
 
 Six image tiers x three fill fractions (5 / 20 / 50 %) x three vertex counts (8 / 128 / 600):
 
