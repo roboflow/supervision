@@ -91,7 +91,7 @@ docs = [
   "mkdocstrings-python>=1.10.9,<2",                                                      # todo: breaking changes in 2.x
 ]
 build = [
-  "build>=1.0,<1.6",
+  "build>=1,<1.6",
   "twine>=5.1.1,<7",
   "wheel>=0.40,<0.48",
 ]
