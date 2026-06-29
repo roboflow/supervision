@@ -84,6 +84,7 @@ def load_image_from_url(
     value: str,
     cv_imread_flags: int = cv2.IMREAD_COLOR,
     timeout: float = 30.0,
+    use_cache: bool = True,
     cache_dir: str | Path | None = None,
     force_reload: bool = False,
 ) -> npt.NDArray[np.uint8]:
@@ -95,6 +96,8 @@ def load_image_from_url(
         cv_imread_flags: OpenCV image read flag passed to `cv2.imdecode`.
             Defaults to `cv2.IMREAD_COLOR`.
         timeout: Request timeout in seconds. Defaults to `30.0`.
+        use_cache: If `True`, cache downloaded image bytes locally and reuse them
+            on repeated calls. Defaults to `True`.
         cache_dir: Directory where downloaded image bytes are cached. If `None`,
             uses the system temporary directory. Defaults to `None`.
         force_reload: If `True`, re-download the image and refresh the cache.
@@ -123,7 +126,7 @@ def load_image_from_url(
         value=prepared_url,
         cache_dir=cache_dir,
     )
-    if cache_path.exists() and not force_reload:
+    if use_cache and cache_path.exists() and not force_reload:
         try:
             return _decode_image_from_bytes(
                 value=cache_path.read_bytes(),
@@ -139,7 +142,8 @@ def load_image_from_url(
             value=response.content,
             cv_imread_flags=cv_imread_flags,
         )
-        _write_image_url_cache(cache_path=cache_path, value=response.content)
+        if use_cache:
+            _write_image_url_cache(cache_path=cache_path, value=response.content)
     finally:
         response.close()
 

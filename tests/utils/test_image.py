@@ -74,6 +74,40 @@ class TestLoadImageFromUrl:
         assert first_result.shape == image.shape
         assert second_result.shape == image.shape
 
+    def test_downloads_each_time_when_cache_is_disabled(self, tmp_path) -> None:
+        """Disabled cache skips cache reads and writes."""
+        # given
+        image = np.full((10, 20, 3), 127, dtype=np.uint8)
+        encoded = cv2.imencode(".jpg", image)[1]
+        first_response = Mock()
+        first_response.content = encoded.tobytes()
+        first_response.raise_for_status.return_value = None
+        second_response = Mock()
+        second_response.content = encoded.tobytes()
+        second_response.raise_for_status.return_value = None
+
+        # when
+        with patch(
+            "supervision.utils.image.requests.get",
+            side_effect=[first_response, second_response],
+        ) as get:
+            first_result = load_image_from_url(
+                "https://media.roboflow.com/quickstart/dog.jpeg",
+                cache_dir=tmp_path,
+                use_cache=False,
+            )
+            second_result = load_image_from_url(
+                "https://media.roboflow.com/quickstart/dog.jpeg",
+                cache_dir=tmp_path,
+                use_cache=False,
+            )
+
+        # then
+        assert get.call_count == 2
+        assert first_result.shape == image.shape
+        assert second_result.shape == image.shape
+        assert list(tmp_path.iterdir()) == []
+
     def test_force_reload_refreshes_cached_image(self, tmp_path) -> None:
         """Force reload bypasses the cached image and refreshes it."""
         # given
