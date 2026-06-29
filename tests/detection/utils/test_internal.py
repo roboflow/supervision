@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.utils.internal import (
     get_data_item,
     merge_data,
@@ -557,6 +558,85 @@ def test_process_roboflow_result(
                 assert result[5][key] == expected_result[5][key], (
                     f"Mismatch in non-array data for key {key}"
                 )
+
+
+def test_process_roboflow_result_compact_masks_returns_compact_mask() -> None:
+    """compact_masks=True should return CompactMask for valid RLE predictions."""
+    roboflow_result = {
+        "predictions": [
+            {
+                "x": 1.5,
+                "y": 1.5,
+                "width": 2.0,
+                "height": 2.0,
+                "confidence": 0.9,
+                "class_id": 0,
+                "class": "person",
+                "rle": {"size": [4, 4], "counts": "52203"},
+            }
+        ],
+        "image": {"width": 4, "height": 4},
+    }
+
+    result = process_roboflow_result(
+        roboflow_result=roboflow_result, compact_masks=True
+    )
+
+    assert isinstance(result[3], CompactMask)
+    np.testing.assert_array_equal(result[3].to_dense(), TEST_RLE_MASK)
+
+
+def test_process_roboflow_result_compact_masks_matches_resized_dense_rle() -> None:
+    """compact_masks=True should preserve current RLE resize behavior."""
+    roboflow_result = {
+        "predictions": [
+            {
+                "x": 2.0,
+                "y": 2.0,
+                "width": 4.0,
+                "height": 4.0,
+                "confidence": 0.9,
+                "class_id": 0,
+                "class": "person",
+                "rle": {"size": [2, 2], "counts": [0, 4]},
+            }
+        ],
+        "image": {"width": 4, "height": 4},
+    }
+    dense_result = process_roboflow_result(roboflow_result=roboflow_result)
+
+    compact_result = process_roboflow_result(
+        roboflow_result=roboflow_result, compact_masks=True
+    )
+
+    assert isinstance(compact_result[3], CompactMask)
+    np.testing.assert_array_equal(compact_result[3].to_dense(), dense_result[3])
+
+
+def test_process_roboflow_result_compact_masks_invalid_rle_is_box_only() -> None:
+    """compact_masks=True should keep malformed RLE fallback behavior."""
+    roboflow_result = {
+        "predictions": [
+            {
+                "x": 1.5,
+                "y": 1.5,
+                "width": 2.0,
+                "height": 2.0,
+                "confidence": 0.9,
+                "class_id": 0,
+                "class": "person",
+                "rle": {"size": [4, 4], "counts": "!"},
+            }
+        ],
+        "image": {"width": 4, "height": 4},
+    }
+
+    result = process_roboflow_result(
+        roboflow_result=roboflow_result, compact_masks=True
+    )
+
+    assert result[3] is None
+    np.testing.assert_array_equal(result[0], np.array([[0.5, 0.5, 2.5, 2.5]]))
 
 
 @pytest.mark.parametrize(

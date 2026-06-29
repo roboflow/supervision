@@ -9,6 +9,7 @@ import numpy as np
 import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.utils.converters import polygon_to_mask, rle_to_mask
 from supervision.geometry.core import Vector
 
@@ -53,11 +54,13 @@ def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | No
 
 def process_roboflow_result(
     roboflow_result: dict[str, Any],
+    *,
+    compact_masks: bool = False,
 ) -> tuple[
     npt.NDArray[np.floating],
     npt.NDArray[np.floating],
     npt.NDArray[np.integer],
-    npt.NDArray[np.bool_] | None,
+    npt.NDArray[np.bool_] | CompactMask | None,
     npt.NDArray[np.integer] | None,
     dict[str, npt.NDArray[np.generic]],
 ]:
@@ -71,14 +74,18 @@ def process_roboflow_result(
     Args:
         roboflow_result: Raw dict from the Roboflow REST API or the Inference
             package (after ``.dict()`` serialisation).
+        compact_masks: When ``True``, return segmentation masks as
+            :class:`~supervision.detection.compact_mask.CompactMask` instead of
+            a dense boolean array when mask data is present.
 
     Returns:
         A 6-tuple of ``(xyxy, confidence, class_id, masks, tracker_ids, data)``
         where each array is aligned with the others. ``masks`` is ``None``
-        when no predictions include mask data. ``tracker_ids`` is ``None``
-        when no predictions carry a tracker ID, or when only a subset do
-        (mixed batch) — in that case all tracker IDs are dropped to preserve
-        alignment with ``xyxy``.
+        when no predictions include mask data. When ``compact_masks=True`` and
+        masks are present, ``masks`` is a :class:`CompactMask`; otherwise it is
+        a dense boolean array. ``tracker_ids`` is ``None`` when no predictions
+        carry a tracker ID, or when only a subset do (mixed batch) — in that
+        case all tracker IDs are dropped to preserve alignment with ``xyxy``.
 
     Examples:
         >>> from supervision.detection.utils.internal import process_roboflow_result
@@ -102,6 +109,7 @@ def process_roboflow_result(
     class_id: list[int] = []
     class_name: list[str] = []
     masks: list[npt.NDArray[np.bool_]] = []
+    compact_mask_parts: list[CompactMask] = []
     tracker_ids: list[int | None] = []
 
     image_width = int(roboflow_result["image"]["width"])
@@ -123,16 +131,31 @@ def process_roboflow_result(
             "counts",
         }.issubset(rle_data):
             rle_data = None
+        mask: npt.NDArray[np.bool_] | None = None
+        compact_mask: CompactMask | None = None
         if rle_data is not None:
             try:
                 h, w = rle_data["size"]
-                mask = rle_to_mask(rle_data["counts"], (w, h))
-                if (h, w) != (image_height, image_width):
+                if compact_masks and (h, w) == (image_height, image_width):
+                    compact_mask = CompactMask.from_coco_rle(
+                        rles=[rle_data],
+                        xyxy=np.array([[x_min, y_min, x_max, y_max]], dtype=np.float64),
+                        image_shape=(image_height, image_width),
+                    )
+                else:
+                    mask = rle_to_mask(rle_data["counts"], (w, h))
+                if mask is not None and (h, w) != (image_height, image_width):
                     mask = cv2.resize(
                         mask.astype(np.uint8),
                         (image_width, image_height),
                         interpolation=cv2.INTER_NEAREST,
                     ).astype(bool)
+                if compact_masks and compact_mask is None and mask is not None:
+                    compact_mask = CompactMask.from_dense(
+                        masks=mask[np.newaxis, ...],
+                        xyxy=np.array([[x_min, y_min, x_max, y_max]], dtype=np.float64),
+                        image_shape=(image_height, image_width),
+                    )
             except (ValueError, AssertionError, KeyError, TypeError) as exc:
                 logger.warning(
                     "Failed to decode RLE mask payload; falling back to box-only "
@@ -145,7 +168,11 @@ def process_roboflow_result(
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
-            masks.append(mask)
+            if compact_masks:
+                if compact_mask is not None:
+                    compact_mask_parts.append(compact_mask)
+            elif mask is not None:
+                masks.append(mask)
             tracker_ids.append(prediction.get("tracker_id"))
         elif "points" not in prediction:
             xyxy.append([x_min, y_min, x_max, y_max])
@@ -164,7 +191,16 @@ def process_roboflow_result(
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
-            masks.append(mask)
+            if compact_masks:
+                compact_mask_parts.append(
+                    CompactMask.from_dense(
+                        masks=mask[np.newaxis, ...],
+                        xyxy=np.array([[x_min, y_min, x_max, y_max]], dtype=np.float64),
+                        image_shape=(image_height, image_width),
+                    )
+                )
+            else:
+                masks.append(mask)
             tracker_ids.append(prediction.get("tracker_id"))
 
     xyxy_arr: npt.NDArray[np.floating] = (
@@ -181,9 +217,15 @@ def process_roboflow_result(
     class_name_arr: npt.NDArray[np.str_] = (
         np.array(class_name) if len(class_name) > 0 else np.empty(0, dtype=str)
     )
-    masks_arr: npt.NDArray[np.bool_] | None = (
-        np.array(masks, dtype=bool) if len(masks) > 0 else None
-    )
+    masks_arr: npt.NDArray[np.bool_] | CompactMask | None
+    if compact_masks:
+        masks_arr = (
+            CompactMask.merge(compact_mask_parts)
+            if len(compact_mask_parts) > 0
+            else None
+        )
+    else:
+        masks_arr = np.array(masks, dtype=bool) if len(masks) > 0 else None
     if tracker_ids and 0 < tracker_ids.count(None) < len(tracker_ids):
         logger.warning(
             "Partial tracker_id in batch; dropping all tracker_ids to preserve "

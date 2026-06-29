@@ -165,6 +165,120 @@ class TestFromDenseToDense:
         np.testing.assert_array_equal(cm.to_dense(), masks)
 
 
+class TestFromCocoRle:
+    """Tests for CompactMask.from_coco_rle."""
+
+    def test_empty_collection_has_dense_empty_shape(self) -> None:
+        """Empty COCO RLE input should return an empty CompactMask."""
+        compact = CompactMask.from_coco_rle(
+            rles=[],
+            xyxy=np.empty((0, 4), dtype=np.float32),
+            image_shape=(3, 5),
+        )
+
+        assert len(compact) == 0
+        assert compact.shape == (0, 3, 5)
+        assert compact.area.shape == (0,)
+        np.testing.assert_array_equal(
+            compact.to_dense(), np.zeros((0, 3, 5), dtype=bool)
+        )
+
+    @pytest.mark.parametrize(
+        ("masks", "xyxy"),
+        [
+            pytest.param(
+                np.array(
+                    [
+                        [
+                            [False, True, False, False, False],
+                            [False, True, True, False, False],
+                            [False, False, False, True, False],
+                        ]
+                    ],
+                    dtype=bool,
+                ),
+                np.array([[1, 0, 3, 2]], dtype=np.float32),
+                id="non-square-crop",
+            ),
+            pytest.param(
+                np.ones((1, 4, 5), dtype=bool),
+                np.array([[-2, 1, 8, 3]], dtype=np.float32),
+                id="clipped-box",
+            ),
+            pytest.param(
+                np.zeros((1, 4, 5), dtype=bool),
+                np.array([[0, 0, 4, 3]], dtype=np.float32),
+                id="all-false",
+            ),
+            pytest.param(
+                np.ones((1, 4, 5), dtype=bool),
+                np.array([[0, 0, 4, 3]], dtype=np.float32),
+                id="all-true-full-image",
+            ),
+            pytest.param(
+                np.ones((1, 4, 5), dtype=bool),
+                np.array([[1, 1, 3, 2]], dtype=np.float32),
+                id="all-true-crop",
+            ),
+            pytest.param(
+                np.ones((1, 4, 5), dtype=bool),
+                np.array([[3, 2, 1, 2]], dtype=np.float32),
+                id="invalid-box",
+            ),
+        ],
+    )
+    def test_matches_dense_reference(self, masks: np.ndarray, xyxy: np.ndarray) -> None:
+        """COCO RLE construction should match dense decode plus from_dense."""
+        image_shape = masks.shape[1:]
+        rles = [
+            {
+                "size": list(image_shape),
+                "counts": mask_to_rle(mask, compressed=True),
+            }
+            for mask in masks
+        ]
+
+        compact = CompactMask.from_coco_rle(
+            rles=rles, xyxy=xyxy, image_shape=image_shape
+        )
+
+        reference = CompactMask.from_dense(masks, xyxy, image_shape=image_shape)
+        np.testing.assert_array_equal(compact.to_dense(), reference.to_dense())
+        np.testing.assert_array_equal(compact.area, reference.area)
+        np.testing.assert_array_equal(compact.bbox_xyxy, reference.bbox_xyxy)
+
+    def test_rejects_rle_size_mismatch(self) -> None:
+        """COCO RLE size should match the explicit image shape."""
+        rles = [{"size": [2, 2], "counts": [4]}]
+        xyxy = np.array([[0, 0, 1, 1]], dtype=np.float32)
+
+        with pytest.raises(ValueError, match="RLE size"):
+            CompactMask.from_coco_rle(rles=rles, xyxy=xyxy, image_shape=(3, 2))
+
+    def test_transcodes_without_dense_decode_helpers(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """COCO RLE construction should avoid full-mask dense decode helpers."""
+        rles = [{"size": [4, 4], "counts": "52203"}]
+        xyxy = np.array([[0, 0, 3, 3]], dtype=np.float32)
+
+        def fail_dense_helper(*args: object, **kwargs: object) -> None:
+            raise AssertionError("dense helper should not be called")
+
+        monkeypatch.setattr(
+            "supervision.detection.compact_mask._mask_to_rle_counts",
+            fail_dense_helper,
+        )
+        monkeypatch.setattr(
+            "supervision.detection.compact_mask._rle_counts_to_mask",
+            fail_dense_helper,
+        )
+
+        compact = CompactMask.from_coco_rle(rles=rles, xyxy=xyxy, image_shape=(4, 4))
+
+        assert compact.shape == (1, 4, 4)
+
+
 class TestGetItem:
     """Tests for CompactMask.__getitem__.
 

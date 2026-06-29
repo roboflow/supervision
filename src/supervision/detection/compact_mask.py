@@ -12,13 +12,15 @@ crop boundaries, so no extra metadata is required from the caller.
 from __future__ import annotations
 
 import os
-from collections.abc import Iterator
-from typing import Any
+from collections.abc import Iterator, Mapping, Sequence
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
 
 from supervision.detection.utils.converters import (
+    _base48_decode,
+    _delta_decode,
     _mask_to_rle_counts,
     _rle_counts_to_mask,
 )
@@ -246,6 +248,80 @@ def _rle_join_cols(
     return np.array(output_runs if output_runs else [new_total], dtype=np.int32)
 
 
+def _rle_trim_col_runs(col_runs: Sequence[int], y1: int, y2: int) -> list[int]:
+    """Restrict one full-height column RLE to inclusive rows ``[y1, y2]``.
+
+    Args:
+        col_runs: Run lengths for one full-height column, starting with a
+            ``False`` run.
+        y1: Inclusive top row of the crop.
+        y2: Inclusive bottom row of the crop.
+
+    Returns:
+        Run lengths for the cropped column, also starting with a ``False`` run.
+    """
+    target_height = y2 - y1 + 1
+    collected: list[tuple[bool, int]] = []
+    row = 0
+    for run_idx, run_len in enumerate(col_runs):
+        is_true = run_idx % 2 == 1
+        start = row
+        end = row + int(run_len)
+        row = end
+
+        crop_start = max(start, y1)
+        crop_end = min(end, y2 + 1)
+        if crop_end > crop_start:
+            collected.append((is_true, crop_end - crop_start))
+        if row > y2:
+            break
+
+    if not collected:
+        return [target_height]
+
+    result: list[int] = []
+    if collected[0][0]:
+        result.append(0)
+    for is_true, length in collected:
+        last_is_true = bool(result) and (len(result) - 1) % 2 == 1
+        if result and last_is_true == is_true:
+            result[-1] += length
+        else:
+            result.append(length)
+    return result
+
+
+def _coco_rle_counts_to_array(counts: Any) -> npt.NDArray[np.int32]:
+    """Decode COCO RLE counts into absolute F-order run lengths.
+
+    Args:
+        counts: COCO compressed counts (``str`` or ``bytes``), or uncompressed
+            integer run lengths.
+
+    Returns:
+        One-dimensional ``int32`` run-length array.
+
+    Raises:
+        ValueError: If counts cannot be decoded into non-negative run lengths.
+    """
+    try:
+        if isinstance(counts, bytes):
+            counts = counts.decode("utf-8")
+        if isinstance(counts, str):
+            decoded_counts = _delta_decode(_base48_decode(counts))
+            counts_arr = np.array(decoded_counts, dtype=np.int32)
+        else:
+            counts_arr = np.asarray(counts, dtype=np.int32)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Invalid COCO RLE counts.") from exc
+
+    if counts_arr.ndim != 1:
+        raise ValueError("COCO RLE counts must be one-dimensional.")
+    if np.any(counts_arr < 0):
+        raise ValueError("COCO RLE counts must be non-negative.")
+    return counts_arr
+
+
 def _rle_resize(
     rle: npt.NDArray[np.int32],
     crop_h: int,
@@ -323,9 +399,10 @@ def _rle_resize(
     col_cache: dict[int, list[int]] = {}
     scaled_cols = []
     for src_c in col_map:
-        if src_c not in col_cache:
-            col_cache[src_c] = _rle_scale_col(per_col[src_c], crop_h, row_map)
-        scaled_cols.append(col_cache[src_c])
+        src_col = int(src_c)
+        if src_col not in col_cache:
+            col_cache[src_col] = _rle_scale_col(per_col[src_col], crop_h, row_map)
+        scaled_cols.append(col_cache[src_col])
 
     return _rle_join_cols(scaled_cols, new_total)
 
@@ -548,6 +625,124 @@ class CompactMask:
         offsets = np.array(offsets_list, dtype=np.int32)
         return cls(rles, crop_shapes, offsets, image_shape)
 
+    @classmethod
+    def from_coco_rle(
+        cls,
+        rles: Sequence[Mapping[str, Any]],
+        xyxy: npt.NDArray[Any],
+        image_shape: tuple[int, int],
+    ) -> CompactMask:
+        """Create a :class:`CompactMask` from full-frame COCO RLE masks.
+
+        Transcodes full-image COCO RLE payloads into the crop-scoped RLE format
+        used by :class:`CompactMask`. The conversion uses run-length arithmetic
+        scoped by ``xyxy`` boxes and does not materialise a dense ``(N, H, W)``
+        mask stack.
+
+        Args:
+            rles: Sequence of COCO RLE dictionaries. Each dictionary must contain
+                ``"size"`` as ``[height, width]`` and ``"counts"`` as compressed
+                counts (``str`` or ``bytes``) or uncompressed integer run lengths.
+            xyxy: Bounding boxes of shape ``(N, 4)`` in ``[x1, y1, x2, y2]``
+                format. Max coordinates follow supervision's inclusive convention.
+            image_shape: ``(H, W)`` of the full image. This must match every RLE
+                ``"size"`` value.
+
+        Returns:
+            A new :class:`CompactMask` instance.
+
+        Raises:
+            ValueError: If the RLE payloads are malformed, are not aligned with
+                ``xyxy``, or their sizes/counts do not match ``image_shape``.
+
+        Examples:
+            ```pycon
+            >>> import numpy as np
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> rles = [{"size": [4, 4], "counts": "52203"}]
+            >>> xyxy = np.array([[0, 0, 3, 3]], dtype=np.float32)
+            >>> cm = CompactMask.from_coco_rle(rles, xyxy, image_shape=(4, 4))
+            >>> cm.shape
+            (1, 4, 4)
+            >>> cm.area.tolist()
+            [4]
+
+            ```
+        """
+        img_h, img_w = (int(image_shape[0]), int(image_shape[1]))
+        if img_h <= 0 or img_w <= 0:
+            raise ValueError("image_shape must contain positive height and width.")
+
+        xyxy_arr = np.asarray(xyxy)
+        if xyxy_arr.shape != (len(rles), 4):
+            raise ValueError(
+                "xyxy must have shape (N, 4), where N matches the number of RLEs."
+            )
+
+        if len(rles) == 0:
+            return cls(
+                [],
+                np.empty((0, 2), dtype=np.int32),
+                np.empty((0, 2), dtype=np.int32),
+                (img_h, img_w),
+            )
+
+        crop_rles: list[npt.NDArray[np.int32]] = []
+        crop_shapes_list: list[tuple[int, int]] = []
+        offsets_list: list[tuple[int, int]] = []
+
+        for mask_idx, rle in enumerate(rles):
+            if not isinstance(rle, Mapping):
+                raise ValueError("Each RLE payload must be a mapping.")
+            if "size" not in rle or "counts" not in rle:
+                raise ValueError("Each RLE payload must contain 'size' and 'counts'.")
+
+            try:
+                rle_h, rle_w = rle["size"]
+                rle_h = int(rle_h)
+                rle_w = int(rle_w)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("RLE size must be [height, width].") from exc
+
+            if (rle_h, rle_w) != (img_h, img_w):
+                raise ValueError(
+                    f"RLE size {(rle_h, rle_w)} must match image_shape "
+                    f"{(img_h, img_w)}."
+                )
+
+            counts = _coco_rle_counts_to_array(rle["counts"])
+            if int(np.sum(counts)) != img_h * img_w:
+                raise ValueError(
+                    "The sum of COCO RLE counts must match the image area."
+                )
+
+            x1, y1, x2, y2 = xyxy_arr[mask_idx]
+            x1c = int(max(0, min(int(x1), img_w - 1)))
+            y1c = int(max(0, min(int(y1), img_h - 1)))
+            x2c = int(max(0, min(int(x2), img_w - 1)))
+            y2c = int(max(0, min(int(y2), img_h - 1)))
+
+            if x2c < x1c or y2c < y1c:
+                crop_rles.append(np.array([1], dtype=np.int32))
+                crop_shapes_list.append((1, 1))
+                offsets_list.append((x1c, y1c))
+                continue
+
+            crop_h = y2c - y1c + 1
+            crop_w = x2c - x1c + 1
+            columns = _rle_split_cols(counts, img_h, img_w)
+            selected_columns = [
+                _rle_trim_col_runs(columns[col_idx], y1c, y2c)
+                for col_idx in range(x1c, x2c + 1)
+            ]
+            crop_rles.append(_rle_join_cols(selected_columns, crop_h * crop_w))
+            crop_shapes_list.append((crop_h, crop_w))
+            offsets_list.append((x1c, y1c))
+
+        crop_shapes = np.array(crop_shapes_list, dtype=np.int32)
+        offsets = np.array(offsets_list, dtype=np.int32)
+        return cls(crop_rles, crop_shapes, offsets, (img_h, img_w))
+
     # ------------------------------------------------------------------
     # Materialisation
     # ------------------------------------------------------------------
@@ -640,7 +835,7 @@ class CompactMask:
     def __iter__(self) -> Iterator[npt.NDArray[np.bool_]]:
         """Iterate over masks as dense ``(H, W)`` boolean arrays."""
         for mask_idx in range(len(self)):
-            yield self[mask_idx]
+            yield cast(npt.NDArray[np.bool_], self[mask_idx])
 
     @property
     def shape(self) -> tuple[int, int, int]:
@@ -790,7 +985,7 @@ class CompactMask:
         """
         if axis == (1, 2):
             return self.area
-        return self.to_dense().sum(axis=axis)
+        return cast(npt.NDArray[Any] | int, self.to_dense().sum(axis=axis))
 
     def __getitem__(
         self,

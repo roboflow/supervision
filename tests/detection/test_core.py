@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import (
     Detections,
     _merge_detection_group,
@@ -1028,6 +1029,73 @@ def test_from_inference_sdk_dict_path_empty_preserves_class_name_dtype() -> None
             return {"predictions": [], "image": {"width": 100, "height": 100}}
 
     detections = Detections.from_inference(_FakeSdkResult())
+    assert detections["class_name"] is not None
+    assert detections["class_name"].dtype.kind == "U"
+
+
+def test_from_inference_compact_masks_default_keeps_dense_mask() -> None:
+    """Default from_inference RLE output should remain a dense ndarray mask."""
+    result = {
+        "predictions": [
+            {
+                "x": 1.5,
+                "y": 1.5,
+                "width": 2.0,
+                "height": 2.0,
+                "confidence": 0.9,
+                "class_id": 0,
+                "class": "person",
+                "rle": {"size": [4, 4], "counts": "52203"},
+            }
+        ],
+        "image": {"width": 4, "height": 4},
+    }
+
+    detections = Detections.from_inference(result)
+
+    assert isinstance(detections.mask, np.ndarray)
+    assert not isinstance(detections.mask, CompactMask)
+
+
+def test_from_inference_compact_masks_matches_dense_default() -> None:
+    """compact_masks=True should change representation without changing pixels."""
+    result = {
+        "predictions": [
+            {
+                "x": 1.5,
+                "y": 1.5,
+                "width": 2.0,
+                "height": 2.0,
+                "confidence": 0.9,
+                "class_id": 0,
+                "class": "person",
+                "rle_mask": {"size": [4, 4], "counts": "52203"},
+                "tracker_id": 5,
+            }
+        ],
+        "image": {"width": 4, "height": 4},
+    }
+    dense = Detections.from_inference(result)
+
+    compact = Detections.from_inference(result, compact_masks=True)
+
+    assert isinstance(compact.mask, CompactMask)
+    assert dense.mask is not None
+    np.testing.assert_array_equal(compact.mask.to_dense(), dense.mask)
+    np.testing.assert_array_equal(compact.xyxy, dense.xyxy)
+    np.testing.assert_array_equal(compact.confidence, dense.confidence)
+    np.testing.assert_array_equal(compact.class_id, dense.class_id)
+    np.testing.assert_array_equal(compact.tracker_id, dense.tracker_id)
+    np.testing.assert_array_equal(compact["class_name"], dense["class_name"])
+
+
+def test_from_inference_compact_masks_empty_preserves_data_contract() -> None:
+    """compact_masks=True empty results should keep class_name string dtype."""
+    result = {"predictions": [], "image": {"width": 100, "height": 100}}
+
+    detections = Detections.from_inference(result, compact_masks=True)
+
+    assert detections.mask is None
     assert detections["class_name"] is not None
     assert detections["class_name"].dtype.kind == "U"
 
