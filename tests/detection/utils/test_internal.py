@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from contextlib import ExitStack as DoesNotRaise
 from typing import Any
 
@@ -830,7 +828,7 @@ def test_merge_data(
     data_list: list[dict[str, Any]],
     expected_result: dict[str, Any] | None,
     exception: Exception,
-):
+) -> None:
     with exception:
         result = merge_data(data_list=data_list)
         if expected_result is None:
@@ -1006,7 +1004,7 @@ def test_get_data_item(
     index: Any,
     expected_result: dict[str, Any] | None,
     exception: Exception,
-):
+) -> None:
     with exception:
         result = get_data_item(data=data, index=index)
         for key in result:
@@ -1183,7 +1181,7 @@ def test_get_data_item(
         ),
     ],
 )
-def test_merge_metadata(metadata_list, expected_result, exception):
+def test_merge_metadata(metadata_list, expected_result, exception) -> None:
     with exception:
         result = merge_metadata(metadata_list)
         if expected_result is None:

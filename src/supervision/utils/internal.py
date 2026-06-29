@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import functools
 import inspect
 import os
@@ -142,7 +140,7 @@ class classproperty(Generic[T]):
             ...
     """
 
-    def __init__(self, fget: Callable[..., T]):
+    def __init__(self, fget: Callable[..., T]) -> None:
         """
         Args:
             The function that is called when the property is accessed.

@@ -1,7 +1,5 @@
 """Tests for the LabelMe dataset format loader and exporter."""
 
-from __future__ import annotations
-
 import json
 from pathlib import Path
 

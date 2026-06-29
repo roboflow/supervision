@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -44,7 +44,8 @@ class ObjectSizeCategory(Enum):
 
 
 def get_object_size_category(
-    data: npt.NDArray, metric_target: MetricTarget
+    data: npt.NDArray[np.number] | npt.NDArray[np.bool_],
+    metric_target: MetricTarget,
 ) -> npt.NDArray[np.int_]:
     """
     Get the size category of an object. Distinguish based on the metric target.
@@ -74,15 +75,18 @@ def get_object_size_category(
         ```
     """
     if metric_target == MetricTarget.BOXES:
-        return get_bbox_size_category(data)
+        bbox_data = cast(npt.NDArray[np.number], data)
+        return get_bbox_size_category(bbox_data)
     if metric_target == MetricTarget.MASKS:
-        return get_mask_size_category(data)
+        mask_data = cast(npt.NDArray[np.bool_], data)
+        return get_mask_size_category(mask_data)
     if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-        return get_obb_size_category(data)
+        obb_data = cast(npt.NDArray[np.number], data)
+        return get_obb_size_category(obb_data)
     raise ValueError("Invalid metric type")
 
 
-def get_bbox_size_category(xyxy: npt.NDArray[np.float32]) -> npt.NDArray[np.int_]:
+def get_bbox_size_category(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.int_]:
     """
     Get the size category of a bounding boxes array.
 
@@ -165,7 +169,7 @@ def get_mask_size_category(
     return result
 
 
-def get_obb_size_category(xyxyxyxy: npt.NDArray[np.float32]) -> npt.NDArray[np.int_]:
+def get_obb_size_category(xyxyxyxy: npt.NDArray[np.number]) -> npt.NDArray[np.int_]:
     """
     Get the size category of a oriented bounding boxes array.
 
@@ -229,13 +233,18 @@ def get_detection_size_category(
     if metric_target == MetricTarget.BOXES:
         return get_bbox_size_category(detections.xyxy)
     if metric_target == MetricTarget.MASKS:
-        if detections.mask is None:
+        mask = detections.mask
+        if mask is None:
             raise ValueError("Detections mask is not available")
-        return get_mask_size_category(detections.mask)
+        return get_mask_size_category(mask)
     if metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
-        if detections.data.get(ORIENTED_BOX_COORDINATES) is None:
+        oriented_box_coordinates = detections.data.get(ORIENTED_BOX_COORDINATES)
+        if oriented_box_coordinates is None:
             raise ValueError("Detections oriented bounding boxes are not available")
         return get_obb_size_category(
-            np.array(detections.data[ORIENTED_BOX_COORDINATES])
+            cast(
+                npt.NDArray[np.number],
+                np.asarray(oriented_box_coordinates, dtype=np.float32),
+            )
         )
     raise ValueError("Invalid metric type")

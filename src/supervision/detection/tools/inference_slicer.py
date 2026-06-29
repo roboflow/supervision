@@ -4,10 +4,10 @@ import threading
 import warnings
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 if TYPE_CHECKING:
-    from typing_extensions import TypeGuard
+    from typing import TypeGuard
 
 import numpy as np
 import numpy.typing as npt
@@ -74,7 +74,10 @@ def move_detections(
     detections.xyxy = move_boxes(xyxy=detections.xyxy, offset=offset)
     if ORIENTED_BOX_COORDINATES in detections.data:
         detections.data[ORIENTED_BOX_COORDINATES] = move_oriented_boxes(
-            xyxyxyxy=detections.data[ORIENTED_BOX_COORDINATES], offset=offset
+            xyxyxyxy=cast(
+                npt.NDArray[np.number], detections.data[ORIENTED_BOX_COORDINATES]
+            ),
+            offset=offset,
         )
     if detections.mask is not None:
         if resolution_wh is None:
@@ -564,7 +567,10 @@ class InferenceSlicer:
             slices = [crop_image(image=image, xyxy=offset) for offset in offsets]
             resolution_wh = get_image_resolution_wh(image)
 
-        detections_in_slices = self.callback(slices)
+        batch_callback = cast(
+            Callable[[list[npt.NDArray[Any]]], list[Detections]], self.callback
+        )
+        detections_in_slices = batch_callback(slices)
         if not isinstance(detections_in_slices, list):
             raise ValueError(
                 "Callback must return `list[Detections]` when `batch_size > 1`. "
