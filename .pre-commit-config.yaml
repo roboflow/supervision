@@ -68,6 +68,7 @@ repos:
     rev: v1.20.2
     hooks:
       - id: mypy
+        language_version: python3.11
         additional_dependencies:
           - "numpy>=2.0"
           - "types-PyYAML"
