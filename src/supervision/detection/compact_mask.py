@@ -835,7 +835,7 @@ class CompactMask:
     def __iter__(self) -> Iterator[npt.NDArray[np.bool_]]:
         """Iterate over masks as dense ``(H, W)`` boolean arrays."""
         for mask_idx in range(len(self)):
-            yield cast(npt.NDArray[np.bool_], self[mask_idx])
+            yield self[mask_idx]
 
     @property
     def shape(self) -> tuple[int, int, int]:
