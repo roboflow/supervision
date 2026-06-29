@@ -3,13 +3,14 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
-from typing import Any, Union, cast
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
+from supervision.detection.utils._typing import _DetectionDataType
 from supervision.detection.utils.internal import get_data_item, is_data_equal
 from supervision.detection.utils.iou_and_nms import (
     OverlapMetric,
@@ -20,16 +21,12 @@ from supervision.validators import _validate_keypoints_fields
 
 logger = logging.getLogger(__name__)
 
-Index1D = Union[
-    int, slice, list[int], list[bool], npt.NDArray[np.int_], npt.NDArray[np.bool_]
-]
+Index1D = (
+    int | slice | list[int] | list[bool] | npt.NDArray[np.int_] | npt.NDArray[np.bool_]
+)
 Index2D = tuple[Index1D, Index1D]
-_RowIndexInput = Union[int, np.integer[Any], npt.NDArray[np.generic], list[Any], slice]
-_NormalizedRowIndex = Union[
-    npt.NDArray[np.generic],
-    list[Any],
-    slice,
-]
+_RowIndexInput = int | np.integer[Any] | npt.NDArray[np.generic] | list[Any] | slice
+_NormalizedRowIndex = npt.NDArray[np.generic] | list[Any] | slice
 
 
 def _optional_array_equal(
@@ -233,7 +230,7 @@ class KeyPoints:
     keypoint_confidence: npt.NDArray[np.float32] | None = None
     detection_confidence: npt.NDArray[np.float32] | None = None
     visible: npt.NDArray[np.bool_] | None = None
-    data: dict[str, npt.NDArray[np.generic] | list[Any]] = field(default_factory=dict)
+    data: _DetectionDataType = field(default_factory=dict)
 
     def __init__(
         self,
@@ -242,7 +239,7 @@ class KeyPoints:
         keypoint_confidence: npt.NDArray[np.float32] | None = None,
         detection_confidence: npt.NDArray[np.float32] | None = None,
         visible: npt.NDArray[np.bool_] | None = None,
-        data: dict[str, npt.NDArray[np.generic] | list[Any]] | None = None,
+        data: _DetectionDataType | None = None,
         *,
         confidence: npt.NDArray[np.float32] | None = None,
     ) -> None:
@@ -342,7 +339,7 @@ class KeyPoints:
             npt.NDArray[np.float32],
             npt.NDArray[np.float32] | None,
             npt.NDArray[np.int_] | None,
-            dict[str, npt.NDArray[np.generic] | list[Any]],
+            _DetectionDataType,
         ]
     ]:
         """
@@ -450,9 +447,7 @@ class KeyPoints:
             class_id.append(prediction["class_id"])
             class_names.append(prediction["class"])
 
-        data: dict[str, npt.NDArray[np.generic] | list[Any]] = {
-            CLASS_NAME_DATA_FIELD: np.array(class_names)
-        }
+        data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: np.array(class_names)}
 
         return cls(
             xy=np.array(xy, dtype=np.float32),
@@ -621,9 +616,7 @@ class KeyPoints:
         class_names = np.array([ultralytics_results.names[i] for i in class_id])
 
         confidence = ultralytics_results.keypoints.conf.cpu().numpy()
-        data: dict[str, npt.NDArray[np.generic] | list[Any]] = {
-            CLASS_NAME_DATA_FIELD: class_names
-        }
+        data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_names}
         return cls(xy=xy, class_id=class_id, keypoint_confidence=confidence, data=data)
 
     @classmethod
@@ -669,7 +662,7 @@ class KeyPoints:
         else:
             class_id = None
 
-        data: dict[str, npt.NDArray[np.generic] | list[Any]] = {}
+        data: _DetectionDataType = {}
         if class_id is not None and yolo_nas_results.class_names is not None:
             class_names = []
             for c_id in class_id:

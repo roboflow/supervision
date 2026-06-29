@@ -6,6 +6,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from itertools import chain
 from pathlib import Path
+from typing import cast
 
 import cv2
 import numpy as np
@@ -114,7 +115,7 @@ class DetectionDataset(BaseDataset):
         image = cv2.imread(image_path)
         if image is None:
             raise ValueError(f"Could not read image from path: {image_path}")
-        return image
+        return cast(npt.NDArray[np.uint8], image)
 
     def __len__(self) -> int:
         return len(self._images_in_memory) or len(self.image_paths)
@@ -1010,7 +1011,7 @@ class ClassificationDataset(BaseDataset):
         image = cv2.imread(image_path)
         if image is None:
             raise ValueError(f"Could not read image from path: {image_path}")
-        return image
+        return cast(npt.NDArray[np.uint8], image)
 
     def __len__(self) -> int:
         return len(self._images_in_memory) or len(self.image_paths)

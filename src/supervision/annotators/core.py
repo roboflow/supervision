@@ -1,8 +1,6 @@
-from __future__ import annotations
-
 from functools import lru_cache
 from math import sqrt
-from typing import Any, cast, overload
+from typing import Any, cast
 
 import cv2
 import numpy as np
@@ -52,16 +50,6 @@ from supervision.utils.image import (
 from supervision.utils.logger import _get_logger
 
 logger = _get_logger(__name__)
-
-
-@overload
-def _normalize_color_input(color: Color | str) -> Color: ...
-
-
-@overload
-def _normalize_color_input(
-    color: Color | ColorPalette | str,
-) -> Color | ColorPalette: ...
 
 
 def _normalize_color_input(color: Color | ColorPalette | str) -> Color | ColorPalette:
@@ -1958,7 +1946,7 @@ class BlurAnnotator(BaseAnnotator):
             return scene
         image_height, image_width = scene.shape[:2]
         clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
-            xyxy=cast(npt.NDArray[np.number], detections.xyxy),
+            xyxy=detections.xyxy,
             resolution_wh=(image_width, image_height),
         ).astype(int)
 
@@ -2311,7 +2299,7 @@ class PixelateAnnotator(BaseAnnotator):
             return scene
         image_height, image_width = scene.shape[:2]
         clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
-            xyxy=cast(npt.NDArray[np.number], detections.xyxy),
+            xyxy=detections.xyxy,
             resolution_wh=(image_width, image_height),
         ).astype(int)
 
@@ -2635,7 +2623,7 @@ class PercentageBarAnnotator(BaseAnnotator):
         self.height: int = height
         self.width: int = width
         self.color: Color | ColorPalette = _normalize_color_input(color)
-        self.border_color: Color = _normalize_color_input(border_color)
+        self.border_color = cast(Color, _normalize_color_input(border_color))
         self.position: Position = position
         self.color_lookup: ColorLookup = color_lookup
 
@@ -3213,7 +3201,7 @@ class ComparisonAnnotator:
             return mask
 
         resolution_wh = scene.shape[1], scene.shape[0]
-        polygons = xyxy_to_polygons(cast(npt.NDArray[np.number], detections.xyxy))
+        polygons = xyxy_to_polygons(detections.xyxy)
 
         for polygon in polygons:
             polygon_mask = polygon_to_mask(polygon, resolution_wh=resolution_wh)

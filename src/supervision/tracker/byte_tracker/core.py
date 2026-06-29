@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import cast
 
 import numpy as np
@@ -63,7 +61,7 @@ class ByteTrack:
         minimum_matching_threshold: float = 0.8,
         frame_rate: float = 30,
         minimum_consecutive_frames: int = 1,
-    ):
+    ) -> None:
         self.track_activation_threshold = track_activation_threshold
         self.minimum_matching_threshold = minimum_matching_threshold
 

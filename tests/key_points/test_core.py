@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from contextlib import nullcontext as DoesNotRaise
 
 import numpy as np
