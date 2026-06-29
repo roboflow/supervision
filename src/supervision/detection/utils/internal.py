@@ -108,7 +108,10 @@ def process_roboflow_result(
     class_id: list[int] = []
     class_name: list[str] = []
     masks: list[npt.NDArray[np.bool_]] = []
-    compact_mask_parts: list[CompactMask] = []
+    # Deferred batch COCO-RLE processing (task #8): collect validated pairs, then
+    # call from_coco_rle once after the loop instead of once per prediction.
+    _coco_rle_pending: list[tuple[int, Any, list[float]]] = []  # (xyxy_idx, rle, bbox)
+    _polygon_compact_map: dict[int, CompactMask] = {}  # xyxy_idx → CompactMask
     tracker_ids: list[int | None] = []
 
     image_width = int(roboflow_result["image"]["width"])
@@ -136,12 +139,17 @@ def process_roboflow_result(
             try:
                 h, w = rle_data["size"]
                 if compact_masks and (h, w) == (image_height, image_width):
-                    compact_mask = CompactMask.from_coco_rle(
-                        rles=[rle_data],
-                        xyxy=np.array([[x_min, y_min, x_max, y_max]], dtype=np.float64),
-                        image_shape=(image_height, image_width),
-                    )
+                    # Defer to post-loop batch call; compact_mask stays None.
+                    pass
                 else:
+                    if compact_masks and (h, w) != (image_height, image_width):
+                        logger.debug(
+                            "compact_masks=True: RLE size %s does not match image "
+                            "size (%d, %d); falling back to dense decode.",
+                            (h, w),
+                            image_height,
+                            image_width,
+                        )
                     mask = rle_to_mask(rle_data["counts"], (w, h))
                 if mask is not None and (h, w) != (image_height, image_width):
                     mask = cv2.resize(
@@ -163,13 +171,21 @@ def process_roboflow_result(
                 )
                 rle_data = None
         if rle_data is not None:
+            xyxy_idx = len(xyxy)
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
             if compact_masks:
                 if compact_mask is not None:
-                    compact_mask_parts.append(compact_mask)
+                    # Fallback dense path (size mismatch): compact_mask always set.
+                    assert compact_mask is not None
+                    _polygon_compact_map[xyxy_idx] = compact_mask
+                else:
+                    # Main COCO-RLE path: (h, w) == image size; defer to batch.
+                    _coco_rle_pending.append(
+                        (xyxy_idx, rle_data, [x_min, y_min, x_max, y_max])
+                    )
             elif mask is not None:
                 masks.append(mask)
             tracker_ids.append(prediction.get("tracker_id"))
@@ -186,17 +202,16 @@ def process_roboflow_result(
             mask = polygon_to_mask(
                 polygon, resolution_wh=(image_width, image_height)
             ).astype(bool)
+            xyxy_idx = len(xyxy)
             xyxy.append([x_min, y_min, x_max, y_max])
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
             if compact_masks:
-                compact_mask_parts.append(
-                    CompactMask.from_dense(
-                        masks=mask[np.newaxis, ...],
-                        xyxy=np.array([[x_min, y_min, x_max, y_max]], dtype=np.float64),
-                        image_shape=(image_height, image_width),
-                    )
+                _polygon_compact_map[xyxy_idx] = CompactMask.from_dense(
+                    masks=mask[np.newaxis, ...],
+                    xyxy=np.array([[x_min, y_min, x_max, y_max]], dtype=np.float64),
+                    image_shape=(image_height, image_width),
                 )
             else:
                 masks.append(mask)
@@ -218,12 +233,49 @@ def process_roboflow_result(
     )
     masks_arr: npt.NDArray[np.bool_] | CompactMask | None
     if compact_masks:
+        # Batch-process deferred COCO-RLE items in a single from_coco_rle call.
+        _coco_compact_map: dict[int, CompactMask] = {}
+        if _coco_rle_pending:
+            _rle_dicts = [r for _, r, _ in _coco_rle_pending]
+            _batch_xyxy = np.array(
+                [xy for _, _, xy in _coco_rle_pending], dtype=np.float64
+            )
+            try:
+                _batch_cm = CompactMask.from_coco_rle(
+                    _rle_dicts, _batch_xyxy, (image_height, image_width)
+                )
+                for _local_idx, (_xyxy_idx, _, _) in enumerate(_coco_rle_pending):
+                    _coco_compact_map[_xyxy_idx] = _batch_cm[[_local_idx]]
+            except (ValueError, AssertionError, KeyError, TypeError) as exc:
+                logger.warning(
+                    "Batched compact RLE decode failed; dropping %d masks. Reason: %s",
+                    len(_coco_rle_pending),
+                    exc,
+                )
+        _all_compact = {**_coco_compact_map, **_polygon_compact_map}
+        compact_mask_parts: list[CompactMask] = [
+            _all_compact[i] for i in sorted(_all_compact.keys())
+        ]
+        if 0 < len(compact_mask_parts) < len(xyxy):
+            logger.warning(
+                "Mixed-modality compact batch: %d of %d predictions carry masks; "
+                "dropping all masks to preserve alignment with xyxy.",
+                len(compact_mask_parts),
+                len(xyxy),
+            )
+            compact_mask_parts = []
         masks_arr = (
-            CompactMask.merge(compact_mask_parts)
-            if len(compact_mask_parts) > 0
-            else None
+            CompactMask.merge(compact_mask_parts) if compact_mask_parts else None
         )
     else:
+        if 0 < len(masks) < len(xyxy):
+            logger.warning(
+                "Mixed-modality batch: %d of %d predictions carry masks; "
+                "dropping all masks to preserve alignment with xyxy.",
+                len(masks),
+                len(xyxy),
+            )
+            masks = []
         masks_arr = np.array(masks, dtype=bool) if len(masks) > 0 else None
     if tracker_ids and 0 < tracker_ids.count(None) < len(tracker_ids):
         logger.warning(

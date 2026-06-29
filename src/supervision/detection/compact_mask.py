@@ -261,6 +261,9 @@ def _rle_trim_col_runs(col_runs: Sequence[int], y1: int, y2: int) -> list[int]:
         Run lengths for the cropped column, also starting with a ``False`` run.
     """
     target_height = y2 - y1 + 1
+    # Sum invariant: returned list sums to target_height.  Correctness depends
+    # on the caller (from_coco_rle) having already validated that counts sum
+    # equals img_h * img_w; no re-validation here.
     collected: list[tuple[bool, int]] = []
     row = 0
     for run_idx, run_len in enumerate(col_runs):
@@ -413,6 +416,9 @@ def _rle_resize(
 _L3_DENSITY_THRESHOLD: float = 0.25
 # Thread overhead outweighs gains below this mask count.
 _PARALLEL_THRESHOLD: int = 8
+# Hard ceiling on each image dimension accepted by from_coco_rle, guarding
+# against crafted payloads that allocate O(H x W) column lists.
+_MAX_IMAGE_DIMENSION: int = 32768
 
 
 def _resize_crop(
@@ -672,6 +678,11 @@ class CompactMask:
         img_h, img_w = (int(image_shape[0]), int(image_shape[1]))
         if img_h <= 0 or img_w <= 0:
             raise ValueError("image_shape must contain positive height and width.")
+        if img_h > _MAX_IMAGE_DIMENSION or img_w > _MAX_IMAGE_DIMENSION:
+            raise ValueError(
+                f"image_shape {(img_h, img_w)} exceeds the maximum allowed dimension "
+                f"of {_MAX_IMAGE_DIMENSION} pixels per side."
+            )
 
         xyxy_arr = np.asarray(xyxy)
         if xyxy_arr.shape != (len(rles), 4):
@@ -711,16 +722,16 @@ class CompactMask:
                 )
 
             counts = _coco_rle_counts_to_array(rle["counts"])
-            if int(np.sum(counts)) != img_h * img_w:
+            if int(np.sum(counts, dtype=np.int64)) != img_h * img_w:
                 raise ValueError(
                     "The sum of COCO RLE counts must match the image area."
                 )
 
             x1, y1, x2, y2 = xyxy_arr[mask_idx]
-            x1c = int(max(0, min(int(x1), img_w - 1)))
-            y1c = int(max(0, min(int(y1), img_h - 1)))
-            x2c = int(max(0, min(int(x2), img_w - 1)))
-            y2c = int(max(0, min(int(y2), img_h - 1)))
+            x1c = max(0, min(int(x1), img_w - 1))
+            y1c = max(0, min(int(y1), img_h - 1))
+            x2c = max(0, min(int(x2), img_w - 1))
+            y2c = max(0, min(int(y2), img_h - 1))
 
             if x2c < x1c or y2c < y1c:
                 crop_rles.append(np.array([1], dtype=np.int32))

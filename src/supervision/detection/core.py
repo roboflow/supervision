@@ -664,7 +664,10 @@ class Detections:
             compact_masks: When `True`, return segmentation masks as
                 :class:`~supervision.detection.compact_mask.CompactMask`.
                 The default `False` preserves the existing dense NumPy mask
-                representation.
+                representation. Note: the compact path crops each mask to the
+                detection bounding box; any True pixels outside the reported
+                bbox are silently dropped. The dense path (``False``) preserves
+                all True pixels regardless of the bbox.
 
         Returns:
             A Detections object containing the bounding boxes, class IDs,
@@ -675,10 +678,9 @@ class Detections:
                 or absent. `detections.tracker_id` is `None` when no
                 predictions carry a tracker ID, or when only a subset do
                 (mixed batch) — in that case all tracker IDs are dropped to
-                preserve alignment with the bounding boxes. Note: mixed
-                batches containing both RLE/polygon predictions and box-only
-                predictions may misalign the `mask` array; this is a
-                pre-existing limitation not addressed by this fix.
+                preserve alignment with the bounding boxes. Similarly,
+                `detections.mask` is `None` when only a subset of predictions
+                carry masks — all masks are dropped to preserve xyxy alignment.
 
         Example:
             ```python

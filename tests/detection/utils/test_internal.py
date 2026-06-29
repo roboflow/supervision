@@ -437,17 +437,15 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
                 np.array([[0.5, 0.5, 2.5, 2.5], [2.0, 2.0, 4.0, 4.0]]),
                 np.array([0.9, 0.8]),
                 np.array([0, 1]),
-                # NOTE: known misalignment — masks has 1 entry, xyxy has 2.
-                # Mixed RLE + box-only batches produce mask arrays shorter than
-                # xyxy; constructing Detections from this result would raise
-                # ValueError. This is a pre-existing limitation shared by the
-                # polygon + box-only path.
-                TEST_RLE_MASK,
+                # Mixed-modality batch: only a subset carries masks.
+                # All masks dropped to preserve xyxy alignment (mirrors
+                # the tracker_id mixed-batch handling).
+                None,
                 None,
                 {CLASS_NAME_DATA_FIELD: np.array(["person", "car"])},
             ),
             DoesNotRaise(),
-        ),  # mixed RLE + box-only batch — masks misaligned with xyxy (known limitation)
+        ),  # mixed RLE + box-only batch — masks dropped to preserve xyxy alignment
         pytest.param(
             {
                 "predictions": [
