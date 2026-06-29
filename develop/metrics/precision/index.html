@@ -2183,12 +2183,12 @@
   <a href="#supervision.metrics.precision.Precision-functions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Functions
+        Methods:
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Functions">
+    <nav class="md-nav" aria-label="Methods:">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -2317,12 +2317,12 @@
   <a href="#supervision.metrics.precision.PrecisionResult-functions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Functions
+        Methods:
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Functions">
+    <nav class="md-nav" aria-label="Methods:">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -2982,12 +2982,12 @@
   <a href="#supervision.metrics.precision.Precision-functions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Functions
+        Methods:
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Functions">
+    <nav class="md-nav" aria-label="Methods:">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -3116,12 +3116,12 @@
   <a href="#supervision.metrics.precision.PrecisionResult-functions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Functions
+        Methods:
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Functions">
+    <nav class="md-nav" aria-label="Methods:">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -3217,6 +3217,7 @@
               Bases: <code><span title="supervision.metrics.core.Metric">Metric</span></code></p>
 
 
+
         <p>Precision is a metric used to evaluate object detection models. It is the ratio of
 true positive detections to the total number of predicted detections. We calculate
 it at different IoU thresholds.</p>
@@ -3252,7 +3253,8 @@ number of false positive detections (detected, but incorrectly).</p>
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>src/supervision/metrics/precision.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-30"> 30</a></span>
 <span class="normal"><a href="#__codelineno-0-31"> 31</a></span>
@@ -4272,7 +4274,7 @@ number of false positive detections (detected, but incorrectly).</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
 
 
 
@@ -4280,7 +4282,8 @@ number of false positive detections (detected, but incorrectly).</p>
 
 
 
-<h3 id="supervision.metrics.precision.Precision-functions">Functions<a href="#supervision.metrics.precision.Precision-functions" class="headerlink" title="Permanent link">&para;</a></h3>
+
+<h3 id="supervision.metrics.precision.Precision-functions">Methods:<a href="#supervision.metrics.precision.Precision-functions" class="headerlink" title="Permanent link">&para;</a></h3>
 
 <div class="doc doc-object doc-function">
 
@@ -4344,7 +4347,7 @@ precision. Determines how the precision is aggregated across classes.</p>
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>src/supervision/metrics/precision.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-69">69</a></span>
 <span class="normal"><a href="#__codelineno-0-70">70</a></span>
@@ -4430,7 +4433,7 @@ data, at different IoU thresholds.</p>
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>src/supervision/metrics/precision.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-126">126</a></span>
 <span class="normal"><a href="#__codelineno-0-127">127</a></span>
@@ -4507,7 +4510,7 @@ data, at different IoU thresholds.</p>
         <p>Reset the metric to its initial state, clearing all stored data.</p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>src/supervision/metrics/precision.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-88">88</a></span>
 <span class="normal"><a href="#__codelineno-0-89">89</a></span>
@@ -4630,7 +4633,7 @@ data, at different IoU thresholds.</p>
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>src/supervision/metrics/precision.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-95"> 95</a></span>
 <span class="normal"><a href="#__codelineno-0-96"> 96</a></span>
@@ -4725,6 +4728,7 @@ data, at different IoU thresholds.</p>
 
 
     <div class="doc doc-contents first">
+
 
 
         <p>The results of the precision metric calculation.</p>
@@ -4896,7 +4900,8 @@ for large objects (area ≥ 96²).</p>
 
 
 
-              <details class="quote">
+
+              <details class="mkdocstrings-source">
                 <summary>Source code in <code>src/supervision/metrics/precision.py</code></summary>
                 <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-539">539</a></span>
 <span class="normal"><a href="#__codelineno-0-540">540</a></span>
@@ -5334,7 +5339,7 @@ for large objects (area ≥ 96²).</p>
 
 
 
-  <div class="doc doc-children">
+<div class="doc doc-children">
 
 
 
@@ -5342,7 +5347,8 @@ for large objects (area ≥ 96²).</p>
 
 
 
-<h3 id="supervision.metrics.precision.PrecisionResult-functions">Functions<a href="#supervision.metrics.precision.PrecisionResult-functions" class="headerlink" title="Permanent link">&para;</a></h3>
+
+<h3 id="supervision.metrics.precision.PrecisionResult-functions">Methods:<a href="#supervision.metrics.precision.PrecisionResult-functions" class="headerlink" title="Permanent link">&para;</a></h3>
 
 <div class="doc doc-object doc-function">
 
@@ -5396,7 +5402,7 @@ Medium objects:
 </code></pre>
 </details>
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>src/supervision/metrics/precision.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-590">590</a></span>
 <span class="normal"><a href="#__codelineno-0-591">591</a></span>
@@ -5560,7 +5566,7 @@ Medium objects:
 <p><img align="center" alt="example_plot" src="https://media.roboflow.com/supervision-docs/metrics/precision_plot_example.png" width="800" /></p>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>src/supervision/metrics/precision.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-692">692</a></span>
 <span class="normal"><a href="#__codelineno-0-693">693</a></span>
@@ -5730,7 +5736,7 @@ Medium objects:
     </table>
 
 
-            <details class="quote">
+            <details class="mkdocstrings-source">
               <summary>Source code in <code>src/supervision/metrics/precision.py</code></summary>
               <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-662">662</a></span>
 <span class="normal"><a href="#__codelineno-0-663">663</a></span>
