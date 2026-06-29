@@ -8,8 +8,6 @@ These tests verify that:
   and produce the same keep-set as when given equivalent dense arrays.
 """
 
-from __future__ import annotations
-
 import numpy as np
 import pytest
 

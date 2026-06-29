@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import warnings
 from contextlib import ExitStack as DoesNotRaise
 
@@ -882,7 +880,7 @@ def test_merge_inner_detection_object_pair(
     detection_2: Detections,
     expected_result: Detections | None,
     exception: Exception,
-):
+) -> None:
     with exception:
         result = merge_inner_detection_object_pair(detection_1, detection_2)
         assert result == expected_result
@@ -941,6 +939,46 @@ def test_merge_inner_detection_object_pair(
 def test_is_empty(detections: Detections, expected: bool) -> None:
     """Verify is_empty() returns True iff the Detections object has zero detections."""
     assert detections.is_empty() == expected
+
+
+def test_from_inference_partial_tracker_id_does_not_crash() -> None:
+    """Results where only some predictions carry a tracker_id must not raise."""
+    result = {
+        "image": {"width": 200, "height": 200},
+        "predictions": [
+            {
+                "x": 50,
+                "y": 50,
+                "width": 20,
+                "height": 20,
+                "confidence": 0.9,
+                "class": "a",
+                "class_id": 0,
+                "tracker_id": 7,
+            },
+            {
+                "x": 120,
+                "y": 120,
+                "width": 20,
+                "height": 20,
+                "confidence": 0.8,
+                "class": "b",
+                "class_id": 1,
+            },
+        ],
+    }
+
+    detections = Detections.from_inference(result)
+
+    # all detections are kept; tracker_id is dropped rather than misaligned
+    assert len(detections) == 2
+    assert detections.tracker_id is None
+    assert detections.class_id is not None
+    assert np.array_equal(detections.class_id, np.array([0, 1]))
+    assert detections.confidence is not None
+    assert np.array_equal(detections.confidence, np.array([0.9, 0.8]))
+    assert detections.xyxy.shape == (2, 4)
+    assert detections["class_name"] is not None
 
 
 def test_from_inference_empty_class_name_dtype_matches_non_empty() -> None:

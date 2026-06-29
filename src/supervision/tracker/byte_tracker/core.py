@@ -1,10 +1,11 @@
-from __future__ import annotations
-
 from typing import cast
 
 import numpy as np
 import numpy.typing as npt
-from deprecate import TargetMode, deprecated_class
+from deprecate import (  # type: ignore[import-untyped,unused-ignore]
+    TargetMode,
+    deprecated_class,
+)
 
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import box_iou_batch
@@ -60,7 +61,7 @@ class ByteTrack:
         minimum_matching_threshold: float = 0.8,
         frame_rate: float = 30,
         minimum_consecutive_frames: int = 1,
-    ):
+    ) -> None:
         self.track_activation_threshold = track_activation_threshold
         self.minimum_matching_threshold = minimum_matching_threshold
 

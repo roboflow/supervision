@@ -4,7 +4,7 @@ requires = [ "setuptools>=61" ]
 
 [project]
 name = "supervision"
-version = "0.29.0"
+version = "0.30.0.dev"
 description = "A set of easy-to-use utils that will come in handy in any Computer Vision project"
 readme = "README.md"
 keywords = [
@@ -23,7 +23,7 @@ maintainers = [
 authors = [
   { name = "Roboflow et al.", email = "develop@roboflow.com" },
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
@@ -33,7 +33,6 @@ classifiers = [
   "Operating System :: Microsoft :: Windows",
   "Operating System :: POSIX :: Linux",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -59,6 +58,9 @@ dependencies = [
   "scipy>=1.10",
   "tqdm>=4.62.3"
 ]
+optional-dependencies.geotiff = [
+  "rasterio>=1.3", # 1.3 introduced stable window-read API and CRS.is_projected
+]
 optional-dependencies.metrics = [
   "pandas>=2",
 ]
@@ -74,21 +76,21 @@ dev = [
   "nbconvert>=7.14.2",
   "notebook>=6.5.3,<8",
   "pre-commit>=3.8",
-  "pytest>=7.2.2,<9",
+  "pytest>=7.2.2,<10",
   "pytest-cov>=4,<8",
   "tox>=4.11.4",
 ]
 docs = [
   "mike>=2",
-  "mkdocs-git-committers-plugin-2>=2.4.1; python_version>='3.9' and python_version<'4'",
+  "mkdocs-git-committers-plugin-2>=2.4.1; python_version>='3.10' and python_version<'4'",
   "mkdocs-git-revision-date-localized-plugin>=1.2.4",
   "mkdocs-jupyter>=0.24.3",
   "mkdocs-material[imaging]>=9.7",
-  "mkdocstrings>=0.25.2,<0.31",
-  "mkdocstrings-python>=1.10.9,<2",                                                      # todo: breaking changes in 2.x
+  "mkdocstrings>=1,<1.1",
+  "mkdocstrings-python>=2,<3",
 ]
 build = [
-  "build>=0.10,<1.5",
+  "build>=1,<1.6",
   "twine>=5.1.1,<7",
   "wheel>=0.40,<0.48",
 ]
@@ -101,7 +103,7 @@ package-data.supervision = [ "py.typed" ]
 # exclude = [ "docs*", "tests*", "examples*" ]
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py310"
 line-length = 88
 indent-width = 4
 # Exclude a variety of commonly ignored directories.
@@ -185,9 +187,9 @@ quiet-level = 3
 
 [tool.mypy]
 mypy_path = "src"
-explicit_package_bases = true
+python_version = "3.10"
 ignore_missing_imports = false
-python_version = "3.9"
+explicit_package_bases = true
 strict = true
 overrides = [
   # exclude = [
@@ -200,6 +202,7 @@ overrides = [
     "examples.*",
     "tests.*",
   ], ignore_errors = true },
+  { module = "deprecate", ignore_missing_imports = true },
 ]
 
 [tool.pytest]

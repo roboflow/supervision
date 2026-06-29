@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from contextlib import ExitStack as DoesNotRaise
 from typing import Any
 
@@ -449,6 +447,80 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
             ),
             DoesNotRaise(),
         ),  # mixed RLE + box-only batch — masks misaligned with xyxy (known limitation)
+        pytest.param(
+            {
+                "predictions": [
+                    {
+                        "x": 1.5,
+                        "y": 1.5,
+                        "width": 2.0,
+                        "height": 2.0,
+                        "confidence": 0.9,
+                        "class_id": 0,
+                        "class": "person",
+                        "tracker_id": 7,
+                    },
+                    {
+                        "x": 3.0,
+                        "y": 3.0,
+                        "width": 2.0,
+                        "height": 2.0,
+                        "confidence": 0.8,
+                        "class_id": 1,
+                        "class": "car",
+                    },
+                ],
+                "image": {"width": 4, "height": 4},
+            },
+            (
+                np.array([[0.5, 0.5, 2.5, 2.5], [2.0, 2.0, 4.0, 4.0]]),
+                np.array([0.9, 0.8]),
+                np.array([0, 1]),
+                None,
+                # tracker_id is None when only some detections carry one, rather
+                # than an array misaligned with xyxy that would raise ValueError.
+                None,
+                {CLASS_NAME_DATA_FIELD: np.array(["person", "car"])},
+            ),
+            DoesNotRaise(),
+            id="mixed_tracker_id_batch_drops_to_none",
+        ),
+        pytest.param(
+            {
+                "predictions": [
+                    {
+                        "x": 1.5,
+                        "y": 1.5,
+                        "width": 2.0,
+                        "height": 2.0,
+                        "confidence": 0.9,
+                        "class_id": 0,
+                        "class": "person",
+                    },
+                    {
+                        "x": 3.0,
+                        "y": 3.0,
+                        "width": 2.0,
+                        "height": 2.0,
+                        "confidence": 0.8,
+                        "class_id": 1,
+                        "class": "car",
+                    },
+                ],
+                "image": {"width": 4, "height": 4},
+            },
+            (
+                np.array([[0.5, 0.5, 2.5, 2.5], [2.0, 2.0, 4.0, 4.0]]),
+                np.array([0.9, 0.8]),
+                np.array([0, 1]),
+                None,
+                # None not in tracker_ids prevents np.array([None, None], dtype=int64)
+                None,
+                {CLASS_NAME_DATA_FIELD: np.array(["person", "car"])},
+            ),
+            DoesNotRaise(),
+            id="all_absent_tracker_id_no_raise",
+        ),
     ],
 )
 def test_process_roboflow_result(
@@ -676,7 +748,7 @@ def test_merge_data(
     data_list: list[dict[str, Any]],
     expected_result: dict[str, Any] | None,
     exception: Exception,
-):
+) -> None:
     with exception:
         result = merge_data(data_list=data_list)
         if expected_result is None:
@@ -852,7 +924,7 @@ def test_get_data_item(
     index: Any,
     expected_result: dict[str, Any] | None,
     exception: Exception,
-):
+) -> None:
     with exception:
         result = get_data_item(data=data, index=index)
         for key in result:
@@ -1029,7 +1101,7 @@ def test_get_data_item(
         ),
     ],
 )
-def test_merge_metadata(metadata_list, expected_result, exception):
+def test_merge_metadata(metadata_list, expected_result, exception) -> None:
     with exception:
         result = merge_metadata(metadata_list)
         if expected_result is None:

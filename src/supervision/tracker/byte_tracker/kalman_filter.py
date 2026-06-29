@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import numpy as np
 import numpy.typing as npt
 import scipy.linalg
@@ -146,10 +144,10 @@ class KalmanFilter:
         ]
         sqr = np.square(np.r_[std_pos, std_vel]).T
 
-        motion_cov = []
+        motion_cov_list: list[npt.NDArray[np.float32]] = []
         for i in range(len(mean)):
-            motion_cov.append(np.diag(sqr[i]))
-        motion_cov = np.asarray(motion_cov)
+            motion_cov_list.append(np.diag(sqr[i]))
+        motion_cov = np.asarray(motion_cov_list)
 
         mean = np.dot(mean, self._motion_mat.T)
         left = np.dot(self._motion_mat, covariance).transpose((1, 0, 2))

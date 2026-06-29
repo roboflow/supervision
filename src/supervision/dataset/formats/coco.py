@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 import warnings
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Union, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
+from tqdm.auto import tqdm
 
 from supervision.config import COCO_RAW_SEGMENTATION
 from supervision.dataset.utils import (
@@ -108,7 +111,16 @@ def coco_annotations_to_masks(
             masks.append(empty_mask.copy())
             continue
 
-        if image_annotation.get("iscrowd", 0):
+        if isinstance(segmentation, dict):
+            if "counts" not in segmentation:
+                warnings.warn(
+                    "Skipping annotation "
+                    f"{image_annotation.get('id', '?')}: segmentation is a dict but "
+                    "missing 'counts' key (expected RLE format)",
+                    stacklevel=2,
+                )
+                masks.append(empty_mask.copy())
+                continue
             masks.append(
                 rle_to_mask(rle=segmentation["counts"], resolution_wh=resolution_wh)
             )
@@ -184,7 +196,7 @@ def coco_annotations_to_detections(
     xyxy: npt.NDArray[np.float32] = np.asarray(xyxy_list, dtype=np.float32)
     xyxy[:, 2:4] += xyxy[:, 0:2]
 
-    data: dict[str, Union[npt.NDArray[np.generic], list[Any]]] = {}
+    data: dict[str, npt.NDArray[np.generic] | list[Any]] = {}
     if use_iscrowd:
         iscrowd = [
             image_annotation["iscrowd"] for image_annotation in image_annotations
@@ -283,9 +295,9 @@ def detections_to_coco_annotations(
         if class_id is None:
             raise ValueError("Detections must include class_id for COCO export.")
         box_width, box_height = xyxy[2] - xyxy[0], xyxy[3] - xyxy[1]
-        segmentation: Union[list[list[float]], dict[str, list[int]]] = []
+        segmentation: list[list[float]] | dict[str, list[int]] = []
         if mask is not None:
-            mask_bool = cast(npt.NDArray[np.bool_], mask)
+            mask_bool = mask
             if "iscrowd" in data:
                 iscrowd = int(np.asarray(data["iscrowd"]).item())
             else:
@@ -398,6 +410,7 @@ def load_coco_annotations(
     annotations_path: str,
     force_masks: bool = False,
     use_iscrowd: bool = True,
+    show_progress: bool = False,
 ) -> tuple[list[str], list[str], dict[str, Detections]]:
     """
     Load COCO annotations and convert them to `Detections`.
@@ -411,6 +424,7 @@ def load_coco_annotations(
         annotations_path: Path to COCO JSON annotations.
         force_masks: If `True`, always attempt to load masks.
         use_iscrowd: If `True`, include `iscrowd` and `area` in detection data.
+        show_progress: If `True`, display a progress bar during loading.
 
     Returns:
         A tuple of `(classes, image_paths, annotations)`.
@@ -444,7 +458,12 @@ def load_coco_annotations(
     annotations = {}
     images_directory_resolved = Path(images_directory_path).resolve()
 
-    for coco_image in coco_images:
+    for coco_image in tqdm(
+        coco_images,
+        total=len(coco_images),
+        desc="Loading COCO annotations",
+        disable=not show_progress,
+    ):
         image_name, image_width, image_height = (
             coco_image["file_name"],
             coco_image["width"],
@@ -505,13 +524,14 @@ def _with_seg_mask(annotation: dict[str, Any]) -> bool:
 
 
 def save_coco_annotations(
-    dataset: "DetectionDataset",
+    dataset: DetectionDataset,
     annotation_path: str,
     min_image_area_percentage: float = 0.0,
     max_image_area_percentage: float = 1.0,
     approximation_percentage: float = 0.0,
     starting_image_id: int = 1,
     starting_annotation_id: int = 1,
+    show_progress: bool = False,
 ) -> tuple[int, int]:
     """Save a DetectionDataset to a COCO-format ``annotations.json`` file.
 
@@ -530,6 +550,7 @@ def save_coco_annotations(
         starting_annotation_id: First annotation id to assign in the exported
             file. Defaults to ``1``. Override for the same multi-split reason
             as ``starting_image_id``.
+        show_progress: If ``True``, display a progress bar during saving.
 
     Returns:
         A ``(next_image_id, next_annotation_id)`` tuple. The returned values
@@ -585,7 +606,12 @@ def save_coco_annotations(
     coco_categories = classes_to_coco_categories(classes=dataset.classes)
 
     image_id, annotation_id = starting_image_id, starting_annotation_id
-    for image_path, image, annotation in dataset:
+    for image_path, image, annotation in tqdm(
+        dataset,
+        total=len(dataset),
+        desc="Saving COCO annotations",
+        disable=not show_progress,
+    ):
         image_height, image_width, _ = image.shape
         image_name = f"{Path(image_path).stem}{Path(image_path).suffix}"
         coco_image = {

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import os
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
@@ -64,7 +62,7 @@ def test_read_txt_file(
     skip_empty: bool,
     expected_result: list[str] | None,
     exception: Exception,
-):
+) -> None:
     with exception:
         result = read_txt_file(file_name, skip_empty)
         assert result == expected_result

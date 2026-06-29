@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import json
 import os
 from typing import Any
@@ -119,7 +117,9 @@ def redraw_polygons(image: np.ndarray) -> None:
             )
 
 
-def save_polygons_to_json(polygons, target_path):
+def save_polygons_to_json(
+    polygons: list[list[tuple[int, int]]], target_path: str | os.PathLike[str]
+) -> None:
     data_to_save = polygons if polygons[-1] else polygons[:-1]
     with open(target_path, "w") as f:
         json.dump(data_to_save, f)

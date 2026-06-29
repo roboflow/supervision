@@ -5,12 +5,13 @@ import os
 import random
 import shutil
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, TypeVar, cast
 
 import cv2
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated, void
+from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
+from tqdm.auto import tqdm
 
 from supervision.detection.core import Detections
 from supervision.detection.utils.converters import mask_to_polygons
@@ -31,16 +32,16 @@ def mask_to_rle(
     mask: npt.NDArray[np.bool_], compressed: bool = False
 ) -> list[int] | str:
     """Deprecated. Use `supervision.detection.utils.converters.mask_to_rle`."""
-    return void(mask, compressed)  # type: ignore[no-any-return]
+    return cast(list[int] | str, void(mask, compressed))
 
 
 @deprecated(target=_rle_to_mask, deprecated_in="0.28.0", remove_in="0.30.0")  # type: ignore[untyped-decorator]
 def rle_to_mask(
-    rle: npt.NDArray[np.integer[Any]] | list[int] | str | bytes,
+    rle: npt.NDArray[np.integer] | list[int] | str | bytes,
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.bool_]:
     """Deprecated. Use `supervision.detection.utils.converters.rle_to_mask`."""
-    return void(rle, resolution_wh)
+    return cast(npt.NDArray[np.bool_], void(rle, resolution_wh))
 
 
 if TYPE_CHECKING:
@@ -60,7 +61,7 @@ def approximate_mask_with_polygons(
     minimum_detection_area = min_image_area_percentage * image_area
     maximum_detection_area = max_image_area_percentage * image_area
 
-    polygons = mask_to_polygons(mask=mask)
+    polygons = cast(list[npt.NDArray[np.number]], mask_to_polygons(mask=mask))
     if len(polygons) == 1:
         polygons = filter_polygons_by_area(
             polygons=polygons, min_area=None, max_area=maximum_detection_area
@@ -125,9 +126,35 @@ def map_detections_class_id(
     return detections_copy
 
 
-def save_dataset_images(dataset: DetectionDataset, images_directory_path: str) -> None:
+def save_dataset_images(
+    dataset: DetectionDataset,
+    images_directory_path: str,
+    show_progress: bool = False,
+) -> None:
+    """Save all images from a dataset to a directory.
+
+    Images already in memory are written with ``cv2.imwrite``; images stored
+    only as file paths are copied with ``shutil.copyfile``.
+
+    Args:
+        dataset: The dataset whose images are saved.
+        images_directory_path: Destination directory path; created
+            automatically if it does not exist.
+        show_progress: If ``True``, display a tqdm progress bar while
+            saving images.
+
+    Examples:
+        >>> from supervision.dataset.core import DetectionDataset
+        >>> from supervision.dataset.utils import save_dataset_images
+        >>> dataset = DetectionDataset(classes=["cat"], images={}, annotations={})
+        >>> save_dataset_images(dataset, "/tmp/images")
+    """
     Path(images_directory_path).mkdir(parents=True, exist_ok=True)
-    for image_path in dataset.image_paths:
+    for image_path in tqdm(
+        dataset.image_paths,
+        desc="Saving images",
+        disable=not show_progress,
+    ):
         final_path = os.path.join(images_directory_path, Path(image_path).name)
         if image_path in dataset._images_in_memory:
             image = dataset._images_in_memory[image_path]

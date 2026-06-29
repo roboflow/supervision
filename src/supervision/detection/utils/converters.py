@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Any, cast
 
 import cv2
@@ -79,7 +77,7 @@ def xywh_to_xyxy(xywh: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
     xyxy = xywh.copy()
     xyxy[:, 2] = xywh[:, 0] + xywh[:, 2]
     xyxy[:, 3] = xywh[:, 1] + xywh[:, 3]
-    return xyxy
+    return cast(npt.NDArray[np.number], np.asarray(xyxy))
 
 
 def xyxy_to_xywh(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
@@ -113,7 +111,7 @@ def xyxy_to_xywh(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
     xywh = xyxy.copy()
     xywh[:, 2] = xyxy[:, 2] - xyxy[:, 0]
     xywh[:, 3] = xyxy[:, 3] - xyxy[:, 1]
-    return xywh
+    return cast(npt.NDArray[np.number], np.asarray(xywh))
 
 
 def xcycwh_to_xyxy(xcycwh: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
@@ -149,7 +147,7 @@ def xcycwh_to_xyxy(xcycwh: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
     xyxy[:, 1] = xcycwh[:, 1] - xcycwh[:, 3] / 2
     xyxy[:, 2] = xcycwh[:, 0] + xcycwh[:, 2] / 2
     xyxy[:, 3] = xcycwh[:, 1] + xcycwh[:, 3] / 2
-    return xyxy
+    return cast(npt.NDArray[np.number], np.asarray(xyxy))
 
 
 def xyxy_to_xcycarh(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.floating]:

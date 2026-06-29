@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-class Recall(Metric):
+class Recall(Metric["RecallResult"]):
     """
     Recall is a metric used to evaluate object detection models. It is the ratio of
     true positive detections to the total number of ground truth instances. We calculate
@@ -155,7 +155,7 @@ class Recall(Metric):
     def _compute(
         self, predictions_list: list[Detections], targets_list: list[Detections]
     ) -> RecallResult:
-        iou_thresholds = np.linspace(0.5, 0.95, 10)
+        iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
         stats: list[Any] = []
 
         for predictions, targets in zip(predictions_list, targets_list):
@@ -163,6 +163,11 @@ class Recall(Metric):
             target_contents = self._detections_content(targets)
 
             if len(targets) > 0:
+                if predictions.class_id is None or targets.class_id is None:
+                    raise ValueError(
+                        "Recall metric requires `class_id` on both predictions "
+                        "and targets."
+                    )
                 if len(predictions) == 0:
                     stats.append(
                         (
@@ -174,6 +179,17 @@ class Recall(Metric):
                     )
 
                 else:
+                    if predictions.confidence is None:
+                        raise ValueError(
+                            "Recall metric requires `confidence` on predictions."
+                        )
+                    prediction_class_ids = np.asarray(
+                        predictions.class_id, dtype=np.int32
+                    )
+                    target_class_ids = np.asarray(targets.class_id, dtype=np.int32)
+                    prediction_confidence = np.asarray(
+                        predictions.confidence, dtype=np.float32
+                    )
                     if self._metric_target == MetricTarget.BOXES:
                         iou = box_iou_batch(target_contents, prediction_contents)
                     elif self._metric_target == MetricTarget.MASKS:
@@ -188,21 +204,17 @@ class Recall(Metric):
                         )
 
                     matches = self._match_detection_batch(
-                        predictions.class_id
-                        if predictions.class_id is not None
-                        else np.array([]),
-                        targets.class_id
-                        if targets.class_id is not None
-                        else np.array([]),
+                        prediction_class_ids,
+                        target_class_ids,
                         iou,
                         iou_thresholds,
                     )
                     stats.append(
                         (
                             matches,
-                            predictions.confidence,
-                            predictions.class_id,
-                            targets.class_id,
+                            prediction_confidence,
+                            prediction_class_ids,
+                            target_class_ids,
                         )
                     )
 
@@ -307,8 +319,8 @@ class Recall(Metric):
     def _compute_confusion_matrix(
         sorted_matches: npt.NDArray[np.bool_],
         sorted_prediction_class_ids: npt.NDArray[np.int32],
-        unique_classes: npt.NDArray[np.int32],
-        class_counts: npt.NDArray[np.int32],
+        unique_classes: npt.NDArray[np.integer],
+        class_counts: npt.NDArray[np.integer],
     ) -> npt.NDArray[np.float64]:
         """
         Compute the confusion matrix for each class and IoU threshold.
@@ -396,12 +408,10 @@ class Recall(Metric):
     def _detections_content(self, detections: Detections) -> npt.NDArray[Any]:
         """Return boxes, masks or oriented bounding boxes from detections."""
         if self._metric_target == MetricTarget.BOXES:
-            result_boxes: npt.NDArray[np.float32] = detections.xyxy
-            return result_boxes
+            return cast(npt.NDArray[Any], detections.xyxy)
         if self._metric_target == MetricTarget.MASKS:
             if detections.mask is not None:
-                result_masks: npt.NDArray[np.bool_] = detections.mask
-                return result_masks
+                return cast(npt.NDArray[Any], detections.mask)
             return self._make_empty_content()
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             obb = detections.data.get(ORIENTED_BOX_COORDINATES)
