@@ -134,11 +134,13 @@ def process_roboflow_result(
     Returns:
         A 6-tuple of ``(xyxy, confidence, class_id, masks, tracker_ids, data)``
         where each array is aligned with the others. ``masks`` is ``None``
-        when no predictions include mask data. When ``compact_masks=True`` and
-        masks are present, ``masks`` is a :class:`CompactMask`; otherwise it is
-        a dense boolean array. ``tracker_ids`` is ``None`` when no predictions
-        carry a tracker ID, or when only a subset do (mixed batch) — in that
-        case all tracker IDs are dropped to preserve alignment with ``xyxy``.
+        when no predictions include mask data, or when only a subset do
+        (mixed-modality batch) — in that case all masks are dropped to preserve
+        alignment with ``xyxy``. When ``compact_masks=True`` and masks are
+        present, ``masks`` is a :class:`CompactMask`; otherwise it is a dense
+        boolean array. ``tracker_ids`` is ``None`` when no predictions carry a
+        tracker ID, or when only a subset do (mixed batch) — in that case all
+        tracker IDs are dropped to preserve alignment with ``xyxy``.
 
     Examples:
         >>> from supervision.detection.utils.internal import process_roboflow_result
