@@ -497,3 +497,204 @@ def test_inference_slicer_keeps_crossed_obb_detections(
     detections = slicer(image)
 
     assert len(detections) == 2
+
+
+class TestInferenceSlicerBatch:
+    """Tests for InferenceSlicer batch_size > 1 path."""
+
+    @pytest.mark.parametrize(
+        "batch_size",
+        [
+            pytest.param(0, id="zero"),
+            pytest.param(-1, id="negative"),
+        ],
+    )
+    def test_raises_on_invalid_batch_size(self, batch_size: int) -> None:
+        """ValueError raised for batch_size < 1."""
+        with pytest.raises(ValueError, match="batch_size"):
+            InferenceSlicer(
+                callback=lambda x: Detections.empty(), batch_size=batch_size
+            )
+
+    def test_batch_size_one_callback_receives_ndarray(self) -> None:
+        """batch_size=1 delivers np.ndarray to callback, not list."""
+        received_types: list[type] = []
+
+        def callback(tile: np.ndarray) -> Detections:
+            received_types.append(type(tile))
+            return Detections.empty()
+
+        image = np.zeros((128, 128, 3), dtype=np.uint8)
+        slicer = InferenceSlicer(
+            callback=callback, slice_wh=64, overlap_wh=0, batch_size=1
+        )
+        slicer(image)
+
+        assert all(t is np.ndarray for t in received_types)
+
+    def test_batch_callback_receives_list_of_ndarrays(self) -> None:
+        """batch_size > 1 delivers list[np.ndarray] to callback."""
+        received: list[list] = []
+
+        def callback(tiles: list) -> list:
+            received.append(tiles)
+            return [Detections.empty() for _ in tiles]
+
+        # 128x128, slice_wh=64, overlap=0 → 4 slices → 2 batches of 2
+        image = np.zeros((128, 128, 3), dtype=np.uint8)
+        slicer = InferenceSlicer(
+            callback=callback, slice_wh=64, overlap_wh=0, batch_size=2
+        )
+        slicer(image)
+
+        assert len(received) == 2
+        assert all(isinstance(batch, list) for batch in received)
+        assert all(isinstance(tile, np.ndarray) for batch in received for tile in batch)
+
+    @pytest.mark.parametrize(
+        ("image_wh", "batch_size", "expected_batch_sizes"),
+        [
+            pytest.param((320, 64), 3, [3, 2], id="5-slices-batch-3"),
+            pytest.param((256, 64), 4, [4], id="4-slices-batch-4"),
+            pytest.param((384, 64), 2, [2, 2, 2], id="6-slices-batch-2"),
+        ],
+    )
+    def test_last_batch_shorter_when_not_divisible(
+        self,
+        image_wh: tuple[int, int],
+        batch_size: int,
+        expected_batch_sizes: list[int],
+    ) -> None:
+        """Last batch has remaining slices when total not divisible by batch_size."""
+        received_batch_sizes: list[int] = []
+
+        def callback(tiles: list) -> list:
+            received_batch_sizes.append(len(tiles))
+            return [Detections.empty() for _ in tiles]
+
+        image = np.zeros((image_wh[1], image_wh[0], 3), dtype=np.uint8)
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            batch_size=batch_size,
+            thread_workers=1,
+        )
+        slicer(image)
+
+        assert received_batch_sizes == expected_batch_sizes
+
+    def test_batch_wrong_return_type_raises(self) -> None:
+        """ValueError raised when batch callback returns Detections instead of list."""
+
+        def callback(tiles: list) -> Detections:  # type: ignore[return]
+            return Detections.empty()
+
+        image = np.zeros((128, 128, 3), dtype=np.uint8)
+        slicer = InferenceSlicer(
+            callback=callback, slice_wh=64, overlap_wh=0, batch_size=2
+        )
+        with pytest.raises(ValueError, match="list\\[Detections\\]"):
+            slicer(image)
+
+    def test_batch_length_mismatch_raises(self) -> None:
+        """ValueError raised when batch callback returns list of wrong length."""
+
+        def callback(tiles: list) -> list:
+            return [Detections.empty()]  # always 1, regardless of batch size
+
+        # 128x128, batch_size=4 → one batch of 4 slices; callback returns 1
+        image = np.zeros((128, 128, 3), dtype=np.uint8)
+        slicer = InferenceSlicer(
+            callback=callback, slice_wh=64, overlap_wh=0, batch_size=4
+        )
+        with pytest.raises(ValueError, match="Lengths must match"):
+            slicer(image)
+
+    def test_batch_with_thread_workers_merges_correctly(self) -> None:
+        """batch_size + thread_workers > 1 yields correct merged detection count."""
+        call_count = 0
+
+        def callback(tiles: list) -> list:
+            nonlocal call_count
+            call_count += 1
+            return [
+                Detections(xyxy=np.array([[0, 0, 10, 10]], dtype=float)) for _ in tiles
+            ]
+
+        # 128x128, slice_wh=64, overlap=0 → 4 slices → 2 batches of 2
+        image = np.zeros((128, 128, 3), dtype=np.uint8)
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            batch_size=2,
+            thread_workers=4,
+            overlap_filter=OverlapFilter.NONE,
+        )
+        detections = slicer(image)
+
+        assert call_count == 2
+        assert len(detections) == 4
+
+    def test_batch_obb_forces_sequential_and_warns(self) -> None:
+        """OBB in first batch forces sequential execution and emits one warning."""
+        active_calls = 0
+        max_active_calls = 0
+        lock = threading.Lock()
+
+        def callback(tiles: list) -> list:
+            nonlocal active_calls, max_active_calls
+            with lock:
+                active_calls += 1
+                max_active_calls = max(max_active_calls, active_calls)
+            with lock:
+                active_calls -= 1
+            return [
+                Detections(
+                    xyxy=np.array([[0, 0, 10, 10]], dtype=float),
+                    data={
+                        ORIENTED_BOX_COORDINATES: np.array(
+                            [[[0, 0], [10, 0], [10, 10], [0, 10]]], dtype=float
+                        )
+                    },
+                )
+                for _ in tiles
+            ]
+
+        # 192x192, batch_size=2 → 9 slices → 5 batches; first sync, 4 remaining
+        image = np.zeros((192, 192, 3), dtype=np.uint8)
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            batch_size=2,
+            thread_workers=4,
+            overlap_filter=OverlapFilter.NONE,
+        )
+
+        with pytest.warns(SupervisionWarnings, match="oriented bounding boxes"):
+            detections = slicer(image)
+
+        assert max_active_calls == 1
+        assert len(detections) == 9
+
+    def test_batch_warns_out_of_bounds_once(self) -> None:
+        """Out-of-slice-bounds warning fires exactly once in batch path."""
+
+        def callback(tiles: list) -> list:
+            return [
+                Detections(xyxy=np.array([[0, 0, 512, 512]], dtype=float))
+                for _ in tiles
+            ]
+
+        image = np.zeros((128, 128, 3), dtype=np.uint8)
+        slicer = InferenceSlicer(
+            callback=callback,
+            slice_wh=64,
+            overlap_wh=0,
+            batch_size=2,
+            overlap_filter=OverlapFilter.NONE,
+        )
+        with pytest.warns(SupervisionWarnings, match="outside the slice bounds"):
+            slicer(image)

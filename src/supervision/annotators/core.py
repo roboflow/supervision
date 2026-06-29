@@ -7,7 +7,7 @@ from typing import Any, cast, overload
 import cv2
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated, void
+from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
 from PIL import Image, ImageDraw, ImageFont
 from scipy.interpolate import splev, splprep
 
@@ -149,7 +149,7 @@ class _BaseLabelAnnotator(BaseAnnotator):
         resolution_wh: tuple[int, int],
         labels: list[str],
         label_properties: npt.NDArray[np.float32],
-    ) -> npt.NDArray[np.uint8]:
+    ) -> npt.NDArray[np.float32]:
         """
         Adjusts the position of labels to ensure they stay within the frame boundaries.
 
@@ -184,7 +184,10 @@ class _BaseLabelAnnotator(BaseAnnotator):
                 adjusted_properties[:, :4], resolution_wh
             )
 
-        return adjusted_properties
+        return cast(
+            npt.NDArray[np.float32],
+            np.asarray(adjusted_properties, dtype=np.float32),
+        )
 
 
 class BoxAnnotator(BaseAnnotator):
@@ -583,7 +586,7 @@ class PolygonAnnotator(BaseAnnotator):
             return scene
 
         for detection_idx in range(len(detections)):
-            mask = detections.mask[detection_idx]
+            mask = cast(npt.NDArray[np.bool_], detections.mask[detection_idx])
             color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -595,7 +598,7 @@ class PolygonAnnotator(BaseAnnotator):
             for polygon in mask_to_polygons(mask=mask):
                 scene = draw_polygon(
                     scene=scene,
-                    polygon=polygon,
+                    polygon=cast(npt.NDArray[np.int_], polygon),
                     color=color,
                     thickness=self.thickness,
                 )
@@ -783,7 +786,10 @@ class HaloAnnotator(BaseAnnotator):
         )
         assert fmask is not None  # collect_union=True always returns an array
 
-        colored_mask = cv2.blur(colored_mask, (self.kernel_size, self.kernel_size))
+        colored_mask = cast(
+            npt.NDArray[np.uint8],
+            cv2.blur(colored_mask, (self.kernel_size, self.kernel_size)),
+        )
         colored_mask[fmask] = [0, 0, 0]
         gray = cv2.cvtColor(colored_mask, cv2.COLOR_BGR2GRAY)
         gray_max = gray.max()
@@ -1311,7 +1317,7 @@ class LabelAnnotator(_BaseLabelAnnotator):
 
         if self.smart_position:
             xyxy = label_properties[:, :4]
-            xyxy = spread_out_boxes(xyxy)
+            xyxy = cast(npt.NDArray[np.float32], spread_out_boxes(xyxy))
             label_properties[:, :4] = xyxy
 
             label_properties = self._adjust_labels_in_frame(
@@ -1626,7 +1632,7 @@ class RichLabelAnnotator(_BaseLabelAnnotator):
 
         if self.smart_position:
             xyxy = label_properties[:, :4]
-            xyxy = spread_out_boxes(xyxy)
+            xyxy = cast(npt.NDArray[np.float32], spread_out_boxes(xyxy))
             label_properties[:, :4] = xyxy
 
             label_properties = self._adjust_labels_in_frame(
@@ -1886,11 +1892,11 @@ class IconAnnotator(BaseAnnotator):
             raise FileNotFoundError(
                 f"Error: Couldn't load the icon image from {icon_path}"
             )
-        icon = cast(
-            npt.NDArray[np.uint8],
-            letterbox_image(image=icon, resolution_wh=self.icon_resolution_wh),
+        icon_array = cast(npt.NDArray[np.uint8], icon)
+        result: npt.NDArray[np.uint8] = letterbox_image(
+            image=icon_array, resolution_wh=self.icon_resolution_wh
         )
-        return icon
+        return result
 
 
 class BlurAnnotator(BaseAnnotator):
@@ -1952,7 +1958,8 @@ class BlurAnnotator(BaseAnnotator):
             return scene
         image_height, image_width = scene.shape[:2]
         clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
-            xyxy=detections.xyxy, resolution_wh=(image_width, image_height)
+            xyxy=cast(npt.NDArray[np.number], detections.xyxy),
+            resolution_wh=(image_width, image_height),
         ).astype(int)
 
         for x1, y1, x2, y2 in clipped_xyxy:
@@ -1964,7 +1971,7 @@ class BlurAnnotator(BaseAnnotator):
                 if self.kernel_size is not None
                 else calculate_dynamic_kernel_size(x1, y1, x2, y2)
             )
-            roi = cv2.blur(roi, (kernel_size, kernel_size))
+            roi = cast(npt.NDArray[np.uint8], cv2.blur(roi, (kernel_size, kernel_size)))
             scene[y1:y2, x1:x2] = roi
 
         return scene
@@ -2097,8 +2104,20 @@ class TraceAnnotator(BaseAnnotator):
                     try:
                         x, y = unique_xy[:, 0], unique_xy[:, 1]
                         tck, _u = splprep([x, y], s=20)
-                        xy_new = splev(np.linspace(0, 1, 100), tck)
-                        spline_points = np.stack(xy_new, axis=1).astype(np.int32)
+                        x_new, y_new = splev(
+                            np.linspace(0, 1, 100),
+                            cast(
+                                tuple[
+                                    npt.NDArray[np.float64],
+                                    npt.NDArray[np.float64],
+                                    int,
+                                ],
+                                tck,
+                            ),
+                        )
+                        spline_points = np.stack((x_new, y_new), axis=1).astype(
+                            np.int32
+                        )
                     except ValueError:
                         spline_points = unique_xy.astype(np.int32)
                 else:
@@ -2199,7 +2218,7 @@ class HeatMapAnnotator(BaseAnnotator):
         if self.heat_mask is None:
             self.heat_mask = np.zeros(scene.shape[:2], dtype=np.float32)
 
-        mask = np.zeros(scene.shape[:2])
+        mask: npt.NDArray[np.float32] = np.zeros(scene.shape[:2], dtype=np.float32)
         for xy in detections.get_anchors_coordinates(self.position):
             x, y = int(xy[0]), int(xy[1])
             cv2.circle(
@@ -2210,20 +2229,26 @@ class HeatMapAnnotator(BaseAnnotator):
                 thickness=-1,  # fill
             )
         self.heat_mask = mask + self.heat_mask
-        temp = self.heat_mask.copy()
-        max_val = temp.max()
+        heat_mask = self.heat_mask
+        heat_values = heat_mask.copy()
+        max_val = heat_values.max()
         if max_val > 0:
-            temp = self.low_hue - temp / max_val * (self.low_hue - self.top_hue)
-        temp = temp.astype(np.uint8)
+            heat_values = self.low_hue - heat_values / max_val * (
+                self.low_hue - self.top_hue
+            )
+        heat_hue = heat_values.astype(np.uint8)
         if self.kernel_size is not None:
-            temp = cv2.blur(temp, (self.kernel_size, self.kernel_size))
+            heat_hue = cast(
+                npt.NDArray[np.uint8],
+                cv2.blur(heat_hue, (self.kernel_size, self.kernel_size)),
+            )
         hsv = np.full(scene.shape, 255, dtype=np.uint8)
-        hsv[..., 0] = temp
-        temp = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-        mask = cv2.cvtColor(self.heat_mask.astype(np.uint8), cv2.COLOR_GRAY2BGR) > 0
-        scene[mask] = cv2.addWeighted(temp, self.opacity, scene, 1 - self.opacity, 0)[
-            mask
-        ]
+        hsv[..., 0] = heat_hue
+        heat_bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+        mask_bool = cv2.cvtColor(heat_mask.astype(np.uint8), cv2.COLOR_GRAY2BGR) > 0
+        scene[mask_bool] = cv2.addWeighted(
+            heat_bgr, self.opacity, scene, 1 - self.opacity, 0
+        )[mask_bool]
         return scene
 
 
@@ -2286,7 +2311,8 @@ class PixelateAnnotator(BaseAnnotator):
             return scene
         image_height, image_width = scene.shape[:2]
         clipped_xyxy: npt.NDArray[np.int32] = clip_boxes(
-            xyxy=detections.xyxy, resolution_wh=(image_width, image_height)
+            xyxy=cast(npt.NDArray[np.number], detections.xyxy),
+            resolution_wh=(image_width, image_height),
         ).astype(int)
 
         for x1, y1, x2, y2 in clipped_xyxy:
@@ -3187,7 +3213,7 @@ class ComparisonAnnotator:
             return mask
 
         resolution_wh = scene.shape[1], scene.shape[0]
-        polygons = xyxy_to_polygons(detections.xyxy)
+        polygons = xyxy_to_polygons(cast(npt.NDArray[np.number], detections.xyxy))
 
         for polygon in polygons:
             polygon_mask = polygon_to_mask(polygon, resolution_wh=resolution_wh)

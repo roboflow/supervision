@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 import pytest
 
@@ -373,6 +375,44 @@ def test_single_perfect_detection():
     # For a single GT, if it's recalled, the score is 1.0 across all K
     expected = np.array([1.0, 1.0, 1.0])
     np.testing.assert_almost_equal(result.recall_scores, expected, decimal=6)
+
+
+@pytest.mark.parametrize(
+    "missing_attribute",
+    ["predictions_class_id", "targets_class_id", "predictions_confidence"],
+)
+def test_compute_value_error_for_missing_required_fields(missing_attribute) -> None:
+    """Test compute raises ValueError when required fields are missing."""
+    metric = MeanAverageRecall()
+    boxes = np.array([[10, 10, 50, 50]], dtype=np.float32)
+    class_id = np.array([0], dtype=np.int32)
+    confidence = np.array([0.9], dtype=np.float32)
+
+    predictions = Detections(
+        xyxy=boxes,
+        confidence=confidence,
+        class_id=class_id,
+    )
+    targets = Detections(
+        xyxy=boxes,
+        class_id=class_id,
+    )
+
+    if missing_attribute == "predictions_class_id":
+        predictions = Detections(
+            xyxy=boxes,
+            confidence=confidence,
+        )
+    elif missing_attribute == "targets_class_id":
+        targets = Detections(xyxy=boxes)
+    else:
+        predictions = Detections(
+            xyxy=boxes,
+            class_id=class_id,
+        )
+
+    with pytest.raises(ValueError, match="MeanAverageRecall metric requires"):
+        metric.update(predictions, targets).compute()
 
 
 def test_complex_integration_scenario(

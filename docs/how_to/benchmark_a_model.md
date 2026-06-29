@@ -329,6 +329,20 @@ Here, predictions in purple are targets (ground truth), and predictions in teal 
 
     See [annotator documentation](https://supervision.roboflow.com/latest/detection/annotators/) for even more options.
 
+## Visual Benchmarking
+
+To inspect where a model succeeds and fails, pass `save_directory_path` to `sv.ConfusionMatrix.benchmark(...)`. For every dataset image it writes a 2x2 result grid — `Ground Truth`, `True Positives`, `False Positives`, and `False Negatives` panels — directly into that directory, reusing the original image filenames. This makes it easy to skim through per-image outcomes alongside the aggregate confusion matrix.
+
+```python
+import supervision as sv
+
+confusion_matrix = sv.ConfusionMatrix.benchmark(
+    dataset=test_set,
+    callback=callback,
+    save_directory_path="./results",
+)
+```
+
 ## Benchmarking Metrics
 
 With multiple models, fine details matter. Visual inspection may not be enough. `supervision` provides a collection of metrics that help obtain precise numerical results of model performance.
@@ -462,7 +476,7 @@ Yes, if you want to evaluate their bounding boxes. Convert model outputs to `Det
 
 ### What is a ConfusionMatrix and how do I use it?
 
-`sv.ConfusionMatrix` visualizes true positives, false positives, and false negatives per class. Create one with `sv.ConfusionMatrix.from_detections(predictions=predictions, targets=targets, classes=classes, conf_threshold=0.5, iou_threshold=0.5)`, then call `metric.plot()` to render a heatmap.
+`sv.ConfusionMatrix` visualizes true positives, false positives, and false negatives per class. Create one with `sv.ConfusionMatrix.from_detections(predictions=predictions, targets=targets, classes=classes, conf_threshold=0.5, iou_threshold=0.5)`, then call `confusion_matrix.plot()` to render a heatmap. If you want per-image validation visualizations saved to disk, pass `save_directory_path="./results"` to `sv.ConfusionMatrix.benchmark(...)`; it will write 2x2 result grids directly into that directory using the original image filenames, with `Ground Truth`, `True Positives`, `False Positives`, and `False Negatives` panels.
 
 ## Author
 

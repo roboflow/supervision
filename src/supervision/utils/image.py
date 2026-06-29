@@ -12,7 +12,10 @@ import cv2
 import numpy as np
 import numpy.typing as npt
 import requests
-from deprecate import TargetMode, deprecated
+from deprecate import (  # type: ignore[import-untyped,unused-ignore]
+    TargetMode,
+    deprecated,
+)
 from PIL import Image
 
 from supervision.draw.base import ImageType

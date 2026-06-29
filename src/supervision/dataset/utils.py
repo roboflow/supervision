@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 import cv2
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated, void
+from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
 from tqdm.auto import tqdm
 
 from supervision.detection.core import Detections

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 from collections.abc import Callable
 from typing import Any, TypeVar, cast
@@ -5,7 +7,7 @@ from typing import Any, TypeVar, cast
 import cv2
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated, void
+from deprecate import deprecated, void  # type: ignore[import-untyped,unused-ignore]
 from PIL import Image
 
 from supervision.draw.base import ImageType

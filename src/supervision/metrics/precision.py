@@ -174,18 +174,30 @@ class Precision(Metric):
                 # Only predictions are present (e.g. a background image); every
                 # prediction is a false positive.
                 if predictions.class_id is None or predictions.confidence is None:
-                    continue
+                    raise ValueError(
+                        "Precision metric requires `class_id` and `confidence` "
+                        "on predictions."
+                    )
+                prediction_class_ids = np.asarray(predictions.class_id, dtype=np.int32)
+                prediction_confidence = np.asarray(
+                    predictions.confidence, dtype=np.float32
+                )
                 stats.append(
                     (
                         np.zeros(
                             (len(predictions), iou_thresholds.size), dtype=np.bool_
                         ),
-                        predictions.confidence,
-                        predictions.class_id,
+                        prediction_confidence,
+                        prediction_class_ids,
                         np.zeros((0,), dtype=np.int32),
                     )
                 )
             elif len(targets) > 0:
+                if predictions.class_id is None or targets.class_id is None:
+                    raise ValueError(
+                        "Precision metric requires `class_id` on both predictions "
+                        "and targets."
+                    )
                 if len(predictions) == 0:
                     stats.append(
                         (
@@ -197,6 +209,17 @@ class Precision(Metric):
                     )
 
                 else:
+                    if predictions.confidence is None:
+                        raise ValueError(
+                            "Precision metric requires `confidence` on predictions."
+                        )
+                    prediction_class_ids = np.asarray(
+                        predictions.class_id, dtype=np.int32
+                    )
+                    target_class_ids = np.asarray(targets.class_id, dtype=np.int32)
+                    prediction_confidence = np.asarray(
+                        predictions.confidence, dtype=np.float32
+                    )
                     if self._metric_target == MetricTarget.BOXES:
                         iou = box_iou_batch(target_contents, prediction_contents)
                     elif self._metric_target == MetricTarget.MASKS:
@@ -211,21 +234,17 @@ class Precision(Metric):
                         )
 
                     matches = self._match_detection_batch(
-                        predictions.class_id
-                        if predictions.class_id is not None
-                        else np.array([]),
-                        targets.class_id
-                        if targets.class_id is not None
-                        else np.array([]),
+                        prediction_class_ids,
+                        target_class_ids,
                         iou,
                         iou_thresholds,
                     )
                     stats.append(
                         (
                             matches,
-                            predictions.confidence,
-                            predictions.class_id,
-                            targets.class_id,
+                            prediction_confidence,
+                            prediction_class_ids,
+                            target_class_ids,
                         )
                     )
 

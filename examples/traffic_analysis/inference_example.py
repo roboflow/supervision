@@ -103,7 +103,7 @@ class VideoProcessor:
         )
         self.detections_manager = DetectionsManager()
 
-    def process_video(self):
+    def process_video(self) -> None:
         frame_generator = sv.get_video_frames_generator(
             source_path=self.source_video_path
         )

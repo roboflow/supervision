@@ -21,6 +21,7 @@ from supervision.detection.utils.masks import move_masks
 from supervision.draw.base import ImageType
 from supervision.utils.image import crop_image, get_image_resolution_wh
 from supervision.utils.internal import SupervisionWarnings
+from supervision.utils.iterables import create_batches
 
 
 @runtime_checkable
@@ -107,8 +108,21 @@ class InferenceSlicer:
     parallel slice inference.
 
     Args:
-        callback: Inference function that takes a sliced image and returns a
-            `Detections` object.
+        callback: Inference function called for each slice (or batch of slices).
+
+            When ``batch_size=1`` (default) the function receives a single
+            ``np.ndarray`` and must return a single
+            :class:`~supervision.detection.core.Detections` — the original
+            single-image contract, fully backward-compatible.
+
+            When ``batch_size > 1`` the function receives
+            ``list[np.ndarray]`` (one array per slice) and must return
+            ``list[Detections]`` of the **same length** in the same order.
+            A length mismatch or non-list return raises :exc:`ValueError`.
+
+            The two signatures are **not interchangeable**: a callback written
+            for ``batch_size=1`` will fail when ``batch_size > 1``, and vice
+            versa.
         slice_wh: Size of each slice `(width, height)`. If int, both width and
             height are set to this value.
         overlap_wh: Overlap size `(width, height)` between slices. If int, both
@@ -137,10 +151,25 @@ class InferenceSlicer:
             objects. IoU and NMS are computed directly on the RLE crops
             without ever materialising a full ``(N, H, W)`` array.
             Defaults to ``False`` for backward compatibility.
+        batch_size: Number of slices passed to the callback per call.
+            Defaults to ``1``, which uses the single-image callback contract
+            (``np.ndarray`` → :class:`~supervision.detection.core.Detections`).
+            Set to ``> 1`` to enable the batch callback contract
+            (``list[np.ndarray]`` → ``list[Detections]``).
+
+            For GPU-backed models, prefer ``batch_size > 1`` with
+            ``thread_workers=1``. A single batched forward pass is faster than
+            concurrent single-image calls that compete for the same CUDA device,
+            and avoids multiplying peak VRAM by ``thread_workers * batch_size``.
+            Must be a positive integer.
 
     Raises:
-        ValueError: If `slice_wh`, `overlap_wh`, or `thread_workers` are
+        ValueError: If ``slice_wh``, ``overlap_wh``, or ``thread_workers`` are
             invalid or inconsistent.
+        ValueError: If ``batch_size < 1``.
+        ValueError: If the callback returns a non-list when ``batch_size > 1``.
+        ValueError: If the callback returns a list whose length differs from the
+            number of slices passed when ``batch_size > 1``.
 
     Example:
         ```python
@@ -193,11 +222,39 @@ class InferenceSlicer:
         read, so multi-GB GeoTIFFs never need to be loaded into memory at once.
         `rasterio` is an optional dependency installable via
         `pip install "supervision[geotiff]"`.
+
+        Batch inference — pass multiple slices per callback call for GPU models
+        that benefit from batched forward passes:
+
+        ```python
+        import cv2
+        import numpy as np
+        import supervision as sv
+
+        # Batch callback: receives list[np.ndarray], returns list[Detections]
+        def batch_callback(tiles: list[np.ndarray]) -> list[sv.Detections]:
+            # Run your model on the batch; return one Detections per tile.
+            return [sv.Detections.empty() for _ in tiles]
+
+        slicer = sv.InferenceSlicer(
+            callback=batch_callback,
+            slice_wh=640,
+            overlap_wh=100,
+            batch_size=8,
+            thread_workers=1,  # recommended for GPU: batch not threads
+        )
+
+        image = cv2.imread("example.png")
+        detections = slicer(image)
+        ```
     """
 
     def __init__(
         self,
-        callback: Callable[[ImageType], Detections],
+        callback: (
+            Callable[[ImageType], Detections]
+            | Callable[[list[npt.NDArray[Any]]], list[Detections]]
+        ),
         slice_wh: int | tuple[int, int] = 640,
         overlap_wh: int | tuple[int, int] = 100,
         overlap_filter: OverlapFilter | str = OverlapFilter.NON_MAX_SUPPRESSION,
@@ -205,6 +262,7 @@ class InferenceSlicer:
         overlap_metric: OverlapMetric | str = OverlapMetric.IOU,
         thread_workers: int = 1,
         compact_masks: bool = False,
+        batch_size: int = 1,
     ):
         slice_wh_norm = self._normalize_slice_wh(slice_wh)
         overlap_wh_norm = self._normalize_overlap_wh(overlap_wh)
@@ -216,15 +274,22 @@ class InferenceSlicer:
                 "`thread_workers` must be a positive integer. "
                 f"Received: {thread_workers}"
             )
+        if batch_size < 1:
+            raise ValueError(
+                f"`batch_size` must be a positive integer. Received: {batch_size}"
+            )
 
         self.slice_wh = slice_wh_norm
         self.overlap_wh = overlap_wh_norm
         self.iou_threshold = iou_threshold
         self.overlap_metric = OverlapMetric.from_value(overlap_metric)
         self.overlap_filter = OverlapFilter.from_value(overlap_filter)
-        self.callback: Callable[[npt.NDArray[Any]], Detections] = callback
+        # Stored as single-image type; batch path calls with list[ndarray] via
+        # _run_callback_batch which suppresses the arg-type mismatch there.
+        self.callback: Callable[[npt.NDArray[Any]], Detections] = callback  # type: ignore[assignment]
         self.thread_workers = thread_workers
         self.compact_masks = compact_masks
+        self.batch_size = batch_size
         self._out_of_slice_bounds_warned: bool = False
         self._out_of_slice_bounds_lock = threading.Lock()
         self._obb_thread_workers_warned: bool = False
@@ -269,6 +334,43 @@ class InferenceSlicer:
             slice_wh=self.slice_wh,
             overlap_wh=self.overlap_wh,
         )
+
+        if self.batch_size > 1:
+            batched = list(create_batches(offsets, self.batch_size))
+            # Run first batch synchronously: fail-fast type validation + OBB probe.
+            first_batch_results = self._run_callback_batch(image, batched[0])
+            detections_list.extend(first_batch_results)
+            obb_detected = any(
+                ORIENTED_BOX_COORDINATES in det.data for det in first_batch_results
+            )
+            if obb_detected and self.thread_workers > 1:
+                with self._obb_thread_workers_lock:
+                    if not self._obb_thread_workers_warned:
+                        self._obb_thread_workers_warned = True
+                        warnings.warn(
+                            "InferenceSlicer detected oriented bounding boxes while "
+                            "`thread_workers > 1`. Remaining batches will be processed "
+                            "sequentially because many OBB inference backends are not "
+                            "thread-safe and can crash when shared across threads.",
+                            category=SupervisionWarnings,
+                            stacklevel=2,
+                        )
+            remaining_batches = batched[1:]
+            if self.thread_workers == 1 or obb_detected:
+                for offset_batch in remaining_batches:
+                    detections_list.extend(
+                        self._run_callback_batch(image, offset_batch)
+                    )
+            else:
+                with ThreadPoolExecutor(max_workers=self.thread_workers) as executor:
+                    batch_futures = [
+                        executor.submit(self._run_callback_batch, image, ob)
+                        for ob in remaining_batches
+                    ]
+                    for batch_future in as_completed(batch_futures):
+                        detections_list.extend(batch_future.result())
+            merged = Detections.merge(detections_list=detections_list)
+            return self._apply_overlap_filter(merged)
 
         first_offset = offsets[0]
         first_detections = self._run_callback(image, first_offset)
@@ -434,6 +536,87 @@ class InferenceSlicer:
             resolution_wh=resolution_wh,
         )
         return detections
+
+    def _run_callback_batch(
+        self,
+        image: ImageType | WindowedRasterDataset,
+        offsets: list[npt.NDArray[Any]],
+    ) -> list[Detections]:
+        """Run batch inference callback on multiple slices.
+
+        Args:
+            image: The full image or rasterio dataset.
+            offsets: List of slice coordinates `(x_min, y_min, x_max, y_max)`.
+
+        Returns:
+            Detections adjusted to full-image coordinates, one per offset.
+        """
+        if _is_windowed_raster(image):
+            slices = []
+            for offset in offsets:
+                x_min, y_min, x_max, y_max = (int(v) for v in offset)
+                window = ((y_min, y_max), (x_min, x_max))
+                with self._raster_read_lock:
+                    bands = image.read(window=window)
+                slices.append(np.ascontiguousarray(np.transpose(bands, (1, 2, 0))))
+            resolution_wh = (image.width, image.height)
+        else:
+            slices = [crop_image(image=image, xyxy=offset) for offset in offsets]
+            resolution_wh = get_image_resolution_wh(image)
+
+        detections_in_slices = self.callback(slices)
+        if not isinstance(detections_in_slices, list):
+            raise ValueError(
+                "Callback must return `list[Detections]` when `batch_size > 1`. "
+                f"Got: {type(detections_in_slices)}"
+            )
+        if len(detections_in_slices) != len(offsets):
+            raise ValueError(
+                f"Callback returned {len(detections_in_slices)} Detections "
+                f"for {len(offsets)} slices. Lengths must match."
+            )
+
+        if self.compact_masks:
+            for det, image_slice in zip(detections_in_slices, slices):
+                if det.mask is not None and isinstance(det.mask, np.ndarray):
+                    slice_w, slice_h = get_image_resolution_wh(image_slice)
+                    det.mask = CompactMask.from_dense(
+                        det.mask,
+                        det.xyxy,
+                        image_shape=(slice_h, slice_w),
+                    )
+
+        if not self._out_of_slice_bounds_warned:
+            for det, offset in zip(detections_in_slices, offsets):
+                if self._out_of_slice_bounds_warned or len(det) == 0:
+                    continue
+                with self._out_of_slice_bounds_lock:
+                    if not self._out_of_slice_bounds_warned and len(det) > 0:
+                        slice_width = offset[2] - offset[0]
+                        slice_height = offset[3] - offset[1]
+                        x_exceeds = np.any(det.xyxy[:, [0, 2]] > slice_width)
+                        y_exceeds = np.any(det.xyxy[:, [1, 3]] > slice_height)
+                        x_negative = np.any(det.xyxy[:, [0, 2]] < 0)
+                        y_negative = np.any(det.xyxy[:, [1, 3]] < 0)
+                        if x_exceeds or y_exceeds or x_negative or y_negative:
+                            self._out_of_slice_bounds_warned = True
+                            warnings.warn(
+                                "Detections returned by the callback have coordinates "
+                                "outside the slice bounds. This may be caused by the "
+                                "callback running inference on the full image instead "
+                                "of the provided image slice. Ensure your callback "
+                                "uses the input slice for inference, not the original "
+                                "full-resolution image.",
+                                category=SupervisionWarnings,
+                                stacklevel=2,
+                            )
+
+        return [
+            move_detections(
+                detections=det, offset=offset[:2], resolution_wh=resolution_wh
+            )
+            for det, offset in zip(detections_in_slices, offsets)
+        ]
 
     @staticmethod
     def _normalize_slice_wh(

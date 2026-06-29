@@ -42,7 +42,7 @@ def main(
     target_video_path: str,
     confidence_threshold: float = 0.3,
     iou_threshold: float = 0.7,
-):
+) -> None:
     """
     Vehicle Speed Estimation using YOLO-NAS and Supervision.
 
