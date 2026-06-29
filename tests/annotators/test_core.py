@@ -42,6 +42,39 @@ from supervision.geometry.core import Position
 from tests.helpers import _create_detections, assert_image_mostly_same
 
 
+class TestAnnotatorMaskPolicy:
+    """Tests for annotator mask materialization policy metadata."""
+
+    @pytest.mark.parametrize(
+        "annotator",
+        [
+            pytest.param(MaskAnnotator(), id="mask"),
+            pytest.param(PolygonAnnotator(), id="polygon"),
+            pytest.param(HaloAnnotator(), id="halo"),
+        ],
+    )
+    def test_mask_required_annotators_declare_mask_requirement(self, annotator):
+        """Annotators that require detections.mask expose the requirement."""
+        assert annotator.requires_mask is True
+
+    @pytest.mark.parametrize(
+        "annotator",
+        [
+            pytest.param(BoxAnnotator(), id="box"),
+            pytest.param(LabelAnnotator(), id="label"),
+            pytest.param(CircleAnnotator(), id="circle"),
+            pytest.param(EllipseAnnotator(), id="ellipse"),
+            pytest.param(TraceAnnotator(), id="trace"),
+            pytest.param(BackgroundOverlayAnnotator(), id="overlay"),
+            pytest.param(BackgroundOverlayAnnotator(force_box=True), id="overlay-box"),
+            pytest.param(ComparisonAnnotator(), id="comparison"),
+        ],
+    )
+    def test_mask_optional_annotators_declare_no_mask_requirement(self, annotator):
+        """Mask-optional annotators do not require mask materialization."""
+        assert annotator.requires_mask is False
+
+
 @pytest.fixture
 def test_image() -> np.ndarray:
     """Create a simple blank test image fixture"""

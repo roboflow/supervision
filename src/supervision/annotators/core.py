@@ -432,6 +432,8 @@ class MaskAnnotator(BaseAnnotator):
         This annotator uses `sv.Detections.mask`.
     """
 
+    requires_mask = True
+
     def __init__(
         self,
         color: Color | ColorPalette | str = ColorPalette.DEFAULT,
@@ -519,6 +521,8 @@ class PolygonAnnotator(BaseAnnotator):
 
         This annotator uses `sv.Detections.mask`.
     """
+
+    requires_mask = True
 
     def __init__(
         self,
@@ -706,6 +710,8 @@ class HaloAnnotator(BaseAnnotator):
 
         This annotator uses `sv.Detections.mask`.
     """
+
+    requires_mask = True
 
     def __init__(
         self,
@@ -3064,6 +3070,8 @@ class ComparisonAnnotator:
     Otherwise, if present, uses a mask.
     Otherwise, uses the bounding box data.
     """
+
+    requires_mask = False
 
     def __init__(
         self,
