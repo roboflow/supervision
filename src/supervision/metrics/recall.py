@@ -9,6 +9,7 @@ import numpy.typing as npt
 from matplotlib import pyplot as plt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import (
     box_iou_batch,
@@ -191,12 +192,18 @@ class Recall(Metric["RecallResult"]):
                         predictions.confidence, dtype=np.float32
                     )
                     if self._metric_target == MetricTarget.BOXES:
-                        iou = box_iou_batch(target_contents, prediction_contents)
+                        # BOXES target never yields CompactMask; narrow for mypy.
+                        iou = box_iou_batch(
+                            cast(npt.NDArray[np.number], target_contents),
+                            cast(npt.NDArray[np.number], prediction_contents),
+                        )
                     elif self._metric_target == MetricTarget.MASKS:
                         iou = mask_iou_batch(target_contents, prediction_contents)
                     elif self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+                        # OBB target never yields CompactMask; narrow for mypy.
                         iou = oriented_box_iou_batch(
-                            target_contents, prediction_contents
+                            cast(npt.NDArray[np.number], target_contents),
+                            cast(npt.NDArray[np.number], prediction_contents),
                         )
                     else:
                         raise ValueError(
@@ -405,13 +412,21 @@ class Recall(Metric["RecallResult"]):
         result_recall: npt.NDArray[np.float64] = recall
         return result_recall
 
-    def _detections_content(self, detections: Detections) -> npt.NDArray[Any]:
-        """Return boxes, masks or oriented bounding boxes from detections."""
+    def _detections_content(
+        self, detections: Detections
+    ) -> npt.NDArray[Any] | CompactMask:
+        """Return boxes, masks or oriented bounding boxes from detections.
+
+        For the mask target this may return a
+        :class:`~supervision.detection.compact_mask.CompactMask` rather than a
+        dense boolean array when the detections carry compact masks.
+        """
         if self._metric_target == MetricTarget.BOXES:
             return cast(npt.NDArray[Any], detections.xyxy)
         if self._metric_target == MetricTarget.MASKS:
             if detections.mask is not None:
-                return cast(npt.NDArray[Any], detections.mask)
+                # detections.mask is NDArray[bool] | CompactMask; return as-is.
+                return detections.mask
             return self._make_empty_content()
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             obb = detections.data.get(ORIENTED_BOX_COORDINATES)

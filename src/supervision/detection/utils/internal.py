@@ -216,8 +216,10 @@ def process_roboflow_result(
     class_id: list[int] = []
     class_name: list[str] = []
     masks: list[npt.NDArray[np.bool_]] = []
-    # Deferred batch COCO-RLE processing (task #8): collect validated pairs, then
-    # call from_coco_rle once after the loop instead of once per prediction.
+    # Deferred COCO-RLE processing: collect validated pairs here, then after the
+    # loop attempt a single batched from_coco_rle call (happy path). If that batch
+    # call fails, fall back to decoding each pending prediction individually for
+    # fault isolation.
     _coco_rle_pending: list[tuple[int, Any, list[float]]] = []  # (xyxy_idx, rle, bbox)
     _polygon_compact_map: dict[int, CompactMask] = {}  # xyxy_idx → CompactMask
     tracker_ids: list[int | None] = []
@@ -325,7 +327,10 @@ def process_roboflow_result(
     if compact_masks:
         # Try a single batched from_coco_rle call for all valid pending items —
         # eliminates N*call overhead on the happy path. On any failure, fall back
-        # to per-prediction decode for fault isolation.
+        # to per-prediction decode so that one malformed payload does not abort the
+        # whole batch. Note: this only isolates the *decode*; if the fallback still
+        # leaves a subset of predictions without masks, the mixed-modality guard
+        # below drops ALL masks to preserve alignment with xyxy.
         _coco_compact_map: dict[int, CompactMask] = {}
         if _coco_rle_pending:
             _pending_indices = [t[0] for t in _coco_rle_pending]

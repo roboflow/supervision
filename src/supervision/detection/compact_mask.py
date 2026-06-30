@@ -8,12 +8,10 @@ bounding-box crop, reducing typical usage to tens of MB.
 The bounding boxes (``xyxy``) already present in ``Detections`` serve as the
 crop boundaries, so no extra metadata is required from the caller.
 
-.. note::
-    :class:`CompactMask` reduces **memory footprint** but does not improve
-    computational speed.  The ingestion path (base48 decode, column split,
-    RLE trim) is Python-level and is typically slower than the dense NumPy
-    path.  The primary benefit is memory savings for large images with many
-    sparse masks.
+CompactMask reduces memory footprint but does not improve computational
+speed. The ingestion path (base48 decode, column split, RLE trim) is
+Python-level and is typically slower than the dense NumPy path. The primary
+benefit is memory savings for large images with many sparse masks.
 """
 
 from __future__ import annotations
@@ -320,6 +318,16 @@ def _rle_trim_col_runs(col_runs: Sequence[int], y1: int, y2: int) -> list[int]:
 
     Returns:
         Run lengths for the cropped column, also starting with a ``False`` run.
+
+    Examples:
+        ```pycon
+        >>> from supervision.detection.compact_mask import _rle_trim_col_runs
+        >>> # Full column F=2, T=2, F=2 (height 6); crop to rows 1..4 inclusive
+        >>> # yields rows [F, T, T, F] → F=1, T=2, F=1.
+        >>> _rle_trim_col_runs([2, 2, 2], y1=1, y2=4)
+        [1, 2, 1]
+
+        ```
     """
     target_height = y2 - y1 + 1
     # Sum invariant: returned list sums to target_height.  Correctness depends
@@ -367,6 +375,14 @@ def _coco_rle_counts_to_array(counts: Any) -> npt.NDArray[np.int32]:
 
     Raises:
         ValueError: If counts cannot be decoded into non-negative run lengths.
+
+    Examples:
+        ```pycon
+        >>> from supervision.detection.compact_mask import _coco_rle_counts_to_array
+        >>> _coco_rle_counts_to_array([0, 2, 2, 2, 10])
+        array([ 0,  2,  2,  2, 10], dtype=int32)
+
+        ```
     """
     try:
         if isinstance(counts, bytes):
@@ -375,7 +391,17 @@ def _coco_rle_counts_to_array(counts: Any) -> npt.NDArray[np.int32]:
             decoded_counts = _delta_decode(_base48_decode(counts))
             counts_arr = np.array(decoded_counts, dtype=np.int32)
         else:
-            counts_arr = np.asarray(counts, dtype=np.int32)
+            # Convert to int64 first, then range-check against int32 bounds before
+            # narrowing. A direct int32 cast wraps silently on some numpy versions
+            # and raises on others; this makes overflow detection deterministic.
+            counts_arr64 = np.asarray(counts, dtype=np.int64)
+            int32_info = np.iinfo(np.int32)
+            if counts_arr64.size and (
+                counts_arr64.max() > int32_info.max
+                or counts_arr64.min() < int32_info.min
+            ):
+                raise ValueError("COCO RLE counts exceed int32 range.")
+            counts_arr = counts_arr64.astype(np.int32)
     except (TypeError, ValueError, OverflowError) as exc:
         raise ValueError("Invalid COCO RLE counts.") from exc
 
@@ -740,8 +766,10 @@ class CompactMask:
             ```pycon
             >>> import numpy as np
             >>> from supervision.detection.compact_mask import CompactMask
-            >>> # "52203": 4x4 mask, 2x2 True block at top-left (COCO F-order RLE)
-            >>> rles = [{"size": [4, 4], "counts": "52203"}]
+            >>> # 4x4 image with a 2x2 True block at the top-left corner.
+            >>> # Uncompressed F-order COCO counts: F=0, T=2, F=2, T=2, F=10
+            >>> # (column-major: col0=[T,T,F,F], col1=[T,T,F,F], cols2-3 all F).
+            >>> rles = [{"size": [4, 4], "counts": [0, 2, 2, 2, 10]}]
             >>> xyxy = np.array([[0, 0, 3, 3]], dtype=np.float32)
             >>> cm = CompactMask.from_coco_rle(rles, xyxy, image_shape=(4, 4))
             >>> cm.shape
@@ -785,6 +813,7 @@ class CompactMask:
                 raise ValueError("Each RLE payload must contain 'size' and 'counts'.")
 
             try:
+                # COCO standard: size=[height, width] (h,w order per pycocotools spec)
                 rle_h, rle_w = rle["size"]
                 rle_h = int(rle_h)
                 rle_w = int(rle_w)
@@ -1064,6 +1093,12 @@ class CompactMask:
     @property
     def area(self) -> npt.NDArray[np.int64]:
         """Compute the area (``True`` pixel count) of each mask.
+
+        Note:
+            The implementation iterates over the N individual RLE arrays in a
+            Python loop (one :func:`_rle_area` call per mask). This is negligible
+            for typical N, but callers processing thousands of detections per
+            frame should be aware of the per-mask Python-level overhead.
 
         Returns:
             int64 array of shape ``(N,)`` with per-mask pixel counts.

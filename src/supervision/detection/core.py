@@ -667,22 +667,25 @@ class Detections:
                 representation.
 
                 Warning:
-                    When `compact_masks=True`, each mask is **cropped to the
-                    detector bounding box** (`xyxy`). For instance-segmentation
-                    models, the detector box may not tightly bound the mask,
-                    so pixels beyond the box boundary are silently dropped.
-                    This means `from_inference(r)` and
-                    `from_inference(r, compact_masks=True)` can return masks
-                    with different areas and IoU for the same payload.
-                    Use `compact_masks=True` only when memory savings outweigh
-                    the sub-pixel boundary loss for your use case.
+                    When `compact_masks=True`, the crop policy depends on how
+                    each prediction encodes its mask:
 
-                    Design note (ADR): `compact_masks: bool` changes the
-                    runtime type of `detections.mask` from `NDArray[bool_]`
-                    to `CompactMask`. All mask consumers must branch on
-                    `isinstance(detections.mask, CompactMask)`. A typed
-                    factory / `mask_format=` enum would be cleaner but would
-                    require a deprecation cycle if introduced later.
+                    - Native size-matched COCO-RLE (the RLE `size` equals the
+                      image size) is **cropped to the detector bounding box**
+                      (`xyxy`). For instance-segmentation models the detector
+                      box may not tightly bound the mask, so pixels beyond the
+                      box boundary are silently dropped.
+                    - Polygon-derived masks (`points`) and size-mismatched
+                      COCO-RLE masks (decoded, then resized to the image) are
+                      retained **full-frame** and lose no pixels.
+
+                    Because only the box-cropped path is lossy,
+                    `from_inference(r)` and
+                    `from_inference(r, compact_masks=True)` can return masks
+                    with different areas and IoU **only** for native
+                    size-matched COCO-RLE predictions. Use `compact_masks=True`
+                    only when the memory savings outweigh the boundary loss on
+                    that path.
 
         Returns:
             A Detections object containing the bounding boxes, class IDs,
@@ -696,6 +699,10 @@ class Detections:
                 preserve alignment with the bounding boxes. Similarly,
                 `detections.mask` is `None` when only a subset of predictions
                 carry masks — all masks are dropped to preserve xyxy alignment.
+                When `compact_masks=True` and all predictions carry mask data,
+                `detections.mask` is a
+                :class:`~supervision.detection.compact_mask.CompactMask` rather
+                than a dense boolean array.
 
         Example:
             ```python
@@ -718,6 +725,11 @@ class Detections:
         elif hasattr(roboflow_result, "json"):
             roboflow_result = roboflow_result.json()
         masks: npt.NDArray[np.bool_] | CompactMask | None
+        # Design note (ADR): the `compact_masks` flag changes the runtime type of
+        # `detections.mask` from `NDArray[bool_]` to `CompactMask`, so every mask
+        # consumer must branch on `isinstance(detections.mask, CompactMask)`. A
+        # typed factory / `mask_format=` enum would be cleaner but would require a
+        # deprecation cycle if introduced later.
         if compact_masks:
             xyxy, confidence, class_id, masks, trackers, data = process_roboflow_result(
                 roboflow_result=roboflow_result, compact_masks=True
@@ -2583,6 +2595,17 @@ class Detections:
         mask pixels. When :attr:`mask` is already a
         :class:`~supervision.detection.compact_mask.CompactMask` or is ``None``,
         the instance is returned unchanged.
+
+        Note:
+            The crop boundaries are set to the **full image dimensions**, not the
+            detector bounding box. No bbox-crop memory savings apply: the RLE
+            sparsity still reduces storage versus a dense array, but the
+            ``O(bbox_area)`` savings available from
+            ``from_inference(..., compact_masks=True)`` are absent here because
+            every crop spans the whole frame. Call
+            :meth:`~supervision.detection.compact_mask.CompactMask.repack` on the
+            resulting mask to tighten crops to their bounding boxes, at the cost
+            of potential pixel loss outside those boxes.
 
         Returns:
             A new :class:`Detections` instance with ``mask`` set to a
