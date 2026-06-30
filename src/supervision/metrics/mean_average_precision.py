@@ -1055,7 +1055,6 @@ class COCOEvaluator:
                 for max_det_idx, max_det in enumerate(selected_max_detections):
                     eval_img_data = [
                         self._state.eval_imgs[cat_offset + area_offset + i]
-                        self.eval_imgs[cat_offset + area_offset + i]
                         for i in image_inds
                     ]
                     eval_img_data = [e for e in eval_img_data if e is not None]
@@ -1210,7 +1209,6 @@ class COCOEvaluator:
             self._compute_average_precision(average_precision_large)
         )
 
-        self._state.results = {
         return {
             "mAP_scores_all_sizes": mAP_scores_all_sizes,
             "ap_per_class_all_sizes": ap_per_class_all_sizes,

@@ -340,31 +340,9 @@ class ByteTrack:
             det = detections[idet]
             if track.state == TrackState.Tracked:
                 track.update(detections[idet], self.state.frame_id)
-                activated_starcks.append(track)
-            else:
-                track.re_activate(det, self.state.frame_id)
-                refind_stracks.append(track)
-
-        """ Step 3: Second association, with low score detection boxes"""
-        # association the untrack to the low score detections
-        if len(dets_second) > 0:
-            """Detections"""
-            detections_second = [
-                STrack(
-                    STrack.tlbr_to_tlwh(tlbr),
-                    score_second,
-                    self.config.minimum_consecutive_frames,
-                    self.state.resources.internal_id_counter,
-                    self.state.resources.external_id_counter,
-                )
-                for (tlbr, score_second) in zip(dets_second, scores_second)
-            ]
-        else:
-            detections_second = []
-                track.update(det, self.frame_id)
                 activated.append(track)
             else:
-                track.re_activate(det, self.frame_id)
+                track.re_activate(det, self.state.frame_id)
                 refind.append(track)
         return activated, refind, u_track, u_detection
 
@@ -392,14 +370,9 @@ class ByteTrack:
             det = detections_second[idet]
             if track.state == TrackState.Tracked:
                 track.update(det, self.state.frame_id)
-                activated_starcks.append(track)
-            else:
-                track.re_activate(det, self.state.frame_id)
-                refind_stracks.append(track)
-                track.update(det, self.frame_id)
                 activated.append(track)
             else:
-                track.re_activate(det, self.frame_id)
+                track.re_activate(det, self.state.frame_id)
                 refind.append(track)
 
         for it in u_track:
@@ -429,32 +402,15 @@ class ByteTrack:
 
         activated, removed = [], []
         for itracked, idet in matches:
-            unconfirmed[itracked].update(detections[idet], self.state.frame_id)
-            activated_starcks.append(unconfirmed[itracked])
-        for it in u_unconfirmed:
-            track = unconfirmed[it]
-            track.state = TrackState.Removed
-            removed_stracks.append(track)
-
-        """ Step 4: Init new stracks"""
-        for inew in u_detection:
-            track = detections[inew]
-            if track.score < self.config.det_thresh:
-                continue
-            track.activate(self.state.resources.kalman_filter, self.state.frame_id)
-            activated_starcks.append(track)
-        """ Step 5: Update state"""
-        for track in self.state.lost_tracks:
-            if self.state.frame_id - track.frame_id > self.config.max_time_lost:
-            unconfirmed[itracked].update(remaining[idet], self.frame_id)
+            unconfirmed[itracked].update(remaining[idet], self.state.frame_id)
             activated.append(unconfirmed[itracked])
         for it in u_unconfirmed:
             unconfirmed[it].state = TrackState.Removed
             removed.append(unconfirmed[it])
         for inew in u_det:
             track = remaining[inew]
-            if track.score >= self.det_thresh:
-                track.activate(self.kalman_filter, self.frame_id)
+            if track.score >= self.config.det_thresh:
+                track.activate(self.state.resources.kalman_filter, self.state.frame_id)
                 activated.append(track)
 
         return activated, removed
