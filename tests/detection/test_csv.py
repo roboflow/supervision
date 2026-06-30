@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import csv
 import os
 from typing import Any
@@ -515,7 +513,7 @@ def test_csv_sink_manual(
     assert_csv_equal(file_name, expected_result)
 
 
-def assert_csv_equal(file_name, expected_rows):
+def assert_csv_equal(file_name, expected_rows) -> None:
     with open(file_name, newline="") as file:
         reader = csv.reader(file)
         for i, row in enumerate(reader):

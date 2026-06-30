@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Iterator
-from typing import Any
+from typing import cast, overload
 
 import numpy as np
 import numpy.typing as npt
@@ -323,9 +323,10 @@ def _rle_resize(
     col_cache: dict[int, list[int]] = {}
     scaled_cols = []
     for src_c in col_map:
-        if src_c not in col_cache:
-            col_cache[src_c] = _rle_scale_col(per_col[src_c], crop_h, row_map)
-        scaled_cols.append(col_cache[src_c])
+        src_c_int = int(src_c)
+        if src_c_int not in col_cache:
+            col_cache[src_c_int] = _rle_scale_col(per_col[src_c_int], crop_h, row_map)
+        scaled_cols.append(col_cache[src_c_int])
 
     return _rle_join_cols(scaled_cols, new_total)
 
@@ -476,7 +477,7 @@ class CompactMask:
     def from_dense(
         cls,
         masks: npt.NDArray[np.bool_],
-        xyxy: npt.NDArray[Any],
+        xyxy: npt.NDArray[np.number],
         image_shape: tuple[int, int],
     ) -> CompactMask:
         """Create a :class:`CompactMask` from a dense ``(N, H, W)`` bool array.
@@ -720,7 +721,7 @@ class CompactMask:
         return np.column_stack((x1, y1, x2, y2)).astype(np.int32, copy=False)
 
     @property
-    def dtype(self) -> np.dtype[Any]:
+    def dtype(self) -> np.dtype[np.bool_]:
         """Return ``np.dtype(bool)`` — always.
 
         Returns:
@@ -763,7 +764,9 @@ class CompactMask:
         """
         return np.array([_rle_area(rle) for rle in self._rles], dtype=np.int64)
 
-    def sum(self, axis: int | tuple[int, ...] | None = None) -> npt.NDArray[Any] | int:
+    def sum(
+        self, axis: int | tuple[int, ...] | None = None
+    ) -> npt.NDArray[np.int64] | np.int64:
         """NumPy-compatible sum with a fast path for per-mask area.
 
         When ``axis=(1, 2)``, returns the per-mask True-pixel count via
@@ -790,11 +793,32 @@ class CompactMask:
         """
         if axis == (1, 2):
             return self.area
-        return self.to_dense().sum(axis=axis)
+        return cast(npt.NDArray[np.int64] | np.int64, self.to_dense().sum(axis=axis))
+
+    @overload
+    def __getitem__(self, index: int | np.integer) -> npt.NDArray[np.bool_]: ...
+
+    @overload
+    def __getitem__(
+        self,
+        index: slice
+        | list[int]
+        | list[bool]
+        | npt.NDArray[np.int_]
+        | npt.NDArray[np.bool_],
+    ) -> CompactMask: ...
 
     def __getitem__(
         self,
-        index: int | slice | list[Any] | npt.NDArray[Any],
+        index: (
+            int
+            | np.integer
+            | slice
+            | list[int]
+            | list[bool]
+            | npt.NDArray[np.int_]
+            | npt.NDArray[np.bool_]
+        ),
     ) -> npt.NDArray[np.bool_] | CompactMask:
         """Index into the mask collection.
 
@@ -860,7 +884,9 @@ class CompactMask:
         new_offsets: npt.NDArray[np.int32] = self._offsets[idx_arr]
         return CompactMask(new_rles, new_crop_shapes, new_offsets, self._image_shape)
 
-    def __array__(self, dtype: np.dtype[Any] | None = None) -> npt.NDArray[Any]:
+    def __array__(
+        self, dtype: np.dtype[np.generic] | None = None
+    ) -> npt.NDArray[np.generic]:
         """NumPy interop: materialise as a dense ``(N, H, W)`` array.
 
         Called by ``np.asarray(compact_mask)`` and similar NumPy functions.

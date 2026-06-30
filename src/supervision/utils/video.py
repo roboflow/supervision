@@ -10,7 +10,8 @@ from collections import deque
 from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from queue import Empty, Full, Queue
-from typing import Any
+from types import TracebackType
+from typing import cast
 
 import cv2
 import numpy as np
@@ -96,18 +97,24 @@ class VideoSink:
         ```
     """  # noqa: E501 // docs
 
-    def __init__(self, target_path: str, video_info: VideoInfo, codec: str = "mp4v"):
+    def __init__(
+        self, target_path: str, video_info: VideoInfo, codec: str = "mp4v"
+    ) -> None:
         self.target_path = target_path
         self.video_info = video_info
         self.__codec = codec
-        self.__writer = None
+        self.__fourcc: int = 0
+        self.__writer: cv2.VideoWriter | None = None
 
     def __enter__(self) -> VideoSink:
+        fourcc_fn = cast(
+            Callable[[str, str, str, str], int], getattr(cv2, "VideoWriter_fourcc")
+        )
         try:
-            self.__fourcc = cv2.VideoWriter_fourcc(*self.__codec)
+            self.__fourcc = int(fourcc_fn(*self.__codec))
         except TypeError as e:
             logger.warning("%s. Defaulting to mp4v...", str(e))
-            self.__fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+            self.__fourcc = int(fourcc_fn(*"mp4v"))
         self.__writer = cv2.VideoWriter(
             self.target_path,
             self.__fourcc,
@@ -131,7 +138,7 @@ class VideoSink:
         self,
         exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
-        exc_traceback: Any,
+        exc_traceback: TracebackType | None,
     ) -> None:
         if self.__writer is not None:
             self.__writer.release()
@@ -271,7 +278,7 @@ def get_video_frames_generator(
         if not success or frame_position >= end:
             break
         if frame is not None:
-            yield frame
+            yield cast(npt.NDArray[np.uint8], frame)
         for _ in range(stride - 1):
             success = video.grab()
             if not success:
@@ -461,7 +468,7 @@ class FPSMonitor:
     A class for monitoring frames per second (FPS) to benchmark latency.
     """
 
-    def __init__(self, sample_size: int = 30):
+    def __init__(self, sample_size: int = 30) -> None:
         """
         Args:
             sample_size: The maximum number of observations for latency

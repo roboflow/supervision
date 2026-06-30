@@ -6,8 +6,6 @@ Verifies that with compact_masks=True:
 - Final detections are pixel-identical to the compact_masks=False path.
 """
 
-from __future__ import annotations
-
 import numpy as np
 
 import supervision as sv
