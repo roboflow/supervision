@@ -321,21 +321,16 @@ def process_roboflow_result(
     )
     masks_arr: npt.NDArray[np.bool_] | CompactMask | None
     if compact_masks:
-        # Batch-process deferred COCO-RLE items in a single from_coco_rle call.
+        # Process each deferred COCO-RLE item individually so a single bad
+        # payload degrades only that prediction (not the whole batch).
         _coco_compact_map: dict[int, CompactMask] = {}
-        if _coco_rle_pending:
-            _rle_dicts = [r for _, r, _ in _coco_rle_pending]
-            _batch_xyxy = np.array(
-                [xy for _, _, xy in _coco_rle_pending], dtype=np.float64
-            )
+        for _xyxy_idx, _rle_dict, _bbox in _coco_rle_pending:
             try:
-                _batch_cm = CompactMask.from_coco_rle(
-                    _rle_dicts, _batch_xyxy, (image_height, image_width)
+                _single_xyxy = np.array([_bbox], dtype=np.float64)
+                _single_cm = CompactMask.from_coco_rle(
+                    [_rle_dict], _single_xyxy, (image_height, image_width)
                 )
-                for _local_idx, (_xyxy_idx, _, _) in enumerate(_coco_rle_pending):
-                    _coco_compact_map[_xyxy_idx] = _batch_cm[
-                        _local_idx : _local_idx + 1
-                    ]
+                _coco_compact_map[_xyxy_idx] = _single_cm[0:1]
             except (
                 ValueError,
                 AssertionError,
@@ -344,8 +339,9 @@ def process_roboflow_result(
                 OverflowError,
             ) as exc:
                 logger.warning(
-                    "Batched compact RLE decode failed; dropping %d masks. Reason: %s",
-                    len(_coco_rle_pending),
+                    "Compact RLE decode failed for prediction at index %d; "
+                    "dropping that mask. Reason: %s",
+                    _xyxy_idx,
                     exc,
                 )
         _all_compact = {**_coco_compact_map, **_polygon_compact_map}

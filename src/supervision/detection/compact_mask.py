@@ -80,6 +80,14 @@ def _rle_split_cols(
     are consumed without being stored, which avoids O(W) allocation when
     only a small crop of a wide image is needed.
 
+    Note:
+        ``x_start`` is a **storage** optimisation only — column traversal
+        still begins at column 0 and walks the full RLE prefix.  For N masks
+        whose boxes sit near the right edge of a wide image, this gives
+        O(N x R) Python iterations (R = run count).  A vectorised alternative
+        using ``np.cumsum(counts)`` + ``np.searchsorted`` would reduce the
+        prefix cost to O(R) per call but is not implemented here.
+
     Args:
         rle: int32 run-length array as produced by
             :func:`~supervision.detection.utils.converters._mask_to_rle_counts`.
@@ -684,7 +692,7 @@ class CompactMask:
     def from_coco_rle(
         cls,
         rles: Sequence[Mapping[str, Any]],
-        xyxy: npt.NDArray[Any],
+        xyxy: npt.NDArray[np.floating],
         image_shape: tuple[int, int],
     ) -> CompactMask:
         """Create a :class:`CompactMask` from full-frame COCO RLE masks.

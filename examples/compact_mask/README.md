@@ -557,7 +557,15 @@ uv run python examples/compact_mask/bench_inference_api.py --asset vehicles
 uv run python examples/compact_mask/bench_inference_api.py --asset people-walking-video
 ```
 
-The output reports image size, segmented objects, median parser time, peak traced allocations, mask storage, and parser speedup (`dense parser time / compact parser time`). The speedup is not a blanket decode-speed claim: compact parsing wins when dense `(N, H, W)` allocation dominates large sparse results, and can be slower on small dense masks where Python RLE arithmetic dominates. The default run includes a `synthetic-dense-64` row to show that adversarial regime. For each real source with segmentation masks, the script also writes a validation overlay to `examples/compact_mask/outputs/*_segmentations.jpg`.
+The output reports image size, segmented objects, median parser time, peak traced allocations, mask storage, and parser speedup (`dense parser time / compact parser time`).
+
+**Speedup column:** The `speedup` value reflects allocation savings — how much time is saved by skipping the dense `(N, H, W)` bool-stack allocation — not a faster RLE decode. Compact RLE arithmetic is typically slower than the dense NumPy path. The net result:
+
+- **Compact is faster** only when the dense `(N, H, W)` bool-stack allocation dominates — large images with many sparse masks where avoiding that allocation outweighs the RLE arithmetic cost.
+- **Compact is slower** for small images or dense/overlapping masks, where Python RLE arithmetic dominates and the allocation cost is negligible.
+- **The primary guaranteed benefit is memory**: compact masks use roughly 99% less memory than dense stacks for typical segmentation output, regardless of which parse direction is faster.
+
+The default run includes a `synthetic-dense-64` row (64×64 image, 4 fully-filled masks) to demonstrate the adversarial regime where compact is slower than dense. For each real source with segmentation masks, the script also writes a validation overlay to `examples/compact_mask/outputs/*_segmentations.jpg`.
 
 Six image tiers x three fill fractions (5 / 20 / 50 %) x three vertex counts (8 / 128 / 600):
 

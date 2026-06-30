@@ -666,6 +666,24 @@ class Detections:
                 The default `False` preserves the existing dense NumPy mask
                 representation.
 
+                Warning:
+                    When `compact_masks=True`, each mask is **cropped to the
+                    detector bounding box** (`xyxy`). For instance-segmentation
+                    models, the detector box may not tightly bound the mask,
+                    so pixels beyond the box boundary are silently dropped.
+                    This means `from_inference(r)` and
+                    `from_inference(r, compact_masks=True)` can return masks
+                    with different areas and IoU for the same payload.
+                    Use `compact_masks=True` only when memory savings outweigh
+                    the sub-pixel boundary loss for your use case.
+
+                    Design note (ADR): `compact_masks: bool` changes the
+                    runtime type of `detections.mask` from `NDArray[bool_]`
+                    to `CompactMask`. All mask consumers must branch on
+                    `isinstance(detections.mask, CompactMask)`. A typed
+                    factory / `mask_format=` enum would be cleaner but would
+                    require a deprecation cycle if introduced later.
+
         Returns:
             A Detections object containing the bounding boxes, class IDs,
                 and confidences of the predictions.

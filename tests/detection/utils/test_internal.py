@@ -661,6 +661,49 @@ def test_process_roboflow_result_compact_masks_overflow_rle_is_box_only() -> Non
     np.testing.assert_array_equal(result[0], np.array([[0.5, 0.5, 2.5, 2.5]]))
 
 
+def test_process_roboflow_result_compact_masks_partial_failure_drops_all_masks() -> (
+    None
+):
+    """One invalid RLE in a two-prediction batch drops all masks but keeps both xyxy."""
+    roboflow_result = {
+        "predictions": [
+            {
+                "x": 1.5,
+                "y": 1.5,
+                "width": 2.0,
+                "height": 2.0,
+                "confidence": 0.9,
+                "class_id": 0,
+                "class": "person",
+                "rle": {"size": [4, 4], "counts": "52203"},  # valid: sum == 16
+            },
+            {
+                "x": 3.5,
+                "y": 3.5,
+                "width": 2.0,
+                "height": 2.0,
+                "confidence": 0.8,
+                "class_id": 1,
+                "class": "car",
+                "rle": {
+                    "size": [4, 4],
+                    "counts": [1, 2, 3],
+                },  # invalid: sum == 6, not 16
+            },
+        ],
+        "image": {"width": 4, "height": 4},
+    }
+
+    result = process_roboflow_result(
+        roboflow_result=roboflow_result, compact_masks=True
+    )
+
+    # Mixed-modality: one mask decoded, one failed → all masks dropped for alignment.
+    assert result[3] is None
+    # Both detections preserved in xyxy.
+    assert result[0].shape == (2, 4)
+
+
 def test_process_roboflow_result_uses_rle_mask_when_rle_invalid() -> None:
     """Valid rle_mask should be used when rle is present but invalid."""
     roboflow_result = {

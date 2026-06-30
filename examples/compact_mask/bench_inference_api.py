@@ -126,7 +126,14 @@ def count_rle_predictions(result: dict[str, Any]) -> int:
 
 
 def synthetic_dense_small_result() -> tuple[np.ndarray, str, dict[str, Any]]:
-    """Return a small dense-mask payload where compact parsing can be slower."""
+    """Return a small dense-mask adversarial payload where compact parsing is slower.
+
+    Uses a 64x64 image with 4 fully-filled masks. At this scale the dense
+    ``(N, H, W)`` allocation cost is negligible; Python RLE arithmetic dominates,
+    making compact ingestion slower than the dense NumPy path. Included as a
+    clearly labeled adversarial row in the default benchmark run to show that
+    the ``speedup`` column reflects allocation savings, not decode speed.
+    """
     height, width = 64, 64
     image = np.zeros((height, width, 3), dtype=np.uint8)
     predictions = [
@@ -420,8 +427,10 @@ def print_summary(results: list[ApiBenchmarkResult], reps: int, warmup: int) -> 
             [
                 f"timings are median of {reps} reps after {warmup} warmups",
                 "peak MB and mask MB are dense/compact",
-                "speedup is dense parser time / compact parser time",
-                "compact can be <1x on small dense masks",
+                "speedup = dense / compact parse time; gains are allocation-driven"
+                " (avoiding the dense (N,H,W) bool-stack), not faster RLE decode",
+                "compact RLE arithmetic is typically slower than the dense NumPy path"
+                " — synthetic-dense-64 shows this adversarial regime (speedup < 1x)",
                 "OK means compact.to_dense() exactly matches dense masks",
             ]
         )
