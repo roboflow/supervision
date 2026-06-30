@@ -8176,10 +8176,10 @@ as the video name, camera parameters, timestamp, or other global metadata.</p>
 </span><span id="__span-0-666"><a id="__codelineno-0-666" name="__codelineno-0-666"></a><span class="sd">                or absent. `detections.tracker_id` is `None` when no</span>
 </span><span id="__span-0-667"><a id="__codelineno-0-667" name="__codelineno-0-667"></a><span class="sd">                predictions carry a tracker ID, or when only a subset do</span>
 </span><span id="__span-0-668"><a id="__codelineno-0-668" name="__codelineno-0-668"></a><span class="sd">                (mixed batch) — in that case all tracker IDs are dropped to</span>
-</span><span id="__span-0-669"><a id="__codelineno-0-669" name="__codelineno-0-669"></a><span class="sd">                preserve alignment with the bounding boxes. Note: mixed</span>
-</span><span id="__span-0-670"><a id="__codelineno-0-670" name="__codelineno-0-670"></a><span class="sd">                batches containing both RLE/polygon predictions and box-only</span>
-</span><span id="__span-0-671"><a id="__codelineno-0-671" name="__codelineno-0-671"></a><span class="sd">                predictions may misalign the `mask` array; this is a</span>
-</span><span id="__span-0-672"><a id="__codelineno-0-672" name="__codelineno-0-672"></a><span class="sd">                pre-existing limitation not addressed by this fix.</span>
+</span><span id="__span-0-669"><a id="__codelineno-0-669" name="__codelineno-0-669"></a><span class="sd">                preserve alignment with the bounding boxes.</span>
+</span><span id="__span-0-670"><a id="__codelineno-0-670" name="__codelineno-0-670"></a><span class="sd">                `detections.mask` is `None` when no predictions include mask</span>
+</span><span id="__span-0-671"><a id="__codelineno-0-671" name="__codelineno-0-671"></a><span class="sd">                data, or when only a subset do (mixed batch) — in that case</span>
+</span><span id="__span-0-672"><a id="__codelineno-0-672" name="__codelineno-0-672"></a><span class="sd">                all masks are dropped to preserve alignment.</span>
 </span><span id="__span-0-673"><a id="__codelineno-0-673" name="__codelineno-0-673"></a>
 </span><span id="__span-0-674"><a id="__codelineno-0-674" name="__codelineno-0-674"></a><span class="sd">        Example:</span>
 </span><span id="__span-0-675"><a id="__codelineno-0-675" name="__codelineno-0-675"></a><span class="sd">            ```python</span>
@@ -11934,10 +11934,10 @@ empty (shape <code>(0,)</code>, dtype str) when <code>predictions</code> is empt
 or absent. <code>detections.tracker_id</code> is <code>None</code> when no
 predictions carry a tracker ID, or when only a subset do
 (mixed batch) — in that case all tracker IDs are dropped to
-preserve alignment with the bounding boxes. Note: mixed
-batches containing both RLE/polygon predictions and box-only
-predictions may misalign the <code>mask</code> array; this is a
-pre-existing limitation not addressed by this fix.</p>
+preserve alignment with the bounding boxes.
+<code>detections.mask</code> is <code>None</code> when no predictions include mask
+data, or when only a subset do (mixed batch) — in that case
+all masks are dropped to preserve alignment.</p>
               </div>
             </td>
           </tr>
@@ -12043,10 +12043,10 @@ pre-existing limitation not addressed by this fix.</p>
 </span><span id="__span-0-666"><a id="__codelineno-0-666" name="__codelineno-0-666"></a><span class="sd">            or absent. `detections.tracker_id` is `None` when no</span>
 </span><span id="__span-0-667"><a id="__codelineno-0-667" name="__codelineno-0-667"></a><span class="sd">            predictions carry a tracker ID, or when only a subset do</span>
 </span><span id="__span-0-668"><a id="__codelineno-0-668" name="__codelineno-0-668"></a><span class="sd">            (mixed batch) — in that case all tracker IDs are dropped to</span>
-</span><span id="__span-0-669"><a id="__codelineno-0-669" name="__codelineno-0-669"></a><span class="sd">            preserve alignment with the bounding boxes. Note: mixed</span>
-</span><span id="__span-0-670"><a id="__codelineno-0-670" name="__codelineno-0-670"></a><span class="sd">            batches containing both RLE/polygon predictions and box-only</span>
-</span><span id="__span-0-671"><a id="__codelineno-0-671" name="__codelineno-0-671"></a><span class="sd">            predictions may misalign the `mask` array; this is a</span>
-</span><span id="__span-0-672"><a id="__codelineno-0-672" name="__codelineno-0-672"></a><span class="sd">            pre-existing limitation not addressed by this fix.</span>
+</span><span id="__span-0-669"><a id="__codelineno-0-669" name="__codelineno-0-669"></a><span class="sd">            preserve alignment with the bounding boxes.</span>
+</span><span id="__span-0-670"><a id="__codelineno-0-670" name="__codelineno-0-670"></a><span class="sd">            `detections.mask` is `None` when no predictions include mask</span>
+</span><span id="__span-0-671"><a id="__codelineno-0-671" name="__codelineno-0-671"></a><span class="sd">            data, or when only a subset do (mixed batch) — in that case</span>
+</span><span id="__span-0-672"><a id="__codelineno-0-672" name="__codelineno-0-672"></a><span class="sd">            all masks are dropped to preserve alignment.</span>
 </span><span id="__span-0-673"><a id="__codelineno-0-673" name="__codelineno-0-673"></a>
 </span><span id="__span-0-674"><a id="__codelineno-0-674" name="__codelineno-0-674"></a><span class="sd">    Example:</span>
 </span><span id="__span-0-675"><a id="__codelineno-0-675" name="__codelineno-0-675"></a><span class="sd">        ```python</span>
