@@ -540,11 +540,7 @@ sv.Detections.from_inference(result)
 sv.Detections.from_inference(result, compact_masks=True)
 ```
 
-Timing repetitions, warmups, confidence, IoU, response mask format, and the default model live as constants in `bench_inference_api.py`:
-
-```bash
-uv run python examples/compact_mask/bench_inference_api.py
-```
+Timing repetitions, warmups, confidence, IoU, response mask format, and the default model live as constants in `bench_inference_api.py`.
 
 Inference runs and segmentation-derived box fields are outside the timed benchmark loop. By default the script uses `rfdetr-seg-large` with `response_mask_format="rle"`; set `BENCH_INFERENCE_MODEL_ID` to override the model. Set `ROBOFLOW_API_KEY` when your model requires authentication. Sources where the model returns no native RLE segmentation masks are skipped because there is no RLE parser work to benchmark. `rfdetr-large` is a valid local Inference model id, but it is object detection only; use an `rfdetr-seg-*` model for instance segmentation.
 
