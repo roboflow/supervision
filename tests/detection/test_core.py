@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import warnings
 from contextlib import ExitStack as DoesNotRaise
 
@@ -251,6 +249,16 @@ def test_detections_non_bool_mask_warns_with_migration_path() -> None:
             ),
             DoesNotRaise(),
         ),
+        # Scenario: Select a single detection using a NumPy integer index.
+        # Expected: A Detections object containing only that element.
+        (
+            DETECTIONS,
+            np.int64(0),
+            _create_detections(
+                xyxy=[[2254, 906, 2447, 1353]], confidence=[0.90538], class_id=[0]
+            ),
+            DoesNotRaise(),
+        ),
         # Scenario: Select a range of detections using a slice.
         # Expected: Detections within the slice range are returned.
         (
@@ -298,7 +306,7 @@ def test_detections_non_bool_mask_warns_with_migration_path() -> None:
 )
 def test_getitem(
     detections: Detections,
-    index: int | slice | list[int] | np.ndarray,
+    index: int | np.integer | slice | list[int] | np.ndarray,
     expected_result: Detections | None,
     exception: Exception,
 ) -> None:
@@ -310,6 +318,28 @@ def test_getitem(
     with exception:
         result = detections[index]
         assert result == expected_result
+
+
+def test_select_returns_detection_subset() -> None:
+    """Select returns a typed Detections subset for row indexes."""
+    result = TEST_DET_1.select([0, 2])
+
+    assert result == Detections(
+        xyxy=np.array([[10, 10, 20, 20], [50, 50, 60, 60]]),
+        mask=np.array([TEST_MASK, TEST_MASK]),
+        confidence=np.array([0.1, 0.3]),
+        class_id=np.array([1, 3]),
+        tracker_id=np.array([1, 3]),
+        data={"some_key": [1, 3], "other_key": [["1", "2"], ["5", "6"]]},
+    )
+
+
+def test_get_data_returns_detection_data_value() -> None:
+    """Get data returns the stored data value or None."""
+    result = TEST_DET_1.get_data("some_key")
+
+    assert result == [1, 2, 3]
+    assert TEST_DET_1.get_data("missing") is None
 
 
 @pytest.mark.parametrize(
@@ -882,7 +912,7 @@ def test_merge_inner_detection_object_pair(
     detection_2: Detections,
     expected_result: Detections | None,
     exception: Exception,
-):
+) -> None:
     with exception:
         result = merge_inner_detection_object_pair(detection_1, detection_2)
         assert result == expected_result
@@ -981,6 +1011,46 @@ def test_from_inference_partial_tracker_id_does_not_crash() -> None:
     assert np.array_equal(detections.confidence, np.array([0.9, 0.8]))
     assert detections.xyxy.shape == (2, 4)
     assert detections["class_name"] is not None
+
+
+def test_from_inference_partial_mask_does_not_crash() -> None:
+    """Results where only some predictions carry a mask must not raise."""
+    result = {
+        "image": {"width": 100, "height": 100},
+        "predictions": [
+            {
+                "x": 20,
+                "y": 20,
+                "width": 20,
+                "height": 20,
+                "confidence": 0.9,
+                "class": "a",
+                "class_id": 0,
+                "points": [
+                    {"x": 10, "y": 10},
+                    {"x": 30, "y": 10},
+                    {"x": 30, "y": 30},
+                    {"x": 10, "y": 30},
+                ],
+            },
+            {
+                "x": 70,
+                "y": 70,
+                "width": 20,
+                "height": 20,
+                "confidence": 0.8,
+                "class": "b",
+                "class_id": 1,
+            },
+        ],
+    }
+
+    detections = Detections.from_inference(result)
+
+    # all detections are kept; masks are dropped rather than misaligned
+    assert len(detections) == 2
+    assert detections.mask is None
+    assert detections.xyxy.shape == (2, 4)
 
 
 def test_from_inference_empty_class_name_dtype_matches_non_empty() -> None:

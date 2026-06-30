@@ -1,6 +1,4 @@
-from __future__ import annotations
-
-from typing import Any, Literal, cast
+from typing import Literal, cast
 
 import cv2
 import numpy as np
@@ -11,7 +9,7 @@ from supervision.detection.compact_mask import CompactMask
 
 def move_masks(
     masks: npt.NDArray[np.bool_],
-    offset: npt.NDArray[np.int32],
+    offset: npt.NDArray[np.integer],
     resolution_wh: tuple[int, int],
 ) -> npt.NDArray[np.bool_]:
     """
@@ -88,7 +86,7 @@ def move_masks(
 
 
 def calculate_masks_centroids(
-    masks: npt.NDArray[Any] | CompactMask,
+    masks: npt.NDArray[np.bool_] | CompactMask,
 ) -> npt.NDArray[np.int_]:
     """
     Calculate the centroids of binary masks in a tensor.
@@ -260,7 +258,9 @@ def contains_multiple_segments(
     return bool(number_of_labels > 2)
 
 
-def resize_masks(masks: npt.NDArray[Any], max_dimension: int = 640) -> npt.NDArray[Any]:
+def resize_masks(
+    masks: npt.NDArray[np.bool_], max_dimension: int = 640
+) -> npt.NDArray[np.bool_]:
     """
     Resize all masks in the array to have a maximum dimension of max_dimension,
     maintaining aspect ratio.
@@ -374,19 +374,17 @@ def filter_segments_by_distance(
 
     height, width = mask.shape
     if not np.any(mask):
-        return mask.copy()
+        return cast(npt.NDArray[np.bool_], mask.copy())
 
-    image = mask.astype(np.uint8)
-    num_labels: int
-    labels: npt.NDArray[np.int32]
-    stats: npt.NDArray[np.int32]
-    centroids: npt.NDArray[np.float64]
-    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(
-        image, connectivity=connectivity
-    )
+    image = cast(npt.NDArray[np.uint8], mask.astype(np.uint8))
+    components = cv2.connectedComponentsWithStats(image, connectivity=connectivity)
+    num_labels = int(components[0])
+    labels = cast(npt.NDArray[np.int32], components[1])
+    stats = cast(npt.NDArray[np.int32], components[2])
+    centroids = cast(npt.NDArray[np.float64], components[3])
 
     if num_labels <= 1:
-        return mask.copy()
+        return cast(npt.NDArray[np.bool_], mask.copy())
 
     areas = stats[1:, cv2.CC_STAT_AREA]
     main_label = 1 + int(np.argmax(areas))

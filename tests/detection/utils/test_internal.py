@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from contextlib import ExitStack as DoesNotRaise
 from typing import Any
 
@@ -438,17 +436,14 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
                 np.array([[0.5, 0.5, 2.5, 2.5], [2.0, 2.0, 4.0, 4.0]]),
                 np.array([0.9, 0.8]),
                 np.array([0, 1]),
-                # NOTE: known misalignment — masks has 1 entry, xyxy has 2.
-                # Mixed RLE + box-only batches produce mask arrays shorter than
-                # xyxy; constructing Detections from this result would raise
-                # ValueError. This is a pre-existing limitation shared by the
-                # polygon + box-only path.
-                TEST_RLE_MASK,
+                # When only some predictions carry a mask, all masks are dropped
+                # so the result stays aligned with xyxy (mirrors tracker_id).
+                None,
                 None,
                 {CLASS_NAME_DATA_FIELD: np.array(["person", "car"])},
             ),
             DoesNotRaise(),
-        ),  # mixed RLE + box-only batch — masks misaligned with xyxy (known limitation)
+        ),  # mixed RLE + box-only batch — masks dropped to preserve alignment
         pytest.param(
             {
                 "predictions": [
@@ -750,7 +745,7 @@ def test_merge_data(
     data_list: list[dict[str, Any]],
     expected_result: dict[str, Any] | None,
     exception: Exception,
-):
+) -> None:
     with exception:
         result = merge_data(data_list=data_list)
         if expected_result is None:
@@ -926,7 +921,7 @@ def test_get_data_item(
     index: Any,
     expected_result: dict[str, Any] | None,
     exception: Exception,
-):
+) -> None:
     with exception:
         result = get_data_item(data=data, index=index)
         for key in result:
@@ -1103,7 +1098,7 @@ def test_get_data_item(
         ),
     ],
 )
-def test_merge_metadata(metadata_list, expected_result, exception):
+def test_merge_metadata(metadata_list, expected_result, exception) -> None:
     with exception:
         result = merge_metadata(metadata_list)
         if expected_result is None:

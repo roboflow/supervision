@@ -1,7 +1,5 @@
 """Tests for show_progress parameter on dataset load/save operations."""
 
-from __future__ import annotations
-
 import json
 import os
 from pathlib import Path
