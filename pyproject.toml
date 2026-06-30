@@ -187,11 +187,11 @@ quiet-level = 3
 
 [tool.mypy]
 mypy_path = "src"
+exclude = [ "examples", "tests" ]
 explicit_package_bases = true
 ignore_missing_imports = false
 python_version = "3.10"
 strict = true
-exclude = ["examples", "tests"]
 
 [tool.pytest]
 ini_options.norecursedirs = [ ".git", ".venv", "build", "dist", "docs", "examples", "notebooks" ]
