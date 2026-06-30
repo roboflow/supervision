@@ -191,10 +191,7 @@ explicit_package_bases = true
 ignore_missing_imports = false
 python_version = "3.10"
 strict = true
-overrides = [ { module = [
-  "examples.*",
-  "tests.*",
-], ignore_errors = true } ]
+overrides = [ { module = [ "examples.*", "tests.*" ], ignore_errors = true } ]
 
 [tool.pytest]
 ini_options.norecursedirs = [ ".git", ".venv", "build", "dist", "docs", "examples", "notebooks" ]
