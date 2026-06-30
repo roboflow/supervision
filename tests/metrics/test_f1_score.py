@@ -69,6 +69,26 @@ class TestF1Score:
 
         assert content is compact_mask
 
+    def test_compute_with_compact_mask_matches_dense(self) -> None:
+        """F1Score.compute() produces identical f1_50 for CompactMask and dense."""
+        masks = np.zeros((1, 50, 50), dtype=bool)
+        masks[0, 10:20, 10:20] = True
+        xyxy = np.array([[10, 10, 19, 19]], dtype=np.float64)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(50, 50))
+        det_dense = Detections(
+            xyxy=xyxy, mask=masks, confidence=np.array([0.9]), class_id=np.array([0])
+        )
+        det_compact = Detections(
+            xyxy=xyxy, mask=cm, confidence=np.array([0.9]), class_id=np.array([0])
+        )
+        metric = F1Score(metric_target=MetricTarget.MASKS)
+
+        r_dense = metric.update(det_dense, det_dense).compute()
+        metric.reset()
+        r_compact = metric.update(det_compact, det_compact).compute()
+
+        assert r_dense.f1_50 == pytest.approx(r_compact.f1_50)
+
     def test_reset(self, dummy_prediction):
         """Test that reset() clears all stored data"""
         metric = F1Score()

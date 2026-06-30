@@ -223,6 +223,11 @@ class TestFromCocoRle:
                 np.array([[3, 2, 1, 2]], dtype=np.float32),
                 id="invalid-box",
             ),
+            pytest.param(
+                np.array([[[True]]], dtype=bool),
+                np.array([[0, 0, 0, 0]], dtype=np.float32),
+                id="single-pixel-image",
+            ),
         ],
     )
     def test_matches_dense_reference(self, masks: np.ndarray, xyxy: np.ndarray) -> None:
@@ -371,6 +376,38 @@ class TestFromCocoRle:
 
         assert compact.shape == (1, 4, 4)
 
+    def test_large_image_column_split_path(self) -> None:
+        """from_coco_rle hits column-split path on large images (H*W > 307200)."""
+        H, W = 720, 1280
+        assert H * W > 640 * 480, (
+            "test must use image above _SMALL_IMAGE_DENSE_THRESHOLD"
+        )
+        rng = np.random.default_rng(42)
+        mask = rng.integers(0, 2, (H, W), dtype=np.uint8).astype(bool)
+        xyxy = np.array([[0, 0, W - 1, H - 1]], dtype=np.float32)
+        rle = {"size": [H, W], "counts": mask_to_rle(mask, compressed=True)}
+
+        compact = CompactMask.from_coco_rle(rles=[rle], xyxy=xyxy, image_shape=(H, W))
+        reference = CompactMask.from_dense(mask[np.newaxis], xyxy, image_shape=(H, W))
+
+        np.testing.assert_array_equal(compact.to_dense(), reference.to_dense())
+
+    def test_bytes_counts_match_string_counts(self) -> None:
+        """from_coco_rle accepts bytes-encoded compressed counts."""
+        # Both encodings of "52203" should produce identical crops.
+        rle_str = {"size": [4, 4], "counts": "52203"}
+        rle_bytes = {"size": [4, 4], "counts": b"52203"}
+        xyxy = np.array([[0, 0, 3, 3]], dtype=np.float32)
+
+        cm_str = CompactMask.from_coco_rle(
+            rles=[rle_str], xyxy=xyxy, image_shape=(4, 4)
+        )
+        cm_bytes = CompactMask.from_coco_rle(
+            rles=[rle_bytes], xyxy=xyxy, image_shape=(4, 4)
+        )
+
+        np.testing.assert_array_equal(cm_str.to_dense(), cm_bytes.to_dense())
+
 
 class TestCocoRleCountsToArray:
     """Tests for _coco_rle_counts_to_array input-format decoding."""
@@ -420,6 +457,7 @@ class TestRleTrimColRuns:
             pytest.param([2, 1, 2], 5, 2, 2, id="single-row-crop"),
             pytest.param([1, 3, 2], 6, 2, 4, id="straddles-both-bounds"),
             pytest.param([3, 2, 1], 6, 4, 5, id="starts-inside-true-run"),
+            pytest.param([0, 6], 6, 1, 4, id="all-true-col-interior-crop"),
         ],
     )
     def test_matches_decode_slice_encode(

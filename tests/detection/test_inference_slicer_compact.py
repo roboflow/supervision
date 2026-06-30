@@ -112,7 +112,8 @@ class TestInferenceSlicerCompactMasks:
         )
 
     def test_compact_masks_preserve_pixels_outside_detector_box(self) -> None:
-        """compact_masks=True preserves tile mask pixels outside xyxy."""
+        """compact_masks=True crops to the full tile, so mask pixels outside the
+        detection xyxy box (but inside the tile) are preserved."""
         image = np.zeros((100, 100, 3), dtype=np.uint8)
 
         def callback(tile: np.ndarray) -> Detections:

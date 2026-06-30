@@ -1363,3 +1363,84 @@ def test_merge_metadata(metadata_list, expected_result, exception) -> None:
                 np.testing.assert_array_equal(value, expected_result[key])
             else:
                 assert value == expected_result[key]
+
+
+def test_process_roboflow_result_compact_masks_batch_retry_logs_warning(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Batch RLE failure triggers per-prediction retry; mixed-modality drops masks."""
+    import logging
+
+    roboflow_result = {
+        "predictions": [
+            {
+                "x": 1.5,
+                "y": 1.5,
+                "width": 2.0,
+                "height": 2.0,
+                "confidence": 0.9,
+                "class_id": 0,
+                "class": "person",
+                "rle": {"size": [4, 4], "counts": "52203"},
+            },
+            {
+                "x": 3.5,
+                "y": 3.5,
+                "width": 2.0,
+                "height": 2.0,
+                "confidence": 0.8,
+                "class_id": 1,
+                "class": "car",
+                "rle": {"size": [4, 4], "counts": "52203"},
+            },
+            {
+                "x": 1.5,
+                "y": 1.5,
+                "width": 2.0,
+                "height": 2.0,
+                "confidence": 0.7,
+                "class_id": 2,
+                "class": "bike",
+                # sum=6 != 16 — triggers batch failure → per-prediction retry
+                "rle": {"size": [4, 4], "counts": [1, 2, 3]},
+            },
+        ],
+        "image": {"width": 4, "height": 4},
+    }
+
+    with caplog.at_level(logging.WARNING):
+        result = process_roboflow_result(
+            roboflow_result=roboflow_result, compact_masks=True
+        )
+
+    # Batch call fails, per-prediction retry produces 2/3 decoded → mixed-modality drop.
+    assert "Batch compact RLE decode failed" in caplog.text
+    assert result[3] is None
+    assert result[0].shape == (3, 4)
+
+
+def test_process_roboflow_result_compact_masks_rle_mask_size_mismatch() -> None:
+    """rle_mask key + size mismatch triggers resize fallback with compact_masks=True."""
+    roboflow_result = {
+        "predictions": [
+            {
+                "x": 2.0,
+                "y": 2.0,
+                "width": 4.0,
+                "height": 4.0,
+                "confidence": 0.9,
+                "class_id": 0,
+                "class": "person",
+                # RLE is 2x2; image is 4x4 — size mismatch triggers resize fallback.
+                "rle_mask": {"size": [2, 2], "counts": [0, 4]},
+            }
+        ],
+        "image": {"width": 4, "height": 4},
+    }
+    dense_result = process_roboflow_result(roboflow_result=roboflow_result)
+    compact_result = process_roboflow_result(
+        roboflow_result=roboflow_result, compact_masks=True
+    )
+
+    assert isinstance(compact_result[3], CompactMask)
+    np.testing.assert_array_equal(compact_result[3].to_dense(), dense_result[3])

@@ -1160,6 +1160,42 @@ def test_from_inference_compact_masks_crops_to_detector_bbox() -> None:
     assert compact_dense[0].sum() == 1
 
 
+def test_from_inference_compact_masks_multiple_predictions_matches_dense() -> None:
+    """compact_masks=True with N>1 predictions exercises batched from_coco_rle."""
+    result = {
+        "predictions": [
+            {
+                "x": 1.5,
+                "y": 1.5,
+                "width": 3.0,
+                "height": 3.0,
+                "confidence": 0.9,
+                "class_id": 0,
+                "class": "person",
+                "rle_mask": {"size": [4, 4], "counts": "52203"},
+            },
+            {
+                "x": 1.5,
+                "y": 1.5,
+                "width": 3.0,
+                "height": 3.0,
+                "confidence": 0.8,
+                "class_id": 1,
+                "class": "car",
+                "rle_mask": {"size": [4, 4], "counts": [0, 16]},
+            },
+        ],
+        "image": {"width": 4, "height": 4},
+    }
+    dense = Detections.from_inference(result)
+    compact = Detections.from_inference(result, compact_masks=True)
+
+    assert isinstance(compact.mask, CompactMask)
+    assert len(compact) == 2
+    assert dense.mask is not None
+    np.testing.assert_array_equal(compact.mask.to_dense(), dense.mask)
+
+
 def test_from_inference_compact_masks_empty_preserves_data_contract() -> None:
     """compact_masks=True empty results should keep class_name string dtype."""
     result = {"predictions": [], "image": {"width": 100, "height": 100}}
@@ -1207,6 +1243,17 @@ class TestDetectionsToCompactMasks:
         result = detections.to_compact_masks()
 
         assert result is detections
+
+    def test_empty_dense_mask_converts_to_empty_compact_mask(self) -> None:
+        """Empty dense mask (N=0) converts to an empty CompactMask."""
+        xyxy = np.empty((0, 4), dtype=np.float64)
+        masks = np.empty((0, 10, 10), dtype=bool)
+        detections = Detections(xyxy=xyxy, mask=masks)
+
+        result = detections.to_compact_masks()
+
+        assert isinstance(result.mask, CompactMask)
+        assert len(result.mask) == 0
 
 
 def _rotated_rect(
