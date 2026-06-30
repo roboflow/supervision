@@ -666,10 +666,10 @@ class Detections:
                 or absent. `detections.tracker_id` is `None` when no
                 predictions carry a tracker ID, or when only a subset do
                 (mixed batch) — in that case all tracker IDs are dropped to
-                preserve alignment with the bounding boxes. Note: mixed
-                batches containing both RLE/polygon predictions and box-only
-                predictions may misalign the `mask` array; this is a
-                pre-existing limitation not addressed by this fix.
+                preserve alignment with the bounding boxes.
+                `detections.mask` is `None` when no predictions include mask
+                data, or when only a subset do (mixed batch) — in that case
+                all masks are dropped to preserve alignment.
 
         Example:
             ```python
