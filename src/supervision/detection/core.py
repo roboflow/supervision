@@ -697,8 +697,9 @@ class Detections:
                 predictions carry a tracker ID, or when only a subset do
                 (mixed batch) — in that case all tracker IDs are dropped to
                 preserve alignment with the bounding boxes. Similarly,
-                `detections.mask` is `None` when only a subset of predictions
-                carry masks — all masks are dropped to preserve xyxy alignment.
+                `detections.mask` is `None` when no predictions include mask
+                data, or when only a subset carry masks — all masks are dropped
+                to preserve xyxy alignment.
                 When `compact_masks=True` and all predictions carry mask data,
                 `detections.mask` is a
                 :class:`~supervision.detection.compact_mask.CompactMask` rather

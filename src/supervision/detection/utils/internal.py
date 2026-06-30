@@ -127,6 +127,23 @@ def _resolve_rle_mask(
         return None, None
 
 
+def _all_present_or_none(
+    values: list[Any],
+    label: str,
+    dtype: npt.DTypeLike,
+) -> npt.NDArray[Any] | None:
+    # Identity check (`v is None`) is required when values may contain numpy arrays:
+    # `None in values` triggers element-wise comparison and raises ValueError.
+    missing = sum(v is None for v in values)
+    if 0 < missing < len(values):
+        logger.warning(
+            "Partial %s in batch; dropping all to preserve alignment with xyxy.", label
+        )
+    if not values or missing > 0:
+        return None
+    return np.array(values, dtype=dtype)
+
+
 @overload
 def process_roboflow_result(
     roboflow_result: dict[str, Any],
@@ -215,7 +232,7 @@ def process_roboflow_result(
     confidence: list[float] = []
     class_id: list[int] = []
     class_name: list[str] = []
-    masks: list[npt.NDArray[np.bool_]] = []
+    masks: list[npt.NDArray[np.bool_] | None] = []
     # Deferred COCO-RLE processing: collect validated pairs here, then after the
     # loop attempt a single batched from_coco_rle call (happy path). If that batch
     # call fails, fall back to decoding each pending prediction individually for
@@ -286,6 +303,7 @@ def process_roboflow_result(
             class_id.append(prediction["class_id"])
             class_name.append(prediction["class"])
             confidence.append(prediction["confidence"])
+            masks.append(None)
             tracker_ids.append(prediction.get("tracker_id"))
         elif len(prediction["points"]) >= 3:
             polygon = np.array(
@@ -394,24 +412,9 @@ def process_roboflow_result(
             CompactMask.merge(compact_mask_parts) if compact_mask_parts else None
         )
     else:
-        if 0 < len(masks) < len(xyxy):
-            logger.warning(
-                "Mixed-modality batch: %d of %d predictions carry masks; "
-                "dropping all masks to preserve alignment with xyxy.",
-                len(masks),
-                len(xyxy),
-            )
-            masks = []
-        masks_arr = np.array(masks, dtype=bool) if len(masks) > 0 else None
-    if tracker_ids and 0 < tracker_ids.count(None) < len(tracker_ids):
-        logger.warning(
-            "Partial tracker_id in batch; dropping all tracker_ids to preserve "
-            "alignment with xyxy."
-        )
-    tracker_id_arr: npt.NDArray[np.integer] | None = (
-        np.array(tracker_ids, dtype=np.int64)
-        if tracker_ids and None not in tracker_ids
-        else None
+        masks_arr = _all_present_or_none(masks, "mask", dtype=bool)
+    tracker_id_arr: npt.NDArray[np.integer] | None = _all_present_or_none(
+        tracker_ids, "tracker_id", dtype=np.int64
     )
     data: _DetectionDataType = {CLASS_NAME_DATA_FIELD: class_name_arr}
 
