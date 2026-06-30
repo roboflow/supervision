@@ -510,8 +510,8 @@ _PARALLEL_THRESHOLD: int = 8
 _MAX_IMAGE_DIMENSION: int = 32768
 # Images at or below this pixel count use a fully-vectorised numpy dense-decode
 # path inside from_coco_rle instead of the pure-Python column-split loop.
-# Dense allocation is cheap at this scale, but the Python loop is not.
-_SMALL_IMAGE_DENSE_THRESHOLD: int = 640 * 480
+# Crossover measured at ~8-16 K px (128x128); threshold set at 128x128 = 16 384.
+_SMALL_IMAGE_DENSE_THRESHOLD: int = 128 * 128
 
 
 def _resize_crop(
@@ -872,11 +872,9 @@ class CompactMask:
                     flat = np.cumsum(indicator[:-1], dtype=np.int32).astype(np.uint8)
                 else:
                     flat = np.zeros(img_h * img_w, dtype=np.uint8)
-                # Extract crop in column-major (F-order) order.
-                col_offsets = np.arange(x1c, x2c + 1, dtype=np.int64) * img_h
-                row_offsets = np.arange(y1c, y2c + 1, dtype=np.int64)
-                flat_crop = flat[
-                    col_offsets[:, np.newaxis] + row_offsets[np.newaxis, :]
+                # Extract crop: reshape to (img_w, img_h) F-order view, slice.
+                flat_crop = flat.reshape(img_w, img_h)[
+                    x1c : x2c + 1, y1c : y2c + 1
                 ].ravel()
                 # RLE-encode the flat crop: find value-change positions.
                 change_pos = np.where(np.diff(flat_crop.view(np.int8)))[0] + 1
