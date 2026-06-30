@@ -1119,8 +1119,13 @@ def test_from_inference_compact_masks_matches_dense_default() -> None:
     np.testing.assert_array_equal(compact["class_name"], dense["class_name"])
 
 
-def test_from_inference_compact_masks_preserves_out_of_bbox_pixels() -> None:
-    """compact_masks=True preserves mask pixels outside the detector bbox."""
+def test_from_inference_compact_masks_crops_to_detector_bbox() -> None:
+    """compact_masks=True crops masks to the detector bbox; pixels outside are dropped.
+
+    This is the documented behaviour (see Warning in Detections.from_inference):
+    each mask is cropped to its detector bbox, so True pixels outside that box
+    are not stored.  Dense masks are unaffected and preserve the full mask.
+    """
     # Mask has True at (row=0,col=0) [inside bbox] and (row=3,col=3) [outside bbox].
     # counts=[0,1,14,1,0]: 0 False, 1 True (pos 0), 14 False, 1 True (pos 15), 0 False.
     # Bbox x_min=0,y_min=0,x_max=2,y_max=2 (int-truncated) covers cols 0-2, rows 0-2.
@@ -1144,12 +1149,15 @@ def test_from_inference_compact_masks_preserves_out_of_bbox_pixels() -> None:
 
     assert dense.mask is not None
     assert isinstance(compact.mask, CompactMask)
-    # Dense preserves both True pixels.
+    # Dense preserves both True pixels (full-image RLE decode, no cropping).
     assert dense.mask[0].sum() == 2
     assert bool(dense.mask[0, 0, 0])
     assert bool(dense.mask[0, 3, 3])
+    # Compact crops to detector bbox (cols 0-2, rows 0-2): out-of-bbox pixel dropped.
     compact_dense = compact.mask.to_dense()
-    np.testing.assert_array_equal(compact_dense, dense.mask)
+    assert bool(compact_dense[0, 0, 0]), "in-bbox pixel must be preserved"
+    assert not bool(compact_dense[0, 3, 3]), "out-of-bbox pixel silently dropped"
+    assert compact_dense[0].sum() == 1
 
 
 def test_from_inference_compact_masks_empty_preserves_data_contract() -> None:

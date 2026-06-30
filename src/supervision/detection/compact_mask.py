@@ -81,12 +81,9 @@ def _rle_split_cols(
     only a small crop of a wide image is needed.
 
     Note:
-        ``x_start`` is a **storage** optimisation only — column traversal
-        still begins at column 0 and walks the full RLE prefix.  For N masks
-        whose boxes sit near the right edge of a wide image, this gives
-        O(N x R) Python iterations (R = run count).  A vectorised alternative
-        using ``np.cumsum(counts)`` + ``np.searchsorted`` would reduce the
-        prefix cost to O(R) per call but is not implemented here.
+        ``x_start`` uses ``np.cumsum`` + ``np.searchsorted`` to jump directly
+        to the first relevant run in O(log R) time, avoiding the O(pixel_prefix)
+        walk that previously made right-edge crops on wide images expensive.
 
     Args:
         rle: int32 run-length array as produced by
@@ -129,10 +126,27 @@ def _rle_split_cols(
 
     n_cols = x_stop - x_start + 1
     per_col: list[list[int]] = [[] for _ in range(n_cols)]
-    col = 0
-    row = 0
 
-    for run_idx, run_len in enumerate(rle_list):
+    # Fast-forward to the first run that overlaps column x_start using O(log R)
+    # searchsorted instead of an O(pixel_prefix) sequential walk.
+    start_pixel = x_start * crop_h
+    if start_pixel > 0 and len(rle_list) > 0:
+        cumsum_ends = np.cumsum(rle, dtype=np.int64)
+        first_run = int(np.searchsorted(cumsum_ends, start_pixel, side="right"))
+        if first_run >= len(rle_list):
+            for c in range(n_cols):
+                per_col[c] = [crop_h]
+            return per_col
+        prefix = int(cumsum_ends[first_run - 1]) if first_run > 0 else 0
+    else:
+        first_run = 0
+        prefix = 0
+
+    col = prefix // crop_h
+    row = prefix % crop_h
+
+    for run_idx in range(first_run, len(rle_list)):
+        run_len = rle_list[run_idx]
         is_true = run_idx % 2 == 1
         remaining = run_len
         while remaining > 0:
@@ -468,6 +482,10 @@ _PARALLEL_THRESHOLD: int = 8
 # Hard ceiling on each image dimension accepted by from_coco_rle, guarding
 # against crafted payloads that allocate O(H x W) column lists.
 _MAX_IMAGE_DIMENSION: int = 32768
+# Images at or below this pixel count use a fully-vectorised numpy dense-decode
+# path inside from_coco_rle instead of the pure-Python column-split loop.
+# Dense allocation is cheap at this scale, but the Python loop is not.
+_SMALL_IMAGE_DENSE_THRESHOLD: int = 640 * 480
 
 
 def _resize_crop(
@@ -807,9 +825,43 @@ class CompactMask:
             y2c = max(0, min(y2i, img_h - 1))
             crop_h = y2c - y1c + 1
             crop_w = x2c - x1c + 1
-            cols = _rle_split_cols(counts, img_h, img_w, x_start=x1c, x_stop=x2c)
-            selected_columns = [_rle_trim_col_runs(col, y1c, y2c) for col in cols]
-            crop_rles.append(_rle_join_cols(selected_columns, crop_h * crop_w))
+
+            if img_h * img_w <= _SMALL_IMAGE_DENSE_THRESHOLD:
+                # Small image: vectorised numpy decode avoids the O(img_w)-column
+                # Python loop. Decode RLE to flat F-order bool, extract crop, and
+                # re-encode directly.
+                ends = np.cumsum(counts, dtype=np.int64)
+                starts = ends - counts.astype(np.int64)
+                # Mark True runs (odd-indexed) via difference-array decode (O(R)).
+                true_starts = starts[1::2]
+                true_ends = ends[1::2]
+                if true_starts.size > 0:
+                    indicator = np.zeros(img_h * img_w + 1, dtype=np.int32)
+                    np.add.at(indicator, true_starts, 1)
+                    np.add.at(indicator, true_ends, -1)
+                    # cumsum in int32 avoids int8 overflow; cast to uint8 (0/1).
+                    flat = np.cumsum(indicator[:-1], dtype=np.int32).astype(np.uint8)
+                else:
+                    flat = np.zeros(img_h * img_w, dtype=np.uint8)
+                # Extract crop in column-major (F-order) order.
+                col_offsets = np.arange(x1c, x2c + 1, dtype=np.int64) * img_h
+                row_offsets = np.arange(y1c, y2c + 1, dtype=np.int64)
+                flat_crop = flat[
+                    col_offsets[:, np.newaxis] + row_offsets[np.newaxis, :]
+                ].ravel()
+                # RLE-encode the flat crop: find value-change positions.
+                change_pos = np.where(np.diff(flat_crop.view(np.int8)))[0] + 1
+                boundaries = np.concatenate([[0], change_pos, [len(flat_crop)]])
+                run_lens = np.diff(boundaries)
+                if flat_crop[0]:
+                    run_lens = np.concatenate([[0], run_lens])
+                crop_rle_arr = run_lens.astype(np.int32)
+            else:
+                cols = _rle_split_cols(counts, img_h, img_w, x_start=x1c, x_stop=x2c)
+                selected_columns = [_rle_trim_col_runs(col, y1c, y2c) for col in cols]
+                crop_rle_arr = _rle_join_cols(selected_columns, crop_h * crop_w)
+
+            crop_rles.append(crop_rle_arr)
             crop_shapes_list.append((crop_h, crop_w))
             offsets_list.append((x1c, y1c))
 

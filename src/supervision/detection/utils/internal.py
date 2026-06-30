@@ -267,11 +267,13 @@ def process_roboflow_result(
                     _polygon_compact_map[xyxy_idx] = compact_mask
                 else:
                     # Main COCO-RLE path: (h, w) == image size; defer to batch.
+                    # Pass the detector bbox so _rle_split_cols only walks
+                    # crop columns, not the full image width.
                     _coco_rle_pending.append(
                         (
                             xyxy_idx,
                             rle_data,
-                            [0, 0, image_width - 1, image_height - 1],
+                            [x_min, y_min, x_max, y_max],
                         )
                     )
             elif mask is not None:
@@ -321,29 +323,56 @@ def process_roboflow_result(
     )
     masks_arr: npt.NDArray[np.bool_] | CompactMask | None
     if compact_masks:
-        # Process each deferred COCO-RLE item individually so a single bad
-        # payload degrades only that prediction (not the whole batch).
+        # Try a single batched from_coco_rle call for all valid pending items —
+        # eliminates N*call overhead on the happy path. On any failure, fall back
+        # to per-prediction decode for fault isolation.
         _coco_compact_map: dict[int, CompactMask] = {}
-        for _xyxy_idx, _rle_dict, _bbox in _coco_rle_pending:
+        if _coco_rle_pending:
+            _pending_indices = [t[0] for t in _coco_rle_pending]
+            _pending_rles = [t[1] for t in _coco_rle_pending]
+            _pending_xyxy = np.array(
+                [t[2] for t in _coco_rle_pending], dtype=np.float64
+            )
             try:
-                _single_xyxy = np.array([_bbox], dtype=np.float64)
-                _single_cm = CompactMask.from_coco_rle(
-                    [_rle_dict], _single_xyxy, (image_height, image_width)
+                _batch_cm = CompactMask.from_coco_rle(
+                    _pending_rles, _pending_xyxy, (image_height, image_width)
                 )
-                _coco_compact_map[_xyxy_idx] = _single_cm[0:1]
+                for _local_idx, _global_idx in enumerate(_pending_indices):
+                    _coco_compact_map[_global_idx] = _batch_cm[
+                        _local_idx : _local_idx + 1
+                    ]
             except (
                 ValueError,
                 AssertionError,
                 KeyError,
                 TypeError,
                 OverflowError,
-            ) as exc:
+            ) as _batch_exc:
                 logger.warning(
-                    "Compact RLE decode failed for prediction at index %d; "
-                    "dropping that mask. Reason: %s",
-                    _xyxy_idx,
-                    exc,
+                    "Batch compact RLE decode failed (%s); retrying "
+                    "per-prediction for fault isolation.",
+                    _batch_exc,
                 )
+                for _xyxy_idx, _rle_dict, _bbox in _coco_rle_pending:
+                    try:
+                        _single_xyxy = np.array([_bbox], dtype=np.float64)
+                        _single_cm = CompactMask.from_coco_rle(
+                            [_rle_dict], _single_xyxy, (image_height, image_width)
+                        )
+                        _coco_compact_map[_xyxy_idx] = _single_cm[0:1]
+                    except (
+                        ValueError,
+                        AssertionError,
+                        KeyError,
+                        TypeError,
+                        OverflowError,
+                    ) as exc:
+                        logger.warning(
+                            "Compact RLE decode failed for prediction at index %d; "
+                            "dropping that mask. Reason: %s",
+                            _xyxy_idx,
+                            exc,
+                        )
         _all_compact = {**_coco_compact_map, **_polygon_compact_map}
         compact_mask_parts: list[CompactMask] = [
             _all_compact[i] for i in sorted(_all_compact.keys())
