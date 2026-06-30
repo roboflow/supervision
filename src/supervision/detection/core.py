@@ -664,10 +664,7 @@ class Detections:
             compact_masks: When `True`, return segmentation masks as
                 :class:`~supervision.detection.compact_mask.CompactMask`.
                 The default `False` preserves the existing dense NumPy mask
-                representation. Note: the compact path crops each mask to the
-                detection bounding box; any True pixels outside the reported
-                bbox are silently dropped. The dense path (``False``) preserves
-                all True pixels regardless of the bbox.
+                representation.
 
         Returns:
             A Detections object containing the bounding boxes, class IDs,
@@ -693,15 +690,24 @@ class Detections:
 
             result = model.infer(image)[0]
             detections = sv.Detections.from_inference(result)
+            compact_detections = sv.Detections.from_inference(
+                result, compact_masks=True
+            )
             ```
         """
         if hasattr(roboflow_result, "dict"):
             roboflow_result = roboflow_result.dict(exclude_none=True, by_alias=True)
         elif hasattr(roboflow_result, "json"):
             roboflow_result = roboflow_result.json()
-        xyxy, confidence, class_id, masks, trackers, data = process_roboflow_result(
-            roboflow_result=roboflow_result, compact_masks=compact_masks
-        )
+        masks: npt.NDArray[np.bool_] | CompactMask | None
+        if compact_masks:
+            xyxy, confidence, class_id, masks, trackers, data = process_roboflow_result(
+                roboflow_result=roboflow_result, compact_masks=True
+            )
+        else:
+            xyxy, confidence, class_id, masks, trackers, data = process_roboflow_result(
+                roboflow_result=roboflow_result
+            )
 
         if np.asarray(xyxy).shape[0] == 0:
             empty_detection = cls.empty()
@@ -2555,8 +2561,8 @@ class Detections:
         """Return a copy of this Detections with masks converted to CompactMask.
 
         The dense :attr:`mask` field (``NDArray[np.bool_]``) is converted to a
-        :class:`~supervision.detection.compact_mask.CompactMask` using the
-        detection bounding boxes as crop regions. When :attr:`mask` is already a
+        :class:`~supervision.detection.compact_mask.CompactMask` without changing
+        mask pixels. When :attr:`mask` is already a
         :class:`~supervision.detection.compact_mask.CompactMask` or is ``None``,
         the instance is returned unchanged.
 
@@ -2580,12 +2586,19 @@ class Detections:
 
         if self.mask is None or isinstance(self.mask, CompactMask):
             return self
+        image_shape = (int(self.mask.shape[1]), int(self.mask.shape[2]))
+        full_image_xyxy = np.tile(
+            np.array(
+                [[0, 0, image_shape[1] - 1, image_shape[0] - 1]], dtype=np.float64
+            ),
+            (len(self), 1),
+        )
         new = self.__class__(
             xyxy=self.xyxy,
             mask=CompactMask.from_dense(
                 masks=self.mask,
-                xyxy=self.xyxy.astype(np.float64),
-                image_shape=self.mask.shape[1:],
+                xyxy=full_image_xyxy,
+                image_shape=image_shape,
             ),
             confidence=self.confidence,
             class_id=self.class_id,

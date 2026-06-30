@@ -1119,8 +1119,8 @@ def test_from_inference_compact_masks_matches_dense_default() -> None:
     np.testing.assert_array_equal(compact["class_name"], dense["class_name"])
 
 
-def test_from_inference_compact_masks_drops_out_of_bbox_pixels() -> None:
-    """compact path drops out-of-bbox pixels; dense path preserves all True pixels."""
+def test_from_inference_compact_masks_preserves_out_of_bbox_pixels() -> None:
+    """compact_masks=True preserves mask pixels outside the detector bbox."""
     # Mask has True at (row=0,col=0) [inside bbox] and (row=3,col=3) [outside bbox].
     # counts=[0,1,14,1,0]: 0 False, 1 True (pos 0), 14 False, 1 True (pos 15), 0 False.
     # Bbox x_min=0,y_min=0,x_max=2,y_max=2 (int-truncated) covers cols 0-2, rows 0-2.
@@ -1146,13 +1146,10 @@ def test_from_inference_compact_masks_drops_out_of_bbox_pixels() -> None:
     assert isinstance(compact.mask, CompactMask)
     # Dense preserves both True pixels.
     assert dense.mask[0].sum() == 2
-    assert dense.mask[0, 0, 0] is np.bool_(True)
-    assert dense.mask[0, 3, 3] is np.bool_(True)
-    # Compact drops (row=3,col=3) because it is outside the int-truncated bbox.
+    assert bool(dense.mask[0, 0, 0])
+    assert bool(dense.mask[0, 3, 3])
     compact_dense = compact.mask.to_dense()
-    assert compact_dense[0, 0, 0] is np.bool_(True)
-    assert compact_dense[0, 3, 3] is np.bool_(False)
-    assert compact_dense[0].sum() < dense.mask[0].sum()
+    np.testing.assert_array_equal(compact_dense, dense.mask)
 
 
 def test_from_inference_compact_masks_empty_preserves_data_contract() -> None:
@@ -1170,19 +1167,17 @@ class TestDetectionsToCompactMasks:
     """Tests for Detections.to_compact_masks."""
 
     def test_dense_mask_converts_to_compact_mask(self) -> None:
-        """Dense masks are converted to bbox-cropped CompactMask instances."""
+        """Dense masks are converted to lossless CompactMask instances."""
         mask = np.zeros((1, 4, 5), dtype=bool)
         mask[0, 1:3, 1:4] = True
         mask[0, 0, 0] = True
         xyxy = np.array([[1, 1, 4, 3]], dtype=np.float64)
         detections = Detections(xyxy=xyxy, mask=mask)
-        expected_dense = np.zeros_like(mask)
-        expected_dense[0, 1:3, 1:4] = True
 
         result = detections.to_compact_masks()
 
         assert isinstance(result.mask, CompactMask)
-        np.testing.assert_array_equal(result.mask.to_dense(), expected_dense)
+        np.testing.assert_array_equal(result.mask.to_dense(), mask)
         np.testing.assert_array_equal(result.xyxy, detections.xyxy)
 
     def test_compact_mask_returns_same_instance(self) -> None:

@@ -1,6 +1,6 @@
 import logging
 from itertools import chain
-from typing import Any, cast
+from typing import Any, Literal, cast, overload
 
 import cv2
 import numpy as np
@@ -13,6 +13,28 @@ from supervision.detection.utils.converters import polygon_to_mask, rle_to_mask
 from supervision.geometry.core import Vector
 
 logger = logging.getLogger(__name__)
+
+
+def _full_image_xyxy(
+    count: int,
+    image_height: int,
+    image_width: int,
+    dtype: npt.DTypeLike = np.float64,
+) -> npt.NDArray[Any]:
+    """Return full-frame inclusive boxes for lossless mask compaction."""
+    return np.tile(
+        np.array([[0, 0, image_width - 1, image_height - 1]], dtype=dtype),
+        (count, 1),
+    )
+
+
+def _valid_rle_payload(prediction: dict[str, Any]) -> dict[str, Any] | None:
+    """Return the first valid RLE payload from ``rle`` then ``rle_mask``."""
+    for key in ("rle", "rle_mask"):
+        rle_data = prediction.get(key)
+        if isinstance(rle_data, dict) and {"size", "counts"}.issubset(rle_data):
+            return rle_data
+    return None
 
 
 def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | None:
@@ -96,13 +118,43 @@ def _resolve_rle_mask(
                 interpolation=cv2.INTER_NEAREST,
             ).astype(bool)
         return mask, None
-    except (ValueError, AssertionError, KeyError, TypeError) as exc:
+    except (ValueError, AssertionError, KeyError, TypeError, OverflowError) as exc:
         logger.warning(
             "Failed to decode RLE mask payload; falling back to box-only "
             "detection. Reason: %s",
             exc,
         )
         return None, None
+
+
+@overload
+def process_roboflow_result(
+    roboflow_result: dict[str, Any],
+    *,
+    compact_masks: Literal[False] = False,
+) -> tuple[
+    npt.NDArray[np.floating],
+    npt.NDArray[np.floating],
+    npt.NDArray[np.integer],
+    npt.NDArray[np.bool_] | None,
+    npt.NDArray[np.integer] | None,
+    _DetectionDataType,
+]: ...
+
+
+@overload
+def process_roboflow_result(
+    roboflow_result: dict[str, Any],
+    *,
+    compact_masks: Literal[True],
+) -> tuple[
+    npt.NDArray[np.floating],
+    npt.NDArray[np.floating],
+    npt.NDArray[np.integer],
+    CompactMask | None,
+    npt.NDArray[np.integer] | None,
+    _DetectionDataType,
+]: ...
 
 
 def process_roboflow_result(
@@ -183,12 +235,7 @@ def process_roboflow_result(
         x_max = x_min + width
         y_max = y_min + height
 
-        rle_data = prediction.get("rle") or prediction.get("rle_mask")
-        if not isinstance(rle_data, dict) or not {
-            "size",
-            "counts",
-        }.issubset(rle_data):
-            rle_data = None
+        rle_data = _valid_rle_payload(prediction)
         mask: npt.NDArray[np.bool_] | None = None
         compact_mask: CompactMask | None = None
         if rle_data is not None:
@@ -204,7 +251,7 @@ def process_roboflow_result(
                 if compact_masks and mask is not None:
                     compact_mask = CompactMask.from_dense(
                         masks=mask[np.newaxis, ...],
-                        xyxy=np.array([[x_min, y_min, x_max, y_max]], dtype=np.float64),
+                        xyxy=_full_image_xyxy(1, image_height, image_width),
                         image_shape=(image_height, image_width),
                     )
             # else: _pending set → deferred to batch; mask and compact_mask stay None
@@ -221,7 +268,11 @@ def process_roboflow_result(
                 else:
                     # Main COCO-RLE path: (h, w) == image size; defer to batch.
                     _coco_rle_pending.append(
-                        (xyxy_idx, rle_data, [x_min, y_min, x_max, y_max])
+                        (
+                            xyxy_idx,
+                            rle_data,
+                            [0, 0, image_width - 1, image_height - 1],
+                        )
                     )
             elif mask is not None:
                 masks.append(mask)
@@ -247,7 +298,7 @@ def process_roboflow_result(
             if compact_masks:
                 _polygon_compact_map[xyxy_idx] = CompactMask.from_dense(
                     masks=mask[np.newaxis, ...],
-                    xyxy=np.array([[x_min, y_min, x_max, y_max]], dtype=np.float64),
+                    xyxy=_full_image_xyxy(1, image_height, image_width),
                     image_shape=(image_height, image_width),
                 )
             else:
@@ -285,7 +336,13 @@ def process_roboflow_result(
                     _coco_compact_map[_xyxy_idx] = _batch_cm[
                         _local_idx : _local_idx + 1
                     ]
-            except (ValueError, AssertionError, KeyError, TypeError) as exc:
+            except (
+                ValueError,
+                AssertionError,
+                KeyError,
+                TypeError,
+                OverflowError,
+            ) as exc:
                 logger.warning(
                     "Batched compact RLE decode failed; dropping %d masks. Reason: %s",
                     len(_coco_rle_pending),

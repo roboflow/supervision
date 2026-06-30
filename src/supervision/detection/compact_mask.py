@@ -25,9 +25,9 @@ from typing import Any, cast, overload
 import numpy as np
 import numpy.typing as npt
 
-# _base48_decode and _delta_decode are private to the COCO RLE codec.
-# They live in converters.py but are only used here; move them to this
-# module if converters.py is ever split or these symbols need versioning.
+# _base48_decode and _delta_decode are private to the COCO RLE codec. They
+# live in converters.py and are shared by public conversion helpers here and
+# in that module.
 from supervision.detection.utils.converters import (
     _base48_decode,
     _delta_decode,
@@ -354,11 +354,13 @@ def _coco_rle_counts_to_array(counts: Any) -> npt.NDArray[np.int32]:
             counts_arr = np.array(decoded_counts, dtype=np.int32)
         else:
             counts_arr = np.asarray(counts, dtype=np.int32)
-    except (TypeError, ValueError) as exc:
+    except (TypeError, ValueError, OverflowError) as exc:
         raise ValueError("Invalid COCO RLE counts.") from exc
 
     if counts_arr.ndim != 1:
         raise ValueError("COCO RLE counts must be one-dimensional.")
+    if counts_arr.size == 0:
+        raise ValueError("COCO RLE counts cannot be empty.")
     if np.any(counts_arr < 0):
         raise ValueError("COCO RLE counts must be non-negative.")
     return counts_arr
@@ -647,21 +649,29 @@ class CompactMask:
 
         for mask_idx in range(num_masks):
             x1, y1, x2, y2 = xyxy[mask_idx]
-            x1c = int(max(0, min(int(x1), img_w - 1)))
-            y1c = int(max(0, min(int(y1), img_h - 1)))
-            x2c = int(max(0, min(int(x2), img_w - 1)))
-            y2c = int(max(0, min(int(y2), img_h - 1)))
+            x1i, y1i, x2i, y2i = int(x1), int(y1), int(x2), int(y2)
+            x1c = int(max(0, min(x1i, img_w - 1)))
+            y1c = int(max(0, min(y1i, img_h - 1)))
             crop: npt.NDArray[np.bool_]
 
             # supervision xyxy uses inclusive max coords, so slicing must add +1.
-            if x2c < x1c or y2c < y1c:
+            if (
+                x2i < x1i
+                or y2i < y1i
+                or x2i < 0
+                or y2i < 0
+                or x1i >= img_w
+                or y1i >= img_h
+            ):
                 crop = np.zeros((1, 1), dtype=bool)
-                x2c, y2c = x1c, y1c
+                crop_h = 1
+                crop_w = 1
             else:
+                x2c = int(max(0, min(x2i, img_w - 1)))
+                y2c = int(max(0, min(y2i, img_h - 1)))
                 crop = masks[mask_idx, y1c : y2c + 1, x1c : x2c + 1]
-
-            crop_h = y2c - y1c + 1
-            crop_w = x2c - x1c + 1
+                crop_h = y2c - y1c + 1
+                crop_w = x2c - x1c + 1
             rles.append(_mask_to_rle_counts(crop))
             crop_shapes_list.append((crop_h, crop_w))
             offsets_list.append((x1c, y1c))
@@ -768,17 +778,25 @@ class CompactMask:
                 )
 
             x1, y1, x2, y2 = xyxy_arr[mask_idx]
-            x1c = max(0, min(int(x1), img_w - 1))
-            y1c = max(0, min(int(y1), img_h - 1))
-            x2c = max(0, min(int(x2), img_w - 1))
-            y2c = max(0, min(int(y2), img_h - 1))
+            x1i, y1i, x2i, y2i = int(x1), int(y1), int(x2), int(y2)
+            x1c = max(0, min(x1i, img_w - 1))
+            y1c = max(0, min(y1i, img_h - 1))
 
-            if x2c < x1c or y2c < y1c:
+            if (
+                x2i < x1i
+                or y2i < y1i
+                or x2i < 0
+                or y2i < 0
+                or x1i >= img_w
+                or y1i >= img_h
+            ):
                 crop_rles.append(np.array([1], dtype=np.int32))
                 crop_shapes_list.append((1, 1))
                 offsets_list.append((x1c, y1c))
                 continue
 
+            x2c = max(0, min(x2i, img_w - 1))
+            y2c = max(0, min(y2i, img_h - 1))
             crop_h = y2c - y1c + 1
             crop_w = x2c - x1c + 1
             cols = _rle_split_cols(counts, img_h, img_w, x_start=x1c, x_stop=x2c)

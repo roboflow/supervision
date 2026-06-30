@@ -125,6 +125,33 @@ def count_rle_predictions(result: dict[str, Any]) -> int:
     )
 
 
+def synthetic_dense_small_result() -> tuple[np.ndarray, str, dict[str, Any]]:
+    """Return a small dense-mask payload where compact parsing can be slower."""
+    height, width = 64, 64
+    image = np.zeros((height, width, 3), dtype=np.uint8)
+    predictions = [
+        {
+            "x": width / 2,
+            "y": height / 2,
+            "width": width,
+            "height": height,
+            "confidence": 0.9,
+            "class_id": index,
+            "class": f"dense-{index}",
+            "rle": {"size": [height, width], "counts": [0, height * width]},
+        }
+        for index in range(4)
+    ]
+    return (
+        image,
+        "synthetic-dense-64",
+        {
+            "predictions": predictions,
+            "image": {"width": width, "height": height},
+        },
+    )
+
+
 def derive_boxes_from_rle_masks(result: dict[str, Any]) -> dict[str, Any]:
     """Set prediction boxes from native RLE segmentation masks."""
     predictions = []
@@ -367,7 +394,7 @@ def print_summary(results: list[ApiBenchmarkResult], reps: int, warmup: int) -> 
     table.add_column("seg", justify="right")
     table.add_column("dense ms", justify="right")
     table.add_column("CM ms", justify="right", style="green")
-    table.add_column("gain", justify="right")
+    table.add_column("speedup", justify="right")
     table.add_column("peak MB", justify="right", style="cyan")
     table.add_column("mask MB", justify="right")
     table.add_column("ok", justify="center")
@@ -393,6 +420,8 @@ def print_summary(results: list[ApiBenchmarkResult], reps: int, warmup: int) -> 
             [
                 f"timings are median of {reps} reps after {warmup} warmups",
                 "peak MB and mask MB are dense/compact",
+                "speedup is dense parser time / compact parser time",
+                "compact can be <1x on small dense masks",
                 "OK means compact.to_dense() exactly matches dense masks",
             ]
         )
@@ -412,6 +441,18 @@ def main() -> None:
         assets = ["custom"]
 
     results = []
+    if args.asset is None and args.image is None:
+        image, source, inference_result = synthetic_dense_small_result()
+        console.rule(f"[bold]{source}[/bold] | {image.shape[1]}x{image.shape[0]}")
+        results.append(
+            run_benchmark(
+                source=source,
+                image=image,
+                result=inference_result,
+                reps=REPETITIONS,
+                warmup=WARMUP,
+            )
+        )
     model_id = os.getenv(MODEL_ID_ENV, MODEL_ID)
     model = load_inference_model(model_id=model_id, api_key=os.getenv(API_KEY_ENV))
     for asset in assets:

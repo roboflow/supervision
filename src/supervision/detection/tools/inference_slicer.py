@@ -500,9 +500,13 @@ class InferenceSlicer:
             and isinstance(detections.mask, np.ndarray)
         ):
             slice_w, slice_h = get_image_resolution_wh(image_slice)
+            full_slice_xyxy = np.tile(
+                np.array([[0, 0, slice_w - 1, slice_h - 1]], dtype=np.float64),
+                (len(detections), 1),
+            )
             detections.mask = CompactMask.from_dense(
                 detections.mask,
-                detections.xyxy,
+                full_slice_xyxy,
                 image_shape=(slice_h, slice_w),
             )
 
@@ -586,9 +590,13 @@ class InferenceSlicer:
             for det, image_slice in zip(detections_in_slices, slices):
                 if det.mask is not None and isinstance(det.mask, np.ndarray):
                     slice_w, slice_h = get_image_resolution_wh(image_slice)
+                    full_slice_xyxy = np.tile(
+                        np.array([[0, 0, slice_w - 1, slice_h - 1]], dtype=np.float64),
+                        (len(det), 1),
+                    )
                     det.mask = CompactMask.from_dense(
                         det.mask,
-                        det.xyxy,
+                        full_slice_xyxy,
                         image_shape=(slice_h, slice_w),
                     )
 

@@ -245,6 +245,36 @@ class TestFromCocoRle:
         np.testing.assert_array_equal(compact.area, reference.area)
         np.testing.assert_array_equal(compact.bbox_xyxy, reference.bbox_xyxy)
 
+    def test_matches_dense_reference_for_multiple_masks(self) -> None:
+        """COCO RLE construction handles N>1 batches."""
+        masks = np.zeros((2, 5, 6), dtype=bool)
+        masks[0, 1:3, 1:4] = True
+        masks[1, 3:5, 4:6] = True
+        xyxy = np.array([[1, 1, 3, 2], [4, 3, 5, 4]], dtype=np.float32)
+        image_shape = masks.shape[1:]
+        rles = [
+            {"size": list(image_shape), "counts": mask_to_rle(mask)} for mask in masks
+        ]
+
+        compact = CompactMask.from_coco_rle(
+            rles=rles, xyxy=xyxy, image_shape=image_shape
+        )
+
+        reference = CompactMask.from_dense(masks, xyxy, image_shape=image_shape)
+        np.testing.assert_array_equal(compact.to_dense(), reference.to_dense())
+
+    def test_out_of_frame_box_returns_empty_crop(self) -> None:
+        """Boxes with no image intersection do not collapse onto edge pixels."""
+        mask = np.zeros((4, 5), dtype=bool)
+        mask[2, 4] = True
+        rles = [{"size": [4, 5], "counts": mask_to_rle(mask)}]
+        xyxy = np.array([[5, 2, 6, 2]], dtype=np.float32)
+
+        compact = CompactMask.from_coco_rle(rles=rles, xyxy=xyxy, image_shape=(4, 5))
+
+        assert compact.area.tolist() == [0]
+        np.testing.assert_array_equal(compact.to_dense(), np.zeros((1, 4, 5), bool))
+
     def test_rejects_rle_size_mismatch(self) -> None:
         """COCO RLE size should match the explicit image shape."""
         rles = [{"size": [2, 2], "counts": [4]}]
@@ -359,6 +389,60 @@ class TestCocoRleCountsToArray:
         result = _coco_rle_counts_to_array(counts)
         assert result.dtype == np.int32
         assert result.sum() == 16  # total pixels in a 4x4 image
+
+    @pytest.mark.parametrize(
+        ("counts", "err_match"),
+        [
+            pytest.param([2**31], "Invalid", id="int32-overflow"),
+            pytest.param([[4, 8], [3, 5]], "one-dimensional", id="two-dimensional"),
+            pytest.param([4, -1, 8], "non-negative", id="negative-count"),
+            pytest.param(None, "Invalid", id="none"),
+            pytest.param("", "empty", id="empty-string"),
+        ],
+    )
+    def test_invalid_counts_raise_value_error(
+        self, counts: object, err_match: str
+    ) -> None:
+        """Invalid COCO RLE counts raise ValueError."""
+        from supervision.detection.compact_mask import _coco_rle_counts_to_array
+
+        with pytest.raises(ValueError, match=err_match):
+            _coco_rle_counts_to_array(counts)
+
+
+class TestRleTrimColRuns:
+    """Tests for _rle_trim_col_runs row-crop behavior."""
+
+    @pytest.mark.parametrize(
+        ("col_runs", "height", "y1", "y2"),
+        [
+            pytest.param([0, 2, 3], 5, 0, 2, id="starts-at-row-zero"),
+            pytest.param([2, 1, 2], 5, 2, 2, id="single-row-crop"),
+            pytest.param([1, 3, 2], 6, 2, 4, id="straddles-both-bounds"),
+            pytest.param([3, 2, 1], 6, 4, 5, id="starts-inside-true-run"),
+        ],
+    )
+    def test_matches_decode_slice_encode(
+        self, col_runs: list[int], height: int, y1: int, y2: int
+    ) -> None:
+        """Trimmed column runs match dense slice then encode."""
+        from supervision.detection.compact_mask import _rle_trim_col_runs
+
+        column = _rle_counts_to_mask(np.array(col_runs, dtype=np.int32), height, 1)
+        expected = _mask_to_rle_counts(column[y1 : y2 + 1, :]).tolist()
+
+        result = _rle_trim_col_runs(col_runs, y1, y2)
+
+        assert result == expected
+        assert sum(result) == y2 - y1 + 1
+
+    def test_returns_all_false_when_no_runs_reach_crop(self) -> None:
+        """Truncated input before y1 returns an all-False crop."""
+        from supervision.detection.compact_mask import _rle_trim_col_runs
+
+        result = _rle_trim_col_runs([2], y1=3, y2=4)
+
+        assert result == [2]
 
 
 class TestGetItem:

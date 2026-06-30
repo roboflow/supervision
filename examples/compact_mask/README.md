@@ -557,7 +557,7 @@ uv run python examples/compact_mask/bench_inference_api.py --asset vehicles
 uv run python examples/compact_mask/bench_inference_api.py --asset people-walking-video
 ```
 
-The output reports image size, segmented objects, median parser time, peak traced allocations, mask storage, and dense-to-compact speedup. For each source with segmentation masks, the script also writes a validation overlay to `examples/compact_mask/outputs/*_segmentations.jpg`.
+The output reports image size, segmented objects, median parser time, peak traced allocations, mask storage, and parser speedup (`dense parser time / compact parser time`). The speedup is not a blanket decode-speed claim: compact parsing wins when dense `(N, H, W)` allocation dominates large sparse results, and can be slower on small dense masks where Python RLE arithmetic dominates. The default run includes a `synthetic-dense-64` row to show that adversarial regime. For each real source with segmentation masks, the script also writes a validation overlay to `examples/compact_mask/outputs/*_segmentations.jpg`.
 
 Six image tiers x three fill fractions (5 / 20 / 50 %) x three vertex counts (8 / 128 / 600):
 

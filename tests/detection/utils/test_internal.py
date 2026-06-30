@@ -635,6 +635,61 @@ def test_process_roboflow_result_compact_masks_invalid_rle_is_box_only() -> None
     np.testing.assert_array_equal(result[0], np.array([[0.5, 0.5, 2.5, 2.5]]))
 
 
+def test_process_roboflow_result_compact_masks_overflow_rle_is_box_only() -> None:
+    """compact_masks=True should not leak OverflowError from invalid counts."""
+    roboflow_result = {
+        "predictions": [
+            {
+                "x": 1.5,
+                "y": 1.5,
+                "width": 2.0,
+                "height": 2.0,
+                "confidence": 0.9,
+                "class_id": 0,
+                "class": "person",
+                "rle": {"size": [4, 4], "counts": [2**31]},
+            }
+        ],
+        "image": {"width": 4, "height": 4},
+    }
+
+    result = process_roboflow_result(
+        roboflow_result=roboflow_result, compact_masks=True
+    )
+
+    assert result[3] is None
+    np.testing.assert_array_equal(result[0], np.array([[0.5, 0.5, 2.5, 2.5]]))
+
+
+def test_process_roboflow_result_uses_rle_mask_when_rle_invalid() -> None:
+    """Valid rle_mask should be used when rle is present but invalid."""
+    roboflow_result = {
+        "predictions": [
+            {
+                "x": 1.5,
+                "y": 1.5,
+                "width": 2.0,
+                "height": 2.0,
+                "confidence": 0.9,
+                "class_id": 0,
+                "class": "person",
+                "rle": {"foo": "bar"},
+                "rle_mask": {"size": [4, 4], "counts": "52203"},
+            }
+        ],
+        "image": {"width": 4, "height": 4},
+    }
+
+    dense_result = process_roboflow_result(roboflow_result=roboflow_result)
+    compact_result = process_roboflow_result(
+        roboflow_result=roboflow_result, compact_masks=True
+    )
+
+    assert isinstance(dense_result[3], np.ndarray)
+    assert isinstance(compact_result[3], CompactMask)
+    np.testing.assert_array_equal(compact_result[3].to_dense(), dense_result[3])
+
+
 def test_polygon_prediction_compact_masks_true() -> None:
     """polygon prediction with compact_masks=True returns a CompactMask."""
     roboflow_result = {
