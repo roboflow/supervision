@@ -260,10 +260,15 @@ def get_video_frames_generator(
         prefetch: If > 0, decode frames in a background thread and buffer up to
             this many frames in a bounded queue. Useful when the consumer (e.g.
             CPU inference) is the bottleneck and can overlap with decode I/O.
-            Default 0 keeps the original synchronous behaviour unchanged.
+            Default 0 keeps the original synchronous behaviour unchanged. Note:
+            each buffered frame occupies width x height x 3 bytes of uncompressed
+            memory; use `sv.VideoInfo.from_video_path()` to size appropriately.
 
     Returns:
         A generator that yields the frames of the video.
+
+    Raises:
+        ValueError: If `prefetch` is negative.
 
     Examples:
         ```python
@@ -271,8 +276,16 @@ def get_video_frames_generator(
 
         for frame in sv.get_video_frames_generator(source_path="<SOURCE_VIDEO_PATH>"):
             ...
+
+        # Prefetch frames in a background thread to overlap I/O with CPU inference:
+        for frame in sv.get_video_frames_generator(
+            source_path="<SOURCE_VIDEO_PATH>", prefetch=8
+        ):
+            ...
         ```
     """
+    if prefetch < 0:
+        raise ValueError(f"prefetch must be >= 0, got {prefetch!r}")
     if prefetch > 0:
         yield from _prefetched_frames_generator(
             source_path=source_path,
@@ -310,6 +323,10 @@ def _prefetched_frames_generator(
     iterative_seek: bool,
     prefetch: int,
 ) -> Generator[npt.NDArray[np.uint8], None, None]:
+    """Read frames into a bounded queue on a daemon thread.
+
+    Sentinel protocol: None = normal EOF, Exception instance = reader error.
+    """
     frame_queue: Queue[npt.NDArray[np.uint8] | BaseException | None] = Queue(
         maxsize=prefetch
     )

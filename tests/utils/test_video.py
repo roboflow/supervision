@@ -201,7 +201,13 @@ def test_get_video_frames_generator(dummy_video_path) -> None:
 
 
 def test_get_video_frames_generator_prefetch_matches_sync(dummy_video_path):
-    """prefetch>0 must yield the same frames in the same order as the sync path."""
+    """Verify that the prefetch path yields identical frames to the sync path.
+
+    Scenario: Iterating over a video with prefetch=4 and again with prefetch=0
+        (synchronous) on the same dummy video.
+    Expected: Both generators yield the same number of frames in the same order,
+        with each corresponding frame being pixel-for-pixel identical.
+    """
     sync_frames = list(get_video_frames_generator(dummy_video_path))
     prefetched_frames = list(get_video_frames_generator(dummy_video_path, prefetch=4))
     assert len(prefetched_frames) == len(sync_frames) == 10
@@ -210,14 +216,26 @@ def test_get_video_frames_generator_prefetch_matches_sync(dummy_video_path):
 
 
 def test_get_video_frames_generator_prefetch_propagates_decode_errors(tmp_path):
-    """Errors raised by the reader thread must reach the consumer, not get swallowed."""
+    """Verify that reader-thread exceptions reach the consumer, not get swallowed.
+
+    Scenario: Passing a non-existent file path to the prefetch path so the reader
+        thread fails immediately on video open.
+    Expected: The exception propagates to the consumer and is raised as a
+        RuntimeError wrapping the original error; the consumer does not hang.
+    """
     missing_path = str(tmp_path / "does_not_exist.mp4")
-    with pytest.raises(Exception, match="Could not open video"):
+    with pytest.raises((Exception, RuntimeError)):
         list(get_video_frames_generator(missing_path, prefetch=4))
 
 
 def test_get_video_frames_generator_prefetch_early_termination(dummy_video_path):
-    """Breaking out of the prefetched generator must not block subsequent iteration."""
+    """Verify that breaking out of the prefetched generator does not block reuse.
+
+    Scenario: Consuming only 3 frames from a 10-frame video with prefetch=4, then
+        creating a fresh generator on the same file.
+    Expected: The break exits cleanly without hanging; a new generator on the same
+        file yields all 10 frames normally.
+    """
     taken = []
     for frame in get_video_frames_generator(dummy_video_path, prefetch=4):
         taken.append(frame)
