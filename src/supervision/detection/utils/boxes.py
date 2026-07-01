@@ -352,6 +352,18 @@ def oriented_box_anchors(
         ValueError: If `xyxyxyxy` does not have shape `(N, 4, 2)`, or the anchor
             is not supported.
 
+    Note:
+        Corners must be in consecutive winding order (clockwise or
+        counter-clockwise). Non-sequential ordering (e.g. diagonal pairs)
+        silently produces incorrect results.
+
+        Width and height are determined by x-axis projection of each half-side
+        vector. When a box rotates past ``arctan(w/h)`` (approx. 68 deg for a
+        10 x 4 box) the assigned *width* side flips discontinuously, producing
+        a jump in anchor position (~``|w - h|`` pixels for ``BOTTOM_CENTER``).
+        The anchor always lies on the box; the effect is cosmetic for static
+        images but visible on rotating objects in video.
+
     Examples:
         ```pycon
         >>> import numpy as np
