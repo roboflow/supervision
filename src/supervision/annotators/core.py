@@ -1,7 +1,7 @@
 from collections.abc import Iterator
 from functools import lru_cache
 from math import sqrt
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 import cv2
 import numpy as np
@@ -3193,7 +3193,8 @@ class ComparisonAnnotator:
     Otherwise, uses the bounding box data.
     """
 
-    requires_mask = False
+    # Not a BaseAnnotator subclass — duck-typing callers can still check requires_mask
+    requires_mask: ClassVar[bool] = False
 
     def __init__(
         self,
