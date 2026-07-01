@@ -1,15 +1,11 @@
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
+from typing import cast
 
 import numpy as np
 import numpy.typing as npt
 from scipy.optimize import linear_sum_assignment
 
 from supervision.detection.utils.iou_and_nms import box_iou_batch
-
-if TYPE_CHECKING:
-    from supervision.tracker.byte_tracker.single_object_track import STrack
+from supervision.tracker.byte_tracker.single_object_track import STrack
 
 
 def indices_to_matches(
@@ -48,17 +44,23 @@ def iou_distance(
     if (len(atracks) > 0 and isinstance(atracks[0], np.ndarray)) or (
         len(btracks) > 0 and isinstance(btracks[0], np.ndarray)
     ):
-        atlbrs = atracks
-        btlbrs = btracks
+        atlbrs = cast(list[npt.NDArray[np.float32]], atracks)
+        btlbrs = cast(list[npt.NDArray[np.float32]], btracks)
     else:
-        atlbrs = [track.tlbr for track in atracks]
-        btlbrs = [track.tlbr for track in btracks]
+        atlbrs = [track.tlbr for track in cast(list[STrack], atracks)]
+        btlbrs = [track.tlbr for track in cast(list[STrack], btracks)]
 
-    _ious = np.zeros((len(atlbrs), len(btlbrs)), dtype=np.float32)
-    if _ious.size != 0:
-        _ious = box_iou_batch(np.asarray(atlbrs), np.asarray(btlbrs))
-    cost_matrix = 1 - _ious
+    if len(atlbrs) == 0 or len(btlbrs) == 0:
+        return cast(
+            npt.NDArray[np.float32],
+            np.empty((len(atlbrs), len(btlbrs)), dtype=np.float32),
+        )
 
+    ious = box_iou_batch(
+        np.asarray(atlbrs, dtype=np.float32),
+        np.asarray(btlbrs, dtype=np.float32),
+    )
+    cost_matrix = np.asarray(1 - ious, dtype=np.float32)
     return cost_matrix
 
 
@@ -68,8 +70,8 @@ def fuse_score(
     if cost_matrix.size == 0:
         return cost_matrix
     iou_sim = 1 - cost_matrix
-    det_scores = np.array([strack.score for strack in stracks])
+    det_scores = np.array([strack.score for strack in stracks], dtype=np.float32)
     det_scores = np.expand_dims(det_scores, axis=0).repeat(cost_matrix.shape[0], axis=0)
     fuse_sim = iou_sim * det_scores
-    fuse_cost = 1 - fuse_sim
+    fuse_cost = np.asarray(1 - fuse_sim, dtype=np.float32)
     return fuse_cost

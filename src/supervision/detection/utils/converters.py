@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from typing import Any, cast
 
 import cv2
@@ -79,7 +77,7 @@ def xywh_to_xyxy(xywh: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
     xyxy = xywh.copy()
     xyxy[:, 2] = xywh[:, 0] + xywh[:, 2]
     xyxy[:, 3] = xywh[:, 1] + xywh[:, 3]
-    return xyxy
+    return cast(npt.NDArray[np.number], np.asarray(xyxy))
 
 
 def xyxy_to_xywh(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
@@ -113,7 +111,7 @@ def xyxy_to_xywh(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
     xywh = xyxy.copy()
     xywh[:, 2] = xyxy[:, 2] - xyxy[:, 0]
     xywh[:, 3] = xyxy[:, 3] - xyxy[:, 1]
-    return xywh
+    return cast(npt.NDArray[np.number], np.asarray(xywh))
 
 
 def xcycwh_to_xyxy(xcycwh: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
@@ -149,7 +147,7 @@ def xcycwh_to_xyxy(xcycwh: npt.NDArray[np.number]) -> npt.NDArray[np.number]:
     xyxy[:, 1] = xcycwh[:, 1] - xcycwh[:, 3] / 2
     xyxy[:, 2] = xcycwh[:, 0] + xcycwh[:, 2] / 2
     xyxy[:, 3] = xcycwh[:, 1] + xcycwh[:, 3] / 2
-    return xyxy
+    return cast(npt.NDArray[np.number], np.asarray(xyxy))
 
 
 def xyxy_to_xcycarh(xyxy: npt.NDArray[np.number]) -> npt.NDArray[np.floating]:
@@ -204,23 +202,44 @@ def mask_to_xyxy(masks: npt.NDArray[np.bool_]) -> npt.NDArray[np.int_]:
     Converts a 3D `np.array` of 2D bool masks into a 2D `np.array` of bounding boxes.
 
     Args:
-        masks: A 3D `np.array` of shape `(N, W, H)` containing 2D bool masks.
+        masks: A 3D `np.array` of shape `(N, H, W)` containing 2D bool masks.
 
     Returns:
         A 2D `np.array` of shape `(N, 4)` containing the bounding boxes
             `(x_min, y_min, x_max, y_max)` for each mask.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> import supervision as sv
+        >>> masks = np.array([
+        ...     [[False, False, False],
+        ...      [False,  True,  True],
+        ...      [False,  True,  True]],
+        ... ])
+        >>> sv.mask_to_xyxy(masks)
+        array([[1, 1, 2, 2]])
+
+        ```
     """
-    n = masks.shape[0]
-    xyxy = np.zeros((n, 4), dtype=int)
+    n, height, width = masks.shape
+    if masks.size == 0:
+        return np.zeros((n, 4), dtype=int)
 
-    for i, mask in enumerate(masks):
-        rows, cols = np.where(mask)
+    # Reduce the mask stack to per-row / per-column occupancy, then read the
+    # tight bounds straight off those 1D profiles instead of scanning every
+    # pixel of every mask with `np.where`.
+    rows_any = cast(npt.NDArray[np.bool_], masks.any(axis=2))  # (N, H)
+    cols_any = cast(npt.NDArray[np.bool_], masks.any(axis=1))  # (N, W)
 
-        if len(rows) > 0 and len(cols) > 0:
-            x_min, x_max = int(np.min(cols)), int(np.max(cols))
-            y_min, y_max = int(np.min(rows)), int(np.max(rows))
-            xyxy[i, :] = [x_min, y_min, x_max, y_max]
+    x_min = cols_any.argmax(axis=1)
+    x_max = width - 1 - cols_any[:, ::-1].argmax(axis=1)
+    y_min = rows_any.argmax(axis=1)
+    y_max = height - 1 - rows_any[:, ::-1].argmax(axis=1)
 
+    xyxy = np.stack((x_min, y_min, x_max, y_max), axis=1).astype(int)
+    # Empty masks have no bounds; keep the original all-zeros box for them.
+    xyxy[~rows_any.any(axis=1)] = 0
     return xyxy
 
 
@@ -415,10 +434,15 @@ def _delta_decode(values: list[int]) -> list[int]:
 
         ```
     """
-    counts = list(values)
-    for i in range(3, len(counts)):
-        counts[i] += counts[i - 2]
-    return counts
+    # The recurrence ``counts[i] += counts[i - 2]`` for ``i >= 3`` decomposes
+    # into two independent stride-2 chains: the odd indices (1, 3, 5, ...) and
+    # the even indices from 2 onward (2, 4, 6, ...). A cumulative sum over each
+    # chain recovers the absolute counts. Index 0 is absolute and untouched.
+    # int64 accumulation avoids overflow; ``tolist`` returns native Python ints.
+    counts = np.asarray(values, dtype=np.int64)
+    counts[1::2] = np.cumsum(counts[1::2])
+    counts[2::2] = np.cumsum(counts[2::2])
+    return cast("list[int]", counts.tolist())
 
 
 def _delta_encode(counts: list[int]) -> list[int]:

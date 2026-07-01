@@ -42,6 +42,7 @@ nav:
       - Process Datasets: how_to/process_datasets.md
       - Benchmark a Model: how_to/benchmark_a_model.md
       - Count in Zone: how_to/count_in_zone.md
+      - Use Compact Masks: how_to/use_compact_masks.md
   - Reference:
       - Detection and Segmentation:
           - Core: detection/core.md
@@ -132,10 +133,10 @@ plugins:
       default_handler: python
       handlers:
         python:
+          paths: [supervision]
+          load_external_modules: true
           options:
             parameter_headings: true
-            paths: [supervision]
-            load_external_modules: true
             allow_inspection: true
             show_bases: true
             group_by_category: true

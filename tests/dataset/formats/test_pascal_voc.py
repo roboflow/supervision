@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from contextlib import ExitStack as DoesNotRaise
 
 import numpy as np
@@ -8,13 +6,14 @@ from defusedxml import ElementTree
 
 from supervision.dataset.formats.pascal_voc import (
     detections_from_xml_obj,
+    detections_to_pascal_voc,
     object_to_pascal_voc,
     parse_polygon_points,
 )
 from tests.helpers import _create_detections
 
 
-def are_xml_elements_equal(elem1, elem2):
+def are_xml_elements_equal(elem1, elem2) -> bool:
     if (
         elem1.tag != elem2.tag
         or elem1.attrib != elem2.attrib
@@ -66,10 +65,51 @@ def test_object_to_pascal_voc(
     polygon: np.ndarray | None,
     expected_result,
     exception: Exception,
-):
+) -> None:
     with exception:
         result = object_to_pascal_voc(xyxy=xyxy, name=name, polygon=polygon)
         assert are_xml_elements_equal(result, expected_result)
+
+
+def test_object_to_pascal_voc_does_not_mutate_inputs():
+    """Serializing an object must not write the 1-index offset back into the inputs."""
+    xyxy = np.array([10, 20, 30, 40], dtype=np.float32)
+    polygon = np.array([[0, 0], [10, 0], [10, 10], [0, 10]], dtype=np.float32)
+
+    object_to_pascal_voc(xyxy=xyxy, name="test", polygon=polygon)
+
+    assert np.array_equal(xyxy, np.array([10, 20, 30, 40], dtype=np.float32))
+    assert np.array_equal(
+        polygon, np.array([[0, 0], [10, 0], [10, 10], [0, 10]], dtype=np.float32)
+    )
+
+
+def test_object_to_pascal_voc_does_not_mutate_view_input():
+    """Mutation guard holds when xyxy is a NumPy row-view (the actual bug scenario)."""
+    base = np.array([[10, 20, 30, 40]], dtype=np.float32)
+    xyxy_view = base[0]  # row-view, shares memory with base
+
+    object_to_pascal_voc(xyxy=xyxy_view, name="test", polygon=None)
+
+    assert np.array_equal(base[0], np.array([10, 20, 30, 40], dtype=np.float32)), (
+        "object_to_pascal_voc mutated the source array via a view"
+    )
+
+
+def test_detections_to_pascal_voc_does_not_mutate_detections():
+    """Exporting detections must not shift the source xyxy, and must be repeatable."""
+    detections = _create_detections(xyxy=[[10, 20, 30, 40]], class_id=[0])
+    expected_xyxy = detections.xyxy.copy()
+
+    first = detections_to_pascal_voc(
+        detections, classes=["test"], filename="image.jpg", image_shape=(100, 100, 3)
+    )
+    second = detections_to_pascal_voc(
+        detections, classes=["test"], filename="image.jpg", image_shape=(100, 100, 3)
+    )
+
+    assert np.array_equal(detections.xyxy, expected_xyxy)
+    assert first == second
 
 
 @pytest.mark.parametrize(
@@ -90,7 +130,7 @@ def test_parse_polygon_points(
     polygon_element,
     expected_result: list[list],
     exception,
-):
+) -> None:
     with exception:
         result = parse_polygon_points(polygon_element)
         assert np.array_equal(result, expected_result)
@@ -179,7 +219,7 @@ MIXED_POLYGON_AND_BOX = """<annotation><object><name>test</name><bndbox>
 )
 def test_detections_from_xml_obj(
     xml_string, classes, resolution_wh, force_masks, expected_result, exception
-):
+) -> None:
     with exception:
         root = ElementTree.fromstring(xml_string)
         result, _ = detections_from_xml_obj(root, classes, resolution_wh, force_masks)

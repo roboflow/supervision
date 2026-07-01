@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import cv2
 import numpy as np
 from inference import InferencePipeline
@@ -18,7 +16,7 @@ LABEL_ANNOTATOR = sv.LabelAnnotator(
 
 
 class CustomSink:
-    def __init__(self, zone_configuration_path: str, classes: list[int]):
+    def __init__(self, zone_configuration_path: str, classes: list[int]) -> None:
         self.classes = classes
         self.tracker = sv.ByteTrack(minimum_matching_threshold=0.8)
         self.fps_monitor = sv.FPSMonitor()

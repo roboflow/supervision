@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import (
     box_iou_batch,
@@ -17,6 +18,7 @@ from supervision.detection.utils.iou_and_nms import (
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
+from supervision.metrics.utils.matching import _greedy_match
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
     get_detection_size_category,
@@ -27,7 +29,7 @@ if TYPE_CHECKING:
     import pandas as pd
 
 
-class F1Score(Metric):
+class F1Score(Metric["F1ScoreResult"]):
     """
     F1 Score is a metric used to evaluate object detection models. It is the harmonic
     mean of precision and recall, calculated at different IoU thresholds.
@@ -152,14 +154,49 @@ class F1Score(Metric):
     def _compute(
         self, predictions_list: list[Detections], targets_list: list[Detections]
     ) -> F1ScoreResult:
-        iou_thresholds = np.linspace(0.5, 0.95, 10)
+        """Build per-image stats tuples and delegate to class-level computation.
+
+        Each stats tuple is ``(matches, confidence, class_ids, true_class_ids)``:
+        - Both empty: skip (no information).
+        - Targets empty, predictions present: all predictions are FPs; true_class_ids
+          is ``zeros((0,))``.
+        - Targets present: IoU matching produces ``matches`` array.
+        """
+        iou_thresholds = np.linspace(0.5, 0.95, 10, dtype=np.float32)
         stats: list[Any] = []
 
         for predictions, targets in zip(predictions_list, targets_list):
             prediction_contents = self._detections_content(predictions)
             target_contents = self._detections_content(targets)
 
-            if len(targets) > 0:
+            if len(targets) == 0 and len(predictions) > 0:
+                # Only predictions are present (e.g. a background image); every
+                # prediction is a false positive.
+                if predictions.class_id is None or predictions.confidence is None:
+                    raise ValueError(
+                        "F1Score metric requires `class_id` and `confidence` "
+                        "on predictions."
+                    )
+                prediction_class_ids = np.asarray(predictions.class_id, dtype=np.int32)
+                prediction_confidence = np.asarray(
+                    predictions.confidence, dtype=np.float32
+                )
+                stats.append(
+                    (
+                        np.zeros(
+                            (len(predictions), iou_thresholds.size), dtype=np.bool_
+                        ),
+                        prediction_confidence,
+                        prediction_class_ids,
+                        np.zeros((0,), dtype=np.int32),
+                    )
+                )
+            elif len(targets) > 0:
+                if predictions.class_id is None or targets.class_id is None:
+                    raise ValueError(
+                        "F1Score metric requires `class_id` on both predictions "
+                        "and targets."
+                    )
                 if len(predictions) == 0:
                     stats.append(
                         (
@@ -171,13 +208,30 @@ class F1Score(Metric):
                     )
 
                 else:
+                    if predictions.confidence is None:
+                        raise ValueError(
+                            "F1Score metric requires `confidence` on predictions."
+                        )
+                    prediction_class_ids = np.asarray(
+                        predictions.class_id, dtype=np.int32
+                    )
+                    target_class_ids = np.asarray(targets.class_id, dtype=np.int32)
+                    prediction_confidence = np.asarray(
+                        predictions.confidence, dtype=np.float32
+                    )
                     if self._metric_target == MetricTarget.BOXES:
-                        iou = box_iou_batch(target_contents, prediction_contents)
+                        # BOXES target never yields CompactMask; narrow for mypy.
+                        iou = box_iou_batch(
+                            cast(npt.NDArray[np.number], target_contents),
+                            cast(npt.NDArray[np.number], prediction_contents),
+                        )
                     elif self._metric_target == MetricTarget.MASKS:
                         iou = mask_iou_batch(target_contents, prediction_contents)
                     elif self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+                        # OBB target never yields CompactMask; narrow for mypy.
                         iou = oriented_box_iou_batch(
-                            target_contents, prediction_contents
+                            cast(npt.NDArray[np.number], target_contents),
+                            cast(npt.NDArray[np.number], prediction_contents),
                         )
                     else:
                         raise ValueError(
@@ -185,21 +239,17 @@ class F1Score(Metric):
                         )
 
                     matches = self._match_detection_batch(
-                        predictions.class_id
-                        if predictions.class_id is not None
-                        else np.array([]),
-                        targets.class_id
-                        if targets.class_id is not None
-                        else np.array([]),
+                        prediction_class_ids,
+                        target_class_ids,
                         iou,
                         iou_thresholds,
                     )
                     stats.append(
                         (
                             matches,
-                            predictions.confidence,
-                            predictions.class_id,
-                            targets.class_id,
+                            prediction_confidence,
+                            prediction_class_ids,
+                            target_class_ids,
                         )
                     )
 
@@ -244,10 +294,23 @@ class F1Score(Metric):
         npt.NDArray[np.float64],
         npt.NDArray[np.int32],
     ]:
+        """Compute F1 scores from concatenated stats across all images.
+
+        ``unique_classes`` is the union of GT and predicted classes so that
+        predictions of classes absent from GT still count as false positives.
+        """
         sorted_indices = np.argsort(-prediction_confidence)
         matches = matches[sorted_indices]
         prediction_class_ids = prediction_class_ids[sorted_indices]
-        unique_classes, class_counts = np.unique(true_class_ids, return_counts=True)
+        # Predictions whose class never appears in the ground truth are still
+        # false positives, so include those classes in the confusion matrix
+        # (their true-instance count is zero).
+        unique_classes = np.unique(
+            np.concatenate((true_class_ids, prediction_class_ids))
+        )
+        true_classes, true_counts = np.unique(true_class_ids, return_counts=True)
+        class_counts = np.zeros(unique_classes.shape[0], dtype=int)
+        class_counts[np.searchsorted(unique_classes, true_classes)] = true_counts
 
         # Shape: PxTh,P,C,C -> CxThx3
         confusion_matrix = self._compute_confusion_matrix(
@@ -265,7 +328,13 @@ class F1Score(Metric):
             f1_scores = self._compute_f1(confusion_matrix_merged)
         elif self.averaging_method == AveragingMethod.WEIGHTED:
             class_counts = class_counts.astype(np.float32)
-            f1_scores = np.average(f1_per_class, axis=0, weights=class_counts)
+            if class_counts.sum() == 0:
+                # No ground-truth support (e.g. only false-positive classes, or a
+                # size bucket with predictions but no targets): weighting is
+                # undefined, so report 0 as the empty case did before.
+                f1_scores = np.zeros(f1_per_class.shape[1])
+            else:
+                f1_scores = np.average(f1_per_class, axis=0, weights=class_counts)
 
         return f1_scores, f1_per_class, unique_classes
 
@@ -286,17 +355,8 @@ class F1Score(Metric):
         for i, iou_level in enumerate(iou_thresholds):
             matched_indices = np.where((iou >= iou_level) & correct_class)
 
-            if matched_indices[0].shape[0]:
-                combined_indices = np.stack(matched_indices, axis=1)
-                iou_values = iou[matched_indices][:, None]
-                matches = np.hstack([combined_indices, iou_values])
-
-                if matched_indices[0].shape[0] > 1:
-                    matches = matches[matches[:, 2].argsort()[::-1]]
-                    matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
-                    matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
-
-                correct[matches[:, 1].astype(int), i] = True
+            for t, p in _greedy_match(iou, matched_indices):
+                correct[p, i] = True
 
         result_correct: npt.NDArray[np.bool_] = correct
         return result_correct
@@ -389,15 +449,21 @@ class F1Score(Metric):
         result_f1_score: npt.NDArray[np.float64] = f1_score
         return result_f1_score
 
-    def _detections_content(self, detections: Detections) -> npt.NDArray[Any]:
-        """Return boxes, masks or oriented bounding boxes from detections."""
+    def _detections_content(
+        self, detections: Detections
+    ) -> npt.NDArray[Any] | CompactMask:
+        """Return boxes, masks or oriented bounding boxes from detections.
+
+        For the mask target this may return a
+        :class:`~supervision.detection.compact_mask.CompactMask` rather than a
+        dense boolean array when the detections carry compact masks.
+        """
         if self._metric_target == MetricTarget.BOXES:
-            result_boxes: npt.NDArray[np.float32] = detections.xyxy
-            return result_boxes
+            return cast(npt.NDArray[Any], detections.xyxy)
         if self._metric_target == MetricTarget.MASKS:
             if detections.mask is not None:
-                result_masks: npt.NDArray[np.bool_] = detections.mask
-                return result_masks
+                # detections.mask is NDArray[bool] | CompactMask; return as-is.
+                return detections.mask
             return self._make_empty_content()
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             obb = detections.data.get(ORIENTED_BOX_COORDINATES)
@@ -483,10 +549,12 @@ class F1ScoreResult:
         f1_scores: the F1 scores at each IoU threshold.
             Shape: `(num_iou_thresholds,)`
         f1_per_class: the F1 scores per class and IoU threshold.
-            Shape: `(num_target_classes, num_iou_thresholds)`
+            Shape: `(num_classes, num_iou_thresholds)`
         iou_thresholds: the IoU thresholds used in the calculations.
-        matched_classes: the class IDs of all matched classes.
-            Corresponds to the rows of `f1_per_class`.
+        matched_classes: the class IDs present in either predictions or ground
+            truth. Corresponds to the rows of `f1_per_class`. Classes that
+            appear only in predictions (no ground-truth instances) are
+            included; their per-threshold F1 values will be `0.0`.
         small_objects: the F1 metric results
             for small objects (area < 32²).
         medium_objects: the F1 metric results
@@ -593,7 +661,7 @@ class F1ScoreResult:
         ensure_pandas_installed()
         import pandas as pd
 
-        pandas_data = {
+        pandas_data: dict[str, Any] = {
             "F1@50": self.f1_50,
             "F1@75": self.f1_75,
         }

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import numpy as np
 import pytest
 
@@ -7,6 +5,7 @@ import supervision.detection.core as detection_core
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.core import Detections
 from tests.helpers import (
+    _FakeTensor,
     _FakeUltralyticsBoxes,
     _FakeUltralyticsResults,
     _FakeYoloNasPrediction,
@@ -111,3 +110,21 @@ def test_from_yolo_nas_handles_empty_and_non_empty(
         np.testing.assert_allclose(det.xyxy, bboxes)
         np.testing.assert_allclose(det.confidence, conf)
         np.testing.assert_array_equal(det.class_id, labels.astype(int))
+
+
+def test_from_tensorflow_scales_axes_on_non_square_image() -> None:
+    """Non-square image exposes swapped scaling: y uses height, x uses width."""
+    results = {
+        "detection_boxes": [
+            _FakeTensor(np.array([[0.1, 0.2, 0.5, 0.6]], dtype=np.float32))
+        ],
+        "detection_scores": [_FakeTensor(np.array([0.9], dtype=np.float32))],
+        "detection_classes": [_FakeTensor(np.array([1], dtype=np.float32))],
+    }
+
+    det = Detections.from_tensorflow(results, resolution_wh=(1000, 500))
+
+    # xmin=0.2*1000, ymin=0.1*500, xmax=0.6*1000, ymax=0.5*500
+    np.testing.assert_allclose(det.xyxy, [[200.0, 50.0, 600.0, 250.0]])
+    np.testing.assert_allclose(det.confidence, [0.9])
+    np.testing.assert_array_equal(det.class_id, [1])

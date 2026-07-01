@@ -1,10 +1,9 @@
-from __future__ import annotations
-
-from typing import cast
-
 import numpy as np
 import numpy.typing as npt
-from deprecate import deprecated_class
+from deprecate import (  # type: ignore[import-untyped,unused-ignore]
+    TargetMode,
+    deprecated_class,
+)
 
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import box_iou_batch
@@ -15,7 +14,7 @@ from supervision.tracker.byte_tracker.utils import IdCounter
 
 
 @deprecated_class(
-    target=None,
+    target=TargetMode.NOTIFY,
     deprecated_in="0.28.0",
     remove_in="0.30.0",
 )
@@ -60,7 +59,7 @@ class ByteTrack:
         minimum_matching_threshold: float = 0.8,
         frame_rate: float = 30,
         minimum_consecutive_frames: int = 1,
-    ):
+    ) -> None:
         self.track_activation_threshold = track_activation_threshold
         self.minimum_matching_threshold = minimum_matching_threshold
 
@@ -145,8 +144,7 @@ class ByteTrack:
                     tracks[i_track].external_track_id
                 )
 
-            filtered = detections[detections.tracker_id != -1]
-            return cast(Detections, filtered)
+            return detections.select(detections.tracker_id != -1)
 
         else:
             detections = Detections.empty()

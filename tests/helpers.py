@@ -80,6 +80,8 @@ def _create_key_points(
     xy: list[list[list[float]]],
     confidence: list[list[float]] | None = None,
     class_id: list[int] | None = None,
+    detection_confidence: list[float] | None = None,
+    visible: list[list[bool]] | None = None,
     data: dict[str, list[Any]] | None = None,
 ) -> KeyPoints:
     """
@@ -91,8 +93,9 @@ def _create_key_points(
     Args:
         xy: Keypoint coordinates in `(x, y)` format for
             each detection.
-        confidence: Confidence scores for each keypoint.
+        confidence: Per-keypoint confidence scores.
         class_id: Class identifiers for each keypoint set.
+        detection_confidence: Detection-level confidence scores.
         data: Additional data to be associated with
             each keypoint set.
 
@@ -112,7 +115,7 @@ def _create_key_points(
         <BLANKLINE>
                [[20., 20.],
                 [30., 30.]]], dtype=float32)
-        >>> key_points.confidence
+        >>> key_points.keypoint_confidence
         array([[0.5, 0.8],
                [0.9, 0.1]], dtype=float32)
         >>> key_points.class_id
@@ -124,9 +127,15 @@ def _create_key_points(
 
     return KeyPoints(
         xy=np.array(xy, dtype=np.float32),
-        confidence=(
+        keypoint_confidence=(
             confidence if confidence is None else np.array(confidence, dtype=np.float32)
         ),
+        detection_confidence=(
+            detection_confidence
+            if detection_confidence is None
+            else np.array(detection_confidence, dtype=np.float32)
+        ),
+        visible=(visible if visible is None else np.array(visible, dtype=bool)),
         class_id=(class_id if class_id is None else np.array(class_id, dtype=int)),
         data=convert_data(data) if data else {},
     )
@@ -185,7 +194,7 @@ def _generate_random_boxes(
     return out
 
 
-def assert_almost_equal(actual, expected, tolerance=1e-5):
+def assert_almost_equal(actual, expected, tolerance=1e-5) -> None:
     """
     Assert that two values are equal within a specified tolerance.
 
@@ -239,7 +248,7 @@ def assert_image_mostly_same(
 class _FakeTensor:
     """Minimal tensor wrapper for cpu().numpy() and int()."""
 
-    def __init__(self, arr: np.ndarray):
+    def __init__(self, arr: np.ndarray) -> None:
         self._arr = np.asarray(arr)
 
     def cpu(self) -> _FakeTensor:
@@ -255,7 +264,7 @@ class _FakeTensor:
 class _FakeYOLOv5Results:
     """YOLOv5-like results exposing pred list."""
 
-    def __init__(self, pred0: np.ndarray):
+    def __init__(self, pred0: np.ndarray) -> None:
         self.pred = [_FakeTensor(pred0)]
 
 
@@ -268,7 +277,7 @@ class _FakeUltralyticsBoxes:
         conf: np.ndarray,
         cls: np.ndarray,
         id_: np.ndarray | None = None,
-    ):
+    ) -> None:
         self.xyxy = _FakeTensor(xyxy)
         self.conf = _FakeTensor(conf)
         self.cls = _FakeTensor(cls)
@@ -278,7 +287,7 @@ class _FakeUltralyticsBoxes:
 class _FakeUltralyticsResults:
     """Ultralytics-like results container used by from_ultralytics."""
 
-    def __init__(self, boxes, names: dict[int, str], length: int = 0):
+    def __init__(self, boxes, names: dict[int, str], length: int = 0) -> None:
         self.boxes = boxes
         self.names = names
         self.obb = None
@@ -292,7 +301,7 @@ class _FakeUltralyticsResults:
 class _FakeYoloNasPrediction:
     """YOLO-NAS-like prediction struct."""
 
-    def __init__(self, bboxes_xyxy, confidence, labels):
+    def __init__(self, bboxes_xyxy, confidence, labels) -> None:
         self.bboxes_xyxy = bboxes_xyxy
         self.confidence = confidence
         self.labels = labels
@@ -301,14 +310,14 @@ class _FakeYoloNasPrediction:
 class _FakeYoloNasResults:
     """YOLO-NAS-like results exposing prediction."""
 
-    def __init__(self, prediction: _FakeYoloNasPrediction):
+    def __init__(self, prediction: _FakeYoloNasPrediction) -> None:
         self.prediction = prediction
 
 
 class _FakeYoloNasKeyPoint:
     """YOLO-NAS-like key point struct."""
 
-    def __init__(self, poses, labels=None):
+    def __init__(self, poses, labels=None) -> None:
         self.poses = np.array(poses, dtype=np.float32)
         if labels is not None:
             self.labels = np.array(labels, dtype=int)
@@ -317,20 +326,20 @@ class _FakeYoloNasKeyPoint:
 class _FakeYoloNasKeyPointResults:
     """YOLO-NAS-like results exposing key points."""
 
-    def __init__(self, prediction: _FakeYoloNasKeyPoint, class_names=None):
+    def __init__(self, prediction: _FakeYoloNasKeyPoint, class_names=None) -> None:
         self.prediction = prediction
         self.class_names = class_names
 
 
 class _FakeMediapipeLandmark:
-    def __init__(self, x, y, visibility=1.0):
+    def __init__(self, x, y, visibility=1.0) -> None:
         self.x = x
         self.y = y
         self.visibility = visibility
 
 
 class _FakeMediapipePose:
-    def __init__(self, landmarks: list[_FakeMediapipeLandmark]):
+    def __init__(self, landmarks: list[_FakeMediapipeLandmark]) -> None:
         self.landmark = landmarks
 
 
@@ -342,7 +351,7 @@ class _FakeMediapipeResults:
         | None = None,
         face_landmarks: _FakeMediapipeLandmark | None = None,
         multi_face_landmarks: list[_FakeMediapipeLandmark] | None = None,
-    ):
+    ) -> None:
         self.pose_landmarks = pose_landmarks
         self.face_landmarks = face_landmarks
         self.multi_face_landmarks = multi_face_landmarks

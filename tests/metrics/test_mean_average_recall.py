@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.metrics import MeanAverageRecall, MetricTarget
 
@@ -359,7 +360,84 @@ def three_class_single_image_detections():
     return predictions, targets
 
 
-def test_single_perfect_detection():
+@pytest.mark.parametrize(
+    "missing_attribute",
+    ["predictions_class_id", "targets_class_id", "predictions_confidence"],
+)
+def test_compute_value_error_for_missing_required_fields_after_update(
+    missing_attribute,
+) -> None:
+    """Raises ValueError when required detection fields are missing."""
+    metric = MeanAverageRecall()
+    boxes = np.array([[10, 10, 50, 50]], dtype=np.float32)
+    class_id = np.array([0], dtype=np.int32)
+    confidence = np.array([0.9], dtype=np.float32)
+
+    predictions = Detections(
+        xyxy=boxes,
+        confidence=confidence,
+        class_id=class_id,
+    )
+    targets = Detections(
+        xyxy=boxes,
+        class_id=class_id,
+    )
+
+    if missing_attribute == "predictions_class_id":
+        predictions = Detections(
+            xyxy=boxes,
+            confidence=confidence,
+        )
+    elif missing_attribute == "targets_class_id":
+        targets = Detections(xyxy=boxes)
+    else:
+        predictions = Detections(
+            xyxy=boxes,
+            class_id=class_id,
+        )
+
+    with pytest.raises(ValueError, match="MeanAverageRecall metric requires"):
+        metric.update(predictions, targets).compute()
+
+
+def test_mask_content_preserves_compact_mask() -> None:
+    """CompactMask inputs stay compact for mask IoU."""
+    dense_mask = np.zeros((1, 4, 5), dtype=bool)
+    dense_mask[0, 1:3, 1:4] = True
+    xyxy = np.array([[1, 1, 4, 3]], dtype=np.float64)
+    compact_mask = CompactMask.from_dense(
+        dense_mask, xyxy=xyxy, image_shape=dense_mask.shape[1:]
+    )
+    detections = Detections(xyxy=xyxy, mask=compact_mask)
+    metric = MeanAverageRecall(metric_target=MetricTarget.MASKS)
+
+    content = metric._detections_content(detections)
+
+    assert content is compact_mask
+
+
+def test_compute_with_compact_mask_matches_dense() -> None:
+    """MeanAverageRecall.compute() yields same recall_scores for CompactMask."""
+    masks = np.zeros((1, 50, 50), dtype=bool)
+    masks[0, 10:20, 10:20] = True
+    xyxy = np.array([[10, 10, 19, 19]], dtype=np.float64)
+    cm = CompactMask.from_dense(masks, xyxy, image_shape=(50, 50))
+    det_dense = Detections(
+        xyxy=xyxy, mask=masks, confidence=np.array([0.9]), class_id=np.array([0])
+    )
+    det_compact = Detections(
+        xyxy=xyxy, mask=cm, confidence=np.array([0.9]), class_id=np.array([0])
+    )
+    metric = MeanAverageRecall(metric_target=MetricTarget.MASKS)
+
+    r_dense = metric.update(det_dense, det_dense).compute()
+    metric.reset()
+    r_compact = metric.update(det_compact, det_compact).compute()
+
+    np.testing.assert_allclose(r_dense.recall_scores, r_compact.recall_scores)
+
+
+def test_single_perfect_detection() -> None:
     """Test that a single perfect detection yields 1.0 recall."""
     detections = Detections(
         xyxy=np.array([[10, 10, 50, 50]], dtype=np.float32),
@@ -375,9 +453,47 @@ def test_single_perfect_detection():
     np.testing.assert_almost_equal(result.recall_scores, expected, decimal=6)
 
 
+@pytest.mark.parametrize(
+    "missing_attribute",
+    ["predictions_class_id", "targets_class_id", "predictions_confidence"],
+)
+def test_compute_value_error_for_missing_required_fields(missing_attribute) -> None:
+    """Test compute raises ValueError when required fields are missing."""
+    metric = MeanAverageRecall()
+    boxes = np.array([[10, 10, 50, 50]], dtype=np.float32)
+    class_id = np.array([0], dtype=np.int32)
+    confidence = np.array([0.9], dtype=np.float32)
+
+    predictions = Detections(
+        xyxy=boxes,
+        confidence=confidence,
+        class_id=class_id,
+    )
+    targets = Detections(
+        xyxy=boxes,
+        class_id=class_id,
+    )
+
+    if missing_attribute == "predictions_class_id":
+        predictions = Detections(
+            xyxy=boxes,
+            confidence=confidence,
+        )
+    elif missing_attribute == "targets_class_id":
+        targets = Detections(xyxy=boxes)
+    else:
+        predictions = Detections(
+            xyxy=boxes,
+            class_id=class_id,
+        )
+
+    with pytest.raises(ValueError, match="MeanAverageRecall metric requires"):
+        metric.update(predictions, targets).compute()
+
+
 def test_complex_integration_scenario(
     complex_scenario_predictions, complex_scenario_targets
-):
+) -> None:
     """Test integration scenario with multiple images and varying performance."""
 
     def mock_detections_list(boxes_list):
@@ -403,7 +519,9 @@ def test_complex_integration_scenario(
     np.testing.assert_almost_equal(result.recall_scores, expected_result, decimal=6)
 
 
-def test_mar_at_k_limits_per_image_not_per_class(two_class_two_image_detections):
+def test_mar_at_k_limits_per_image_not_per_class(
+    two_class_two_image_detections,
+) -> None:
     """
     Test that `mAR @ K` limits detections per image, not per class.
 
@@ -458,7 +576,7 @@ def test_mar_at_k_limits_per_image_not_per_class(two_class_two_image_detections)
     )
 
 
-def test_three_class_single_image_scenario(three_class_single_image_detections):
+def test_three_class_single_image_scenario(three_class_single_image_detections) -> None:
     """
     Test with 3 classes on single image - explicit N x K bug reproduction.
 
@@ -505,7 +623,7 @@ def test_three_class_single_image_scenario(three_class_single_image_detections):
     )
 
 
-def test_dataset_split_integration(yolo_dataset_two_classes):
+def test_dataset_split_integration(yolo_dataset_two_classes) -> None:
     """
     Test mAR with a roboflow-format dataset loaded from disk.
 
@@ -585,3 +703,27 @@ def test_dataset_split_integration(yolo_dataset_two_classes):
     # mAR@1 should be significantly lower than mAR@10 for multi-object images
     # This validates that K limits detections per image (not per class)
     assert result.mAR_at_1 < result.mAR_at_10
+
+
+def test_greedy_matching_two_valid_pairs():
+    """Greedy matching finds both TPs; np.unique style missed the second pair.
+
+    IoU matrix: [[1.0, 0.667], [0.333, 0.538]]. At iou>=0.5 the optimal
+    assignment is T0<->P0 and T1<->P1. mAR@100 at iou=0.5 is 1.0.
+    """
+    preds = Detections(
+        xyxy=np.array([[40, 60, 380, 470], [108, 60, 448, 470]], dtype=np.float32),
+        confidence=np.array([0.95, 0.90]),
+        class_id=np.array([0, 0]),
+    )
+    targets = Detections(
+        xyxy=np.array([[40, 60, 380, 470], [210, 60, 550, 470]], dtype=np.float32),
+        class_id=np.array([0, 0]),
+    )
+
+    result = MeanAverageRecall().update(preds, targets).compute()
+
+    # At iou=0.5 both pairs match (recall=1.0); IoU(T1,P1)=0.538 < 0.55 so only
+    # the first threshold has 2 TPs. mAR@100 = (1.0 + 0.5*9) / 10 = 0.55.
+    # The buggy np.unique algorithm gave 0.5 (only 1 TP even at iou=0.5).
+    assert result.mAR_at_100 == pytest.approx(0.55)

@@ -130,8 +130,7 @@ Evaluating your model requires careful selection of the dataset. Which images sh
 - **Validation Set**: This is the set of images used to validate the model during training. Every Nth training epoch, the model is evaluated on the validation set. Often the training is stopped once the validation loss stops improving. Therefore, even while the images aren't used to train the model, it still indirectly influences the training outcome.
 - **Test Set**: This is the set of images kept aside for model testing. It is exactly the set you should use for benchmarking. If the dataset was split correctly, none of these images would be shown to the model during training.
 
-Therefore, an unrelated dataset or the `test` set is the best choice for benchmarking.
-Several other problems may arise:
+Therefore, an unrelated dataset or the `test` set is the best choice for benchmarking. Several other problems may arise:
 
 - **Extra Classes**: An unrelated dataset may contain additional classes which you may need to [filter out](https://supervision.roboflow.com/how_to/filter_detections/#by-set-of-classes) before computing metrics.
 - **Class Mismatch**: In an unrelated dataset, the class names or IDs may be different to what your model produces, you'll need to remap them, which is [shown in this guide](#running-a-model).
@@ -145,8 +144,7 @@ At this stage, you should have:
 - A dataset of labeled images to evaluate the model.
 - A model prepared for benchmarking.
 
-With these ready, we can now run the model and obtain predictions.
-We'll use `supervision` to create a dataset iterator, and then run the model on each image.
+With these ready, we can now run the model and obtain predictions. We'll use `supervision` to create a dataset iterator, and then run the model on each image.
 
 === "Inference"
 
@@ -198,8 +196,7 @@ We'll use `supervision` to create a dataset iterator, and then run the model on 
 
 ## Remapping classes
 
-Did you notice an issue in the above logic?
-Since we're using an unrelated dataset, the class names and IDs may be different from what the model was trained on.
+Did you notice an issue in the above logic? Since we're using an unrelated dataset, the class names and IDs may be different from what the model was trained on.
 
 We need to remap them to match the dataset classes. Here's how to do it:
 
@@ -259,8 +256,7 @@ Let's also remove the predictions that are not in the dataset classes.
 
     Dataset class names and IDs can be found in the `data.yaml` file, or by printing `dataset.classes`.
 
-    Each model will have a different class mapping, so make sure to check the model's documentation. In this case, the model was trained on the COCO dataset, with a class
-    configuration found [here](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/datasets/coco8.yaml).
+    Each model will have a different class mapping, so make sure to check the model's documentation. In this case, the model was trained on the COCO dataset, with a class configuration found [here](https://github.com/ultralytics/ultralytics/blob/main/ultralytics/cfg/datasets/coco8.yaml).
 
     ```python
     import supervision as sv
@@ -293,8 +289,7 @@ Let's also remove the predictions that are not in the dataset classes.
 
 ## Visualizing Predictions
 
-The first step in evaluating your model’s performance is to visualize its predictions.
-This gives an intuitive sense of how well your model is detecting objects and where it might be failing.
+The first step in evaluating your model’s performance is to visualize its predictions. This gives an intuitive sense of how well your model is detecting objects and where it might be failing.
 
 ```python
 import supervision as sv
@@ -333,6 +328,20 @@ Here, predictions in purple are targets (ground truth), and predictions in teal 
     Use `sv.BoxAnnotator` for object detection and `sv.OrientedBoxAnnotator` for OBB.
 
     See [annotator documentation](https://supervision.roboflow.com/latest/detection/annotators/) for even more options.
+
+## Visual Benchmarking
+
+To inspect where a model succeeds and fails, pass `save_directory_path` to `sv.ConfusionMatrix.benchmark(...)`. For every dataset image it writes a 2x2 result grid — `Ground Truth`, `True Positives`, `False Positives`, and `False Negatives` panels — directly into that directory, reusing the original image filenames. This makes it easy to skim through per-image outcomes alongside the aggregate confusion matrix.
+
+```python
+import supervision as sv
+
+confusion_matrix = sv.ConfusionMatrix.benchmark(
+    dataset=test_set,
+    callback=callback,
+    save_directory_path="./results",
+)
+```
 
 ## Benchmarking Metrics
 
@@ -467,7 +476,7 @@ Yes, if you want to evaluate their bounding boxes. Convert model outputs to `Det
 
 ### What is a ConfusionMatrix and how do I use it?
 
-`sv.ConfusionMatrix` visualizes true positives, false positives, and false negatives per class. Create one with `sv.ConfusionMatrix.from_detections(predictions=predictions, targets=targets, classes=classes, conf_threshold=0.5, iou_threshold=0.5)`, then call `metric.plot()` to render a heatmap.
+`sv.ConfusionMatrix` visualizes true positives, false positives, and false negatives per class. Create one with `sv.ConfusionMatrix.from_detections(predictions=predictions, targets=targets, classes=classes, conf_threshold=0.5, iou_threshold=0.5)`, then call `confusion_matrix.plot()` to render a heatmap. If you want per-image validation visualizations saved to disk, pass `save_directory_path="./results"` to `sv.ConfusionMatrix.benchmark(...)`; it will write 2x2 result grids directly into that directory using the original image filenames, with `Ground Truth`, `True Positives`, `False Positives`, and `False Negatives` panels.
 
 ## Author
 

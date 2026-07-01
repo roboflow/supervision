@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.metrics.core import AveragingMethod, MetricTarget
 from supervision.metrics.f1_score import F1Score
@@ -52,6 +53,41 @@ class TestF1Score:
         )
         assert metric._metric_target == MetricTarget.MASKS
         assert metric.averaging_method == AveragingMethod.MACRO
+
+    def test_mask_content_preserves_compact_mask(self) -> None:
+        """CompactMask inputs stay compact for mask IoU."""
+        dense_mask = np.zeros((1, 4, 5), dtype=bool)
+        dense_mask[0, 1:3, 1:4] = True
+        xyxy = np.array([[1, 1, 4, 3]], dtype=np.float64)
+        compact_mask = CompactMask.from_dense(
+            dense_mask, xyxy=xyxy, image_shape=dense_mask.shape[1:]
+        )
+        detections = Detections(xyxy=xyxy, mask=compact_mask)
+        metric = F1Score(metric_target=MetricTarget.MASKS)
+
+        content = metric._detections_content(detections)
+
+        assert content is compact_mask
+
+    def test_compute_with_compact_mask_matches_dense(self) -> None:
+        """F1Score.compute() produces identical f1_50 for CompactMask and dense."""
+        masks = np.zeros((1, 50, 50), dtype=bool)
+        masks[0, 10:20, 10:20] = True
+        xyxy = np.array([[10, 10, 19, 19]], dtype=np.float64)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(50, 50))
+        det_dense = Detections(
+            xyxy=xyxy, mask=masks, confidence=np.array([0.9]), class_id=np.array([0])
+        )
+        det_compact = Detections(
+            xyxy=xyxy, mask=cm, confidence=np.array([0.9]), class_id=np.array([0])
+        )
+        metric = F1Score(metric_target=MetricTarget.MASKS)
+
+        r_dense = metric.update(det_dense, det_dense).compute()
+        metric.reset()
+        r_compact = metric.update(det_compact, det_compact).compute()
+
+        assert r_dense.f1_50 == pytest.approx(r_compact.f1_50)
 
     def test_reset(self, dummy_prediction):
         """Test that reset() clears all stored data"""
@@ -123,6 +159,86 @@ class TestF1Score:
         # F1 = 0.0
         assert result.f1_50 == 0.0
         assert result.f1_75 == 0.0
+
+    def test_false_positives_on_background_image_counted(self):
+        """Predictions on an image with no targets must count as false positives."""
+        predictions_with_gt = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+        )
+        targets_with_gt = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        background_predictions = Detections(
+            xyxy=np.array([[20, 0, 25, 5], [40, 0, 45, 5], [60, 0, 65, 5]], np.float32),
+            class_id=np.array([0, 0, 0]),
+            confidence=np.array([0.9, 0.9, 0.9]),
+        )
+
+        metric = F1Score(averaging_method=AveragingMethod.MICRO)
+        result = metric.update(
+            [predictions_with_gt, background_predictions],
+            [targets_with_gt, Detections.empty()],
+        ).compute()
+
+        # TP=1, FP=3, FN=0 -> F1 = 2*1 / (2*1 + 3 + 0) = 0.4
+        assert result.f1_50 == pytest.approx(0.4)
+        assert 0 in result.matched_classes
+
+    @pytest.mark.parametrize(
+        ("method", "expected"),
+        [
+            pytest.param(
+                AveragingMethod.MICRO, 0.5, id="micro-counts-absent-class-fps"
+            ),
+            pytest.param(
+                AveragingMethod.MACRO, 0.5, id="macro-counts-absent-class-fps"
+            ),
+            pytest.param(
+                AveragingMethod.WEIGHTED,
+                1.0,
+                id="weighted-absent-class-fps-not-counted-by-design",
+            ),
+        ],
+    )
+    def test_false_positives_of_absent_class_counted(self, method, expected):
+        """Predictions of absent class count as FPs under MICRO/MACRO; WEIGHTED
+        excludes them by design (GT support=0 → weight=0, consistent with sklearn)."""
+        predictions = Detections(
+            xyxy=np.array(
+                [[0, 0, 10, 10], [100, 0, 110, 10], [120, 0, 130, 10]], np.float32
+            ),
+            class_id=np.array([0, 1, 1]),  # class 1 never appears in the targets
+            confidence=np.array([0.9, 0.8, 0.7]),
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+
+        metric = F1Score(averaging_method=method)
+        result = metric.update(predictions, targets).compute()
+
+        # MICRO: TP=1, FP=2, FN=0 -> F1 = 2/(2+2) = 0.5
+        # MACRO: mean([F1_class0=1.0, F1_class1=0.0]) = 0.5
+        # WEIGHTED: class_1 weight=0 -> only class 0 contributes -> 1.0
+        assert result.f1_50 == pytest.approx(expected)
+
+    def test_false_positives_on_background_image_weighted_returns_zero(self):
+        """WEIGHTED F1 is 0.0 when all images are background (no GT anywhere)."""
+        background_predictions = Detections(
+            xyxy=np.array([[20, 0, 25, 5], [40, 0, 45, 5]], np.float32),
+            class_id=np.array([0, 0]),
+            confidence=np.array([0.9, 0.8]),
+        )
+
+        metric = F1Score(averaging_method=AveragingMethod.WEIGHTED)
+        result = metric.update(background_predictions, Detections.empty()).compute()
+
+        # No GT support anywhere -> class_counts.sum() == 0 -> returns 0.0
+        assert result.f1_50 == 0.0
 
     def test_single_class_mixed_results(
         self, predictions_confidence_ranking, targets_50_50
@@ -217,6 +333,45 @@ class TestF1Score:
             metric.update([detections_50_50], [targets_50_50, targets_50_50])
 
     @pytest.mark.parametrize(
+        "missing_attribute",
+        ["predictions_class_id", "targets_class_id", "predictions_confidence"],
+    )
+    def test_compute_value_error_for_missing_required_fields(
+        self, missing_attribute
+    ) -> None:
+        """Test compute raises ValueError when required fields are missing."""
+        metric = F1Score()
+        boxes = np.array([[10, 10, 50, 50]], dtype=np.float32)
+        class_id = np.array([0], dtype=np.int32)
+        confidence = np.array([0.9], dtype=np.float32)
+
+        predictions = Detections(
+            xyxy=boxes,
+            confidence=confidence,
+            class_id=class_id,
+        )
+        targets = Detections(
+            xyxy=boxes,
+            class_id=class_id,
+        )
+
+        if missing_attribute == "predictions_class_id":
+            predictions = Detections(
+                xyxy=boxes,
+                confidence=confidence,
+            )
+        elif missing_attribute == "targets_class_id":
+            targets = Detections(xyxy=boxes)
+        else:
+            predictions = Detections(
+                xyxy=boxes,
+                class_id=class_id,
+            )
+
+        with pytest.raises(ValueError, match="F1Score metric requires"):
+            metric.update(predictions, targets).compute()
+
+    @pytest.mark.parametrize(
         "averaging_method",
         [AveragingMethod.MACRO, AveragingMethod.MICRO, AveragingMethod.WEIGHTED],
     )
@@ -267,3 +422,23 @@ class TestF1Score:
         # Weighted average: 5/6
         expected_f1 = 5.0 / 6.0
         assert_almost_equal(result.f1_50, expected_f1)
+
+    def test_greedy_matching_two_valid_pairs(self):
+        """Greedy matching finds both TPs; np.unique style missed the second pair.
+
+        IoU matrix: [[1.0, 0.667], [0.333, 0.538]]. At iou>=0.5 the optimal
+        assignment is T0<->P0 and T1<->P1 (2 TPs, F1=1.0).
+        """
+        preds = Detections(
+            xyxy=np.array([[40, 60, 380, 470], [108, 60, 448, 470]], dtype=np.float32),
+            confidence=np.array([0.95, 0.90]),
+            class_id=np.array([0, 0]),
+        )
+        targets = Detections(
+            xyxy=np.array([[40, 60, 380, 470], [210, 60, 550, 470]], dtype=np.float32),
+            class_id=np.array([0, 0]),
+        )
+
+        result = F1Score().update(preds, targets).compute()
+
+        assert result.f1_50 == 1.0
