@@ -4,7 +4,7 @@ comments: true
 
 # Use Compact Masks for Memory-Efficient Segmentation
 
-[`CompactMask`][supervision.detection.compact_mask.CompactMask] stores each instance mask as a run-length encoding of its bounding-box **crop** rather than a full `(H, W)` boolean frame. For high-resolution images with many sparse masks this can reduce memory from tens of gigabytes to tens of megabytes, and eliminates full-frame decode work in annotators that only need the cropped region.
+\[`CompactMask`\][supervision.detection.compact_mask.CompactMask] stores each instance mask as a run-length encoding of its bounding-box **crop** rather than a full `(H, W)` boolean frame. For high-resolution images with many sparse masks this can reduce memory from tens of gigabytes to tens of megabytes, and eliminates full-frame decode work in annotators that only need the cropped region.
 
 This guide covers the four main integration points:
 
@@ -98,7 +98,7 @@ for ann in annotators:
         scene = ann.annotate(scene, detections)
 ```
 
-Annotators that set `requires_mask = True`: [`MaskAnnotator`][supervision.annotators.core.MaskAnnotator], [`PolygonAnnotator`][supervision.annotators.core.PolygonAnnotator], [`HaloAnnotator`][supervision.annotators.core.HaloAnnotator].
+Annotators that set `requires_mask = True`: \[`MaskAnnotator`\][supervision.annotators.core.MaskAnnotator], \[`PolygonAnnotator`\][supervision.annotators.core.PolygonAnnotator], \[`HaloAnnotator`\][supervision.annotators.core.HaloAnnotator].
 
 All others default to `requires_mask = False`.
 
@@ -166,10 +166,10 @@ Upper-end gains assume: ≥1080p frames, tens to hundreds of instances, masks co
 
 ## API Reference
 
-- [`CompactMask`][supervision.detection.compact_mask.CompactMask]
-- [`CompactMask.from_coco_rle`][supervision.detection.compact_mask.CompactMask.from_coco_rle]
-- [`CompactMask.from_dense`][supervision.detection.compact_mask.CompactMask.from_dense]
-- [`Detections.from_inference`][supervision.detection.core.Detections.from_inference]
-- [`Detections.to_compact_masks`][supervision.detection.core.Detections.to_compact_masks]
-- [`Detections.merge`][supervision.detection.core.Detections.merge]
-- [`BaseAnnotator.requires_mask`][supervision.annotators.base.BaseAnnotator]
+- \[`CompactMask`\][supervision.detection.compact_mask.CompactMask]
+- \[`CompactMask.from_coco_rle`\][supervision.detection.compact_mask.CompactMask.from_coco_rle]
+- \[`CompactMask.from_dense`\][supervision.detection.compact_mask.CompactMask.from_dense]
+- \[`Detections.from_inference`\][supervision.detection.core.Detections.from_inference]
+- \[`Detections.to_compact_masks`\][supervision.detection.core.Detections.to_compact_masks]
+- \[`Detections.merge`\][supervision.detection.core.Detections.merge]
+- \[`BaseAnnotator.requires_mask`\][supervision.annotators.base.BaseAnnotator]
