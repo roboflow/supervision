@@ -1364,6 +1364,41 @@ class TestDetectionsObbDispatch:
         assert len(result) == 1
 
 
+class TestGetAnchorsObbDispatch:
+    """`get_anchors_coordinates` reads oriented corners when OBB data is present."""
+
+    def test_anchor_lies_on_rotated_body(self) -> None:
+        """BOTTOM_CENTER of a rotated OBB is a side midpoint, not an envelope point."""
+        quad = _rotated_rect(100, 100, 120, 36, 35)
+        detections = _make_obb_detections([quad], [0.9], [0])
+
+        anchor = detections.get_anchors_coordinates(Position.BOTTOM_CENTER)[0]
+
+        side_midpoints = (quad + np.roll(quad, -1, axis=0)) / 2
+        assert np.min(np.linalg.norm(side_midpoints - anchor, axis=1)) < 1e-4
+
+    def test_identical_envelope_different_rotation_differ(self) -> None:
+        """Same envelope, mirrored rotation: the oriented anchor tells them apart."""
+        quad_a = _rotated_rect(50, 50, 80, 20, 30)
+        quad_b = _rotated_rect(50, 50, 80, 20, -30)
+        det_a = _make_obb_detections([quad_a], [0.9], [0])
+        det_b = _make_obb_detections([quad_b], [0.9], [0])
+
+        assert np.allclose(det_a.xyxy, det_b.xyxy)
+        anchor_a = det_a.get_anchors_coordinates(Position.BOTTOM_CENTER)
+        anchor_b = det_b.get_anchors_coordinates(Position.BOTTOM_CENTER)
+        assert not np.allclose(anchor_a, anchor_b)
+
+    def test_center_of_mass_still_requires_mask(self) -> None:
+        """OBB data must not divert `CENTER_OF_MASS` away from the mask path."""
+        detections = _make_obb_detections(
+            [_rotated_rect(100, 100, 120, 36, 35)], [0.9], [0]
+        )
+
+        with pytest.raises(ValueError, match="without a detection mask"):
+            detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
+
+
 class TestMergeObbCorners:
     """_merge_obb_corners"""
 

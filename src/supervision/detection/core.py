@@ -24,7 +24,11 @@ from supervision.detection.utils._typing import (
     _DetectionDataValueType,
     _MetadataType,
 )
-from supervision.detection.utils.boxes import obb_polygon_area, xyxyxyxy_to_xyxy
+from supervision.detection.utils.boxes import (
+    obb_polygon_area,
+    oriented_box_anchors,
+    xyxyxyxy_to_xyxy,
+)
 from supervision.detection.utils.converters import (
     mask_to_xyxy,
     polygon_to_mask,
@@ -2312,6 +2316,10 @@ class Detections:
         Raises:
             ValueError: If the provided `anchor` is not supported.
         """
+        if ORIENTED_BOX_COORDINATES in self.data and anchor != Position.CENTER_OF_MASS:
+            corners = np.asarray(self.data[ORIENTED_BOX_COORDINATES])
+            return cast(npt.NDArray[np.generic], oriented_box_anchors(corners, anchor))
+
         xyxy = self.xyxy
 
         def coordinates(
