@@ -122,14 +122,42 @@ def draw_rounded_rectangle(
         scene: The image on which the rounded rectangle will be drawn.
         rect: The rectangle to be drawn.
         color: The color of the rounded rectangle.
-        border_radius: The radius of the corner rounding.
+        border_radius: The radius of the corner rounding in pixels. Values <= 0
+            (or values clamped to 0 when the rectangle is too small) draw a
+            plain filled rectangle with square corners. Note: previously,
+            a negative value that remained negative after clamping would raise
+            ``cv2.error``; it now draws square corners silently.
 
     Returns:
         The image with the rounded rectangle drawn on it.
+
+    Example:
+        ```python
+        import numpy as np
+        from supervision.draw.utils import draw_rounded_rectangle
+        from supervision.draw.color import Color
+        from supervision.geometry.core import Rect
+
+        scene = np.zeros((200, 300, 3), dtype=np.uint8)
+        rect = Rect(x=20, y=30, width=120, height=80)
+        scene = draw_rounded_rectangle(scene, rect, Color.RED, border_radius=0)
+        ```
     """
     x1, y1, x2, y2 = rect.as_xyxy_int_tuple()
     width, height = x2 - x1, y2 - y1
     border_radius = min(border_radius, min(width, height) // 2)
+
+    if border_radius <= 0:
+        # square corners: a single fill rectangle (the common default), rather
+        # than two rectangles plus four zero-radius corner circles
+        cv2.rectangle(
+            img=scene,
+            pt1=(x1, y1),
+            pt2=(x2, y2),
+            color=color.as_bgr(),
+            thickness=-1,
+        )
+        return scene
 
     rectangle_coordinates = [
         ((x1 + border_radius, y1), (x2 - border_radius, y2)),

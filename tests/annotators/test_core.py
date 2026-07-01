@@ -4,6 +4,7 @@ Tests for supervision/annotators/core.py
 
 import warnings
 
+import cv2
 import numpy as np
 import pytest
 
@@ -260,6 +261,149 @@ class TestMaskAnnotator:
         )
         assert np.array_equal(result_bool, result_uint8)
 
+    def test_annotate_blends_only_dense_mask_roi(self, monkeypatch):
+        """Dense mask annotation should blend only the touched ROI."""
+        height, width = 80, 90
+        scene = np.random.default_rng(1).integers(
+            0, 256, (height, width, 3), dtype=np.uint8
+        )
+        masks = np.zeros((2, height, width), dtype=bool)
+        masks[0, 10:20, 15:25] = True
+        masks[1, 45:55, 60:75] = True
+        # inclusive xyxy; floor(x2)+1 gives union ROI (15,10,75,55) → shape (45,60,3)
+        detections = _create_detections(
+            xyxy=[[15.0, 10.0, 24.0, 19.0], [60.0, 45.0, 74.0, 54.0]],
+            mask=masks,
+            class_id=[0, 1],
+        )
+        original_add_weighted = cv2.addWeighted
+        blended_shapes = []
+
+        def add_weighted_spy(src1, alpha, src2, beta, gamma, dst=None, dtype=None):
+            blended_shapes.append(src1.shape)
+            return original_add_weighted(src1, alpha, src2, beta, gamma, dst, dtype)
+
+        monkeypatch.setattr(cv2, "addWeighted", add_weighted_spy)
+
+        result = MaskAnnotator(
+            opacity=0.5, color=Color.RED, color_lookup=ColorLookup.INDEX
+        ).annotate(scene=scene.copy(), detections=detections)
+
+        assert not np.array_equal(result, scene)
+        assert blended_shapes == [(45, 60, 3)]
+
+    def test_annotate_blends_only_compact_mask_roi(self, monkeypatch):
+        """CompactMask annotation should blend only the touched ROI."""
+        height, width = 80, 90
+        scene = np.random.default_rng(2).integers(
+            0, 256, (height, width, 3), dtype=np.uint8
+        )
+        masks = np.zeros((2, height, width), dtype=bool)
+        masks[0, 10:20, 15:25] = True
+        masks[1, 45:55, 60:75] = True
+        xyxy = np.array([[15.0, 10.0, 24.0, 19.0], [60.0, 45.0, 74.0, 54.0]])
+        detections = _create_detections(xyxy=xyxy.tolist(), mask=masks, class_id=[0, 1])
+        detections.mask = CompactMask.from_dense(
+            masks, detections.xyxy, (height, width)
+        )
+        original_add_weighted = cv2.addWeighted
+        blended_shapes = []
+
+        def add_weighted_spy(src1, alpha, src2, beta, gamma, dst=None, dtype=None):
+            blended_shapes.append(src1.shape)
+            return original_add_weighted(src1, alpha, src2, beta, gamma, dst, dtype)
+
+        monkeypatch.setattr(cv2, "addWeighted", add_weighted_spy)
+
+        result = MaskAnnotator(opacity=0.5, color_lookup=ColorLookup.INDEX).annotate(
+            scene=scene.copy(), detections=detections
+        )
+
+        assert not np.array_equal(result, scene)
+        assert blended_shapes == [(45, 60, 3)]
+
+    def test_annotate_skips_all_false_mask_blend(self, monkeypatch):
+        """All-false masks must skip blending — addWeighted must not be called."""
+        height, width = 30, 40
+        scene = np.random.default_rng(3).integers(
+            0, 256, (height, width, 3), dtype=np.uint8
+        )
+        mask = np.zeros((height, width), dtype=bool)
+        detections = _create_detections(
+            xyxy=[[5.0, 5.0, 20.0, 20.0]], mask=[mask], class_id=[0]
+        )
+
+        call_count = []
+
+        def add_weighted_spy(src1, alpha, src2, beta, gamma, dst=None, dtype=None):
+            call_count.append(1)
+            return src2
+
+        monkeypatch.setattr(cv2, "addWeighted", add_weighted_spy)
+
+        result = MaskAnnotator(
+            opacity=0.5, color=Color.RED, color_lookup=ColorLookup.INDEX
+        ).annotate(scene=scene.copy(), detections=detections)
+
+        assert np.array_equal(result, scene)
+        assert len(call_count) == 0, "addWeighted called for all-false masks"
+
+    def test_annotate_pixels_outside_roi_unchanged(self):
+        """Pixels outside the blended ROI must be unchanged from the original scene."""
+        height, width = 80, 90
+        rng = np.random.default_rng(42)
+        scene = rng.integers(0, 256, (height, width, 3), dtype=np.uint8)
+        # Two masks in the top-left region — ROI should be [10:55, 15:75]
+        masks = np.zeros((2, height, width), dtype=bool)
+        masks[0, 10:20, 15:25] = True
+        masks[1, 45:55, 60:75] = True
+        # inclusive xyxy; floor(x2)+1 gives ROI (15,10,75,55)
+        xyxy = np.array([[15.0, 10.0, 24.0, 19.0], [60.0, 45.0, 74.0, 54.0]])
+        detections = _create_detections(xyxy=xyxy.tolist(), mask=masks, class_id=[0, 1])
+        result = MaskAnnotator(opacity=0.5, color_lookup=ColorLookup.INDEX).annotate(
+            scene=scene.copy(), detections=detections
+        )
+        # Pixels strictly below ROI row-bound (y2=55) must be unchanged
+        assert np.array_equal(result[55:, :], scene[55:, :])
+        # Pixels strictly right of ROI col-bound (x2=75) must be unchanged
+        assert np.array_equal(result[:, 75:], scene[:, 75:])
+
+    def test_annotate_roi_parity_with_full_frame_blend(self):
+        """ROI blend must match reference blend within ±1 (uint8 rounding)."""
+        height, width = 60, 80
+        rng = np.random.default_rng(99)
+        scene = rng.integers(0, 256, (height, width, 3), dtype=np.uint8)
+        opacity = 0.5
+        # Single mask in bottom-right quadrant
+        masks = np.zeros((1, height, width), dtype=bool)
+        masks[0, 40:55, 50:70] = True
+        # inclusive xyxy; floor(x2)+1 gives ROI scene[40:55, 50:70]
+        xyxy = np.array([[50.0, 40.0, 69.0, 54.0]])
+        detections = _create_detections(xyxy=xyxy.tolist(), mask=masks, class_id=[0])
+
+        # ROI-only result (new optimized behavior)
+        result_roi = MaskAnnotator(
+            opacity=opacity, color=Color.RED, color_lookup=ColorLookup.INDEX
+        ).annotate(scene=scene.copy(), detections=detections)
+
+        # Reference: manually compute expected blend for masked pixels only
+        # RED in BGR = (0, 0, 255); blend = opacity*color + (1-opacity)*scene
+        roi_mask = masks[0]
+        colored = scene.copy()
+        colored[roi_mask] = (0, 0, 255)  # BGR RED
+        ref_blend = np.clip(
+            opacity * colored.astype(np.float32)
+            + (1 - opacity) * scene.astype(np.float32),
+            0,
+            255,
+        ).astype(np.uint8)
+
+        # Masked pixels must match reference within ±1 (uint8 rounding)
+        diff = np.abs(
+            result_roi[roi_mask].astype(np.int16) - ref_blend[roi_mask].astype(np.int16)
+        )
+        assert np.all(diff <= 1), f"Max pixel diff: {diff.max()}"
+
 
 class TestPolygonAnnotator:
     """Tests for PolygonAnnotator class"""
@@ -501,6 +645,32 @@ class TestPaintMasksByArea:
         dense_painted = canvas_dense.any(axis=-1)
         assert np.all(dense_painted[compact_painted])
 
+    def test_canvas_origin_nonzero_paints_at_correct_position(self):
+        """Non-zero canvas_origin should offset mask coordinates into canvas."""
+        height, width = 30, 40
+        # Subcanvas covering region [10:25, 15:30] of the full image (15x15 px).
+        canvas = np.zeros((15, 15, 3), dtype=np.uint8)
+        # Mask in full-image coords: True at rows 12:18, cols 17:22.
+        # In canvas coords (origin=(15, 10)): rows 2:8, cols 2:7.
+        full_mask = np.zeros((height, width), dtype=bool)
+        full_mask[12:18, 17:22] = True
+        detections = Detections(
+            xyxy=np.array([[17.0, 12.0, 21.0, 17.0]]),
+            mask=full_mask[np.newaxis],
+            class_id=np.array([0]),
+        )
+        _paint_masks_by_area(
+            canvas,
+            detections,
+            Color.RED,
+            ColorLookup.INDEX,
+            canvas_origin=(15, 10),
+        )
+        # Pixels inside the mapped region should be BGR red (0, 0, 255)
+        assert np.all(canvas[2:8, 2:7] == (0, 0, 255))
+        # Pixels outside the painted region must remain zero
+        assert canvas[0, 0].tolist() == [0, 0, 0]
+
 
 class TestCompactMaskParity:
     """Tests that CompactMask and dense mask produce identical annotator output."""
@@ -701,6 +871,53 @@ class TestDotAnnotator:
 
 class TestLabelAnnotator:
     """Tests for LabelAnnotator class"""
+
+    @pytest.mark.parametrize(
+        "border_radius",
+        [
+            pytest.param(0, id="radius-zero"),
+            pytest.param(-3, id="radius-negative"),
+        ],
+    )
+    def test_draw_rounded_rectangle_square_matches_plain_rectangle(
+        self, border_radius: int
+    ) -> None:
+        """Non-positive radius fills the same pixels as a plain rectangle.
+
+        For border_radius < 0: previously raised cv2.error: radius >= 0 in
+        function 'circle'; fast path now silently draws square corners instead.
+        """
+        scene = np.full((100, 120, 3), 9, dtype=np.uint8)
+
+        result = LabelAnnotator.draw_rounded_rectangle(
+            scene=scene.copy(),
+            xyxy=(10, 20, 90, 70),
+            color=(0, 0, 255),
+            border_radius=border_radius,
+        )
+
+        expected = scene.copy()
+        expected[20:71, 10:91] = (0, 0, 255)
+        assert np.array_equal(result, expected)
+
+    def test_draw_rounded_rectangle_clamped_to_zero_acts_as_square(self) -> None:
+        """Positive border_radius clamped to 0 by a degenerate box draws square corners.
+
+        1px-wide box: min(10, 1 // 2) = min(10, 0) = 0 → fast path fires even
+        though the caller passed a positive radius.
+        """
+        scene = np.full((100, 120, 3), 9, dtype=np.uint8)
+
+        result = LabelAnnotator.draw_rounded_rectangle(
+            scene=scene.copy(),
+            xyxy=(10, 20, 11, 70),
+            color=(0, 0, 255),
+            border_radius=10,
+        )
+
+        expected = scene.copy()
+        expected[20:71, 10:12] = (0, 0, 255)
+        assert np.array_equal(result, expected)
 
     def test_annotate_with_no_detections(self, test_image):
         """Test that annotate method returns unmodified image when no detections"""

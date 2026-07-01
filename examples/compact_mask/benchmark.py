@@ -2,7 +2,9 @@
 
 Demonstrates that ``CompactMask`` is a drop-in replacement for dense
 ``(N, H, W)`` bool arrays in ``supervision.Detections``, while using
-significantly less memory and enabling faster annotation.
+significantly less memory and enabling faster annotation. The annotation
+timing reports frame size, detection count, mask area ratio, and
+``MaskAnnotator`` speedup from ROI-only blending.
 
 Run with:
     uv run python examples/compact_mask/benchmark.py
@@ -72,7 +74,7 @@ class ScenarioResult:
     name: str
     resolution: str  # e.g. "1920x1080"
     num_objects: int
-    fill_name: str  # e.g. "5%"
+    fill_name: str  # mask area ratio, e.g. "5%"
     num_vertices: int  # polygon vertex count — complexity proxy
     # memory (theoretical: raw numpy nbytes)
     dense_bytes: int
@@ -954,7 +956,7 @@ def print_summary(results: list[ScenarioResult]) -> None:
     table.add_column("Scenario", style="bold", min_width=22)
     table.add_column("Objects", justify="right", min_width=7)
     table.add_column("Resolution", min_width=12, no_wrap=True)
-    table.add_column("Fill", justify="right", min_width=5, no_wrap=True)
+    table.add_column("Mask\narea", justify="right", min_width=5, no_wrap=True)
     table.add_column("Vertices", justify="right", min_width=8, no_wrap=True)
     table.add_column("Dense\ntheory", justify="right", min_width=10)
     table.add_column("Compact\ntheory", justify="right", style="green", min_width=9)
@@ -1035,7 +1037,8 @@ def print_summary(results: list[ScenarioResult]) -> None:
                 "Decode ms/mask — to_dense() / N (compact→dense overhead per mask)",
                 "Area x — .area speedup (RLE sum, no materialisation)",
                 "Filter x — boolean-index speedup",
-                "Annot x — MaskAnnotator speedup (crop-paint vs full-frame alloc)",
+                "Annot x — MaskAnnotator speedup "
+                "(ROI-only blend vs full-frame overlay)",
                 f"IoU x — pairwise self-IoU speedup "
                 f"(dense skipped >{IOU_DENSE_SKIP_GB:.0f} GB)",
                 "NMS x — mask_non_max_suppression speedup",
