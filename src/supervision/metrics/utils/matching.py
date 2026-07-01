@@ -12,6 +12,13 @@ def _greedy_match(
 
     Candidate pairs are sorted by descending IoU and assigned one-to-one: a pair
     is accepted only when neither the target nor the prediction has been matched.
+
+    Examples:
+        >>> import numpy as np
+        >>> iou = np.array([[1.0, 0.667], [0.333, 0.538]], dtype=np.float32)
+        >>> matched_indices = np.where(iou >= 0.5)
+        >>> list(_greedy_match(iou, matched_indices))
+        [(0, 0), (1, 1)]
     """
     target_idx = matched_indices[0]
     pred_idx = matched_indices[1]
