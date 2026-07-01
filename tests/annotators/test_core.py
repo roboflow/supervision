@@ -470,6 +470,119 @@ class TestPolygonAnnotator:
         assert not np.array_equal(result, scene), "annotator painted nothing"
         np.testing.assert_array_equal(result, expected)
 
+    def test_annotate_with_empty_compact_mask(self):
+        """N=0 CompactMask returns scene unchanged without error."""
+        height, width = 60, 80
+        scene = np.zeros((height, width, 3), dtype=np.uint8)
+        empty_masks = np.zeros((0, height, width), dtype=bool)
+        xyxy = np.zeros((0, 4), dtype=np.float32)
+        detections = Detections(
+            xyxy=xyxy,
+            mask=CompactMask.from_dense(empty_masks, xyxy, (height, width)),
+            class_id=np.array([], dtype=int),
+        )
+        annotator = PolygonAnnotator(color=Color.WHITE, color_lookup=ColorLookup.INDEX)
+        result = annotator.annotate(scene=scene.copy(), detections=detections)
+        np.testing.assert_array_equal(result, scene)
+
+    def test_annotate_with_all_false_compact_mask_unchanged(self):
+        """All-False CompactMask crop (no contours) leaves scene pixels unchanged.
+
+        A detection whose mask is entirely False produces no polygons; the
+        annotator must not paint any pixels for that detection.
+        """
+        height, width = 60, 80
+        scene = np.zeros((height, width, 3), dtype=np.uint8)
+        masks = np.zeros((1, height, width), dtype=bool)
+        xyxy = np.array([[10.0, 10.0, 50.0, 50.0]], dtype=np.float32)
+        detections = Detections(
+            xyxy=xyxy,
+            mask=CompactMask.from_dense(masks, xyxy, (height, width)),
+            class_id=np.array([0]),
+        )
+        annotator = PolygonAnnotator(color=Color.WHITE, color_lookup=ColorLookup.INDEX)
+        result = annotator.annotate(scene=scene.copy(), detections=detections)
+        np.testing.assert_array_equal(result, scene)
+
+    def test_annotate_with_single_compact_mask_detection(self):
+        """N=1 CompactMask detection annotates the same as dense mask."""
+        height, width = 60, 80
+        scene = np.zeros((height, width, 3), dtype=np.uint8)
+        mask = np.zeros((height, width), dtype=bool)
+        mask[20:40, 15:55] = True
+        xyxy = np.array([[15.0, 20.0, 54.0, 39.0]], dtype=np.float32)
+        dense = Detections(xyxy=xyxy, mask=np.array([mask]), class_id=np.array([0]))
+        compact = Detections(
+            xyxy=xyxy,
+            mask=CompactMask.from_dense(np.array([mask]), xyxy, (height, width)),
+            class_id=np.array([0]),
+        )
+        annotator = PolygonAnnotator(
+            color=Color.WHITE, thickness=1, color_lookup=ColorLookup.INDEX
+        )
+        expected = annotator.annotate(scene=scene.copy(), detections=dense)
+        result = annotator.annotate(scene=scene.copy(), detections=compact)
+        np.testing.assert_array_equal(result, expected)
+
+    def test_annotate_compact_mask_float_xyxy_truncation(self):
+        """Float xyxy with sub-pixel values are truncated to int before crop decode.
+
+        CompactMask stores bbox origins as int32 (via truncation); PolygonAnnotator
+        must produce the same output whether xyxy is integral or has fractional parts.
+        """
+        height, width = 60, 80
+        scene = np.zeros((height, width, 3), dtype=np.uint8)
+        mask = np.zeros((height, width), dtype=bool)
+        mask[10:30, 5:45] = True
+        xyxy_int = np.array([[5.0, 10.0, 44.0, 29.0]], dtype=np.float32)
+        xyxy_float = np.array([[5.7, 10.9, 44.3, 29.1]], dtype=np.float32)
+        compact_int = Detections(
+            xyxy=xyxy_int,
+            mask=CompactMask.from_dense(np.array([mask]), xyxy_int, (height, width)),
+            class_id=np.array([0]),
+        )
+        compact_float = Detections(
+            xyxy=xyxy_float,
+            mask=CompactMask.from_dense(np.array([mask]), xyxy_float, (height, width)),
+            class_id=np.array([0]),
+        )
+        annotator = PolygonAnnotator(
+            color=Color.WHITE, thickness=1, color_lookup=ColorLookup.INDEX
+        )
+        result_int = annotator.annotate(scene=scene.copy(), detections=compact_int)
+        result_float = annotator.annotate(scene=scene.copy(), detections=compact_float)
+        np.testing.assert_array_equal(result_int, result_float)
+
+    def test_compact_mask_disjoint_contours_offset_correct(self):
+        """Disjoint-contour mask: both polygon blobs translate to correct image coords.
+
+        Verifies coordinate-level correctness of crop→image offset for a mask
+        with two separate blobs. After annotation, boundary pixels of each blob
+        must be painted; pixels between the blobs must remain unpainted.
+        """
+        height, width = 80, 90
+        scene = np.zeros((height, width, 3), dtype=np.uint8)
+        mask = np.zeros((height, width), dtype=bool)
+        mask[10:20, 15:30] = True
+        mask[32:45, 40:55] = True
+        xyxy = np.array([[15.0, 10.0, 54.0, 44.0]], dtype=np.float32)
+        detections = Detections(
+            xyxy=xyxy,
+            mask=CompactMask.from_dense(np.array([mask]), xyxy, (height, width)),
+            class_id=np.array([0]),
+        )
+        annotator = PolygonAnnotator(
+            color=Color.WHITE, thickness=1, color_lookup=ColorLookup.INDEX
+        )
+        result = annotator.annotate(scene=scene.copy(), detections=detections)
+
+        # Boundary of blob 1 in image space — must be painted
+        assert np.any(result[10:20, 15:30] != 0), "blob 1 boundary not painted"
+        # Boundary of blob 2 in image space — must be painted
+        assert np.any(result[32:45, 40:55] != 0), "blob 2 boundary not painted"
+        # Gap between blobs — no polygon pixels expected here
+        assert np.all(result[21:31, :] == 0), "gap between blobs has stray pixels"
+
 
 class TestColorAnnotator:
     """Tests for ColorAnnotator class"""
@@ -681,6 +794,12 @@ class TestCompactMaskParity:
             pytest.param(
                 lambda: MaskAnnotator(opacity=1.0, color_lookup=ColorLookup.INDEX),
                 id="mask",
+            ),
+            pytest.param(
+                lambda: PolygonAnnotator(
+                    color=Color.WHITE, thickness=1, color_lookup=ColorLookup.INDEX
+                ),
+                id="polygon",
             ),
             pytest.param(
                 lambda: HaloAnnotator(kernel_size=15, color_lookup=ColorLookup.INDEX),
