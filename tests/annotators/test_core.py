@@ -3,11 +3,13 @@ Tests for supervision/annotators/core.py
 """
 
 import warnings
+from collections.abc import Iterator
 
 import cv2
 import numpy as np
 import pytest
 
+from supervision.annotators.base import BaseAnnotator
 from supervision.annotators.core import (
     BackgroundOverlayAnnotator,
     BlurAnnotator,
@@ -21,6 +23,7 @@ from supervision.annotators.core import (
     EllipseAnnotator,
     HaloAnnotator,
     HeatMapAnnotator,
+    IconAnnotator,
     LabelAnnotator,
     MaskAnnotator,
     OrientedBoxAnnotator,
@@ -39,6 +42,70 @@ from supervision.detection.core import Detections
 from supervision.draw.color import Color
 from supervision.geometry.core import Position
 from tests.helpers import _create_detections, assert_image_mostly_same
+
+
+def _get_concrete_annotator_subclasses(
+    cls: type[BaseAnnotator],
+) -> Iterator[type[BaseAnnotator]]:
+    """Recursively yield non-abstract BaseAnnotator subclasses."""
+    for sub in cls.__subclasses__():
+        if not getattr(sub, "__abstractmethods__", None):
+            yield sub
+        yield from _get_concrete_annotator_subclasses(sub)
+
+
+class TestAnnotatorMaskPolicy:
+    """Tests for annotator mask materialization policy metadata."""
+
+    @pytest.mark.parametrize(
+        "annotator",
+        [
+            pytest.param(MaskAnnotator(), id="mask"),
+            pytest.param(PolygonAnnotator(), id="polygon"),
+            pytest.param(HaloAnnotator(), id="halo"),
+        ],
+    )
+    def test_mask_required_annotators_declare_mask_requirement(self, annotator):
+        """Annotators that require detections.mask expose the requirement."""
+        assert type(annotator).requires_mask is True
+
+    @pytest.mark.parametrize(
+        "annotator",
+        [
+            pytest.param(BoxAnnotator(), id="box"),
+            pytest.param(LabelAnnotator(), id="label"),
+            pytest.param(CircleAnnotator(), id="circle"),
+            pytest.param(EllipseAnnotator(), id="ellipse"),
+            pytest.param(IconAnnotator(), id="icon"),
+            pytest.param(TraceAnnotator(), id="trace"),
+            pytest.param(BackgroundOverlayAnnotator(), id="overlay"),
+            pytest.param(BackgroundOverlayAnnotator(force_box=True), id="overlay-box"),
+            pytest.param(ComparisonAnnotator(), id="comparison"),
+        ],
+    )
+    def test_mask_optional_annotators_declare_no_mask_requirement(self, annotator):
+        """Mask-optional annotators do not require mask materialization."""
+        assert type(annotator).requires_mask is False
+
+    @pytest.mark.parametrize(
+        "annotator_class",
+        [
+            pytest.param(cls, id=cls.__name__)
+            for cls in _get_concrete_annotator_subclasses(BaseAnnotator)
+        ],
+    )
+    def test_all_subclasses_have_bool_requires_mask(self, annotator_class):
+        """Every concrete BaseAnnotator subclass declares requires_mask as a bool."""
+        assert isinstance(annotator_class.requires_mask, bool)
+
+    def test_exact_mask_requiring_annotator_set(self):
+        """Only MaskAnnotator, PolygonAnnotator, HaloAnnotator require masks."""
+        mask_true = {
+            cls
+            for cls in _get_concrete_annotator_subclasses(BaseAnnotator)
+            if cls.requires_mask is True
+        }
+        assert mask_true == {MaskAnnotator, PolygonAnnotator, HaloAnnotator}
 
 
 @pytest.fixture
