@@ -499,7 +499,7 @@ def _masks_to_roi(
     if isinstance(masks, CompactMask):
         return _compact_masks_to_roi(masks=masks, image_shape=image_shape)
     mask_array = np.asarray(masks, dtype=bool)
-    if mask_array.size == 0:
+    if mask_array.size == 0 or not mask_array.any():
         return None
     # Fast path: union of detection boxes (O(N)) avoids full N·H·W pixel scan.
     # supervision xyxy uses inclusive max coords; floor(x2)+1 converts to exclusive.
