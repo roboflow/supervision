@@ -1,7 +1,7 @@
-from __future__ import annotations
-
 import cv2
 import matplotlib.pyplot as plt
+import numpy as np
+import numpy.typing as npt
 from PIL import Image
 
 from supervision.draw.base import ImageType
@@ -34,14 +34,16 @@ def plot_image(
         ```
     """
     if isinstance(image, Image.Image):
-        image = pillow_to_cv2(image)
+        image_np = pillow_to_cv2(image)
+    else:
+        image_np = image
 
     plt.figure(figsize=size)
 
-    if image.ndim == 2:
-        plt.imshow(image, cmap=cmap)
+    if image_np.ndim == 2:
+        plt.imshow(image_np, cmap=cmap)
     else:
-        plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        plt.imshow(cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB))
 
     plt.axis("off")
     plt.show()
@@ -91,11 +93,11 @@ def plot_images_grid(
     """
     nrows, ncols = grid_size
 
-    for idx, img in enumerate(images):
-        if isinstance(img, Image.Image):
-            images[idx] = pillow_to_cv2(img)
+    images_np: list[npt.NDArray[np.uint8]] = [
+        pillow_to_cv2(img) if isinstance(img, Image.Image) else img for img in images
+    ]
 
-    if len(images) > nrows * ncols:
+    if len(images_np) > nrows * ncols:
         raise ValueError(
             "The number of images exceeds the grid size. Please increase the grid size"
             " or reduce the number of images."
@@ -104,11 +106,11 @@ def plot_images_grid(
     _fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=size)
 
     for idx, ax in enumerate(axes.flat):
-        if idx < len(images):
-            if images[idx].ndim == 2:
-                ax.imshow(images[idx], cmap=cmap)
+        if idx < len(images_np):
+            if images_np[idx].ndim == 2:
+                ax.imshow(images_np[idx], cmap=cmap)
             else:
-                ax.imshow(cv2.cvtColor(images[idx], cv2.COLOR_BGR2RGB))
+                ax.imshow(cv2.cvtColor(images_np[idx], cv2.COLOR_BGR2RGB))
 
             if titles is not None and idx < len(titles):
                 ax.set_title(titles[idx])

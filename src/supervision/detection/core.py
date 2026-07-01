@@ -19,6 +19,11 @@ from supervision.detection.tools.transformers import (
     process_transformers_v4_segmentation_result,
     process_transformers_v5_segmentation_result,
 )
+from supervision.detection.utils._typing import (
+    _DetectionDataType,
+    _DetectionDataValueType,
+    _MetadataType,
+)
 from supervision.detection.utils.boxes import obb_polygon_area, xyxyxyxy_to_xyxy
 from supervision.detection.utils.converters import (
     mask_to_xyxy,
@@ -153,13 +158,13 @@ class Detections:
             as the video name, camera parameters, timestamp, or other global metadata.
     """  # noqa: E501 // docs
 
-    xyxy: npt.NDArray[np.generic]
-    mask: npt.NDArray[np.generic] | CompactMask | None = None
-    confidence: npt.NDArray[np.generic] | None = None
-    class_id: npt.NDArray[np.generic] | None = None
-    tracker_id: npt.NDArray[np.generic] | None = None
-    data: dict[str, npt.NDArray[np.generic] | list[Any]] = field(default_factory=dict)
-    metadata: dict[str, Any] = field(default_factory=dict)
+    xyxy: npt.NDArray[np.number]
+    mask: npt.NDArray[np.bool_] | CompactMask | None = None
+    confidence: npt.NDArray[np.floating] | None = None
+    class_id: npt.NDArray[np.integer] | None = None
+    tracker_id: npt.NDArray[np.integer] | None = None
+    data: _DetectionDataType = field(default_factory=dict)
+    metadata: _MetadataType = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         _validate_detections_fields(
@@ -181,12 +186,12 @@ class Detections:
         self,
     ) -> Iterator[
         tuple[
-            npt.NDArray[np.generic],
-            npt.NDArray[np.generic] | None,
+            npt.NDArray[np.number],
+            npt.NDArray[np.bool_] | None,
             np.generic | None,
             np.generic | None,
             np.generic | None,
-            dict[str, npt.NDArray[np.generic] | list[Any]],
+            _DetectionDataType,
         ]
     ]:
         """
@@ -206,13 +211,34 @@ class Detections:
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Detections):
             return NotImplemented
+
+        def array_equal_or_none(
+            a: npt.NDArray[np.generic] | None,
+            b: npt.NDArray[np.generic] | None,
+        ) -> bool:
+            if a is None or b is None:
+                return a is b
+            return bool(np.array_equal(a, b))
+
+        def mask_equal(
+            a: npt.NDArray[np.generic] | CompactMask | None,
+            b: npt.NDArray[np.generic] | CompactMask | None,
+        ) -> bool:
+            if a is None or b is None:
+                return a is b
+            if isinstance(a, CompactMask):
+                return bool(a == b)
+            if isinstance(b, CompactMask):
+                return bool(b == a)
+            return bool(np.array_equal(a, b))
+
         return all(
             [
                 np.array_equal(self.xyxy, other.xyxy),
-                np.array_equal(self.mask, other.mask),
-                np.array_equal(self.class_id, other.class_id),
-                np.array_equal(self.confidence, other.confidence),
-                np.array_equal(self.tracker_id, other.tracker_id),
+                mask_equal(self.mask, other.mask),
+                array_equal_or_none(self.class_id, other.class_id),
+                array_equal_or_none(self.confidence, other.confidence),
+                array_equal_or_none(self.tracker_id, other.tracker_id),
                 is_data_equal(self.data, other.data),
                 is_metadata_equal(self.metadata, other.metadata),
             ]
@@ -302,7 +328,9 @@ class Detections:
             )
 
         if hasattr(ultralytics_results, "boxes") and ultralytics_results.boxes is None:
-            masks = extract_ultralytics_masks(ultralytics_results)
+            masks = cast(
+                npt.NDArray[np.bool_], extract_ultralytics_masks(ultralytics_results)
+            )
             return cls(
                 xyxy=mask_to_xyxy(masks),
                 mask=masks,
@@ -619,7 +647,12 @@ class Detections:
         )
 
     @classmethod
-    def from_inference(cls, roboflow_result: dict[str, Any] | Any) -> Detections:
+    def from_inference(
+        cls,
+        roboflow_result: dict[str, Any] | Any,
+        *,
+        compact_masks: bool = False,
+    ) -> Detections:
         """
         Create a `sv.Detections` object from the [Roboflow](https://roboflow.com/)
         API inference result or the [Inference](https://inference.roboflow.com/)
@@ -630,6 +663,31 @@ class Detections:
         Args:
             roboflow_result: The result from the
                 Roboflow API or Inference package containing predictions.
+            compact_masks: When `True`, return segmentation masks as
+                :class:`~supervision.detection.compact_mask.CompactMask`.
+                The default `False` preserves the existing dense NumPy mask
+                representation.
+
+                Warning:
+                    When `compact_masks=True`, the crop policy depends on how
+                    each prediction encodes its mask:
+
+                    - Native size-matched COCO-RLE (the RLE `size` equals the
+                      image size) is **cropped to the detector bounding box**
+                      (`xyxy`). For instance-segmentation models the detector
+                      box may not tightly bound the mask, so pixels beyond the
+                      box boundary are silently dropped.
+                    - Polygon-derived masks (`points`) and size-mismatched
+                      COCO-RLE masks (decoded, then resized to the image) are
+                      retained **full-frame** and lose no pixels.
+
+                    Because only the box-cropped path is lossy,
+                    `from_inference(r)` and
+                    `from_inference(r, compact_masks=True)` can return masks
+                    with different areas and IoU **only** for native
+                    size-matched COCO-RLE predictions. Use `compact_masks=True`
+                    only when the memory savings outweigh the boundary loss on
+                    that path.
 
         Returns:
             A Detections object containing the bounding boxes, class IDs,
@@ -640,10 +698,14 @@ class Detections:
                 or absent. `detections.tracker_id` is `None` when no
                 predictions carry a tracker ID, or when only a subset do
                 (mixed batch) — in that case all tracker IDs are dropped to
-                preserve alignment with the bounding boxes. Note: mixed
-                batches containing both RLE/polygon predictions and box-only
-                predictions may misalign the `mask` array; this is a
-                pre-existing limitation not addressed by this fix.
+                preserve alignment with the bounding boxes. Similarly,
+                `detections.mask` is `None` when no predictions include mask
+                data, or when only a subset carry masks — all masks are dropped
+                to preserve xyxy alignment.
+                When `compact_masks=True` and all predictions carry mask data,
+                `detections.mask` is a
+                :class:`~supervision.detection.compact_mask.CompactMask` rather
+                than a dense boolean array.
 
         Example:
             ```python
@@ -656,15 +718,29 @@ class Detections:
 
             result = model.infer(image)[0]
             detections = sv.Detections.from_inference(result)
+            compact_detections = sv.Detections.from_inference(
+                result, compact_masks=True
+            )
             ```
         """
         if hasattr(roboflow_result, "dict"):
             roboflow_result = roboflow_result.dict(exclude_none=True, by_alias=True)
         elif hasattr(roboflow_result, "json"):
             roboflow_result = roboflow_result.json()
-        xyxy, confidence, class_id, masks, trackers, data = process_roboflow_result(
-            roboflow_result=roboflow_result
-        )
+        masks: npt.NDArray[np.bool_] | CompactMask | None
+        # Design note (ADR): the `compact_masks` flag changes the runtime type of
+        # `detections.mask` from `NDArray[bool_]` to `CompactMask`, so every mask
+        # consumer must branch on `isinstance(detections.mask, CompactMask)`. A
+        # typed factory / `mask_format=` enum would be cleaner but would require a
+        # deprecation cycle if introduced later.
+        if compact_masks:
+            xyxy, confidence, class_id, masks, trackers, data = process_roboflow_result(
+                roboflow_result=roboflow_result, compact_masks=True
+            )
+        else:
+            xyxy, confidence, class_id, masks, trackers, data = process_roboflow_result(
+                roboflow_result=roboflow_result
+            )
 
         if np.asarray(xyxy).shape[0] == 0:
             empty_detection = cls.empty()
@@ -1893,7 +1969,7 @@ class Detections:
         if vlm == VLM.PALIGEMMA:
             assert isinstance(result, str)
             xyxy, class_id, class_name = from_paligemma(result, **kwargs)
-            data: dict[str, npt.NDArray[np.generic] | list[Any]] = {
+            data: _DetectionDataType = {
                 CLASS_NAME_DATA_FIELD: class_name,
             }
             return cls(xyxy=xyxy, class_id=class_id, data=data)
@@ -2130,11 +2206,46 @@ class Detections:
 
             When merging, empty `Detections` objects are ignored.
 
+        !!! Note
+
+            **Mask merge policy** — the output mask type follows these rules:
+
+            * All inputs carry
+              [`CompactMask`][supervision.detection.compact_mask.CompactMask]
+              → result mask is `CompactMask`.
+            * Mixed dense `ndarray` + `CompactMask` inputs → dense masks are converted
+              to `CompactMask` via
+              [`CompactMask.from_dense`][supervision.detection.compact_mask.CompactMask.from_dense];
+              result is `CompactMask`. No full `(N, H, W)` stack is allocated.
+
+              !!! warning "Lossy conversion"
+
+                  `from_dense` crops each dense mask to its detection bounding box
+                  (`xyxy`). **True pixels outside the bounding box are silently
+                  discarded.** This matches the behaviour of
+                  `Detections.from_inference(compact_masks=True)`. If pixel-perfect
+                  preservation is required, ensure all inputs are already `CompactMask`
+                  or use the all-dense path (no `CompactMask` inputs).
+
+            * All inputs carry dense `ndarray` → result is `ndarray` (backward
+              compatible).
+            * The pairwise merge path used by
+              [`with_nms`][supervision.detection.core.Detections.with_nms] /
+              [`with_nmm`][supervision.detection.core.Detections.with_nmm]
+              (`merge_inner_detection_object_pair`) does **not** preserve `CompactMask`
+              — mixed inputs materialise to a dense `ndarray` on that path.
+
         Args:
             detections_list: A list of Detections objects to merge.
 
         Returns:
             A single Detections object containing the merged data from the input list.
+
+        Raises:
+            ValueError: If some `Detections` have a `mask` and others do not.
+            ValueError: If `CompactMask` inputs have different `image_shape` values.
+            ValueError: If a dense mask `(H, W)` shape differs from the `CompactMask`
+                `image_shape` when mixing mask types.
 
         Example:
             >>> import numpy as np
@@ -2158,6 +2269,34 @@ class Detections:
             array([1, 2, 1])
             >>> merged_detections.data['feature_vector']
             array([0.1, 0.2, 0.3])
+
+        Compact mask merge example:
+
+            ```python
+            import numpy as np
+            import supervision as sv
+            from supervision.detection.compact_mask import CompactMask
+
+            H, W = 720, 1280
+            masks_a = np.zeros((2, H, W), dtype=bool)
+            masks_a[0, 100:200, 100:300] = True
+            xyxy_a = np.array([[100., 100., 299., 199.], [400., 300., 600., 500.]])
+            cm_a = CompactMask.from_dense(masks_a, xyxy_a, image_shape=(H, W))
+
+            det_compact = sv.Detections(
+                xyxy=xyxy_a, mask=cm_a, class_id=np.array([0, 1])
+            )
+
+            masks_b = np.zeros((1, H, W), dtype=bool)
+            masks_b[0, 50:100, 50:150] = True
+            xyxy_b = np.array([[50., 50., 149., 99.]])
+            det_dense = sv.Detections(xyxy=xyxy_b, mask=masks_b, class_id=np.array([2]))
+
+            # Dense mask is converted to CompactMask; no (N, H, W) stack allocated.
+            merged = sv.Detections.merge([det_compact, det_dense])
+            assert isinstance(merged.mask, CompactMask)
+            assert len(merged) == 3
+            ```
         """
         detections_list = [
             detections for detections in detections_list if not detections.is_empty()
@@ -2178,25 +2317,58 @@ class Detections:
 
         xyxy = np.vstack([d.xyxy for d in detections_list])
 
-        def stack_or_none(
-            name: str,
-        ) -> npt.NDArray[np.generic] | CompactMask | None:
-            if all(d.__getattribute__(name) is None for d in detections_list):
+        def stack_mask_or_none() -> npt.NDArray[np.generic] | CompactMask | None:
+            masks = [d.mask for d in detections_list]
+            if all(m is None for m in masks):
                 return None
-            if any(d.__getattribute__(name) is None for d in detections_list):
-                raise ValueError(f"All or none of the '{name}' fields must be None")
-            if name == "mask":
-                masks = [d.__getattribute__(name) for d in detections_list]
-                if all(isinstance(m, CompactMask) for m in masks):
-                    return CompactMask.merge(masks)
-                # Mixed or all-ndarray: __array__ auto-converts any CompactMask.
-                return np.vstack([np.asarray(m) for m in masks])
-            return np.hstack([d.__getattribute__(name) for d in detections_list])
+            if any(m is None for m in masks):
+                raise ValueError("All or none of the 'mask' fields must be None")
+            if all(isinstance(m, CompactMask) for m in masks):
+                return CompactMask.merge(cast(list[CompactMask], masks))
+            if all(not isinstance(m, CompactMask) for m in masks):
+                # All-dense: preserve backward-compatible dense stacking.
+                return cast(
+                    npt.NDArray[np.generic], np.vstack([np.asarray(m) for m in masks])
+                )
+            # Mixed dense and CompactMask: convert dense masks to CompactMask to
+            # avoid materialising a full (N, H, W) stack.
+            compact_image_shapes = {
+                m.image_shape for m in masks if isinstance(m, CompactMask)
+            }
+            if len(compact_image_shapes) != 1:
+                raise ValueError(
+                    "Cannot merge CompactMask objects with different image shapes: "
+                    f"{sorted(compact_image_shapes)}"
+                )
+            image_shape: tuple[int, int] = next(iter(compact_image_shapes))
+            compact_list: list[CompactMask] = []
+            for d, m in zip(detections_list, masks):
+                if isinstance(m, CompactMask):
+                    compact_list.append(m)
+                else:
+                    dense = np.asarray(m, dtype=bool)
+                    if dense.shape[1:] != image_shape:
+                        raise ValueError(
+                            f"Dense mask shape {dense.shape[1:]} does not match "
+                            f"CompactMask image_shape {image_shape}."
+                        )
+                    compact_list.append(
+                        CompactMask.from_dense(dense, d.xyxy, image_shape)
+                    )
+            return CompactMask.merge(compact_list)
 
-        mask = stack_or_none("mask")
-        confidence = stack_or_none("confidence")
-        class_id = stack_or_none("class_id")
-        tracker_id = stack_or_none("tracker_id")
+        def stack_or_none(name: str) -> npt.NDArray[np.generic] | None:
+            values = [getattr(d, name) for d in detections_list]
+            if all(v is None for v in values):
+                return None
+            if any(v is None for v in values):
+                raise ValueError(f"All or none of the '{name}' fields must be None")
+            return cast(npt.NDArray[np.generic], np.hstack(values))
+
+        mask = cast(npt.NDArray[np.bool_] | CompactMask | None, stack_mask_or_none())
+        confidence = cast(npt.NDArray[np.floating] | None, stack_or_none("confidence"))
+        class_id = cast(npt.NDArray[np.integer] | None, stack_or_none("class_id"))
+        tracker_id = cast(npt.NDArray[np.integer] | None, stack_or_none("tracker_id"))
 
         data = merge_data([d.data for d in detections_list])
 
@@ -2232,14 +2404,18 @@ class Detections:
         Raises:
             ValueError: If the provided `anchor` is not supported.
         """
-        xyxy = cast(npt.NDArray[np.number], self.xyxy)
+        xyxy = self.xyxy
+
+        def coordinates(
+            x: npt.NDArray[np.number], y: npt.NDArray[np.number]
+        ) -> npt.NDArray[np.generic]:
+            return cast(npt.NDArray[np.generic], np.array([x, y]).transpose())
+
         if anchor == Position.CENTER:
-            return np.array(
-                [
-                    (xyxy[:, 0] + xyxy[:, 2]) / 2,
-                    (xyxy[:, 1] + xyxy[:, 3]) / 2,
-                ]
-            ).transpose()
+            return coordinates(
+                (xyxy[:, 0] + xyxy[:, 2]) / 2,
+                (xyxy[:, 1] + xyxy[:, 3]) / 2,
+            )
         elif anchor == Position.CENTER_OF_MASS:
             if self.mask is None:
                 raise ValueError(
@@ -2247,36 +2423,94 @@ class Detections:
                 )
             return calculate_masks_centroids(masks=self.mask)
         elif anchor == Position.CENTER_LEFT:
-            return np.array(
-                [
-                    xyxy[:, 0],
-                    (xyxy[:, 1] + xyxy[:, 3]) / 2,
-                ]
-            ).transpose()
+            return coordinates(xyxy[:, 0], (xyxy[:, 1] + xyxy[:, 3]) / 2)
         elif anchor == Position.CENTER_RIGHT:
-            return np.array(
-                [
-                    xyxy[:, 2],
-                    (xyxy[:, 1] + xyxy[:, 3]) / 2,
-                ]
-            ).transpose()
+            return coordinates(xyxy[:, 2], (xyxy[:, 1] + xyxy[:, 3]) / 2)
         elif anchor == Position.BOTTOM_CENTER:
-            return np.array([(xyxy[:, 0] + xyxy[:, 2]) / 2, xyxy[:, 3]]).transpose()
+            return coordinates((xyxy[:, 0] + xyxy[:, 2]) / 2, xyxy[:, 3])
         elif anchor == Position.BOTTOM_LEFT:
-            return np.array([xyxy[:, 0], xyxy[:, 3]]).transpose()
+            return coordinates(xyxy[:, 0], xyxy[:, 3])
         elif anchor == Position.BOTTOM_RIGHT:
-            return np.array([xyxy[:, 2], xyxy[:, 3]]).transpose()
+            return coordinates(xyxy[:, 2], xyxy[:, 3])
         elif anchor == Position.TOP_CENTER:
-            return np.array([(xyxy[:, 0] + xyxy[:, 2]) / 2, xyxy[:, 1]]).transpose()
+            return coordinates((xyxy[:, 0] + xyxy[:, 2]) / 2, xyxy[:, 1])
         elif anchor == Position.TOP_LEFT:
-            return np.array([xyxy[:, 0], xyxy[:, 1]]).transpose()
+            return coordinates(xyxy[:, 0], xyxy[:, 1])
         elif anchor == Position.TOP_RIGHT:
-            return np.array([xyxy[:, 2], xyxy[:, 1]]).transpose()
+            return coordinates(xyxy[:, 2], xyxy[:, 1])
 
         raise ValueError(f"{anchor} is not supported.")
 
+    def get_data(self, key: str) -> _DetectionDataValueType | None:
+        """Get a value from the detection data dictionary.
+
+        Args:
+            key: Data field name.
+
+        Returns:
+            The stored data value, or `None` when the key is absent.
+
+        Example:
+            >>> import numpy as np
+            >>> from supervision import Detections
+            >>> detections = Detections(
+            ...     xyxy=np.array([[0, 0, 1, 1]]),
+            ...     data={"class_name": np.array(["cat"])},
+            ... )
+            >>> detections.get_data("class_name").tolist()
+            ['cat']
+        """
+        return self.data.get(key)
+
+    def select(
+        self,
+        index: int | np.integer[Any] | slice | list[int] | npt.NDArray[np.generic],
+    ) -> Detections:
+        """Get a subset of the Detections object.
+
+        Args:
+            index: Row index, indices, slice, or boolean mask selecting detections.
+
+        Returns:
+            A `Detections` instance containing the selected rows. Empty detections
+            are returned unchanged.
+
+        Example:
+            >>> import numpy as np
+            >>> from supervision import Detections
+            >>> detections = Detections(xyxy=np.array([[0, 0, 1, 1], [1, 1, 2, 2]]))
+            >>> detections.select([1]).xyxy.tolist()
+            [[1, 1, 2, 2]]
+        """
+        if len(self) == 0:
+            return self
+        if isinstance(index, (int, np.integer)):
+            index = [int(index)]
+        array_index = cast(
+            slice | list[int] | npt.NDArray[np.integer | np.bool_], index
+        )
+        return Detections(
+            xyxy=self.xyxy[array_index],
+            mask=self.mask[cast(Any, array_index)] if self.mask is not None else None,
+            confidence=(
+                self.confidence[array_index] if self.confidence is not None else None
+            ),
+            class_id=self.class_id[array_index] if self.class_id is not None else None,
+            tracker_id=(
+                self.tracker_id[array_index] if self.tracker_id is not None else None
+            ),
+            data=get_data_item(self.data, array_index),
+            metadata=self.metadata,
+        )
+
     def __getitem__(
-        self, index: int | slice | list[int] | npt.NDArray[np.generic] | str
+        self,
+        index: int
+        | np.integer[Any]
+        | slice
+        | list[int]
+        | npt.NDArray[np.generic]
+        | str,
     ) -> Detections | list[Any] | npt.NDArray[np.generic] | None:
         """
         Get a subset of the Detections object or access an item from its data field.
@@ -2309,20 +2543,8 @@ class Detections:
             ```
         """
         if isinstance(index, str):
-            return self.data.get(index)
-        if len(self) == 0:
-            return self
-        if isinstance(index, int):
-            index = [index]
-        return Detections(
-            xyxy=self.xyxy[index],
-            mask=self.mask[index] if self.mask is not None else None,
-            confidence=self.confidence[index] if self.confidence is not None else None,
-            class_id=self.class_id[index] if self.class_id is not None else None,
-            tracker_id=self.tracker_id[index] if self.tracker_id is not None else None,
-            data=get_data_item(self.data, index),
-            metadata=self.metadata,
-        )
+            return self.get_data(index)
+        return self.select(index)
 
     def __setitem__(self, key: str, value: npt.NDArray[np.generic] | list[Any]) -> None:
         """
@@ -2404,7 +2626,9 @@ class Detections:
                 return self.mask.area
             return np.array([np.sum(mask) for mask in self.mask])
         if ORIENTED_BOX_COORDINATES in self.data:
-            return obb_polygon_area(self.data[ORIENTED_BOX_COORDINATES])
+            return obb_polygon_area(
+                cast(npt.NDArray[np.number], self.data[ORIENTED_BOX_COORDINATES])
+            )
         return self.box_area
 
     @property
@@ -2456,6 +2680,68 @@ class Detections:
         np.divide(widths, heights, out=aspect_ratios, where=heights != 0)
         return aspect_ratios
 
+    def to_compact_masks(self) -> Detections:
+        """Return a copy of this Detections with masks converted to CompactMask.
+
+        The dense :attr:`mask` field (``NDArray[np.bool_]``) is converted to a
+        :class:`~supervision.detection.compact_mask.CompactMask` without changing
+        mask pixels. When :attr:`mask` is already a
+        :class:`~supervision.detection.compact_mask.CompactMask` or is ``None``,
+        the instance is returned unchanged.
+
+        Note:
+            The crop boundaries are set to the **full image dimensions**, not the
+            detector bounding box. No bbox-crop memory savings apply: the RLE
+            sparsity still reduces storage versus a dense array, but the
+            ``O(bbox_area)`` savings available from
+            ``from_inference(..., compact_masks=True)`` are absent here because
+            every crop spans the whole frame. Call
+            :meth:`~supervision.detection.compact_mask.CompactMask.repack` on the
+            resulting mask to tighten crops to their bounding boxes, at the cost
+            of potential pixel loss outside those boxes.
+
+        Returns:
+            A new :class:`Detections` instance with ``mask`` set to a
+            :class:`~supervision.detection.compact_mask.CompactMask`, or ``self``
+            when conversion is not needed.
+
+        Example:
+            ```python
+            import numpy as np
+            import supervision as sv
+            detections = sv.Detections(
+                xyxy=np.array([[0, 0, 10, 10]]),
+                mask=np.ones((1, 20, 20), dtype=bool),
+            )
+            compact = detections.to_compact_masks()
+            ```
+        """
+        from supervision.detection.compact_mask import CompactMask
+
+        if self.mask is None or isinstance(self.mask, CompactMask):
+            return self
+        image_shape = (int(self.mask.shape[1]), int(self.mask.shape[2]))
+        full_image_xyxy = np.tile(
+            np.array(
+                [[0, 0, image_shape[1] - 1, image_shape[0] - 1]], dtype=np.float64
+            ),
+            (len(self), 1),
+        )
+        new = self.__class__(
+            xyxy=self.xyxy,
+            mask=CompactMask.from_dense(
+                masks=self.mask,
+                xyxy=full_image_xyxy,
+                image_shape=image_shape,
+            ),
+            confidence=self.confidence,
+            class_id=self.class_id,
+            tracker_id=self.tracker_id,
+            data=self.data,
+            metadata=self.metadata,
+        )
+        return new
+
     def with_nms(
         self,
         threshold: float = 0.5,
@@ -2494,18 +2780,24 @@ class Detections:
         )
 
         if class_agnostic:
-            predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
+            predictions = cast(
+                npt.NDArray[np.floating],
+                np.hstack((self.xyxy, self.confidence.reshape(-1, 1))),
+            )
         else:
             assert self.class_id is not None, (
                 "Detections class_id must be given for NMS to be executed. If you"
                 " intended to perform class agnostic NMS set class_agnostic=True."
             )
-            predictions = np.hstack(
-                (
-                    self.xyxy,
-                    self.confidence.reshape(-1, 1),
-                    self.class_id.reshape(-1, 1),
-                )
+            predictions = cast(
+                npt.NDArray[np.floating],
+                np.hstack(
+                    (
+                        self.xyxy,
+                        self.confidence.reshape(-1, 1),
+                        self.class_id.reshape(-1, 1),
+                    )
+                ),
             )
 
         if self.mask is not None:
@@ -2531,7 +2823,7 @@ class Detections:
                 overlap_metric=overlap_metric,
             )
 
-        return cast(Detections, self[indices])
+        return self.select(indices)
 
     def with_nmm(
         self,
@@ -2583,18 +2875,24 @@ class Detections:
         )
 
         if class_agnostic:
-            predictions = np.hstack((self.xyxy, self.confidence.reshape(-1, 1)))
+            predictions = cast(
+                npt.NDArray[np.floating],
+                np.hstack((self.xyxy, self.confidence.reshape(-1, 1))),
+            )
         else:
             assert self.class_id is not None, (
                 "Detections class_id must be given for NMM to be executed. If you"
                 " intended to perform class agnostic NMM set class_agnostic=True."
             )
-            predictions = np.hstack(
-                (
-                    self.xyxy,
-                    self.confidence.reshape(-1, 1),
-                    self.class_id.reshape(-1, 1),
-                )
+            predictions = cast(
+                npt.NDArray[np.floating],
+                np.hstack(
+                    (
+                        self.xyxy,
+                        self.confidence.reshape(-1, 1),
+                        self.class_id.reshape(-1, 1),
+                    )
+                ),
             )
 
         if self.mask is not None:
@@ -2622,7 +2920,7 @@ class Detections:
 
         result: list[Detections] = []
         for merge_group in merge_groups:
-            group = [cast(Detections, self[i]) for i in merge_group]
+            group = [self.select(i) for i in merge_group]
             result.append(_merge_detection_group(group))
 
         return Detections.merge(result)
@@ -2699,6 +2997,7 @@ def _merge_detection_group(detections: list[Detections]) -> Detections:
     all_xyxy = np.array([d.xyxy[0] for d in detections], dtype=np.float32)
     areas = (all_xyxy[:, 2] - all_xyxy[:, 0]) * (all_xyxy[:, 3] - all_xyxy[:, 1])
 
+    confidence: npt.NDArray[np.floating] | None
     if winner.confidence is not None:
         total_area = float(areas.sum())
         if total_area > 0:
@@ -2830,7 +3129,10 @@ def merge_inner_detection_object_pair(
     if detections_1.mask is None and detections_2.mask is None:
         merged_mask = None
     else:
-        merged_mask = np.logical_or(detections_1.mask, detections_2.mask)
+        merged_mask = np.logical_or(
+            cast(npt.NDArray[Any], detections_1.mask),
+            cast(npt.NDArray[Any], detections_2.mask),
+        )
 
     if detections_1.confidence is None or detections_2.confidence is None:
         winning_detection = detections_1
@@ -2873,7 +3175,11 @@ def merge_inner_detections_objects(
                 0
             ]
         else:
-            iou = box_iou_batch(detections_1.xyxy, detections_2.xyxy, overlap_metric)[0]
+            iou = box_iou_batch(
+                detections_1.xyxy,
+                detections_2.xyxy,
+                overlap_metric,
+            )[0]
         if iou < threshold:
             break
         detections_1 = merge_inner_detection_object_pair(detections_1, detections_2)

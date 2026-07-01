@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from contextlib import ExitStack as DoesNotRaise
 from contextlib import nullcontext as does_not_raise
 
@@ -1153,7 +1151,7 @@ def test_from_google_gemini_2_5(
     classes: list[str] | None,
     expected_results: None
     | (tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]),
-):
+) -> None:
     with exception:
         (
             xyxy,
@@ -1274,7 +1272,7 @@ def test_from_deepseek_vl_2(
     resolution_wh: tuple[int, int],
     classes: list[str] | None,
     expected_detections: Detections,
-):
+) -> None:
     with exception:
         detections = Detections.from_vlm(
             vlm=VLM.DEEPSEEK_VL_2,

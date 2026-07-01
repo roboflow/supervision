@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import os
 import shutil
 from unittest.mock import MagicMock, patch
@@ -28,7 +26,7 @@ def dummy_video_path(tmp_path):
     return path
 
 
-def test_process_video_exception_handling(dummy_video_path, tmp_path):
+def test_process_video_exception_handling(dummy_video_path, tmp_path) -> None:
     """
     Verify that process_video correctly propagates exceptions from the callback.
 
@@ -51,7 +49,7 @@ def test_process_video_exception_handling(dummy_video_path, tmp_path):
         )
 
 
-def test_process_video_success(dummy_video_path, tmp_path):
+def test_process_video_success(dummy_video_path, tmp_path) -> None:
     """
     Verify successful video processing with a pass-through callback.
 
@@ -72,7 +70,7 @@ def test_process_video_success(dummy_video_path, tmp_path):
     assert os.path.exists(target_path)
 
 
-def test_process_video_exception_with_small_buffer(dummy_video_path, tmp_path):
+def test_process_video_exception_with_small_buffer(dummy_video_path, tmp_path) -> None:
     """
     Verify that process_video handles exceptions correctly even with small buffers.
 
@@ -96,7 +94,7 @@ def test_process_video_exception_with_small_buffer(dummy_video_path, tmp_path):
         )
 
 
-def test_process_video_max_frames(dummy_video_path, tmp_path):
+def test_process_video_max_frames(dummy_video_path, tmp_path) -> None:
     """
     Verify that process_video respects the max_frames parameter.
 
@@ -122,7 +120,7 @@ def test_process_video_max_frames(dummy_video_path, tmp_path):
     assert processed_indices == [0, 1, 2, 3, 4]
 
 
-def test_process_video_custom_params(dummy_video_path, tmp_path):
+def test_process_video_custom_params(dummy_video_path, tmp_path) -> None:
     """
     Verify that process_video works correctly with custom performance parameters.
 
@@ -147,7 +145,7 @@ def test_process_video_custom_params(dummy_video_path, tmp_path):
     assert os.path.exists(target_path)
 
 
-def test_video_info(dummy_video_path):
+def test_video_info(dummy_video_path) -> None:
     """
     Verify that VideoInfo correctly retrieves metadata from a video file.
 
@@ -164,7 +162,7 @@ def test_video_info(dummy_video_path):
     assert video_info.resolution_wh == (640, 480)
 
 
-def test_video_info_float_fps(dummy_video_path, monkeypatch):
+def test_video_info_float_fps(dummy_video_path, monkeypatch) -> None:
     """
     Verify that VideoInfo preserves non-integer FPS values as floats.
 
@@ -187,7 +185,7 @@ def test_video_info_float_fps(dummy_video_path, monkeypatch):
     assert video_info.fps != int(video_info.fps)
 
 
-def test_get_video_frames_generator(dummy_video_path):
+def test_get_video_frames_generator(dummy_video_path) -> None:
     """
     Verify that get_video_frames_generator yields frames with correct shapes.
 
@@ -202,7 +200,7 @@ def test_get_video_frames_generator(dummy_video_path):
     assert all(frame.shape == (480, 640, 3) for frame in frames)
 
 
-def test_get_video_frames_generator_with_stride(dummy_video_path):
+def test_get_video_frames_generator_with_stride(dummy_video_path) -> None:
     """
     Verify that get_video_frames_generator correctly handles the stride parameter.
 
@@ -215,7 +213,7 @@ def test_get_video_frames_generator_with_stride(dummy_video_path):
     assert len(frames) == 5
 
 
-def test_process_video_preserve_audio_calls_mux(dummy_video_path, tmp_path):
+def test_process_video_preserve_audio_calls_mux(dummy_video_path, tmp_path) -> None:
     """
     Verify that process_video calls _mux_audio when preserve_audio=True.
 
@@ -237,7 +235,7 @@ def test_process_video_preserve_audio_calls_mux(dummy_video_path, tmp_path):
         )
 
 
-def test_process_video_no_audio_by_default(dummy_video_path, tmp_path):
+def test_process_video_no_audio_by_default(dummy_video_path, tmp_path) -> None:
     """
     Verify that process_video does not call _mux_audio when preserve_audio=False.
 
@@ -274,7 +272,7 @@ def test_process_video_no_audio_by_default(dummy_video_path, tmp_path):
 )
 def test_mux_audio_file_unchanged_on_failure(
     dummy_video_path, tmp_path, which_rv, run_kwargs
-):
+) -> None:
     """_mux_audio leaves the output file unchanged when muxing cannot complete."""
     target_path = str(tmp_path / "video.mp4")
     shutil.copy(dummy_video_path, target_path)
@@ -289,7 +287,7 @@ def test_mux_audio_file_unchanged_on_failure(
     assert os.path.getsize(target_path) == original_size
 
 
-def test_mux_audio_replaces_file_on_success(dummy_video_path, tmp_path):
+def test_mux_audio_replaces_file_on_success(dummy_video_path, tmp_path) -> None:
     """_mux_audio calls os.replace with video_path as destination on success."""
     target_path = str(tmp_path / "video.mp4")
     shutil.copy(dummy_video_path, target_path)
@@ -309,7 +307,7 @@ def test_mux_audio_replaces_file_on_success(dummy_video_path, tmp_path):
     assert mock_replace.call_args[0][1] == target_path
 
 
-def test_get_video_frames_generator_with_start_end(dummy_video_path):
+def test_get_video_frames_generator_with_start_end(dummy_video_path) -> None:
     """
     Verify that get_video_frames_generator respects start and end frame indices.
 

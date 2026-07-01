@@ -2,16 +2,18 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Any
+from typing import Any, Generic, TypeVar
+
+R = TypeVar("R")
 
 
-class Metric(ABC):
+class Metric(ABC, Generic[R]):
     """
     The base class for all supervision metrics.
     """
 
     @abstractmethod
-    def update(self, *args: Any, **kwargs: Any) -> Metric:
+    def update(self, *args: Any, **kwargs: Any) -> Metric[R]:
         """
         Add data to the metric, without computing the result.
         Return the metric itself to allow method chaining.
@@ -26,7 +28,7 @@ class Metric(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def compute(self, *args: Any, **kwargs: Any) -> Any:
+    def compute(self, *args: Any, **kwargs: Any) -> R:
         """
         Compute the metric from the internal state and return the result.
         """

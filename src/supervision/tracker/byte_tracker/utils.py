@@ -1,8 +1,5 @@
-from __future__ import annotations
-
-
 class IdCounter:
-    def __init__(self, start_id: int = 0):
+    def __init__(self, start_id: int = 0) -> None:
         """
         Initialize the ID counter.
 
