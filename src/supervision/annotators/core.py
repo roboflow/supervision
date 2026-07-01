@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from functools import lru_cache
 from math import sqrt
 from typing import Any, cast
@@ -354,6 +355,45 @@ class OrientedBoxAnnotator(BaseAnnotator):
 
 
 # --- Shared mask-painting utilities ---
+def _iter_mask_crops(
+    detections: Detections,
+) -> Iterator[tuple[int, npt.NDArray[np.bool_], npt.NDArray[np.int32] | None]]:
+    """Yield ``(detection_idx, mask_or_crop, offset_or_None)`` for each mask.
+
+    Encapsulates the ``CompactMask`` vs dense dispatch so individual annotators
+    do not need inline ``isinstance`` checks. For ``CompactMask`` inputs yields
+    the bbox crop and its ``(x1, y1)`` image-space origin; for dense masks
+    yields the full-frame boolean slice with ``offset=None``.
+
+    Args:
+        detections: Object detections whose masks to iterate.
+
+    Yields:
+        Tuple of ``(detection_idx, mask_or_crop, offset_or_None)``.
+        ``mask_or_crop`` is boolean (crop-sized for ``CompactMask``, full-frame
+        for dense). ``offset_or_None`` is an int32 ``(x1, y1)`` array for
+        crop→image translation, or ``None`` for dense masks.
+    """
+    masks = detections.mask
+    if masks is None:
+        return
+    # TODO: replace isinstance dispatch with a MaskLike Protocol (separate PR)
+    compact_mask = masks if isinstance(masks, CompactMask) else None
+    for detection_idx in range(len(detections)):
+        if compact_mask is None:
+            yield (
+                detection_idx,
+                cast(npt.NDArray[np.bool_], masks[detection_idx]),
+                None,
+            )
+        else:
+            yield (
+                detection_idx,
+                compact_mask.crop(detection_idx),
+                compact_mask.offsets[detection_idx],
+            )
+
+
 def _paint_masks_by_area(
     canvas: npt.NDArray[np.uint8],
     detections: Detections,
@@ -610,6 +650,14 @@ class PolygonAnnotator(BaseAnnotator):
 
             ```
 
+        Note:
+            When `detections.mask` is a `CompactMask`, each detection's polygon
+            is decoded from a bbox-sized crop (O(crop_area)) rather than a
+            full-frame ``(H, W)`` allocation (O(H·W)). Polygon coordinates are
+            shifted from crop-local space to image space via the stored
+            ``(x1, y1)`` bbox origin. Pixels outside the declared ``xyxy`` box
+            are not represented in compact storage and will not be drawn.
+
         ![polygon-annotator-example](https://media.roboflow.com/
         supervision-annotator-examples/polygon-annotator-example-purple.png)
         """
@@ -618,15 +666,7 @@ class PolygonAnnotator(BaseAnnotator):
         if detections.mask is None:
             return scene
 
-        masks = detections.mask
-        compact_mask = masks if isinstance(masks, CompactMask) else None
-        for detection_idx in range(len(detections)):
-            if compact_mask is None:
-                mask = cast(npt.NDArray[np.bool_], masks[detection_idx])
-                offset = None
-            else:
-                mask = compact_mask.crop(detection_idx)
-                offset = compact_mask.offsets[detection_idx]
+        for detection_idx, mask, offset in _iter_mask_crops(detections):
             color = resolve_color(
                 color=self.color,
                 detections=detections,
@@ -637,6 +677,7 @@ class PolygonAnnotator(BaseAnnotator):
             )
             for polygon in mask_to_polygons(mask=mask):
                 if offset is not None:
+                    # translate crop-local polygon to image space via (x1, y1) origin
                     polygon = polygon + offset
                 scene = draw_polygon(
                     scene=scene,
