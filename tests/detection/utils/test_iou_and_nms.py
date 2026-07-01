@@ -10,6 +10,7 @@ from supervision.detection.utils.iou_and_nms import (
     _group_overlapping_boxes,
     box_iou,
     box_iou_batch,
+    box_iou_batch_with_jaccard,
     box_non_max_suppression,
     mask_iou_batch,
     mask_non_max_merge,
@@ -1739,3 +1740,140 @@ class TestMaskIouBatch:
         with pytest.warns(UserWarning, match="exceed"):
             result = mask_iou_batch(masks_true, masks_detection, memory_limit=1)
         assert result.shape == (3, 500)
+
+
+def _reference_jaccard_loop(
+    boxes_true: list[list[float]],
+    boxes_detection: list[list[float]],
+    is_crowd: list[bool],
+) -> np.ndarray:
+    """Independent per-pair COCO Jaccard reference, shape (len(dt), len(gt))."""
+    eps = np.spacing(1)
+    out = np.zeros((len(boxes_detection), len(boxes_true)), dtype=np.float64)
+    for gt_idx, (gx, gy, gw, gh) in enumerate(boxes_true):
+        for dt_idx, (dx, dy, dw, dh) in enumerate(boxes_detection):
+            inter_w = max(min(dx + dw, gx + gw) - max(dx, gx), 0.0)
+            inter_h = max(min(dy + dh, gy + gh) - max(dy, gy), 0.0)
+            area_inter = inter_w * inter_h
+            area_det = max(dw, 0.0) * max(dh, 0.0)
+            area_gt = max(gw, 0.0) * max(gh, 0.0)
+            if is_crowd[gt_idx]:
+                out[dt_idx, gt_idx] = area_inter / (area_det + eps)
+            else:
+                out[dt_idx, gt_idx] = area_inter / (
+                    area_det + area_gt - area_inter + eps
+                )
+    return out
+
+
+class TestBoxIouBatchWithJaccard:
+    """Verify the vectorized COCO-style Jaccard IoU batch."""
+
+    # ~1080 pairs: (1x1) + (3x5=15) + (20x50=1000) + (8x8=64) + (3x4=12)
+    @pytest.mark.parametrize(
+        ("n_gt", "n_dt", "seed"),
+        [
+            pytest.param(1, 1, 1, id="single-pair"),
+            pytest.param(3, 5, 2, id="small-batch"),
+            pytest.param(20, 50, 3, id="busy-batch"),
+            pytest.param(8, 8, 4, id="degenerate-and-crowd"),
+            pytest.param(3, 4, 5, id="all-crowd-multi-gt"),
+        ],
+    )
+    def test_matches_per_pair_reference(self, n_gt: int, n_dt: int, seed: int) -> None:
+        """Vectorized output equals an independent per-pair Jaccard loop."""
+        rng = np.random.default_rng(seed)
+
+        def _boxes(n: int) -> list[list[float]]:
+            xy = rng.uniform(0, 100, (n, 2))
+            wh = rng.uniform(0, 40, (n, 2))
+            if seed == 4 and n:  # inject zero/negative-width degenerate boxes
+                wh[rng.integers(0, n), 0] = rng.choice([0.0, -5.0])
+            return np.hstack([xy, wh]).tolist()
+
+        boxes_true, boxes_detection = _boxes(n_gt), _boxes(n_dt)
+        is_crowd = (rng.random(n_gt) < 0.3).tolist()
+
+        result = box_iou_batch_with_jaccard(boxes_true, boxes_detection, is_crowd)
+        expected = _reference_jaccard_loop(boxes_true, boxes_detection, is_crowd)
+
+        assert result.shape == (n_dt, n_gt)
+        np.testing.assert_allclose(result, expected, atol=1e-12)
+
+    def test_crowd_uses_detection_area_as_union(self) -> None:
+        """A crowd gt enclosing the detection scores 1.0 (union == detection area)."""
+        boxes_true = [[0.0, 0.0, 100.0, 100.0]]
+        boxes_detection = [[10.0, 10.0, 20.0, 20.0]]  # fully inside the gt
+        crowd = box_iou_batch_with_jaccard(boxes_true, boxes_detection, [True])
+        non_crowd = box_iou_batch_with_jaccard(boxes_true, boxes_detection, [False])
+        assert crowd[0, 0] == pytest.approx(1.0)
+        assert non_crowd[0, 0] == pytest.approx(0.04)  # 400 / 10000
+
+    @pytest.mark.parametrize(
+        ("boxes_true", "boxes_detection", "is_crowd", "expected_iou"),
+        [
+            pytest.param(
+                [[0.0, 0.0, 10.0, 10.0]],
+                [[20.0, 20.0, 10.0, 10.0]],
+                [False],
+                0.0,
+                id="non-overlapping-non-crowd",
+            ),
+            pytest.param(
+                [[0.0, 0.0, 10.0, 10.0]],
+                [[0.0, 0.0, 10.0, 10.0]],
+                [False],
+                1.0,
+                id="identical-non-crowd",
+            ),
+        ],
+    )
+    def test_non_crowd_uses_standard_iou(
+        self,
+        boxes_true: list[list[float]],
+        boxes_detection: list[list[float]],
+        is_crowd: list[bool],
+        expected_iou: float,
+    ) -> None:
+        """Non-crowd GTs use standard IoU (intersection / union)."""
+        result = box_iou_batch_with_jaccard(boxes_true, boxes_detection, is_crowd)
+
+        assert result[0, 0] == pytest.approx(expected_iou)
+
+    def test_all_crowd_multi_gt_matches_reference(self) -> None:
+        """All-crowd 3-GT x 4-det batch matches per-pair reference loop."""
+        rng = np.random.default_rng(5)
+        n_gt, n_dt = 3, 4
+
+        def _boxes(n: int) -> list[list[float]]:
+            xy = rng.uniform(0, 100, (n, 2))
+            wh = rng.uniform(1, 40, (n, 2))
+            return np.hstack([xy, wh]).tolist()
+
+        boxes_true = _boxes(n_gt)
+        boxes_detection = _boxes(n_dt)
+        is_crowd = [True] * n_gt
+
+        result = box_iou_batch_with_jaccard(boxes_true, boxes_detection, is_crowd)
+        expected = _reference_jaccard_loop(boxes_true, boxes_detection, is_crowd)
+
+        assert result.shape == (n_dt, n_gt)
+        np.testing.assert_allclose(result, expected, atol=1e-12)
+
+    @pytest.mark.parametrize(
+        ("n_gt", "n_dt"),
+        [pytest.param(0, 3, id="empty-gt"), pytest.param(3, 0, id="empty-dt")],
+    )
+    def test_empty_input_returns_empty_array(self, n_gt: int, n_dt: int) -> None:
+        """Empty gt or detections yields an empty array, preserving the contract."""
+        boxes_true = [[0.0, 0.0, 10.0, 10.0]] * n_gt
+        boxes_detection = [[0.0, 0.0, 10.0, 10.0]] * n_dt
+        result = box_iou_batch_with_jaccard(boxes_true, boxes_detection, [False] * n_gt)
+        assert result.size == 0
+
+    def test_mismatched_is_crowd_length_raises(self) -> None:
+        """`is_crowd` must align with `boxes_true`."""
+        with pytest.raises(ValueError, match="`is_crowd` length"):
+            box_iou_batch_with_jaccard(
+                [[0.0, 0.0, 1.0, 1.0]], [[0.0, 0.0, 1.0, 1.0]], []
+            )

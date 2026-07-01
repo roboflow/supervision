@@ -407,13 +407,25 @@ class Detections:
         inference result.
 
         Args:
-            tensorflow_results: The output results from Tensorflow Hub.
+            tensorflow_results: Raw output dict from a TensorFlow Hub
+                object-detection model. Must contain:
+                ``"detection_boxes"`` (shape ``[1, N, 4]``, normalized
+                ``[ymin, xmin, ymax, xmax]``), ``"detection_scores"``
+                (shape ``[1, N]``), and ``"detection_classes"``
+                (shape ``[1, N]``).
             resolution_wh: The input image resolution as `(width, height)`.
                 Bounding boxes from Tensorflow are normalized and are scaled
                 to absolute coordinates using this resolution.
 
         Returns:
             A new Detections object.
+
+        Note:
+            TensorFlow Hub object-detection models return bounding boxes
+            normalized as ``[ymin, xmin, ymax, xmax]``. This method rescales
+            them to absolute pixel coordinates and reorders them to ``xyxy``
+            (``[xmin, ymin, xmax, ymax]``) before constructing the
+            :class:`Detections` object.
 
         Example:
             ```python
@@ -424,7 +436,7 @@ class Detections:
 
             module_handle = "https://tfhub.dev/tensorflow/centernet/hourglass_512x512_kpts/1"
             model = hub.load(module_handle)
-            img = np.array(cv2.imread(SOURCE_IMAGE_PATH))
+            img = np.array(cv2.imread("<SOURCE_IMAGE_PATH>"))
             result = model(img)
             detections = sv.Detections.from_tensorflow(
                 result, resolution_wh=(img.shape[1], img.shape[0])
@@ -432,9 +444,11 @@ class Detections:
             ```
         """
 
+        # Tensorflow returns normalized boxes as [ymin, xmin, ymax, xmax], so the
+        # y coordinates (cols 0, 2) scale by height and x (cols 1, 3) by width.
         boxes = tensorflow_results["detection_boxes"][0].numpy()
-        boxes[:, [0, 2]] *= resolution_wh[0]
-        boxes[:, [1, 3]] *= resolution_wh[1]
+        boxes[:, [0, 2]] *= resolution_wh[1]
+        boxes[:, [1, 3]] *= resolution_wh[0]
         boxes = boxes[:, [1, 0, 3, 2]]
         return cls(
             xyxy=boxes,
