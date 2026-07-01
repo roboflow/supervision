@@ -191,6 +191,7 @@ class TestMerge:
         assert len(merged) == 3
         expected = np.concatenate([masks_compact, masks_dense], axis=0)
         np.testing.assert_array_equal(merged.mask.to_dense(), expected)
+        assert merged.mask.image_shape == (h, w)
 
     def test_inner_pair_with_compact(self) -> None:
         from supervision.detection.core import merge_inner_detection_object_pair

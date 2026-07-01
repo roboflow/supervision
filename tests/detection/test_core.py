@@ -648,7 +648,9 @@ class TestMergeMixedMasks:
     ) -> Detections:
         """Return Detections with a CompactMask."""
         dense_det = self._make_dense_det(xyxy, fill_boxes)
-        cm = CompactMask.from_dense(dense_det.mask, dense_det.xyxy, self.IMG_SHAPE)
+        cm = CompactMask.from_dense(
+            np.asarray(dense_det.mask, dtype=bool), dense_det.xyxy, self.IMG_SHAPE
+        )
         dense_det.mask = cm
         return dense_det
 
@@ -672,6 +674,7 @@ class TestMergeMixedMasks:
 
         assert isinstance(mixed.mask, CompactMask)
         np.testing.assert_array_equal(mixed.mask.to_dense(), np.asarray(all_dense.mask))
+        assert mixed.mask.image_shape == self.IMG_SHAPE
 
     def test_mixed_compact_first_pixel_parity(self) -> None:
         """merge([compact, dense]) order: compact input first still gives parity."""
@@ -687,6 +690,7 @@ class TestMergeMixedMasks:
 
         assert isinstance(mixed.mask, CompactMask)
         np.testing.assert_array_equal(mixed.mask.to_dense(), np.asarray(all_dense.mask))
+        assert mixed.mask.image_shape == self.IMG_SHAPE
 
     def test_mixed_fields_remain_aligned(self) -> None:
         """confidence, class_id, xyxy stay in order after mixed merge."""
@@ -760,6 +764,48 @@ class TestMergeMixedMasks:
         det_b = self._make_compact_det([[15, 15, 25, 25]])
         result = Detections.merge([det_a, det_b])
         assert isinstance(result.mask, CompactMask)
+
+    def test_mixed_dense_out_of_box_pixels_dropped(self) -> None:
+        """Dense True pixels outside xyxy box are dropped after mixed merge.
+
+        from_dense crops each dense mask to its xyxy bounding box — a documented
+        lossy conversion. This test asserts the drop rather than treating it as a
+        regression.
+        """
+        h, w = self.IMG_SHAPE
+        xyxy = [[5, 5, 15, 15]]
+        masks = np.zeros((1, h, w), dtype=bool)
+        masks[0, 5:16, 5:16] = True  # pixels inside the box
+        masks[0, 0, 0] = True  # pixel OUTSIDE the box
+
+        det_dense = Detections(
+            xyxy=np.array(xyxy, dtype=np.float32),
+            mask=masks,
+            confidence=np.array([0.9], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        det_compact = self._make_compact_det([[20, 20, 35, 35]])
+
+        result = Detections.merge([det_dense, det_compact])
+
+        assert isinstance(result.mask, CompactMask)
+        result_dense = result.mask.to_dense()
+        assert result_dense[0, 10, 10], "in-box pixel preserved"
+        assert not result_dense[0, 0, 0], "out-of-box pixel dropped"
+
+    def test_empty_compact_mask_detections_merge_returns_no_mask(self) -> None:
+        """merge on empty CompactMask-carrying Detections returns mask=None."""
+        h, w = self.IMG_SHAPE
+        cm_empty = CompactMask(
+            [],
+            np.empty((0, 2), dtype=np.int32),
+            np.empty((0, 2), dtype=np.int32),
+            (h, w),
+        )
+        det_a = Detections(xyxy=np.empty((0, 4), dtype=np.float32), mask=cm_empty)
+        det_b = Detections(xyxy=np.empty((0, 4), dtype=np.float32), mask=cm_empty)
+        result = Detections.merge([det_a, det_b])
+        assert result.mask is None
 
 
 @pytest.mark.parametrize(
