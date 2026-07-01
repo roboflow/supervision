@@ -144,6 +144,95 @@ def _all_present_or_none(
     return np.array(values, dtype=dtype)
 
 
+def _decode_compact_masks(
+    coco_rle_pending: list[tuple[int, Any, list[float]]],
+    polygon_compact_map: dict[int, CompactMask],
+    image_height: int,
+    image_width: int,
+    n_predictions: int,
+) -> CompactMask | None:
+    """Decode deferred COCO-RLE entries and merge with polygon compact masks.
+
+    Attempts a single batched ``CompactMask.from_coco_rle`` call for all pending
+    items to eliminate per-prediction call overhead on the happy path.  On any
+    decode failure the call is retried per-prediction so that one malformed RLE
+    payload does not abort the entire batch.
+
+    Isolation note: this function isolates the *decode* step only.  If the
+    per-prediction fallback still leaves some predictions without masks, the
+    mixed-modality guard drops ALL masks to preserve alignment with ``xyxy``.
+
+    Args:
+        coco_rle_pending: Deferred COCO-RLE items collected during the prediction
+            loop, each as ``(xyxy_idx, rle_dict, bbox)``.
+        polygon_compact_map: Already-decoded polygon masks keyed by ``xyxy_idx``.
+        image_height: Frame height in pixels.
+        image_width: Frame width in pixels.
+        n_predictions: Total number of accepted predictions; used by the
+            mixed-modality alignment guard.
+
+    Returns:
+        A merged ``CompactMask`` when all predictions that carry masks decoded
+        successfully, or ``None`` when no masks are present or the
+        mixed-modality guard triggers.
+
+    Examples:
+        >>> _decode_compact_masks([], {}, 1080, 1920, 5) is None
+        True
+    """
+    coco_compact_map: dict[int, CompactMask] = {}
+    if coco_rle_pending:
+        pending_indices = [t[0] for t in coco_rle_pending]
+        pending_rles = [t[1] for t in coco_rle_pending]
+        pending_xyxy = np.array([t[2] for t in coco_rle_pending], dtype=np.float64)
+        try:
+            batch_cm = CompactMask.from_coco_rle(
+                pending_rles, pending_xyxy, (image_height, image_width)
+            )
+            for local_idx, global_idx in enumerate(pending_indices):
+                coco_compact_map[global_idx] = batch_cm[local_idx : local_idx + 1]
+        except (ValueError, AssertionError, KeyError, TypeError, OverflowError) as exc:
+            logger.warning(
+                "Batch compact RLE decode failed (%s); retrying "
+                "per-prediction for fault isolation.",
+                exc,
+            )
+            for xyxy_idx, rle_dict, bbox in coco_rle_pending:
+                try:
+                    single_cm = CompactMask.from_coco_rle(
+                        [rle_dict],
+                        np.array([bbox], dtype=np.float64),
+                        (image_height, image_width),
+                    )
+                    coco_compact_map[xyxy_idx] = single_cm[0:1]
+                except (
+                    ValueError,
+                    AssertionError,
+                    KeyError,
+                    TypeError,
+                    OverflowError,
+                ) as per_exc:
+                    logger.warning(
+                        "Compact RLE decode failed for prediction at index %d; "
+                        "dropping that mask. Reason: %s",
+                        xyxy_idx,
+                        per_exc,
+                    )
+    all_compact = {**coco_compact_map, **polygon_compact_map}
+    compact_parts: list[CompactMask] = [
+        all_compact[i] for i in sorted(all_compact.keys())
+    ]
+    if 0 < len(compact_parts) < n_predictions:
+        logger.warning(
+            "Mixed-modality compact batch: %d of %d predictions carry masks; "
+            "dropping all masks to preserve alignment with xyxy.",
+            len(compact_parts),
+            n_predictions,
+        )
+        compact_parts = []
+    return CompactMask.merge(compact_parts) if compact_parts else None
+
+
 @overload
 def process_roboflow_result(
     roboflow_result: dict[str, Any],
@@ -343,73 +432,12 @@ def process_roboflow_result(
     )
     masks_arr: npt.NDArray[np.bool_] | CompactMask | None
     if compact_masks:
-        # Try a single batched from_coco_rle call for all valid pending items —
-        # eliminates N*call overhead on the happy path. On any failure, fall back
-        # to per-prediction decode so that one malformed payload does not abort the
-        # whole batch. Note: this only isolates the *decode*; if the fallback still
-        # leaves a subset of predictions without masks, the mixed-modality guard
-        # below drops ALL masks to preserve alignment with xyxy.
-        _coco_compact_map: dict[int, CompactMask] = {}
-        if _coco_rle_pending:
-            _pending_indices = [t[0] for t in _coco_rle_pending]
-            _pending_rles = [t[1] for t in _coco_rle_pending]
-            _pending_xyxy = np.array(
-                [t[2] for t in _coco_rle_pending], dtype=np.float64
-            )
-            try:
-                _batch_cm = CompactMask.from_coco_rle(
-                    _pending_rles, _pending_xyxy, (image_height, image_width)
-                )
-                for _local_idx, _global_idx in enumerate(_pending_indices):
-                    _coco_compact_map[_global_idx] = _batch_cm[
-                        _local_idx : _local_idx + 1
-                    ]
-            except (
-                ValueError,
-                AssertionError,
-                KeyError,
-                TypeError,
-                OverflowError,
-            ) as _batch_exc:
-                logger.warning(
-                    "Batch compact RLE decode failed (%s); retrying "
-                    "per-prediction for fault isolation.",
-                    _batch_exc,
-                )
-                for _xyxy_idx, _rle_dict, _bbox in _coco_rle_pending:
-                    try:
-                        _single_xyxy = np.array([_bbox], dtype=np.float64)
-                        _single_cm = CompactMask.from_coco_rle(
-                            [_rle_dict], _single_xyxy, (image_height, image_width)
-                        )
-                        _coco_compact_map[_xyxy_idx] = _single_cm[0:1]
-                    except (
-                        ValueError,
-                        AssertionError,
-                        KeyError,
-                        TypeError,
-                        OverflowError,
-                    ) as exc:
-                        logger.warning(
-                            "Compact RLE decode failed for prediction at index %d; "
-                            "dropping that mask. Reason: %s",
-                            _xyxy_idx,
-                            exc,
-                        )
-        _all_compact = {**_coco_compact_map, **_polygon_compact_map}
-        compact_mask_parts: list[CompactMask] = [
-            _all_compact[i] for i in sorted(_all_compact.keys())
-        ]
-        if 0 < len(compact_mask_parts) < len(xyxy):
-            logger.warning(
-                "Mixed-modality compact batch: %d of %d predictions carry masks; "
-                "dropping all masks to preserve alignment with xyxy.",
-                len(compact_mask_parts),
-                len(xyxy),
-            )
-            compact_mask_parts = []
-        masks_arr = (
-            CompactMask.merge(compact_mask_parts) if compact_mask_parts else None
+        masks_arr = _decode_compact_masks(
+            _coco_rle_pending,
+            _polygon_compact_map,
+            image_height,
+            image_width,
+            len(xyxy),
         )
     else:
         masks_arr = _all_present_or_none(masks, "mask", dtype=bool)

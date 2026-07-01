@@ -13,6 +13,48 @@ from supervision.detection.utils.internal import (
     process_roboflow_result,
 )
 
+
+def _pred(
+    x: float = 1.5,
+    y: float = 1.5,
+    width: float = 2.0,
+    height: float = 2.0,
+    confidence: float = 0.9,
+    class_id: int = 0,
+    class_name: str = "person",
+    **extra: Any,
+) -> dict[str, Any]:
+    """Build a minimal Roboflow prediction dict; `extra` adds/overrides fields."""
+    pred: dict[str, Any] = {
+        "x": x,
+        "y": y,
+        "width": width,
+        "height": height,
+        "confidence": confidence,
+        "class_id": class_id,
+        "class": class_name,
+    }
+    pred.update(extra)
+    return pred
+
+
+def _result(
+    *predictions: dict[str, Any],
+    img_w: int = 4,
+    img_h: int = 4,
+) -> dict[str, Any]:
+    """Wrap predictions in a Roboflow result envelope."""
+    return {
+        "predictions": list(predictions),
+        "image": {"width": img_w, "height": img_h},
+    }
+
+
+def _result_1k(*predictions: dict[str, Any]) -> dict[str, Any]:
+    """Wrap predictions in a 1000x1000 Roboflow result envelope."""
+    return _result(*predictions, img_w=1000, img_h=1000)
+
+
 TEST_MASK = np.zeros((1, 1000, 1000), dtype=bool)
 TEST_MASK[:, 300:351, 200:251] = True
 
@@ -40,20 +82,7 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
             DoesNotRaise(),
         ),  # empty result
         (
-            {
-                "predictions": [
-                    {
-                        "x": 200.0,
-                        "y": 300.0,
-                        "width": 50.0,
-                        "height": 50.0,
-                        "confidence": 0.9,
-                        "class_id": 0,
-                        "class": "person",
-                    }
-                ],
-                "image": {"width": 1000, "height": 1000},
-            },
+            _result_1k(_pred(x=200.0, y=300.0, width=50.0, height=50.0)),
             (
                 np.array([[175.0, 275.0, 225.0, 325.0]]),
                 np.array([0.9]),
@@ -65,31 +94,19 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
             DoesNotRaise(),
         ),  # single correct object detection result
         (
-            {
-                "predictions": [
-                    {
-                        "x": 200.0,
-                        "y": 300.0,
-                        "width": 50.0,
-                        "height": 50.0,
-                        "confidence": 0.9,
-                        "class_id": 0,
-                        "class": "person",
-                        "tracker_id": 1,
-                    },
-                    {
-                        "x": 500.0,
-                        "y": 500.0,
-                        "width": 100.0,
-                        "height": 100.0,
-                        "confidence": 0.8,
-                        "class_id": 7,
-                        "class": "truck",
-                        "tracker_id": 2,
-                    },
-                ],
-                "image": {"width": 1000, "height": 1000},
-            },
+            _result_1k(
+                _pred(x=200.0, y=300.0, width=50.0, height=50.0, tracker_id=1),
+                _pred(
+                    x=500.0,
+                    y=500.0,
+                    width=100.0,
+                    height=100.0,
+                    confidence=0.8,
+                    class_id=7,
+                    class_name="truck",
+                    tracker_id=2,
+                ),
+            ),
             (
                 np.array([[175.0, 275.0, 225.0, 325.0], [450.0, 450.0, 550.0, 550.0]]),
                 np.array([0.9, 0.8]),
@@ -101,22 +118,16 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
             DoesNotRaise(),
         ),  # two correct object detection result
         (
-            {
-                "predictions": [
-                    {
-                        "x": 200.0,
-                        "y": 300.0,
-                        "width": 50.0,
-                        "height": 50.0,
-                        "confidence": 0.9,
-                        "class_id": 0,
-                        "class": "person",
-                        "points": [],
-                        "tracker_id": None,
-                    }
-                ],
-                "image": {"width": 1000, "height": 1000},
-            },
+            _result_1k(
+                _pred(
+                    x=200.0,
+                    y=300.0,
+                    width=50.0,
+                    height=50.0,
+                    points=[],
+                    tracker_id=None,
+                ),
+            ),
             (
                 np.empty((0, 4)),
                 np.empty(0),
@@ -128,21 +139,15 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no points
         (
-            {
-                "predictions": [
-                    {
-                        "x": 200.0,
-                        "y": 300.0,
-                        "width": 50.0,
-                        "height": 50.0,
-                        "confidence": 0.9,
-                        "class_id": 0,
-                        "class": "person",
-                        "points": [{"x": 200.0, "y": 300.0}, {"x": 250.0, "y": 300.0}],
-                    }
-                ],
-                "image": {"width": 1000, "height": 1000},
-            },
+            _result_1k(
+                _pred(
+                    x=200.0,
+                    y=300.0,
+                    width=50.0,
+                    height=50.0,
+                    points=[{"x": 200.0, "y": 300.0}, {"x": 250.0, "y": 300.0}],
+                ),
+            ),
             (
                 np.empty((0, 4)),
                 np.empty(0),
@@ -154,26 +159,20 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no enough points
         (
-            {
-                "predictions": [
-                    {
-                        "x": 200.0,
-                        "y": 300.0,
-                        "width": 50.0,
-                        "height": 50.0,
-                        "confidence": 0.9,
-                        "class_id": 0,
-                        "class": "person",
-                        "points": [
-                            {"x": 200.0, "y": 300.0},
-                            {"x": 250.0, "y": 300.0},
-                            {"x": 250.0, "y": 350.0},
-                            {"x": 200.0, "y": 350.0},
-                        ],
-                    }
-                ],
-                "image": {"width": 1000, "height": 1000},
-            },
+            _result_1k(
+                _pred(
+                    x=200.0,
+                    y=300.0,
+                    width=50.0,
+                    height=50.0,
+                    points=[
+                        {"x": 200.0, "y": 300.0},
+                        {"x": 250.0, "y": 300.0},
+                        {"x": 250.0, "y": 350.0},
+                        {"x": 200.0, "y": 350.0},
+                    ],
+                ),
+            ),
             (
                 np.array([[175.0, 275.0, 225.0, 325.0]]),
                 np.array([0.9]),
@@ -185,36 +184,30 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
             DoesNotRaise(),
         ),  # single incorrect instance segmentation result with no enough points
         (
-            {
-                "predictions": [
-                    {
-                        "x": 200.0,
-                        "y": 300.0,
-                        "width": 50.0,
-                        "height": 50.0,
-                        "confidence": 0.9,
-                        "class_id": 0,
-                        "class": "person",
-                        "points": [
-                            {"x": 200.0, "y": 300.0},
-                            {"x": 250.0, "y": 300.0},
-                            {"x": 250.0, "y": 350.0},
-                            {"x": 200.0, "y": 350.0},
-                        ],
-                    },
-                    {
-                        "x": 500.0,
-                        "y": 500.0,
-                        "width": 100.0,
-                        "height": 100.0,
-                        "confidence": 0.8,
-                        "class_id": 7,
-                        "class": "truck",
-                        "points": [],
-                    },
-                ],
-                "image": {"width": 1000, "height": 1000},
-            },
+            _result_1k(
+                _pred(
+                    x=200.0,
+                    y=300.0,
+                    width=50.0,
+                    height=50.0,
+                    points=[
+                        {"x": 200.0, "y": 300.0},
+                        {"x": 250.0, "y": 300.0},
+                        {"x": 250.0, "y": 350.0},
+                        {"x": 200.0, "y": 350.0},
+                    ],
+                ),
+                _pred(
+                    x=500.0,
+                    y=500.0,
+                    width=100.0,
+                    height=100.0,
+                    confidence=0.8,
+                    class_id=7,
+                    class_name="truck",
+                    points=[],
+                ),
+            ),
             (
                 np.array([[175.0, 275.0, 225.0, 325.0]]),
                 np.array([0.9]),
@@ -226,21 +219,7 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
             DoesNotRaise(),
         ),  # two instance segmentation results - one correct, one incorrect
         (
-            {
-                "predictions": [
-                    {
-                        "x": 1.5,
-                        "y": 1.5,
-                        "width": 2.0,
-                        "height": 2.0,
-                        "confidence": 0.9,
-                        "class_id": 0,
-                        "class": "person",
-                        "rle": {"size": [4, 4], "counts": "52203"},
-                    }
-                ],
-                "image": {"width": 4, "height": 4},
-            },
+            _result(_pred(rle={"size": [4, 4], "counts": "52203"})),
             (
                 np.array([[0.5, 0.5, 2.5, 2.5]]),
                 np.array([0.9]),
@@ -278,22 +257,7 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
             DoesNotRaise(),
         ),  # single RLE prediction with non-contiguous mask
         (
-            {
-                "predictions": [
-                    {
-                        "x": 1.5,
-                        "y": 1.5,
-                        "width": 2.0,
-                        "height": 2.0,
-                        "confidence": 0.9,
-                        "class_id": 0,
-                        "class": "person",
-                        "rle": {"size": [4, 4], "counts": "52203"},
-                        "tracker_id": 5,
-                    }
-                ],
-                "image": {"width": 4, "height": 4},
-            },
+            _result(_pred(rle={"size": [4, 4], "counts": "52203"}, tracker_id=5)),
             (
                 np.array([[0.5, 0.5, 2.5, 2.5]]),
                 np.array([0.9]),
@@ -305,21 +269,7 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
             DoesNotRaise(),
         ),  # RLE prediction with tracker_id
         (
-            {
-                "predictions": [
-                    {
-                        "x": 1.5,
-                        "y": 1.5,
-                        "width": 2.0,
-                        "height": 2.0,
-                        "confidence": 0.9,
-                        "class_id": 0,
-                        "class": "person",
-                        "rle_mask": {"size": [4, 4], "counts": "52203"},
-                    }
-                ],
-                "image": {"width": 4, "height": 4},
-            },
+            _result(_pred(rle_mask={"size": [4, 4], "counts": "52203"})),
             (
                 np.array([[0.5, 0.5, 2.5, 2.5]]),
                 np.array([0.9]),
@@ -331,21 +281,7 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
             DoesNotRaise(),
         ),  # single RLE prediction with compressed string counts under rle_mask key
         (
-            {
-                "predictions": [
-                    {
-                        "x": 1.5,
-                        "y": 1.5,
-                        "width": 2.0,
-                        "height": 2.0,
-                        "confidence": 0.9,
-                        "class_id": 0,
-                        "class": "person",
-                        "rle": "bad_string",
-                    }
-                ],
-                "image": {"width": 4, "height": 4},
-            },
+            _result(_pred(rle="bad_string")),
             (
                 np.array([[0.5, 0.5, 2.5, 2.5]]),
                 np.array([0.9]),
@@ -357,21 +293,7 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
             DoesNotRaise(),
         ),  # malformed RLE payload should fall through to box-only detection
         (
-            {
-                "predictions": [
-                    {
-                        "x": 1.5,
-                        "y": 1.5,
-                        "width": 2.0,
-                        "height": 2.0,
-                        "confidence": 0.9,
-                        "class_id": 0,
-                        "class": "person",
-                        "rle": {"size": [4, 4]},
-                    }
-                ],
-                "image": {"width": 4, "height": 4},
-            },
+            _result(_pred(rle={"size": [4, 4]})),
             (
                 np.array([[0.5, 0.5, 2.5, 2.5]]),
                 np.array([0.9]),
@@ -383,21 +305,7 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
             DoesNotRaise(),
         ),  # RLE dict missing counts falls through to box-only detection
         (
-            {
-                "predictions": [
-                    {
-                        "x": 1.5,
-                        "y": 1.5,
-                        "width": 2.0,
-                        "height": 2.0,
-                        "confidence": 0.9,
-                        "class_id": 0,
-                        "class": "person",
-                        "rle": {"size": [4, 4], "counts": "!"},
-                    }
-                ],
-                "image": {"width": 4, "height": 4},
-            },
+            _result(_pred(rle={"size": [4, 4], "counts": "!"})),
             (
                 np.array([[0.5, 0.5, 2.5, 2.5]]),
                 np.array([0.9]),
@@ -409,30 +317,10 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
             DoesNotRaise(),
         ),  # malformed compressed counts falls through to box-only detection
         (
-            {
-                "predictions": [
-                    {
-                        "x": 1.5,
-                        "y": 1.5,
-                        "width": 2.0,
-                        "height": 2.0,
-                        "confidence": 0.9,
-                        "class_id": 0,
-                        "class": "person",
-                        "rle": {"size": [4, 4], "counts": "52203"},
-                    },
-                    {
-                        "x": 3.0,
-                        "y": 3.0,
-                        "width": 2.0,
-                        "height": 2.0,
-                        "confidence": 0.8,
-                        "class_id": 1,
-                        "class": "car",
-                    },
-                ],
-                "image": {"width": 4, "height": 4},
-            },
+            _result(
+                _pred(rle={"size": [4, 4], "counts": "52203"}),
+                _pred(x=3.0, y=3.0, confidence=0.8, class_id=1, class_name="car"),
+            ),
             (
                 np.array([[0.5, 0.5, 2.5, 2.5], [2.0, 2.0, 4.0, 4.0]]),
                 np.array([0.9, 0.8]),
@@ -447,30 +335,10 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
             DoesNotRaise(),
         ),  # mixed RLE + box-only batch — masks dropped to preserve xyxy alignment
         pytest.param(
-            {
-                "predictions": [
-                    {
-                        "x": 1.5,
-                        "y": 1.5,
-                        "width": 2.0,
-                        "height": 2.0,
-                        "confidence": 0.9,
-                        "class_id": 0,
-                        "class": "person",
-                        "tracker_id": 7,
-                    },
-                    {
-                        "x": 3.0,
-                        "y": 3.0,
-                        "width": 2.0,
-                        "height": 2.0,
-                        "confidence": 0.8,
-                        "class_id": 1,
-                        "class": "car",
-                    },
-                ],
-                "image": {"width": 4, "height": 4},
-            },
+            _result(
+                _pred(tracker_id=7),
+                _pred(x=3.0, y=3.0, confidence=0.8, class_id=1, class_name="car"),
+            ),
             (
                 np.array([[0.5, 0.5, 2.5, 2.5], [2.0, 2.0, 4.0, 4.0]]),
                 np.array([0.9, 0.8]),
@@ -485,29 +353,10 @@ TEST_RLE_NONCONTIGUOUS_MASK[0, 3, 2:4] = True
             id="mixed_tracker_id_batch_drops_to_none",
         ),
         pytest.param(
-            {
-                "predictions": [
-                    {
-                        "x": 1.5,
-                        "y": 1.5,
-                        "width": 2.0,
-                        "height": 2.0,
-                        "confidence": 0.9,
-                        "class_id": 0,
-                        "class": "person",
-                    },
-                    {
-                        "x": 3.0,
-                        "y": 3.0,
-                        "width": 2.0,
-                        "height": 2.0,
-                        "confidence": 0.8,
-                        "class_id": 1,
-                        "class": "car",
-                    },
-                ],
-                "image": {"width": 4, "height": 4},
-            },
+            _result(
+                _pred(),
+                _pred(x=3.0, y=3.0, confidence=0.8, class_id=1, class_name="car"),
+            ),
             (
                 np.array([[0.5, 0.5, 2.5, 2.5], [2.0, 2.0, 4.0, 4.0]]),
                 np.array([0.9, 0.8]),
@@ -558,21 +407,7 @@ def test_process_roboflow_result(
 
 def test_process_roboflow_result_compact_masks_returns_compact_mask() -> None:
     """compact_masks=True should return CompactMask for valid RLE predictions."""
-    roboflow_result = {
-        "predictions": [
-            {
-                "x": 1.5,
-                "y": 1.5,
-                "width": 2.0,
-                "height": 2.0,
-                "confidence": 0.9,
-                "class_id": 0,
-                "class": "person",
-                "rle": {"size": [4, 4], "counts": "52203"},
-            }
-        ],
-        "image": {"width": 4, "height": 4},
-    }
+    roboflow_result = _result(_pred(rle={"size": [4, 4], "counts": "52203"}))
 
     result = process_roboflow_result(
         roboflow_result=roboflow_result, compact_masks=True
@@ -584,21 +419,11 @@ def test_process_roboflow_result_compact_masks_returns_compact_mask() -> None:
 
 def test_process_roboflow_result_compact_masks_matches_resized_dense_rle() -> None:
     """compact_masks=True should preserve current RLE resize behavior."""
-    roboflow_result = {
-        "predictions": [
-            {
-                "x": 2.0,
-                "y": 2.0,
-                "width": 4.0,
-                "height": 4.0,
-                "confidence": 0.9,
-                "class_id": 0,
-                "class": "person",
-                "rle": {"size": [2, 2], "counts": [0, 4]},
-            }
-        ],
-        "image": {"width": 4, "height": 4},
-    }
+    roboflow_result = _result(
+        _pred(
+            x=2.0, y=2.0, width=4.0, height=4.0, rle={"size": [2, 2], "counts": [0, 4]}
+        )
+    )
     dense_result = process_roboflow_result(roboflow_result=roboflow_result)
 
     compact_result = process_roboflow_result(
@@ -611,21 +436,7 @@ def test_process_roboflow_result_compact_masks_matches_resized_dense_rle() -> No
 
 def test_process_roboflow_result_compact_masks_invalid_rle_is_box_only() -> None:
     """compact_masks=True should keep malformed RLE fallback behavior."""
-    roboflow_result = {
-        "predictions": [
-            {
-                "x": 1.5,
-                "y": 1.5,
-                "width": 2.0,
-                "height": 2.0,
-                "confidence": 0.9,
-                "class_id": 0,
-                "class": "person",
-                "rle": {"size": [4, 4], "counts": "!"},
-            }
-        ],
-        "image": {"width": 4, "height": 4},
-    }
+    roboflow_result = _result(_pred(rle={"size": [4, 4], "counts": "!"}))
 
     result = process_roboflow_result(
         roboflow_result=roboflow_result, compact_masks=True
@@ -637,21 +448,7 @@ def test_process_roboflow_result_compact_masks_invalid_rle_is_box_only() -> None
 
 def test_process_roboflow_result_compact_masks_overflow_rle_is_box_only() -> None:
     """compact_masks=True should not leak OverflowError from invalid counts."""
-    roboflow_result = {
-        "predictions": [
-            {
-                "x": 1.5,
-                "y": 1.5,
-                "width": 2.0,
-                "height": 2.0,
-                "confidence": 0.9,
-                "class_id": 0,
-                "class": "person",
-                "rle": {"size": [4, 4], "counts": [2**31]},
-            }
-        ],
-        "image": {"width": 4, "height": 4},
-    }
+    roboflow_result = _result(_pred(rle={"size": [4, 4], "counts": [2**31]}))
 
     result = process_roboflow_result(
         roboflow_result=roboflow_result, compact_masks=True
@@ -665,34 +462,10 @@ def test_process_roboflow_result_compact_masks_partial_failure_drops_all_masks()
     None
 ):
     """One invalid RLE in a two-prediction batch drops all masks but keeps both xyxy."""
-    roboflow_result = {
-        "predictions": [
-            {
-                "x": 1.5,
-                "y": 1.5,
-                "width": 2.0,
-                "height": 2.0,
-                "confidence": 0.9,
-                "class_id": 0,
-                "class": "person",
-                "rle": {"size": [4, 4], "counts": "52203"},  # valid: sum == 16
-            },
-            {
-                "x": 3.5,
-                "y": 3.5,
-                "width": 2.0,
-                "height": 2.0,
-                "confidence": 0.8,
-                "class_id": 1,
-                "class": "car",
-                "rle": {
-                    "size": [4, 4],
-                    "counts": [1, 2, 3],
-                },  # invalid: sum == 6, not 16
-            },
-        ],
-        "image": {"width": 4, "height": 4},
-    }
+    roboflow_result = _result(
+        _pred(rle={"size": [4, 4], "counts": "52203"}),  # valid: sum == 16
+        _pred(rle={"size": [4, 4], "counts": [1, 2, 3]}),  # invalid: sum == 6, not 16
+    )
 
     result = process_roboflow_result(
         roboflow_result=roboflow_result, compact_masks=True
@@ -706,22 +479,9 @@ def test_process_roboflow_result_compact_masks_partial_failure_drops_all_masks()
 
 def test_process_roboflow_result_uses_rle_mask_when_rle_invalid() -> None:
     """Valid rle_mask should be used when rle is present but invalid."""
-    roboflow_result = {
-        "predictions": [
-            {
-                "x": 1.5,
-                "y": 1.5,
-                "width": 2.0,
-                "height": 2.0,
-                "confidence": 0.9,
-                "class_id": 0,
-                "class": "person",
-                "rle": {"foo": "bar"},
-                "rle_mask": {"size": [4, 4], "counts": "52203"},
-            }
-        ],
-        "image": {"width": 4, "height": 4},
-    }
+    roboflow_result = _result(
+        _pred(rle={"foo": "bar"}, rle_mask={"size": [4, 4], "counts": "52203"})
+    )
 
     dense_result = process_roboflow_result(roboflow_result=roboflow_result)
     compact_result = process_roboflow_result(
@@ -1371,42 +1131,12 @@ def test_process_roboflow_result_compact_masks_batch_retry_logs_warning(
     """Batch RLE failure triggers per-prediction retry; mixed-modality drops masks."""
     import logging
 
-    roboflow_result = {
-        "predictions": [
-            {
-                "x": 1.5,
-                "y": 1.5,
-                "width": 2.0,
-                "height": 2.0,
-                "confidence": 0.9,
-                "class_id": 0,
-                "class": "person",
-                "rle": {"size": [4, 4], "counts": "52203"},
-            },
-            {
-                "x": 3.5,
-                "y": 3.5,
-                "width": 2.0,
-                "height": 2.0,
-                "confidence": 0.8,
-                "class_id": 1,
-                "class": "car",
-                "rle": {"size": [4, 4], "counts": "52203"},
-            },
-            {
-                "x": 1.5,
-                "y": 1.5,
-                "width": 2.0,
-                "height": 2.0,
-                "confidence": 0.7,
-                "class_id": 2,
-                "class": "bike",
-                # sum=6 != 16 — triggers batch failure → per-prediction retry
-                "rle": {"size": [4, 4], "counts": [1, 2, 3]},
-            },
-        ],
-        "image": {"width": 4, "height": 4},
-    }
+    roboflow_result = _result(
+        _pred(rle={"size": [4, 4], "counts": "52203"}),
+        _pred(rle={"size": [4, 4], "counts": "52203"}),
+        # sum=6 != 16 — triggers batch failure → per-prediction retry
+        _pred(rle={"size": [4, 4], "counts": [1, 2, 3]}),
+    )
 
     with caplog.at_level(logging.WARNING):
         result = process_roboflow_result(
@@ -1421,22 +1151,16 @@ def test_process_roboflow_result_compact_masks_batch_retry_logs_warning(
 
 def test_process_roboflow_result_compact_masks_rle_mask_size_mismatch() -> None:
     """rle_mask key + size mismatch triggers resize fallback with compact_masks=True."""
-    roboflow_result = {
-        "predictions": [
-            {
-                "x": 2.0,
-                "y": 2.0,
-                "width": 4.0,
-                "height": 4.0,
-                "confidence": 0.9,
-                "class_id": 0,
-                "class": "person",
-                # RLE is 2x2; image is 4x4 — size mismatch triggers resize fallback.
-                "rle_mask": {"size": [2, 2], "counts": [0, 4]},
-            }
-        ],
-        "image": {"width": 4, "height": 4},
-    }
+    # RLE is 2x2; image is 4x4 — size mismatch triggers resize fallback.
+    roboflow_result = _result(
+        _pred(
+            x=2.0,
+            y=2.0,
+            width=4.0,
+            height=4.0,
+            rle_mask={"size": [2, 2], "counts": [0, 4]},
+        )
+    )
     dense_result = process_roboflow_result(roboflow_result=roboflow_result)
     compact_result = process_roboflow_result(
         roboflow_result=roboflow_result, compact_masks=True
