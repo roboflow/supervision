@@ -1,11 +1,9 @@
-from __future__ import annotations
-
 import math
 import warnings
 from collections import Counter, defaultdict, deque
 from collections.abc import Iterable
 from functools import lru_cache
-from typing import Any, Literal, cast
+from typing import Literal
 
 import cv2
 import numpy as np
@@ -99,7 +97,7 @@ class LineZone:
             Position.BOTTOM_RIGHT,
         ),
         minimum_crossing_threshold: int = 1,
-    ):
+    ) -> None:
         """
         Args:
             start: The starting point of the line.
@@ -344,7 +342,7 @@ class LineZoneAnnotator:
         display_text_box: bool = True,
         text_orient_to_line: bool = False,
         text_centered: bool = True,
-    ):
+    ) -> None:
         """
         A class for drawing the `LineZone` and its detected object count
         on an image.
@@ -673,29 +671,33 @@ class LineZoneAnnotator:
         annotation_shape = (annotation_dim, annotation_dim)
         annotation_center = Point(annotation_dim // 2, annotation_dim // 2)
 
-        annotation = np.zeros((*annotation_shape, 3), dtype=np.uint8)
-        annotation_alpha = np.zeros((*annotation_shape, 1), dtype=np.uint8)
-
-        text_args: dict[str, Any] = dict(
+        annotation: npt.NDArray[np.uint8] = np.zeros(
+            (*annotation_shape, 3), dtype=np.uint8
+        )
+        annotation_alpha: npt.NDArray[np.uint8] = np.zeros(
+            (*annotation_shape, 1), dtype=np.uint8
+        )
+        draw_text(
+            scene=annotation,
             text=text,
             text_anchor=annotation_center,
             text_scale=text_scale,
             text_thickness=text_thickness,
             text_padding=text_padding,
-        )
-        draw_text(
-            scene=annotation,
             text_color=text_color,
             background_color=text_box_color if text_box_show else None,
-            **text_args,
         )
         draw_text(
             scene=annotation_alpha,
+            text=text,
+            text_anchor=annotation_center,
+            text_scale=text_scale,
+            text_thickness=text_thickness,
+            text_padding=text_padding,
             text_color=Color.WHITE,
             background_color=Color.WHITE if text_box_show else None,
-            **text_args,
         )
-        annotation = np.dstack((annotation, annotation_alpha))
+        annotation = np.dstack((annotation, annotation_alpha)).astype(np.uint8)
 
         # Make sure text is displayed upright
         if 90 < line_angle_degrees % 360 < 270:
@@ -705,9 +707,11 @@ class LineZoneAnnotator:
         rotation_matrix = cv2.getRotationMatrix2D(
             annotation_center.as_xy_float_tuple(), rotation_angle, scale=1
         )
-        annotation = cv2.warpAffine(annotation, rotation_matrix, annotation_shape)
+        annotation = cv2.warpAffine(
+            annotation, rotation_matrix, annotation_shape
+        ).astype(np.uint8)
 
-        return cast(npt.NDArray[np.uint8], annotation)
+        return annotation
 
 
 class LineZoneAnnotatorMulticlass:
@@ -728,7 +732,7 @@ class LineZoneAnnotatorMulticlass:
         text_scale: float = 0.75,
         text_thickness: int = 1,
         force_draw_class_ids: bool = False,
-    ):
+    ) -> None:
         """
         Draw a table showing how many items of each class crossed each line.
 

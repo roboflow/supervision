@@ -4,10 +4,10 @@ import threading
 import warnings
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 if TYPE_CHECKING:
-    from typing_extensions import TypeGuard
+    from typing import TypeGuard
 
 import numpy as np
 import numpy.typing as npt
@@ -74,7 +74,10 @@ def move_detections(
     detections.xyxy = move_boxes(xyxy=detections.xyxy, offset=offset)
     if ORIENTED_BOX_COORDINATES in detections.data:
         detections.data[ORIENTED_BOX_COORDINATES] = move_oriented_boxes(
-            xyxyxyxy=detections.data[ORIENTED_BOX_COORDINATES], offset=offset
+            xyxyxyxy=cast(
+                npt.NDArray[np.number], detections.data[ORIENTED_BOX_COORDINATES]
+            ),
+            offset=offset,
         )
     if detections.mask is not None:
         if resolution_wh is None:
@@ -151,6 +154,11 @@ class InferenceSlicer:
             objects. IoU and NMS are computed directly on the RLE crops
             without ever materialising a full ``(N, H, W)`` array.
             Defaults to ``False`` for backward compatibility.
+
+            When ``compact_masks=True``, each detection's CompactMask crop spans
+            the entire slice tile bbox (not the tight detection bbox). Call
+            :meth:`~supervision.detection.compact_mask.CompactMask.repack` on the
+            merged result to tighten crops to the detection bounding boxes.
         batch_size: Number of slices passed to the callback per call.
             Defaults to ``1``, which uses the single-image callback contract
             (``np.ndarray`` → :class:`~supervision.detection.core.Detections`).
@@ -497,9 +505,13 @@ class InferenceSlicer:
             and isinstance(detections.mask, np.ndarray)
         ):
             slice_w, slice_h = get_image_resolution_wh(image_slice)
+            full_slice_xyxy = np.tile(
+                np.array([[0, 0, slice_w - 1, slice_h - 1]], dtype=np.float64),
+                (len(detections), 1),
+            )
             detections.mask = CompactMask.from_dense(
                 detections.mask,
-                detections.xyxy,
+                full_slice_xyxy,
                 image_shape=(slice_h, slice_w),
             )
 
@@ -564,7 +576,10 @@ class InferenceSlicer:
             slices = [crop_image(image=image, xyxy=offset) for offset in offsets]
             resolution_wh = get_image_resolution_wh(image)
 
-        detections_in_slices = self.callback(slices)
+        batch_callback = cast(
+            Callable[[list[npt.NDArray[Any]]], list[Detections]], self.callback
+        )
+        detections_in_slices = batch_callback(slices)
         if not isinstance(detections_in_slices, list):
             raise ValueError(
                 "Callback must return `list[Detections]` when `batch_size > 1`. "
@@ -580,9 +595,13 @@ class InferenceSlicer:
             for det, image_slice in zip(detections_in_slices, slices):
                 if det.mask is not None and isinstance(det.mask, np.ndarray):
                     slice_w, slice_h = get_image_resolution_wh(image_slice)
+                    full_slice_xyxy = np.tile(
+                        np.array([[0, 0, slice_w - 1, slice_h - 1]], dtype=np.float64),
+                        (len(det), 1),
+                    )
                     det.mask = CompactMask.from_dense(
                         det.mask,
-                        det.xyxy,
+                        full_slice_xyxy,
                         image_shape=(slice_h, slice_w),
                     )
 

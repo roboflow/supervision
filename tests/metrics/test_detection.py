@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from contextlib import ExitStack as DoesNotRaise
 from typing import ClassVar
 
@@ -513,7 +511,7 @@ class TestDetectionMetrics:
         iou_threshold,
         expected_result: np.ndarray | None,
         exception: Exception,
-    ):
+    ) -> None:
         with exception:
             result = ConfusionMatrix.from_tensors(
                 predictions=predictions,
@@ -557,7 +555,7 @@ class TestDetectionMetrics:
         iou_threshold,
         expected_result: np.ndarray | None,
         exception: Exception,
-    ):
+    ) -> None:
         with exception:
             result = ConfusionMatrix.evaluate_detection_batch(
                 predictions=predictions,
@@ -585,7 +583,7 @@ class TestDetectionMetrics:
         matches,
         expected_result: np.ndarray | None,
         exception: Exception,
-    ):
+    ) -> None:
         with exception:
             result = ConfusionMatrix._drop_extra_matches(matches)
 
@@ -1105,7 +1103,7 @@ class TestDetectionMetrics:
         iou_threshold,
         expected_result,
         exception: Exception,
-    ):
+    ) -> None:
         with exception:
             confusion_matrix = ConfusionMatrix.from_detections(
                 predictions=predictions,
@@ -1119,7 +1117,7 @@ class TestDetectionMetrics:
         # AssertionError if the two arrays are not equal
         np.testing.assert_array_equal(confusion_matrix.matrix, expected_result)
 
-    def test_confusion_matrix_on_yolo_dataset(self, yolo_dataset_structure):
+    def test_confusion_matrix_on_yolo_dataset(self, yolo_dataset_structure) -> None:
         """
         Test confusion matrix calculation on a YOLO-format dataset.
 
@@ -1306,7 +1304,6 @@ class TestDetectionMetrics:
     def test_validate_input_tensors_obb(
         self, predictions, targets, metric_target, exception
     ):
-
         with exception:
             _validate_input_tensors(predictions, targets, metric_target=metric_target)
 
@@ -1615,6 +1612,24 @@ class TestDetectionMetrics:
             metric_target=MetricTarget.BOXES,
         )
         assert cm.metric_target == MetricTarget.BOXES
+
+    def test_greedy_matching_two_valid_pairs(self):
+        """Greedy matching finds both TPs; np.unique style missed the second pair."""
+        preds = Detections(
+            xyxy=np.array([[40, 60, 380, 470], [108, 60, 448, 470]], dtype=np.float32),
+            confidence=np.array([0.95, 0.90]),
+            class_id=np.array([0, 0]),
+        )
+        targets = Detections(
+            xyxy=np.array([[40, 60, 380, 470], [210, 60, 550, 470]], dtype=np.float32),
+            class_id=np.array([0, 0]),
+        )
+
+        result = MeanAveragePrecision.from_detections(
+            predictions=[preds], targets=[targets]
+        )
+
+        assert result.map50 == pytest.approx(1.0, abs=0.01)
 
 
 class TestSplitDetectionsByOutcome:

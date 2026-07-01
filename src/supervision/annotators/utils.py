@@ -1,9 +1,7 @@
-from __future__ import annotations
-
 import re
 import textwrap
 from enum import Enum
-from typing import Any
+from typing import cast
 
 import numpy as np
 import numpy.typing as npt
@@ -156,7 +154,7 @@ def resolve_color(
     return get_color_by_index(color=color, idx=idx)
 
 
-def wrap_text(text: Any, max_line_length: int | None = None) -> list[str]:
+def wrap_text(text: object, max_line_length: int | None = None) -> list[str]:
     """
     Wrap `text` to the specified maximum line length, respecting existing
     newlines. Falls back to str() if `text` is not already a string.
@@ -264,9 +262,9 @@ def get_labels_text(
 
 
 def snap_boxes(
-    xyxy: np.ndarray[Any, np.dtype[np.float32]],
+    xyxy: npt.NDArray[np.float32],
     resolution_wh: tuple[int, int],
-) -> np.ndarray[Any, np.dtype[np.float32]]:
+) -> npt.NDArray[np.float32]:
     """
     Shifts `label` bounding boxes into the frame so that they are fully contained
     within the given resolution, prioritizing the top/left edge.
@@ -307,7 +305,7 @@ def snap_boxes(
 
         ```
     """
-    result = np.copy(xyxy)
+    result: npt.NDArray[np.float32] = np.array(xyxy, dtype=np.float32, copy=True)
     width, height = resolution_wh
 
     # X-axis (prioritize left edge)
@@ -326,7 +324,7 @@ def snap_boxes(
     bottom_shift = height - result[bottom_overflow, 3]
     result[bottom_overflow, 1:4:2] += bottom_shift[:, np.newaxis]
 
-    return result.astype(np.float32)  # type: ignore
+    return cast(npt.NDArray[np.float32], result.astype(np.float32, copy=False))
 
 
 class Trace:
@@ -340,9 +338,9 @@ class Trace:
         self.max_size = max_size
         self.anchor = anchor
 
-        self.frame_id = np.array([], dtype=int)
-        self.xy = np.empty((0, 2), dtype=np.float32)
-        self.tracker_id = np.array([], dtype=int)
+        self.frame_id: npt.NDArray[np.int_] = np.array([], dtype=int)
+        self.xy: npt.NDArray[np.float32] = np.empty((0, 2), dtype=np.float32)
+        self.tracker_id: npt.NDArray[np.int_] = np.array([], dtype=int)
 
     def put(self, detections: Detections) -> None:
         frame_id: npt.NDArray[np.int_] = np.full(
@@ -374,11 +372,11 @@ class Trace:
 
         self.current_frame_id += 1
 
-    def get(self, tracker_id: int) -> np.ndarray[Any, np.dtype[np.float32]]:
-        filtered: np.ndarray[Any, np.dtype[np.float32]] = (
-            self.xy[self.tracker_id == tracker_id].copy().astype(np.float32, copy=False)
+    def get(self, tracker_id: int) -> npt.NDArray[np.float32]:
+        xy: npt.NDArray[np.float32] = np.asarray(
+            self.xy[self.tracker_id == tracker_id], dtype=np.float32
         )
-        return filtered
+        return xy
 
 
 def hex_to_rgba(hex_color: str) -> tuple[int, int, int, int]:
