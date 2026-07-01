@@ -33,6 +33,9 @@ from supervision.detection.utils.converters import (
     polygon_to_mask,
     xyxy_to_polygons,
 )
+from supervision.detection.utils.masks import (
+    _masks_to_roi,
+)
 from supervision.draw.base import ImageType
 from supervision.draw.color import Color, ColorPalette
 from supervision.draw.utils import draw_polygon, draw_rounded_rectangle, draw_text
@@ -381,8 +384,9 @@ def _paint_masks_by_area(
             image. Use the default for full-frame painting.
 
     Returns:
-        A ``(H, W)`` boolean union array when ``collect_union=True``,
-        otherwise ``None``.
+        A boolean array matching the canvas dimensions when
+        ``collect_union=True``, otherwise ``None``. When called with an
+        ROI sub-canvas, dimensions are the ROI size, not the full image.
     """
     masks = detections.mask
     if masks is None:
@@ -433,61 +437,6 @@ def _paint_masks_by_area(
             if union is not None:
                 union |= mask
     return union
-
-
-def _mask_to_roi(mask: npt.NDArray[np.bool_]) -> tuple[int, int, int, int] | None:
-    """Return exclusive ``(x1, y1, x2, y2)`` bounds for true mask pixels."""
-    rows = np.flatnonzero(np.any(mask, axis=1))
-    if len(rows) == 0:
-        return None
-    cols = np.flatnonzero(np.any(mask, axis=0))
-    return int(cols[0]), int(rows[0]), int(cols[-1]) + 1, int(rows[-1]) + 1
-
-
-def _compact_masks_to_roi(
-    masks: CompactMask,
-    image_shape: tuple[int, int],
-) -> tuple[int, int, int, int] | None:
-    """Return exclusive true-pixel bounds for compact masks."""
-    image_h, image_w = image_shape
-    x_min, y_min = image_w, image_h
-    x_max, y_max = 0, 0
-    for detection_idx in range(len(masks)):
-        crop_roi = _mask_to_roi(masks.crop(detection_idx))
-        if crop_roi is None:
-            continue
-        crop_x1, crop_y1, crop_x2, crop_y2 = crop_roi
-        offset_x = int(masks.offsets[detection_idx, 0])
-        offset_y = int(masks.offsets[detection_idx, 1])
-        x_min = min(x_min, offset_x + crop_x1)
-        y_min = min(y_min, offset_y + crop_y1)
-        x_max = max(x_max, offset_x + crop_x2)
-        y_max = max(y_max, offset_y + crop_y2)
-    if x_min >= x_max or y_min >= y_max:
-        return None
-    return (
-        max(0, x_min),
-        max(0, y_min),
-        min(image_w, x_max),
-        min(image_h, y_max),
-    )
-
-
-def _masks_to_roi(
-    masks: CompactMask | npt.NDArray[Any],
-    image_shape: tuple[int, int],
-) -> tuple[int, int, int, int] | None:
-    """Return exclusive true-pixel bounds for dense or compact masks."""
-    if isinstance(masks, CompactMask):
-        return _compact_masks_to_roi(masks=masks, image_shape=image_shape)
-    mask_array = np.asarray(masks, dtype=bool)
-    if mask_array.size == 0:
-        return None
-    if mask_array.ndim == 2:
-        union = mask_array
-    else:
-        union = np.any(mask_array, axis=0)
-    return _mask_to_roi(union)
 
 
 class MaskAnnotator(BaseAnnotator):
@@ -566,7 +515,17 @@ class MaskAnnotator(BaseAnnotator):
             return scene
 
         image_shape = (int(scene.shape[0]), int(scene.shape[1]))
-        roi = _masks_to_roi(detections.mask, image_shape)
+        effective_lookup = (
+            self.color_lookup if custom_color_lookup is None else custom_color_lookup
+        )
+        if len(detections) > 0:
+            resolve_color(
+                color=self.color,
+                detections=detections,
+                detection_idx=0,
+                color_lookup=effective_lookup,
+            )
+        roi = _masks_to_roi(detections.mask, image_shape, detections.xyxy)
         if roi is None:
             return scene
 
@@ -577,12 +536,13 @@ class MaskAnnotator(BaseAnnotator):
             colored_mask,
             detections,
             self.color,
-            self.color_lookup if custom_color_lookup is None else custom_color_lookup,
+            effective_lookup,
             canvas_origin=(x1, y1),
         )
-        cv2.addWeighted(
-            colored_mask, self.opacity, scene_roi, 1 - self.opacity, 0, dst=scene_roi
+        tmp = cv2.addWeighted(
+            colored_mask, self.opacity, scene_roi.copy(), 1 - self.opacity, 0
         )
+        scene_roi[:] = tmp
         return scene
 
 
