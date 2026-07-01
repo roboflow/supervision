@@ -98,7 +98,7 @@ for ann in annotators:
         scene = ann.annotate(scene, detections)
 ```
 
-Annotators that set `requires_mask = True`: \[`MaskAnnotator`\][supervision.annotators.core.MaskAnnotator], \[`PolygonAnnotator`\][supervision.annotators.core.PolygonAnnotator], \[`HaloAnnotator`\][supervision.annotators.core.HaloAnnotator].
+Annotators that set `requires_mask = True`: [`MaskAnnotator`][supervision.annotators.core.MaskAnnotator], [`PolygonAnnotator`][supervision.annotators.core.PolygonAnnotator], [`HaloAnnotator`][supervision.annotators.core.HaloAnnotator].
 
 All others default to `requires_mask = False`.
 
