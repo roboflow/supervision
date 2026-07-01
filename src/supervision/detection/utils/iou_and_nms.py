@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from enum import Enum
 from typing import Any, cast
 
@@ -262,9 +262,9 @@ def box_iou_batch(
 
 
 def box_iou_batch_with_jaccard(
-    boxes_true: list[list[float]],
-    boxes_detection: list[list[float]],
-    is_crowd: list[bool],
+    boxes_true: Sequence[Sequence[float]],
+    boxes_detection: Sequence[Sequence[float]],
+    is_crowd: Sequence[bool],
 ) -> npt.NDArray[np.float64]:
     """
     Calculate the intersection over union (IoU) between detection bounding boxes (dt)
@@ -272,15 +272,26 @@ def box_iou_batch_with_jaccard(
     Reference: https://github.com/rafaelpadilla/review_object_detection_metrics
 
     Args:
-        boxes_true: List of ground-truth bounding boxes in the
+        boxes_true: Sequence of ground-truth bounding boxes in the
             format [x, y, width, height].
-        boxes_detection: List of detection bounding boxes in the
+        boxes_detection: Sequence of detection bounding boxes in the
             format [x, y, width, height].
-        is_crowd: List indicating if each ground-truth bounding box
+        is_crowd: Sequence indicating if each ground-truth bounding box
             is a crowd region or not.
 
+    Note:
+        This function expects bounding boxes in ``[x, y, width, height]`` format
+        (COCO convention). All other batch IoU functions in this module use
+        ``[x_min, y_min, x_max, y_max]``.
+
+        NaN coordinates propagate silently: if any box value is ``NaN``, the
+        corresponding IoU values will be ``NaN``.
+
     Returns:
-        Array of IoU values of shape (len(dt), len(gt)).
+        Array of IoU values of shape ``(len(boxes_detection), len(boxes_true))``,
+        where row ``i`` contains the IoU of detection ``i`` against all ground-truth
+        boxes, and column ``j`` contains the IoU of all detections against ground-truth
+        box ``j``.
 
     Examples:
         ```pycon
