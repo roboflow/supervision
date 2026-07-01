@@ -17,6 +17,7 @@ from supervision.detection.utils.iou_and_nms import (
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
+from supervision.metrics.utils.matching import _greedy_match
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
     get_detection_size_category,
@@ -347,18 +348,8 @@ class F1Score(Metric["F1ScoreResult"]):
         for i, iou_level in enumerate(iou_thresholds):
             matched_indices = np.where((iou >= iou_level) & correct_class)
 
-            if matched_indices[0].shape[0]:
-                target_idx = matched_indices[0]
-                pred_idx = matched_indices[1]
-                iou_values = iou[matched_indices]
-                order = np.argsort(-iou_values, kind="stable")
-                matched_targets: set[int] = set()
-                matched_preds: set[int] = set()
-                for t, p in zip(target_idx[order].tolist(), pred_idx[order].tolist()):
-                    if t not in matched_targets and p not in matched_preds:
-                        matched_targets.add(t)
-                        matched_preds.add(p)
-                        correct[p, i] = True
+            for t, p in _greedy_match(iou, matched_indices):
+                correct[p, i] = True
 
         result_correct: npt.NDArray[np.bool_] = correct
         return result_correct
