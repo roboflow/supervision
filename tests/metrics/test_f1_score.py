@@ -386,3 +386,23 @@ class TestF1Score:
         # Weighted average: 5/6
         expected_f1 = 5.0 / 6.0
         assert_almost_equal(result.f1_50, expected_f1)
+
+    def test_greedy_matching_two_valid_pairs(self):
+        """Greedy matching finds both TPs; np.unique style missed the second pair.
+
+        IoU matrix: [[1.0, 0.667], [0.333, 0.538]]. At iou>=0.5 the optimal
+        assignment is T0<->P0 and T1<->P1 (2 TPs, F1=1.0).
+        """
+        preds = Detections(
+            xyxy=np.array([[40, 60, 380, 470], [108, 60, 448, 470]], dtype=np.float32),
+            confidence=np.array([0.95, 0.90]),
+            class_id=np.array([0, 0]),
+        )
+        targets = Detections(
+            xyxy=np.array([[40, 60, 380, 470], [210, 60, 550, 470]], dtype=np.float32),
+            class_id=np.array([0, 0]),
+        )
+
+        result = F1Score().update(preds, targets).compute()
+
+        assert result.f1_50 == 1.0

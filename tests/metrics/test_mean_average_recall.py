@@ -665,3 +665,27 @@ def test_dataset_split_integration(yolo_dataset_two_classes) -> None:
     # mAR@1 should be significantly lower than mAR@10 for multi-object images
     # This validates that K limits detections per image (not per class)
     assert result.mAR_at_1 < result.mAR_at_10
+
+
+def test_greedy_matching_two_valid_pairs():
+    """Greedy matching finds both TPs; np.unique style missed the second pair.
+
+    IoU matrix: [[1.0, 0.667], [0.333, 0.538]]. At iou>=0.5 the optimal
+    assignment is T0<->P0 and T1<->P1. mAR@100 at iou=0.5 is 1.0.
+    """
+    preds = Detections(
+        xyxy=np.array([[40, 60, 380, 470], [108, 60, 448, 470]], dtype=np.float32),
+        confidence=np.array([0.95, 0.90]),
+        class_id=np.array([0, 0]),
+    )
+    targets = Detections(
+        xyxy=np.array([[40, 60, 380, 470], [210, 60, 550, 470]], dtype=np.float32),
+        class_id=np.array([0, 0]),
+    )
+
+    result = MeanAverageRecall().update(preds, targets).compute()
+
+    # At iou=0.5 both pairs match (recall=1.0); IoU(T1,P1)=0.538 < 0.55 so only
+    # the first threshold has 2 TPs. mAR@100 = (1.0 + 0.5*9) / 10 = 0.55.
+    # The buggy np.unique algorithm gave 0.5 (only 1 TP even at iou=0.5).
+    assert result.mAR_at_100 == pytest.approx(0.55)

@@ -531,16 +531,17 @@ class MeanAverageRecall(Metric["MeanAverageRecallResult"]):
             matched_indices = np.where((iou >= iou_level) & correct_class)
 
             if matched_indices[0].shape[0]:
-                combined_indices = np.stack(matched_indices, axis=1)
-                iou_values = iou[matched_indices][:, None]
-                matches = np.hstack([combined_indices, iou_values])
-
-                if matched_indices[0].shape[0] > 1:
-                    matches = matches[matches[:, 2].argsort()[::-1]]
-                    matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
-                    matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
-
-                correct[matches[:, 1].astype(int), i] = True
+                target_idx = matched_indices[0]
+                pred_idx = matched_indices[1]
+                iou_values = iou[matched_indices]
+                order = np.argsort(-iou_values)
+                matched_targets: set[int] = set()
+                matched_preds: set[int] = set()
+                for t, p in zip(target_idx[order].tolist(), pred_idx[order].tolist()):
+                    if t not in matched_targets and p not in matched_preds:
+                        matched_targets.add(t)
+                        matched_preds.add(p)
+                        correct[p, i] = True
         result_correct: npt.NDArray[np.bool_] = correct
         return result_correct
 
