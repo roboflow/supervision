@@ -1589,6 +1589,18 @@ class TestGetAnchorsObbDispatch:
         with pytest.raises(ValueError, match="without a detection mask"):
             detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
 
+    def test_center_of_mass_with_obb_and_mask_uses_mask(self) -> None:
+        """OBB data + mask present: CENTER_OF_MASS returns mask centroid, no raise."""
+        quad = _rotated_rect(50, 50, 40, 20, 0)
+        detections = _make_obb_detections([quad], [0.9], [0])
+        mask = np.zeros((1, 100, 100), dtype=bool)
+        mask[0, 40:60, 30:70] = True
+        detections.mask = mask
+
+        result = detections.get_anchors_coordinates(Position.CENTER_OF_MASS)
+
+        assert result.shape == (1, 2)
+
 
 class TestMergeObbCorners:
     """_merge_obb_corners"""

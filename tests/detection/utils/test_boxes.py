@@ -366,3 +366,19 @@ def test_oriented_box_anchors_center_of_mass_unsupported() -> None:
     """`CENTER_OF_MASS` is a mask anchor and has no box definition."""
     with pytest.raises(ValueError, match="not supported"):
         oriented_box_anchors(np.zeros((1, 4, 2)), Position.CENTER_OF_MASS)
+
+
+@pytest.mark.parametrize("anchor", _ALL_ANCHORS, ids=lambda a: a.value.lower())
+def test_oriented_box_anchors_at_90_degrees_on_box(anchor: Position) -> None:
+    """All anchors of a 90-deg-rotated box lie on the box (exercises is_width=False)."""
+    base = np.array([[0, 0], [10, 0], [10, 4], [0, 4]], dtype=np.float64)
+    center = np.array([5.0, 2.0])
+    corners = _rotate(base, 90, center)[np.newaxis]
+
+    result = oriented_box_anchors(corners, anchor)[0]
+
+    rectangle_points = np.vstack(
+        [corners[0], (corners[0] + np.roll(corners[0], -1, axis=0)) / 2, center]
+    )
+    distances = np.linalg.norm(rectangle_points - result, axis=1)
+    assert distances.min() < 1e-6
