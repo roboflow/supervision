@@ -2212,10 +2212,26 @@ class Detections:
               [`CompactMask`][supervision.detection.compact_mask.CompactMask]
               → result mask is `CompactMask`.
             * Mixed dense `ndarray` + `CompactMask` inputs → dense masks are converted
-              to `CompactMask`; result is `CompactMask`. No full `(N, H, W)` stack is
-              allocated.
+              to `CompactMask` via
+              [`CompactMask.from_dense`][supervision.detection.compact_mask.CompactMask.from_dense];
+              result is `CompactMask`. No full `(N, H, W)` stack is allocated.
+
+              !!! warning "Lossy conversion"
+
+                  `from_dense` crops each dense mask to its detection bounding box
+                  (`xyxy`). **True pixels outside the bounding box are silently
+                  discarded.** This matches the behaviour of
+                  `Detections.from_inference(compact_masks=True)`. If pixel-perfect
+                  preservation is required, ensure all inputs are already `CompactMask`
+                  or use the all-dense path (no `CompactMask` inputs).
+
             * All inputs carry dense `ndarray` → result is `ndarray` (backward
               compatible).
+            * The pairwise merge path used by
+              [`with_nms`][supervision.detection.core.Detections.with_nms] /
+              [`with_nmm`][supervision.detection.core.Detections.with_nmm]
+              (`merge_inner_detection_object_pair`) does **not** preserve `CompactMask`
+              — mixed inputs materialise to a dense `ndarray` on that path.
 
         Args:
             detections_list: A list of Detections objects to merge.
@@ -2315,7 +2331,7 @@ class Detections:
             # Mixed dense and CompactMask: convert dense masks to CompactMask to
             # avoid materialising a full (N, H, W) stack.
             compact_image_shapes = {
-                m._image_shape for m in masks if isinstance(m, CompactMask)
+                m.image_shape for m in masks if isinstance(m, CompactMask)
             }
             if len(compact_image_shapes) != 1:
                 raise ValueError(
@@ -2329,7 +2345,7 @@ class Detections:
                     compact_list.append(m)
                 else:
                     dense = np.asarray(m, dtype=bool)
-                    if dense.ndim == 3 and dense.shape[1:] != image_shape:
+                    if dense.shape[1:] != image_shape:
                         raise ValueError(
                             f"Dense mask shape {dense.shape[1:]} does not match "
                             f"CompactMask image_shape {image_shape}."
