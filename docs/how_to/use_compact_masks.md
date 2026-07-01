@@ -166,10 +166,10 @@ Upper-end gains assume: ≥1080p frames, tens to hundreds of instances, masks co
 
 ## API Reference
 
-- \[`CompactMask`\][supervision.detection.compact_mask.CompactMask]
-- \[`CompactMask.from_coco_rle`\][supervision.detection.compact_mask.CompactMask.from_coco_rle]
-- \[`CompactMask.from_dense`\][supervision.detection.compact_mask.CompactMask.from_dense]
-- \[`Detections.from_inference`\][supervision.detection.core.Detections.from_inference]
-- \[`Detections.to_compact_masks`\][supervision.detection.core.Detections.to_compact_masks]
-- \[`Detections.merge`\][supervision.detection.core.Detections.merge]
-- \[`BaseAnnotator.requires_mask`\][supervision.annotators.base.BaseAnnotator]
+- [`CompactMask`][supervision.detection.compact_mask.CompactMask]
+- [`CompactMask.from_coco_rle`][supervision.detection.compact_mask.CompactMask.from_coco_rle]
+- [`CompactMask.from_dense`][supervision.detection.compact_mask.CompactMask.from_dense]
+- [`Detections.from_inference`][supervision.detection.core.Detections.from_inference]
+- [`Detections.to_compact_masks`][supervision.detection.core.Detections.to_compact_masks]
+- [`Detections.merge`][supervision.detection.core.Detections.merge]
+- [`BaseAnnotator.requires_mask`][supervision.annotators.base.BaseAnnotator]
