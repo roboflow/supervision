@@ -161,7 +161,11 @@ def get_mask_size_category(
             raise ValueError("Masks must be shaped (N, H, W)")
         # `np.count_nonzero` (no axis) uses NumPy's SIMD popcount over the bool
         # buffer; `np.sum(..., axis=(1, 2))` falls back to a slower generic
-        # reduction, so this per-mask loop is several times faster.
+        # reduction, so this per-mask loop is several times faster. The
+        # vectorized np.sum(mask, axis=(1, 2)) is NOT faster — it is ~6x
+        # slower than this loop. Do not "simplify" back to np.sum(axis=(1,2));
+        # benchmark before reverting. dtype=np.int64 keeps areas consistent
+        # across platforms (Windows NumPy defaults to int32).
         areas = np.fromiter(
             (np.count_nonzero(m) for m in mask), dtype=np.int64, count=len(mask)
         )
