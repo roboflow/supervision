@@ -25,8 +25,8 @@ from supervision.detection.utils._typing import (
     _MetadataType,
 )
 from supervision.detection.utils.boxes import (
+    _oriented_box_anchors,
     obb_polygon_area,
-    oriented_box_anchors,
     xyxyxyxy_to_xyxy,
 )
 from supervision.detection.utils.converters import (
@@ -2465,8 +2465,12 @@ class Detections:
             ```
         """
         if ORIENTED_BOX_COORDINATES in self.data and anchor != Position.CENTER_OF_MASS:
-            corners = np.asarray(self.data[ORIENTED_BOX_COORDINATES])
-            return cast(npt.NDArray[np.generic], oriented_box_anchors(corners, anchor))
+            return cast(
+                npt.NDArray[np.generic],
+                _oriented_box_anchors(
+                    np.asarray(self.data[ORIENTED_BOX_COORDINATES]), anchor
+                ),
+            )
 
         xyxy = self.xyxy
 

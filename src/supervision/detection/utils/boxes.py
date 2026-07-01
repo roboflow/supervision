@@ -328,7 +328,7 @@ _ANCHOR_OFFSETS: dict[Position, tuple[float, float]] = {
 }
 
 
-def oriented_box_anchors(
+def _oriented_box_anchors(
     xyxyxyxy: npt.NDArray[np.number], anchor: Position
 ) -> npt.NDArray[np.float64]:
     """Locate an anchor point on each oriented bounding box.
@@ -367,12 +367,12 @@ def oriented_box_anchors(
     Examples:
         ```pycon
         >>> import numpy as np
-        >>> from supervision.detection.utils.boxes import oriented_box_anchors
+        >>> from supervision.detection.utils.boxes import _oriented_box_anchors
         >>> from supervision.geometry.core import Position
         >>> corners = np.array(
         ...     [[[0, 0], [10, 0], [10, 4], [0, 4]]], dtype=np.float32
         ... )
-        >>> oriented_box_anchors(corners, Position.BOTTOM_CENTER)
+        >>> _oriented_box_anchors(corners, Position.BOTTOM_CENTER)
         array([[5., 4.]])
 
         ```

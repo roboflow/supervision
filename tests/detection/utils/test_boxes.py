@@ -4,10 +4,12 @@ import numpy as np
 import pytest
 
 from supervision.detection.utils.boxes import (
+    _oriented_box_anchors as oriented_box_anchors,
+)
+from supervision.detection.utils.boxes import (
     clip_boxes,
     denormalize_boxes,
     move_boxes,
-    oriented_box_anchors,
     scale_boxes,
     xyxyxyxy_to_xyxy,
 )
