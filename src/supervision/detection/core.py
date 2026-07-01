@@ -2319,7 +2319,8 @@ class Detections:
             }
             if len(compact_image_shapes) != 1:
                 raise ValueError(
-                    "Cannot merge CompactMask objects with different image shapes."
+                    "Cannot merge CompactMask objects with different image shapes: "
+                    f"{sorted(compact_image_shapes)}"
                 )
             image_shape: tuple[int, int] = next(iter(compact_image_shapes))
             compact_list: list[CompactMask] = []
