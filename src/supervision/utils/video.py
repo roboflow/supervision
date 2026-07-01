@@ -311,13 +311,13 @@ def _prefetched_frames_generator(
     iterative_seek: bool,
     prefetch: int,
 ) -> Generator[npt.NDArray[np.uint8], None, None]:
-    frame_queue: Queue[npt.NDArray[np.uint8] | Exception | None] = Queue(
+    frame_queue: Queue[npt.NDArray[np.uint8] | BaseException | None] = Queue(
         maxsize=prefetch
     )
     stop_event = threading.Event()
 
     def reader() -> None:
-        sentinel: Exception | None = None
+        sentinel: BaseException | None = None
         try:
             for frame in get_video_frames_generator(
                 source_path=source_path,
@@ -336,30 +336,35 @@ def _prefetched_frames_generator(
                     except Full:
                         if stop_event.is_set():
                             return
-        except Exception as exc:
-            sentinel = exc
-        # Push the terminating sentinel (None for normal end, exception for error),
-        # respecting stop_event so we never block after the consumer has stopped.
-        while True:
-            try:
-                frame_queue.put(sentinel, timeout=0.1)
-                return
-            except Full:
-                if stop_event.is_set():
+        except BaseException as exc:
+            if isinstance(exc, Exception):
+                sentinel = exc
+        finally:
+            while not stop_event.is_set():
+                try:
+                    frame_queue.put(sentinel, timeout=0.1)
                     return
+                except Full:
+                    pass
 
     thread = threading.Thread(target=reader, daemon=True)
     thread.start()
     try:
         while True:
-            item = frame_queue.get()
-            if isinstance(item, Exception):
-                raise item
+            try:
+                item = frame_queue.get(timeout=0.5)
+            except Empty:
+                if not thread.is_alive():
+                    break
+                continue
+            if isinstance(item, BaseException):
+                raise RuntimeError(f"Reader thread raised: {item!r}") from item
             if item is None:
                 break
             yield item
     finally:
         stop_event.set()
+        thread.join(timeout=2.0)
 
 
 def process_video(
