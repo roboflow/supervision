@@ -2204,11 +2204,46 @@ class Detections:
 
             When merging, empty `Detections` objects are ignored.
 
+        !!! Note
+
+            **Mask merge policy** — the output mask type follows these rules:
+
+            * All inputs carry
+              [`CompactMask`][supervision.detection.compact_mask.CompactMask]
+              → result mask is `CompactMask`.
+            * Mixed dense `ndarray` + `CompactMask` inputs → dense masks are converted
+              to `CompactMask` via
+              [`CompactMask.from_dense`][supervision.detection.compact_mask.CompactMask.from_dense];
+              result is `CompactMask`. No full `(N, H, W)` stack is allocated.
+
+              !!! warning "Lossy conversion"
+
+                  `from_dense` crops each dense mask to its detection bounding box
+                  (`xyxy`). **True pixels outside the bounding box are silently
+                  discarded.** This matches the behaviour of
+                  `Detections.from_inference(compact_masks=True)`. If pixel-perfect
+                  preservation is required, ensure all inputs are already `CompactMask`
+                  or use the all-dense path (no `CompactMask` inputs).
+
+            * All inputs carry dense `ndarray` → result is `ndarray` (backward
+              compatible).
+            * The pairwise merge path used by
+              [`with_nms`][supervision.detection.core.Detections.with_nms] /
+              [`with_nmm`][supervision.detection.core.Detections.with_nmm]
+              (`merge_inner_detection_object_pair`) does **not** preserve `CompactMask`
+              — mixed inputs materialise to a dense `ndarray` on that path.
+
         Args:
             detections_list: A list of Detections objects to merge.
 
         Returns:
             A single Detections object containing the merged data from the input list.
+
+        Raises:
+            ValueError: If some `Detections` have a `mask` and others do not.
+            ValueError: If `CompactMask` inputs have different `image_shape` values.
+            ValueError: If a dense mask `(H, W)` shape differs from the `CompactMask`
+                `image_shape` when mixing mask types.
 
         Example:
             >>> import numpy as np
@@ -2232,6 +2267,34 @@ class Detections:
             array([1, 2, 1])
             >>> merged_detections.data['feature_vector']
             array([0.1, 0.2, 0.3])
+
+        Compact mask merge example:
+
+            ```python
+            import numpy as np
+            import supervision as sv
+            from supervision.detection.compact_mask import CompactMask
+
+            H, W = 720, 1280
+            masks_a = np.zeros((2, H, W), dtype=bool)
+            masks_a[0, 100:200, 100:300] = True
+            xyxy_a = np.array([[100., 100., 299., 199.], [400., 300., 600., 500.]])
+            cm_a = CompactMask.from_dense(masks_a, xyxy_a, image_shape=(H, W))
+
+            det_compact = sv.Detections(
+                xyxy=xyxy_a, mask=cm_a, class_id=np.array([0, 1])
+            )
+
+            masks_b = np.zeros((1, H, W), dtype=bool)
+            masks_b[0, 50:100, 50:150] = True
+            xyxy_b = np.array([[50., 50., 149., 99.]])
+            det_dense = sv.Detections(xyxy=xyxy_b, mask=masks_b, class_id=np.array([2]))
+
+            # Dense mask is converted to CompactMask; no (N, H, W) stack allocated.
+            merged = sv.Detections.merge([det_compact, det_dense])
+            assert isinstance(merged.mask, CompactMask)
+            assert len(merged) == 3
+            ```
         """
         detections_list = [
             detections for detections in detections_list if not detections.is_empty()
@@ -2260,10 +2323,37 @@ class Detections:
                 raise ValueError("All or none of the 'mask' fields must be None")
             if all(isinstance(m, CompactMask) for m in masks):
                 return CompactMask.merge(cast(list[CompactMask], masks))
-            # Mixed or all-ndarray: __array__ auto-converts any CompactMask.
-            return cast(
-                npt.NDArray[np.generic], np.vstack([np.asarray(m) for m in masks])
-            )
+            if all(not isinstance(m, CompactMask) for m in masks):
+                # All-dense: preserve backward-compatible dense stacking.
+                return cast(
+                    npt.NDArray[np.generic], np.vstack([np.asarray(m) for m in masks])
+                )
+            # Mixed dense and CompactMask: convert dense masks to CompactMask to
+            # avoid materialising a full (N, H, W) stack.
+            compact_image_shapes = {
+                m.image_shape for m in masks if isinstance(m, CompactMask)
+            }
+            if len(compact_image_shapes) != 1:
+                raise ValueError(
+                    "Cannot merge CompactMask objects with different image shapes: "
+                    f"{sorted(compact_image_shapes)}"
+                )
+            image_shape: tuple[int, int] = next(iter(compact_image_shapes))
+            compact_list: list[CompactMask] = []
+            for d, m in zip(detections_list, masks):
+                if isinstance(m, CompactMask):
+                    compact_list.append(m)
+                else:
+                    dense = np.asarray(m, dtype=bool)
+                    if dense.shape[1:] != image_shape:
+                        raise ValueError(
+                            f"Dense mask shape {dense.shape[1:]} does not match "
+                            f"CompactMask image_shape {image_shape}."
+                        )
+                    compact_list.append(
+                        CompactMask.from_dense(dense, d.xyxy, image_shape)
+                    )
+            return CompactMask.merge(compact_list)
 
         def stack_or_none(name: str) -> npt.NDArray[np.generic] | None:
             values = [getattr(d, name) for d in detections_list]

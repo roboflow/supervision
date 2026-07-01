@@ -1013,6 +1013,27 @@ class CompactMask:
         return (len(self), img_h, img_w)
 
     @property
+    def image_shape(self) -> tuple[int, int]:
+        """Return ``(H, W)`` of the full image this mask is scoped to.
+
+        Returns:
+            Tuple ``(H, W)``.
+
+        Examples:
+            ```pycon
+            >>> from supervision.detection.compact_mask import CompactMask
+            >>> import numpy as np
+            >>> cm = CompactMask(
+            ...     [], np.empty((0, 2), dtype=np.int32),
+            ...     np.empty((0, 2), dtype=np.int32), (480, 640))
+            >>> cm.image_shape
+            (480, 640)
+
+            ```
+        """
+        return self._image_shape
+
+    @property
     def offsets(self) -> npt.NDArray[np.int32]:
         """Return per-mask crop origins as ``(x1, y1)`` integer offsets.
 
