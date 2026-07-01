@@ -645,7 +645,12 @@ class Detections:
         )
 
     @classmethod
-    def from_inference(cls, roboflow_result: dict[str, Any] | Any) -> Detections:
+    def from_inference(
+        cls,
+        roboflow_result: dict[str, Any] | Any,
+        *,
+        compact_masks: bool = False,
+    ) -> Detections:
         """
         Create a `sv.Detections` object from the [Roboflow](https://roboflow.com/)
         API inference result or the [Inference](https://inference.roboflow.com/)
@@ -656,6 +661,31 @@ class Detections:
         Args:
             roboflow_result: The result from the
                 Roboflow API or Inference package containing predictions.
+            compact_masks: When `True`, return segmentation masks as
+                :class:`~supervision.detection.compact_mask.CompactMask`.
+                The default `False` preserves the existing dense NumPy mask
+                representation.
+
+                Warning:
+                    When `compact_masks=True`, the crop policy depends on how
+                    each prediction encodes its mask:
+
+                    - Native size-matched COCO-RLE (the RLE `size` equals the
+                      image size) is **cropped to the detector bounding box**
+                      (`xyxy`). For instance-segmentation models the detector
+                      box may not tightly bound the mask, so pixels beyond the
+                      box boundary are silently dropped.
+                    - Polygon-derived masks (`points`) and size-mismatched
+                      COCO-RLE masks (decoded, then resized to the image) are
+                      retained **full-frame** and lose no pixels.
+
+                    Because only the box-cropped path is lossy,
+                    `from_inference(r)` and
+                    `from_inference(r, compact_masks=True)` can return masks
+                    with different areas and IoU **only** for native
+                    size-matched COCO-RLE predictions. Use `compact_masks=True`
+                    only when the memory savings outweigh the boundary loss on
+                    that path.
 
         Returns:
             A Detections object containing the bounding boxes, class IDs,
@@ -666,10 +696,14 @@ class Detections:
                 or absent. `detections.tracker_id` is `None` when no
                 predictions carry a tracker ID, or when only a subset do
                 (mixed batch) — in that case all tracker IDs are dropped to
-                preserve alignment with the bounding boxes. Note: mixed
-                batches containing both RLE/polygon predictions and box-only
-                predictions may misalign the `mask` array; this is a
-                pre-existing limitation not addressed by this fix.
+                preserve alignment with the bounding boxes. Similarly,
+                `detections.mask` is `None` when no predictions include mask
+                data, or when only a subset carry masks — all masks are dropped
+                to preserve xyxy alignment.
+                When `compact_masks=True` and all predictions carry mask data,
+                `detections.mask` is a
+                :class:`~supervision.detection.compact_mask.CompactMask` rather
+                than a dense boolean array.
 
         Example:
             ```python
@@ -682,15 +716,29 @@ class Detections:
 
             result = model.infer(image)[0]
             detections = sv.Detections.from_inference(result)
+            compact_detections = sv.Detections.from_inference(
+                result, compact_masks=True
+            )
             ```
         """
         if hasattr(roboflow_result, "dict"):
             roboflow_result = roboflow_result.dict(exclude_none=True, by_alias=True)
         elif hasattr(roboflow_result, "json"):
             roboflow_result = roboflow_result.json()
-        xyxy, confidence, class_id, masks, trackers, data = process_roboflow_result(
-            roboflow_result=roboflow_result
-        )
+        masks: npt.NDArray[np.bool_] | CompactMask | None
+        # Design note (ADR): the `compact_masks` flag changes the runtime type of
+        # `detections.mask` from `NDArray[bool_]` to `CompactMask`, so every mask
+        # consumer must branch on `isinstance(detections.mask, CompactMask)`. A
+        # typed factory / `mask_format=` enum would be cleaner but would require a
+        # deprecation cycle if introduced later.
+        if compact_masks:
+            xyxy, confidence, class_id, masks, trackers, data = process_roboflow_result(
+                roboflow_result=roboflow_result, compact_masks=True
+            )
+        else:
+            xyxy, confidence, class_id, masks, trackers, data = process_roboflow_result(
+                roboflow_result=roboflow_result
+            )
 
         if np.asarray(xyxy).shape[0] == 0:
             empty_detection = cls.empty()
@@ -2539,6 +2587,68 @@ class Detections:
         aspect_ratios = np.full_like(widths, np.nan, dtype=np.float64)
         np.divide(widths, heights, out=aspect_ratios, where=heights != 0)
         return aspect_ratios
+
+    def to_compact_masks(self) -> Detections:
+        """Return a copy of this Detections with masks converted to CompactMask.
+
+        The dense :attr:`mask` field (``NDArray[np.bool_]``) is converted to a
+        :class:`~supervision.detection.compact_mask.CompactMask` without changing
+        mask pixels. When :attr:`mask` is already a
+        :class:`~supervision.detection.compact_mask.CompactMask` or is ``None``,
+        the instance is returned unchanged.
+
+        Note:
+            The crop boundaries are set to the **full image dimensions**, not the
+            detector bounding box. No bbox-crop memory savings apply: the RLE
+            sparsity still reduces storage versus a dense array, but the
+            ``O(bbox_area)`` savings available from
+            ``from_inference(..., compact_masks=True)`` are absent here because
+            every crop spans the whole frame. Call
+            :meth:`~supervision.detection.compact_mask.CompactMask.repack` on the
+            resulting mask to tighten crops to their bounding boxes, at the cost
+            of potential pixel loss outside those boxes.
+
+        Returns:
+            A new :class:`Detections` instance with ``mask`` set to a
+            :class:`~supervision.detection.compact_mask.CompactMask`, or ``self``
+            when conversion is not needed.
+
+        Example:
+            ```python
+            import numpy as np
+            import supervision as sv
+            detections = sv.Detections(
+                xyxy=np.array([[0, 0, 10, 10]]),
+                mask=np.ones((1, 20, 20), dtype=bool),
+            )
+            compact = detections.to_compact_masks()
+            ```
+        """
+        from supervision.detection.compact_mask import CompactMask
+
+        if self.mask is None or isinstance(self.mask, CompactMask):
+            return self
+        image_shape = (int(self.mask.shape[1]), int(self.mask.shape[2]))
+        full_image_xyxy = np.tile(
+            np.array(
+                [[0, 0, image_shape[1] - 1, image_shape[0] - 1]], dtype=np.float64
+            ),
+            (len(self), 1),
+        )
+        new = self.__class__(
+            xyxy=self.xyxy,
+            mask=CompactMask.from_dense(
+                masks=self.mask,
+                xyxy=full_image_xyxy,
+                image_shape=image_shape,
+            ),
+            confidence=self.confidence,
+            class_id=self.class_id,
+            tracker_id=self.tracker_id,
+            data=self.data,
+            metadata=self.metadata,
+        )
+        return new
 
     def with_nms(
         self,

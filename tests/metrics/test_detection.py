@@ -1613,6 +1613,24 @@ class TestDetectionMetrics:
         )
         assert cm.metric_target == MetricTarget.BOXES
 
+    def test_greedy_matching_two_valid_pairs(self):
+        """Greedy matching finds both TPs; np.unique style missed the second pair."""
+        preds = Detections(
+            xyxy=np.array([[40, 60, 380, 470], [108, 60, 448, 470]], dtype=np.float32),
+            confidence=np.array([0.95, 0.90]),
+            class_id=np.array([0, 0]),
+        )
+        targets = Detections(
+            xyxy=np.array([[40, 60, 380, 470], [210, 60, 550, 470]], dtype=np.float32),
+            class_id=np.array([0, 0]),
+        )
+
+        result = MeanAveragePrecision.from_detections(
+            predictions=[preds], targets=[targets]
+        )
+
+        assert result.map50 == pytest.approx(1.0, abs=0.01)
+
 
 class TestSplitDetectionsByOutcome:
     """Tests for _split_detections_by_outcome matching and filtering logic."""

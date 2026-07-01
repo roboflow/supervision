@@ -9,6 +9,7 @@ import numpy.typing as npt
 from matplotlib import pyplot as plt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import (
     box_iou_batch,
@@ -17,6 +18,7 @@ from supervision.detection.utils.iou_and_nms import (
 )
 from supervision.draw.color import LEGACY_COLOR_PALETTE
 from supervision.metrics.core import AveragingMethod, Metric, MetricTarget
+from supervision.metrics.utils.matching import _greedy_match
 from supervision.metrics.utils.object_size import (
     ObjectSizeCategory,
     get_detection_size_category,
@@ -218,12 +220,18 @@ class F1Score(Metric["F1ScoreResult"]):
                         predictions.confidence, dtype=np.float32
                     )
                     if self._metric_target == MetricTarget.BOXES:
-                        iou = box_iou_batch(target_contents, prediction_contents)
+                        # BOXES target never yields CompactMask; narrow for mypy.
+                        iou = box_iou_batch(
+                            cast(npt.NDArray[np.number], target_contents),
+                            cast(npt.NDArray[np.number], prediction_contents),
+                        )
                     elif self._metric_target == MetricTarget.MASKS:
                         iou = mask_iou_batch(target_contents, prediction_contents)
                     elif self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
+                        # OBB target never yields CompactMask; narrow for mypy.
                         iou = oriented_box_iou_batch(
-                            target_contents, prediction_contents
+                            cast(npt.NDArray[np.number], target_contents),
+                            cast(npt.NDArray[np.number], prediction_contents),
                         )
                     else:
                         raise ValueError(
@@ -347,17 +355,8 @@ class F1Score(Metric["F1ScoreResult"]):
         for i, iou_level in enumerate(iou_thresholds):
             matched_indices = np.where((iou >= iou_level) & correct_class)
 
-            if matched_indices[0].shape[0]:
-                combined_indices = np.stack(matched_indices, axis=1)
-                iou_values = iou[matched_indices][:, None]
-                matches = np.hstack([combined_indices, iou_values])
-
-                if matched_indices[0].shape[0] > 1:
-                    matches = matches[matches[:, 2].argsort()[::-1]]
-                    matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
-                    matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
-
-                correct[matches[:, 1].astype(int), i] = True
+            for t, p in _greedy_match(iou, matched_indices):
+                correct[p, i] = True
 
         result_correct: npt.NDArray[np.bool_] = correct
         return result_correct
@@ -450,13 +449,21 @@ class F1Score(Metric["F1ScoreResult"]):
         result_f1_score: npt.NDArray[np.float64] = f1_score
         return result_f1_score
 
-    def _detections_content(self, detections: Detections) -> npt.NDArray[Any]:
-        """Return boxes, masks or oriented bounding boxes from detections."""
+    def _detections_content(
+        self, detections: Detections
+    ) -> npt.NDArray[Any] | CompactMask:
+        """Return boxes, masks or oriented bounding boxes from detections.
+
+        For the mask target this may return a
+        :class:`~supervision.detection.compact_mask.CompactMask` rather than a
+        dense boolean array when the detections carry compact masks.
+        """
         if self._metric_target == MetricTarget.BOXES:
             return cast(npt.NDArray[Any], detections.xyxy)
         if self._metric_target == MetricTarget.MASKS:
             if detections.mask is not None:
-                return cast(npt.NDArray[Any], detections.mask)
+                # detections.mask is NDArray[bool] | CompactMask; return as-is.
+                return detections.mask
             return self._make_empty_content()
         if self._metric_target == MetricTarget.ORIENTED_BOUNDING_BOXES:
             obb = detections.data.get(ORIENTED_BOX_COORDINATES)
@@ -654,7 +661,7 @@ class F1ScoreResult:
         ensure_pandas_installed()
         import pandas as pd
 
-        pandas_data = {
+        pandas_data: dict[str, Any] = {
             "F1@50": self.f1_50,
             "F1@75": self.f1_75,
         }

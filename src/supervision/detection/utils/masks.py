@@ -1,4 +1,4 @@
-from typing import Literal, cast
+from typing import Any, Literal, cast
 
 import cv2
 import numpy as np
@@ -422,3 +422,97 @@ def filter_segments_by_distance(
         raise ValueError("mode must be 'edge' or 'centroid'")
 
     return keep_labels[labels]
+
+
+def _mask_to_roi(mask: npt.NDArray[np.bool_]) -> tuple[int, int, int, int] | None:
+    """Return exclusive ``(x1, y1, x2, y2)`` bounds for true mask pixels.
+
+    Unlike :func:`~supervision.detection.utils.converters.mask_to_xyxy`,
+    this function uses **exclusive** upper bounds (``+1``) and returns
+    ``None`` for empty masks (instead of zeros). These semantics are
+    required for NumPy slice-based ROI extraction.
+
+    Args:
+        mask: 2D boolean array of shape ``(H, W)``.
+
+    Returns:
+        Exclusive ``(x1, y1, x2, y2)`` bounds, or ``None`` when the mask
+        has no true pixels.
+    """
+    rows = np.flatnonzero(np.any(mask, axis=1))
+    if len(rows) == 0:
+        return None
+    cols = np.flatnonzero(np.any(mask, axis=0))
+    return int(cols[0]), int(rows[0]), int(cols[-1]) + 1, int(rows[-1]) + 1
+
+
+def _compact_masks_to_roi(
+    masks: CompactMask,
+    image_shape: tuple[int, int],
+) -> tuple[int, int, int, int] | None:
+    """Return exclusive bounding-box union for compact masks.
+
+    Uses crop metadata (offsets + shapes) — no RLE decode required.
+
+    Args:
+        masks: Compact mask collection.
+        image_shape: Image dimensions as ``(height, width)``.
+
+    Returns:
+        Exclusive ``(x1, y1, x2, y2)`` bounds, or ``None`` when empty.
+    """
+    if len(masks) == 0:
+        return None
+    image_h, image_w = image_shape
+    bboxes = masks.bbox_xyxy  # shape (N, 4), inclusive int32
+    x_min = int(bboxes[:, 0].min())
+    y_min = int(bboxes[:, 1].min())
+    x_max = int(bboxes[:, 2].max()) + 1  # convert inclusive to exclusive
+    y_max = int(bboxes[:, 3].max()) + 1
+    return (
+        max(0, x_min),
+        max(0, y_min),
+        min(image_w, x_max),
+        min(image_h, y_max),
+    )
+
+
+def _masks_to_roi(
+    masks: CompactMask | npt.NDArray[Any],
+    image_shape: tuple[int, int],
+    xyxy: npt.NDArray[np.number] | None = None,
+) -> tuple[int, int, int, int] | None:
+    """Return exclusive true-pixel bounds for dense or compact masks.
+
+    Args:
+        masks: Dense boolean mask array of shape ``(N, H, W)`` or ``(H, W)``,
+            or a :class:`~supervision.detection.compact_mask.CompactMask`.
+        image_shape: Image dimensions as ``(height, width)``.
+        xyxy: Optional detection boxes of shape ``(N, 4)`` in
+            ``[x1, y1, x2, y2]`` format. When provided, the dense path
+            uses box union (O(N)) instead of a full pixel scan (O(N·H·W)).
+
+    Returns:
+        Exclusive ``(x1, y1, x2, y2)`` bounds, or ``None`` when no true
+        pixels exist.
+    """
+    if isinstance(masks, CompactMask):
+        return _compact_masks_to_roi(masks=masks, image_shape=image_shape)
+    mask_array = np.asarray(masks, dtype=bool)
+    if mask_array.size == 0 or not mask_array.any():
+        return None
+    # Fast path: union of detection boxes (O(N)) avoids full N·H·W pixel scan.
+    # supervision xyxy uses inclusive max coords; floor(x2)+1 converts to exclusive.
+    if xyxy is not None and len(xyxy) > 0:
+        image_h, image_w = image_shape
+        return (
+            max(0, int(np.floor(xyxy[:, 0].min()))),
+            max(0, int(np.floor(xyxy[:, 1].min()))),
+            min(image_w, int(np.floor(xyxy[:, 2].max())) + 1),
+            min(image_h, int(np.floor(xyxy[:, 3].max())) + 1),
+        )
+    if mask_array.ndim == 2:
+        union = mask_array
+    else:
+        union = np.any(mask_array, axis=0)
+    return _mask_to_roi(union)

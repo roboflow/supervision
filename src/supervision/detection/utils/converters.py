@@ -434,10 +434,15 @@ def _delta_decode(values: list[int]) -> list[int]:
 
         ```
     """
-    counts = list(values)
-    for i in range(3, len(counts)):
-        counts[i] += counts[i - 2]
-    return counts
+    # The recurrence ``counts[i] += counts[i - 2]`` for ``i >= 3`` decomposes
+    # into two independent stride-2 chains: the odd indices (1, 3, 5, ...) and
+    # the even indices from 2 onward (2, 4, 6, ...). A cumulative sum over each
+    # chain recovers the absolute counts. Index 0 is absolute and untouched.
+    # int64 accumulation avoids overflow; ``tolist`` returns native Python ints.
+    counts = np.asarray(values, dtype=np.int64)
+    counts[1::2] = np.cumsum(counts[1::2])
+    counts[2::2] = np.cumsum(counts[2::2])
+    return cast("list[int]", counts.tolist())
 
 
 def _delta_encode(counts: list[int]) -> list[int]:
