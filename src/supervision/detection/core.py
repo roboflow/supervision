@@ -2632,6 +2632,20 @@ class Detections:
             ... )
             >>> detections.area
             array([50.])
+
+            Mask branch returns ``int64`` pixel counts:
+
+            >>> mask = np.zeros((2, 10, 10), dtype=bool)
+            >>> mask[0, :3, :3] = True   # 9 pixels
+            >>> mask[1, :5, :5] = True   # 25 pixels
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array(
+            ...         [[0, 0, 10, 10], [0, 0, 10, 10]], dtype=np.float32
+            ...     ),
+            ...     mask=mask,
+            ... )
+            >>> detections.area
+            array([ 9, 25])
         """
         if self.mask is not None:
             if isinstance(self.mask, CompactMask):
@@ -2640,7 +2654,9 @@ class Detections:
             # bool buffer; both `np.sum(..., axis=(1, 2))` and the axis form of
             # `count_nonzero` fall back to a slower generic reduction, so this
             # per-mask loop is several times faster. `dtype=np.int64` keeps the
-            # documented int64 area dtype on every platform.
+            # documented int64 area dtype on every platform. Assumes C-contiguous
+            # mask slices (true for all arrays produced by supervision and NumPy
+            # default ordering); F-order slices would skip the SIMD path.
             return np.fromiter(
                 (np.count_nonzero(mask) for mask in self.mask),
                 dtype=np.int64,

@@ -1,3 +1,5 @@
+"""Tests for supervision.metrics.utils.object_size — mask pixel-count path."""
+
 from __future__ import annotations
 
 import numpy as np
