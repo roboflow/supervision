@@ -228,6 +228,53 @@ def test_get_video_frames_generator_prefetch_early_termination(dummy_video_path)
     assert len(list(get_video_frames_generator(dummy_video_path, prefetch=4))) == 10
 
 
+@pytest.mark.parametrize(
+    ("stride", "start", "end"),
+    [
+        pytest.param(2, 0, None, id="stride2"),
+        pytest.param(1, 2, 7, id="start2_end7"),
+        pytest.param(2, 2, 8, id="stride2_start2_end8"),
+    ],
+)
+def test_get_video_frames_generator_prefetch_param_forwarding(
+    dummy_video_path, stride, start, end
+) -> None:
+    """Prefetch path must forward stride/start/end identically to the sync path.
+
+    Scenario: Using the prefetch path with various stride, start, and end
+        combinations to verify parameters are correctly forwarded.
+    Expected: The prefetch output matches the sync path frame-for-frame for
+        each combination; no frames skipped or duplicated.
+    """
+    sync_frames = list(
+        get_video_frames_generator(
+            dummy_video_path, stride=stride, start=start, end=end
+        )
+    )
+    prefetched_frames = list(
+        get_video_frames_generator(
+            dummy_video_path, stride=stride, start=start, end=end, prefetch=4
+        )
+    )
+    assert len(prefetched_frames) == len(sync_frames)
+    for a, b in zip(prefetched_frames, sync_frames):
+        assert np.array_equal(a, b)
+
+
+def test_get_video_frames_generator_prefetch_minimum_queue(dummy_video_path) -> None:
+    """prefetch=1 creates maximum backpressure; all frames must be returned in order.
+
+    Scenario: Using prefetch=1 forces the reader to block after every decoded
+        frame, maximising producer-consumer synchronisation pressure.
+    Expected: All 10 frames are yielded in the same order as the sync path.
+    """
+    sync_frames = list(get_video_frames_generator(dummy_video_path))
+    prefetched_frames = list(get_video_frames_generator(dummy_video_path, prefetch=1))
+    assert len(prefetched_frames) == len(sync_frames) == 10
+    for a, b in zip(prefetched_frames, sync_frames):
+        assert np.array_equal(a, b)
+
+
 def test_get_video_frames_generator_with_stride(dummy_video_path) -> None:
     """
     Verify that get_video_frames_generator correctly handles the stride parameter.

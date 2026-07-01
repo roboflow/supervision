@@ -263,8 +263,7 @@ def get_video_frames_generator(
             Default 0 keeps the original synchronous behaviour unchanged.
 
     Returns:
-        A generator that yields the
-            frames of the video.
+        A generator that yields the frames of the video.
 
     Examples:
         ```python
