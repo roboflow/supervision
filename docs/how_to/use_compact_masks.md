@@ -4,7 +4,7 @@ comments: true
 
 # Use Compact Masks for Memory-Efficient Segmentation
 
-\[`CompactMask`\][supervision.detection.compact_mask.CompactMask] stores each instance mask as a run-length encoding of its bounding-box **crop** rather than a full `(H, W)` boolean frame. For high-resolution images with many sparse masks this can reduce memory from tens of gigabytes to tens of megabytes, and eliminates full-frame decode work in annotators that only need the cropped region.
+[`CompactMask`][supervision.detection.compact_mask.CompactMask] stores each instance mask as a run-length encoding of its bounding-box **crop** rather than a full `(H, W)` boolean frame. For high-resolution images with many sparse masks this can reduce memory from tens of gigabytes to tens of megabytes, and eliminates full-frame decode work in annotators that only need the cropped region.
 
 This guide covers the four main integration points:
 
