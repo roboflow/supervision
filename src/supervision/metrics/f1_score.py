@@ -351,7 +351,7 @@ class F1Score(Metric["F1ScoreResult"]):
                 target_idx = matched_indices[0]
                 pred_idx = matched_indices[1]
                 iou_values = iou[matched_indices]
-                order = np.argsort(-iou_values)
+                order = np.argsort(-iou_values, kind="stable")
                 matched_targets: set[int] = set()
                 matched_preds: set[int] = set()
                 for t, p in zip(target_idx[order].tolist(), pred_idx[order].tolist()):
