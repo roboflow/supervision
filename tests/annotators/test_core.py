@@ -323,7 +323,7 @@ class TestMaskAnnotator:
         assert blended_shapes == [(45, 60, 3)]
 
     def test_annotate_skips_all_false_mask_blend(self, monkeypatch):
-        """All-false masks should leave the image pixel-exact to the original."""
+        """All-false masks must skip blending — addWeighted must not be called."""
         height, width = 30, 40
         scene = np.random.default_rng(3).integers(
             0, 256, (height, width, 3), dtype=np.uint8
@@ -333,7 +333,10 @@ class TestMaskAnnotator:
             xyxy=[[5.0, 5.0, 20.0, 20.0]], mask=[mask], class_id=[0]
         )
 
+        call_count = []
+
         def add_weighted_spy(src1, alpha, src2, beta, gamma, dst=None, dtype=None):
+            call_count.append(1)
             return src2
 
         monkeypatch.setattr(cv2, "addWeighted", add_weighted_spy)
@@ -343,6 +346,7 @@ class TestMaskAnnotator:
         ).annotate(scene=scene.copy(), detections=detections)
 
         assert np.array_equal(result, scene)
+        assert len(call_count) == 0, "addWeighted called for all-false masks"
 
     def test_annotate_pixels_outside_roi_unchanged(self):
         """Pixels outside the blended ROI must be unchanged from the original scene."""

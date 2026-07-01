@@ -112,6 +112,28 @@ class TestMaskROIHelpers:
         assert x2 >= 30
         assert y2 >= 25
 
+    def test_masks_to_roi_dense_with_xyxy_loose_box_returns_box_union(self):
+        """Loose xyxy (larger than pixel region) returns box union, not tight bounds."""
+        masks = np.zeros((1, 30, 40), dtype=bool)
+        masks[0, 10:12, 10:12] = True  # tiny 2x2 pixel region
+        # box is much larger than the pixel region
+        xyxy = np.array([[2.0, 2.0, 20.0, 20.0]])
+        result = _masks_to_roi(masks, (30, 40), xyxy)
+        assert result is not None
+        x1, y1, x2, y2 = result
+        # fast-path returns box union (conservative bound), not tight pixel bound
+        assert x1 <= 2
+        assert y1 <= 2
+        assert x2 >= 21  # floor(20.0) + 1
+        assert y2 >= 21
+
+    def test_masks_to_roi_dense_with_xyxy_all_false_returns_none(self):
+        """All-false masks with xyxy provided should still return None."""
+        masks = np.zeros((2, 30, 40), dtype=bool)
+        xyxy = np.array([[5.0, 5.0, 20.0, 20.0], [10.0, 10.0, 25.0, 25.0]])
+        result = _masks_to_roi(masks, (30, 40), xyxy)
+        assert result is None
+
 
 @pytest.mark.parametrize(
     ("masks", "offset", "resolution_wh", "expected_result", "exception"),
