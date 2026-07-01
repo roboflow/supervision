@@ -50,7 +50,10 @@ from supervision.detection.utils.iou_and_nms import (
     oriented_box_non_max_merge,
     oriented_box_non_max_suppression,
 )
-from supervision.detection.utils.masks import calculate_masks_centroids
+from supervision.detection.utils.masks import (
+    calculate_masks_centroids,
+    count_mask_pixels,
+)
 from supervision.detection.vlm import (
     LMM,
     VLM,
@@ -2650,18 +2653,7 @@ class Detections:
         if self.mask is not None:
             if isinstance(self.mask, CompactMask):
                 return self.mask.area
-            # `np.count_nonzero` (no axis) uses NumPy's SIMD popcount over the
-            # bool buffer; both `np.sum(..., axis=(1, 2))` and the axis form of
-            # `count_nonzero` fall back to a slower generic reduction, so this
-            # per-mask loop is several times faster. `dtype=np.int64` keeps the
-            # documented int64 area dtype on every platform. Assumes C-contiguous
-            # mask slices (true for all arrays produced by supervision and NumPy
-            # default ordering); F-order slices would skip the SIMD path.
-            return np.fromiter(
-                (np.count_nonzero(mask) for mask in self.mask),
-                dtype=np.int64,
-                count=len(self.mask),
-            )
+            return count_mask_pixels(self.mask)
         if ORIENTED_BOX_COORDINATES in self.data:
             return obb_polygon_area(
                 cast(npt.NDArray[np.number], self.data[ORIENTED_BOX_COORDINATES])

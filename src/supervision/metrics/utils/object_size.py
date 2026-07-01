@@ -8,6 +8,7 @@ import numpy.typing as npt
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.compact_mask import CompactMask
+from supervision.detection.utils.masks import count_mask_pixels
 from supervision.metrics.core import MetricTarget
 
 if TYPE_CHECKING:
@@ -159,16 +160,12 @@ def get_mask_size_category(
     else:
         if len(mask.shape) != 3:
             raise ValueError("Masks must be shaped (N, H, W)")
-        # `np.count_nonzero` (no axis) uses NumPy's SIMD popcount over the bool
-        # buffer; `np.sum(..., axis=(1, 2))` falls back to a slower generic
-        # reduction, so this per-mask loop is several times faster. The
-        # vectorized np.sum(mask, axis=(1, 2)) is NOT faster — it is ~6x
-        # slower than this loop. Do not "simplify" back to np.sum(axis=(1,2));
-        # benchmark before reverting. dtype=np.int64 keeps areas consistent
-        # across platforms (Windows NumPy defaults to int32).
-        areas = np.fromiter(
-            (np.count_nonzero(m) for m in mask), dtype=np.int64, count=len(mask)
-        )
+        # count_mask_pixels uses np.count_nonzero (no axis), which dispatches
+        # to SIMD popcount over the bool buffer and is ~6x faster than the
+        # vectorized np.sum(mask, axis=(1, 2)). Do not "simplify" back to
+        # np.sum(axis=(1,2)); benchmark before reverting. dtype=np.int64 keeps
+        # areas consistent across platforms (Windows NumPy defaults to int32).
+        areas = count_mask_pixels(mask)
 
     result = np.full(areas.shape, ObjectSizeCategory.ANY.value)
     SM, LG = SIZE_THRESHOLDS
