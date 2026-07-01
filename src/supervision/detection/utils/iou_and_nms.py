@@ -317,11 +317,13 @@ def box_iou_batch_with_jaccard(
 
         ```
     """
-    assert len(is_crowd) == len(boxes_true), (
-        "`is_crowd` must have the same length as `boxes_true`"
-    )
+    if len(is_crowd) != len(boxes_true):
+        raise ValueError(
+            f"`is_crowd` length ({len(is_crowd)}) must match "
+            f"`boxes_true` length ({len(boxes_true)})."
+        )
     if len(boxes_detection) == 0 or len(boxes_true) == 0:
-        return cast(npt.NDArray[np.float64], np.array([]))
+        return np.empty((len(boxes_detection), len(boxes_true)), dtype=np.float64)
 
     # Smallest number to avoid division by zero.
     eps = np.spacing(1)
@@ -349,12 +351,17 @@ def box_iou_batch_with_jaccard(
 
     # For a crowd ground truth a detection may match any subregion, so its union
     # collapses to the detection area; otherwise use the standard box union.
-    area_norm = np.where(
-        crowd[None, :],
-        area_det[:, None] + eps,
-        area_det[:, None] + area_gt[None, :] - area_inter + eps,
-    )
-    return cast(npt.NDArray[np.float64], area_inter / area_norm)
+    iou: npt.NDArray[np.float64] = np.empty((len(dt), len(gt)), dtype=np.float64)
+    if not np.any(crowd):
+        area_norm = area_det[:, None] + area_gt[None, :] - area_inter + eps
+    else:
+        area_norm = np.where(
+            crowd[None, :],
+            area_det[:, None] + eps,
+            area_det[:, None] + area_gt[None, :] - area_inter + eps,
+        )
+    np.divide(area_inter, area_norm, out=iou)
+    return iou
 
 
 def _polygon_areas(polygons: npt.NDArray[np.floating]) -> npt.NDArray[np.floating]:
