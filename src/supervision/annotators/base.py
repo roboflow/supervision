@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, ClassVar
+from typing import Any
 
 from supervision.detection.core import Detections
 
@@ -12,7 +12,7 @@ class BaseAnnotator(ABC):
             this annotator. Check this before materializing expensive mask payloads.
     """
 
-    requires_mask: ClassVar[bool] = False
+    requires_mask: bool = False
 
     @abstractmethod
     def annotate(
