@@ -464,7 +464,11 @@ class TestPolygonAnnotator:
                 raise AssertionError("PolygonAnnotator must use CompactMask.crop")
             return original_getitem(self, index)
 
+        def fail_to_dense(self):
+            raise AssertionError("PolygonAnnotator must not call CompactMask.to_dense")
+
         monkeypatch.setattr(CompactMask, "__getitem__", fail_int_index)
+        monkeypatch.setattr(CompactMask, "to_dense", fail_to_dense)
         result = annotator.annotate(scene=scene.copy(), detections=compact)
 
         assert not np.array_equal(result, scene), "annotator painted nothing"
