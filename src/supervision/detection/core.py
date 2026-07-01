@@ -24,7 +24,11 @@ from supervision.detection.utils._typing import (
     _DetectionDataValueType,
     _MetadataType,
 )
-from supervision.detection.utils.boxes import obb_polygon_area, xyxyxyxy_to_xyxy
+from supervision.detection.utils.boxes import (
+    _oriented_box_anchors,
+    obb_polygon_area,
+    xyxyxyxy_to_xyxy,
+)
 from supervision.detection.utils.converters import (
     mask_to_xyxy,
     polygon_to_mask,
@@ -2401,24 +2405,73 @@ class Detections:
         )
 
     def get_anchors_coordinates(self, anchor: Position) -> npt.NDArray[np.generic]:
-        """
-        Calculates and returns the coordinates of a specific anchor point
-        within the bounding boxes defined by the `xyxy` attribute. The anchor
-        point can be any of the predefined positions in the `Position` enum,
-        such as `CENTER`, `CENTER_LEFT`, `BOTTOM_RIGHT`, etc.
+        """Compute anchor-point coordinates for each detection.
+
+        The anchor can be any position in the `Position` enum, such as
+        `CENTER`, `CENTER_LEFT`, `BOTTOM_RIGHT`, etc.
+
+        Selection order:
+
+        1. If ``data[ORIENTED_BOX_COORDINATES]`` is set and ``anchor`` is not
+           ``Position.CENTER_OF_MASS``, coordinates are computed from the
+           oriented bounding box corners (result lies on the actual rotated
+           body).
+        2. If ``anchor`` is ``Position.CENTER_OF_MASS``, the detection mask
+           centroid is returned regardless of OBB data presence.
+        3. Otherwise, the anchor is derived from the axis-aligned envelope
+           (``xyxy``).
 
         Args:
-            anchor: An enum specifying the position of the anchor point within the
-                bounding box. Supported positions are defined in the `Position` enum.
+            anchor: Anchor position to compute. Supported positions are
+                defined in the `Position` enum.
 
         Returns:
-            An array of shape `(n, 2)`, where `n` is the number of bounding
-                boxes. Each row contains the `[x, y]` coordinates of the specified
-                anchor point for the corresponding bounding box.
+            Array of shape `(n, 2)` where each row is the `[x, y]` anchor
+            coordinate for the corresponding detection.
 
         Raises:
             ValueError: If the provided `anchor` is not supported.
+
+        Examples:
+            Axis-aligned detection:
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0.0, 0.0, 10.0, 4.0]])
+            ... )
+            >>> detections.get_anchors_coordinates(sv.Position.BOTTOM_CENTER)
+            array([[5., 4.]])
+
+            ```
+
+            Oriented (rotated) detection — anchor lies on the rotated body,
+            not the axis-aligned envelope:
+
+            ```pycon
+            >>> import numpy as np
+            >>> import supervision as sv
+            >>> corners = np.array(
+            ...     [[[0.0, 0.0], [10.0, 0.0], [10.0, 4.0], [0.0, 4.0]]]
+            ... )
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array([[0.0, 0.0, 10.0, 4.0]]),
+            ...     data={"xyxyxyxy": corners},
+            ... )
+            >>> detections.get_anchors_coordinates(sv.Position.BOTTOM_CENTER)
+            array([[5., 4.]])
+
+            ```
         """
+        if ORIENTED_BOX_COORDINATES in self.data and anchor != Position.CENTER_OF_MASS:
+            return cast(
+                npt.NDArray[np.generic],
+                _oriented_box_anchors(
+                    np.asarray(self.data[ORIENTED_BOX_COORDINATES]), anchor
+                ),
+            )
+
         xyxy = self.xyxy
 
         def coordinates(
