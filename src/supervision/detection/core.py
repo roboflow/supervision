@@ -54,7 +54,10 @@ from supervision.detection.utils.iou_and_nms import (
     oriented_box_non_max_merge,
     oriented_box_non_max_suppression,
 )
-from supervision.detection.utils.masks import calculate_masks_centroids
+from supervision.detection.utils.masks import (
+    calculate_masks_centroids,
+    count_mask_pixels,
+)
 from supervision.detection.vlm import (
     LMM,
     VLM,
@@ -2640,11 +2643,25 @@ class Detections:
             ... )
             >>> detections.area
             array([50.])
+
+            Mask branch returns ``int64`` pixel counts:
+
+            >>> mask = np.zeros((2, 10, 10), dtype=bool)
+            >>> mask[0, :3, :3] = True   # 9 pixels
+            >>> mask[1, :5, :5] = True   # 25 pixels
+            >>> detections = sv.Detections(
+            ...     xyxy=np.array(
+            ...         [[0, 0, 10, 10], [0, 0, 10, 10]], dtype=np.float32
+            ...     ),
+            ...     mask=mask,
+            ... )
+            >>> detections.area
+            array([ 9, 25])
         """
         if self.mask is not None:
             if isinstance(self.mask, CompactMask):
                 return self.mask.area
-            return np.array([np.sum(mask) for mask in self.mask])
+            return count_mask_pixels(self.mask)
         if ORIENTED_BOX_COORDINATES in self.data:
             return obb_polygon_area(
                 cast(npt.NDArray[np.number], self.data[ORIENTED_BOX_COORDINATES])

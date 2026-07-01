@@ -2434,3 +2434,48 @@ class TestDetectionsArea:
             )
 
         assert detections.area.dtype == expected_dtype
+
+    def test_dense_mask_area_matches_pixel_sum(self) -> None:
+        """Dense-mask area equals the per-mask true-pixel count, as int64."""
+        rng = np.random.default_rng(0)
+        masks = rng.random((5, 30, 40)) < 0.4
+        detections = Detections(
+            xyxy=np.zeros((len(masks), 4), dtype=np.float32),
+            class_id=np.zeros(len(masks), dtype=int),
+            mask=masks,
+        )
+
+        expected = np.array([np.count_nonzero(m) for m in masks])
+        np.testing.assert_array_equal(detections.area, expected)
+        np.testing.assert_array_equal(detections.area, masks.sum(axis=(1, 2)))
+        assert detections.area.dtype == np.int64
+
+    def test_empty_detections_with_mask_returns_empty_area(self) -> None:
+        """Zero-mask Detections produce an empty int64 area array."""
+        detections = Detections(
+            xyxy=np.empty((0, 4), dtype=np.float32),
+            class_id=np.array([], dtype=int),
+            mask=np.empty((0, 10, 10), dtype=bool),
+        )
+
+        assert detections.area.shape == (0,)
+        assert detections.area.dtype == np.int64
+
+    @pytest.mark.parametrize(
+        ("fill", "expected_area"),
+        [
+            pytest.param(False, 0, id="all-false-zero-area"),
+            pytest.param(True, 100, id="all-true-full-area"),
+        ],
+    )
+    def test_mask_boundary_fills(self, fill: bool, expected_area: int) -> None:
+        """All-False mask has area 0; all-True 10x10 mask has area 100."""
+        mask = np.full((1, 10, 10), fill_value=fill, dtype=bool)
+        detections = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+            class_id=np.array([0], dtype=int),
+            mask=mask,
+        )
+
+        np.testing.assert_array_equal(detections.area, [expected_area])
+        assert detections.area.dtype == np.int64
