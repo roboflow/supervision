@@ -1,5 +1,11 @@
 ---
 comments: true
+description: Use CompactMask for memory-efficient instance segmentation in supervision — ingest COCO RLE payloads, skip mask materialisation, and merge mixed dense and compact detections without allocating a full pixel stack.
+authors:
+  - name: Borda
+    role: Open Source Engineer, Roboflow
+    github: https://github.com/borda
+date_modified: 2026-07-01
 ---
 
 # Use Compact Masks for Memory-Efficient Segmentation
