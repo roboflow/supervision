@@ -906,7 +906,7 @@ def mask_non_max_suppression(
                 condition[row_idx + 1 :], False, keep[row_idx + 1 :]
             )
 
-    return keep[sort_index.argsort()]
+    return cast(npt.NDArray[np.bool_], keep[sort_index.argsort()])
 
 
 def _prepare_predictions_for_nms(
@@ -980,7 +980,8 @@ def box_non_max_suppression(
     sort_index, predictions, categories = _prepare_predictions_for_nms(predictions)
     ious = box_iou_batch(predictions[:, :4], predictions[:, :4], overlap_metric)
     keep = _nms_loop_from_iou_matrix(ious, categories, iou_threshold)
-    return keep[sort_index.argsort()]
+    result: npt.NDArray[np.bool_] = keep[sort_index.argsort()]
+    return result
 
 
 def _group_overlapping_masks(
@@ -1340,7 +1341,8 @@ def oriented_box_non_max_suppression(
     # same object intentional — triggers upper-triangle optimization
     ious = oriented_box_iou_batch(oriented_boxes, oriented_boxes, overlap_metric)
     keep = _nms_loop_from_iou_matrix(ious, categories, iou_threshold)
-    return keep[sort_index.argsort()]
+    result: npt.NDArray[np.bool_] = keep[sort_index.argsort()]
+    return result
 
 
 def _group_overlapping_oriented_boxes(
