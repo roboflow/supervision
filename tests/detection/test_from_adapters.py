@@ -113,8 +113,7 @@ def test_from_yolo_nas_handles_empty_and_non_empty(
 
 
 def test_from_tensorflow_scales_axes_on_non_square_image() -> None:
-    # Tensorflow boxes are normalized [ymin, xmin, ymax, xmax]; y must scale by
-    # height and x by width. A non-square image exposes a swapped scaling.
+    """Non-square image exposes swapped scaling: y uses height, x uses width."""
     results = {
         "detection_boxes": [
             _FakeTensor(np.array([[0.1, 0.2, 0.5, 0.6]], dtype=np.float32))
