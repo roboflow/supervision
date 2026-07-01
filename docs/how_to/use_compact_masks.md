@@ -4,7 +4,7 @@ comments: true
 
 # Use Compact Masks for Memory-Efficient Segmentation
 
-\[`CompactMask`\][supervision.detection.compact_mask.CompactMask] stores each instance mask as a run-length encoding of its bounding-box **crop** rather than a full `(H, W)` boolean frame. For high-resolution images with many sparse masks this can reduce memory from tens of gigabytes to tens of megabytes, and eliminates full-frame decode work in annotators that only need the cropped region.
+[CompactMask][supervision.detection.compact_mask.CompactMask] stores each instance mask as a run-length encoding of its bounding-box **crop** rather than a full `(H, W)` boolean frame. For high-resolution images with many sparse masks this can reduce memory from tens of gigabytes to tens of megabytes, and eliminates full-frame decode work in annotators that only need the cropped region.
 
 This guide covers the four main integration points:
 
@@ -25,9 +25,11 @@ import supervision as sv
 from supervision.detection.compact_mask import CompactMask
 
 # Example: two COCO RLE masks for a 720×1280 frame.
+# Replace the counts strings with actual compressed RLE payloads from your
+# model or API — e.g., from pycocotools mask.encode() or an Inference response.
 rles = [
-    {"size": [720, 1280], "counts": "..."},  # compressed RLE string
-    {"size": [720, 1280], "counts": "..."},
+    {"size": [720, 1280], "counts": "YOUR_RLE_COUNTS_STRING_HERE"},
+    {"size": [720, 1280], "counts": "YOUR_RLE_COUNTS_STRING_HERE"},
 ]
 xyxy = np.array(
     [
@@ -91,14 +93,19 @@ annotators = [
 
 for ann in annotators:
     if ann.requires_mask:
-        # Materialise only when the annotator actually needs it.
+        # Annotator reads mask pixels — CompactMask decodes lazily per crop.
         scene = ann.annotate(scene, detections)
     else:
-        # Pass detections as-is; mask is never decoded.
-        scene = ann.annotate(scene, detections)
+        # Annotator ignores masks — strip mask field to eliminate any decode cost.
+        det_no_mask = sv.Detections(
+            xyxy=detections.xyxy,
+            confidence=detections.confidence,
+            class_id=detections.class_id,
+        )
+        scene = ann.annotate(scene, det_no_mask)
 ```
 
-Annotators that set `requires_mask = True`: \[`MaskAnnotator`\][supervision.annotators.core.MaskAnnotator], \[`PolygonAnnotator`\][supervision.annotators.core.PolygonAnnotator], \[`HaloAnnotator`\][supervision.annotators.core.HaloAnnotator].
+Annotators that set `requires_mask = True`: [MaskAnnotator][supervision.annotators.core.MaskAnnotator], [PolygonAnnotator][supervision.annotators.core.PolygonAnnotator], [HaloAnnotator][supervision.annotators.core.HaloAnnotator].
 
 All others default to `requires_mask = False`.
 
@@ -120,7 +127,8 @@ from supervision.detection.compact_mask import CompactMask
 H, W = 720, 1280
 
 # Compact detections from an RLE-based source.
-rles = [{"size": [H, W], "counts": "..."}]
+# Replace the counts string with a real compressed RLE payload from your model or API.
+rles = [{"size": [H, W], "counts": "YOUR_RLE_COUNTS_STRING_HERE"}]
 xyxy_a = np.array([[100.0, 50.0, 400.0, 300.0]])
 cm = CompactMask.from_coco_rle(rles, xyxy_a, image_shape=(H, W))
 det_a = sv.Detections(xyxy=xyxy_a, mask=cm, class_id=np.array([0]))
@@ -166,10 +174,10 @@ Upper-end gains assume: ≥1080p frames, tens to hundreds of instances, masks co
 
 ## API Reference
 
-- \[`CompactMask`\][supervision.detection.compact_mask.CompactMask]
-- \[`CompactMask.from_coco_rle`\][supervision.detection.compact_mask.CompactMask.from_coco_rle]
-- \[`CompactMask.from_dense`\][supervision.detection.compact_mask.CompactMask.from_dense]
-- \[`Detections.from_inference`\][supervision.detection.core.Detections.from_inference]
-- \[`Detections.to_compact_masks`\][supervision.detection.core.Detections.to_compact_masks]
-- \[`Detections.merge`\][supervision.detection.core.Detections.merge]
-- \[`BaseAnnotator.requires_mask`\][supervision.annotators.base.BaseAnnotator]
+- [CompactMask][supervision.detection.compact_mask.CompactMask]
+- [CompactMask.from_coco_rle][supervision.detection.compact_mask.CompactMask.from_coco_rle]
+- [CompactMask.from_dense][supervision.detection.compact_mask.CompactMask.from_dense]
+- [Detections.from_inference][supervision.detection.core.Detections.from_inference]
+- [Detections.to_compact_masks][supervision.detection.core.Detections.to_compact_masks]
+- [Detections.merge][supervision.detection.core.Detections.merge]
+- [BaseAnnotator.requires_mask][supervision.annotators.base.BaseAnnotator]
