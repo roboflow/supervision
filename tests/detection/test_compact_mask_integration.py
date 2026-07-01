@@ -1,7 +1,5 @@
 """Integration tests: CompactMask <-> Detections, annotators, merge."""
 
-from __future__ import annotations
-
 from contextlib import ExitStack as DoesNotRaise
 
 import numpy as np
@@ -148,7 +146,7 @@ class TestMerge:
 
     Covers three scenarios:
     - All-compact merge: result is a CompactMask.
-    - Mixed compact + dense: result falls back to a dense ndarray.
+    - Mixed compact + dense: dense inputs are converted; result is a CompactMask.
     - Inner pair merge (merge_inner_detection_object_pair): used during NMS-like
       operations, each input must contain exactly one detection.
     """
@@ -175,10 +173,11 @@ class TestMerge:
         np.testing.assert_array_equal(merged.mask.to_dense(), expected)
 
     def test_mixed_compact_and_dense(self) -> None:
-        """Merging a CompactMask with a dense ndarray falls back to dense."""
+        """Merging a CompactMask with a dense ndarray returns a CompactMask."""
         h, w = 20, 20
-        det_compact, _ = _make_compact_detections(2, h, w)
+        det_compact, masks_compact = _make_compact_detections(2, h, w)
         masks_dense = np.zeros((1, h, w), dtype=bool)
+        masks_dense[0, 3:8, 3:8] = True
         xyxy_dense = _full_xyxy(1, h, w)
         det_dense = Detections(
             xyxy=xyxy_dense,
@@ -188,8 +187,11 @@ class TestMerge:
         )
 
         merged = Detections.merge([det_compact, det_dense])
-        assert isinstance(merged.mask, np.ndarray)
-        assert merged.mask.shape == (3, h, w)
+        assert isinstance(merged.mask, CompactMask)
+        assert len(merged) == 3
+        expected = np.concatenate([masks_compact, masks_dense], axis=0)
+        np.testing.assert_array_equal(merged.mask.to_dense(), expected)
+        assert merged.mask.image_shape == (h, w)
 
     def test_inner_pair_with_compact(self) -> None:
         from supervision.detection.core import merge_inner_detection_object_pair

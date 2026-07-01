@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
 

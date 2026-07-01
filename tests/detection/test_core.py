@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import warnings
 from contextlib import ExitStack as DoesNotRaise
 
@@ -7,6 +5,7 @@ import numpy as np
 import pytest
 
 from supervision.config import ORIENTED_BOX_COORDINATES
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import (
     Detections,
     _merge_detection_group,
@@ -251,6 +250,16 @@ def test_detections_non_bool_mask_warns_with_migration_path() -> None:
             ),
             DoesNotRaise(),
         ),
+        # Scenario: Select a single detection using a NumPy integer index.
+        # Expected: A Detections object containing only that element.
+        (
+            DETECTIONS,
+            np.int64(0),
+            _create_detections(
+                xyxy=[[2254, 906, 2447, 1353]], confidence=[0.90538], class_id=[0]
+            ),
+            DoesNotRaise(),
+        ),
         # Scenario: Select a range of detections using a slice.
         # Expected: Detections within the slice range are returned.
         (
@@ -298,7 +307,7 @@ def test_detections_non_bool_mask_warns_with_migration_path() -> None:
 )
 def test_getitem(
     detections: Detections,
-    index: int | slice | list[int] | np.ndarray,
+    index: int | np.integer | slice | list[int] | np.ndarray,
     expected_result: Detections | None,
     exception: Exception,
 ) -> None:
@@ -310,6 +319,28 @@ def test_getitem(
     with exception:
         result = detections[index]
         assert result == expected_result
+
+
+def test_select_returns_detection_subset() -> None:
+    """Select returns a typed Detections subset for row indexes."""
+    result = TEST_DET_1.select([0, 2])
+
+    assert result == Detections(
+        xyxy=np.array([[10, 10, 20, 20], [50, 50, 60, 60]]),
+        mask=np.array([TEST_MASK, TEST_MASK]),
+        confidence=np.array([0.1, 0.3]),
+        class_id=np.array([1, 3]),
+        tracker_id=np.array([1, 3]),
+        data={"some_key": [1, 3], "other_key": [["1", "2"], ["5", "6"]]},
+    )
+
+
+def test_get_data_returns_detection_data_value() -> None:
+    """Get data returns the stored data value or None."""
+    result = TEST_DET_1.get_data("some_key")
+
+    assert result == [1, 2, 3]
+    assert TEST_DET_1.get_data("missing") is None
 
 
 @pytest.mark.parametrize(
@@ -584,6 +615,197 @@ def test_merge(
     with exception:
         result = Detections.merge(detections_list=detections_list)
         assert result == expected_result, f"Expected: {expected_result}, Got: {result}"
+
+
+class TestMergeMixedMasks:
+    """Detections.merge with a mix of dense ndarray and CompactMask inputs."""
+
+    IMG_SHAPE = (50, 50)
+
+    def _make_dense_det(
+        self,
+        xyxy: list[list[int]],
+        fill_boxes: bool = True,
+    ) -> Detections:
+        """Return Detections with a dense bool mask stack."""
+        n = len(xyxy)
+        h, w = self.IMG_SHAPE
+        masks = np.zeros((n, h, w), dtype=bool)
+        if fill_boxes:
+            for i, (x1, y1, x2, y2) in enumerate(xyxy):
+                masks[i, y1 : y2 + 1, x1 : x2 + 1] = True
+        return Detections(
+            xyxy=np.array(xyxy, dtype=np.float32),
+            mask=masks,
+            confidence=np.ones(n, dtype=np.float32) * 0.9,
+            class_id=np.arange(n, dtype=int),
+        )
+
+    def _make_compact_det(
+        self,
+        xyxy: list[list[int]],
+        fill_boxes: bool = True,
+    ) -> Detections:
+        """Return Detections with a CompactMask."""
+        dense_det = self._make_dense_det(xyxy, fill_boxes)
+        cm = CompactMask.from_dense(
+            np.asarray(dense_det.mask, dtype=bool), dense_det.xyxy, self.IMG_SHAPE
+        )
+        dense_det.mask = cm
+        return dense_det
+
+    def test_mixed_result_is_compact_mask(self) -> None:
+        """merge([dense, compact]) returns a CompactMask, not ndarray."""
+        det_dense = self._make_dense_det([[5, 5, 15, 15]])
+        det_compact = self._make_compact_det([[20, 20, 35, 35]])
+        result = Detections.merge([det_dense, det_compact])
+        assert isinstance(result.mask, CompactMask)
+
+    def test_mixed_pixel_parity_with_all_dense(self) -> None:
+        """merge([dense, compact]) produces the same pixels as merge([dense, dense])."""
+        xyxy_a = [[5, 5, 15, 15]]
+        xyxy_b = [[20, 20, 35, 35]]
+        det_dense_a = self._make_dense_det(xyxy_a)
+        det_dense_b = self._make_dense_det(xyxy_b)
+        det_compact_b = self._make_compact_det(xyxy_b)
+
+        all_dense = Detections.merge([det_dense_a, det_dense_b])
+        mixed = Detections.merge([det_dense_a, det_compact_b])
+
+        assert isinstance(mixed.mask, CompactMask)
+        np.testing.assert_array_equal(mixed.mask.to_dense(), np.asarray(all_dense.mask))
+        assert mixed.mask.image_shape == self.IMG_SHAPE
+
+    def test_mixed_compact_first_pixel_parity(self) -> None:
+        """merge([compact, dense]) order: compact input first still gives parity."""
+        xyxy_a = [[5, 5, 15, 15]]
+        xyxy_b = [[20, 20, 35, 35]]
+        det_compact_a = self._make_compact_det(xyxy_a)
+        det_dense_b = self._make_dense_det(xyxy_b)
+        det_dense_a = self._make_dense_det(xyxy_a)
+        det_dense_b2 = self._make_dense_det(xyxy_b)
+
+        all_dense = Detections.merge([det_dense_a, det_dense_b2])
+        mixed = Detections.merge([det_compact_a, det_dense_b])
+
+        assert isinstance(mixed.mask, CompactMask)
+        np.testing.assert_array_equal(mixed.mask.to_dense(), np.asarray(all_dense.mask))
+        assert mixed.mask.image_shape == self.IMG_SHAPE
+
+    def test_mixed_fields_remain_aligned(self) -> None:
+        """confidence, class_id, xyxy stay in order after mixed merge."""
+        det_dense = self._make_dense_det([[1, 1, 10, 10]])
+        det_compact = self._make_compact_det([[30, 30, 40, 40]])
+        det_dense.confidence = np.array([0.1])
+        det_dense.class_id = np.array([1])
+        det_compact.confidence = np.array([0.9])
+        det_compact.class_id = np.array([9])
+
+        result = Detections.merge([det_dense, det_compact])
+
+        np.testing.assert_array_equal(result.confidence, [0.1, 0.9])
+        np.testing.assert_array_equal(result.class_id, [1, 9])
+        np.testing.assert_array_equal(result.xyxy, [[1, 1, 10, 10], [30, 30, 40, 40]])
+
+    def test_mixed_many_dense_one_compact(self) -> None:
+        """Multiple dense + single compact → CompactMask with all masks."""
+        xyxy_list = [[0, 0, 5, 5], [6, 6, 11, 11], [12, 12, 17, 17]]
+        det_d1 = self._make_dense_det([xyxy_list[0]])
+        det_d2 = self._make_dense_det([xyxy_list[1]])
+        det_c = self._make_compact_det([xyxy_list[2]])
+        det_all_dense = self._make_dense_det(xyxy_list)
+
+        result = Detections.merge([det_d1, det_d2, det_c])
+
+        assert isinstance(result.mask, CompactMask)
+        assert len(result) == 3
+        np.testing.assert_array_equal(
+            result.mask.to_dense(), np.asarray(det_all_dense.mask)
+        )
+
+    def test_mixed_compact_image_shape_mismatch_raises(self) -> None:
+        """merge with CompactMasks of different image_shapes raises ValueError."""
+        h, w = self.IMG_SHAPE
+        masks_a = np.zeros((1, h, w), dtype=bool)
+        masks_b = np.zeros((1, h + 10, w + 10), dtype=bool)
+        xyxy_a = np.array([[5.0, 5.0, 15.0, 15.0]])
+        xyxy_b = np.array([[5.0, 5.0, 15.0, 15.0]])
+        cm_a = CompactMask.from_dense(masks_a, xyxy_a, (h, w))
+        cm_b = CompactMask.from_dense(masks_b, xyxy_b, (h + 10, w + 10))
+        det_a = Detections(xyxy=xyxy_a, mask=cm_a, class_id=np.array([0]))
+        det_b = Detections(xyxy=xyxy_b, mask=cm_b, class_id=np.array([1]))
+        with pytest.raises(ValueError, match="image shapes"):
+            Detections.merge([det_a, det_b])
+
+    def test_mixed_dense_shape_mismatch_raises(self) -> None:
+        """Dense mask (H', W') ≠ CompactMask image_shape raises ValueError."""
+        h, w = self.IMG_SHAPE
+        xyxy = np.array([[5.0, 5.0, 15.0, 15.0]])
+        masks_compact = np.zeros((1, h, w), dtype=bool)
+        cm = CompactMask.from_dense(masks_compact, xyxy, (h, w))
+        det_compact = Detections(xyxy=xyxy, mask=cm, class_id=np.array([0]))
+        # Dense mask with a different image size than the compact one.
+        wrong_h, wrong_w = h + 8, w + 8
+        masks_dense = np.zeros((1, wrong_h, wrong_w), dtype=bool)
+        det_dense = Detections(xyxy=xyxy, mask=masks_dense, class_id=np.array([1]))
+        with pytest.raises(ValueError, match="image_shape"):
+            Detections.merge([det_compact, det_dense])
+
+    def test_all_dense_unchanged(self) -> None:
+        """All-dense merge is backward compatible: output stays ndarray."""
+        det_a = self._make_dense_det([[0, 0, 10, 10]])
+        det_b = self._make_dense_det([[15, 15, 25, 25]])
+        result = Detections.merge([det_a, det_b])
+        assert isinstance(result.mask, np.ndarray)
+
+    def test_all_compact_unchanged(self) -> None:
+        """All-compact merge output is still CompactMask (no regression)."""
+        det_a = self._make_compact_det([[0, 0, 10, 10]])
+        det_b = self._make_compact_det([[15, 15, 25, 25]])
+        result = Detections.merge([det_a, det_b])
+        assert isinstance(result.mask, CompactMask)
+
+    def test_mixed_dense_out_of_box_pixels_dropped(self) -> None:
+        """Dense True pixels outside xyxy box are dropped after mixed merge.
+
+        from_dense crops each dense mask to its xyxy bounding box — a documented
+        lossy conversion. This test asserts the drop rather than treating it as a
+        regression.
+        """
+        h, w = self.IMG_SHAPE
+        xyxy = [[5, 5, 15, 15]]
+        masks = np.zeros((1, h, w), dtype=bool)
+        masks[0, 5:16, 5:16] = True  # pixels inside the box
+        masks[0, 0, 0] = True  # pixel OUTSIDE the box
+
+        det_dense = Detections(
+            xyxy=np.array(xyxy, dtype=np.float32),
+            mask=masks,
+            confidence=np.array([0.9], dtype=np.float32),
+            class_id=np.array([0]),
+        )
+        det_compact = self._make_compact_det([[20, 20, 35, 35]])
+
+        result = Detections.merge([det_dense, det_compact])
+
+        assert isinstance(result.mask, CompactMask)
+        result_dense = result.mask.to_dense()
+        assert result_dense[0, 10, 10], "in-box pixel preserved"
+        assert not result_dense[0, 0, 0], "out-of-box pixel dropped"
+
+    def test_empty_compact_mask_detections_merge_returns_no_mask(self) -> None:
+        """merge on empty CompactMask-carrying Detections returns mask=None."""
+        h, w = self.IMG_SHAPE
+        cm_empty = CompactMask(
+            [],
+            np.empty((0, 2), dtype=np.int32),
+            np.empty((0, 2), dtype=np.int32),
+            (h, w),
+        )
+        det_a = Detections(xyxy=np.empty((0, 4), dtype=np.float32), mask=cm_empty)
+        det_b = Detections(xyxy=np.empty((0, 4), dtype=np.float32), mask=cm_empty)
+        result = Detections.merge([det_a, det_b])
+        assert result.mask is None
 
 
 @pytest.mark.parametrize(
@@ -882,7 +1104,7 @@ def test_merge_inner_detection_object_pair(
     detection_2: Detections,
     expected_result: Detections | None,
     exception: Exception,
-):
+) -> None:
     with exception:
         result = merge_inner_detection_object_pair(detection_1, detection_2)
         assert result == expected_result
@@ -983,6 +1205,46 @@ def test_from_inference_partial_tracker_id_does_not_crash() -> None:
     assert detections["class_name"] is not None
 
 
+def test_from_inference_partial_mask_does_not_crash() -> None:
+    """Results where only some predictions carry a mask must not raise."""
+    result = {
+        "image": {"width": 100, "height": 100},
+        "predictions": [
+            {
+                "x": 20,
+                "y": 20,
+                "width": 20,
+                "height": 20,
+                "confidence": 0.9,
+                "class": "a",
+                "class_id": 0,
+                "points": [
+                    {"x": 10, "y": 10},
+                    {"x": 30, "y": 10},
+                    {"x": 30, "y": 30},
+                    {"x": 10, "y": 30},
+                ],
+            },
+            {
+                "x": 70,
+                "y": 70,
+                "width": 20,
+                "height": 20,
+                "confidence": 0.8,
+                "class": "b",
+                "class_id": 1,
+            },
+        ],
+    }
+
+    detections = Detections.from_inference(result)
+
+    # all detections are kept; masks are dropped rather than misaligned
+    assert len(detections) == 2
+    assert detections.mask is None
+    assert detections.xyxy.shape == (2, 4)
+
+
 def test_from_inference_empty_class_name_dtype_matches_non_empty() -> None:
     """Empty and non-empty results should produce string-kind class_name arrays."""
     empty_result = {"predictions": [], "image": {"width": 100, "height": 100}}
@@ -1030,6 +1292,199 @@ def test_from_inference_sdk_dict_path_empty_preserves_class_name_dtype() -> None
     detections = Detections.from_inference(_FakeSdkResult())
     assert detections["class_name"] is not None
     assert detections["class_name"].dtype.kind == "U"
+
+
+def test_from_inference_compact_masks_default_keeps_dense_mask() -> None:
+    """Default from_inference RLE output should remain a dense ndarray mask."""
+    result = {
+        "predictions": [
+            {
+                "x": 1.5,
+                "y": 1.5,
+                "width": 2.0,
+                "height": 2.0,
+                "confidence": 0.9,
+                "class_id": 0,
+                "class": "person",
+                "rle": {"size": [4, 4], "counts": "52203"},
+            }
+        ],
+        "image": {"width": 4, "height": 4},
+    }
+
+    detections = Detections.from_inference(result)
+
+    assert isinstance(detections.mask, np.ndarray)
+    assert not isinstance(detections.mask, CompactMask)
+
+
+def test_from_inference_compact_masks_matches_dense_default() -> None:
+    """compact_masks=True and False agree when all True pixels are inside the bbox."""
+    result = {
+        "predictions": [
+            {
+                "x": 1.5,
+                "y": 1.5,
+                "width": 2.0,
+                "height": 2.0,
+                "confidence": 0.9,
+                "class_id": 0,
+                "class": "person",
+                "rle_mask": {"size": [4, 4], "counts": "52203"},
+                "tracker_id": 5,
+            }
+        ],
+        "image": {"width": 4, "height": 4},
+    }
+    dense = Detections.from_inference(result)
+
+    compact = Detections.from_inference(result, compact_masks=True)
+
+    assert isinstance(compact.mask, CompactMask)
+    assert dense.mask is not None
+    np.testing.assert_array_equal(compact.mask.to_dense(), dense.mask)
+    np.testing.assert_array_equal(compact.xyxy, dense.xyxy)
+    np.testing.assert_array_equal(compact.confidence, dense.confidence)
+    np.testing.assert_array_equal(compact.class_id, dense.class_id)
+    np.testing.assert_array_equal(compact.tracker_id, dense.tracker_id)
+    np.testing.assert_array_equal(compact["class_name"], dense["class_name"])
+
+
+def test_from_inference_compact_masks_crops_to_detector_bbox() -> None:
+    """compact_masks=True crops masks to the detector bbox; pixels outside are dropped.
+
+    This is the documented behaviour (see Warning in Detections.from_inference):
+    each mask is cropped to its detector bbox, so True pixels outside that box
+    are not stored.  Dense masks are unaffected and preserve the full mask.
+    """
+    # Mask has True at (row=0,col=0) [inside bbox] and (row=3,col=3) [outside bbox].
+    # counts=[0,1,14,1,0]: 0 False, 1 True (pos 0), 14 False, 1 True (pos 15), 0 False.
+    # Bbox x_min=0,y_min=0,x_max=2,y_max=2 (int-truncated) covers cols 0-2, rows 0-2.
+    result = {
+        "predictions": [
+            {
+                "x": 1.0,
+                "y": 1.0,
+                "width": 2.0,
+                "height": 2.0,
+                "confidence": 0.8,
+                "class_id": 0,
+                "class": "cat",
+                "rle_mask": {"size": [4, 4], "counts": [0, 1, 14, 1, 0]},
+            }
+        ],
+        "image": {"width": 4, "height": 4},
+    }
+    dense = Detections.from_inference(result)
+    compact = Detections.from_inference(result, compact_masks=True)
+
+    assert dense.mask is not None
+    assert isinstance(compact.mask, CompactMask)
+    # Dense preserves both True pixels (full-image RLE decode, no cropping).
+    assert dense.mask[0].sum() == 2
+    assert bool(dense.mask[0, 0, 0])
+    assert bool(dense.mask[0, 3, 3])
+    # Compact crops to detector bbox (cols 0-2, rows 0-2): out-of-bbox pixel dropped.
+    compact_dense = compact.mask.to_dense()
+    assert bool(compact_dense[0, 0, 0]), "in-bbox pixel must be preserved"
+    assert not bool(compact_dense[0, 3, 3]), "out-of-bbox pixel silently dropped"
+    assert compact_dense[0].sum() == 1
+
+
+def test_from_inference_compact_masks_multiple_predictions_matches_dense() -> None:
+    """compact_masks=True with N>1 predictions exercises batched from_coco_rle."""
+    result = {
+        "predictions": [
+            {
+                "x": 1.5,
+                "y": 1.5,
+                "width": 3.0,
+                "height": 3.0,
+                "confidence": 0.9,
+                "class_id": 0,
+                "class": "person",
+                "rle_mask": {"size": [4, 4], "counts": "52203"},
+            },
+            {
+                "x": 1.5,
+                "y": 1.5,
+                "width": 3.0,
+                "height": 3.0,
+                "confidence": 0.8,
+                "class_id": 1,
+                "class": "car",
+                "rle_mask": {"size": [4, 4], "counts": [0, 16]},
+            },
+        ],
+        "image": {"width": 4, "height": 4},
+    }
+    dense = Detections.from_inference(result)
+    compact = Detections.from_inference(result, compact_masks=True)
+
+    assert isinstance(compact.mask, CompactMask)
+    assert len(compact) == 2
+    assert dense.mask is not None
+    np.testing.assert_array_equal(compact.mask.to_dense(), dense.mask)
+
+
+def test_from_inference_compact_masks_empty_preserves_data_contract() -> None:
+    """compact_masks=True empty results should keep class_name string dtype."""
+    result = {"predictions": [], "image": {"width": 100, "height": 100}}
+
+    detections = Detections.from_inference(result, compact_masks=True)
+
+    assert detections.mask is None
+    assert detections["class_name"] is not None
+    assert detections["class_name"].dtype.kind == "U"
+
+
+class TestDetectionsToCompactMasks:
+    """Tests for Detections.to_compact_masks."""
+
+    def test_dense_mask_converts_to_compact_mask(self) -> None:
+        """Dense masks are converted to lossless CompactMask instances."""
+        mask = np.zeros((1, 4, 5), dtype=bool)
+        mask[0, 1:3, 1:4] = True
+        mask[0, 0, 0] = True
+        xyxy = np.array([[1, 1, 4, 3]], dtype=np.float64)
+        detections = Detections(xyxy=xyxy, mask=mask)
+
+        result = detections.to_compact_masks()
+
+        assert isinstance(result.mask, CompactMask)
+        np.testing.assert_array_equal(result.mask.to_dense(), mask)
+        np.testing.assert_array_equal(result.xyxy, detections.xyxy)
+
+    def test_compact_mask_returns_same_instance(self) -> None:
+        """CompactMask input is already compact and returns the same instance."""
+        mask = np.zeros((1, 4, 5), dtype=bool)
+        mask[0, 1:3, 1:4] = True
+        xyxy = np.array([[1, 1, 4, 3]], dtype=np.float64)
+        compact = CompactMask.from_dense(mask, xyxy=xyxy, image_shape=mask.shape[1:])
+        detections = Detections(xyxy=xyxy, mask=compact)
+
+        result = detections.to_compact_masks()
+
+        assert result is detections
+
+    def test_none_mask_returns_same_instance(self) -> None:
+        """None mask cannot be compacted and returns the same instance."""
+        detections = Detections(xyxy=np.array([[1, 1, 4, 3]], dtype=np.float64))
+
+        result = detections.to_compact_masks()
+
+        assert result is detections
+
+    def test_empty_dense_mask_converts_to_empty_compact_mask(self) -> None:
+        """Empty dense mask (N=0) converts to an empty CompactMask."""
+        xyxy = np.empty((0, 4), dtype=np.float64)
+        masks = np.empty((0, 10, 10), dtype=bool)
+        detections = Detections(xyxy=xyxy, mask=masks)
+
+        result = detections.to_compact_masks()
+
+        assert isinstance(result.mask, CompactMask)
+        assert len(result.mask) == 0
 
 
 def _rotated_rect(
