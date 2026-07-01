@@ -315,3 +315,23 @@ class TestPrecision:
         # Perfect match should give 1.0 regardless of averaging method
         assert result.precision_at_50 == 1.0
         assert result.averaging_method == averaging_method
+
+    def test_greedy_matching_two_valid_pairs(self):
+        """Greedy matching finds both TPs; np.unique style missed the second pair.
+
+        IoU matrix: [[1.0, 0.667], [0.333, 0.538]]. At iou>=0.5 the optimal
+        assignment is T0<->P0 and T1<->P1 (2 TPs, precision=1.0).
+        """
+        preds = Detections(
+            xyxy=np.array([[40, 60, 380, 470], [108, 60, 448, 470]], dtype=np.float32),
+            confidence=np.array([0.95, 0.90]),
+            class_id=np.array([0, 0]),
+        )
+        targets = Detections(
+            xyxy=np.array([[40, 60, 380, 470], [210, 60, 550, 470]], dtype=np.float32),
+            class_id=np.array([0, 0]),
+        )
+
+        result = Precision().update(preds, targets).compute()
+
+        assert result.precision_at_50 == 1.0

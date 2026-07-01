@@ -665,6 +665,53 @@ class TestDotAnnotator:
 class TestLabelAnnotator:
     """Tests for LabelAnnotator class"""
 
+    @pytest.mark.parametrize(
+        "border_radius",
+        [
+            pytest.param(0, id="radius-zero"),
+            pytest.param(-3, id="radius-negative"),
+        ],
+    )
+    def test_draw_rounded_rectangle_square_matches_plain_rectangle(
+        self, border_radius: int
+    ) -> None:
+        """Non-positive radius fills the same pixels as a plain rectangle.
+
+        For border_radius < 0: previously raised cv2.error: radius >= 0 in
+        function 'circle'; fast path now silently draws square corners instead.
+        """
+        scene = np.full((100, 120, 3), 9, dtype=np.uint8)
+
+        result = LabelAnnotator.draw_rounded_rectangle(
+            scene=scene.copy(),
+            xyxy=(10, 20, 90, 70),
+            color=(0, 0, 255),
+            border_radius=border_radius,
+        )
+
+        expected = scene.copy()
+        expected[20:71, 10:91] = (0, 0, 255)
+        assert np.array_equal(result, expected)
+
+    def test_draw_rounded_rectangle_clamped_to_zero_acts_as_square(self) -> None:
+        """Positive border_radius clamped to 0 by a degenerate box draws square corners.
+
+        1px-wide box: min(10, 1 // 2) = min(10, 0) = 0 → fast path fires even
+        though the caller passed a positive radius.
+        """
+        scene = np.full((100, 120, 3), 9, dtype=np.uint8)
+
+        result = LabelAnnotator.draw_rounded_rectangle(
+            scene=scene.copy(),
+            xyxy=(10, 20, 11, 70),
+            color=(0, 0, 255),
+            border_radius=10,
+        )
+
+        expected = scene.copy()
+        expected[20:71, 10:12] = (0, 0, 255)
+        assert np.array_equal(result, expected)
+
     def test_annotate_with_no_detections(self, test_image):
         """Test that annotate method returns unmodified image when no detections"""
         detections = Detections.empty()

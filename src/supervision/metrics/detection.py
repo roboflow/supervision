@@ -25,6 +25,7 @@ from supervision.detection.utils.iou_and_nms import (
     oriented_box_iou_batch,
 )
 from supervision.metrics.core import MetricTarget
+from supervision.metrics.utils.matching import _greedy_match
 
 
 def _assert_supported_target(metric_target: MetricTarget) -> None:
@@ -1514,17 +1515,8 @@ class MeanAveragePrecision:
         for i, iou_level in enumerate(iou_thresholds):
             matched_indices = np.where((iou >= iou_level) & correct_class)
 
-            if matched_indices[0].shape[0]:
-                combined_indices = np.stack(matched_indices, axis=1)
-                iou_values = iou[matched_indices][:, None]
-                matches = np.hstack([combined_indices, iou_values])
-
-                if matched_indices[0].shape[0] > 1:
-                    matches = matches[matches[:, 2].argsort()[::-1]]
-                    matches = matches[np.unique(matches[:, 1], return_index=True)[1]]
-                    matches = matches[np.unique(matches[:, 0], return_index=True)[1]]
-
-                correct[matches[:, 1].astype(int), i] = True
+            for t, p in _greedy_match(iou, matched_indices):
+                correct[p, i] = True
         result: npt.NDArray[np.bool_] = correct
         return result
 

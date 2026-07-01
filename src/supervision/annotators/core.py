@@ -1467,11 +1467,50 @@ class LabelAnnotator(_BaseLabelAnnotator):
         color: tuple[int, int, int],
         border_radius: int,
     ) -> npt.NDArray[np.uint8]:
+        """Draw a filled rectangle with optional rounded corners on an image.
+
+        Args:
+            scene: BGR image array to draw on; modified in-place and returned.
+            xyxy: Bounding box as (x1, y1, x2, y2) pixel coordinates.
+            color: Fill color as a BGR tuple (e.g. ``(0, 0, 255)`` for red).
+            border_radius: Corner rounding radius in pixels. Values <= 0
+                (including values clamped to 0 by a degenerate box) draw a
+                plain filled rectangle with square corners.
+
+        Returns:
+            The annotated ``scene`` array.
+
+        Example:
+            ```python
+            import numpy as np
+            import supervision as sv
+
+            scene = np.zeros((200, 200, 3), dtype=np.uint8)
+            scene = sv.LabelAnnotator.draw_rounded_rectangle(
+                scene=scene,
+                xyxy=(10, 10, 100, 50),
+                color=(0, 255, 0),
+                border_radius=0,
+            )
+            ```
+        """
         x1, y1, x2, y2 = xyxy
         width = x2 - x1
         height = y2 - y1
 
         border_radius = min(border_radius, min(width, height) // 2)
+
+        if border_radius <= 0:
+            # square corners: a single fill rectangle (the common default), rather
+            # than two rectangles plus four zero-radius corner circles
+            cv2.rectangle(
+                img=scene,
+                pt1=(x1, y1),
+                pt2=(x2, y2),
+                color=color,
+                thickness=-1,
+            )
+            return scene
 
         rectangle_coordinates = [
             ((x1 + border_radius, y1), (x2 - border_radius, y2)),
