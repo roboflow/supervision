@@ -154,6 +154,11 @@ class InferenceSlicer:
             objects. IoU and NMS are computed directly on the RLE crops
             without ever materialising a full ``(N, H, W)`` array.
             Defaults to ``False`` for backward compatibility.
+
+            When ``compact_masks=True``, each detection's CompactMask crop spans
+            the entire slice tile bbox (not the tight detection bbox). Call
+            :meth:`~supervision.detection.compact_mask.CompactMask.repack` on the
+            merged result to tighten crops to the detection bounding boxes.
         batch_size: Number of slices passed to the callback per call.
             Defaults to ``1``, which uses the single-image callback contract
             (``np.ndarray`` → :class:`~supervision.detection.core.Detections`).
@@ -500,9 +505,13 @@ class InferenceSlicer:
             and isinstance(detections.mask, np.ndarray)
         ):
             slice_w, slice_h = get_image_resolution_wh(image_slice)
+            full_slice_xyxy = np.tile(
+                np.array([[0, 0, slice_w - 1, slice_h - 1]], dtype=np.float64),
+                (len(detections), 1),
+            )
             detections.mask = CompactMask.from_dense(
                 detections.mask,
-                detections.xyxy,
+                full_slice_xyxy,
                 image_shape=(slice_h, slice_w),
             )
 
@@ -586,9 +595,13 @@ class InferenceSlicer:
             for det, image_slice in zip(detections_in_slices, slices):
                 if det.mask is not None and isinstance(det.mask, np.ndarray):
                     slice_w, slice_h = get_image_resolution_wh(image_slice)
+                    full_slice_xyxy = np.tile(
+                        np.array([[0, 0, slice_w - 1, slice_h - 1]], dtype=np.float64),
+                        (len(det), 1),
+                    )
                     det.mask = CompactMask.from_dense(
                         det.mask,
-                        det.xyxy,
+                        full_slice_xyxy,
                         image_shape=(slice_h, slice_w),
                     )
 

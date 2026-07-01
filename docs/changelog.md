@@ -13,6 +13,10 @@ date_modified: 2026-06-25
 
     Users on Python 3.9 should upgrade their environment before updating supervision.
 
+### Added
+- `CompactMask.from_coco_rle` — efficient COCO RLE ingestion into crop-scoped compact mask format without materializing dense `(N, H, W)` arrays ([#2367](https://github.com/roboflow/supervision/pull/2367))
+- `Detections.from_inference(compact_masks=True)` — opt-in compact mask representation for Roboflow/Inference segmentation results; masks are cropped to detector bounding boxes ([#2367](https://github.com/roboflow/supervision/pull/2367))
+
 ### 0.29.1 <small>Jun 23, 2026</small>
 
 - Fixed [#2353](https://github.com/roboflow/supervision/pull/2353): `sv.Detections.from_inference` no longer raises `TypeError` when the Inference package returns a mixed batch where only some predictions carry a `tracker_id`. `detections.tracker_id` is `None` for the full result in that case; fully-tracked and fully-untracked batches are unchanged.

@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from supervision.detection.compact_mask import CompactMask
 from supervision.detection.core import Detections
 from supervision.metrics.core import AveragingMethod, MetricTarget
 from supervision.metrics.recall import Recall
@@ -52,6 +53,41 @@ class TestRecall:
         )
         assert metric._metric_target == MetricTarget.MASKS
         assert metric.averaging_method == AveragingMethod.MACRO
+
+    def test_mask_content_preserves_compact_mask(self) -> None:
+        """CompactMask inputs stay compact for mask IoU."""
+        dense_mask = np.zeros((1, 4, 5), dtype=bool)
+        dense_mask[0, 1:3, 1:4] = True
+        xyxy = np.array([[1, 1, 4, 3]], dtype=np.float64)
+        compact_mask = CompactMask.from_dense(
+            dense_mask, xyxy=xyxy, image_shape=dense_mask.shape[1:]
+        )
+        detections = Detections(xyxy=xyxy, mask=compact_mask)
+        metric = Recall(metric_target=MetricTarget.MASKS)
+
+        content = metric._detections_content(detections)
+
+        assert content is compact_mask
+
+    def test_compute_with_compact_mask_matches_dense(self) -> None:
+        """Recall.compute() yields same recall_at_50 for CompactMask and dense."""
+        masks = np.zeros((1, 50, 50), dtype=bool)
+        masks[0, 10:20, 10:20] = True
+        xyxy = np.array([[10, 10, 19, 19]], dtype=np.float64)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(50, 50))
+        det_dense = Detections(
+            xyxy=xyxy, mask=masks, confidence=np.array([0.9]), class_id=np.array([0])
+        )
+        det_compact = Detections(
+            xyxy=xyxy, mask=cm, confidence=np.array([0.9]), class_id=np.array([0])
+        )
+        metric = Recall(metric_target=MetricTarget.MASKS)
+
+        r_dense = metric.update(det_dense, det_dense).compute()
+        metric.reset()
+        r_compact = metric.update(det_compact, det_compact).compute()
+
+        assert r_dense.recall_at_50 == pytest.approx(r_compact.recall_at_50)
 
     def test_reset(self, dummy_prediction):
         """Test that reset() clears all stored data"""
@@ -282,3 +318,23 @@ class TestRecall:
 
         # Macro average: (0.5 + 1.0) / 2 = 0.75
         assert result.recall_at_50 == 0.75
+
+    def test_greedy_matching_two_valid_pairs(self):
+        """Greedy matching finds both TPs; np.unique style missed the second pair.
+
+        IoU matrix: [[1.0, 0.667], [0.333, 0.538]]. At iou>=0.5 the optimal
+        assignment is T0<->P0 and T1<->P1 (2 TPs, recall=1.0).
+        """
+        preds = Detections(
+            xyxy=np.array([[40, 60, 380, 470], [108, 60, 448, 470]], dtype=np.float32),
+            confidence=np.array([0.95, 0.90]),
+            class_id=np.array([0, 0]),
+        )
+        targets = Detections(
+            xyxy=np.array([[40, 60, 380, 470], [210, 60, 550, 470]], dtype=np.float32),
+            class_id=np.array([0, 0]),
+        )
+
+        result = Recall().update(preds, targets).compute()
+
+        assert result.recall_at_50 == 1.0
