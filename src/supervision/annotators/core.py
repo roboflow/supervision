@@ -1,7 +1,7 @@
 from collections.abc import Iterator
 from functools import lru_cache
 from math import sqrt
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 import cv2
 import numpy as np
@@ -486,6 +486,8 @@ class MaskAnnotator(BaseAnnotator):
         This annotator uses `sv.Detections.mask`.
     """
 
+    requires_mask = True
+
     def __init__(
         self,
         color: Color | ColorPalette | str = ColorPalette.DEFAULT,
@@ -592,6 +594,8 @@ class PolygonAnnotator(BaseAnnotator):
 
         This annotator uses `sv.Detections.mask`.
     """
+
+    requires_mask = True
 
     def __init__(
         self,
@@ -789,6 +793,8 @@ class HaloAnnotator(BaseAnnotator):
 
         This annotator uses `sv.Detections.mask`.
     """
+
+    requires_mask = True
 
     def __init__(
         self,
@@ -3186,6 +3192,9 @@ class ComparisonAnnotator:
     Otherwise, if present, uses a mask.
     Otherwise, uses the bounding box data.
     """
+
+    # Not a BaseAnnotator subclass — duck-typing callers can still check requires_mask
+    requires_mask: ClassVar[bool] = False
 
     def __init__(
         self,
