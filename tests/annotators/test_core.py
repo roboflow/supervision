@@ -3,6 +3,7 @@ Tests for supervision/annotators/core.py
 """
 
 import warnings
+from collections.abc import Iterator
 
 import cv2
 import numpy as np
@@ -43,7 +44,9 @@ from supervision.geometry.core import Position
 from tests.helpers import _create_detections, assert_image_mostly_same
 
 
-def _get_concrete_annotator_subclasses(cls):
+def _get_concrete_annotator_subclasses(
+    cls: type[BaseAnnotator],
+) -> Iterator[type[BaseAnnotator]]:
     """Recursively yield non-abstract BaseAnnotator subclasses."""
     for sub in cls.__subclasses__():
         if not getattr(sub, "__abstractmethods__", None):
@@ -94,6 +97,15 @@ class TestAnnotatorMaskPolicy:
     def test_all_subclasses_have_bool_requires_mask(self, annotator_class):
         """Every concrete BaseAnnotator subclass declares requires_mask as a bool."""
         assert isinstance(annotator_class.requires_mask, bool)
+
+    def test_exact_mask_requiring_annotator_set(self):
+        """Only MaskAnnotator, PolygonAnnotator, HaloAnnotator require masks."""
+        mask_true = {
+            cls
+            for cls in _get_concrete_annotator_subclasses(BaseAnnotator)
+            if cls.requires_mask is True
+        }
+        assert mask_true == {MaskAnnotator, PolygonAnnotator, HaloAnnotator}
 
 
 @pytest.fixture
