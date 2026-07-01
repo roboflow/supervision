@@ -2204,11 +2204,30 @@ class Detections:
 
             When merging, empty `Detections` objects are ignored.
 
+        !!! Note
+
+            **Mask merge policy** — the output mask type follows these rules:
+
+            * All inputs carry
+              [`CompactMask`][supervision.detection.compact_mask.CompactMask]
+              → result mask is `CompactMask`.
+            * Mixed dense `ndarray` + `CompactMask` inputs → dense masks are converted
+              to `CompactMask`; result is `CompactMask`. No full `(N, H, W)` stack is
+              allocated.
+            * All inputs carry dense `ndarray` → result is `ndarray` (backward
+              compatible).
+
         Args:
             detections_list: A list of Detections objects to merge.
 
         Returns:
             A single Detections object containing the merged data from the input list.
+
+        Raises:
+            ValueError: If some `Detections` have a `mask` and others do not.
+            ValueError: If `CompactMask` inputs have different `image_shape` values.
+            ValueError: If a dense mask `(H, W)` shape differs from the `CompactMask`
+                `image_shape` when mixing mask types.
 
         Example:
             >>> import numpy as np
@@ -2232,6 +2251,34 @@ class Detections:
             array([1, 2, 1])
             >>> merged_detections.data['feature_vector']
             array([0.1, 0.2, 0.3])
+
+        Compact mask merge example:
+
+            ```python
+            import numpy as np
+            import supervision as sv
+            from supervision.detection.compact_mask import CompactMask
+
+            H, W = 720, 1280
+            masks_a = np.zeros((2, H, W), dtype=bool)
+            masks_a[0, 100:200, 100:300] = True
+            xyxy_a = np.array([[100., 100., 299., 199.], [400., 300., 600., 500.]])
+            cm_a = CompactMask.from_dense(masks_a, xyxy_a, image_shape=(H, W))
+
+            det_compact = sv.Detections(
+                xyxy=xyxy_a, mask=cm_a, class_id=np.array([0, 1])
+            )
+
+            masks_b = np.zeros((1, H, W), dtype=bool)
+            masks_b[0, 50:100, 50:150] = True
+            xyxy_b = np.array([[50., 50., 149., 99.]])
+            det_dense = sv.Detections(xyxy=xyxy_b, mask=masks_b, class_id=np.array([2]))
+
+            # Dense mask is converted to CompactMask; no (N, H, W) stack allocated.
+            merged = sv.Detections.merge([det_compact, det_dense])
+            assert isinstance(merged.mask, CompactMask)
+            assert len(merged) == 3
+            ```
         """
         detections_list = [
             detections for detections in detections_list if not detections.is_empty()
