@@ -1769,6 +1769,7 @@ def _reference_jaccard_loop(
 class TestBoxIouBatchWithJaccard:
     """Verify the vectorized COCO-style Jaccard IoU batch."""
 
+    # ~1080 pairs: (1x1) + (3x5=15) + (20x50=1000) + (8x8=64) + (3x4=12)
     @pytest.mark.parametrize(
         ("n_gt", "n_dt", "seed"),
         [
@@ -1776,6 +1777,7 @@ class TestBoxIouBatchWithJaccard:
             pytest.param(3, 5, 2, id="small-batch"),
             pytest.param(20, 50, 3, id="busy-batch"),
             pytest.param(8, 8, 4, id="degenerate-and-crowd"),
+            pytest.param(3, 4, 5, id="all-crowd-multi-gt"),
         ],
     )
     def test_matches_per_pair_reference(self, n_gt: int, n_dt: int, seed: int) -> None:
@@ -1808,6 +1810,57 @@ class TestBoxIouBatchWithJaccard:
         assert non_crowd[0, 0] == pytest.approx(0.04)  # 400 / 10000
 
     @pytest.mark.parametrize(
+        ("boxes_true", "boxes_detection", "is_crowd", "expected_iou"),
+        [
+            pytest.param(
+                [[0.0, 0.0, 10.0, 10.0]],
+                [[20.0, 20.0, 10.0, 10.0]],
+                [False],
+                0.0,
+                id="non-overlapping-non-crowd",
+            ),
+            pytest.param(
+                [[0.0, 0.0, 10.0, 10.0]],
+                [[0.0, 0.0, 10.0, 10.0]],
+                [False],
+                1.0,
+                id="identical-non-crowd",
+            ),
+        ],
+    )
+    def test_non_crowd_uses_standard_iou(
+        self,
+        boxes_true: list[list[float]],
+        boxes_detection: list[list[float]],
+        is_crowd: list[bool],
+        expected_iou: float,
+    ) -> None:
+        """Non-crowd GTs use standard IoU (intersection / union)."""
+        result = box_iou_batch_with_jaccard(boxes_true, boxes_detection, is_crowd)
+
+        assert result[0, 0] == pytest.approx(expected_iou)
+
+    def test_all_crowd_multi_gt_matches_reference(self) -> None:
+        """All-crowd 3-GT x 4-det batch matches per-pair reference loop."""
+        rng = np.random.default_rng(5)
+        n_gt, n_dt = 3, 4
+
+        def _boxes(n: int) -> list[list[float]]:
+            xy = rng.uniform(0, 100, (n, 2))
+            wh = rng.uniform(1, 40, (n, 2))
+            return np.hstack([xy, wh]).tolist()
+
+        boxes_true = _boxes(n_gt)
+        boxes_detection = _boxes(n_dt)
+        is_crowd = [True] * n_gt
+
+        result = box_iou_batch_with_jaccard(boxes_true, boxes_detection, is_crowd)
+        expected = _reference_jaccard_loop(boxes_true, boxes_detection, is_crowd)
+
+        assert result.shape == (n_dt, n_gt)
+        np.testing.assert_allclose(result, expected, atol=1e-12)
+
+    @pytest.mark.parametrize(
         ("n_gt", "n_dt"),
         [pytest.param(0, 3, id="empty-gt"), pytest.param(3, 0, id="empty-dt")],
     )
@@ -1820,7 +1873,7 @@ class TestBoxIouBatchWithJaccard:
 
     def test_mismatched_is_crowd_length_raises(self) -> None:
         """`is_crowd` must align with `boxes_true`."""
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError, match="`is_crowd` length"):
             box_iou_batch_with_jaccard(
                 [[0.0, 0.0, 1.0, 1.0]], [[0.0, 0.0, 1.0, 1.0]], []
             )
