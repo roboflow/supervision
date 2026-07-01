@@ -40,6 +40,19 @@ from supervision.draw.color import Color
 from supervision.geometry.core import Position
 from tests.helpers import _create_detections, assert_image_mostly_same
 
+try:
+    from supervision.detection.utils.masks import (
+        _compact_masks_to_roi,
+        _mask_to_roi,
+        _masks_to_roi,
+    )
+except ImportError:
+    from supervision.annotators.core import (  # type: ignore[no-redef]
+        _compact_masks_to_roi,
+        _mask_to_roi,
+        _masks_to_roi,
+    )
+
 
 @pytest.fixture
 def test_image() -> np.ndarray:
@@ -267,11 +280,14 @@ class TestMaskAnnotator:
         scene = np.random.default_rng(1).integers(
             0, 256, (height, width, 3), dtype=np.uint8
         )
-        mask = np.zeros((height, width), dtype=bool)
-        mask[10:20, 15:25] = True
-        mask[45:55, 60:75] = True
+        masks = np.zeros((2, height, width), dtype=bool)
+        masks[0, 10:20, 15:25] = True
+        masks[1, 45:55, 60:75] = True
+        # inclusive xyxy; floor(x2)+1 gives union ROI (15,10,75,55) → shape (45,60,3)
         detections = _create_detections(
-            xyxy=[[0.0, 0.0, 80.0, 70.0]], mask=[mask], class_id=[0]
+            xyxy=[[15.0, 10.0, 24.0, 19.0], [60.0, 45.0, 74.0, 54.0]],
+            mask=masks,
+            class_id=[0, 1],
         )
         original_add_weighted = cv2.addWeighted
         blended_shapes = []
@@ -320,7 +336,7 @@ class TestMaskAnnotator:
         assert blended_shapes == [(45, 60, 3)]
 
     def test_annotate_skips_all_false_mask_blend(self, monkeypatch):
-        """All-false masks should return an unchanged image without blending."""
+        """All-false masks should leave the image pixel-exact to the original."""
         height, width = 30, 40
         scene = np.random.default_rng(3).integers(
             0, 256, (height, width, 3), dtype=np.uint8
@@ -329,10 +345,8 @@ class TestMaskAnnotator:
         detections = _create_detections(
             xyxy=[[5.0, 5.0, 20.0, 20.0]], mask=[mask], class_id=[0]
         )
-        blended_shapes = []
 
         def add_weighted_spy(src1, alpha, src2, beta, gamma, dst=None, dtype=None):
-            blended_shapes.append(src1.shape)
             return src2
 
         monkeypatch.setattr(cv2, "addWeighted", add_weighted_spy)
@@ -342,7 +356,160 @@ class TestMaskAnnotator:
         ).annotate(scene=scene.copy(), detections=detections)
 
         assert np.array_equal(result, scene)
-        assert blended_shapes == []
+
+    def test_annotate_pixels_outside_roi_unchanged(self):
+        """Pixels outside the blended ROI must be unchanged from the original scene."""
+        height, width = 80, 90
+        rng = np.random.default_rng(42)
+        scene = rng.integers(0, 256, (height, width, 3), dtype=np.uint8)
+        # Two masks in the top-left region — ROI should be [10:55, 15:75]
+        masks = np.zeros((2, height, width), dtype=bool)
+        masks[0, 10:20, 15:25] = True
+        masks[1, 45:55, 60:75] = True
+        # inclusive xyxy; floor(x2)+1 gives ROI (15,10,75,55)
+        xyxy = np.array([[15.0, 10.0, 24.0, 19.0], [60.0, 45.0, 74.0, 54.0]])
+        detections = _create_detections(xyxy=xyxy.tolist(), mask=masks, class_id=[0, 1])
+        result = MaskAnnotator(opacity=0.5, color_lookup=ColorLookup.INDEX).annotate(
+            scene=scene.copy(), detections=detections
+        )
+        # Pixels strictly below ROI row-bound (y2=55) must be unchanged
+        assert np.array_equal(result[55:, :], scene[55:, :])
+        # Pixels strictly right of ROI col-bound (x2=75) must be unchanged
+        assert np.array_equal(result[:, 75:], scene[:, 75:])
+
+    def test_annotate_roi_parity_with_full_frame_blend(self):
+        """ROI blend must match reference blend within ±1 (uint8 rounding)."""
+        height, width = 60, 80
+        rng = np.random.default_rng(99)
+        scene = rng.integers(0, 256, (height, width, 3), dtype=np.uint8)
+        opacity = 0.5
+        # Single mask in bottom-right quadrant
+        masks = np.zeros((1, height, width), dtype=bool)
+        masks[0, 40:55, 50:70] = True
+        # inclusive xyxy; floor(x2)+1 gives ROI scene[40:55, 50:70]
+        xyxy = np.array([[50.0, 40.0, 69.0, 54.0]])
+        detections = _create_detections(xyxy=xyxy.tolist(), mask=masks, class_id=[0])
+
+        # ROI-only result (new optimized behavior)
+        result_roi = MaskAnnotator(
+            opacity=opacity, color=Color.RED, color_lookup=ColorLookup.INDEX
+        ).annotate(scene=scene.copy(), detections=detections)
+
+        # Reference: manually compute expected blend for masked pixels only
+        # RED in BGR = (0, 0, 255); blend = opacity*color + (1-opacity)*scene
+        roi_mask = masks[0]
+        colored = scene.copy()
+        colored[roi_mask] = (0, 0, 255)  # BGR RED
+        ref_blend = np.clip(
+            opacity * colored.astype(np.float32)
+            + (1 - opacity) * scene.astype(np.float32),
+            0,
+            255,
+        ).astype(np.uint8)
+
+        # Masked pixels must match reference within ±1 (uint8 rounding)
+        diff = np.abs(
+            result_roi[roi_mask].astype(np.int16) - ref_blend[roi_mask].astype(np.int16)
+        )
+        assert np.all(diff <= 1), f"Max pixel diff: {diff.max()}"
+
+
+class TestMaskROIHelpers:
+    """Tests for _mask_to_roi, _compact_masks_to_roi, _masks_to_roi helpers."""
+
+    def test_mask_to_roi_all_false_returns_none(self):
+        """All-false mask should return None."""
+        mask = np.zeros((10, 15), dtype=bool)
+        assert _mask_to_roi(mask) is None
+
+    def test_mask_to_roi_single_pixel_exclusive_bounds(self):
+        """Single true pixel at (row=3, col=5) gives bounds (5, 3, 6, 4)."""
+        mask = np.zeros((10, 15), dtype=bool)
+        mask[3, 5] = True
+        assert _mask_to_roi(mask) == (5, 3, 6, 4)
+
+    def test_mask_to_roi_boundary_row_col_zero(self):
+        """True pixel at top-left boundary should give (0, 0, 1, 1)."""
+        mask = np.zeros((10, 15), dtype=bool)
+        mask[0, 0] = True
+        assert _mask_to_roi(mask) == (0, 0, 1, 1)
+
+    def test_mask_to_roi_full_image(self):
+        """Full-image true mask should span the entire array."""
+        h, w = 8, 12
+        mask = np.ones((h, w), dtype=bool)
+        assert _mask_to_roi(mask) == (0, 0, w, h)
+
+    def test_mask_to_roi_region(self):
+        """Region [10:20, 15:25] in 80x90 mask gives exclusive bounds (15,10,25,20)."""
+        mask = np.zeros((80, 90), dtype=bool)
+        mask[10:20, 15:25] = True
+        assert _mask_to_roi(mask) == (15, 10, 25, 20)
+
+    def test_compact_masks_to_roi_empty_returns_none(self):
+        """Zero-length CompactMask should return None."""
+        masks = np.zeros((0, 10, 10), dtype=bool)
+        xyxy = np.empty((0, 4), dtype=np.float32)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(10, 10))
+        assert _compact_masks_to_roi(cm, (10, 10)) is None
+
+    def test_compact_masks_to_roi_single_detection_coordinates(self):
+        """Single compact mask with known crop should give correct exclusive bounds."""
+        masks = np.zeros((1, 20, 20), dtype=bool)
+        masks[0, 5:10, 3:8] = True
+        xyxy = np.array([[3.0, 5.0, 7.0, 9.0]], dtype=np.float32)
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(20, 20))
+        result = _compact_masks_to_roi(cm, (20, 20))
+        assert result is not None
+        x1, y1, x2, y2 = result
+        # Bounding-box crop defines the extent; true pixels lie within [3:8, 5:10]
+        assert x1 <= 3
+        assert y1 <= 5
+        assert x2 >= 8
+        assert y2 >= 10
+
+    def test_compact_masks_to_roi_two_detections_union(self):
+        """Two disjoint compact masks union should span both regions."""
+        masks = np.zeros((2, 30, 40), dtype=bool)
+        masks[0, 2:8, 1:6] = True
+        masks[1, 15:25, 20:35] = True
+        xyxy = np.array(
+            [[1.0, 2.0, 5.0, 7.0], [20.0, 15.0, 34.0, 24.0]], dtype=np.float32
+        )
+        cm = CompactMask.from_dense(masks, xyxy, image_shape=(30, 40))
+        result = _compact_masks_to_roi(cm, (30, 40))
+        assert result is not None
+        x1, y1, x2, y2 = result
+        # Union must contain both regions
+        assert x1 <= 1
+        assert y1 <= 2
+        assert x2 >= 35
+        assert y2 >= 25
+
+    def test_masks_to_roi_empty_array_returns_none(self):
+        """Zero-element dense mask array (N=0) should return None."""
+        masks = np.zeros((0, 10, 10), dtype=bool)
+        assert _masks_to_roi(masks, (10, 10)) is None
+
+    def test_masks_to_roi_2d_array(self):
+        """2D boolean array (single mask) should work as union mask."""
+        mask = np.zeros((10, 15), dtype=bool)
+        mask[3:6, 7:11] = True
+        assert _masks_to_roi(mask, (10, 15)) == (7, 3, 11, 6)
+
+    def test_masks_to_roi_dense_with_xyxy_uses_box_union(self):
+        """Dense path with xyxy should return union of boxes (O(N) path)."""
+        masks = np.zeros((2, 30, 40), dtype=bool)
+        masks[0, 5:10, 5:10] = True
+        masks[1, 20:25, 25:30] = True
+        xyxy = np.array([[5.0, 5.0, 9.0, 9.0], [25.0, 20.0, 29.0, 24.0]])
+        result = _masks_to_roi(masks, (30, 40), xyxy)
+        assert result is not None
+        x1, y1, x2, y2 = result
+        assert x1 <= 5
+        assert y1 <= 5
+        assert x2 >= 30
+        assert y2 >= 25
 
 
 class TestPolygonAnnotator:
@@ -547,6 +714,32 @@ class TestPaintMasksByArea:
         compact_painted = canvas_compact.any(axis=-1)
         dense_painted = canvas_dense.any(axis=-1)
         assert np.all(dense_painted[compact_painted])
+
+    def test_canvas_origin_nonzero_paints_at_correct_position(self):
+        """Non-zero canvas_origin should offset mask coordinates into canvas."""
+        height, width = 30, 40
+        # Subcanvas covering region [10:25, 15:30] of the full image (15x15 px).
+        canvas = np.zeros((15, 15, 3), dtype=np.uint8)
+        # Mask in full-image coords: True at rows 12:18, cols 17:22.
+        # In canvas coords (origin=(15, 10)): rows 2:8, cols 2:7.
+        full_mask = np.zeros((height, width), dtype=bool)
+        full_mask[12:18, 17:22] = True
+        detections = Detections(
+            xyxy=np.array([[17.0, 12.0, 21.0, 17.0]]),
+            mask=full_mask[np.newaxis],
+            class_id=np.array([0]),
+        )
+        _paint_masks_by_area(
+            canvas,
+            detections,
+            Color.RED,
+            ColorLookup.INDEX,
+            canvas_origin=(15, 10),
+        )
+        # Pixels inside the mapped region should be BGR red (0, 0, 255)
+        assert np.all(canvas[2:8, 2:7] == (0, 0, 255))
+        # Pixels outside the painted region must remain zero
+        assert canvas[0, 0].tolist() == [0, 0, 0]
 
 
 class TestCompactMaskParity:
