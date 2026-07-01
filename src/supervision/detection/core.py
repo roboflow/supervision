@@ -2260,10 +2260,36 @@ class Detections:
                 raise ValueError("All or none of the 'mask' fields must be None")
             if all(isinstance(m, CompactMask) for m in masks):
                 return CompactMask.merge(cast(list[CompactMask], masks))
-            # Mixed or all-ndarray: __array__ auto-converts any CompactMask.
-            return cast(
-                npt.NDArray[np.generic], np.vstack([np.asarray(m) for m in masks])
-            )
+            if all(not isinstance(m, CompactMask) for m in masks):
+                # All-dense: preserve backward-compatible dense stacking.
+                return cast(
+                    npt.NDArray[np.generic], np.vstack([np.asarray(m) for m in masks])
+                )
+            # Mixed dense and CompactMask: convert dense masks to CompactMask to
+            # avoid materialising a full (N, H, W) stack.
+            compact_image_shapes = {
+                m._image_shape for m in masks if isinstance(m, CompactMask)
+            }
+            if len(compact_image_shapes) != 1:
+                raise ValueError(
+                    "Cannot merge CompactMask objects with different image shapes."
+                )
+            image_shape: tuple[int, int] = next(iter(compact_image_shapes))
+            compact_list: list[CompactMask] = []
+            for d, m in zip(detections_list, masks):
+                if isinstance(m, CompactMask):
+                    compact_list.append(m)
+                else:
+                    dense = np.asarray(m, dtype=bool)
+                    if dense.ndim == 3 and dense.shape[1:] != image_shape:
+                        raise ValueError(
+                            f"Dense mask shape {dense.shape[1:]} does not match "
+                            f"CompactMask image_shape {image_shape}."
+                        )
+                    compact_list.append(
+                        CompactMask.from_dense(dense, d.xyxy, image_shape)
+                    )
+            return CompactMask.merge(compact_list)
 
         def stack_or_none(name: str) -> npt.NDArray[np.generic] | None:
             values = [getattr(d, name) for d in detections_list]
