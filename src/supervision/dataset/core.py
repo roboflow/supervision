@@ -107,6 +107,13 @@ class DetectionDataset(BaseDataset):
         self.image_paths = list(dict.fromkeys(images))
 
         self._images_in_memory: dict[str, npt.NDArray[np.uint8]] = {}
+        if isinstance(images, dict):
+            self._images_in_memory = images
+            warn_deprecated(
+                "Passing a `Dict[str, np.ndarray]` into `DetectionDataset` is "
+                "deprecated and will be removed in a future release. Use "
+                "a list of paths `List[str]` instead."
+            )
 
     def _get_image(self, image_path: str) -> npt.NDArray[np.uint8]:
         """Assumes that image is in dataset."""

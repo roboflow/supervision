@@ -2,11 +2,17 @@ from contextlib import ExitStack as DoesNotRaise
 from pathlib import Path
 
 import numpy as np
+import numpy.typing as npt
 import pytest
 
 from supervision import DetectionDataset, Detections
 from supervision.config import CLASS_NAME_DATA_FIELD
+from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import _create_detections, create_yolo_dataset
+
+
+def _create_image(fill_value: int) -> npt.NDArray[np.uint8]:
+    return np.full((4, 4, 3), fill_value, dtype=np.uint8)
 
 
 @pytest.mark.parametrize(
@@ -282,3 +288,71 @@ class TestClassNamePopulation:
                 np.testing.assert_array_equal(
                     annotation.data[CLASS_NAME_DATA_FIELD], expected_names
                 )
+
+
+class TestDetectionDatasetInMemoryImages:
+    """Verify DetectionDataset keeps dict-provided images in memory (DAT-01)."""
+
+    @staticmethod
+    def _build_dataset(
+        images: dict[str, npt.NDArray[np.uint8]],
+    ) -> DetectionDataset:
+        annotations = {
+            path: _create_detections(xyxy=[[0, 0, 10, 10]], class_id=[0])
+            for path in images
+        }
+        return DetectionDataset(classes=["dog"], images=images, annotations=annotations)
+
+    def test_getitem_returns_in_memory_image(self) -> None:
+        """Indexing a dict-constructed dataset returns the in-memory array."""
+        image = _create_image(fill_value=7)
+        dataset = self._build_dataset({"imgX.jpg": image})
+
+        image_path, loaded_image, _ = dataset[0]
+
+        assert image_path == "imgX.jpg"
+        np.testing.assert_array_equal(loaded_image, image)
+
+    def test_len_counts_in_memory_images(self) -> None:
+        """`len` of a dict-constructed dataset equals the number of provided images."""
+        images = {
+            "img1.jpg": _create_image(fill_value=1),
+            "img2.jpg": _create_image(fill_value=2),
+        }
+
+        dataset = self._build_dataset(images)
+
+        assert len(dataset) == 2
+
+    def test_merge_preserves_in_memory_pixel_access(self) -> None:
+        """Merging two in-memory datasets keeps pixel access for every image."""
+        image_1 = _create_image(fill_value=10)
+        image_2 = _create_image(fill_value=20)
+        ds_1 = self._build_dataset({"img1.jpg": image_1})
+        ds_2 = self._build_dataset({"img2.jpg": image_2})
+
+        merged = DetectionDataset.merge([ds_1, ds_2])
+
+        assert len(merged) == 2
+        np.testing.assert_array_equal(merged._get_image("img1.jpg"), image_1)
+        np.testing.assert_array_equal(merged._get_image("img2.jpg"), image_2)
+
+    def test_iteration_yields_in_memory_images(self) -> None:
+        """Iteration yields (path, image, annotation) with correct pixels."""
+        images = {
+            "img1.jpg": _create_image(fill_value=1),
+            "img2.jpg": _create_image(fill_value=2),
+        }
+        dataset = self._build_dataset(images)
+
+        entries = list(dataset)
+
+        assert [path for path, _, _ in entries] == ["img1.jpg", "img2.jpg"]
+        for image_path, loaded_image, annotation in entries:
+            np.testing.assert_array_equal(loaded_image, images[image_path])
+            assert annotation is dataset.annotations[image_path]
+
+    def test_dict_input_emits_deprecation_warning(self) -> None:
+        """Passing a dict of images emits the SupervisionWarnings deprecation notice."""
+        with pytest.warns(SupervisionWarnings, match="deprecated"):
+            self._build_dataset({"img1.jpg": _create_image(fill_value=3)})
