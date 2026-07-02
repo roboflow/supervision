@@ -111,6 +111,41 @@ class TestInferenceSlicerCompactMasks:
             err_msg="compact_masks pipeline produced different mask pixels than dense",
         )
 
+    def test_compact_masks_preserve_pixels_outside_detector_box(self) -> None:
+        """compact_masks=True crops to the full tile, so mask pixels outside the
+        detection xyxy box (but inside the tile) are preserved."""
+        image = np.zeros((100, 100, 3), dtype=np.uint8)
+
+        def callback(tile: np.ndarray) -> Detections:
+            h, w = tile.shape[:2]
+            masks = np.zeros((1, h, w), dtype=bool)
+            masks[0, 0, 0] = True
+            masks[0, h - 1, w - 1] = True
+            return Detections(
+                xyxy=np.array([[0, 0, 10, 10]], dtype=np.float32),
+                mask=masks,
+                confidence=np.array([0.9], dtype=np.float32),
+                class_id=np.array([0]),
+            )
+
+        dense = sv.InferenceSlicer(
+            callback=callback,
+            slice_wh=100,
+            overlap_wh=0,
+            overlap_filter=sv.OverlapFilter.NONE,
+            compact_masks=False,
+        )(image)
+        compact = sv.InferenceSlicer(
+            callback=callback,
+            slice_wh=100,
+            overlap_wh=0,
+            overlap_filter=sv.OverlapFilter.NONE,
+            compact_masks=True,
+        )(image)
+
+        assert isinstance(compact.mask, CompactMask)
+        np.testing.assert_array_equal(compact.mask.to_dense(), dense.mask)
+
     def test_nms_with_overlapping_tiles_uses_rle_iou(self) -> None:
         """With overlapping tiles, NMS must suppress duplicates using RLE IoU."""
         image = np.zeros((300, 300, 3), dtype=np.uint8)
