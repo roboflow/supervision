@@ -504,27 +504,35 @@ class TestMeanAveragePrecisionOrientedBoundingBoxes:
 class TestMeanAveragePrecisionMasksCrowdBranch:
     """Tests for the crowd-aware Jaccard path in _mask_iou_with_jaccard."""
 
-    def test_crowd_gt_uses_detection_area_as_denominator(self) -> None:
-        """Crowd GT: detection covering half the crowd mask must score IoU≈1.0.
+    def test_crowd_gt_ignores_contained_detection(self) -> None:
+        """Detection inside a crowd GT is ignored (not FP) with Jaccard crowd IoU.
 
-        Standard IoU would give 0.5 (half intersection over full union).
-        Crowd Jaccard collapses union to detection area → 0.5/0.5 = 1.0.
+        Without Jaccard: small pred's standard IoU with crowd GT is 0.25 < 0.5,
+        so pred0 is a FP, which reduces map50. With Jaccard: IoU = 1.0, pred0 is
+        matched to crowd and ignored, so only pred1 (perfect TP) is scored -> map50=1.0.
         """
-        crowd_mask = np.ones((1, 32, 32), dtype=bool)
-        detection_mask = np.zeros((1, 32, 32), dtype=bool)
-        detection_mask[0, :16, :] = True  # covers half the crowd mask
+        mask_normal = np.zeros((1, 32, 32), dtype=bool)
+        mask_normal[0, :16, :] = True  # normal GT: top half
+        mask_crowd = np.ones((1, 32, 32), dtype=bool)  # crowd GT: full image
 
         targets = Detections(
-            xyxy=np.array([[0, 0, 32, 32]], dtype=np.float64),
-            class_id=np.array([0]),
-            mask=crowd_mask,
-            data={"iscrowd": np.array([1], dtype=np.int64)},
+            xyxy=np.array([[0, 0, 32, 16], [0, 0, 32, 32]], dtype=np.float64),
+            class_id=np.array([0, 0]),
+            mask=np.concatenate([mask_normal, mask_crowd]),
+            data={"iscrowd": np.array([0, 1], dtype=np.int64)},
         )
+        # pred0 (conf=0.9): bottom quarter - inside crowd, no overlap with normal GT
+        mask_pred0 = np.zeros((1, 32, 32), dtype=bool)
+        mask_pred0[0, 16:24, :] = True
+        # pred1 (conf=0.8): exact match with normal GT
+        mask_pred1 = np.zeros((1, 32, 32), dtype=bool)
+        mask_pred1[0, :16, :] = True
+
         predictions = Detections(
-            xyxy=np.array([[0, 0, 32, 16]], dtype=np.float64),
-            class_id=np.array([0]),
-            confidence=np.array([0.9]),
-            mask=detection_mask,
+            xyxy=np.array([[0, 16, 32, 24], [0, 0, 32, 16]], dtype=np.float64),
+            class_id=np.array([0, 0]),
+            confidence=np.array([0.9, 0.8]),
+            mask=np.concatenate([mask_pred0, mask_pred1]),
         )
         metric = MeanAveragePrecision(metric_target=MetricTarget.MASKS)
 
@@ -532,25 +540,26 @@ class TestMeanAveragePrecisionMasksCrowdBranch:
 
         assert result.map50 == pytest.approx(1.0, abs=1e-6)
 
-    def test_mixed_crowd_and_normal_gt(self) -> None:
-        """One crowd GT and one normal GT: only crowd column uses Jaccard rule."""
-        full_mask = np.ones((1, 32, 32), dtype=bool)
-        half_mask = np.zeros((1, 32, 32), dtype=bool)
-        half_mask[0, :16, :] = True
+    def test_normal_gt_matched_correctly_alongside_crowd_gt(self) -> None:
+        """Normal GT is matched and scored when a crowd GT is also present."""
+        mask_normal = np.zeros((1, 32, 32), dtype=bool)
+        mask_normal[0, :16, :] = True
+        mask_crowd = np.ones((1, 32, 32), dtype=bool)
 
-        # target0 = crowd (full image), target1 = normal (top half)
         targets = Detections(
-            xyxy=np.array([[0, 0, 32, 32], [0, 0, 32, 16]], dtype=np.float64),
+            xyxy=np.array([[0, 0, 32, 16], [0, 0, 32, 32]], dtype=np.float64),
             class_id=np.array([0, 0]),
-            mask=np.concatenate([full_mask, half_mask]),
-            data={"iscrowd": np.array([1, 0], dtype=np.int64)},
+            mask=np.concatenate([mask_normal, mask_crowd]),
+            data={"iscrowd": np.array([0, 1], dtype=np.int64)},
         )
-        # prediction = top half; crowd IoU ≈ 1.0 (Jaccard), normal IoU = 1.0
+        mask_pred = np.zeros((1, 32, 32), dtype=bool)
+        mask_pred[0, :16, :] = True  # exact match with normal GT
+
         predictions = Detections(
             xyxy=np.array([[0, 0, 32, 16]], dtype=np.float64),
             class_id=np.array([0]),
             confidence=np.array([0.9]),
-            mask=half_mask,
+            mask=mask_pred,
         )
         metric = MeanAveragePrecision(metric_target=MetricTarget.MASKS)
 
