@@ -199,6 +199,9 @@ ini_options.addopts = [
   "--doctest-modules",
   "--color=yes",
 ]
+ini_options.filterwarnings = [
+  "error::DeprecationWarning",
+]
 ini_options.doctest_optionflags = "ELLIPSIS NORMALIZE_WHITESPACE"
 
 [tool.autoflake]

@@ -1125,3 +1125,58 @@ def test_process_roboflow_result_compact_masks_rle_mask_size_mismatch() -> None:
 
     assert isinstance(compact_result[3], CompactMask)
     np.testing.assert_array_equal(compact_result[3].to_dense(), dense_result[3])
+
+
+# ---------------------------------------------------------------------------
+# cross_product — regression + unit tests (GitHub #2384)
+# ---------------------------------------------------------------------------
+import warnings  # noqa: E402
+
+from supervision.detection.utils.internal import cross_product  # noqa: E402
+from supervision.geometry.core import Point, Vector  # noqa: E402
+
+
+def test_cross_product_no_deprecation_warning() -> None:
+    """Regression for #2384: cross_product must not fire DeprecationWarning."""
+    anchors = np.array([[[5.0, 5.0]]])
+    v = Vector(start=Point(0, 0), end=Point(10, 0))
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        cross_product(anchors, v)
+
+
+@pytest.mark.parametrize(
+    ("anchors", "vector", "expected_sign"),
+    [
+        pytest.param(
+            np.array([[[5.0, 5.0]]]),
+            Vector(Point(0, 0), Point(10, 0)),
+            1,
+            id="above",
+        ),
+        pytest.param(
+            np.array([[[5.0, -5.0]]]),
+            Vector(Point(0, 0), Point(10, 0)),
+            -1,
+            id="below",
+        ),
+        pytest.param(
+            np.array([[[5.0, 0.0]]]),
+            Vector(Point(0, 0), Point(10, 0)),
+            0,
+            id="on-line",
+        ),
+        pytest.param(
+            np.array([[[3.0, 3.0]]]),
+            Vector(Point(1, 1), Point(5, 1)),
+            1,
+            id="offset-start",
+        ),
+    ],
+)
+def test_cross_product_sign(
+    anchors: np.ndarray, vector: Vector, expected_sign: int
+) -> None:
+    """Verify cross_product returns correct sign for known anchor/vector pairs."""
+    result = cross_product(anchors, vector)
+    assert int(np.sign(result[0, 0])) == expected_sign

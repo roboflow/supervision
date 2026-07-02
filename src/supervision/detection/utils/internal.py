@@ -653,14 +653,28 @@ def get_data_item(
 def cross_product(
     anchors: npt.NDArray[np.number], vector: Vector
 ) -> npt.NDArray[np.number]:
-    """
-    Get array of cross products of each anchor with a vector.
+    """Get signed z-component of cross product (2-D determinant) per anchor.
+
+    Replaces the deprecated `np.cross` 2-D path (NumPy 2.0) with an explicit
+    determinant: ``a[..., 0] * b[..., 1] - a[..., 1] * b[..., 0]``.
+
     Args:
-        anchors: Array of anchors of shape (number of anchors, detections, 2)
-        vector: Vector to calculate cross product with
+        anchors: Array of anchors of shape (number of anchors, detections, 2).
+        vector: Vector to calculate cross product with.
 
     Returns:
-        Array of cross products of shape (number of anchors, detections)
+        Array of signed cross-product values, shape (number of anchors,
+        detections). Positive = anchor is to the left of the vector direction;
+        negative = to the right; zero = on the line.
+
+    Examples:
+        >>> import numpy as np
+        >>> from supervision.geometry.core import Point, Vector
+        >>> anchors = np.array([[[10.0, 5.0]], [[20.0, 5.0]]])
+        >>> vector = Vector(start=Point(0, 0), end=Point(1, 0))
+        >>> cross_product(anchors, vector)
+        array([[5.],
+               [5.]])
     """
     vector_at_zero = np.array(
         [

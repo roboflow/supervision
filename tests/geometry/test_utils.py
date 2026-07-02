@@ -58,3 +58,13 @@ def test_get_polygon_center(polygon: np.ndarray, expected_result: Point) -> None
     """
     result = get_polygon_center(polygon)
     assert result == expected_result
+
+
+def test_get_polygon_center_no_deprecation_warning() -> None:
+    """Regression for #2384: get_polygon_center must not fire DeprecationWarning."""
+    import warnings
+
+    polygon = np.array([[0, 0], [0, 2], [2, 2], [2, 0]], dtype=float)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", DeprecationWarning)
+        get_polygon_center(polygon=polygon)
