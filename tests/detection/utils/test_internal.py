@@ -1,17 +1,67 @@
 from contextlib import ExitStack as DoesNotRaise
 from typing import Any
 
+import cv2
 import numpy as np
 import pytest
 
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.detection.compact_mask import CompactMask
 from supervision.detection.utils.internal import (
+    extract_ultralytics_masks,
     get_data_item,
     merge_data,
     merge_metadata,
     process_roboflow_result,
 )
+
+
+class _FakeMasksData:
+    """Ultralytics-like mask tensor exposing shape and cpu().numpy()."""
+
+    def __init__(self, arr: np.ndarray) -> None:
+        self._arr = np.asarray(arr, dtype=np.float32)
+        self.shape = self._arr.shape
+
+    def cpu(self) -> "_FakeMasksData":
+        return self
+
+    def numpy(self) -> np.ndarray:
+        return self._arr
+
+
+class _FakeMasks:
+    """Ultralytics-like masks container holding a data tensor."""
+
+    def __init__(self, data: _FakeMasksData) -> None:
+        self.data = data
+
+    def __bool__(self) -> bool:
+        return True
+
+
+class _FakeYOLOMaskResults:
+    """Minimal Ultralytics results exposing masks and orig_shape."""
+
+    def __init__(self, masks_arr: np.ndarray, orig_shape: tuple[int, int]) -> None:
+        self.masks = _FakeMasks(_FakeMasksData(masks_arr))
+        self.orig_shape = orig_shape
+
+
+def test_extract_ultralytics_masks_thresholds_resized_proto_at_half() -> None:
+    """Resized proto masks threshold at 0.5, so interpolated edges don't dilate."""
+    orig_shape = (4, 4)
+    proto = np.array([[[1.0, 1.0], [0.0, 0.0]]], dtype=np.float32)
+    results = _FakeYOLOMaskResults(masks_arr=proto, orig_shape=orig_shape)
+
+    masks = extract_ultralytics_masks(results)
+
+    resized = cv2.resize(proto[0], (orig_shape[1], orig_shape[0]))
+    assert masks is not None
+    assert masks.dtype == bool
+    np.testing.assert_array_equal(masks[0], resized > 0.5)
+    # A naive `> 0` cast would flag the interpolated boundary row as True.
+    assert masks[0].sum() < int((resized > 0).sum())
 
 
 def _pred(

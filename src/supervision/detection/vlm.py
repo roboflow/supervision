@@ -476,7 +476,11 @@ def from_deepseek_vl_2(
             )
             class_name_list.append(current_class_name)
 
-    xyxy = np.array(xyxy_list, dtype=np.float32)
+    xyxy = (
+        np.array(xyxy_list, dtype=np.float32)
+        if xyxy_list
+        else np.empty((0, 4), dtype=np.float32)
+    )
     class_name = np.array(class_name_list)
 
     if classes is not None:
