@@ -58,3 +58,18 @@ def test_get_polygon_center(polygon: np.ndarray, expected_result: Point) -> None
     """
     result = get_polygon_center(polygon)
     assert result == expected_result
+
+
+def test_get_polygon_center_does_not_call_np_cross(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Guard against reintroducing np.cross, deprecated for 2-D input in NumPy 2.0."""
+
+    def _raise(*args, **kwargs):
+        raise AssertionError("np.cross must not be called on 2-D vectors")
+
+    monkeypatch.setattr(np, "cross", _raise)
+
+    result = get_polygon_center(generate_test_polygon(100))
+
+    assert result == Point(x=50.0, y=121.0)
