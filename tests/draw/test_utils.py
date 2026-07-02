@@ -3,8 +3,16 @@ import numpy as np
 import pytest
 
 from supervision.draw.color import Color
-from supervision.draw.utils import draw_image, draw_rounded_rectangle
-from supervision.geometry.core import Rect
+from supervision.draw.utils import (
+    draw_filled_rectangle,
+    draw_image,
+    draw_line,
+    draw_rectangle,
+    draw_rounded_rectangle,
+    draw_text,
+)
+from supervision.geometry.core import Point, Rect
+from supervision.utils.image import grayscale_image
 
 
 def test_draw_image_invalid_path_raises_oserror(tmp_path) -> None:
@@ -135,3 +143,158 @@ def test_draw_rounded_rectangle_positive_radius_rounds_corners() -> None:
     assert np.array_equal(result[30, 140], bg)  # top-right
     assert np.array_equal(result[110, 20], bg)  # bottom-left
     assert np.array_equal(result[110, 140], bg)  # bottom-right
+
+
+# ---------------------------------------------------------------------------
+# draw_line
+# ---------------------------------------------------------------------------
+
+
+def test_draw_line_modifies_scene() -> None:
+    """draw_line changes at least one pixel along the drawn path."""
+    scene = np.zeros((50, 50, 3), dtype=np.uint8)
+    before = scene.copy()
+    result = draw_line(
+        scene=scene,
+        start=Point(x=0, y=25),
+        end=Point(x=49, y=25),
+        color=Color.WHITE,
+        thickness=1,
+    )
+    assert result is scene
+    assert not np.array_equal(result, before)
+
+
+def test_draw_line_preserves_shape_and_dtype() -> None:
+    """draw_line returns the same shape and dtype as the input scene."""
+    scene = np.zeros((30, 30, 3), dtype=np.uint8)
+    result = draw_line(
+        scene=scene,
+        start=Point(x=0, y=0),
+        end=Point(x=29, y=29),
+        color=Color.WHITE,
+    )
+    assert result.shape == (30, 30, 3)
+    assert result.dtype == np.uint8
+
+
+# ---------------------------------------------------------------------------
+# draw_rectangle
+# ---------------------------------------------------------------------------
+
+
+def test_draw_rectangle_modifies_border_pixels() -> None:
+    """draw_rectangle draws on the border of the specified rect."""
+    scene = np.zeros((50, 50, 3), dtype=np.uint8)
+    before = scene.copy()
+    result = draw_rectangle(
+        scene=scene,
+        rect=Rect(x=5, y=5, width=20, height=20),
+        color=Color.WHITE,
+        thickness=1,
+    )
+    assert result is scene
+    assert not np.array_equal(result, before)
+
+
+def test_draw_rectangle_interior_unchanged_for_thin_border() -> None:
+    """A 1-pixel border rect leaves the interior pixel untouched."""
+    scene = np.zeros((50, 50, 3), dtype=np.uint8)
+    draw_rectangle(
+        scene=scene,
+        rect=Rect(x=10, y=10, width=20, height=20),
+        color=Color.WHITE,
+        thickness=1,
+    )
+    # centre of the rect interior — should remain black
+    assert scene[20, 20].tolist() == [0, 0, 0]
+
+
+# ---------------------------------------------------------------------------
+# draw_filled_rectangle
+# ---------------------------------------------------------------------------
+
+
+def test_draw_filled_rectangle_fills_interior() -> None:
+    """draw_filled_rectangle sets interior pixels to the given colour."""
+    scene = np.zeros((50, 50, 3), dtype=np.uint8)
+    draw_filled_rectangle(
+        scene=scene,
+        rect=Rect(x=10, y=10, width=20, height=20),
+        color=Color.WHITE,
+        opacity=1.0,
+    )
+    # centre should be white (BGR 255, 255, 255)
+    assert scene[20, 20].tolist() == [255, 255, 255]
+
+
+def test_draw_filled_rectangle_opacity_blends() -> None:
+    """opacity<1 blends the fill colour with the original background."""
+    scene = np.zeros((50, 50, 3), dtype=np.uint8)
+    draw_filled_rectangle(
+        scene=scene,
+        rect=Rect(x=10, y=10, width=20, height=20),
+        color=Color.WHITE,
+        opacity=0.5,
+    )
+    # blended pixel should be neither black nor white
+    val = scene[20, 20, 0]
+    assert 0 < val < 255
+
+
+# ---------------------------------------------------------------------------
+# draw_text
+# ---------------------------------------------------------------------------
+
+
+def test_draw_text_modifies_scene() -> None:
+    """draw_text changes at least one pixel in the scene."""
+    scene = np.zeros((100, 200, 3), dtype=np.uint8)
+    before = scene.copy()
+    result = draw_text(
+        scene=scene,
+        text="Hi",
+        text_anchor=Point(x=100, y=50),
+        text_color=Color.WHITE,
+    )
+    assert result is scene
+    assert not np.array_equal(result, before)
+
+
+def test_draw_text_preserves_shape() -> None:
+    """draw_text does not change the scene dimensions."""
+    scene = np.zeros((100, 200, 3), dtype=np.uint8)
+    result = draw_text(
+        scene=scene,
+        text="Test",
+        text_anchor=Point(x=100, y=50),
+    )
+    assert result.shape == (100, 200, 3)
+
+
+# ---------------------------------------------------------------------------
+# grayscale_image
+# ---------------------------------------------------------------------------
+
+
+def test_grayscale_image_preserves_shape() -> None:
+    """grayscale_image returns a 3-channel image with the same HxW."""
+    image = np.random.default_rng(0).integers(0, 256, (60, 80, 3), dtype=np.uint8)
+    result = grayscale_image(image=image)
+    assert result.shape == (60, 80, 3)
+    assert result.dtype == np.uint8
+
+
+def test_grayscale_image_channels_are_equal() -> None:
+    """All three output channels contain identical luminance values."""
+    image = np.random.default_rng(1).integers(0, 256, (40, 40, 3), dtype=np.uint8)
+    result = grayscale_image(image=image)
+    np.testing.assert_array_equal(result[:, :, 0], result[:, :, 1])
+    np.testing.assert_array_equal(result[:, :, 0], result[:, :, 2])
+
+
+def test_grayscale_image_uniform_color_stays_gray() -> None:
+    """A uniform-colour input maps to a single uniform gray value."""
+    image = np.full((20, 20, 3), fill_value=[100, 150, 200], dtype=np.uint8)
+    result = grayscale_image(image=image)
+    assert result[:, :, 0].min() == result[:, :, 0].max()

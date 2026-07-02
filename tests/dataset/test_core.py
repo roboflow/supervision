@@ -5,7 +5,7 @@ import numpy as np
 import numpy.typing as npt
 import pytest
 
-from supervision import DetectionDataset, Detections
+from supervision import ClassificationDataset, DetectionDataset, Detections
 from supervision.config import CLASS_NAME_DATA_FIELD
 from supervision.utils.internal import SupervisionWarnings
 from tests.helpers import _create_detections, create_yolo_dataset
@@ -468,3 +468,137 @@ class TestDetectionDatasetExportCollisions:
             dataset.as_pascal_voc(
                 annotations_directory_path=str(tmp_path / "annotations"),
             )
+
+
+# ---------------------------------------------------------------------------
+# TST-03 - DetectionDataset.split()
+# ---------------------------------------------------------------------------
+
+
+def _make_detection_dataset(
+    n: int, classes: list[str] | None = None
+) -> DetectionDataset:
+    """Build an in-memory DetectionDataset with n images."""
+    if classes is None:
+        classes = ["cat"]
+    images = {f"img{i}.jpg": np.zeros((4, 4, 3), dtype=np.uint8) for i in range(n)}
+    annotations = {
+        f"img{i}.jpg": _create_detections(xyxy=[[0, 0, 2, 2]], class_id=[0])
+        for i in range(n)
+    }
+    import warnings
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        return DetectionDataset(classes=classes, images=images, annotations=annotations)
+
+
+class TestDetectionDatasetSplit:
+    """DetectionDataset.split() partitions images correctly."""
+
+    def test_split_is_deterministic(self) -> None:
+        """Two calls with the same random_state produce identical partitions."""
+        ds = _make_detection_dataset(10)
+        train_a, test_a = ds.split(split_ratio=0.7, random_state=42)
+        train_b, test_b = ds.split(split_ratio=0.7, random_state=42)
+        assert train_a.image_paths == train_b.image_paths
+        assert test_a.image_paths == test_b.image_paths
+
+    def test_split_union_covers_all_images(self) -> None:
+        """Train + test together contain exactly the original image set."""
+        ds = _make_detection_dataset(10)
+        train, test = ds.split(split_ratio=0.7, random_state=0)
+        combined = set(train.image_paths) | set(test.image_paths)
+        assert combined == set(ds.image_paths)
+
+    def test_split_partitions_are_disjoint(self) -> None:
+        """No image path appears in both train and test."""
+        ds = _make_detection_dataset(10)
+        train, test = ds.split(split_ratio=0.7, random_state=0)
+        assert set(train.image_paths).isdisjoint(set(test.image_paths))
+
+    def test_split_ratio_zero_empties_train(self) -> None:
+        """split_ratio=0.0 sends all images to the test set."""
+        ds = _make_detection_dataset(6)
+        train, test = ds.split(split_ratio=0.0, shuffle=False)
+        assert len(train) == 0
+        assert len(test) == 6
+
+    def test_split_ratio_one_empties_test(self) -> None:
+        """split_ratio=1.0 sends all images to the train set."""
+        ds = _make_detection_dataset(6)
+        train, test = ds.split(split_ratio=1.0, shuffle=False)
+        assert len(train) == 6
+        assert len(test) == 0
+
+    def test_split_does_not_mutate_source_ordering(self) -> None:
+        """Calling split() twice does not change the source image_paths order."""
+        ds = _make_detection_dataset(8)
+        original_order = list(ds.image_paths)
+        ds.split(split_ratio=0.5, random_state=7)
+        ds.split(split_ratio=0.5, random_state=99)
+        assert ds.image_paths == original_order
+
+    def test_split_classes_preserved(self) -> None:
+        """Both halves inherit the full class list from the source dataset."""
+        ds = _make_detection_dataset(6, classes=["cat", "dog"])
+        train, test = ds.split(split_ratio=0.5, random_state=1)
+        assert train.classes == ["cat", "dog"]
+        assert test.classes == ["cat", "dog"]
+
+
+# ---------------------------------------------------------------------------
+# TST-03 - ClassificationDataset folder-structure round-trip
+# ---------------------------------------------------------------------------
+
+
+class TestClassificationDatasetFolderRoundTrip:
+    """from_folder_structure -> as_folder_structure -> reload reproduces the dataset."""
+
+    def _make_folder_tree(self, root: Path) -> None:
+        """Write a tiny 2-class folder structure under root."""
+        import cv2 as _cv2
+
+        for cls_name, colour in [("cats", 0), ("dogs", 128)]:
+            cls_dir = root / cls_name
+            cls_dir.mkdir(parents=True)
+            for idx in range(2):
+                img = np.full((8, 8, 3), colour, dtype=np.uint8)
+                _cv2.imwrite(str(cls_dir / f"{cls_name}_{idx}.png"), img)
+
+    def test_reload_has_same_classes(self, tmp_path: Path) -> None:
+        """Reloaded dataset has the same sorted class list."""
+        src = tmp_path / "source"
+        self._make_folder_tree(src)
+        ds = ClassificationDataset.from_folder_structure(str(src))
+
+        out = tmp_path / "export"
+        ds.as_folder_structure(str(out))
+        ds2 = ClassificationDataset.from_folder_structure(str(out))
+
+        assert ds2.classes == ds.classes
+
+    def test_reload_has_same_image_count(self, tmp_path: Path) -> None:
+        """Reloaded dataset has the same number of images."""
+        src = tmp_path / "source"
+        self._make_folder_tree(src)
+        ds = ClassificationDataset.from_folder_structure(str(src))
+
+        out = tmp_path / "export"
+        ds.as_folder_structure(str(out))
+        ds2 = ClassificationDataset.from_folder_structure(str(out))
+
+        assert len(ds2) == len(ds)
+
+    def test_reload_annotation_class_ids_match(self, tmp_path: Path) -> None:
+        """Every reloaded annotation class_id falls within the class list."""
+        src = tmp_path / "source"
+        self._make_folder_tree(src)
+        ds = ClassificationDataset.from_folder_structure(str(src))
+
+        out = tmp_path / "export"
+        ds.as_folder_structure(str(out))
+        ds2 = ClassificationDataset.from_folder_structure(str(out))
+
+        for ann in ds2.annotations.values():
+            assert 0 <= int(ann.class_id[0]) < len(ds2.classes)

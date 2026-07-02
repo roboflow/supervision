@@ -11,6 +11,7 @@ from supervision.detection.utils.iou_and_nms import (
     box_iou,
     box_iou_batch,
     box_iou_batch_with_jaccard,
+    box_non_max_merge,
     box_non_max_suppression,
     mask_iou_batch,
     mask_non_max_merge,
@@ -1877,3 +1878,62 @@ class TestBoxIouBatchWithJaccard:
             box_iou_batch_with_jaccard(
                 [[0.0, 0.0, 1.0, 1.0]], [[0.0, 0.0, 1.0, 1.0]], []
             )
+
+
+# ---------------------------------------------------------------------------
+# box_non_max_merge
+# ---------------------------------------------------------------------------
+
+
+class TestBoxNonMaxMerge:
+    """box_non_max_merge groups overlapping boxes into clusters."""
+
+    def test_empty_input_returns_empty_list(self) -> None:
+        """An empty predictions array produces no merge groups."""
+        predictions = np.empty((0, 5), dtype=np.float32)
+        result = box_non_max_merge(predictions, iou_threshold=0.5)
+        assert result == []
+
+    def test_non_overlapping_boxes_each_own_group(self) -> None:
+        """Boxes with zero overlap remain in separate singleton groups."""
+        predictions = np.array(
+            [
+                [0, 0, 10, 10, 0.9],
+                [20, 20, 30, 30, 0.8],
+                [50, 50, 60, 60, 0.7],
+            ],
+            dtype=np.float32,
+        )
+        result = box_non_max_merge(predictions, iou_threshold=0.5)
+        assert len(result) == 3
+        assert all(len(g) == 1 for g in result)
+
+    def test_identical_boxes_merged_into_one_group(self) -> None:
+        """Perfectly overlapping boxes (IoU=1) are merged into a single group."""
+        predictions = np.array(
+            [
+                [0, 0, 10, 10, 0.9],
+                [0, 0, 10, 10, 0.8],
+                [0, 0, 10, 10, 0.7],
+            ],
+            dtype=np.float32,
+        )
+        result = box_non_max_merge(predictions, iou_threshold=0.5)
+        assert len(result) == 1
+        assert len(result[0]) == 3
+
+    def test_two_distinct_clusters(self) -> None:
+        """Two groups of overlapping boxes produce exactly two merge groups."""
+        predictions = np.array(
+            [
+                [0, 0, 10, 10, 0.9],
+                [1, 1, 11, 11, 0.85],
+                [50, 50, 60, 60, 0.8],
+                [51, 51, 61, 61, 0.75],
+            ],
+            dtype=np.float32,
+        )
+        result = box_non_max_merge(predictions, iou_threshold=0.3)
+        assert len(result) == 2
+        group_sizes = sorted(len(g) for g in result)
+        assert group_sizes == [2, 2]
