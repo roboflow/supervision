@@ -1,9 +1,34 @@
 import numpy as np
+import pytest
 
 from supervision.config import ORIENTED_BOX_COORDINATES
 from supervision.detection.core import Detections
 from supervision.metrics.core import MetricTarget
 from supervision.metrics.mean_average_precision import MeanAveragePrecision
+
+
+def _mask_detections(
+    row_slice: slice, confidence: bool = False, mask_shape: tuple[int, int] = (32, 32)
+) -> Detections:
+    """Build single-detection `Detections` with a mask filling the given rows."""
+    mask = np.zeros((1, *mask_shape), dtype=bool)
+    mask[0, row_slice, :] = True
+    return Detections(
+        xyxy=np.array([[0, 0, 10, 10]], dtype=np.float64),
+        class_id=np.array([0]),
+        confidence=np.array([0.9]) if confidence else None,
+        mask=mask,
+    )
+
+
+def _obb_detections(corners: list[list[int]], confidence: bool = False) -> Detections:
+    """Build single-detection `Detections` with the given oriented box corners."""
+    return Detections(
+        xyxy=np.array([[0, 0, 30, 30]], dtype=np.float64),
+        class_id=np.array([0]),
+        confidence=np.array([0.9]) if confidence else None,
+        data={ORIENTED_BOX_COORDINATES: np.array([corners], dtype=np.float32)},
+    )
 
 
 class TestMeanAveragePrecision:
@@ -36,14 +61,7 @@ class TestMeanAveragePrecision:
         assert abs(result.map50_95 - 1.0) < 1e-6
 
     def test_perfect_non_square_oriented_boxes_get_full_map(self):
-        """Smoke test: MeanAveragePrecision accepts non-square OBB inputs without error.
-
-        NOTE: MeanAveragePrecision uses the COCO evaluator path
-        (box_iou_batch_with_jaccard) and does not route through
-        oriented_box_iou_batch regardless of metric_target.
-        This test verifies API acceptance and map50_95=1.0 via
-        xyxy COCO IoU, not OBB IoU.
-        """
+        """Perfect non-square OBB predictions score full mAP via OBB IoU."""
         obb = np.array(
             [[[10, 0], [0, 1], [30, 4], [40, 3]]],
             dtype=np.float32,
@@ -333,3 +351,123 @@ class TestMeanAveragePrecision:
         assert result.small_objects.map50_95 == -1
         assert result.medium_objects.map50_95 == -1
         assert result.large_objects.map50_95 == -1
+
+
+class TestMeanAveragePrecisionMasks:
+    @pytest.mark.parametrize(
+        ("prediction_rows", "target_rows", "expected_map50"),
+        [
+            pytest.param(slice(0, 16), slice(0, 16), 1.0, id="matching-masks"),
+            pytest.param(slice(0, 16), slice(16, 32), 0.0, id="disjoint-masks"),
+        ],
+    )
+    def test_map50_follows_mask_overlap(
+        self, prediction_rows: slice, target_rows: slice, expected_map50: float
+    ) -> None:
+        """With MASKS target, map50 must reflect mask IoU, not identical boxes."""
+        predictions = _mask_detections(prediction_rows, confidence=True)
+        targets = _mask_detections(target_rows)
+        metric = MeanAveragePrecision(metric_target=MetricTarget.MASKS)
+
+        result = metric.update([predictions], [targets]).compute()
+
+        assert result.map50 == pytest.approx(expected_map50, abs=1e-6)
+
+    def test_missing_masks_raise(self) -> None:
+        """With MASKS target, detections without masks must raise ValueError."""
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 10, 10]], dtype=np.float64),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+        )
+        targets = _mask_detections(slice(0, 16))
+        metric = MeanAveragePrecision(metric_target=MetricTarget.MASKS)
+        metric.update([predictions], [targets])
+
+        with pytest.raises(ValueError, match="MASKS"):
+            metric.compute()
+
+    def test_mask_pixel_count_drives_size_buckets(self) -> None:
+        """With MASKS target, object size buckets use mask area, not bbox area."""
+        # bbox area is 100*100 = 10000 (large), mask area is 30*30 = 900 (small)
+        mask = np.zeros((1, 120, 120), dtype=bool)
+        mask[0, 10:40, 10:40] = True
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 100, 100]], dtype=np.float64),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+            mask=mask,
+        )
+        targets = Detections(
+            xyxy=np.array([[0, 0, 100, 100]], dtype=np.float64),
+            class_id=np.array([0]),
+            mask=mask.copy(),
+        )
+        metric = MeanAveragePrecision(metric_target=MetricTarget.MASKS)
+
+        result = metric.update([predictions], [targets]).compute()
+
+        assert result.small_objects.map50 == pytest.approx(1.0, abs=1e-6)
+        assert result.large_objects.map50 == -1
+
+    def test_boxes_target_ignores_masks(self) -> None:
+        """With default BOXES target, disjoint masks must not affect the score."""
+        predictions = _mask_detections(slice(0, 16), confidence=True)
+        targets = _mask_detections(slice(16, 32))
+        metric = MeanAveragePrecision()
+
+        result = metric.update([predictions], [targets]).compute()
+
+        assert result.map50 == pytest.approx(1.0, abs=1e-6)
+
+
+class TestMeanAveragePrecisionOrientedBoundingBoxes:
+    @pytest.mark.parametrize(
+        ("prediction_corners", "target_corners", "expected_map50"),
+        [
+            pytest.param(
+                [[0, 0], [10, 0], [10, 10], [0, 10]],
+                [[0, 0], [10, 0], [10, 10], [0, 10]],
+                1.0,
+                id="matching-obb",
+            ),
+            pytest.param(
+                [[0, 0], [10, 0], [10, 10], [0, 10]],
+                [[20, 20], [30, 20], [30, 30], [20, 30]],
+                0.0,
+                id="disjoint-obb",
+            ),
+        ],
+    )
+    def test_map50_follows_oriented_box_overlap(
+        self,
+        prediction_corners: list[list[int]],
+        target_corners: list[list[int]],
+        expected_map50: float,
+    ) -> None:
+        """With OBB target, map50 must reflect OBB IoU, not identical boxes."""
+        predictions = _obb_detections(prediction_corners, confidence=True)
+        targets = _obb_detections(target_corners)
+        metric = MeanAveragePrecision(
+            metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES
+        )
+
+        result = metric.update([predictions], [targets]).compute()
+
+        assert result.map50 == pytest.approx(expected_map50, abs=1e-6)
+
+    def test_missing_oriented_boxes_raise(self) -> None:
+        """With OBB target, detections without OBB data must raise ValueError."""
+        predictions = Detections(
+            xyxy=np.array([[0, 0, 30, 30]], dtype=np.float64),
+            class_id=np.array([0]),
+            confidence=np.array([0.9]),
+        )
+        targets = _obb_detections([[0, 0], [10, 0], [10, 10], [0, 10]])
+        metric = MeanAveragePrecision(
+            metric_target=MetricTarget.ORIENTED_BOUNDING_BOXES
+        )
+        metric.update([predictions], [targets])
+
+        with pytest.raises(ValueError, match=ORIENTED_BOX_COORDINATES):
+            metric.compute()

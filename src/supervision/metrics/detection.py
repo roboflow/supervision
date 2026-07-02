@@ -1142,7 +1142,9 @@ class ConfusionMatrix:
             Confusion matrix plot.
         """
 
-        array = self.matrix.copy()
+        # Cast to float so that the NaN masking below never hits an integer
+        # matrix (assigning NaN into an int array raises ValueError).
+        array = self.matrix.astype(np.float64)
 
         if normalize:
             eps = 1e-8
