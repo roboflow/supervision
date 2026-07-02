@@ -1194,19 +1194,19 @@ def test_from_google_gemini_2_5(
     ("exception", "result", "resolution_wh", "classes", "expected_detections"),
     [
         (
-            pytest.raises(ValueError, match=r"xyxy must be a 2D np\.ndarray"),
+            does_not_raise(),
             "",
             (100, 100),
             None,
-            None,
-        ),  # empty text
+            Detections.empty(),
+        ),  # empty text -> empty detections (aligned with other VLM parsers)
         (
-            pytest.raises(ValueError, match=r"xyxy must be a 2D np\.ndarray"),
+            does_not_raise(),
             "random text",
             (100, 100),
             None,
-            None,
-        ),  # random text
+            Detections.empty(),
+        ),  # random text -> empty detections
         (
             does_not_raise(),
             "<|ref|>cat<|/ref|><|det|>[[100, 200, 300, 400]]<|/det|>",
@@ -1295,6 +1295,29 @@ def test_from_deepseek_vl_2(
             detections.data[CLASS_NAME_DATA_FIELD],
             expected_detections.data[CLASS_NAME_DATA_FIELD],
         )
+
+
+@pytest.mark.parametrize(
+    ("result", "classes"),
+    [
+        pytest.param("", None, id="empty_string"),
+        pytest.param("no tags here", None, id="no_tags"),
+        pytest.param("", ["cat"], id="empty_string_with_classes"),
+    ],
+)
+def test_from_deepseek_vl_2_empty_parse_returns_empty_detections(
+    result: str, classes: list[str] | None
+) -> None:
+    """A result with no ref/det pairs yields empty Detections instead of raising."""
+    detections = Detections.from_vlm(
+        vlm=VLM.DEEPSEEK_VL_2,
+        result=result,
+        resolution_wh=(1000, 1000),
+        classes=classes,
+    )
+
+    assert len(detections) == 0
+    assert detections.xyxy.shape == (0, 4)
 
 
 def test_from_google_gemini_2_5_malformed_mask_keeps_confidence_aligned():

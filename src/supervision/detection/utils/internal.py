@@ -66,7 +66,10 @@ def extract_ultralytics_masks(yolov8_results: Any) -> npt.NDArray[np.bool_] | No
         mask = mask[top:bottom, left:right]
 
         if mask.shape != orig_shape:
-            mask = cv2.resize(mask, (orig_shape[1], orig_shape[0]))
+            # `cv2.resize` interpolates the float proto mask, so threshold at 0.5
+            # (matching Ultralytics' own semantics) instead of casting every
+            # nonzero interpolated value to True, which would dilate the mask.
+            mask = cv2.resize(mask, (orig_shape[1], orig_shape[0])) > 0.5
 
         mask_maps.append(mask)
 

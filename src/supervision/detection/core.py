@@ -453,7 +453,9 @@ class Detections:
 
         # Tensorflow returns normalized boxes as [ymin, xmin, ymax, xmax], so the
         # y coordinates (cols 0, 2) scale by height and x (cols 1, 3) by width.
-        boxes = tensorflow_results["detection_boxes"][0].numpy()
+        # `.numpy()` may share memory with the source tensor, so copy before the
+        # in-place scaling to avoid mutating the caller's result / double-scaling.
+        boxes = tensorflow_results["detection_boxes"][0].numpy().copy()
         boxes[:, [0, 2]] *= resolution_wh[1]
         boxes[:, [1, 3]] *= resolution_wh[0]
         boxes = boxes[:, [1, 0, 3, 2]]
@@ -1535,9 +1537,11 @@ class Detections:
             LMM.PALIGEMMA: VLM.PALIGEMMA,
             LMM.FLORENCE_2: VLM.FLORENCE_2,
             LMM.QWEN_2_5_VL: VLM.QWEN_2_5_VL,
+            LMM.QWEN_3_VL: VLM.QWEN_3_VL,
             LMM.DEEPSEEK_VL_2: VLM.DEEPSEEK_VL_2,
             LMM.GOOGLE_GEMINI_2_0: VLM.GOOGLE_GEMINI_2_0,
             LMM.GOOGLE_GEMINI_2_5: VLM.GOOGLE_GEMINI_2_5,
+            LMM.MOONDREAM: VLM.MOONDREAM,
         }
 
         if isinstance(lmm, LMM):
