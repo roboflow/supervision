@@ -12,7 +12,10 @@ from PIL import Image
 from tqdm.auto import tqdm
 
 from supervision.config import ORIENTED_BOX_COORDINATES
-from supervision.dataset.utils import approximate_mask_with_polygons
+from supervision.dataset.utils import (
+    approximate_mask_with_polygons,
+    check_no_basename_collisions,
+)
 from supervision.detection.core import Detections
 from supervision.detection.utils._typing import _DetectionDataType
 from supervision.detection.utils.converters import polygon_to_mask, polygon_to_xyxy
@@ -470,6 +473,11 @@ def save_yolo_annotations(
         >>> dataset = DetectionDataset(classes=["cat"], images={}, annotations={})
         >>> save_yolo_annotations(dataset, "/tmp/labels")
     """
+    check_no_basename_collisions(
+        image_paths=dataset.image_paths,
+        key=lambda image_path: _image_name_to_annotation_name(Path(image_path).name),
+        output_kind="YOLO annotation",
+    )
     Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
     for image_path, image, annotation in tqdm(
         dataset,

@@ -38,6 +38,7 @@ from supervision.dataset.formats.yolo import (
 )
 from supervision.dataset.utils import (
     build_class_index_mapping,
+    check_no_basename_collisions,
     map_detections_class_id,
     merge_class_lists,
     save_dataset_images,
@@ -386,6 +387,11 @@ class DetectionDataset(BaseDataset):
                 show_progress=show_progress,
             )
         if annotations_directory_path:
+            check_no_basename_collisions(
+                image_paths=self.image_paths,
+                key=lambda image_path: f"{Path(image_path).stem}.xml",
+                output_kind="Pascal VOC annotation",
+            )
             Path(annotations_directory_path).mkdir(parents=True, exist_ok=True)
             for image_path, image, annotations in tqdm(
                 self,
