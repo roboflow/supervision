@@ -201,12 +201,12 @@ def load_pascal_voc_annotations(
             paths as keys and corresponding Detections instances as values.
     """
 
-    image_paths = [
+    image_paths = sorted(
         str(path)
         for path in list_files_with_extensions(
             directory=images_directory_path, extensions=["jpg", "jpeg", "png"]
         )
-    ]
+    )
 
     classes: list[str] = []
     annotations = {}
@@ -322,7 +322,7 @@ def detections_from_xml_obj(
     # https://github.com/roboflow/supervision/issues/144
     xyxy_arr -= 1
 
-    for k in set(class_names):
+    for k in sorted(set(class_names)):
         if k not in extended_classes:
             extended_classes.append(k)
     class_id = np.array(

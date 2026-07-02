@@ -383,3 +383,25 @@ class TestDetectionDatasetInMemoryImages:
         ds_b = self._build_dataset({"img1.jpg": _create_image(fill_value=2)})
 
         assert ds_a != ds_b
+
+
+class TestDetectionDatasetExportCollisions:
+    """Regression tests for the basename-collision guard on export (DAT-04)."""
+
+    def test_as_yolo_raises_on_same_basename_images(self, tmp_path: Path) -> None:
+        """Same-basename images from different directories must not overwrite."""
+        dataset = DetectionDataset(
+            classes=["cat"],
+            images=["dir_a/img.png", "dir_b/img.png"],
+            annotations={
+                "dir_a/img.png": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+                "dir_b/img.png": _create_detections(
+                    xyxy=[[0, 0, 10, 10]], class_id=[0]
+                ),
+            },
+        )
+
+        with pytest.raises(ValueError, match="both map to image file"):
+            dataset.as_yolo(images_directory_path=str(tmp_path / "images"))
