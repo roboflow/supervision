@@ -328,6 +328,19 @@ def overlay_image(
 
         ```
     """
+    return _overlay_image(image=image, overlay=overlay, anchor=anchor)
+
+
+def _overlay_image(
+    image: npt.NDArray[np.uint8],
+    overlay: npt.NDArray[np.uint8],
+    anchor: tuple[int, int],
+) -> npt.NDArray[np.uint8]:
+    """Overlay `overlay` onto `image` at `anchor`, clipping to scene bounds.
+
+    Non-deprecated internal implementation backing the public `overlay_image`.
+    Kept separate so library-internal callers do not emit a deprecation warning.
+    """
     scene_height, scene_width = image.shape[:2]
     image_height, image_width = overlay.shape[:2]
     anchor_x, anchor_y = anchor
