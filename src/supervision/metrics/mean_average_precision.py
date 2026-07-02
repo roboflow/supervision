@@ -49,6 +49,7 @@ class _TypeCocoDict(TypedDict, total=False):
     # Metric-target-specific content: a boolean mask of shape (H, W) for
     # `MetricTarget.MASKS` or an oriented box of shape (4, 2) for
     # `MetricTarget.ORIENTED_BOUNDING_BOXES`. Absent for `MetricTarget.BOXES`.
+    # Invariant: shape/dtype match `metric_target` of the owning COCOEvaluator.
     content: npt.NDArray[Any]
 
 
@@ -604,25 +605,25 @@ def _mask_iou_with_jaccard(
     dt_masks = np.stack(masks_detection).astype(bool)
     crowd = np.asarray(is_crowd, dtype=bool)
 
-    if not np.any(crowd):
-        # mask_iou_batch returns (gt, dt); the evaluator expects (dt, gt).
-        iou_no_crowd: npt.NDArray[np.float64] = mask_iou_batch(
-            gt_masks, dt_masks
-        ).T.astype(np.float64)
-        return iou_no_crowd
-
-    eps = np.spacing(1)
-    gt_flat = gt_masks.reshape(gt_masks.shape[0], -1).astype(np.float64)
-    dt_flat = dt_masks.reshape(dt_masks.shape[0], -1).astype(np.float64)
-    area_inter = dt_flat @ gt_flat.T
-    area_gt = gt_flat.sum(axis=1)
-    area_dt = dt_flat.sum(axis=1)
-    area_norm = np.where(
-        crowd[None, :],
-        area_dt[:, None] + eps,
-        area_dt[:, None] + area_gt[None, :] - area_inter + eps,
+    # Compute base IoU via the optimised path (float32 + memory-chunked).
+    # mask_iou_batch returns (gt, dt); the evaluator expects (dt, gt).
+    iou: npt.NDArray[np.float64] = mask_iou_batch(gt_masks, dt_masks).T.astype(
+        np.float64
     )
-    iou: npt.NDArray[np.float64] = area_inter / area_norm
+
+    if not np.any(crowd):
+        return iou
+
+    # Override crowd columns: COCO convention collapses the union to the
+    # detection area, so a small detection inside a large crowd region scores
+    # IoU ≈ 1.  Recompute only the crowd columns to avoid a full float64 matmul.
+    eps = np.spacing(1)
+    crowd_idx = np.where(crowd)[0]
+    gt_flat = gt_masks[crowd_idx].reshape(len(crowd_idx), -1).astype(np.float32)
+    dt_flat = dt_masks.reshape(dt_masks.shape[0], -1).astype(np.float32)
+    area_inter = (dt_flat @ gt_flat.T).astype(np.float64)  # (dt, N_crowd)
+    area_dt = dt_flat.sum(axis=1).astype(np.float64)  # (dt,)
+    iou[:, crowd_idx] = area_inter / (area_dt[:, None] + eps)
     return iou
 
 
@@ -809,7 +810,7 @@ class COCOEvaluator:
                 dt_obb = np.stack([d["content"] for d in dt])
                 # oriented_box_iou_batch returns (gt, dt);
                 # the evaluator expects (dt, gt).
-                iou = oriented_box_iou_batch(gt_obb, dt_obb).T
+                iou = oriented_box_iou_batch(gt_obb, dt_obb).T.astype(np.float64)
         else:
             gt_boxes = [g["bbox"] for g in gt]
             dt_boxes = [d["bbox"] for d in dt]
