@@ -879,6 +879,26 @@ def test_line_zone_tracker_id_reuse_with_different_classes(
     assert line_zone.out_count_per_class == expected_out_count_per_class
 
 
+def test_line_zone_trigger_does_not_call_np_cross(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Guard against reintroducing np.cross, deprecated for 2-D input in NumPy 2.0."""
+
+    def _raise(*args, **kwargs):
+        raise AssertionError("np.cross must not be called on 2-D vectors")
+
+    monkeypatch.setattr(np, "cross", _raise)
+
+    line_zone = LineZone(start=Point(0, 0), end=Point(0, 10))
+    for xyxy in [[4, 4, 6, 6], [-6, 4, -4, 6]]:
+        detections = _create_detections(xyxy=[xyxy], tracker_id=[0])
+        crossed_in, crossed_out = line_zone.trigger(detections)
+
+    assert not crossed_in[0]
+    assert crossed_out[0]
+    assert line_zone.out_count == 1
+
+
 def test_line_zone_annotator_multiclass_supports_none_class_id() -> None:
     line_zone = LineZone(start=Point(0, 0), end=Point(0, 10))
     for xyxy in [[4, 4, 6, 6], [-6, 4, -4, 6]]:
