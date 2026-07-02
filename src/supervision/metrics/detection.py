@@ -1424,6 +1424,19 @@ class MeanAveragePrecision:
                         true_objs[:, 4],
                     )
                 )
+            else:
+                # Predictions on a ground-truth-empty (background) image are all
+                # false positives; record them so precision/AP is penalized.
+                stats.append(
+                    (
+                        np.zeros(
+                            (predicted_objs.shape[0], iou_thresholds.size), dtype=bool
+                        ),
+                        predicted_objs[:, 5],
+                        predicted_objs[:, 4],
+                        np.zeros((0,)),
+                    )
+                )
 
         # Compute average precisions if any matches exist
         if stats:
