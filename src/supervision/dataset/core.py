@@ -72,9 +72,11 @@ class DetectionDataset(BaseDataset):
     Attributes:
         classes: List containing dataset class names.
         images:
-            Accepts a list of image paths, or dictionaries of loaded cv2 images
-            with paths as keys. If you pass a list of paths, the dataset will
-            lazily load images on demand, which is much more memory-efficient.
+            Accepts a list of image paths. Passing a dict
+            (``Dict[str, np.ndarray]``) is deprecated in ``0.30.0`` and will
+            be removed in ``0.33.0``; use a list of paths instead.
+            When a list of paths is provided, images are loaded lazily on
+            demand, which is more memory-efficient.
         annotations: Dictionary mapping
             image path to annotations. The dictionary keys match
             match the keys in `images` or entries in the list of
@@ -107,6 +109,13 @@ class DetectionDataset(BaseDataset):
         self.image_paths = list(dict.fromkeys(images))
 
         self._images_in_memory: dict[str, npt.NDArray[np.uint8]] = {}
+        if isinstance(images, dict):
+            self._images_in_memory = images
+            warn_deprecated(
+                "Passing a `Dict[str, np.ndarray]` into `DetectionDataset` is "
+                "deprecated in `0.30.0` and will be removed in `0.33.0`. Use "
+                "a list of paths `List[str]` instead."
+            )
 
     def _get_image(self, image_path: str) -> npt.NDArray[np.uint8]:
         """Assumes that image is in dataset."""

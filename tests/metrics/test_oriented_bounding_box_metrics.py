@@ -48,12 +48,8 @@ def test_perfect_non_square_oriented_boxes_score_as_perfect(
 
 
 def test_mean_average_precision_accepts_obb_metric_target() -> None:
-    """Smoke test: MeanAveragePrecision accepts metric_target=ORIENTED_BOUNDING_BOXES.
-
-    NOTE: MeanAveragePrecision uses the COCO evaluator path (box_iou_batch_with_jaccard)
-    and does not route through oriented_box_iou_batch regardless of metric_target.
-    This test verifies API acceptance only, not OBB IoU correctness.
-    """
+    """MeanAveragePrecision routes metric_target=ORIENTED_BOUNDING_BOXES through
+    oriented_box_iou_batch; perfect OBB predictions score 1.0."""
     predictions = _non_square_obb_detections(confidence=True)
     targets = _non_square_obb_detections()
 
