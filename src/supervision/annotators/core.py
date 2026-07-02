@@ -401,7 +401,7 @@ def _paint_masks_by_area(
     color_lookup: ColorLookup | npt.NDArray[np.int_],
     collect_union: bool = False,
     canvas_origin: tuple[int, int] = (0, 0),
-    compact_mask_strategy: str = "direct_rle",
+    compact_mask_strategy: str = "crop_dense",
 ) -> npt.NDArray[np.bool_] | None:
     """Paint each detection's mask into `canvas` in descending-area order.
 
@@ -422,8 +422,8 @@ def _paint_masks_by_area(
         canvas_origin: Absolute ``(x, y)`` origin of `canvas` within the source
             image. Use the default for full-frame painting.
         compact_mask_strategy: Painting strategy for ``CompactMask`` inputs.
-            ``"direct_rle"`` (default) uses vectorised RLE span arithmetic;
-            ``"crop_dense"`` decodes each crop to a boolean array first.
+            ``"crop_dense"`` (default) decodes each crop to a boolean array
+            first; ``"direct_rle"`` uses vectorised RLE span arithmetic.
 
     Returns:
         A boolean array matching the canvas dimensions when
@@ -539,7 +539,7 @@ class MaskAnnotator(BaseAnnotator):
         color: Color | ColorPalette | str = ColorPalette.DEFAULT,
         opacity: float = 0.5,
         color_lookup: ColorLookup = ColorLookup.CLASS,
-        compact_mask_strategy: str = "direct_rle",
+        compact_mask_strategy: str = "crop_dense",
     ):
         """
         Args:
@@ -549,10 +549,9 @@ class MaskAnnotator(BaseAnnotator):
             color_lookup: Strategy for mapping colors to annotations.
                 Options are `INDEX`, `CLASS`, `TRACK`.
             compact_mask_strategy: Painting strategy used when detections carry
-                a `CompactMask`. ``"direct_rle"`` (default) paints via
-                vectorised RLE span arithmetic; ``"crop_dense"`` decodes each
-                crop to a dense boolean array first (can be faster for masks
-                with very many short RLE spans).
+                a `CompactMask`. ``"crop_dense"`` (default) decodes each crop
+                to a dense boolean array first; ``"direct_rle"`` paints via
+                vectorised RLE span arithmetic.
         """
         self.color: Color | ColorPalette = _normalize_color_input(color)
         self.opacity = opacity
