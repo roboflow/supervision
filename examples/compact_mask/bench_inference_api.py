@@ -369,8 +369,8 @@ def print_summary(results: list[ApiBenchmarkResult], reps: int, warmup: int) -> 
         show_lines=False,
         header_style="bold cyan",
     )
-    table.add_column("src", style="bold", no_wrap=True)
-    table.add_column("res", no_wrap=True)
+    table.add_column("source / image", style="bold", no_wrap=True)
+    table.add_column("resolution", no_wrap=True)
     table.add_column("seg", justify="right")
     table.add_column("dense ms", justify="right")
     table.add_column("CM ms", justify="right", style="green")

@@ -562,6 +562,97 @@ def _resize_crop(
     return _mask_to_rle_counts(resized)
 
 
+def _rle_to_spans(
+    rle: npt.NDArray[np.int32],
+    crop_h: int,
+) -> tuple[npt.NDArray[np.int64], npt.NDArray[np.int64], npt.NDArray[np.int64]]:
+    """Extract (col, row_start, row_end) span arrays from a column-major RLE.
+
+    Vectorised replacement for :meth:`CompactMask._iter_true_spans`: computes
+    all true-pixel column spans in one NumPy pass without any Python-level
+    iteration over individual spans.
+
+    The RLE format alternates False/True run lengths starting with a False run
+    at index 0 (``rle[1::2]`` gives all True-run lengths).  Encoding is
+    F-order (column-major): pixel ``p`` maps to column ``p // crop_h`` and
+    row ``p % crop_h``.
+
+    Args:
+        rle: int32 run-length array as produced by
+            :func:`~supervision.detection.utils.converters._mask_to_rle_counts`.
+        crop_h: Number of pixel rows in the crop (height).
+
+    Returns:
+        Triple ``(col, row_s, row_e)`` of int64 arrays, all the same length.
+        ``row_e`` is exclusive.  Empty arrays when the mask has no True pixels.
+
+    Examples:
+        ```pycon
+        >>> import numpy as np
+        >>> from supervision.detection.compact_mask import _rle_to_spans
+        >>> mask = np.array([[True, False], [True, True]], dtype=bool)
+        >>> from supervision.detection.utils.converters import _mask_to_rle_counts
+        >>> rle = _mask_to_rle_counts(mask)
+        >>> col, row_s, row_e = _rle_to_spans(rle, crop_h=2)
+        >>> col.tolist(), row_s.tolist(), row_e.tolist()
+        ([0, 1], [0, 1], [2, 2])
+
+        ```
+    """
+    n = len(rle)
+    n_true = n // 2
+    _empty = np.empty(0, dtype=np.int64)
+    if n_true == 0 or crop_h <= 0:
+        return _empty, _empty, _empty
+
+    # Cumulative pixel offsets: cum[k] = sum(rle[:k]).
+    cum = np.empty(n + 1, dtype=np.int64)
+    cum[0] = 0
+    np.cumsum(rle, out=cum[1:])
+
+    # True run k occupies flat pixels [s[k], e[k]).
+    # rle layout: [F0, T0, F1, T1, ...]; true run k is rle[2k+1].
+    # cum[2k+1] = start of true run k; cum[2k+2] = end of true run k.
+    s = cum[1::2][:n_true]  # (n_true,)
+    e = cum[2::2][:n_true]  # (n_true,)
+
+    # Drop zero-length true runs.
+    valid = e > s
+    if not valid.all():
+        s, e = s[valid], e[valid]
+    if len(s) == 0:
+        return _empty, _empty, _empty
+
+    # Column range each true run covers (F-order: col = flat_idx // crop_h).
+    first_col = s // crop_h
+    last_col = (e - 1) // crop_h
+    n_cols = (last_col - first_col + 1).astype(np.int64)
+    total_spans = int(n_cols.sum())
+
+    # Expand each run to one entry per column it covers.
+    cumlen = np.empty(len(n_cols), dtype=np.int64)
+    cumlen[0] = 0
+    if len(n_cols) > 1:
+        np.cumsum(n_cols[:-1], out=cumlen[1:])
+    run_idx = np.repeat(np.arange(len(s), dtype=np.int64), n_cols)
+    col_within = np.arange(total_spans, dtype=np.int64) - np.repeat(cumlen, n_cols)
+    span_col = first_col[run_idx] + col_within
+
+    # Row range within each column.
+    col_base = span_col * crop_h
+    row_s = np.maximum(s[run_idx] - col_base, np.int64(0))
+    row_e = np.minimum(e[run_idx] - col_base, np.int64(crop_h))
+
+    # Guard against degenerate spans (shouldn't occur but defensive).
+    valid_span = row_s < row_e
+    if not valid_span.all():
+        span_col = span_col[valid_span]
+        row_s = row_s[valid_span]
+        row_e = row_e[valid_span]
+
+    return span_col, row_s, row_e
+
+
 class CompactMask:
     """Memory-efficient crop-RLE mask storage for instance segmentation.
 
@@ -1168,11 +1259,12 @@ class CompactMask:
     ) -> None:
         """Paint multiple masks into a BGR canvas with one vectorised scatter write.
 
-        Collects ALL span data across every mask in a single Python loop, then
-        applies the combined pixel-index arrays in one NumPy call.  This reduces
-        per-mask NumPy dispatch from O(10 x N) to O(10) total, making
-        ``direct_rle`` faster than :meth:`paint_crop_into` for all typical
-        segmentation workloads.
+        Uses :func:`_rle_to_spans` to extract column spans from each mask's RLE
+        via NumPy array operations (no Python-level span iteration).  All spans
+        are collected across masks, concatenated, and applied in a single fancy
+        index scatter write.  Python-level work is O(N_masks), not O(total_spans),
+        eliminating the per-span loop that made ``direct_rle`` slower than
+        ``crop_dense`` for scenes with many short spans.
 
         Paint order is determined by `indices`: masks that appear *later* in the
         sequence overwrite earlier ones at any overlapping pixels (NumPy
@@ -1212,33 +1304,57 @@ class CompactMask:
         ox, oy = canvas_offset
         canvas_h, canvas_w = canvas.shape[:2]
 
-        xs: list[int] = []
-        ys1: list[int] = []
-        ys2: list[int] = []
-        color_ranks: list[int] = []
+        # Per-mask numpy arrays collected here; concatenated at the end.
+        all_xs: list[npt.NDArray[np.int32]] = []
+        all_ys1: list[npt.NDArray[np.int32]] = []
+        all_ys2: list[npt.NDArray[np.int32]] = []
+        all_ranks: list[npt.NDArray[np.intp]] = []
 
         for rank, detection_idx in enumerate(indices):
+            rle = self._rles[detection_idx]
+            crop_h = int(self._crop_shapes[detection_idx, 0])
+            crop_w = int(self._crop_shapes[detection_idx, 1])
+            if crop_h <= 0 or crop_w <= 0 or len(rle) < 2:
+                continue
             x1_off = int(self._offsets[detection_idx, 0])
             y1_off = int(self._offsets[detection_idx, 1])
-            for cx, sy1, sy2 in self._iter_true_spans(detection_idx):
-                ax = cx + x1_off - ox
-                if ax < 0 or ax >= canvas_w:
-                    continue
-                ay1 = max(0, sy1 + y1_off - oy)
-                ay2 = min(canvas_h, sy2 + y1_off - oy)
-                if ay1 >= ay2:
-                    continue
-                xs.append(ax)
-                ys1.append(ay1)
-                ys2.append(ay2)
-                color_ranks.append(rank)
 
-        if not xs:
+            col, row_s, row_e = _rle_to_spans(rle, crop_h)
+            if len(col) == 0:
+                continue
+
+            # Shift crop-local column to canvas column; clip to canvas width.
+            ax = col + np.int64(x1_off - ox)
+            in_x = (ax >= 0) & (ax < canvas_w)
+            if not in_x.any():
+                continue
+            ax = ax[in_x]
+            row_s = row_s[in_x]
+            row_e = row_e[in_x]
+
+            # Shift crop-local rows to canvas rows; clip to canvas height.
+            dy = np.int64(y1_off - oy)
+            ay1 = np.maximum(row_s + dy, np.int64(0))
+            ay2 = np.minimum(row_e + dy, np.int64(canvas_h))
+            in_y = ay1 < ay2
+            if not in_y.any():
+                continue
+
+            n_spans = int(in_y.sum())
+            all_xs.append(ax[in_y].astype(np.int32))
+            all_ys1.append(ay1[in_y].astype(np.int32))
+            all_ys2.append(ay2[in_y].astype(np.int32))
+            all_ranks.append(np.full(n_spans, rank, dtype=np.intp))
+
+        if not all_xs:
             return
 
-        lengths = np.fromiter(
-            (b - a for a, b in zip(ys1, ys2)), dtype=np.intp, count=len(xs)
-        )
+        xs = np.concatenate(all_xs)
+        ys1 = np.concatenate(all_ys1)
+        ys2 = np.concatenate(all_ys2)
+        color_ranks_arr = np.concatenate(all_ranks)
+
+        lengths = (ys2 - ys1).astype(np.intp)
         total = int(lengths.sum())
         if total == 0:
             return
@@ -1249,12 +1365,12 @@ class CompactMask:
             np.cumsum(lengths[:-1], out=cumlen[1:])
 
         y_arr = (
-            np.repeat(np.asarray(ys1, dtype=np.int32), lengths)
+            np.repeat(ys1, lengths)
             + np.arange(total, dtype=np.int32)
             - np.repeat(cumlen.astype(np.int32), lengths)
         )
-        x_arr = np.repeat(np.asarray(xs, dtype=np.int32), lengths)
-        r_arr = np.repeat(np.asarray(color_ranks, dtype=np.intp), lengths)
+        x_arr = np.repeat(xs, lengths)
+        r_arr = np.repeat(color_ranks_arr, lengths)
         colors_arr = np.asarray(colors, dtype=np.uint8)
         canvas[y_arr, x_arr] = colors_arr[r_arr]
 

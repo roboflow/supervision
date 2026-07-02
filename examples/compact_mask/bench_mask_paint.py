@@ -388,11 +388,17 @@ def run_input(
 
 
 def _fmt_ratio(ratio: float) -> str:
-    """Format a speedup/slowdown ratio with colour coding."""
+    """Format crop/RLE ratio: >1 = direct_rle faster (green), <1 = crop faster (red)."""
     fmt = f"{ratio:.0f}x" if ratio >= 10 else f"{ratio:.2f}x"
     if ratio >= 1:
         return f"[green]{fmt}[/green]" if ratio >= 10 else f"[yellow]{fmt}[/yellow]"
     return f"[red]{fmt}[/red]"
+
+
+def _fmt_ms(value_s: float, winner: bool) -> str:
+    """Format milliseconds, green when this strategy is faster."""
+    s = f"{value_s * 1e3:.2f}"
+    return f"[green]{s}[/green]" if winner else s
 
 
 def _fmt_mb(num_bytes: int) -> str:
@@ -412,39 +418,37 @@ def print_summary(
         show_lines=False,
         header_style="bold cyan",
     )
-    table.add_column("src", style="bold", no_wrap=True)
-    table.add_column("res", no_wrap=True)
+    table.add_column("source / image", style="bold", no_wrap=True)
+    table.add_column("resolution", no_wrap=True)
     table.add_column("seg", justify="right")
     table.add_column("area%/obj", justify="right")
-    table.add_column("full_dense ms", justify="right")
-    table.add_column("direct_rle ms", justify="right", style="green")
+    table.add_column("direct_rle ms", justify="right")
     table.add_column("crop_dense ms", justify="right")
-    table.add_column("RLE/full", justify="right")
-    table.add_column("crop/full", justify="right")
+    table.add_column("crop/RLE", justify="right")
     table.add_column("runs/spans", justify="right")
     table.add_column("annot MB", justify="right", style="cyan")
     table.add_column("mask MB", justify="right")
     table.add_column("ok", justify="center")
 
     for result in results:
-        rle_vs_full = result.full_dense_s / max(result.direct_rle_s, 1e-9)
-        crop_vs_full = result.full_dense_s / max(result.crop_dense_s, 1e-9)
+        rle_faster = result.direct_rle_s <= result.crop_dense_s
+        crop_vs_rle = result.crop_dense_s / max(result.direct_rle_s, 1e-9)
+        annot_ratio = result.direct_rle_peak_bytes / max(
+            result.crop_dense_peak_bytes, 1
+        )
+        mask_ratio = result.dense_storage_bytes / max(result.compact_storage_bytes, 1)
         pixel_perfect = result.rle_matches_full and result.crop_matches_full
         table.add_row(
             result.scenario,
             result.resolution,
             str(result.objects),
             f"{result.mask_area_pct:.2f}",
-            f"{result.full_dense_s * 1e3:.2f}",
-            f"{result.direct_rle_s * 1e3:.2f}",
-            f"{result.crop_dense_s * 1e3:.2f}",
-            _fmt_ratio(rle_vs_full),
-            _fmt_ratio(crop_vs_full),
-            f"{result.rle_runs}/{result.rle_spans}",
-            f"{_fmt_mb(result.full_dense_peak_bytes)}"
-            f"/{_fmt_mb(result.direct_rle_peak_bytes)}"
-            f"/{_fmt_mb(result.crop_dense_peak_bytes)}",
-            f"{_fmt_mb(result.dense_storage_bytes)}/{_fmt_mb(result.compact_storage_bytes)}",
+            _fmt_ms(result.direct_rle_s, winner=rle_faster),
+            _fmt_ms(result.crop_dense_s, winner=not rle_faster),
+            _fmt_ratio(crop_vs_rle),
+            f"{result.rle_runs / max(result.rle_spans, 1):.2f}",
+            f"{annot_ratio:.2f}",
+            f"{mask_ratio:.0f}x",
             "[green]✓[/green]" if pixel_perfect else "[red]✗[/red]",
         )
     console.print(table)
@@ -454,14 +458,13 @@ def print_summary(
             [
                 f"timings are median of {reps} reps after {warmup} warmups",
                 "timings = full sv.MaskAnnotator.annotate() including opacity blend",
-                "full_dense uses dense (N,H,W) bool masks; direct_rle and crop_dense"
-                " use CompactMask",
-                "RLE/full = full_dense / direct_rle speedup;"
-                " crop/full = full_dense / crop_dense",
-                "annot MB = peak traced bytes during annotate() — full/rle/crop",
-                "mask MB = persistent mask storage dense/compact",
-                "runs/spans = RLE runs / true-pixel column spans (high spans → more"
-                " Python overhead for direct_rle)",
+                "both strategies use CompactMask; green ms = faster strategy per scene",
+                "crop/RLE = crop_dense_ms / direct_rle_ms"
+                " (>1 = direct_rle faster, <1 = crop_dense faster)",
+                "annot MB = direct_rle/crop_dense peak traced bytes ratio",
+                "mask MB = dense/compact storage ratio (higher = more savings)",
+                "runs/spans = RLE runs / true-pixel column spans ratio"
+                " (higher = more fragmented mask)",
                 "area%/obj = per-object mask coverage as % of frame area",
                 "OK means direct_rle and crop_dense outputs exactly match full_dense",
             ]
