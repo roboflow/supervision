@@ -43,7 +43,9 @@ def get_polygon_center(polygon: npt.NDArray[np.float64]) -> Point:
     shift_polygon = np.roll(polygon, -1, axis=0)
     # Explicit 2-D determinant: avoids np.cross DeprecationWarning on NumPy >=2.0
     # which no longer supports 2-D input vectors (issue #2384).
-    signed_areas = (polygon[:, 0] * shift_polygon[:, 1] - polygon[:, 1] * shift_polygon[:, 0]) / 2
+    signed_areas = (
+        polygon[:, 0] * shift_polygon[:, 1] - polygon[:, 1] * shift_polygon[:, 0]
+    ) / 2
     if signed_areas.sum() == 0:
         center = np.mean(polygon, axis=0).round()
         return Point(x=center[0], y=center[1])
