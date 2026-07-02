@@ -796,6 +796,80 @@ class TestPaintMasksByArea:
         # compact union must cover exactly the same pixels as dense union
         assert np.array_equal(union_dense, union_compact)
 
+    def test_compact_path_does_not_decode_crop(self, monkeypatch):
+        """CompactMask path paints from RLE spans without calling crop()."""
+        height, width = 50, 60
+        mask = np.zeros((height, width), dtype=bool)
+        mask[5:20, 10:12] = True
+        mask[12:14, 10:40] = True
+        mask[18, 35:40] = True
+        xyxy = [[10.0, 5.0, 39.0, 19.0]]
+        dense = _create_detections(xyxy=xyxy, mask=[mask], class_id=[0])
+        compact = _create_detections(xyxy=xyxy, mask=[mask], class_id=[0])
+        compact.mask = CompactMask.from_dense(
+            np.array([mask]), compact.xyxy, (height, width)
+        )
+
+        expected = np.zeros((height, width, 3), dtype=np.uint8)
+        _paint_masks_by_area(expected, dense, Color.RED, ColorLookup.INDEX)
+
+        def fail_materialization(self, *args, **kwargs):
+            raise AssertionError("compact painting must not materialize dense masks")
+
+        monkeypatch.setattr(CompactMask, "crop", fail_materialization)
+        monkeypatch.setattr(CompactMask, "to_dense", fail_materialization)
+        monkeypatch.setattr(CompactMask, "__getitem__", fail_materialization)
+        actual = np.zeros((height, width, 3), dtype=np.uint8)
+        _paint_masks_by_area(actual, compact, Color.RED, ColorLookup.INDEX)
+
+        assert np.array_equal(actual, expected)
+
+    def test_compact_path_nonzero_canvas_origin_matches_dense(self, monkeypatch):
+        """CompactMask RLE painting respects non-zero canvas_origin clipping."""
+        height, width = 30, 40
+        canvas_shape = (15, 15, 3)
+        full_mask = np.zeros((height, width), dtype=bool)
+        full_mask[12:18, 17:22] = True
+        xyxy = [[17.0, 12.0, 21.0, 17.0]]
+        dense = Detections(
+            xyxy=np.array(xyxy),
+            mask=full_mask[np.newaxis],
+            class_id=np.array([0]),
+        )
+        compact = Detections(
+            xyxy=np.array(xyxy),
+            mask=CompactMask.from_dense(
+                full_mask[np.newaxis], dense.xyxy, (height, width)
+            ),
+            class_id=np.array([0]),
+        )
+        expected = np.zeros(canvas_shape, dtype=np.uint8)
+        actual = np.zeros(canvas_shape, dtype=np.uint8)
+
+        _paint_masks_by_area(
+            expected,
+            dense,
+            Color.RED,
+            ColorLookup.INDEX,
+            canvas_origin=(15, 10),
+        )
+
+        def fail_materialization(self, *args, **kwargs):
+            raise AssertionError("compact painting must not materialize dense masks")
+
+        monkeypatch.setattr(CompactMask, "crop", fail_materialization)
+        monkeypatch.setattr(CompactMask, "to_dense", fail_materialization)
+        monkeypatch.setattr(CompactMask, "__getitem__", fail_materialization)
+        _paint_masks_by_area(
+            actual,
+            compact,
+            Color.RED,
+            ColorLookup.INDEX,
+            canvas_origin=(15, 10),
+        )
+
+        assert np.array_equal(actual, expected)
+
     def test_compact_mask_drops_pixels_outside_bbox(self):
         """CompactMask is lossy: True pixels outside xyxy bbox are silently dropped.
 

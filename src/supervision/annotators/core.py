@@ -435,6 +435,37 @@ def _paint_masks_by_area(
     compact_mask = masks if isinstance(masks, CompactMask) else None
     origin_x, origin_y = canvas_origin
     canvas_h, canvas_w = canvas.shape[:2]
+
+    def paint_compact_mask(
+        detection_idx: int,
+        color_bgr: tuple[int, int, int],
+    ) -> None:
+        assert compact_mask is not None
+        x1 = int(compact_mask.offsets[detection_idx, 0])
+        y1 = int(compact_mask.offsets[detection_idx, 1])
+        crop_x1 = max(0, origin_x - x1)
+        crop_y1 = max(0, origin_y - y1)
+        canvas_x1 = max(0, x1 - origin_x)
+        canvas_y1 = max(0, y1 - origin_y)
+        paint_w = canvas_w - canvas_x1
+        paint_h = canvas_h - canvas_y1
+        if paint_w <= 0 or paint_h <= 0:
+            return
+
+        for crop_x, span_y1, span_y2 in compact_mask._iter_true_spans(
+            detection_idx,
+            x_start=crop_x1,
+            y_start=crop_y1,
+            x_stop=crop_x1 + paint_w,
+            y_stop=crop_y1 + paint_h,
+        ):
+            canvas_x = canvas_x1 + crop_x - crop_x1
+            canvas_span_y1 = canvas_y1 + span_y1 - crop_y1
+            canvas_span_y2 = canvas_y1 + span_y2 - crop_y1
+            canvas[canvas_span_y1:canvas_span_y2, canvas_x] = color_bgr
+            if union is not None:
+                union[canvas_span_y1:canvas_span_y2, canvas_x] = True
+
     for detection_idx in np.flip(np.argsort(detections.area)):
         color_bgr = resolve_color(
             color=color,
@@ -443,31 +474,7 @@ def _paint_masks_by_area(
             color_lookup=color_lookup,
         ).as_bgr()
         if compact_mask is not None:
-            x1 = int(compact_mask.offsets[detection_idx, 0])
-            y1 = int(compact_mask.offsets[detection_idx, 1])
-            crop_m = compact_mask.crop(detection_idx)
-            crop_h, crop_w = crop_m.shape
-            crop_x1 = max(0, origin_x - x1)
-            crop_y1 = max(0, origin_y - y1)
-            canvas_x1 = max(0, x1 - origin_x)
-            canvas_y1 = max(0, y1 - origin_y)
-            paint_w = min(crop_w - crop_x1, canvas_w - canvas_x1)
-            paint_h = min(crop_h - crop_y1, canvas_h - canvas_y1)
-            if paint_w <= 0 or paint_h <= 0:
-                continue
-            crop_slice = crop_m[
-                crop_y1 : crop_y1 + paint_h, crop_x1 : crop_x1 + paint_w
-            ]
-            canvas_slice = canvas[
-                canvas_y1 : canvas_y1 + paint_h,
-                canvas_x1 : canvas_x1 + paint_w,
-            ]
-            canvas_slice[crop_slice] = color_bgr
-            if union is not None:
-                union[
-                    canvas_y1 : canvas_y1 + paint_h,
-                    canvas_x1 : canvas_x1 + paint_w,
-                ] |= crop_slice
+            paint_compact_mask(detection_idx, color_bgr)
         else:
             mask = np.asarray(masks[detection_idx], dtype=bool)
             mask = mask[origin_y : origin_y + canvas_h, origin_x : origin_x + canvas_w]

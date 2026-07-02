@@ -961,6 +961,45 @@ class CompactMask:
         crop_w = int(self._crop_shapes[index, 1])
         return _rle_counts_to_mask(self._rles[index], crop_h, crop_w)
 
+    def _iter_true_spans(
+        self,
+        index: int,
+        x_start: int = 0,
+        y_start: int = 0,
+        x_stop: int | None = None,
+        y_stop: int | None = None,
+    ) -> Iterator[tuple[int, int, int]]:
+        """Yield crop-local true vertical spans clipped to an exclusive rectangle."""
+        crop_h = int(self._crop_shapes[index, 0])
+        crop_w = int(self._crop_shapes[index, 1])
+        if crop_h <= 0 or crop_w <= 0:
+            return
+
+        x1 = max(0, int(x_start))
+        y1 = max(0, int(y_start))
+        x2 = crop_w if x_stop is None else min(crop_w, max(0, int(x_stop)))
+        y2 = crop_h if y_stop is None else min(crop_h, max(0, int(y_stop)))
+        if x1 >= x2 or y1 >= y2:
+            return
+
+        position = 0
+        for run_index, run_length_value in enumerate(self._rles[index]):
+            run_length = int(run_length_value)
+            run_start = position
+            run_end = position + run_length
+            position = run_end
+            if run_index % 2 == 0 or run_length <= 0:
+                continue
+
+            first_col = max(x1, run_start // crop_h)
+            last_col = min(x2 - 1, (run_end - 1) // crop_h)
+            for crop_x in range(first_col, last_col + 1):
+                col_start = crop_x * crop_h
+                span_y1 = max(y1, run_start - col_start)
+                span_y2 = min(y2, run_end - col_start)
+                if span_y1 < span_y2:
+                    yield crop_x, span_y1, span_y2
+
     # ------------------------------------------------------------------
     # Sequence / array protocol
     # ------------------------------------------------------------------

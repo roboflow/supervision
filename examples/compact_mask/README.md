@@ -74,7 +74,7 @@ Required by `MaskAnnotator`, `mask_iou_batch`, `merge()`, etc. Dominant cost at 
 
 #### Decode time: crop-only path (optimised)
 
-When callers need only the bounding-box region — `MaskAnnotator` crop-paint path, `.area`, `contains_holes`, `filter_segments_by_distance`:
+When callers need only the bounding-box region — `MaskAnnotator` RLE-paint path, `.area`, `contains_holes`, `filter_segments_by_distance`:
 
 | Format              | Complexity                       | N=10     | N=100   | N=1 000   |
 | ------------------- | -------------------------------- | -------- | ------- | --------- |
@@ -83,7 +83,7 @@ When callers need only the bounding-box region — `MaskAnnotator` crop-paint pa
 | Polygon             | O(A) — `fillPoly` on crop canvas | ~2 ms    | ~20 ms  | ~200 ms   |
 | memmap              | N/A — always full-size           | ~80 ms   | ~800 ms | ~8 000 ms |
 
-Crop RLE's `.crop()` method powers the `MaskAnnotator` optimisation — it never allocates the full image canvas, which is the entire source of the annotation speedup.
+Crop RLE's true-span iterator powers the `MaskAnnotator` optimisation — it does not allocate the full image canvas or a dense crop for painting, which is the source of the annotation memory and speed improvement.
 
 #### IoU / NMS at 1 % bbox overlap rate (sparse aerial scene)
 
