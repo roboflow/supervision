@@ -669,6 +669,8 @@ def cross_product(
         ]
     )
     vector_start = np.array([vector.start.x, vector.start.y])
+    diff = anchors - vector_start
     return cast(
-        npt.NDArray[np.number], np.cross(vector_at_zero, anchors - vector_start)
+        npt.NDArray[np.number],
+        vector_at_zero[0] * diff[..., 1] - vector_at_zero[1] * diff[..., 0],
     )
